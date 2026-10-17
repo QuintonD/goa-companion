@@ -51,10 +51,12 @@ import dev.quinton.goa.feature.catalog.ui.plural
 @Composable
 internal fun heroNameStyle() = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp, lineHeight = 24.sp)
 
-/** "Disabler · Pusher · Ranged". */
-internal fun HeroListItem.traitsLine(): String =
-    (hero.roles.map { it.label } + listOfNotNull(attackStyle?.takeIf { it == AttackStyle.RANGED }?.label))
-        .joinToString(" · ")
+/** Official roles only ("Disabler · Pusher"); ranged is shown separately so it never reads as a role. */
+internal fun HeroListItem.traitsLine(): String = hero.roles.joinToString(" · ") { it.label }
+
+/** "Ranged attack" when the hero's basic attack (Gold card) is ranged — an app-derived trait, not a role. */
+internal val HeroListItem.rangedLabel: String?
+    get() = if (attackStyle == AttackStyle.RANGED) "Ranged attack" else null
 
 /** Secondary line shown when sorting by a stat: "Elo 1268 · 9 games" or "64% wins · 11 games". */
 internal fun HeroListItem.metricLine(sort: CatalogSort): String? = when (sort) {
@@ -137,7 +139,10 @@ internal fun HeroGridTile(item: HeroListItem, sort: CatalogSort, onClick: () -> 
                 )
                 Spacer(Modifier.size(6.dp))
             }
-            MetaPill(item.productName)
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                MetaPill(item.productName)
+                item.rangedLabel?.let { MetaPill(it, color = MaterialTheme.colorScheme.primary) }
+            }
             TileFootnotes(item, sort)
         }
     }
@@ -211,6 +216,7 @@ internal fun HeroListRow(item: HeroListItem, sort: CatalogSort, onClick: () -> U
                 ) {
                     ComplexityStars(hero.complexity)
                     MetaPill(item.productName, modifier = Modifier.weight(1f, fill = false))
+                    item.rangedLabel?.let { MetaPill(it, color = MaterialTheme.colorScheme.primary) }
                     if (!hero.verified) UnverifiedBadge(compact = true)
                 }
                 val traits = item.traitsLine()
