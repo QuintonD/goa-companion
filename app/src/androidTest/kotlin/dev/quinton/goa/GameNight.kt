@@ -83,7 +83,7 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         assertEquals(4, picked.distinct().size)
 
         // ---- Draft complete: every pick has a pilot.
-        rule.waitForText("Set up match")
+        rule.reveal(hasText("Set up match"))
         checkpoint("Draft complete")
         val seatPattern = Regex("""^(.+), played by (.+?)(,.*)?$""")
         picked.forEach { hero -> rule.reveal(hasContentDescription("$hero, played by", substring = true)) }
