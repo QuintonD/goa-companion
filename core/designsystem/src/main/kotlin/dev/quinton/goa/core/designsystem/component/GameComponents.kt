@@ -44,13 +44,13 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
@@ -152,7 +152,8 @@ private fun Modifier.centeredSquare(fraction: Float): Modifier = layout { measur
     val height = if (constraints.hasBoundedHeight) constraints.maxHeight else constraints.minHeight
     val side = (minOf(width, height) * fraction).roundToInt().coerceAtLeast(0)
     val placeable = measurable.measure(Constraints.fixed(side, side))
-    layout(width, height) { placeable.place((width - side) / 2, (height - side) / 2) }
+    // Rounded like Alignment.Center so the sigil sits exactly where a centred Box put it.
+    layout(width, height) { placeable.place(((width - side) / 2f).roundToInt(), ((height - side) / 2f).roundToInt()) }
 }
 
 /**
