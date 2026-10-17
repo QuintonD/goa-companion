@@ -95,6 +95,12 @@ data class Match(
      * at Match setup. Not updated by flips during play. Null = not recorded (older matches).
      */
     val tieBreaker: Team? = null,
+    /**
+     * When this match was last edited (epoch ms); group sync keeps the later edit (ADR-025). Set
+     * by the repository on every local write; matches from before sync (database v2, backup
+     * v1–v3) count as last edited when created or played, whichever is later.
+     */
+    val updatedAt: Long = maxOf(createdAt, playedAt),
 ) {
     fun team(team: Team): List<Participant> = participants.filter { it.team == team }
 
