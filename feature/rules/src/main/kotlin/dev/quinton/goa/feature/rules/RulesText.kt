@@ -26,13 +26,37 @@ internal object RulesText {
         else -> "rulebook pages ${pages.dropLast(1).joinToString(", ")} and ${pages.last()}"
     }
 
+    /** "1 coin", "2 coins", "1 Life counter". */
+    fun count(n: Int, one: String, many: String = "${one}s"): String = "$n ${if (n == 1) one else many}"
+
+    /**
+     * The same card label the Heroes search shows (catalog `Card.kindLabel`): "Red · Tier II",
+     * "Gold · Basic", "Ultimate", "Handicap · Silver", "Spell · Red · Tier III". Feature modules
+     * don't depend on each other, so the format is mirrored here; keep the two in step.
+     */
     fun cardLabel(hero: Hero, card: Card): String {
-        val tier = card.tier?.let { "Tier ${roman(it)}" }
+        val tier = card.tier
+        val basic = card.color == CardColor.GOLD || card.color == CardColor.SILVER
         return when {
-            card.id == hero.handicap?.id -> "Handicap card"
-            hero.extras.any { it.id == card.id } -> listOfNotNull("Extras", tier).joinToString(" · ")
-            card.color == CardColor.GOLD || card.color == CardColor.SILVER -> cardColorName(card.color)
-            else -> listOfNotNull(tier, cardColorName(card.color)).joinToString(" · ")
+            card.id == hero.handicap?.id -> if (basic) "Handicap · ${colorLabel(card.color)}" else "Handicap"
+
+            card.id.startsWith("${hero.id}-spell-") -> listOfNotNull(
+                "Spell",
+                colorLabel(card.color).takeIf { card.color != CardColor.PURPLE && card.color != CardColor.OTHER },
+                tier?.let { if (it == ULTIMATE_TIER) "Ultimate" else "Tier ${roman(it)}" },
+            ).joinToString(" · ")
+
+            card.color == CardColor.PURPLE || tier == ULTIMATE_TIER -> "Ultimate"
+
+            basic -> "${colorLabel(card.color)} · Basic"
+
+            tier != null -> "${colorLabel(card.color)} · Tier ${roman(tier)}"
+
+            else -> colorLabel(card.color)
         }
     }
+
+    private fun colorLabel(color: CardColor): String = if (color == CardColor.OTHER) "Special" else cardColorName(color)
+
+    private const val ULTIMATE_TIER = 4
 }

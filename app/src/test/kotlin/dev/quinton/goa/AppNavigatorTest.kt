@@ -8,6 +8,7 @@ import dev.quinton.goa.core.navigation.DraftRoute
 import dev.quinton.goa.core.navigation.HeroDetailRoute
 import dev.quinton.goa.core.navigation.MatchEditRoute
 import dev.quinton.goa.core.navigation.MatchLogRoute
+import dev.quinton.goa.core.navigation.MatchSetupRoute
 import dev.quinton.goa.core.navigation.PlayersRoute
 import dev.quinton.goa.core.navigation.TimerPresetsRoute
 import dev.quinton.goa.core.navigation.TimerRoute
@@ -54,6 +55,38 @@ class AppNavigatorTest {
         navigator.openTimer()
         assertThat(navigator.currentTab).isEqualTo(TopLevelTab.TIMER)
         assertThat(navigator.currentStack.toList()).containsExactly(TimerRoute)
+    }
+
+    /** Game night: Draft → Set up match → Start timer landed on Timer presets [88]. */
+    @Test fun startingATimerFromSetupShowsTheTimerNotTheScreensLeftUnderneath() {
+        navigator.selectTab(TopLevelTab.TIMER)
+        navigator.navigate(TimerPresetsRoute)
+        navigator.selectTab(TopLevelTab.DRAFT)
+        navigator.navigateToTab(TopLevelTab.TIMER, MatchSetupRoute("m2"))
+        // Match setup's onTimerStarted.
+        navigator.openTimer()
+
+        assertThat(navigator.currentTab).isEqualTo(TopLevelTab.TIMER)
+        assertThat(navigator.currentStack.toList()).containsExactly(TimerRoute)
+    }
+
+    /** Game night: a new Match setup opened over last game's 5-player setup [101]. */
+    @Test fun aNewMatchSetupReplacesAnOlderOneAndWhatWasAboveIt() {
+        navigator.navigateToTab(TopLevelTab.TIMER, MatchSetupRoute("m1"))
+        navigator.navigate(TimerPresetsRoute)
+        navigator.selectTab(TopLevelTab.DRAFT)
+        navigator.navigateToTab(TopLevelTab.TIMER, MatchSetupRoute("m2"))
+
+        assertThat(navigator.currentStack.toList()).containsExactly(TimerRoute, MatchSetupRoute("m2")).inOrder()
+        navigator.back()
+        assertThat(navigator.currentStack.toList()).containsExactly(TimerRoute)
+    }
+
+    @Test fun navigatingToATabRootDoesNotDuplicateIt() {
+        navigator.navigateToTab(TopLevelTab.PLAYERS, MatchLogRoute)
+        navigator.navigate(MatchEditRoute("m1"))
+        navigator.navigateToTab(TopLevelTab.PLAYERS, MatchLogRoute)
+        assertThat(navigator.currentStack.toList()).containsExactly(PlayersRoute, MatchLogRoute).inOrder()
     }
 
     @Test fun backPopsThenReturnsToHeroes() {

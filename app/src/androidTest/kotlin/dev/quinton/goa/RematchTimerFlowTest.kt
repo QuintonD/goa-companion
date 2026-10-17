@@ -37,6 +37,12 @@ class RematchTimerFlowTest {
         grantNotifications()
         listOf("Ana", "Ben", "Cal", "Dee").forEach { rule.createPlayerViaProfile(it) }
 
+        // The Timer tab is left on Timer presets: Start timer must still land on the timer (game night [88]).
+        rule.openTab("timer")
+        rule.tapDescription("Manage timer presets")
+        rule.waitForText("Timer presets")
+        rule.openTab("players")
+
         // ---- Game 1, logged by hand: Red wins.
         rule.tap(hasText("Matches") and hasClickAction())
         rule.tapText("Log a match")
@@ -52,8 +58,8 @@ class RematchTimerFlowTest {
         rule.waitForText("Same players, heroes and teams.")
         rule.tap(hasText("Same seats") and hasClickAction())
         rule.waitForText("Match setup")
-        rule.waitForText("Pending match · 4 heroes")
-        rule.waitForText("From the drafted match")
+        rule.waitForText("Rematch · 4 heroes")
+        rule.waitForText("Rematch: same seats")
         rule.waitFor(hasTestTag("nav_timer") and isSelected())
         rule.tap(hasText("Quick") and hasClickAction())
         rule.tap(hasText("Start timer") and hasClickAction())

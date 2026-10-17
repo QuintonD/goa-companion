@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.HourglassTop
 import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -41,10 +42,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -52,8 +58,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
+import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.timer.TimerText
 import dev.quinton.goa.feature.timer.ui.components.goaTonalIconColors
 import dev.quinton.goa.feature.timer.ui.components.timerDigits
@@ -81,7 +89,11 @@ internal fun TimerStart(state: StartUiState, actions: TimerActions) {
             if (state.pendingMatches.isNotEmpty()) {
                 item { SectionHeader("Pending matches") }
                 items(state.pendingMatches, key = { it.id }) { match ->
-                    PendingMatchCard(match) { actions.onOpenSetup(match.id) }
+                    PendingMatchCard(
+                        match,
+                        onClick = { actions.onOpenSetup(match.id) },
+                        onDiscard = { actions.onDiscardPending(match.id) },
+                    )
                 }
             }
             item {
@@ -332,33 +344,66 @@ internal fun SectionHeader(text: String, modifier: Modifier = Modifier, topPaddi
     )
 }
 
+/** A pending match: its heroes per team and when it was set up, with Set up (the card) and Discard. */
 @Composable
-private fun PendingMatchCard(match: PendingMatchItem, onClick: () -> Unit) {
+private fun PendingMatchCard(match: PendingMatchItem, onClick: () -> Unit, onDiscard: () -> Unit) {
+    var confirm by rememberSaveable(match.id) { mutableStateOf(false) }
     Card(
         onClick = onClick,
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
     ) {
-        Row(
-            Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = Spacing.lg, vertical = Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(match.title, style = MaterialTheme.typography.titleSmall)
-                Text(
-                    match.subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Column(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.sm, top = Spacing.md)) {
+            Text(match.title, style = MaterialTheme.typography.titleSmall)
+            match.red?.let { TeamHeroesLine(Team.RED, it) }
+            match.blue?.let { TeamHeroesLine(Team.BLUE, it) }
+            Text(
+                match.subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { confirm = true }) { Text("Discard") }
+                Spacer(Modifier.weight(1f))
+                Text("Set up", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(end = Spacing.sm),
                 )
             }
-            Text("Set up", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-            )
         }
+    }
+    if (confirm) {
+        AlertDialog(
+            onDismissRequest = { confirm = false },
+            title = { Text("Discard this pending match?") },
+            text = { Text("It leaves this list and the match log. Matches with a result aren't affected.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirm = false
+                    onDiscard()
+                }) { Text("Discard") }
+            },
+            dismissButton = { TextButton(onClick = { confirm = false }) { Text("Keep") } },
+        )
+    }
+}
+
+@Composable
+private fun TeamHeroesLine(team: Team, heroes: String) {
+    val name = if (team == Team.RED) "Red" else "Blue"
+    Row(
+        Modifier.padding(top = Spacing.xs).semantics(mergeDescendants = true) {
+            contentDescription = "$name: $heroes"
+        },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TeamBadge(team)
+        Spacer(Modifier.width(Spacing.sm))
+        Text(heroes, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 

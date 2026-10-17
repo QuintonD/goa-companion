@@ -79,8 +79,10 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
   win condition first, everything else optional below (each winner button names that team's
   pilots, so the table confirms who it credits at a glance); dated from the session start. Saving
   shows each player's rating change, their rank and who is on top, plus **Rematch** (same
-  seats / swap heroes / swap sides / draft again → pending match → Match setup). Pending
-  matches can be resumed into setup and the timer from the log. The pilot picker can add a
+  seats / swap heroes / swap sides → Match setup, saved as a pending match when its timer
+  starts; draft again → the draft). Pending matches can be resumed into setup and the timer from
+  the log; on the Timer tab they show each team's heroes and when they were set up, with
+  Discard. The pilot picker can add a
   player inline.
 - Elo per player and per hero (seat-based, double-pilot aware, tunable — DOMAIN.md / ADR-011),
   provisional flag for <10 games, rating history chart.

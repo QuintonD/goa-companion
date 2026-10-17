@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.catalog.list
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -115,15 +116,18 @@ class CatalogViewModel internal constructor(
     private val settingsRepository: SettingsRepository,
     ratingsRepository: RatingsRepository,
     computeDispatcher: CoroutineDispatcher,
+    savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     @Inject
     constructor(
         catalogRepository: CatalogRepository,
         settingsRepository: SettingsRepository,
         ratingsRepository: RatingsRepository,
-    ) : this(catalogRepository, settingsRepository, ratingsRepository, Dispatchers.Default)
+        savedState: SavedStateHandle,
+    ) : this(catalogRepository, settingsRepository, ratingsRepository, Dispatchers.Default, savedState)
 
-    private val queryState = MutableStateFlow("")
+    /** Survives process death (the table phone is often backgrounded mid-search). */
+    private val queryState: MutableStateFlow<String> = savedState.getMutableStateFlow(KEY_QUERY, "")
     private val controls = MutableStateFlow(CatalogControls())
 
     /** The raw search text, separate from [uiState] so the text field never lags behind typing. */
@@ -231,5 +235,6 @@ class CatalogViewModel internal constructor(
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
+        const val KEY_QUERY = "catalog.query"
     }
 }

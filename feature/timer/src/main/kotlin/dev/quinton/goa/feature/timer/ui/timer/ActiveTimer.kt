@@ -190,7 +190,7 @@ private fun PortraitTimer(state: ActiveUiState, actions: TimerActions, header: @
             ) {
                 RoundPips(state.pips, state.round, Modifier.padding(top = Spacing.sm))
                 Spacer(Modifier.height(Spacing.lg))
-                PhaseHeading(state)
+                PhaseHeading(state, actions.onBack)
                 Spacer(Modifier.height(Spacing.lg))
                 PrimaryArea(state, actions, ringMax * dialScale(state))
                 StepDetail(state, actions.onOpenLevels)
@@ -198,23 +198,44 @@ private fun PortraitTimer(state: ActiveUiState, actions: TimerActions, header: @
                 Spacer(Modifier.height(Spacing.lg))
             }
         }
+        PinnedShotClock(state, actions, compact = false)
         TimerControls(state, actions)
     }
 }
 
-/** Landscape: the dial fills the left half; header, phase, extras and controls sit on the right. */
+/** A running "Hurry up" sits above the controls, outside the scrolling area, so it is always in view. */
+@Composable
+private fun PinnedShotClock(state: ActiveUiState, actions: TimerActions, compact: Boolean) {
+    val shot = state.shotClock ?: return
+    ShotClockPanel(
+        shot,
+        onRestart = actions.onShotClock,
+        onCancel = actions.onCancelShotClock,
+        compact = compact,
+        modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.xs),
+    )
+}
+
+/**
+ * Landscape: the dial fills the left half (a running Hurry up under it); header, phase, extras
+ * and controls sit on the right.
+ */
 @Composable
 private fun LandscapeTimer(state: ActiveUiState, actions: TimerActions, header: @Composable () -> Unit) {
     Row(Modifier.fillMaxSize()) {
-        BoxWithConstraints(
-            Modifier.weight(0.45f).fillMaxHeight().padding(Spacing.md),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (state.checklist != null && !state.timed) {
-                Column(Modifier.verticalScroll(rememberScrollState())) { ChecklistStepCard(state, actions.onNext) }
-            } else {
-                TimerDial(state, min(maxWidth, maxHeight).coerceAtLeast(120.dp), actions.onTogglePause)
+        // A running Hurry up sits under the dial here, leaving the right column to the step text.
+        Column(Modifier.weight(0.45f).fillMaxHeight()) {
+            BoxWithConstraints(
+                Modifier.weight(1f).fillMaxWidth().padding(Spacing.md),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (state.checklist != null && !state.timed) {
+                    Column(Modifier.verticalScroll(rememberScrollState())) { ChecklistStepCard(state, actions.onNext) }
+                } else {
+                    TimerDial(state, min(maxWidth, maxHeight).coerceAtLeast(120.dp), actions.onTogglePause)
+                }
             }
+            PinnedShotClock(state, actions, compact = true)
         }
         Column(Modifier.weight(0.55f).fillMaxHeight()) {
             header()
@@ -226,14 +247,14 @@ private fun LandscapeTimer(state: ActiveUiState, actions: TimerActions, header: 
                     .padding(horizontal = Spacing.screen),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                RoundPips(state.pips, state.round, Modifier.padding(top = Spacing.xs))
-                Spacer(Modifier.height(Spacing.md))
-                PhaseHeading(state)
+                // Compact heading: the step text must fit above the controls in a short window.
+                RoundPips(state.pips, state.round)
+                PhaseHeading(state, actions.onBack, compact = true)
                 StepDetail(state, actions.onOpenLevels)
                 SecondaryArea(state, actions)
                 Spacer(Modifier.height(Spacing.md))
             }
-            TimerControls(state, actions)
+            TimerControls(state, actions, compact = true)
         }
     }
 }
@@ -335,7 +356,13 @@ private fun RowScope.TimerTopActions(
     onCoin: () -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
-    if (state.tieBreaker != null) TieBreakerChip(state.tieBreaker, actions.onFlipCoin)
+    if (state.tieBreaker != null) {
+        TieBreakerChip(
+            state.tieBreaker,
+            actions.onFlipCoin,
+            actionKey = "${state.round}:${state.title}:${state.paused}",
+        )
+    }
     // Large text needs the room for "Round N": the ladder moves into the menu.
     val largeText = LocalDensity.current.fontScale > LARGE_FONT_SCALE
     if (!largeText) {
@@ -410,23 +437,43 @@ private fun RowScope.TimerTopActions(
     }
 }
 
+/**
+ * The step chip with "Previous phase" beside it, and the step title and hint. Previous sits up here,
+ * away from the bottom edge: with no tab bar on the running timer, a habitual tap where the Heroes
+ * tab usually is went back a phase (game night).
+ */
 @Composable
-private fun PhaseHeading(state: ActiveUiState) {
+private fun PhaseHeading(state: ActiveUiState, onBack: () -> Unit, compact: Boolean = false) {
     val reduced = rememberReducedMotion()
-    Surface(
-        shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-    ) {
-        Text(
-            state.context.uppercase(),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-            textAlign = TextAlign.Center,
-        )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
+            Icon(
+                Icons.Filled.SkipPrevious,
+                contentDescription = "Previous phase",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Surface(
+            shape = RoundedCornerShape(50),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+            modifier = Modifier.weight(1f, fill = false),
+        ) {
+            Text(
+                state.context.uppercase(),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(
+                    horizontal = Spacing.lg,
+                    vertical = if (compact) Spacing.xs else Spacing.sm,
+                ),
+                textAlign = TextAlign.Center,
+            )
+        }
+        // Balances the button so the chip stays centred.
+        Spacer(Modifier.width(48.dp))
     }
-    Spacer(Modifier.height(Spacing.sm))
+    Spacer(Modifier.height(if (compact) Spacing.xs else Spacing.sm))
     AnimatedContent(
         targetState = state.title,
         transitionSpec = {
@@ -437,7 +484,7 @@ private fun PhaseHeading(state: ActiveUiState) {
     ) { title ->
         Text(
             title,
-            style = MaterialTheme.typography.headlineMedium,
+            style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
         )
@@ -678,21 +725,18 @@ private fun LevelLadderButton(onClick: () -> Unit, label: String = "Levels") {
     }
 }
 
+/** Pause and Next. "Previous phase" is up by the step chip ([PhaseHeading]), away from the edge. */
 @Composable
-private fun TimerControls(state: ActiveUiState, actions: TimerActions) {
+private fun TimerControls(state: ActiveUiState, actions: TimerActions, compact: Boolean = false) {
     Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 2.dp) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = Spacing.screen, vertical = Spacing.md),
+            Modifier.fillMaxWidth().padding(
+                horizontal = Spacing.screen,
+                vertical = if (compact) Spacing.sm else Spacing.md,
+            ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            FilledTonalIconButton(
-                onClick = actions.onBack,
-                modifier = Modifier.size(56.dp),
-                colors = goaTonalIconColors(),
-            ) {
-                Icon(Icons.Filled.SkipPrevious, contentDescription = "Previous phase")
-            }
             FilledTonalIconButton(
                 onClick = actions.onTogglePause,
                 modifier = Modifier.size(56.dp),
@@ -705,7 +749,7 @@ private fun TimerControls(state: ActiveUiState, actions: TimerActions) {
             }
             Button(
                 onClick = actions.onNext,
-                modifier = Modifier.weight(1f).heightIn(min = 64.dp),
+                modifier = Modifier.weight(1f).heightIn(min = if (compact) 56.dp else 64.dp),
                 shape = RoundedCornerShape(20.dp),
             ) {
                 Text(

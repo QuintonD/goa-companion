@@ -6,12 +6,9 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.media.AudioAttributes
-import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -61,10 +58,11 @@ interface TimerNotifier {
  * default-importance channel with no sound or vibration (low importance hid it from the lock
  * screen and folded it into "Silent"), public on the lock screen, with a system chronometer
  * (counts down to the phase end, up in overtime) and actions, which requests promotion to a Live
- * Update on Android 16+; and high-importance alert channels whose sound (a short bundled chime)
- * uses `USAGE_ALARM` so it is audible in the background and in Do Not Disturb's alarm lane.
- * Channel sound and vibration can't change after creation, so there is one alert channel per
- * Sounds × Haptics combination. No custom views or colorized style, which would block promotion.
+ * Update on Android 16+; and a high-importance "phase over" alert that is only the visual part:
+ * its channel has no sound or vibration, and [sounder] plays the bundled chime and vibrates with
+ * alarm usage itself (ADR-018 addendum: the system auto-groups the two notifications and marks
+ * the alert silent, so a channel sound was unreliable). No custom views or colorized style,
+ * which would block promotion.
  *
  * Actions are Pause/Resume (one tap, also from the lock screen) and Next (needs an unlock on
  * API 31+). There is deliberately no Stop: ending a match is irrecoverable and stays in the app.
@@ -72,11 +70,11 @@ interface TimerNotifier {
  * by the chronometer; static states ("Paused", "Over") set one. A swipe-away (allowed for
  * ongoing notifications since Android 14) fires the delete intent, which re-posts it.
  */
-class AndroidTimerNotifier @Inject constructor(@ApplicationContext private val context: Context) : TimerNotifier {
+class AndroidTimerNotifier @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val sounder: PhaseAlertSounder,
+) : TimerNotifier {
     private val manager = NotificationManagerCompat.from(context)
-
-    private val chime: Uri
-        get() = Uri.parse("${ContentResolver.SCHEME_ANDROID_RESOURCE}://${context.packageName}/${R.raw.phase_chime}")
 
     fun ensureChannels() {
         val system = context.getSystemService(NotificationManager::class.java) ?: return
@@ -92,25 +90,18 @@ class AndroidTimerNotifier @Inject constructor(@ApplicationContext private val c
             enableVibration(false)
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         }
-        val alarm = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_ALARM)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
-        val alerts = AlertStyle.entries.map { style ->
-            NotificationChannel(
-                alertChannel(style),
-                alertChannelName(style),
-                NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                description = "When a timed phase reaches zero and the timer isn't on screen. " +
-                    "Follows Settings → Sounds and Haptics."
-                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-                if (style.sound) setSound(chime, alarm) else setSound(null, null)
-                enableVibration(style.haptics)
-                if (style.haptics) vibrationPattern = ALERT_VIBRATION
-            }
+        val alert = NotificationChannel(
+            CHANNEL_ALERT,
+            "Phase over",
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = "When a timed phase reaches zero and the timer isn't on screen. The app plays " +
+                "the chime and vibration itself, following Settings → Sounds and Haptics."
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            setSound(null, null)
+            enableVibration(false)
         }
-        system.createNotificationChannels(listOf(ongoing) + alerts)
+        system.createNotificationChannels(listOf(ongoing, alert))
     }
 
     @SuppressLint("MissingPermission") // Checked by canPost().
@@ -189,16 +180,22 @@ class AndroidTimerNotifier @Inject constructor(@ApplicationContext private val c
         manager.cancel(ID_ONGOING)
     }
 
+    /**
+     * Sounds the alert (unless the "Phase over" channel is turned off in system settings), then
+     * posts its silent visual part if notifications are allowed. The sound doesn't need the
+     * notification permission: the in-app Sounds and Haptics switches decide.
+     */
     @SuppressLint("MissingPermission") // Checked by canPost().
     override fun alertPhaseOver(snapshot: TimerSnapshot, endedTitle: String, style: AlertStyle) {
-        if (!canPost()) return
         ensureChannels()
+        if (!alertChannelBlocked()) sounder.sound(style)
+        if (!canPost()) return
         val nextText = if (snapshot.preset.autoAdvance) {
             "Now: ${TimerText.stepTitle(snapshot.step)}"
         } else {
             "Overtime is counting · ${TimerText.nextText(snapshot)}"
         }
-        val builder = NotificationCompat.Builder(context, alertChannel(style))
+        val builder = NotificationCompat.Builder(context, CHANNEL_ALERT)
             .setSmallIcon(R.drawable.ic_stat_timer)
             .setContentTitle("Time's up: $endedTitle")
             .setContentText(nextText)
@@ -208,10 +205,11 @@ class AndroidTimerNotifier @Inject constructor(@ApplicationContext private val c
             .setAutoCancel(true)
             .setTimeoutAfter(ALERT_TIMEOUT_MS)
             .setContentIntent(openAppIntent())
-        // Pre-O style flags mirror the channel (the channel decides on API 26+).
-        if (style.haptics) builder.setVibrate(ALERT_VIBRATION) else builder.setSilent(!style.sound)
         manager.notify(ID_ALERT, builder.build())
     }
+
+    private fun alertChannelBlocked(): Boolean =
+        manager.getNotificationChannel(CHANNEL_ALERT)?.importance == NotificationManager.IMPORTANCE_NONE
 
     override fun cancelAlert() {
         manager.cancel(ID_ALERT)
@@ -248,25 +246,25 @@ class AndroidTimerNotifier @Inject constructor(@ApplicationContext private val c
         const val ID_ONGOING = 4_101
         const val ID_ALERT = 4_102
 
-        /** Channels of earlier versions, deleted on start: low-importance countdown, looping alarm. */
-        val LEGACY_CHANNELS = listOf("timer_ongoing", "timer_alerts")
+        /** High importance, no sound or vibration: the visual "Time's up" (the sounder makes the noise). */
+        const val CHANNEL_ALERT = "timer_phase_alert"
 
-        /** The chime plays once; the visual alert clears itself after a while (or on any action). */
+        /**
+         * Channels of earlier versions, deleted on start: the low-importance countdown, the looping
+         * alarm, and the per-Sounds × Haptics alert channels whose sound auto-grouping muted.
+         */
+        val LEGACY_CHANNELS = listOf(
+            "timer_ongoing",
+            "timer_alerts",
+            "timer_phase_over",
+            "timer_phase_over_sound",
+            "timer_phase_over_vibrate",
+            "timer_phase_over_silent",
+            // A pre-release sounding alert channel (emulator builds only).
+            "timer_phase_chime",
+        )
+
+        /** The visual alert clears itself after a while (or on any action). */
         private const val ALERT_TIMEOUT_MS = 5 * 60_000L
-        private val ALERT_VIBRATION = longArrayOf(0, 400, 200, 400, 200, 700)
-
-        fun alertChannel(style: AlertStyle): String = when (style) {
-            AlertStyle.CHIME_AND_VIBRATE -> "timer_phase_over"
-            AlertStyle.CHIME -> "timer_phase_over_sound"
-            AlertStyle.VIBRATE -> "timer_phase_over_vibrate"
-            AlertStyle.SILENT -> "timer_phase_over_silent"
-        }
-
-        private fun alertChannelName(style: AlertStyle): String = when (style) {
-            AlertStyle.CHIME_AND_VIBRATE -> "Phase over"
-            AlertStyle.CHIME -> "Phase over (sound only)"
-            AlertStyle.VIBRATE -> "Phase over (vibrate only)"
-            AlertStyle.SILENT -> "Phase over (silent)"
-        }
     }
 }

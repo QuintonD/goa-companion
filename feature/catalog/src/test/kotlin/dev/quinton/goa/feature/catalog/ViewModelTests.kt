@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.catalog
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
@@ -56,6 +57,20 @@ class CatalogViewModelTest {
             assertThat(ready.totalInScope).isEqualTo(12)
             assertThat(ready.options.products).hasSize(2)
             assertThat(ready.options.hasOwnedProducts).isFalse()
+        }
+    }
+
+    @Test
+    fun searchTextSurvivesProcessDeath() = runTest {
+        catalogRepo.state.value = TestCatalog.catalog
+        val saved = SavedStateHandle()
+        CatalogViewModel(catalogRepo, settings, ratings, main.dispatcher, saved)
+            .onAction(CatalogAction.Search("test hero 7"))
+        // A new ViewModel restored from the same saved state (what the system hands back).
+        val restored = CatalogViewModel(catalogRepo, settings, ratings, main.dispatcher, saved)
+        assertThat(restored.query.value).isEqualTo("test hero 7")
+        restored.uiState.test {
+            assertThat(awaitReady().heroes.map { it.hero.id }).containsExactly("test-hero-7")
         }
     }
 

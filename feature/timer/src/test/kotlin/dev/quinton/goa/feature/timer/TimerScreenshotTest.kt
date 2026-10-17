@@ -70,6 +70,24 @@ class TimerScreenshotTest {
 
     @Test fun hurryUpDark() = active(TimerPreviewData.hurryUp)
 
+    @Test fun resolveHurryUpDark() = active(TimerPreviewData.resolveHurryUp)
+
+    @Test
+    @Config(fontScale = 1.3f)
+    fun resolveHurryUpFontScale13() = active(TimerPreviewData.resolveHurryUp)
+
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    fun resolveHurryUpLandscapeDark() = active(TimerPreviewData.resolveHurryUp)
+
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi", fontScale = 1.3f)
+    fun resolveHurryUpLandscapeFontScale13() = active(TimerPreviewData.resolveHurryUp)
+
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    fun resolveLandscapeDark() = active(TimerPreviewData.resolve)
+
     @Test
     @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
     fun turnLandscapeDark() = active(TimerPreviewData.turn)

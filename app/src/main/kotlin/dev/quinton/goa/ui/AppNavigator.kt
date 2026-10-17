@@ -46,7 +46,7 @@ class AppNavigator(
     }
 
     /** Shows the timer itself (notification tap, cold start with a session, the running-timer bar). */
-    fun openTimer() {
+    override fun openTimer() {
         popToRoot(TopLevelTab.TIMER)
         switchTo(TopLevelTab.TIMER)
     }
@@ -57,7 +57,12 @@ class AppNavigator(
 
     override fun navigateToTab(tab: TopLevelTab, key: NavKey?) {
         val stack = stacks.getValue(tab)
-        if (key != null && stack.lastOrNull() != key) stack.add(key)
+        if (key != null) {
+            // An older screen of the same kind (e.g. last game's Match setup) goes, with all above it.
+            val stale = stack.indexOfFirst { it::class == key::class }
+            if (stale >= 0) while (stack.size > maxOf(stale, 1)) stack.removeAt(stack.lastIndex)
+            if (stack.lastOrNull() != key) stack.add(key)
+        }
         switchTo(tab)
     }
 

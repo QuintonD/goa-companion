@@ -111,9 +111,12 @@ internal fun VolumeKeyControls(
     ) { content() }
 }
 
-/** Coin side currently showing; tap when the coin is flipped at the table, with a short Undo. */
+/**
+ * Coin side currently showing; tap when the coin is flipped at the table. Undo stays for
+ * [COIN_UNDO_MS] or until the next timer action ([actionKey] changes), whichever comes first.
+ */
 @Composable
-internal fun TieBreakerChip(team: Team, onFlip: () -> Unit) {
+internal fun TieBreakerChip(team: Team, onFlip: () -> Unit, actionKey: Any? = null) {
     var flips by remember { mutableIntStateOf(0) }
     var showUndo by remember { mutableStateOf(false) }
     LaunchedEffect(flips) {
@@ -122,6 +125,7 @@ internal fun TieBreakerChip(team: Team, onFlip: () -> Unit) {
         delay(COIN_UNDO_MS)
         showUndo = false
     }
+    LaunchedEffect(actionKey) { showUndo = false }
     if (showUndo) {
         TextButton(
             onClick = {
@@ -195,16 +199,16 @@ internal fun CoinSideDialog(current: Team?, onPick: (Team?) -> Unit, onDismiss: 
     )
 }
 
-/** Table rules under the dial: the "Hurry up" shot clock and team time-outs. */
+/**
+ * Table rules under the dial: the "Hurry up" button and team time-outs. A running Hurry up is not
+ * here: it is pinned above the controls ([ShotClockPanel]) so it can't scroll out of sight.
+ */
 @Composable
 internal fun TableRulesBar(state: ActiveUiState, actions: TimerActions) {
     val shot = state.shotClock
-    if (state.shotClockSeconds == null && state.timeOuts == null && shot == null) return
+    val startable = state.shotClockSeconds != null && shot == null
+    if (!startable && state.timeOuts == null) return
     Spacer(Modifier.height(Spacing.md))
-    if (shot != null) {
-        ShotClockPanel(shot, onRestart = actions.onShotClock, onCancel = actions.onCancelShotClock)
-        Spacer(Modifier.height(Spacing.sm))
-    }
     Row(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
@@ -222,18 +226,28 @@ internal fun TableRulesBar(state: ActiveUiState, actions: TimerActions) {
     }
 }
 
+/**
+ * The running "Hurry up" countdown, pinned just above the timer controls (game night: inside the
+ * scrolling column it sat behind the controls, digits clipped). [compact]: landscape.
+ */
 @Composable
-private fun ShotClockPanel(shot: ShotClockUi, onRestart: () -> Unit, onCancel: () -> Unit) {
+internal fun ShotClockPanel(
+    shot: ShotClockUi,
+    onRestart: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+) {
     val colors = MaterialTheme.colorScheme
     val accent = if (shot.over) colors.error else colors.primary
     Surface(
         shape = MaterialTheme.shapes.large,
         color = accent.copy(alpha = 0.10f),
         border = BorderStroke(2.dp, accent),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
     ) {
         Row(
-            Modifier.padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm),
+            Modifier.padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.xs, bottom = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
@@ -249,7 +263,9 @@ private fun ShotClockPanel(shot: ShotClockUi, onRestart: () -> Unit, onCancel: (
                 )
                 Text(
                     shot.clock,
-                    style = timerDigits(MaterialTheme.typography.displayLarge),
+                    style = timerDigits(
+                        if (compact) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.displayMedium,
+                    ),
                     color = if (shot.over || shot.warning) accent else colors.onSurface,
                 )
             }
@@ -398,4 +414,4 @@ private fun SeatChip(seat: SeatUi, modifier: Modifier, onClick: () -> Unit) {
     }
 }
 
-private const val COIN_UNDO_MS = 5_000L
+private const val COIN_UNDO_MS = 8_000L

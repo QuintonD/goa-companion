@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -23,6 +22,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -30,7 +30,9 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
+import dev.quinton.goa.feature.players.common.LogMatchFab
 import dev.quinton.goa.feature.players.common.Motion
+import dev.quinton.goa.feature.players.common.rememberFabExpansion
 import dev.quinton.goa.feature.players.match.MatchFollowUps
 import dev.quinton.goa.feature.players.match.MatchLogContent
 import dev.quinton.goa.feature.players.match.MatchLogUiState
@@ -70,6 +72,7 @@ fun PlayersHomeScreen(
     metaActions: MetaActions = MetaActions(onOpenRatingSettings = actions.onOpenRatingSettings),
     modifier: Modifier = Modifier,
 ) {
+    val fab = rememberFabExpansion()
     GoaScreen(
         title = "Players",
         modifier = modifier,
@@ -85,6 +88,7 @@ fun PlayersHomeScreen(
                 PlayersTab.PLAYERS -> if (!players.isEmpty) {
                     ExtendedFloatingActionButton(
                         onClick = actions.onAddPlayer,
+                        expanded = fab.expanded,
                         icon = { Icon(Icons.Outlined.PersonAdd, contentDescription = null) },
                         text = { Text("Add player") },
                         // M3 1.4 leaves the extended FAB's text out of the semantics tree.
@@ -95,21 +99,14 @@ fun PlayersHomeScreen(
                 }
 
                 PlayersTab.MATCHES -> if (matches.undo == null && !matches.isEmpty) {
-                    ExtendedFloatingActionButton(
-                        onClick = actions.onLogMatch,
-                        icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
-                        text = { Text("Log match") },
-                        modifier = Modifier.semantics { contentDescription = "Log match" },
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    )
+                    LogMatchFab(actions.onLogMatch, expanded = fab.expanded)
                 }
 
                 PlayersTab.META -> Unit
             }
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        Box(Modifier.fillMaxSize().padding(padding).nestedScroll(fab.connection)) {
             Column(Modifier.fillMaxSize()) {
                 TabBar(tab, actions.onSelectTab)
                 AnimatedContent(

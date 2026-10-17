@@ -18,6 +18,8 @@ data class TimerActions(
     val onSeatsChange: (Int) -> Unit = {},
     val onStart: () -> Unit = {},
     val onOpenSetup: (matchId: String?) -> Unit = {},
+    /** Deletes a pending match nobody is going to play. */
+    val onDiscardPending: (matchId: String) -> Unit = {},
     val onManagePresets: () -> Unit = {},
     val onSettings: () -> Unit = {},
     val onTogglePause: () -> Unit = {},
@@ -76,6 +78,7 @@ fun TimerRoute(
             onSeatsChange = viewModel::setSeats,
             onStart = start,
             onOpenSetup = onOpenSetup,
+            onDiscardPending = viewModel::discardPending,
             onManagePresets = onManagePresets,
             onSettings = onSettings,
             onTogglePause = viewModel::togglePause,

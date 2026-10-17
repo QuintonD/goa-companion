@@ -158,7 +158,9 @@ from the board and process death, and the second game of the night cost about 25
 **Decision:** `SetupForm` is `@Serializable` and is written to `DraftStore` (`setup_form`) on
 every change; the ViewModel reads it on creation and drops players deleted since. After a draft
 starts, the form becomes `forNextGame()`: same players, teams, captains, method and pool, a fresh
-coin, stage back to Players, marked "Same players and teams as last game" with a Clear action.
+coin, stage back to Players, with a Clear action. The note "Same players and teams as last game"
+(or "Same players as last game" when sides changed) shows only when the latest completed match
+had exactly that group, never before a game was played (game-night QA, 2026-10-17).
 `SavedStateHandle` was not used: it is cleared together with the ViewModel on a tab switch, so it
 would not cover the main case, and DataStore already covers process death.
 **Consequences:** The form survives whatever the shell does with tab state. Writes are small
@@ -179,6 +181,29 @@ both, the "Hurry up" shot clock and team time-outs live in the snapshot and are 
 **Consequences:** Four alert channels appear in system settings. A future data change to bundled
 presets bumps `revision` and adds a migration step. Snapshots from older versions decode with
 defaults (no undo, no shot clock).
+
+**Addendum (2026-10-17, timer, game night):** the background alert was silent. Android 16
+auto-groups the app's two notifications (countdown + alert) and gives the alert `FLAG_SILENT`,
+so the channel chime never played on time; the system group summary chimed once, ~1.5 min late.
+*Decision:* the alarm receiver sounds the alert itself (`PhaseAlertSounder`, under `goAsync`
+until the 1.3 s chime ends): the bundled chime with `USAGE_ALARM` and a vibration with alarm
+usage, each gated by Settings → Sounds / Haptics. The notification is the visual part on one
+silent high-importance channel (`timer_phase_alert`); the four per-style channels are deleted
+on start. In-app cues still replace the alert while the timer is visible (`uiVisible`), and
+alerts stay deduped per phase end, so nothing sounds twice. *Alternatives tried on the emulator
+(API 36):* explicit `setGroup` (the alert as its own group summary) let the system chime play on
+time, but Android 16 still force-regroups the lone summary, and the system group summary then
+chimed again when the alert was cleared (a late duplicate), so it was dropped; a foreground
+service was not needed (ADR-007 stands). *Verified on emulator-5556:* Home, screen off and
+forced Doze: `MediaPlayer` `USAGE_ALARM` `mutedState:none` on the speaker plus an alarm-usage
+vibration at expiry; Sounds off → vibration only; timer visible → in-app cues only, no alert.
+*Risk:* Android 17's background-audio hardening (developer.android.com/about/versions/17/changes/bg-audio)
+silences playback by apps that have neither a visible activity nor a (non-short) foreground
+service; the API 36 emulator only logs "AudioHardening background playback would be muted …
+level: partial". On Android 17 the chime would be silenced (vibration still works). Before the
+S25 Ultra gets Android 17, wrap the chime in a brief foreground service (the exact-alarm
+broadcast may start one; `USAGE_ALARM` with the exact-alarm permission waives the while-in-use
+rule) or revisit the channel sound if forced grouping changes.
 
 ## ADR-019 — Rules: a verbatim rules reference with a drift check against the pinned rulebook (2026-10-17)
 **Context:** Players' most-asked feature is fast rule lookup at the table, above all the level
@@ -300,3 +325,21 @@ is.
 discarded. Older builds ignore `loggingMatchId` (default null). If a 3rd printing adds "!" cards
 without a Block condition, the label follows automatically (the catalog test then needs its
 count updated).
+
+## ADR-024 — Shell+records: Start timer resets the Timer tab; rematches are saved on Start timer (2026-10-17)
+**Context:** At game night, Draft → Set up match → Start timer landed on whatever the Timer tab
+had left on top (Timer presets, or last game's 5-player Match setup with "A timer is already
+running; starting replaces it", one tap from starting the wrong match). Every Rematch option
+saved a pending match before setup, so backing out piled up identical "Quick · 4 heroes" rows.
+**Decision:** (1) `Navigator.openTimer()` is the one way to show the running timer: the Timer
+tab's stack becomes exactly its root. Match setup's "Start timer" uses it. (2)
+`navigateToTab(tab, key)` cuts the target stack back below an older screen of the same type
+(and everything above it) before pushing `key`, so a stale Match setup can't resurface. (3) A
+rematch opens `MatchSetupRoute(rematchOf, rematchKind)`; Match setup builds it with the pure
+`Rematch.create` and saves it as a pending match only on Start timer, together with the mode
+and the coin placed at setup. A draft still saves its pending match when it finishes (it is the
+only record of the draft, and the draft → match link and coin must survive a back-out). (4)
+Pending rows on the Timer tab show each team's heroes and the time they were set up, with
+Discard (confirmed; deletes only a still-pending match).
+**Consequences:** A rematch backed out of leaves nothing; existing pending matches keep working
+(resume, Who won?, Discard). The Timer tab loses whatever was stacked on it when a timer starts.

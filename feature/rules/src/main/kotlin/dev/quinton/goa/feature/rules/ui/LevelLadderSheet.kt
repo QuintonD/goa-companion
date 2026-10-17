@@ -202,7 +202,7 @@ private fun DefeatResult(row: LevelRow) {
             .background(colors.secondary.copy(alpha = 0.10f), MaterialTheme.shapes.medium)
             .border(1.dp, colors.secondary.copy(alpha = 0.5f), MaterialTheme.shapes.medium)
             .padding(Spacing.lg)
-            .semantics(mergeDescendants = true) {},
+            .clearAndSetSemantics { contentDescription = spokenDefeat(row) },
     ) {
         Text(
             "Level ${row.level} hero defeated · lowest card Tier ${RulesText.roman(row.lowestTier)}",
@@ -335,13 +335,21 @@ private fun Cell(text: String, width: Dp, bold: Boolean = false) {
     )
 }
 
-private fun spokenRow(row: LevelRow, next: Int?): String = buildString {
+internal fun spokenRow(row: LevelRow, next: Int?): String = buildString {
     append("Level ${row.level}. Lowest card Tier ${row.lowestTier}. ")
-    append("Defeat: ${row.defeatCoins} coins, ${row.assistCoins} assist coins, ")
-    append("team spends ${row.lifeCounters} Life counters. ")
-    append(if (next != null) "Next level costs $next coins. " else "Top level. ")
+    append("Defeat: ${RulesText.count(row.defeatCoins, "coin")}, ")
+    append("${RulesText.count(row.assistCoins, "assist coin")}, ")
+    append("team spends ${RulesText.count(row.lifeCounters, "Life counter")}. ")
+    append(if (next != null) "Next level costs ${RulesText.count(next, "coin")}. " else "Top level. ")
     append(row.maxTier?.let { "Max card Tier $it." } ?: "")
 }
+
+/** The defeat result for TalkBack, with singular and plural counts. */
+internal fun spokenDefeat(row: LevelRow): String =
+    "Level ${row.level} hero defeated, lowest card Tier ${row.lowestTier}. " +
+        "Their team spends ${RulesText.count(row.lifeCounters, "Life counter")}. " +
+        "The hero who defeated them collects ${RulesText.count(row.defeatCoins, "coin")}. " +
+        "That hero's friendly heroes collect ${RulesText.count(row.assistCoins, "assist coin")}."
 
 @Composable
 private fun ExceptionCard(card: ExceptionCardUi) {

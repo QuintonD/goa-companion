@@ -26,16 +26,16 @@ private const val ICON_PREFIX = "icon:"
 
 /**
  * Builds the printed card text: icons become inline placeholders whose alternate text is the
- * icon's spoken label (so TalkBack reads "Gain 1 Coin"), reminder text is italic, bold keywords
- * (`**This turn:**`) are bold, breaks are paragraph breaks. Unknown icon names fall back to their
- * text, never a blank.
+ * icon's spoken label (so TalkBack reads "Gain 1 Coin"; not twice when the printed word follows,
+ * see [spokenIconLabel]), reminder text is italic, bold keywords (`**This turn:**`) are bold,
+ * breaks are paragraph breaks. Unknown icon names fall back to their text, never a blank.
  */
 fun cardTextAnnotated(text: String, reminderColor: Color): AnnotatedString = buildAnnotatedString {
     appendSegments(CardText.parse(text), reminderColor)
 }
 
 private fun AnnotatedString.Builder.appendSegments(segments: List<CardText.Segment>, reminderColor: Color) {
-    segments.forEach { segment ->
+    segments.forEachIndexed { index, segment ->
         when (segment) {
             is CardText.Segment.Text -> append(segment.value)
 
@@ -44,7 +44,8 @@ private fun AnnotatedString.Builder.appendSegments(segments: List<CardText.Segme
                 if (icon == null) {
                     append(segment.name.replace('_', ' '))
                 } else {
-                    appendInlineContent(ICON_PREFIX + segment.name, alternateText = icon.label)
+                    val spoken = spokenIconLabel(icon.label, segments.getOrNull(index + 1))
+                    appendInlineContent(ICON_PREFIX + segment.name, alternateText = spoken)
                 }
             }
 
@@ -59,6 +60,16 @@ private fun AnnotatedString.Builder.appendSegments(segments: List<CardText.Segme
             CardText.Segment.Break -> append("\n")
         }
     }
+}
+
+/**
+ * What TalkBack reads for an inline icon: its label, or a blank when the printed text right after
+ * it already names it ("{life} Life counter" reads "Life counter" once, not twice). A blank, not an
+ * empty string: inline content needs non-empty alternate text.
+ */
+internal fun spokenIconLabel(label: String, next: CardText.Segment?): String {
+    val following = (next as? CardText.Segment.Text)?.value?.trimStart().orEmpty()
+    return if (following.startsWith(label, ignoreCase = true)) " " else label
 }
 
 /** Inline content for every known icon, sized relative to the text (scales with font size). */

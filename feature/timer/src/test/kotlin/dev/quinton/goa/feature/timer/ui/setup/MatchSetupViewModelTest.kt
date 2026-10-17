@@ -7,6 +7,7 @@ import dev.quinton.goa.core.domain.draft.DraftEngine
 import dev.quinton.goa.core.domain.draft.DraftJson
 import dev.quinton.goa.core.domain.draft.DraftSetup
 import dev.quinton.goa.core.domain.draft.Seat
+import dev.quinton.goa.core.domain.match.RematchKind
 import dev.quinton.goa.core.domain.setup.LayoutKind
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Match
@@ -222,6 +223,59 @@ class MatchSetupViewModelTest {
         assertThat(matches.state.value.single().tieBreaker).isEqualTo(Team.BLUE)
     }
 
+    /** Game night: every rematch option saved a pending match at once; six piled up in one evening. */
+    @Test
+    fun `a rematch is saved only when its timer starts`() = runTest {
+        val source = Match(
+            "g1",
+            1,
+            1,
+            MatchStatus.COMPLETED,
+            GameMode.QUICK,
+            winner = Team.RED,
+            tieBreaker = Team.RED,
+            participants = listOf(
+                Participant("a", "h1", Team.RED),
+                Participant("b", "h2", Team.RED),
+                Participant("c", "h3", Team.BLUE),
+                Participant("d", "h4", Team.BLUE),
+            ),
+        )
+        matches.upsert(source)
+        val vm = MatchSetupViewModel(
+            null,
+            h.repository,
+            h.controller,
+            matches,
+            coin,
+            RematchRequest("g1", RematchKind.SWAP_TEAMS),
+        )
+        val s = vm.loaded()
+        assertThat(s.playersLocked).isTrue()
+        assertThat(s.seatsSource).isEqualTo("Rematch: sides swapped")
+        assertThat(s.linkedMatch!!.title).isEqualTo("Rematch · 4 heroes")
+        // A rematch is a new game: the coin is placed again.
+        assertThat(s.coinPlaced).isFalse()
+        assertThat(matches.state.value.map { it.id }).containsExactly("g1")
+
+        vm.flipCoin()
+        vm.uiState.first { it.tieBreaker != null }
+        vm.navigation.test {
+            vm.startTimer()
+            assertThat(awaitItem()).isEqualTo(SetupEvent.TimerStarted)
+        }
+        val rematch = matches.state.value.single { it.id != "g1" }
+        assertThat(rematch.status).isEqualTo(MatchStatus.PENDING)
+        assertThat(rematch.team(Team.RED).map { it.playerId }).containsExactly("c", "d")
+        assertThat(rematch.tieBreaker).isEqualTo(Team.BLUE)
+        assertThat(h.controller.snapshot.first()!!.matchId).isEqualTo(rematch.id)
+    }
+
+    @Test
+    fun `seats of a drafted match say so`() = runTest {
+        assertThat(vm(draftedMatch(teamA = Team.RED)).loaded().seatsSource).isEqualTo("From the drafted match")
+    }
+
     /** A finished draft with Team A = [teamA], turned into its pending match the way the draft board does. */
     private suspend fun draftedMatch(teamA: Team): String {
         val method = DraftJson.decodeMethods(bundledAsset("draft-methods.json")).methods.first { it.id == "all-random" }
@@ -283,6 +337,19 @@ class MatchSetupViewModelTest {
         val again = vm(matches.state.value.single().id).loaded()
         assertThat(again.tieBreaker).isEqualTo(Team.RED)
         assertThat(again.coinSource).isEqualTo(CoinSource.DRAFT)
+    }
+
+    /** Game night: re-tapping the side already showing said "Blue is showing (corrected)". */
+    @Test
+    fun `picking the side the placed coin already shows is not a correction`() = runTest {
+        val vm = vm(draftedMatch(teamA = Team.BLUE))
+        vm.loaded()
+        vm.correctCoin()
+        vm.setCoin(Team.RED)
+        vm.uiState.first { it.coinSource == CoinSource.HERE }
+        vm.setCoin(Team.BLUE)
+        val s = vm.uiState.first { it.coinSource == CoinSource.DRAFT }
+        assertThat(s.tieBreaker).isEqualTo(Team.BLUE)
     }
 
     @Test

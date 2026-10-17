@@ -20,8 +20,18 @@ const val EXTRA_OPEN_TAB = "dev.quinton.goa.extra.OPEN_TAB"
 interface Navigator {
     fun navigate(key: NavKey)
 
-    /** Pushes [key] on [tab]'s stack (unless it's already on top) and switches to that tab. */
+    /**
+     * Pushes [key] on [tab]'s stack and switches to that tab. If a screen of the same type is
+     * already on that stack (e.g. an earlier Match setup), the stack is first cut back to below it,
+     * so a stale copy and whatever was opened on top of it can't resurface.
+     */
     fun navigateToTab(tab: TopLevelTab, key: NavKey? = null)
+
+    /**
+     * Shows the running timer: the Timer tab's stack becomes exactly its root (no stale presets
+     * or Match setup underneath), whichever tab the caller was on.
+     */
+    fun openTimer() = navigateToTab(TopLevelTab.TIMER)
 
     fun back()
 
@@ -42,8 +52,16 @@ interface Navigator {
 // Match setup & timer
 @Serializable data object TimerRoute : NavKey
 
-/** Match setup (mode, counters, tie breaker) for a pending match, or a fresh one. */
-@Serializable data class MatchSetupRoute(val matchId: String? = null) : NavKey
+/**
+ * Match setup (mode, counters, tie breaker) for a pending match, or a fresh one. [rematchOf] +
+ * [rematchKind] (a `RematchKind` name) set up a rematch of that match instead; it is saved as a
+ * match only when its timer starts.
+ */
+@Serializable data class MatchSetupRoute(
+    val matchId: String? = null,
+    val rematchOf: String? = null,
+    val rematchKind: String? = null,
+) : NavKey
 
 @Serializable data object TimerPresetsRoute : NavKey
 

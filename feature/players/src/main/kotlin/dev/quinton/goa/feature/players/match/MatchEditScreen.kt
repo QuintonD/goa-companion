@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -73,6 +74,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -436,7 +438,7 @@ private fun WinnerAndCondition(state: MatchEditUiState, actions: MatchEditAction
             style = if (showHeader) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.sm),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             Team.entries.forEach { team ->
                 WinnerOption(
                     team = team,
@@ -452,7 +454,8 @@ private fun WinnerAndCondition(state: MatchEditUiState, actions: MatchEditAction
             style = if (showHeader) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.xs),
         )
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        // One choice (tap again to clear): radio semantics, so TalkBack reads "selected" per chip.
+        FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             WinCondition.entries.forEach { condition ->
                 val selected = form.winCondition == condition
                 FilterChip(
@@ -465,7 +468,8 @@ private fun WinnerAndCondition(state: MatchEditUiState, actions: MatchEditAction
                         null
                     },
                     colors = goaFilterChipColors(),
-                    modifier = Modifier.heightIn(min = 48.dp),
+                    // Outer semantics win over the chip's own Checkbox role.
+                    modifier = Modifier.heightIn(min = 48.dp).semantics { role = Role.RadioButton },
                 )
             }
         }

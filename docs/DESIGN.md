@@ -87,9 +87,10 @@ fallback) · `PlayerAvatar` (crest in player colour, initial fallback) · `TeamB
 gallery screenshot test (`GalleryScreenshotTest`) shows them all, dark/light, font scale 1 and 2.
 
 ## Key screens
-Catalog grid → Hero detail · Timer (full-screen, giant ring countdown, phase chip,
-turn/round pips; landscape puts the dial on the left half; paused = blinking digits and a
-large "PAUSED" label) · Players list → Player profile (rating chart) · Match log/editor ·
+Catalog grid → Hero detail · Timer (full-screen, giant ring countdown, phase chip with
+"Previous phase" beside it, turn/round pips; bottom controls are Pause and Next only; a running
+Hurry up is pinned above them (under the dial in landscape); landscape puts the dial on the left half; paused = blinking
+digits and a large "PAUSED" label) · Players list → Player profile (rating chart) · Match log/editor ·
 Meta dashboard · Draft setup → Draft board (sticky step banner over a scrolling list of sequence
 chips, two team columns with role coverage and ban chips, then a dense pool grid with search,
 role chips and "Hide taken"; taken heroes shrink to chips; landscape moves the banner and teams
