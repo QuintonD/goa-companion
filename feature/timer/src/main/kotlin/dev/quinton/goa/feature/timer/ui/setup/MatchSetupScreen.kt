@@ -259,7 +259,7 @@ private fun PlayersCard(state: MatchSetupUiState, onPlayers: (Int) -> Unit) {
                     Text("${state.players} players", style = MaterialTheme.typography.titleMedium)
                     Text(
                         when {
-                            state.playersLocked -> "From the drafted match"
+                            state.seatsSource != null -> state.seatsSource
                             state.recommended -> "Recommended count"
                             else -> "Supported: ${state.playerRange.first} to ${state.playerRange.last}"
                         },

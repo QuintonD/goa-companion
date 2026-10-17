@@ -19,10 +19,14 @@ data class PresetOption(
     val usesActionTimer: Boolean,
 )
 
+/** A pending match on the Timer tab: mode and size, each team's heroes, and when it was set up. */
 data class PendingMatchItem(
     val id: String,
     val title: String,
     val subtitle: String,
+    /** "Xargatha, Arien" (null when the team has no seats yet). */
+    val red: String? = null,
+    val blue: String? = null,
 )
 
 data class StartUiState(

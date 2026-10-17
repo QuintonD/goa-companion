@@ -335,7 +335,7 @@ class MatchEditViewModel @AssistedInject constructor(
         }
     }
 
-    /** Saves a pending rematch of the saved (or edited) match and opens Match setup for it. */
+    /** Opens Match setup for a rematch of the saved (or edited) match; it is saved when its timer starts. */
     fun rematch(kind: RematchKind?) {
         val source = edit.value?.let { it.saved ?: it.original } ?: return
         viewModelScope.launch {
@@ -343,7 +343,7 @@ class MatchEditViewModel @AssistedInject constructor(
                 rematches.redraft(source)
                 events.send(MatchNav.OpenDraft)
             } else {
-                rematches.start(source, kind).onSuccess { events.send(MatchNav.OpenSetup(it)) }
+                rematches.start(source, kind)?.let { events.send(it) }
             }
         }
     }

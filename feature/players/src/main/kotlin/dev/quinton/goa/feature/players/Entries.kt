@@ -181,6 +181,8 @@ private fun followUps(vm: MatchLogViewModel, navigator: Navigator) = MatchFollow
 /** Rematches and pending matches continue on another tab: Match setup (then the timer) or the draft. */
 private fun Navigator.follow(nav: MatchNav) = when (nav) {
     is MatchNav.OpenSetup -> navigateToTab(TopLevelTab.TIMER, MatchSetupRoute(nav.matchId))
+    is MatchNav.OpenRematch ->
+        navigateToTab(TopLevelTab.TIMER, MatchSetupRoute(rematchOf = nav.sourceId, rematchKind = nav.kind.name))
     MatchNav.OpenDraft -> navigateToTab(TopLevelTab.DRAFT)
 }
 

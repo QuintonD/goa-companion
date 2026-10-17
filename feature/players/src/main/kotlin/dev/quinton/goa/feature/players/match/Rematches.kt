@@ -1,12 +1,10 @@
 package dev.quinton.goa.feature.players.match
 
 import dev.quinton.goa.core.data.DraftSetupPrefill
-import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.domain.match.Rematch
 import dev.quinton.goa.core.domain.match.RematchKind
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.Team
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +18,12 @@ data class RematchOption(val kind: RematchKind?, val title: String, val body: St
 sealed interface MatchNav {
     /** Match setup for this pending match, then the timer. */
     data class OpenSetup(val matchId: String) : MatchNav
+
+    /**
+     * Match setup for a rematch of [sourceId]. Nothing is saved yet: the rematch becomes a match
+     * when its timer starts, so backing out leaves no pending match behind.
+     */
+    data class OpenRematch(val sourceId: String, val kind: RematchKind) : MatchNav
 
     /** The draft, to draft again with the same group. */
     data object OpenDraft : MatchNav
@@ -48,19 +52,14 @@ fun rematchOptions(match: Match): List<RematchOption> = listOf(
 )
 
 /**
- * Starts a rematch: [start] saves the pending match (the caller opens Match setup with its id);
- * [redraft] fills the draft setup with the same players and teams (the caller opens the draft).
+ * Starts a rematch: [start] checks it can be built and says where it continues (Match setup,
+ * which saves it when the timer starts); [redraft] fills the draft setup with the same players
+ * and teams (the caller opens the draft).
  */
 @Singleton
-class RematchLauncher @Inject constructor(
-    private val matches: MatchRepository,
-    private val draftSetup: DraftSetupPrefill,
-) {
-    suspend fun start(source: Match, kind: RematchKind, now: Long = System.currentTimeMillis()): Result<String> =
-        Rematch.create(source, kind, UUID.randomUUID().toString(), now).map { match ->
-            matches.upsert(match)
-            match.id
-        }
+class RematchLauncher @Inject constructor(private val draftSetup: DraftSetupPrefill) {
+    fun start(source: Match, kind: RematchKind): MatchNav? =
+        MatchNav.OpenRematch(source.id, kind).takeIf { Rematch.unavailable(source, kind) == null }
 
     suspend fun redraft(source: Match) {
         val red = source.team(Team.RED)

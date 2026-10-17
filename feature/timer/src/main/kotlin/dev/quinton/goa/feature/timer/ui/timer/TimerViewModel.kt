@@ -121,10 +121,10 @@ class TimerViewModel @Inject constructor(
             }
         }
 
-    private val pending: Flow<List<PendingMatchItem>> = matches.observeMatches().map { list ->
+    private val pending: Flow<List<PendingMatchItem>> = combine(matches.observeMatches(), catalog) { list, c ->
         list.filter { it.status == MatchStatus.PENDING }
             .sortedByDescending { it.createdAt }
-            .map(::pendingItem)
+            .map { pendingItem(it, c) }
     }
 
     private val startState: Flow<StartUiState> = combine(
@@ -342,7 +342,13 @@ class TimerViewModel @Inject constructor(
         viewModelScope.launch { block() }
     }
 
-    private fun pendingItem(match: Match): PendingMatchItem {
+    /** A pending match nobody is going to play leaves this list and the match log. */
+    fun discardPending(matchId: String) = launch {
+        val match = matches.observeMatch(matchId).first() ?: return@launch
+        if (match.status == MatchStatus.PENDING) matches.delete(matchId)
+    }
+
+    private fun pendingItem(match: Match, catalog: Catalog?): PendingMatchItem {
         val seats = match.participants.size
         val players = match.playerIds.size
         val title = buildString {
@@ -350,8 +356,27 @@ class TimerViewModel @Inject constructor(
             if (seats > 0) append(" · $seats heroes")
             if (players in 1 until seats) append(", $players players")
         }
-        val date = DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(match.createdAt))
-        return PendingMatchItem(id = match.id, title = title, subtitle = "Pending since $date")
+
+        fun heroes(team: Team): String? = match.participants
+            .filter { it.team == team }
+            .map { seat -> seat.heroId?.let { id -> catalog?.heroes?.firstOrNull { it.id == id }?.name ?: id } ?: "Hero not picked" }
+            .takeIf { it.isNotEmpty() }
+            ?.joinToString(", ")
+        return PendingMatchItem(
+            id = match.id,
+            title = title,
+            subtitle = "Pending since ${since(match.createdAt)}",
+            red = heroes(Team.RED),
+            blue = heroes(Team.BLUE),
+        )
+    }
+
+    /** "5:06 PM" today, else "Oct 16, 2026, 5:06 PM": pending matches from one evening differ by time. */
+    private fun since(millis: Long): String {
+        val dates = DateFormat.getDateInstance(DateFormat.MEDIUM)
+        val day = dates.format(Date(millis))
+        val time = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(millis))
+        return if (day == dates.format(Date())) time else "$day, $time"
     }
 
     companion object {

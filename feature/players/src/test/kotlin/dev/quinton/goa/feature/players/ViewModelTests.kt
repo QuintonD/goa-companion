@@ -61,7 +61,7 @@ class ViewModelTests {
     private val deleted = RecentlyDeletedMatch()
     private val saved = RecentlySavedMatch()
     private val prefill = FakeDraftSetupPrefill()
-    private val rematches = RematchLauncher(matches, prefill)
+    private val rematches = RematchLauncher(prefill)
 
     @Test
     fun leaderboardRanksRatedPlayersAndHidesArchivedUntilToggled() = runTest {
@@ -237,17 +237,16 @@ class ViewModelTests {
     }
 
     @Test
-    fun rematchSavesANewPendingMatchWithoutACoinAndOpensSetup() = runTest {
+    fun rematchOpensSetupWithoutSavingAPendingMatch() = runTest {
         val vm = editor("m09")
         vm.uiState.first { !it.loading }
+        val before = matches.state.value.size
         vm.navigation.test {
             vm.rematch(RematchKind.SWAP_TEAMS)
-            val open = awaitItem() as MatchNav.OpenSetup
-            val created = matches.state.value.single { it.id == open.matchId }
+            // Game night: every rematch option saved a pending match, even when backed out of.
+            assertThat(awaitItem()).isEqualTo(MatchNav.OpenRematch("m09", RematchKind.SWAP_TEAMS))
+            assertThat(matches.state.value).hasSize(before)
             val source = Fixtures.matches.single { it.id == "m09" }
-            assertThat(created.status).isEqualTo(MatchStatus.PENDING)
-            assertThat(created.tieBreaker).isNull()
-            assertThat(created.team(Team.RED).map { it.playerId }).isEqualTo(source.team(Team.BLUE).map { it.playerId })
 
             vm.rematch(null)
             assertThat(awaitItem()).isEqualTo(MatchNav.OpenDraft)

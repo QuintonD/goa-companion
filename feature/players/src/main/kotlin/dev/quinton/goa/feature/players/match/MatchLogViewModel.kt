@@ -152,7 +152,7 @@ class MatchLogViewModel @Inject constructor(
                 rematches.redraft(source)
                 events.send(MatchNav.OpenDraft)
             } else {
-                rematches.start(source, kind).onSuccess { events.send(MatchNav.OpenSetup(it)) }
+                rematches.start(source, kind)?.let { events.send(it) }
             }
         }
     }

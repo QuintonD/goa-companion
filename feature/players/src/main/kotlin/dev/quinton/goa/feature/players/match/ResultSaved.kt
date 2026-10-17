@@ -212,7 +212,7 @@ fun RematchSheet(options: List<RematchOption>, onPick: (RematchKind?) -> Unit, o
                 modifier = Modifier.padding(horizontal = Spacing.screen).semantics { heading() },
             )
             Text(
-                "Same group again. A new pending match opens in Match setup; flip the Tie Breaker coin there.",
+                "Same group again. Match setup opens with these seats; flip the Tie Breaker coin there.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.sm),
