@@ -158,7 +158,9 @@ from the board and process death, and the second game of the night cost about 25
 **Decision:** `SetupForm` is `@Serializable` and is written to `DraftStore` (`setup_form`) on
 every change; the ViewModel reads it on creation and drops players deleted since. After a draft
 starts, the form becomes `forNextGame()`: same players, teams, captains, method and pool, a fresh
-coin, stage back to Players, marked "Same players and teams as last game" with a Clear action.
+coin, stage back to Players, with a Clear action. The note "Same players and teams as last game"
+(or "Same players as last game" when sides changed) shows only when the latest completed match
+had exactly that group, never before a game was played (game-night QA, 2026-10-17).
 `SavedStateHandle` was not used: it is cleared together with the ViewModel on a tab switch, so it
 would not cover the main case, and DataStore already covers process death.
 **Consequences:** The form survives whatever the shell does with tab state. Writes are small

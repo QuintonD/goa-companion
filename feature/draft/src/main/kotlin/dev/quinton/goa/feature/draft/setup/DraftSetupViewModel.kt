@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.CatalogRepository
+import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.RatingsRepository
 import dev.quinton.goa.core.data.SettingsRepository
@@ -26,6 +27,8 @@ import dev.quinton.goa.core.domain.teams.PlayerDraftSession
 import dev.quinton.goa.core.domain.teams.SeatLayouts
 import dev.quinton.goa.core.domain.teams.TeamBalancer
 import dev.quinton.goa.core.model.catalog.Catalog
+import dev.quinton.goa.core.model.match.Match
+import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.rating.Rating
@@ -170,6 +173,11 @@ data class SetupUiState(
     val message: String? = null,
     /** A House-draft style pool that will be dealt smaller than the method asks for. */
     val poolNote: String? = null,
+    /**
+     * "Same players and teams as last game" when the carried-over group really played the last
+     * completed match; null before any game was played or when the group differs.
+     */
+    val lastGameNote: String? = null,
 ) {
     val stage: SetupStage get() = form.stage
     val selectedMethod: MethodOption? get() = methods.firstOrNull { it.method.id == form.methodId }
@@ -227,6 +235,8 @@ class DraftSetupViewModel @Inject constructor(
     settings: SettingsRepository,
     private val drafts: DraftRepository,
     private val env: DraftEnvironment,
+    /** The match log: the "last game" note needs a completed game by this group. */
+    matches: MatchRepository,
     /** "Draft again" from a rematch while this setup is already open (shell keeps tab state). */
     private val prefills: DraftSetupPrefills = DraftSetupPrefills(),
 ) : ViewModel() {
@@ -245,8 +255,14 @@ class DraftSetupViewModel @Inject constructor(
     ) { p, r, c, s, m -> Inputs(p, r, c, s, m) }
 
     val uiState: StateFlow<SetupUiState> =
-        combine(inputs, form.filterNotNull(), drafts.active, message) { inputs, form, active, msg ->
-            derive(inputs, form, active, msg)
+        combine(
+            inputs,
+            form.filterNotNull(),
+            drafts.active,
+            message,
+            matches.observeMatches().onStart { emit(emptyList()) },
+        ) { inputs, form, active, msg, log ->
+            derive(inputs, form, active, msg).copy(lastGameNote = lastGameNote(form, log))
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SetupUiState())
 
     init {
@@ -303,6 +319,21 @@ class DraftSetupViewModel @Inject constructor(
             message = msg,
             poolNote = selected?.let { poolNote(it, candidates.size) },
         )
+    }
+
+    /**
+     * The carried-over group is only "as last game" if the most recent completed match had
+     * exactly these players; "and teams" only if they sat on the same sides (either colour).
+     */
+    private fun lastGameNote(form: SetupForm, log: List<Match>): String? {
+        if (!form.lastGame || form.selected.isEmpty()) return null
+        val last = log.filter { it.status == MatchStatus.COMPLETED }
+            .maxWithOrNull(compareBy<Match>({ it.playedAt }, { it.createdAt })) ?: return null
+        if (last.playerIds != form.selected.toSet()) return null
+        val red = last.team(Team.RED).mapTo(mutableSetOf()) { it.playerId }
+        val blue = last.team(Team.BLUE).mapTo(mutableSetOf()) { it.playerId }
+        val sides = setOf(form.red.toSet(), form.blue.toSet())
+        return if (sides == setOf(red, blue)) "Same players and teams as last game" else "Same players as last game"
     }
 
     /**

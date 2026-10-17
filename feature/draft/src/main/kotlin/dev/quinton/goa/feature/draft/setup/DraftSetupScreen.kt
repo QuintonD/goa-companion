@@ -407,9 +407,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.playersStage(state: S
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.semantics { heading() },
                     )
-                    if (state.form.lastGame && state.playerCount > 0) {
+                    state.lastGameNote?.let { note ->
                         Text(
-                            "Same players and teams as last game",
+                            note,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.secondary,
                         )

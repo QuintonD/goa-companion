@@ -3,18 +3,13 @@ package dev.quinton.goa.feature.players
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.feature.players.common.LogMatchFab
+import dev.quinton.goa.feature.players.common.rememberFabExpansion
 import dev.quinton.goa.feature.players.match.MatchFollowUps
 import dev.quinton.goa.feature.players.match.MatchLogContent
 import dev.quinton.goa.feature.players.match.MatchLogUiState
@@ -36,24 +31,17 @@ fun MatchLogScreen(
     onDismissUndo: () -> Unit,
     followUps: MatchFollowUps = MatchFollowUps(),
 ) {
+    val fab = rememberFabExpansion()
     GoaScreen(
         title = "Matches",
         onBack = onBack,
         floatingActionButton = {
             if (state.undo == null && !state.isEmpty) {
-                ExtendedFloatingActionButton(
-                    onClick = onLogMatch,
-                    icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
-                    text = { Text("Log match") },
-                    // M3 1.4 leaves the extended FAB's text out of the semantics tree.
-                    modifier = Modifier.semantics { contentDescription = "Log match" },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                )
+                LogMatchFab(onLogMatch, expanded = fab.expanded)
             }
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        Box(Modifier.fillMaxSize().padding(padding).nestedScroll(fab.connection)) {
             MatchLogContent(
                 state,
                 onOpenMatch = onOpenMatch,

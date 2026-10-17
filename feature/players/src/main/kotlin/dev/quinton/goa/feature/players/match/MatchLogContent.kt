@@ -379,14 +379,19 @@ private fun SeatLine(seat: SeatUi) {
         Spacer(Modifier.width(Spacing.sm))
         Column(Modifier.weight(1f)) {
             // The rating change sits on the hero line, so the pilot line keeps the full width for
-            // the name and its ×2/H marks.
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // the name and its ×2/H marks. When both don't fit (large text in a half-width column)
+            // the change wraps below instead of cutting the hero's name ("Xarga…").
+            FlowRow(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(
                     seat.heroName,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.padding(end = Spacing.xs),
                 )
                 DeltaIndicator(seat.delta, label = "rating")
             }
