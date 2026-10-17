@@ -95,7 +95,7 @@ class DraftRepositoryTest {
             sequence = SequenceRule.Lineup(listOf(TeamLineup(listOf("hero-01", "x"), listOf("hero-03", "hero-04")))),
         )
         val s = DraftEngine.swapSeats(board(lineup), "red-0", "red-1").getOrThrow()
-        assertThat(s.assignments).containsEntry("red-0", null)
+        assertThat(s.assignments.values).contains(null) // "x" is missing, so one Red seat is open
         val decoded = repository().roundTrip(DraftProgress.Board(s)) as DraftProgress.Board
         assertThat(DraftEngine.assignments(decoded.session)).isEqualTo(DraftEngine.assignments(s))
     }

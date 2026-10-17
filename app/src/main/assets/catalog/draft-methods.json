@@ -86,7 +86,7 @@
       "name": "Random Draft",
       "kind": "random_draft",
       "origin": "rulebook",
-      "summary": "Reveal players + 2 heroes; pick from them, Team A first, alternating teams.",
+      "summary": "Reveal heroes in play + 2 (the rulebook says players + 2); pick from them, Team A first, alternating teams.",
       "pool": { "type": "seats_plus", "extra": 2 },
       "sequence": {
         "type": "pattern",
@@ -97,7 +97,7 @@
       },
       "notes": [
         "[RB p.22] Reveal (players + 2) heroes; pick starting with Team A, alternating teams.",
-        "[APP] Counted per hero seat."
+        "[APP] Counted per hero seat: heroes in play + 2, so a double pilot adds one more hero than the rulebook's players + 2."
       ]
     },
     {
@@ -198,7 +198,7 @@
       "name": "Learning game",
       "kind": "custom",
       "origin": "rulebook",
-      "summary": "The rulebook's first-game heroes. 4 heroes: Red Wasp + Xargatha vs Blue Arien + Brogan; 6 heroes add Tigerclaw (Red) and Sabina (Blue).",
+      "summary": "The rulebook's first-game heroes, dealt at random within each team. 4 heroes: Red Wasp + Xargatha vs Blue Arien + Brogan; 6 heroes add Tigerclaw (Red) and Sabina (Blue).",
       "pool": { "type": "all" },
       "sequence": {
         "type": "lineup",
@@ -208,7 +208,7 @@
         ]
       },
       "notes": [
-        "[RB p.5] First game: 4 players = Red Wasp + Xargatha vs Blue Arien + Brogan; 6 players add Tigerclaw (Red) and Sabina (Blue).",
+        "[RB p.5] First game: 4 players = Red Wasp + Xargatha vs Blue Arien + Brogan; 6 players add Tigerclaw (Red) and Sabina (Blue). The dashboards are distributed \"randomly to the players\" of each team; the app deals them with the draft seed.",
         "[APP] Needs 2 v 2 or 3 v 3 seats. A hero missing from the catalog leaves its seat open."
       ]
     }

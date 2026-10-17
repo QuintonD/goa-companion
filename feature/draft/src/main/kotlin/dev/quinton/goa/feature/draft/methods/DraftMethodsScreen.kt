@@ -291,7 +291,7 @@ private fun Badge(text: String) {
 internal fun poolText(pool: PoolRule): String = when (pool) {
     PoolRule.All -> "Pool: every eligible hero"
     is PoolRule.Random -> "Pool: ${pool.size} at random"
-    is PoolRule.SeatsPlus -> if (pool.extra == 0) "Pool: one per hero seat" else "Pool: heroes + ${pool.extra} revealed"
+    is PoolRule.SeatsPlus -> if (pool.extra == 0) "Pool: one per hero seat" else "Pool: heroes in play + ${pool.extra} revealed"
     is PoolRule.DealPerSeat -> "Pool: ${pool.perSeat} dealt to each seat"
 }
 
