@@ -154,17 +154,28 @@ fun StatTile(value: String, caption: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun SectionHeader(title: String, modifier: Modifier = Modifier, trailing: (@Composable () -> Unit)? = null) {
-    Row(
-        modifier.fillMaxWidth().padding(top = Spacing.lg, bottom = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    val heading: @Composable (Modifier) -> Unit = { m ->
         Text(
             title.uppercase(),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.weight(1f).semantics { heading() },
+            modifier = m.semantics { heading() },
         )
-        trailing?.invoke()
+    }
+    if (trailing != null && androidx.compose.ui.platform.LocalDensity.current.fontScale >= LARGE_FONT_SCALE) {
+        // Large text: stack, so the heading never breaks mid-word.
+        Column(modifier.fillMaxWidth().padding(top = Spacing.lg, bottom = Spacing.sm)) {
+            heading(Modifier)
+            trailing()
+        }
+    } else {
+        Row(
+            modifier.fillMaxWidth().padding(top = Spacing.lg, bottom = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            heading(Modifier.weight(1f))
+            trailing?.invoke()
+        }
     }
 }
 

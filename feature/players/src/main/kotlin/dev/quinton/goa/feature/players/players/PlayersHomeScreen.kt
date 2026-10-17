@@ -16,14 +16,18 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
+import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
 import dev.quinton.goa.feature.players.common.Motion
 import dev.quinton.goa.feature.players.match.MatchLogContent
 import dev.quinton.goa.feature.players.match.MatchLogUiState
@@ -95,20 +99,7 @@ fun PlayersHomeScreen(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             Column(Modifier.fillMaxSize()) {
-                PrimaryTabRow(
-                    selectedTabIndex = tab.ordinal,
-                    containerColor = MaterialTheme.colorScheme.background,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                ) {
-                    PlayersTab.entries.forEach { t ->
-                        Tab(
-                            selected = t == tab,
-                            onClick = { actions.onSelectTab(t) },
-                            text = { Text(t.label, style = MaterialTheme.typography.titleSmall) },
-                            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+                TabBar(tab, actions.onSelectTab)
                 AnimatedContent(
                     targetState = tab,
                     transitionSpec = { fadeIn(Motion.spec()) togetherWith fadeOut(Motion.spec()) },
@@ -140,5 +131,36 @@ fun PlayersHomeScreen(
                 onDismiss = actions.onDismissUndo,
             )
         }
+    }
+}
+
+/** Fixed tabs; scrollable at large font scales so labels never break mid-word. */
+@Composable
+private fun TabBar(tab: PlayersTab, onSelect: (PlayersTab) -> Unit) {
+    val tabs: @Composable () -> Unit = {
+        PlayersTab.entries.forEach { t ->
+            Tab(
+                selected = t == tab,
+                onClick = { onSelect(t) },
+                text = { Text(t.label, style = MaterialTheme.typography.titleSmall, maxLines = 1) },
+                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    if (LocalDensity.current.fontScale >= LARGE_FONT_SCALE) {
+        PrimaryScrollableTabRow(
+            selectedTabIndex = tab.ordinal,
+            containerColor = MaterialTheme.colorScheme.background,
+            contentColor = MaterialTheme.colorScheme.primary,
+            edgePadding = Spacing.screen,
+            tabs = tabs,
+        )
+    } else {
+        PrimaryTabRow(
+            selectedTabIndex = tab.ordinal,
+            containerColor = MaterialTheme.colorScheme.background,
+            contentColor = MaterialTheme.colorScheme.primary,
+            tabs = tabs,
+        )
     }
 }
