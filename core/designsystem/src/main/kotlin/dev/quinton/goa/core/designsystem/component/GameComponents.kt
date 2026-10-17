@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -79,7 +80,8 @@ fun assetUrl(path: String): String = "file:///android_asset/$path"
  * Official hero art inside our frame, falling back to the hero's sigil when [portrait] is null
  * or fails to load. Never shows a broken tile. The frame is a 1 dp bronze border with a soft
  * inner gradient (bronze glow at the top, deep shade at the bottom) so art of any palette sits
- * in the app's look.
+ * in the app's look. [framed] = false drops that frame, for callers that draw their own (the
+ * hero grid tile), which saves two full-size layers per tile while scrolling.
  */
 @Composable
 fun HeroPortrait(
@@ -88,23 +90,25 @@ fun HeroPortrait(
     contentDescription: String?,
     modifier: Modifier = Modifier,
     shape: Shape = MaterialTheme.shapes.medium,
+    framed: Boolean = true,
 ) {
     val colors = GoaTheme.colors
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    // A plain AsyncImage (no subcomposition per tile: cheap in lazy grids) over the sigil,
+    // which shows while loading, on error and without art. Coil sizes the request to the
+    // tile's constraints, so a 110 dp tile never decodes the full portrait.
+    var loaded by remember(portrait) { mutableStateOf(false) }
     Box(
         modifier
             .clip(shape)
-            .background(
-                Brush.verticalGradient(
-                    listOf(MaterialTheme.colorScheme.surfaceVariant, colors.medallion),
-                ),
-            )
+            .drawWithCache {
+                val backdrop = Brush.verticalGradient(listOf(surfaceVariant, colors.medallion))
+                // The backdrop is hidden once the art is drawn over it: skip it (overdraw).
+                onDrawBehind { if (!loaded) drawRect(backdrop) }
+            }
             .semantics { if (contentDescription != null) this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
     ) {
-        // A plain AsyncImage (no subcomposition per tile: cheap in lazy grids) over the sigil,
-        // which shows while loading, on error and without art. Coil sizes the request to the
-        // tile's constraints, so a 110 dp tile never decodes the full portrait.
-        var loaded by remember(portrait) { mutableStateOf(false) }
         if (portrait == null || !loaded) SigilMedallionContent(heroId)
         if (portrait != null) {
             AsyncImage(
@@ -116,22 +120,24 @@ fun HeroPortrait(
                 onError = { loaded = false },
             )
         }
-        // Inner frame: top glow + bottom vignette, then the engraved bronze edge.
-        Box(
-            Modifier
-                .matchParentSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f to colors.bronzeGlow,
-                        0.35f to Color.Transparent,
-                        0.7f to Color.Transparent,
-                        1f to colors.medallion.copy(alpha = 0.55f),
-                    ),
-                )
-                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.55f), shape)
-                .padding(3.dp)
-                .border(1.dp, colors.engravedBorder.copy(alpha = 0.2f), shape),
-        )
+        if (framed) {
+            // Inner frame: top glow + bottom vignette, then the engraved bronze edge.
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to colors.bronzeGlow,
+                            0.35f to Color.Transparent,
+                            0.7f to Color.Transparent,
+                            1f to colors.medallion.copy(alpha = 0.55f),
+                        ),
+                    )
+                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.55f), shape)
+                    .padding(3.dp)
+                    .border(1.dp, colors.engravedBorder.copy(alpha = 0.2f), shape),
+            )
+        }
     }
 }
 

@@ -145,8 +145,9 @@ fun MatchEditScreen(state: MatchEditUiState, actions: MatchEditActions, modifier
     var picker by remember { mutableStateOf<Picker?>(null) }
     LaunchedEffect(state.finished) { if (state.finished) actions.onBack() }
     val saved = state.saved
-    val requestBack = { if (state.dirty && saved == null) confirmDiscard = true else actions.onBack() }
-    BackHandler(enabled = state.dirty && !state.finished && saved == null) { confirmDiscard = true }
+    val unsaved = (state.dirty || state.unsavedResult) && saved == null
+    val requestBack = { if (unsaved) confirmDiscard = true else actions.onBack() }
+    BackHandler(enabled = unsaved && !state.finished) { confirmDiscard = true }
 
     GoaScreen(
         title = when {
@@ -229,13 +230,22 @@ fun MatchEditScreen(state: MatchEditUiState, actions: MatchEditActions, modifier
     if (confirmDiscard) {
         AlertDialog(
             onDismissRequest = { confirmDiscard = false },
-            title = { Text("Discard changes?") },
-            text = { Text("Your edits to this match haven't been saved.") },
+            title = { Text(if (state.unsavedResult) "Leave without saving?" else "Discard changes?") },
+            text = {
+                Text(
+                    if (state.unsavedResult) {
+                        "This result isn't logged yet. The timer keeps the finished match, so you can " +
+                            "log it later from the Timer tab."
+                    } else {
+                        "Your edits to this match haven't been saved."
+                    },
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDiscard = false
                     actions.onBack()
-                }) { Text("Discard") }
+                }) { Text(if (state.unsavedResult) "Leave" else "Discard") }
             },
             dismissButton = { TextButton(onClick = { confirmDiscard = false }) { Text("Keep editing") } },
         )

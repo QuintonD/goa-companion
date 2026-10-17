@@ -53,5 +53,7 @@ instrumented tests green on an API 36 emulator (`goa_api36`), twice.
 - [x] Empty/error states, app icon (adaptive + monochrome) — 2026-10-17
 - [ ] Onboarding (first-run walkthrough) — not built; empty states guide first use
 - [x] Release build (R8, signing config outside repo), APK 41 MB, no INTERNET permission — 2026-10-17
+- [x] Final data fixes (ADR-023): search scroll/kinds/snippets, Block label, timer-result handoff, game nights by gap, large-font layouts, plurals — 2026-10-17, JVM tests + release build on the emulator
+- [ ] Hero grid scroll smoothness measured on the S25 Ultra (emulator host GPU crashes under flings; software GPU numbers only)
 - [ ] Baseline profile
 - [ ] Signed release APK sideloaded and smoke-tested on the S25 Ultra

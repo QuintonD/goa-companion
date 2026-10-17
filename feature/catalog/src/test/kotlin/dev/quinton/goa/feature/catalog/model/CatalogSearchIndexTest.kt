@@ -193,6 +193,29 @@ class CatalogSearchIndexTest {
     }
 
     @Test
+    fun aHeroNameAndACardKindFindThatCardAndItsHero() {
+        // "brogan ultimate": the words span the hero's name and the card's kind.
+        val cards = index.searchCards("test hero 7 ultimate")
+        assertThat(cards.map { it.card.id }).containsExactly("test-hero-7-purple-4")
+        val hero = index.search("test hero 7 ultimate").single()
+        assertThat(hero.heroId).isEqualTo("test-hero-7")
+        assertThat(hero.card?.id).isEqualTo("test-hero-7-purple-4")
+
+        assertThat(index.searchCards("test hero 7 red tier 2").map { it.card.id })
+            .containsExactly("test-hero-7-red-2a", "test-hero-7-red-2b").inOrder()
+        assertThat(index.searchCards("ultimate test hero 7 placeholder").map { it.card.id })
+            .containsExactly("test-hero-7-purple-4")
+    }
+
+    @Test
+    fun cardKindWordsAloneNeverMatch() {
+        // Every hero has Tier II cards: "tier ii" would list half the catalog.
+        assertThat(index.searchCards("tier ii")).isEmpty()
+        assertThat(index.search("tier ii")).isEmpty()
+        assertThat(index.searchCards("ultimate")).isEmpty()
+    }
+
+    @Test
     fun aHeroNameMatchIsTheStrongestQuality() {
         assertThat(index.search("test hero 7").single().quality).isEqualTo(MatchQuality.NAME)
         assertThat(index.search("placeholder").first().quality).isEqualTo(MatchQuality.NAME)

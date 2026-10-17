@@ -75,6 +75,7 @@ import dev.quinton.goa.feature.catalog.detail.printedValues
 import dev.quinton.goa.feature.catalog.ui.CardTextView
 import dev.quinton.goa.feature.catalog.ui.GameIcon
 import dev.quinton.goa.feature.catalog.ui.GameIcons
+import dev.quinton.goa.feature.catalog.ui.blockMarkerLabel
 import dev.quinton.goa.feature.catalog.ui.handicapBasis
 import dev.quinton.goa.feature.catalog.ui.kindLabel
 import dev.quinton.goa.feature.catalog.ui.label
@@ -335,13 +336,13 @@ private fun CardDetails(card: Card, isHandicap: Boolean, includeText: Boolean, m
             }
         }
         val markers = listOfNotNull(
-            GameIcons.ranged.takeIf { card.ranged },
-            GameIcons.block.takeIf { card.block },
+            (GameIcons.ranged to GameIcons.ranged.label).takeIf { card.ranged },
+            card.blockMarkerLabel()?.let { GameIcons.block to it },
         )
         if (markers.isNotEmpty()) {
             DetailRow("Markers") {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    markers.forEach { IconLabel(it, MaterialTheme.colorScheme.secondary) }
+                    markers.forEach { (icon, text) -> IconLabel(icon, MaterialTheme.colorScheme.secondary, text) }
                 }
             }
         }

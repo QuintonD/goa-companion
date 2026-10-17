@@ -2,6 +2,7 @@ package dev.quinton.goa.feature.catalog.ui
 
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
+import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.core.model.catalog.Role
 import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.feature.catalog.model.tierNumeral
@@ -72,6 +73,22 @@ fun Card.handicapBasis(): String? =
 /** [handicapBasis] for TalkBack. */
 fun Card.spokenHandicapBasis(): String? =
     if (color.isBasic) "Weaker version of the ${color.label} card, judged from its frame colour" else null
+
+private val BlockWord = Regex("\\bblock\\b", RegexOption.IGNORE_CASE)
+
+/**
+ * The marker for a Defense card printed with "!" ([Card.block]). Rulebook p.14: "Defense cards
+ * with an exclamation mark on the icon allow you to Block an attack by fulfilling a Block
+ * condition in the card text. If the Block condition is fulfilled, you successfully defend,
+ * regardless of the attack value. If not, you are defeated." A "!" card whose text has no Block
+ * condition (Takahide's Handicap, "(You are defeated.)") can never block, so it is not labelled
+ * Block. Null for a card without the "!".
+ */
+fun Card.blockMarkerLabel(): String? = when {
+    !block -> null
+    BlockWord.containsMatchIn(CardText.plain(text)) -> "Block"
+    else -> "No Block condition"
+}
 
 /** Spellbook pages have IDs `<hero>-spell-<name>` (permanent, see DOMAIN.md). */
 val Card.isSpell: Boolean get() = id.startsWith("$heroId-spell-")

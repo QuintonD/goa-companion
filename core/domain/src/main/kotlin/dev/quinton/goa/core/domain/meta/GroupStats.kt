@@ -40,13 +40,17 @@ data class DurationStat(val matches: Int, val meanMinutes: Double)
 /** A player's run of identical results up to their latest rated match. */
 data class Streak(val playerId: String, val won: Boolean, val length: Int)
 
-/** One evening at the table: the rated matches on the latest day anyone played. */
+/**
+ * One evening at the table: the latest rated matches with no gap of [GroupStats.NIGHT_GAP_MS] or
+ * more between consecutive ones, so a night that runs past midnight is still one night.
+ */
 data class GameNight(
+    /** The day the night started (its first match). */
     val date: LocalDate,
     val matchIds: List<String>,
     val redWins: Int,
     val blueWins: Int,
-    /** Sum of each player's rating changes that day, biggest gain first. */
+    /** Sum of each player's rating changes that night, biggest gain first. */
     val movers: List<Pair<String, Double>>,
 )
 
@@ -93,6 +97,9 @@ data class GroupReport(
 }
 
 object GroupStats {
+    /** A gap this long between consecutive matches starts a new game night. */
+    const val NIGHT_GAP_MS: Long = 6 * 60 * 60 * 1000L
+
     fun compute(
         matches: Collection<Match>,
         ratings: RatingsResult,
@@ -196,10 +203,16 @@ object GroupStats {
         return Streak(player, last, results.takeLastWhile { it == last }.size)
     }
 
+    /**
+     * The latest game night: the run of rated matches (in play order) ending with the latest one,
+     * where no two consecutive matches are [NIGHT_GAP_MS] or more apart. A night that runs past
+     * midnight stays one night; [GameNight.date] is the day it started.
+     */
     private fun lastNight(rated: List<Match>, ratings: RatingsResult, zone: ZoneId): GameNight? {
-        fun day(m: Match): LocalDate = Instant.ofEpochMilli(m.playedAt).atZone(zone).toLocalDate()
-        val date = rated.maxOf(::day)
-        val night = rated.filter { day(it) == date }
+        var start = rated.lastIndex
+        while (start > 0 && rated[start].playedAt - rated[start - 1].playedAt < NIGHT_GAP_MS) start--
+        val night = rated.subList(start, rated.size)
+        val date = Instant.ofEpochMilli(night.first().playedAt).atZone(zone).toLocalDate()
         val movers = HashMap<String, Double>()
         for (m in night) {
             ratings.matchChanges[m.id]?.playerDeltas?.forEach { (p, d) -> movers[p] = (movers[p] ?: 0.0) + d }

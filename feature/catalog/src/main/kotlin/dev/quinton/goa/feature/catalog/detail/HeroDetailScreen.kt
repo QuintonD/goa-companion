@@ -439,7 +439,7 @@ private fun PilotRow(rank: Int, pilot: HeroPilotStat, ranked: Boolean) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.semantics {
                     contentDescription =
-                        "${pilot.wins} wins, ${pilot.games - pilot.wins} losses"
+                        "${plural(pilot.wins, "win")}, ${plural(pilot.games - pilot.wins, "loss", "losses")}"
                 },
             )
         }

@@ -54,6 +54,12 @@ data class TimerSnapshot(
     val endOfRound: List<EndOfRoundStep>,
     val actionSlots: Int,
     val matchId: String? = null,
+    /**
+     * Ended session without a linked match: the id reserved for the new match "Log result" opens.
+     * The session (and its "Match over" summary) stays until a match with this id is saved, so
+     * leaving the result screen without saving loses nothing.
+     */
+    val loggingMatchId: String? = null,
     val round: Int = 1,
     val stepIndex: Int = 0,
     val status: TimerStatus,

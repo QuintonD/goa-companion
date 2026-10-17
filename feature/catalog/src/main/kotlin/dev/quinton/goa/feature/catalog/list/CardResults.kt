@@ -34,18 +34,29 @@ import dev.quinton.goa.feature.catalog.ui.kindLabel
 
 /**
  * The paragraph of card [text] (markup) that contains the query, so the result shows the
- * words that matched; the first paragraph when the match is in the card's name.
+ * words that matched; the first paragraph when the match is in the card's name. A lead-in such
+ * as "Choose one —" says nothing on its own, so it comes with the paragraphs after it (the
+ * options; the row shows as many lines as fit).
  */
 internal fun matchingParagraph(text: String, query: String): String {
     val paragraphs = text.split('\n').filter { it.isNotBlank() }
+    if (paragraphs.isEmpty()) return ""
     val tokens = CatalogSearchIndex.tokenize(query)
-    if (paragraphs.isEmpty() || tokens.isEmpty()) return paragraphs.firstOrNull().orEmpty()
-    val plain = paragraphs.map { CatalogSearchIndex.normalize(CardText.plain(it)) }
+    val plain = paragraphs.map { CatalogSearchIndex.normalize(CardText.plain(it)).trim() }
     val phrase = tokens.joinToString(" ")
-    val index = plain.indexOfFirst { phrase in it }.takeIf { it >= 0 }
-        ?: plain.indexOfFirst { p -> tokens.any { it in p } }.takeIf { it >= 0 }
-        ?: 0
-    return paragraphs[index]
+    val index = if (tokens.isEmpty()) {
+        0
+    } else {
+        plain.indexOfFirst { phrase in it }.takeIf { it >= 0 }
+            ?: plain.indexOfFirst { p -> tokens.any { it in p } }.takeIf { it >= 0 }
+            ?: 0
+    }
+    val leadIn = plain[index].endsWith('—') || plain[index].endsWith(':') || plain[index].endsWith("--")
+    return if (leadIn && index < paragraphs.lastIndex) {
+        paragraphs.subList(index, paragraphs.size).joinToString("\n")
+    } else {
+        paragraphs[index]
+    }
 }
 
 /** One card in the search results: name, hero and kind, and the paragraph that matched. */

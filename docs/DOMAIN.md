@@ -299,6 +299,14 @@ engines in `core:domain`.
   listed stat has a non-null value. The UI shows `4+` and speaks "Attack 4 plus". Source:
   Stats of Atlantis `primaryValueSign`/`modifierValueSign` `"PLUS"`, cross-checked against
   colefin8's `4+` notation (`values.plus`). `"EXCLAMATION"` is the Block marker (`block`).
+- **Block** (`block`) records the printed "!" on the Defense icon, nothing more. Rulebook p.14:
+  "Defense cards with an exclamation mark on the icon allow you to Block an attack by
+  fulfilling a Block condition in the card text. If the Block condition is fulfilled, you
+  successfully defend, regardless of the attack value. If not, you are defeated." The app
+  labels a "!" card **Block** only when its text states a Block condition (the word "block");
+  17 of the 18 "!" cards do. Takahide's Handicap "Shameful Display" prints the "!" with only
+  "( You are defeated. )" (scan checked 2026-10-17), so it is labelled "No Block condition"
+  [APP label]; a catalog test pins both facts.
 - IDs: catalog = permanent kebab-case slugs (`"arien"`, `"arien-red-1"`); user data = UUIDs.
 - **Player names are unique** [APP], compared trimmed and case-insensitively, archived
   players included (`PlayerNames`), so one person never has two ids and two split ratings.
@@ -412,8 +420,10 @@ spaces, players and heroes, updated from the same match. Every constant lives in
     match. Pairs are ranked by Wilson lower bound and listed only with ≥ minimum sample
     (default 5) games; rivalries read from the winning side.
   - Streaks: each player's run of identical results up to their latest rated match (shown from 2).
-  - Last game night: rated matches on the latest local day with any, Red/Blue wins, and each
-    player's summed rating change that day (biggest movers).
+  - Last game night [APP]: the latest run of rated matches with no gap of 6 hours or more
+    between consecutive ones (so a night that runs past midnight stays one night), dated by
+    the day it started; Red/Blue wins, and each player's summed rating change that night
+    (biggest movers).
 - **Leaderboard change**: the sum of the last 5 (or fewer) rating changes, labelled "last N".
 
 ## Rematch [APP]

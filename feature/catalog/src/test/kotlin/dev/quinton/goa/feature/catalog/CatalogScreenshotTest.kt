@@ -75,7 +75,11 @@ private object ShotData {
         aliases = listOf("Test Alias"),
         cards = hero.cards.map { card ->
             when {
-                card.tier == 3 -> card.copy(item = Stat.DEFENSE, block = card.id.endsWith("a"))
+                // A "!" card states its Block condition (rulebook p.14), so it is labelled Block.
+                card.tier == 3 && card.id.endsWith("a") ->
+                    card.copy(item = Stat.DEFENSE, block = true, text = "Block a synthetic attack.")
+
+                card.tier == 3 -> card.copy(item = Stat.DEFENSE)
 
                 // Printed "+" value and a bold keyword, as on real cards (synthetic wording).
                 card.tier == 2 -> card.copy(
