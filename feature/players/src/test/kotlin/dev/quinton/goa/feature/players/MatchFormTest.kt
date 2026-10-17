@@ -35,8 +35,45 @@ class MatchFormTest {
         assertThat(MatchValidation.validate(valid.withSeats(Team.BLUE, listOf(SeatDraft(9, "a", "h4")))))
             .containsExactly(MatchError.BothTeams("a", "a"))
         assertThat(MatchValidation.validate(valid.copy(winner = null))).containsExactly(MatchError.WinnerRequired)
-        assertThat(MatchValidation.validate(valid.copy(duration = "0"))).containsExactly(MatchError.InvalidDuration)
-        assertThat(MatchValidation.validate(valid.copy(duration = "999"))).containsExactly(MatchError.InvalidDuration)
+    }
+
+    @Test
+    fun `pending and abandoned matches can be saved with no seats, completed ones cannot`() {
+        val empty = valid.copy(red = emptyList(), blue = emptyList(), winner = null, notes = "rained off")
+        for (status in listOf(MatchStatus.PENDING, MatchStatus.ABANDONED)) {
+            assertThat(MatchValidation.validate(empty.copy(status = status))).isEmpty()
+            val match = empty.copy(status = status).toMatch("m", 1, null)
+            assertThat(match.participants).isEmpty()
+            assertThat(match.notes).isEqualTo("rained off")
+        }
+        assertThat(MatchValidation.validate(empty)).containsExactly(
+            MatchError.EmptyTeam(Team.RED),
+            MatchError.EmptyTeam(Team.BLUE),
+            MatchError.WinnerRequired,
+        )
+        // Integrity rules still apply whatever the status.
+        val pendingTwice = valid.copy(status = MatchStatus.PENDING)
+            .withSeats(Team.BLUE, listOf(SeatDraft(9, "b", "h1")))
+        assertThat(MatchValidation.validate(pendingTwice)).containsExactly(MatchError.DuplicateHero("h1", "h1"))
+    }
+
+    @Test
+    fun `durations up to 600 minutes save and out-of-range values never block saving`() {
+        assertThat(MatchValidation.validate(valid.copy(duration = "600"))).isEmpty()
+        assertThat(valid.copy(duration = "600").toMatch("m", 1, null).durationMin).isEqualTo(600)
+        for (bad in listOf("0", "999", "abc")) {
+            assertThat(MatchValidation.validate(valid.copy(duration = bad))).isEmpty()
+        }
+        assertThat(valid.copy(duration = "0").toMatch("m", 1, null).durationMin).isNull()
+        assertThat(valid.copy(duration = "999").toMatch("m", 1, null).durationMin).isEqualTo(600)
+        assertThat(MatchForm.durationText(720)).isEqualTo("600")
+        assertThat(MatchForm.durationText(0)).isEmpty()
+        assertThat(MatchForm.durationText(-3)).isEmpty()
+        assertThat(MatchForm.durationText(null)).isEmpty()
+        assertThat(MatchForm.durationText(45)).isEqualTo("45")
+        var key = 0L
+        val stored = valid.toMatch("m", 1, null).copy(durationMin = 900)
+        assertThat(MatchForm.from(stored) { key++ }.duration).isEqualTo("600")
     }
 
     @Test

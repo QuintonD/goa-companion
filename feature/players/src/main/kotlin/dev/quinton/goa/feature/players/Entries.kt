@@ -149,7 +149,7 @@ private fun PlayersHomeEntry(navigator: Navigator) {
 @Composable
 private fun MatchEditEntry(key: MatchEditRoute, navigator: Navigator) {
     val vm = hiltViewModel<MatchEditViewModel, MatchEditViewModel.Factory>(
-        creationCallback = { it.create(key.matchId) },
+        creationCallback = { it.create(key) },
     )
     val state by vm.uiState.collectAsStateWithLifecycle()
     MatchEditScreen(

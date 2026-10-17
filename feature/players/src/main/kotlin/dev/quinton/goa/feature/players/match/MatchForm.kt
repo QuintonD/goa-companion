@@ -56,7 +56,7 @@ data class MatchForm(
             map = map.trim().ifEmpty { null },
             winner = if (completed) winner else null,
             winCondition = if (completed) winCondition else null,
-            durationMin = duration.trim().toIntOrNull(),
+            durationMin = durationMinutes(duration),
             notes = notes.trim(),
             draftId = draftId,
             participants = participantsOf(Team.RED) + participantsOf(Team.BLUE),
@@ -64,6 +64,17 @@ data class MatchForm(
     }
 
     companion object {
+        /**
+         * Minutes for a stored/incoming duration: clamped to [MAX_DURATION_MIN], and ignored
+         * (empty) when not positive, so an odd value never blocks saving.
+         */
+        fun durationText(minutes: Int?): String =
+            minutes?.takeIf { it > 0 }?.coerceAtMost(MAX_DURATION_MIN)?.toString().orEmpty()
+
+        /** The duration field as minutes: clamped like [durationText]; null when empty, zero or not a number. */
+        fun durationMinutes(text: String): Int? =
+            text.trim().toIntOrNull()?.takeIf { it > 0 }?.coerceAtMost(MAX_DURATION_MIN)
+
         fun from(match: Match, nextKey: () -> Long) = MatchForm(
             playedAt = match.playedAt,
             mode = match.mode,
@@ -71,7 +82,7 @@ data class MatchForm(
             status = match.status,
             winner = match.winner,
             winCondition = match.winCondition,
-            duration = match.durationMin?.toString().orEmpty(),
+            duration = durationText(match.durationMin),
             notes = match.notes,
             red = match.team(Team.RED).map { SeatDraft(nextKey(), it.playerId, it.heroId, it.handicap) },
             blue = match.team(Team.BLUE).map { SeatDraft(nextKey(), it.playerId, it.heroId, it.handicap) },
@@ -101,23 +112,28 @@ sealed interface MatchError {
     data object WinnerRequired : MatchError {
         override val message get() = "Choose the winning team of a completed match."
     }
-
-    data object InvalidDuration : MatchError {
-        override val message get() = "Duration must be a whole number of minutes (1–600)."
-    }
 }
 
 const val MAX_SEATS_PER_TEAM = 5
-private const val MAX_DURATION_MIN = 600
 
+/** Longest duration the editor stores; longer incoming values are clamped to it. */
+const val MAX_DURATION_MIN = 600
+
+/**
+ * Integrity rules (a pilot per seat, each hero once, nobody on both teams) always apply. Result
+ * rules (both teams seated, a winner) apply only to COMPLETED matches, so a PENDING or ABANDONED
+ * match can be saved with no seats, e.g. to abandon it or keep notes. The duration never blocks
+ * saving: out-of-range values are clamped or dropped ([MatchForm.durationMinutes]).
+ */
 object MatchValidation {
     fun validate(
         form: MatchForm,
         heroName: (String) -> String = { it },
         playerName: (String) -> String = { it },
     ): List<MatchError> = buildList {
-        if (form.red.isEmpty()) add(MatchError.EmptyTeam(Team.RED))
-        if (form.blue.isEmpty()) add(MatchError.EmptyTeam(Team.BLUE))
+        val completed = form.status == MatchStatus.COMPLETED
+        if (completed && form.red.isEmpty()) add(MatchError.EmptyTeam(Team.RED))
+        if (completed && form.blue.isEmpty()) add(MatchError.EmptyTeam(Team.BLUE))
         if ((form.red + form.blue).any { it.playerId == null }) add(MatchError.MissingPilot)
         form.heroesInUse().groupingBy { it }.eachCount().filterValues { it > 1 }.keys.sorted().forEach {
             add(MatchError.DuplicateHero(it, heroName(it)))
@@ -126,10 +142,6 @@ object MatchValidation {
         form.blue.mapNotNull { it.playerId }.distinct().filter { it in redPlayers }.forEach {
             add(MatchError.BothTeams(it, playerName(it)))
         }
-        if (form.status == MatchStatus.COMPLETED && form.winner == null) add(MatchError.WinnerRequired)
-        val duration = form.duration.trim()
-        if (duration.isNotEmpty() && duration.toIntOrNull()?.let { it in 1..MAX_DURATION_MIN } != true) {
-            add(MatchError.InvalidDuration)
-        }
+        if (completed && form.winner == null) add(MatchError.WinnerRequired)
     }
 }
