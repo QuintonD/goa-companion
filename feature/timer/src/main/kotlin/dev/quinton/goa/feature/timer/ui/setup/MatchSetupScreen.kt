@@ -40,7 +40,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -346,8 +345,9 @@ private fun ModeCard(mode: ModeOptionUi, selected: Boolean, onClick: () -> Unit)
     val colors = MaterialTheme.colorScheme
     SetupCard(
         modifier = Modifier
-            .selectable(selected = selected, enabled = mode.available, onClick = onClick, role = Role.RadioButton)
-            .alpha(if (mode.available) 1f else 0.6f),
+            // No alpha dimming: the "why unavailable" text must stay readable (>= 4.5:1). The disabled
+            // radio button and muted title already signal that the mode can't be chosen.
+            .selectable(selected = selected, enabled = mode.available, onClick = onClick, role = Role.RadioButton),
         highlighted = selected,
     ) {
         Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.Top) {

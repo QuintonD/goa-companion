@@ -243,7 +243,7 @@ private fun OfficialCardImage(card: Card, zoom: ZoomState, onError: () -> Unit) 
     ) {
         SubcomposeAsyncImage(
             model = assetUrl(path),
-            contentDescription = "Card image: ${card.name}. Pinch or double-tap to zoom.",
+            contentDescription = "Card image: ${card.name}",
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize(),
             loading = {

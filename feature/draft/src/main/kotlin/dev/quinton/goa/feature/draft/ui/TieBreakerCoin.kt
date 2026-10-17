@@ -89,7 +89,8 @@ private fun CoinFace(team: Team?, mirrored: Boolean, size: Dp) {
             .clip(CircleShape)
             .background(
                 Brush.radialGradient(
-                    listOf(accent.copy(alpha = 0.55f), MaterialTheme.colorScheme.surface),
+                    // 0.22 keeps the team glyph at >= 3:1 on the face in both themes (WCAG non-text contrast).
+                    listOf(accent.copy(alpha = 0.22f), MaterialTheme.colorScheme.surface),
                 ),
             )
             .border(6.dp, bronze, CircleShape),

@@ -518,7 +518,11 @@ private fun TeamEditor(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = { actions.onAddSeat(team) }, enabled = seats.size < MAX_SEATS_PER_TEAM) {
+            TextButton(
+                onClick = { actions.onAddSeat(team) },
+                enabled = seats.size < MAX_SEATS_PER_TEAM,
+                modifier = Modifier.semantics { contentDescription = "Add seat to ${team.label()}" },
+            ) {
                 Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(Spacing.xs))
                 Text("Add seat")
@@ -620,7 +624,7 @@ private fun SeatEditor(
                     }
                 }
                 IconButton(onClick = onRemove) {
-                    Icon(Icons.Outlined.Close, contentDescription = "Remove seat")
+                    Icon(Icons.Outlined.Close, contentDescription = "Remove seat: $heroLabel")
                 }
             }
             FlowRow(
@@ -653,7 +657,9 @@ private fun SeatEditor(
                         null
                     },
                     colors = goaFilterChipColors(),
-                    modifier = Modifier.heightIn(min = 48.dp),
+                    modifier = Modifier.heightIn(min = 48.dp).semantics {
+                        contentDescription = "Handicap card for $heroLabel"
+                    },
                 )
                 if (doublePilot) {
                     Pill(
