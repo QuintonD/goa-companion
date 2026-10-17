@@ -14,6 +14,13 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Each instrumented test starts from a fresh install state: the orchestrator runs every
+        // test in its own process and clears the app's data (Room DB, DataStore) before it.
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
+    }
+    testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
+        animationsDisabled = true
     }
     // Release signing lives OUTSIDE the repo: keystore.properties (gitignored) points at a keystore
     // kept elsewhere (storeFile, storePassword, keyAlias, keyPassword). Without it, release is unsigned.
@@ -76,4 +83,16 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.uiautomator)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4.accessibility)
+    androidTestUtil(libs.androidx.test.orchestrator)
+    androidTestUtil(libs.androidx.test.services)
+}
+
+// The Accessibility Test Framework (behind Compose's enableAccessibilityChecks) drags in an old
+// Material Components (View) stack and full Guava, which clash with the versions AGP pins from the
+// app's runtime classpath. Compose checks never use Material Views; Guava already contains
+// ListenableFuture.
+configurations.matching { it.name.contains("AndroidTest") }.configureEach {
+    exclude(group = "com.google.android.material", module = "material")
+    exclude(group = "com.google.guava", module = "listenablefuture")
 }

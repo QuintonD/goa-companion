@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -106,6 +107,8 @@ private fun GoaBottomBar(current: TopLevelTab, onSelect: (TopLevelTab) -> Unit) 
                 NavigationBarItem(
                     selected = selected,
                     onClick = { onSelect(spec.tab) },
+                    // Stable hook for instrumented tests: "Players" is also an inner tab label.
+                    modifier = Modifier.testTag("nav_${spec.tab.name.lowercase()}"),
                     icon = {
                         Icon(
                             painterResource(if (selected) spec.selected else spec.unselected),

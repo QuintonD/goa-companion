@@ -12,6 +12,8 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.feature.players.match.MatchLogContent
 import dev.quinton.goa.feature.players.match.MatchLogUiState
@@ -40,6 +42,8 @@ fun MatchLogScreen(
                     onClick = onLogMatch,
                     icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
                     text = { Text("Log match") },
+                    // M3 1.4 leaves the extended FAB's text out of the semantics tree.
+                    modifier = Modifier.semantics { contentDescription = "Log match" },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                 )
