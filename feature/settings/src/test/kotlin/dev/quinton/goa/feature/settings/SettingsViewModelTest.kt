@@ -101,7 +101,9 @@ class SettingsViewModelTest {
             vm.onAction(SettingsAction.SetOwnsEverything(false))
             val narrowed = ready()
             assertThat(narrowed.ownsEverything).isFalse()
-            assertThat(narrowed.ownedCount).isEqualTo(1)
+            // Every product stays ticked; nothing resets to the base game.
+            assertThat(narrowed.ownedCount).isEqualTo(ids.size)
+            assertThat(settings.state.value.ownedProducts).containsExactlyElementsIn(ids)
             vm.onAction(SettingsAction.SetOwnsEverything(true))
             assertThat(ready().ownsEverything).isTrue()
         }
