@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
+import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -96,7 +97,7 @@ internal fun CompletionContent(state: BoardUiState, session: DraftSession, actio
         if (session.bans.isNotEmpty()) {
             item {
                 Text(
-                    "Banned: " + session.bans.joinToString(" · ") { state.heroes.info(it.heroId).name },
+                    "Banned: " + session.bans.joinToString(", ") { state.heroes.info(it.heroId).name },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -225,6 +226,9 @@ private fun SeatRow(state: BoardUiState, assignment: SeatAssignment, swappable: 
                 }
                 Spacer(Modifier.height(Spacing.xs))
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // The team's shape next to the crest: a coral or sky player colour is not a team.
+                    TeamMark(seat.team, markSize = 10.dp)
+                    Spacer(Modifier.width(Spacing.xs))
                     PlayerAvatar(pilot, size = 24.dp)
                     Spacer(Modifier.width(Spacing.xs))
                     Text(state.playerName(seat.pilotId), style = MaterialTheme.typography.labelLarge)
