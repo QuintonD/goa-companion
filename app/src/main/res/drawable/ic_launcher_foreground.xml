@@ -1,15 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Placeholder trident mark; replaced by the generated icon from design/brand/. -->
+<!-- Generated from design/brand/ic_launcher_foreground.svg by design/tools/svg2vd.py. Do not edit; edit the SVG. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path
-        android:strokeColor="#C9A35B"
-        android:strokeWidth="4"
+        android:pathData="M54 27.5L77 35V54c0 14.5-9.5 23.5-23 29.5C40.5 77.5 31 68.5 31 54V35z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="54" android:startY="27" android:endX="54" android:endY="84">
+                <item android:offset="0" android:color="#FFEBCB86" />
+                <item android:offset="0.55" android:color="#FFC9A35B" />
+                <item android:offset="1" android:color="#FF8E6C2E" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:pathData="M54 31.5L73 37.7V54c0 12.3-7.9 20-19 25.2C42.9 74 35 66.3 35 54V37.7z"
+        android:strokeColor="#590B1622"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="butt"
+        android:strokeLineJoin="miter" />
+    <path
+        android:pathData="M54 39v37M43.5 43.5v5.5c0 5.2 4.6 8 10.5 8s10.5-2.8 10.5-8v-5.5M47.5 72.5h13"
+        android:strokeColor="#FF0B1622"
+        android:strokeWidth="3.6"
         android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:fillColor="#00000000"
-        android:pathData="M54,30 L54,80 M40,36 L40,50 Q40,58 54,58 Q68,58 68,50 L68,36" />
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M54 33.5l3.2 6.2h-6.4zM43.5 38l3 5.8h-6zM64.5 38l3 5.8h-6z"
+        android:fillColor="#FF0B1622"
+        android:strokeColor="#FF0B1622"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="butt"
+        android:strokeLineJoin="round" />
 </vector>

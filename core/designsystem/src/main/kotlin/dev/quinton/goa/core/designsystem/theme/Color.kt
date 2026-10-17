@@ -19,6 +19,8 @@ internal object Tokens {
     val DarkTeamRed = Color(0xFFE26459)
     val DarkTeamBlue = Color(0xFF4F8FE0)
     val DarkError = Color(0xFFFF6B6B)
+    val DarkUnverified = Color(0xFFE8B04A)
+    val DarkMedallion = Color(0xFF07101A)
 
     val LightBackground = Color(0xFFF4EFE6)
     val LightSurface = Color(0xFFFFFFFF)
@@ -31,6 +33,8 @@ internal object Tokens {
     val LightTeamRed = Color(0xFFB83A30)
     val LightTeamBlue = Color(0xFF2C63B0)
     val LightError = Color(0xFFB3261E)
+    val LightUnverified = Color(0xFF8A5A00)
+    val LightMedallion = Color(0xFFE6DCC8)
 }
 
 internal val DarkColors = darkColorScheme(
@@ -91,6 +95,14 @@ data class GoaExtendedColors(
     val cardBlue: Color,
     val cardPurple: Color,
     val engravedBorder: Color,
+    /** "Verified" badge tone (≥ 4.5:1 on background/surface). */
+    val verified: Color = Tokens.DarkSecondary,
+    /** "Unverified" badge tone (≥ 4.5:1 on background/surface). */
+    val unverified: Color = Tokens.DarkUnverified,
+    /** Top highlight of frames and medallions (decorative only, never text). */
+    val bronzeGlow: Color = Tokens.DarkPrimary.copy(alpha = 0.18f),
+    /** Deepest shade behind hero art / sigil medallions (decorative only). */
+    val medallion: Color = Tokens.DarkMedallion,
 )
 
 internal val DarkExtended = GoaExtendedColors(
@@ -103,6 +115,10 @@ internal val DarkExtended = GoaExtendedColors(
     cardBlue = Color(0xFF5E9BE6),
     cardPurple = Color(0xFFB18CE0),
     engravedBorder = Tokens.DarkPrimary.copy(alpha = 0.3f),
+    verified = Tokens.DarkSecondary,
+    unverified = Tokens.DarkUnverified,
+    bronzeGlow = Tokens.DarkPrimary.copy(alpha = 0.18f),
+    medallion = Tokens.DarkMedallion,
 )
 
 internal val LightExtended = GoaExtendedColors(
@@ -115,6 +131,10 @@ internal val LightExtended = GoaExtendedColors(
     cardBlue = Color(0xFF2C63B0),
     cardPurple = Color(0xFF6B45A0),
     engravedBorder = Tokens.LightPrimary.copy(alpha = 0.3f),
+    verified = Tokens.LightSecondary,
+    unverified = Tokens.LightUnverified,
+    bronzeGlow = Tokens.LightPrimary.copy(alpha = 0.14f),
+    medallion = Tokens.LightMedallion,
 )
 
 val LocalGoaColors = staticCompositionLocalOf { DarkExtended }

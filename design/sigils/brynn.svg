@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <title>Brynn the Seeker: compass star</title>
+  <polygon points="12,2 14,10 22,12 14,14 12,22 10,14 2,12 10,10"/>
+  <circle cx="12" cy="12" r="1.5" fill="#FFFFFF" stroke="none"/>
+</svg>
