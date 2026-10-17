@@ -131,6 +131,32 @@ class TextMarkupTest {
     }
 
     @Test
+    fun `goa2-faq line wraps in mid-sentence are joined`() {
+        // bain-blue-1, razzle-silver, brogan-red-2b: printed wraps, not paragraphs.
+        assertThat(TextMarkup.fromFaq("If you guessed correctly, discard that card;\notherwise you gain 1 coin."))
+            .isEqualTo("If you guessed correctly, discard that card; otherwise you gain 1 coin.")
+        assertThat(TextMarkup.fromFaq("When used as a defense action, +2 ::defense::\nDefense for each other one."))
+            .isEqualTo("When used as a defense action, +2 {defense} Defense for each other one.")
+        assertThat(TextMarkup.fromFaq("**Choose one —**\n- You may discard a card;\nif you do, target a unit."))
+            .isEqualTo("Choose one —\n• You may discard a card; if you do, target a unit.")
+        // Sentence ends, bullets, reminders, icon labels and bold keywords keep their own line.
+        assertThat(TextMarkup.fromFaq("Gain 1 coin.\nMove 1 space.")).isEqualTo("Gain 1 coin.\nMove 1 space.")
+        assertThat(TextMarkup.fromFaq("If the ::rune_bird:: rune is active,\n**This turn:** You may ignore obstacles."))
+            .isEqualTo("If the {rune_bird} rune is active,\nThis turn: You may ignore obstacles.")
+        assertThat(TextMarkup.fromFaq("If you are in radius of the Turret,\n**Choose one —**\n- Swap.\n- Place."))
+            .isEqualTo("If you are in radius of the Turret,\nChoose one —\n• Swap.\n• Place.")
+        assertThat(TextMarkup.fromFaq("Gain 1 coin\n_(Reminder.)_")).isEqualTo("Gain 1 coin\n~(Reminder.)")
+    }
+
+    @Test
+    fun `goa2-faq list items keyed by an icon carry no bullet`() {
+        // Snorri's cards print the rune icon at the start of the line, without a bullet.
+        val faq = "If a rune is active:\n- ::rune_horn::: Block a basic attack;\n- ::rune_axe::: Block a ranged attack;"
+        val expected = "If a rune is active:\n{rune_horn}: Block a basic attack;\n{rune_axe}: Block a ranged attack;"
+        assertThat(TextMarkup.fromFaq(faq)).isEqualTo(expected)
+    }
+
+    @Test
     fun `padding inside parentheses and repeated spaces are tidied`() {
         assertThat(TextMarkup.tidy("~( You  are defeated. )")).isEqualTo("~(You are defeated.)")
     }

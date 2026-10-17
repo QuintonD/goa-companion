@@ -117,16 +117,85 @@ class CatalogSearchIndexTest {
             "test", "hero 42", "card", "kari", "zzz-no-match", "range coin", "spaces", "synthetic 17-3",
             "minion", "e", "test hero 9 kari", "extra page", "a", "defeat minion mo",
         )
-        repeat(WARMUP) { queries.forEach(large::search) }
+        repeat(WARMUP) {
+            queries.forEach {
+                large.search(it)
+                large.searchCards(it)
+            }
+        }
         val worstMs = queries.flatMap { query ->
             (1..RUNS).map {
                 val start = System.nanoTime()
                 large.search(query)
+                large.searchCards(query)
                 (System.nanoTime() - start) / 1_000_000.0
             }
         }.max()
         assertThat(worstMs).isLessThan(100.0)
         assertThat(buildMs).isLessThan(1_000.0)
+    }
+
+    /** Synthetic stand-ins for the "fast travel" case (Emmitt's title and "Fast Forward" card). */
+    private val travelHeroes = listOf(
+        Fixtures.heroWith(1) {
+            copy(
+                name = "Alpha",
+                title = "the Traveler",
+                cards = cards.mapIndexed { i, c -> if (i == 0) c.copy(name = "Fast Forward") else c },
+            )
+        },
+        Fixtures.heroWith(2) {
+            copy(
+                name = "Beta",
+                cards = cards.mapIndexed { i, c ->
+                    when (i) {
+                        3 -> c.copy(text = "**This turn:** Enemy heroes in radius cannot fast travel.")
+                        4 -> c.copy(text = "You may fast travel, then move 1 space.")
+                        5 -> c.copy(text = "Move fast; you may travel through obstacles.")
+                        else -> c
+                    }
+                },
+            )
+        },
+    )
+
+    @Test
+    fun aCardPhraseOutranksAHeroMatchedThroughItsTitleAndAnotherCard() {
+        val travel = CatalogSearchIndex(travelHeroes)
+        val alpha = travel.search("fast travel").single { it.heroId == "test-hero-1" }
+        assertThat(alpha.quality).isEqualTo(MatchQuality.PARTIAL)
+
+        val cards = travel.searchCards("fast travel")
+        // Both phrase cards first, then the card that has both words apart; never "Fast Forward".
+        assertThat(cards.map { it.card.id }).containsExactly(
+            "test-hero-2-red-2a",
+            "test-hero-2-red-2b",
+            "test-hero-2-red-3a",
+        ).inOrder()
+        assertThat(cards.map { it.quality })
+            .containsExactly(MatchQuality.PHRASE, MatchQuality.PHRASE, MatchQuality.ALL_WORDS).inOrder()
+        assertThat(cards.first().quality).isGreaterThan(alpha.quality)
+    }
+
+    @Test
+    fun cardSearchListsEveryMatchingCardNotJustOnePerHero() {
+        val cards = index.searchCards("reminder")
+        assertThat(cards).hasSize(heroes.sumOf { it.allCards.size })
+        assertThat(cards.map { it.card.id }.toSet()).hasSize(cards.size)
+        assertThat(index.searchCards("  ")).isEmpty()
+    }
+
+    @Test
+    fun aHeroNameNarrowsCardsToThatHero() {
+        val cards = index.searchCards("test hero 7 red-2a")
+        assertThat(cards.map { it.card.id }).containsExactly("test-hero-7-red-2a")
+        assertThat(cards.single().quality).isEqualTo(MatchQuality.ALL_WORDS)
+    }
+
+    @Test
+    fun aHeroNameMatchIsTheStrongestQuality() {
+        assertThat(index.search("test hero 7").single().quality).isEqualTo(MatchQuality.NAME)
+        assertThat(index.search("placeholder").first().quality).isEqualTo(MatchQuality.NAME)
     }
 
     private companion object {

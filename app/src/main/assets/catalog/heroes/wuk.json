@@ -207,7 +207,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "If you move in a straight line: You may ignore obstacles; each enemy hero you moved through discards a card, or is defeated;\ndefeat up to one minion you moved through.",
+      "text": "If you move in a straight line: You may ignore obstacles; each enemy hero you moved through discards a card, or is defeated; defeat up to one minion you moved through.",
       "image": "official/cards/wuk-red-2b.webp"
     },
     {
@@ -356,7 +356,7 @@
       "ranged": false,
       "block": false,
       "item": "radius",
-      "text": "If you move in a straight line: You may ignore obstacles; each enemy hero you moved through discards a card, or is defeated;\ndefeat up to two minions you moved through.",
+      "text": "If you move in a straight line: You may ignore obstacles; each enemy hero you moved through discards a card, or is defeated; defeat up to two minions you moved through.",
       "image": "official/cards/wuk-red-3b.webp"
     },
     {
@@ -486,7 +486,7 @@
     "id": "wuk-handicap",
     "heroId": "wuk",
     "name": "Makeshift Weapon",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 10,
     "primary": "attack",

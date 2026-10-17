@@ -130,13 +130,24 @@ class CatalogValidationTest {
                     }
                 }
             }
-            assertWithMessage(hero.id).that(hero.handicap?.color).isEqualTo(CardColor.OTHER)
-            hero.extras.forEach { assertWithMessage(it.id).that(it.color).isEqualTo(CardColor.OTHER) }
+            // Handicap cards keep their printed frame: a weaker version of a basic card (p.20).
+            assertWithMessage(hero.id).that(hero.handicap?.color).isAnyOf(CardColor.GOLD, CardColor.SILVER)
+            assertWithMessage(hero.id).that(hero.handicap?.tier).isNull()
+            // Spellbook pages keep their printed colour too (gold cantrips … purple Wish).
+            hero.extras.forEach { assertWithMessage(it.id).that(it.color).isNotEqualTo(CardColor.OTHER) }
+        }
+        assertThat(heroes.mapNotNull { it.handicap }.filter { it.color == CardColor.SILVER }.map { it.id })
+            .containsExactly("takahide-handicap")
+        heroes.first { it.id == "gydion" }.extras.groupingBy { it.color }.eachCount().let { counts ->
+            assertThat(counts).containsExactly(
+                CardColor.GOLD, 3, CardColor.RED, 6, CardColor.GREEN, 6, CardColor.BLUE, 6, CardColor.PURPLE, 1,
+            )
         }
     }
 
     @Test
     fun `values are plausible and consistent with the printed actions`() {
+        val spells = heroes.flatMap { it.extras }.map { it.id }.toSet()
         allCards().forEach { card ->
             val v = card.values
             listOfNotNull(v.attack, v.defense, v.movement, v.range, v.radius).forEach {
@@ -150,13 +161,14 @@ class CatalogValidationTest {
             if (card.ranged) assertWithMessage(card.id).that(v.range).isNotNull()
             if (v.range != null) assertWithMessage(card.id).that(v.radius).isNull()
             if (card.primary == PrimaryAction.ATTACK) assertWithMessage(card.id).that(v.attack).isNotNull()
-            val deck = card.color in COLOURED && card.tier != null
+            // Spellbook pages are not deck cards: no item, no initiative.
+            val deck = card.color in COLOURED && card.tier != null && card.id !in spells
             if (deck && card.tier!! >= 2 && card.tier!! <= 3) {
                 assertWithMessage("${card.id} item").that(card.item).isNotNull()
-            } else if (card.color != CardColor.OTHER) {
+            } else {
                 assertWithMessage("${card.id} item").that(card.item).isNull()
             }
-            if (card.color != CardColor.PURPLE && card.color != CardColor.OTHER) {
+            if (card.color != CardColor.PURPLE && card.id !in spells) {
                 assertWithMessage("${card.id} initiative").that(card.initiative).isNotNull()
             }
         }

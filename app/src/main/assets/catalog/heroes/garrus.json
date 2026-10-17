@@ -485,7 +485,7 @@
     "id": "garrus-handicap",
     "heroId": "garrus",
     "name": "Angry Swipe",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 10,
     "primary": "attack",

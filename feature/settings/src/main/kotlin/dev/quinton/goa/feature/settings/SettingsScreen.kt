@@ -46,6 +46,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
@@ -312,7 +313,8 @@ private fun ProductRow(product: ProductOption, enabled: Boolean, onToggle: () ->
             .padding(start = Spacing.lg + 24.dp + Spacing.lg, end = Spacing.sm, top = Spacing.xs, bottom = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RowText(product.name, detail, Modifier.weight(1f))
+        // Dimmed while "I own every product" is on: the rows show the switch's effect, not choices.
+        RowText(product.name, detail, Modifier.weight(1f).alpha(if (enabled) 1f else DISABLED_ALPHA))
         Checkbox(checked = product.owned, onCheckedChange = null, enabled = enabled)
         Spacer(Modifier.width(Spacing.sm))
     }
@@ -363,3 +365,6 @@ private fun SettingsScreenPreview() {
 private fun SettingsScreenLightPreview() {
     GoaTheme(ThemeMode.LIGHT) { SettingsScreen(PreviewSettings, onAction = {}, onBack = {}, onOpen = {}) }
 }
+
+/** Material's disabled content alpha. */
+private const val DISABLED_ALPHA = 0.38f

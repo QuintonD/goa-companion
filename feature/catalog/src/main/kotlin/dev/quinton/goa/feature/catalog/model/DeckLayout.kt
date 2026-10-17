@@ -30,8 +30,21 @@ data class DeckLayout(
     val handicap: Card?,
     val extras: List<Card>,
 ) {
+    /**
+     * Extra cards by tier (untiered first, Ultimate last): Gydion's spellbook reads cantrips
+     * (gold, no tier), Tier I, II, III, then Wish. Source order is kept within a tier.
+     */
+    val extraRows: List<TierRow> = extras.groupBy { it.tier }
+        .toSortedMap(nullsFirst())
+        .map { (tier, cards) -> TierRow(tier, cards) }
+
+    /** Every extra is a spellbook page (IDs `<hero>-spell-…`), so the section is the spellbook. */
+    val extrasAreSpellbook: Boolean
+        get() = extras.isNotEmpty() && extras.all { it.id.startsWith("${it.heroId}-spell-") }
+
     /** Every card in display order — the order the card viewer swipes through. */
-    val orderedCards: List<Card> get() = groups.flatMap { it.cards } + listOfNotNull(handicap) + extras
+    val orderedCards: List<Card>
+        get() = groups.flatMap { it.cards } + listOfNotNull(handicap) + extraRows.flatMap { it.cards }
 
     companion object {
         fun of(hero: Hero): DeckLayout {

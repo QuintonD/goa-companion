@@ -6,8 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,11 +22,19 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.IntrinsicMeasurable
+import androidx.compose.ui.layout.IntrinsicMeasureScope
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -38,22 +44,28 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
+import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.core.model.catalog.HeroStats
 import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.feature.catalog.model.DeckGroup
 import dev.quinton.goa.feature.catalog.model.DeckGroupKind
+import dev.quinton.goa.feature.catalog.model.DeckLayout
 import dev.quinton.goa.feature.catalog.model.TierRow
 import dev.quinton.goa.feature.catalog.model.tierNumeral
+import dev.quinton.goa.feature.catalog.ui.CardTextView
 import dev.quinton.goa.feature.catalog.ui.GameIcon
 import dev.quinton.goa.feature.catalog.ui.GameIcons
 import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
 import dev.quinton.goa.feature.catalog.ui.ValueChip
+import dev.quinton.goa.feature.catalog.ui.isBasic
 import dev.quinton.goa.feature.catalog.ui.kindLabel
 import dev.quinton.goa.feature.catalog.ui.label
 
@@ -192,9 +204,79 @@ internal fun DeckGroupSection(group: DeckGroup, onCardClick: (Card) -> Unit, mod
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        if (group.kind == DeckGroupKind.BASIC) MultipleGoldNote(group.cards)
         val fullWidth = group.kind == DeckGroupKind.ULTIMATE
         group.rows.forEach { row -> TierRowView(row, group.kind, fullWidth, onCardClick) }
     }
+}
+
+/**
+ * Takahide has three gold cards. Their own text says where each starts and how they swap
+ * ("Swap this card with a different gold card in your deck."), so the note points there and
+ * the tiles carry "Starts in hand" / "Starts in deck" from each card's reminder text.
+ */
+@Composable
+private fun MultipleGoldNote(cards: List<Card>) {
+    val golds = cards.filter { it.color == CardColor.GOLD }
+    val hand = golds.count { it.startsIn() == STARTS_IN_HAND }
+    val deck = golds.count { it.startsIn() == STARTS_IN_DECK }
+    if (golds.size < 2 || hand + deck == 0) return
+    Text(
+        "${golds.size} gold cards: $hand ${if (hand == 1) "starts" else "start"} in your hand, $deck in your " +
+            "deck, as their card text says. Tap a card for how it swaps.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(bottom = Spacing.sm),
+    )
+}
+
+/** The hero's extra cards by tier; titled "Spellbook" for Gydion's spell cards. */
+@Composable
+internal fun ExtrasSection(layout: DeckLayout, onCardClick: (Card) -> Unit, modifier: Modifier = Modifier) {
+    if (layout.extras.isEmpty()) return
+    val spellbook = layout.extrasAreSpellbook
+    Column(modifier.fillMaxWidth()) {
+        Row(
+            Modifier.padding(top = Spacing.xl, bottom = Spacing.xs).semantics(mergeDescendants = true) { heading() },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(if (spellbook) "Spellbook" else "Extras", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.width(Spacing.sm))
+            Text(
+                "${layout.extras.size} cards",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (spellbook) {
+            Text(
+                "Spells by tier. Deck cards name the spells they cast; tap a spell for its full card.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        layout.extraRows.forEach { row ->
+            Text(
+                extraRowTitle(row),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.xs).semantics { heading() },
+            )
+            CardTileGrid(row.cards, columns = 2, onCardClick = onCardClick, showText = spellbook)
+        }
+    }
+}
+
+/** "Gold cantrips · 3", "Tier II · 9", "Ultimate · 1". */
+private fun extraRowTitle(row: TierRow): String {
+    val tier = row.tier
+    val name = when {
+        tier == null && row.cards.all { it.color == CardColor.GOLD } -> "Gold (no tier)"
+        tier == null -> "No tier"
+        tier == 4 -> "Ultimate"
+        else -> "Tier ${tierNumeral(tier)}"
+    }
+    return "$name · ${row.cards.size}"
 }
 
 @Composable
@@ -208,20 +290,30 @@ private fun TierRowView(row: TierRow, kind: DeckGroupKind, fullWidth: Boolean, o
             modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.xs),
         )
     }
-    CardTileGrid(row.cards, columns = if (fullWidth) 1 else 2, onCardClick = onCardClick)
+    CardTileGrid(row.cards, columns = if (fullWidth) 1 else 2, onCardClick = onCardClick, showText = fullWidth)
     Spacer(Modifier.height(Spacing.sm))
 }
 
 /** Tiles in fixed columns so tiers line up into an upgrade tree. */
 @Composable
-internal fun CardTileGrid(cards: List<Card>, columns: Int, onCardClick: (Card) -> Unit, isHandicap: Boolean = false) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+internal fun CardTileGrid(
+    cards: List<Card>,
+    columns: Int,
+    onCardClick: (Card) -> Unit,
+    isHandicap: Boolean = false,
+    showText: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         cards.chunked(columns).forEach { chunk ->
+            // Equal heights per row via intrinsics; WrapRow reports its wrapped height, so a
+            // name on two lines never pushes the markers out of the tile.
             Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 chunk.forEach { card ->
                     CardTile(
                         card = card,
                         isHandicap = isHandicap,
+                        showText = showText,
                         onClick = { onCardClick(card) },
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
@@ -252,6 +344,8 @@ internal fun Card.spokenSummary(isHandicap: Boolean = false): String = buildList
     if (ranged) add("Ranged")
     if (block) add("Block")
     item?.let { add("Item: plus 1 ${it.label}") }
+    startsIn()?.let { add(it) }
+    if (isHandicap && color.isBasic) add("Replaces the ${color.label} card")
 }.joinToString(". ")
 
 /** One printed value; [plus] when the card prints it with a `+` (it grows per the card text). */
@@ -276,10 +370,33 @@ internal fun Card.printedValues(): List<PrintedValue> = VALUE_ORDER.mapNotNull {
     values.get(stat)?.let { PrintedValue(icon, it, stat in values.plus) }
 }
 
-/** Compact deck tile: colour accent, name, initiative, primary action, values, markers. */
-@OptIn(ExperimentalLayoutApi::class)
+/** Where a basic card starts, from its printed reminder "(This card starts the game in your hand.)". */
+internal fun Card.startsIn(): String? {
+    val plain = CardText.plain(text).lowercase()
+    return when {
+        "this card starts the game in your hand" in plain -> STARTS_IN_HAND
+        "this card starts the game in your deck" in plain -> STARTS_IN_DECK
+        else -> null
+    }
+}
+
+private const val STARTS_IN_HAND = "Starts in hand"
+private const val STARTS_IN_DECK = "Starts in deck"
+
+/**
+ * Compact deck tile: colour accent, name, initiative, primary action, values, markers.
+ * [showText] adds the card text (Ultimate tiles, which span the row). A Handicap tile says
+ * which basic card it replaces: rulebook p.20, a Handicap card is a weaker version of a basic
+ * card; its frame colour (gold, or silver for Takahide) names which one.
+ */
 @Composable
-internal fun CardTile(card: Card, onClick: () -> Unit, modifier: Modifier = Modifier, isHandicap: Boolean = false) {
+internal fun CardTile(
+    card: Card,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    isHandicap: Boolean = false,
+    showText: Boolean = false,
+) {
     val accent = cardColor(card.color)
     val shape = MaterialTheme.shapes.medium
     val summary = card.spokenSummary(isHandicap)
@@ -328,22 +445,36 @@ internal fun CardTile(card: Card, onClick: () -> Unit, modifier: Modifier = Modi
                     )
                 }
             }
+            if (isHandicap && card.color.isBasic) {
+                Text(
+                    "Replaces the ${card.color.label} card",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = accent,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+            if (showText && card.text.isNotBlank()) {
+                CardTextView(
+                    card.text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    iconTint = accent,
+                    modifier = Modifier.padding(top = Spacing.xs),
+                )
+            }
             Spacer(Modifier.weight(1f).heightIn(min = 6.dp))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
+            WrapRow(horizontalGap = 10.dp, verticalGap = 2.dp) {
                 card.printedValues().forEach { ValueChip(it.icon, it.printed, iconSize = 14.dp, spoken = it.spoken) }
                 if (card.ranged) Marker(GameIcons.ranged, "Ranged")
                 if (card.block) Marker(GameIcons.block, "Block")
                 card.item?.let { Marker(GameIcons.item, "+1 ${it.label}") }
+                card.startsIn()?.let { Marker(GameIcons.item, it, showIcon = false) }
             }
         }
     }
 }
 
 @Composable
-private fun Marker(icon: GameIcon, text: String) {
+private fun Marker(icon: GameIcon, text: String, showIcon: Boolean = true) {
     Row(
         Modifier
             .clip(RoundedCornerShape(4.dp))
@@ -351,13 +482,15 @@ private fun Marker(icon: GameIcon, text: String) {
             .padding(horizontal = 4.dp, vertical = 1.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            icon.vector,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.size(12.dp),
-        )
-        Spacer(Modifier.width(2.dp))
+        if (showIcon) {
+            Icon(
+                icon.vector,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(12.dp),
+            )
+            Spacer(Modifier.width(2.dp))
+        }
         Text(
             text,
             style = MaterialTheme.typography.labelSmall,
@@ -365,4 +498,81 @@ private fun Marker(icon: GameIcon, text: String) {
             maxLines = 1,
         )
     }
+}
+
+/**
+ * A wrapping row like FlowRow whose intrinsic height is the wrapped height at the given width,
+ * so a parent measuring with IntrinsicSize.Min (equal-height deck tiles) reserves room for
+ * every line of markers.
+ */
+@Composable
+private fun WrapRow(horizontalGap: Dp, verticalGap: Dp, content: @Composable () -> Unit) {
+    val policy = remember(horizontalGap, verticalGap) { WrapRowPolicy(horizontalGap, verticalGap) }
+    Layout(content = content, measurePolicy = policy)
+}
+
+private class WrapRowPolicy(private val hGap: Dp, private val vGap: Dp) : MeasurePolicy {
+    /** Lines of child indices for [widths] packed greedily into [maxWidth]. */
+    private fun lines(widths: List<Int>, maxWidth: Int, gap: Int): List<List<Int>> {
+        val lines = mutableListOf<MutableList<Int>>()
+        var used = 0
+        widths.forEachIndexed { i, w ->
+            val line = lines.lastOrNull()
+            if (line == null || used + gap + w > maxWidth) {
+                lines += mutableListOf(i)
+                used = w
+            } else {
+                line += i
+                used += gap + w
+            }
+        }
+        return lines
+    }
+
+    override fun MeasureScope.measure(measurables: List<Measurable>, constraints: Constraints): MeasureResult {
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val placeables = measurables.map { it.measure(loose) }
+        val gap = hGap.roundToPx()
+        val lineGap = vGap.roundToPx()
+        val lines = lines(placeables.map { it.width }, constraints.maxWidth, gap)
+        val heights = lines.map { line -> line.maxOf { placeables[it].height } }
+        val width = lines.maxOfOrNull { line -> line.sumOf { placeables[it].width } + gap * (line.size - 1) } ?: 0
+        val height = heights.sum() + lineGap * (lines.size - 1).coerceAtLeast(0)
+        return layout(
+            width.coerceIn(constraints.minWidth, constraints.maxWidth),
+            height.coerceIn(constraints.minHeight, constraints.maxHeight),
+        ) {
+            var y = 0
+            lines.forEachIndexed { n, line ->
+                var x = 0
+                line.forEach { i ->
+                    val p = placeables[i]
+                    p.placeRelative(x, y + (heights[n] - p.height) / 2)
+                    x += p.width + gap
+                }
+                y += heights[n] + lineGap
+            }
+        }
+    }
+
+    private fun IntrinsicMeasureScope.wrappedHeight(measurables: List<IntrinsicMeasurable>, width: Int): Int {
+        if (measurables.isEmpty()) return 0
+        val widths = measurables.map { it.maxIntrinsicWidth(Constraints.Infinity) }
+        val maxWidth = if (width == Constraints.Infinity) Int.MAX_VALUE else width
+        val lines = lines(widths, maxWidth, hGap.roundToPx())
+        val heights = lines.map { line -> line.maxOf { measurables[it].minIntrinsicHeight(widths[it]) } }
+        return heights.sum() + vGap.roundToPx() * (lines.size - 1)
+    }
+
+    override fun IntrinsicMeasureScope.minIntrinsicHeight(measurables: List<IntrinsicMeasurable>, width: Int) =
+        wrappedHeight(measurables, width)
+
+    override fun IntrinsicMeasureScope.maxIntrinsicHeight(measurables: List<IntrinsicMeasurable>, width: Int) =
+        wrappedHeight(measurables, width)
+
+    override fun IntrinsicMeasureScope.minIntrinsicWidth(measurables: List<IntrinsicMeasurable>, height: Int) =
+        measurables.maxOfOrNull { it.minIntrinsicWidth(height) } ?: 0
+
+    override fun IntrinsicMeasureScope.maxIntrinsicWidth(measurables: List<IntrinsicMeasurable>, height: Int) =
+        measurables.sumOf { it.maxIntrinsicWidth(height) } + hGap.roundToPx() * (measurables.size - 1).coerceAtLeast(0)
 }

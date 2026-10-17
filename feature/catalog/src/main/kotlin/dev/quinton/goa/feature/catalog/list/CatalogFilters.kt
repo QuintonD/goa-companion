@@ -107,7 +107,7 @@ internal fun CatalogFilterContent(
                     }
                 }
             }
-            FilterGroup("Attack") {
+            FilterGroup("Attack cards", note = ATTACK_NOTE) {
                 options.attackStyles.forEach { style ->
                     val selected = filter.attackStyle == style
                     FilterChip(
@@ -173,13 +173,21 @@ internal fun CatalogFilterContent(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun FilterGroup(title: String, content: @Composable () -> Unit) {
+private fun FilterGroup(title: String, note: String? = null, content: @Composable () -> Unit) {
     Text(
         title,
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.xs).semantics { heading() },
     )
+    if (note != null) {
+        Text(
+            note,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = Spacing.xs),
+        )
+    }
     FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) { content() }
 }
 
@@ -204,3 +212,7 @@ private fun selectedIcon(selected: Boolean): (@Composable () -> Unit)? = if (sel
 }
 
 private fun <T> Set<T>.toggle(value: T): Set<T> = if (value in this) this - value else this + value
+
+/** How the app derives the attack style (docs/DOMAIN.md); "Melee" here is not the Melee role. */
+private const val ATTACK_NOTE =
+    "From the Ranged subtype on the hero's Attack cards: Ranged = more than half ranged, Melee = none ranged."

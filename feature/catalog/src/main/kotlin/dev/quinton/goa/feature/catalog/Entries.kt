@@ -28,6 +28,7 @@ fun EntryProviderScope<NavKey>.catalogEntries(navigator: Navigator) {
             onAction = viewModel::onAction,
             onHeroClick = { navigator.navigate(HeroDetailRoute(it)) },
             onSettingsClick = { navigator.navigate(SettingsRoute) },
+            onCardClick = { heroId, cardId -> navigator.navigate(CardViewerRoute(heroId, cardId)) },
         )
     }
     entry<HeroDetailRoute> { key ->

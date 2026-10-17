@@ -115,15 +115,43 @@ object TextMarkup {
         // `---` is a printed divider between alternatives: a paragraph break, not words.
         val lines = text.replace("\r\n", "\n").replace(Regex("""\s*---\s*"""), "\n").split('\n').map { it.trim() }
         val paragraphs = lines.filter { it.isNotEmpty() }.map { line ->
-            val bullet = line.startsWith("- ") || line.startsWith("• ")
-            val body = if (bullet) line.substring(2).trim() else line
+            val listItem = line.startsWith("- ") || line.startsWith("• ")
+            val body = if (listItem) line.substring(2).trim() else line
+            // `- ::rune_horn::: …` (Snorri): the card prints the icon label, no bullet.
+            val bullet = listItem && !iconLabel.containsMatchIn(body)
             val converted = body
                 .replace(Regex("""_\((.*?)\)_"""), "~($1)")
                 .replace("**", "")
-            (if (bullet) BULLET else "") + icons(converted, unknownIcons)
+            val text = (if (bullet) BULLET else "") + icons(converted, unknownIcons)
+            text to (listItem || startsBlock(body))
         }
-        return tidy(paragraphs.joinToString("\n"))
+        return tidy(joinWraps(paragraphs))
     }
+
+    /**
+     * goa2-faq keeps some printed line wraps as line breaks in mid-sentence ("discard that
+     * card;\notherwise …"). A break is kept only when the previous line ends a sentence or a
+     * keyword (`. : ) ! ? —`) or the next line starts a block (option bullet, reminder, icon
+     * label, bold keyword; the flag in [lines]); every other break is a wrap, joined with a space.
+     */
+    fun joinWraps(lines: List<Pair<String, Boolean>>): String {
+        val out = mutableListOf<StringBuilder>()
+        for ((line, startsBlock) in lines) {
+            val previous = out.lastOrNull()?.toString()?.replace(CardText.STRONG, "")?.trimEnd()
+            if (previous == null || startsBlock || endsBlock(previous)) {
+                out += StringBuilder(line)
+            } else {
+                out.last().append(' ').append(line)
+            }
+        }
+        return out.joinToString("\n")
+    }
+
+    private fun endsBlock(line: String): Boolean = line.isEmpty() || line.last() in ".:)!?—"
+
+    /** Raw goa2-faq line (bold and icon tokens still in place) that starts its own block. */
+    private fun startsBlock(line: String): Boolean =
+        line.startsWith("_(") || line.startsWith("~(") || line.startsWith("::") || line.startsWith("**")
 
     /**
      * FAQ rulings are shown as plain paragraphs: markdown bold and `---` dividers are dropped,

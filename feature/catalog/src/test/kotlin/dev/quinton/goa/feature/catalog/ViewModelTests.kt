@@ -121,6 +121,39 @@ class CatalogViewModelTest {
     }
 
     @Test
+    fun layoutChoiceIsSavedInSettings() = runTest {
+        catalogRepo.state.value = TestCatalog.catalog
+        settings.state.value = AppSettings(catalogListView = true)
+        val vm = viewModel()
+        vm.uiState.test {
+            assertThat(awaitReady().controls.layout).isEqualTo(CatalogLayout.LIST)
+            vm.onAction(CatalogAction.SetLayout(CatalogLayout.GRID))
+            assertThat((expectMostRecentItem() as CatalogUiState.Ready).controls.layout).isEqualTo(CatalogLayout.GRID)
+        }
+        assertThat(settings.state.value.catalogListView).isFalse()
+    }
+
+    @Test
+    fun searchListsCardsAndSaysWhenTheCollectionHidesMatches() = runTest {
+        catalogRepo.state.value = TestCatalog.catalog
+        val vm = viewModel()
+        vm.uiState.test {
+            awaitReady()
+            vm.onAction(CatalogAction.Search("red-2a"))
+            val found = expectMostRecentItem() as CatalogUiState.Ready
+            assertThat(found.cards.map { it.card.id }).hasSize(12)
+            assertThat(found.cards.all { it.card.id.endsWith("-red-2a") }).isTrue()
+
+            settings.state.value = AppSettings(ownedProducts = setOf("test-core"))
+            vm.onAction(CatalogAction.Search("test hero 7"))
+            val hidden = expectMostRecentItem() as CatalogUiState.Ready
+            assertThat(hidden.heroes).isEmpty()
+            assertThat(hidden.cards).isEmpty()
+            assertThat(hidden.hiddenByCollection).isEqualTo(1)
+        }
+    }
+
+    @Test
     fun ratingsFlowIntoItems() = runTest {
         catalogRepo.state.value = TestCatalog.catalog
         val vm = viewModel()

@@ -132,7 +132,7 @@
       "ranged": false,
       "block": true,
       "item": null,
-      "text": "If a rune is active:\n• {rune_horn}: Block a basic attack.\n• {rune_axe}: Block a non-ranged attack.\n**This Turn:** You are immune to enemy actions.",
+      "text": "If a rune is active:\n{rune_horn}: Block a basic attack.\n{rune_axe}: Block a non-ranged attack.\n**This Turn:** You are immune to enemy actions.",
       "image": "official/cards/snorri-green-1.webp"
     },
     {
@@ -206,7 +206,7 @@
       "ranged": true,
       "block": false,
       "item": "defense",
-      "text": "Target a unit at maximum range.\nAfter the attack: If a rune is active:\n• {rune_horn}: Move up to 2 spaces.\n• {rune_axe}: An enemy hero who was adjacent to the target discards a card, or is defeated.",
+      "text": "Target a unit at maximum range.\nAfter the attack: If a rune is active:\n{rune_horn}: Move up to 2 spaces.\n{rune_axe}: An enemy hero who was adjacent to the target discards a card, or is defeated.",
       "image": "official/cards/snorri-red-2b.webp"
     },
     {
@@ -230,7 +230,7 @@
       "ranged": false,
       "block": true,
       "item": "initiative",
-      "text": "If a rune is active:\n• {rune_horn}: Block a basic attack;\n• {rune_axe}: Block a non-ranged attack;\n• {rune_bird}: Block a ranged attack;\n**This Turn:** You are immune to enemy actions.",
+      "text": "If a rune is active:\n{rune_horn}: Block a basic attack;\n{rune_axe}: Block a non-ranged attack;\n{rune_bird}: Block a ranged attack;\n**This Turn:** You are immune to enemy actions.",
       "image": "official/cards/snorri-green-2a.webp"
     },
     {
@@ -255,7 +255,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "If a rune is active, an enemy hero in radius:\n• {rune_horn}: Discards a green card, if able.\n• {rune_axe}: Discards a silver card, if able.\n• {rune_anvil}: Discards a blue card, if able.",
+      "text": "If a rune is active, an enemy hero in radius:\n{rune_horn}: Discards a green card, if able.\n{rune_axe}: Discards a silver card, if able.\n{rune_anvil}: Discards a blue card, if able.",
       "image": "official/cards/snorri-green-2b.webp"
     },
     {
@@ -279,7 +279,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "If a rune is active:\n• {rune_bird}: **This turn:** You may ignore obstacles.\n• {rune_anvil}: **This turn:** You are immune to enemy actions.",
+      "text": "If a rune is active:\n{rune_bird}: **This turn:** You may ignore obstacles.\n{rune_anvil}: **This turn:** You are immune to enemy actions.",
       "image": "official/cards/snorri-blue-2a.webp"
     },
     {
@@ -304,7 +304,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "If a rune is active, a friendly hero in radius may:\n• {rune_axe}: Swap a resolved card with a card in hand.\n• {rune_anvil}: Retrieve all their discarded cards.",
+      "text": "If a rune is active, a friendly hero in radius may:\n{rune_axe}: Swap a resolved card with a card in hand.\n{rune_anvil}: Retrieve all their discarded cards.",
       "image": "official/cards/snorri-blue-2b.webp"
     },
     {
@@ -354,7 +354,7 @@
       "ranged": true,
       "block": false,
       "item": "movement",
-      "text": "If the {rune_bird} rune is active, target a unit in range, otherwise target a unit at maximum range.\nAfter the attack: If a rune is active:\n• {rune_horn}: Move up to 2 spaces.\n• {rune_axe}: An enemy hero who was adjacent to the target discards a card, or is defeated.",
+      "text": "If the {rune_bird} rune is active, target a unit in range, otherwise target a unit at maximum range.\nAfter the attack: If a rune is active:\n{rune_horn}: Move up to 2 spaces.\n{rune_axe}: An enemy hero who was adjacent to the target discards a card, or is defeated.",
       "image": "official/cards/snorri-red-3b.webp"
     },
     {
@@ -378,7 +378,7 @@
       "ranged": false,
       "block": true,
       "item": "initiative",
-      "text": "Choose one active rune:\n• {rune_horn}: Block a basic attack;\n• {rune_axe}: Block a non-ranged attack;\n• {rune_bird}: Block a ranged attack;\n• {rune_anvil}: Block a non-basic attack;\n**This Turn:** You are immune to enemy actions.",
+      "text": "Choose one active rune:\n{rune_horn}: Block a basic attack;\n{rune_axe}: Block a non-ranged attack;\n{rune_bird}: Block a ranged attack;\n{rune_anvil}: Block a non-basic attack;\n**This Turn:** You are immune to enemy actions.",
       "image": "official/cards/snorri-green-3a.webp"
     },
     {
@@ -403,7 +403,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "Choose one active rune; depending on that rune, an enemy hero in radius:\n• {rune_horn}: Discards a green card, if able.\n• {rune_axe}: Discards a silver card, if able.\n• {rune_anvil}: Discards a blue card, if able.\n• {rune_bird}: Discards a gold card, if able.",
+      "text": "Choose one active rune; depending on that rune, an enemy hero in radius:\n{rune_horn}: Discards a green card, if able.\n{rune_axe}: Discards a silver card, if able.\n{rune_anvil}: Discards a blue card, if able.\n{rune_bird}: Discards a gold card, if able.",
       "image": "official/cards/snorri-green-3b.webp"
     },
     {
@@ -427,7 +427,7 @@
       "ranged": false,
       "block": false,
       "item": "range",
-      "text": "If a rune is active:\n• {rune_bird}: **This turn:** You may ignore obstacles.\n• {rune_anvil}: **This turn:** You are immune to enemy actions.\n• {rune_horn}: Gain +2 {movement} Movement.",
+      "text": "If a rune is active:\n{rune_bird}: **This turn:** You may ignore obstacles.\n{rune_anvil}: **This turn:** You are immune to enemy actions.\n{rune_horn}: Gain +2 {movement} Movement.",
       "image": "official/cards/snorri-blue-3a.webp"
     },
     {
@@ -452,7 +452,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "If a rune is active, a friendly hero in radius may:\n• {rune_axe}: Swap a resolved card with a card in hand.\n• {rune_anvil}: Retrieve all their discarded cards.\n• {rune_bird}: Swap one of their items with an item on their card of the same tier and color.",
+      "text": "If a rune is active, a friendly hero in radius may:\n{rune_axe}: Swap a resolved card with a card in hand.\n{rune_anvil}: Retrieve all their discarded cards.\n{rune_bird}: Swap one of their items with an item on their card of the same tier and color.",
       "image": "official/cards/snorri-blue-3b.webp"
     },
     {
@@ -482,7 +482,7 @@
     "id": "snorri-handicap",
     "heroId": "snorri",
     "name": "Rune Shards",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 10,
     "primary": "attack",

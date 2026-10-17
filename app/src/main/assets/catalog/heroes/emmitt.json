@@ -79,7 +79,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Place 2 {token_glitch} Glitch tokens in radius, with at least two spaces between each token;\nif used as a defense, place 3 tokens instead.\nAn enemy hero in play chooses one of the Glitch tokens; you swap with that token.\n**End of turn:** Remove all Glitch tokens.",
+      "text": "Place 2 {token_glitch} Glitch tokens in radius, with at least two spaces between each token; if used as a defense, place 3 tokens instead.\nAn enemy hero in play chooses one of the Glitch tokens; you swap with that token.\n**End of turn:** Remove all Glitch tokens.",
       "image": "official/cards/emmitt-silver.webp"
     },
     {
@@ -204,7 +204,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Target a unit adjacent to you.\nAfter the attack: You may place 3 {token_glitch} Glitch tokens in radius, with at least two spaces between each token;\nif you do, up to 1 enemy hero in radius swaps with a Glitch token of their choice.\n**End of turn:** Remove all Glitch tokens.",
+      "text": "Target a unit adjacent to you.\nAfter the attack: You may place 3 {token_glitch} Glitch tokens in radius, with at least two spaces between each token; if you do, up to 1 enemy hero in radius swaps with a Glitch token of their choice.\n**End of turn:** Remove all Glitch tokens.",
       "image": "official/cards/emmitt-red-2b.webp"
     },
     {
@@ -476,7 +476,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "You may play two cards each turn;\nif you do, after the cards are revealed, retrieve one of your unresolved cards.",
+      "text": "You may play two cards each turn; if you do, after the cards are revealed, retrieve one of your unresolved cards.",
       "image": "official/cards/emmitt-purple-4.webp"
     }
   ],
@@ -484,7 +484,7 @@
     "id": "emmitt-handicap",
     "heroId": "emmitt",
     "name": "Tear in Time",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 10,
     "primary": "attack",
@@ -502,7 +502,7 @@
     "ranged": false,
     "block": false,
     "item": null,
-    "text": "Target a hero adjacent to you.\nAfter the attack: **Next turn:** Heroes with lower initiative act before heroes with higher initiative. This effect ignores immunity.",
+    "text": "Target a hero adjacent to you.\nAfter the attack: **Next Turn:** Heroes with lower initiative act before heroes with higher initiative. This effect ignores immunity.",
     "image": "official/cards/emmitt-handicap.webp"
   },
   "extras": [],

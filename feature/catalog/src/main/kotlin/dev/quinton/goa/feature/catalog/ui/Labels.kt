@@ -58,14 +58,33 @@ val CardColor.label: String
         CardColor.OTHER -> "Special"
     }
 
-/** "Red · Tier II", "Gold · Basic", "Ultimate", "Handicap". */
+/** Gold or Silver: the colours of basic cards (and of the Handicap cards that replace them). */
+val CardColor.isBasic: Boolean get() = this == CardColor.GOLD || this == CardColor.SILVER
+
+/** Spellbook pages have IDs `<hero>-spell-<name>` (permanent, see DOMAIN.md). */
+val Card.isSpell: Boolean get() = id.startsWith("$heroId-spell-")
+
+/**
+ * "Red · Tier II", "Gold · Basic", "Ultimate", "Handicap · Silver", "Spell · Red · Tier II",
+ * "Spell · Gold". A Handicap card is a weaker version of the basic card of its frame colour.
+ */
 fun Card.kindLabel(isHandicap: Boolean = false): String {
     val tier = tier
     return when {
-        isHandicap -> "Handicap"
+        isHandicap -> if (color.isBasic) "Handicap · ${color.label}" else "Handicap"
+
+        isSpell -> listOfNotNull(
+            "Spell",
+            color.label.takeIf { color != CardColor.PURPLE && color != CardColor.OTHER },
+            tier?.let { if (it == 4) "Ultimate" else "Tier ${tierNumeral(it)}" },
+        ).joinToString(" · ")
+
         color == CardColor.PURPLE || tier == 4 -> "Ultimate"
+
         color == CardColor.GOLD || color == CardColor.SILVER -> "${color.label} · Basic"
+
         tier != null -> "${color.label} · Tier ${tierNumeral(tier)}"
+
         else -> color.label
     }
 }

@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -69,10 +68,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -100,6 +99,7 @@ fun CatalogScreen(
     onHeroClick: (heroId: String) -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onCardClick: (heroId: String, cardId: String) -> Unit = { _, _ -> },
 ) {
     var showFilters by rememberSaveable { mutableStateOf(false) }
     val ready = state as? CatalogUiState.Ready
@@ -143,6 +143,7 @@ fun CatalogScreen(
                     query = query,
                     onAction = onAction,
                     onHeroClick = onHeroClick,
+                    onCardClick = onCardClick,
                     onOpenFilters = { showFilters = true },
                 )
             }
@@ -172,6 +173,7 @@ private fun ReadyContent(
     query: String,
     onAction: (CatalogAction) -> Unit,
     onHeroClick: (String) -> Unit,
+    onCardClick: (heroId: String, cardId: String) -> Unit,
     onOpenFilters: () -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
@@ -180,34 +182,50 @@ private fun ReadyContent(
         ResultSummary(state = state, query = query)
         if (state.heroes.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-                EmptyState(
-                    icon = Icons.Outlined.SearchOff,
-                    title = "No heroes match",
-                    message = if (query.isNotBlank()) {
-                        "Nothing matches “${query.trim()}” with these filters. Try another word or clear them."
-                    } else {
-                        "No hero fits all of these filters. Remove one to widen the search."
-                    },
-                    action = {
-                        OutlinedButton(onClick = { onAction(CatalogAction.ClearAll) }) {
-                            Text("Clear search and filters")
-                        }
-                    },
-                )
+                NoResults(state, query, onAction)
             }
         } else {
             AnimatedContent(
                 targetState = state.controls.layout,
                 transitionSpec = { fadeIn(tween(MOTION_MS)) togetherWith fadeOut(tween(MOTION_MS)) },
                 label = "catalogLayout",
-            ) { layout ->
-                when (layout) {
-                    CatalogLayout.GRID -> HeroGrid(state, onHeroClick)
-                    CatalogLayout.LIST -> HeroList(state, onHeroClick)
-                }
-            }
+            ) { layout -> Results(state, layout, query, onHeroClick, onCardClick) }
         }
     }
+}
+
+@Composable
+private fun NoResults(state: CatalogUiState.Ready, query: String, onAction: (CatalogAction) -> Unit) {
+    val hidden = state.hiddenByCollection
+    if (hidden > 0) {
+        // The collection (Settings → owned products) hides heroes that would match.
+        EmptyState(
+            icon = Icons.Outlined.SearchOff,
+            title = "Not in your collection",
+            message = "${plural(hidden, "hero", "heroes")} from products you don't own " +
+                (if (hidden == 1) "matches" else "match") + ". Your collection is set in Settings.",
+            action = {
+                OutlinedButton(
+                    onClick = { onAction(CatalogAction.SetFilter(state.controls.filter.copy(includeUnowned = true))) },
+                ) { Text("Show all products") }
+            },
+        )
+        return
+    }
+    EmptyState(
+        icon = Icons.Outlined.SearchOff,
+        title = "No heroes match",
+        message = if (query.isNotBlank()) {
+            "Nothing matches “${query.trim()}” with these filters. Try another word or clear them."
+        } else {
+            "No hero fits all of these filters. Remove one to widen the search."
+        },
+        action = {
+            OutlinedButton(onClick = { onAction(CatalogAction.ClearAll) }) {
+                Text("Clear search and filters")
+            }
+        },
+    )
 }
 
 @Composable
@@ -220,7 +238,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = Spacing.screen)
             .padding(bottom = Spacing.sm),
-        placeholder = { Text("Search heroes, cards, card text", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        placeholder = { Text(SEARCH_HINT, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
@@ -340,38 +358,70 @@ private fun ResultSummary(state: CatalogUiState.Ready, query: String) {
     )
 }
 
+/**
+ * Heroes (grid or compact list) and, while searching, the matching cards. Cards come first when
+ * they answer the query better than any hero (a card phrase beats a hero matched only through
+ * its title and another card). Cell width does not grow with the font scale, so the grid keeps
+ * three columns on a phone; tiles wrap or ellipsize their text instead.
+ */
 @Composable
-private fun HeroGrid(state: CatalogUiState.Ready, onHeroClick: (String) -> Unit) {
-    // Large font scales get wider cells (one column on phones) so names never wrap word by word.
-    val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 2f)
+private fun Results(
+    state: CatalogUiState.Ready,
+    layout: CatalogLayout,
+    query: String,
+    onHeroClick: (String) -> Unit,
+    onCardClick: (heroId: String, cardId: String) -> Unit,
+) {
+    val grid = layout == CatalogLayout.GRID
+    val gap = if (grid) Spacing.sm else Spacing.xs
+    val showCards = state.cards.isNotEmpty()
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = GRID_MIN_CELL * fontScale),
+        columns = if (grid) GridCells.Adaptive(GRID_MIN_CELL) else GridCells.Fixed(1),
         contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = Spacing.xl),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(gap),
+        verticalArrangement = Arrangement.spacedBy(gap),
         modifier = Modifier.fillMaxSize(),
     ) {
-        items(state.heroes, key = { it.hero.id }) { item ->
-            HeroGridTile(item, state.controls.sort, onClick = {
-                onHeroClick(item.hero.id)
-            }, modifier = Modifier.animateItem())
+        fun cardSection() {
+            item(key = "cards-header", span = { GridItemSpan(maxLineSpan) }) {
+                ResultsHeader("Cards", state.cards.size)
+            }
+            items(state.cards, key = { "card-" + it.card.id }, span = { GridItemSpan(maxLineSpan) }) { result ->
+                CardResultRow(result, query, onClick = { onCardClick(result.hero.id, result.card.id) })
+            }
         }
-        item(span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(Spacing.sm)) }
+        if (showCards && state.cardsFirst) cardSection()
+        if (showCards) {
+            item(key = "heroes-header", span = { GridItemSpan(maxLineSpan) }) {
+                ResultsHeader("Heroes", state.heroes.size)
+            }
+        }
+        items(state.heroes, key = { it.hero.id }) { item ->
+            val onClick = { onHeroClick(item.hero.id) }
+            if (grid) {
+                HeroGridTile(item, state.controls.sort, onClick, Modifier.animateItem())
+            } else {
+                HeroListRow(item, state.controls.sort, onClick, Modifier.animateItem())
+            }
+        }
+        if (showCards && !state.cardsFirst) cardSection()
+        item(key = "end", span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(Spacing.sm)) }
     }
 }
 
 @Composable
-private fun HeroList(state: CatalogUiState.Ready, onHeroClick: (String) -> Unit) {
-    LazyColumn(
-        contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = Spacing.xl),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        modifier = Modifier.fillMaxSize(),
+private fun ResultsHeader(title: String, count: Int) {
+    Row(
+        Modifier.padding(top = Spacing.sm, bottom = 2.dp).semantics(mergeDescendants = true) { heading() },
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        items(state.heroes, key = { it.hero.id }) { item ->
-            HeroListRow(item, state.controls.sort, onClick = {
-                onHeroClick(item.hero.id)
-            }, modifier = Modifier.animateItem())
-        }
+        Text(title, style = MaterialTheme.typography.titleSmall)
+        Spacer(Modifier.size(Spacing.sm))
+        Text(
+            count.toString(),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -418,7 +468,9 @@ private fun LoadingGrid() {
     }
 }
 
-private val GRID_MIN_CELL = 160.dp
+/** 3 columns on a 411 dp phone (1080 px at 420 dpi): (411 - 32 + 8) / (110 + 8) = 3. */
+private val GRID_MIN_CELL = 110.dp
+private const val SEARCH_HINT = "Search heroes and card text"
 private const val MOTION_MS = 250
 private const val PULSE_MS = 900
 private const val SKELETON_TILES = 6

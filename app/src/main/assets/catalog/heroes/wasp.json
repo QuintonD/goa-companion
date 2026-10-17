@@ -471,7 +471,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Each time after you perform a basic skill, you may defeat an enemy minion in radius;\nan enemy hero who was adjacent to that minion discards a card, if able.",
+      "text": "Each time after you perform a basic skill, you may defeat an enemy minion in radius; an enemy hero who was adjacent to that minion discards a card, if able.",
       "image": "official/cards/wasp-purple-4.webp"
     }
   ],
@@ -479,7 +479,7 @@
     "id": "wasp-handicap",
     "heroId": "wasp",
     "name": "Crackling Dagger",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 11,
     "primary": "attack",

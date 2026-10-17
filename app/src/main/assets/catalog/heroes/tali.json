@@ -493,7 +493,7 @@
     "id": "tali-handicap",
     "heroId": "tali",
     "name": "Ice Shard",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 10,
     "primary": "attack",

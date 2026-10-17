@@ -79,8 +79,9 @@ class SettingsViewModel @Inject constructor(
             when {
                 everything -> s.copy(ownedProducts = emptySet())
 
-                // Switching "everything" off starts from the base game so the pool is never empty.
-                else -> s.copy(ownedProducts = all.take(1).toSet().ifEmpty { s.ownedProducts })
+                // Switching "everything" off keeps every product ticked; the group then unticks
+                // what it doesn't own (the pool is never empty).
+                else -> s.copy(ownedProducts = all.ifEmpty { s.ownedProducts })
             }
         }
     }

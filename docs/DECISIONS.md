@@ -179,3 +179,20 @@ both, the "Hurry up" shot clock and team time-outs live in the snapshot and are 
 **Consequences:** Four alert channels appear in system settings. A future data change to bundled
 presets bumps `revision` and adds a migration step. Snapshots from older versions decode with
 defaults (no undo, no shot clock).
+
+## ADR-021 — Catalog: card-level search, derived attack style, printed colours (2026-10-17)
+**Context:** QA: searching card text returned heroes (one card each), so "block" hid most Block
+cards and "fast travel" ranked Emmitt (title "Traveler" + card "Fast Forward") first; the
+"Melee attack" label came from the Gold card alone and called Swift the Sharpshooter melee;
+Handicap cards and spellbook pages were stored as colour `other`; mid-sentence line breaks
+were patched card by card.
+**Decision:** (1) `CatalogSearchIndex.searchCards` returns every matching card with a
+`MatchQuality` (hero name/alias/title > card phrase > card with all words > partial hero
+match); the Heroes tab lists cards ahead of heroes whenever the best card beats the best hero,
+filtered by the same hero filters and owned products. (2) Attack style is derived from all of
+the hero's deck Attack cards (DOMAIN.md), never from one card. (3) The importer keeps printed
+frame colours for Handicap cards and spells, and joins goa2-faq line wraps with a punctuation
+heuristic instead of per-card overrides. (4) The grid/list choice is an `AppSettings` field
+(`catalogListView`) so it survives restarts and backups of settings.
+**Consequences:** `dataVersion` 3. Card text overrides are only for real wording fixes. Code
+that needs to know a card is a Handicap card or spell uses its slot/ID, not `CardColor.OTHER`.

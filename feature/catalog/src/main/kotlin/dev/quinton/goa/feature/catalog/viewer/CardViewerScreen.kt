@@ -42,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -50,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -68,10 +70,12 @@ import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
+import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.feature.catalog.detail.printedValues
 import dev.quinton.goa.feature.catalog.ui.CardTextView
 import dev.quinton.goa.feature.catalog.ui.GameIcon
 import dev.quinton.goa.feature.catalog.ui.GameIcons
+import dev.quinton.goa.feature.catalog.ui.isBasic
 import dev.quinton.goa.feature.catalog.ui.kindLabel
 import dev.quinton.goa.feature.catalog.ui.label
 import kotlinx.coroutines.launch
@@ -226,18 +230,28 @@ private fun CardPage(card: Card, isHandicap: Boolean, textOnly: Boolean, zoom: Z
             }
         }
         Spacer(Modifier.height(Spacing.lg))
-        CardDetails(card, includeText = !showsDesigned, modifier = Modifier.widthIn(max = MAX_CARD_WIDTH))
+        CardDetails(
+            card,
+            isHandicap = isHandicap,
+            includeText = !showsDesigned,
+            modifier = Modifier.widthIn(max = MAX_CARD_WIDTH),
+        )
         Spacer(Modifier.height(Spacing.xl))
     }
 }
 
+/**
+ * The scan at its own aspect ratio once loaded (deck cards are portrait, Gydion's spellbook
+ * pages landscape), so no page shows empty bands around the image.
+ */
 @Composable
 private fun OfficialCardImage(card: Card, zoom: ZoomState, onError: () -> Unit) {
     val path = card.image ?: return
+    var aspect by remember(card.id) { mutableFloatStateOf(CARD_ASPECT) }
     Box(
         Modifier
             .fillMaxWidth()
-            .aspectRatio(CARD_ASPECT)
+            .aspectRatio(aspect)
             .clip(RoundedCornerShape(16.dp))
             .zoomable(zoom),
     ) {
@@ -250,6 +264,10 @@ private fun OfficialCardImage(card: Card, zoom: ZoomState, onError: () -> Unit) 
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             },
             error = { LaunchedEffect(Unit) { onError() } },
+            onSuccess = { success ->
+                val size = success.painter.intrinsicSize
+                if (size.isSpecified && size.width > 0f && size.height > 0f) aspect = size.width / size.height
+            },
         )
         if (!zoom.isZoomed) {
             Icon(
@@ -268,7 +286,7 @@ private fun OfficialCardImage(card: Card, zoom: ZoomState, onError: () -> Unit) 
 /** Structured card info under the image: actions, values, markers and (optionally) the text. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CardDetails(card: Card, includeText: Boolean, modifier: Modifier = Modifier) {
+private fun CardDetails(card: Card, isHandicap: Boolean, includeText: Boolean, modifier: Modifier = Modifier) {
     val shape = MaterialTheme.shapes.medium
     val accent = cardColor(card.color)
     Column(
@@ -280,6 +298,11 @@ private fun CardDetails(card: Card, includeText: Boolean, modifier: Modifier = M
             .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
+        if (isHandicap && card.color.isBasic) {
+            // Rulebook p.20: Handicap cards are weaker versions of the basic cards and replace
+            // one of them; the frame colour says which (Takahide's is silver).
+            DetailRow("Replaces") { Text("The ${card.color.label} card", style = MaterialTheme.typography.bodyMedium) }
+        }
         DetailRow("Initiative") {
             Text(card.initiative?.toString() ?: "—", style = MaterialTheme.typography.titleMedium)
         }

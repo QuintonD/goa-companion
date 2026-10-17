@@ -63,6 +63,13 @@
       },
       "reason": "Source 1 has Movement [8, 8]; the hero card shows 7 base + 1 bright segment, as goa2-faq says.",
       "evidence": "Hero profile card scan (dmrediger/goa2 hanu-0.jpeg), read 2026-10-17"
+    },
+    "sabina": {
+      "aliases": [
+        "Sabina the Gunslinger"
+      ],
+      "reason": "The official rulebook's first-game setup still calls her 'Sabina the Gunslinger' (old title); kept as a search alias. Display title stays 'the Commander' (sources 1 and 3, hero card).",
+      "evidence": "Official rulebook PDF, printed p.5 (setup step 7, D:/.goa-qa/product-research/raw/rb/p6.txt), read 2026-10-17"
     }
   },
   "cards": {
@@ -918,6 +925,21 @@
       ],
       "reason": "goa2-faq spells it 'Temporal Judgement'; the card prints 'Temporal Judgment' (source 1).",
       "evidence": "Card scan official/cards/emmitt-red-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "min-purple-4": {
+      "name": "Flurry of Blows",
+      "reason": "Source 1 lower-cases 'blows'; the printed title is 'Flurry of Blows'.",
+      "evidence": "Card scan official/cards/min-purple-4.webp, read 2026-10-17 (card-fidelity QA, D:/.goa-qa/card-fidelity)"
+    },
+    "emmitt-handicap": {
+      "text": "Target a hero adjacent to you.\nAfter the attack: **Next Turn:** Heroes with lower initiative act before heroes with higher initiative. This effect ignores immunity.",
+      "reason": "The card prints 'Next Turn:' with a capital T.",
+      "evidence": "Card scan official/cards/emmitt-handicap.webp, read 2026-10-17 (card-fidelity QA, D:/.goa-qa/card-fidelity)"
+    },
+    "mrak-handicap": {
+      "text": "Target a hero adjacent to you.\nAfter the attack: Place a {token_rock} rock token in each of the first three empty spaces in the straight line from you in the direction of the attack.",
+      "reason": "The card prints 'rock token' in lower case.",
+      "evidence": "Card scan official/cards/mrak-handicap.webp, read 2026-10-17 (card-fidelity QA, D:/.goa-qa/card-fidelity)"
     }
   },
   "images": {

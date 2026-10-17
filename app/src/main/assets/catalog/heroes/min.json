@@ -375,7 +375,7 @@
       "ranged": false,
       "block": true,
       "item": "radius",
-      "text": "Swap with a {token_smoke_bomb} Smoke bomb in range;\nif you do, block the attack. You may place the Smoke bomb into a space in range.",
+      "text": "Swap with a {token_smoke_bomb} Smoke bomb in range; if you do, block the attack. You may place the Smoke bomb into a space in range.",
       "image": "official/cards/min-green-3a.webp"
     },
     {
@@ -456,7 +456,7 @@
     {
       "id": "min-purple-4",
       "heroId": "min",
-      "name": "Flurry of blows",
+      "name": "Flurry of Blows",
       "color": "purple",
       "tier": 4,
       "initiative": null,
@@ -480,7 +480,7 @@
     "id": "min-handicap",
     "heroId": "min",
     "name": "Chop Down",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 12,
     "primary": "attack",

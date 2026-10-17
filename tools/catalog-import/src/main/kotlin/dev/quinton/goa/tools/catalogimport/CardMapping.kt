@@ -78,18 +78,19 @@ object CardMapping {
         }
     }
 
-    fun color(card: SoaCard): CardColor = when {
-        card.handicapped || card.school != null -> CardColor.OTHER
-
-        else -> when (card.color) {
-            "GOLD" -> CardColor.GOLD
-            "SILVER" -> CardColor.SILVER
-            "RED" -> CardColor.RED
-            "GREEN" -> CardColor.GREEN
-            "BLUE" -> CardColor.BLUE
-            "PURPLE" -> CardColor.PURPLE
-            else -> error("Unknown colour ${card.color}")
-        }
+    /**
+     * The printed frame colour. Handicap cards keep theirs (gold, Takahide's silver: the basic
+     * card they are a weaker version of) and so do spellbook pages (gold cantrips, red/green/blue
+     * spells, purple Wish); the card's slot, not its colour, says it is a Handicap card or a spell.
+     */
+    fun color(card: SoaCard): CardColor = when (card.color) {
+        "GOLD" -> CardColor.GOLD
+        "SILVER" -> CardColor.SILVER
+        "RED" -> CardColor.RED
+        "GREEN" -> CardColor.GREEN
+        "BLUE" -> CardColor.BLUE
+        "PURPLE" -> CardColor.PURPLE
+        else -> error("Unknown colour ${card.color}")
     }
 
     fun tier(card: SoaCard): Int? = when {

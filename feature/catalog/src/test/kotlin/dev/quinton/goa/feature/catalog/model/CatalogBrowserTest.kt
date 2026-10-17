@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.catalog.model
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Catalog
+import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.core.model.catalog.Role
 import dev.quinton.goa.core.model.rating.HeroUsage
 import dev.quinton.goa.core.model.rating.Rating
@@ -12,11 +13,21 @@ import org.junit.Test
 class CatalogBrowserTest {
     private val catalog = TestCatalog.catalog.copy(
         heroes = TestCatalog.heroes.map { hero ->
-            // Hero 5 gets a ranged basic attack so the Ranged/Melee filter has both kinds.
+            // Hero 5's Attack cards are all ranged so the Ranged/Melee filter has both kinds.
             if (hero.id != "test-hero-5") {
                 hero
             } else {
-                hero.copy(cards = hero.cards.map { if (it.color == CardColor.GOLD) it.copy(ranged = true) else it })
+                hero.copy(
+                    cards = hero.cards.map {
+                        if (it.primary ==
+                            PrimaryAction.ATTACK
+                        ) {
+                            it.copy(ranged = true)
+                        } else {
+                            it
+                        }
+                    },
+                )
             }
         },
     )
@@ -66,13 +77,44 @@ class CatalogBrowserTest {
     }
 
     @Test
-    fun attackStyleComesFromTheGoldCard() {
+    fun attackStyleComesFromTheAttackCards() {
         assertThat(
             browse(filter = CatalogFilter(attackStyle = AttackStyle.RANGED)).ids(),
         ).containsExactly("test-hero-5")
         assertThat(browse(filter = CatalogFilter(attackStyle = AttackStyle.MELEE))).hasSize(11)
-        val noGold = TestCatalog.hero(1).let { h -> h.copy(cards = h.cards.filter { it.color != CardColor.GOLD }) }
-        assertThat(noGold.attackStyle()).isNull()
+        val noAttacks = TestCatalog.hero(1).let { h ->
+            h.copy(
+                cards = h.cards.filter {
+                    it.primary !=
+                        PrimaryAction.ATTACK
+                },
+            )
+        }
+        assertThat(noAttacks.attackStyle()).isNull()
+    }
+
+    @Test
+    fun attackStyleIgnoresTheGoldCardAlone() {
+        // A sniper whose Gold card is a skill (or a melee attack) is still ranged; one ranged
+        // Gold card among melee attacks is mixed, not ranged.
+        val hero = TestCatalog.hero(1)
+        fun with(rangedIds: Set<String>, goldPrimary: PrimaryAction = PrimaryAction.ATTACK) = hero.copy(
+            cards = hero.cards.map {
+                val card = if (it.color == CardColor.GOLD) it.copy(primary = goldPrimary) else it
+                card.copy(ranged = card.primary == PrimaryAction.ATTACK && card.id in rangedIds)
+            },
+        )
+        val colouredAttacks = setOf("test-hero-1-red-1", "test-hero-1-green-1", "test-hero-1-blue-1")
+        assertThat(with(colouredAttacks, goldPrimary = PrimaryAction.SKILL).attackProfile())
+            .isEqualTo(AttackProfile(ranged = 3, attacks = 3))
+        assertThat(with(colouredAttacks, goldPrimary = PrimaryAction.SKILL).attackStyle()).isEqualTo(AttackStyle.RANGED)
+        assertThat(with(colouredAttacks).attackStyle()).isEqualTo(AttackStyle.RANGED) // 3 of 4
+        assertThat(with(setOf("test-hero-1-gold")).attackStyle()).isEqualTo(AttackStyle.MIXED) // 1 of 4
+        assertThat(with(setOf("test-hero-1-gold", "test-hero-1-red-1")).attackStyle())
+            .isEqualTo(AttackStyle.MIXED) // half is not more than half
+        assertThat(with(emptySet()).attackStyle()).isEqualTo(AttackStyle.MELEE)
+        assertThat(AttackProfile(ranged = 5, attacks = 6).pill).isEqualTo("Ranged attacks · 5 of 6")
+        assertThat(AttackProfile(ranged = 0, attacks = 0).pill).isNull()
     }
 
     @Test

@@ -1,8 +1,9 @@
 package dev.quinton.goa.feature.catalog.model
 
-import dev.quinton.goa.core.model.catalog.CardColor
+import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.catalog.Hero
+import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.core.model.catalog.Product
 import dev.quinton.goa.core.model.catalog.Role
 import dev.quinton.goa.core.model.rating.HeroUsage
@@ -16,10 +17,11 @@ enum class CatalogSort(val label: String) {
     WIN_RATE("Win rate"),
 }
 
-/** Attack style, taken from the hero's basic Gold (attack) card. */
+/** How a hero's attack cards target (app-derived, not an official trait; see [AttackProfile]). */
 enum class AttackStyle(val label: String) {
-    RANGED("Ranged attack"),
-    MELEE("Melee attack"),
+    RANGED("Ranged attacks"),
+    MIXED("Mixed attacks"),
+    MELEE("Melee attacks"),
 }
 
 /**
@@ -48,16 +50,47 @@ data class HeroListItem(
     val hit: SearchHit?,
 )
 
+/** One card in the search results; tapping it opens the card viewer. */
+data class CardResult(val card: Card, val hero: Hero, val quality: MatchQuality, val isHandicap: Boolean = false)
+
 /** Products the user can filter by: the owned ones, or all when none are set or unowned are shown. */
 fun visibleProducts(catalog: Catalog, owned: Set<String>, includeUnowned: Boolean): List<Product> =
     if (owned.isEmpty() || includeUnowned) catalog.products else catalog.products.filter { it.id in owned }
 
+/** How many of a hero's deck Attack cards print the Ranged subtype ("Attack - Ranged"). */
+data class AttackProfile(val ranged: Int, val attacks: Int) {
+    /**
+     * Ranged when more than half of the attack cards are ranged, Melee when none is, Mixed
+     * otherwise; null without attack cards (unknown, never guessed). docs/DOMAIN.md explains why.
+     */
+    val style: AttackStyle?
+        get() = when {
+            attacks == 0 -> null
+            ranged == 0 -> AttackStyle.MELEE
+            ranged * 2 > attacks -> AttackStyle.RANGED
+            else -> AttackStyle.MIXED
+        }
+
+    /** "Ranged attacks", "Ranged attacks · 5 of 6", "Melee attacks", "Mixed attacks · 2 of 6 ranged". */
+    val pill: String?
+        get() = when (style) {
+            null -> null
+            AttackStyle.MELEE -> "Melee attacks"
+            AttackStyle.RANGED -> if (ranged == attacks) "Ranged attacks" else "Ranged attacks · $ranged of $attacks"
+            AttackStyle.MIXED -> "Mixed attacks · $ranged of $attacks ranged"
+        }
+}
+
 /**
- * Ranged when the basic Gold card is ranged, melee when it isn't, null when the hero has no
- * Gold card in the data (unknown — never guessed).
+ * Counts the hero's deck cards (basic, extra basic, coloured, Ultimate; not the Handicap card
+ * or spellbook pages) whose primary action is Attack, and how many of them are ranged.
  */
-fun Hero.attackStyle(): AttackStyle? = cards.firstOrNull { it.color == CardColor.GOLD }
-    ?.let { if (it.ranged) AttackStyle.RANGED else AttackStyle.MELEE }
+fun Hero.attackProfile(): AttackProfile {
+    val attacks = cards.filter { it.primary == PrimaryAction.ATTACK }
+    return AttackProfile(ranged = attacks.count { it.ranged }, attacks = attacks.size)
+}
+
+fun Hero.attackStyle(): AttackStyle? = attackProfile().style
 
 /** Search → owned products → filters → sort. Pure; covered by unit tests. */
 object CatalogBrowser {
@@ -94,8 +127,26 @@ object CatalogBrowser {
             )
         }
         val bySort = comparator(sort, productOrder)
-        val ordered = if (searching) compareByDescending<HeroListItem> { it.hit?.score ?: 0 }.then(bySort) else bySort
+        val ordered = if (searching) {
+            compareByDescending<HeroListItem> { it.hit?.quality?.ordinal ?: 0 }
+                .thenByDescending { it.hit?.score ?: 0 }
+                .then(bySort)
+        } else {
+            bySort
+        }
         return items.sortedWith(ordered)
+    }
+
+    /**
+     * Cards matching [query] (all of them, best first, see [CatalogSearchIndex.searchCards]),
+     * limited to the heroes in [heroes] so filters and owned products apply to cards too.
+     */
+    fun cards(index: CatalogSearchIndex, query: String, heroes: List<HeroListItem>): List<CardResult> {
+        val visible = heroes.associateBy { it.hero.id }
+        return index.searchCards(query).mapNotNull { hit ->
+            val item = visible[hit.heroId] ?: return@mapNotNull null
+            CardResult(hit.card, item.hero, hit.quality, isHandicap = item.hero.handicap?.id == hit.card.id)
+        }
     }
 
     private val byName: Comparator<HeroListItem> = compareBy<HeroListItem> {

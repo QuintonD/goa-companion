@@ -492,7 +492,7 @@
     "id": "trinkets-handicap",
     "heroId": "trinkets",
     "name": "Ramshackle Turret",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 12,
     "primary": "skill",

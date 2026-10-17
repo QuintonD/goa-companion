@@ -485,7 +485,7 @@
     "id": "mortimer-handicap",
     "heroId": "mortimer",
     "name": "Shallow Graves",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 10,
     "primary": "attack",

@@ -36,6 +36,7 @@ class SettingsDataSource @Inject constructor(@param:SettingsStore private val st
             prefs[Keys.OWNED_PRODUCTS] = next.ownedProducts
             prefs[Keys.HAPTICS] = next.hapticsEnabled
             prefs[Keys.SOUNDS] = next.soundsEnabled
+            prefs[Keys.CATALOG_LIST] = next.catalogListView
         }
     }
 
@@ -44,6 +45,7 @@ class SettingsDataSource @Inject constructor(@param:SettingsStore private val st
         val OWNED_PRODUCTS = stringSetPreferencesKey("owned_products")
         val HAPTICS = booleanPreferencesKey("haptics_enabled")
         val SOUNDS = booleanPreferencesKey("sounds_enabled")
+        val CATALOG_LIST = booleanPreferencesKey("catalog_list_view")
     }
 
     private companion object {
@@ -55,6 +57,7 @@ class SettingsDataSource @Inject constructor(@param:SettingsStore private val st
             ownedProducts = prefs[Keys.OWNED_PRODUCTS] ?: Defaults.ownedProducts,
             hapticsEnabled = prefs[Keys.HAPTICS] ?: Defaults.hapticsEnabled,
             soundsEnabled = prefs[Keys.SOUNDS] ?: Defaults.soundsEnabled,
+            catalogListView = prefs[Keys.CATALOG_LIST] ?: Defaults.catalogListView,
         )
     }
 }
