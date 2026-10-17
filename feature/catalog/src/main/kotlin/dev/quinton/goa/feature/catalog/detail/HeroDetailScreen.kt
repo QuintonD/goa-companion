@@ -267,10 +267,13 @@ private fun HeroHeader(hero: Hero, productName: String) {
                     }
                 }
                 MetaPill(productName)
+                // App-derived from the basic Gold card; kept apart from the official role chips
+                // because "Melee" is also an official role name.
+                hero.attackStyle()?.let { MetaPill(it.label) }
                 if (hero.printing != 2) MetaPill("Printing ${hero.printing}")
                 if (hero.verified) VerifiedPill() else UnverifiedBadge()
             }
-            val roles = hero.roles.map { it.label } + listOfNotNull(hero.attackStyle()?.label)
+            val roles = hero.roles.map { it.label }
             if (roles.isNotEmpty()) {
                 FlowRow(
                     Modifier.padding(top = Spacing.md),

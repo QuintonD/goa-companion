@@ -18,8 +18,8 @@ enum class CatalogSort(val label: String) {
 
 /** Attack style, taken from the hero's basic Gold (attack) card. */
 enum class AttackStyle(val label: String) {
-    RANGED("Ranged"),
-    MELEE("Melee"),
+    RANGED("Ranged attack"),
+    MELEE("Melee attack"),
 }
 
 /**
