@@ -117,8 +117,11 @@ Features never depend on each other; cross-feature navigation goes through `app`
    (`MatchEditRoute(result = true, prefillPlayedAt = session start)`): a linked pending match
    defaults to Completed and is dated from the session start; without a linked match nothing
    is saved until the user saves, and the new match is pre-filled with the duration and, if
-   legal for the session's hero count, its mode. After saving a result the editor shows each
-   player's rating change and rank and offers Rematch.
+   legal for the session's hero count, its mode. That new match gets an id reserved in the
+   session (`TimerSnapshot.loggingMatchId`, `MatchEditRoute.newMatchId`): the ended session
+   and its "Match over" summary stay until a match with that id exists, so Back from "Who
+   won?" (which asks first) loses nothing (ADR-023). After saving a result the editor shows
+   each player's rating change and rank and offers Rematch.
 9. **Shell** (`app`, ADR-020): the notification's content intent carries `EXTRA_OPEN_TAB =
    TIMER`, and a cold start with a running or paused session also opens the Timer tab. Other
    tabs show a compact "timer running" bar (phase, round context, clock; tap → timer) that

@@ -279,3 +279,24 @@ override was needed.
 **Consequences:** One more optional field in `rules-reference.json` (older app builds would
 reject a file using it, but the JSON ships with the app). The Takahide question stays open in
 the UI until an official ruling exists; recording one goes through `fix-hero`/FAQ data.
+
+## ADR-023 — Final data fixes: logged-result handoff, Block label, game nights, kind words in search (2026-10-17)
+**Context:** The final hands-on test found Back on "Who won?" (opened from the timer's Log
+result) threw the finished match and its duration away without asking; Takahide's Handicap
+"Shameful Display" was labelled Block although it has no Block condition; "Last game night"
+split a night at midnight; "brogan ultimate" found nothing.
+**Decision:** (1) Without a linked match, Log result reserves a match id in the ended session
+(`TimerSnapshot.loggingMatchId`) and opens the editor with it (`MatchEditRoute.newMatchId`). The
+session and its summary stay until a match with that id is saved (the timer clears it then),
+and the editor asks before leaving an unsaved timer result. No stub match is written, so the
+match log stays the only record. (2) `Card.block` stays the printed "!" (cross-checked against
+colefin8); the UI says "Block" only when the text states a Block condition (rulebook p.14) and
+"No Block condition" otherwise. No data change, so no re-import and no `dataVersion` bump.
+(3) A game night is the latest run of rated matches without a gap of 6 h or more, dated by its
+first match. (4) Card kind words (colour, basic, tier, ultimate, handicap, spell) narrow
+multi-word card queries but never match alone, and a hero is a result whenever one of its cards
+is.
+**Consequences:** An ended session can outlive its summary screen until its result is saved or
+discarded. Older builds ignore `loggingMatchId` (default null). If a 3rd printing adds "!" cards
+without a Block condition, the label follows automatically (the catalog test then needs its
+count updated).
