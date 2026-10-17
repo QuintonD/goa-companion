@@ -359,7 +359,10 @@ class TimerViewModel @Inject constructor(
 
         fun heroes(team: Team): String? = match.participants
             .filter { it.team == team }
-            .map { seat -> seat.heroId?.let { id -> catalog?.heroes?.firstOrNull { it.id == id }?.name ?: id } ?: "Hero not picked" }
+            .map { seat ->
+                seat.heroId?.let { id -> catalog?.heroes?.firstOrNull { it.id == id }?.name ?: id }
+                    ?: "Hero not picked"
+            }
             .takeIf { it.isNotEmpty() }
             ?.joinToString(", ")
         return PendingMatchItem(

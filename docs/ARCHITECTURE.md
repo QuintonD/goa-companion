@@ -113,8 +113,8 @@ Features never depend on each other; cross-feature navigation goes through `app`
    so they work on a phone set to silent/vibrate or with touch feedback off; the in-app Sounds
    and Haptics switches still gate them. The "Hurry up" shot clock cues in-app only (no alarm).
    Portrait: dial above extras; landscape (width > height): dial on the left half, header,
-   phase, extras and controls on the right. A running Hurry up is pinned just above the
-   controls (outside the scrolling area) in both orientations. The bottom controls are Pause and
+   phase, extras and controls on the right. A running Hurry up is pinned outside the scrolling
+   area: above the controls in portrait, under the dial in landscape. The bottom controls are Pause and
    Next only; "Previous phase" sits beside the step chip, away from the bottom edge. Opt-in volume keys are read with
    `onPreviewKeyEvent` on a focused root while the timer screen shows.
 8. **Match link**: `TimerController` is the single writer of the linked match's duration

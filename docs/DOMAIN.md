@@ -168,7 +168,7 @@ card" only if unchanged). User-made presets are never touched.
 **Table rules in presets [APP — house rules, not in the rulebook]** (research: designer-endorsed
 "hurry up" clock, playtester time-outs):
 - *Hurry up*: on-demand countdown (default 0:30, or off) usable in any phase or overtime; started
-  from under the dial, then pinned above the timer controls while it runs, with cues at 10 s, 5 s
+  from under the dial, then pinned (above the controls; under the dial in landscape) while it runs, with cues at 10 s, 5 s
   and zero; pauses with the timer, cleared on the next step.
 - *Time-outs*: N per team per round (default 0 = off), each adds 0:40 (editable) to the current
   timed phase, also out of overtime; reset each round.

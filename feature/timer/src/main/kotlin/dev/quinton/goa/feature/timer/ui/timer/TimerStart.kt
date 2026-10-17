@@ -58,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
+import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
@@ -394,12 +395,16 @@ private fun PendingMatchCard(match: PendingMatchItem, onClick: () -> Unit, onDis
 @Composable
 private fun TeamHeroesLine(team: Team, heroes: String) {
     val name = if (team == Team.RED) "Red" else "Blue"
-    Text(
-        "${if (team == Team.RED) "◆" else "●"} $name: $heroes",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.semantics { contentDescription = "$name: $heroes" },
-    )
+    Row(
+        Modifier.padding(top = Spacing.xs).semantics(mergeDescendants = true) {
+            contentDescription = "$name: $heroes"
+        },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TeamBadge(team)
+        Spacer(Modifier.width(Spacing.sm))
+        Text(heroes, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+    }
 }
 
 @Composable

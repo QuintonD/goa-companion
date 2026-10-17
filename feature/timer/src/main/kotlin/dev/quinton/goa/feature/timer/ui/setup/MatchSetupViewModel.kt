@@ -229,8 +229,10 @@ class MatchSetupViewModel @AssistedInject constructor(
             val preset = state.selectedPresetId?.let { repository.preset(it) } ?: repository.selectedPreset()
             val linked = when {
                 matchId != null -> matches.observeMatch(matchId).first()
+
                 // A rematch is saved only now, as the game actually starts.
                 rematch != null -> matches.observeMatch(rematch.sourceId).first()?.let { buildRematch(it) }
+
                 else -> null
             }
             if (linked != null) {
@@ -280,12 +282,7 @@ class MatchSetupViewModel @AssistedInject constructor(
             players = players,
             playerRange = setup.playerRange,
             playersLocked = locked,
-            seatsSource = when {
-                !locked -> null
-                rematch != null -> rematchLabel(rematch.kind)
-                match?.draftId != null -> "From the drafted match"
-                else -> "From the pending match"
-            },
+            seatsSource = if (locked) seatsSource(match) else null,
             recommended = setup.isRecommended(players),
             extendedNote = if (setup.isExtended(players)) rules.extendedCountNote else null,
             layouts = layouts.map(::layoutOption),
@@ -320,11 +317,7 @@ class MatchSetupViewModel @AssistedInject constructor(
             firstGameAdvice = if (quickAvailable) rules.firstGameAdvice else "",
             linkedMatch = match?.let {
                 LinkedMatchUi(
-                    title = when {
-                        rematch != null -> "Rematch · ${seats.size} heroes"
-                        locked -> "Pending match · ${seats.size} heroes"
-                        else -> "Pending match"
-                    },
+                    title = linkedTitle(seats.size),
                     redSeats = red,
                     blueSeats = blue,
                 )
@@ -334,10 +327,23 @@ class MatchSetupViewModel @AssistedInject constructor(
         )
     }
 
-    private fun rematchLabel(kind: RematchKind) = when (kind) {
-        RematchKind.SAME_SEATS -> "Rematch: same seats"
-        RematchKind.SWAP_HEROES -> "Rematch: heroes swapped"
-        RematchKind.SWAP_TEAMS -> "Rematch: sides swapped"
+    /** Where locked seats come from (the players card says it instead of the player count range). */
+    private fun seatsSource(match: Match?): String = when {
+        rematch != null -> when (rematch.kind) {
+            RematchKind.SAME_SEATS -> "Rematch: same seats"
+            RematchKind.SWAP_HEROES -> "Rematch: heroes swapped"
+            RematchKind.SWAP_TEAMS -> "Rematch: sides swapped"
+        }
+
+        match?.draftId != null -> "From the drafted match"
+
+        else -> "From the pending match"
+    }
+
+    private fun linkedTitle(heroes: Int): String = when {
+        rematch != null -> "Rematch · $heroes heroes"
+        heroes > 0 -> "Pending match · $heroes heroes"
+        else -> "Pending match"
     }
 
     private fun layoutOption(layout: SeatLayout) = LayoutOptionUi(

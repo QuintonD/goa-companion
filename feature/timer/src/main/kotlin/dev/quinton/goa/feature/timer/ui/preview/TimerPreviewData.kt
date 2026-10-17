@@ -67,7 +67,15 @@ object TimerPreviewData {
         start = StartUiState(
             presets = presets,
             selectedPresetId = "table-rules",
-            pendingMatches = listOf(PendingMatchItem("m1", "Quick · 6 heroes, 5 players", "Pending since 17 Oct 2026")),
+            pendingMatches = listOf(
+                PendingMatchItem(
+                    "m1",
+                    "Quick · 6 heroes, 5 players",
+                    "Pending since 5:06 PM",
+                    red = "Xargatha, Arien, Brogan",
+                    blue = "Gydion, Wasp, Sabina",
+                ),
+            ),
             seats = 4,
             tonight = TonightUi(seconds = 45, presetSeconds = 30),
         ),
@@ -147,6 +155,11 @@ object TimerPreviewData {
         hint = "Cards revealed: resolve one by one in initiative order. No strategy talk: only state preferences, " +
             "no reasons.",
         nextLabel = "Next: Turn 4",
+    )
+
+    /** Game night: on the Resolve step a running Hurry up sat behind the controls, digits clipped. */
+    val resolveHurryUp = resolve.copy(
+        shotClock = ShotClockUi("0:17", "Hurry up, 17 seconds left", 0.57f, over = false, warning = false),
     )
 
     val paused = turn.copy(paused = true, clock = "0:09", fraction = 0.3f, warning = true)
@@ -304,6 +317,7 @@ object TimerPreviewData {
     val setupLinked = setup.copy(
         players = 8,
         playersLocked = true,
+        seatsSource = "From the drafted match",
         extendedNote = null,
         layouts = listOf(LayoutOptionUi("standard-8", LayoutKind.STANDARD, "Even teams", "4 vs 4 heroes", null, true)),
         selectedLayoutId = "standard-8",

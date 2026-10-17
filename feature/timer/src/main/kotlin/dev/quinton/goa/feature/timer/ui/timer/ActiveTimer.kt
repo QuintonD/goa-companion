@@ -216,19 +216,26 @@ private fun PinnedShotClock(state: ActiveUiState, actions: TimerActions, compact
     )
 }
 
-/** Landscape: the dial fills the left half; header, phase, extras and controls sit on the right. */
+/**
+ * Landscape: the dial fills the left half (a running Hurry up under it); header, phase, extras
+ * and controls sit on the right.
+ */
 @Composable
 private fun LandscapeTimer(state: ActiveUiState, actions: TimerActions, header: @Composable () -> Unit) {
     Row(Modifier.fillMaxSize()) {
-        BoxWithConstraints(
-            Modifier.weight(0.45f).fillMaxHeight().padding(Spacing.md),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (state.checklist != null && !state.timed) {
-                Column(Modifier.verticalScroll(rememberScrollState())) { ChecklistStepCard(state, actions.onNext) }
-            } else {
-                TimerDial(state, min(maxWidth, maxHeight).coerceAtLeast(120.dp), actions.onTogglePause)
+        // A running Hurry up sits under the dial here, leaving the right column to the step text.
+        Column(Modifier.weight(0.45f).fillMaxHeight()) {
+            BoxWithConstraints(
+                Modifier.weight(1f).fillMaxWidth().padding(Spacing.md),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (state.checklist != null && !state.timed) {
+                    Column(Modifier.verticalScroll(rememberScrollState())) { ChecklistStepCard(state, actions.onNext) }
+                } else {
+                    TimerDial(state, min(maxWidth, maxHeight).coerceAtLeast(120.dp), actions.onTogglePause)
+                }
             }
+            PinnedShotClock(state, actions, compact = true)
         }
         Column(Modifier.weight(0.55f).fillMaxHeight()) {
             header()
@@ -247,7 +254,6 @@ private fun LandscapeTimer(state: ActiveUiState, actions: TimerActions, header: 
                 SecondaryArea(state, actions)
                 Spacer(Modifier.height(Spacing.md))
             }
-            PinnedShotClock(state, actions, compact = true)
             TimerControls(state, actions, compact = true)
         }
     }
@@ -351,7 +357,11 @@ private fun RowScope.TimerTopActions(
 ) {
     var menu by remember { mutableStateOf(false) }
     if (state.tieBreaker != null) {
-        TieBreakerChip(state.tieBreaker, actions.onFlipCoin, actionKey = "${state.round}:${state.title}:${state.paused}")
+        TieBreakerChip(
+            state.tieBreaker,
+            actions.onFlipCoin,
+            actionKey = "${state.round}:${state.title}:${state.paused}",
+        )
     }
     // Large text needs the room for "Round N": the ladder moves into the menu.
     val largeText = LocalDensity.current.fontScale > LARGE_FONT_SCALE
