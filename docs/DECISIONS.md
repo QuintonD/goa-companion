@@ -9,7 +9,7 @@ Supersede rather than edit.
 **Consequences:** Best platform integration (foreground service, haptics, widgets later);
 no iOS without a rewrite or KMP migration (core:model/domain kept pure Kotlin to keep that open).
 
-## ADR-002 — Offline-first, no backend in v1 (2026-10-17)
+## ADR-002 — Offline-first, no backend in v1 (2026-10-17) — sync part SUPERSEDED by ADR-025
 **Context:** Play groups share one phone; accounts add cost, privacy and moderation burden.
 **Decision:** All data local (Room/DataStore). Sharing via JSON export/import.
 **Consequences:** No cross-device live sync in v1; data model uses UUIDs so a sync layer can
@@ -349,3 +349,79 @@ Pending rows on the Timer tab show each team's heroes and the time they were set
 Discard (confirmed; deletes only a still-pending match).
 **Consequences:** A rematch backed out of leaves nothing; existing pending matches keep working
 (resume, Who won?, Discard). The Timer tab loses whatever was stacked on it when a timer starts.
+
+## ADR-025 — Group sync: phone to phone at the table over Nearby, LWW merge, no server (2026-10-17)
+Supersedes the "no cross-device sync" part of ADR-002 (everything else in ADR-002 stands: all
+data is local, no accounts, no backend).
+
+**Context:** The owner shares the APK with the play group (ADR-006 addendum), so each friend
+now has their own phone and their own copy of the match log, and asked to "sync the data, and
+optionally add the players through them downloading the app". Data is only ever created when
+the group is together at the table. The app has no INTERNET permission and that stays
+non-negotiable. Options weighed:
+- *A PC or home server / LAN sync:* needs a machine and a router on game night, the INTERNET
+  permission, and someone to run it. Rejected.
+- *Cloud (Drive, Firebase):* accounts, network access and a third party holding the group's data,
+  all non-goals. Rejected.
+- *QR codes only:* fine for a few hundred bytes (an invite), far too small for a match log (tens
+  to hundreds of KB, even gzipped). Kept for the invite only.
+- *Phone to phone over Google Nearby Connections:* Bluetooth + Wi-Fi Direct, no router, no
+  internet, works on every friend's Android phone, encrypted per connection. Chosen.
+
+**Decision:**
+1. *Transport:* Nearby Connections (`play-services-nearby`, `Strategy.P2P_STAR`), service id =
+   application id, behind a pure-Kotlin `SyncTransport` interface (core:domain) so the protocol
+   is unit-tested over an in-memory transport. Endpoint names carry a non-secret group tag (first
+   8 hex of SHA-256(groupId)) and the device's name; connections are auto-accepted for the tag.
+2. *Membership and key:* "Start a group" makes a UUID `groupId` and a 256-bit random `groupKey`.
+   The invite QR (`goa-sync:1?g=…&k=<base64url>&n=…`, drawn with ZXing) is read with Google's code
+   scanner, which runs in Play services, so the app needs no CAMERA permission. Membership, key,
+   this install's id, "who am I" and phones last synced live in their own DataStore
+   (`group_sync`), never in AppSettings, never synced or backed up in the export file.
+3. *Authentication and encryption (javax.crypto only):* before any data both phones send a nonce
+   and then HMAC-SHA256(authKey, role ‖ Nearby raw auth token ‖ both nonces ‖ device ids); a
+   wrong MAC ends the link. Every data message is AES-256-GCM with a per-session key derived by
+   HKDF from the group key, both nonces and the token, with a per-direction label. Keys are always
+   derived (auth, session, file), never used raw.
+4. *Session:* one phone hosts; the others join (a joiner finds its group's host on its own). Each
+   joiner sends its whole `SyncDocument`; the host merges them into its own data in one
+   transaction and sends the result back; each joiner merges that in transactionally. Every stage
+   has a timeout; a phone that drops leaves its data untouched; an upload that arrived before a
+   drop is still merged. Payloads are gzip'd and chunked into BYTES payloads ≤
+   `MAX_BYTES_DATA_SIZE`. Phones sync only with the same `SyncDocument.VERSION` (an older app
+   would drop new fields and its copy could win a tie).
+5. *Merge model (pure, core:domain `SyncMerge`):* every write stamps `updatedAt` = max(now,
+   previous + 1, any tombstone + 1). Same id: higher `updatedAt` wins; an exact tie keeps the copy
+   whose canonical JSON sorts last. Deletions are tombstones (`deletions` table, written in the
+   delete's transaction) that beat any copy edited at or before them; a later edit resurrects.
+   Players are never deleted. Duplicates are `player_merges` resolved at read time (cycles from
+   two phones' opposite merges resolve to the smallest id). The group's rating constants travel
+   with their own `updatedAt`. Commutative, associative and idempotent (property-tested), so any
+   order of syncs converges, and ratings replay identically on every phone.
+6. *Read-time rules:* merged ids and the Unknown-hero rule are applied when reading (ratings,
+   stats, screens), never when storing, so a phone with an older catalog can't erase a newer
+   hero's id by winning a tie.
+7. *Fallback:* "Share sync file" exports the document sealed with a key derived from the group
+   key and a random salt; the file carries the group id and name in clear so a file from another
+   group gets a clear error. Opened from other apps (VIEW/SEND for
+   `application/vnd.dev.quinton.goa.sync`) or the in-app picker; merged exactly like a sync.
+8. *Backup v4* carries `updatedAt`, tombstones, merges and the constants' change time; backup
+   Merge now follows the sync rules (later edit wins) instead of "the file overwrites", and a
+   restored old backup never overrides the group's newer data at the next sync.
+
+**Consequences:**
+- A Google Play services dependency for the first time (Nearby, code scanner). A phone without
+  Play services can still use the sync file. The code scanner brings Google's `datatransport`
+  usage logging into the process and its `transport-backend-cct` manifest declares INTERNET; the
+  app manifest removes it (`tools:node="remove"`, checked in the merged release manifest), so the
+  logger can't send anything. `ACCESS_NETWORK_STATE` stays (Play services' job scheduling needs
+  it; it opens no connection).
+- New runtime permission group ("Nearby devices" on Android 12+, Location before), asked only
+  when a sync starts, with a rationale, a settings link after a refusal, and the file fallback.
+- Last writer wins per record: two phones editing the same match before syncing keep only the
+  later edit (no field-level merge). Phones with badly wrong clocks win concurrent edits; an edit
+  after a sync always beats what it edited.
+- Tombstones are kept forever (tens of bytes each). Key rotation isn't built: leaving and
+  re-inviting with a new group is the way to cut someone out.
+- Nearby can't be exercised on emulators: the protocol, crypto and merge are proven by JVM tests;
+  two physical phones at the table are the open check (ROADMAP M6).

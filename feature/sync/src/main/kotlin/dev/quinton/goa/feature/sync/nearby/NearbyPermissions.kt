@@ -33,7 +33,11 @@ object NearbyPermissions {
     fun required(sdk: Int = Build.VERSION.SDK_INT): List<String> = buildList {
         when {
             sdk < Build.VERSION_CODES.Q -> add(COARSE_LOCATION)
-            sdk <= S -> add(FINE_LOCATION)
+
+            sdk < S -> add(FINE_LOCATION)
+
+            // Android 12 ignores a FINE request without COARSE.
+            sdk == S -> addAll(listOf(FINE_LOCATION, COARSE_LOCATION))
         }
         if (sdk >= S) {
             add(BLUETOOTH_ADVERTISE)

@@ -44,6 +44,11 @@ data class PeerProgress(
     val progress: Float? = null,
     val failure: SyncFailure? = null,
     val message: String? = null,
+    /**
+     * The stage the phone was at when it failed: before READY its data never arrived; from READY on
+     * it was merged; in CONFIRMING it may already have saved the result.
+     */
+    val failedAt: PeerStage? = null,
 )
 
 enum class HostPhase { WAITING, MERGING, SENDING, DONE, FAILED }
@@ -238,7 +243,15 @@ class SyncHost(
     }
 
     private fun fail(id: String, failure: SyncFailure, message: String?) {
-        update(id) { it.copy(stage = PeerStage.FAILED, failure = failure, message = message, progress = null) }
+        update(id) {
+            it.copy(
+                stage = PeerStage.FAILED,
+                failure = failure,
+                message = message,
+                progress = null,
+                failedAt = it.stage,
+            )
+        }
     }
 
     private fun update(linkId: String, transform: (PeerProgress) -> PeerProgress) = mutableState.update { state ->

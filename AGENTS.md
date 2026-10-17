@@ -10,7 +10,7 @@ device verification on the S25 Ultra pending. See [docs/ROADMAP.md](docs/ROADMAP
 
 ## The product in one breath
 
-Five features, offline-first, pass-and-play on one phone at the table:
+Six features, offline-first, pass-and-play on one phone at the table:
 
 1. **Hero catalog** — browse/search/filter heroes, their cards, tiers and abilities.
 2. **Phase timer** — configurable countdowns per game phase, built for table use.
@@ -18,6 +18,8 @@ Five features, offline-first, pass-and-play on one phone at the table:
 4. **Draft** — configurable pick/ban drafting that feeds straight into a match record.
 5. **Rules reference** — level & defeat ladder and verbatim quick-reference topics, checked
    against the pinned rulebook (`--rules-only`, ADR-019).
+6. **Group sync** — each friend's phone keeps the same match log, synced phone to phone at the
+   table over Nearby (Bluetooth / Wi-Fi Direct), joined by QR invite; no server (ADR-025).
 
 Details and acceptance criteria: [docs/PRODUCT.md](docs/PRODUCT.md).
 
@@ -52,8 +54,12 @@ Details and acceptance criteria: [docs/PRODUCT.md](docs/PRODUCT.md).
   from the ordered match log. Never store a rating that cannot be rebuilt.
 - **Domain logic is pure Kotlin** (`:core:domain`) with unit tests. Timer, Elo and draft
   engines must not depend on Android classes.
-- **The app is offline.** No `INTERNET` permission. Online data is fetched only at dev time
-  by `tools/catalog-import` and bundled.
+- **The app is offline.** No `INTERNET` permission (the app manifest removes any a library
+  merges in; check the merged release manifest). Online data is fetched only at dev time by
+  `tools/catalog-import` and bundled. Group sync is phone to phone, never through the internet.
+- **Synced data is last-writer-wins by `updatedAt`.** Every write to players, matches and drafts
+  goes through the repositories (they stamp it); deletes leave tombstones; never rewrite the log
+  for merges. A new field on a synced type bumps `SyncDocument.VERSION` (ADR-025).
 - Keep docs true: if code diverges from a doc, fix one of them in the same change. Record
   non-trivial choices as an ADR in [docs/DECISIONS.md](docs/DECISIONS.md).
 

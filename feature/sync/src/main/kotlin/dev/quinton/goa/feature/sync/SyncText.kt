@@ -36,7 +36,21 @@ object SyncText {
         PeerStage.SENDING -> "Receiving the merged data…"
         PeerStage.CONFIRMING -> "Saving…"
         PeerStage.DONE -> "Synced"
-        PeerStage.FAILED -> peer.failure?.let { failure(it, peer.message) } ?: "Stopped"
+        PeerStage.FAILED -> peerFailure(peer)
+    }
+
+    /** A joined phone's failure, as the host should read it (its data may or may not be in). */
+    fun peerFailure(peer: PeerProgress): String = when (peer.failure) {
+        SyncFailure.WRONG_KEY -> "Not in this group (or an old invite). Scan the invite again."
+
+        SyncFailure.VERSION_MISMATCH, SyncFailure.INVALID_DATA, SyncFailure.REJECTED ->
+            peer.message ?: "Stopped"
+
+        else -> when (peer.failedAt) {
+            PeerStage.CONFIRMING -> "Lost contact while saving: it may be up to date already. Sync again to be sure."
+            PeerStage.READY, PeerStage.SENDING -> "Dropped out. Its data is in; it gets everyone's at the next sync."
+            else -> "Dropped out before its data arrived. Sync again."
+        }
     }
 
     fun clientPhase(phase: ClientPhase, host: String?): String = when (phase) {
@@ -86,7 +100,12 @@ object SyncText {
 
     fun duplicateHint(names: List<String>): String? = when (names.size) {
         0 -> null
+
         1 -> "Two players are called “${names.single()}”. If it's one person, open either and use Merge into…"
-        else -> "Some names appear twice (${names.joinToString { "“$it”" }}). Open one of each and use Merge into…"
+
+        else -> {
+            val listed = names.joinToString { "“$it”" }
+            "Some names appear twice ($listed). Open one of each and use Merge into…"
+        }
     }
 }

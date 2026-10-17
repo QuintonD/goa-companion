@@ -6,8 +6,8 @@ The app a GoA2 group leaves open on the table all game: it keeps the pace, settl
 best with Tigerclaw", runs the draft, and answers questions about a hero without digging
 through cards. Private build for one play group (ADR-006).
 
-**Users:** a regular play group (2–10 players, usually 4–6), one phone passed around or
-propped up. **Quality bar:** feels like a first-party premium app — fast, polished,
+**Users:** a regular play group (2–10 players, usually 4–6), one phone passed around or propped
+up; friends may have the app on their own phones too, kept in step by group sync. **Quality bar:** feels like a first-party premium app — fast, polished,
 accessible, no placeholder UI shipped. Terminology follows the rulebook (DOMAIN.md).
 
 **Prior art:** BGG thread 3504878 "Guards of Atlantis Timer" (fan app with draft modes,
@@ -93,8 +93,12 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
   teammate records, and dates under the rating chart.
 - Edit/delete any match; all ratings recompute.
 - Export/import full data as a versioned JSON file (backup, moving phones): players, matches,
-  drafts, rating constants, app settings, timer presets and custom draft methods. Android Auto
-  Backup enabled for the database and settings.
+  drafts, tombstones and player merges, rating constants, app settings, timer presets and custom
+  draft methods. Import "Merge" follows the group-sync rules (the later edit of a record wins).
+  Android Auto Backup enabled for the database and settings.
+- Duplicate players (one friend added on two phones): "Merge into…" on the player page, with a
+  confirmation naming both and their match counts; refused, with the matches listed, when the two
+  played in the same match.
 - **Done when:** recompute of 1,000 matches <1 s on device; import→export is lossless.
 
 ### 4. Draft
@@ -140,12 +144,44 @@ research, 2026-10-17). A reference, not a card cheat sheet: hidden information s
   (`--rules-only`), the ladder's numbers pass their table and rule tests, and the ladder and a
   topic page have light/dark (and font scale 2) screenshots.
 
+### 6. Group sync (ADR-025)
+Each friend has the app on their own phone (APK shared privately, ADR-006 addendum); the group's
+phones keep the same matches, players, drafts, deletions and rating constants by syncing **face to
+face at the table**, phone to phone over Bluetooth and Wi-Fi Direct (Google Nearby Connections).
+No server, no accounts, no internet; the app still has no INTERNET permission.
+- **Group:** "Start a group" (name) creates the group and its key; "Invite a friend" shows a QR
+  code (and "Share as text"); a friend's phone joins by scanning it (Google's code scanner, no
+  camera permission) or pasting the invite. Leave group keeps all data.
+- **Join flow:** install → Group sync → scan → the first sync starts right away → "Which player
+  are you?" (pick yourself, or add yourself: this is how a friend adds themself as a player).
+  Your player shows "You" in the Players list, and the Players tab's top bar opens your page.
+- **Sync session** (a sheet, from Group sync → Sync now or the Players tab's sync icon): one phone
+  taps Host, the others Join (a joiner finds the host on its own; with two hosts in range it asks
+  which). The host lists each phone with its progress and taps Sync when everyone is in; result
+  summary per phone ("+5 matches, +1 player, 2 updated"). Permissions are asked when a sync starts,
+  with an explanation; after a refusal the sheet offers system settings and the file fallback.
+  Every stage times out; Cancel always works; the sheet can't be swiped away while merged data is
+  being written.
+- **Merge rules:** the later edit of a match, player or draft wins; a deleted match stays deleted
+  everywhere unless someone edits it later; duplicates merged on one phone are merged on all;
+  rating constants are the group's (the latest change wins). After a sync, two players with the
+  same name get a "Merge into…" hint.
+- **Fallback:** "Share sync file" (encrypted with the group key) through Quick Share, a message or
+  Drive; "Import sync file" or opening the file merges it the same way, after showing what would
+  change. A file from another group, or one this phone's key can't open, gets a clear error.
+- **Done when:** merge properties (commutative, associative, idempotent, convergence, identical
+  ratings) and the protocol over a fake transport (host + 3 phones, a dropped phone, a wrong key)
+  pass on the JVM; the merged release manifest has no INTERNET permission; **two physical phones
+  sync at the table** (Nearby can't be proven on emulators).
+
 ### Settings
 Theme (dark default / light / system), owned products (default: all), timer defaults, cue
-sounds and haptics, Elo constants (advanced), export/import, About/credits.
+sounds and haptics, Elo constants (advanced; shared with the sync group), Group sync,
+export/import, About/credits.
 
 ## Non-goals (v1)
-- Online play, accounts, cloud sync, ads, analytics SDKs, any network access from the app.
+- Online play, accounts, cloud sync, ads, analytics SDKs, any network access from the app. (Group
+  sync is phone to phone at the table, ADR-025; nothing goes through the internet.)
 - Play Store or any public distribution — sideloaded only.
 - Full rules engine or board-state simulation (we don't track minions, coins or positions).
 - iOS; tablet-first layouts (phone-first; tablets must not break).

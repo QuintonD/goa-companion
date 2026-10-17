@@ -1,7 +1,7 @@
 package dev.quinton.goa.feature.sync.di
 
 import android.content.Context
-import android.net.Uri
+import androidx.core.net.toUri
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -37,6 +37,6 @@ internal object SyncModule {
 
     @Provides
     fun fileReader(@ApplicationContext context: Context): SyncFileReader = SyncFileReader { uri ->
-        withContext(Dispatchers.IO) { SyncFiles.read(context, Uri.parse(uri)) }
+        withContext(Dispatchers.IO) { SyncFiles.read(context, uri.toUri()) }
     }
 }

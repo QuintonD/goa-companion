@@ -285,12 +285,16 @@ Card(id, heroId, name, color: GOLD|SILVER|RED|GREEN|BLUE|PURPLE|OTHER (printed f
      initiative?, primary?, secondary, values: CardValues(attack, defense, movement, range,
      radius, plus: List<Stat>), ranged, block, item: Stat?, text (inline markup, see CardText),
      image?)
-Player(id, name, color: ARGB, avatarId, createdAt, archived)   // name unique, see below
+Player(id, name, color: ARGB, avatarId, createdAt, archived, updatedAt)   // name unique, see below
 Match(id, createdAt, playedAt, status: PENDING|COMPLETED|ABANDONED, mode: QUICK|LONG|DOUBLE_LANE,
       map?, winner?, winCondition?, durationMin?, notes, draftId?, participants,
-      tieBreaker?: RED|BLUE)   // coin as placed at setup; null = not recorded (DB v2, backup v2)
+      tieBreaker?: RED|BLUE,   // coin as placed at setup; null = not recorded (DB v2, backup v2)
+      updatedAt)               // last edit, epoch ms (DB v3, backup v4; group sync, ADR-025)
 Participant(playerId, heroId?, team: RED|BLUE, handicap)   // one per hero seat
-DraftRecord(id, createdAt, methodId, methodKind, pool, teamA, steps: (team, PICK|BAN, heroId), matchId?)
+DraftRecord(id, createdAt, methodId, methodKind, pool, teamA, steps: (team, PICK|BAN, heroId), matchId?,
+            updatedAt)
+Deletion(kind: MATCH|DRAFT, id, deletedAt)   // tombstone (DB v3)
+PlayerMerge(fromId, toId, mergedAt)          // duplicate player (DB v3)
 ```
 Engine-specific types (timer presets, draft methods/sessions, Elo config) live with their
 engines in `core:domain`.
@@ -314,7 +318,9 @@ engines in `core:domain`.
   [APP label]; a catalog test pins both facts.
 - IDs: catalog = permanent kebab-case slugs (`"arien"`, `"arien-red-1"`); user data = UUIDs.
 - **Player names are unique** [APP], compared trimmed and case-insensitively, archived
-  players included (`PlayerNames`), so one person never has two ids and two split ratings.
+  players included and merged-away duplicates left out (`PlayerNames`), so one person never has
+  two ids and two split ratings on one phone (two phones can still both add a name before they
+  sync: *Duplicate players*).
   `PlayerRepository.ensurePlayer` (draft setup's quick add) reuses — and unarchives — the
   existing player; the player editor refuses a taken name.
 - `Team` is always `RED`/`BLUE` in code. "Team A" exists only inside a draft = the team
@@ -369,7 +375,9 @@ when empty (older JSON without it still loads). Values above are placeholders, n
 ## Elo [APP — ADR-011]
 Deterministic replay of COMPLETED matches ordered by `(playedAt, createdAt, id)`. Two rating
 spaces, players and heroes, updated from the same match. Every constant lives in `EloConfig`
-(editable under Settings → Ratings; changing it recomputes everything).
+(editable under Settings → Ratings; changing it recomputes everything, and the change reaches the
+whole sync group). The replay reads pilots resolved through player merges and hero ids this
+catalog doesn't know as Unknown hero (*Duplicate players*, *Backup import*).
 
 **Seats, not players.** A match is a list of hero *seats* (`Participant`). A player who
 **double-pilots** (controls two heroes, e.g. 5 players as 3v3) owns two seats.
@@ -445,16 +453,61 @@ a double pilot's seats always stay together. The result is checked like the matc
 (each hero once, nobody on both teams).
 
 ## Backup import [APP]
-Format v3 (`BackupDocument`): v1/v2 plus `appVersion` and `extras` from contributors —
-`settings` (AppSettings: theme, owned products, sounds, haptics, list view…), `timer-presets`
-(the stored preset list and selected preset) and `draft-methods` (custom methods); each store's
-own JSON is carried as-is. Replace = the file's data and settings; Merge keeps the phone's
-players/matches/drafts, adds and overwrites by id (presets and methods merged by id) and keeps
-the phone's settings unless "Use the file's settings" is ticked (then rating constants too).
-On a phone with no players and matches, Replace is preselected. A seat whose pilot is not in
-the file rejects the file (never a ghost rated player). A hero id the catalog doesn't know is
-imported as an **Unknown hero** seat (pilot kept), and draft steps/pool entries naming it are
-dropped, so it never appears in ratings or ban stats; the import summary lists such ids.
+Format v4 (`BackupDocument`): v3 plus `updatedAt` on players, matches and drafts, `deletions`,
+`playerMerges` and `eloConfigUpdatedAt` (group sync, ADR-025). v3 added `appVersion` and `extras`
+from contributors — `settings` (AppSettings: theme, owned products, sounds, haptics, list view…),
+`timer-presets` (the stored preset list and selected preset) and `draft-methods` (custom methods);
+each store's own JSON is carried as-is. v1–v3 files still import: each record counts as last edited
+when it was created (a match: created or played, whichever is later), with no tombstones or merges.
+Replace = the file's data and settings as they are (records keep their `updatedAt`, so the group's
+newer edits win at the next sync and restoring an old backup never overwrites the group). Merge
+keeps the phone's data and merges the file in **by the group-sync rules** (*Group sync*: the later
+edit of a record wins, tombstones apply, merges union) and keeps the phone's settings unless "Use
+the file's settings" is ticked (then rating constants too, with the file's change time). On a phone
+with no players and matches, Replace is preselected. A seat whose pilot is not in the file rejects
+the file (never a ghost rated player). A hero id the catalog doesn't know is **kept as stored** and
+read as an **Unknown hero** seat (pilot kept); draft steps/pool entries naming it are left out when
+reading, so it never appears in ratings or ban stats; the import summary lists such ids. (Stored,
+not cleared: a phone with an older catalog must not erase a newer hero by winning a sync tie.)
+
+## Group sync [APP — ADR-025]
+Phone to phone at the table (Nearby Connections), no server. What travels (`SyncDocument`, raw as
+stored): players, matches, drafts, tombstones, player merges and the group's rating constants with
+their change time. What stays on each phone: app settings, timer presets, draft methods, the
+in-progress draft, the group key and "who am I" (`mePlayerId`). Ratings never travel: each phone
+replays the same log (ADR-003).
+- **Stamps:** every local write sets `updatedAt` = max(now, previous `updatedAt` + 1, the record's
+  tombstone + 1), so an edit always beats the copy it edited, even with the clock moved back.
+  Archiving is an edit. Received records keep their stamps.
+- **Merge** (`SyncMerge`, commutative, associative, idempotent): same id → the higher `updatedAt`
+  wins; an exact tie keeps the copy whose canonical JSON (`SyncJson`) sorts last, the same on every
+  phone. A tombstone beats a match or draft whose `updatedAt` ≤ `deletedAt`; a later edit
+  resurrects it (the tombstone stays). Deleting a match or discarding a pending match writes a
+  tombstone in the same transaction; players are never deleted. Rating constants: the later change
+  wins (never changed = 0; constants edited before sync existed count as 1, so they beat untouched
+  defaults). Last writer wins per record: two phones editing one match before syncing keep only the
+  later edit.
+- **Validity:** a received document is refused whole when it breaks a backup-import rule (hero
+  twice in a match, a player on both teams, a pilot missing, duplicate ids, a merge naming a
+  missing player) or comes from another sync version. A phone checks its own data the same way
+  before it hosts, joins or shares a file, and says which matches to fix.
+- **Session:** one host; every joiner sends its whole document; the host merges all of them into
+  its data in one transaction and sends the result to every joiner, who merges it in one
+  transaction. A joiner that drops keeps its data as it was; its upload, if it had arrived, is
+  still merged (it gets the result next time).
+
+## Duplicate players [APP]
+One friend added on two phones before they synced has two ids. "Merge into…" on a player page
+records `PlayerMerge(fromId, toId, mergedAt)`; nothing in the log is rewritten. Every read
+resolves ids through the merges (`PlayerMerges`): match pilots, player lists (the merged-away
+player disappears), "who am I", so ratings, records and stats count one player on every phone that
+holds the same merges, and ratings stay derivable from the match log. Chains resolve to the last
+player. A merge is refused when the two played in the same match (opposite teams would put one
+player on both sides; teammates are two people), and the dialog lists those matches. Two phones can
+merge in opposite directions before syncing; the cycle resolves to the smallest id on every phone.
+The same id merged into two different players keeps the later merge. A match logged elsewhere after
+a merge that names both ids on opposite teams is skipped by the replay (player on both teams); on
+one team they count as a double pilot. After a sync, two players with the same name get a hint.
 
 ## Team balancing [APP]
 Enumerate all splits into ⌈n/2⌉ / ⌊n/2⌋ (≤ 126 for n ≤ 10), minimise `|mean(A) − mean(B)|`,

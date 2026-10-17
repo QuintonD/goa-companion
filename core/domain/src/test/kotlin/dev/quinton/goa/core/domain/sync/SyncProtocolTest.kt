@@ -128,7 +128,10 @@ class SyncProtocolTest {
         // Cid's matches made it to the host and Bob; Cid gets theirs next time.
         assertThat(host.data.document.matches.map { it.id }).containsAtLeastElementsIn(cidBefore.matches.map { it.id })
         assertThat(bob.data.document).isEqualTo(host.data.document)
-        assertThat(host.host.state.value.peers.single { it.name == "Cid" }.stage).isEqualTo(PeerStage.FAILED)
+        val cidRow = host.host.state.value.peers.single { it.name == "Cid" }
+        assertThat(cidRow.stage).isEqualTo(PeerStage.FAILED)
+        // Its data was in: the host can say so.
+        assertThat(cidRow.failedAt).isEqualTo(PeerStage.SENDING)
     }
 
     @Test

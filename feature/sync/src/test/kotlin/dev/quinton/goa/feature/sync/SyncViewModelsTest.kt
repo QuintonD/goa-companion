@@ -43,13 +43,18 @@ class SyncViewModelsTest {
     private val people = listOf(person("ann"), person("bob"), person("cid"), person("dee"))
 
     private inner class Phone(name: String, network: InMemorySyncNetwork, data: SyncDocument, inGroup: Boolean = true) {
-        val groups = FakeGroupRepository(groupState(if (inGroup) TestGroup else null).copy(deviceId = "id-$name", deviceName = name))
+        val groups =
+            FakeGroupRepository(
+                groupState(if (inGroup) TestGroup else null).copy(deviceId = "id-$name", deviceName = name),
+            )
         val sync = FakeSyncRepository(data)
         val transports = RoomTransports(network, name)
         val vm = SyncSessionViewModel(null, false, groups, sync, FakePlayerRepository(people), transports, clock)
     }
 
-    private fun TestScope.watch(vararg phones: Phone) = phones.forEach { p -> backgroundScope.launch { p.vm.uiState.collect {} } }
+    private fun TestScope.watch(vararg phones: Phone) = phones.forEach { p ->
+        backgroundScope.launch { p.vm.uiState.collect {} }
+    }
 
     private fun data(vararg ids: String) = SyncDocument(
         players = people,
@@ -67,7 +72,13 @@ class SyncViewModelsTest {
         bob.vm.start(SessionRole.JOIN)
         cid.vm.start(SessionRole.JOIN)
         host.vm.start(SessionRole.HOST)
-        host.vm.uiState.first { s -> (s.stage as? SessionStage.Hosting)?.state?.peers?.count { it.stage == PeerStage.READY } == 2 }
+        host.vm.uiState.first { s ->
+            (s.stage as? SessionStage.Hosting)?.state?.peers?.count {
+                it.stage ==
+                    PeerStage.READY
+            } ==
+                2
+        }
         host.vm.syncNow()
         listOf(host, bob, cid).forEach { p -> p.vm.uiState.first { it.finished } }
 
@@ -141,11 +152,16 @@ class SyncViewModelsTest {
     @Test
     fun joiningWithAnInviteGoesStraightToTheFirstSyncAndBadInvitesSayWhy() = runTest {
         val groups = FakeGroupRepository(groupState(group = null))
-        val vm = GroupViewModel(groups, FakePlayerRepository(people), FakeMatchRepository(), FakeSyncRepository(), clock)
+        val vm =
+            GroupViewModel(groups, FakePlayerRepository(people), FakeMatchRepository(), FakeSyncRepository(), clock)
         backgroundScope.launch { vm.uiState.collect {} }
         vm.navigation.test {
             vm.join("https://example.com")
-            assertThat(vm.uiState.first { it.joinError != null }.joinError).contains("isn't a Guards of Atlantis group invite")
+            assertThat(
+                vm.uiState.first {
+                    it.joinError != null
+                }.joinError,
+            ).contains("isn't a Guards of Atlantis group invite")
             vm.join(GroupInvite.format(TestGroup))
             assertThat(awaitItem()).isEqualTo(GroupEvent.OpenFirstSync)
             assertThat(vm.uiState.first { it.inGroup }.groupName).isEqualTo("Friday nights")
@@ -177,7 +193,14 @@ class SyncViewModelsTest {
     @Test
     fun sharingASyncFileGivesOneThatOpensForTheGroup() = runTest {
         val sync = FakeSyncRepository(data("m1"))
-        val vm = GroupViewModel(FakeGroupRepository(groupState()), FakePlayerRepository(people), FakeMatchRepository(), sync, clock)
+        val vm =
+            GroupViewModel(
+                FakeGroupRepository(groupState()),
+                FakePlayerRepository(people),
+                FakeMatchRepository(),
+                sync,
+                clock,
+            )
         vm.navigation.test {
             vm.shareFile()
             val share = awaitItem() as GroupEvent.Share
@@ -209,7 +232,11 @@ class SyncViewModelsTest {
         assertThat(groups.current.value.mePlayerId).isEqualTo("bob")
     }
 
-    private fun importVm(bytes: () -> ByteArray, inGroup: Boolean = true, sync: FakeSyncRepository = FakeSyncRepository()) =
+    private fun importVm(
+        bytes: () -> ByteArray,
+        inGroup: Boolean = true,
+        sync: FakeSyncRepository = FakeSyncRepository(),
+    ) =
         SyncFileImportViewModel(
             "content://test/file.goasync",
             { bytes() },

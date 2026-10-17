@@ -2,6 +2,9 @@ package dev.quinton.goa.feature.sync
 
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.domain.sync.SyncChanges
+import dev.quinton.goa.core.domain.sync.protocol.PeerProgress
+import dev.quinton.goa.core.domain.sync.protocol.PeerStage
+import dev.quinton.goa.core.domain.sync.protocol.SyncFailure
 import dev.quinton.goa.feature.sync.nearby.NearbyPermissions
 import dev.quinton.goa.feature.sync.share.SyncFiles
 import java.time.LocalDate
@@ -17,6 +20,16 @@ class SyncTextTest {
         assertThat(SyncText.summary(SyncChanges(matchesAdded = 1, matchesRemoved = 1, playersMerged = 1)))
             .isEqualTo("+1 match, 1 removed, 1 duplicate merged")
         assertThat(SyncText.summary(SyncChanges(ratingConstantsChanged = true))).isEqualTo("new rating constants")
+    }
+
+    @Test
+    fun theHostSaysWhetherADroppedPhonesDataMadeIt() {
+        fun dropped(at: PeerStage) = SyncText.peerStage(
+            PeerProgress("1", "Bob", stage = PeerStage.FAILED, failure = SyncFailure.DISCONNECTED, failedAt = at),
+        )
+        assertThat(dropped(PeerStage.RECEIVING)).contains("before its data arrived")
+        assertThat(dropped(PeerStage.READY)).contains("Its data is in")
+        assertThat(dropped(PeerStage.CONFIRMING)).contains("may be up to date")
     }
 
     @Test
@@ -48,7 +61,8 @@ class SyncTextTest {
         val lan = "android.permission.ACCESS_LOCAL_NETWORK"
         assertThat(NearbyPermissions.required(26)).containsExactly(coarse)
         assertThat(NearbyPermissions.required(29)).containsExactly(fine)
-        assertThat(NearbyPermissions.required(31)).containsExactlyElementsIn(listOf(fine) + bluetooth)
+        // Android 12 ignores FINE asked without COARSE: a friend on 12 could never allow Nearby.
+        assertThat(NearbyPermissions.required(31)).containsExactlyElementsIn(listOf(fine, coarse) + bluetooth)
         assertThat(NearbyPermissions.required(32)).containsExactlyElementsIn(bluetooth)
         assertThat(NearbyPermissions.required(36)).containsExactlyElementsIn(bluetooth + wifi)
         assertThat(NearbyPermissions.required(37)).containsExactlyElementsIn(bluetooth + wifi + lan)

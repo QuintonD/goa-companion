@@ -17,8 +17,8 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.feature.sync.di.SessionTransport
 import dev.quinton.goa.feature.sync.di.SyncTransportFactory
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -41,7 +41,11 @@ class FakeSyncRepository(initial: SyncDocument = SyncDocument.EMPTY) : SyncRepos
 
     override suspend fun apply(incoming: SyncDocument): SyncApplyResult = data.apply(incoming)
 
-    override suspend fun exportFile(group: GroupCredentials): ByteArray = SyncCodec.encodeFile(export(), group, createdAt = 1)
+    override suspend fun exportFile(group: GroupCredentials): ByteArray = SyncCodec.encodeFile(
+        export(),
+        group,
+        createdAt = 1,
+    )
 
     override suspend fun importFile(bytes: ByteArray, group: GroupCredentials?): SyncApplyResult =
         apply(SyncCodec.decodeFile(bytes, group))
