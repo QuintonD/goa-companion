@@ -264,6 +264,21 @@ class CatalogValidationTest {
         assertThat(card("xargatha-blue-1").text).startsWith("**Next turn:** ")
     }
 
+    /**
+     * Rulebook p.14: a "!" Defense card blocks "by fulfilling a Block condition in the card text".
+     * The printed "!" is kept as data; the one "!" card without a condition is Takahide's Handicap
+     * (scan: "( You are defeated. )"), which the app does not label Block.
+     */
+    @Test
+    fun `every printed Block card states a Block condition except Takahide's Handicap`() {
+        val block = allCards().filter { it.block }
+        val condition = Regex("\\bblock\\b", RegexOption.IGNORE_CASE)
+        val withoutCondition = block.filterNot { condition in CardText.plain(it.text) }
+        assertThat(block).hasSize(18)
+        assertThat(withoutCondition.map { it.id }).containsExactly("takahide-handicap")
+        assertThat(withoutCondition.single().text).isEqualTo("~(You are defeated.)")
+    }
+
     @Test
     fun `heroes come back in index order and lookups work`() {
         val index = CatalogLoader.readIndex(RepoAssets.assets)
