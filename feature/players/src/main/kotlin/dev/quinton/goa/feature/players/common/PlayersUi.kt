@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingFlat
@@ -34,8 +36,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -73,9 +75,17 @@ fun ProvisionalPill(modifier: Modifier = Modifier) {
     )
 }
 
-/** Rating trend with an arrow shape and a signed number, e.g. "↗ +24". */
+/**
+ * Rating change with an arrow shape and a signed number, e.g. "↗ +24", optionally followed by a
+ * [caption] that says what it covers ("last 5").
+ */
 @Composable
-fun DeltaIndicator(delta: Double?, modifier: Modifier = Modifier, label: String = "trend") {
+fun DeltaIndicator(
+    delta: Double?,
+    modifier: Modifier = Modifier,
+    label: String = "rating change",
+    caption: String? = null,
+) {
     if (delta == null) return
     val rounded = delta.roundToInt()
     val (icon, color) = when {
@@ -84,12 +94,22 @@ fun DeltaIndicator(delta: Double?, modifier: Modifier = Modifier, label: String 
         else -> Icons.AutoMirrored.Filled.TrendingFlat to MaterialTheme.colorScheme.onSurfaceVariant
     }
     Row(
-        modifier.clearAndSetSemantics { contentDescription = "$label ${formatDelta(delta)}" },
+        modifier.clearAndSetSemantics {
+            contentDescription = "$label ${formatDelta(delta)}" + (caption?.let { ", $it" } ?: "")
+        },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
         Text(formatDelta(delta), style = MaterialTheme.typography.labelMedium, color = color)
+        if (caption != null) {
+            Text(
+                " $caption",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+        }
     }
 }
 
@@ -141,7 +161,16 @@ fun StatTile(value: String, caption: String, modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(value, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        // Shrinks to fit rather than truncating ("69–38", not "69–…").
+        BasicText(
+            value,
+            style = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+            maxLines = 1,
+            autoSize = TextAutoSize.StepBased(
+                minFontSize = 12.sp,
+                maxFontSize = MaterialTheme.typography.titleLarge.fontSize,
+            ),
+        )
         Text(
             caption,
             style = MaterialTheme.typography.labelMedium,

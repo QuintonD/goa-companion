@@ -43,6 +43,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -52,6 +53,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -84,6 +86,7 @@ import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.domain.match.RematchKind
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
@@ -121,6 +124,10 @@ data class MatchEditActions(
     val onSwapTeams: () -> Unit = {},
     val onSave: () -> Unit = {},
     val onDelete: () -> Unit = {},
+    /** Adds a player by name from the pilot picker and seats them. */
+    val onAddPilot: (Team, Long, String) -> Unit = { _, _, _ -> },
+    /** null = draft again. */
+    val onRematch: (RematchKind?) -> Unit = {},
 )
 
 /** Which picker sheet is open. */
@@ -130,24 +137,27 @@ private sealed interface Picker {
     data class PilotFor(val team: Team, val key: Long) : Picker
 }
 
-/** Map suggestions: the rulebook names no maps, only the board's two sides (DOMAIN.md). */
-private val MapSuggestions = listOf("Single lane", "Double lane")
-
 @Composable
 fun MatchEditScreen(state: MatchEditUiState, actions: MatchEditActions, modifier: Modifier = Modifier) {
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var picker by remember { mutableStateOf<Picker?>(null) }
     LaunchedEffect(state.finished) { if (state.finished) actions.onBack() }
-    val requestBack = { if (state.dirty) confirmDiscard = true else actions.onBack() }
-    BackHandler(enabled = state.dirty && !state.finished) { confirmDiscard = true }
+    val saved = state.saved
+    val requestBack = { if (state.dirty && saved == null) confirmDiscard = true else actions.onBack() }
+    BackHandler(enabled = state.dirty && !state.finished && saved == null) { confirmDiscard = true }
 
     GoaScreen(
-        title = if (state.isNew) "Log match" else "Edit match",
+        title = when {
+            saved != null -> "Result saved"
+            state.resultFirst -> "Who won?"
+            state.isNew -> "Log match"
+            else -> "Edit match"
+        },
         modifier = modifier,
         onBack = requestBack,
         actions = {
-            if (!state.loading && !state.notFound) {
+            if (!state.loading && !state.notFound && saved == null) {
                 TextButton(onClick = actions.onSave, enabled = !state.saving) { Text("Save") }
             }
         },
@@ -158,6 +168,13 @@ fun MatchEditScreen(state: MatchEditUiState, actions: MatchEditActions, modifier
             state.notFound -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 EmptyState(Icons.Outlined.EventBusy, "Match not found", "It may have been deleted.")
             }
+
+            saved != null -> ResultSavedContent(
+                saved,
+                onDone = actions.onBack,
+                onRematch = actions.onRematch,
+                modifier = Modifier.padding(padding),
+            )
 
             else -> MatchFormContent(
                 state = state,
@@ -195,6 +212,10 @@ fun MatchEditScreen(state: MatchEditUiState, actions: MatchEditActions, modifier
                 otherTeam = state.form.seats(open.team.opponent).mapNotNull { it.playerId }.toSet(),
                 onPick = { playerId ->
                     actions.onPilot(open.team, open.key, playerId)
+                    picker = null
+                },
+                onAddPlayer = { name ->
+                    actions.onAddPilot(open.team, open.key, name)
                     picker = null
                 },
                 onDismiss = { picker = null },
@@ -245,11 +266,14 @@ private fun MatchFormContent(
     modifier: Modifier = Modifier,
 ) {
     val form = state.form
+    val scroll = rememberScrollState()
+    // A failed save shows the error card at the top: bring it into view (the Save button is at the bottom).
+    LaunchedEffect(state.saveAttempts) { if (state.saveAttempts > 0) scroll.animateScrollTo(0) }
     Column(
         modifier
             .fillMaxSize()
             .imePadding()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scroll)
             .padding(horizontal = Spacing.screen)
             .padding(bottom = Spacing.xxl),
     ) {
@@ -260,139 +284,55 @@ private fun MatchFormContent(
         ) {
             ErrorCard(state.errors.map { it.message })
         }
-        if (state.fromDraft) {
+        if (state.resultFirst) {
+            // "Who won?": the two answers the table has right now, then everything else.
+            WinnerAndCondition(form, actions, showHeader = false)
             Text(
-                "Created from a draft. Fill in the result when the game ends.",
+                "Everything below is optional: check the seats, then save.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.md),
             )
-        }
-
-        SectionHeader("When and where")
-        WhenRow(form.playedAt, actions.onPlayedAt)
-        Spacer(Modifier.size(Spacing.md))
-        ChoiceRow(
-            options = GameMode.entries,
-            selected = form.mode,
-            label = { it.label() },
-            onSelect = actions.onMode,
-        )
-        Spacer(Modifier.size(Spacing.md))
-        OutlinedTextField(
-            value = form.map,
-            onValueChange = actions.onMap,
-            label = { Text("Map (optional)") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            MapSuggestions.forEach { suggestion ->
-                AssistChip(onClick = { actions.onMap(suggestion) }, label = { Text(suggestion) })
-            }
-        }
-
-        SectionHeader(
-            "Teams",
-            trailing = {
-                TextButton(onClick = actions.onSwapTeams) {
-                    Icon(Icons.Outlined.SwapVert, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(Spacing.xs))
-                    Text("Swap")
-                }
-            },
-        )
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val sideBySide = maxWidth >= 600.dp && LocalDensity.current.fontScale < 1.5f
-            if (sideBySide) {
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-                    TeamEditor(Team.RED, state, actions, onPickHero, onPickPilot, Modifier.weight(1f))
-                    TeamEditor(Team.BLUE, state, actions, onPickHero, onPickPilot, Modifier.weight(1f))
-                }
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-                    TeamEditor(Team.RED, state, actions, onPickHero, onPickPilot)
-                    TeamEditor(Team.BLUE, state, actions, onPickHero, onPickPilot)
-                }
-            }
-        }
-
-        SectionHeader("Result")
-        ChoiceRow(
-            options = listOf(MatchStatus.COMPLETED, MatchStatus.PENDING, MatchStatus.ABANDONED),
-            selected = form.status,
-            label = { it.label() },
-            onSelect = actions.onStatus,
-        )
-        AnimatedVisibility(
-            visible = form.status == MatchStatus.COMPLETED,
-            enter = fadeIn(Motion.spec()) + expandVertically(Motion.spec()),
-            exit = fadeOut(Motion.spec()) + shrinkVertically(Motion.spec()),
-        ) {
-            Column {
+            TeamsSection(state, actions, onPickHero, onPickPilot)
+            WhenSection(form, actions)
+            DetailsSection(form, actions)
+            SectionHeader("Match status")
+            StatusChoice(form, actions)
+        } else {
+            if (state.fromDraft && form.status == MatchStatus.PENDING) {
                 Text(
-                    "Winner",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.sm),
+                    "Created from a draft. Fill in the result when the game ends.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = Spacing.md),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    Team.entries.forEach { team ->
-                        WinnerOption(team, selected = form.winner == team, onClick = {
-                            actions.onWinner(team)
-                        }, Modifier.weight(1f))
-                    }
-                }
-                Text(
-                    "Win condition",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.xs),
-                )
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    WinCondition.entries.forEach { condition ->
-                        val selected = form.winCondition == condition
-                        FilterChip(
-                            selected = selected,
-                            onClick = { actions.onWinCondition(if (selected) null else condition) },
-                            label = { Text(condition.label()) },
-                            leadingIcon = if (selected) {
-                                { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                            } else {
-                                null
-                            },
-                            colors = goaFilterChipColors(),
-                            modifier = Modifier.heightIn(min = 48.dp),
-                        )
-                    }
-                }
             }
+            WhenSection(form, actions)
+            TeamsSection(state, actions, onPickHero, onPickPilot)
+            SectionHeader("Result")
+            StatusChoice(form, actions)
+            AnimatedVisibility(
+                visible = form.status == MatchStatus.COMPLETED,
+                enter = fadeIn(Motion.spec()) + expandVertically(Motion.spec()),
+                exit = fadeOut(Motion.spec()) + shrinkVertically(Motion.spec()),
+            ) {
+                WinnerAndCondition(form, actions, showHeader = true)
+            }
+            DetailsSection(form, actions)
         }
-        Spacer(Modifier.size(Spacing.md))
-        OutlinedTextField(
-            value = form.duration,
-            onValueChange = actions.onDuration,
-            label = { Text("Duration (minutes, optional)") },
-            singleLine = true,
-            leadingIcon = { Icon(Icons.Outlined.Schedule, contentDescription = null) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.size(Spacing.md))
-        OutlinedTextField(
-            value = form.notes,
-            onValueChange = actions.onNotes,
-            label = { Text("Notes") },
-            minLines = 2,
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-            modifier = Modifier.fillMaxWidth(),
-        )
         Spacer(Modifier.size(Spacing.xl))
         Button(
             onClick = actions.onSave,
             enabled = !state.saving,
             modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
         ) {
-            Text(if (state.isNew) "Save match" else "Save changes")
+            Text(
+                when {
+                    state.resultFirst && form.status == MatchStatus.COMPLETED -> "Save result"
+                    state.isNew -> "Save match"
+                    else -> "Save changes"
+                },
+            )
         }
         if (!state.isNew) {
             TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)) {
@@ -408,6 +348,135 @@ private fun MatchFormContent(
             modifier = Modifier.padding(top = Spacing.md),
         )
     }
+}
+
+@Composable
+private fun StatusChoice(form: MatchForm, actions: MatchEditActions) {
+    ChoiceRow(
+        options = listOf(MatchStatus.COMPLETED, MatchStatus.PENDING, MatchStatus.ABANDONED),
+        selected = form.status,
+        label = { it.label() },
+        onSelect = actions.onStatus,
+    )
+}
+
+@Composable
+private fun WhenSection(form: MatchForm, actions: MatchEditActions) {
+    SectionHeader("When and where")
+    WhenRow(form.playedAt, actions.onPlayedAt)
+    Spacer(Modifier.size(Spacing.md))
+    ChoiceRow(
+        options = GameMode.entries,
+        selected = form.mode,
+        label = { it.label() },
+        onSelect = actions.onMode,
+    )
+    Spacer(Modifier.size(Spacing.md))
+    // Free text: the mode above already says single or double lane.
+    OutlinedTextField(
+        value = form.map,
+        onValueChange = actions.onMap,
+        label = { Text("Map or table (optional)") },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+@Composable
+private fun TeamsSection(
+    state: MatchEditUiState,
+    actions: MatchEditActions,
+    onPickHero: (Team, Long) -> Unit,
+    onPickPilot: (Team, Long) -> Unit,
+) {
+    SectionHeader(
+        "Teams",
+        trailing = {
+            TextButton(onClick = actions.onSwapTeams) {
+                Icon(Icons.Outlined.SwapVert, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(Spacing.xs))
+                Text("Swap")
+            }
+        },
+    )
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val sideBySide = maxWidth >= 600.dp && LocalDensity.current.fontScale < 1.5f
+        if (sideBySide) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                TeamEditor(Team.RED, state, actions, onPickHero, onPickPilot, Modifier.weight(1f))
+                TeamEditor(Team.BLUE, state, actions, onPickHero, onPickPilot, Modifier.weight(1f))
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                TeamEditor(Team.RED, state, actions, onPickHero, onPickPilot)
+                TeamEditor(Team.BLUE, state, actions, onPickHero, onPickPilot)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WinnerAndCondition(form: MatchForm, actions: MatchEditActions, showHeader: Boolean) {
+    Column {
+        Text(
+            if (showHeader) "Winner" else "Which team won?",
+            style = if (showHeader) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.sm),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Team.entries.forEach { team ->
+                WinnerOption(team, selected = form.winner == team, onClick = {
+                    actions.onWinner(team)
+                }, Modifier.weight(1f))
+            }
+        }
+        Text(
+            if (showHeader) "Win condition" else "How did they win?",
+            style = if (showHeader) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.xs),
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            WinCondition.entries.forEach { condition ->
+                val selected = form.winCondition == condition
+                FilterChip(
+                    selected = selected,
+                    onClick = { actions.onWinCondition(if (selected) null else condition) },
+                    label = { Text(condition.label()) },
+                    leadingIcon = if (selected) {
+                        { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    } else {
+                        null
+                    },
+                    colors = goaFilterChipColors(),
+                    modifier = Modifier.heightIn(min = 48.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailsSection(form: MatchForm, actions: MatchEditActions) {
+    Spacer(Modifier.size(Spacing.md))
+    OutlinedTextField(
+        value = form.duration,
+        onValueChange = actions.onDuration,
+        label = { Text("Duration (minutes, optional)") },
+        singleLine = true,
+        leadingIcon = { Icon(Icons.Outlined.Schedule, contentDescription = null) },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Spacer(Modifier.size(Spacing.md))
+    OutlinedTextField(
+        value = form.notes,
+        onValueChange = actions.onNotes,
+        label = { Text("Notes") },
+        minLines = 2,
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable
@@ -458,8 +527,17 @@ private fun WhenRow(playedAt: Long, onPlayedAt: (Long) -> Unit) {
         )
     }
     if (pickDate) {
+        // Matches are logged after they're played: no day after today.
+        val today = LocalDate.now(zone)
         val pickerState = rememberDatePickerState(
             initialSelectedDateMillis = dateTime.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+            yearRange = DatePickerDefaults.YearRange.first..today.year,
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                    !Instant.ofEpochMilli(utcTimeMillis).atZone(ZoneOffset.UTC).toLocalDate().isAfter(today)
+
+                override fun isSelectableYear(year: Int): Boolean = year <= today.year
+            },
         )
         DatePickerDialog(
             onDismissRequest = { pickDate = false },
@@ -467,7 +545,8 @@ private fun WhenRow(playedAt: Long, onPlayedAt: (Long) -> Unit) {
                 TextButton(onClick = {
                     pickerState.selectedDateMillis?.let { utc ->
                         val date = Instant.ofEpochMilli(utc).atZone(ZoneOffset.UTC).toLocalDate()
-                        onPlayedAt(date.atTime(dateTime.toLocalTime()).atZone(zone).toInstant().toEpochMilli())
+                        val picked = date.atTime(dateTime.toLocalTime()).atZone(zone).toInstant().toEpochMilli()
+                        onPlayedAt(minOf(picked, System.currentTimeMillis()))
                     }
                     pickDate = false
                 }) { Text("OK") }
@@ -482,11 +561,10 @@ private fun WhenRow(playedAt: Long, onPlayedAt: (Long) -> Unit) {
             confirmButton = {
                 TextButton(onClick = {
                     val date: LocalDate = dateTime.toLocalDate()
-                    onPlayedAt(
-                        date.atTime(
-                            LocalTime.of(timeState.hour, timeState.minute),
-                        ).atZone(zone).toInstant().toEpochMilli(),
-                    )
+                    val picked = date.atTime(LocalTime.of(timeState.hour, timeState.minute))
+                        .atZone(zone).toInstant().toEpochMilli()
+                    // A time later today than now is taken as "just now".
+                    onPlayedAt(minOf(picked, System.currentTimeMillis()))
                     pickTime = false
                 }) { Text("OK") }
             },

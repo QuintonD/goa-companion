@@ -15,6 +15,7 @@ import com.github.takahirom.roborazzi.captureScreenRoboImage
 import dev.quinton.goa.core.data.backup.BackupSummary
 import dev.quinton.goa.core.data.rating.RatingsSnapshot
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
+import dev.quinton.goa.core.domain.meta.GroupStats
 import dev.quinton.goa.core.domain.meta.MetaStats
 import dev.quinton.goa.core.domain.rating.EloCalculator
 import dev.quinton.goa.core.domain.rating.EloConfig
@@ -37,8 +38,13 @@ import dev.quinton.goa.feature.players.match.MatchLogUiState
 import dev.quinton.goa.feature.players.match.MatchLogViewModel
 import dev.quinton.goa.feature.players.match.MatchValidation
 import dev.quinton.goa.feature.players.match.PilotOption
+import dev.quinton.goa.feature.players.match.PilotPickerSheet
+import dev.quinton.goa.feature.players.match.PlayerChangeUi
+import dev.quinton.goa.feature.players.match.SavedResultUi
 import dev.quinton.goa.feature.players.match.SeatDraft
+import dev.quinton.goa.feature.players.match.rematchOptions
 import dev.quinton.goa.feature.players.meta.MetaUiState
+import dev.quinton.goa.feature.players.meta.MetaView
 import dev.quinton.goa.feature.players.meta.MetaViewModel
 import dev.quinton.goa.feature.players.player.PlayerDetailActions
 import dev.quinton.goa.feature.players.player.PlayerDetailScreen
@@ -69,6 +75,7 @@ private object Shots {
         EloCalculator.replay(Fixtures.matches, EloConfig.DEFAULT),
         MetaStats.compute(Fixtures.matches, Fixtures.drafts),
         EloConfig.DEFAULT,
+        GroupStats.compute(Fixtures.matches, EloCalculator.replay(Fixtures.matches, EloConfig.DEFAULT)),
     )
     val byId = Fixtures.players.associateBy { it.id }
     val today: LocalDate = LocalDate.of(2026, 10, 15)
@@ -83,6 +90,37 @@ private object Shots {
     val detail = PlayerDetailViewModel.build(Fixtures.ann.id, Fixtures.players, Fixtures.matches, snapshot, catalog)
 
     val heroes = catalog.heroes.map { HeroOption(it.id, it.name, it.title, it.portrait, it.complexity) }
+
+    /** "Result saved" for the latest fixture match, with its real replayed deltas. */
+    fun saved(): MatchEditUiState {
+        val ratings = snapshot.ratings
+        val match = Fixtures.matches.filter { it.id in ratings.matchChanges }.maxBy { it.playedAt }
+        val change = ratings.matchChanges.getValue(match.id)
+        val ranked = Fixtures.players.filter { !it.archived && ratings.player(it.id).games > 0 }
+            .sortedByDescending { ratings.player(it.id).value }
+        val lines = match.participants.distinctBy { it.playerId }.map { seat ->
+            PlayerChangeUi(
+                player = byId[seat.playerId],
+                name = byId.getValue(seat.playerId).name,
+                team = seat.team,
+                won = seat.team == match.winner,
+                delta = change.playerDeltas[seat.playerId],
+                rating = ratings.player(seat.playerId),
+                rank = ranked.indexOfFirst { it.id == seat.playerId }.takeIf { it >= 0 }?.plus(1),
+            )
+        }.sortedWith(compareByDescending<PlayerChangeUi> { it.won }.thenByDescending { it.delta })
+        return editor().copy(
+            saved = SavedResultUi(
+                match = match,
+                ratingsReady = true,
+                players = lines,
+                leader = null,
+                leaderName = ranked.first().name,
+                leaderRating = ratings.player(ranked.first().id),
+                rematchOptions = rematchOptions(match),
+            ),
+        )
+    }
 
     fun editor(showErrors: Boolean = false): MatchEditUiState {
         val form = if (showErrors) {
@@ -210,6 +248,44 @@ class PlayersScreenshotTest {
 
     @Test fun matchEditErrorsDark() = shot { MatchEditScreen(Shots.editor(showErrors = true), MatchEditActions()) }
 
+    @Test fun whoWonDark() = shot {
+        val state = Shots.editor()
+        MatchEditScreen(
+            state.copy(resultFirst = true, form = state.form.copy(winner = null, winCondition = null)),
+            MatchEditActions(),
+        )
+    }
+
+    @Test fun resultSavedDark() = shot { MatchEditScreen(Shots.saved(), MatchEditActions()) }
+
+    @Test fun resultSavedFontScale2() = shot(fontScale = 2f) { MatchEditScreen(Shots.saved(), MatchEditActions()) }
+
+    @Test fun metaCardsDark() = shot {
+        PlayersHomeScreen(
+            tab = PlayersTab.META,
+            players = Shots.players,
+            matches = Shots.matches,
+            meta = Shots.meta.copy(view = MetaView.CARDS),
+            actions = PlayersHomeActions(),
+            snackbarHostState = remember { SnackbarHostState() },
+        )
+    }
+
+    @Test fun metaTableFontScale2() = shot(fontScale = 2f) { Home(PlayersTab.META) }
+
+    @Test fun pilotPickerEmptyGroupDark() = screen {
+        PilotPickerSheet(
+            team = Team.RED,
+            pilots = emptyList(),
+            selected = null,
+            sameTeam = emptySet(),
+            otherTeam = emptySet(),
+            onPick = {},
+            onDismiss = {},
+            onAddPlayer = {},
+        )
+    }
+
     @Test fun heroPickerDark() = screen {
         HeroPickerSheet(
             heroes = Shots.heroes,
@@ -235,7 +311,7 @@ class PlayersScreenshotTest {
                 hasEloConfig = true,
                 extras = emptySet(),
             ),
-            onConfirm = {},
+            onConfirm = { _, _ -> },
             onCancel = {},
         )
     }

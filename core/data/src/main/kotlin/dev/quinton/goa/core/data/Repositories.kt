@@ -76,6 +76,15 @@ interface RatingsRepository {
     fun observeHeroUsage(): Flow<Map<String, HeroUsage>>
 }
 
+/**
+ * Fills the draft setup with a group so it can draft again (owner: draft; used by the players
+ * feature's "Rematch → Draft again"). [red]/[blue]: distinct player ids per team. [doublePilot]:
+ * who controls two heroes, if anyone; [handicap]: the teams had uneven seats (Handicap cards).
+ */
+interface DraftSetupPrefill {
+    suspend fun prefill(red: List<String>, blue: List<String>, doublePilot: String?, handicap: Boolean)
+}
+
 /** App-wide settings in DataStore (owner: settings). */
 interface SettingsRepository {
     val settings: Flow<AppSettings>

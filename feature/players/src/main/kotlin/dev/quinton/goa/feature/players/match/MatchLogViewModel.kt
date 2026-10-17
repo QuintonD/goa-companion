@@ -7,6 +7,7 @@ import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.rating.RatingsSnapshotRepository
+import dev.quinton.goa.core.domain.match.RematchKind
 import dev.quinton.goa.core.domain.rating.MatchRatingChange
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.GameMode
@@ -21,6 +22,8 @@ import dev.quinton.goa.feature.players.common.playerName
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +31,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -56,6 +60,8 @@ data class MatchRowUi(
     val red: List<SeatUi>,
     val blue: List<SeatUi>,
     val notes: String,
+    /** Rematch choices for a completed match; empty otherwise. */
+    val rematchOptions: List<RematchOption> = emptyList(),
 )
 
 data class MatchGroup(val header: String, val matches: List<MatchRowUi>)
@@ -66,7 +72,11 @@ data class MatchLogUiState(
     val total: Int = 0,
     /** The match just deleted, offered for undo. */
     val undo: Match? = null,
-)
+    /** The match just saved in the editor: the list scrolls to it once. */
+    val highlightId: String? = null,
+) {
+    val isEmpty: Boolean get() = !loading && groups.isEmpty()
+}
 
 /**
  * Holds the most recently deleted match so whichever screen is visible next (the log) can offer
@@ -104,8 +114,15 @@ class MatchLogViewModel @Inject constructor(
     catalog: CatalogRepository,
     ratings: RatingsSnapshotRepository,
     private val recentlyDeleted: RecentlyDeletedMatch,
+    private val recentlySaved: RecentlySavedMatch,
+    private val rematches: RematchLauncher,
 ) : ViewModel() {
-    val uiState: StateFlow<MatchLogUiState> = combine(
+    private val events = Channel<MatchNav>(Channel.BUFFERED)
+
+    /** Rematch / resume requests: open Match setup (Timer tab) or the draft. */
+    val navigation: Flow<MatchNav> = events.receiveAsFlow()
+
+    private val base = combine(
         matches.observeMatches(),
         players.observePlayers(includeArchived = true),
         catalog.catalog.onStart { emit(Catalog.EMPTY) },
@@ -118,7 +135,32 @@ class MatchLogViewModel @Inject constructor(
             total = list.size,
             undo = undo?.takeIf { recentlyDeleted.isFresh() },
         )
+    }
+
+    val uiState: StateFlow<MatchLogUiState> = combine(base, recentlySaved.matchId) { state, saved ->
+        state.copy(highlightId = saved?.takeIf { id -> state.groups.any { g -> g.matches.any { it.id == id } } })
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MatchLogUiState())
+
+    /** The list scrolled to the newly saved match. */
+    fun highlightShown(id: String) = recentlySaved.consumed(id)
+
+    /** [kind] null = draft again with the same players. */
+    fun rematch(matchId: String, kind: RematchKind?) {
+        viewModelScope.launch {
+            val source = matches.observeMatch(matchId).first() ?: return@launch
+            if (kind == null) {
+                rematches.redraft(source)
+                events.send(MatchNav.OpenDraft)
+            } else {
+                rematches.start(source, kind).onSuccess { events.send(MatchNav.OpenSetup(it)) }
+            }
+        }
+    }
+
+    /** A pending match continues in Match setup, then the timer. */
+    fun resume(matchId: String) {
+        viewModelScope.launch { events.send(MatchNav.OpenSetup(matchId)) }
+    }
 
     fun delete(id: String) {
         viewModelScope.launch {
@@ -187,6 +229,7 @@ class MatchLogViewModel @Inject constructor(
                 red = seats(Team.RED),
                 blue = seats(Team.BLUE),
                 notes = notes,
+                rematchOptions = if (status == MatchStatus.COMPLETED) rematchOptions(this) else emptyList(),
             )
         }
     }

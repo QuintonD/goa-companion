@@ -21,8 +21,9 @@ data class LeaderboardRow(
     val rating: Rating,
     /** 1-based rank among players with rated games; null when unrated. */
     val rank: Int?,
-    /** Sum of the last [TREND_GAMES] rating changes; null without games. */
+    /** Rating change over the last [trendGames] rated games (at most [TREND_GAMES]); null without games. */
     val trend: Double?,
+    val trendGames: Int = 0,
 )
 
 data class PlayersUiState(
@@ -57,14 +58,16 @@ class PlayersViewModel @Inject constructor(
     companion object {
         fun leaderboard(players: List<Player>, snapshot: RatingsSnapshot, showArchived: Boolean): PlayersUiState {
             val ratings = snapshot.ratings
-            fun row(player: Player, rank: Int?) = LeaderboardRow(
-                player = player,
-                rating = ratings.player(player.id),
-                rank = rank,
-                trend = ratings.playerHistory[player.id]?.takeLast(TREND_GAMES)?.takeIf {
-                    it.isNotEmpty()
-                }?.sumOf { it.delta },
-            )
+            fun row(player: Player, rank: Int?): LeaderboardRow {
+                val recent = ratings.playerHistory[player.id].orEmpty().takeLast(TREND_GAMES)
+                return LeaderboardRow(
+                    player = player,
+                    rating = ratings.player(player.id),
+                    rank = rank,
+                    trend = recent.takeIf { it.isNotEmpty() }?.sumOf { it.delta },
+                    trendGames = recent.size,
+                )
+            }
             val (archived, active) = players.partition { it.archived }
             val (rated, unrated) = active.partition { ratings.player(it.id).games > 0 }
             val ranked = rated

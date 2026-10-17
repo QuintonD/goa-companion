@@ -27,6 +27,9 @@ fun formatDelta(delta: Double): String {
     }
 }
 
+/** "1 match", "3 matches", "0 players". */
+fun plural(count: Int, one: String, many: String = one + "s"): String = "$count ${if (count == 1) one else many}"
+
 fun formatPercent(value: Double?): String = value?.let { "${(it * 100).roundToInt()}%" } ?: "—"
 
 fun winLoss(wins: Int, games: Int): String = "$wins–${games - wins}"

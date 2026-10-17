@@ -273,7 +273,8 @@ class TimerViewModelTest {
     @Test
     fun `ending a linked match records its duration and log result opens it`() = runTest {
         matches.upsert(Match("m1", 1, 1, MatchStatus.PENDING, GameMode.QUICK, participants = emptyList()))
-        h.controller.start(h.repository.selectedPreset(), 4, matchId = "m1", mode = GameMode.LONG)
+        val startedAt = h.controller.start(h.repository.selectedPreset(), 4, matchId = "m1", mode = GameMode.LONG)
+            .matchStartWall
         val vm = vm()
         vm.awaitActive()
         h.clocks.advance(47 * 60_000L + 10_000)
@@ -286,7 +287,7 @@ class TimerViewModelTest {
 
         vm.navigation.test {
             vm.logResult()
-            assertThat(awaitItem()).isEqualTo(TimerEvent.OpenMatch("m1"))
+            assertThat(awaitItem()).isEqualTo(TimerEvent.OpenMatch("m1", startedAt))
         }
         assertThat(h.controller.snapshot.first()).isNull()
     }
@@ -302,7 +303,8 @@ class TimerViewModelTest {
         vm.navigation.test {
             vm.logResult()
             vm.logResult() // double tap
-            assertThat(awaitItem()).isEqualTo(TimerEvent.NewMatch(durationMin = 90, mode = null))
+            assertThat((awaitItem() as TimerEvent.NewMatch).copy(startedAt = null))
+                .isEqualTo(TimerEvent.NewMatch(durationMin = 90, mode = null))
             expectNoEvents()
         }
         assertThat(matches.state.value).isEmpty()
@@ -318,7 +320,8 @@ class TimerViewModelTest {
         vm.uiState.first { it.summary != null }
         vm.navigation.test {
             vm.logResult()
-            assertThat(awaitItem()).isEqualTo(TimerEvent.NewMatch(durationMin = 30, mode = "long"))
+            assertThat((awaitItem() as TimerEvent.NewMatch).copy(startedAt = null))
+                .isEqualTo(TimerEvent.NewMatch(durationMin = 30, mode = "long"))
         }
 
         // Double lane needs 6+ heroes: not passed for a 4-hero session.
@@ -328,7 +331,8 @@ class TimerViewModelTest {
         vm2.uiState.first { it.summary != null }
         vm2.navigation.test {
             vm2.logResult()
-            assertThat(awaitItem()).isEqualTo(TimerEvent.NewMatch(durationMin = 1, mode = null))
+            assertThat((awaitItem() as TimerEvent.NewMatch).copy(startedAt = null))
+                .isEqualTo(TimerEvent.NewMatch(durationMin = 1, mode = null))
         }
     }
 

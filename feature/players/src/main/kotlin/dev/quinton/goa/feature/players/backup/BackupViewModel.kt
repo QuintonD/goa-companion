@@ -10,8 +10,8 @@ import dev.quinton.goa.core.data.backup.BackupRepository
 import dev.quinton.goa.core.data.backup.BackupSummary
 import dev.quinton.goa.core.data.backup.ImportMode
 import dev.quinton.goa.core.data.backup.InvalidBackupException
-import dev.quinton.goa.core.data.backup.summary
 import dev.quinton.goa.feature.players.common.Dates
+import dev.quinton.goa.feature.players.common.plural
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -74,7 +74,8 @@ class BackupViewModel @Inject constructor(
                 val stream = withContext(io) { open() } ?: throw IOException("Couldn't open the file")
                 val document = withContext(io) { backup.read(stream) }
                 pendingDocument = document
-                local.update { it.copy(working = false, pendingImport = document.summary()) }
+                val summary = withContext(io) { backup.summarize(document) }
+                local.update { it.copy(working = false, pendingImport = summary) }
             } catch (e: InvalidBackupException) {
                 local.update { it.copy(working = false, message = e.message) }
             } catch (e: IOException) {
@@ -83,18 +84,20 @@ class BackupViewModel @Inject constructor(
         }
     }
 
-    fun confirmImport(mode: ImportMode) {
+    /**
+     * [useBackupSettings]: in [ImportMode.MERGE], also take the file's rating constants and
+     * settings (Replace always does).
+     */
+    fun confirmImport(mode: ImportMode, useBackupSettings: Boolean = mode == ImportMode.REPLACE) {
         val document = pendingDocument ?: return
         pendingDocument = null
         local.update { it.copy(pendingImport = null) }
         run {
-            withContext(io) { backup.import(document, mode) }
+            withContext(io) { backup.import(document, mode, useBackupSettings || mode == ImportMode.REPLACE) }
             val verb = if (mode == ImportMode.REPLACE) "Restored" else "Merged"
-            "$verb ${plural(
-                document.players.size,
-                "player",
-            )} and ${plural(document.matches.size, "match", "matches")}. " +
-                "Ratings recalculated."
+            val players = plural(document.players.size, "player")
+            val matches = plural(document.matches.size, "match", "matches")
+            "$verb $players and $matches. Ratings recalculated."
         }
     }
 
@@ -120,5 +123,3 @@ class BackupViewModel @Inject constructor(
         }
     }
 }
-
-private fun plural(count: Int, one: String, many: String = one + "s") = "$count ${if (count == 1) one else many}"

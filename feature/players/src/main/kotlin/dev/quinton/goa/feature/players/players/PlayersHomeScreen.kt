@@ -31,9 +31,11 @@ import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
 import dev.quinton.goa.feature.players.common.Motion
+import dev.quinton.goa.feature.players.match.MatchFollowUps
 import dev.quinton.goa.feature.players.match.MatchLogContent
 import dev.quinton.goa.feature.players.match.MatchLogUiState
 import dev.quinton.goa.feature.players.match.UndoSnackbarHost
+import dev.quinton.goa.feature.players.meta.MetaActions
 import dev.quinton.goa.feature.players.meta.MetaContent
 import dev.quinton.goa.feature.players.meta.MetaUiState
 
@@ -64,6 +66,8 @@ fun PlayersHomeScreen(
     meta: MetaUiState,
     actions: PlayersHomeActions,
     snackbarHostState: SnackbarHostState,
+    followUps: MatchFollowUps = MatchFollowUps(),
+    metaActions: MetaActions = MetaActions(onOpenRatingSettings = actions.onOpenRatingSettings),
     modifier: Modifier = Modifier,
 ) {
     GoaScreen(
@@ -90,7 +94,7 @@ fun PlayersHomeScreen(
                     )
                 }
 
-                PlayersTab.MATCHES -> if (matches.undo == null) {
+                PlayersTab.MATCHES -> if (matches.undo == null && !matches.isEmpty) {
                     ExtendedFloatingActionButton(
                         onClick = actions.onLogMatch,
                         icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
@@ -126,9 +130,10 @@ fun PlayersHomeScreen(
                             onOpenMatch = actions.onOpenMatch,
                             onDeleteMatch = actions.onDeleteMatch,
                             onLogMatch = actions.onLogMatch,
+                            followUps = followUps,
                         )
 
-                        PlayersTab.META -> MetaContent(meta, onOpenRatingSettings = actions.onOpenRatingSettings)
+                        PlayersTab.META -> MetaContent(meta, metaActions)
                     }
                 }
             }

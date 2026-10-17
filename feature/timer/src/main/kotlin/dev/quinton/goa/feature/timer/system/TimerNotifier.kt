@@ -20,6 +20,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.quinton.goa.core.domain.timer.TimerReadout
 import dev.quinton.goa.core.domain.timer.TimerSnapshot
 import dev.quinton.goa.core.domain.timer.TimerStatus
+import dev.quinton.goa.core.navigation.EXTRA_OPEN_TAB
+import dev.quinton.goa.core.navigation.TopLevelTab
 import dev.quinton.goa.feature.timer.R
 import dev.quinton.goa.feature.timer.TimerText
 import javax.inject.Inject
@@ -225,7 +227,14 @@ class AndroidTimerNotifier @Inject constructor(@ApplicationContext private val c
     private fun openAppIntent(): PendingIntent? {
         val launch = context.packageManager.getLaunchIntentForPackage(context.packageName) ?: return null
         launch.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        return PendingIntent.getActivity(context, 0, launch, PendingIntent.FLAG_IMMUTABLE)
+        // Opens the Timer tab, not whichever tab was last shown (app shell, MainActivity).
+        launch.putExtra(EXTRA_OPEN_TAB, TopLevelTab.TIMER.name)
+        return PendingIntent.getActivity(
+            context,
+            0,
+            launch,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
     }
 
     private fun actionIntent(action: String): PendingIntent {

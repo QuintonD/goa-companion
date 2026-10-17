@@ -384,6 +384,45 @@ spaces, players and heroes, updated from the same match. Every constant lives in
 - "Best with hero": highest hero-specific win rate per player with ≥ 3 games; ties by more
   games, then player id. The catalog's hero page and the Meta tab read the same computation
   (`MetaReport.pilots`) from the same snapshot.
+- **Player profile "Best heroes"**: the player's heroes with ≥ 3 games *and a winning record*,
+  ranked by Wilson lower bound like the Meta tab; with none, the list is titled "Most played".
+- **Group stats** (`GroupStats`, same rated matches, recomputed with the snapshot — ADR-003):
+  - Win-condition mix overall, per hero (hero-space rule) and per player (how their wins came);
+    a match without a recorded condition counts as "Not recorded".
+  - Side record: Team Red's wins over all rated matches (Blue's is the mirror).
+  - Average duration per mode, over matches that recorded a duration.
+  - Head-to-head: for each two players on opposite teams, A's record against B; teammates:
+    each two players on the same team, their record together. A double pilot counts once per
+    match. Pairs are ranked by Wilson lower bound and listed only with ≥ minimum sample
+    (default 5) games; rivalries read from the winning side.
+  - Streaks: each player's run of identical results up to their latest rated match (shown from 2).
+  - Last game night: rated matches on the latest local day with any, Red/Blue wins, and each
+    player's summed rating change that day (biggest movers).
+- **Leaderboard change**: the sum of the last 5 (or fewer) rating changes, labelled "last N".
+
+## Rematch [APP]
+From a completed match (after saving its result, or from the match log), a rematch creates a
+new **pending** match with the same players and opens Match setup: *Same seats*; *Swap heroes*
+(players keep team and seat, the two teams trade heroes; only with equal seat counts); *Swap
+sides* (every seat moves to the other team); or *Draft again* (the draft setup is filled with the
+same players and teams, no match is created until the draft finishes). Mode and map are kept;
+result, duration, notes, draft link and the Tie Breaker coin are not (the coin is placed again
+at setup). A Handicap flag belongs to the seat, not the hero (it balances the seat layout or a
+player's skill), so it stays with the seat when heroes move and moves with it when sides swap;
+a double pilot's seats always stay together. The result is checked like the match editor
+(each hero once, nobody on both teams).
+
+## Backup import [APP]
+Format v3 (`BackupDocument`): v1/v2 plus `appVersion` and `extras` from contributors —
+`settings` (AppSettings: theme, owned products, sounds, haptics, list view…), `timer-presets`
+(the stored preset list and selected preset) and `draft-methods` (custom methods); each store's
+own JSON is carried as-is. Replace = the file's data and settings; Merge keeps the phone's
+players/matches/drafts, adds and overwrites by id (presets and methods merged by id) and keeps
+the phone's settings unless "Use the file's settings" is ticked (then rating constants too).
+On a phone with no players and matches, Replace is preselected. A seat whose pilot is not in
+the file rejects the file (never a ghost rated player). A hero id the catalog doesn't know is
+imported as an **Unknown hero** seat (pilot kept), and draft steps/pool entries naming it are
+dropped, so it never appears in ratings or ban stats; the import summary lists such ids.
 
 ## Team balancing [APP]
 Enumerate all splits into ⌈n/2⌉ / ⌊n/2⌋ (≤ 126 for n ≤ 10), minimise `|mean(A) − mean(B)|`,

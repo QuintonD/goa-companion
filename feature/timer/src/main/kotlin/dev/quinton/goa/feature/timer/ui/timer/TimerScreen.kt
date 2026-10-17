@@ -49,8 +49,8 @@ fun TimerRoute(
     onOpenSetup: (String?) -> Unit,
     onManagePresets: () -> Unit,
     onSettings: () -> Unit,
-    onOpenMatch: (String) -> Unit,
-    onNewMatch: (durationMin: Int, mode: String?) -> Unit,
+    onOpenMatch: (matchId: String, startedAt: Long?) -> Unit,
+    onNewMatch: (durationMin: Int, mode: String?, startedAt: Long?) -> Unit,
     onOpenLevels: (heroIds: List<String>) -> Unit = {},
     onOpenRules: () -> Unit = {},
 ) {
@@ -62,8 +62,8 @@ fun TimerRoute(
     LaunchedEffect(viewModel) {
         viewModel.navigation.collect { event ->
             when (event) {
-                is TimerEvent.OpenMatch -> onOpenMatch(event.matchId)
-                is TimerEvent.NewMatch -> onNewMatch(event.durationMin, event.mode)
+                is TimerEvent.OpenMatch -> onOpenMatch(event.matchId, event.startedAt)
+                is TimerEvent.NewMatch -> onNewMatch(event.durationMin, event.mode, event.startedAt)
             }
         }
     }

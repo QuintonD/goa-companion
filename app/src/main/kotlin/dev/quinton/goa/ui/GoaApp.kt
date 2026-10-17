@@ -1,11 +1,16 @@
 package dev.quinton.goa.ui
 
+import android.view.WindowManager
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -18,20 +23,39 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import dev.quinton.goa.SessionState
+import dev.quinton.goa.ShellViewModel
 import dev.quinton.goa.core.designsystem.component.EngravedRule
 import dev.quinton.goa.core.designsystem.icon.GoaIcons
 import dev.quinton.goa.core.designsystem.theme.Motion
+import dev.quinton.goa.core.navigation.DraftBoardRoute
+import dev.quinton.goa.core.navigation.NavSheet
+import dev.quinton.goa.core.navigation.TimerRoute
 import dev.quinton.goa.core.navigation.TopLevelTab
 import dev.quinton.goa.feature.catalog.catalogEntries
 import dev.quinton.goa.feature.draft.draftEntries
@@ -39,6 +63,8 @@ import dev.quinton.goa.feature.players.playersEntries
 import dev.quinton.goa.feature.rules.rulesEntries
 import dev.quinton.goa.feature.settings.settingsEntries
 import dev.quinton.goa.feature.timer.timerEntries
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 
 private data class TabSpec(
     val tab: TopLevelTab,
@@ -64,39 +90,131 @@ private fun push(forward: Boolean): ContentTransform {
     return enter togetherWith exit
 }
 
-/** App shell: bottom navigation over one Navigation 3 back stack per top-level tab. */
+/** A request from outside the UI (launcher/notification intent) to show a tab; [id] makes repeats distinct. */
+data class TabRequest(val tab: TopLevelTab, val id: Long)
+
+/**
+ * App shell: bottom navigation over one Navigation 3 back stack per top-level tab.
+ *
+ * Every tab's entries are decorated all the time (saveable state + ViewModel store per entry),
+ * and only the current tab's are displayed, so switching tabs keeps each tab's screens, scroll
+ * positions, half-filled forms and ViewModels; they are dropped only when popped (ADR-020).
+ *
+ * [coldStart]: a fresh launch, which opens the Timer tab when a session is running or paused.
+ */
 @Composable
-fun GoaApp() {
+fun GoaApp(tabRequests: StateFlow<TabRequest?>? = null, coldStart: Boolean = false) {
     val navigator = rememberAppNavigator()
+    val shell = hiltViewModel<ShellViewModel>()
+    val session by shell.session.collectAsStateWithLifecycle()
+
+    val request = tabRequests?.collectAsStateWithLifecycle()?.value
+    LaunchedEffect(request?.id) {
+        val tab = request?.tab ?: return@LaunchedEffect
+        if (tab == TopLevelTab.TIMER) navigator.openTimer() else navigator.selectTab(tab)
+    }
+    LaunchedEffect(Unit) {
+        if (coldStart && request == null && shell.session.first { it != SessionState.LOADING }.active) {
+            navigator.openTimer()
+        }
+    }
+
+    val provider = entryProvider {
+        catalogEntries(navigator)
+        timerEntries(navigator)
+        draftEntries(navigator)
+        playersEntries(navigator)
+        settingsEntries(navigator)
+        rulesEntries(navigator)
+    }
+    val entriesByTab = TopLevelTab.entries.associateWith { tab ->
+        key(tab) {
+            rememberDecoratedNavEntries(
+                backStack = navigator.stack(tab),
+                entryDecorators = listOf(
+                    rememberSaveableStateHolderNavEntryDecorator(),
+                    rememberViewModelStoreNavEntryDecorator(),
+                ),
+                // Keys are per tab, so the same screen open in two tabs never shares state.
+                entryProvider = { navKey -> inTab(tab, navKey, provider(navKey)) },
+            )
+        }
+    }
+
+    // The screen under any bottom sheet (e.g. the level ladder over the running timer).
+    val entries = entriesByTab.getValue(navigator.currentTab)
+    val top = entries.indexOfLast { it.metadata[NavSheet.KEY] != true }
+        .let { navigator.currentStack.getOrNull(it) ?: navigator.currentStack.lastOrNull() }
+    val onRunningTimer = navigator.currentTab == TopLevelTab.TIMER && top == TimerRoute
+    // The running timer and the draft board are full-screen table tools: no tab bar to mis-tap
+    // next to Next or a pick. System back leaves them (timer → Heroes, board → draft setup).
+    val showBottomBar = !(onRunningTimer && session.active) && top != DraftBoardRoute
+    val showTimerBar = session.active && !onRunningTimer && top != DraftBoardRoute
+    KeepScreenOnWhile(session == SessionState.RUNNING && showTimerBar)
+
     // Back on another tab's root returns to Heroes (NavDisplay only handles back within a stack).
     BackHandler(enabled = navigator.currentTab != TopLevelTab.CATALOG && navigator.currentStack.size == 1) {
         navigator.back()
     }
+    val snackbar = remember { SnackbarHostState() }
+    ShellMessages(navigator, snackbar)
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = { GoaBottomBar(navigator.currentTab, navigator::selectTab) },
+        snackbarHost = { SnackbarHost(snackbar) },
+        bottomBar = {
+            Column {
+                AnimatedVisibility(
+                    visible = showTimerBar,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically(),
+                ) {
+                    val running by shell.runningTimer.collectAsStateWithLifecycle(initialValue = null)
+                    running?.let { RunningTimerBar(it, onClick = navigator::openTimer) }
+                }
+                if (showBottomBar) GoaBottomBar(navigator.currentTab, navigator::selectTab)
+            }
+        },
     ) { padding ->
         NavDisplay(
-            backStack = navigator.currentStack,
+            entries = entries,
             modifier = Modifier.padding(padding).consumeWindowInsets(padding),
             onBack = { navigator.back() },
-            entryDecorators = listOf(
-                rememberSaveableStateHolderNavEntryDecorator(),
-                rememberViewModelStoreNavEntryDecorator(),
-            ),
             sceneStrategies = listOf(BottomSheetSceneStrategy()),
             transitionSpec = { push(forward = true) },
             popTransitionSpec = { push(forward = false) },
             predictivePopTransitionSpec = { _ -> push(forward = false) },
-            entryProvider = entryProvider {
-                catalogEntries(navigator)
-                timerEntries(navigator)
-                draftEntries(navigator)
-                playersEntries(navigator)
-                settingsEntries(navigator)
-                rulesEntries(navigator)
-            },
         )
+    }
+}
+
+/** [entry] for [key] with its content key prefixed by the tab. */
+private fun inTab(tab: TopLevelTab, key: NavKey, entry: NavEntry<NavKey>): NavEntry<NavKey> =
+    NavEntry(key = key, contentKey = "${tab.name}:${entry.contentKey}", metadata = entry.metadata) { entry.Content() }
+
+/** Snackbars for [AppNavigator.showMessage], one at a time. */
+@Composable
+private fun ShellMessages(navigator: AppNavigator, host: SnackbarHostState) {
+    val next = navigator.messages.firstOrNull()
+    LaunchedEffect(next?.id) {
+        val message = next ?: return@LaunchedEffect
+        val result = host.showSnackbar(
+            message = message.text,
+            actionLabel = message.actionLabel,
+            withDismissAction = true,
+            duration = SnackbarDuration.Long,
+        )
+        if (result == SnackbarResult.ActionPerformed) message.onAction?.invoke()
+        navigator.messageShown(message.id)
+    }
+}
+
+/** Keeps the display awake (window flag) while [enabled], e.g. a running timer seen from another tab. */
+@Composable
+private fun KeepScreenOnWhile(enabled: Boolean) {
+    val activity = LocalActivity.current ?: return
+    DisposableEffect(activity, enabled) {
+        if (enabled) activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose { if (enabled) activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
     }
 }
 

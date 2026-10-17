@@ -92,7 +92,12 @@ chips, two team columns with role coverage and ban chips, then a dense pool grid
 role chips and "Hide taken"; taken heroes shrink to chips; landscape moves the banner and teams
 to a side column so the pool keeps the full height; long-press opens the hero peek sheet).
 Bottom nav: Heroes, Timer, Draft, Players (original icons: shield, hourglass, fanned cards,
-companions; solid variant when selected). Settings from top bar.
+companions; solid variant when selected). Settings from top bar. The bottom nav is hidden on the
+running timer (no tab to mis-tap beside Next; back leaves to Heroes) and on the draft board;
+while a session runs, every other screen shows the **timer running bar** above the nav (timer
+icon, phase, "Round · Turn" context, tabular clock in tide teal; dim when paused, error red in
+overtime; tap returns to the timer). The Meta tab defaults to a compact sortable hero table
+(48 dp rows, sort chips; Pick/Ban columns drop at large font) with a Table/Cards switch.
 
 ## Asset policy
 Private, non-commercial build (ADR-006), so two kinds of asset:

@@ -15,9 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.feature.players.match.MatchFollowUps
 import dev.quinton.goa.feature.players.match.MatchLogContent
 import dev.quinton.goa.feature.players.match.MatchLogUiState
 import dev.quinton.goa.feature.players.match.UndoSnackbarHost
+import dev.quinton.goa.feature.players.meta.MetaActions
 import dev.quinton.goa.feature.players.meta.MetaContent
 import dev.quinton.goa.feature.players.meta.MetaUiState
 
@@ -32,12 +34,13 @@ fun MatchLogScreen(
     onDeleteMatch: (String) -> Unit,
     onUndoDelete: () -> Unit,
     onDismissUndo: () -> Unit,
+    followUps: MatchFollowUps = MatchFollowUps(),
 ) {
     GoaScreen(
         title = "Matches",
         onBack = onBack,
         floatingActionButton = {
-            if (state.undo == null) {
+            if (state.undo == null && !state.isEmpty) {
                 ExtendedFloatingActionButton(
                     onClick = onLogMatch,
                     icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
@@ -51,7 +54,13 @@ fun MatchLogScreen(
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            MatchLogContent(state, onOpenMatch = onOpenMatch, onDeleteMatch = onDeleteMatch, onLogMatch = onLogMatch)
+            MatchLogContent(
+                state,
+                onOpenMatch = onOpenMatch,
+                onDeleteMatch = onDeleteMatch,
+                onLogMatch = onLogMatch,
+                followUps = followUps,
+            )
             UndoSnackbarHost(snackbarHostState, state.undo, onUndo = onUndoDelete, onDismiss = onDismissUndo)
         }
     }
@@ -59,8 +68,8 @@ fun MatchLogScreen(
 
 /** [dev.quinton.goa.core.navigation.MetaRoute]: the meta dashboard on its own. */
 @Composable
-fun MetaScreen(state: MetaUiState, onBack: () -> Unit, onOpenRatingSettings: () -> Unit) {
+fun MetaScreen(state: MetaUiState, onBack: () -> Unit, actions: MetaActions) {
     GoaScreen(title = "Meta", onBack = onBack) { padding ->
-        MetaContent(state, onOpenRatingSettings = onOpenRatingSettings, modifier = Modifier.padding(padding))
+        MetaContent(state, actions, modifier = Modifier.padding(padding))
     }
 }

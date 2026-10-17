@@ -50,7 +50,9 @@ import dev.quinton.goa.feature.players.common.ProvisionalPill
 import dev.quinton.goa.feature.players.common.SectionHeader
 import dev.quinton.goa.feature.players.common.formatDelta
 import dev.quinton.goa.feature.players.common.formatRating
+import dev.quinton.goa.feature.players.common.plural
 import dev.quinton.goa.feature.players.common.winLoss
+import dev.quinton.goa.feature.players.match.FAB_CLEARANCE
 
 /** The "Players" tab: Elo leaderboard, then unrated and (optionally) archived players. */
 @Composable
@@ -81,7 +83,7 @@ fun LeaderboardContent(
 
         else -> LazyColumn(
             modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = 96.dp),
+            contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = FAB_CLEARANCE),
         ) {
             if (state.ranked.isNotEmpty()) {
                 item(key = "h-ranked") {
@@ -89,7 +91,7 @@ fun LeaderboardContent(
                         "Leaderboard",
                         trailing = {
                             Text(
-                                "${state.ratedMatches} rated ${if (state.ratedMatches == 1) "match" else "matches"}",
+                                "${plural(state.ratedMatches, "rated match", "rated matches")}",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -142,7 +144,7 @@ private fun LeaderboardRowItem(row: LeaderboardRow, onClick: () -> Unit, archive
             append(", rating ${formatRating(rating.value)}")
             if (rating.provisional) append(", provisional")
             append(", ${rating.wins} wins ${rating.losses} losses")
-            row.trend?.let { append(", trend ${formatDelta(it)}") }
+            row.trend?.let { append(", ${formatDelta(it)} over the last ${plural(row.trendGames, "game")}") }
         } else {
             append(", no games yet")
         }
@@ -180,7 +182,8 @@ private fun LeaderboardRowItem(row: LeaderboardRow, onClick: () -> Unit, archive
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    DeltaIndicator(row.trend)
+                    // Self-explaining: the change over the last few games, e.g. "↗ +24 last 5".
+                    DeltaIndicator(row.trend, caption = "last ${row.trendGames}")
                     if (rating.provisional) ProvisionalPill()
                 } else {
                     Text(

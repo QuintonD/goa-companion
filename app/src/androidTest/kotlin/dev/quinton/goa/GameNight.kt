@@ -202,6 +202,9 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         rule.tapDescription("Red won")
         rule.tapText("Throne")
         rule.tap(hasText("Save") and hasClickAction())
+        // The result shows its rating changes and Rematch before closing.
+        rule.waitForText("Result saved")
+        rule.tapText("Done")
 
         // ---- Leaderboard: winners above 1200, losers below, all provisional.
         rule.openTab("players")
