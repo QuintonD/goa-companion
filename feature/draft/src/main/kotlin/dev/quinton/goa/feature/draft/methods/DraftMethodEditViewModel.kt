@@ -19,6 +19,7 @@ import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.draft.DraftMethodKind
 import dev.quinton.goa.feature.draft.data.DraftEnvironment
 import dev.quinton.goa.feature.draft.data.DraftRepository
+import dev.quinton.goa.feature.draft.ui.plural
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -110,7 +111,7 @@ data class MethodEditUiState(
         ) {
             "$poolText."
         } else {
-            "$poolText. ${bans.takeIf { it > 0 }?.let { "$it ban(s). " } ?: ""}Custom order."
+            "$poolText. ${bans.takeIf { it > 0 }?.let { "${plural(it, "ban")}. " } ?: ""}Custom order."
         }
     }
 }
