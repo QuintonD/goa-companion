@@ -231,7 +231,11 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         val rows = rule.leaderboardRows().map(::parseRow).associateBy { it.name }
         players.forEach { name ->
             val announced = changes.getValue(name).now
-            assertEquals("Leaderboard shows the rating 'Result saved' announced for $name", announced, rows.getValue(name).rating)
+            assertEquals(
+                "Leaderboard shows the rating 'Result saved' announced for $name",
+                announced,
+                rows.getValue(name).rating,
+            )
         }
         red.forEach { name ->
             val row = rows.getValue(name)

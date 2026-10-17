@@ -219,7 +219,11 @@ fun AppRule.ratingChanges(count: Int): Map<String, RatingChange> {
         .mapNotNull { raw ->
             ChangePattern.find(raw)?.let { m ->
                 val size = m.groupValues[4].toInt()
-                val delta = if (m.groupValues[3] == "−") -size else if (m.groupValues[3] == "+") size else 0
+                val delta = when (m.groupValues[3]) {
+                    "−" -> -size
+                    "+" -> size
+                    else -> 0
+                }
                 RatingChange(m.groupValues[1], m.groupValues[2] == "won", delta, m.groupValues[5].toInt(), raw)
             }
         }
