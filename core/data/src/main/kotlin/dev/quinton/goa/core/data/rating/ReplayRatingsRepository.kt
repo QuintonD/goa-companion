@@ -63,9 +63,13 @@ internal class ReplayRatingsRepository @Inject constructor(
 
     override fun observeSnapshot(): Flow<RatingsSnapshot> = snapshot
 
-    override fun observePlayerRatings(): Flow<Map<String, Rating>> = snapshot.map { it.ratings.players }.distinctUntilChanged()
+    override fun observePlayerRatings(): Flow<Map<String, Rating>> = snapshot.map {
+        it.ratings.players
+    }.distinctUntilChanged()
 
-    override fun observeHeroRatings(): Flow<Map<String, Rating>> = snapshot.map { it.ratings.heroes }.distinctUntilChanged()
+    override fun observeHeroRatings(): Flow<Map<String, Rating>> = snapshot.map {
+        it.ratings.heroes
+    }.distinctUntilChanged()
 
     override fun observePlayerHistory(playerId: String): Flow<List<RatingPoint>> =
         snapshot.map { it.ratings.playerHistory[playerId].orEmpty() }.distinctUntilChanged()
@@ -73,5 +77,7 @@ internal class ReplayRatingsRepository @Inject constructor(
     override fun observeHeroHistory(heroId: String): Flow<List<RatingPoint>> =
         snapshot.map { it.ratings.heroHistory[heroId].orEmpty() }.distinctUntilChanged()
 
-    override fun observeHeroUsage(): Flow<Map<String, HeroUsage>> = snapshot.map { it.meta.usage() }.distinctUntilChanged()
+    override fun observeHeroUsage(): Flow<Map<String, HeroUsage>> = snapshot.map {
+        it.meta.usage()
+    }.distinctUntilChanged()
 }

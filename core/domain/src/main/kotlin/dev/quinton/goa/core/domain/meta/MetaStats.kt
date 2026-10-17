@@ -96,43 +96,22 @@ object MetaStats {
         return ((centre - margin) / (1 + z2 / n)).coerceIn(0.0, 1.0)
     }
 
-    fun compute(matches: Collection<Match>, drafts: Collection<DraftRecord>, config: MetaConfig = MetaConfig()): MetaReport {
+    fun compute(
+        matches: Collection<Match>,
+        drafts: Collection<DraftRecord>,
+        config: MetaConfig = MetaConfig(),
+    ): MetaReport {
         val rated = matches.filter { EloCalculator.skipReason(it) == null }.sortedWith(EloCalculator.REPLAY_ORDER)
-        val heroRecords = LinkedHashMap<String, WinLoss>()
-        val playerHero = LinkedHashMap<Pair<String, String>, WinLoss>()
-        val pairs = LinkedHashMap<Pair<String, String>, WinLoss>()
-        var largerTeam = WinLoss.NONE
-
-        for (match in rated) {
-            val winner = requireNotNull(match.winner)
-            for (seat in match.participants) {
-                val heroId = seat.heroId ?: continue
-                val won = seat.team == winner
-                heroRecords[heroId] = (heroRecords[heroId] ?: WinLoss.NONE) + won
-                val key = seat.playerId to heroId
-                playerHero[key] = (playerHero[key] ?: WinLoss.NONE) + won
-            }
-            for (team in Team.entries) {
-                val heroes = match.team(team).mapNotNull { it.heroId }.distinct().sorted()
-                for (i in heroes.indices) {
-                    for (j in i + 1 until heroes.size) {
-                        val key = heroes[i] to heroes[j]
-                        pairs[key] = (pairs[key] ?: WinLoss.NONE) + (team == winner)
-                    }
-                }
-            }
-            val red = match.team(Team.RED).size
-            val blue = match.team(Team.BLUE).size
-            if (red != blue) largerTeam += ((if (red > blue) Team.RED else Team.BLUE) == winner)
-        }
-
+        val tally = Tally().apply { rated.forEach(::add) }
+        val heroRecords = tally.heroRecords
+        val playerHero = tally.playerHero
+        val pairs = tally.pairs
+        val largerTeam = tally.largerTeam
         val banDrafts = drafts.filter { d -> d.steps.any { it.action == DraftAction.BAN } }
-        val bans = LinkedHashMap<String, Int>()
-        for (draft in banDrafts) {
-            draft.steps.filter { it.action == DraftAction.BAN }.map { it.heroId }.distinct().forEach { heroId ->
-                bans[heroId] = (bans[heroId] ?: 0) + 1
-            }
-        }
+        val bans = banDrafts
+            .flatMap { d -> d.steps.filter { it.action == DraftAction.BAN }.map { it.heroId }.distinct() }
+            .groupingBy { it }
+            .eachCount()
 
         val bestByPlayer = playerHero
             .filter { (_, record) -> record.games >= config.bestWithMinGames }
@@ -175,9 +154,48 @@ object MetaStats {
             totalMatches = total,
             draftsWithBans = banDrafts.size,
             heroes = heroes,
-            bestHeroesByPlayer = bestByPlayer.groupBy { it.playerId }.mapValues { (_, list) -> list.sortedWith(bestComparator) },
+            bestHeroesByPlayer = bestByPlayer.groupBy {
+                it.playerId
+            }.mapValues { (_, list) -> list.sortedWith(bestComparator) },
             synergies = synergies,
             largerTeam = largerTeam,
         )
+    }
+
+    /** Per-match accumulation of hero, player × hero, pair and larger-team records. */
+    private class Tally {
+        val heroRecords = LinkedHashMap<String, WinLoss>()
+        val playerHero = LinkedHashMap<Pair<String, String>, WinLoss>()
+        val pairs = LinkedHashMap<Pair<String, String>, WinLoss>()
+        var largerTeam = WinLoss.NONE
+
+        fun add(match: Match) {
+            val winner = requireNotNull(match.winner)
+            for (seat in match.participants) {
+                val heroId = seat.heroId ?: continue
+                val won = seat.team == winner
+                heroRecords[heroId] = (heroRecords[heroId] ?: WinLoss.NONE) + won
+                val key = seat.playerId to heroId
+                playerHero[key] = (playerHero[key] ?: WinLoss.NONE) + won
+            }
+            for (team in Team.entries) {
+                addPairs(
+                    match.team(team).mapNotNull { it.heroId }.distinct().sorted(),
+                    team == winner,
+                )
+            }
+            val red = match.team(Team.RED).size
+            val blue = match.team(Team.BLUE).size
+            if (red != blue) largerTeam += ((if (red > blue) Team.RED else Team.BLUE) == winner)
+        }
+
+        private fun addPairs(heroes: List<String>, won: Boolean) {
+            for (i in heroes.indices) {
+                for (j in i + 1 until heroes.size) {
+                    val key = heroes[i] to heroes[j]
+                    pairs[key] = (pairs[key] ?: WinLoss.NONE) + won
+                }
+            }
+        }
     }
 }

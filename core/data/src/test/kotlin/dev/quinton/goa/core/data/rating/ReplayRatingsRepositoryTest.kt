@@ -99,7 +99,11 @@ class ReplayRatingsRepositoryTest {
 
     @Test
     fun snapshotIsSharedBetweenCollectors() = runTest {
-        val repo = repository(FakeMatchRepository(listOf(match("m1", 1))), config = FakeEloConfigRepository(EloConfig(kProvisional = 30.0)))
+        val repo =
+            repository(
+                FakeMatchRepository(listOf(match("m1", 1))),
+                config = FakeEloConfigRepository(EloConfig(kProvisional = 30.0)),
+            )
         val a = repo.observeSnapshot().first()
         val b = repo.observeSnapshot().first()
         assertThat(a).isSameInstanceAs(b)

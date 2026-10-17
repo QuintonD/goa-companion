@@ -80,7 +80,8 @@ data class RatingsResult(
 
     fun hero(id: String): Rating = heroes[id] ?: unrated
 
-    fun record(playerId: String, heroId: String): WinLoss = playerHeroRecords[PlayerHeroKey(playerId, heroId)] ?: WinLoss.NONE
+    fun record(playerId: String, heroId: String): WinLoss =
+        playerHeroRecords[PlayerHeroKey(playerId, heroId)] ?: WinLoss.NONE
 
     companion object {
         val EMPTY = RatingsResult(

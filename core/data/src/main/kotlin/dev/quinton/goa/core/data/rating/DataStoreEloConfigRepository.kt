@@ -19,7 +19,9 @@ internal class DataStoreEloConfigRepository @Inject constructor(
 
     override suspend fun update(transform: (EloConfig) -> EloConfig) {
         val next = transform(config.first()).sanitized()
-        source.write(if (next == EloConfig.DEFAULT) null else EloConfigJson.encodeToString(EloConfig.serializer(), next))
+        val json = EloConfigJson.encodeToString(EloConfig.serializer(), next)
+        // Defaults are stored as "nothing", so future default changes reach users who never edited them.
+        source.write(json.takeIf { next != EloConfig.DEFAULT })
     }
 
     override suspend fun reset() = source.write(null)

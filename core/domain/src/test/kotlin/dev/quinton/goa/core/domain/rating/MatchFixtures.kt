@@ -7,9 +7,18 @@ import dev.quinton.goa.core.model.match.Participant
 import dev.quinton.goa.core.model.match.Team
 
 /** Seat on Red: `red("p1", "h1")`. */
-fun red(playerId: String, heroId: String?, handicap: Boolean = false) = Participant(playerId, heroId, Team.RED, handicap)
+fun red(
+    playerId: String,
+    heroId: String?,
+    handicap: Boolean = false,
+) = Participant(playerId, heroId, Team.RED, handicap)
 
-fun blue(playerId: String, heroId: String?, handicap: Boolean = false) = Participant(playerId, heroId, Team.BLUE, handicap)
+fun blue(playerId: String, heroId: String?, handicap: Boolean = false) = Participant(
+    playerId,
+    heroId,
+    Team.BLUE,
+    handicap,
+)
 
 fun match(
     id: String,

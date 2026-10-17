@@ -29,7 +29,10 @@ class RatingSettingsViewModel @Inject constructor(
     private val configRepository: EloConfigRepository,
     ratings: RatingsSnapshotRepository,
 ) : ViewModel() {
-    val uiState: StateFlow<RatingSettingsUiState> = combine(configRepository.config, ratings.observeSnapshot()) { config, snapshot ->
+    val uiState: StateFlow<RatingSettingsUiState> = combine(configRepository.config, ratings.observeSnapshot()) {
+            config,
+            snapshot,
+        ->
         RatingSettingsUiState(
             loading = false,
             config = config,

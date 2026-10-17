@@ -111,9 +111,9 @@ class EloPropertiesTest {
         val heroes = HashMap<String, Double>()
         val playerGames = HashMap<String, Int>()
         val heroGames = HashMap<String, Int>()
-        for (m in log.sortedWith(compareBy({ it.playedAt }, { it.createdAt }, { it.id }))) {
-            if (m.status != MatchStatus.COMPLETED) continue
-            val winner = m.winner ?: continue
+        val rated = log.filter { it.status == MatchStatus.COMPLETED && it.winner != null }
+        for (m in rated.sortedWith(compareBy({ it.playedAt }, { it.createdAt }, { it.id }))) {
+            val winner = requireNotNull(m.winner)
             fun space(ratings: HashMap<String, Double>, games: HashMap<String, Int>, ids: (Team) -> List<String>) {
                 val red = ids(Team.RED).map { ratings[it] ?: 1200.0 }.average()
                 val blue = ids(Team.BLUE).map { ratings[it] ?: 1200.0 }.average()
@@ -122,7 +122,7 @@ class EloPropertiesTest {
                     val s = if (t == winner) 1.0 else 0.0
                     val e = if (t == Team.RED) eRed else 1 - eRed
                     ids(t).map { id ->
-                        val k = if ((games[id] ?: 0) < config.provisionalGames) config.kProvisional else config.kEstablished
+                        val k = config.k(games[id] ?: 0)
                         id to k * config.multiplier(m.mode) * (s - e)
                     }
                 }

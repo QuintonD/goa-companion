@@ -68,7 +68,8 @@ class GoaDatabaseTest {
     @Test
     fun matchKeepsSeatOrderDoublePilotsAndUnknownHeroes() = runTest {
         val m = match(
-            "m1", 100,
+            "m1",
+            100,
             Participant(ann.id, "hero-b", Team.BLUE),
             Participant(ann.id, null, Team.BLUE, handicap = true),
             Participant(bob.id, "hero-a", Team.RED),
@@ -82,7 +83,9 @@ class GoaDatabaseTest {
         val dao = db.matchDao()
         val m = match("m1", 100, Participant(ann.id, "a", Team.RED), Participant(bob.id, "b", Team.BLUE))
         dao.upsert(m.toEntity(), m.participantEntities())
-        val edited = m.copy(participants = listOf(Participant(bob.id, "c", Team.RED), Participant(ann.id, "d", Team.BLUE)))
+        val edited = m.copy(
+            participants = listOf(Participant(bob.id, "c", Team.RED), Participant(ann.id, "d", Team.BLUE)),
+        )
         dao.upsert(edited.toEntity(), edited.participantEntities())
         assertThat(dao.getAll().single().toModel()).isEqualTo(edited)
 

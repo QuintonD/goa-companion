@@ -61,7 +61,9 @@ class PlayersViewModel @Inject constructor(
                 player = player,
                 rating = ratings.player(player.id),
                 rank = rank,
-                trend = ratings.playerHistory[player.id]?.takeLast(TREND_GAMES)?.takeIf { it.isNotEmpty() }?.sumOf { it.delta },
+                trend = ratings.playerHistory[player.id]?.takeLast(TREND_GAMES)?.takeIf {
+                    it.isNotEmpty()
+                }?.sumOf { it.delta },
             )
             val (archived, active) = players.partition { it.archived }
             val (rated, unrated) = active.partition { ratings.player(it.id).games > 0 }

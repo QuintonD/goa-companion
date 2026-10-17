@@ -59,8 +59,16 @@ class MetaStatsTest {
             steps = steps.toList(),
         )
         val drafts = listOf(
-            draft("d1", DraftStepRecord(Team.RED, DraftAction.BAN, "a"), DraftStepRecord(Team.BLUE, DraftAction.BAN, "b")),
-            draft("d2", DraftStepRecord(Team.RED, DraftAction.BAN, "a"), DraftStepRecord(Team.RED, DraftAction.PICK, "c")),
+            draft(
+                "d1",
+                DraftStepRecord(Team.RED, DraftAction.BAN, "a"),
+                DraftStepRecord(Team.BLUE, DraftAction.BAN, "b"),
+            ),
+            draft(
+                "d2",
+                DraftStepRecord(Team.RED, DraftAction.BAN, "a"),
+                DraftStepRecord(Team.RED, DraftAction.PICK, "c"),
+            ),
             // No bans: not part of the denominator.
             draft("d3", DraftStepRecord(Team.RED, DraftAction.PICK, "a")),
         )
@@ -111,7 +119,14 @@ class MetaStatsTest {
     @Test
     fun `synergy pairs and larger team stats`() {
         val matches = (0 until 5).map { i ->
-            match("m$i", i.toLong(), if (i < 4) Team.RED else Team.BLUE, red("p1", "a"), red("p2", "b"), blue("p3", "c"))
+            match(
+                "m$i",
+                i.toLong(),
+                Team.entries[i / 4],
+                red("p1", "a"),
+                red("p2", "b"),
+                blue("p3", "c"),
+            )
         }
         val report = MetaStats.compute(matches, emptyList())
         assertThat(report.synergies).hasSize(1)

@@ -30,7 +30,11 @@ data class MatchForm(
 ) {
     fun seats(team: Team): List<SeatDraft> = if (team == Team.RED) red else blue
 
-    fun withSeats(team: Team, seats: List<SeatDraft>): MatchForm = if (team == Team.RED) copy(red = seats) else copy(blue = seats)
+    fun withSeats(team: Team, seats: List<SeatDraft>): MatchForm = if (team == Team.RED) {
+        copy(red = seats)
+    } else {
+        copy(blue = seats)
+    }
 
     /** Players piloting two or more seats on [team]. */
     fun doublePilots(team: Team): Set<String> =

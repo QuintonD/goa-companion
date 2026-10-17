@@ -144,7 +144,11 @@ class MatchLogViewModel @Inject constructor(
             changes: Map<String, MatchRatingChange>,
             today: LocalDate = LocalDate.now(),
         ): List<MatchGroup> = matches
-            .sortedWith(compareByDescending<Match> { it.playedAt }.thenByDescending { it.createdAt }.thenByDescending { it.id })
+            .sortedWith(
+                compareByDescending<Match> {
+                    it.playedAt
+                }.thenByDescending { it.createdAt }.thenByDescending { it.id },
+            )
             .groupBy { Dates.localDate(it.playedAt) }
             .map { (_, dayMatches) ->
                 MatchGroup(

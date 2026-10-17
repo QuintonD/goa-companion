@@ -90,12 +90,12 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.feature.players.common.Dates
 import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
-import dev.quinton.goa.feature.players.common.goaFilterChipColors
-import dev.quinton.goa.feature.players.common.goaSegmentedColors
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.Motion
 import dev.quinton.goa.feature.players.common.Pill
 import dev.quinton.goa.feature.players.common.SectionHeader
+import dev.quinton.goa.feature.players.common.goaFilterChipColors
+import dev.quinton.goa.feature.players.common.goaSegmentedColors
 import dev.quinton.goa.feature.players.common.label
 import java.time.Instant
 import java.time.LocalDate
@@ -154,9 +154,11 @@ fun MatchEditScreen(state: MatchEditUiState, actions: MatchEditActions, modifier
     ) { padding ->
         when {
             state.loading -> LoadingState(Modifier.padding(padding))
+
             state.notFound -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 EmptyState(Icons.Outlined.EventBusy, "Match not found", "It may have been deleted.")
             }
+
             else -> MatchFormContent(
                 state = state,
                 actions = actions,
@@ -182,6 +184,7 @@ fun MatchEditScreen(state: MatchEditUiState, actions: MatchEditActions, modifier
                 onDismiss = { picker = null },
             )
         }
+
         is Picker.PilotFor -> {
             val seat = state.form.seats(open.team).firstOrNull { it.key == open.key }
             PilotPickerSheet(
@@ -197,6 +200,7 @@ fun MatchEditScreen(state: MatchEditUiState, actions: MatchEditActions, modifier
                 onDismiss = { picker = null },
             )
         }
+
         null -> Unit
     }
 
@@ -334,7 +338,9 @@ private fun MatchFormContent(
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     Team.entries.forEach { team ->
-                        WinnerOption(team, selected = form.winner == team, onClick = { actions.onWinner(team) }, Modifier.weight(1f))
+                        WinnerOption(team, selected = form.winner == team, onClick = {
+                            actions.onWinner(team)
+                        }, Modifier.weight(1f))
                     }
                 }
                 Text(
@@ -381,7 +387,11 @@ private fun MatchFormContent(
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.size(Spacing.xl))
-        Button(onClick = actions.onSave, enabled = !state.saving, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+        Button(
+            onClick = actions.onSave,
+            enabled = !state.saving,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+        ) {
             Text(if (state.isNew) "Save match" else "Save changes")
         }
         if (!state.isNew) {
@@ -432,13 +442,19 @@ private fun WhenRow(playedAt: Long, onPlayedAt: (Long) -> Unit) {
             onClick = { pickDate = true },
             label = { Text(Dates.day(playedAt)) },
             leadingIcon = { Icon(Icons.Outlined.CalendarMonth, contentDescription = null) },
-            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Date ${Dates.day(playedAt)}. Change" },
+            modifier = Modifier.heightIn(min = 48.dp).semantics {
+                contentDescription =
+                    "Date ${Dates.day(playedAt)}. Change"
+            },
         )
         AssistChip(
             onClick = { pickTime = true },
             label = { Text(Dates.time(playedAt)) },
             leadingIcon = { Icon(Icons.Outlined.Schedule, contentDescription = null) },
-            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Time ${Dates.time(playedAt)}. Change" },
+            modifier = Modifier.heightIn(min = 48.dp).semantics {
+                contentDescription =
+                    "Time ${Dates.time(playedAt)}. Change"
+            },
         )
     }
     if (pickDate) {
@@ -466,7 +482,11 @@ private fun WhenRow(playedAt: Long, onPlayedAt: (Long) -> Unit) {
             confirmButton = {
                 TextButton(onClick = {
                     val date: LocalDate = dateTime.toLocalDate()
-                    onPlayedAt(date.atTime(LocalTime.of(timeState.hour, timeState.minute)).atZone(zone).toInstant().toEpochMilli())
+                    onPlayedAt(
+                        date.atTime(
+                            LocalTime.of(timeState.hour, timeState.minute),
+                        ).atZone(zone).toInstant().toEpochMilli(),
+                    )
                     pickTime = false
                 }) { Text("OK") }
             },
@@ -551,7 +571,14 @@ private fun SeatEditor(
     Surface(
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, if (problem != null) MaterialTheme.colorScheme.error else accent.copy(alpha = 0.45f)),
+        border = BorderStroke(
+            1.dp,
+            if (problem != null) {
+                MaterialTheme.colorScheme.error
+            } else {
+                accent.copy(alpha = 0.45f)
+            },
+        ),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(start = Spacing.md, top = Spacing.sm, bottom = Spacing.sm)) {
@@ -564,7 +591,12 @@ private fun SeatEditor(
                         .semantics(mergeDescendants = true) { contentDescription = "Hero: $heroLabel. Change hero" },
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    HeroPortrait(seat.heroId ?: "?", hero?.portrait, contentDescription = null, modifier = Modifier.size(48.dp))
+                    HeroPortrait(
+                        seat.heroId ?: "?",
+                        hero?.portrait,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                    )
                     Spacer(Modifier.width(Spacing.md))
                     Column {
                         Text(
@@ -572,7 +604,11 @@ private fun SeatEditor(
                             style = MaterialTheme.typography.titleMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            color = if (seat.heroId == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                            color = if (seat.heroId == null) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
                         )
                         Text(
                             hero?.title ?: "Tap to choose",
@@ -619,7 +655,13 @@ private fun SeatEditor(
                     colors = goaFilterChipColors(),
                     modifier = Modifier.heightIn(min = 48.dp),
                 )
-                if (doublePilot) Pill("Double pilot", icon = Icons.Outlined.People, color = MaterialTheme.colorScheme.secondary)
+                if (doublePilot) {
+                    Pill(
+                        "Double pilot",
+                        icon = Icons.Outlined.People,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
             }
             if (problem != null) {
                 Text(
@@ -643,7 +685,10 @@ private fun WinnerOption(team: Team, selected: Boolean, onClick: () -> Unit, mod
             .semantics { contentDescription = "${team.label()} won" },
         shape = MaterialTheme.shapes.medium,
         color = if (selected) color.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) color else MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(
+            if (selected) 2.dp else 1.dp,
+            if (selected) color else MaterialTheme.colorScheme.outlineVariant,
+        ),
     ) {
         Row(
             Modifier.padding(Spacing.md),

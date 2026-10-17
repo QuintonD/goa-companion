@@ -97,7 +97,11 @@ class PlayerDetailViewModel @AssistedInject constructor(
                 ratings.playerHeroRecords
                     .filterKeys { it.playerId == playerId }
                     .entries
-                    .sortedWith(compareByDescending<Map.Entry<*, WinLoss>> { it.value.games }.thenByDescending { it.value.wins })
+                    .sortedWith(
+                        compareByDescending<Map.Entry<*, WinLoss>> {
+                            it.value.games
+                        }.thenByDescending { it.value.wins },
+                    )
                     .take(MAX_HEROES)
                     .map { row(it.key.heroId, it.value) }
             }

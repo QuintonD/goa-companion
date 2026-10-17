@@ -75,8 +75,9 @@ fun RatingSettingsScreen(state: RatingSettingsUiState, actions: RatingSettingsAc
             SectionHeader("Pilot and hero")
             SliderSetting(
                 title = "Hero influence",
-                explanation = "How much a hero's rating shifts its pilot's strength in a match. Winning with a strong " +
-                    "hero earns the player a little less.",
+                explanation =
+                    "How much a hero's rating shifts its pilot's strength in a match. Winning with a strong " +
+                        "hero earns the player a little less.",
                 value = c.heroInfluence,
                 range = 0.0..1.0,
                 step = 0.05,
@@ -85,8 +86,9 @@ fun RatingSettingsScreen(state: RatingSettingsUiState, actions: RatingSettingsAc
             )
             SliderSetting(
                 title = "Pilot influence",
-                explanation = "How much the pilot's rating shifts a hero's strength. A great player winning with a hero " +
-                    "earns the hero a little less.",
+                explanation =
+                    "How much the pilot's rating shifts a hero's strength. A great player winning with a hero " +
+                        "earns the hero a little less.",
                 value = c.pilotInfluence,
                 range = 0.0..1.0,
                 step = 0.05,
@@ -107,8 +109,9 @@ fun RatingSettingsScreen(state: RatingSettingsUiState, actions: RatingSettingsAc
             )
             SliderSetting(
                 title = "Double pilot weight",
-                explanation = "A player controlling two heroes carried more of the result. Their change is multiplied " +
-                    "by 1 + weight for each extra hero (0.5 → ×1.5).",
+                explanation =
+                    "A player controlling two heroes carried more of the result. Their change is multiplied " +
+                        "by 1 + weight for each extra hero (0.5 → ×1.5).",
                 value = c.doublePilotWeight,
                 range = 0.0..2.0,
                 step = 0.1,
@@ -207,7 +210,9 @@ fun RatingSettingsScreen(state: RatingSettingsUiState, actions: RatingSettingsAc
         AlertDialog(
             onDismissRequest = { confirmReset = false },
             title = { Text("Reset rating settings?") },
-            text = { Text("All constants go back to their defaults and every rating is recalculated from the match log.") },
+            text = {
+                Text("All constants go back to their defaults and every rating is recalculated from the match log.")
+            },
             confirmButton = {
                 TextButton(onClick = {
                     confirmReset = false
@@ -229,8 +234,10 @@ private fun IntroCard(state: RatingSettingsUiState) {
                 Text("How ratings work", style = MaterialTheme.typography.titleLarge)
             }
             Text(
-                "Every hero seat counts. A team's strength is the average of its seats, each blending its pilot's and " +
-                    "hero's ratings, so double pilots and uneven teams are rated fairly. Players and heroes each get their own Elo.",
+                "Every hero seat counts. A team's strength is the average of its seats, each blending " +
+                    "its pilot's and " +
+                    "hero's ratings, so double pilots and uneven teams are rated fairly. " +
+                    "Players and heroes each get their own Elo.",
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(
@@ -260,7 +267,11 @@ private fun SliderSetting(
     Column(Modifier.fillMaxWidth().padding(vertical = Spacing.sm)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            Text(format(current.toDouble()), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            Text(
+                format(current.toDouble()),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
         if (explanation != null) {
             Text(
@@ -289,7 +300,8 @@ private fun SliderSetting(
     }
 }
 
-private fun snap(value: Double, start: Double, step: Double): Double = start + ((value - start) / step).roundToInt() * step
+private fun snap(value: Double, start: Double, step: Double): Double =
+    start + ((value - start) / step).roundToInt() * step
 
 private fun decimal2(value: Double): String = String.format(Locale.ROOT, "%.2f", value).trimEnd('0').trimEnd('.').let {
     if ('.' !in it) "$it.0" else it

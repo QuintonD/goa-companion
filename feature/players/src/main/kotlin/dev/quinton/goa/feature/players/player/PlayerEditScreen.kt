@@ -77,9 +77,11 @@ fun PlayerEditScreen(state: PlayerEditUiState, actions: PlayerEditActions, modif
     ) { padding ->
         when {
             state.loading -> LoadingState(Modifier.padding(padding))
+
             state.notFound -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 EmptyState(Icons.Outlined.PersonOff, "Player not found", "This player no longer exists.")
             }
+
             else -> Column(
                 Modifier
                     .fillMaxSize()
@@ -101,7 +103,10 @@ fun PlayerEditScreen(state: PlayerEditUiState, actions: PlayerEditActions, modif
                     supportingText = {
                         Text(state.nameError ?: "${state.name.length} / $MAX_NAME_LENGTH")
                     },
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Done,
+                    ),
                     keyboardActions = KeyboardActions(onDone = { actions.onSave() }),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -133,9 +138,17 @@ fun PlayerEditScreen(state: PlayerEditUiState, actions: PlayerEditActions, modif
                             Modifier
                                 .size(56.dp)
                                 .clip(CircleShape)
-                                .then(if (ring > 0.dp) Modifier.border(ring, MaterialTheme.colorScheme.primary, CircleShape) else Modifier)
+                                .then(
+                                    if (ring > 0.dp) {
+                                        Modifier.border(ring, MaterialTheme.colorScheme.primary, CircleShape)
+                                    } else {
+                                        Modifier
+                                    },
+                                )
                                 .selectable(selected = selected, role = Role.RadioButton) { actions.onAvatarChange(id) }
-                                .semantics { contentDescription = PlayerCrests.names.getOrElse(id) { "Crest ${id + 1}" } },
+                                .semantics {
+                                    contentDescription = PlayerCrests.names.getOrElse(id) { "Crest ${id + 1}" }
+                                },
                             contentAlignment = Alignment.Center,
                         ) {
                             PlayerAvatar(state.preview.copy(avatarId = id), size = 44.dp)
@@ -161,7 +174,13 @@ private fun ColorSwatch(color: Color, name: String, selected: Boolean, onClick: 
         Modifier
             .size(48.dp)
             .clip(CircleShape)
-            .then(if (ring > 0.dp) Modifier.border(ring, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier)
+            .then(
+                if (ring > 0.dp) {
+                    Modifier.border(ring, MaterialTheme.colorScheme.onSurface, CircleShape)
+                } else {
+                    Modifier
+                },
+            )
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .semantics { contentDescription = name }
             .padding(6.dp)
@@ -169,6 +188,12 @@ private fun ColorSwatch(color: Color, name: String, selected: Boolean, onClick: 
             .background(color),
         contentAlignment = Alignment.Center,
     ) {
-        if (selected) Icon(Icons.Filled.Check, contentDescription = null, tint = if (GoaTheme.isDark) Color(0xFF0B1622) else Color.White)
+        if (selected) {
+            Icon(
+                Icons.Filled.Check,
+                contentDescription = null,
+                tint = if (GoaTheme.isDark) Color(0xFF0B1622) else Color.White,
+            )
+        }
     }
 }

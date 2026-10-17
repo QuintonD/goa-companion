@@ -49,6 +49,7 @@ import dev.quinton.goa.feature.players.common.winLoss
 fun MetaContent(state: MetaUiState, onOpenRatingSettings: () -> Unit, modifier: Modifier = Modifier) {
     when {
         state.loading -> LoadingState(modifier)
+
         state.isEmpty -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             EmptyState(
                 icon = Icons.Outlined.Insights,
@@ -56,6 +57,7 @@ fun MetaContent(state: MetaUiState, onOpenRatingSettings: () -> Unit, modifier: 
                 message = "Win, pick and ban rates appear once completed matches and drafts are logged.",
             )
         }
+
         else -> LazyColumn(
             modifier = modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = Spacing.xxl),
@@ -66,7 +68,13 @@ fun MetaContent(state: MetaUiState, onOpenRatingSettings: () -> Unit, modifier: 
                         state.totalMatches.toString() to "Rated matches",
                         state.draftsWithBans.toString() to "Drafts with bans",
                         (if (state.largerTeam.games == 0) "—" else formatPercent(state.largerTeam.winRate)) to
-                            ("Larger team won" + if (state.largerTeam.games > 0) " (${state.largerTeam.games})" else ""),
+                            (
+                                "Larger team won" + if (state.largerTeam.games > 0) {
+                                    " (${state.largerTeam.games})"
+                                } else {
+                                    ""
+                                }
+                                ),
                     ),
                     Modifier.padding(top = Spacing.md),
                 )
@@ -95,7 +103,11 @@ fun MetaContent(state: MetaUiState, onOpenRatingSettings: () -> Unit, modifier: 
                         Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics(mergeDescendants = true) {},
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("${pair.heroA} + ${pair.heroB}", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        Text(
+                            "${pair.heroA} + ${pair.heroB}",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f),
+                        )
                         Text(
                             "${winLoss(pair.record.wins, pair.record.games)} · ${formatPercent(pair.record.winRate)}",
                             style = MaterialTheme.typography.labelLarge,
@@ -159,7 +171,12 @@ private fun HeroMetaItem(row: HeroMetaRow, rank: Int?) {
             HeroPortrait(row.heroId, row.portrait, contentDescription = null, modifier = Modifier.size(40.dp))
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
-                Text(row.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    row.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text(
                     "${winLoss(meta.record.wins, meta.record.games)} · ${meta.record.games} games",
                     style = MaterialTheme.typography.bodySmall,
@@ -193,7 +210,11 @@ private fun HeroMetaItem(row: HeroMetaRow, rank: Int?) {
             row.rating?.let { Metric("Hero Elo", formatRating(it.value)) }
             if (row.bestPlayer != null && row.bestRecord != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Best", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Best",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     Spacer(Modifier.width(Spacing.xs))
                     PlayerAvatar(row.bestPlayer, size = 20.dp)
                     Spacer(Modifier.width(Spacing.xs))

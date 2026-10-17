@@ -36,7 +36,8 @@ class MigrationTest {
         helper.createDatabase(1).apply {
             execSQL(
                 "INSERT INTO matches (id, created_at, played_at, status, mode, map, winner, win_condition, " +
-                    "duration_min, notes, draft_id) VALUES ('m1', 1, 2, 'completed', 'quick', NULL, 'red', NULL, NULL, '', NULL)",
+                    "duration_min, notes, draft_id) " +
+                    "VALUES ('m1', 1, 2, 'completed', 'quick', NULL, 'red', NULL, NULL, '', NULL)",
             )
             execSQL(
                 "INSERT INTO participants (match_id, seat_index, player_id, hero_id, team, handicap) " +

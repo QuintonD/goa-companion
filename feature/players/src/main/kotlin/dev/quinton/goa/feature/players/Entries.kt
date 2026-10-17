@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.players
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,37 +48,7 @@ import dev.quinton.goa.feature.players.ratings.RatingSettingsScreen
 import dev.quinton.goa.feature.players.ratings.RatingSettingsViewModel
 
 fun EntryProviderScope<NavKey>.playersEntries(navigator: Navigator) {
-    entry<PlayersRoute> {
-        val playersVm = hiltViewModel<PlayersViewModel>()
-        val matchesVm = hiltViewModel<MatchLogViewModel>()
-        val metaVm = hiltViewModel<MetaViewModel>()
-        val players by playersVm.uiState.collectAsStateWithLifecycle()
-        val matches by matchesVm.uiState.collectAsStateWithLifecycle()
-        val meta by metaVm.uiState.collectAsStateWithLifecycle()
-        var tab by rememberSaveable { mutableStateOf(PlayersTab.PLAYERS) }
-        val snackbar = remember { SnackbarHostState() }
-        PlayersHomeScreen(
-            tab = tab,
-            players = players,
-            matches = matches,
-            meta = meta,
-            snackbarHostState = snackbar,
-            actions = PlayersHomeActions(
-                onSelectTab = { tab = it },
-                onOpenPlayer = { navigator.navigate(PlayerDetailRoute(it)) },
-                onAddPlayer = { navigator.navigate(PlayerEditRoute()) },
-                onToggleArchived = playersVm::toggleArchived,
-                onOpenMatch = { navigator.navigate(MatchEditRoute(it)) },
-                onLogMatch = { navigator.navigate(MatchEditRoute()) },
-                onDeleteMatch = matchesVm::delete,
-                onUndoDelete = matchesVm::undoDelete,
-                onDismissUndo = matchesVm::dismissUndo,
-                onOpenBackup = { navigator.navigate(BackupRoute) },
-                onOpenSettings = { navigator.navigate(SettingsRoute) },
-                onOpenRatingSettings = { navigator.navigate(RatingSettingsRoute) },
-            ),
-        )
-    }
+    entry<PlayersRoute> { PlayersHomeEntry(navigator) }
     entry<PlayerDetailRoute> { key ->
         val vm = hiltViewModel<PlayerDetailViewModel, PlayerDetailViewModel.Factory>(
             creationCallback = { it.create(key.playerId) },
@@ -125,62 +96,13 @@ fun EntryProviderScope<NavKey>.playersEntries(navigator: Navigator) {
             onDismissUndo = vm::dismissUndo,
         )
     }
-    entry<MatchEditRoute> { key ->
-        val vm = hiltViewModel<MatchEditViewModel, MatchEditViewModel.Factory>(
-            creationCallback = { it.create(key.matchId) },
-        )
-        val state by vm.uiState.collectAsStateWithLifecycle()
-        MatchEditScreen(
-            state = state,
-            actions = MatchEditActions(
-                onBack = navigator::back,
-                onPlayedAt = vm::setPlayedAt,
-                onMode = vm::setMode,
-                onMap = vm::setMap,
-                onStatus = vm::setStatus,
-                onWinner = vm::setWinner,
-                onWinCondition = vm::setWinCondition,
-                onDuration = vm::setDuration,
-                onNotes = vm::setNotes,
-                onAddSeat = vm::addSeat,
-                onRemoveSeat = vm::removeSeat,
-                onPilot = vm::setPilot,
-                onHero = vm::setHero,
-                onToggleHandicap = vm::toggleHandicap,
-                onSwapTeams = vm::swapTeams,
-                onSave = vm::save,
-                onDelete = vm::delete,
-            ),
-        )
-    }
+    entry<MatchEditRoute> { key -> MatchEditEntry(key, navigator) }
     entry<MetaRoute> {
         val vm = hiltViewModel<MetaViewModel>()
         val state by vm.uiState.collectAsStateWithLifecycle()
         MetaScreen(state, onBack = navigator::back, onOpenRatingSettings = { navigator.navigate(RatingSettingsRoute) })
     }
-    entry<BackupRoute> {
-        val vm = hiltViewModel<BackupViewModel>()
-        val state by vm.uiState.collectAsStateWithLifecycle()
-        val resolver = LocalContext.current.contentResolver
-        val exportLauncher = rememberLauncherForActivityResult(
-            ActivityResultContracts.CreateDocument(BackupDocument.MIME_TYPE),
-        ) { uri -> uri?.let { vm.export { resolver.openOutputStream(it, "wt") } } }
-        val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            uri?.let { vm.read { resolver.openInputStream(it) } }
-        }
-        BackupScreen(
-            state = state,
-            actions = BackupActions(
-                onBack = navigator::back,
-                onExport = { exportLauncher.launch(vm.suggestedFileName()) },
-                // Some file providers report JSON as text/plain or octet-stream.
-                onImport = { importLauncher.launch(arrayOf(BackupDocument.MIME_TYPE, "text/plain", "application/octet-stream")) },
-                onConfirmImport = vm::confirmImport,
-                onCancelImport = vm::cancelImport,
-                onMessageShown = vm::messageShown,
-            ),
-        )
-    }
+    entry<BackupRoute> { BackupEntry(navigator) }
     entry<RatingSettingsRoute> {
         val vm = hiltViewModel<RatingSettingsViewModel>()
         val state by vm.uiState.collectAsStateWithLifecycle()
@@ -189,4 +111,94 @@ fun EntryProviderScope<NavKey>.playersEntries(navigator: Navigator) {
             actions = RatingSettingsActions(onBack = navigator::back, onUpdate = vm::update, onReset = vm::reset),
         )
     }
+}
+
+@Composable
+private fun PlayersHomeEntry(navigator: Navigator) {
+    val playersVm = hiltViewModel<PlayersViewModel>()
+    val matchesVm = hiltViewModel<MatchLogViewModel>()
+    val metaVm = hiltViewModel<MetaViewModel>()
+    val players by playersVm.uiState.collectAsStateWithLifecycle()
+    val matches by matchesVm.uiState.collectAsStateWithLifecycle()
+    val meta by metaVm.uiState.collectAsStateWithLifecycle()
+    var tab by rememberSaveable { mutableStateOf(PlayersTab.PLAYERS) }
+    val snackbar = remember { SnackbarHostState() }
+    PlayersHomeScreen(
+        tab = tab,
+        players = players,
+        matches = matches,
+        meta = meta,
+        snackbarHostState = snackbar,
+        actions = PlayersHomeActions(
+            onSelectTab = { tab = it },
+            onOpenPlayer = { navigator.navigate(PlayerDetailRoute(it)) },
+            onAddPlayer = { navigator.navigate(PlayerEditRoute()) },
+            onToggleArchived = playersVm::toggleArchived,
+            onOpenMatch = { navigator.navigate(MatchEditRoute(it)) },
+            onLogMatch = { navigator.navigate(MatchEditRoute()) },
+            onDeleteMatch = matchesVm::delete,
+            onUndoDelete = matchesVm::undoDelete,
+            onDismissUndo = matchesVm::dismissUndo,
+            onOpenBackup = { navigator.navigate(BackupRoute) },
+            onOpenSettings = { navigator.navigate(SettingsRoute) },
+            onOpenRatingSettings = { navigator.navigate(RatingSettingsRoute) },
+        ),
+    )
+}
+
+@Composable
+private fun MatchEditEntry(key: MatchEditRoute, navigator: Navigator) {
+    val vm = hiltViewModel<MatchEditViewModel, MatchEditViewModel.Factory>(
+        creationCallback = { it.create(key.matchId) },
+    )
+    val state by vm.uiState.collectAsStateWithLifecycle()
+    MatchEditScreen(
+        state = state,
+        actions = MatchEditActions(
+            onBack = navigator::back,
+            onPlayedAt = vm::setPlayedAt,
+            onMode = vm::setMode,
+            onMap = vm::setMap,
+            onStatus = vm::setStatus,
+            onWinner = vm::setWinner,
+            onWinCondition = vm::setWinCondition,
+            onDuration = vm::setDuration,
+            onNotes = vm::setNotes,
+            onAddSeat = vm::addSeat,
+            onRemoveSeat = vm::removeSeat,
+            onPilot = vm::setPilot,
+            onHero = vm::setHero,
+            onToggleHandicap = vm::toggleHandicap,
+            onSwapTeams = vm::swapTeams,
+            onSave = vm::save,
+            onDelete = vm::delete,
+        ),
+    )
+}
+
+@Composable
+private fun BackupEntry(navigator: Navigator) {
+    val vm = hiltViewModel<BackupViewModel>()
+    val state by vm.uiState.collectAsStateWithLifecycle()
+    val resolver = LocalContext.current.contentResolver
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument(BackupDocument.MIME_TYPE),
+    ) { uri -> uri?.let { vm.export { resolver.openOutputStream(it, "wt") } } }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { vm.read { resolver.openInputStream(it) } }
+    }
+    BackupScreen(
+        state = state,
+        actions = BackupActions(
+            onBack = navigator::back,
+            onExport = { exportLauncher.launch(vm.suggestedFileName()) },
+            // Some file providers report JSON as text/plain or octet-stream.
+            onImport = {
+                importLauncher.launch(arrayOf(BackupDocument.MIME_TYPE, "text/plain", "application/octet-stream"))
+            },
+            onConfirmImport = vm::confirmImport,
+            onCancelImport = vm::cancelImport,
+            onMessageShown = vm::messageShown,
+        ),
+    )
 }

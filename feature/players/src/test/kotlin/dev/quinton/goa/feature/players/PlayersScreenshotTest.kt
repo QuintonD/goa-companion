@@ -152,6 +152,7 @@ class PlayersScreenshotTest {
     }
 
     /** Captures every window, so dialogs and bottom sheets are included. */
+    @OptIn(com.github.takahirom.roborazzi.ExperimentalRoborazziApi::class)
     private fun screen(mode: ThemeMode = ThemeMode.DARK, content: @Composable () -> Unit) {
         setContent(mode, 1f, content)
         compose.waitForIdle()
@@ -190,7 +191,9 @@ class PlayersScreenshotTest {
 
     @Test fun playerDetailLight() = shot(ThemeMode.LIGHT) { PlayerDetailScreen(Shots.detail, PlayerDetailActions()) }
 
-    @Test fun playerDetailFontScale2() = shot(fontScale = 2f) { PlayerDetailScreen(Shots.detail, PlayerDetailActions()) }
+    @Test fun playerDetailFontScale2() = shot(fontScale = 2f) {
+        PlayerDetailScreen(Shots.detail, PlayerDetailActions())
+    }
 
     @Test fun playerEditDark() = shot {
         PlayerEditScreen(
@@ -217,11 +220,21 @@ class PlayersScreenshotTest {
         )
     }
 
-    @Test fun backupDark() = shot { BackupScreen(BackupUiState(players = 6, matches = 10), dev.quinton.goa.feature.players.backup.BackupActions()) }
+    @Test fun backupDark() = shot {
+        BackupScreen(BackupUiState(players = 6, matches = 10), dev.quinton.goa.feature.players.backup.BackupActions())
+    }
 
     @Test fun importDialogDark() = screen {
         ImportDialog(
-            BackupSummary(1, Fixtures.at(12), players = 6, matches = 42, drafts = 7, hasEloConfig = true, extras = emptySet()),
+            BackupSummary(
+                1,
+                Fixtures.at(12),
+                players = 6,
+                matches = 42,
+                drafts = 7,
+                hasEloConfig = true,
+                extras = emptySet(),
+            ),
             onConfirm = {},
             onCancel = {},
         )
@@ -229,7 +242,12 @@ class PlayersScreenshotTest {
 
     @Test fun ratingSettingsDark() = shot {
         RatingSettingsScreen(
-            RatingSettingsUiState(loading = false, config = EloConfig(seatAdvantage = 15.0), ratedMatches = 9, skippedMatches = 1),
+            RatingSettingsUiState(
+                loading = false,
+                config = EloConfig(seatAdvantage = 15.0),
+                ratedMatches = 9,
+                skippedMatches = 1,
+            ),
             RatingSettingsActions(),
         )
     }

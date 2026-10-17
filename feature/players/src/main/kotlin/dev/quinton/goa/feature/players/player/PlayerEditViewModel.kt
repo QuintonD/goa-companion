@@ -7,9 +7,9 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.PlayerRepository
-import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.designsystem.icon.PlayerCrests
 import dev.quinton.goa.core.designsystem.theme.PlayerColors
+import dev.quinton.goa.core.model.player.Player
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,7 +32,15 @@ data class PlayerEditUiState(
     val notFound: Boolean = false,
 ) {
     /** Preview of the player being edited, for [dev.quinton.goa.core.designsystem.component.PlayerAvatar]. */
-    val preview: Player get() = Player(id = "preview", name = name.ifBlank { "?" }, color = color, avatarId = avatarId, createdAt = 0)
+    val preview: Player get() = Player(
+        id = "preview",
+        name = name.ifBlank {
+            "?"
+        },
+        color = color,
+        avatarId = avatarId,
+        createdAt = 0,
+    )
 }
 
 const val MAX_NAME_LENGTH = 24
@@ -64,12 +72,18 @@ class PlayerEditViewModel @AssistedInject constructor(
                     color = existing.color,
                     avatarId = existing.avatarId,
                 )
+
                 playerId != null -> PlayerEditUiState(loading = false, isNew = false, notFound = true)
+
                 else -> {
                     val used = all.map { it.color }.toSet()
                     PlayerEditUiState(
                         loading = false,
-                        color = (PlayerColors.all.firstOrNull { it.argb !in used } ?: PlayerColors.default(all.size)).argb,
+                        color = (
+                            PlayerColors.all.firstOrNull {
+                                it.argb !in used
+                            } ?: PlayerColors.default(all.size)
+                            ).argb,
                         avatarId = all.size % PlayerCrests.count,
                     )
                 }
@@ -81,7 +95,9 @@ class PlayerEditViewModel @AssistedInject constructor(
 
     fun onColorChange(color: Long) = state.update { it.copy(color = color) }
 
-    fun onAvatarChange(avatarId: Int) = state.update { it.copy(avatarId = avatarId.coerceIn(0, PlayerCrests.count - 1)) }
+    fun onAvatarChange(avatarId: Int) = state.update {
+        it.copy(avatarId = avatarId.coerceIn(0, PlayerCrests.count - 1))
+    }
 
     fun save() {
         val current = state.value

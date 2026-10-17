@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -62,6 +63,7 @@ fun LeaderboardContent(
 ) {
     when {
         state.loading -> LoadingState(modifier)
+
         state.isEmpty -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             EmptyState(
                 icon = Icons.Outlined.Groups,
@@ -76,6 +78,7 @@ fun LeaderboardContent(
                 },
             )
         }
+
         else -> LazyColumn(
             modifier = modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = 96.dp),
@@ -115,9 +118,8 @@ fun LeaderboardContent(
                     TextButton(onClick = onToggleArchived, modifier = Modifier.padding(top = Spacing.md)) {
                         Icon(Icons.Outlined.Inventory2, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(Spacing.sm))
-                        Text(
-                            if (state.showArchived) "Hide archived players" else "Show archived players (${state.archived.size})",
-                        )
+                        val count = state.archived.size
+                        Text(if (state.showArchived) "Hide archived players" else "Show archived players ($count)")
                     }
                 }
                 if (state.showArchived) {
@@ -165,7 +167,7 @@ private fun LeaderboardRowItem(row: LeaderboardRow, onClick: () -> Unit, archive
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                color = if (archived) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                color = if (archived) MaterialTheme.colorScheme.onSurfaceVariant else Color.Unspecified,
             )
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -195,9 +197,17 @@ private fun LeaderboardRowItem(row: LeaderboardRow, onClick: () -> Unit, archive
                     formatRating(rating.value),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (row.rank == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    color = if (row.rank == 1) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
                 )
-                Text("Elo", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Elo",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         } else {
             Icon(
@@ -217,7 +227,17 @@ private fun RankBadge(rank: Int?) {
             .size(28.dp)
             .clip(CircleShape)
             .background(
-                if (podium) MaterialTheme.colorScheme.primary.copy(alpha = if (rank == 1) 1f else 0.22f) else MaterialTheme.colorScheme.surfaceVariant,
+                if (podium) {
+                    MaterialTheme.colorScheme.primary.copy(
+                        alpha = if (rank == 1) {
+                            1f
+                        } else {
+                            0.22f
+                        },
+                    )
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant
+                },
             ),
         contentAlignment = Alignment.Center,
     ) {

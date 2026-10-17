@@ -87,23 +87,39 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions, modifier: Modifie
                         "Keep it somewhere safe, or open it on a new phone.",
                     detail = "${state.players} players · ${state.matches} matches",
                 ) {
-                    Button(onClick = actions.onExport, enabled = !state.working, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Button(
+                        onClick = actions.onExport,
+                        enabled = !state.working,
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) {
                         Text("Export backup")
                     }
                 }
                 BackupCard(
                     icon = Icons.Outlined.FileDownload,
                     title = "Import",
-                    body = "Load a backup file. You'll see what's inside and choose to merge it with this phone's data " +
-                        "or replace everything.",
+                    body =
+                        "Load a backup file. You'll see what's inside and choose to merge it with this phone's data " +
+                            "or replace everything.",
                     detail = null,
                 ) {
-                    OutlinedButton(onClick = actions.onImport, enabled = !state.working, modifier = Modifier.heightIn(min = 48.dp)) {
+                    OutlinedButton(
+                        onClick = actions.onImport,
+                        enabled = !state.working,
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) {
                         Text("Choose backup file")
                     }
                 }
-                Note(Icons.Outlined.Lock, "No storage permission is needed: you pick the file, and nothing leaves the phone unless you share it.")
-                Note(Icons.Outlined.CloudDone, "Android's own device backup also keeps a copy of your data if it's turned on.")
+                Note(
+                    Icons.Outlined.Lock,
+                    "No storage permission is needed: you pick the file, and nothing leaves the phone " +
+                        "unless you share it.",
+                )
+                Note(
+                    Icons.Outlined.CloudDone,
+                    "Android's own device backup also keeps a copy of your data if it's turned on.",
+                )
                 Text(
                     "Ratings aren't stored in the file; they're rebuilt from the match log after an import.",
                     style = MaterialTheme.typography.bodySmall,
@@ -135,7 +151,11 @@ private fun BackupCard(
             }
             Text(body, style = MaterialTheme.typography.bodyMedium)
             detail?.let {
-                Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    it,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             Spacer(Modifier.size(Spacing.xs))
             action()
@@ -146,7 +166,12 @@ private fun BackupCard(
 @Composable
 private fun Note(icon: ImageVector, text: String) {
     Row(verticalAlignment = Alignment.Top) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
         Spacer(Modifier.width(Spacing.md))
         Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -162,7 +187,9 @@ fun ImportDialog(summary: BackupSummary, onConfirm: (ImportMode) -> Unit, onCanc
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(
-                    "Exported ${Dates.day(summary.exportedAt)} · ${summary.players} players · ${summary.matches} matches · " +
+                    "Exported ${Dates.day(
+                        summary.exportedAt,
+                    )} · ${summary.players} players · ${summary.matches} matches · " +
                         "${summary.drafts} drafts" + if (summary.hasEloConfig) " · custom rating settings" else "",
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -186,7 +213,11 @@ fun ImportDialog(summary: BackupSummary, onConfirm: (ImportMode) -> Unit, onCanc
             TextButton(onClick = { onConfirm(mode) }) {
                 Text(
                     if (mode == ImportMode.REPLACE) "Replace" else "Merge",
-                    color = if (mode == ImportMode.REPLACE) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    color = if (mode == ImportMode.REPLACE) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    },
                 )
             }
         },

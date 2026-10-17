@@ -78,6 +78,7 @@ fun PlayersHomeScreen(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                 )
+
                 PlayersTab.MATCHES -> if (matches.undo == null) {
                     ExtendedFloatingActionButton(
                         onClick = actions.onLogMatch,
@@ -87,6 +88,7 @@ fun PlayersHomeScreen(
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                     )
                 }
+
                 PlayersTab.META -> Unit
             }
         },
@@ -119,12 +121,14 @@ fun PlayersHomeScreen(
                             onAddPlayer = actions.onAddPlayer,
                             onToggleArchived = actions.onToggleArchived,
                         )
+
                         PlayersTab.MATCHES -> MatchLogContent(
                             state = matches,
                             onOpenMatch = actions.onOpenMatch,
                             onDeleteMatch = actions.onDeleteMatch,
                             onLogMatch = actions.onLogMatch,
                         )
+
                         PlayersTab.META -> MetaContent(meta, onOpenRatingSettings = actions.onOpenRatingSettings)
                     }
                 }

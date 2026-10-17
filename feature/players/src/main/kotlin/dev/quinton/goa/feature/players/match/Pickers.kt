@@ -15,8 +15,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -67,9 +67,18 @@ fun HeroPickerSheet(
     onDismiss: () -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
         Column(Modifier.padding(horizontal = Spacing.screen)) {
-            Text("Choose hero", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+            Text(
+                "Choose hero",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.semantics {
+                    heading()
+                },
+            )
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
@@ -90,7 +99,7 @@ fun HeroPickerSheet(
                         onClick = { onPick(null) },
                         leading = {
                             Icon(
-                                Icons.Outlined.HelpOutline,
+                                Icons.AutoMirrored.Outlined.HelpOutline,
                                 contentDescription = null,
                                 modifier = Modifier.size(40.dp).padding(Spacing.sm),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -126,7 +135,9 @@ fun HeroPickerSheet(
                     selected = hero.id == selected,
                     enabled = !inUse,
                     onClick = { onPick(hero.id) },
-                    leading = { HeroPortrait(hero.id, hero.portrait, contentDescription = null, modifier = Modifier.size(40.dp)) },
+                    leading = {
+                        HeroPortrait(hero.id, hero.portrait, contentDescription = null, modifier = Modifier.size(40.dp))
+                    },
                     title = hero.name,
                     subtitle = hero.title,
                     trailing = {
@@ -149,9 +160,18 @@ fun PilotPickerSheet(
     onPick: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
         Column(Modifier.padding(horizontal = Spacing.screen)) {
-            Text("Pilot for ${team.label()}", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+            Text(
+                "Pilot for ${team.label()}",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.semantics {
+                    heading()
+                },
+            )
             Text(
                 "Pick the same player for two seats to record a double pilot.",
                 style = MaterialTheme.typography.bodySmall,

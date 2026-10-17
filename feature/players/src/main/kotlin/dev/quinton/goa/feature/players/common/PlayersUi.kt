@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -18,8 +18,8 @@ import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingFlat
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -102,8 +102,15 @@ fun ResultChip(status: MatchStatus, winner: Team?, modifier: Modifier = Modifier
             teamColor(winner),
             Icons.Filled.EmojiEvents,
         )
-        status == MatchStatus.ABANDONED -> Triple("Abandoned", MaterialTheme.colorScheme.onSurfaceVariant, Icons.Outlined.Block)
+
+        status == MatchStatus.ABANDONED -> Triple(
+            "Abandoned",
+            MaterialTheme.colorScheme.onSurfaceVariant,
+            Icons.Outlined.Block,
+        )
+
         status == MatchStatus.COMPLETED -> Triple("No winner", MaterialTheme.colorScheme.error, Icons.Outlined.Block)
+
         else -> Triple("Pending", MaterialTheme.colorScheme.primary, Icons.Outlined.HourglassEmpty)
     }
     Surface(

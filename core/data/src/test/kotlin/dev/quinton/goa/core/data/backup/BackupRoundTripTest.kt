@@ -48,7 +48,10 @@ class BackupRoundTripTest {
     private val databases = mutableListOf<GoaDatabase>()
 
     private inner class Device(config: EloConfig = EloConfig.DEFAULT, contributor: FakeContributor? = null) {
-        val db = GoaDatabase.inMemory(ApplicationProvider.getApplicationContext(), AndroidSQLiteDriver()).also { databases += it }
+        val db = GoaDatabase.inMemory(ApplicationProvider.getApplicationContext(), AndroidSQLiteDriver()).also {
+            databases +=
+                it
+        }
         val config = FakeEloConfigRepository(config)
         val players = RoomPlayerRepository(db.playerDao())
         val matches = RoomMatchRepository(db.matchDao())
@@ -60,7 +63,8 @@ class BackupRoundTripTest {
     fun tearDown() = databases.forEach { it.close() }
 
     private val ann = Player("6f1c-ann", "Ann \"the Wall\" Ø", 0xFF3FC1B0, avatarId = 23, createdAt = 1_700_000_000_000)
-    private val bob = Player("6f1c-bob", "Bob", 0xFFE26459, avatarId = 0, createdAt = 1_700_000_000_001, archived = true)
+    private val bob =
+        Player("6f1c-bob", "Bob", 0xFFE26459, avatarId = 0, createdAt = 1_700_000_000_001, archived = true)
     private val cid = Player("6f1c-cid", "Cid", 0xFF4F8FE0, avatarId = 11, createdAt = 1_700_000_000_002)
 
     private val matchA = Match(
@@ -127,12 +131,22 @@ class BackupRoundTripTest {
         val first = source.backup.export()
         val second = target.backup.export()
         assertThat(second.copy(exportedAt = 0)).isEqualTo(first.copy(exportedAt = 0))
-        assertThat(BackupCodec.encode(second.copy(exportedAt = 0))).isEqualTo(BackupCodec.encode(first.copy(exportedAt = 0)))
+        assertThat(
+            BackupCodec.encode(second.copy(exportedAt = 0)),
+        ).isEqualTo(BackupCodec.encode(first.copy(exportedAt = 0)))
         assertThat(target.config.config.first()).isEqualTo(custom)
         assertThat(target.matches.observeMatch("m-a").first()).isEqualTo(matchA)
         assertThat(target.players.observePlayers(includeArchived = true).first()).containsExactly(ann, bob, cid)
         assertThat(document.summary()).isEqualTo(
-            BackupSummary(1, document.exportedAt, players = 3, matches = 2, drafts = 1, hasEloConfig = true, extras = setOf("timer-presets")),
+            BackupSummary(
+                1,
+                document.exportedAt,
+                players = 3,
+                matches = 2,
+                drafts = 1,
+                hasEloConfig = true,
+                extras = setOf("timer-presets"),
+            ),
         )
     }
 

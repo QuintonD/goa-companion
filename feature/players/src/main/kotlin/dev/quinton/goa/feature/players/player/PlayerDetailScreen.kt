@@ -16,10 +16,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.PersonOff
-import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -75,9 +75,11 @@ fun PlayerDetailScreen(state: PlayerDetailUiState, actions: PlayerDetailActions,
         val player = state.player
         when {
             state.loading -> LoadingState(Modifier.padding(padding))
+
             player == null -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 EmptyState(Icons.Outlined.PersonOff, "Player not found", "This player no longer exists.")
             }
+
             else -> LazyColumn(
                 Modifier.fillMaxSize().padding(padding),
                 contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = Spacing.xxl),
@@ -89,7 +91,7 @@ fun PlayerDetailScreen(state: PlayerDetailUiState, actions: PlayerDetailActions,
                     EngravedCard(Modifier.fillMaxWidth()) {
                         if (state.history.isEmpty()) {
                             EmptyState(
-                                icon = Icons.Outlined.ShowChart,
+                                icon = Icons.AutoMirrored.Outlined.ShowChart,
                                 title = "No rated matches yet",
                                 message = "The chart starts with ${player.name}'s first completed match.",
                             )
@@ -141,17 +143,26 @@ fun PlayerDetailScreen(state: PlayerDetailUiState, actions: PlayerDetailActions,
                     }
                 }
                 items(state.recentMatches, key = { "m-" + it.id }) { match ->
-                    MatchCard(match, onOpen = { actions.onOpenMatch(match.id) }, onDelete = null, modifier = Modifier.padding(bottom = Spacing.sm))
+                    MatchCard(match, onOpen = {
+                        actions.onOpenMatch(match.id)
+                    }, onDelete = null, modifier = Modifier.padding(bottom = Spacing.sm))
                 }
                 item(key = "archive") {
-                    Column(Modifier.fillMaxWidth().padding(top = Spacing.xl), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(top = Spacing.xl),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
                         OutlinedButton(onClick = { actions.onSetArchived(!player.archived) }) {
-                            Icon(if (player.archived) Icons.Outlined.Unarchive else Icons.Outlined.Archive, contentDescription = null)
+                            Icon(
+                                if (player.archived) Icons.Outlined.Unarchive else Icons.Outlined.Archive,
+                                contentDescription = null,
+                            )
                             Spacer(Modifier.width(Spacing.sm))
                             Text(if (player.archived) "Restore player" else "Archive player")
                         }
                         Text(
-                            "Archived players are hidden from the leaderboard and pickers. Their matches and ratings stay in the log.",
+                            "Archived players are hidden from the leaderboard and pickers. " +
+                                "Their matches and ratings stay in the log.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = Spacing.sm),
@@ -174,7 +185,12 @@ private fun Header(state: PlayerDetailUiState) {
         PlayerAvatar(player, size = 72.dp)
         Spacer(Modifier.width(Spacing.lg))
         Column(Modifier.weight(1f)) {
-            Text(player.name, style = MaterialTheme.typography.headlineSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(
+                player.name,
+                style = MaterialTheme.typography.headlineSmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -198,7 +214,11 @@ private fun Header(state: PlayerDetailUiState) {
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold,
             )
-            Text("Elo", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "Elo",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -231,7 +251,13 @@ private fun HeroRecordItem(hero: HeroRecordRow) {
     ) {
         HeroPortrait(hero.heroId, hero.portrait, contentDescription = null, modifier = Modifier.size(40.dp))
         Spacer(Modifier.width(Spacing.md))
-        Text(hero.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            hero.name,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
         Column(horizontalAlignment = Alignment.End) {
             Text(formatPercent(hero.record.winRate), style = MaterialTheme.typography.titleMedium)
             Text(

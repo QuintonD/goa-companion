@@ -82,26 +82,31 @@ object BackupCodec {
     fun decode(text: String): BackupDocument {
         val document = try {
             json.decodeFromString(BackupDocument.serializer(), text)
-        } catch (e: kotlinx.serialization.SerializationException) {
-            throw InvalidBackupException("This file isn't a Guards of Atlantis backup.", e)
         } catch (e: IllegalArgumentException) {
+            // SerializationException is an IllegalArgumentException.
             throw InvalidBackupException("This file isn't a Guards of Atlantis backup.", e)
         }
-        if (document.format != BackupDocument.FORMAT) {
-            throw InvalidBackupException("This file isn't a Guards of Atlantis backup.")
-        }
-        if (document.version > BackupDocument.CURRENT_VERSION) {
-            throw InvalidBackupException("This backup was made by a newer version of the app. Update the app first.")
-        }
-        if (document.version < 1) throw InvalidBackupException("Unknown backup version ${document.version}.")
-        val ids = document.players.map { it.id } + document.matches.map { it.id } + document.drafts.map { it.id }
-        if (document.players.distinctBy { it.id }.size != document.players.size ||
-            document.matches.distinctBy { it.id }.size != document.matches.size ||
-            document.drafts.distinctBy { it.id }.size != document.drafts.size ||
-            ids.any { it.isBlank() }
-        ) {
-            throw InvalidBackupException("The backup contains duplicate or empty ids.")
-        }
+        problem(document)?.let { throw InvalidBackupException(it) }
         return document
+    }
+
+    /** A user-readable reason the document can't be imported, or null if it's fine. */
+    private fun problem(document: BackupDocument): String? {
+        fun List<String>.unique() = toSet().size == size && none { it.isBlank() }
+        val idsOk = document.players.map { it.id }.unique() &&
+            document.matches.map { it.id }.unique() &&
+            document.drafts.map { it.id }.unique()
+        return when {
+            document.format != BackupDocument.FORMAT -> "This file isn't a Guards of Atlantis backup."
+
+            document.version > BackupDocument.CURRENT_VERSION ->
+                "This backup was made by a newer version of the app. Update the app first."
+
+            document.version < 1 -> "Unknown backup version ${document.version}."
+
+            !idsOk -> "The backup contains duplicate or empty ids."
+
+            else -> null
+        }
     }
 }

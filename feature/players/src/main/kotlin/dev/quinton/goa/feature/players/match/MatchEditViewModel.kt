@@ -130,7 +130,14 @@ class MatchEditViewModel @AssistedInject constructor(
             val existing = matchId?.let { matches.observeMatch(it).first() }
             edit.value = when {
                 existing != null -> MatchForm.from(existing, ::key).let { EditState(existing, it, it) }
-                matchId != null -> EditState(null, MatchForm(playedAt = now()), MatchForm(playedAt = now()), notFound = true)
+
+                matchId != null -> EditState(
+                    null,
+                    MatchForm(playedAt = now()),
+                    MatchForm(playedAt = now()),
+                    notFound = true,
+                )
+
                 else -> {
                     val form = MatchForm(
                         playedAt = now(),
@@ -172,10 +179,22 @@ class MatchEditViewModel @AssistedInject constructor(
     fun setNotes(notes: String) = updateForm { it.copy(notes = notes.take(MAX_NOTES)) }
 
     fun addSeat(team: Team) = updateForm { form ->
-        if (form.seats(team).size >= MAX_SEATS_PER_TEAM) form else form.withSeats(team, form.seats(team) + SeatDraft(key()))
+        if (form.seats(team).size >= MAX_SEATS_PER_TEAM) {
+            form
+        } else {
+            form.withSeats(team, form.seats(team) + SeatDraft(key()))
+        }
     }
 
-    fun removeSeat(team: Team, key: Long) = updateForm { form -> form.withSeats(team, form.seats(team).filterNot { it.key == key }) }
+    fun removeSeat(team: Team, key: Long) = updateForm { form ->
+        form.withSeats(
+            team,
+            form.seats(team).filterNot {
+                it.key ==
+                    key
+            },
+        )
+    }
 
     fun setPilot(team: Team, key: Long, playerId: String) = updateSeat(team, key) { it.copy(playerId = playerId) }
 

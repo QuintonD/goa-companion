@@ -51,7 +51,11 @@ object Fixtures {
 
     /** 18:30 local time on 2026-10-[day]. */
     fun at(day: Int, hour: Int = 18, minute: Int = 30): Long =
-        LocalDate.of(2026, 10, day).atTime(LocalTime.of(hour, minute)).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        LocalDate.of(
+            2026,
+            10,
+            day,
+        ).atTime(LocalTime.of(hour, minute)).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
     fun hero(i: Int) = "test-hero-$i"
 
@@ -79,22 +83,81 @@ object Fixtures {
         participants = seats.toList(),
     )
 
-    fun red(player: Player, hero: Int?, handicap: Boolean = false) = Participant(player.id, hero?.let(::hero), Team.RED, handicap)
+    fun red(player: Player, hero: Int?, handicap: Boolean = false) = Participant(
+        player.id,
+        hero?.let(::hero),
+        Team.RED,
+        handicap,
+    )
 
-    fun blue(player: Player, hero: Int?, handicap: Boolean = false) = Participant(player.id, hero?.let(::hero), Team.BLUE, handicap)
+    fun blue(player: Player, hero: Int?, handicap: Boolean = false) = Participant(
+        player.id,
+        hero?.let(::hero),
+        Team.BLUE,
+        handicap,
+    )
 
     /** A small but varied log: double pilots, a handicap game, a pending game, unknown hero. */
     val matches: List<Match> = buildList {
         add(match("m01", 3, Team.RED, red(ann, 1), red(bob, 2), blue(cid, 3), blue(dee, 4)))
-        add(match("m02", 4, Team.BLUE, red(ann, 1), red(cid, 5), blue(bob, 2), blue(dee, 6), condition = WinCondition.LIFE_COUNTERS))
+        add(
+            match(
+                "m02",
+                4,
+                Team.BLUE,
+                red(ann, 1),
+                red(cid, 5),
+                blue(bob, 2),
+                blue(dee, 6),
+                condition = WinCondition.LIFE_COUNTERS,
+            ),
+        )
         add(match("m03", 5, Team.RED, red(ann, 1), red(ann, 7, handicap = true), blue(bob, 3), blue(cid, 4)))
         add(match("m04", 6, Team.RED, red(ann, 1), red(dee, 2), blue(eve, 3), blue(bob, 8)))
-        add(match("m05", 8, Team.BLUE, red(cid, 1), red(dee, 9), red(eve, 10), blue(ann, 2), blue(bob, 3), mode = GameMode.LONG))
-        add(match("m06", 10, Team.RED, red(ann, 1), red(bob, null), blue(cid, 2), blue(dee, 3), condition = WinCondition.LAST_PUSH))
-        add(match("m07", 12, Team.RED, red(ann, 1), red(eve, 4), blue(bob, 2), blue(cid, 3), duration = 71, notes = "Comeback on the last wave"))
+        add(
+            match(
+                "m05", 8, Team.BLUE,
+                red(
+                    cid,
+                    1,
+                ),
+                red(dee, 9), red(eve, 10), blue(ann, 2), blue(bob, 3), mode = GameMode.LONG,
+            ),
+        )
+        add(
+            match(
+                "m06",
+                10,
+                Team.RED,
+                red(ann, 1),
+                red(bob, null),
+                blue(cid, 2),
+                blue(dee, 3),
+                condition = WinCondition.LAST_PUSH,
+            ),
+        )
+        add(
+            match(
+                "m07", 12, Team.RED,
+                red(
+                    ann,
+                    1,
+                ),
+                red(eve, 4), blue(bob, 2), blue(cid, 3), duration = 71, notes = "Comeback on the last wave",
+            ),
+        )
         add(match("m08", 14, Team.BLUE, red(dee, 1), red(eve, 5), blue(ann, 2), blue(ann, 6), blue(bob, 3)))
         add(match("m09", 15, Team.RED, red(ann, 2), red(bob, 1), blue(cid, 3), blue(dee, 4), hour = 20))
-        add(match("m10", 15, null, red(ann, 4), red(cid, 5), blue(bob, 6), blue(eve, 7), status = MatchStatus.PENDING, hour = 21, duration = null))
+        add(
+            match(
+                "m10", 15, null,
+                red(
+                    ann,
+                    4,
+                ),
+                red(cid, 5), blue(bob, 6), blue(eve, 7), status = MatchStatus.PENDING, hour = 21, duration = null,
+            ),
+        )
     }
 
     val drafts = listOf(
@@ -131,7 +194,11 @@ class FakeRatingsSnapshotRepository(
     private val drafts: FakeDraftRecordRepository = FakeDraftRecordRepository(),
     private val config: FakeEloConfigRepository = FakeEloConfigRepository(),
 ) : RatingsSnapshotRepository {
-    override fun observeSnapshot(): Flow<RatingsSnapshot> = combine(matches.state, drafts.state, config.state) { m, d, c ->
+    override fun observeSnapshot(): Flow<RatingsSnapshot> = combine(matches.state, drafts.state, config.state) {
+            m,
+            d,
+            c,
+        ->
         RatingsSnapshot(EloCalculator.replay(m, c), MetaStats.compute(m, d), c)
     }
 }

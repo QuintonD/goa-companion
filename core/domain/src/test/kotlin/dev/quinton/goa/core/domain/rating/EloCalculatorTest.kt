@@ -57,9 +57,14 @@ class EloCalculatorTest {
         val result = EloCalculator.replay(
             listOf(
                 match(
-                    "m1", 1, Team.BLUE,
-                    red("p1", "h1", handicap = true), red("p2", "h2", handicap = true), red("p3", "h3", handicap = true),
-                    blue("p4", "h4"), blue("p5", "h5"),
+                    "m1",
+                    1,
+                    Team.BLUE,
+                    red("p1", "h1", handicap = true),
+                    red("p2", "h2", handicap = true),
+                    red("p3", "h3", handicap = true),
+                    blue("p4", "h4"),
+                    blue("p5", "h5"),
                 ),
             ),
             config,
@@ -110,7 +115,17 @@ class EloCalculatorTest {
     fun `official 3-player setup - double pilot with a Handicap seat - is rated like any 2v2`() {
         // Rulebook p.20: the most experienced player controls two heroes, one with its Handicap card.
         val result = EloCalculator.replay(
-            listOf(match("m1", 1, Team.BLUE, red("p1", "h1"), red("p1", "h2", handicap = true), blue("p2", "h3"), blue("p3", "h4"))),
+            listOf(
+                match(
+                    "m1",
+                    1,
+                    Team.BLUE,
+                    red("p1", "h1"),
+                    red("p1", "h2", handicap = true),
+                    blue("p2", "h3"),
+                    blue("p3", "h4"),
+                ),
+            ),
         )
         // E = 0.5; p1 (w = 1.5) loses 30, p2 and p3 gain 20 each. The Handicap flag is not a rating input.
         assertThat(result.player("p1").value).isWithin(EPS).of(1170.0)
@@ -207,7 +222,10 @@ class EloCalculatorTest {
         val history = result.playerHistory.getValue("p")
 
         // Games 1–10 are played with < 10 prior games → K = 40; the 11th has 10 prior games → K = 20.
-        val k = (0 until 11).map { i -> history[i].delta / (1 - EloCalculator.expectedScore(rBefore(history, i), 1200.0)) }
+        val k = (0 until 11).map { i ->
+            history[i].delta /
+                (1 - EloCalculator.expectedScore(rBefore(history, i), 1200.0))
+        }
         k.take(10).forEach { assertThat(it).isWithin(1e-6).of(40.0) }
         assertThat(k[10]).isWithin(1e-6).of(20.0)
 

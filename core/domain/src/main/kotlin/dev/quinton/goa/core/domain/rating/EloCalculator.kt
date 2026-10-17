@@ -34,7 +34,8 @@ object EloCalculator {
     val REPLAY_ORDER: Comparator<Match> = compareBy<Match>({ it.playedAt }, { it.createdAt }, { it.id })
 
     /** Classic Elo expected score of a side with strength [own] against [opponent]. */
-    fun expectedScore(own: Double, opponent: Double): Double = 1.0 / (1.0 + 10.0.pow((opponent - own) / EloConfig.SCALE))
+    fun expectedScore(own: Double, opponent: Double): Double =
+        1.0 / (1.0 + 10.0.pow((opponent - own) / EloConfig.SCALE))
 
     /** Why [match] would be skipped, or null if it is rated. */
     fun skipReason(match: Match): SkipReason? {
@@ -89,7 +90,12 @@ object EloCalculator {
             )
         }
 
-        private fun Entry.toRating() = Rating(value = value, games = games, wins = wins, provisional = config.isProvisional(games))
+        private fun Entry.toRating() = Rating(
+            value = value,
+            games = games,
+            wins = wins,
+            provisional = config.isProvisional(games),
+        )
 
         private fun player(id: String) = players.getOrPut(id) { Entry(base) }
 
@@ -115,47 +121,15 @@ object EloCalculator {
                 null
             }
 
-            val playerDeltas = LinkedHashMap<String, Double>()
-            for (team in listOf(red, blue)) {
-                val side = team.first().team
-                val score = if (side == winner) 1.0 else 0.0
-                val expected = if (side == Team.RED) expectedRed else 1.0 - expectedRed
-                val seatsByPlayer = team.groupingBy { it.playerId }.eachCount()
-                for ((playerId, seats) in seatsByPlayer) {
-                    val entry = player(playerId)
-                    val weight = 1.0 + config.doublePilotWeight * (seats - 1)
-                    playerDeltas[playerId] = config.k(entry.games) * m * weight * (score - expected)
-                    if (seats > 1) doublePilot[playerId] = (doublePilot[playerId] ?: 0) + 1
-                }
-            }
+            val playerDeltas = playerDeltas(red, blue, winner, expectedRed, m)
+            val heroDeltas = expectedRedHero?.let { heroDeltas(red + blue, winner, it, m) }.orEmpty()
 
-            val heroDeltas = LinkedHashMap<String, Double>()
-            if (expectedRedHero != null) {
-                for (seat in red + blue) {
-                    val heroId = seat.heroId ?: continue
-                    val score = if (seat.team == winner) 1.0 else 0.0
-                    val expected = if (seat.team == Team.RED) expectedRedHero else 1.0 - expectedRedHero
-                    heroDeltas[heroId] = config.k(hero(heroId).games) * m * (score - expected)
-                }
+            val redWon = winner == Team.RED
+            playerDeltas.forEach { (id, delta) ->
+                player(id).apply(match, delta, red.any { it.playerId == id } == redWon)
             }
-
-            for ((playerId, delta) in playerDeltas) {
-                val won = (red.any { it.playerId == playerId }) == (winner == Team.RED)
-                player(playerId).apply(match, delta, won)
-            }
-            for ((heroId, delta) in heroDeltas) {
-                val won = (red.any { it.heroId == heroId }) == (winner == Team.RED)
-                hero(heroId).apply(match, delta, won)
-            }
-            for (seat in red + blue) {
-                val heroId = seat.heroId ?: continue
-                val key = PlayerHeroKey(seat.playerId, heroId)
-                playerHero[key] = (playerHero[key] ?: WinLoss.NONE) + (seat.team == winner)
-            }
-            if (red.size != blue.size) {
-                val larger = if (red.size > blue.size) Team.RED else Team.BLUE
-                largerTeam += (larger == winner)
-            }
+            heroDeltas.forEach { (id, delta) -> hero(id).apply(match, delta, red.any { it.heroId == id } == redWon) }
+            trackRecords(red, blue, winner)
             changes[match.id] = MatchRatingChange(
                 matchId = match.id,
                 playedAt = match.playedAt,
@@ -166,6 +140,57 @@ object EloCalculator {
                 heroDeltas = heroDeltas,
             )
             order += match.id
+        }
+
+        /** One delta per distinct player, weighted for double pilots; counts double-pilot games. */
+        private fun playerDeltas(
+            red: List<Participant>,
+            blue: List<Participant>,
+            winner: Team,
+            expectedRed: Double,
+            m: Double,
+        ): Map<String, Double> {
+            val deltas = LinkedHashMap<String, Double>()
+            for (team in listOf(red, blue)) {
+                val side = team.first().team
+                val score = if (side == winner) 1.0 else 0.0
+                val expected = if (side == Team.RED) expectedRed else 1.0 - expectedRed
+                for ((playerId, seats) in team.groupingBy { it.playerId }.eachCount()) {
+                    val weight = 1.0 + config.doublePilotWeight * (seats - 1)
+                    deltas[playerId] = config.k(player(playerId).games) * m * weight * (score - expected)
+                    if (seats > 1) doublePilot[playerId] = (doublePilot[playerId] ?: 0) + 1
+                }
+            }
+            return deltas
+        }
+
+        /** One delta per known-hero seat. */
+        private fun heroDeltas(
+            seats: List<Participant>,
+            winner: Team,
+            expectedRed: Double,
+            m: Double,
+        ): Map<String, Double> {
+            val deltas = LinkedHashMap<String, Double>()
+            for (seat in seats) {
+                val heroId = seat.heroId ?: continue
+                val score = if (seat.team == winner) 1.0 else 0.0
+                val expected = if (seat.team == Team.RED) expectedRed else 1.0 - expectedRed
+                deltas[heroId] = config.k(hero(heroId).games) * m * (score - expected)
+            }
+            return deltas
+        }
+
+        private fun trackRecords(red: List<Participant>, blue: List<Participant>, winner: Team) {
+            for (seat in red + blue) {
+                val heroId = seat.heroId ?: continue
+                val key = PlayerHeroKey(seat.playerId, heroId)
+                playerHero[key] = (playerHero[key] ?: WinLoss.NONE) + (seat.team == winner)
+            }
+            if (red.size != blue.size) {
+                val larger = if (red.size > blue.size) Team.RED else Team.BLUE
+                largerTeam += (larger == winner)
+            }
         }
 
         private fun Entry.apply(match: Match, delta: Double, won: Boolean) {

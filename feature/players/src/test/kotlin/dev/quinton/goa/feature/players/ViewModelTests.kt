@@ -100,7 +100,11 @@ class ViewModelTests {
         vm.onNameChange("Bobby")
         vm.onColorChange(0xFFE06FAE)
         vm.save()
-        assertThat(players.state.value.single { it.id == bob.id }).isEqualTo(bob.copy(name = "Bobby", color = 0xFFE06FAE))
+        assertThat(
+            players.state.value.single {
+                it.id == bob.id
+            },
+        ).isEqualTo(bob.copy(name = "Bobby", color = 0xFFE06FAE))
         assertThat(PlayerEditViewModel("missing", players).uiState.value.notFound).isTrue()
     }
 
@@ -144,7 +148,11 @@ class ViewModelTests {
         vm.setDuration("4x5")
         var state = vm.uiState.first { it.form.duration == "45" }
         assertThat(state.form.doublePilots(Team.RED)).containsExactly(ann.id)
-        assertThat(state.errors.map { it::class }).containsAtLeast(MatchError.BothTeams::class, MatchError.DuplicateHero::class)
+        assertThat(
+            state.errors.map {
+                it::class
+            },
+        ).containsAtLeast(MatchError.BothTeams::class, MatchError.DuplicateHero::class)
         assertThat(state.errors.filterIsInstance<MatchError.DuplicateHero>().single().heroName).isEqualTo("Test Hero 1")
 
         vm.setPilot(Team.BLUE, b2, cid.id)
@@ -207,7 +215,7 @@ class ViewModelTests {
         log.uiState.test {
             var state = awaitItem()
             while (state.loading || state.undo == null) state = awaitItem()
-            assertThat(state.undo!!.id).isEqualTo("m05")
+            assertThat(state.undo.id).isEqualTo("m05")
             log.undoDelete()
             state = awaitItem()
             while (state.undo != null || state.total != Fixtures.matches.size) state = awaitItem()
@@ -225,7 +233,11 @@ class ViewModelTests {
         val doublePilot = state.groups.flatMap { it.matches }.single { it.id == "m03" }
         assertThat(doublePilot.red.map { it.doublePilot }).containsExactly(true, true)
         assertThat(doublePilot.red.mapNotNull { it.delta }).hasSize(1)
-        assertThat(state.groups.flatMap { it.matches }.single { it.id == "m06" }.red[1].heroName).isEqualTo("Unknown hero")
+        assertThat(
+            state.groups.flatMap {
+                it.matches
+            }.single { it.id == "m06" }.red[1].heroName,
+        ).isEqualTo("Unknown hero")
         log.delete("m01")
         assertThat(log.uiState.first { it.undo != null }.undo!!.id).isEqualTo("m01")
         log.dismissUndo()
@@ -278,7 +290,8 @@ class ViewModelTests {
 
     @Test
     fun backupExportsReadsAndImportsAfterConfirmation() = runTest {
-        val backup = FakeBackupRepository(BackupDocument(exportedAt = 7, players = listOf(ann), matches = Fixtures.matches))
+        val backup =
+            FakeBackupRepository(BackupDocument(exportedAt = 7, players = listOf(ann), matches = Fixtures.matches))
         val vm = BackupViewModel(backup, players, matches).apply { io = UnconfinedTestDispatcher(testScheduler) }
         vm.uiState.first { it.players == Fixtures.players.size }
 

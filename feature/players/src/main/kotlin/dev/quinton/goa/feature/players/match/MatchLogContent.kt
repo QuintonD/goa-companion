@@ -67,6 +67,7 @@ fun MatchLogContent(
 ) {
     when {
         state.loading -> LoadingState(modifier)
+
         state.groups.isEmpty() -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             EmptyState(
                 icon = Icons.Outlined.History,
@@ -81,6 +82,7 @@ fun MatchLogContent(
                 },
             )
         }
+
         else -> LazyColumn(
             modifier = modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = 96.dp),
@@ -136,29 +138,29 @@ fun MatchCard(match: MatchRowUi, onOpen: () -> Unit, onDelete: (() -> Unit)?, mo
                 if (onDelete == null) {
                     Spacer(Modifier.size(48.dp))
                 } else {
-                Box {
-                    IconButton(onClick = { menu = true }) {
-                        Icon(Icons.Outlined.MoreVert, contentDescription = "More options")
+                    Box {
+                        IconButton(onClick = { menu = true }) {
+                            Icon(Icons.Outlined.MoreVert, contentDescription = "More options")
+                        }
+                        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Edit") },
+                                leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
+                                onClick = {
+                                    menu = false
+                                    onOpen()
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete") },
+                                leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
+                                onClick = {
+                                    menu = false
+                                    onDelete()
+                                },
+                            )
+                        }
                     }
-                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        DropdownMenuItem(
-                            text = { Text("Edit") },
-                            leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
-                            onClick = {
-                                menu = false
-                                onOpen()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Delete") },
-                            leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
-                            onClick = {
-                                menu = false
-                                onDelete()
-                            },
-                        )
-                    }
-                }
                 }
             }
             if (summary.isNotEmpty()) {
@@ -202,7 +204,11 @@ private fun TeamColumn(team: Team, seats: List<SeatUi>, winner: Team?, modifier:
             TeamBadge(team)
             if (winner == team) {
                 Spacer(Modifier.width(Spacing.xs))
-                Text("· Winner", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "· Winner",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         seats.forEach { SeatLine(it) }
@@ -230,8 +236,16 @@ private fun SeatLine(seat: SeatUi) {
         )
         Spacer(Modifier.width(Spacing.sm))
         Column(Modifier.weight(1f)) {
-            Text(seat.heroName, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text(
+                seat.heroName,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
                 Text(
                     seat.playerName,
                     style = MaterialTheme.typography.labelMedium,
