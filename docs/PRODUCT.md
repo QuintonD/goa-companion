@@ -93,6 +93,29 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
 - **Done when:** every method completes legally for 2–10 players (property tests), undo works
   at every step, and the result flows into match log and timer.
 
+### 5. Rules reference
+Fast rule lookup at the table, starting with the arithmetic players get wrong every game (BGG
+research, 2026-10-17). A reference, not a card cheat sheet: hidden information stays hidden (p.4).
+- **Levels & defeats** (bottom sheet): pick the defeated hero's level → Life counters their
+  team spends, coins for the defeat, assist coins; the full table for levels 1–8 (lowest card
+  Tier, Coins (Defeat), Assist Coins, Life counters, next level's cost, max card Tier) from the
+  rulebook's p.13 / p.15 / p.23 tables; the defeat and level-up rules quoted verbatim (level up
+  is mandatory and simultaneous; "If you are defeated, use your correct Tier and Level"; minion
+  coins; Pity coin); and the cards of the match's heroes whose text changes Life counters or
+  assist coins (e.g. Bain "Dead or Alive", Ursafar "Tear", Gydion "Energy Drain", Rowenna
+  "Glorious Triumph"), quoted from the catalog, never computed.
+- One tap from the running timer (top bar; in the menu at large font sizes) and from the Level
+  Up end-of-round step; also from the Rules screen.
+- **Quick reference:** 11 searchable topics (turn sequence & tied initiative, hero respawn,
+  attack/defense/defeats, minions & Heavy minion, the 6 end-of-round steps, levelling up & items,
+  Active effects, pushing the Lane, table talk & hidden information, ways to win, double-lane
+  map), each made of verbatim rulebook excerpts with printed page numbers. Anything in our own
+  words is labelled "Summary".
+- Reached from the Heroes tab top bar (Rules) and the timer's menu.
+- **Done when:** every excerpt passes the importer's drift check against the pinned rulebook
+  (`--rules-only`), the ladder's numbers pass their table and rule tests, and the ladder and a
+  topic page have light/dark (and font scale 2) screenshots.
+
 ### Settings
 Theme (dark default / light / system), owned products (default: all), timer defaults, cue
 sounds and haptics, Elo constants (advanced), export/import, About/credits.
@@ -106,5 +129,7 @@ sounds and haptics, Elo constants (advanced), export/import, About/credits.
 ## Open questions (owner to decide)
 - Which printing the group plays (data targets the 2nd printing / upgrade kit; a 3rd printing
   is crowdfunding for 2027 — the model supports multiple printings).
-- Later: optional Life/Wave counter tracker during a match? Glicko-2 alongside Elo?
-- Later: quick-reference rules section built from the rulebook.
+- Later: optional Life/Wave counter tracker during a match? Glicko-2 alongside Elo? (Research
+  2026-10-17: a standalone tracker duplicates the physical counters and card effects change the
+  counts; at most as part of an optional defeat/push event log.)
+- Later: general goa2-faq rulings in the rules reference (labelled as community rulings).

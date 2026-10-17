@@ -25,7 +25,8 @@ constructors). Pure JVM modules (`core:model`, `core:domain`) use `kotlin("jvm")
 
 ## Modules
 ```
-app/                     # Application, MainActivity, Navigation 3 back stack + entry provider, DI root
+app/                     # Application, MainActivity, Navigation 3 back stack + entry provider, DI root,
+                         #   BottomSheetSceneStrategy (entries tagged NavSheet.metadata open as a sheet)
 build-logic/             # convention plugins (android-library, compose, feature, hilt, jvm-library)
 core/model/              # JVM: data classes (Hero, Card, Player, Match, DraftMethod…)
 core/domain/             # JVM: TimerEngine, EloCalculator, DraftEngine, MetaStats, MatchSetup
@@ -34,14 +35,16 @@ core/database/           # Room 3 DB, DAOs, entities, migrations, schemas/
 core/datastore/          # settings + persisted timer state
 core/designsystem/       # theme, tokens, components, icons, sigils
 core/testing/            # fakes, fixtures, test rules
-core/navigation/         # Navigation 3 keys for every screen + Navigator (ADR-010)
+core/navigation/         # Navigation 3 keys for every screen + Navigator (ADR-010), NavSheet metadata
 feature/catalog/
 feature/timer/           # timer UI, TimerScheduler (alarms), notification, receivers
 feature/players/         # players, match log, Elo, meta dashboard
 feature/draft/
 feature/settings/        # settings, rating constants, export/import entry, About
+feature/rules/           # rules reference: topic list + search, topic pages, Levels & defeats sheet
 tools/catalog-import/    # JVM CLI (reuses core:model): sources.lock.json, overrides.json,
-                         #   cache/ (gitignored), REPORT.md → writes assets/catalog + assets/official
+                         #   cache/ (gitignored), REPORT.md → writes assets/catalog + assets/official;
+                         #   --rules-only: rules-reference drift check vs the pinned rulebook (PDFBox)
 ```
 Dependency direction: `feature → core:data/domain/designsystem → core:model`.
 Features never depend on each other; cross-feature navigation goes through `app`.
@@ -140,6 +143,7 @@ Features never depend on each other; cross-feature navigation goes through `app`
 - `app/src/main/assets/catalog/draft-methods.json` — House draft + official selection methods (Pick and Ban orders per player count).
 - `app/src/main/assets/catalog/match-setup.json` — wave/life counters per mode, keyed by heroes in play (rulebook table; `null` = not specified).
 - `app/src/main/assets/catalog/timer-presets.json` — default presets (Table rules, Relaxed, Untimed); user presets live in DataStore.
+- `app/src/main/assets/catalog/rules-reference.json` — level & defeat ladder (p.13/p.15/p.23 tables) and quick-reference topics: verbatim rulebook excerpts with printed pages (schema in DOMAIN.md). Hand-curated, unlike the generated hero files; the importer's `--rules-only` check verifies every excerpt against the pinned rulebook PDF, so never paraphrase in it.
 - `app/src/main/assets/official/heroes/<hero-id>/portrait.webp` — official hero art.
 - `app/src/main/assets/official/cards/<card-id>.webp` — official card images.
 - `app/src/main/assets/official/SOURCES.md` — where each official file came from.

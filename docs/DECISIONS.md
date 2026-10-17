@@ -179,3 +179,26 @@ both, the "Hurry up" shot clock and team time-outs live in the snapshot and are 
 **Consequences:** Four alert channels appear in system settings. A future data change to bundled
 presets bumps `revision` and adds a migration step. Snapshots from older versions decode with
 defaults (no undo, no shot clock).
+
+## ADR-019 — Rules: a verbatim rules reference with a drift check against the pinned rulebook (2026-10-17)
+**Context:** Players' most-asked feature is fast rule lookup at the table, above all the level
+and defeat arithmetic (Life counters, coins, assist coins, level costs) that even experienced
+groups get wrong. Rules accuracy is non-negotiable; forum quotes often predate the current
+rulebook, and the PDF's two-column text layer can't be trusted blindly. A 3rd printing (2027)
+will reword the rules.
+**Decision:** `assets/catalog/rules-reference.json` holds (a) the level ladder as data with page
+refs (the p.13, p.15 and p.23 tables) and (b) quick-reference topics made **only of verbatim
+excerpts** with printed page numbers; anything in our own words is a `summary`, always shown
+labelled "Summary". The rulebook PDF is pinned in `sources.lock.json` (`documents`) by URL +
+SHA-256 and cached like the other sources; `tools/catalog-import --rules-only` (and every
+import) extracts each page's text layer with PDFBox and fails unless every excerpt, heading and
+table row appears on its page after whitespace/dash/quote/case normalisation. Passages the text
+layer scrambles can be confirmed by hand in `rules-confirm.json`, tied to the reviewed PDF's
+hash (none needed today). Cards that change a defeat are found by a catalog text query at
+runtime and quoted, never applied. New `feature:rules` module; the ladder opens as a Navigation 3
+bottom-sheet scene (`NavSheet` metadata, `BottomSheetSceneStrategy` in `app`), so the timer can
+show it without depending on the feature.
+**Consequences:** A reworded or replaced rulebook fails loudly (hash first, then every changed
+excerpt) instead of drifting. The JSON is hand-edited but machine-checked. The check ignores
+hyphens and dashes, so a flipped sign (+1/−1) is the one change it can't see; the ladder's
+numbers are also guarded by unit tests that re-derive them from the rules they summarise.
