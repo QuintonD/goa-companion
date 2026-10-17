@@ -16,6 +16,7 @@ import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.feature.draft.data.DraftProgress
 import dev.quinton.goa.feature.draft.setup.DraftSetupViewModel
 import dev.quinton.goa.feature.draft.setup.SetupEvent
+import dev.quinton.goa.feature.draft.setup.SetupForm
 import dev.quinton.goa.feature.draft.setup.SetupStage
 import dev.quinton.goa.feature.draft.setup.TeamMode
 import kotlinx.coroutines.launch
@@ -201,6 +202,87 @@ class DraftSetupViewModelTest {
         assertThat(vm.uiState.value.blocker).contains("Needs 18 heroes")
         vm.setPoolSource(PoolSource.CUSTOM)
         assertThat(vm.uiState.value.candidateCount).isEqualTo(0)
+    }
+
+    @Test
+    fun `the form survives the view model being cleared and process death`() = runTest {
+        val first = viewModel()
+        listOf("p0", "p1", "p2", "p3").forEach(first::togglePlayer)
+        first.next()
+        first.movePlayer("p0")
+        first.setTeamA(Team.BLUE)
+        // Leaving the tab, Back out of the draft or process death: a new view model, same store.
+        val second = viewModel()
+        val form = second.uiState.value.form
+        assertThat(form.stage).isEqualTo(SetupStage.TEAMS)
+        assertThat(form.selected).containsExactly("p0", "p1", "p2", "p3")
+        assertThat(form.blue).contains("p0")
+        assertThat(form.teamA).isEqualTo(Team.BLUE)
+    }
+
+    @Test
+    fun `the next game starts from last game's players, teams and method, and Clear forgets them`() = runTest {
+        val vm = viewModel()
+        listOf("p0", "p1", "p2", "p3").forEach(vm::togglePlayer)
+        vm.movePlayer("p0")
+        vm.movePlayer("p1")
+        repeat(2) { vm.next() }
+        vm.selectMethod("all-pick")
+        vm.next()
+        vm.setTeamA(Team.RED)
+        vm.start()
+        val next = vm.uiState.value.form
+        assertThat(next.stage).isEqualTo(SetupStage.PLAYERS)
+        assertThat(next.selected).containsExactly("p0", "p1", "p2", "p3")
+        assertThat(next.red).containsExactly("p2", "p1")
+        assertThat(next.blue).containsExactly("p3", "p0")
+        assertThat(next.methodId).isEqualTo("all-pick")
+        assertThat(next.teamA).isNull() // a fresh coin flip every game
+        assertThat(next.lastGame).isTrue()
+        assertThat(drafts.setupFormState.value?.selected).hasSize(4) // stored for the next session too
+
+        vm.clearPlayers()
+        val cleared = vm.uiState.value.form
+        assertThat(cleared.selected).isEmpty()
+        assertThat(cleared.red + cleared.blue).isEmpty()
+        assertThat(cleared.methodId).isEqualTo("all-pick")
+    }
+
+    @Test
+    fun `players deleted since last game are dropped from the restored form`() = runTest {
+        drafts.setupFormState.value = SetupForm(
+            stage = SetupStage.TEAMS,
+            selected = listOf("p0", "gone", "p1"),
+            red = listOf("p0", "gone"),
+            blue = listOf("p1"),
+        )
+        val form = viewModel().uiState.value.form
+        assertThat(form.selected).containsExactly("p0", "p1")
+        assertThat(form.red + form.blue).containsExactly("p0", "p1")
+        assertThat(form.stage).isEqualTo(SetupStage.PLAYERS)
+    }
+
+    @Test
+    fun `quick adding someone already selected does not count them twice`() = runTest {
+        val vm = viewModel()
+        vm.togglePlayer("p2")
+        vm.quickAddPlayer("Player 2")
+        vm.quickAddPlayer("player 2")
+        assertThat(vm.uiState.value.form.selected).containsExactly("p2")
+        assertThat(vm.uiState.value.playerCount).isEqualTo(1)
+    }
+
+    @Test
+    fun `a random pool larger than the filtered roster is flagged`() = runTest {
+        val vm = viewModel()
+        listOf("p0", "p1", "p2", "p3").forEach(vm::togglePlayer)
+        repeat(2) { vm.next() }
+        vm.setPoolSource(PoolSource.ALL)
+        // House draft asks for 15; the test catalog has 12.
+        assertThat(vm.uiState.value.poolNote)
+            .isEqualTo("Only 12 heroes match your filters, so the pool is 12 instead of 15.")
+        vm.selectMethod("all-pick")
+        assertThat(vm.uiState.value.poolNote).isNull()
     }
 
     @Test

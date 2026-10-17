@@ -154,7 +154,11 @@ private fun LazyListScope.heroDetailContent(state: HeroDetailUiState.Ready, onCa
             Column(padded) {
                 SectionTitle("Handicap")
                 Text(
-                    "Replaces a basic card when this hero plays on the larger team, or to even out skill levels.",
+                    // Rulebook p.20.
+                    "A weaker version of a basic card (usually Gold). With 5, 7 or 9 players, every hero on the " +
+                        "larger team replaces one of its basic cards with it. With 3 players, the player controlling " +
+                        "two heroes replaces the Gold card of one of them with it. In even-count games, the most " +
+                        "experienced players may use it to even out skill.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = Spacing.sm),

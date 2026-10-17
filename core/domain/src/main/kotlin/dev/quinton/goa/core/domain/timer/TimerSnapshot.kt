@@ -14,6 +14,32 @@ enum class TimerStatus { RUNNING, PAUSED, ENDED }
 data class ActionActor(val slot: Int, val seat: Int)
 
 /**
+ * Where the session was when Next was tapped, so an accidental Next can be undone by Back
+ * (one level). [accumulatedMillis] is the step time at the moment of the Next tap.
+ */
+@Serializable
+data class UndoPoint(
+    val round: Int,
+    val stepIndex: Int,
+    val status: TimerStatus,
+    val accumulatedMillis: Long,
+    val actors: List<ActionActor> = emptyList(),
+    val timeOutsUsed: Map<Team, Int> = emptyMap(),
+)
+
+/**
+ * On-demand "Hurry up" countdown (a table rule). It pauses with the phase timer and is cleared
+ * when the step changes.
+ */
+@Serializable
+data class ShotClock(
+    val durationMillis: Long,
+    /** Elapsed time at which it (re)started running; null while the timer is paused. */
+    val runningSince: Long?,
+    val accumulatedMillis: Long = 0,
+)
+
+/**
  * Persisted timer state. Times are `elapsedRealtime` milliseconds (monotonic, survives Doze,
  * resets on reboot) plus a wall-clock anchor so the session can be rebased after a reboot.
  * Remaining time is always derived from timestamps, never from counted ticks.
@@ -44,6 +70,14 @@ data class TimerSnapshot(
     val tieBreaker: Team? = null,
     /** Who resolved in each Action slot of the current turn (only when heroes are known). */
     val actors: List<ActionActor> = emptyList(),
+    /** Elapsed time the current step was entered (by start or navigation); debounces Next. */
+    val stepEnteredAt: Long? = null,
+    /** Back right after Next restores this (see [TimerEngine.back]). */
+    val undo: UndoPoint? = null,
+    /** Running "Hurry up" shot clock, if any. */
+    val shotClock: ShotClock? = null,
+    /** Time-outs each team has called this round. */
+    val timeOutsUsed: Map<Team, Int> = emptyMap(),
     /** Last time the snapshot was written: elapsed + wall pair, used to rebase after a reboot. */
     val anchorElapsed: Long,
     val anchorWall: Long,
@@ -73,6 +107,8 @@ data class TimerSnapshot(
         val shift = elapsedNow - wallNow + anchorWall - anchorElapsed
         return copy(
             runningSince = runningSince?.plus(shift),
+            shotClock = shotClock?.let { it.copy(runningSince = it.runningSince?.plus(shift)) },
+            stepEnteredAt = stepEnteredAt?.plus(shift),
             matchStartElapsed = matchStartElapsed + shift,
             endedElapsed = endedElapsed?.plus(shift),
             anchorElapsed = elapsedNow,

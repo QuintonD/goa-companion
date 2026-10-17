@@ -4,14 +4,19 @@ import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.quinton.goa.core.datastore.timer.TimerStateStore
 import dev.quinton.goa.core.domain.setup.MatchRules
+import dev.quinton.goa.core.domain.timer.PhaseKind
 import dev.quinton.goa.core.domain.timer.TimerJson
 import dev.quinton.goa.core.domain.timer.TimerPreset
 import dev.quinton.goa.core.domain.timer.TimerPresetCatalog
+import dev.quinton.goa.core.domain.timer.TimerPresetMigration
 import dev.quinton.goa.core.domain.timer.TimerSnapshot
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -45,9 +50,13 @@ class AndroidTimerAssets @Inject constructor(@ApplicationContext private val con
     }
 }
 
+/** "Tonight" turn length for one preset, used by the next start without editing the preset. */
+data class TonightTurn(val presetId: String, val seconds: Int)
+
 /**
  * Presets (user-saved, seeded from the bundled defaults) and the persisted session snapshot.
  * Presets are fully editable; "restore defaults" brings back any bundled preset that was removed.
+ * Stored copies of bundled presets are upgraded on read ([TimerPresetMigration]).
  */
 @Singleton
 class TimerRepository @Inject constructor(
@@ -55,7 +64,46 @@ class TimerRepository @Inject constructor(
     private val assets: TimerAssets,
 ) {
     val presets: Flow<List<TimerPreset>> = store.presetsJson.map { json ->
-        json?.let(::decodePresetsOrNull)?.takeIf { it.isNotEmpty() } ?: assets.presetCatalog().presets
+        val bundled = assets.presetCatalog().presets
+        val stored = json?.let(::decodePresetsOrNull)?.takeIf { it.isNotEmpty() }
+        stored?.let { TimerPresetMigration.upgrade(it, bundled) } ?: bundled
+    }
+
+    private val tonight = MutableStateFlow<TonightTurn?>(null)
+
+    /** Turn length chosen for tonight's games (kept in memory until changed or saved). */
+    val tonightTurn: StateFlow<TonightTurn?> = tonight.asStateFlow()
+
+    /** Sets tonight's turn length for [presetId]; null (or the preset's own length) clears it. */
+    suspend fun setTonightTurn(presetId: String, seconds: Int?) {
+        val preset = preset(presetId)
+        val own = preset?.phases?.firstOrNull { it.enabled && it.kind == PhaseKind.TURN }?.seconds
+        tonight.value = when {
+            seconds == null || preset == null || seconds == own -> null
+            else -> TonightTurn(presetId, seconds)
+        }
+    }
+
+    /** [preset] with tonight's turn length applied, if one is set for it. */
+    fun withTonight(preset: TimerPreset): TimerPreset {
+        val override = tonight.value?.takeIf { it.presetId == preset.id } ?: return preset
+        return preset.copy(
+            phases = preset.phases.map { phase ->
+                if (phase.kind == PhaseKind.TURN && phase.seconds != null) {
+                    phase.copy(seconds = override.seconds, cues = phase.cues.filter { it < override.seconds })
+                } else {
+                    phase
+                }
+            },
+        )
+    }
+
+    /** Writes tonight's turn length into the preset itself and clears the override. */
+    suspend fun saveTonightToPreset() {
+        val override = tonight.value ?: return
+        val preset = preset(override.presetId) ?: return
+        save(withTonight(preset))
+        tonight.value = null
     }
 
     /** The selected preset id, falling back to the bundled default (or the first preset). */

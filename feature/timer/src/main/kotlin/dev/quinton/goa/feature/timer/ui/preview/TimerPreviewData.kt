@@ -5,6 +5,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.setup.EndOfRoundStep
 import dev.quinton.goa.core.domain.setup.LayoutKind
+import dev.quinton.goa.core.domain.setup.RulesNote
 import dev.quinton.goa.core.domain.timer.PhaseKind
 import dev.quinton.goa.core.domain.timer.PhaseScope
 import dev.quinton.goa.core.domain.timer.PhaseSpec
@@ -19,6 +20,7 @@ import dev.quinton.goa.feature.timer.ui.presets.PresetEditUiState
 import dev.quinton.goa.feature.timer.ui.presets.PresetsActions
 import dev.quinton.goa.feature.timer.ui.presets.PresetsScreen
 import dev.quinton.goa.feature.timer.ui.presets.PresetsUiState
+import dev.quinton.goa.feature.timer.ui.setup.CoinSource
 import dev.quinton.goa.feature.timer.ui.setup.CountersUi
 import dev.quinton.goa.feature.timer.ui.setup.LayoutOptionUi
 import dev.quinton.goa.feature.timer.ui.setup.LinkedMatchUi
@@ -33,17 +35,30 @@ import dev.quinton.goa.feature.timer.ui.timer.PendingMatchItem
 import dev.quinton.goa.feature.timer.ui.timer.PresetOption
 import dev.quinton.goa.feature.timer.ui.timer.RoundPipsUi
 import dev.quinton.goa.feature.timer.ui.timer.SeatUi
+import dev.quinton.goa.feature.timer.ui.timer.ShotClockUi
 import dev.quinton.goa.feature.timer.ui.timer.StartUiState
 import dev.quinton.goa.feature.timer.ui.timer.SummaryUiState
+import dev.quinton.goa.feature.timer.ui.timer.TimeOutsUi
 import dev.quinton.goa.feature.timer.ui.timer.TimerActions
 import dev.quinton.goa.feature.timer.ui.timer.TimerScreen
 import dev.quinton.goa.feature.timer.ui.timer.TimerUiState
+import dev.quinton.goa.feature.timer.ui.timer.TonightUi
 
 /** Sample states for previews and screenshot tests (shapes of real data, not game data). */
 object TimerPreviewData {
     val presets = listOf(
-        PresetOption("table-rules", "Table rules", "Pre-round strategy 1:30 · Turn 0:30 ×4 · Upgrade 2:00", false),
-        PresetOption("relaxed", "Relaxed", "Pre-round strategy 3:00 · Turn 1:00 ×4 · Upgrade 3:00", false),
+        PresetOption(
+            "table-rules",
+            "Table rules",
+            "Pre-round strategy 1:30 · Play a card 0:30 ×4 · Resolve · Upgrade 2:00",
+            false,
+        ),
+        PresetOption(
+            "relaxed",
+            "Relaxed",
+            "Pre-round strategy 3:00 · Play a card 1:00 ×4 · Resolve · Upgrade 3:00",
+            false,
+        ),
         PresetOption("untimed", "Untimed (counters only)", "Untimed · round and turn counters", false),
     )
 
@@ -54,6 +69,7 @@ object TimerPreviewData {
             selectedPresetId = "table-rules",
             pendingMatches = listOf(PendingMatchItem("m1", "Quick · 6 heroes, 5 players", "Pending since 17 Oct 2026")),
             seats = 4,
+            tonight = TonightUi(seconds = 45, presetSeconds = 30),
         ),
     )
 
@@ -84,7 +100,7 @@ object TimerPreviewData {
     val turn = ActiveUiState(
         presetName = "Table rules",
         round = 2,
-        title = "Turn",
+        title = "Play a card",
         context = "Turn 3 of 4",
         kind = PhaseKind.TURN,
         section = RoundSection.TURN,
@@ -100,10 +116,12 @@ object TimerPreviewData {
         seats = null,
         actionSlot = null,
         actionSlots = 6,
-        nextLabel = "Next: Turn 4",
+        nextLabel = "Cards revealed",
         tieBreaker = Team.RED,
         matchClock = "14:32",
         autoAdvance = false,
+        hint = "Strategy talk until the reveal.",
+        shotClockSeconds = 30,
     )
 
     val overtime = turn.copy(
@@ -113,9 +131,27 @@ object TimerPreviewData {
         overtime = true,
     )
 
+    /** Overtime with the Hurry up countdown running and team time-outs on. */
+    val hurryUp = overtime.copy(
+        shotClock = ShotClockUi("0:08", "Hurry up, 8 seconds left", 0.27f, over = false, warning = true),
+        timeOuts = TimeOutsUi(seconds = 40, redLeft = 1, blueLeft = 0, usable = true),
+    )
+
+    val resolve = turn.copy(
+        title = "Resolve",
+        kind = PhaseKind.RESOLVE,
+        clock = "0:42",
+        spokenClock = "42 seconds elapsed",
+        fraction = 1f,
+        timed = false,
+        hint = "Cards revealed: resolve one by one in initiative order. No strategy talk.",
+        nextLabel = "Next: Turn 4",
+    )
+
     val paused = turn.copy(paused = true, clock = "0:09", fraction = 0.3f, warning = true)
 
     val upgrade = turn.copy(
+        hint = null,
         title = "Upgrade · Level Up",
         context = "End of round · step 5 of 6",
         kind = PhaseKind.UPGRADE,
@@ -140,10 +176,19 @@ object TimerPreviewData {
         nextLabel = "Next: Retrieve Cards",
     )
 
+    /** Longest Next label of the round, for large font scales. */
+    val checklistLongNext = checklistStep.copy(
+        title = "Minion Battle",
+        context = "End of round · step 1 of 6",
+        checklist = checklist(1),
+        nextLabel = "Next: Remove Tokens, Return Markers",
+    )
+
     val action = turn.copy(
-        title = "Action",
+        title = "Test Hero 3 · Cleo",
         context = "Turn 3 of 4 · resolution 3 of 6",
         kind = PhaseKind.ACTION,
+        hint = null,
         clock = "0:21",
         fraction = 0.7f,
         actionSlot = 2,
@@ -156,6 +201,24 @@ object TimerPreviewData {
             SeatUi(5, "Test Hero 6", "test-hero-6", null, Team.BLUE, "Eli", resolved = false, acting = false),
         ),
         nextLabel = "Next hero",
+    )
+
+    /** Ten heroes: every tile must be reachable above the controls. */
+    val actionTen = action.copy(
+        context = "Turn 3 of 4 · resolution 3 of 10",
+        actionSlots = 10,
+        seats = (0 until 10).map { i ->
+            SeatUi(
+                seat = i,
+                heroName = "Test Hero ${i + 1}",
+                heroId = "test-hero-${i + 1}",
+                portrait = null,
+                team = if (i % 2 == 0) Team.RED else Team.BLUE,
+                playerName = listOf("Ana", "Ben", "Cleo", "Dev", "Eli", "Fay", "Gus", "Hal", "Ivy", "Jo")[i],
+                resolved = i < 2,
+                acting = i == 2,
+            )
+        },
     )
 
     val summary = TimerUiState(
@@ -173,7 +236,7 @@ object TimerPreviewData {
                 LayoutKind.HANDICAP,
                 "Handicap",
                 "3 vs 2 heroes",
-                "Each hero on the larger team swaps a basic card for its Handicap card.",
+                "Each hero on the larger team replaces one of its basic cards with its Handicap card.",
                 official = true,
             ),
             LayoutOptionUi(
@@ -200,11 +263,33 @@ object TimerPreviewData {
             ),
         ),
         selectedMode = GameMode.QUICK,
-        counters = CountersUi(1, 3, 5, null, null, 3, 3, 0, 1),
+        counters = CountersUi(
+            1,
+            3,
+            5,
+            null,
+            null,
+            3,
+            3,
+            0,
+            1,
+            houseRuleNote = "House rule: counted as 6 heroes. The rulebook gives 5 players 4 (Quick) / 6 (Long) " +
+                "Life counters.",
+        ),
         tieBreaker = Team.RED,
+        coinSource = CoinSource.HERE,
         flips = 0,
-        tieBreakerRule = "Flip the Tie Breaker coin during setup and place it by the board. On cross-team initiative " +
-            "ties the team whose symbol is showing acts first, then that player flips the coin.",
+        tieBreakerRule = listOf(
+            "Cross-team initiative tie: one of the tied players on the team showing acts first. " +
+                "After resolving their card, that player (and only that player) flips the coin to the " +
+                "other side (p.7).",
+            "Same-team tie: the team agrees who goes first without discussing why. Don't flip the " +
+                "coin (pp.4, 7).",
+            "The team showing also goes first, without flipping, when the order matters for " +
+                "simultaneous Active effects (p.17) or for minions moved back into the Battle Zone " +
+                "(p.18).",
+            "It also places first when minions can't respawn on a blocked Spawn point (p.8).",
+        ),
         firstGameAdvice = "If anyone is new, the rulebook suggests a Quick game.",
         linkedMatch = null,
         presets = presets,
@@ -223,7 +308,7 @@ object TimerPreviewData {
                 "Quick",
                 false,
                 false,
-                "Double lane is required at this size",
+                "The rulebook uses the double-lane map from 8 players",
                 "3 Wave counters",
                 "",
             ),
@@ -232,7 +317,7 @@ object TimerPreviewData {
                 "Long",
                 false,
                 false,
-                "Double lane is required at this size",
+                "The rulebook uses the double-lane map from 8 players",
                 "5 Wave counters",
                 "",
             ),
@@ -244,11 +329,15 @@ object TimerPreviewData {
                 null,
                 "2 × 7 Wave counters",
                 "6 Life counters per team",
+                requiredLabel = "Required",
             ),
         ),
         selectedMode = GameMode.DOUBLE_LANE,
-        counters = CountersUi(2, 7, 6, 4, 4, 4, 4, 0, 0),
-        tieBreaker = null,
+        counters = CountersUi(2, 7, 6, 4, 4, 4, 4, 0, 0, modeNote = DOUBLE_LANE_NOTE),
+        firstGameAdvice = "",
+        tieBreaker = Team.BLUE,
+        coinSource = CoinSource.DRAFT,
+        coinPlaced = true,
         linkedMatch = LinkedMatchUi("Pending match · 8 heroes", 4, 4),
     )
 
@@ -262,7 +351,8 @@ object TimerPreviewData {
             name = "Table rules",
             phases = listOf(
                 PhaseSpec("strategy", "Pre-round strategy", PhaseKind.STRATEGY, PhaseScope.ROUND_START, 90),
-                PhaseSpec("turn", "Turn", PhaseKind.TURN, PhaseScope.TURN, 30),
+                PhaseSpec("turn", "Play a card", PhaseKind.TURN, PhaseScope.TURN, 30),
+                PhaseSpec("resolve", "Resolve", PhaseKind.RESOLVE, PhaseScope.TURN, null, cues = emptyList()),
                 PhaseSpec(
                     "action",
                     "Action",
@@ -328,3 +418,21 @@ private fun PresetsPreview() = Themed(true) { PresetsScreen(TimerPreviewData.pre
 @Preview(name = "Edit preset", heightDp = 891, widthDp = 411)
 @Composable
 private fun EditPresetPreview() = Themed(true) { PresetEditScreen(TimerPreviewData.editPreset, PresetEditActions()) }
+
+private val DOUBLE_LANE_NOTE = RulesNote(
+    "Double lane rules (rulebook p.20)",
+    listOf(
+        "Considerably more challenging than a single lane: everyone should know the game " +
+            "well.",
+        "Each lane has its own Battle Zone, minions and Wave counters. Minions stay bound to " +
+            "the Battle Zone they first spawned in.",
+        "With more than 3 heroes per team, the extra heroes start in empty spaces next to " +
+            "their team's occupied hero spawn points.",
+        "On cards, \"the Battle Zone\" means \"a Battle Zone\".",
+        "The two Minion Battles are resolved separately, at the same time.",
+        "After the last Wave counter on either lane flips, the team with more total Zones " +
+            "between its Throne and both Battle Zones wins.",
+        "If a push would make both teams win at once, spawn all minions back in the Zones " +
+            "they held before the push and keep playing.",
+    ),
+)

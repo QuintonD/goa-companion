@@ -7,6 +7,7 @@ import dev.quinton.goa.core.navigation.DraftBoardRoute
 import dev.quinton.goa.core.navigation.DraftMethodEditRoute
 import dev.quinton.goa.core.navigation.DraftMethodsRoute
 import dev.quinton.goa.core.navigation.DraftRoute
+import dev.quinton.goa.core.navigation.HeroDetailRoute
 import dev.quinton.goa.core.navigation.MatchSetupRoute
 import dev.quinton.goa.core.navigation.Navigator
 import dev.quinton.goa.core.navigation.PlayerEditRoute
@@ -32,6 +33,7 @@ fun EntryProviderScope<NavKey>.draftEntries(navigator: Navigator) {
         DraftBoardDestination(
             viewModel = hiltViewModel(),
             onBack = navigator::back,
+            onOpenHero = { navigator.navigate(HeroDetailRoute(it)) },
             onFinished = { matchId, openMatchSetup ->
                 navigator.back()
                 if (openMatchSetup) navigator.navigateToTab(TopLevelTab.TIMER, MatchSetupRoute(matchId))

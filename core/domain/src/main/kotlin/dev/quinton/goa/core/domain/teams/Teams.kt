@@ -179,7 +179,12 @@ data class PlayerDraftState(
 }
 
 @Serializable
-data class PlayerPick(val team: Team, val playerId: String)
+data class PlayerPick(
+    val team: Team,
+    val playerId: String,
+    /** The forced last pick, made by the app ([PlayerDraft.pickForcingLast]). */
+    val auto: Boolean = false,
+)
 
 object PlayerDraft {
     /** The official draft needs two captains plus at least two other players. */
@@ -207,10 +212,29 @@ object PlayerDraft {
         state.copy(remaining = state.remaining - playerId, picks = state.picks + PlayerPick(team, playerId))
     }
 
+    /**
+     * [pick], then, when a single player is left, hands them to the captain on the clock: that
+     * captain has no choice left, so the app makes the forced pick [APP]. The automatic pick is
+     * flagged so [undo] takes it back together with the pick that forced it.
+     */
+    fun pickForcingLast(state: PlayerDraftState, playerId: String): Result<PlayerDraftState> =
+        pick(state, playerId).map { next ->
+            val last = next.remaining.singleOrNull()
+            val team = next.nextTeam
+            if (last == null || team == null) {
+                next
+            } else {
+                next.copy(remaining = emptyList(), picks = next.picks + PlayerPick(team, last, auto = true))
+            }
+        }
+
+    /** Takes back the last captain's pick; a forced last pick goes back with the pick before it. */
     fun undo(state: PlayerDraftState, order: List<String>): Result<PlayerDraftState> {
         val last = state.picks.lastOrNull() ?: return Result.failure(DraftError.NothingToUndo)
-        val remaining = (state.remaining + last.playerId).sortedBy { order.indexOf(it) }
-        return Result.success(state.copy(remaining = remaining, picks = state.picks.dropLast(1)))
+        val drop = if (last.auto && state.picks.size > 1) 2 else 1
+        val undone = state.picks.takeLast(drop).map { it.playerId }
+        val remaining = (state.remaining + undone).sortedBy { order.indexOf(it) }
+        return Result.success(state.copy(remaining = remaining, picks = state.picks.dropLast(drop)))
     }
 
     /**

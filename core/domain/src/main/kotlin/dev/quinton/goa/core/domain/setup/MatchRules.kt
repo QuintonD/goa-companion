@@ -21,8 +21,8 @@ data class MatchRules(
     val playerCounts: List<PlayerCountRule>,
     /** The six official end-of-round steps, in order. */
     val endOfRound: List<EndOfRoundStep>,
-    /** How the Tie Breaker coin is used (shown verbatim at setup). */
-    val tieBreaker: String,
+    /** How the Tie Breaker coin is used during play, one point per line (shown verbatim at setup). */
+    val tieBreaker: List<String>,
     /** Gentle note shown for extended player counts (odd, 8–10). */
     val extendedCountNote: String,
     /** Rulebook first-game advice. */
@@ -48,16 +48,42 @@ data class ModeRule(
     val minHeroes: Int? = null,
     /** From this many heroes this mode is the only one allowed. */
     val requiredFromHeroes: Int? = null,
+    /** Life counters by heroes in play: the app's lookup (house rule for double piloting, DOMAIN.md). */
     val lifeCounters: List<LifeBracket>,
+    /** The rulebook's own Life counters by player count; used to label where the house lookup differs. */
+    val lifeCountersByPlayers: List<PlayerLifeBracket> = emptyList(),
+    /** The rulebook lists this mode's counters from this many players (Double lane: 6). */
+    val listedFromPlayers: Int? = null,
+    /** The rulebook requires this mode from this many players (Double lane: 8). */
+    val requiredFromPlayers: Int? = null,
+    /** Rules to know when this mode is chosen (Double lane, p.20); shown at setup. */
+    val rulesNote: RulesNote? = null,
 ) {
     val totalWaveCounters: Int get() = lanes * waveCountersPerLane
 
     /** Life counters per team for [heroes] on the board, or null when the rules don't list it. */
     fun lifeCountersFor(heroes: Int): Int? = lifeCounters.firstOrNull { heroes in it.minHeroes..it.maxHeroes }?.counters
+
+    /** The rulebook's Life counters per team for [players], or null when it lists none. */
+    fun rulebookLifeCountersFor(players: Int): Int? =
+        lifeCountersByPlayers.firstOrNull { players in it.minPlayers..it.maxPlayers }?.counters
+
+    /** True when the rulebook lists this mode for [players]. */
+    fun listedFor(players: Int): Boolean = listedFromPlayers?.let { players >= it } ?: true
+
+    /** True when the rulebook requires this mode for [players]. */
+    fun requiredFor(players: Int): Boolean = requiredFromPlayers?.let { players >= it } ?: false
 }
 
 @Serializable
 data class LifeBracket(val minHeroes: Int, val maxHeroes: Int, val counters: Int)
+
+/** A titled list of short rule points, shown as bullets. */
+@Serializable
+data class RulesNote(val title: String, val points: List<String>)
+
+@Serializable
+data class PlayerLifeBracket(val minPlayers: Int, val maxPlayers: Int, val counters: Int)
 
 @Serializable
 data class PlayerCountRule(

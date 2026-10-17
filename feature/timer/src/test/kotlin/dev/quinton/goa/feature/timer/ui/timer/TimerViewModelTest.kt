@@ -150,11 +150,18 @@ class TimerViewModelTest {
         assertThat(active.spokenClock).isEqualTo("Overtime, 5 seconds")
     }
 
+    /** A user Next, a moment after the step started (a Next within 0.5 s is a double tap). */
+    private suspend fun next() {
+        h.clocks.advance(1_000)
+        h.controller.perform(TimerCommand.Next)
+    }
+
     @Test
     fun `next, back and skip to end of round`() = runTest {
         val vm = vm()
         vm.start()
         vm.awaitActive()
+        h.clocks.advance(1_000)
         vm.next()
         assertThat(vm.awaitActive().pips.currentTurn).isEqualTo(1)
         vm.back()
@@ -178,13 +185,79 @@ class TimerViewModelTest {
         val vm = vm()
         vm.start()
         vm.skipToEndOfRound()
-        repeat(4) { h.controller.perform(TimerCommand.Next) }
+        repeat(4) { next() }
         val active = vm.uiState.first { it.active?.kind == PhaseKind.UPGRADE }.active!!
 
         assertThat(active.title).isEqualTo("Upgrade · Level Up")
         assertThat(active.clock).isEqualTo("2:00")
         assertThat(active.checklist!![4].state).isEqualTo(ChecklistState.CURRENT)
         assertThat(active.context).isEqualTo("End of round · step 5 of 6")
+        // Rules F3: the mandatory Level Up text shows under the dial on this timed step.
+        assertThat(active.timed).isTrue()
+        assertThat(active.currentDetail).isEqualTo(active.checklist!![4].detail)
+        assertThat(active.currentDetail).isNotEmpty()
+    }
+
+    @Test
+    fun `each turn is play a card, then resolve after the reveal`() = runTest {
+        val vm = vm()
+        vm.start()
+        vm.awaitActive()
+        next()
+        val turn = vm.uiState.first { it.active?.kind == PhaseKind.TURN }.active!!
+        assertThat(turn.title).isEqualTo("Play a card")
+        assertThat(turn.hint).isEqualTo("Strategy talk until the reveal.")
+        assertThat(turn.nextLabel).isEqualTo("Cards revealed")
+
+        next()
+        val resolve = vm.uiState.first { it.active?.kind == PhaseKind.RESOLVE }.active!!
+        assertThat(resolve.timed).isFalse()
+        assertThat(resolve.overtime).isFalse()
+        assertThat(resolve.context).isEqualTo("Turn 1 of 4")
+        assertThat(resolve.nextLabel).isEqualTo("Next: Turn 2")
+    }
+
+    @Test
+    fun `hurry up counts down beside the phase timer and cues`() = runTest {
+        val vm = vm()
+        vm.setVisible(true)
+        vm.start()
+        vm.awaitActive()
+        h.clocks.advance(120_000) // overtime
+        vm.startShotClock()
+        val shot = vm.uiState.first { it.active?.shotClock != null }.active!!
+        assertThat(shot.shotClock!!.clock).isEqualTo("0:30")
+        assertThat(shot.overtime).isTrue()
+
+        h.clocks.advance(19_900)
+        ticker.tick()
+        h.clocks.advance(200)
+        ticker.tick()
+        assertThat(cues.cues.map { it.first }).containsExactly(10)
+        h.clocks.advance(9_800)
+        ticker.tick()
+        h.clocks.advance(200)
+        ticker.tick()
+        val over = vm.uiState.first { it.active?.shotClock?.over == true }.active!!.shotClock!!
+        assertThat(over.clock).isEqualTo("0:00")
+        assertThat(cues.cues.map { it.first }).containsExactly(10, 0).inOrder()
+
+        vm.cancelShotClock()
+        assertThat(vm.uiState.first { it.active?.shotClock == null }.active!!.shotClockSeconds).isEqualTo(30)
+    }
+
+    @Test
+    fun `tonight's turn length is one tap from the start card`() = runTest {
+        val vm = vm()
+        assertThat(vm.uiState.first { it.start != null }.start!!.tonight).isEqualTo(TonightUi(30, 30))
+        vm.setTonightTurn(45)
+        val adjusted = vm.uiState.first { it.start?.tonight?.adjusted == true }.start!!.tonight!!
+        assertThat(adjusted.seconds).isEqualTo(45)
+        vm.start()
+        vm.awaitActive()
+        assertThat(h.controller.snapshot.first()!!.preset.phases.single { it.kind == PhaseKind.TURN }.seconds)
+            .isEqualTo(45)
+        assertThat(h.repository.selectedPreset().phases.single { it.kind == PhaseKind.TURN }.seconds).isEqualTo(30)
     }
 
     @Test
@@ -312,20 +385,36 @@ class TimerViewModelTest {
             p.copy(phases = p.phases.map { if (it.kind == PhaseKind.ACTION) it.copy(enabled = true) else it })
         }
         h.controller.start(preset, 2, matchId = "m1")
-        h.controller.perform(TimerCommand.Next) // turn 1
-        h.controller.perform(TimerCommand.Next) // action slot 0
+        next() // turn 1
+        next() // action slot 0 (the Action steps replace Resolve)
         val vm = vm()
         val active = vm.uiState.first { it.active?.seats != null }.active!!
         assertThat(active.seats!!.map { it.heroName }).containsExactly("Test Hero 1", "Test Hero 2").inOrder()
         assertThat(active.seats!!.map { it.playerName }).containsExactly("Ana", "Ben").inOrder()
+        assertThat(active.title).isEqualTo("Action")
 
         vm.heroResolves(1)
         val acting = vm.uiState.first { s -> s.active?.seats?.any { it.acting } == true }.active!!
         assertThat(acting.seats!!.single { it.acting }.seat).isEqualTo(1)
-        vm.heroResolves(0)
-        val next = vm.uiState.first { it.active?.actionSlot == 1 }.active!!
-        assertThat(next.seats!![1].resolved).isTrue()
-        assertThat(next.seats!![0].acting).isTrue()
+        // The title names who is acting.
+        assertThat(acting.title).isEqualTo("Test Hero 2 · Ben")
+        next()
+        // Last slot: the one hero left is picked automatically.
+        val last = vm.uiState.first { it.active?.actionSlot == 1 }.active!!
+        assertThat(last.seats!![1].resolved).isTrue()
+        assertThat(last.seats!![0].acting).isTrue()
+        assertThat(last.title).isEqualTo("Test Hero 1 · Ana")
+    }
+
+    @Test
+    fun `the coin side is asked for, never assumed`() = runTest {
+        h.controller.start(h.repository.selectedPreset(), 4)
+        val vm = vm()
+        assertThat(vm.awaitActive().tieBreaker).isNull()
+        vm.flipTieBreaker()
+        assertThat(h.controller.snapshot.first()!!.tieBreaker).isNull()
+        vm.setTieBreaker(Team.BLUE)
+        assertThat(vm.uiState.first { it.active?.tieBreaker == Team.BLUE }.active!!.tieBreaker).isEqualTo(Team.BLUE)
     }
 
     @Test

@@ -31,12 +31,16 @@ without usable source-4 data are verified via `imageChecks` (Whisper, Ignatia, M
 ### Roster — 32 heroes (titles per BGG/Wolff; source 1 spells "Wuk the Grove Keeper", "Emmitt the Traveller", "Widget and Pyro": store those as aliases)
 | Product (BGG id, year) | Heroes (★ complexity) |
 |---|---|
-| Core (267609, 2022) | Arien the Tidemaster ★, Brogan the Destroyer ★, Tigerclaw the Cutpurse ★, Wasp the Warmaiden ★, Sabina the Commander ★, Xargatha the Changed ★, Dodger the Warlock ★ |
+| Core (267609, 2022) | Arien the Tidemaster ★, Brogan the Destroyer ★, Tigerclaw the Cutpurse ★, Wasp the Warmaiden ★, Sabina the Commander ★¹, Xargatha the Changed ★, Dodger the Warlock ★ |
 | Devoted (356292, 2022) | Misa the Samurai ★★, Whisper the Outcast ★★, Ursafar the Savage ★★, Silverarrow the Pathfinder ★★, Tali the Spiritcaller ★★★ |
 | Defiant (356290, 2022) | Garrus the Gladiator ★★, Bain the Bounty Hunter ★★, Cutter the Sky Pirate ★★★, Trinkets the Scavenger ★★★, NebKher the Harbinger ★★★★ |
 | Renowned (356291, 2022) | Min the Dragonmonk ★★, Swift the Sharpshooter ★★★, Wuk the Grovekeeper ★★★, Hanu the Trickster ★★★, Ignatia the Mad ★★★★ |
 | Arcane (412138, 2025) | Rowenna the Vanguard ★★, Mrak the Rockshaper ★★★, Snorri the Runescribe ★★★★, Razzle the Ringmaster ★★★★, Gydion the Archwizard ★★★★ |
 | Wayward (412139, 2025) | Brynn the Seeker ★★★, Mortimer the Awakener ★★★, Widget the Dragonbonded (with Pyro) ★★★, Takahide the Warlord ★★★★, Emmitt the Traveler ★★★★ |
+
+¹ The rulebook's first-game line-up (p.5) calls her "Sabina the Gunslinger"; the pinned
+2nd-printing catalog sources title her "the Commander". The catalog title is correct: don't
+"fix" it to the rulebook's wording.
 
 Official roles (10, p.21): Damager, Disabler, Durable, Farming, **Healer**, Melee, Pusher, Sniper,
 Tactician, Tokens. A hero has 2–6 role icons.
@@ -74,7 +78,7 @@ free text.
      actor is the highest *unresolved* initiative (re-checked every time). Cross-team ties:
      the team shown on the **Tie Breaker coin** acts first, then that player flips the coin.
      Same-team ties: the team decides (without discussing why), coin not flipped. A hero off
-     the board may respawn before acting. *Optional per-action timer.*
+     the board may respawn before acting. *Untimed Resolve step; optional per-action timer.*
   4. **Turn ends** — "this turn" effects end.
 - **End of round** (in order) [RB p.8]: 1 Minion Battle · 2 Remove Tokens, Return Markers ·
   3 Push the Lane (if applicable; flip a Wave counter) · 4 Retrieve Cards · 5 Level Up
@@ -83,9 +87,16 @@ free text.
   tap-through checklist (Upgrade timer on step 5). A lane can also be pushed mid-turn (last
   enemy minion in the Battle Zone defeated or removed), and **a match can end mid-turn**, so
   "End match" must be reachable from every phase.
-- **Tie Breaker coin:** flipped during setup and placed by the board; the app tracks *which
-  team's symbol shows*, not who holds it. It also breaks ties for simultaneous effects and
-  minion placement (not flipped in those cases).
+- **Tie Breaker coin:** flipped once during setup, before heroes are chosen, and placed result
+  side up by the board (p.5 step 3); the team showing is "Team A" for hero selection (p.22).
+  It is re-flipped only by the player who acted first after a cross-team initiative tie (p.7).
+  The team showing also goes first, without a flip, when the order of simultaneous Active
+  effects matters (p.17) or of minions moved back into the Battle Zone (p.18), and places
+  first when a Spawn point is blocked (p.8). The app tracks *which team's symbol shows*, not
+  who holds it. `Match.tieBreaker` records the coin as placed at setup: a draft fills it with
+  Team A, Match setup shows it ("leave the coin as it is", with "Correct the coin") and saves
+  any correction; the app flips only when there was no draft. Flips during play are not
+  written back to the match.
 - Hand: 5 cards per round (one per colour) for 4 turns; Defense is played by discarding from
   hand and doesn't use your turn card [RB].
 
@@ -101,15 +112,31 @@ rulebook gives **no single-lane counts for 7+ players** (the app shows "not spec
 [APP] Counts are looked up by the number of **heroes in play** (seats). This reproduces every
 official case (2 or 3 players = 4 heroes; 5 players with Handicap = 5 heroes → 4-player
 counts) and gives the owner's double-pilot house rule (5 players as 3v3 = 6 heroes) the
-6-player counts. Rulebook first-game advice: play a Quick game if anyone is new.
+6-player counts. `match-setup.json` also holds the rulebook's **per-player** values
+(`lifeCountersByPlayers`, Double lane `listedFromPlayers: 6`, `requiredFromPlayers: 8`), and
+Match setup labels every place the heroes count differs: e.g. 5 players as 3v3 → "House rule:
+counted as 6 heroes. The rulebook gives 5 players 4 (Quick) / 6 (Long) Life counters."; 7
+players as 4v4 (8 heroes) → Double lane "Required (house rule)", "the rulebook requires it from
+8 players". Official layouts never get a label (tested). Rulebook first-game advice: play a
+Quick game if anyone is new (shown only when Quick can be chosen). 2 players: the rulebook
+warns this is considerably more challenging and takes longer (p.20).
+
+Double lane rules (p.20, shown at setup when chosen): each lane has its own Battle Zone,
+minions and Wave counters; minions stay bound to the Battle Zone they first spawned in; with
+more than 3 heroes per team the extra heroes start next to their team's occupied hero spawn
+points; on cards "the Battle Zone" means "a Battle Zone"; the two Minion Battles resolve
+separately but at the same time.
 
 Win conditions (`WinCondition` enum): **THRONE** — a push makes the enemy Throne Zone the
 Battle Zone; **LAST_PUSH** — the last Wave counter flips, the team that won that push wins
-(double lane: more total Zones between own Throne and both Battle Zones); **LIFE_COUNTERS** —
+(double lane: after the last Wave counter on either lane, more total Zones between own Throne
+and both Battle Zones); **LIFE_COUNTERS** —
 a team spends its last Life counter (a defeated hero costs counters = its lowest card tier:
-1 at levels 1–3, 2 at 4–6, 3 at 7–8); **OTHER** (concession, house rule). If both teams would
-win at once from a push, the push is undone and play continues. The rulebook has no draw
-outcome (and is silent on a tied double-lane Zone count), so the app has no draws.
+1 at levels 1–3, 2 at 4–6, 3 at 7–8); **OTHER** (concession, house rule). **Double lane only**
+(p.20): if both teams would win at once as the result of a push, all minions spawn back in the
+Zones they occupied before the push and play continues until only one team wins (in effect
+the push is undone). The rulebook has no draw outcome (and is silent on
+a tied double-lane Zone count), so the app has no draws.
 
 ### Timer phases [APP — owner's table rules, 2026-10-17]
 The rulebook sets no timers. The group plays with **rule timers per phase**, all editable per
@@ -118,13 +145,36 @@ preset (enable/disable, duration, cues, auto-advance):
 | Phase | Scope | Default | Notes |
 |-------|-------|---------|-------|
 | **Pre-round strategy** | once per round, before turn 1 | **1:30** | Team talk before cards are played |
-| **Turn** (play a card) | each of the 4 turns | **0:30** | Simultaneous card selection |
-| Action (optional, off) | per hero during resolution | 0:30 | Tap "next" as each hero resolves |
+| **Play a card** (`turn`) | each of the 4 turns | **0:30** | Simultaneous card selection; strategy talk until the reveal (p.4) |
+| **Resolve** (`resolve`) | each turn, after the reveal | untimed | Cards resolve one by one in initiative order (p.7); counts up, never overtime |
+| Action (optional, off) | per hero during resolution | 0:30 | Tap "next" as each hero resolves; when on, it *is* the resolve step (Resolve is skipped) |
 | **Upgrade** | end of round, Level Up step | **2:00** | Spend coins / choose upgrades |
 
 The end of round is still shown as the six-step checklist (see above); the Upgrade timer runs
-on step 5 (Level Up). Users can add custom phases with the same three scopes
-(`ROUND_START`, `TURN`, `ROUND_END`). Overtime counts up; nothing is auto-enforced.
+on step 5 (Level Up), with the step's rule text under the dial. Users can add custom phases with
+the same three scopes (`ROUND_START`, `TURN`, `ROUND_END`). Overtime counts up; nothing is
+auto-enforced. The Next button at the end of "Play a card" reads "Cards revealed".
+
+Preset data carries a `revision`: stored copies of a bundled preset with an older revision are
+upgraded on read (`TimerPresetMigration`; revision 1 adds Resolve and renames "Turn" to "Play a
+card" only if unchanged). User-made presets are never touched.
+
+**Table rules in presets [APP — house rules, not in the rulebook]** (research: designer-endorsed
+"hurry up" clock, playtester time-outs):
+- *Hurry up*: on-demand countdown (default 0:30, or off) usable in any phase or overtime; shown
+  under the dial with cues at 10 s, 5 s and zero; pauses with the timer, cleared on the next step.
+- *Time-outs*: N per team per round (default 0 = off), each adds 0:40 (editable) to the current
+  timed phase, also out of overtime; reset each round.
+- *Volume keys* (opt-in, default off): while the timer shows, volume up = Next, volume down =
+  Pause/Resume (also Bluetooth camera shutters).
+- *Tonight's turn length*: the start card adjusts the turn length (±15 s) for this evening's
+  games without editing the preset (in memory until saved to the preset or the app restarts).
+
+**Navigation safety [APP]**: a Next within 0.5 s of entering a step is ignored (double tap, or a
+tap landing on an auto-advance). Back within 15 s of a Next undoes it: the previous step
+continues with its time as if Next had never been tapped (one level). The last Action slot of a
+turn auto-picks the one hero left. The Tie Breaker coin side is never assumed: an untracked coin
+asks "Red shows / Blue shows"; a tapped flip can be undone for 5 s.
 
 ## Cards and heroes [RB]
 - **Deck:** 18 cards = Gold + Silver (basic, never upgraded) + 3 × Tier I + 6 × Tier II +
@@ -161,7 +211,8 @@ Card(id, heroId, name, color: GOLD|SILVER|RED|GREEN|BLUE|PURPLE|OTHER, tier: 1..
      image?)
 Player(id, name, color: ARGB, avatarId, createdAt, archived)   // name unique, see below
 Match(id, createdAt, playedAt, status: PENDING|COMPLETED|ABANDONED, mode: QUICK|LONG|DOUBLE_LANE,
-      map?, winner?, winCondition?, durationMin?, notes, draftId?, participants)
+      map?, winner?, winCondition?, durationMin?, notes, draftId?, participants,
+      tieBreaker?: RED|BLUE)   // coin as placed at setup; null = not recorded (DB v2, backup v2)
 Participant(playerId, heroId?, team: RED|BLUE, handicap)   // one per hero seat
 DraftRecord(id, createdAt, methodId, methodKind, pool, teamA, steps: (team, PICK|BAN, heroId), matchId?)
 ```
@@ -284,7 +335,9 @@ Enumerate all splits into ⌈n/2⌉ / ⌊n/2⌋ (≤ 126 for n ≤ 10), minimise
 tie-break by seed, respect locked players. Offer the official **Player Draft** too [RB p.22]:
 the two most experienced players are Captains; first a hero is chosen for *every* player with
 any hero selection method; then Captains draft players one at a time, Team A's captain first;
-everyone plays their pre-selected hero.
+everyone plays their pre-selected hero. [APP] When one player is left, the captain on the clock
+has no choice, so the app makes that forced pick (`PlayerDraft.pickForcingLast`); undo takes it
+back together with the pick that forced it.
 
 ## Draft
 Official hero selection methods [RB p.22]; `Team A` = the team showing on the Tie Breaker
@@ -294,6 +347,7 @@ coin at the time of selection (the coin is flipped in setup step 3, before heroe
 - **Single Draft** — deal 3 heroes to each player; players take turns picking from their own
   3, starting with any player on Team A and alternating teams.
 - **Random Draft** — reveal (players + 2) heroes; pick starting with Team A, alternating.
+  [APP] counted in hero seats: the app reveals heroes in play + 2, so a double pilot adds one.
 - **Pick and Ban** (competitive/tournament):
   | Players | Sequence |
   |---------|----------|
@@ -313,7 +367,9 @@ coin at the time of selection (the coin is flipped in setup step 3, before heroe
   it has seats, not players.
 - **Complexity filter** [RB]: remove heroes above the least experienced player's complexity.
 - **First game** [RB p.5]: 4 players = Red Wasp + Xargatha vs Blue Arien + Brogan; 6 players
-  add Tigerclaw (Red) and Sabina (Blue). Offered as a "Learning game" preset.
+  add Tigerclaw (Red) and Sabina (Blue). Offered as a "Learning game" preset. The dashboards are
+  distributed "randomly to the players on the Red team" (and likewise Blue) [RB p.5 step 7], so
+  the engine shuffles each team's lineup across that team's seats with the draft seed.
 - Team picks are assigned to players on that team before the match starts [APP].
 - **Rearranging seats** after the draft [APP]: only for methods where a *team* picks (House
   draft, Pick and Ban, All Pick, Random Draft, All Random): heroes swap between two seats of
@@ -338,3 +394,10 @@ coin at the time of selection (the coin is flipped in setup step 3, before heroe
   refuses it (`StaleStep`, e.g. a confirm racing a step change); undo = drop last result.
   Property tests: every method × every player count 2–10 completes with unique heroes when the
   pool is large enough; random seat-swap sequences keep the assigned heroes equal to the picks.
+- **Hero peek** [APP]: long-pressing a pool tile shows complexity, roles, stat bars (base → max)
+  and the five starting cards, selected from the catalog as "the three Tier I cards and the two
+  basic cards with no Tier" [RB p.6] (basic = Gold and Silver [RB p.9]). Catalog data only, so it
+  cannot reveal a hidden choice. Each team's role coverage on the board is built from revealed
+  picks only; a hero chosen in the current hidden run is drawn exactly like a free hero.
+- **Small pools** [APP]: a random-size pool (House draft: 15) larger than the filtered roster is
+  dealt at the roster size, and setup says so ("Only 7 heroes match your filters…").

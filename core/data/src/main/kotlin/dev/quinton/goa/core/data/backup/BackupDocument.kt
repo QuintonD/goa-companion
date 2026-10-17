@@ -15,8 +15,12 @@ import kotlinx.serialization.json.JsonElement
  * Versioned, human-readable backup of all user data (PRODUCT.md §3). Ratings are not included:
  * they are rebuilt from the match log after import (ADR-003).
  *
- * Versioning: bump [CURRENT_VERSION] on any incompatible change and teach [BackupCodec] to read
- * older versions. Unknown keys are ignored, so additive fields don't need a bump.
+ * Versioning: bump [CURRENT_VERSION] whenever an older app would lose data from a newer file
+ * (it ignores unknown keys, so it would silently drop a new field), and keep [BackupCodec]
+ * reading every older version. Older files always import: new fields take their defaults.
+ *
+ * - v1: players, matches, drafts, Elo config, extras.
+ * - v2: `Match.tieBreaker` (the Tie Breaker coin at setup). v1 files import with it null.
  */
 @Serializable
 data class BackupDocument(
@@ -33,7 +37,7 @@ data class BackupDocument(
 ) {
     companion object {
         const val FORMAT = "goa-companion-backup"
-        const val CURRENT_VERSION = 1
+        const val CURRENT_VERSION = 2
         const val MIME_TYPE = "application/json"
     }
 }

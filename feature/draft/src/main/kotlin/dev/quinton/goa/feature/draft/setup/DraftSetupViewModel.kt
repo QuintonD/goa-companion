@@ -7,6 +7,7 @@ import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.RatingsRepository
 import dev.quinton.goa.core.data.SettingsRepository
+import dev.quinton.goa.core.designsystem.theme.PlayerColors
 import dev.quinton.goa.core.domain.draft.DraftEngine
 import dev.quinton.goa.core.domain.draft.DraftError
 import dev.quinton.goa.core.domain.draft.DraftMethod
@@ -35,6 +36,7 @@ import dev.quinton.goa.feature.draft.data.DraftRepository
 import dev.quinton.goa.feature.draft.data.MethodLibrary
 import dev.quinton.goa.feature.draft.ui.HeroInfo
 import dev.quinton.goa.feature.draft.ui.StepToken
+import dev.quinton.goa.feature.draft.ui.plural
 import dev.quinton.goa.feature.draft.ui.tokens
 import javax.inject.Inject
 import kotlin.random.Random
@@ -44,23 +46,29 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
-enum class SetupStage(val title: String) {
+@Serializable
+enum class SetupStage(val title: String, val shortTitle: String = title) {
     PLAYERS("Players"),
     TEAMS("Teams"),
     HEROES("Heroes"),
-    COIN("Tie Breaker"),
+    COIN("Tie Breaker", "Coin"),
 }
 
+@Serializable
 enum class TeamMode(val label: String) {
     MANUAL("Manual"),
-    BALANCED("Balance by Elo"),
+    BALANCED("By Elo"),
     PLAYER_DRAFT("Player Draft"),
 }
 
@@ -75,9 +83,14 @@ data class MethodOption(
     val heroesNeeded: Int,
 )
 
-data class ResumeInfo(val title: String, val detail: String)
+data class ResumeInfo(val title: String, val detail: String, val complete: Boolean = false)
 
-/** The setup form; everything else in [SetupUiState] is derived. */
+/**
+ * The setup form; everything else in [SetupUiState] is derived. Persisted on every change
+ * ([DraftRepository.saveSetupForm]) so it survives leaving the tab, Back from the board and
+ * process death; after a draft starts it becomes the next game's default ([forNextGame]).
+ */
+@Serializable
 data class SetupForm(
     val stage: SetupStage = SetupStage.PLAYERS,
     val selected: List<String> = emptyList(),
@@ -98,8 +111,50 @@ data class SetupForm(
     val stepSeconds: Int = 30,
     val teamA: Team? = null,
     val flipCount: Int = 0,
-    val starting: Boolean = false,
-)
+    /** Players and teams were carried over from the last game (shown with a Clear action). */
+    val lastGame: Boolean = false,
+    @Transient val starting: Boolean = false,
+) {
+    /** The next game's default: same players, teams and method; a fresh coin flip. */
+    fun forNextGame(): SetupForm =
+        copy(stage = SetupStage.PLAYERS, teamA = null, flipCount = 0, starting = false, lastGame = true)
+
+    /** Players, teams and captains cleared; method, pool and timer choices kept. */
+    fun cleared(): SetupForm = SetupForm(
+        methodId = methodId,
+        poolSource = poolSource,
+        customSelection = customSelection,
+        maxComplexity = maxComplexity,
+        stepTimer = stepTimer,
+        stepSeconds = stepSeconds,
+    )
+
+    /** Drops players who no longer exist (deleted or archived since the form was saved). */
+    fun keepOnly(known: Set<String>): SetupForm {
+        val kept = selected.filter { it in known }
+        if (kept == selected) return this
+        return copy(selected = kept, stage = SetupStage.PLAYERS, teamA = null).withDefaultTeams()
+    }
+
+    /** Keeps teams in step with [selected]: leavers drop out, newcomers join the smaller team. */
+    fun withDefaultTeams(): SetupForm {
+        val keepRed = red.filter { it in selected }
+        val keepBlue = blue.filter { it in selected }
+        val newcomers = selected.filter { it !in keepRed && it !in keepBlue }
+        val r = keepRed.toMutableList()
+        val b = keepBlue.toMutableList()
+        for (id in newcomers) if (r.size <= b.size) r += id else b += id
+        return copy(
+            red = r,
+            blue = b,
+            locked = locked.filterKeys { it in selected },
+            balanceDifference = null,
+            redCaptain = redCaptain?.takeIf { it in selected },
+            blueCaptain = blueCaptain?.takeIf { it in selected },
+            doublePilot = doublePilot?.takeIf { it in selected },
+        )
+    }
+}
 
 data class SetupUiState(
     val loading: Boolean = true,
@@ -112,6 +167,8 @@ data class SetupUiState(
     val ownedProductsLabel: String = "All products",
     val resume: ResumeInfo? = null,
     val message: String? = null,
+    /** A House-draft style pool that will be dealt smaller than the method asks for. */
+    val poolNote: String? = null,
 ) {
     val stage: SetupStage get() = form.stage
     val selectedMethod: MethodOption? get() = methods.firstOrNull { it.method.id == form.methodId }
@@ -170,7 +227,8 @@ class DraftSetupViewModel @Inject constructor(
     private val drafts: DraftRepository,
     private val env: DraftEnvironment,
 ) : ViewModel() {
-    private val form = MutableStateFlow(SetupForm())
+    /** Null until the saved form has been read. */
+    private val form = MutableStateFlow<SetupForm?>(null)
     private val message = MutableStateFlow<String?>(null)
     private val events = Channel<SetupEvent>(Channel.BUFFERED)
     val setupEvents: Flow<SetupEvent> = events.receiveAsFlow()
@@ -183,9 +241,25 @@ class DraftSetupViewModel @Inject constructor(
         drafts.methods,
     ) { p, r, c, s, m -> Inputs(p, r, c, s, m) }
 
-    val uiState: StateFlow<SetupUiState> = combine(inputs, form, drafts.active, message) { inputs, form, active, msg ->
-        derive(inputs, form, active, msg)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SetupUiState())
+    val uiState: StateFlow<SetupUiState> =
+        combine(inputs, form.filterNotNull(), drafts.active, message) { inputs, form, active, msg ->
+            derive(inputs, form, active, msg)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SetupUiState())
+
+    init {
+        viewModelScope.launch {
+            val saved = drafts.setupForm.first()
+            val known = players.observePlayers().first().mapTo(mutableSetOf()) { it.id }
+            form.value = (saved ?: SetupForm()).keepOnly(known)
+            // Every change is written straight away: the screen can be left at any moment.
+            form.filterNotNull().drop(1).collect { drafts.saveSetupForm(it) }
+        }
+    }
+
+    /** The current form (defaults until the saved one has loaded). */
+    private val current: SetupForm get() = form.value ?: SetupForm()
+
+    private fun edit(transform: (SetupForm) -> SetupForm) = form.update { f -> f?.let(transform) }
 
     private data class Inputs(
         val players: List<Player>,
@@ -206,6 +280,7 @@ class DraftSetupViewModel @Inject constructor(
         val methods = inputs.methods.all.map { methodOption(it, form, seats) }
         val methodId = form.methodId?.takeIf { id -> methods.any { it.method.id == id } }
             ?: inputs.methods.default?.id
+        val selected = methods.firstOrNull { it.method.id == methodId }
         return SetupUiState(
             loading = false,
             form = form.copy(methodId = methodId),
@@ -217,7 +292,19 @@ class DraftSetupViewModel @Inject constructor(
             ownedProductsLabel = ownedLabel(inputs),
             resume = active?.let { resumeInfo(it) },
             message = msg,
+            poolNote = selected?.let { poolNote(it, candidates.size) },
         )
+    }
+
+    /**
+     * A random pool larger than the eligible roster is quietly dealt smaller (House draft); say
+     * so. Nothing to say when the method can't run at all (the blocker covers that).
+     */
+    private fun poolNote(option: MethodOption, eligible: Int): String? {
+        val size = (option.method.pool as? PoolRule.Random)?.size ?: return null
+        if (eligible >= size || eligible < option.heroesNeeded) return null
+        return "Only ${plural(eligible, "hero", "heroes")} match your filters, " +
+            "so the pool is $eligible instead of $size."
     }
 
     private fun candidates(inputs: Inputs, form: SetupForm): List<String> = HeroPool.candidates(
@@ -276,12 +363,11 @@ class DraftSetupViewModel @Inject constructor(
     private fun resumeInfo(progress: DraftProgress): ResumeInfo = when (progress) {
         is DraftProgress.Board -> {
             val s = progress.session
-            val detail = if (s.isComplete) {
-                "Complete — assign seats and save"
+            if (s.isComplete) {
+                ResumeInfo(s.method.name, "Assign seats and save the match", complete = true)
             } else {
-                "Step ${s.history.size + 1} of ${s.plan.size}"
+                ResumeInfo(s.method.name, "Step ${s.history.size + 1} of ${s.plan.size}")
             }
-            ResumeInfo(s.method.name, detail)
         }
 
         is DraftProgress.Players -> ResumeInfo("Player Draft · ${progress.session.method.name}", "In progress")
@@ -289,10 +375,13 @@ class DraftSetupViewModel @Inject constructor(
 
     // --- Players ---
 
-    fun togglePlayer(id: String) = form.update { f ->
+    fun togglePlayer(id: String) = edit { f ->
         val selected = if (id in f.selected) f.selected - id else f.selected + id
-        f.copy(selected = selected).withDefaultTeams()
+        f.copy(selected = selected, lastGame = false).withDefaultTeams()
     }
+
+    /** Forgets last game's players and teams (method and pool choices stay). */
+    fun clearPlayers() = edit { it.cleared() }
 
     fun quickAddPlayer(name: String) {
         val trimmed = name.trim()
@@ -310,20 +399,23 @@ class DraftSetupViewModel @Inject constructor(
                     createdAt = env.nowMillis(),
                 ),
             )
-            form.update { it.copy(selected = it.selected + player.id).withDefaultTeams() }
+            // Re-typing someone already ticked must not count them twice.
+            edit { f ->
+                if (player.id in f.selected) f else f.copy(selected = f.selected + player.id).withDefaultTeams()
+            }
         }
     }
 
     // --- Teams ---
 
     fun setTeamMode(mode: TeamMode) {
-        form.update { it.copy(teamMode = mode, teamA = null) }
+        edit { it.copy(teamMode = mode, teamA = null) }
         if (mode == TeamMode.BALANCED) balance()
         if (mode == TeamMode.PLAYER_DRAFT) suggestCaptains()
     }
 
     /** Moves a player to the other team (tap to move). */
-    fun movePlayer(id: String) = form.update { f ->
+    fun movePlayer(id: String) = edit { f ->
         when (id) {
             in f.red -> f.copy(red = f.red - id, blue = f.blue + id, balanceDifference = null, locked = f.locked - id)
             in f.blue -> f.copy(blue = f.blue - id, red = f.red + id, balanceDifference = null, locked = f.locked - id)
@@ -331,7 +423,7 @@ class DraftSetupViewModel @Inject constructor(
         }
     }
 
-    fun toggleLock(id: String) = form.update { f ->
+    fun toggleLock(id: String) = edit { f ->
         val team = if (id in f.red) Team.RED else Team.BLUE
         f.copy(locked = if (id in f.locked) f.locked - id else f.locked + (id to team))
     }
@@ -339,8 +431,8 @@ class DraftSetupViewModel @Inject constructor(
     fun balance() {
         viewModelScope.launch {
             val ratings = uiState.value.players.associate { it.player.id to (it.rating?.value ?: Rating.START) }
-            form.update { f ->
-                val split = TeamBalancer.balance(f.selected, ratings, f.locked, env.newSeed()) ?: return@update f
+            edit { f ->
+                val split = TeamBalancer.balance(f.selected, ratings, f.locked, env.newSeed()) ?: return@edit f
                 f.copy(
                     red = split.red,
                     blue = split.blue,
@@ -351,11 +443,11 @@ class DraftSetupViewModel @Inject constructor(
         }
     }
 
-    fun setOddMode(mode: OddSeatMode) = form.update { it.copy(oddMode = mode) }
+    fun setOddMode(mode: OddSeatMode) = edit { it.copy(oddMode = mode) }
 
-    fun setDoublePilot(id: String) = form.update { it.copy(doublePilot = id) }
+    fun setDoublePilot(id: String) = edit { it.copy(doublePilot = id) }
 
-    fun setCaptain(team: Team, id: String) = form.update { f ->
+    fun setCaptain(team: Team, id: String) = edit { f ->
         when (team) {
             Team.RED -> f.copy(redCaptain = id, blueCaptain = f.blueCaptain.takeIf { it != id })
             Team.BLUE -> f.copy(blueCaptain = id, redCaptain = f.redCaptain.takeIf { it != id })
@@ -366,57 +458,57 @@ class DraftSetupViewModel @Inject constructor(
         val state = uiState.value
         val games = state.players.associate { it.player.id to (it.rating?.games ?: 0) }
         val values = state.players.associate { it.player.id to (it.rating?.value ?: Rating.START) }
-        val captains = PlayerDraft.suggestCaptains(form.value.selected, games, values)
-        form.update { it.copy(redCaptain = captains.getOrNull(0), blueCaptain = captains.getOrNull(1)) }
+        val captains = PlayerDraft.suggestCaptains(current.selected, games, values)
+        edit { it.copy(redCaptain = captains.getOrNull(0), blueCaptain = captains.getOrNull(1)) }
     }
 
     // --- Heroes ---
 
-    fun selectMethod(id: String) = form.update { it.copy(methodId = id) }
+    fun selectMethod(id: String) = edit { it.copy(methodId = id) }
 
-    fun setPoolSource(source: PoolSource) = form.update { it.copy(poolSource = source) }
+    fun setPoolSource(source: PoolSource) = edit { it.copy(poolSource = source) }
 
-    fun toggleCustomHero(id: String) = form.update { f ->
+    fun toggleCustomHero(id: String) = edit { f ->
         f.copy(customSelection = if (id in f.customSelection) f.customSelection - id else f.customSelection + id)
     }
 
-    fun setCustomSelection(ids: Set<String>) = form.update { it.copy(customSelection = ids) }
+    fun setCustomSelection(ids: Set<String>) = edit { it.copy(customSelection = ids) }
 
-    fun setMaxComplexity(max: Int?) = form.update { it.copy(maxComplexity = max) }
+    fun setMaxComplexity(max: Int?) = edit { it.copy(maxComplexity = max) }
 
-    fun setStepTimer(enabled: Boolean) = form.update { it.copy(stepTimer = enabled) }
+    fun setStepTimer(enabled: Boolean) = edit { it.copy(stepTimer = enabled) }
 
-    fun setStepSeconds(seconds: Int) = form.update { it.copy(stepSeconds = seconds, stepTimer = true) }
+    fun setStepSeconds(seconds: Int) = edit { it.copy(stepSeconds = seconds, stepTimer = true) }
 
     // --- Coin ---
 
-    fun flipCoin() = form.update {
+    fun flipCoin() = edit {
         it.copy(teamA = TieBreakerCoin.flip(Random(env.newSeed())), flipCount = it.flipCount + 1)
     }
 
     /** The table flipped the physical coin. */
-    fun setTeamA(team: Team) = form.update { it.copy(teamA = team) }
+    fun setTeamA(team: Team) = edit { it.copy(teamA = team) }
 
     // --- Navigation ---
 
     fun next() {
         val state = uiState.value
         if (state.blocker != null) return
-        form.update { f ->
-            val nextStage = SetupStage.entries.getOrNull(f.stage.ordinal + 1) ?: return@update f
+        edit { f ->
+            val nextStage = SetupStage.entries.getOrNull(f.stage.ordinal + 1) ?: return@edit f
             f.copy(stage = nextStage)
         }
     }
 
     fun back(): Boolean {
-        val stage = form.value.stage
+        val stage = current.stage
         if (stage == SetupStage.PLAYERS) return false
-        form.update { it.copy(stage = SetupStage.entries[stage.ordinal - 1]) }
+        edit { it.copy(stage = SetupStage.entries[stage.ordinal - 1]) }
         return true
     }
 
     fun goTo(stage: SetupStage) {
-        if (stage.ordinal < form.value.stage.ordinal) form.update { it.copy(stage = stage) }
+        if (stage.ordinal < current.stage.ordinal) edit { it.copy(stage = stage) }
     }
 
     fun dismissMessage() = message.update { null }
@@ -435,7 +527,7 @@ class DraftSetupViewModel @Inject constructor(
         val option = state.selectedMethod ?: return
         val teamA = f.teamA ?: return
         if (state.blocker != null || f.starting) return
-        form.update { it.copy(starting = true) }
+        edit { it.copy(starting = true) }
         viewModelScope.launch {
             val inputs = inputs.first()
             val candidates = candidates(inputs, f)
@@ -468,48 +560,27 @@ class DraftSetupViewModel @Inject constructor(
             result.fold(
                 onSuccess = { progress ->
                     drafts.saveActive(progress)
-                    form.value =
-                        SetupForm(methodId = f.methodId, poolSource = f.poolSource, maxComplexity = f.maxComplexity)
+                    // The next game starts from the same table: players, teams and method stay.
+                    form.value = f.forNextGame()
                     events.send(SetupEvent.OpenBoard)
                 },
                 onFailure = { e ->
                     message.value = errorMessage(e)
-                    form.update { it.copy(starting = false) }
+                    edit { it.copy(starting = false) }
                 },
             )
         }
     }
 
-    private fun SetupForm.withDefaultTeams(): SetupForm {
-        val keepRed = red.filter { it in selected }
-        val keepBlue = blue.filter { it in selected }
-        val newcomers = selected.filter { it !in keepRed && it !in keepBlue }
-        val r = keepRed.toMutableList()
-        val b = keepBlue.toMutableList()
-        for (id in newcomers) if (r.size <= b.size) r += id else b += id
-        return copy(
-            red = r,
-            blue = b,
-            locked = locked.filterKeys { it in selected },
-            balanceDifference = null,
-            redCaptain = redCaptain?.takeIf { it in selected },
-            blueCaptain = blueCaptain?.takeIf { it in selected },
-            doublePilot = doublePilot?.takeIf { it in selected },
-        )
-    }
-
     companion object {
         private const val AVATAR_COUNT = 24
-        private val QUICK_ADD_COLORS = listOf(
-            0xFF3FC1B0,
-            0xFFC9A35B,
-            0xFFE26459,
-            0xFF4F8FE0,
-            0xFFB18CE0,
-            0xFF6CC27A,
-            0xFFE0A35B,
-            0xFFD27BB0,
-        )
+
+        /**
+         * Palette colours for quick-added players, minus Coral and Sky: next to the Red and Blue
+         * team colours they read as a team (docs/DESIGN.md).
+         */
+        private val TEAM_LIKE = setOf("Coral", "Sky")
+        private val QUICK_ADD_COLORS = PlayerColors.all.filter { it.name !in TEAM_LIKE }.map { it.argb }
 
         fun errorMessage(e: Throwable): String = when (e) {
             is DraftError.PoolTooSmall -> "Needs ${e.required} heroes, only ${e.available} available. Widen the pool."

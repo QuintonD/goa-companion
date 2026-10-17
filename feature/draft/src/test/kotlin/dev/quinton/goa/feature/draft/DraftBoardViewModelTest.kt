@@ -19,6 +19,7 @@ import dev.quinton.goa.core.domain.teams.SeatLayouts
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
@@ -52,7 +53,11 @@ class DraftBoardViewModelTest {
             DraftBoardViewModel(
                 drafts,
                 FakeCatalogRepository(),
-                FakePlayerRepository(),
+                FakePlayerRepository(
+                    listOf("a" to "Ann", "b" to "Bo", "c" to "Cy", "d" to "Di").map { (id, name) ->
+                        Player(id, name, 0xFF3FC1B0, 0, 0L)
+                    },
+                ),
                 matches,
                 records,
                 FakeDraftEnvironment(),
@@ -225,10 +230,12 @@ class DraftBoardViewModelTest {
         }
         val phase = (drafts.activeState.value as DraftProgress.Players).session.phase
         assertThat(phase).isEqualTo(PlayerDraftPhase.CAPTAINS)
-        vm.draftPlayer("c") // Blue (Team A) captain first
-        vm.undoPlayerPick()
+        vm.draftPlayer("c") // Blue (Team A) captain first; "d" is then the forced last pick
+        assertThat(drafts.activeState.value).isInstanceOf(DraftProgress.Board::class.java)
+        vm.undo() // takes back the forced pick and the pick that forced it
+        assertThat((drafts.activeState.value as DraftProgress.Players).session.captains.remaining)
+            .containsExactly("c", "d")
         vm.draftPlayer("c")
-        vm.draftPlayer("d")
         val board = drafts.board
         assertThat(board.isComplete).isTrue()
         assertThat(board.fromPlayerDraft).isTrue()
@@ -249,8 +256,7 @@ class DraftBoardViewModelTest {
             vm.assignHero(start.selection.available(p).first { h -> h !in chosen(drafts).values })
         }
         val heroes = chosen(drafts)
-        vm.draftPlayer("c")
-        vm.draftPlayer("d")
+        vm.draftPlayer("c") // "d" follows automatically: the other captain has no choice left
         val board = drafts.board
         val bySeat = { s: DraftSession -> DraftEngine.assignments(s).associate { it.seat.pilotId to it.heroId } }
         assertThat(bySeat(board)).isEqualTo(heroes)
@@ -270,8 +276,51 @@ class DraftBoardViewModelTest {
         vm.undo()
         val progress = drafts.activeState.value as DraftProgress.Players
         assertThat(progress.session.phase).isEqualTo(PlayerDraftPhase.CAPTAINS)
-        assertThat(progress.session.captains.remaining).containsExactly("d")
+        assertThat(progress.session.captains.remaining).containsExactly("c", "d")
         assertThat(progress.session.selection.choices).isEqualTo(heroes)
+    }
+
+    @Test
+    fun `undo says what it took back and redo puts it back`() = runTest {
+        val drafts = FakeDraftRepository(active = DraftProgress.Board(session()))
+        val vm = viewModel(drafts)
+        val hero = DraftEngine.available(drafts.board).first()
+        vm.tapHero(hero)
+        vm.confirm()
+        val after = drafts.board
+        vm.undo()
+        assertThat(drafts.board.history).isEmpty()
+        assertThat(vm.uiState.value.local.message).isEqualTo("Undid Ban Test Hero ${hero.removePrefix("test-hero-")}")
+        vm.redo()
+        assertThat(drafts.board).isEqualTo(after)
+        assertThat(vm.uiState.value.local.redo).isNull()
+    }
+
+    @Test
+    fun `undoing a still-hidden choice never names the hero`() = runTest {
+        val blind = house.copy(
+            sequence = SequenceRule.Pattern(
+                opening = listOf(ban(TeamSlot.A, hidden = true), ban(TeamSlot.B, hidden = true)),
+                repeat = listOf(pick(TeamSlot.A), pick(TeamSlot.B)),
+            ),
+        )
+        var s = session(blind)
+        s = DraftEngine.apply(s, DraftCommand(s.pool.first())).getOrThrow() // Red's hidden ban
+        val drafts = FakeDraftRepository(active = DraftProgress.Board(s))
+        val vm = viewModel(drafts)
+        vm.undo()
+        assertThat(vm.uiState.value.local.message).isEqualTo("Undid a hidden ban")
+    }
+
+    @Test
+    fun `tapping a hero dealt to someone else explains why`() = runTest {
+        val single = bundledMethods.methods.first { it.id == "single-draft" }
+        val drafts = FakeDraftRepository(active = DraftProgress.Board(session(single)))
+        val vm = viewModel(drafts)
+        val other = drafts.board.handOf("blue-0")!!.first()
+        vm.tapUnavailable(other)
+        assertThat(vm.uiState.value.local.message)
+            .isEqualTo("Test Hero ${other.removePrefix("test-hero-")} wasn't dealt to Ann")
     }
 
     private fun chosen(drafts: FakeDraftRepository): Map<String, String> =

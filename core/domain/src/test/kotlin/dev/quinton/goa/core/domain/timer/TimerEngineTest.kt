@@ -147,13 +147,103 @@ class TimerEngineTest {
     }
 
     @Test
-    fun `next then back lands on the same step with a fresh timer`() {
+    fun `back right after next undoes it and the previous step keeps its time`() {
         var s = start().nextTimes(3)
         clocks.advanceSeconds(20.0)
-        s = engine.back(engine.next(s))
+        s = engine.next(s)
+        clocks.advanceSeconds(2.0)
+        s = engine.back(s)
+
+        assertThat(s.stepIndex).isEqualTo(3)
+        assertThat(s.status).isEqualTo(TimerStatus.RUNNING)
+        // 20 s before the accidental Next + 2 s after it: the table never stopped playing.
+        assertThat(engine.readout(s).remainingMillis).isEqualTo(8_000)
+        assertThat(engine.readout(s).phaseEndElapsed).isEqualTo(clocks.elapsed + 8_000)
+        assertThat(s.undo).isNull()
+
+        // Only one level: a second Back goes to the previous step with a fresh timer.
+        s = engine.back(s)
+        assertThat(s.stepIndex).isEqualTo(2)
+        assertThat(engine.readout(s).remainingMillis).isEqualTo(30_000)
+    }
+
+    @Test
+    fun `undo restores a paused step paused, with the time it had`() {
+        var s = start()
+        clocks.advanceSeconds(40.0)
+        s = engine.pause(s)
+        clocks.advanceSeconds(300.0)
+        s = engine.next(s)
+        clocks.advanceSeconds(3.0)
+        s = engine.back(s)
+
+        assertThat(s.stepIndex).isEqualTo(0)
+        assertThat(s.status).isEqualTo(TimerStatus.PAUSED)
+        assertThat(engine.readout(s).remainingMillis).isEqualTo(50_000)
+    }
+
+    @Test
+    fun `back after the undo window goes to the previous step with a fresh timer`() {
+        var s = start().nextTimes(3)
+        clocks.advanceSeconds(20.0)
+        s = engine.next(s)
+        clocks.advanceSeconds(TimerEngine.UNDO_WINDOW_MS / 1000.0 + 1)
+        s = engine.back(s)
 
         assertThat(s.stepIndex).isEqualTo(3)
         assertThat(engine.readout(s).remainingMillis).isEqualTo(30_000)
+    }
+
+    @Test
+    fun `undo works across the round boundary and restores the round`() {
+        var s = start().nextTimes(10)
+        assertThat(s.round).isEqualTo(1)
+        s = engine.next(s)
+        assertThat(s.round).isEqualTo(2)
+        s = engine.back(s)
+
+        assertThat(s.round).isEqualTo(1)
+        assertThat(s.stepIndex).isEqualTo(s.plan.lastIndex)
+    }
+
+    @Test
+    fun `restart and auto advance drop the undo point`() {
+        var s = engine.next(start())
+        assertThat(engine.back(engine.restartStep(s)).stepIndex).isEqualTo(0)
+        assertThat(engine.back(engine.restartStep(s)).undo).isNull()
+
+        s = engine.next(start(tableRules(autoAdvance = true)))
+        clocks.advanceSeconds(30.0)
+        s = engine.advanceDue(s)
+        assertThat(s.undo).isNull()
+    }
+
+    @Test
+    fun `a user next is ignored in the first half second of a step`() {
+        var s = engine.next(start())
+        clocks.advance(TimerEngine.NEXT_DEBOUNCE_MS - 1)
+        assertThat(engine.next(s, TimerEngine.NEXT_DEBOUNCE_MS)).isEqualTo(s)
+
+        clocks.advance(1)
+        s = engine.next(s, TimerEngine.NEXT_DEBOUNCE_MS)
+        assertThat(s.stepIndex).isEqualTo(2)
+
+        // A time-out (negative step time) never blocks Next.
+        clocks.advanceSeconds(1.0)
+        s = engine.timeOut(s.copy(preset = s.preset.copy(timeOutsPerRound = 1)), Team.RED)
+        assertThat(engine.next(s, TimerEngine.NEXT_DEBOUNCE_MS).stepIndex).isEqualTo(3)
+    }
+
+    @Test
+    fun `a tap landing just after an auto advance does not skip the new step`() {
+        var s = engine.next(start(tableRules(autoAdvance = true))) // turn 1, 30 s
+        clocks.advanceSeconds(30.2)
+        s = engine.advanceDue(s)
+        assertThat(s.stepIndex).isEqualTo(2)
+
+        assertThat(engine.next(s, TimerEngine.NEXT_DEBOUNCE_MS).stepIndex).isEqualTo(2)
+        clocks.advanceSeconds(0.3)
+        assertThat(engine.next(s, TimerEngine.NEXT_DEBOUNCE_MS).stepIndex).isEqualTo(3)
     }
 
     @Test
@@ -320,11 +410,22 @@ class TimerEngineTest {
         assertThat(s.actors).containsExactly(ActionActor(0, 2), ActionActor(1, 0))
         s = engine.next(s)
         assertThat(s.step.actionSlot).isEqualTo(2)
-        assertThat(s.actors).hasSize(2)
+        // Last slot of the turn: the one hero left (seat 1) is picked automatically.
+        assertThat(s.actors).containsExactly(ActionActor(0, 2), ActionActor(1, 0), ActionActor(2, 1))
 
         s = engine.next(s) // turn 2
         assertThat(s.step.turn).isEqualTo(2)
         assertThat(s.actors).isEmpty()
+    }
+
+    @Test
+    fun `last hero is not guessed when an earlier slot was not recorded`() {
+        var s = start(tableRules(actionEnabled = true), slots = 3).nextTimes(2)
+        s = engine.heroResolves(s, seat = 2)
+        s = engine.next(engine.next(s)) // slot 1 skipped without a hero
+
+        assertThat(s.step.actionSlot).isEqualTo(2)
+        assertThat(s.actors).containsExactly(ActionActor(0, 2))
     }
 
     @Test
@@ -337,6 +438,87 @@ class TimerEngineTest {
         assertThat(engine.flipTieBreaker(s).tieBreaker).isEqualTo(Team.RED)
         val ended = engine.endMatch(s)
         assertThat(engine.flipTieBreaker(ended)).isEqualTo(ended)
+    }
+
+    @Test
+    fun `an untracked coin is never assumed, its side is set explicitly`() {
+        var s = start()
+        assertThat(engine.flipTieBreaker(s).tieBreaker).isNull()
+
+        s = engine.setTieBreaker(s, Team.BLUE)
+        assertThat(s.tieBreaker).isEqualTo(Team.BLUE)
+        assertThat(engine.flipTieBreaker(s).tieBreaker).isEqualTo(Team.RED)
+        assertThat(engine.setTieBreaker(s, null).tieBreaker).isNull()
+    }
+
+    @Test
+    fun `shot clock counts down on demand, pauses with the timer and clears on the next step`() {
+        var s = start()
+        clocks.advanceSeconds(100.0) // deep in overtime
+        s = engine.startShotClock(s)
+        clocks.advanceSeconds(12.0)
+        assertThat(engine.readout(s).shotClockRemainingMillis).isEqualTo(18_000)
+
+        s = engine.pause(s)
+        clocks.advanceSeconds(60.0)
+        assertThat(engine.readout(s).shotClockRemainingMillis).isEqualTo(18_000)
+        s = engine.resume(s)
+        clocks.advanceSeconds(20.0)
+        assertThat(engine.readout(s).shotClockRemainingMillis).isEqualTo(-2_000)
+        // The phase clock is unaffected.
+        assertThat(engine.readout(s).remainingMillis).isEqualTo(90_000 - 132_000)
+
+        assertThat(engine.readout(engine.cancelShotClock(s)).shotClockRemainingMillis).isNull()
+        assertThat(engine.next(s).shotClock).isNull()
+    }
+
+    @Test
+    fun `shot clock length comes from the preset and can be turned off`() {
+        val s = engine.startShotClock(start(tableRules().copy(shotClockSeconds = 45)))
+        assertThat(engine.readout(s).shotClockRemainingMillis).isEqualTo(45_000)
+
+        val off = start(tableRules().copy(shotClockSeconds = null))
+        assertThat(engine.startShotClock(off)).isEqualTo(off)
+    }
+
+    @Test
+    fun `shot clock survives a reboot rebase`() {
+        var s = engine.startShotClock(start())
+        clocks.advanceSeconds(10.0)
+        s = s.rebased(clocks.elapsed, clocks.wall, currentBootCount = null)
+        clocks.elapsed = 5_000L // reboot: elapsed restarts
+        clocks.wall += 4_000L // 4 s powered off
+
+        val rebased = s.rebased(clocks.elapsed, clocks.wall, currentBootCount = null)
+        assertThat(engine.readout(rebased).shotClockRemainingMillis).isEqualTo(16_000)
+    }
+
+    @Test
+    fun `time-outs add time to the current phase, per team per round`() {
+        val preset = tableRules().copy(timeOutsPerRound = 1, timeOutSeconds = 40)
+        var s = engine.next(start(preset)) // turn 1, 30 s
+        clocks.advanceSeconds(35.0) // 5 s overtime
+        s = engine.timeOut(s, Team.RED)
+
+        assertThat(engine.readout(s).remainingMillis).isEqualTo(35_000)
+        assertThat(engine.readout(s).phaseEndElapsed).isEqualTo(clocks.elapsed + 35_000)
+        assertThat(engine.timeOutsLeft(s, Team.RED)).isEqualTo(0)
+        assertThat(engine.timeOut(s, Team.RED)).isEqualTo(s)
+        assertThat(engine.timeOutsLeft(s, Team.BLUE)).isEqualTo(1)
+
+        s = engine.next(s) // same round: still used
+        assertThat(engine.timeOutsLeft(s, Team.RED)).isEqualTo(0)
+        s = engine.next(s.copy(stepIndex = s.plan.lastIndex)) // round 2
+        assertThat(s.round).isEqualTo(2)
+        assertThat(engine.timeOutsLeft(s, Team.RED)).isEqualTo(1)
+    }
+
+    @Test
+    fun `time-outs are off by default and ignored on untimed steps`() {
+        assertThat(engine.timeOut(start(), Team.RED)).isEqualTo(start())
+        val s = engine.skipToEndOfRound(start(tableRules().copy(timeOutsPerRound = 1)))
+        assertThat(s.step.timed).isFalse()
+        assertThat(engine.timeOut(s, Team.BLUE)).isEqualTo(s)
     }
 
     @Test

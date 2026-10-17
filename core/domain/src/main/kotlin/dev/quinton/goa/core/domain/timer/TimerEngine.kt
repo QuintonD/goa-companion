@@ -17,6 +17,8 @@ data class TimerReadout(
     /** Elapsed timestamp at which the running timed step reaches zero; null otherwise. */
     val phaseEndElapsed: Long?,
     val matchElapsedMillis: Long,
+    /** "Hurry up" shot clock time left (negative = over), null when none is running. */
+    val shotClockRemainingMillis: Long? = null,
 ) {
     val overtime: Boolean get() = remainingMillis != null && remainingMillis < 0
 
@@ -46,8 +48,10 @@ object MatchDuration {
  * Pure state machine for the phase timer. Every operation takes a snapshot and returns the next
  * one; time comes from the injected clocks only. Sequence per round: see [TimerPlan].
  *
- * Navigation (next, back, skip) always leaves the timer running with a fresh step; restart keeps
- * the paused/running state. Ended sessions ignore every operation.
+ * Navigation (next, back, skip) always leaves the timer running with a fresh step, except that
+ * Back within [UNDO_WINDOW_MS] of a Next undoes that Next (the previous step continues where it
+ * was, as if Next had never been tapped). Restart keeps the paused/running state. Ended sessions
+ * ignore every operation.
  */
 class TimerEngine(
     private val elapsed: ElapsedClock,
@@ -80,6 +84,7 @@ class TimerEngine(
             anchorElapsed = now,
             anchorWall = wallNow,
             bootCount = bootCount,
+            stepEnteredAt = now,
         )
         require(snapshot.plan.steps.isNotEmpty()) { "A round needs at least one step" }
         return snapshot
@@ -101,6 +106,7 @@ class TimerEngine(
                 null
             },
             matchElapsedMillis = (s.endedElapsed ?: now) - s.matchStartElapsed,
+            shotClockRemainingMillis = s.shotClock?.let { it.durationMillis - shotElapsed(it, now) },
         )
     }
 
@@ -111,36 +117,84 @@ class TimerEngine(
             status = TimerStatus.PAUSED,
             accumulatedMillis = elapsedInStep(s, now),
             runningSince = null,
+            shotClock = s.shotClock?.let { it.copy(accumulatedMillis = shotElapsed(it, now), runningSince = null) },
         )
     }
 
     fun resume(s: TimerSnapshot): TimerSnapshot {
         if (s.status != TimerStatus.PAUSED) return s
         val now = elapsed.elapsedMillis()
-        return s.stamp(now).copy(status = TimerStatus.RUNNING, runningSince = now)
+        return s.stamp(now).copy(
+            status = TimerStatus.RUNNING,
+            runningSince = now,
+            shotClock = s.shotClock?.copy(runningSince = now),
+        )
     }
 
     fun togglePause(s: TimerSnapshot): TimerSnapshot = if (s.status == TimerStatus.RUNNING) pause(s) else resume(s)
 
-    fun next(s: TimerSnapshot): TimerSnapshot {
+    /**
+     * Next step (the next round after the last one). A user Next passes [debounceMillis]: within
+     * that long of the current step being entered (by a tap or auto-advance) the tap is ignored,
+     * so a double tap can't skip a phase. The step left behind is kept as the [TimerSnapshot.undo]
+     * point.
+     */
+    fun next(s: TimerSnapshot, debounceMillis: Long = 0): TimerSnapshot {
         if (s.status == TimerStatus.ENDED) return s
         val now = elapsed.elapsedMillis()
-        return if (s.stepIndex >= s.plan.lastIndex) {
+        val entered = s.stepEnteredAt
+        if (debounceMillis > 0 && entered != null && now - entered in 0 until debounceMillis) return s
+        val undo = UndoPoint(
+            round = s.round,
+            stepIndex = s.stepIndex,
+            status = s.status,
+            accumulatedMillis = elapsedInStep(s, now),
+            actors = s.actors,
+            timeOutsUsed = s.timeOutsUsed,
+        )
+        val moved = if (s.stepIndex >= s.plan.lastIndex) {
             s.moveTo(round = s.round + 1, index = 0, startedAt = now)
         } else {
             s.moveTo(round = s.round, index = s.stepIndex + 1, startedAt = now)
         }
+        return autoPickLastHero(moved).copy(undo = undo)
     }
 
-    /** Previous step (across round boundaries); on the very first step it restarts it. */
+    /**
+     * Within [UNDO_WINDOW_MS] of step time after a Next, restores the step that Next left, with
+     * its time continuing as if Next had never been tapped. Otherwise moves to the previous step
+     * (across round boundaries) with a fresh timer; on the very first step it restarts it.
+     */
     fun back(s: TimerSnapshot): TimerSnapshot {
         if (s.status == TimerStatus.ENDED) return s
         val now = elapsed.elapsedMillis()
+        val undo = s.undo
+        if (undo != null && elapsedInStep(s, now) <= UNDO_WINDOW_MS && undo.stepIndex in s.plan.steps.indices) {
+            return undoNext(s, undo, now)
+        }
         return when {
             s.stepIndex > 0 -> s.moveTo(round = s.round, index = s.stepIndex - 1, startedAt = now)
             s.round > 1 -> s.moveTo(round = s.round - 1, index = s.plan.lastIndex, startedAt = now)
             else -> s.moveTo(round = 1, index = 0, startedAt = now)
         }
+    }
+
+    private fun undoNext(s: TimerSnapshot, undo: UndoPoint, now: Long): TimerSnapshot {
+        // Time the new step has run counts for the restored step too, unless that one was paused.
+        val carried = if (undo.status == TimerStatus.RUNNING) elapsedInStep(s, now) else 0L
+        val status = if (undo.status == TimerStatus.PAUSED) TimerStatus.PAUSED else s.status
+        return s.stamp(now).copy(
+            round = undo.round,
+            stepIndex = undo.stepIndex,
+            status = status,
+            accumulatedMillis = undo.accumulatedMillis + carried,
+            runningSince = if (status == TimerStatus.RUNNING) now else null,
+            actors = undo.actors,
+            timeOutsUsed = undo.timeOutsUsed,
+            stepEnteredAt = now,
+            undo = null,
+            shotClock = null,
+        )
     }
 
     fun restartStep(s: TimerSnapshot): TimerSnapshot {
@@ -149,6 +203,7 @@ class TimerEngine(
         return s.stamp(now).copy(
             accumulatedMillis = 0,
             runningSince = if (s.status == TimerStatus.RUNNING) now else null,
+            undo = null,
         )
     }
 
@@ -168,6 +223,8 @@ class TimerEngine(
             accumulatedMillis = elapsedInStep(s, now),
             runningSince = null,
             endedElapsed = now,
+            undo = null,
+            shotClock = null,
         )
     }
 
@@ -202,6 +259,7 @@ class TimerEngine(
         if (s.status == TimerStatus.ENDED || !s.step.isAction || slot == null) return s
         if (s.actors.none { it.slot == slot }) return s.copy(actors = s.actors + ActionActor(slot, seat))
         val moved = next(s)
+        if (moved === s) return s
         val nextSlot = moved.step.actionSlot
         return if (nextSlot != null && sameTurn(s, moved)) {
             moved.copy(actors = moved.actors.filterNot { it.slot == nextSlot } + ActionActor(nextSlot, seat))
@@ -213,16 +271,76 @@ class TimerEngine(
     private fun sameTurn(a: TimerSnapshot, b: TimerSnapshot): Boolean =
         b.step.isAction && a.round == b.round && a.step.turn == b.step.turn
 
-    /** Records the Tie Breaker coin being flipped at the table (cross-team initiative tie). */
+    /**
+     * On the last Action slot of a turn, when every earlier slot has its hero recorded, the one
+     * hero left is the one resolving now.
+     */
+    private fun autoPickLastHero(s: TimerSnapshot): TimerSnapshot {
+        val slot = s.step.actionSlot ?: return s
+        if (!s.step.isAction || slot != s.actionSlots - 1 || s.actors.any { it.slot == slot }) return s
+        val earlier = s.actors.filter { it.slot < slot }
+        if (earlier.map { it.slot }.toSet() != (0 until slot).toSet()) return s
+        val left = (0 until s.actionSlots).toSet() - earlier.map { it.seat }.toSet()
+        return if (left.size == 1) s.copy(actors = s.actors + ActionActor(slot, left.single())) else s
+    }
+
+    /**
+     * Records the Tie Breaker coin being flipped at the table (cross-team initiative tie). The
+     * side must be known first ([setTieBreaker]); an untracked coin is left alone.
+     */
     fun flipTieBreaker(s: TimerSnapshot): TimerSnapshot {
         if (s.status == TimerStatus.ENDED) return s
-        return s.copy(tieBreaker = (s.tieBreaker ?: Team.BLUE).opponent)
+        val team = s.tieBreaker ?: return s
+        return s.copy(tieBreaker = team.opponent)
+    }
+
+    /** Sets which team's symbol shows on the Tie Breaker coin (start tracking, or correct it). */
+    fun setTieBreaker(s: TimerSnapshot, team: Team?): TimerSnapshot {
+        if (s.status == TimerStatus.ENDED) return s
+        return s.copy(tieBreaker = team)
+    }
+
+    /** Starts (or restarts) the preset's "Hurry up" shot clock; no-op if the preset has none. */
+    fun startShotClock(s: TimerSnapshot): TimerSnapshot {
+        if (s.status == TimerStatus.ENDED) return s
+        val seconds = s.preset.shotClockSeconds ?: return s
+        val now = elapsed.elapsedMillis()
+        return s.stamp(now).copy(
+            shotClock = ShotClock(
+                durationMillis = seconds * MILLIS_PER_SECOND,
+                runningSince = if (s.status == TimerStatus.RUNNING) now else null,
+            ),
+        )
+    }
+
+    fun cancelShotClock(s: TimerSnapshot): TimerSnapshot =
+        if (s.shotClock == null || s.status == TimerStatus.ENDED) s else s.copy(shotClock = null)
+
+    /** Time-outs [team] may still call this round. */
+    fun timeOutsLeft(s: TimerSnapshot, team: Team): Int =
+        (s.preset.timeOutsPerRound - (s.timeOutsUsed[team] ?: 0)).coerceAtLeast(0)
+
+    /**
+     * [team] calls a time-out: the current timed step gets the preset's time-out seconds added
+     * (also out of overtime). Ignored on untimed steps or when the team has none left this round.
+     */
+    fun timeOut(s: TimerSnapshot, team: Team): TimerSnapshot {
+        if (s.status == TimerStatus.ENDED || !s.step.timed || timeOutsLeft(s, team) <= 0) return s
+        val now = elapsed.elapsedMillis()
+        return s.stamp(now).copy(
+            accumulatedMillis = s.accumulatedMillis - s.preset.timeOutSeconds * MILLIS_PER_SECOND,
+            timeOutsUsed = s.timeOutsUsed + (team to (s.timeOutsUsed[team] ?: 0) + 1),
+            undo = null,
+        )
     }
 
     private fun elapsedInStep(s: TimerSnapshot, now: Long): Long = when (s.status) {
         TimerStatus.RUNNING -> s.accumulatedMillis + (now - s.runningSince!!)
         TimerStatus.PAUSED, TimerStatus.ENDED -> s.accumulatedMillis
     }
+
+    private fun shotElapsed(c: ShotClock, now: Long): Long =
+        c.accumulatedMillis + (c.runningSince?.let { now - it } ?: 0L)
 
     private fun TimerSnapshot.stamp(now: Long): TimerSnapshot = copy(anchorElapsed = now, anchorWall = wallAt(now))
 
@@ -239,6 +357,10 @@ class TimerEngine(
             runningSince = startedAt,
             accumulatedMillis = 0,
             actors = if (sameTurn) actors else emptyList(),
+            stepEnteredAt = startedAt,
+            timeOutsUsed = if (round == this.round) timeOutsUsed else emptyMap(),
+            undo = null,
+            shotClock = null,
         )
     }
 
@@ -254,5 +376,11 @@ class TimerEngine(
 
     companion object {
         private const val MAX_AUTO_STEPS = 10_000
+
+        /** A user Next is ignored this soon after a step starts (double-tap guard). */
+        const val NEXT_DEBOUNCE_MS = 500L
+
+        /** Back undoes the last Next while the new step has run for at most this long. */
+        const val UNDO_WINDOW_MS = 15_000L
     }
 }

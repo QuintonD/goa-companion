@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -46,6 +47,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -62,6 +64,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -82,9 +85,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
@@ -111,6 +116,8 @@ import dev.quinton.goa.feature.draft.ui.TileState
 import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
 import dev.quinton.goa.feature.draft.ui.goaSegmentedColors
 import dev.quinton.goa.feature.draft.ui.goaTonalButtonColors
+import dev.quinton.goa.feature.draft.ui.plural
+import dev.quinton.goa.feature.draft.ui.teamFilterChipColors
 import dev.quinton.goa.feature.draft.ui.teamLabel
 import dev.quinton.goa.feature.draft.ui.teamName
 import dev.quinton.goa.feature.draft.ui.tokens
@@ -119,6 +126,8 @@ import kotlin.math.roundToInt
 /** Callbacks from the setup wizard; a single object keeps the stateless screen signature short. */
 interface SetupActions {
     fun togglePlayer(id: String) {}
+
+    fun clearPlayers() {}
 
     fun quickAdd(name: String) {}
 
@@ -192,6 +201,7 @@ fun DraftSetupDestination(
     val actions = remember(viewModel) {
         object : SetupActions {
             override fun togglePlayer(id: String) = viewModel.togglePlayer(id)
+            override fun clearPlayers() = viewModel.clearPlayers()
             override fun quickAdd(name: String) = viewModel.quickAddPlayer(name)
             override fun openPlayerEditor() = onAddPlayer()
             override fun setTeamMode(mode: TeamMode) = viewModel.setTeamMode(mode)
@@ -245,7 +255,8 @@ fun DraftSetupScreen(state: SetupUiState, actions: SetupActions) {
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            Column(Modifier.fillMaxSize()) {
+            // imePadding: the keyboard (quick add) must not cover "Next: Teams".
+            Column(Modifier.fillMaxSize().imePadding()) {
                 StageIndicator(state.stage, onSelect = actions::goTo)
                 AnimatedContent(
                     targetState = state.stage,
@@ -303,7 +314,8 @@ private fun StageIndicator(current: SetupStage, onSelect: (SetupStage) -> Unit) 
                     }
                     .padding(vertical = Spacing.xs),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
+                // Top: the bars stay level even if one label wraps at a large font scale.
+                verticalArrangement = Arrangement.Top,
             ) {
                 Box(
                     Modifier
@@ -313,12 +325,13 @@ private fun StageIndicator(current: SetupStage, onSelect: (SetupStage) -> Unit) 
                 )
                 Spacer(Modifier.height(Spacing.xs))
                 Text(
-                    "${stage.ordinal + 1}. ${stage.title}",
+                    "${stage.ordinal + 1}. ${stage.shortTitle}",
                     style = MaterialTheme.typography.labelMedium,
                     color = activeColor(active),
                     fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
+                    modifier = Modifier.semantics { contentDescription = "${stage.ordinal + 1}. ${stage.title}" },
                 )
             }
         }
@@ -386,12 +399,28 @@ private fun androidx.compose.foundation.lazy.LazyListScope.playersStage(state: S
         }
     } else {
         item {
-            Text(
-                "${state.playerCount} selected · 2–${SetupUiState.MAX_PLAYERS} players",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.semantics { heading() },
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "${state.playerCount} selected · 2–${SetupUiState.MAX_PLAYERS} players",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    if (state.form.lastGame && state.playerCount > 0) {
+                        Text(
+                            "Same players and teams as last game",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary,
+                        )
+                    }
+                }
+                if (state.playerCount > 0) {
+                    TextButton(onClick = actions::clearPlayers, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Text("Clear")
+                    }
+                }
+            }
         }
         items(state.players, key = { it.player.id }) { option ->
             PlayerRow(option, selected = option.player.id in state.form.selected, onToggle = {
@@ -403,6 +432,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.playersStage(state: S
 
 @Composable
 private fun ResumeCard(resume: ResumeInfo, actions: SetupActions) {
+    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     Surface(
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
@@ -410,19 +440,40 @@ private fun ResumeCard(resume: ResumeInfo, actions: SetupActions) {
     ) {
         Column(Modifier.fillMaxWidth().padding(Spacing.lg)) {
             Text(
-                "Draft in progress",
+                if (resume.complete) "Draft complete" else "Draft in progress",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
             Text("${resume.title} · ${resume.detail}", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(Spacing.md))
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Button(onClick = actions::resume, modifier = Modifier.heightIn(min = 48.dp)) { Text("Resume") }
-                TextButton(onClick = actions::discardActive, modifier = Modifier.heightIn(min = 48.dp)) {
+                Button(onClick = actions::resume, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(if (resume.complete) "Open" else "Resume")
+                }
+                TextButton(onClick = { confirmDiscard = true }, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text("Discard")
                 }
             }
         }
+    }
+    if (confirmDiscard) {
+        // Same confirmation as the board's "Discard draft".
+        ConfirmDialog(
+            title = "Discard this draft?",
+            message = if (resume.complete) {
+                "The finished draft is thrown away. Nothing is saved to the match log."
+            } else {
+                "Bans and picks so far are thrown away. Nothing is saved to the match log."
+            },
+            confirmLabel = "Discard",
+            dismissLabel = if (resume.complete) "Keep it" else "Keep drafting",
+            destructive = true,
+            onConfirm = {
+                confirmDiscard = false
+                actions.discardActive()
+            },
+            onDismiss = { confirmDiscard = false },
+        )
     }
 }
 
@@ -500,7 +551,7 @@ private fun ratingLabel(option: PlayerOption): String {
     val r = option.rating ?: return "Unrated"
     if (r.games == 0) return "Unrated"
     val provisional = if (r.provisional) " · provisional" else ""
-    return "Elo ${r.value.roundToInt()} · ${r.games} games$provisional"
+    return "Elo ${r.value.roundToInt()} · ${plural(r.games, "game")}$provisional"
 }
 
 // ---------------------------------------------------------------- Teams
@@ -517,7 +568,17 @@ private fun TeamsStage(state: SetupUiState, actions: SetupActions) {
                     selected = form.teamMode == mode,
                     onClick = { actions.setTeamMode(mode) },
                     shape = SegmentedButtonDefaults.itemShape(i, TeamMode.entries.size),
-                    label = { Text(mode.label, maxLines = 2, textAlign = TextAlign.Center) },
+                    label = {
+                        Text(
+                            mode.label,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.semantics {
+                                if (mode == TeamMode.BALANCED) contentDescription = "Balance by Elo"
+                            },
+                        )
+                    },
                 )
             }
         }
@@ -557,7 +618,7 @@ private fun TeamColumns(state: SetupUiState, actions: SetupActions) {
                     val seats = state.seats.count { it.team == team }
                     TeamBadge(team)
                     Text(
-                        "${ids.size} players · $seats heroes",
+                        "${plural(ids.size, "player")} · ${plural(seats, "hero", "heroes")}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -634,7 +695,7 @@ private fun SeatLayoutCard(state: SetupUiState, actions: SetupActions) {
             val name = solo?.let { state.player(it)?.player?.name } ?: "The solo player"
             InfoCard(
                 "Official 3-player setup",
-                "$name controls two heroes; one of them uses its Handicap card. " +
+                "$name controls two heroes and replaces the Gold card of one of them with its Handicap card. " +
                     "Put your most experienced player alone.",
             )
         }
@@ -707,7 +768,7 @@ private fun PlayerDraftSetup(state: SetupUiState, actions: SetupActions) {
                 },
         )
         for (team in Team.entries) {
-            SectionCard(title = "${teamLabel(team)} captain") {
+            SectionCard(title = "${teamLabel(team)} captain", titleColor = teamColor(team)) {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -775,7 +836,18 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
                 }
             }
         }
-        SectionCard(title = "Hero pool", subtitle = "${state.candidateCount} heroes eligible") {
+        SectionCard(
+            title = "Hero pool",
+            subtitle = "${plural(state.candidateCount, "hero", "heroes")} eligible",
+        ) {
+            state.poolNote?.let { note ->
+                Text(
+                    note,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = GoaTheme.colors.unverified,
+                    modifier = Modifier.padding(bottom = Spacing.sm),
+                )
+            }
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 PoolSource.entries.forEachIndexed { i, source ->
                     SegmentedButton(
@@ -861,7 +933,7 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
         }
     }
     if (choosing) {
-        HeroChooserSheet(state, onDismiss = { choosing = false }, onDone = {
+        HeroChooserSheet(state, onDone = {
             actions.setCustomSelection(it)
             choosing = false
         })
@@ -879,11 +951,18 @@ private fun Hint(text: String) {
     Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
+/**
+ * Custom pool picker. Opens fully expanded with the apply button pinned below the grid, and
+ * dismissing the sheet (swipe, scrim, Back) applies the selection too: nothing chosen is lost.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HeroChooserSheet(state: SetupUiState, onDismiss: () -> Unit, onDone: (Set<String>) -> Unit) {
-    var selection by remember { mutableStateOf(state.form.customSelection) }
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+private fun HeroChooserSheet(state: SetupUiState, onDone: (Set<String>) -> Unit) {
+    var selection by rememberSaveable { mutableStateOf(state.form.customSelection.toList()) }
+    ModalBottomSheet(
+        onDismissRequest = { onDone(selection.toSet()) },
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
         Column(Modifier.padding(horizontal = Spacing.screen)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -891,12 +970,13 @@ private fun HeroChooserSheet(state: SetupUiState, onDismiss: () -> Unit, onDone:
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = { selection = state.heroes.map { it.id }.toSet() }) { Text("All") }
-                TextButton(onClick = { selection = emptySet() }) { Text("None") }
+                TextButton(onClick = { selection = state.heroes.map { it.id } }) { Text("All") }
+                TextButton(onClick = { selection = emptyList() }) { Text("None") }
             }
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(96.dp),
-                modifier = Modifier.height(420.dp),
+                columns = GridCells.Adaptive(88.dp),
+                // Takes the room left over; the button below always stays on screen.
+                modifier = Modifier.weight(1f, fill = false),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
                 items(state.heroes, key = { it.id }) { hero ->
@@ -910,9 +990,9 @@ private fun HeroChooserSheet(state: SetupUiState, onDismiss: () -> Unit, onDone:
                 }
             }
             Button(
-                onClick = { onDone(selection) },
+                onClick = { onDone(selection.toSet()) },
                 modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.md).heightIn(min = 52.dp),
-            ) { Text("Use ${selection.size} heroes") }
+            ) { Text("Use ${plural(selection.size, "hero", "heroes")}") }
         }
     }
 }
@@ -946,7 +1026,13 @@ private fun CoinStage(state: SetupUiState, actions: SetupActions) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Team.entries.forEach { team ->
                 FilterChip(
-                    colors = goaFilterChipColors(),
+                    colors = teamFilterChipColors(team),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = teamA == team,
+                        borderColor = teamColor(team).copy(alpha = 0.6f),
+                        selectedBorderColor = teamColor(team),
+                    ),
                     selected = teamA == team,
                     onClick = { actions.setTeamA(team) },
                     label = { Text("${teamLabel(team)} shows") },

@@ -9,6 +9,7 @@ import dev.quinton.goa.core.domain.timer.TimerStatus
 import dev.quinton.goa.core.domain.timer.TimerStep
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.Match
+import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.feature.timer.TimerText
 
@@ -40,10 +41,11 @@ internal object TimerUiMapper {
         val step = r.step
         val firstCue = step.cues.filter { it > 0 }.maxOrNull()
         val remaining = r.remainingMillis
+        val seatList = if (step.isAction && seats != null && seats.isNotEmpty()) seatUi(s, step, seats) else null
         return ActiveUiState(
             presetName = s.preset.name,
             round = r.round,
-            title = TimerText.stepTitle(step),
+            title = seatList?.firstOrNull { it.acting }?.let(::actingTitle) ?: TimerText.stepTitle(step),
             context = TimerText.stepContext(step, s.preset, s.endOfRound.size, s.actionSlots),
             kind = step.phase?.kind,
             section = step.section,
@@ -61,17 +63,54 @@ internal object TimerUiMapper {
                 currentTurn = step.turn,
             ),
             checklist = if (step.section == RoundSection.ROUND_END) checklist(s, step) else null,
-            seats = if (step.isAction && seats != null && seats.isNotEmpty()) seatUi(s, step, seats) else null,
+            seats = seatList,
             actionSlot = step.actionSlot,
             actionSlots = s.actionSlots,
-            nextLabel = nextLabel(s),
+            nextLabel = TimerText.nextLabel(s),
             tieBreaker = s.tieBreaker,
             matchClock = TimerText.duration(r.matchElapsedMillis, roundUp = false),
             autoAdvance = s.preset.autoAdvance,
             alertsOff = alertsOff,
+            hint = TimerText.stepHint(step),
+            shotClock = r.shotClockRemainingMillis?.let { shotClock(it, s.shotClock?.durationMillis ?: 1L) },
+            shotClockSeconds = s.preset.shotClockSeconds,
+            timeOuts = timeOuts(s, step),
+            volumeKeys = s.preset.volumeKeys,
             heroIds = seats.orEmpty().mapNotNull { it.heroId },
         )
     }
+
+    /** "Mrak · Ben": who is resolving now in the Action timer. */
+    private fun actingTitle(seat: SeatUi): String = seat.playerName?.let { "${seat.heroName} · $it" } ?: seat.heroName
+
+    private fun shotClock(remaining: Long, duration: Long): ShotClockUi {
+        val left = remaining.coerceAtLeast(0)
+        return ShotClockUi(
+            clock = TimerText.duration(left, roundUp = true),
+            spokenClock = if (remaining <= 0) {
+                "Hurry up: time"
+            } else {
+                "Hurry up, ${TimerText.spokenDuration((left + 999) / 1000)} left"
+            },
+            fraction = (left.toFloat() / duration.coerceAtLeast(1)).coerceIn(0f, 1f),
+            over = remaining <= 0,
+            warning = remaining in 1..SHOT_WARNING_MS,
+        )
+    }
+
+    private fun timeOuts(s: TimerSnapshot, step: TimerStep): TimeOutsUi? {
+        val per = s.preset.timeOutsPerRound
+        if (per <= 0) return null
+        fun left(team: Team) = (per - (s.timeOutsUsed[team] ?: 0)).coerceAtLeast(0)
+        return TimeOutsUi(
+            seconds = s.preset.timeOutSeconds,
+            redLeft = left(Team.RED),
+            blueLeft = left(Team.BLUE),
+            usable = step.timed,
+        )
+    }
+
+    private const val SHOT_WARNING_MS = 10_000L
 
     private fun checklist(s: TimerSnapshot, step: TimerStep): List<ChecklistItemUi> {
         val current = step.endStepNumber ?: (s.endOfRound.size + 1)
@@ -110,17 +149,6 @@ internal object TimerUiMapper {
                 resolved = i in resolved,
                 acting = i == acting,
             )
-        }
-    }
-
-    private fun nextLabel(s: TimerSnapshot): String {
-        val nextIndex = s.stepIndex + 1
-        if (nextIndex > s.plan.lastIndex) return "Start round ${s.round + 1}"
-        val next = s.plan.steps[nextIndex]
-        return when {
-            next.isAction -> "Next hero"
-            next.section == RoundSection.TURN && next.turn != s.step.turn -> "Next: Turn ${next.turn}"
-            else -> "Next: ${TimerText.stepTitle(next)}"
         }
     }
 

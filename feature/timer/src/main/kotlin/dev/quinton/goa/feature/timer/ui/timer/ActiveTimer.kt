@@ -1,6 +1,10 @@
 package dev.quinton.goa.feature.timer.ui.timer
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -13,20 +17,25 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,6 +53,7 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SkipNext
+import androidx.compose.material.icons.outlined.Toll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -78,10 +88,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
-import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
-import dev.quinton.goa.core.designsystem.component.TeamBadge
-import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.timer.RoundSection
@@ -92,57 +99,44 @@ import dev.quinton.goa.feature.timer.ui.components.RingTone
 import dev.quinton.goa.feature.timer.ui.components.RoundPips
 import dev.quinton.goa.feature.timer.ui.components.goaTonalIconColors
 import dev.quinton.goa.feature.timer.ui.components.rememberReducedMotion
-import dev.quinton.goa.feature.timer.ui.components.teamName
 import dev.quinton.goa.feature.timer.ui.components.timerDigits
 
 @Composable
 internal fun ActiveTimer(state: ActiveUiState, actions: TimerActions) {
     var confirmEnd by remember { mutableStateOf(false) }
+    var coinDialog by remember { mutableStateOf(false) }
     KeepScreenOn()
-    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().statusBarsPadding()) {
-            TimerHeader(state, actions, onEnd = { confirmEnd = true })
-            if (state.alertsOff) {
-                AlertsOffBanner(
-                    onOpenSettings = actions.onOpenNotificationSettings,
-                    onDismiss = actions.onDismissAlertsBanner,
-                    modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.sm),
-                )
-            }
-            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-                val ringMax = min(maxWidth - Spacing.xl * 2, maxHeight * 0.62f).coerceAtLeast(160.dp)
-                val viewport = maxHeight
-                Column(
-                    Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .heightIn(min = viewport)
-                        .padding(horizontal = Spacing.screen),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    RoundPips(state.pips, state.round, Modifier.padding(top = Spacing.sm))
-                    Spacer(Modifier.height(Spacing.lg))
-                    PhaseHeading(state)
-                    Spacer(Modifier.height(Spacing.lg))
-                    val inChecklist = state.checklist != null
-                    if (!inChecklist || state.timed) {
-                        TimerDial(state, if (inChecklist) ringMax * 0.62f else ringMax, actions.onTogglePause)
-                    } else {
-                        ChecklistStepCard(state, actions.onTogglePause)
+    VolumeKeyControls(
+        enabled = state.volumeKeys,
+        focusKey = "${state.round}:${state.title}:${state.context}",
+        onNext = actions.onNext,
+        onTogglePause = actions.onTogglePause,
+    ) {
+        Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
+            BoxWithConstraints(
+                Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(
+                        WindowInsets.statusBars.union(WindowInsets.displayCutout)
+                            .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
+                    ),
+            ) {
+                val header: @Composable () -> Unit = {
+                    TimerHeader(state, actions, onEnd = { confirmEnd = true }, onCoin = { coinDialog = true })
+                    if (state.alertsOff) {
+                        AlertsOffBanner(
+                            onOpenSettings = actions.onOpenNotificationSettings,
+                            onDismiss = actions.onDismissAlertsBanner,
+                            modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.sm),
+                        )
                     }
-                    state.seats?.let { seats ->
-                        Spacer(Modifier.height(Spacing.lg))
-                        ResolvingHeroes(seats, actions.onHeroResolves)
-                    }
-                    state.checklist?.let { items ->
-                        Spacer(Modifier.height(Spacing.lg))
-                        EndOfRoundChecklist(items, actions.onOpenLevels)
-                    }
-                    Spacer(Modifier.height(Spacing.lg))
+                }
+                if (maxWidth > maxHeight) {
+                    LandscapeTimer(state, actions, header)
+                } else {
+                    PortraitTimer(state, actions, header)
                 }
             }
-            TimerControls(state, actions)
         }
     }
     if (confirmEnd) {
@@ -165,11 +159,142 @@ internal fun ActiveTimer(state: ActiveUiState, actions: TimerActions) {
             dismissButton = { TextButton(onClick = { confirmEnd = false }) { Text("Keep playing") } },
         )
     }
+    if (coinDialog) {
+        CoinSideDialog(
+            current = state.tieBreaker,
+            onPick = {
+                coinDialog = false
+                actions.onSetCoin(it)
+            },
+            onDismiss = { coinDialog = false },
+        )
+    }
+}
+
+/** Portrait: header, then a scrolling column (pips, phase, dial, extras), controls at the bottom. */
+@Composable
+private fun PortraitTimer(state: ActiveUiState, actions: TimerActions, header: @Composable () -> Unit) {
+    Column(Modifier.fillMaxSize()) {
+        header()
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+            val ringMax = min(maxWidth - Spacing.xl * 2, maxHeight * 0.62f).coerceAtLeast(160.dp)
+            val viewport = maxHeight
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = viewport)
+                    .padding(horizontal = Spacing.screen),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                RoundPips(state.pips, state.round, Modifier.padding(top = Spacing.sm))
+                Spacer(Modifier.height(Spacing.lg))
+                PhaseHeading(state)
+                Spacer(Modifier.height(Spacing.lg))
+                PrimaryArea(state, actions, ringMax * dialScale(state))
+                StepDetail(state, actions.onOpenLevels)
+                SecondaryArea(state, actions)
+                Spacer(Modifier.height(Spacing.lg))
+            }
+        }
+        TimerControls(state, actions)
+    }
+}
+
+/** Landscape: the dial fills the left half; header, phase, extras and controls sit on the right. */
+@Composable
+private fun LandscapeTimer(state: ActiveUiState, actions: TimerActions, header: @Composable () -> Unit) {
+    Row(Modifier.fillMaxSize()) {
+        BoxWithConstraints(
+            Modifier.weight(0.45f).fillMaxHeight().padding(Spacing.md),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (state.checklist != null && !state.timed) {
+                Column(Modifier.verticalScroll(rememberScrollState())) { ChecklistStepCard(state, actions.onNext) }
+            } else {
+                TimerDial(state, min(maxWidth, maxHeight).coerceAtLeast(120.dp), actions.onTogglePause)
+            }
+        }
+        Column(Modifier.weight(0.55f).fillMaxHeight()) {
+            header()
+            Column(
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = Spacing.screen),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                RoundPips(state.pips, state.round, Modifier.padding(top = Spacing.xs))
+                Spacer(Modifier.height(Spacing.md))
+                PhaseHeading(state)
+                StepDetail(state, actions.onOpenLevels)
+                SecondaryArea(state, actions)
+                Spacer(Modifier.height(Spacing.md))
+            }
+            TimerControls(state, actions)
+        }
+    }
+}
+
+/** The dial shrinks where more must fit under it: hero tiles (Action) or the checklist (Upgrade). */
+private fun dialScale(state: ActiveUiState): Float = when {
+    state.seats != null -> 0.55f
+    state.checklist != null -> 0.8f
+    else -> 1f
 }
 
 @Composable
-private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -> Unit) {
-    var menu by remember { mutableStateOf(false) }
+private fun PrimaryArea(state: ActiveUiState, actions: TimerActions, size: Dp) {
+    if (state.checklist == null || state.timed) {
+        TimerDial(state, size, actions.onTogglePause)
+    } else {
+        ChecklistStepCard(state, actions.onNext)
+    }
+}
+
+/** The rule text of a timed end-of-round step (Level Up: mandatory), shown under the dial. */
+@Composable
+private fun StepDetail(state: ActiveUiState, onOpenLevels: () -> Unit) {
+    val detail = state.currentDetail?.takeIf { state.timed } ?: return
+    Spacer(Modifier.height(Spacing.md))
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            detail,
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        )
+    }
+    // Timed Level Up: the level ladder sits right under the rule, above the fold.
+    if (state.checklist?.any { it.state == ChecklistState.CURRENT && it.id == LEVEL_UP_STEP } == true) {
+        Spacer(Modifier.height(Spacing.sm))
+        LevelLadderButton(onOpenLevels, label = "Level costs & card Tiers")
+    }
+}
+
+@Composable
+private fun SecondaryArea(state: ActiveUiState, actions: TimerActions) {
+    TableRulesBar(state, actions)
+    state.seats?.let { seats ->
+        Spacer(Modifier.height(Spacing.lg))
+        ResolvingHeroes(seats, actions.onHeroResolves)
+    }
+    state.checklist?.let { items ->
+        Spacer(Modifier.height(Spacing.lg))
+        // Untimed steps: the ladder button sits in the Level Up row (timed: under the rule, StepDetail).
+        EndOfRoundChecklist(items, actions.onOpenLevels.takeIf { !state.timed })
+    }
+}
+
+@Composable
+private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -> Unit, onCoin: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().padding(start = Spacing.screen, end = Spacing.xs, top = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -194,119 +319,93 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
                 },
             )
         }
-        if (state.tieBreaker != null) TieBreakerChip(state, actions.onFlipCoin)
-        // Large text needs the room for "Round N": the ladder moves into the menu.
-        val largeText = LocalDensity.current.fontScale > LARGE_FONT_SCALE
-        if (!largeText) {
-            IconButton(onClick = actions.onOpenLevels) {
-                Icon(Icons.Outlined.MilitaryTech, contentDescription = "Levels and defeats")
-            }
-        }
-        IconButton(onClick = onEnd) { Icon(Icons.Outlined.Flag, contentDescription = "End match") }
-        Box {
-            IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More options") }
-            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                DropdownMenuItem(
-                    text = { Text("Restart phase") },
-                    leadingIcon = { Icon(Icons.Outlined.Replay, contentDescription = null) },
-                    onClick = {
-                        menu = false
-                        actions.onRestart()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text("Skip to end of round") },
-                    leadingIcon = { Icon(Icons.Outlined.SkipNext, contentDescription = null) },
-                    enabled = state.section != RoundSection.ROUND_END,
-                    onClick = {
-                        menu = false
-                        actions.onSkipToEnd()
-                    },
-                )
-                if (state.tieBreaker == null) {
-                    DropdownMenuItem(
-                        text = { Text("Track Tie Breaker coin") },
-                        onClick = {
-                            menu = false
-                            actions.onFlipCoin()
-                        },
-                    )
-                }
-                DropdownMenuItem(
-                    text = { Text("End match…") },
-                    leadingIcon = { Icon(Icons.Outlined.Flag, contentDescription = null) },
-                    onClick = {
-                        menu = false
-                        onEnd()
-                    },
-                )
-                if (largeText) {
-                    DropdownMenuItem(
-                        text = { Text("Levels & defeats") },
-                        leadingIcon = { Icon(Icons.Outlined.MilitaryTech, contentDescription = null) },
-                        onClick = {
-                            menu = false
-                            actions.onOpenLevels()
-                        },
-                    )
-                }
-                DropdownMenuItem(
-                    text = { Text("Rules") },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = null) },
-                    onClick = {
-                        menu = false
-                        actions.onOpenRules()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text("Settings") },
-                    leadingIcon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
-                    onClick = {
-                        menu = false
-                        actions.onSettings()
-                    },
-                )
-            }
-        }
+        TimerTopActions(state, actions, onEnd, onCoin)
     }
 }
 
-/** End-of-round id of the Level Up step (match-setup.json). */
-private const val LEVEL_UP_STEP = "level_up"
-
-/** On the current Level Up step: the level ladder (costs, max Tier) one tap away. */
+/**
+ * Top-bar actions, left to right: Tie Breaker coin (when tracked), Levels & defeats (rules
+ * reference), End match, overflow menu (with Rules).
+ */
 @Composable
-private fun LevelLadderButton(onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, contentPadding = PaddingValues(horizontal = Spacing.md)) {
-        Icon(Icons.Outlined.MilitaryTech, contentDescription = null, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(Spacing.xs))
-        Text("Levels")
+private fun RowScope.TimerTopActions(
+    state: ActiveUiState,
+    actions: TimerActions,
+    onEnd: () -> Unit,
+    onCoin: () -> Unit,
+) {
+    var menu by remember { mutableStateOf(false) }
+    if (state.tieBreaker != null) TieBreakerChip(state.tieBreaker, actions.onFlipCoin)
+    // Large text needs the room for "Round N": the ladder moves into the menu.
+    val largeText = LocalDensity.current.fontScale > LARGE_FONT_SCALE
+    if (!largeText) {
+        IconButton(onClick = actions.onOpenLevels) {
+            Icon(Icons.Outlined.MilitaryTech, contentDescription = "Levels and defeats")
+        }
     }
-}
-
-/** Coin side currently showing; tap when the coin is flipped at the table. */
-@Composable
-private fun TieBreakerChip(state: ActiveUiState, onFlip: () -> Unit) {
-    val team = state.tieBreaker ?: return
-    val color = teamColor(team)
-    Surface(
-        onClick = onFlip,
-        shape = RoundedCornerShape(50),
-        color = color.copy(alpha = 0.12f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.6f)),
-        modifier = Modifier
-            .heightIn(min = 48.dp)
-            .padding(vertical = Spacing.xs)
-            .semantics {
-                contentDescription = "Tie Breaker coin shows ${teamName(team)}"
-                stateDescription = teamName(team)
-            },
-    ) {
-        Row(
-            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TeamBadge(team)
+    IconButton(onClick = onEnd) { Icon(Icons.Outlined.Flag, contentDescription = "End match") }
+    Box {
+        IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More options") }
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            DropdownMenuItem(
+                text = { Text("Restart phase") },
+                leadingIcon = { Icon(Icons.Outlined.Replay, contentDescription = null) },
+                onClick = {
+                    menu = false
+                    actions.onRestart()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Skip to end of round") },
+                leadingIcon = { Icon(Icons.Outlined.SkipNext, contentDescription = null) },
+                enabled = state.section != RoundSection.ROUND_END,
+                onClick = {
+                    menu = false
+                    actions.onSkipToEnd()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(if (state.tieBreaker == null) "Track Tie Breaker coin…" else "Tie Breaker coin…") },
+                leadingIcon = { Icon(Icons.Outlined.Toll, contentDescription = null) },
+                onClick = {
+                    menu = false
+                    onCoin()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("End match…") },
+                leadingIcon = { Icon(Icons.Outlined.Flag, contentDescription = null) },
+                onClick = {
+                    menu = false
+                    onEnd()
+                },
+            )
+            if (largeText) {
+                DropdownMenuItem(
+                    text = { Text("Levels & defeats") },
+                    leadingIcon = { Icon(Icons.Outlined.MilitaryTech, contentDescription = null) },
+                    onClick = {
+                        menu = false
+                        actions.onOpenLevels()
+                    },
+                )
+            }
+            DropdownMenuItem(
+                text = { Text("Rules") },
+                leadingIcon = { Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = null) },
+                onClick = {
+                    menu = false
+                    actions.onOpenRules()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Settings") },
+                leadingIcon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
+                onClick = {
+                    menu = false
+                    actions.onSettings()
+                },
+            )
         }
     }
 }
@@ -343,6 +442,15 @@ private fun PhaseHeading(state: ActiveUiState) {
             modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
         )
     }
+    state.hint?.let { hint ->
+        Text(
+            hint,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs),
+        )
+    }
 }
 
 @Composable
@@ -355,7 +463,7 @@ private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
         else -> RingTone.NORMAL
     }
     val status = when {
-        state.paused -> "Paused · tap to resume"
+        state.paused -> "Tap to resume"
         state.overtime -> "Overtime"
         !state.timed -> "Elapsed · tap to pause"
         else -> "Tap to pause"
@@ -370,6 +478,19 @@ private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
     // Sized from the ring, not the font scale: the digits are already as big as they can be.
     val digitSize = with(density) { (size * if (state.clock.length > 5) 0.2f else 0.24f).toSp() }
     val labelSize = with(density) { (size * 0.05f).coerceAtLeast(12.dp).toSp() }
+    val pausedSize = with(density) { (size * 0.085f).coerceAtLeast(16.dp).toSp() }
+    // Paused must read from across the table: the digits blink slowly (unless reduced motion).
+    val reduced = rememberReducedMotion()
+    val blink = if (state.paused && !reduced) {
+        rememberInfiniteTransition(label = "paused").animateFloat(
+            initialValue = 1f,
+            targetValue = 0.3f,
+            animationSpec = infiniteRepeatable(tween(PAUSE_BLINK_MS), RepeatMode.Reverse),
+            label = "blink",
+        ).value
+    } else {
+        1f
+    }
     CountdownRing(
         fraction = state.fraction,
         tone = tone,
@@ -383,37 +504,42 @@ private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
             },
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (state.paused) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Filled.Pause,
+                        contentDescription = null,
+                        modifier = Modifier.size(with(density) { pausedSize.toDp() }),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        "PAUSED",
+                        style = MaterialTheme.typography.titleLarge.copy(fontSize = pausedSize),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
             Text(
                 state.clock,
                 style = timerDigits(
                     MaterialTheme.typography.displayLarge,
                 ).copy(fontSize = digitSize, lineHeight = digitSize),
                 color = digitColor,
+                modifier = Modifier.alpha(blink),
             )
             Spacer(Modifier.height(Spacing.xs))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (state.paused) {
-                    Icon(
-                        Icons.Filled.Pause,
-                        contentDescription = null,
-                        modifier = Modifier.size(with(density) { labelSize.toDp() }),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.width(Spacing.xs))
-                }
-                Text(
-                    status.uppercase(),
-                    style = MaterialTheme.typography.labelLarge.copy(fontSize = labelSize),
-                    color = with(MaterialTheme.colorScheme) { if (state.overtime) error else onSurfaceVariant },
-                )
-            }
+            Text(
+                status.uppercase(),
+                style = MaterialTheme.typography.labelLarge.copy(fontSize = labelSize),
+                color = with(MaterialTheme.colorScheme) { if (state.overtime) error else onSurfaceVariant },
+            )
         }
     }
 }
 
-/** Untimed end-of-round step: a medallion with the step number and the rule text. */
+/** Untimed end-of-round step: a medallion with the step number and the rule text; tap = Next. */
 @Composable
-private fun ChecklistStepCard(state: ActiveUiState, onToggle: () -> Unit) {
+private fun ChecklistStepCard(state: ActiveUiState, onNext: () -> Unit) {
     val current = state.checklist?.firstOrNull { it.state == ChecklistState.CURRENT }
     val colors = MaterialTheme.colorScheme
     Column(
@@ -422,7 +548,7 @@ private fun ChecklistStepCard(state: ActiveUiState, onToggle: () -> Unit) {
             .clip(MaterialTheme.shapes.large)
             .background(colors.surface)
             .border(1.dp, GoaTheme.colors.engravedBorder, MaterialTheme.shapes.large)
-            .clickable(onClickLabel = if (state.paused) "Resume" else "Pause", onClick = onToggle)
+            .clickable(onClickLabel = "Step done, next", role = Role.Button, onClick = onNext)
             .padding(Spacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -446,15 +572,16 @@ private fun ChecklistStepCard(state: ActiveUiState, onToggle: () -> Unit) {
             Spacer(Modifier.height(Spacing.sm))
         }
         Text(
-            "${state.clock} at this step",
+            "${state.clock} at this step · tap when done",
             style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"),
             color = colors.onSurfaceVariant,
+            textAlign = TextAlign.Center,
         )
     }
 }
 
 @Composable
-private fun EndOfRoundChecklist(items: List<ChecklistItemUi>, onOpenLevels: () -> Unit) {
+private fun EndOfRoundChecklist(items: List<ChecklistItemUi>, onOpenLevels: (() -> Unit)?) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -471,7 +598,7 @@ private fun EndOfRoundChecklist(items: List<ChecklistItemUi>, onOpenLevels: () -
         )
         items.forEach { item ->
             val levelUpNow = item.state == ChecklistState.CURRENT && item.id == LEVEL_UP_STEP
-            ChecklistRow(item, onOpenLevels.takeIf { levelUpNow })
+            ChecklistRow(item, onOpenLevels?.takeIf { levelUpNow })
         }
     }
 }
@@ -488,13 +615,7 @@ private fun ChecklistRow(item: ChecklistItemUi, onOpenLevels: (() -> Unit)? = nu
         Modifier
             .fillMaxWidth()
             .background(
-                if (item.state ==
-                    ChecklistState.CURRENT
-                ) {
-                    colors.secondary.copy(alpha = 0.10f)
-                } else {
-                    colors.surface
-                },
+                if (item.state == ChecklistState.CURRENT) colors.secondary.copy(alpha = 0.10f) else colors.surface,
             )
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
             .semantics(mergeDescendants = true) { stateDescription = stateText },
@@ -544,90 +665,16 @@ private fun ChecklistRow(item: ChecklistItemUi, onOpenLevels: (() -> Unit)? = nu
     }
 }
 
-private const val SEATS_PER_ROW = 3
+/** End-of-round id of the Level Up step (match-setup.json). */
+private const val LEVEL_UP_STEP = "level_up"
 
-/** Action timer: tap the hero who resolves now (highest unresolved initiative acts first). */
-@OptIn(ExperimentalLayoutApi::class)
+/** On the current Level Up step: the level ladder (costs, max Tier) one tap away. */
 @Composable
-private fun ResolvingHeroes(seats: List<SeatUi>, onResolve: (Int) -> Unit) {
-    Column(Modifier.fillMaxWidth()) {
-        Text(
-            "Who resolves now? Highest initiative acts first.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = Spacing.sm),
-        )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            maxItemsInEachRow = SEATS_PER_ROW,
-        ) {
-            seats.forEach { seat -> SeatChip(seat, Modifier.weight(1f)) { onResolve(seat.seat) } }
-            // Keep the last row's chips the same width as the rows above.
-            repeat((SEATS_PER_ROW - seats.size % SEATS_PER_ROW) % SEATS_PER_ROW) { Spacer(Modifier.weight(1f)) }
-        }
-    }
-}
-
-@Composable
-private fun SeatChip(seat: SeatUi, modifier: Modifier, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    val team = teamColor(seat.team)
-    val status = when {
-        seat.acting -> "resolving now"
-        seat.resolved -> "already resolved"
-        else -> "not resolved yet"
-    }
-    Surface(
-        onClick = onClick,
-        enabled = !seat.resolved && !seat.acting,
-        shape = MaterialTheme.shapes.medium,
-        color = if (seat.acting) colors.secondary.copy(alpha = 0.16f) else colors.surface,
-        border = BorderStroke(
-            if (seat.acting) 2.dp else 1.dp,
-            if (seat.acting) colors.secondary else team.copy(alpha = 0.5f),
-        ),
-        modifier = modifier
-            .alpha(if (seat.resolved) 0.5f else 1f)
-            .semantics(mergeDescendants = true) {
-                contentDescription = "${seat.heroName}, ${teamName(seat.team)} team" +
-                    (seat.playerName?.let { ", $it" } ?: "")
-                stateDescription = status
-            },
-    ) {
-        Column(Modifier.padding(Spacing.sm), horizontalAlignment = Alignment.CenterHorizontally) {
-            HeroPortrait(
-                heroId = seat.heroId ?: "unknown",
-                portrait = seat.portrait,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                shape = CircleShape,
-            )
-            Spacer(Modifier.height(Spacing.xs))
-            Text(
-                seat.heroName,
-                style = MaterialTheme.typography.labelLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                TeamBadge(seat.team, showLabel = false)
-                if (seat.resolved) {
-                    Spacer(Modifier.width(2.dp))
-                    Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(14.dp))
-                }
-                seat.playerName?.let {
-                    Spacer(Modifier.width(Spacing.xs))
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = colors.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-        }
+private fun LevelLadderButton(onClick: () -> Unit, label: String = "Levels") {
+    OutlinedButton(onClick = onClick, contentPadding = PaddingValues(horizontal = Spacing.md)) {
+        Icon(Icons.Outlined.MilitaryTech, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(Spacing.xs))
+        Text(label)
     }
 }
 
@@ -664,7 +711,7 @@ private fun TimerControls(state: ActiveUiState, actions: TimerActions) {
                 Text(
                     state.nextLabel,
                     style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f, fill = false),
@@ -675,3 +722,5 @@ private fun TimerControls(state: ActiveUiState, actions: TimerActions) {
         }
     }
 }
+
+private const val PAUSE_BLINK_MS = 900

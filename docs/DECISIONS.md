@@ -129,3 +129,53 @@ ignored: where its paragraphing is used, source-1 bold is copied word by word, a
 span would not fit, the source-1 text is kept (noted in REPORT.md).
 **Consequences:** Older catalog JSON still loads; every value display shows `4+` and speaks
 "4 plus"; card text renders bold keywords. The importer bumps `dataVersion`.
+
+## ADR-016 — Tie Breaker coin carried from draft to match; house-rule counters labelled (2026-10-17)
+**Context:** The draft flips the Tie Breaker coin (Team A), but Match setup ignored it and asked
+the table to flip again, contradicting the rulebook (p.5 step 3: flipped once at setup, before
+heroes are chosen; p.7: re-flipped only after a cross-team initiative tie). Separately, the
+owner's double-pilot house rule counts counters by heroes in play, which at 5 and 7 players
+shows numbers (and a Double lane "requirement") the rulebook's per-player rules don't give,
+without saying so.
+**Decision:** `Match` gains a nullable `tieBreaker` (the coin as placed at setup).
+`DraftEngine.toPendingMatch` fills it from Team A; Match setup shows it as already placed with
+"Correct the coin" (flipping is offered only without a draft), starts the timer with it and
+saves any correction. Room schema v2 adds `matches.tie_breaker` with a manual, non-destructive
+migration (existing rows stay null: their coin was never recorded); the backup format goes to
+v2 so an older app refuses a file instead of silently dropping the coin, and v1 files still
+import losslessly. The heroes-in-play lookup stays (owner's choice); `match-setup.json` also
+carries the rulebook's per-player values and `MatchSetup.houseRuleDifference` drives "House
+rule" labels wherever the two disagree.
+**Consequences:** One coin from draft to timer, recorded per match for later use. Rules data
+stays the single source of every number and label. Older matches have no coin (shown as
+unknown); flips during play are not tracked on the match.
+
+## ADR-017 — Draft: the setup form lives in DataStore and becomes the next game's default (2026-10-17)
+**Context:** The draft setup wizard (players, teams, method, pool, coin) lived in a ViewModel
+`MutableStateFlow`. Navigation 3 clears an entry's ViewModel when the entry leaves the displayed
+back stack (tab switch, Back out of the tab), so the form was lost on every tab change, Back
+from the board and process death, and the second game of the night cost about 25 taps.
+**Decision:** `SetupForm` is `@Serializable` and is written to `DraftStore` (`setup_form`) on
+every change; the ViewModel reads it on creation and drops players deleted since. After a draft
+starts, the form becomes `forNextGame()`: same players, teams, captains, method and pool, a fresh
+coin, stage back to Players, marked "Same players and teams as last game" with a Clear action.
+`SavedStateHandle` was not used: it is cleared together with the ViewModel on a tab switch, so it
+would not cover the main case, and DataStore already covers process death.
+**Consequences:** The form survives whatever the shell does with tab state. Writes are small
+(one JSON string per edit). The transient `starting` flag is not persisted.
+
+## ADR-018 — Timer: Preset revisions, per-style alert channels, one-level undo (2026-10-17)
+**Context:** QA found red "overtime" during every reveal/resolve, an ongoing notification hidden
+on the lock screen, a 60 s looping alarm that ignored Settings → Sounds, and accidental Next taps
+that lost the phase's time. Users already have stored copies of the bundled presets.
+**Decision:** (1) `PhaseKind.RESOLVE` (untimed, per turn) is added to the bundled Table rules and
+Relaxed presets; `TimerPreset.revision` lets `TimerPresetMigration` upgrade stored copies of a
+bundled preset on read with additive, targeted changes only (user-made presets untouched). (2)
+The countdown moves to a new default-importance silent public channel; the phase-over alert uses
+a bundled original chime on alarm usage, with one channel per Sounds × Haptics combination
+because channel sound is immutable. (3) The engine keeps one `UndoPoint` per Next (Back within
+15 s restores it with time carried over) and a `stepEnteredAt` stamp for a 500 ms Next debounce;
+both, the "Hurry up" shot clock and team time-outs live in the snapshot and are rebased with it.
+**Consequences:** Four alert channels appear in system settings. A future data change to bundled
+presets bumps `revision` and adds a migration step. Snapshots from older versions decode with
+defaults (no undo, no shot clock).

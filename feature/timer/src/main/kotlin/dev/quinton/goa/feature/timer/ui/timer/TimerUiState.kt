@@ -31,9 +31,36 @@ data class StartUiState(
     val pendingMatches: List<PendingMatchItem>,
     /** Heroes at the table, used to size the per-hero Action timer when no match is linked. */
     val seats: Int,
+    /** Turn length for tonight (null when the selected preset has no timed Turn phase). */
+    val tonight: TonightUi? = null,
 ) {
     val selected: PresetOption? get() = presets.firstOrNull { it.id == selectedPresetId }
 }
+
+/** Quick "tonight" turn length on the start card; [adjusted] = differs from the preset. */
+data class TonightUi(val seconds: Int, val presetSeconds: Int) {
+    val adjusted: Boolean get() = seconds != presetSeconds
+}
+
+/** The on-demand "Hurry up" countdown. */
+data class ShotClockUi(
+    val clock: String,
+    val spokenClock: String,
+    val fraction: Float,
+    /** Reached zero. */
+    val over: Boolean,
+    /** Final seconds. */
+    val warning: Boolean,
+)
+
+/** Team time-outs (a table rule): what one adds and how many each team has left this round. */
+data class TimeOutsUi(
+    val seconds: Int,
+    val redLeft: Int,
+    val blueLeft: Int,
+    /** False on untimed steps, where a time-out has nothing to extend. */
+    val usable: Boolean,
+)
 
 /** A hero seat of the linked match, for the Action timer. */
 data class SeatUi(
@@ -94,9 +121,21 @@ data class ActiveUiState(
     val autoAdvance: Boolean,
     /** Notifications are denied or blocked: no lock-screen countdown or phase-over alert. */
     val alertsOff: Boolean = false,
+    /** One-line rules reminder under the title (rulebook paraphrase). */
+    val hint: String? = null,
+    /** Running "Hurry up" countdown. */
+    val shotClock: ShotClockUi? = null,
+    /** Length of the preset's "Hurry up" (null = no button). */
+    val shotClockSeconds: Int? = null,
+    val timeOuts: TimeOutsUi? = null,
+    /** Volume up = Next, volume down = Pause/Resume while this screen shows. */
+    val volumeKeys: Boolean = false,
     /** Heroes of the linked match (for the level & defeat ladder's card exceptions). */
     val heroIds: List<String> = emptyList(),
-)
+) {
+    /** Rule text of the current end-of-round step (e.g. Level Up is mandatory). */
+    val currentDetail: String? get() = checklist?.firstOrNull { it.state == ChecklistState.CURRENT }?.detail
+}
 
 data class SummaryUiState(
     val duration: String,
