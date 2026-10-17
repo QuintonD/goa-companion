@@ -9,11 +9,13 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
@@ -181,12 +183,13 @@ fun AppRule.fillNextSeat(hero: String, pilot: String) {
     tap(hasContentDescription("Hero: Unknown hero. Change hero") and hasClickAction())
     waitForText("Search heroes")
     onNode(hasSetTextAction() and hasText("Search heroes")).performTextInput(hero)
-    tap(hasText(hero) and hasRole(Role.RadioButton))
+    tap(hasText(hero) and hasRole(Role.RadioButton) and hasAnyAncestor(isDialog()))
     waitForDescription("Hero: $hero. Change hero")
 
     tap(hasContentDescription("Pilot: none. Change pilot") and hasClickAction())
     waitForText("Pilot for", substring = true)
-    tap(hasText(pilot) and hasRole(Role.RadioButton))
+    // In the sheet: the "Red won" option behind it also names the pilots.
+    tap(hasText(pilot) and hasRole(Role.RadioButton) and hasAnyAncestor(isDialog()))
     waitGone(hasText("Pilot for", substring = true))
 }
 
