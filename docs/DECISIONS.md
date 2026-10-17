@@ -1,0 +1,71 @@
+# Decisions (ADR log)
+
+Append-only. Format: `## ADR-NNN — Title (YYYY-MM-DD)` · Context · Decision · Consequences.
+Supersede rather than edit.
+
+## ADR-001 — Native Kotlin + Compose (2026-10-17)
+**Context:** Android-only, polished, offline app with timers that must survive backgrounding.
+**Decision:** Native Kotlin, Jetpack Compose, Material 3 with a custom theme.
+**Consequences:** Best platform integration (foreground service, haptics, widgets later);
+no iOS without a rewrite or KMP migration (core:model/domain kept pure Kotlin to keep that open).
+
+## ADR-002 — Offline-first, no backend in v1 (2026-10-17)
+**Context:** Play groups share one phone; accounts add cost, privacy and moderation burden.
+**Decision:** All data local (Room/DataStore). Sharing via JSON export/import.
+**Consequences:** No cross-device live sync in v1; data model uses UUIDs so a sync layer can
+be added later without migration pain.
+
+## ADR-003 — Ratings derived from match log (2026-10-17)
+**Context:** Users will edit and delete past matches.
+**Decision:** Elo and meta stats are recomputed by replaying the ordered match log; any cache
+is disposable.
+**Consequences:** Edits are always consistent; recompute must stay fast (target < 1 s / 1,000 matches).
+
+## ADR-004 — Original assets, paraphrased card data (2026-10-17) — SUPERSEDED by ADR-006
+**Context:** Card text and art are Wolff Designa's IP; the name is their trademark.
+**Decision:** Ship only original visuals and structured stats + paraphrased summaries; show an
+unofficial-fan-app disclaimer. No Play Store publication without an explicit owner decision.
+**Consequences:** More design work (sigil set); lower legal risk.
+
+## ADR-005 — Multi-module Now-in-Android-style layout (2026-10-17)
+**Context:** Four independent features, agent-driven development, parallel work.
+**Decision:** `core/*` + `feature/*` modules with convention plugins.
+**Consequences:** Clear boundaries for parallel agents and faster incremental builds; slightly
+more setup in M0.
+
+## ADR-006 — Private build; official sources and assets allowed (2026-10-17)
+**Context:** The owner confirmed the app is for local, personal use only and will never be
+sold or published.
+**Decision:** Use official sources freely: verbatim card text, official hero art, card images
+and game iconography may be bundled. Our own UI/brand assets stay original. Official files
+live in `assets/official/` with a `SOURCES.md` record. No public remote, no store release.
+**Consequences:** Much richer catalog with far less design work. If the app is ever
+distributed, ADR-004's restrictions must be reinstated and `assets/official/` removed or licensed.
+
+## ADR-007 — Timer uses exact alarms + countdown notification, no foreground service (2026-10-17)
+**Context:** The timer must stay correct while locked/backgrounded. `shortService` caps at ~3 min;
+`specialUse` works but keeps a process alive for nothing.
+**Decision:** Persist timer state; derive remaining time from `elapsedRealtime`; schedule phase ends
+with `setExactAndAllowWhileIdle` (`USE_EXACT_ALARM`); show a chronometer countdown notification
+(promoted Live Update on Android 16+); alerts use `USAGE_ALARM`. Details in ARCHITECTURE.md.
+**Consequences:** No long-running service; survives process death. Continuous background audio
+(ticking, TTS) would need a `specialUse` service — new ADR if ever wanted.
+
+## ADR-008 — Toolchain baseline: AGP 9, Navigation 3, Room 3 (2026-10-17)
+**Context:** New project; verified current stable releases on 2026-10-17.
+**Decision:** AGP 9.4 with built-in Kotlin 2.4, KSP only, compile/targetSdk 37, Navigation 3 1.2,
+Room 3 (`androidx.room3`), Vico 3, Coil 3, Roborazzi (Google's preview screenshot testing is still
+alpha). detekt 2.0 alpha is the only line built for Kotlin 2.4/AGP 9; if it causes friction, drop
+detekt and rely on Android Lint + ktlint rather than downgrading Kotlin.
+**Consequences:** Old Now-in-Android snippets need adapting to the AGP 9 DSL. Revisit screenshot
+tooling when AGP 9.5 test suites are stable.
+
+## ADR-009 — Catalog built by an import pipeline from online sources, all products (2026-10-17)
+**Context:** Owner wants every hero from every product; complete card data and images exist
+online (fan/online-play implementations, BGG). Hand entry of ~900 cards is slow and error-prone.
+**Decision:** `tools/catalog-import` fetches and normalises sources at dev time into the bundled
+JSON + images, with a hand-maintained overrides file for corrections. Generated files are never
+hand-edited. The catalog is read-only and held in memory (no Room tables). Data targets the
+current (2nd) printing; `printing` is recorded per hero.
+**Consequences:** Re-runnable when new heroes or a 3rd printing appear; correctness depends on
+source quality, so validation tests + a per-run report are mandatory.

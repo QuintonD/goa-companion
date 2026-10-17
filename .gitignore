@@ -1,0 +1,30 @@
+# Gradle / Android
+.gradle/
+build/
+/local.properties
+/captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.hprof
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# Signing — never commit
+*.jks
+*.keystore
+keystore.properties
+
+# Agent scratch
+.claude/settings.local.json
+.claude/worktrees/
+
+# Catalog importer download cache
+tools/catalog-import/cache/
+
+# Kotlin 2 project-local caches
+.kotlin/

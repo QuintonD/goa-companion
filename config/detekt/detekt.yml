@@ -1,0 +1,35 @@
+# Builds on detekt's default config (buildUponDefaultConfig = true). Compose-friendly tweaks.
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
+  MatchingDeclarationName:
+    active: false
+
+complexity:
+  LongParameterList:
+    allowedFunctionParameters: 10
+    allowedConstructorParameters: 12
+    ignoreDefaultParameters: true
+    ignoreAnnotatedParameter: []
+  LongMethod:
+    allowedLines: 120
+    ignoreAnnotated: ['Composable']
+  CyclomaticComplexMethod:
+    allowedComplexity: 20
+    ignoreAnnotated: ['Composable']
+  TooManyFunctions:
+    active: false
+
+style:
+  MagicNumber:
+    active: false
+  UnusedPrivateFunction:
+    ignoreAnnotated: ['Preview']
+  ReturnCount:
+    max: 4
+  ForbiddenComment:
+    active: false
+  MaxLineLength:
+    maxLineLength: 120
