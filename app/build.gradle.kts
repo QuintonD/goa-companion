@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.goa.android.application)
     alias(libs.plugins.goa.android.compose)
@@ -13,6 +15,21 @@ android {
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+    // Release signing lives OUTSIDE the repo: keystore.properties (gitignored) points at a keystore
+    // kept elsewhere (storeFile, storePassword, keyAlias, keyPassword). Without it, release is unsigned.
+    val signingProps = rootProject.file("keystore.properties").takeIf { it.isFile }?.let { file ->
+        Properties().apply { file.inputStream().use(::load) }
+    }
+    signingConfigs {
+        if (signingProps != null) {
+            create("release") {
+                storeFile = file(signingProps.getProperty("storeFile"))
+                storePassword = signingProps.getProperty("storePassword")
+                keyAlias = signingProps.getProperty("keyAlias")
+                keyPassword = signingProps.getProperty("keyPassword")
+            }
+        }
+    }
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -21,6 +38,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
     androidResources {
