@@ -33,6 +33,8 @@ instrumented tests green on an API 36 emulator (`goa_api36`), twice.
 - [x] Match editor and log, seat-based `EloCalculator` + replay (double pilots, ADR-011), rating screens with charts — 2026-10-17, E2E `DoublePilotMatchTest`
 - [x] Meta dashboard; versioned JSON export/import (lossless round-trip test); Auto Backup rules — 2026-10-17
 - [ ] Backup export/import file pickers exercised on the S25 Ultra
+- [x] Game-night flow (ADR-020): tab state kept across tabs, notification/cold start → Timer, running-timer bar, "Who won?" with rating changes, Rematch, pending-match resume, backup v3 (settings, presets, methods), group stats and compact Meta table — 2026-10-17, JVM tests + screenshots
+- [ ] ADR-020 flows checked on the emulator/S25 Ultra (tab switches mid-form, notification tap, running bar, rematch → setup)
 
 ## M4 — Draft
 - [x] `DraftEngine` with House draft + all official methods + property tests (2–10 players, seat layouts) — 2026-10-17

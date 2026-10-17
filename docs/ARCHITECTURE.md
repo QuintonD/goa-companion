@@ -58,7 +58,8 @@ Features never depend on each other; cross-feature navigation goes through `app`
   (optionally memoised in a Room cache table that can be dropped and rebuilt).
 - **Catalog is read-only and in memory.** ~50 heroes × 18 cards fits comfortably; search is
   an in-memory index. Hero IDs are permanent: never rename or reuse one, since matches
-  reference them. Unknown IDs (e.g. from an imported backup) render as "Unknown hero".
+  reference them. Unknown IDs render as "Unknown hero"; a backup import turns them into
+  Unknown-hero seats (DOMAIN.md *Backup import*).
 - **The app never goes online.** Catalog data and images are fetched at dev time by
   `tools/catalog-import` and bundled. No `INTERNET` permission.
 
@@ -112,9 +113,27 @@ Features never depend on each other; cross-feature navigation goes through `app`
    `onPreviewKeyEvent` on a focused root while the timer screen shows.
 8. **Match link**: `TimerController` is the single writer of the linked match's duration
    (rounded minutes, clamped to 1–600): on End match, and — only if still missing — before
-   an ended session is replaced or cleared. "Log result" without a linked match saves
-   nothing; it opens a new match pre-filled with the duration and, if legal for the
-   session's hero count, its mode (`MatchEditRoute(prefillDurationMin, prefillMode)`).
+   an ended session is replaced or cleared. "Log result" opens the focused "Who won?" editor
+   (`MatchEditRoute(result = true, prefillPlayedAt = session start)`): a linked pending match
+   defaults to Completed and is dated from the session start; without a linked match nothing
+   is saved until the user saves, and the new match is pre-filled with the duration and, if
+   legal for the session's hero count, its mode. After saving a result the editor shows each
+   player's rating change and rank and offers Rematch.
+9. **Shell** (`app`, ADR-020): the notification's content intent carries `EXTRA_OPEN_TAB =
+   TIMER`, and a cold start with a running or paused session also opens the Timer tab. Other
+   tabs show a compact "timer running" bar (phase, round context, clock; tap → timer) that
+   keeps the window awake while the session runs. The bottom bar is hidden on the running
+   timer and on the draft board.
+
+## App shell and navigation (ADR-020)
+One `NavBackStack` per tab (`AppNavigator`). Every tab's back stack is decorated with its own
+saveable-state and ViewModel-store decorators on every composition (`rememberDecoratedNavEntries`),
+and `NavDisplay` shows the current tab's entries, so leaving a tab keeps its screens, scroll
+positions, half-filled forms and ViewModels; state is dropped only when an entry is popped.
+Content keys are prefixed with the tab, so the same key in two tabs never shares state.
+`Navigator.showMessage` posts app-wide snackbars (e.g. "Saved as a pending match").
+Cross-feature contracts for this: `DraftSetupPrefill` (core:data, implemented by draft) fills
+the draft setup for "Draft again".
 
 **Device checks (S25 Ultra, Android 16)** — Robolectric can't prove these:
 - Android 16 status-bar chip / Live Update keeps ticking down while running (no frozen

@@ -70,11 +70,22 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
   **double-pilot** two heroes), handicap flags, winner, win
   condition (Throne / Last Push / Life counters / Other), duration, notes. Draft → pending
   match automatically; timer session can fill in duration.
+- **"Who won?"** when a game ends (timer summary, or a pending match in the log): winner and
+  win condition first, everything else optional below; dated from the session start. Saving
+  shows each player's rating change, their rank and who is on top, plus **Rematch** (same
+  seats / swap heroes / swap sides / draft again → pending match → Match setup). Pending
+  matches can be resumed into setup and the timer from the log. The pilot picker can add a
+  player inline.
 - Elo per player and per hero (seat-based, double-pilot aware, tunable — DOMAIN.md / ADR-011),
   provisional flag for <10 games, rating history chart.
-- Meta dashboard: hero win/pick/ban rates, best player per hero, team-composition stats (later).
+- Meta dashboard: last game night (matches, biggest movers, streaks), how games end (win
+  conditions, sides, average length by mode), hero win/pick/ban rates as a compact sortable
+  table or cards, best player per hero, rivalries and teammate pairs (Wilson-ranked, minimum
+  sample), strongest hero pairs. Profiles add the player's win-condition mix, head-to-head and
+  teammate records, and dates under the rating chart.
 - Edit/delete any match; all ratings recompute.
-- Export/import full data as a versioned JSON file (backup, moving phones). Android Auto
+- Export/import full data as a versioned JSON file (backup, moving phones): players, matches,
+  drafts, rating constants, app settings, timer presets and custom draft methods. Android Auto
   Backup enabled for the database and settings.
 - **Done when:** recompute of 1,000 matches <1 s on device; import→export is lossless.
 

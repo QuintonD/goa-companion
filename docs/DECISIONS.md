@@ -220,3 +220,40 @@ heuristic instead of per-card overrides. (4) The grid/list choice is an `AppSett
 **Consequences:** `dataVersion` 3. Card text overrides are only for real wording fixes. Code
 that needs to know a card is a Handicap card or spell uses its slot/ID, not `CardColor.OTHER`.
 
+## ADR-020 — Shell+records: per-tab state, timer awareness, full backup, rematch, group stats (2026-10-17)
+**Context:** QA found the game night broke at the seams: switching tabs reset half-filled
+forms (the shell gave `NavDisplay` one back stack at a time, so the Nav3 decorators treated the
+other tabs' entries as popped and cleared their state and ViewModels); notification taps opened
+Heroes; nothing outside the timer showed a running game; logging a result was a generic form
+with the winner two screens down and no feedback; pending matches were dead ends; backups
+dropped settings, presets and custom methods and accepted ghost players; the Meta tab was ten
+screens of cards.
+**Decision:**
+1. *Tab state:* each tab's back stack gets its own saveable-state and ViewModel-store
+   decorators via `rememberDecoratedNavEntries`, composed every frame; `NavDisplay` takes the
+   current tab's decorated entries. Content keys are prefixed with the tab. State is cleared
+   only on pop. For shell decisions a bottom-sheet route (`NavSheet`) counts as the screen
+   below it.
+2. *Timer awareness:* the timer notification's content intent carries `EXTRA_OPEN_TAB`
+   (core:navigation); `MainActivity` turns it, and a cold start with an active session, into
+   "open the Timer tab at its root". `ShellViewModel` reads `TimerController.snapshot` (never
+   writes) for a compact running-timer bar on other screens, which sets `FLAG_KEEP_SCREEN_ON`
+   while running. The bottom bar is hidden on the running timer and the draft board: both are
+   table tools whose main buttons sit where the tabs are; system back leaves them.
+3. *Results:* `MatchEditRoute(result, prefillPlayedAt)` gives the "Who won?" layout; after a
+   new result the editor shows rating deltas, ranks and Rematch. `Navigator.showMessage` gives
+   app-wide snackbars (the draft's "Log result later").
+4. *Rematch* is pure domain (`Rematch`, DOMAIN.md); "Draft again" goes through a new core:data
+   contract `DraftSetupPrefill`, implemented by the draft feature on its persisted setup form
+   (ADR-017) plus a push to a setup that is already open.
+5. *Backup v3:* contributors for settings, timer presets and draft methods live in core:data
+   and carry each store's own JSON (the owning features keep their schemas and migrations);
+   `appVersion` filled; Merge keeps the phone's settings unless asked; Replace is preselected on
+   an empty phone; a missing pilot rejects the file; unknown heroes import as Unknown hero.
+6. *Group stats* (`GroupStats`) are computed with the ratings snapshot from the same rated
+   matches (ADR-003) and stored nowhere.
+**Consequences:** Every tab's screens stay alive until popped (a few more ViewModels in memory;
+their flows stop 5 s after leaving). The app reads the timer controller directly (app already
+depends on every feature). Older builds refuse a v3 backup instead of silently dropping its
+settings.
+
