@@ -13,9 +13,11 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
+import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.catalog.Hero
+import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.core.model.catalog.Ruling
 import dev.quinton.goa.core.model.catalog.SourceRef
 import dev.quinton.goa.core.model.catalog.Stat
@@ -24,6 +26,8 @@ import dev.quinton.goa.core.model.rating.HeroUsage
 import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.testing.TestCatalog
+import dev.quinton.goa.feature.catalog.detail.CardTileGrid
+import dev.quinton.goa.feature.catalog.detail.ExtrasSection
 import dev.quinton.goa.feature.catalog.detail.HeroDetailScreen
 import dev.quinton.goa.feature.catalog.detail.HeroDetailUiState
 import dev.quinton.goa.feature.catalog.detail.HeroPersonalStats
@@ -57,16 +61,9 @@ private object ShotData {
             when (hero.id) {
                 "test-hero-2" -> showcase(hero)
 
+                // Every Attack card ranged, so the tile shows the "Ranged" pill.
                 "test-hero-5" -> hero.copy(
-                    cards = hero.cards.map {
-                        if (it.color ==
-                            CardColor.GOLD
-                        ) {
-                            it.copy(ranged = true)
-                        } else {
-                            it
-                        }
-                    },
+                    cards = hero.cards.map { if (it.primary == PrimaryAction.ATTACK) it.copy(ranged = true) else it },
                 )
 
                 else -> hero
@@ -98,6 +95,7 @@ private object ShotData {
             ),
             Ruling("Synthetic question two?", "Another synthetic answer.", "test"),
         ),
+        handicap = hero.handicap?.copy(color = CardColor.GOLD),
         lore = "Synthetic lore paragraph for layout testing. It is not game text.",
         sources = listOf(SourceRef("Synthetic fixture", url = "test://fixture", retrieved = "2026-10-17")),
     )
@@ -134,21 +132,17 @@ private object ShotData {
         filter: CatalogFilter = CatalogFilter(),
         sort: CatalogSort = CatalogSort.NAME,
         layout: CatalogLayout = CatalogLayout.GRID,
-    ) = CatalogUiState.Ready(
-        controls = CatalogControls(layout, filter, sort),
-        heroes = CatalogBrowser.browse(
-            catalog,
-            CatalogSearchIndex(catalog.heroes),
-            query,
-            filter,
-            sort,
-            emptySet(),
-            ratings,
-            usage,
-        ),
-        totalInScope = catalog.heroes.size,
-        options = options,
-    )
+    ): CatalogUiState.Ready {
+        val index = CatalogSearchIndex(catalog.heroes)
+        val heroes = CatalogBrowser.browse(catalog, index, query, filter, sort, emptySet(), ratings, usage)
+        return CatalogUiState.Ready(
+            controls = CatalogControls(layout, filter, sort),
+            heroes = heroes,
+            totalInScope = catalog.heroes.size,
+            options = options,
+            cards = CatalogBrowser.cards(index, query, heroes),
+        )
+    }
 
     val players = listOf(
         Player("p1", "Avery", 0xFF3FC1B0, 1, 0),
@@ -169,6 +163,47 @@ private object ShotData {
                     wins = 6,
                     bestPilots = listOf(HeroPilotStat("p1", players[0], 5, 4), HeroPilotStat("p2", players[1], 4, 2)),
                     allPilots = emptyList(),
+                ),
+            ),
+        )
+    }
+
+    /** Two tiles side by side: a long name that wraps next to a short one, with every marker. */
+    val longNameTiles: List<Card> = TestCatalog.hero(3).cards.filter { it.tier == 3 }.take(2).mapIndexed { i, card ->
+        if (i == 0) {
+            card.copy(
+                name = "Synthetic Card With a Very Long Name",
+                ranged = true,
+                block = false,
+                item = Stat.DEFENSE,
+                values = card.values.copy(range = 1, attack = 5, plus = listOf(Stat.ATTACK)),
+            )
+        } else {
+            card.copy(name = "Short", item = Stat.RADIUS)
+        }
+    }
+
+    /** A synthetic spellbook: untiered gold pages, two tiers and an Ultimate page. */
+    fun spellbook(): DeckLayout {
+        val hero = TestCatalog.hero(4)
+        fun page(n: Int, color: CardColor, tier: Int?) = Card(
+            id = "${hero.id}-spell-page-$n",
+            heroId = hero.id,
+            name = "Spell Page $n",
+            color = color,
+            tier = tier,
+            primary = PrimaryAction.SKILL,
+            text = "Placeholder spell text.",
+        )
+        return DeckLayout.of(
+            hero.copy(
+                extras = listOf(
+                    page(1, CardColor.GOLD, null),
+                    page(2, CardColor.GOLD, null),
+                    page(3, CardColor.RED, 1),
+                    page(4, CardColor.GREEN, 1),
+                    page(5, CardColor.BLUE, 2),
+                    page(6, CardColor.PURPLE, 4),
                 ),
             ),
         )
@@ -222,6 +257,32 @@ class CatalogScreenshotTest {
     }
 
     @Test fun noResultsDark() = shot { Catalog(ShotData.ready(query = "zzz"), query = "zzz") }
+
+    @Test fun searchCardPhraseFirstDark() = shot {
+        Catalog(ShotData.ready(query = "reminder text"), query = "reminder text")
+    }
+
+    @Test fun searchCardsListLight() = shot(ThemeMode.LIGHT) {
+        Catalog(ShotData.ready(query = "red-2a", layout = CatalogLayout.LIST), query = "red-2a")
+    }
+
+    @Test fun notInCollectionDark() = shot {
+        Catalog(ShotData.ready(query = "zzz").copy(hiddenByCollection = 2), query = "test hero 9")
+    }
+
+    @Test fun gridFontScale13() = shot(fontScale = 1.3f) { Catalog(ShotData.ready()) }
+
+    @Test fun deckTilesLongNameDark() = shot {
+        CardTileGrid(ShotData.longNameTiles, columns = 2, onCardClick = {}, modifier = Modifier.padding(16.dp))
+    }
+
+    @Test fun deckTilesLongNameFontScale13() = shot(fontScale = 1.3f) {
+        CardTileGrid(ShotData.longNameTiles, columns = 2, onCardClick = {}, modifier = Modifier.padding(16.dp))
+    }
+
+    @Test fun spellbookDark() = shot {
+        ExtrasSection(ShotData.spellbook(), onCardClick = {}, modifier = Modifier.padding(horizontal = 16.dp))
+    }
 
     @Test fun emptyCatalogDark() = shot { Catalog(CatalogUiState.Unavailable(error = false)) }
 

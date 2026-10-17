@@ -17,7 +17,17 @@ class CatalogBrowserTest {
             if (hero.id != "test-hero-5") {
                 hero
             } else {
-                hero.copy(cards = hero.cards.map { if (it.primary == PrimaryAction.ATTACK) it.copy(ranged = true) else it })
+                hero.copy(
+                    cards = hero.cards.map {
+                        if (it.primary ==
+                            PrimaryAction.ATTACK
+                        ) {
+                            it.copy(ranged = true)
+                        } else {
+                            it
+                        }
+                    },
+                )
             }
         },
     )
@@ -72,7 +82,14 @@ class CatalogBrowserTest {
             browse(filter = CatalogFilter(attackStyle = AttackStyle.RANGED)).ids(),
         ).containsExactly("test-hero-5")
         assertThat(browse(filter = CatalogFilter(attackStyle = AttackStyle.MELEE))).hasSize(11)
-        val noAttacks = TestCatalog.hero(1).let { h -> h.copy(cards = h.cards.filter { it.primary != PrimaryAction.ATTACK }) }
+        val noAttacks = TestCatalog.hero(1).let { h ->
+            h.copy(
+                cards = h.cards.filter {
+                    it.primary !=
+                        PrimaryAction.ATTACK
+                },
+            )
+        }
         assertThat(noAttacks.attackStyle()).isNull()
     }
 

@@ -65,6 +65,7 @@ import dev.quinton.goa.feature.catalog.ui.GameIcon
 import dev.quinton.goa.feature.catalog.ui.GameIcons
 import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
 import dev.quinton.goa.feature.catalog.ui.ValueChip
+import dev.quinton.goa.feature.catalog.ui.isBasic
 import dev.quinton.goa.feature.catalog.ui.kindLabel
 import dev.quinton.goa.feature.catalog.ui.label
 
@@ -249,7 +250,7 @@ internal fun ExtrasSection(layout: DeckLayout, onCardClick: (Card) -> Unit, modi
         }
         if (spellbook) {
             Text(
-                "Spells by tier. Deck cards name the spells they cast; tap a spell for its card.",
+                "Spells by tier. Deck cards name the spells they cast; tap a spell for its full card.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -261,7 +262,7 @@ internal fun ExtrasSection(layout: DeckLayout, onCardClick: (Card) -> Unit, modi
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.xs).semantics { heading() },
             )
-            CardTileGrid(row.cards, columns = 2, onCardClick = onCardClick)
+            CardTileGrid(row.cards, columns = 2, onCardClick = onCardClick, showText = spellbook)
         }
     }
 }
@@ -301,8 +302,9 @@ internal fun CardTileGrid(
     onCardClick: (Card) -> Unit,
     isHandicap: Boolean = false,
     showText: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         cards.chunked(columns).forEach { chunk ->
             // Equal heights per row via intrinsics; WrapRow reports its wrapped height, so a
             // name on two lines never pushes the markers out of the tile.
@@ -343,7 +345,7 @@ internal fun Card.spokenSummary(isHandicap: Boolean = false): String = buildList
     if (block) add("Block")
     item?.let { add("Item: plus 1 ${it.label}") }
     startsIn()?.let { add(it) }
-    if (isHandicap && (color == CardColor.GOLD || color == CardColor.SILVER)) add("Replaces the ${color.label} card")
+    if (isHandicap && color.isBasic) add("Replaces the ${color.label} card")
 }.joinToString(". ")
 
 /** One printed value; [plus] when the card prints it with a `+` (it grows per the card text). */
@@ -443,7 +445,7 @@ internal fun CardTile(
                     )
                 }
             }
-            if (isHandicap && (card.color == CardColor.GOLD || card.color == CardColor.SILVER)) {
+            if (isHandicap && card.color.isBasic) {
                 Text(
                     "Replaces the ${card.color.label} card",
                     style = MaterialTheme.typography.labelMedium,

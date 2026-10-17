@@ -117,7 +117,12 @@ class CatalogSearchIndexTest {
             "test", "hero 42", "card", "kari", "zzz-no-match", "range coin", "spaces", "synthetic 17-3",
             "minion", "e", "test hero 9 kari", "extra page", "a", "defeat minion mo",
         )
-        repeat(WARMUP) { queries.forEach { large.search(it); large.searchCards(it) } }
+        repeat(WARMUP) {
+            queries.forEach {
+                large.search(it)
+                large.searchCards(it)
+            }
+        }
         val worstMs = queries.flatMap { query ->
             (1..RUNS).map {
                 val start = System.nanoTime()

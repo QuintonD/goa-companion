@@ -75,6 +75,7 @@ import dev.quinton.goa.feature.catalog.detail.printedValues
 import dev.quinton.goa.feature.catalog.ui.CardTextView
 import dev.quinton.goa.feature.catalog.ui.GameIcon
 import dev.quinton.goa.feature.catalog.ui.GameIcons
+import dev.quinton.goa.feature.catalog.ui.isBasic
 import dev.quinton.goa.feature.catalog.ui.kindLabel
 import dev.quinton.goa.feature.catalog.ui.label
 import kotlinx.coroutines.launch
@@ -297,7 +298,7 @@ private fun CardDetails(card: Card, isHandicap: Boolean, includeText: Boolean, m
             .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        if (isHandicap && (card.color == CardColor.GOLD || card.color == CardColor.SILVER)) {
+        if (isHandicap && card.color.isBasic) {
             // Rulebook p.20: Handicap cards are weaker versions of the basic cards and replace
             // one of them; the frame colour says which (Takahide's is silver).
             DetailRow("Replaces") { Text("The ${card.color.label} card", style = MaterialTheme.typography.bodyMedium) }
