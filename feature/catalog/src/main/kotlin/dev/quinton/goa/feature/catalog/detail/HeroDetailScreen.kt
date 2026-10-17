@@ -72,7 +72,7 @@ import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.catalog.Ruling
 import dev.quinton.goa.feature.catalog.model.HeroPilotStat
-import dev.quinton.goa.feature.catalog.model.attackStyle
+import dev.quinton.goa.feature.catalog.model.attackProfile
 import dev.quinton.goa.feature.catalog.ui.MetaPill
 import dev.quinton.goa.feature.catalog.ui.SectionTitle
 import dev.quinton.goa.feature.catalog.ui.UnverifiedBadge
@@ -164,21 +164,7 @@ private fun LazyListScope.heroDetailContent(state: HeroDetailUiState.Ready, onCa
         }
     }
     if (state.deck.extras.isNotEmpty()) {
-        item(key = "extras") {
-            Column(padded) {
-                SectionTitle(
-                    "Extras",
-                    trailing = {
-                        Text(
-                            plural(state.deck.extras.size, "card"),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                )
-                CardTileGrid(state.deck.extras, columns = 2, onCardClick = onCardClick)
-            }
-        }
+        item(key = "extras") { ExtrasSection(state.deck, onCardClick, padded) }
     }
     item(key = "faq-title") { SectionTitle("FAQ rulings", modifier = padded) }
     if (hero.faq.isEmpty()) {
@@ -266,9 +252,9 @@ private fun HeroHeader(hero: Hero, productName: String) {
                     }
                 }
                 MetaPill(productName)
-                // App-derived from the basic Gold card; kept apart from the official role chips
-                // because "Melee" is also an official role name.
-                hero.attackStyle()?.let { MetaPill(it.label) }
+                // App-derived from the Ranged subtype of the deck's Attack cards (DOMAIN.md); kept
+                // apart from the official role chips because "Melee" is also an official role name.
+                hero.attackProfile().pill?.let { MetaPill(it) }
                 if (hero.printing != 2) MetaPill("Printing ${hero.printing}")
                 if (hero.verified) VerifiedPill() else UnverifiedBadge()
             }

@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -32,7 +34,6 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.ComplexityStars
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -48,15 +49,12 @@ import dev.quinton.goa.feature.catalog.ui.label
 import dev.quinton.goa.feature.catalog.ui.percent
 import dev.quinton.goa.feature.catalog.ui.plural
 
-@Composable
-internal fun heroNameStyle() = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp, lineHeight = 24.sp)
-
 /** Official roles only ("Disabler · Pusher"); ranged is shown separately so it never reads as a role. */
 internal fun HeroListItem.traitsLine(): String = hero.roles.joinToString(" · ") { it.label }
 
-/** "Ranged attack" when the hero's basic attack (Gold card) is ranged — an app-derived trait, not a role. */
+/** "Ranged" when most of the hero's Attack cards are ranged — an app-derived trait, not a role. */
 internal val HeroListItem.rangedLabel: String?
-    get() = if (attackStyle == AttackStyle.RANGED) "Ranged attack" else null
+    get() = if (attackStyle == AttackStyle.RANGED) "Ranged" else null
 
 /** Secondary line shown when sorting by a stat: "Elo 1268 · 9 games" or "64% wins · 11 games". */
 internal fun HeroListItem.metricLine(sort: CatalogSort): String? = when (sort) {
@@ -82,6 +80,11 @@ internal fun HeroListItem.matchHint(): String? {
     }
 }
 
+/**
+ * Compact grid tile (three per row on a phone): short portrait with stars, then name, title,
+ * roles and pills. Text wraps or ellipsizes; the tile never grows wider with the font scale.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun HeroGridTile(item: HeroListItem, sort: CatalogSort, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val hero = item.hero
@@ -112,34 +115,44 @@ internal fun HeroGridTile(item: HeroListItem, sort: CatalogSort, onClick: () -> 
             )
             ComplexityStars(
                 complexity = hero.complexity,
-                modifier = Modifier.align(Alignment.BottomStart).padding(start = Spacing.md, bottom = Spacing.sm),
+                starSize = 12.dp,
+                modifier = Modifier.align(Alignment.BottomStart).padding(start = Spacing.sm, bottom = Spacing.xs),
             )
             if (!hero.verified) {
-                UnverifiedBadge(compact = true, modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm))
+                UnverifiedBadge(compact = true, modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.xs))
             }
         }
-        Column(Modifier.padding(start = Spacing.md, end = Spacing.md, top = Spacing.xs, bottom = Spacing.md)) {
-            Text(hero.name, style = heroNameStyle(), maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Column(Modifier.padding(start = Spacing.sm, end = Spacing.sm, top = 2.dp, bottom = Spacing.sm)) {
             Text(
-                hero.title,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                hero.name,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Spacer(Modifier.size(Spacing.sm))
+            Text(
+                hero.title,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             val traits = item.traitsLine()
             if (traits.isNotEmpty()) {
                 Text(
                     traits,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.secondary,
-                    maxLines = 3,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp),
                 )
-                Spacer(Modifier.size(6.dp))
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            FlowRow(
+                Modifier.padding(top = Spacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 MetaPill(item.productName)
                 item.rangedLabel?.let { MetaPill(it, color = MaterialTheme.colorScheme.primary) }
             }
@@ -156,11 +169,11 @@ private fun TileFootnotes(item: HeroListItem, sort: CatalogSort) {
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(top = Spacing.sm),
+            modifier = Modifier.padding(top = Spacing.xs),
         )
     }
     item.matchHint()?.let { hint ->
-        Row(Modifier.padding(top = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(top = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Outlined.Search,
                 contentDescription = null,
@@ -179,6 +192,7 @@ private fun TileFootnotes(item: HeroListItem, sort: CatalogSort) {
     }
 }
 
+/** Compact list row (six or more per screen): small portrait, name and title, stars and pills, roles. */
 @Composable
 internal fun HeroListRow(item: HeroListItem, sort: CatalogSort, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val hero = item.hero
@@ -190,31 +204,41 @@ internal fun HeroListRow(item: HeroListItem, sort: CatalogSort, onClick: () -> U
         border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
     ) {
         Row(
-            Modifier.heightIn(min = 88.dp).padding(Spacing.md),
+            Modifier.heightIn(min = 64.dp).padding(horizontal = Spacing.sm, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             HeroPortrait(
                 heroId = hero.id,
                 portrait = hero.portrait,
                 contentDescription = null,
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.size(64.dp),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.size(48.dp),
             )
             Spacer(Modifier.width(Spacing.md))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(hero.name, style = heroNameStyle(), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(
-                    hero.title,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        hero.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        hero.title,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
-                    ComplexityStars(hero.complexity)
+                    ComplexityStars(hero.complexity, starSize = 12.dp)
                     MetaPill(item.productName, modifier = Modifier.weight(1f, fill = false))
                     item.rangedLabel?.let { MetaPill(it, color = MaterialTheme.colorScheme.primary) }
                     if (!hero.verified) UnverifiedBadge(compact = true)
@@ -223,9 +247,9 @@ internal fun HeroListRow(item: HeroListItem, sort: CatalogSort, onClick: () -> U
                 if (traits.isNotEmpty()) {
                     Text(
                         traits,
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.secondary,
-                        maxLines = 2,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
@@ -240,4 +264,5 @@ internal fun HeroListRow(item: HeroListItem, sort: CatalogSort, onClick: () -> U
     }
 }
 
-private const val PORTRAIT_RATIO = 1.05f
+/** Width / height: a short portrait so three rows of tiles fit on a phone screen. */
+private const val PORTRAIT_RATIO = 1.3f

@@ -12,11 +12,13 @@ import dev.quinton.goa.core.model.catalog.Role
 import dev.quinton.goa.core.model.rating.HeroUsage
 import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.feature.catalog.model.AttackStyle
+import dev.quinton.goa.feature.catalog.model.CardResult
 import dev.quinton.goa.feature.catalog.model.CatalogBrowser
 import dev.quinton.goa.feature.catalog.model.CatalogFilter
 import dev.quinton.goa.feature.catalog.model.CatalogSearchIndex
 import dev.quinton.goa.feature.catalog.model.CatalogSort
 import dev.quinton.goa.feature.catalog.model.HeroListItem
+import dev.quinton.goa.feature.catalog.model.MatchQuality
 import dev.quinton.goa.feature.catalog.model.visibleProducts
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
@@ -33,10 +35,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 enum class CatalogLayout { GRID, LIST }
 
-/** User-controlled view settings (survive while the Heroes tab is on the back stack). */
+/**
+ * User-controlled view settings. Filter and sort survive while the Heroes tab is on the back
+ * stack; [layout] is saved in the app settings so the grid/list choice persists.
+ */
 data class CatalogControls(
     val layout: CatalogLayout = CatalogLayout.GRID,
     val filter: CatalogFilter = CatalogFilter(),
@@ -65,8 +71,20 @@ sealed interface CatalogUiState {
         /** Heroes in scope before search and filters (owned products respected). */
         val totalInScope: Int,
         val options: FilterOptions,
+        /** Cards matching the search, best first (empty without a query). */
+        val cards: List<CardResult> = emptyList(),
+        /** Heroes that would match if products the group doesn't own were included. */
+        val hiddenByCollection: Int = 0,
     ) : CatalogUiState {
         val isFiltered: Boolean get() = heroes.size != totalInScope
+
+        /** Cards answer the query better than any hero (e.g. a card phrase vs a hero's title). */
+        val cardsFirst: Boolean
+            get() {
+                val bestCard = cards.firstOrNull()?.quality ?: return false
+                val bestHero = heroes.maxOfOrNull { it.hit?.quality ?: MatchQuality.PARTIAL } ?: return true
+                return bestCard > bestHero
+            }
     }
 }
 
@@ -89,10 +107,12 @@ private data class Indexed(val catalog: Catalog, val index: CatalogSearchIndex)
 
 private data class Stats(val ratings: Map<String, Rating>, val usage: Map<String, HeroUsage>)
 
+private data class Prefs(val owned: Set<String>, val layout: CatalogLayout)
+
 @HiltViewModel
 class CatalogViewModel internal constructor(
     catalogRepository: CatalogRepository,
-    settingsRepository: SettingsRepository,
+    private val settingsRepository: SettingsRepository,
     ratingsRepository: RatingsRepository,
     computeDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
@@ -120,11 +140,13 @@ class CatalogViewModel internal constructor(
     ) { ratings, usage -> Stats(ratings, usage) }
         .catch { emit(Stats(emptyMap(), emptyMap())) }
 
-    private val owned = settingsRepository.settings.map { it.ownedProducts }.distinctUntilChanged()
+    private val prefs = settingsRepository.settings
+        .map { Prefs(it.ownedProducts, if (it.catalogListView) CatalogLayout.LIST else CatalogLayout.GRID) }
+        .distinctUntilChanged()
 
     val uiState: StateFlow<CatalogUiState> =
-        combine(indexed, owned, stats, queryState, controls) { indexed, owned, stats, query, controls ->
-            buildState(indexed, owned, stats, query, controls)
+        combine(indexed, prefs, stats, queryState, controls) { indexed, prefs, stats, query, controls ->
+            buildState(indexed, prefs.owned, stats, query, controls.copy(layout = prefs.layout))
         }
             .flowOn(computeDispatcher)
             .catch { emit(CatalogUiState.Unavailable(error = true)) }
@@ -134,7 +156,9 @@ class CatalogViewModel internal constructor(
         when (action) {
             is CatalogAction.Search -> queryState.value = action.query
 
-            is CatalogAction.SetLayout -> controls.update { it.copy(layout = action.layout) }
+            is CatalogAction.SetLayout -> viewModelScope.launch {
+                settingsRepository.update { it.copy(catalogListView = action.layout == CatalogLayout.LIST) }
+            }
 
             is CatalogAction.SetSort -> controls.update { it.copy(sort = action.sort) }
 
@@ -174,9 +198,24 @@ class CatalogViewModel internal constructor(
             ratings = stats.ratings,
             usage = stats.usage,
         )
+        // Nothing found in the owned products: say so when other products would match.
+        val hiddenByCollection = if (heroes.isEmpty() && owned.isNotEmpty() && !filter.includeUnowned) {
+            CatalogBrowser.browse(
+                catalog,
+                indexed.index,
+                query,
+                filter.copy(includeUnowned = true),
+                controls.sort,
+                owned,
+            ).size
+        } else {
+            0
+        }
         return CatalogUiState.Ready(
             controls = controls.copy(filter = filter),
             heroes = heroes,
+            cards = CatalogBrowser.cards(indexed.index, query, heroes),
+            hiddenByCollection = hiddenByCollection,
             totalInScope = inScope,
             options = FilterOptions(
                 complexities = catalog.heroes.mapNotNull { it.complexity }.distinct().sorted(),

@@ -45,6 +45,8 @@ class SettingsDataSourceTest {
             assertThat(last.hapticsEnabled).isFalse()
             assertThat(last.soundsEnabled).isFalse()
             assertThat(last.theme).isEqualTo(ThemeMode.LIGHT)
+            ds.update { it.copy(catalogListView = true) }
+            assertThat(awaitItem().catalogListView).isTrue()
         }
     }
 

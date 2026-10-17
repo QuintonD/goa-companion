@@ -53,6 +53,25 @@ class DeckLayoutTest {
     }
 
     @Test
+    fun extrasAreGroupedByTierAndTheViewerFollowsThatOrder() {
+        fun spell(name: String, color: CardColor, tier: Int?) =
+            Card(id = "${hero.id}-spell-$name", heroId = hero.id, name = name, color = color, tier = tier)
+        val extras = listOf(
+            spell("cantrip", CardColor.GOLD, null),
+            spell("red-one", CardColor.RED, 1),
+            spell("red-two", CardColor.RED, 2),
+            spell("green-one", CardColor.GREEN, 1),
+            spell("wish", CardColor.PURPLE, 4),
+        )
+        val layout = DeckLayout.of(hero.copy(extras = extras))
+        assertThat(layout.extrasAreSpellbook).isTrue()
+        assertThat(layout.extraRows.map { it.tier }).containsExactly(null, 1, 2, 4).inOrder()
+        assertThat(layout.extraRows[1].cards.map { it.name }).containsExactly("red-one", "green-one").inOrder()
+        assertThat(layout.orderedCards.takeLast(5).map { it.name })
+            .containsExactly("cantrip", "red-one", "green-one", "red-two", "wish").inOrder()
+    }
+
+    @Test
     fun tierNumeralsAreRoman() {
         assertThat((1..4).map(::tierNumeral)).containsExactly("I", "II", "III", "IV").inOrder()
     }
