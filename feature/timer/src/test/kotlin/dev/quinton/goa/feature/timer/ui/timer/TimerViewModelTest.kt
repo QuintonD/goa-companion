@@ -11,6 +11,7 @@ import dev.quinton.goa.core.model.match.Participant
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakePlayerRepository
 import dev.quinton.goa.core.testing.FakeSettingsRepository
@@ -178,6 +179,53 @@ class TimerViewModelTest {
         ).inOrder()
         assertThat(end.checklist!![4].timerName).isEqualTo("Upgrade 2:00")
         assertThat(end.timed).isFalse()
+    }
+
+    @Test
+    fun `the round view follows the saved layout and the header switch saves it`() = runTest {
+        val vm = vm()
+        vm.start()
+        val steps = vm.awaitActive()
+        assertThat(steps.layout).isEqualTo(TimerLayout.STEPS)
+        assertThat(steps.rows).isEmpty()
+
+        vm.setTimerLayout(TimerLayout.ROUND)
+        assertThat(settings.state.value.timerLayout).isEqualTo(TimerLayout.ROUND)
+        val round = vm.uiState.first { it.active?.layout == TimerLayout.ROUND }.active!!
+        // Table rules: strategy, 4 turns of play + resolve, the 6 end-of-round steps.
+        assertThat(round.rows).hasSize(15)
+        assertThat(round.rows.map { it.group }.distinct())
+            .containsExactly("Round start", "Turn 1", "Turn 2", "Turn 3", "Turn 4", "End of round").inOrder()
+        assertThat(round.rows.first().state).isEqualTo(RoundRowState.CURRENT)
+        assertThat(round.rows.drop(1).map { it.state }.toSet()).containsExactly(RoundRowState.UPCOMING)
+        assertThat(round.rows.map { it.length }.take(3)).containsExactly("1:30", "0:30", "Untimed").inOrder()
+    }
+
+    @Test
+    fun `jumping from the round view moves there, back undoes it, a stale round is ignored`() = runTest {
+        settings.state.value = AppSettings(timerLayout = TimerLayout.ROUND)
+        val vm = vm()
+        vm.start()
+        vm.awaitActive()
+        h.clocks.advance(20_000)
+        vm.jumpTo(round = 1, stepIndex = 13) // Upgrade on Level Up
+        val upgrade = vm.uiState.first { it.active?.stepIndex == 13 }.active!!
+        assertThat(upgrade.kind).isEqualTo(PhaseKind.UPGRADE)
+        assertThat(upgrade.clock).isEqualTo("2:00")
+        assertThat(upgrade.rows.take(13).map { it.state }.toSet()).containsExactly(RoundRowState.DONE)
+        assertThat(upgrade.rows[13].state).isEqualTo(RoundRowState.CURRENT)
+
+        h.clocks.advance(2_000)
+        vm.back()
+        val back = vm.uiState.first { it.active?.stepIndex == 0 }.active!!
+        // The strategy phase picks up where it was: 1:30 - 20 s - 2 s.
+        assertThat(back.clock).isEqualTo("1:08")
+
+        // A confirm for an earlier round's row, landing after the round moved on, does nothing.
+        vm.jumpTo(round = 2, stepIndex = 5)
+        h.clocks.advance(1_000)
+        vm.next()
+        assertThat(h.controller.snapshot.first()!!.stepIndex).isEqualTo(1)
     }
 
     @Test
@@ -425,6 +473,15 @@ class TimerViewModelTest {
         assertThat(last.seats!![1].resolved).isTrue()
         assertThat(last.seats!![0].acting).isTrue()
         assertThat(last.title).isEqualTo("Test Hero 1 · Ana")
+
+        // The round view names who resolved in each slot of this turn.
+        vm.setTimerLayout(TimerLayout.ROUND)
+        val rows = vm.uiState.first { it.active?.rows?.isNotEmpty() == true }.active!!.rows
+        assertThat(rows[2].context).isEqualTo("Hero 1 of 2 · Test Hero 2 · Ben")
+        assertThat(rows[3].context).isEqualTo("Hero 2 of 2 · Test Hero 1 · Ana")
+        assertThat(rows[3].description("30 seconds left"))
+            .isEqualTo("Turn 1, Action, Hero 2 of 2, Test Hero 1 · Ana, current, 30 seconds left")
+        assertThat(rows[5].context).isEqualTo("Hero 1 of 2")
     }
 
     @Test

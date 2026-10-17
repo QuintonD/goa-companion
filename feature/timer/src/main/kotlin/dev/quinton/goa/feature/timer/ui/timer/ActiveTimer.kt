@@ -53,7 +53,9 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SkipNext
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Toll
+import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -92,6 +94,7 @@ import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.timer.RoundSection
+import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.feature.timer.ui.components.AlertsOffBanner
 import dev.quinton.goa.feature.timer.ui.components.CountdownRing
 import dev.quinton.goa.feature.timer.ui.components.KeepScreenOn
@@ -131,10 +134,12 @@ internal fun ActiveTimer(state: ActiveUiState, actions: TimerActions) {
                         )
                     }
                 }
-                if (maxWidth > maxHeight) {
-                    LandscapeTimer(state, actions, header)
-                } else {
-                    PortraitTimer(state, actions, header)
+                val round = state.layout == TimerLayout.ROUND
+                when {
+                    maxWidth > maxHeight && round -> LandscapeRoundTimer(state, actions, header)
+                    maxWidth > maxHeight -> LandscapeTimer(state, actions, header)
+                    round -> PortraitRoundTimer(state, actions, header)
+                    else -> PortraitTimer(state, actions, header)
                 }
             }
         }
@@ -205,7 +210,7 @@ private fun PortraitTimer(state: ActiveUiState, actions: TimerActions, header: @
 
 /** A running "Hurry up" sits above the controls, outside the scrolling area, so it is always in view. */
 @Composable
-private fun PinnedShotClock(state: ActiveUiState, actions: TimerActions, compact: Boolean) {
+internal fun PinnedShotClock(state: ActiveUiState, actions: TimerActions, compact: Boolean) {
     val shot = state.shotClock ?: return
     ShotClockPanel(
         shot,
@@ -346,7 +351,7 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
 
 /**
  * Top-bar actions, left to right: Tie Breaker coin (when tracked), Levels & defeats (rules
- * reference), End match, overflow menu (with Rules).
+ * reference), step / round view switch, End match, overflow menu (with Rules).
  */
 @Composable
 private fun RowScope.TimerTopActions(
@@ -363,11 +368,19 @@ private fun RowScope.TimerTopActions(
             actionKey = "${state.round}:${state.title}:${state.paused}",
         )
     }
-    // Large text needs the room for "Round N": the ladder moves into the menu.
+    // Large text needs the room for "Round N": the ladder and the view switch move into the menu.
     val largeText = LocalDensity.current.fontScale > LARGE_FONT_SCALE
+    val roundView = state.layout == TimerLayout.ROUND
+    val switchLayout = { actions.onTimerLayout(if (roundView) TimerLayout.STEPS else TimerLayout.ROUND) }
     if (!largeText) {
         IconButton(onClick = actions.onOpenLevels) {
             Icon(Icons.Outlined.MilitaryTech, contentDescription = "Levels and defeats")
+        }
+        IconButton(onClick = switchLayout) {
+            Icon(
+                if (roundView) Icons.Outlined.Timer else Icons.Outlined.ViewAgenda,
+                contentDescription = if (roundView) "Show one step at a time" else "Show the whole round",
+            )
         }
     }
     IconButton(onClick = onEnd) { Icon(Icons.Outlined.Flag, contentDescription = "End match") }
@@ -408,6 +421,19 @@ private fun RowScope.TimerTopActions(
                 },
             )
             if (largeText) {
+                DropdownMenuItem(
+                    text = { Text(if (roundView) "Step-by-step view" else "Whole-round view") },
+                    leadingIcon = {
+                        Icon(
+                            if (roundView) Icons.Outlined.Timer else Icons.Outlined.ViewAgenda,
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = {
+                        menu = false
+                        switchLayout()
+                    },
+                )
                 DropdownMenuItem(
                     text = { Text("Levels & defeats") },
                     leadingIcon = { Icon(Icons.Outlined.MilitaryTech, contentDescription = null) },
@@ -713,11 +739,11 @@ private fun ChecklistRow(item: ChecklistItemUi, onOpenLevels: (() -> Unit)? = nu
 }
 
 /** End-of-round id of the Level Up step (match-setup.json). */
-private const val LEVEL_UP_STEP = "level_up"
+internal const val LEVEL_UP_STEP = "level_up"
 
 /** On the current Level Up step: the level ladder (costs, max Tier) one tap away. */
 @Composable
-private fun LevelLadderButton(onClick: () -> Unit, label: String = "Levels") {
+internal fun LevelLadderButton(onClick: () -> Unit, label: String = "Levels") {
     OutlinedButton(onClick = onClick, contentPadding = PaddingValues(horizontal = Spacing.md)) {
         Icon(Icons.Outlined.MilitaryTech, contentDescription = null, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(Spacing.xs))
@@ -727,7 +753,7 @@ private fun LevelLadderButton(onClick: () -> Unit, label: String = "Levels") {
 
 /** Pause and Next. "Previous phase" is up by the step chip ([PhaseHeading]), away from the edge. */
 @Composable
-private fun TimerControls(state: ActiveUiState, actions: TimerActions, compact: Boolean = false) {
+internal fun TimerControls(state: ActiveUiState, actions: TimerActions, compact: Boolean = false) {
     Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 2.dp) {
         Row(
             Modifier.fillMaxWidth().padding(
@@ -767,4 +793,4 @@ private fun TimerControls(state: ActiveUiState, actions: TimerActions, compact: 
     }
 }
 
-private const val PAUSE_BLINK_MS = 900
+internal const val PAUSE_BLINK_MS = 900

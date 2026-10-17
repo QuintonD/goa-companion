@@ -9,6 +9,7 @@ import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.feature.timer.ui.components.notificationSettingsIntent
 import dev.quinton.goa.feature.timer.ui.components.rememberStartWithNotificationPermission
 
@@ -43,6 +44,10 @@ data class TimerActions(
     /** Level & defeat ladder (rules reference) for the heroes in play. */
     val onOpenLevels: () -> Unit = {},
     val onOpenRules: () -> Unit = {},
+    /** Round view: jump to a step of the given round (after the player confirms). */
+    val onJumpTo: (round: Int, stepIndex: Int) -> Unit = { _, _ -> },
+    /** Header switch between the step view and the round view. */
+    val onTimerLayout: (TimerLayout) -> Unit = {},
 )
 
 @Composable
@@ -103,6 +108,8 @@ fun TimerRoute(
             onDismissAlertsBanner = viewModel::dismissAlertsBanner,
             onOpenLevels = { onOpenLevels(state.active?.heroIds.orEmpty()) },
             onOpenRules = onOpenRules,
+            onJumpTo = viewModel::jumpTo,
+            onTimerLayout = viewModel::setTimerLayout,
         ),
     )
 }

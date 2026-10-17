@@ -11,6 +11,7 @@ import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.feature.timer.TimerText
 
 /** Seat names for the linked match (null when no match or no seats). */
@@ -37,7 +38,13 @@ internal object TimerUiMapper {
         )
     }
 
-    fun active(s: TimerSnapshot, r: TimerReadout, seats: List<SeatInfo>?, alertsOff: Boolean = false): ActiveUiState {
+    fun active(
+        s: TimerSnapshot,
+        r: TimerReadout,
+        seats: List<SeatInfo>?,
+        alertsOff: Boolean = false,
+        layout: TimerLayout = TimerLayout.STEPS,
+    ): ActiveUiState {
         val step = r.step
         val firstCue = step.cues.filter { it > 0 }.maxOrNull()
         val remaining = r.remainingMillis
@@ -77,7 +84,60 @@ internal object TimerUiMapper {
             timeOuts = timeOuts(s, step),
             volumeKeys = s.preset.volumeKeys,
             heroIds = seats.orEmpty().mapNotNull { it.heroId },
+            stepIndex = s.stepIndex,
+            layout = layout,
+            rows = if (layout == TimerLayout.ROUND) roundRows(s, seats) else emptyList(),
         )
+    }
+
+    /**
+     * The round view: one row per step of this round, done / current / upcoming. Action rows name
+     * the hero recorded for their slot this turn (the engine only keeps the current turn's).
+     */
+    fun roundRows(s: TimerSnapshot, seats: List<SeatInfo>?): List<RoundRowUi> = s.plan.steps.map { step ->
+        val group = when (step.section) {
+            RoundSection.ROUND_START -> "Round start"
+            RoundSection.TURN -> "Turn ${step.turn}"
+            RoundSection.ROUND_END -> "End of round"
+        }
+        val title = step.endStep?.title ?: step.phase?.name.orEmpty()
+        val slot = step.actionSlot?.takeIf { step.isAction }?.let { "Hero ${it + 1} of ${s.actionSlots}" }
+        val context = when {
+            slot != null -> listOfNotNull(slot, actor(s, step, seats))
+
+            step.endStepNumber != null ->
+                listOfNotNull(
+                    "Step ${step.endStepNumber} of ${s.endOfRound.size}",
+                    step.phase?.let {
+                        "${it.name} timer"
+                    },
+                )
+
+            else -> emptyList()
+        }
+        RoundRowUi(
+            index = step.index,
+            group = group,
+            title = title,
+            context = context.joinToString(" · ").ifEmpty { null },
+            length = TimerText.durationLabel(step.seconds),
+            state = when {
+                step.index < s.stepIndex -> RoundRowState.DONE
+                step.index == s.stepIndex -> RoundRowState.CURRENT
+                else -> RoundRowState.UPCOMING
+            },
+            jumpName = listOfNotNull(group, title, slot).joinToString(" · "),
+            label = (listOf(group, title) + context).joinToString(", "),
+            spokenLength = step.seconds?.let { TimerText.spokenDuration(it.toLong()) } ?: "untimed",
+        )
+    }
+
+    /** "Mrak · Ben": the hero recorded for an Action slot of the current turn. */
+    private fun actor(s: TimerSnapshot, step: TimerStep, seats: List<SeatInfo>?): String? {
+        if (seats == null || step.turn != s.step.turn || s.step.section != RoundSection.TURN) return null
+        val seat = s.actors.firstOrNull { it.slot == step.actionSlot }?.seat ?: return null
+        val info = seats.getOrNull(seat) ?: return null
+        return info.playerName?.let { "${info.heroName} · $it" } ?: info.heroName
     }
 
     /** "Mrak · Ben": who is resolving now in the Action timer. */

@@ -4,6 +4,7 @@ import dev.quinton.goa.core.domain.timer.PhaseKind
 import dev.quinton.goa.core.domain.timer.RoundSection
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.model.settings.TimerLayout
 
 data class TimerUiState(
     val loading: Boolean = true,
@@ -91,6 +92,36 @@ data class ChecklistItemUi(
     val id: String? = null,
 )
 
+enum class RoundRowState { DONE, CURRENT, UPCOMING }
+
+/** One step of the round in the round view (one row per step of the plan). */
+data class RoundRowUi(
+    /** Index of the step in the round's plan (what "Jump to" moves to). */
+    val index: Int,
+    /** Section heading the row sits under: "Round start", "Turn 2", "End of round". */
+    val group: String,
+    /** "Play a card", "Action", "Level Up". */
+    val title: String,
+    /** "Hero 3 of 6 · Mrak · Ben", "Step 5 of 6 · Upgrade timer"; null when there is nothing to add. */
+    val context: String?,
+    /** "0:30", or "Untimed". */
+    val length: String,
+    val state: RoundRowState,
+    /** Short name for the jump prompt: "Turn 2 · Play a card". */
+    val jumpName: String,
+    /** TalkBack, without the state: "Turn 2, Action, Hero 3 of 6". */
+    val label: String,
+    /** TalkBack length: "30 seconds", "untimed". */
+    val spokenLength: String,
+) {
+    /** "Turn 2, Action, Hero 3 of 6, current, 34 seconds left"; [spokenClock] is the live clock. */
+    fun description(spokenClock: String): String = when (state) {
+        RoundRowState.DONE -> "$label, done"
+        RoundRowState.CURRENT -> "$label, current, $spokenClock"
+        RoundRowState.UPCOMING -> "$label, upcoming, $spokenLength"
+    }
+}
+
 /** Round progress: optional round-start marker, one pip per turn, end-of-round marker. */
 data class RoundPipsUi(
     val hasRoundStart: Boolean,
@@ -136,6 +167,12 @@ data class ActiveUiState(
     val volumeKeys: Boolean = false,
     /** Heroes of the linked match (for the level & defeat ladder's card exceptions). */
     val heroIds: List<String> = emptyList(),
+    /** Index of the current step in the round's plan. */
+    val stepIndex: Int = 0,
+    /** Step by step (dial) or the whole round on one list; the device's choice. */
+    val layout: TimerLayout = TimerLayout.STEPS,
+    /** Every step of this round, in order (filled for [TimerLayout.ROUND] only). */
+    val rows: List<RoundRowUi> = emptyList(),
 ) {
     /** Rule text of the current end-of-round step (e.g. Level Up is mandatory). */
     val currentDetail: String? get() = checklist?.firstOrNull { it.state == ChecklistState.CURRENT }?.detail

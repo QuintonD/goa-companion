@@ -17,6 +17,7 @@ import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.feature.timer.TimerText
 import dev.quinton.goa.feature.timer.data.TimerRepository
 import dev.quinton.goa.feature.timer.session.TimerCommand
@@ -88,7 +89,7 @@ class TimerViewModel @Inject constructor(
     private val matches: MatchRepository,
     catalogRepository: CatalogRepository,
     players: PlayerRepository,
-    settingsRepository: SettingsRepository,
+    private val settingsRepository: SettingsRepository,
     private val cues: CuePlayer,
     private val ticker: Ticker,
 ) : ViewModel() {
@@ -161,13 +162,22 @@ class TimerViewModel @Inject constructor(
         )
     }
 
-    private val banner: Flow<Pair<Boolean, String?>> = combine(alertsOff, bannerDismissedFor) { off, id -> off to id }
+    /** Screen chrome: alerts-off banner (and the session it was dismissed for) and the timer layout. */
+    private data class Chrome(val alertsOff: Boolean, val dismissedFor: String?, val layout: TimerLayout)
 
-    val uiState: StateFlow<TimerUiState> = combine(controller.snapshot, linkedSeats, startState, banner, ticks) {
+    // The layout comes straight from the repository (not [settings]' default), so a phone set to the
+    // round view never flashes the step view first.
+    private val chrome: Flow<Chrome> = combine(
+        alertsOff,
+        bannerDismissedFor,
+        settingsRepository.settings.map { it.timerLayout }.distinctUntilChanged(),
+    ) { off, id, layout -> Chrome(off, id, layout) }
+
+    val uiState: StateFlow<TimerUiState> = combine(controller.snapshot, linkedSeats, startState, chrome, ticks) {
             s,
             seats,
             start,
-            (off, dismissedFor),
+            screen,
             _,
         ->
         when {
@@ -184,7 +194,8 @@ class TimerViewModel @Inject constructor(
                     s,
                     controller.readout(s),
                     seats,
-                    alertsOff = off && dismissedFor != s.sessionId,
+                    alertsOff = screen.alertsOff && screen.dismissedFor != s.sessionId,
+                    layout = screen.layout,
                 ),
             )
         }
@@ -256,6 +267,12 @@ class TimerViewModel @Inject constructor(
     fun cancelShotClock() = command(TimerCommand.CancelShotClock)
 
     fun timeOut(team: Team) = command(TimerCommand.TimeOut(team))
+
+    /** Round view: jump to a step of [round] (a stale tap from an earlier round does nothing). */
+    fun jumpTo(round: Int, stepIndex: Int) = command(TimerCommand.JumpTo(round, stepIndex))
+
+    /** The header's view switch: persisted at once, so Settings and the next match agree. */
+    fun setTimerLayout(layout: TimerLayout) = launch { settingsRepository.update { it.copy(timerLayout = layout) } }
 
     /** Tonight's turn length for the selected preset (the preset itself is unchanged). */
     fun setTonightTurn(seconds: Int) = launch {
