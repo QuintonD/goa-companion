@@ -258,7 +258,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Swap with an enemy minion in radius;\nyou may move that minion up to 2 spaces.",
+      "text": "Swap with an enemy minion in radius; you may move that minion up to 2 spaces.",
       "image": "official/cards/cutter-green-2b.webp"
     },
     {
@@ -411,7 +411,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Swap with an enemy minion in radius;\nyou may move that minion up to 3 spaces.",
+      "text": "Swap with an enemy minion in radius; you may move that minion up to 3 spaces.",
       "image": "official/cards/cutter-green-3b.webp"
     },
     {
@@ -491,7 +491,7 @@
     "id": "cutter-handicap",
     "heroId": "cutter",
     "name": "Few More Steps",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 12,
     "primary": "skill",

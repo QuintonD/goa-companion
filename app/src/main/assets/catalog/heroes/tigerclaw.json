@@ -380,7 +380,7 @@
       "ranged": false,
       "block": false,
       "item": "movement",
-      "text": "Move up to 2 spaces. Take 1 or 2 coins from an enemy hero adjacent to you;\nif you do, you may move up to 2 spaces.",
+      "text": "Move up to 2 spaces. Take 1 or 2 coins from an enemy hero adjacent to you; if you do, you may move up to 2 spaces.",
       "image": "official/cards/tigerclaw-green-3a.webp"
     },
     {
@@ -483,7 +483,7 @@
     "id": "tigerclaw-handicap",
     "heroId": "tigerclaw",
     "name": "Nimble Strike",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 12,
     "primary": "attack",

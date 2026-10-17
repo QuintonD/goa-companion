@@ -79,7 +79,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "When used as a defense action, +2 {defense}\nDefense for each other one of you in radius.\nWhen used as a skill action, remove all other you in play.",
+      "text": "When used as a defense action, +2 {defense} Defense for each other one of you in radius.\nWhen used as a skill action, remove all other you in play.",
       "image": "official/cards/razzle-silver.webp"
     },
     {
@@ -481,7 +481,7 @@
     "id": "razzle-handicap",
     "heroId": "razzle",
     "name": "Stunted Doubles",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 12,
     "primary": "attack",

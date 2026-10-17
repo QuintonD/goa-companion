@@ -157,7 +157,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Push a token, or an enemy unit, adjacent to you 1 or 2 spaces, ignoring obstacles;\nyou may move up to 2 spaces in the direction of the push, ignoring obstacles.",
+      "text": "Push a token, or an enemy unit, adjacent to you 1 or 2 spaces, ignoring obstacles; you may move up to 2 spaces in the direction of the push, ignoring obstacles.",
       "image": "official/cards/mrak-blue-1.webp"
     },
     {
@@ -283,7 +283,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Push a token, or an enemy unit, adjacent to you 1, 2 or 3 spaces, ignoring obstacles;\nyou may move up to 3 spaces in the direction of the push, ignoring obstacles.",
+      "text": "Push a token, or an enemy unit, adjacent to you 1, 2 or 3 spaces, ignoring obstacles; you may move up to 3 spaces in the direction of the push, ignoring obstacles.",
       "image": "official/cards/mrak-blue-2a.webp"
     },
     {
@@ -434,7 +434,7 @@
       "ranged": false,
       "block": false,
       "item": "movement",
-      "text": "Push a token, or an enemy unit, adjacent to you 1, 2, 3 or 4 spaces, ignoring obstacles;\nyou may move up to 4 spaces in the direction of the push, ignoring obstacles.",
+      "text": "Push a token, or an enemy unit, adjacent to you 1, 2, 3 or 4 spaces, ignoring obstacles; you may move up to 4 spaces in the direction of the push, ignoring obstacles.",
       "image": "official/cards/mrak-blue-3a.webp"
     },
     {
@@ -489,7 +489,7 @@
     "id": "mrak-handicap",
     "heroId": "mrak",
     "name": "Lesser Fissure",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 10,
     "primary": "attack",
@@ -507,7 +507,7 @@
     "ranged": false,
     "block": false,
     "item": null,
-    "text": "Target a hero adjacent to you.\nAfter the attack: Place a {token_rock} Rock token in each of the first three empty spaces in the straight line from you in the direction of the attack.",
+    "text": "Target a hero adjacent to you.\nAfter the attack: Place a {token_rock} rock token in each of the first three empty spaces in the straight line from you in the direction of the attack.",
     "image": "official/cards/mrak-handicap.webp"
   },
   "extras": [],

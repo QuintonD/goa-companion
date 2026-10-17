@@ -33,7 +33,11 @@ always matches the app's schema. Code map: `Sources.kt` (pinning, cache), `Sourc
    - converts text to the `CardText` markup: `::attack_red::` → `{attack}` (colour suffix
      dropped; hero tokens/markers keep their names, see `CardText.ICONS`), `~(…)` reminder,
      `>>`/`>` options → `• ` paragraphs, `**bold**` kept (source 1), printed line wraps joined. Where
-     goa2-faq has the same words, its paragraphing is used (with source-1 bold). Unknown icon
+     goa2-faq has the same words, its paragraphing is used (with source-1 bold); its mid-sentence
+     line breaks are joined too (`TextMarkup.joinWraps`: a break stays only after `. : ) ! ? —`
+     or before a bullet, reminder, icon label or bold keyword), and its `- ::rune…:::` list
+     items lose the bullet (the card prints the icon label). Colours are the printed frame:
+     Handicap cards gold (Takahide's silver), spellbook pages gold/red/green/blue/purple. Unknown icon
      tokens abort the run. Printed `+` values (`primaryValueSign`/`modifierValueSign` `PLUS`)
      → `values.plus`; an unknown sign aborts the run.
    - cross-checks numbers (incl. `+` signs, field `values.plus`) against colefin8 and text, tier, variant, colour, stats and roles

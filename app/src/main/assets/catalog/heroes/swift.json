@@ -474,7 +474,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "After you resolve a basic card, you may perform the primary action on that card;\nyou cannot target the same enemy hero twice in the same turn this way.",
+      "text": "After you resolve a basic card, you may perform the primary action on that card; you cannot target the same enemy hero twice in the same turn this way.",
       "image": "official/cards/swift-purple-4.webp"
     }
   ],
@@ -482,7 +482,7 @@
     "id": "swift-handicap",
     "heroId": "swift",
     "name": "Backup",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 6,
     "primary": "skill",

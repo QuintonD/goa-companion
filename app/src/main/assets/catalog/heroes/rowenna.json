@@ -482,7 +482,7 @@
     "id": "rowenna-handicap",
     "heroId": "rowenna",
     "name": "Earn the Spurs",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 10,
     "primary": "attack",

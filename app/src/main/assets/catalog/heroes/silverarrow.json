@@ -129,7 +129,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Move an enemy unit adjacent to you 1 space;\nif you do, you may move 1 space.",
+      "text": "Move an enemy unit adjacent to you 1 space; if you do, you may move 1 space.",
       "image": "official/cards/silverarrow-green-1.webp"
     },
     {
@@ -484,7 +484,7 @@
     "id": "silverarrow-handicap",
     "heroId": "silverarrow",
     "name": "Keep the Distance",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 11,
     "primary": "attack",

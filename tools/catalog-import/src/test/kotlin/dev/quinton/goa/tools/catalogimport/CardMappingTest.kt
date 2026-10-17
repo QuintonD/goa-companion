@@ -111,8 +111,10 @@ class CardMappingTest {
 
     @Test
     fun `colour and tier follow the deck rules`() {
-        assertThat(CardMapping.color(card("GOLD", handicapped = true))).isEqualTo(CardColor.OTHER)
-        assertThat(CardMapping.color(card("RED", level = 1, school = "EVOCATION"))).isEqualTo(CardColor.OTHER)
+        // Handicap cards and spellbook pages keep their printed frame colour.
+        assertThat(CardMapping.color(card("GOLD", handicapped = true))).isEqualTo(CardColor.GOLD)
+        assertThat(CardMapping.color(card("SILVER", handicapped = true))).isEqualTo(CardColor.SILVER)
+        assertThat(CardMapping.color(card("RED", level = 1, school = "EVOCATION"))).isEqualTo(CardColor.RED)
         assertThat(CardMapping.color(card("PURPLE"))).isEqualTo(CardColor.PURPLE)
         assertThat(CardMapping.tier(card("GOLD"))).isNull()
         assertThat(CardMapping.tier(card("GOLD", extra = true))).isNull()

@@ -217,7 +217,8 @@ class ReportWriter(
                 if (h.portrait == null) add("${h.id}: portrait")
                 if (h.lore == null) add("${h.id}: lore")
                 if (h.faq.isEmpty()) add("${h.id}: no FAQ rulings in goa2-faq")
-                h.allCards.filter {
+                // Spellbook pages (extras) print no initiative.
+                (h.cards + listOfNotNull(h.handicap)).filter {
                     it.color !in NO_INITIATIVE && it.initiative == null
                 }.forEach { add("${it.id}: initiative") }
                 h.allCards.filter { it.text.isBlank() }.forEach { add("${it.id}: text") }

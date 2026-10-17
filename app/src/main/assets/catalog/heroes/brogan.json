@@ -203,7 +203,7 @@
       "ranged": true,
       "block": false,
       "item": "defense",
-      "text": "**Choose one —**\n• Target a unit adjacent to you.\n• You may discard a card;\nif you do, target a unit in range.",
+      "text": "**Choose one —**\n• Target a unit adjacent to you.\n• You may discard a card; if you do, target a unit in range.",
       "image": "official/cards/brogan-red-2b.webp"
     },
     {
@@ -253,7 +253,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "A friendly hero in range gains 1 coin;\nif any hero was defeated this round, that friendly hero gains 3 coins instead.",
+      "text": "A friendly hero in range gains 1 coin; if any hero was defeated this round, that friendly hero gains 3 coins instead.",
       "image": "official/cards/brogan-green-2b.webp"
     },
     {
@@ -403,7 +403,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "A friendly hero in range gains 2 coins;\nif any hero was defeated this round, that friendly hero gains 4 coins instead.",
+      "text": "A friendly hero in range gains 2 coins; if any hero was defeated this round, that friendly hero gains 4 coins instead.",
       "image": "official/cards/brogan-green-3b.webp"
     },
     {
@@ -483,7 +483,7 @@
     "id": "brogan-handicap",
     "heroId": "brogan",
     "name": "Leap Forward",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 10,
     "primary": "attack",

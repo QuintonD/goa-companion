@@ -486,7 +486,7 @@
     "id": "widget-handicap",
     "heroId": "widget",
     "name": "Follow Along",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 10,
     "primary": "attack",

@@ -79,7 +79,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "**This round:** Each time you perform or repeat a primary action, you may apply either {tiebreaker_blue} or {tiebreaker_orange}\ncard text, regardless of the Tie Breaker coin.",
+      "text": "**This round:** Each time you perform or repeat a primary action, you may apply either {tiebreaker_blue} or {tiebreaker_orange} card text, regardless of the Tie Breaker coin.",
       "image": "official/cards/ignatia-silver.webp"
     },
     {
@@ -484,7 +484,7 @@
     "id": "ignatia-handicap",
     "heroId": "ignatia",
     "name": "Unreliable Jolt",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 10,
     "primary": "attack",

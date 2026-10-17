@@ -3,7 +3,9 @@
   "name": "Sabina",
   "title": "the Commander",
   "product": "core",
-  "aliases": [],
+  "aliases": [
+    "Sabina the Gunslinger"
+  ],
   "complexity": 1,
   "stats": {
     "attack": [
@@ -307,7 +309,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "If there are two or more friendly minions in radius, you may retrieve a discarded card;\nif you do, you may move 1 space.",
+      "text": "If there are two or more friendly minions in radius, you may retrieve a discarded card; if you do, you may move 1 space.",
       "image": "official/cards/sabina-blue-2b.webp"
     },
     {
@@ -460,7 +462,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "If there are two or more friendly minions in radius, you may retrieve a discarded card;\nif you do, move up to 2 spaces.",
+      "text": "If there are two or more friendly minions in radius, you may retrieve a discarded card; if you do, move up to 2 spaces.",
       "image": "official/cards/sabina-blue-3b.webp"
     },
     {
@@ -490,7 +492,7 @@
     "id": "sabina-handicap",
     "heroId": "sabina",
     "name": "Bang",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 11,
     "primary": "attack",

@@ -153,7 +153,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "An enemy hero in radius with two or more cards in hand chooses one of those cards.\nGuess that card's color, then reveal it.\nIf you guessed correctly, discard that card;\notherwise you gain 1 coin.\n~(You can only guess colors that could be in that player's hand.)",
+      "text": "An enemy hero in radius with two or more cards in hand chooses one of those cards.\nGuess that card's color, then reveal it.\nIf you guessed correctly, discard that card; otherwise you gain 1 coin.\n~(You can only guess colors that could be in that player's hand.)",
       "image": "official/cards/bain-blue-1.webp"
     },
     {
@@ -279,7 +279,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "An enemy hero in radius with two or more cards in hand chooses one of those cards.\nGuess that card's color, then reveal it.\nIf you guessed correctly, discard that card;\notherwise you gain 2 coins.",
+      "text": "An enemy hero in radius with two or more cards in hand chooses one of those cards.\nGuess that card's color, then reveal it.\nIf you guessed correctly, discard that card; otherwise you gain 2 coins.",
       "image": "official/cards/bain-blue-2a.webp"
     },
     {
@@ -430,7 +430,7 @@
       "ranged": false,
       "block": false,
       "item": "range",
-      "text": "An enemy hero in radius with two or more cards in hand chooses one of those cards.\nGuess that card's color, then reveal it.\nIf you guessed correctly, discard that card;\notherwise may repeat once or gain 2 coins.",
+      "text": "An enemy hero in radius with two or more cards in hand chooses one of those cards.\nGuess that card's color, then reveal it.\nIf you guessed correctly, discard that card; otherwise may repeat once or gain 2 coins.",
       "image": "official/cards/bain-blue-3a.webp"
     },
     {
@@ -485,7 +485,7 @@
     "id": "bain-handicap",
     "heroId": "bain",
     "name": "Side Quest",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 10,
     "primary": "skill",

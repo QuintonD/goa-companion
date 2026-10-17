@@ -533,7 +533,7 @@
     "id": "takahide-handicap",
     "heroId": "takahide",
     "name": "Shameful Display",
-    "color": "other",
+    "color": "silver",
     "tier": null,
     "initiative": 5,
     "primary": "defense",

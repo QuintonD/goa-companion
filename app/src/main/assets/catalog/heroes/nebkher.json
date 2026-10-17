@@ -482,7 +482,7 @@
     "id": "nebkher-handicap",
     "heroId": "nebkher",
     "name": "Mind Probe",
-    "color": "other",
+    "color": "gold",
     "tier": null,
     "initiative": 8,
     "primary": "skill",
