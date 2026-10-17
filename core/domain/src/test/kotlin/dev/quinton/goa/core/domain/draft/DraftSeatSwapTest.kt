@@ -13,7 +13,7 @@ import org.junit.Test
 
 /** Rearranging heroes between seats after the draft never duplicates or loses a hero. */
 class DraftSeatSwapTest {
-    /** A 3 v 3 learning-game style lineup (synthetic ids) where "r3" is missing → red-2 is open. */
+    /** A 3 v 3 learning-game style lineup (synthetic ids) where "r3" is missing → one Red seat is open. */
     private val lineup = DraftMethod(
         id = "learn",
         name = "Learn",
@@ -37,22 +37,26 @@ class DraftSeatSwapTest {
     @Test
     fun `swapping a filled seat with an open seat moves the hero`() {
         val s = learningGame()
-        assertThat(DraftEngine.assignments(s).first { it.seat.id == "red-2" }.heroId).isNull()
+        val red = DraftEngine.assignments(s).filter { it.seat.team == Team.RED }
+        // The lineup is dealt at random within the team, so find the open and a filled seat.
+        val open = red.single { it.heroId == null }.seat
+        val filled = red.first { it.heroId != null }
+        val other = red.single { it.heroId != null && it != filled }
 
-        val swapped = DraftEngine.swapSeats(s, "red-0", "red-2").getOrThrow()
+        val swapped = DraftEngine.swapSeats(s, filled.seat.id, open.id).getOrThrow()
         val bySeat = DraftEngine.assignments(swapped).associate { it.seat.id to it.heroId }
-        assertThat(bySeat["red-0"]).isNull()
-        assertThat(bySeat["red-2"]).isEqualTo("r1")
-        assertThat(bySeat["red-1"]).isEqualTo("r2")
+        assertThat(bySeat[filled.seat.id]).isNull()
+        assertThat(bySeat[open.id]).isEqualTo(filled.heroId)
+        assertThat(bySeat[other.seat.id]).isEqualTo(other.heroId)
 
         val match = DraftEngine.toPendingMatch(swapped, "m", 0).getOrThrow()
         val heroes = match.participants.mapNotNull { it.heroId }
         assertThat(heroes).containsNoDuplicates()
-        assertThat(match.participants.first { it.playerId == "p-red-0" }.heroId).isNull()
-        assertThat(match.participants.first { it.playerId == "p-red-2" }.heroId).isEqualTo("r1")
+        assertThat(match.participants.first { it.playerId == filled.seat.pilotId }.heroId).isNull()
+        assertThat(match.participants.first { it.playerId == open.pilotId }.heroId).isEqualTo(filled.heroId)
 
         // And back again: the open seat moves too.
-        val back = DraftEngine.swapSeats(swapped, "red-2", "red-0").getOrThrow()
+        val back = DraftEngine.swapSeats(swapped, open.id, filled.seat.id).getOrThrow()
         assertThat(DraftEngine.assignments(back)).isEqualTo(DraftEngine.assignments(s))
     }
 

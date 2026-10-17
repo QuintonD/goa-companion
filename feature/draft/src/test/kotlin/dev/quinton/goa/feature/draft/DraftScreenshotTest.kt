@@ -129,6 +129,21 @@ class DraftScreenshotTest {
 
     @Test fun boardMidFontScale2() = capture(fontScale = 2f) { DraftBoardScreen(board(session(3)), BoardActions.None) }
 
+    @Test fun boardSingleDraftDark() = capture {
+        // 2 v 2 × 3 dealt heroes = 12, the test catalog's size.
+        val ids = PreviewData.players.map { it.id }
+        val seats = SeatLayouts.build(ids.take(2), ids.drop(2).take(2), OddSeatMode.HANDICAP).getOrThrow()
+        val single = bundledMethods.methods.first { it.id == "single-draft" }
+        val s = DraftEngine.start(
+            DraftSetup("d", 0L, single, seats, Team.RED, TestCatalog.heroes.map { it.id }, seed = 9L),
+        ).getOrThrow()
+        DraftBoardScreen(board(s, BoardLocal()), BoardActions.None)
+    }
+
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-xxhdpi")
+    fun boardLandscapeDark() = capture { DraftBoardScreen(board(session(3)), BoardActions.None) }
+
     @Test fun boardPrivacyGateDark() = capture {
         val hidden = PreviewData.pattern.copy(
             sequence = SequenceRule.Pattern(

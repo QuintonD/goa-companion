@@ -48,7 +48,7 @@ sealed interface PoolRule {
     @SerialName("random")
     data class Random(val size: Int) : PoolRule
 
-    /** Reveal (seats + [extra]) heroes at random (Random Draft: players + 2). */
+    /** Reveal (hero seats + [extra]) heroes at random (Random Draft: the rulebook says players + 2). */
     @Serializable
     @SerialName("seats_plus")
     data class SeatsPlus(val extra: Int) : PoolRule

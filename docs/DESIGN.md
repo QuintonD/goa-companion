@@ -40,6 +40,10 @@ tactile, premium. Dark theme is the default (table lighting); light theme fully 
 | Pearl | `#C3CCD6` | `#56616C` |
 | Lime | `#AECF55` | `#55691A` |
 
+Coral and Sky sit close to team red and team blue. Draft quick add skips them, and wherever a
+player appears in a team context (draft board seats, completed draft) their name carries the
+team's shape mark, so a coral player on Blue is never read as Red.
+
 All foreground colours above reach ≥ 4.5:1 against both background and surface in their
 theme (checked 2026-10-17). Note: dark-theme filled primary buttons need dark text
 (`onPrimary` = `#0B1622`); white on bronze is only 2.4:1. Re-check any new pair. Team
@@ -82,7 +86,10 @@ gallery screenshot test (`GalleryScreenshotTest`) shows them all, dark/light, fo
 ## Key screens
 Catalog grid → Hero detail · Timer (full-screen, giant ring countdown, phase chip,
 turn/round pips) · Players list → Player profile (rating chart) · Match log/editor ·
-Meta dashboard · Draft setup → Draft board (two team columns, pool grid, step banner).
+Meta dashboard · Draft setup → Draft board (sticky step banner over a scrolling list of sequence
+chips, two team columns with role coverage and ban chips, then a dense pool grid with search,
+role chips and "Hide taken"; taken heroes shrink to chips; landscape moves the banner and teams
+to a side column so the pool keeps the full height; long-press opens the hero peek sheet).
 Bottom nav: Heroes, Timer, Draft, Players (original icons: shield, hourglass, fanned cards,
 companions; solid variant when selected). Settings from top bar.
 

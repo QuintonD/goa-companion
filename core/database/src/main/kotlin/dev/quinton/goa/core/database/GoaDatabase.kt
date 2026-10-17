@@ -45,7 +45,7 @@ abstract class GoaDatabase : RoomDatabase() {
         const val NAME = "goa.db"
 
         /**
-         * v2: `matches.tie_breaker`, the team on the Tie Breaker coin at setup (ADR-016 setup).
+         * v2: `matches.tie_breaker`, the team on the Tie Breaker coin at setup (ADR-016).
          * Existing matches keep null: the coin they were played with was never recorded.
          */
         val MIGRATION_1_2 = Migration(1, 2) { connection ->

@@ -25,10 +25,10 @@ import dev.quinton.goa.core.model.rating.Rating
 internal object PreviewData {
     val players: List<Player> = listOf(
         "Ada" to 0xFF3FC1B0,
-        "Bram" to 0xFFC9A35B,
-        "Cleo" to 0xFFE26459,
-        "Dov" to 0xFF4F8FE0,
-        "Esme" to 0xFFB18CE0,
+        "Bram" to 0xFFD9B44A,
+        "Cleo" to 0xFFB892E6,
+        "Dov" to 0xFFEE85B8,
+        "Esme" to 0xFFEE9A52,
         "Finn" to 0xFF6CC27A,
     ).mapIndexed { i, (name, color) -> Player("p$i", name, color, i, 0L) }
 

@@ -7,7 +7,7 @@
 | SDK | minSdk 26, compileSdk **37**, targetSdk **37** (set explicitly) |
 | UI | Jetpack Compose, Material 3 (custom theme), **Navigation 3** 1.2 (`navigation3-runtime/ui`, `lifecycle-viewmodel-navigation3`, `@Serializable` keys) |
 | DI | Hilt 2.60.x via **KSP** (no kapt — it doesn't work with AGP 9 built-in Kotlin) |
-| Persistence | **Room 3** (`androidx.room3`, bundled `SQLiteDriver`, KSP) for user data; DataStore for settings and timer state |
+| Persistence | **Room 3** (`androidx.room3`, bundled `SQLiteDriver`, KSP) for user data; DataStore for settings, timer state and draft state (in-progress draft, custom methods, setup form) |
 | Catalog data | Bundled JSON in `assets/catalog/`, kotlinx.serialization, held in memory (no DB) |
 | Async | Coroutines + Flow; `StateFlow<UiState>` per screen |
 | Charts | Vico 3.x (`compose`, `compose-m3`) |

@@ -312,7 +312,9 @@ Enumerate all splits into ⌈n/2⌉ / ⌊n/2⌋ (≤ 126 for n ≤ 10), minimise
 tie-break by seed, respect locked players. Offer the official **Player Draft** too [RB p.22]:
 the two most experienced players are Captains; first a hero is chosen for *every* player with
 any hero selection method; then Captains draft players one at a time, Team A's captain first;
-everyone plays their pre-selected hero.
+everyone plays their pre-selected hero. [APP] When one player is left, the captain on the clock
+has no choice, so the app makes that forced pick (`PlayerDraft.pickForcingLast`); undo takes it
+back together with the pick that forced it.
 
 ## Draft
 Official hero selection methods [RB p.22]; `Team A` = the team showing on the Tie Breaker
@@ -322,6 +324,7 @@ coin at the time of selection (the coin is flipped in setup step 3, before heroe
 - **Single Draft** — deal 3 heroes to each player; players take turns picking from their own
   3, starting with any player on Team A and alternating teams.
 - **Random Draft** — reveal (players + 2) heroes; pick starting with Team A, alternating.
+  [APP] counted in hero seats: the app reveals heroes in play + 2, so a double pilot adds one.
 - **Pick and Ban** (competitive/tournament):
   | Players | Sequence |
   |---------|----------|
@@ -341,7 +344,9 @@ coin at the time of selection (the coin is flipped in setup step 3, before heroe
   it has seats, not players.
 - **Complexity filter** [RB]: remove heroes above the least experienced player's complexity.
 - **First game** [RB p.5]: 4 players = Red Wasp + Xargatha vs Blue Arien + Brogan; 6 players
-  add Tigerclaw (Red) and Sabina (Blue). Offered as a "Learning game" preset.
+  add Tigerclaw (Red) and Sabina (Blue). Offered as a "Learning game" preset. The dashboards are
+  distributed "randomly to the players on the Red team" (and likewise Blue) [RB p.5 step 7], so
+  the engine shuffles each team's lineup across that team's seats with the draft seed.
 - Team picks are assigned to players on that team before the match starts [APP].
 - **Rearranging seats** after the draft [APP]: only for methods where a *team* picks (House
   draft, Pick and Ban, All Pick, Random Draft, All Random): heroes swap between two seats of
@@ -366,3 +371,10 @@ coin at the time of selection (the coin is flipped in setup step 3, before heroe
   refuses it (`StaleStep`, e.g. a confirm racing a step change); undo = drop last result.
   Property tests: every method × every player count 2–10 completes with unique heroes when the
   pool is large enough; random seat-swap sequences keep the assigned heroes equal to the picks.
+- **Hero peek** [APP]: long-pressing a pool tile shows complexity, roles, stat bars (base → max)
+  and the five starting cards, selected from the catalog as "the three Tier I cards and the two
+  basic cards with no Tier" [RB p.6] (basic = Gold and Silver [RB p.9]). Catalog data only, so it
+  cannot reveal a hidden choice. Each team's role coverage on the board is built from revealed
+  picks only; a hero chosen in the current hidden run is drawn exactly like a free hero.
+- **Small pools** [APP]: a random-size pool (House draft: 15) larger than the filtered roster is
+  dealt at the roster size, and setup says so ("Only 7 heroes match your filters…").

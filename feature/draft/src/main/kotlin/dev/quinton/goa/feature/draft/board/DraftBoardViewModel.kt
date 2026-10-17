@@ -10,6 +10,7 @@ import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.domain.draft.DraftCommand
 import dev.quinton.goa.core.domain.draft.DraftEngine
 import dev.quinton.goa.core.domain.draft.DraftError
+import dev.quinton.goa.core.domain.draft.DraftEvent
 import dev.quinton.goa.core.domain.draft.DraftSession
 import dev.quinton.goa.core.domain.teams.HeroSelections
 import dev.quinton.goa.core.domain.teams.PlayerDraft
@@ -20,6 +21,8 @@ import dev.quinton.goa.feature.draft.data.DraftEnvironment
 import dev.quinton.goa.feature.draft.data.DraftProgress
 import dev.quinton.goa.feature.draft.data.DraftRepository
 import dev.quinton.goa.feature.draft.ui.HeroInfo
+import dev.quinton.goa.feature.draft.ui.actionName
+import dev.quinton.goa.feature.draft.ui.info
 import dev.quinton.goa.feature.draft.ui.teamName
 import javax.inject.Inject
 import kotlin.random.Random
@@ -56,6 +59,8 @@ data class BoardLocal(
     val choosingFor: String? = null,
     val saving: Boolean = false,
     val message: String? = null,
+    /** The step the last undo took back; offered as "Redo" with the undo message. */
+    val redo: DraftEvent? = null,
 )
 
 data class BoardUiState(
@@ -163,7 +168,7 @@ class DraftBoardViewModel @Inject constructor(
     fun tapHero(heroId: String) {
         val s = uiState.value.board ?: return
         if (s.isComplete) return
-        local.update { it.copy(confirm = heroId, confirmStep = s.currentStepIndex) }
+        local.update { it.copy(confirm = heroId, confirmStep = s.currentStepIndex, redo = null) }
     }
 
     fun cancelConfirm() = local.update { it.copy(confirm = null, confirmStep = null) }
@@ -201,7 +206,7 @@ class DraftBoardViewModel @Inject constructor(
     fun reroll() = updateBoard { DraftEngine.reroll(it, env.newSeed()) }
 
     fun undo() {
-        local.update { it.copy(confirm = null, confirmStep = null, selectedSeat = null) }
+        local.update { it.copy(confirm = null, confirmStep = null, selectedSeat = null, redo = null) }
         viewModelScope.launch {
             val board = current() as? DraftProgress.Board ?: return@launch
             val origin = board.playerDraft
@@ -212,9 +217,42 @@ class DraftBoardViewModel @Inject constructor(
                     onFailure = { e -> local.update { it.copy(message = message(e)) } },
                 )
             } else {
-                updateBoard { DraftEngine.undo(it) }
+                val session = board.session
+                val last = session.history.lastOrNull()
+                DraftEngine.undo(session).fold(
+                    onSuccess = { undone ->
+                        drafts.saveActive(DraftProgress.Board(undone))
+                        if (last != null) {
+                            // A choice still hidden from the other team is never named.
+                            val what = if (session.isConcealed(session.history.lastIndex)) {
+                                "a hidden ${actionName(last.action).lowercase()}"
+                            } else {
+                                "${actionName(last.action)} ${uiState.value.heroes.info(last.heroId).name}"
+                            }
+                            local.update { it.copy(message = "Undid $what", redo = last) }
+                        }
+                    },
+                    onFailure = { e -> local.update { it.copy(message = message(e)) } },
+                )
             }
         }
+    }
+
+    /** Re-applies the step the last undo took back, if the draft is still at that step. */
+    fun redo() {
+        val event = local.value.redo ?: return
+        local.update { it.copy(redo = null) }
+        updateBoard { s ->
+            DraftEngine.apply(s, DraftCommand(event.heroId, event.team, event.action, step = event.step))
+        }
+    }
+
+    /** A dimmed tile in a dealt-hands draft: say why it can't be chosen. */
+    fun tapUnavailable(heroId: String) {
+        val s = uiState.value.board ?: return
+        val seat = s.currentStep?.seatId?.let { s.seat(it) } ?: return
+        val hero = uiState.value.heroes.info(heroId).name
+        local.update { it.copy(message = "$hero wasn't dealt to ${uiState.value.playerName(seat.pilotId)}") }
     }
 
     fun acknowledgePrivacy() {
@@ -277,7 +315,7 @@ class DraftBoardViewModel @Inject constructor(
         }
     }
 
-    fun dismissMessage() = local.update { it.copy(message = null) }
+    fun dismissMessage() = local.update { it.copy(message = null, redo = null) }
 
     // --- Player Draft ---
 
@@ -312,8 +350,9 @@ class DraftBoardViewModel @Inject constructor(
         Result.success(s.copy(selection = HeroSelections.clear(s.selection, playerId)))
     }
 
+    /** A captain's pick; the forced last pick follows automatically. */
     fun draftPlayer(playerId: String) = updatePlayers { s ->
-        PlayerDraft.pick(s.captains, playerId).map { s.copy(captains = it) }
+        PlayerDraft.pickForcingLast(s.captains, playerId).map { s.copy(captains = it) }
     }
 
     fun undoPlayerPick() = updatePlayers { s ->

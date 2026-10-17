@@ -75,7 +75,15 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
   alternate pairs, single last pick) plus the official All Random, All Pick, Single Draft,
   Random Draft and Pick and Ban (exact sequences in DOMAIN.md); custom methods can be saved. Animated Tie Breaker coin flip decides Team A.
 - Pass-and-play UI with clear "Team Red — Ban" prompts, hidden picks where the method needs
-  them, optional per-step timer, undo at every step, then assign picks to players.
+  them, optional per-step timer, undo at every step (with "Undid …" feedback and Redo), then
+  assign picks to players. The step banner stays on screen while the pool scrolls; the pool is
+  dense (about five tiles across) with name search, role filters and "Hide taken", and taken
+  heroes shrink to chips. Long-press a hero for a peek (★, roles, stats, starting cards, link to
+  the hero page); each team shows the roles its revealed picks cover. Single Draft shows the
+  current player's own heroes first.
+- The setup form (players, teams, method, pool, coin) survives leaving the tab, Back from the
+  board and process death; after a draft starts, the next game defaults to the same players,
+  teams and method (one "Clear" forgets them).
 - Finished draft → "Start match" creates a pending match and opens setup/timer.
 - **Done when:** every method completes legally for 2–10 players (property tests), undo works
   at every step, and the result flows into match log and timer.

@@ -135,10 +135,32 @@ class DraftEngineTest {
             DraftFixtures.setup(method, teamA = Team.BLUE, candidates = listOf("r1", "r2", "b1")),
         ).getOrThrow()
         assertThat(s.isComplete).isTrue()
-        val bySeat = DraftEngine.assignments(s).associate { it.seat.id to it.heroId }
-        assertThat(bySeat).containsExactly("red-0", "r1", "red-1", "r2", "blue-0", "b1", "blue-1", null)
+        val assignments = DraftEngine.assignments(s)
+        fun heroes(team: Team) = assignments.filter { it.seat.team == team }.map { it.heroId }
+        assertThat(heroes(Team.RED)).containsExactly("r1", "r2")
+        assertThat(heroes(Team.BLUE)).containsExactly("b1", null) // b2 is missing → its seat is open
         assertThat(DraftEngine.start(DraftFixtures.setup(method, DraftFixtures.seats(3, 3))).exceptionOrNull())
             .isInstanceOf(DraftError.NotSupported::class.java)
+    }
+
+    @Test
+    fun `learning game deals each team's heroes randomly within the team, repeatably per seed`() {
+        // RB p.5 step 7: the Red dashboards are distributed randomly to the players on the Red team.
+        val method = DraftFixtures.method("learning-game")
+        val candidates = listOf("wasp", "xargatha", "tigerclaw", "arien", "brogan", "sabina")
+        fun deal(seed: Long): Map<String, String?> = DraftEngine.start(
+            DraftFixtures.setup(method, DraftFixtures.seats(3, 3), candidates = candidates, seed = seed),
+        ).getOrThrow().let { s -> DraftEngine.assignments(s).associate { it.seat.id to it.heroId } }
+
+        val deals = (0L until 40L).map(::deal)
+        for (d in deals) {
+            assertThat(listOf("red-0", "red-1", "red-2").map { d[it] })
+                .containsExactly("wasp", "xargatha", "tigerclaw")
+            assertThat(listOf("blue-0", "blue-1", "blue-2").map { d[it] })
+                .containsExactly("arien", "brogan", "sabina")
+        }
+        assertThat(deals.toSet().size).isGreaterThan(1) // not a fixed order
+        assertThat(deal(7L)).isEqualTo(deal(7L)) // same seed, same deal
     }
 
     @Test

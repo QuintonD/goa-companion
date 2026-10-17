@@ -7,6 +7,7 @@ import dev.quinton.goa.feature.draft.data.DraftEnvironment
 import dev.quinton.goa.feature.draft.data.DraftProgress
 import dev.quinton.goa.feature.draft.data.DraftRepository
 import dev.quinton.goa.feature.draft.data.MethodLibrary
+import dev.quinton.goa.feature.draft.setup.SetupForm
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -53,6 +54,13 @@ class FakeDraftRepository(
 
     override suspend fun saveActive(progress: DraftProgress?) {
         activeState.value = progress
+    }
+
+    val setupFormState = MutableStateFlow<SetupForm?>(null)
+    override val setupForm: Flow<SetupForm?> = setupFormState
+
+    override suspend fun saveSetupForm(form: SetupForm?) {
+        setupFormState.value = form
     }
 
     override suspend fun saveCustomMethod(method: DraftMethod) {
