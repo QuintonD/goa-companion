@@ -12,6 +12,7 @@ import dev.quinton.goa.core.domain.draft.DraftMethod
 import dev.quinton.goa.core.domain.draft.DraftSession
 import dev.quinton.goa.core.domain.draft.DraftSetup
 import dev.quinton.goa.core.domain.draft.PoolRule
+import dev.quinton.goa.core.domain.draft.PoolSource
 import dev.quinton.goa.core.domain.draft.SequenceRule
 import dev.quinton.goa.core.domain.draft.TeamLineup
 import dev.quinton.goa.core.domain.draft.TeamSlot
@@ -24,6 +25,9 @@ import dev.quinton.goa.core.domain.teams.PlayerDraftSession
 import dev.quinton.goa.core.domain.teams.SeatLayouts
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.draft.bundledMethods
+import dev.quinton.goa.feature.draft.setup.SetupForm
+import dev.quinton.goa.feature.draft.setup.SetupStage
+import dev.quinton.goa.feature.draft.setup.TeamMode
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -65,6 +69,30 @@ class DraftRepositoryTest {
             OddSeatMode.HANDICAP,
         ).getOrThrow()
         return DraftEngine.start(DraftSetup("d", 1L, method, seats, Team.BLUE, heroes, 5L, 30)).getOrThrow()
+    }
+
+    @Test
+    fun `the setup form round-trips, without the transient starting flag`() = runTest(UnconfinedTestDispatcher()) {
+        val form = SetupForm(
+            stage = SetupStage.COIN,
+            selected = listOf("a", "b", "c"),
+            teamMode = TeamMode.BALANCED,
+            red = listOf("a", "c"),
+            blue = listOf("b"),
+            locked = mapOf("a" to Team.RED),
+            oddMode = OddSeatMode.HANDICAP,
+            methodId = "house",
+            poolSource = PoolSource.CUSTOM,
+            customSelection = setOf("hero-01", "hero-02"),
+            maxComplexity = 2,
+            teamA = Team.BLUE,
+            flipCount = 3,
+            lastGame = true,
+        )
+        val store = store()
+        repository(store).saveSetupForm(form.copy(starting = true))
+        // A fresh repository on the same file, as after process death.
+        assertThat(repository(store).setupForm.first()).isEqualTo(form)
     }
 
     @Test

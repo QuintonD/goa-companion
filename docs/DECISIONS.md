@@ -129,3 +129,18 @@ ignored: where its paragraphing is used, source-1 bold is copied word by word, a
 span would not fit, the source-1 text is kept (noted in REPORT.md).
 **Consequences:** Older catalog JSON still loads; every value display shows `4+` and speaks
 "4 plus"; card text renders bold keywords. The importer bumps `dataVersion`.
+
+
+## ADR-016 — Draft: the setup form lives in DataStore and becomes the next game's default (2026-10-17)
+**Context:** The draft setup wizard (players, teams, method, pool, coin) lived in a ViewModel
+`MutableStateFlow`. Navigation 3 clears an entry's ViewModel when the entry leaves the displayed
+back stack (tab switch, Back out of the tab), so the form was lost on every tab change, Back
+from the board and process death, and the second game of the night cost about 25 taps.
+**Decision:** `SetupForm` is `@Serializable` and is written to `DraftStore` (`setup_form`) on
+every change; the ViewModel reads it on creation and drops players deleted since. After a draft
+starts, the form becomes `forNextGame()`: same players, teams, captains, method and pool, a fresh
+coin, stage back to Players, marked "Same players and teams as last game" with a Clear action.
+`SavedStateHandle` was not used: it is cleared together with the ViewModel on a tab switch, so it
+would not cover the main case, and DataStore already covers process death.
+**Consequences:** The form survives whatever the shell does with tab state. Writes are small
+(one JSON string per edit). The transient `starting` flag is not persisted.

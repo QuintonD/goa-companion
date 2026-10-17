@@ -23,7 +23,9 @@ import kotlinx.coroutines.withContext
  * Draft persistence (owner: draft). Stores JSON documents whose schema lives in core:domain
  * (`DraftSession`, `DraftMethod`), so this module stays free of engine types:
  * - the in-progress draft, so it survives process death;
- * - the user's custom draft methods.
+ * - the user's custom draft methods;
+ * - the draft setup form (players, teams, method, pool, coin), so it survives leaving the tab
+ *   and process death and pre-fills the next game.
  */
 class DraftStore(private val dataStore: DataStore<Preferences>) {
     /** JSON of the in-progress draft, or null when none. */
@@ -31,6 +33,13 @@ class DraftStore(private val dataStore: DataStore<Preferences>) {
 
     /** JSON array of user-saved methods, or null before the first save. */
     val customMethods: Flow<String?> = dataStore.data.map { it[CUSTOM_METHODS] }
+
+    /** JSON of the draft setup form, or null before the first edit. */
+    val setupForm: Flow<String?> = dataStore.data.map { it[SETUP_FORM] }
+
+    suspend fun setSetupForm(json: String?) {
+        dataStore.edit { prefs -> if (json == null) prefs.remove(SETUP_FORM) else prefs[SETUP_FORM] = json }
+    }
 
     suspend fun setActiveDraft(json: String?) {
         dataStore.edit { prefs -> if (json == null) prefs.remove(ACTIVE) else prefs[ACTIVE] = json }
@@ -43,6 +52,7 @@ class DraftStore(private val dataStore: DataStore<Preferences>) {
     private companion object {
         val ACTIVE = stringPreferencesKey("active_draft")
         val CUSTOM_METHODS = stringPreferencesKey("custom_methods")
+        val SETUP_FORM = stringPreferencesKey("setup_form")
     }
 }
 

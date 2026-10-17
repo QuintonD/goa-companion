@@ -11,6 +11,7 @@ import dev.quinton.goa.core.domain.draft.DraftMethod
 import dev.quinton.goa.core.domain.draft.DraftMethodsFile
 import dev.quinton.goa.core.domain.draft.DraftSession
 import dev.quinton.goa.core.domain.teams.PlayerDraftSession
+import dev.quinton.goa.feature.draft.setup.SetupForm
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -64,6 +65,11 @@ interface DraftRepository {
 
     suspend fun saveActive(progress: DraftProgress?)
 
+    /** The draft setup form as last edited (survives leaving the tab and process death). */
+    val setupForm: Flow<SetupForm?>
+
+    suspend fun saveSetupForm(form: SetupForm?)
+
     suspend fun saveCustomMethod(method: DraftMethod)
 
     suspend fun deleteCustomMethod(id: String)
@@ -91,6 +97,14 @@ internal class DefaultDraftRepository @Inject constructor(
 
     override suspend fun saveActive(progress: DraftProgress?) {
         store.setActiveDraft(progress?.let { json.encodeToString(DraftProgress.serializer(), it) })
+    }
+
+    override val setupForm: Flow<SetupForm?> = store.setupForm.map { text ->
+        text?.let { runCatching { json.decodeFromString(SetupForm.serializer(), it) }.getOrNull() }
+    }
+
+    override suspend fun saveSetupForm(form: SetupForm?) {
+        store.setSetupForm(form?.let { json.encodeToString(SetupForm.serializer(), it) })
     }
 
     override suspend fun saveCustomMethod(method: DraftMethod) {
