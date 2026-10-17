@@ -33,6 +33,7 @@ detekt = "2.0.0-alpha.6"
 ktlintGradle = "14.2.0"
 okhttp = "5.5.0"
 scrimage = "4.6.9"
+pdfbox = "3.0.8"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -91,6 +92,7 @@ androidx-test-services = { module = "androidx.test.services:test-services", vers
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 scrimage-core = { module = "com.sksamuel.scrimage:scrimage-core", version.ref = "scrimage" }
 scrimage-webp = { module = "com.sksamuel.scrimage:scrimage-webp", version.ref = "scrimage" }
+pdfbox = { module = "org.apache.pdfbox:pdfbox", version.ref = "pdfbox" }
 
 # build-logic
 android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }

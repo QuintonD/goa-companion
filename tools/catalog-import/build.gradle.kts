@@ -15,6 +15,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.scrimage.core)
     implementation(libs.scrimage.webp)
+    implementation(libs.pdfbox)
 }
 
 tasks.named<JavaExec>("run") {
