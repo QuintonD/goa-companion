@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.catalog.model
 
 import dev.quinton.goa.core.model.catalog.Card
+import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.core.model.catalog.Hero
 import java.text.Normalizer
@@ -45,9 +46,14 @@ data class SearchHit(
  * Matching is case- and accent-insensitive; every whitespace-separated token must match
  * somewhere in the hero (AND). Hero and alias names are also matched without spaces or
  * punctuation, so "neb kher" finds "NebKher". Pure Kotlin, no Android dependencies.
+ *
+ * A card's kind (its colour, "basic", "tier ii"/"tier 2", "ultimate", "handicap", "spell") can
+ * narrow a multi-word card query: "brogan ultimate" finds Brogan's Ultimate, and Brogan. A kind
+ * word alone never matches (every hero has red cards), so at least one word must match the card's
+ * name or text or its hero's name.
  */
 class CatalogSearchIndex(heroes: List<Hero>) {
-    private class CardDoc(val card: Card, val name: String, val text: String) {
+    private class CardDoc(val card: Card, val name: String, val text: String, val kind: String) {
         /** Name and text in one string, for phrase matches that start in one and end in the other. */
         val all: String = "$name $text"
     }
@@ -69,17 +75,36 @@ class CatalogSearchIndex(heroes: List<Hero>) {
             names = listOf(normalize(hero.name)).withCompact(),
             aliases = hero.aliases.map(::normalize).withCompact(),
             title = normalize(hero.title),
-            cards = hero.allCards.map { CardDoc(it, normalize(it.name), normalize(CardText.plain(it.text))) },
+            cards = hero.allCards.map { card ->
+                CardDoc(
+                    card,
+                    normalize(card.name),
+                    normalize(CardText.plain(card.text)),
+                    kindWords(card, isHandicap = hero.handicap?.id == card.id),
+                )
+            },
         )
     }
 
     val size: Int get() = docs.size
 
-    /** Hits in catalog order (callers sort); heroes that don't match are omitted. */
+    /**
+     * Hits in catalog order (callers sort); heroes that don't match are omitted. A hero with a
+     * card that matches the whole query ([searchCards]) is always a hit, so a card result never
+     * lacks its hero.
+     */
     fun search(query: String): List<SearchHit> {
         val tokens = tokenize(query)
         if (tokens.isEmpty()) return docs.map { SearchHit(it.heroId, score = 0, field = null, card = null) }
-        return docs.mapNotNull { doc -> match(doc, tokens) }
+        val phrase = tokens.joinToString(" ")
+        return docs.mapNotNull { doc -> match(doc, tokens) ?: matchThroughCard(doc, tokens, phrase) }
+    }
+
+    /** A hero found only through a card's kind ("brogan ultimate"): named after that card. */
+    private fun matchThroughCard(doc: HeroDoc, tokens: List<String>, phrase: String): SearchHit? {
+        if (tokens.size < 2) return null
+        val hit = doc.cards.firstNotNullOfOrNull { cardHit(doc, it, tokens, phrase) } ?: return null
+        return SearchHit(doc.heroId, hit.score, MatchField.CARD_NAME, hit.card, MatchQuality.PARTIAL)
     }
 
     /**
@@ -110,10 +135,19 @@ class CatalogSearchIndex(heroes: List<Hero>) {
             return CardHit(card.card, doc.heroId, MatchQuality.PHRASE, score)
         }
         var score = 0
+        var named = false
         for (token in tokens) {
-            score += wordScore(card.all, token) ?: wordScore(doc.identity, token) ?: return null
+            val direct = wordScore(card.all, token) ?: wordScore(doc.identity, token)
+            if (direct != null) {
+                named = true
+                score += direct
+            } else {
+                // Kind words only narrow: they score as a word part and never match alone.
+                wordScore(card.kind, token)?.takeIf { tokens.size > 1 } ?: return null
+                score += 1
+            }
         }
-        return CardHit(card.card, doc.heroId, MatchQuality.ALL_WORDS, score)
+        return if (named) CardHit(card.card, doc.heroId, MatchQuality.ALL_WORDS, score) else null
     }
 
     private fun match(doc: HeroDoc, tokens: List<String>): SearchHit? {
@@ -168,6 +202,29 @@ class CatalogSearchIndex(heroes: List<Hero>) {
 
         fun tokenize(query: String): List<String> =
             normalize(query).trim().split(Whitespace).map { it.trim() }.filter { it.isNotEmpty() }
+
+        /**
+         * The words of a card's kind as the app labels it ("red tier ii 2", "gold basic",
+         * "ultimate", "handicap gold", "spell red tier i 1"), for multi-word card queries.
+         */
+        private fun kindWords(card: Card, isHandicap: Boolean): String {
+            val tier = card.tier
+            val ultimate = card.color == CardColor.PURPLE || tier == ULTIMATE_TIER
+            val spell = card.id.startsWith("${card.heroId}-spell-")
+            val basicColour = card.color == CardColor.GOLD || card.color == CardColor.SILVER
+            return buildList {
+                if (isHandicap) add("handicap")
+                if (spell) add("spell")
+                if (card.color != CardColor.OTHER && card.color != CardColor.PURPLE) add(card.color.name.lowercase())
+                when {
+                    ultimate -> add("ultimate")
+                    tier != null -> addAll(listOf("tier", tierNumeral(tier).lowercase(), tier.toString()))
+                    basicColour && !isHandicap && !spell -> add("basic")
+                }
+            }.joinToString(" ")
+        }
+
+        private const val ULTIMATE_TIER = 4
 
         private fun List<String>.withCompact(): List<String> =
             flatMap { listOf(it, it.replace(NonAlphanumeric, "")) }.distinct()

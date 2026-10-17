@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.catalog.list
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -27,6 +28,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -63,12 +65,14 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -83,6 +87,7 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.catalog.model.CatalogFilter
+import dev.quinton.goa.feature.catalog.model.CatalogSearchIndex
 import dev.quinton.goa.feature.catalog.model.CatalogSort
 import dev.quinton.goa.feature.catalog.ui.complexityLabel
 import dev.quinton.goa.feature.catalog.ui.goaFilterChipColors
@@ -105,6 +110,8 @@ fun CatalogScreen(
 ) {
     var showFilters by rememberSaveable { mutableStateOf(false) }
     val ready = state as? CatalogUiState.Ready
+    // Back with a search typed clears the search instead of leaving the app.
+    BackHandler(enabled = query.isNotEmpty()) { onAction(CatalogAction.Search("")) }
     GoaScreen(
         title = "Heroes",
         modifier = modifier,
@@ -202,6 +209,7 @@ private fun ReadyContent(
 @Composable
 private fun NoResults(state: CatalogUiState.Ready, query: String, onAction: (CatalogAction) -> Unit) {
     val hidden = state.hiddenByCollection
+    val filtered = state.controls.filter.activeCount > 0
     if (hidden > 0) {
         // The collection (Settings → owned products) hides heroes that would match.
         EmptyState(
@@ -220,14 +228,14 @@ private fun NoResults(state: CatalogUiState.Ready, query: String, onAction: (Cat
     EmptyState(
         icon = Icons.Outlined.SearchOff,
         title = "No heroes match",
-        message = if (query.isNotBlank()) {
-            "Nothing matches “${query.trim()}” with these filters. Try another word or clear them."
-        } else {
-            "No hero fits all of these filters. Remove one to widen the search."
+        message = when {
+            query.isBlank() -> "No hero fits all of these filters. Remove one to widen the search."
+            filtered -> "Nothing matches “${query.trim()}” with these filters. Try another word or clear them."
+            else -> "Nothing matches “${query.trim()}”. Try another word, or fewer words."
         },
         action = {
             OutlinedButton(onClick = { onAction(CatalogAction.ClearAll) }) {
-                Text("Clear search and filters")
+                Text(if (filtered) "Clear search and filters" else "Clear search")
             }
         },
     )
@@ -366,8 +374,13 @@ private fun ResultSummary(state: CatalogUiState.Ready, query: String) {
 /**
  * Heroes (grid or compact list) and, while searching, the matching cards. Cards come first when
  * they answer the query better than any hero (a card phrase beats a hero matched only through
- * its title and another card). Cell width does not grow with the font scale, so the grid keeps
- * three columns on a phone; tiles wrap or ellipsize their text instead.
+ * its title and another card). The grid keeps three columns on a phone up to font scale 1.3 and
+ * drops to two above that, so a hero's name never has to break inside a word.
+ *
+ * The list has its own scroll state and returns to the top whenever the query, filters or sort
+ * change: a lazy grid otherwise keeps the first visible item's key in place, which leaves the
+ * best result scrolled off the top. The position is kept when nothing changed (e.g. back from a
+ * hero page).
  */
 @Composable
 private fun Results(
@@ -380,28 +393,44 @@ private fun Results(
     val grid = layout == CatalogLayout.GRID
     val gap = if (grid) Spacing.sm else Spacing.xs
     val showCards = state.cards.isNotEmpty()
+    val gridState = rememberLazyGridState()
+    val resultsKey = resultsKey(query, state.controls)
+    val shownFor = remember { arrayOf(resultsKey) }
+    if (shownFor[0] != resultsKey) {
+        shownFor[0] = resultsKey
+        // Applied at the next measure, before key-based position keeping can scroll the top away.
+        gridState.requestScrollToItem(0)
+    }
+    val minCell = if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) GRID_MIN_CELL_LARGE_FONT else GRID_MIN_CELL
     LazyVerticalGrid(
-        columns = if (grid) GridCells.Adaptive(GRID_MIN_CELL) else GridCells.Fixed(1),
+        columns = if (grid) GridCells.Adaptive(minCell) else GridCells.Fixed(1),
+        state = gridState,
         contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = Spacing.xl),
         horizontalArrangement = Arrangement.spacedBy(gap),
         verticalArrangement = Arrangement.spacedBy(gap),
         modifier = Modifier.fillMaxSize(),
     ) {
         fun cardSection() {
-            item(key = "cards-header", span = { GridItemSpan(maxLineSpan) }) {
+            item(key = "cards-header", span = { GridItemSpan(maxLineSpan) }, contentType = HEADER) {
                 ResultsHeader("Cards", state.cards.size)
             }
-            items(state.cards, key = { "card-" + it.card.id }, span = { GridItemSpan(maxLineSpan) }) { result ->
+            items(
+                state.cards,
+                key = { "card-" + it.card.id },
+                span = { GridItemSpan(maxLineSpan) },
+                contentType = { CARD },
+            ) { result ->
                 CardResultRow(result, query, onClick = { onCardClick(result.hero.id, result.card.id) })
             }
         }
         if (showCards && state.cardsFirst) cardSection()
         if (showCards) {
-            item(key = "heroes-header", span = { GridItemSpan(maxLineSpan) }) {
+            item(key = "heroes-header", span = { GridItemSpan(maxLineSpan) }, contentType = HEADER) {
                 ResultsHeader("Heroes", state.heroes.size)
             }
         }
-        items(state.heroes, key = { it.hero.id }) { item ->
+        // Content types let a tile scrolled out be reused for the next tile, not rebuilt.
+        items(state.heroes, key = { it.hero.id }, contentType = { HERO }) { item ->
             val onClick = { onHeroClick(item.hero.id) }
             if (grid) {
                 HeroGridTile(item, state.controls.sort, onClick, Modifier.animateItem())
@@ -410,9 +439,15 @@ private fun Results(
             }
         }
         if (showCards && !state.cardsFirst) cardSection()
-        item(key = "end", span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(Spacing.sm)) }
+        item(key = "end", span = { GridItemSpan(maxLineSpan) }, contentType = HEADER) {
+            Spacer(Modifier.height(Spacing.sm))
+        }
     }
 }
+
+/** What the result list shows; a change scrolls it back to the top. */
+internal fun resultsKey(query: String, controls: CatalogControls): String =
+    "${CatalogSearchIndex.tokenize(query).joinToString(" ")}|${controls.filter}|${controls.sort}"
 
 @Composable
 private fun ResultsHeader(title: String, count: Int) {
@@ -475,7 +510,16 @@ private fun LoadingGrid() {
 
 /** 3 columns on a 411 dp phone (1080 px at 420 dpi): (411 - 32 + 8) / (110 + 8) = 3. */
 private val GRID_MIN_CELL = 110.dp
-private const val SEARCH_HINT = "Search heroes and card text"
+
+/** 2 columns on the same phone at large font scales: (411 - 32 + 8) / (150 + 8) = 2. */
+private val GRID_MIN_CELL_LARGE_FONT = 150.dp
+
+/** Font scales above Android's 1.3 step (the next steps are 1.5, 1.8 and 2.0). */
+private const val LARGE_FONT_SCALE = 1.4f
+private const val SEARCH_HINT = "Search heroes & cards"
 private const val MOTION_MS = 250
+private const val HEADER = "header"
+private const val HERO = "hero"
+private const val CARD = "card"
 private const val PULSE_MS = 900
 private const val SKELETON_TILES = 6
