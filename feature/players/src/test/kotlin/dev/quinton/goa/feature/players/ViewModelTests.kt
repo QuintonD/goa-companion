@@ -206,6 +206,11 @@ class ViewModelTests {
         assertThat(state.form.status).isEqualTo(MatchStatus.COMPLETED)
         assertThat(state.form.playedAt).isEqualTo(start) // whole minutes
         assertThat(state.dirty).isFalse()
+        // The pending match's seats (hero, pilot, team) are what the result is logged against.
+        assertThat(state.form.seats(Team.RED).map { it.heroId to it.playerId })
+            .containsExactly("test-hero-1" to Fixtures.ann.id)
+        assertThat(state.form.seats(Team.BLUE).map { it.heroId to it.playerId })
+            .containsExactly("test-hero-2" to Fixtures.bob.id)
 
         vm.save()
         assertThat(vm.uiState.first { it.saveAttempts == 1 }.errors).contains(MatchError.WinnerRequired)

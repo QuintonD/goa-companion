@@ -31,11 +31,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ComplexityStars
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.complexityName
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.catalog.model.AttackStyle
@@ -81,6 +84,22 @@ internal fun HeroListItem.matchHint(): String? {
 }
 
 /**
+ * What a screen reader says for a tile or row, in reading order: "Arien, the Tidemaster.
+ * Complexity 1 of 4, Challenging. Tactician · Disabler. Core. Ranged. …". Set on the tile itself
+ * so a tile cut off at the edge of the screen (its texts scrolled out of view) is still labelled.
+ */
+internal fun HeroListItem.spokenLabel(sort: CatalogSort): String = listOfNotNull(
+    "${hero.name}, ${hero.title}",
+    hero.complexity?.let { c -> "Complexity $c of 4" + (complexityName(c)?.let { ", $it" } ?: "") },
+    traitsLine().ifEmpty { null },
+    productName,
+    rangedLabel,
+    if (hero.verified) null else "Unverified data",
+    metricLine(sort),
+    matchHint(),
+).joinToString(". ")
+
+/**
  * Compact grid tile (three per row on a phone): short portrait with stars, then name, title,
  * roles and pills. Text wraps or ellipsizes; the tile never grows wider with the font scale.
  */
@@ -90,7 +109,7 @@ internal fun HeroGridTile(item: HeroListItem, sort: CatalogSort, onClick: () -> 
     val hero = item.hero
     Card(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().semantics { contentDescription = item.spokenLabel(sort) },
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
@@ -198,7 +217,7 @@ internal fun HeroListRow(item: HeroListItem, sort: CatalogSort, onClick: () -> U
     val hero = item.hero
     Card(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().semantics { contentDescription = item.spokenLabel(sort) },
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),

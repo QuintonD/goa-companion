@@ -9,11 +9,13 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
@@ -114,7 +116,7 @@ fun AppRule.waitForDescription(text: String, substring: Boolean = false, timeout
     waitFor(hasContentDescription(text, substring = substring), timeout)
 
 fun AppRule.waitGone(matcher: SemanticsMatcher, timeout: Long = TIMEOUT) {
-    waitUntil(timeout) { !exists(matcher) }
+    waitUntilOrDump("${matcher.description} is gone", timeout) { !exists(matcher) }
 }
 
 /** Bottom navigation: "catalog", "timer", "draft" or "players". */
@@ -176,10 +178,59 @@ fun AppRule.createPlayerViaProfile(name: String) {
     waitForDescription("$name, no games yet", substring = true)
 }
 
+/** Match editor: puts [hero] and [pilot] in the first seat still without a hero (Red's come first). */
+fun AppRule.fillNextSeat(hero: String, pilot: String) {
+    tap(hasContentDescription("Hero: Unknown hero. Change hero") and hasClickAction())
+    waitForText("Search heroes")
+    onNode(hasSetTextAction() and hasText("Search heroes")).performTextInput(hero)
+    tap(hasText(hero) and hasRole(Role.RadioButton) and hasAnyAncestor(isDialog()))
+    waitForDescription("Hero: $hero. Change hero")
+
+    tap(hasContentDescription("Pilot: none. Change pilot") and hasClickAction())
+    waitForText("Pilot for", substring = true)
+    // In the sheet: the "Red won" option behind it also names the pilots.
+    tap(hasText(pilot) and hasRole(Role.RadioButton) and hasAnyAncestor(isDialog()))
+    waitGone(hasText("Pilot for", substring = true))
+}
+
 /** Leaderboard row content descriptions, e.g. "Rank 1, Ana, rating 1220, provisional, 1 wins 0 losses". */
 fun AppRule.leaderboardRows(): List<String> = onAllNodes(hasClickLabel("Open profile"))
     .fetchSemanticsNodes()
     .mapNotNull { node -> node.descriptions.firstOrNull { RowPattern.containsMatchIn(it) } }
+
+/** The pilots named on a "Who won?" winner button ("Red won: Ana, Cal"); empty when none are seated. */
+fun AppRule.winnerPilots(team: String): Set<String> {
+    val prefix = "$team won"
+    waitFor(hasContentDescription(prefix, substring = true) and hasRole(Role.RadioButton))
+    val description = onNode(hasContentDescription(prefix, substring = true) and hasRole(Role.RadioButton))
+        .fetchSemanticsNode().descriptions.first { it.startsWith(prefix) }
+    return description.removePrefix(prefix).removePrefix(": ").split(", ").filter { it.isNotBlank() }.toSet()
+}
+
+/** One line of "Result saved" → Rating changes: "Ana, won, rating +16, now 1216, rank 1". */
+data class RatingChange(val name: String, val won: Boolean, val delta: Int, val now: Int, val raw: String)
+
+private val ChangePattern = Regex("""^(.+?), (won|lost), rating ([+−±])(\d+), now (\d+)""")
+
+/** Waits until all [count] players' rating changes are computed on "Result saved", keyed by name. */
+fun AppRule.ratingChanges(count: Int): Map<String, RatingChange> {
+    fun read() = onAllNodes(hasContentDescription(", rating ", substring = true)).fetchSemanticsNodes()
+        .flatMap { it.descriptions }
+        .mapNotNull { raw ->
+            ChangePattern.find(raw)?.let { m ->
+                val size = m.groupValues[4].toInt()
+                val delta = when (m.groupValues[3]) {
+                    "−" -> -size
+                    "+" -> size
+                    else -> 0
+                }
+                RatingChange(m.groupValues[1], m.groupValues[2] == "won", delta, m.groupValues[5].toInt(), raw)
+            }
+        }
+        .associateBy { it.name }
+    waitUntilOrDump("$count rating changes") { read().size == count }
+    return read()
+}
 
 data class RatingRow(val name: String, val rating: Int?, val provisional: Boolean, val raw: String)
 

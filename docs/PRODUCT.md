@@ -71,7 +71,8 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
   condition (Throne / Last Push / Life counters / Other), duration, notes. Draft → pending
   match automatically; timer session can fill in duration.
 - **"Who won?"** when a game ends (timer summary, or a pending match in the log): winner and
-  win condition first, everything else optional below; dated from the session start. Saving
+  win condition first, everything else optional below (each winner button names that team's
+  pilots, so the table confirms who it credits at a glance); dated from the session start. Saving
   shows each player's rating change, their rank and who is on top, plus **Rematch** (same
   seats / swap heroes / swap sides / draft again → pending match → Match setup). Pending
   matches can be resumed into setup and the timer from the log. The pilot picker can add a
