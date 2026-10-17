@@ -418,6 +418,11 @@ non-negotiable. Options weighed:
   it; it opens no connection).
 - New runtime permission group ("Nearby devices" on Android 12+, Location before), asked only
   when a sync starts, with a rationale, a settings link after a refusal, and the file fallback.
+  The manifest follows Google's Nearby list with one change: `ACCESS_COARSE_LOCATION` is
+  declared up to API 31 (Google: 28) and asked together with FINE on Android 12, which ignores a
+  FINE request made alone (lint `CoarseFineLocation`). `neverForLocation` is set on
+  `NEARBY_WIFI_DEVICES` only; Google's list doesn't use it on `BLUETOOTH_SCAN`, and it can't be
+  checked without real radios.
 - Last writer wins per record: two phones editing the same match before syncing keep only the
   later edit (no field-level merge). Phones with badly wrong clocks win concurrent edits; an edit
   after a sync always beats what it edited.
