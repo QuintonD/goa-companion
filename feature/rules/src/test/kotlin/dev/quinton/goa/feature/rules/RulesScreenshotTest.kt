@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.rules
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -10,10 +11,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.rules.DefeatExceptions
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.feature.rules.ui.ExcerptBlock
 import dev.quinton.goa.feature.rules.ui.LevelLadderSheet
 import dev.quinton.goa.feature.rules.ui.RulesScreen
 import dev.quinton.goa.feature.rules.ui.RulesTopicScreen
@@ -88,6 +91,14 @@ class RulesScreenshotTest {
     @Test fun topicLight() = capture(ThemeMode.LIGHT) { Topic("turn-sequence") }
 
     @Test fun topicEndOfRoundDarkFontScale2() = capture(ThemeMode.DARK, 2f) { Topic("end-of-round") }
+
+    /** The p.20 Wave/Life counter table, the one verbatim table in the topics. */
+    @Test fun excerptTableDark() = capture(ThemeMode.DARK) {
+        val excerpt = bundledReference.topics.flatMap { it.excerpts }.first { it.table.isNotEmpty() }
+        Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
+            ExcerptBlock(excerpt, Modifier.padding(16.dp))
+        }
+    }
 
     @Test fun rulesListDark() = capture(ThemeMode.DARK) { RulesList() }
 
