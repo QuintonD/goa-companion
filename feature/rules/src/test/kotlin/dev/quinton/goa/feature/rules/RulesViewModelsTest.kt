@@ -39,7 +39,7 @@ class RulesViewModelsTest {
             val ready = readyOf(LadderUiState.Ready::class.java)
             assertThat(ready.matchHeroesOnly).isTrue()
             assertThat(ready.exceptions.map { it.heroName to it.cardName }).containsExactly("Ursafar" to "Tear")
-            assertThat(ready.exceptions.single().label).isEqualTo("Tier III · Red")
+            assertThat(ready.exceptions.single().label).isEqualTo("Red · Tier III")
             assertThat(ready.exceptions.single().text).contains("that hero spends 1 additional {life} Life counter")
         }
     }
@@ -50,11 +50,11 @@ class RulesViewModelsTest {
             val ready = readyOf(LadderUiState.Ready::class.java)
             assertThat(ready.matchHeroesOnly).isFalse()
             assertThat(ready.exceptions.map { "${it.heroName} · ${it.cardName} · ${it.label}" }).containsExactly(
-                "Bain · Dead or Alive · Gold",
-                "Bain · Side Quest · Handicap card",
-                "Gydion · Energy Drain · Extras · Tier III",
-                "Rowenna · Glorious Triumph · Tier III · Blue",
-                "Ursafar · Tear · Tier III · Red",
+                "Bain · Dead or Alive · Gold · Basic",
+                "Bain · Side Quest · Handicap · Gold",
+                "Gydion · Energy Drain · Spell · Red · Tier III",
+                "Rowenna · Glorious Triumph · Blue · Tier III",
+                "Ursafar · Tear · Red · Tier III",
             ).inOrder()
         }
     }
