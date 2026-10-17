@@ -78,13 +78,15 @@ fun PlayersHomeScreen(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                 )
-                PlayersTab.MATCHES -> ExtendedFloatingActionButton(
-                    onClick = actions.onLogMatch,
-                    icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
-                    text = { Text("Log match") },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                )
+                PlayersTab.MATCHES -> if (matches.undo == null) {
+                    ExtendedFloatingActionButton(
+                        onClick = actions.onLogMatch,
+                        icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
+                        text = { Text("Log match") },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
                 PlayersTab.META -> Unit
             }
         },

@@ -77,12 +77,23 @@ class RecentlyDeletedMatch @Inject constructor() {
     private val state = MutableStateFlow<Match?>(null)
     val match: StateFlow<Match?> = state.asStateFlow()
 
-    fun put(match: Match) {
+    /** When [match] was deleted (epoch ms); undo is only offered for a short while. */
+    var deletedAt: Long = 0L
+        private set
+
+    fun put(match: Match, now: Long = System.currentTimeMillis()) {
+        deletedAt = now
         state.value = match
     }
 
+    fun isFresh(now: Long = System.currentTimeMillis()): Boolean = now - deletedAt <= UNDO_WINDOW_MS
+
     fun clear() {
         state.value = null
+    }
+
+    companion object {
+        const val UNDO_WINDOW_MS = 30_000L
     }
 }
 
@@ -105,7 +116,7 @@ class MatchLogViewModel @Inject constructor(
             loading = false,
             groups = group(list, people.associateBy { it.id }, cat, snapshot.ratings.matchChanges),
             total = list.size,
-            undo = undo,
+            undo = undo?.takeIf { recentlyDeleted.isFresh() },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MatchLogUiState())
 

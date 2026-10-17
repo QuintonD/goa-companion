@@ -97,7 +97,7 @@ fun MatchLogContent(
 }
 
 @Composable
-fun MatchCard(match: MatchRowUi, onOpen: () -> Unit, onDelete: () -> Unit, modifier: Modifier = Modifier) {
+fun MatchCard(match: MatchRowUi, onOpen: () -> Unit, onDelete: (() -> Unit)?, modifier: Modifier = Modifier) {
     var menu by remember { mutableStateOf(false) }
     val summary = listOfNotNull(
         match.mode.label(),
@@ -109,12 +109,14 @@ fun MatchCard(match: MatchRowUi, onOpen: () -> Unit, onDelete: () -> Unit, modif
         modifier
             .fillMaxWidth()
             .semantics {
-                customActions = listOf(
-                    CustomAccessibilityAction("Delete match") {
-                        onDelete()
-                        true
-                    },
-                )
+                if (onDelete != null) {
+                    customActions = listOf(
+                        CustomAccessibilityAction("Delete match") {
+                            onDelete()
+                            true
+                        },
+                    )
+                }
             },
     ) {
         Column(
@@ -131,6 +133,9 @@ fun MatchCard(match: MatchRowUi, onOpen: () -> Unit, onDelete: () -> Unit, modif
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
+                if (onDelete == null) {
+                    Spacer(Modifier.size(48.dp))
+                } else {
                 Box {
                     IconButton(onClick = { menu = true }) {
                         Icon(Icons.Outlined.MoreVert, contentDescription = "More options")
@@ -153,6 +158,7 @@ fun MatchCard(match: MatchRowUi, onOpen: () -> Unit, onDelete: () -> Unit, modif
                             },
                         )
                     }
+                }
                 }
             }
             if (summary.isNotEmpty()) {
