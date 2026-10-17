@@ -203,7 +203,7 @@
       "ranged": true,
       "block": false,
       "item": "initiative",
-      "text": "Choose one —\n• Target a hero in range with a {marker_bounty} Bounty marker.\n• Target a unit adjacent to you.",
+      "text": "**Choose one —**\n• Target a hero in range with a {marker_bounty} Bounty marker.\n• Target a unit adjacent to you.",
       "image": "official/cards/bain-red-2b.webp"
     },
     {
@@ -246,7 +246,10 @@
         "defense": 3,
         "movement": 2,
         "range": null,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "movement"
+        ]
       },
       "ranged": false,
       "block": false,
@@ -351,7 +354,7 @@
       "ranged": true,
       "block": false,
       "item": "movement",
-      "text": "Choose one, or both, on different targets —\n• Target a hero in range with a {marker_bounty} Bounty marker.\n• Target a unit adjacent to you.",
+      "text": "**Choose one, or both,** on different targets —\n• Target a hero in range with a {marker_bounty} Bounty marker.\n• Target a unit adjacent to you.",
       "image": "official/cards/bain-red-3b.webp"
     },
     {
@@ -394,7 +397,10 @@
         "defense": 4,
         "movement": 2,
         "range": null,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "movement"
+        ]
       },
       "ranged": false,
       "block": false,
@@ -449,7 +455,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "You may have a hero in radius retrieve a discarded card. If they do, you may also retrieve a discarded card.\nEnd of turn: May repeat once.",
+      "text": "You may have a hero in radius retrieve a discarded card. If they do, you may also retrieve a discarded card.\n**End of turn:** May repeat once.",
       "image": "official/cards/bain-blue-3b.webp"
     },
     {

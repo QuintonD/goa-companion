@@ -53,7 +53,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Choose one —\n• Perform the primary action of your rightmost resolved card.\n• Defeat a minion adjacent to you.",
+      "text": "**Choose one —**\n• Perform the primary action of your rightmost resolved card.\n• Defeat a minion adjacent to you.",
       "image": "official/cards/swift-gold.webp"
     },
     {
@@ -252,7 +252,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "Move an enemy minion in radius up to 3 spaces to a space in radius.\nNext turn: The first time an enemy minion in radius is defeated, gain 1 coin.",
+      "text": "Move an enemy minion in radius up to 3 spaces to a space in radius.\n**Next turn:** The first time an enemy minion in radius is defeated, gain 1 coin.",
       "image": "official/cards/swift-green-2b.webp"
     },
     {
@@ -302,7 +302,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "End of turn: Place yourself into a space in radius not in a straight line from you.",
+      "text": "**End of turn:** Place yourself into a space in radius not in a straight line from you.",
       "image": "official/cards/swift-blue-2b.webp"
     },
     {
@@ -402,7 +402,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "Move up to two enemy minions in radius, up to 3 spaces each, to spaces in radius.\nNext turn: The first two times an enemy minion in radius is defeated, gain 1 coin.",
+      "text": "Move up to two enemy minions in radius, up to 3 spaces each, to spaces in radius.\n**Next turn:** The first two times an enemy minion in radius is defeated, gain 1 coin.",
       "image": "official/cards/swift-green-3b.webp"
     },
     {
@@ -452,7 +452,7 @@
       "ranged": false,
       "block": false,
       "item": "movement",
-      "text": "End of turn: Place yourself into a space in radius not in a straight line from you.\nYou may then fast travel, if able.",
+      "text": "**End of turn:** Place yourself into a space in radius not in a straight line from you.\nYou may then fast travel, if able.",
       "image": "official/cards/swift-blue-3b.webp"
     },
     {

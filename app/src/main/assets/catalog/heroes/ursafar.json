@@ -54,7 +54,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Before the attack: If enraged, you may move 1 space to a space adjacent to an enemy hero. Target a unit adjacent to you.\nThis round: You are enraged.",
+      "text": "Before the attack: If enraged, you may move 1 space to a space adjacent to an enemy hero. Target a unit adjacent to you.\n**This round:** You are enraged.",
       "image": "official/cards/ursafar-gold.webp"
     },
     {
@@ -78,7 +78,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "If enraged, perform the primary action on one of your active cards with an active effect.\nThis round: You are enraged.",
+      "text": "If enraged, perform the primary action on one of your active cards with an active effect.\n**This round:** You are enraged.",
       "image": "official/cards/ursafar-silver.webp"
     },
     {
@@ -103,7 +103,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Target a unit adjacent to you.\nAfter the attack: If enraged, and the target was not removed, remove up to 1 enemy minion in radius.\nThis round: You are enraged.",
+      "text": "Target a unit adjacent to you.\nAfter the attack: If enraged, and the target was not removed, remove up to 1 enemy minion in radius.\n**This round:** You are enraged.",
       "image": "official/cards/ursafar-red-1.webp"
     },
     {
@@ -152,7 +152,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "If enraged, after movement, you may swap with a unit or a token adjacent to you.\nThis round: You are enraged.",
+      "text": "If enraged, after movement, you may swap with a unit or a token adjacent to you.\n**This round:** You are enraged.",
       "image": "official/cards/ursafar-blue-1.webp"
     },
     {
@@ -177,7 +177,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Target a unit adjacent to you.\nAfter the attack: If enraged, and the target was not removed, remove up to 1 enemy minion in radius.\nThis round: You are enraged.",
+      "text": "Target a unit adjacent to you.\nAfter the attack: If enraged, and the target was not removed, remove up to 1 enemy minion in radius.\n**This round:** You are enraged.",
       "image": "official/cards/ursafar-red-2a.webp"
     },
     {
@@ -202,7 +202,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "Target a unit adjacent to you.\nAfter the attack: If enraged, gain 1 coin.\nThis round: You are enraged.",
+      "text": "Target a unit adjacent to you.\nAfter the attack: If enraged, gain 1 coin.\n**This round:** You are enraged.",
       "image": "official/cards/ursafar-red-2b.webp"
     },
     {
@@ -252,7 +252,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "If enraged, choose one —\n• Perform the primary action on one of your discarded cards.\n• You may retrieve a discarded card.",
+      "text": "If enraged, **choose one —**\n• Perform the primary action on one of your discarded cards.\n• You may retrieve a discarded card.",
       "image": "official/cards/ursafar-green-2b.webp"
     },
     {
@@ -276,7 +276,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "If enraged, after movement, you may swap with a unit or a token adjacent to you; if you do, move up to 1 additional space.\nThis round: You are enraged.",
+      "text": "If enraged, after movement, you may swap with a unit or a token adjacent to you; if you do, move up to 1 additional space.\n**This round:** You are enraged.",
       "image": "official/cards/ursafar-blue-2a.webp"
     },
     {
@@ -295,12 +295,15 @@
         "defense": 6,
         "movement": 1,
         "range": null,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "movement"
+        ]
       },
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "If enraged, gain +1 {movement} Movement.\nThis round: You are enraged.",
+      "text": "If enraged, gain +1 {movement} Movement.\n**This round:** You are enraged.",
       "image": "official/cards/ursafar-blue-2b.webp"
     },
     {
@@ -325,7 +328,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Target a unit adjacent to you.\nAfter the attack: If enraged, and the target was not removed, remove up to 2 enemy minions in radius.\nThis round: You are enraged.",
+      "text": "Target a unit adjacent to you.\nAfter the attack: If enraged, and the target was not removed, remove up to 2 enemy minions in radius.\n**This round:** You are enraged.",
       "image": "official/cards/ursafar-red-3a.webp"
     },
     {
@@ -350,7 +353,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "Target a unit adjacent to you.\nAfter the attack: If enraged, gain 2 coins; if you defeated a hero, that hero spends 1 additional {life} Life counter.\nThis round: You are enraged.",
+      "text": "Target a unit adjacent to you.\nAfter the attack: If enraged, gain 2 coins; if you defeated a hero, that hero spends 1 additional {life} Life counter.\n**This round:** You are enraged.",
       "image": "official/cards/ursafar-red-3b.webp"
     },
     {
@@ -400,7 +403,7 @@
       "ranged": false,
       "block": false,
       "item": "movement",
-      "text": "If enraged, choose one, or both —\n• Perform the primary action on one of your discarded cards.\n• You may retrieve a discarded card.",
+      "text": "If enraged, **choose one, or both —**\n• Perform the primary action on one of your discarded cards.\n• You may retrieve a discarded card.",
       "image": "official/cards/ursafar-green-3b.webp"
     },
     {
@@ -424,7 +427,7 @@
       "ranged": false,
       "block": false,
       "item": "range",
-      "text": "If enraged, after movement, you may swap with a unit or a token adjacent to you; if you do, move up to 2 additional spaces.\nThis round: You are enraged.",
+      "text": "If enraged, after movement, you may swap with a unit or a token adjacent to you; if you do, move up to 2 additional spaces.\n**This round:** You are enraged.",
       "image": "official/cards/ursafar-blue-3a.webp"
     },
     {
@@ -443,12 +446,15 @@
         "defense": 6,
         "movement": 1,
         "range": null,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "movement"
+        ]
       },
       "ranged": false,
       "block": false,
       "item": "radius",
-      "text": "If enraged, gain +2 {movement} Movement.\nThis round: You are enraged.",
+      "text": "If enraged, gain +2 {movement} Movement.\n**This round:** You are enraged.",
       "image": "official/cards/ursafar-blue-3b.webp"
     },
     {
@@ -496,7 +502,7 @@
     "ranged": false,
     "block": false,
     "item": null,
-    "text": "Before the attack: If enraged, you may move 1 space to a space adjacent to an enemy hero. Target a hero adjacent to you.\nThis round: You are enraged.",
+    "text": "Before the attack: If enraged, you may move 1 space to a space adjacent to an enemy hero. Target a hero adjacent to you.\n**This round:** You are enraged.",
     "image": "official/cards/ursafar-handicap.webp"
   },
   "extras": [],

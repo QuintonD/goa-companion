@@ -96,7 +96,10 @@
         "defense": 6,
         "movement": 4,
         "range": 2,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "attack"
+        ]
       },
       "ranged": true,
       "block": false,
@@ -171,7 +174,10 @@
         "defense": 6,
         "movement": 4,
         "range": 2,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "attack"
+        ]
       },
       "ranged": true,
       "block": false,
@@ -321,7 +327,10 @@
         "defense": 7,
         "movement": 4,
         "range": 2,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "attack"
+        ]
       },
       "ranged": true,
       "block": false,

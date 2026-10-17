@@ -78,7 +78,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "You may retrieve a discarded card.\nThis turn: You and friendly units in radius cannot be moved, pushed, swapped or placed by enemy heroes.",
+      "text": "You may retrieve a discarded card.\n**This turn:** You and friendly units in radius cannot be moved, pushed, swapped or placed by enemy heroes.",
       "image": "official/cards/brogan-silver.webp"
     },
     {
@@ -128,7 +128,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "This round: When any friendly minion in radius is defeated you may discard a silver card.\nIf you do, the minion is not removed.\n~(The enemy hero still gains the coins for defeating the minion.)",
+      "text": "**This round:** When any friendly minion in radius is defeated you may discard a silver card.\nIf you do, the minion is not removed.\n~(The enemy hero still gains the coins for defeating the minion.)",
       "image": "official/cards/brogan-green-1.webp"
     },
     {
@@ -203,7 +203,7 @@
       "ranged": true,
       "block": false,
       "item": "defense",
-      "text": "Choose one —\n• Target a unit adjacent to you.\n• You may discard a card;\nif you do, target a unit in range.",
+      "text": "**Choose one —**\n• Target a unit adjacent to you.\n• You may discard a card;\nif you do, target a unit in range.",
       "image": "official/cards/brogan-red-2b.webp"
     },
     {
@@ -228,7 +228,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "This round: When any friendly minion in radius is defeated you may discard a silver card.\nIf you do, the minion is not removed.",
+      "text": "**This round:** When any friendly minion in radius is defeated you may discard a silver card.\nIf you do, the minion is not removed.",
       "image": "official/cards/brogan-green-2a.webp"
     },
     {
@@ -353,7 +353,7 @@
       "ranged": true,
       "block": false,
       "item": "radius",
-      "text": "Choose one —\n• Target a unit adjacent to you.\n• You may discard a card. If you have a card in the discard, target a unit in range.",
+      "text": "**Choose one —**\n• Target a unit adjacent to you.\n• You may discard a card. If you have a card in the discard, target a unit in range.",
       "image": "official/cards/brogan-red-3b.webp"
     },
     {
@@ -378,7 +378,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "This round: When any friendly minion in radius is defeated you may discard a basic card.\nIf you do, the minion is not removed.",
+      "text": "**This round:** When any friendly minion in radius is defeated you may discard a basic card.\nIf you do, the minion is not removed.",
       "image": "official/cards/brogan-green-3a.webp"
     },
     {

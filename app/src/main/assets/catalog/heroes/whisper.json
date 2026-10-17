@@ -54,7 +54,7 @@
       "ranged": true,
       "block": false,
       "item": null,
-      "text": "Choose one —\n• Target a hero in range with an empty discard. After the attack: If able, that hero performs a movement action on the card they defended with, moving full distance in a straight line.\n• Target a unit adjacent to you.",
+      "text": "**Choose one —**\n• Target a hero in range with an empty discard. After the attack: If able, that hero performs a movement action on the card they defended with, moving full distance in a straight line.\n• Target a unit adjacent to you.",
       "image": "official/cards/whisper-gold.webp"
     },
     {
@@ -78,7 +78,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "If an enemy hero in radius has a card in the discard, choose one —\n• This turn: You are immune to enemy actions.\n• You may retrieve a discarded card.",
+      "text": "If an enemy hero in radius has a card in the discard, **choose one —**\n• **This turn:** You are immune to enemy actions.\n• You may retrieve a discarded card.",
       "image": "official/cards/whisper-silver.webp"
     },
     {
@@ -303,7 +303,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "An enemy hero in range chooses one —\n• That hero discards a card, if able.\n• You may defeat a minion adjacent to you.\n~(Any option can be chosen, even if it would have no effect.)",
+      "text": "An enemy hero in range **chooses one —**\n• That hero discards a card, if able.\n• You may defeat a minion adjacent to you.\n~(Any option can be chosen, even if it would have no effect.)",
       "image": "official/cards/whisper-blue-2b.webp"
     },
     {
@@ -453,7 +453,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "An enemy hero in range chooses one —\n• That hero discards a card, or is defeated.\n• You defeat up to 3 minions adjacent to you.",
+      "text": "An enemy hero in range **chooses one —**\n• That hero discards a card, or is defeated.\n• You defeat up to 3 minions adjacent to you.",
       "image": "official/cards/whisper-blue-3b.webp"
     },
     {
@@ -501,7 +501,7 @@
     "ranged": true,
     "block": false,
     "item": null,
-    "text": "Choose one —\n• Target a hero in range with an empty discard. After the attack: If able, that hero performs a movement action on the card they defended with, moving full distance in a straight line.\n• Target a hero adjacent to you.",
+    "text": "**Choose one —**\n• Target a hero in range with an empty discard. After the attack: If able, that hero performs a movement action on the card they defended with, moving full distance in a straight line.\n• Target a hero adjacent to you.",
     "image": "official/cards/whisper-handicap.webp"
   },
   "extras": [],

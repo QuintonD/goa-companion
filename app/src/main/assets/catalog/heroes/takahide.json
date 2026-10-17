@@ -253,7 +253,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Target a unit adjacent to you.\nAfter the attack: This turn: Empty spaces adjacent to you count as obstacles for enemy units.",
+      "text": "Target a unit adjacent to you.\nAfter the attack: **This turn:** Empty spaces adjacent to you count as obstacles for enemy units.",
       "image": "official/cards/takahide-red-2b.webp"
     },
     {
@@ -403,7 +403,7 @@
       "ranged": false,
       "block": false,
       "item": "range",
-      "text": "Target a unit adjacent to you.\nAfter the attack: This turn: Empty spaces in radius count as obstacles for enemy units.",
+      "text": "Target a unit adjacent to you.\nAfter the attack: **This turn:** Empty spaces in radius count as obstacles for enemy units.",
       "image": "official/cards/takahide-red-3b.webp"
     },
     {

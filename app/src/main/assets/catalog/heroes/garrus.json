@@ -48,7 +48,10 @@
         "defense": 3,
         "movement": 1,
         "range": null,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "attack"
+        ]
       },
       "ranged": false,
       "block": false,
@@ -77,7 +80,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "You may discard one of your resolved cards.\nThis round: Enemy heroes in radius cannot fast travel, or move more than 2 spaces with a movement action.",
+      "text": "You may discard one of your resolved cards.\n**This round:** Enemy heroes in radius cannot fast travel, or move more than 2 spaces with a movement action.",
       "image": "official/cards/garrus-silver.webp"
     },
     {
@@ -102,7 +105,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Choose one —\n• Before the attack: If you have one or more cards in the discard, you may move 1 space. Target a hero adjacent to you.\n• Target a unit adjacent to you.",
+      "text": "**Choose one —**\n• Before the attack: If you have one or more cards in the discard, you may move 1 space. Target a hero adjacent to you.\n• Target a unit adjacent to you.",
       "image": "official/cards/garrus-red-1.webp"
     },
     {
@@ -177,7 +180,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Choose one —\n• Before the attack: If you have one or more cards in the discard, move up to 2 spaces. Target a hero adjacent to you.\n• Target a unit adjacent to you.",
+      "text": "**Choose one —**\n• Before the attack: If you have one or more cards in the discard, move up to 2 spaces. Target a hero adjacent to you.\n• Target a unit adjacent to you.",
       "image": "official/cards/garrus-red-2a.webp"
     },
     {
@@ -327,7 +330,7 @@
       "ranged": false,
       "block": false,
       "item": "range",
-      "text": "Choose one —\n• Before the attack: If you have one or more cards in the discard, move up to 3 spaces. Target a hero adjacent to you.\n• Target a unit adjacent to you.",
+      "text": "**Choose one —**\n• Before the attack: If you have one or more cards in the discard, move up to 3 spaces. Target a hero adjacent to you.\n• Target a unit adjacent to you.",
       "image": "official/cards/garrus-red-3a.webp"
     },
     {
@@ -495,7 +498,10 @@
       "defense": 2,
       "movement": 1,
       "range": null,
-      "radius": null
+      "radius": null,
+      "plus": [
+        "attack"
+      ]
     },
     "ranged": false,
     "block": false,

@@ -71,7 +71,10 @@
         "defense": 1,
         "movement": null,
         "range": null,
-        "radius": 3
+        "radius": 3,
+        "plus": [
+          "defense"
+        ]
       },
       "ranged": false,
       "block": false,

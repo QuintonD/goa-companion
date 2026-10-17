@@ -99,7 +99,10 @@
         "defense": 6,
         "movement": 4,
         "range": null,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "attack"
+        ]
       },
       "ranged": false,
       "block": false,
@@ -174,7 +177,10 @@
         "defense": 6,
         "movement": 4,
         "range": null,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "attack"
+        ]
       },
       "ranged": false,
       "block": false,
@@ -204,7 +210,7 @@
       "ranged": true,
       "block": false,
       "item": "defense",
-      "text": "Choose one —\n• If this card is not in the discard, target a unit in range.\n• Target a hero adjacent to you.",
+      "text": "**Choose one —**\n• If this card is not in the discard, target a unit in range.\n• Target a hero adjacent to you.",
       "image": "official/cards/tali-red-2b.webp"
     },
     {
@@ -324,7 +330,10 @@
         "defense": 7,
         "movement": 4,
         "range": null,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "attack"
+        ]
       },
       "ranged": false,
       "block": false,
@@ -354,7 +363,7 @@
       "ranged": true,
       "block": false,
       "item": "defense",
-      "text": "Choose one, or both, on different targets —\n• If this card is not in the discard, target a unit in range.\n• Target a hero adjacent to you.",
+      "text": "**Choose one, or both,** on different targets —\n• If this card is not in the discard, target a unit in range.\n• Target a hero adjacent to you.",
       "image": "official/cards/tali-red-3b.webp"
     },
     {
@@ -429,7 +438,7 @@
       "ranged": false,
       "block": false,
       "item": "movement",
-      "text": "Choose a direction. Move each enemy unit in radius 1 space in that direction, if able.\nIf this card is in the discard, End of turn: May repeat once.",
+      "text": "Choose a direction. Move each enemy unit in radius 1 space in that direction, if able.\nIf this card is in the discard, **End of turn:** May repeat once.",
       "image": "official/cards/tali-blue-3a.webp"
     },
     {

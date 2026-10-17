@@ -157,7 +157,8 @@ Hero(id, name, title, product, aliases, complexity?, stats: HeroStats([base,max]
      lore?, verified, sources)
 Card(id, heroId, name, color: GOLD|SILVER|RED|GREEN|BLUE|PURPLE|OTHER, tier: 1..4|null,
      initiative?, primary?, secondary, values: CardValues(attack, defense, movement, range,
-     radius), ranged, block, item: Stat?, text (inline markup, see CardText), image?)
+     radius, plus: List<Stat>), ranged, block, item: Stat?, text (inline markup, see CardText),
+     image?)
 Player(id, name, color: ARGB, avatarId, createdAt, archived)   // name unique, see below
 Match(id, createdAt, playedAt, status: PENDING|COMPLETED|ABANDONED, mode: QUICK|LONG|DOUBLE_LANE,
       map?, winner?, winCondition?, durationMin?, notes, draftId?, participants)
@@ -166,9 +167,16 @@ DraftRecord(id, createdAt, methodId, methodKind, pool, teamA, steps: (team, PICK
 ```
 Engine-specific types (timer presets, draft methods/sessions, Elo config) live with their
 engines in `core:domain`.
-- **Card text markup** (`CardText`): `{icon}` inline game icon, `~(…)` reminder text, `
-`
-  paragraph break; everything else is printed text verbatim.
+- **Card text markup** (`CardText`): `{icon}` inline game icon, `~(…)` reminder text (italic,
+  content literal), `**…**` printed bold keyword (`**This turn:**`, `**Choose one —**`; bold,
+  may contain icons and reminders, never spans a paragraph; an unmatched or empty `**` is literal
+  text), `\n` paragraph break; everything else is printed text verbatim. `CardText.plain` (search,
+  accessibility) drops the markers. Bold comes from source 1; goa2-faq bold is not used.
+- **Printed `+` values** (`CardValues.plus`): stats whose printed number carries a `+` (Attack
+  `4+`, Range `1+`; the card text says how it grows). The number stays the printed base; each
+  listed stat has a non-null value. The UI shows `4+` and speaks "Attack 4 plus". Source:
+  Stats of Atlantis `primaryValueSign`/`modifierValueSign` `"PLUS"`, cross-checked against
+  colefin8's `4+` notation (`values.plus`). `"EXCLAMATION"` is the Block marker (`block`).
 - IDs: catalog = permanent kebab-case slugs (`"arien"`, `"arien-red-1"`); user data = UUIDs.
 - **Player names are unique** [APP], compared trimmed and case-insensitively, archived
   players included (`PlayerNames`), so one person never has two ids and two split ratings.
@@ -201,11 +209,12 @@ engines in `core:domain`.
       "initiative": 8,
       "primary": "attack",
       "secondary": ["movement", "defense"],
-      "values": { "attack": 4, "defense": 2, "movement": 2, "range": null, "radius": null },
+      "values": { "attack": 4, "defense": 2, "movement": 2, "range": null, "radius": null,
+                  "plus": ["attack"] },
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Exact card text as printed.",
+      "text": "**This turn:** Exact card text as printed.",
       "image": "official/cards/example-hero-red-1.webp"
     }
   ],
@@ -218,8 +227,9 @@ engines in `core:domain`.
 ```
 Validation (unit tests): unknown keys rejected; IDs unique and permanent; asset paths exist;
 32 heroes present, each with the standard 18-card composition + handicap unless listed in
-`deckExceptions` (Gydion, Takahide); `verified: true` per the rule in *Sources*. Values above
-are placeholders, not real data.
+`deckExceptions` (Gydion, Takahide); `verified: true` per the rule in *Sources*; every `plus`
+stat has a value; every `**` in card text is a balanced bold marker. `values.plus` is omitted
+when empty (older JSON without it still loads). Values above are placeholders, not real data.
 
 ## Elo [APP — ADR-011]
 Deterministic replay of COMPLETED matches ordered by `(playedAt, createdAt, id)`. Two rating

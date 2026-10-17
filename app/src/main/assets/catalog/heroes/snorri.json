@@ -51,7 +51,10 @@
         "defense": 2,
         "movement": 1,
         "range": 2,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "attack"
+        ]
       },
       "ranged": true,
       "block": false,
@@ -129,7 +132,7 @@
       "ranged": false,
       "block": true,
       "item": null,
-      "text": "If a rune is active:\n• {rune_horn}: Block a basic attack.\n• {rune_axe}: Block a non-ranged attack.\nThis Turn: You are immune to enemy actions.",
+      "text": "If a rune is active:\n• {rune_horn}: Block a basic attack.\n• {rune_axe}: Block a non-ranged attack.\n**This Turn:** You are immune to enemy actions.",
       "image": "official/cards/snorri-green-1.webp"
     },
     {
@@ -153,7 +156,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "If the {rune_bird} rune is active,\nThis turn: You may ignore obstacles.",
+      "text": "If the {rune_bird} rune is active,\n**This turn:** You may ignore obstacles.",
       "image": "official/cards/snorri-blue-1.webp"
     },
     {
@@ -227,7 +230,7 @@
       "ranged": false,
       "block": true,
       "item": "initiative",
-      "text": "If a rune is active:\n• {rune_horn}: Block a basic attack;\n• {rune_axe}: Block a non-ranged attack;\n• {rune_bird}: Block a ranged attack;\nThis Turn: You are immune to enemy actions.",
+      "text": "If a rune is active:\n• {rune_horn}: Block a basic attack;\n• {rune_axe}: Block a non-ranged attack;\n• {rune_bird}: Block a ranged attack;\n**This Turn:** You are immune to enemy actions.",
       "image": "official/cards/snorri-green-2a.webp"
     },
     {
@@ -276,7 +279,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "If a rune is active:\n• {rune_bird}: This turn: You may ignore obstacles.\n• {rune_anvil}: This turn: You are immune to enemy actions.",
+      "text": "If a rune is active:\n• {rune_bird}: **This turn:** You may ignore obstacles.\n• {rune_anvil}: **This turn:** You are immune to enemy actions.",
       "image": "official/cards/snorri-blue-2a.webp"
     },
     {
@@ -375,7 +378,7 @@
       "ranged": false,
       "block": true,
       "item": "initiative",
-      "text": "Choose one active rune:\n• {rune_horn}: Block a basic attack;\n• {rune_axe}: Block a non-ranged attack;\n• {rune_bird}: Block a ranged attack;\n• {rune_anvil}: Block a non-basic attack;\nThis Turn: You are immune to enemy actions.",
+      "text": "Choose one active rune:\n• {rune_horn}: Block a basic attack;\n• {rune_axe}: Block a non-ranged attack;\n• {rune_bird}: Block a ranged attack;\n• {rune_anvil}: Block a non-basic attack;\n**This Turn:** You are immune to enemy actions.",
       "image": "official/cards/snorri-green-3a.webp"
     },
     {
@@ -424,7 +427,7 @@
       "ranged": false,
       "block": false,
       "item": "range",
-      "text": "If a rune is active:\n• {rune_bird}: This turn: You may ignore obstacles.\n• {rune_anvil}: This turn: You are immune to enemy actions.\n• {rune_horn}: Gain +2 {movement} Movement.",
+      "text": "If a rune is active:\n• {rune_bird}: **This turn:** You may ignore obstacles.\n• {rune_anvil}: **This turn:** You are immune to enemy actions.\n• {rune_horn}: Gain +2 {movement} Movement.",
       "image": "official/cards/snorri-blue-3a.webp"
     },
     {
@@ -492,7 +495,10 @@
       "defense": 1,
       "movement": 1,
       "range": 2,
-      "radius": null
+      "radius": null,
+      "plus": [
+        "attack"
+      ]
     },
     "ranged": true,
     "block": false,

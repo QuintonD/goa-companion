@@ -4,6 +4,7 @@ import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.catalog.Role
+import dev.quinton.goa.core.model.catalog.Stat
 import java.text.Normalizer
 
 /** A value on which source 1 and a cross-check source differ. [field] matches override keys. */
@@ -52,7 +53,7 @@ object CrossCheck {
      */
     private val COLE_RANGE_OR_RADIUS = setOf("range", "radius", "eye")
 
-    /** colefin8 writes printed signs into numbers (`2+`, `1+`); the sign is not part of the value. */
+    /** colefin8 writes printed signs into numbers (`2+`, `1+`); the sign is compared separately (`values.plus`). */
     fun number(text: String?): Int? = text?.let { Regex("""\d+""").find(it)?.value?.toInt() }
 
     fun numbers(heroId: String, cards: List<Card>, rows: List<ColeRow>?): CheckResult {
@@ -84,12 +85,26 @@ object CrossCheck {
             }
             val modifier = card.values.range ?: card.values.radius
             cmp("values.range/radius", modifier, number(row["Range/Radius"]))
+            cmp("values.plus", plusColumns(card), colePlus(row))
             val item = card.item?.name?.lowercase()
             val theirItem = row["Item Icon"]?.lowercase()
             if (!(item in RANGE_OR_RADIUS && theirItem in COLE_RANGE_OR_RADIUS)) cmp("item", item, theirItem)
         }
         return CheckResult(out, unmatched, present = true)
     }
+
+    private val PLUS_COLUMNS = listOf("Attack", "Defense", "Movement", "Range/Radius")
+
+    /** colefin8 columns of [card]'s values printed with `+` (Range and Radius share a column). */
+    private fun plusColumns(card: Card): List<String> = card.values.plus.map {
+        when (it) {
+            Stat.RANGE, Stat.RADIUS -> "Range/Radius"
+            else -> it.name.lowercase().replaceFirstChar(Char::uppercaseChar)
+        }
+    }.distinct().sortedBy { PLUS_COLUMNS.indexOf(it) }
+
+    /** colefin8 columns whose number carries a printed `+` (`4+`). */
+    private fun colePlus(row: ColeRow): List<String> = PLUS_COLUMNS.filter { row[it]?.endsWith("+") == true }
 
     private fun pickRow(card: Card, rows: List<ColeRow>): ColeRow? {
         if (rows.size <= 1) return rows.firstOrNull()

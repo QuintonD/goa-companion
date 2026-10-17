@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -31,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
-import dev.quinton.goa.feature.catalog.detail.valueIcons
+import dev.quinton.goa.feature.catalog.detail.printedValues
 import dev.quinton.goa.feature.catalog.ui.CardTextView
 import dev.quinton.goa.feature.catalog.ui.GameIcons
 import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
@@ -88,14 +89,14 @@ internal fun DesignedCard(card: Card, isHandicap: Boolean, modifier: Modifier = 
                 horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                card.valueIcons().forEach { (icon, value) ->
+                card.printedValues().forEach { value ->
                     Row(
-                        Modifier.semantics(mergeDescendants = true) { contentDescription = "${icon.label} $value" },
+                        Modifier.clearAndSetSemantics { contentDescription = value.spoken },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(icon.vector, contentDescription = null, modifier = Modifier.size(22.dp))
+                        Icon(value.icon.vector, contentDescription = null, modifier = Modifier.size(22.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text(value.toString(), style = MaterialTheme.typography.headlineSmall)
+                        Text(value.printed, style = MaterialTheme.typography.headlineSmall)
                     }
                 }
             }

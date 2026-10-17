@@ -79,7 +79,14 @@ private object ShotData {
         cards = hero.cards.map { card ->
             when {
                 card.tier == 3 -> card.copy(item = Stat.DEFENSE, block = card.id.endsWith("a"))
-                card.tier == 2 -> card.copy(item = Stat.ATTACK, values = card.values.copy(radius = 1))
+
+                // Printed "+" value and a bold keyword, as on real cards (synthetic wording).
+                card.tier == 2 -> card.copy(
+                    item = Stat.ATTACK,
+                    values = card.values.copy(radius = 1, plus = listOf(Stat.ATTACK)),
+                    text = "**Test keyword:** ${card.text}",
+                )
+
                 else -> card
             }
         },

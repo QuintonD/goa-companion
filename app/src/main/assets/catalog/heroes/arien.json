@@ -78,7 +78,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "This turn: Enemy heroes in radius cannot perform skill actions, except on gold cards.\n~(Skill {skill} is an action type. Other action types are unaffected.)",
+      "text": "**This turn:** Enemy heroes in radius cannot perform skill actions, except on gold cards.\n~(Skill {skill} is an action type. Other action types are unaffected.)",
       "image": "official/cards/arien-silver.webp"
     },
     {
@@ -276,7 +276,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "Ignore all minion defense modifiers.\nThis turn: You are immune to attack actions of all enemy heroes, except this attacker.",
+      "text": "Ignore all minion defense modifiers.\n**This turn:** You are immune to attack actions of all enemy heroes, except this attacker.",
       "image": "official/cards/arien-blue-2a.webp"
     },
     {
@@ -300,7 +300,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "This turn: Enemy heroes adjacent to you cannot fast travel, or move more than 1 space with a movement action.",
+      "text": "**This turn:** Enemy heroes adjacent to you cannot fast travel, or move more than 1 space with a movement action.",
       "image": "official/cards/arien-blue-2b.webp"
     },
     {
@@ -424,7 +424,7 @@
       "ranged": false,
       "block": false,
       "item": "range",
-      "text": "Ignore all minion defense modifiers.\nThis round: You are immune to attack actions of all enemy heroes, except this attacker.",
+      "text": "Ignore all minion defense modifiers.\n**This round:** You are immune to attack actions of all enemy heroes, except this attacker.",
       "image": "official/cards/arien-blue-3a.webp"
     },
     {
@@ -448,7 +448,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "This turn: Enemy heroes in radius cannot fast travel, or move more than 1 space with a movement action.",
+      "text": "**This turn:** Enemy heroes in radius cannot fast travel, or move more than 1 space with a movement action.",
       "image": "official/cards/arien-blue-3b.webp"
     },
     {

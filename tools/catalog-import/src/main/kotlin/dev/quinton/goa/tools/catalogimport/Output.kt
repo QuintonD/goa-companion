@@ -1,6 +1,7 @@
 package dev.quinton.goa.tools.catalogimport
 
 import dev.quinton.goa.core.model.catalog.CardColor
+import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.core.model.catalog.CatalogIndex
 import dev.quinton.goa.core.model.catalog.Hero
 import java.io.File
@@ -101,6 +102,7 @@ class ReportWriter(
         crossCheckGaps()
         missingFields()
         images()
+        printedMarks()
         notRepresentable()
         file.writeText(sb.toString())
     }
@@ -246,16 +248,27 @@ class ReportWriter(
         line()
     }
 
+    private fun printedMarks() {
+        val cards = heroes.flatMap { it.allCards }
+        val plus = cards.filter { it.values.plus.isNotEmpty() }
+        line("## Printed `+` values and bold keywords")
+        line(
+            "- ${cards.count { CardText.STRONG in it.text }} card(s) have bold keywords (`**…**`, from source 1).",
+        )
+        line(
+            "- ${plus.size} card(s) print a value with `+` (`values.plus`; the value grows per the card text). " +
+                "Cross-checked against colefin8's `4+` notation (field `values.plus`):",
+        )
+        plus.forEach { card ->
+            val printed = card.values.plus.joinToString { "${it.name.lowercase()} ${card.values.get(it)}+" }
+            line("  - `${card.id}` ${card.name}: $printed")
+        }
+        line()
+    }
+
     private fun notRepresentable() {
         line("## Not representable in the schema")
-        line("- Bold keywords (`**This turn:**`) are dropped from card text; words are kept.")
-        line(
-            "- A `+` printed next to a value (e.g. Attack `4+`, Range `1+`; the value grows per card text) " +
-                "is stored as the bare number:",
-        )
-        heroes.flatMap {
-            it.allCards
-        }.filter { it.id in result.plusValueCards }.forEach { line("  - `${it.id}` ${it.name}") }
+        if (result.unknownIcons.isEmpty()) line("None.")
         if (result.unknownIcons.isNotEmpty()) {
             line(
                 "- Unknown icon tokens (left as text): ${result.unknownIcons.joinToString()}",

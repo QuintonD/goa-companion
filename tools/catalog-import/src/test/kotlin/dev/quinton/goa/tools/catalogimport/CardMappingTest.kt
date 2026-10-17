@@ -62,6 +62,37 @@ class CardMappingTest {
     }
 
     @Test
+    fun `printed plus signs map onto the stat they belong to`() {
+        val attack = card("RED", level = 1, primary = "ATTACK", value = 4, sign = "PLUS")
+        assertThat(CardMapping.values(attack).plus).containsExactly(Stat.ATTACK)
+        assertThat(CardMapping.values(attack).attack).isEqualTo(4)
+        val defenseSkill = card("SILVER", primary = "DEFENSE_SKILL", value = 1, sign = "PLUS")
+        assertThat(CardMapping.values(defenseSkill).plus).containsExactly(Stat.DEFENSE)
+        val range = card("RED", level = 1, primary = "ATTACK", value = 3, modifier = "RANGE", modifierValue = 1)
+            .copy(modifierValueSign = "PLUS")
+        assertThat(CardMapping.values(range).plus).containsExactly(Stat.RANGE)
+        val both = card(
+            "RED",
+            level = 3,
+            primary = "ATTACK",
+            value = 0,
+            sign = "PLUS",
+            modifier = "AREA",
+            modifierValue = 0,
+        )
+            .copy(modifierValueSign = "PLUS")
+        assertThat(CardMapping.values(both).plus).containsExactly(Stat.ATTACK, Stat.RADIUS).inOrder()
+        // The exclamation mark is the Block marker, not a sign of the value.
+        val block = card("GREEN", level = 1, primary = "DEFENSE", value = 5, sign = "EXCLAMATION")
+        assertThat(CardMapping.values(block).plus).isEmpty()
+        assertThat(CardMapping.toCard("x", "x-green-1", block, mutableSetOf()).block).isTrue()
+        assertThrows(IllegalArgumentException::class.java) { CardMapping.plus(attack.copy(primaryValueSign = "MINUS")) }
+        assertThrows(IllegalStateException::class.java) {
+            CardMapping.plus(card("RED", primary = "SKILL", sign = "PLUS"))
+        }
+    }
+
+    @Test
     fun `levelled cards need a variant`() {
         assertThrows(IllegalStateException::class.java) { CardMapping.cardId("x", card("RED", level = 2)) }
     }

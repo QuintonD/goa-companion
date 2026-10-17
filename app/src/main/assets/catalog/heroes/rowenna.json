@@ -129,7 +129,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "After movement, if you are adjacent to an enemy hero, you may Choose one —\n• Place a friendly minion in radius into a space adjacent to that enemy hero.\n• Place an enemy minion in radius into a space adjacent to you.",
+      "text": "After movement, if you are adjacent to an enemy hero, you may **Choose one —**\n• Place a friendly minion in radius into a space adjacent to that enemy hero.\n• Place an enemy minion in radius into a space adjacent to you.",
       "image": "official/cards/rowenna-green-1.webp"
     },
     {
@@ -228,7 +228,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "After movement, if you are adjacent to an enemy hero, you may Choose one —\n• Place a friendly minion in radius into a space adjacent to that enemy hero.\n• Place an enemy minion in radius into a space adjacent to you.",
+      "text": "After movement, if you are adjacent to an enemy hero, you may **Choose one —**\n• Place a friendly minion in radius into a space adjacent to that enemy hero.\n• Place an enemy minion in radius into a space adjacent to you.",
       "image": "official/cards/rowenna-green-2a.webp"
     },
     {
@@ -377,7 +377,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "After movement, if you are adjacent to an enemy hero, Choose up to two times —\n• Place a friendly minion in radius into a space adjacent to that enemy hero.\n• Place an enemy minion in radius into a space adjacent to you.",
+      "text": "After movement, if you are adjacent to an enemy hero, **Choose up to two times —**\n• Place a friendly minion in radius into a space adjacent to that enemy hero.\n• Place an enemy minion in radius into a space adjacent to you.",
       "image": "official/cards/rowenna-green-3a.webp"
     },
     {

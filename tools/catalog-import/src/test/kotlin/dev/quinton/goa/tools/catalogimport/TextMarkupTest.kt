@@ -39,15 +39,41 @@ class TextMarkupTest {
         val soa = "**Choose one —**\n>>Target a hero in range with\n" +
             ">a ::marker_bounty:: Bounty marker.\n>>Target a unit adjacent to you."
         assertThat(TextMarkup.fromSoa(soa)).isEqualTo(
-            "Choose one —\n• Target a hero in range with a {marker_bounty} Bounty marker.\n" +
+            "**Choose one —**\n• Target a hero in range with a {marker_bounty} Bounty marker.\n" +
                 "• Target a unit adjacent to you.",
         )
     }
 
     @Test
-    fun `bold markers are dropped and the words kept`() {
-        assertThat(TextMarkup.fromSoa("**This turn:** Enemy heroes in radius\ncannot fast travel."))
-            .isEqualTo("This turn: Enemy heroes in radius cannot fast travel.")
+    fun `bold keywords are kept as markup`() {
+        val out = TextMarkup.fromSoa("**This turn:** Enemy heroes in radius\ncannot fast travel.")
+        assertThat(out).isEqualTo("**This turn:** Enemy heroes in radius cannot fast travel.")
+        assertThat(
+            CardText.parse(out).first(),
+        ).isEqualTo(CardText.Segment.Strong(listOf(CardText.Segment.Text("This turn:"))))
+        // A bold line still starts its own paragraph after a sentence.
+        assertThat(TextMarkup.fromSoa("Gain 1 coin.\n**End of turn:** May repeat once."))
+            .isEqualTo("Gain 1 coin.\n**End of turn:** May repeat once.")
+        assertThat(TextMarkup.tidyBold("** This turn: ** go")).isEqualTo("**This turn:** go")
+    }
+
+    @Test
+    fun `aligned text keeps source-1 bold on the reference paragraphs`() {
+        val soa = TextMarkup.fromSoa(
+            "**Choose one, or both,** on different targets **—**\n>>Target a hero.\n>>Target a\n>unit.",
+        )
+        val faq = TextMarkup.fromFaq(
+            "**Choose one or both**, on different targets —\n- Target a hero.\n- Target a unit.",
+        )
+        assertThat(TextMarkup.agrees(soa, faq)).isFalse()
+        val sameWords = TextMarkup.fromFaq(
+            "Choose one, or both, on different targets —\n- Target a hero.\n- Target a unit.",
+        )
+        assertThat(TextMarkup.aligned(soa, sameWords))
+            .isEqualTo("**Choose one, or both,** on different targets **—**\n• Target a hero.\n• Target a unit.")
+        // A bold span the reference would split across paragraphs keeps the source-1 text.
+        assertThat(TextMarkup.aligned("**This turn: you** win.", "This turn:\nyou win.")).isNull()
+        assertThat(TextMarkup.aligned("This turn: you win.", "This turn:\nyou win.")).isEqualTo("This turn:\nyou win.")
     }
 
     @Test
@@ -115,6 +141,7 @@ class TextMarkupTest {
             TextMarkup.agrees("If \"Guardian Spirit\" is in the discard.", "If “Guardian Spirit” is in the\ndiscard."),
         ).isTrue()
         assertThat(TextMarkup.agrees("Choose one —\n• A.", "Choose one -\nA.")).isTrue()
+        assertThat(TextMarkup.agrees("**Choose one —**\n• A.", "Choose one —\n• A.")).isTrue()
         assertThat(TextMarkup.agrees("Push it 1 space.", "Push the target 1 space.")).isFalse()
         assertThat(TextMarkup.agrees("Gain 2 coins.", "gain 2 coins.")).isFalse()
     }

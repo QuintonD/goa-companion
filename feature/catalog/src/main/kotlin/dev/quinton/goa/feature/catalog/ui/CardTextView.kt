@@ -17,6 +17,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.em
 import dev.quinton.goa.core.model.catalog.CardText
@@ -25,11 +26,16 @@ private const val ICON_PREFIX = "icon:"
 
 /**
  * Builds the printed card text: icons become inline placeholders whose alternate text is the
- * icon's spoken label (so TalkBack reads "Gain 1 Coin"), reminder text is italic, breaks are
- * paragraph breaks. Unknown icon names fall back to their text, never a blank.
+ * icon's spoken label (so TalkBack reads "Gain 1 Coin"), reminder text is italic, bold keywords
+ * (`**This turn:**`) are bold, breaks are paragraph breaks. Unknown icon names fall back to their
+ * text, never a blank.
  */
 fun cardTextAnnotated(text: String, reminderColor: Color): AnnotatedString = buildAnnotatedString {
-    CardText.parse(text).forEach { segment ->
+    appendSegments(CardText.parse(text), reminderColor)
+}
+
+private fun AnnotatedString.Builder.appendSegments(segments: List<CardText.Segment>, reminderColor: Color) {
+    segments.forEach { segment ->
         when (segment) {
             is CardText.Segment.Text -> append(segment.value)
 
@@ -44,6 +50,10 @@ fun cardTextAnnotated(text: String, reminderColor: Color): AnnotatedString = bui
 
             is CardText.Segment.Reminder -> withStyle(SpanStyle(fontStyle = FontStyle.Italic, color = reminderColor)) {
                 append("(${segment.value})")
+            }
+
+            is CardText.Segment.Strong -> withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                appendSegments(segment.segments, reminderColor)
             }
 
             CardText.Segment.Break -> append("\n")

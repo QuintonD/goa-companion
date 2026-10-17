@@ -8,6 +8,7 @@ import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.catalog.PrimaryAction
+import dev.quinton.goa.core.model.catalog.Stat
 import java.io.File
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -141,6 +142,9 @@ class CatalogValidationTest {
             listOfNotNull(v.attack, v.defense, v.movement, v.range, v.radius).forEach {
                 assertWithMessage(card.id).that(it).isIn(0..12)
             }
+            // A printed `+` belongs to a printed value.
+            assertWithMessage("${card.id} plus").that(v.plus).containsNoDuplicates()
+            v.plus.forEach { assertWithMessage("${card.id} plus $it").that(v.get(it)).isNotNull() }
             card.initiative?.let { assertWithMessage(card.id).that(it).isIn(1..13) }
             if (card.block) assertWithMessage(card.id).that(card.primary).isEqualTo(PrimaryAction.DEFENSE)
             if (card.ranged) assertWithMessage(card.id).that(v.range).isNotNull()
@@ -178,12 +182,19 @@ class CatalogValidationTest {
     fun `card text uses only the app markup and known icons`() {
         allCards().forEach { card ->
             assertWithMessage(card.id).that(card.text).isNotEmpty()
-            assertWithMessage(card.id).that(card.text).doesNotContain("**")
             assertWithMessage(card.id).that(card.text).doesNotContain("::")
             assertWithMessage(card.id).that(card.text).doesNotContain("\n\n")
             assertWithMessage(card.id).that(card.text.count { it == '(' }).isEqualTo(card.text.count { it == ')' })
-            CardText.parse(card.text).filterIsInstance<CardText.Segment.Icon>().forEach {
+            val segments = CardText.flatten(CardText.parse(card.text))
+            segments.filterIsInstance<CardText.Segment.Icon>().forEach {
                 assertWithMessage("${card.id} icon").that(CardText.ICONS).contains(it.name)
+            }
+            // Every `**` is a balanced bold marker within one paragraph, never literal text.
+            segments.filterIsInstance<CardText.Segment.Text>().forEach {
+                assertWithMessage("${card.id} bold").that(it.value).doesNotContain(CardText.STRONG)
+            }
+            segments.filterIsInstance<CardText.Segment.Reminder>().forEach {
+                assertWithMessage("${card.id} reminder").that(it.value).doesNotContain(CardText.STRONG)
             }
         }
     }
@@ -229,6 +240,16 @@ class CatalogValidationTest {
             val numbersChecked = "colefin8/guards-of-atlantis-ii-data" in sources || hero.id in imageChecked
             assertWithMessage("${hero.id} number check").that(numbersChecked).isTrue()
         }
+    }
+
+    @Test
+    fun `printed plus values and bold keywords read from the card images survive the import`() {
+        fun card(id: String) = allCards().single { it.id == id }
+        // Card scans read 2026-10-17: Range 1+, Defense 3+ (Radius 2), Movement 2+.
+        assertThat(card("xargatha-red-2b").values.plus).containsExactly(Stat.RANGE)
+        assertThat(card("dodger-blue-1").values.plus).containsExactly(Stat.DEFENSE)
+        assertThat(card("bain-green-2b").values.plus).containsExactly(Stat.MOVEMENT)
+        assertThat(card("xargatha-blue-1").text).startsWith("**Next turn:** ")
     }
 
     @Test
