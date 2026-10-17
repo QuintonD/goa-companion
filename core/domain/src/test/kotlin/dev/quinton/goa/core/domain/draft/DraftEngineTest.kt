@@ -172,10 +172,20 @@ class DraftEngineTest {
         assertThat(match.status).isEqualTo(MatchStatus.PENDING)
         assertThat(match.mode).isEqualTo(GameMode.QUICK)
         assertThat(match.draftId).isEqualTo(s.id)
+        assertThat(match.tieBreaker).isEqualTo(Team.RED)
         assertThat(match.participants).hasSize(4)
         val redPicks = s.picks.filter { it.team == Team.RED }.map { it.heroId }
         assertThat(match.participants.first { it.playerId == "p-red-0" }.heroId).isEqualTo(redPicks[1])
         assertThat(match.participants.first { it.playerId == "p-blue-1" }.handicap).isTrue()
+    }
+
+    @Test
+    fun `the pending match keeps the draft's Tie Breaker coin`() {
+        var s = DraftEngine.start(DraftFixtures.setup(house, DraftFixtures.seats(2, 2), teamA = Team.BLUE)).getOrThrow()
+        while (!s.isComplete) s = s.choose(DraftEngine.available(s).first())
+
+        assertThat(DraftEngine.toPendingMatch(s, "m", 0).getOrThrow().tieBreaker).isEqualTo(Team.BLUE)
+        assertThat(DraftEngine.toRecord(s, "m").teamA).isEqualTo(Team.BLUE)
     }
 
     @Test

@@ -192,7 +192,11 @@ object DraftEngine {
         matchId = matchId,
     )
 
-    /** A PENDING match with one participant per seat; fails if a seat has no pilot. */
+    /**
+     * A PENDING match with one participant per seat; fails if a seat has no pilot. The draft's
+     * Tie Breaker coin carries over: the coin is flipped once at setup, before heroes are chosen
+     * [RB p.5 step 3], and the team showing is Team A [RB p.22].
+     */
     fun toPendingMatch(session: DraftSession, matchId: String, now: Long): Result<Match> = runCatching {
         if (!session.isComplete) throw DraftError.NotComplete
         val participants = assignments(session)
@@ -213,6 +217,7 @@ object DraftEngine {
             mode = suggestedMode(heroes = participants.size),
             draftId = session.id,
             participants = participants,
+            tieBreaker = session.teamA,
         )
     }
 
