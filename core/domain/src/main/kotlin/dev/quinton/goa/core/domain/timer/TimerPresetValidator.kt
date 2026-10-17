@@ -11,6 +11,8 @@ data class PresetIssue(val kind: Kind, val phaseId: String? = null) {
         TURNS_OUT_OF_RANGE,
         ACTION_NOT_PER_TURN,
         UNKNOWN_END_STEP,
+        SHOT_CLOCK_OUT_OF_RANGE,
+        TIME_OUTS_OUT_OF_RANGE,
     }
 }
 
@@ -19,10 +21,18 @@ object TimerPresetValidator {
     const val MAX_SECONDS = 60 * 60
     const val MAX_CUE_SECONDS = 10 * 60
     val TURNS_RANGE = 1..8
+    val TIME_OUTS_RANGE = 0..3
 
     fun validate(preset: TimerPreset, endStepIds: Set<String>): List<PresetIssue> = buildList {
         if (preset.name.isBlank()) add(PresetIssue(PresetIssue.Kind.BLANK_NAME))
         if (preset.turnsPerRound !in TURNS_RANGE) add(PresetIssue(PresetIssue.Kind.TURNS_OUT_OF_RANGE))
+        val shot = preset.shotClockSeconds
+        if (shot != null && shot !in MIN_SECONDS..MAX_CUE_SECONDS) {
+            add(PresetIssue(PresetIssue.Kind.SHOT_CLOCK_OUT_OF_RANGE))
+        }
+        if (preset.timeOutsPerRound !in TIME_OUTS_RANGE || preset.timeOutSeconds !in MIN_SECONDS..MAX_CUE_SECONDS) {
+            add(PresetIssue(PresetIssue.Kind.TIME_OUTS_OUT_OF_RANGE))
+        }
         val seen = mutableSetOf<String>()
         preset.phases.forEach { phase ->
             if (!seen.add(phase.id)) add(PresetIssue(PresetIssue.Kind.DUPLICATE_PHASE_ID, phase.id))
@@ -34,7 +44,7 @@ object TimerPresetValidator {
             if (phase.cues.any { it !in 0..MAX_CUE_SECONDS || (seconds != null && it >= seconds) }) {
                 add(PresetIssue(PresetIssue.Kind.CUE_OUT_OF_RANGE, phase.id))
             }
-            if (phase.kind == PhaseKind.ACTION && phase.scope != PhaseScope.TURN) {
+            if ((phase.kind == PhaseKind.ACTION || phase.kind == PhaseKind.RESOLVE) && phase.scope != PhaseScope.TURN) {
                 add(PresetIssue(PresetIssue.Kind.ACTION_NOT_PER_TURN, phase.id))
             }
             if (phase.scope == PhaseScope.ROUND_END && phase.endStepId != null && phase.endStepId !in endStepIds) {

@@ -97,4 +97,39 @@ class TimerPlanTest {
         assertThat(plan.steps.none { it.timed }).isTrue()
         assertThat(plan.steps.all { it.cues.isEmpty() }).isTrue()
     }
+
+    @Test
+    fun `each turn is play a card then an untimed resolve step`() {
+        val plan = TimerPlan(tableRules(resolve = true), endOfRound, actionSlots = 4)
+
+        assertThat(plan.steps).hasSize(1 + 4 * 2 + 6)
+        val turn3 = plan.steps.filter { it.turn == 3 }
+        assertThat(turn3.map { it.phase!!.kind }).containsExactly(PhaseKind.TURN, PhaseKind.RESOLVE).inOrder()
+        assertThat(turn3[0].seconds).isEqualTo(30)
+        assertThat(turn3[1].timed).isFalse()
+        assertThat(turn3[1].cues).isEmpty()
+    }
+
+    @Test
+    fun `with the action timer on, the action steps are the resolution and resolve is dropped`() {
+        val plan = TimerPlan(tableRules(actionEnabled = true, resolve = true), endOfRound, actionSlots = 3)
+
+        assertThat(plan.steps.none { it.phase?.kind == PhaseKind.RESOLVE }).isTrue()
+        assertThat(plan.steps.filter { it.turn == 1 }.map { it.phase!!.kind }).containsExactly(
+            PhaseKind.TURN,
+            PhaseKind.ACTION,
+            PhaseKind.ACTION,
+            PhaseKind.ACTION,
+        ).inOrder()
+    }
+
+    @Test
+    fun `bundled table rules and relaxed resolve after every turn, untimed does not`() {
+        fun kinds(id: String) = TimerPlan(bundledPresets.presets.single { it.id == id }, endOfRound, 4)
+            .steps.filter { it.turn == 1 }.map { it.phase!!.kind }
+
+        assertThat(kinds("table-rules")).containsExactly(PhaseKind.TURN, PhaseKind.RESOLVE).inOrder()
+        assertThat(kinds("relaxed")).containsExactly(PhaseKind.TURN, PhaseKind.RESOLVE).inOrder()
+        assertThat(kinds("untimed")).containsExactly(PhaseKind.TURN)
+    }
 }
