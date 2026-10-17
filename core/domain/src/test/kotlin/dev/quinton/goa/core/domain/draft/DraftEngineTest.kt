@@ -206,8 +206,16 @@ class DraftEngineTest {
     }
 
     @Test
-    fun `double lane is suggested from eight players`() {
-        assertThat(DraftEngine.suggestedMode(7)).isEqualTo(GameMode.QUICK)
+    fun `suggested mode matches the match setup default for every hero count`() {
+        val setup = dev.quinton.goa.core.domain.setup.MatchSetup(dev.quinton.goa.core.domain.timer.bundledRules)
+        for (heroes in 2..10) {
+            val options = setup.modeOptions(heroes)
+            val suggested = options.single { it.mode == DraftEngine.suggestedMode(heroes) }
+            assertThat(suggested.fullySpecified).isTrue()
+            options.firstOrNull { it.required }?.let { assertThat(suggested.mode).isEqualTo(it.mode) }
+        }
+        assertThat(DraftEngine.suggestedMode(6)).isEqualTo(GameMode.QUICK)
+        assertThat(DraftEngine.suggestedMode(7)).isEqualTo(GameMode.DOUBLE_LANE)
         assertThat(DraftEngine.suggestedMode(8)).isEqualTo(GameMode.DOUBLE_LANE)
     }
 

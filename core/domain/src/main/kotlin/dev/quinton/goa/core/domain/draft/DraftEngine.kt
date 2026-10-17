@@ -205,23 +205,24 @@ object DraftEngine {
                     handicap = seat.handicap,
                 )
             }
-        val players = participants.mapTo(mutableSetOf()) { it.playerId }.size
         Match(
             id = matchId,
             createdAt = now,
             playedAt = now,
             status = MatchStatus.PENDING,
-            mode = suggestedMode(players),
+            mode = suggestedMode(heroes = participants.size),
             draftId = session.id,
             participants = participants,
         )
     }
 
     /**
-     * Starting mode for the pending match; Match setup lets the table change it. Double lane is
-     * required with 8+ players [RB]; otherwise Quick.
+     * Starting mode for the pending match, by heroes in play (DOMAIN.md: counters are looked up by
+     * seats); Match setup lets the table change it. Double lane is required from 8 heroes [RB], and
+     * at 7 heroes it is the only mode whose Life counters the rulebook lists; otherwise Quick.
+     * Kept in step with `match-setup.json` by `DraftEngineTest`.
      */
-    fun suggestedMode(players: Int): GameMode = if (players >= 8) GameMode.DOUBLE_LANE else GameMode.QUICK
+    fun suggestedMode(heroes: Int): GameMode = if (heroes >= 7) GameMode.DOUBLE_LANE else GameMode.QUICK
 
     private fun validateSeats(seats: List<Seat>) {
         seatProblem(seats)?.let { throw DraftError.InvalidSeats(it) }
