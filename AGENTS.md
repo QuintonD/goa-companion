@@ -4,8 +4,8 @@ Native Android companion app for the **Guards of Atlantis II** board game (Wolff
 Private, local-only, never sold or published (see ADR-006). This file is the canonical,
 tool-agnostic entry point; `CLAUDE.md` imports it.
 
-**Status:** in development; all milestones are being built in parallel. See
-[docs/ROADMAP.md](docs/ROADMAP.md).
+**Status:** feature-complete v1 built and tested on JVM + emulator (2026-10-17); device
+verification on the S25 Ultra pending. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## The product in one breath
 
@@ -63,7 +63,8 @@ Windows (PowerShell) uses `.\gradlew.bat`; POSIX uses `./gradlew`. C: is nearly 
 .\gradlew.bat testDebugUnitTest        # JVM unit tests (domain, data, VM)
 .\gradlew.bat verifyRoborazziDebug     # screenshot regression
 .\gradlew.bat lintDebug detekt ktlintCheck
-.\gradlew.bat connectedDebugAndroidTest  # device/emulator UI tests
+.\gradlew.bat connectedDebugAndroidTest  # end-to-end UI tests (orchestrator, clean data per test)
+.\gradlew.bat :app:assembleRelease        # signed release APK (needs keystore.properties, see README)
 ```
 
 A change is done when build, unit tests, lint and screenshot checks pass. Run the

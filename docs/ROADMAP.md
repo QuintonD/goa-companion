@@ -1,39 +1,49 @@
 # Roadmap
 
 Update checkboxes with a date and one line of evidence (e.g. "tests green, device-verified").
-Run the `ship-check` skill before ticking a milestone's last box.
+Run the `ship-check` skill before ticking a milestone's last box. **Emulator ≠ device:** boxes
+that say "S25 Ultra" stay open until checked on the physical phone.
+
+All milestones were built in parallel on 2026-10-17 (owner request), then reviewed by
+independent rules/engine reviewers and fixed. Evidence: JVM gate (`assembleDebug
+testDebugUnitTest verifyRoborazziDebug lintDebug detekt ktlintCheck`) green; 9 end-to-end
+instrumented tests green on an API 36 emulator (`goa_api36`), twice.
 
 ## M0 — Scaffold
-- [ ] `git init`; Gradle 9.6 / AGP 9.4 project, version catalog, `build-logic` convention plugins (AGP 9 DSL)
-- [ ] Module skeleton per ARCHITECTURE.md; Hilt (KSP), Navigation 3, theme from DESIGN.md tokens
-- [ ] Bottom nav with 4 empty destinations; About screen with credits and OFL licences
-- [ ] Lint, ktlint, detekt, Roborazzi, unit-test setup all green on an empty app
-- [ ] Debug APK installs and launches on S25 Ultra
+- [x] `git init`; Gradle 9.8.1 / AGP 9.4.1 project, version catalog, `build-logic` convention plugins (AGP 9 DSL) — 2026-10-17, ADR-010
+- [x] Module skeleton per ARCHITECTURE.md; Hilt (KSP), Navigation 3, theme from DESIGN.md tokens — 2026-10-17
+- [x] Bottom nav with 4 destinations; About screen with credits and OFL licences — 2026-10-17
+- [x] Lint, ktlint, detekt, Roborazzi, unit-test setup all green — 2026-10-17
+- [ ] Debug APK installs and launches on S25 Ultra (emulator only so far)
 
 ## M1 — Catalog
-- [ ] `tools/catalog-import`: fetch sources, normalise, write hero JSON + images + `SOURCES.md` (see `import-catalog` skill)
-- [ ] Catalog loader + validation tests (schema, deck composition, asset paths)
-- [ ] All heroes from all products imported; unverified ones listed in `tools/catalog-import/REPORT.md`
-- [ ] Catalog grid, search, filters, hero detail with card viewer; sigil set v1 (fallback)
+- [x] `tools/catalog-import`: fetch sources, normalise, write hero JSON + images + `SOURCES.md` — 2026-10-17, 48 importer tests
+- [x] Catalog loader + validation tests (schema, deck composition, asset paths) — 2026-10-17
+- [x] All heroes from all products imported: 32 heroes, 632 cards, 664 images, 32/32 verified, 0 unresolved (`REPORT.md`); printed "+" values and bold keywords kept (dataVersion 2) — 2026-10-17
+- [x] Catalog grid, search, filters, hero detail with card viewer; sigil set v1 — 2026-10-17, E2E `CatalogFlowTest`
 
 ## M2 — Match setup & timer
-- [ ] `TimerEngine` (pure, fake-clock tested) + `MatchSetup` (wave/life counters) + DataStore state
-- [ ] Timer screen, preset editor, action timer, end-of-round checklist, cues, `keepScreenOn`
-- [ ] Alarm scheduling, countdown notification + actions, Live Update on Android 16+
-- [ ] Device test: locked screen, Doze, process death, reboot
+- [x] `TimerEngine` (pure, fake-clock tested, drift < 250 ms / 30 min) + `MatchSetup` (counters by heroes in play) + DataStore state — 2026-10-17
+- [x] Timer screen, preset editor, action timer, end-of-round checklist, cues, `keepScreenOn` — 2026-10-17, E2E `GameNightFlowTest`
+- [x] Alarm scheduling, countdown notification + actions, Live Update on Android 16+ — 2026-10-17 (Robolectric-tested)
+- [ ] Device test on S25 Ultra: locked screen, Doze, process death, reboot, clock change, status-bar chip (checklist in ARCHITECTURE.md)
 
 ## M3 — Players, matches, Elo
-- [ ] Room 3 schema: players, matches, participants; exported schema + migration test baseline
-- [ ] Match editor and log, `EloCalculator` + replay, player/hero rating screens with charts
-- [ ] Meta dashboard; versioned JSON export/import (lossless round-trip test); Auto Backup rules
+- [x] Room 3 schema: players, matches, participants, drafts; exported schema + migration test baseline — 2026-10-17
+- [x] Match editor and log, seat-based `EloCalculator` + replay (double pilots, ADR-011), rating screens with charts — 2026-10-17, E2E `DoublePilotMatchTest`
+- [x] Meta dashboard; versioned JSON export/import (lossless round-trip test); Auto Backup rules — 2026-10-17
+- [ ] Backup export/import file pickers exercised on the S25 Ultra
 
 ## M4 — Draft
-- [ ] `DraftEngine` with all official methods + property tests (2–10 players)
-- [ ] Draft setup (teams, balance by Elo, Player Draft, complexity filter, pool), coin flip
-- [ ] Draft board with hidden picks, undo, pick assignment; draft → pending match → timer
+- [x] `DraftEngine` with House draft + all official methods + property tests (2–10 players, seat layouts) — 2026-10-17
+- [x] Draft setup (teams, balance by Elo, Player Draft, complexity filter, pool), coin flip — 2026-10-17
+- [x] Draft board with hidden picks, undo, pick assignment; draft → pending match → setup/timer → result — 2026-10-17, E2E `GameNightFlowTest`
 
 ## M5 — Polish & release readiness
-- [ ] Accessibility pass (TalkBack, font scale 2.0, contrast), tablet sanity check
-- [ ] Empty/error states, onboarding, app icon (adaptive + monochrome)
-- [ ] Release build (R8, signing config outside repo), baseline profile, APK size < ~100 MB
+- [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
+- [ ] Tablet sanity check
+- [x] Empty/error states, app icon (adaptive + monochrome) — 2026-10-17
+- [ ] Onboarding (first-run walkthrough) — not built; empty states guide first use
+- [x] Release build (R8, signing config outside repo), APK 41 MB, no INTERNET permission — 2026-10-17
+- [ ] Baseline profile
 - [ ] Signed release APK sideloaded and smoke-tested on the S25 Ultra
