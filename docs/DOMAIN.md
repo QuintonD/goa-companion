@@ -61,8 +61,10 @@ free text.
   2 players = 2 heroes each; 3 players = most experienced controls 2 heroes, one with a
   Handicap card; with 5/7/9 the larger team's heroes swap a basic card for their Handicap
   card [RB] (p.20). The official **3-player** setup is a double pilot **plus** a Handicap card
-  on one of that player's heroes. Extended counts (odd, 8–10) are for groups where everyone
-  has played at least 5 times (p.3). Handicap cards may also be used at even counts to
+  on one of that player's heroes. Odd counts and up to 10 players "should only be used if all
+  participants have played the game at least five times" (p.3), and none of the p.20 options
+  (which include 2 players) are "beginner friendly": Match setup marks 2, 3, 5 and 7–10 players
+  as extended and shows that note. Handicap cards may also be used at even counts to
   calibrate skill (any seat may carry the Handicap flag).
 - **Double piloting** [APP — owner's group]: with an odd count the group often evens the
   teams by having one player control two heroes. Match setup offers for 5/7/9: *Handicap*
@@ -73,7 +75,9 @@ free text.
      hero off the board); with no cards you announce a pass. Strategy talk is allowed from the
      end of one turn until the reveal: out loud only, no notes, no showing cards (reading your
      own cards aloud is fine) (p.4). *Main timed phase.*
-  2. **Reveal** — all at once; table talk stops.
+  2. **Reveal** — all at once; strategy talk stops. Teammates who must coordinate may only
+     state preferences, never reasons, and may not suggest a colour or direction a teammate's
+     card makes them choose (p.4).
   3. **Resolve** — sequential: highest initiative acts first; after each resolution the next
      actor is the highest *unresolved* initiative (re-checked every time). Cross-team ties:
      the team shown on the **Tie Breaker coin** acts first, then that player flips the coin.
@@ -90,9 +94,10 @@ free text.
 - **Tie Breaker coin:** flipped once during setup, before heroes are chosen, and placed result
   side up by the board (p.5 step 3); the team showing is "Team A" for hero selection (p.22).
   It is re-flipped only by the player who acted first after a cross-team initiative tie (p.7).
-  The team showing also goes first, without a flip, when the order of simultaneous Active
-  effects matters (p.17) or of minions moved back into the Battle Zone (p.18), and places
-  first when a Spawn point is blocked (p.8). The app tracks *which team's symbol shows*, not
+  Simultaneous Active effects whose order matters use the tied-initiative method without a
+  flip (p.17): the team showing first across teams, the team's own choice within a team. The
+  team showing also moves first, without a flip, when minions are moved back into the Battle
+  Zone (p.18), and places first when a Spawn point is blocked (p.8). The app tracks *which team's symbol shows*, not
   who holds it. `Match.tieBreaker` records the coin as placed at setup: a draft fills it with
   Team A, Match setup shows it ("leave the coin as it is", with "Correct the coin") and saves
   any correction; the app flips only when there was no draft. Flips during play are not
@@ -122,7 +127,8 @@ Quick game if anyone is new (shown only when Quick can be chosen). 2 players: th
 warns this is considerably more challenging and takes longer (p.20).
 
 Double lane rules (p.20, shown at setup when chosen): each lane has its own Battle Zone,
-minions and Wave counters; minions stay bound to the Battle Zone they first spawned in; with
+minions and Wave counters; minions stay bound to the Battle Zone they first spawned in for
+respawning and for the "Minions Outside of the Battle Zone" rules (p.18); with
 more than 3 heroes per team the extra heroes start next to their team's occupied hero spawn
 points; on cards "the Battle Zone" means "a Battle Zone"; the two Minion Battles resolve
 separately but at the same time.
@@ -193,8 +199,12 @@ asks "Red shows / Blue shows"; a tapped flip can be undone for 5 s.
 - **Handicap card colour:** stored as the printed frame colour — Gold on 31 heroes, **Silver
   on Takahide** (corner letter S). Rulebook p.20: Handicap cards "are weaker versions of the
   regular basic cards (Usually Gold)"; with 5/7/9 players the larger team's heroes "replace
-  one of their basic cards with a handicap card", with 3 players a Gold card is replaced. The
-  app shows "Replaces the Gold card" / "Replaces the Silver card" from the frame colour.
+  one of their basic cards with a handicap card", with 3 players the player controlling two
+  heroes "replaces a gold card of one of those heroes with a handicap card". No Handicap card
+  prints what it replaces, so the app labels it as derived: "Weaker version of the Gold card
+  (frame colour)" (or Silver). **Unresolved for Takahide:** his Handicap is silver-framed and he
+  has three gold cards, while the 3-player rule names a gold card; the hero page says the
+  rulebook and card leave it open and the app picks no answer.
   The card is still identified by its slot (`hero.handicap`, ID `<hero>-handicap`), not by
   colour.
 - **Spellbook pages** (Gydion's `extras`) keep their printed colours from source 1
@@ -204,7 +214,7 @@ asks "Red shows / Blue shows"; a tapped flip can be undone for 5 s.
   "ranged" or "melee" trait (Sniper and Melee are role icons, shown separately). The catalog
   counts the hero's deck cards (basic, extra basic, coloured, Ultimate; not the Handicap card
   or spellbook) whose primary action is Attack: **Ranged** when more than half are ranged,
-  **Melee** when none is, **Mixed** otherwise, unknown with no Attack cards (Gydion). The Gold
+  **Non-ranged** (the rulebook's "Non-Ranged Attacks", p.13) when none is, **Mixed** otherwise, unknown with no Attack cards (Gydion). The Gold
   card alone is not used: Cutter, Gydion, Misa, NebKher, Swift, Takahide and Trinkets have a
   Skill or Movement Gold, and Bain or Hanu attack from range on every Red card behind a melee
   Gold. Pills show the count ("Ranged attacks · 5 of 6").
@@ -219,7 +229,11 @@ asks "Red shows / Blue shows"; a tapped flip can be undone for 5 s.
   equal to its lowest tier; melee and ranged minions 2, heavy minions 4. Reaching level 8
   costs 28 coins in total (1 + 2 + … + 7, the p.15 table; the rulebook doesn't print the sum).
 - **Starting hand:** Gold, Silver and the three Tier I cards; the Handicap card goes back to
-  the box unless used (p.6).
+  the box unless used (p.6). Card text beats the rulebook (p.3): a basic card printing "(This
+  card starts the game in your deck.)" (Takahide's *Sting like a Bee* and *Strike like a Tiger*)
+  is not dealt, so every hero starts with exactly five cards. `StartingCards` (`core:domain`)
+  selects them for the draft's hero peek; the catalog's "Starts in hand/deck" markers read the
+  same reminder text. `StartingCardsTest` checks every shipped hero.
 
 ## Rules reference (`assets/catalog/rules-reference.json`) [RB]
 Hand-curated, verbatim, checked by machine (ADR-019). Model: `core:model` `RulesReference`.
@@ -229,7 +243,7 @@ Hand-curated, verbatim, checked by machine (ADR-019). Model: `core:model` `Rules
 - **Ladder** (`ladder.levels`, levels 1–8): `lowestTier`, `defeatCoins`, `assistCoins` (p.13
   table), `lifeCounters` (p.23 "Assist coins / Life counters" column; = lowest card Tier, p.13
   text), `levelUpCost` = cost to reach *this* level (p.15 "Level Up cost", null at 1) and
-  `maxTier` (p.15 "Max card Tier", null at 1, 4 = Ultimate). The UI's "Next level" column reads
+  `maxTier` (p.15 "Max card Tier", null at 1, 4 = Ultimate). The UI's "Next level cost" column reads
   the following row's `levelUpCost`. `ladder.defeat` / `levelUp` / `cardText` are the verbatim
   rules shown with the table (p.3, p.8, p.13, p.15, p.16).
 - **Card exceptions** are not stored: the sheet runs a catalog text query
@@ -240,10 +254,12 @@ Hand-curated, verbatim, checked by machine (ADR-019). Model: `core:model` `Rules
 - **Topics** (`topics`): id, title, printed `pages`, search `keywords`, optional `summary`
   (our words, always shown labelled "Summary"), and `excerpts` (page, the rulebook's own
   `heading`, verbatim `text`; `\n` separates paragraphs, "• " and "1. " lines are the printed
-  bullets and numbered steps). An excerpt is one contiguous passage of one text frame.
+  bullets and numbered steps; optional verbatim `table`, header row first, e.g. the p.20
+  double-lane counters). An excerpt is one contiguous passage of one text frame; a callout box
+  printed inside a passage is its own excerpt, in printed order.
 - **Drift check:** `:tools:catalog-import:run --args="--rules-only"` (also at the end of every
   import) extracts the PDF's text layer per page with PDFBox and requires every excerpt, every
-  heading and the three tables' rows to appear on their page after normalising (whitespace,
+  heading, every excerpt table (row by row) and the three ladder tables' rows to appear on their page after normalising (whitespace,
   line-break hyphens and dashes removed, quotes unified, case folded). A changed PDF fails the
   SHA-256 pin first. `tools/catalog-import/rules-confirm.json` holds reviewed overrides for
   passages the text layer scrambles, each tied to the reviewed PDF's SHA-256; none are needed
@@ -490,7 +506,8 @@ coin at the time of selection (the coin is flipped in setup step 3, before heroe
   pool is large enough; random seat-swap sequences keep the assigned heroes equal to the picks.
 - **Hero peek** [APP]: long-pressing a pool tile shows complexity, roles, stat bars (base → max)
   and the five starting cards, selected from the catalog as "the three Tier I cards and the two
-  basic cards with no Tier" [RB p.6] (basic = Gold and Silver [RB p.9]). Catalog data only, so it
+  basic cards with no Tier" [RB p.6] (basic = Gold and Silver [RB p.9]), leaving out basic cards
+  whose text says they start in the deck (Takahide's extra golds; card text wins, RB p.3). Catalog data only, so it
   cannot reveal a hidden choice. Each team's role coverage on the board is built from revealed
   picks only; a hero chosen in the current hidden run is drawn exactly like a free hero.
 - **Small pools** [APP]: a random-size pool (House draft: 15) larger than the filtered roster is

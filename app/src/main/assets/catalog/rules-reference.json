@@ -51,6 +51,11 @@
       },
       {
         "page": 15,
+        "heading": "Upgrade a Card",
+        "text": "Choose a non-basic Action card in your hand with the lowest card Tier or tied for the lowest. Return this card to your deck.\nFind two Action cards in your deck that have the same color as the chosen card but are one Tier higher.\nTake one of those cards into your hand and set the other one aside, Facedown, next to your hero dashboard — you will need it later.\nIf you are leveling up more than once, repeat these steps for every purchased level."
+      },
+      {
+        "page": 15,
         "text": "All players who are leveling up upgrade their cards simultaneously. When finished, wait for all other players who are still leveling up to upgrade their cards before moving to the next step."
       },
       {
@@ -111,6 +116,14 @@
         },
         {
           "page": 7,
+          "text": "The Defense action is an exception to this rule. See page 14."
+        },
+        {
+          "page": 7,
+          "text": "Most of the available actions are indicated by the icons on the left side of the Action card. Each card has one Primary action, and one or more secondary actions to choose from. The card text must be applied when, and only when, performing the Primary action!"
+        },
+        {
+          "page": 7,
           "heading": "Resolve Your Card",
           "text": "After you perform your one action, place your card Faceup on the current Turn slot of your hero dashboard — the card is now resolved, and the player with the highest Initiative on their unresolved card is next to act."
         },
@@ -145,8 +158,8 @@
     {
       "id": "attack-defense",
       "title": "Attack, defense & defeats",
-      "pages": [13, 14],
-      "keywords": ["attack total", "defense total", "defend", "discard", "block", "defeat", "defeated", "life counter", "assist", "coins", "minion defense modifiers"],
+      "pages": [7, 13, 14],
+      "keywords": ["attack total", "defense total", "defend", "discard", "block", "defeat", "defeated", "life counter", "assist", "coins", "minion defense modifiers", "primary action", "secondary action", "card text", "defense/skill"],
       "excerpts": [
         {
           "page": 13,
@@ -171,7 +184,29 @@
         {
           "page": 14,
           "heading": "Minion Defense Modifiers",
-          "text": "• +1 for every adjacent friendly melee or heavy minion.\n• -1 for every adjacent enemy melee or heavy minion.\n• -1 for every enemy ranged minion in radius of 2 spaces around you.\nIf your Defense total is equal or higher than the Attack Total, you successfully defend the Attack.\nYou cannot defend without discarding a card.\nIf you cannot defend successfully, or choose not to defend, you are defeated."
+          "text": "• +1 for every adjacent friendly melee or heavy minion.\n• -1 for every adjacent enemy melee or heavy minion.\n• -1 for every enemy ranged minion in radius of 2 spaces around you."
+        },
+        {
+          "page": 14,
+          "text": "If your Defense total is equal or higher than the Attack Total, you successfully defend the Attack.\nYou cannot defend without discarding a card.\nIf you cannot defend successfully, or choose not to defend, you are defeated."
+        },
+        {
+          "page": 7,
+          "heading": "Perform One Action",
+          "text": "Each card has one Primary action, and one or more secondary actions to choose from. The card text must be applied when, and only when, performing the Primary action!"
+        },
+        {
+          "page": 14,
+          "text": "Brogan performs the non-Ranged Attack action on his Red “Mad Dash” card. He moves 2 spaces in a straight line and announces that he is attacking Wasp with an attack total of 6.\nWasp discards her “Lift Up” card, with a defense value of 5. The adjacent friendly melee minion increases Wasp’s defense total by +1, allowing her to successfully defend. Because Defense is a Secondary action on “Lift Up”, its card text is ignored."
+        },
+        {
+          "page": 14,
+          "text": "This time Brogan chooses to attack Dodger with his “Mad Dash”.\nDodger uses her “Vampiric Shield” card to defend, with a defense value of only 4, which is not enough to defend Brogan’s Attack of 6. However, since Defense is the Primary action of “Vampiric Shield”, the card text is applied, giving Dodger +2 Defense for the 2 empty minion spawn points within a radius of 2 spaces from her space. This allows her to successfully defend Brogan’s attack."
+        },
+        {
+          "page": 14,
+          "heading": "Defense/Skill Cards",
+          "text": "Cards with this icon can be used as either a Skill card, or as a Defense card, as if it had both icons.\nYou can perform a Skill action by playing the card, or a Defense action, by discarding it. The card text is applied whether you play this card as a Skill card, or discard it to defend, as a Defense card.\nWhile in hand, or discard, it counts as both a Skill and a Defense card. When played, it counts as a Skill card."
         },
         {
           "page": 14,
@@ -302,7 +337,19 @@
         },
         {
           "page": 15,
+          "text": "Find two Action cards in your deck that have the same color as the chosen card but are one Tier higher.\nTake one of those cards into your hand and set the other one aside, Facedown, next to your hero dashboard — you will need it later.\nIf you are leveling up more than once, repeat these steps for every purchased level."
+        },
+        {
+          "page": 15,
           "text": "You must first upgrade all your non-basic cards to Tier II, before upgrading your Tier II cards to Tier III."
+        },
+        {
+          "page": 15,
+          "text": "All players who are leveling up upgrade their cards simultaneously. When finished, wait for all other players who are still leveling up to upgrade their cards before moving to the next step."
+        },
+        {
+          "page": 15,
+          "text": "You should now have exactly 5 cards, 1 of each color, in your hand."
         },
         {
           "page": 15,
@@ -462,6 +509,7 @@
         },
         {
           "page": 20,
+          "heading": "Playing on a Double-Lane Map",
           "text": "After the last Wave counter on either Lane is flipped, each team counts how many Zones on each Lane are between their Throne and that lane’s Battle Zone. The team with more total Zones between their Throne and both Battle Zones wins the game.\nIf both teams would win at the same time as the result of the push, spawn all minions in the Zones they occupied before the push and continue playing until only one team wins the game."
         }
       ]
@@ -488,7 +536,12 @@
         },
         {
           "page": 20,
-          "text": "During setup, place the minions in the two starting Battle Zones (Battle Zone 1 and Battle Zone 2, as shown in the image below).\nWhen playing with more than 3 heroes per team, place the remaining heroes into any empty spaces adjacent to their team’s occupied hero spawn points.\nPushes are tracked by two separate sets of Wave counters, one for each Lane. The number of Life counters used depends on the player count (See below)."
+          "text": "During setup, place the minions in the two starting Battle Zones (Battle Zone 1 and Battle Zone 2, as shown in the image below).\nWhen playing with more than 3 heroes per team, place the remaining heroes into any empty spaces adjacent to their team’s occupied hero spawn points.\nPushes are tracked by two separate sets of Wave counters, one for each Lane. The number of Life counters used depends on the player count (See below).",
+          "table": [
+            ["Player Count", "Wave Counters", "Life Counters"],
+            ["6-8 Players", "2 x 7", "6"],
+            ["9-10 Players", "2 x 7", "7"]
+          ]
         },
         {
           "page": 20,

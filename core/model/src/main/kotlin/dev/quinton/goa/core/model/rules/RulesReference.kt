@@ -92,4 +92,9 @@ data class RulesExcerpt(
     /** The rulebook's own heading for the passage, if any (also verbatim). */
     val heading: String? = null,
     val text: String,
+    /**
+     * A table printed right after [text], verbatim: the first row is the header, every row has
+     * the same number of cells. Empty when the passage has no table.
+     */
+    val table: List<List<String>> = emptyList(),
 )

@@ -90,6 +90,24 @@ class RulesCheckTest {
     }
 
     @Test
+    fun `a table must appear row by row on the page and have even rows`() {
+        fun withTable(table: List<List<String>>): List<String> {
+            val ref = reference(TURN).copy(
+                topics = listOf(
+                    RulesTopic("turn", "Turn", listOf(7), excerpts = listOf(RulesExcerpt(7, null, TURN, table))),
+                ),
+            )
+            return RulesReferenceCheck(ref, pdf(page7 = "$PAGE_7\n$TABLE_7"), rulebook, RulesConfirmations()).problems()
+        }
+        val header = listOf("Player Count", "Wave Counters", "Life Counters")
+        assertThat(withTable(listOf(header, listOf("6-8 Players", "2 x 7", "6")))).isEmpty()
+        assertThat(withTable(listOf(header, listOf("6-8 Players", "2 x 7", "7"))).single())
+            .contains("table not found on the page")
+        assertThat(withTable(listOf(header, listOf("6-8 Players", "2 x 7"))).first())
+            .contains("different cell counts")
+    }
+
+    @Test
     fun `ladder numbers must match the three tables`() {
         assertThat(problems(TURN)).isEmpty()
         val wrongCoins = levels.map { if (it.level == 5) it.copy(defeatCoins = 6) else it }
@@ -123,5 +141,6 @@ class RulesCheckTest {
         const val TURN = "If this is the end of turn 4, the round ends"
         const val PAGE_7 = "Turn Ends\nIf this is the end of turn 4, the round ends -- follow the \n\"End of Round\" " +
             "steps. Other-\nwise, start another turn.\nTies are broken by the Tie Breaker coin."
+        const val TABLE_7 = "Player Count Wave Counters Life Counters\n6-8 Players 2 x 7 6\n9-10 Players 2 x 7 7"
     }
 }

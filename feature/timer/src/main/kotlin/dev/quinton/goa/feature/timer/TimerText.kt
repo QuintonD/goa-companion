@@ -12,6 +12,9 @@ import kotlin.math.abs
 
 /** Plain-text labels shared by the timer UI, notification and accessibility descriptions. */
 object TimerText {
+    private const val RESOLVE_HINT =
+        "Cards revealed: resolve one by one in initiative order. No strategy talk: only state preferences, no reasons."
+
     fun stepTitle(step: TimerStep): String = when {
         step.endStep != null && step.phase != null -> "${step.phase!!.name} · ${step.endStep!!.title}"
         step.endStep != null -> step.endStep!!.title
@@ -71,14 +74,15 @@ object TimerText {
 
     /**
      * One-line rules reminder under the step title. Paraphrases of the rulebook: table talk p.4
-     * ("Between turns, you are free to discuss strategy… Once the Action cards are revealed…
-     * strategy discussions must stop"), turn sequence p.7 ("resolve them, one by one, in the
+     * ("Between turns, you are free to discuss strategy… but it must be done out loud… Once the
+     * Action cards are revealed… strategy discussions must stop… they may simply state their
+     * preferences"; "without discussing their rationale"), turn sequence p.7 ("resolve them, one by one, in the
      * initiative order").
      */
     fun stepHint(step: TimerStep): String? = when (step.phase?.kind) {
         PhaseKind.STRATEGY -> "Talk strategy out loud. No notes, no showing cards."
-        PhaseKind.TURN -> "Strategy talk until the reveal."
-        PhaseKind.RESOLVE -> "Cards revealed: resolve one by one in initiative order. No strategy talk."
+        PhaseKind.TURN -> "Strategy talk out loud until the reveal."
+        PhaseKind.RESOLVE -> RESOLVE_HINT
         else -> null
     }
 

@@ -695,7 +695,7 @@ private fun SeatLayoutCard(state: SetupUiState, actions: SetupActions) {
             val name = solo?.let { state.player(it)?.player?.name } ?: "The solo player"
             InfoCard(
                 "Official 3-player setup",
-                "$name controls two heroes and replaces the Gold card of one of them with its Handicap card. " +
+                "$name controls two heroes and replaces a gold card of one of them with its Handicap card. " +
                     "Put your most experienced player alone.",
             )
         }

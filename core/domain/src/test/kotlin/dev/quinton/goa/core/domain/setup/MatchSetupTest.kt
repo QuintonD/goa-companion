@@ -40,7 +40,7 @@ class MatchSetupTest {
     fun `player range is 2 to 10 with 4 and 6 recommended`() {
         assertThat(setup.playerRange).isEqualTo(2..10)
         assertThat((2..10).filter(setup::isRecommended)).containsExactly(4, 6)
-        assertThat((2..10).filter(setup::isExtended)).containsExactly(3, 5, 7, 8, 9, 10)
+        assertThat((2..10).filter(setup::isExtended)).containsExactly(2, 3, 5, 7, 8, 9, 10)
     }
 
     @Test

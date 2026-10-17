@@ -68,6 +68,7 @@ import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.domain.catalog.StartingCards
 import dev.quinton.goa.core.domain.draft.SlotStep
 import dev.quinton.goa.core.domain.draft.TeamSlot
 import dev.quinton.goa.core.model.catalog.CardColor
@@ -126,15 +127,12 @@ internal val HeroRole.label: String
 data class CardInfo(val name: String, val color: CardColor, val tier: Int?)
 
 /**
- * The five starting cards, selected from the catalog by tier and colour (never hard-coded):
- * "the three Tier I cards and the two basic cards with no Tier" [RB p.6, Hero Setup]. Basic cards
- * are the Gold and Silver cards (RB p.9). Order: Gold, Silver, then Tier I by colour.
+ * The five starting cards (RB p.6, Hero Setup), selected from the catalog by [StartingCards]:
+ * Gold, Silver, then Tier I by colour. Basic cards whose own text says they start in the deck
+ * (Takahide's extra golds) are left out, since card text overrides the rulebook (RB p.3).
  */
-internal fun startingCards(hero: Hero): List<CardInfo> {
-    val basic = hero.cards.filter { it.tier == null && (it.color == CardColor.GOLD || it.color == CardColor.SILVER) }
-    val tierOne = hero.cards.filter { it.tier == 1 }
-    return (basic + tierOne).sortedBy { it.color.ordinal }.map { CardInfo(it.name, it.color, it.tier) }
-}
+internal fun startingCards(hero: Hero): List<CardInfo> =
+    StartingCards.of(hero).map { CardInfo(it.name, it.color, it.tier) }
 
 /** Display data for one hero; unknown ids render as "Unknown hero" (ARCHITECTURE.md). */
 @Immutable
