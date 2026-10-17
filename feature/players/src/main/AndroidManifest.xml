@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Merged into the app. Adds no permissions: the app stays offline (AGENTS.md). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- "Share stats page" (ADR-027): read-only grants to the cached HTML page, per share. -->
+        <provider
+            android:name="dev.quinton.goa.feature.players.share.StatsPageFileProvider"
+            android:authorities="${applicationId}.statspage"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/stats_page_paths" />
+        </provider>
+    </application>
+</manifest>
