@@ -54,7 +54,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Choose one —\n• Move up to 3 spaces and place the Turret into a space adjacent to you; it counts as an obstacle.\n• Defeat a minion adjacent to you.",
+      "text": "**Choose one —**\n• Move up to 3 spaces and place the Turret into a space adjacent to you; it counts as an obstacle.\n• Defeat a minion adjacent to you.",
       "image": "official/cards/trinkets-gold.webp"
     },
     {
@@ -78,7 +78,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Choose one —\n• Place the Turret into a space adjacent to you; it counts as an obstacle.\n• Remove the Turret; move up to 3 spaces.\n• Remove the Turret; you may retrieve a discarded card.",
+      "text": "**Choose one —**\n• Place the Turret into a space adjacent to you; it counts as an obstacle.\n• Remove the Turret; move up to 3 spaces.\n• Remove the Turret; you may retrieve a discarded card.",
       "image": "official/cards/trinkets-silver.webp"
     },
     {
@@ -98,7 +98,10 @@
         "defense": 5,
         "movement": 4,
         "range": 2,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "attack"
+        ]
       },
       "ranged": true,
       "block": false,
@@ -153,7 +156,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "This turn: Before any enemy hero in radius of the Turret performs a primary action, that hero discards a card, if able; if they discard a card, deactivate this effect.",
+      "text": "**This turn:** Before any enemy hero in radius of the Turret performs a primary action, that hero discards a card, if able; if they discard a card, deactivate this effect.",
       "image": "official/cards/trinkets-blue-1.webp"
     },
     {
@@ -173,7 +176,10 @@
         "defense": 6,
         "movement": 4,
         "range": 3,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "attack"
+        ]
       },
       "ranged": true,
       "block": false,
@@ -278,7 +284,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "This turn: Before any enemy hero in radius of the Turret performs a primary action, that hero discards a card, if able; if they discard a card, deactivate this effect.",
+      "text": "**This turn:** Before any enemy hero in radius of the Turret performs a primary action, that hero discards a card, if able; if they discard a card, deactivate this effect.",
       "image": "official/cards/trinkets-blue-2a.webp"
     },
     {
@@ -323,7 +329,10 @@
         "defense": 6,
         "movement": 4,
         "range": 3,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "attack"
+        ]
       },
       "ranged": true,
       "block": false,
@@ -378,7 +387,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "If you are in radius of the Turret,\nChoose one —\n• Swap with a unit or a token in radius of the Turret.\n• Place yourself into a space in radius of the Turret.",
+      "text": "If you are in radius of the Turret,\n**Choose one —**\n• Swap with a unit or a token in radius of the Turret.\n• Place yourself into a space in radius of the Turret.",
       "image": "official/cards/trinkets-green-3a.webp"
     },
     {
@@ -428,7 +437,7 @@
       "ranged": false,
       "block": false,
       "item": "movement",
-      "text": "This turn: Before any enemy hero in radius of the Turret performs a primary action, that hero discards a card, or is defeated; if they discard a card, deactivate this effect.",
+      "text": "**This turn:** Before any enemy hero in radius of the Turret performs a primary action, that hero discards a card, or is defeated; if they discard a card, deactivate this effect.",
       "image": "official/cards/trinkets-blue-3a.webp"
     },
     {

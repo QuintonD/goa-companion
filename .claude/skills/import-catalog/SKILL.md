@@ -32,9 +32,11 @@ always matches the app's schema. Code map: `Sources.kt` (pinning, cache), `Sourc
      `<hero>-spell-<name-slug>` in `extras` (Gydion). **IDs are permanent.**
    - converts text to the `CardText` markup: `::attack_red::` → `{attack}` (colour suffix
      dropped; hero tokens/markers keep their names, see `CardText.ICONS`), `~(…)` reminder,
-     `>>`/`>` options → `• ` paragraphs, `**bold**` dropped, printed line wraps joined. Where
-     goa2-faq has the same words, its paragraphing is used. Unknown icon tokens abort the run.
-   - cross-checks numbers against colefin8 and text, tier, variant, colour, stats and roles
+     `>>`/`>` options → `• ` paragraphs, `**bold**` kept (source 1), printed line wraps joined. Where
+     goa2-faq has the same words, its paragraphing is used (with source-1 bold). Unknown icon
+     tokens abort the run. Printed `+` values (`primaryValueSign`/`modifierValueSign` `PLUS`)
+     → `values.plus`; an unknown sign aborts the run.
+   - cross-checks numbers (incl. `+` signs, field `values.plus`) against colefin8 and text, tier, variant, colour, stats and roles
      against goa2-faq; attaches goa2-faq lore and FAQ rulings (per-hero + common rulings that
      reference the hero's cards);
    - identifies each card scan (source 2) by comparing its illustration with source-1 card
@@ -48,7 +50,7 @@ always matches the app's schema. Code map: `Sources.kt` (pinning, cache), `Sourc
      `catalog/index.json` only when generated JSON changed, and writes
      `tools/catalog-import/REPORT.md` (counts per product, every disagreement, resolved ones
      with evidence, cross-check gaps, missing fields/images, low-confidence image matches,
-     values the schema can't express, verified list).
+     printed `+` values and bold counts, values the schema can't express, verified list).
 3. **Check `REPORT.md`.** Expect 32 heroes (more after the 3rd printing): 18 deck cards +
    Handicap each; Takahide 20 + Handicap; Gydion 18 + Handicap + 22 spells. Resolve every
    unresolved disagreement **by looking at the card image** (crop the text box or value

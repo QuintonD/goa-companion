@@ -248,20 +248,33 @@ internal fun Card.spokenSummary(isHandicap: Boolean = false): String = buildList
     add(kindLabel(isHandicap))
     initiative?.let { add("Initiative $it") }
     primary?.let { add("Primary action ${GameIcons.forPrimary(it).label}") }
-    valueIcons().forEach { (icon, value) -> add("${icon.label} $value") }
+    printedValues().forEach { add(it.spoken) }
     if (ranged) add("Ranged")
     if (block) add("Block")
     item?.let { add("Item: plus 1 ${it.label}") }
 }.joinToString(". ")
 
-/** Non-null printed values in a stable order. */
-internal fun Card.valueIcons(): List<Pair<GameIcon, Int>> = listOfNotNull(
-    values.attack?.let { GameIcons.attack to it },
-    values.defense?.let { GameIcons.defense to it },
-    values.movement?.let { GameIcons.movement to it },
-    values.range?.let { GameIcons.range to it },
-    values.radius?.let { GameIcons.radius to it },
+/** One printed value; [plus] when the card prints it with a `+` (it grows per the card text). */
+internal data class PrintedValue(val icon: GameIcon, val value: Int, val plus: Boolean) {
+    /** As printed: "4" or "4+". */
+    val printed: String get() = if (plus) "$value+" else "$value"
+
+    /** For TalkBack: "Attack 4" or "Attack 4 plus". */
+    val spoken: String get() = "${icon.label} " + if (plus) "$value plus" else "$value"
+}
+
+private val VALUE_ORDER = listOf(
+    Stat.ATTACK to GameIcons.attack,
+    Stat.DEFENSE to GameIcons.defense,
+    Stat.MOVEMENT to GameIcons.movement,
+    Stat.RANGE to GameIcons.range,
+    Stat.RADIUS to GameIcons.radius,
 )
+
+/** Non-null printed values in a stable order. */
+internal fun Card.printedValues(): List<PrintedValue> = VALUE_ORDER.mapNotNull { (stat, icon) ->
+    values.get(stat)?.let { PrintedValue(icon, it, stat in values.plus) }
+}
 
 /** Compact deck tile: colour accent, name, initiative, primary action, values, markers. */
 @OptIn(ExperimentalLayoutApi::class)
@@ -320,7 +333,7 @@ internal fun CardTile(card: Card, onClick: () -> Unit, modifier: Modifier = Modi
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                card.valueIcons().forEach { (icon, value) -> ValueChip(icon, value.toString(), iconSize = 14.dp) }
+                card.printedValues().forEach { ValueChip(it.icon, it.printed, iconSize = 14.dp, spoken = it.spoken) }
                 if (card.ranged) Marker(GameIcons.ranged, "Ranged")
                 if (card.block) Marker(GameIcons.block, "Block")
                 card.item?.let { Marker(GameIcons.item, "+1 ${it.label}") }

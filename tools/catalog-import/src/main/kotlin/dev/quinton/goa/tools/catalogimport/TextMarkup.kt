@@ -4,8 +4,8 @@ import dev.quinton.goa.core.model.catalog.CardText
 
 /**
  * Converts source card text into the app's inline markup ([CardText]): `{icon}`, `~(reminder)`,
- * `\n` paragraph breaks and a leading `• ` for "Choose one —" options. Bold (`**…**`) is not
- * part of the markup and is dropped; the words are kept verbatim.
+ * `\n` paragraph breaks, a leading `• ` for "Choose one —" options and `**bold**` keywords.
+ * Bold comes from source 1 (Stats of Atlantis); goa2-faq bold is not used (see [aligned]).
  */
 object TextMarkup {
     const val BULLET = "• "
@@ -36,14 +36,13 @@ object TextMarkup {
         }
     }
 
-    /** Removes `**` bold markers and SoA's italic toggles that are not reminder openers. */
+    /** Removes SoA's italic toggles that are not reminder openers; keeps `**` bold markers. */
     private fun inlineSoa(line: String, unknown: MutableSet<String>): String {
-        val noBold = line.replace("**", "")
         val sb = StringBuilder()
         var i = 0
-        while (i < noBold.length) {
-            val c = noBold[i]
-            if (c == '~' && (i + 1 >= noBold.length || noBold[i + 1] != '(')) {
+        while (i < line.length) {
+            val c = line[i]
+            if (c == '~' && (i + 1 >= line.length || line[i + 1] != '(')) {
                 i++
                 continue
             }
@@ -84,7 +83,15 @@ object TextMarkup {
             forceBreak = false
             previousLine = line
         }
-        return tidy(paragraphs.joinToString("\n"))
+        return tidy(paragraphs.joinToString("\n") { tidyBold(it.toString()) })
+    }
+
+    private val boldSpan = Regex("""\*\*(.+?)\*\*""")
+
+    /** `** This turn: **` → `**This turn:**`: no padding inside a bold span. */
+    fun tidyBold(paragraph: String): String = boldSpan.replace(paragraph) { m ->
+        val inner = m.groupValues[1].trim()
+        if (inner.isEmpty()) m.value else "${CardText.STRONG}$inner${CardText.STRONG}"
     }
 
     private val iconLabel = Regex("""^::[a-z_]+:::""")
@@ -100,7 +107,10 @@ object TextMarkup {
         return endsSentence && (first.isUpperCase() || first == '"' || first == '“')
     }
 
-    /** goa2-faq markdown: `_(…)_` reminder, `- ` option bullets, `**bold**`, `::icon::`. */
+    /**
+     * goa2-faq markdown: `_(…)_` reminder, `- ` option bullets, `::icon::`. Its `**bold**` is
+     * dropped: bold keywords come from source 1 (see [aligned]).
+     */
     fun fromFaq(text: String, unknownIcons: MutableSet<String> = mutableSetOf()): String {
         // `---` is a printed divider between alternatives: a paragraph break, not words.
         val lines = text.replace("\r\n", "\n").replace(Regex("""\s*---\s*"""), "\n").split('\n').map { it.trim() }
@@ -146,16 +156,57 @@ object TextMarkup {
         paragraph.split(' ').filter { it.isNotEmpty() }.mapIndexed { index, w -> w to (index == 0) }
     }
 
-    /** The comparable word sequence (paragraph breaks and bullets ignored). */
-    fun comparable(markup: String): List<String> = words(markup).map { normalizeWord(it.first) }.filter { it != "•" }
+    /** The comparable word sequence (paragraph breaks, bullets and bold markers ignored). */
+    fun comparable(markup: String): List<String> = words(markup)
+        .map { normalizeWord(it.first.replace(CardText.STRONG, "")) }
+        .filter { it.isNotEmpty() && it != "•" }
 
     fun agrees(a: String, b: String): Boolean = comparable(a) == comparable(b)
 
     /**
      * When [primary] and [reference] contain the same words, returns the reference's wording and
-     * paragraph structure (it is not constrained by the printed line wraps). Otherwise null.
+     * paragraph structure (it is not constrained by the printed line wraps) with the primary's
+     * bold keywords. Null when the words differ or the primary's bold cannot be carried over
+     * (a marker inside a word, or a bold span the reference splits across paragraphs).
      */
-    fun aligned(primary: String, reference: String): String? = if (agrees(primary, reference)) reference else null
+    fun aligned(primary: String, reference: String): String? {
+        if (!agrees(primary, reference)) return null
+        return withBoldOf(primary, reference.replace(CardText.STRONG, ""))
+    }
+
+    /** Whether a word opens and/or closes a bold span; null if a marker sits inside the word. */
+    private data class WordBold(val opens: Boolean, val closes: Boolean)
+
+    private fun wordBold(word: String): WordBold? {
+        val rest = word.removePrefix(CardText.STRONG)
+        val core = rest.removeSuffix(CardText.STRONG)
+        if (core.isEmpty() || CardText.STRONG in core) return null
+        return WordBold(opens = rest.length < word.length, closes = core.length < rest.length)
+    }
+
+    /** Copies [source]'s word-level bold markers onto [target], which has the same words. */
+    private fun withBoldOf(source: String, target: String): String? {
+        if (CardText.STRONG !in source) return target
+        val marks = words(source).map { it.first }.filter { it != "•" }.map { wordBold(it) ?: return null }
+        val targetWords = target.split('\n').map { paragraph -> paragraph.split(' ').filter { it.isNotEmpty() } }
+        if (targetWords.sumOf { p -> p.count { it != "•" } } != marks.size) return null
+        val pending = marks.iterator()
+        val out = targetWords.joinToString("\n") { paragraph ->
+            paragraph.joinToString(" ") { word ->
+                val mark = if (word == "•") null else pending.next()
+                when {
+                    mark == null -> word
+
+                    else -> (if (mark.opens) CardText.STRONG else "") + word +
+                        (if (mark.closes) CardText.STRONG else "")
+                }
+            }
+        }
+        val literal = CardText.flatten(CardText.parse(out)).any {
+            it is CardText.Segment.Text && CardText.STRONG in it.value
+        }
+        return if (literal) null else out
+    }
 
     /** Readable one-line diff of two texts for REPORT.md: first differing word and context. */
     fun describeDifference(a: String, b: String): String {

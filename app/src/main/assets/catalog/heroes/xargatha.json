@@ -99,7 +99,10 @@
         "defense": 6,
         "movement": 5,
         "range": null,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "attack"
+        ]
       },
       "ranged": false,
       "block": false,
@@ -153,7 +156,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Next turn: Enemy heroes in radius count as both heroes and terrain, and cannot perform movement actions.\n~(If you move, the radius “moves” with you.)",
+      "text": "**Next turn:** Enemy heroes in radius count as both heroes and terrain, and cannot perform movement actions.\n~(If you move, the radius “moves” with you.)",
       "image": "official/cards/xargatha-blue-1.webp"
     },
     {
@@ -173,7 +176,10 @@
         "defense": 7,
         "movement": 5,
         "range": null,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "attack"
+        ]
       },
       "ranged": false,
       "block": false,
@@ -198,7 +204,10 @@
         "defense": 4,
         "movement": 4,
         "range": 1,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "range"
+        ]
       },
       "ranged": true,
       "block": false,
@@ -252,7 +261,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "End of round: Defeat an enemy melee minion adjacent to you.\n~(Before the end of round minion battle.)",
+      "text": "**End of round:** Defeat an enemy melee minion adjacent to you.\n~(Before the end of round minion battle.)",
       "image": "official/cards/xargatha-green-2b.webp"
     },
     {
@@ -277,7 +286,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Next turn: Enemy heroes in radius count as both heroes and terrain, and cannot perform movement actions.",
+      "text": "**Next turn:** Enemy heroes in radius count as both heroes and terrain, and cannot perform movement actions.",
       "image": "official/cards/xargatha-blue-2a.webp"
     },
     {
@@ -322,7 +331,10 @@
         "defense": 7,
         "movement": 5,
         "range": null,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "attack"
+        ]
       },
       "ranged": false,
       "block": false,
@@ -347,7 +359,10 @@
         "defense": 4,
         "movement": 4,
         "range": 1,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "range"
+        ]
       },
       "ranged": true,
       "block": false,
@@ -401,7 +416,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "End of round: Defeat an enemy melee or ranged minion adjacent to you.",
+      "text": "**End of round:** Defeat an enemy melee or ranged minion adjacent to you.",
       "image": "official/cards/xargatha-green-3b.webp"
     },
     {
@@ -426,7 +441,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Next turn: Enemy heroes in radius count as both heroes and terrain, and cannot perform movement actions.",
+      "text": "**Next turn:** Enemy heroes in radius count as both heroes and terrain, and cannot perform movement actions.",
       "image": "official/cards/xargatha-blue-3a.webp"
     },
     {

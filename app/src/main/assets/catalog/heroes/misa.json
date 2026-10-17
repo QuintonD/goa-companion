@@ -53,7 +53,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Choose one —\n• Place yourself into a space at maximum range.\n• Defeat a minion adjacent to you.",
+      "text": "**Choose one —**\n• Place yourself into a space at maximum range.\n• Defeat a minion adjacent to you.",
       "image": "official/cards/misa-gold.webp"
     },
     {
@@ -102,7 +102,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Target a unit adjacent to you.\nAfter the attack: This turn: Gain +2 {defense} Defense.",
+      "text": "Target a unit adjacent to you.\nAfter the attack: **This turn:** Gain +2 {defense} Defense.",
       "image": "official/cards/misa-red-1.webp"
     },
     {
@@ -127,7 +127,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Next turn: Before you perform a primary action, you may move 1 space.",
+      "text": "**Next turn:** Before you perform a primary action, you may move 1 space.",
       "image": "official/cards/misa-green-1.webp"
     },
     {
@@ -177,7 +177,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "Target a unit adjacent to you.\nAfter the attack: This turn: Gain +3 {defense} Defense.",
+      "text": "Target a unit adjacent to you.\nAfter the attack: **This turn:** Gain +3 {defense} Defense.",
       "image": "official/cards/misa-red-2a.webp"
     },
     {
@@ -227,7 +227,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "Next turn: Before you perform a primary action, move up to 2 spaces.",
+      "text": "**Next turn:** Before you perform a primary action, move up to 2 spaces.",
       "image": "official/cards/misa-green-2a.webp"
     },
     {
@@ -327,7 +327,7 @@
       "ranged": false,
       "block": false,
       "item": "movement",
-      "text": "Target a unit adjacent to you.\nAfter the attack: This turn: Gain +5 {defense} Defense.",
+      "text": "Target a unit adjacent to you.\nAfter the attack: **This turn:** Gain +5 {defense} Defense.",
       "image": "official/cards/misa-red-3a.webp"
     },
     {
@@ -377,7 +377,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "Next turn: Before you perform a primary action, move up to 3 spaces.",
+      "text": "**Next turn:** Before you perform a primary action, move up to 3 spaces.",
       "image": "official/cards/misa-green-3a.webp"
     },
     {

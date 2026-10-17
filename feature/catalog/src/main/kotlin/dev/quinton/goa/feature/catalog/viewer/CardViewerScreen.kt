@@ -53,6 +53,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.liveRegion
@@ -67,7 +68,7 @@ import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
-import dev.quinton.goa.feature.catalog.detail.valueIcons
+import dev.quinton.goa.feature.catalog.detail.printedValues
 import dev.quinton.goa.feature.catalog.ui.CardTextView
 import dev.quinton.goa.feature.catalog.ui.GameIcon
 import dev.quinton.goa.feature.catalog.ui.GameIcons
@@ -294,11 +295,18 @@ private fun CardDetails(card: Card, includeText: Boolean, modifier: Modifier = M
                 }
             }
         }
-        val values = card.valueIcons()
+        val values = card.printedValues()
         if (values.isNotEmpty()) {
             DetailRow("Values") {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    values.forEach { (icon, value) -> IconLabel(icon, accent, "${icon.label} $value") }
+                    values.forEach {
+                        IconLabel(
+                            it.icon,
+                            accent,
+                            "${it.icon.label} ${it.printed}",
+                            Modifier.clearAndSetSemantics { contentDescription = it.spoken },
+                        )
+                    }
                 }
             }
         }
@@ -336,8 +344,13 @@ private fun DetailRow(label: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun IconLabel(icon: GameIcon, tint: androidx.compose.ui.graphics.Color, text: String = icon.label) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+private fun IconLabel(
+    icon: GameIcon,
+    tint: androidx.compose.ui.graphics.Color,
+    text: String = icon.label,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Icon(icon.vector, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
         Spacer(Modifier.size(4.dp))
         Text(text, style = MaterialTheme.typography.bodyMedium)

@@ -55,7 +55,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Choose and cast one spell in the spellbook —\n• “Shocking Grasp” ~(To repel a foe!)\n• “Magic Missile” ~(To blast at range!)\n• “Expeditious Retreat” ~(To dart a great distance!)",
+      "text": "**Choose and cast one** spell in the spellbook —\n• “Shocking Grasp” ~(To repel a foe!)\n• “Magic Missile” ~(To blast at range!)\n• “Expeditious Retreat” ~(To dart a great distance!)",
       "image": "official/cards/gydion-gold.webp"
     },
     {
@@ -179,7 +179,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Choose and cast one spell in the spellbook —\n• “Burning Hands”\n• “Fireball”\n~(Wait for your allies to clear the area before hurling a fireball!)",
+      "text": "**Choose and cast one** spell in the spellbook —\n• “Burning Hands”\n• “Fireball”\n~(Wait for your allies to clear the area before hurling a fireball!)",
       "image": "official/cards/gydion-red-2a.webp"
     },
     {
@@ -204,7 +204,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "Choose and cast one spell in the spellbook —\n• “Vampiric Touch”\n• “Create Undead”\n~(Harm your foe to heal yourself. Raise an undead servant.)",
+      "text": "**Choose and cast one** spell in the spellbook —\n• “Vampiric Touch”\n• “Create Undead”\n~(Harm your foe to heal yourself. Raise an undead servant.)",
       "image": "official/cards/gydion-red-2b.webp"
     },
     {
@@ -229,7 +229,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "Choose and cast one spell in the spellbook —\n• “Shield”\n• “Banishment”\n~(Touch anything to have it banished where you please.)",
+      "text": "**Choose and cast one** spell in the spellbook —\n• “Shield”\n• “Banishment”\n~(Touch anything to have it banished where you please.)",
       "image": "official/cards/gydion-green-2a.webp"
     },
     {
@@ -254,7 +254,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "Choose and cast one spell in the spellbook —\n• “Find Familiar”\n• “Dimension Door”\n~(Summon a familiar to assist you. Travel to a faraway place.)",
+      "text": "**Choose and cast one** spell in the spellbook —\n• “Find Familiar”\n• “Dimension Door”\n~(Summon a familiar to assist you. Travel to a faraway place.)",
       "image": "official/cards/gydion-green-2b.webp"
     },
     {
@@ -279,7 +279,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Choose and cast one spell in the spellbook —\n• “Suggestion”\n• “Dominate Person”\n~(Turn the dominated person against their own troops.)",
+      "text": "**Choose and cast one** spell in the spellbook —\n• “Suggestion”\n• “Dominate Person”\n~(Turn the dominated person against their own troops.)",
       "image": "official/cards/gydion-blue-2a.webp"
     },
     {
@@ -304,7 +304,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "Choose and cast one spell in the spellbook —\n• “Midas Touch”\n• “Disintegrate”\n~(Create gold. Turn objects and lesser creatures into dust.)",
+      "text": "**Choose and cast one** spell in the spellbook —\n• “Midas Touch”\n• “Disintegrate”\n~(Create gold. Turn objects and lesser creatures into dust.)",
       "image": "official/cards/gydion-blue-2b.webp"
     },
     {
@@ -329,7 +329,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Choose and cast one spell in the spellbook —\n• “Burning Hands”\n• “Fireball”\n• “Sunburst”\n~(Sunburst's reach and power grows with every cast spell.)",
+      "text": "**Choose and cast one** spell in the spellbook —\n• “Burning Hands”\n• “Fireball”\n• “Sunburst”\n~(Sunburst's reach and power grows with every cast spell.)",
       "image": "official/cards/gydion-red-3a.webp"
     },
     {
@@ -354,7 +354,7 @@
       "ranged": false,
       "block": false,
       "item": "radius",
-      "text": "Choose and cast one spell in the spellbook —\n• “Vampiric Touch”\n• “Create Undead”\n• “Energy Drain”\n~(Drain energy from a foe in sight to restore your vitality.)",
+      "text": "**Choose and cast one** spell in the spellbook —\n• “Vampiric Touch”\n• “Create Undead”\n• “Energy Drain”\n~(Drain energy from a foe in sight to restore your vitality.)",
       "image": "official/cards/gydion-red-3b.webp"
     },
     {
@@ -379,7 +379,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "Choose and cast one spell in the spellbook —\n• “Shield”\n• “Banishment”\n• “Invulnerability”\n~(Invulnerability makes you impervious to deadly perils.)",
+      "text": "**Choose and cast one** spell in the spellbook —\n• “Shield”\n• “Banishment”\n• “Invulnerability”\n~(Invulnerability makes you impervious to deadly perils.)",
       "image": "official/cards/gydion-green-3a.webp"
     },
     {
@@ -404,7 +404,7 @@
       "ranged": false,
       "block": false,
       "item": "movement",
-      "text": "Choose and cast one spell in the spellbook —\n• “Find Familiar”\n• “Dimension Door”\n• “Cloud Kill”\n~(Create a deadly cloud within distance to weaken your foe.)",
+      "text": "**Choose and cast one** spell in the spellbook —\n• “Find Familiar”\n• “Dimension Door”\n• “Cloud Kill”\n~(Create a deadly cloud within distance to weaken your foe.)",
       "image": "official/cards/gydion-green-3b.webp"
     },
     {
@@ -429,7 +429,7 @@
       "ranged": false,
       "block": false,
       "item": "range",
-      "text": "Choose and cast one spell in the spellbook —\n• “Suggestion”\n• “Dominate Person”\n• “Power Word Kill”\n~(Command a weakened foe within earshot to perish instantly.)",
+      "text": "**Choose and cast one** spell in the spellbook —\n• “Suggestion”\n• “Dominate Person”\n• “Power Word Kill”\n~(Command a weakened foe within earshot to perish instantly.)",
       "image": "official/cards/gydion-blue-3a.webp"
     },
     {
@@ -454,7 +454,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "Choose and cast one spell in the spellbook —\n• “Midas Touch”\n• “Disintegrate”\n• “Polymorph”\n~(Polymorph enemies into creatures or objects and vice versa.)",
+      "text": "**Choose and cast one** spell in the spellbook —\n• “Midas Touch”\n• “Disintegrate”\n• “Polymorph”\n~(Polymorph enemies into creatures or objects and vice versa.)",
       "image": "official/cards/gydion-blue-3b.webp"
     },
     {
@@ -629,7 +629,11 @@
         "defense": null,
         "movement": null,
         "range": 0,
-        "radius": null
+        "radius": null,
+        "plus": [
+          "attack",
+          "range"
+        ]
       },
       "ranged": true,
       "block": false,
@@ -722,7 +726,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "This round: You are immune to basic attacks.\n~(Cancelled if the spell is returned to the spellbook.)",
+      "text": "**This round:** You are immune to basic attacks.\n~(Cancelled if the spell is returned to the spellbook.)",
       "image": "official/cards/gydion-spell-shield.webp"
     },
     {
@@ -766,7 +770,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "This Round: You are immune to non-basic attacks.",
+      "text": "**This Round:** You are immune to non-basic attacks.",
       "image": "official/cards/gydion-spell-invulnerability.webp"
     },
     {
@@ -783,7 +787,10 @@
         "defense": null,
         "movement": null,
         "range": null,
-        "radius": 0
+        "radius": 0,
+        "plus": [
+          "radius"
+        ]
       },
       "ranged": false,
       "block": false,

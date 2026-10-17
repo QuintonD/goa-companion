@@ -3,7 +3,10 @@ package dev.quinton.goa.core.model.catalog
 /**
  * Inline markup used in [Card.text] (written by the importer, rendered by the UI):
  * - `{attack}` — an inline game icon; the name is one of [ICONS] (unknown names render as text).
- * - `~(…)` — reminder text, shown in italics.
+ * - `~(…)` — reminder text, shown in italics. Its content is kept as-is (no nested markup).
+ * - `**…**` — a printed bold keyword such as `**This turn:**` or `**Choose one —**`, shown bold.
+ *   It may contain icons and reminders but never a paragraph break; a `**` without a closing
+ *   `**` in the same paragraph (or an empty `****`) is literal text.
  * - `\n` — paragraph break.
  * Everything else is literal printed text.
  */
@@ -21,12 +24,18 @@ object CardText {
         "token_tree", "token_zombie",
     )
 
+    /** Opening and closing marker of a [Segment.Strong] span. */
+    const val STRONG = "**"
+
     sealed interface Segment {
         data class Text(val value: String) : Segment
 
         data class Icon(val name: String) : Segment
 
         data class Reminder(val value: String) : Segment
+
+        /** Bold printed keyword; [segments] are [Text], [Icon] or [Reminder], never [Break]. */
+        data class Strong(val segments: List<Segment>) : Segment
 
         data object Break : Segment
     }
@@ -67,6 +76,17 @@ object CardText {
                     }
                 }
 
+                text.startsWith(STRONG, i) -> {
+                    val end = closingStrong(text, i + STRONG.length)
+                    if (end < 0) {
+                        buffer.append(STRONG)
+                    } else {
+                        flush()
+                        out += Segment.Strong(parse(text.substring(i + STRONG.length, end)))
+                    }
+                    i = if (end < 0) i + STRONG.length else end + STRONG.length
+                }
+
                 else -> {
                     buffer.append(c)
                     i++
@@ -78,13 +98,44 @@ object CardText {
     }
 
     /** Plain text for search and accessibility: icons become words, markup is dropped. */
-    fun plain(text: String): String = parse(text).joinToString("") {
+    fun plain(text: String): String = plain(parse(text))
+
+    private fun plain(segments: List<Segment>): String = segments.joinToString("") {
         when (it) {
             is Segment.Text -> it.value
             is Segment.Icon -> it.name.replace('_', ' ')
             is Segment.Reminder -> "(${it.value})"
+            is Segment.Strong -> plain(it.segments)
             Segment.Break -> "\n"
         }
+    }
+
+    /** Every segment in reading order with [Segment.Strong] spans expanded into their content. */
+    fun flatten(segments: List<Segment>): List<Segment> = segments.flatMap {
+        if (it is Segment.Strong) flatten(it.segments) else listOf(it)
+    }
+
+    /**
+     * Index of the `**` closing a span whose content starts at [from], or -1 when the paragraph
+     * ends first or the span would be empty. Markers inside an icon or reminder do not count.
+     */
+    private fun closingStrong(text: String, from: Int): Int {
+        var j = from
+        while (j < text.length && text[j] != '\n') {
+            when {
+                text.startsWith(STRONG, j) -> return if (j > from) j else -1
+
+                text[j] == '{' && text.indexOf('}', j) > j -> j = text.indexOf('}', j) + 1
+
+                text[j] == '~' && j + 1 < text.length && text[j + 1] == '(' -> {
+                    val end = matchingParen(text, j + 1)
+                    j = if (end < 0) j + 1 else end + 1
+                }
+
+                else -> j++
+            }
+        }
+        return -1
     }
 
     private fun matchingParen(text: String, open: Int): Int {

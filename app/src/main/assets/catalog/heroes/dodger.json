@@ -55,7 +55,7 @@
       "ranged": true,
       "block": false,
       "item": null,
-      "text": "Choose one —\n• Target a unit adjacent to you.\n• If you are adjacent to an empty spawn point in the battle zone, target a unit in range.",
+      "text": "**Choose one —**\n• Target a unit adjacent to you.\n• If you are adjacent to an empty spawn point in the battle zone, target a unit in range.",
       "image": "official/cards/dodger-gold.webp"
     },
     {
@@ -104,7 +104,7 @@
       "ranged": true,
       "block": false,
       "item": null,
-      "text": "Choose one —\n• Target a unit adjacent to you.\n• Target a hero in range who has one or more cards in the discard.",
+      "text": "**Choose one —**\n• Target a unit adjacent to you.\n• Target a hero in range who has one or more cards in the discard.",
       "image": "official/cards/dodger-red-1.webp"
     },
     {
@@ -148,7 +148,10 @@
         "defense": 3,
         "movement": 3,
         "range": null,
-        "radius": 2
+        "radius": 2,
+        "plus": [
+          "defense"
+        ]
       },
       "ranged": false,
       "block": false,
@@ -178,7 +181,7 @@
       "ranged": true,
       "block": false,
       "item": "initiative",
-      "text": "Choose one —\n• Target a unit adjacent to you.\n• Target a hero in range who has one or more cards in the discard.",
+      "text": "**Choose one —**\n• Target a unit adjacent to you.\n• Target a hero in range who has one or more cards in the discard.",
       "image": "official/cards/dodger-red-2a.webp"
     },
     {
@@ -272,7 +275,10 @@
         "defense": 4,
         "movement": 3,
         "range": null,
-        "radius": 2
+        "radius": 2,
+        "plus": [
+          "defense"
+        ]
       },
       "ranged": false,
       "block": false,
@@ -302,7 +308,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "This turn: Enemy heroes in radius have -4 {attack} Attack.\n~(They can still attack, even with a negative attack value.)",
+      "text": "**This turn:** Enemy heroes in radius have -4 {attack} Attack.\n~(They can still attack, even with a negative attack value.)",
       "image": "official/cards/dodger-blue-2b.webp"
     },
     {
@@ -327,7 +333,7 @@
       "ranged": true,
       "block": false,
       "item": "movement",
-      "text": "Choose one, or both, on different targets —\n• Target a unit adjacent to you.\n• Target a hero in range who has one or more cards in the discard.",
+      "text": "**Choose one, or both, on different targets —**\n• Target a unit adjacent to you.\n• Target a hero in range who has one or more cards in the discard.",
       "image": "official/cards/dodger-red-3a.webp"
     },
     {
@@ -421,7 +427,10 @@
         "defense": 4,
         "movement": 3,
         "range": null,
-        "radius": 2
+        "radius": 2,
+        "plus": [
+          "defense"
+        ]
       },
       "ranged": false,
       "block": false,
@@ -451,7 +460,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "This turn: Enemy heroes in radius have -6 {attack} Attack and cannot repeat actions.",
+      "text": "**This turn:** Enemy heroes in radius have -6 {attack} Attack and cannot repeat actions.",
       "image": "official/cards/dodger-blue-3b.webp"
     },
     {
@@ -499,7 +508,7 @@
     "ranged": true,
     "block": false,
     "item": null,
-    "text": "Choose one —\n• Target a hero adjacent to you.\n• If you are adjacent to an empty spawn point in the battle zone, target a hero in range.",
+    "text": "**Choose one —**\n• Target a hero adjacent to you.\n• If you are adjacent to an empty spawn point in the battle zone, target a hero in range.",
     "image": "official/cards/dodger-handicap.webp"
   },
   "extras": [],

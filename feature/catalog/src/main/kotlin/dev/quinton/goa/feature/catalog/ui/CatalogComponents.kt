@@ -74,7 +74,7 @@ fun MetaPill(text: String, modifier: Modifier = Modifier, color: Color = Materia
     )
 }
 
-/** Icon + number, e.g. a sword and "4"; reads as "Attack 4". */
+/** Icon + number, e.g. a sword and "4"; reads as [spoken] ("Attack 4", "Attack 4 plus"). */
 @Composable
 fun ValueChip(
     icon: GameIcon,
@@ -82,9 +82,10 @@ fun ValueChip(
     modifier: Modifier = Modifier,
     tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     iconSize: Dp = 16.dp,
+    spoken: String = "${icon.label} $value",
 ) {
     Row(
-        modifier.semantics(mergeDescendants = true) { contentDescription = "${icon.label} $value" },
+        modifier.semantics(mergeDescendants = true) { contentDescription = spoken },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {

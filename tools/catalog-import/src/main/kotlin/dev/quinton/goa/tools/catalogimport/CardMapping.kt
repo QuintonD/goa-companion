@@ -135,7 +135,40 @@ object CardMapping {
             movement = if (primary == PrimaryAction.MOVEMENT) card.primaryValue else card.secondaryMovement,
             range = card.modifierValue.takeIf { card.modifier == "RANGE" },
             radius = card.modifierValue.takeIf { card.modifier == "AREA" },
+            plus = plus(card),
         )
+    }
+
+    /**
+     * Stats whose printed value carries a `+` (source `primaryValueSign` / `modifierValueSign`
+     * `"PLUS"`), in [Stat] order. `"EXCLAMATION"` is the Block marker, not a sign of the value.
+     */
+    fun plus(card: SoaCard): List<Stat> {
+        val signs = setOf(null, "PLUS", "EXCLAMATION")
+        require(card.primaryValueSign in signs && card.modifierValueSign in setOf(null, "PLUS")) {
+            "${card.name}: unknown value sign ${card.primaryValueSign} / ${card.modifierValueSign}"
+        }
+        return buildList {
+            if (card.primaryValueSign == "PLUS") {
+                add(
+                    when (primary(card.primaryAction)) {
+                        PrimaryAction.ATTACK -> Stat.ATTACK
+                        PrimaryAction.DEFENSE, PrimaryAction.DEFENSE_SKILL -> Stat.DEFENSE
+                        PrimaryAction.MOVEMENT -> Stat.MOVEMENT
+                        else -> error("${card.name}: '+' on a ${card.primaryAction} value")
+                    },
+                )
+            }
+            if (card.modifierValueSign == "PLUS") {
+                add(
+                    when (card.modifier) {
+                        "RANGE" -> Stat.RANGE
+                        "AREA" -> Stat.RADIUS
+                        else -> error("${card.name}: '+' on modifier ${card.modifier}")
+                    },
+                )
+            }
+        }.sortedBy { it.ordinal }
     }
 
     fun secondary(card: SoaCard): List<SecondaryAction> = buildList {

@@ -116,3 +116,16 @@ be avoided or the converter extended.
 own manifest that re-syncs persisted timer state at process start; boot/time/package-replaced
 receivers cover the rest. Timer clocks are injected with a `@TimerClock` qualifier.
 **Consequences:** Features stay independent of `app`; one extra provider runs at startup (cheap).
+
+## ADR-015 — Printed "+" values and bold keywords in the catalog schema (2026-10-17)
+**Context:** Cards print some values with a `+` (Attack `4+`: the value grows per the card
+text) and set timing/choice keywords in bold (`**This turn:**`). Both were lost on import (38
+and 186 cards), which hurts rules accuracy.
+**Decision:** `CardValues.plus: List<Stat>` (additive, omitted from JSON when empty) holds the
+stats printed with `+`; the number stays the printed base. `CardText` gains `**…**` →
+`Segment.Strong` (never spans a paragraph; unmatched markers are literal; `plain()` drops
+markers). Both come from source 1; `+` is cross-checked against colefin8. goa2-faq bold is
+ignored: where its paragraphing is used, source-1 bold is copied word by word, and if a bold
+span would not fit, the source-1 text is kept (noted in REPORT.md).
+**Consequences:** Older catalog JSON still loads; every value display shows `4+` and speaks
+"4 plus"; card text renders bold keywords. The importer bumps `dataVersion`.

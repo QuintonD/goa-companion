@@ -79,7 +79,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "This round: Each time you perform or repeat a primary action, you may apply either {tiebreaker_blue} or {tiebreaker_orange}\ncard text, regardless of the Tie Breaker coin.",
+      "text": "**This round:** Each time you perform or repeat a primary action, you may apply either {tiebreaker_blue} or {tiebreaker_orange}\ncard text, regardless of the Tie Breaker coin.",
       "image": "official/cards/ignatia-silver.webp"
     },
     {

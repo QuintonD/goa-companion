@@ -17,8 +17,6 @@ data class ImportResult(
     val unknownIcons: Set<String>,
     /** Output asset path (relative to `assets/`) → source file it was made from. */
     val assetSources: Map<String, AssetSource>,
-    /** Cards whose printed value carries a `+` (not representable in [CardValues]). */
-    val plusValueCards: Set<String> = emptySet(),
 )
 
 data class AssetSource(val source: PinnedSource, val path: String, val maxEdge: Int)
@@ -90,7 +88,6 @@ class Importer(lock: SourcesLock, private val cache: SourceCache, private val ov
 
     private val unknownIcons = sortedSetOf<String>()
     private val assets = linkedMapOf<String, AssetSource>()
-    private val plusValue = sortedSetOf<String>()
 
     fun run(withImages: Boolean): ImportResult {
         val data = loadSources()
@@ -103,7 +100,6 @@ class Importer(lock: SourcesLock, private val cache: SourceCache, private val ov
             reports = sorted.map { it.second },
             unknownIcons = unknownIcons,
             assetSources = assets,
-            plusValueCards = plusValue,
         )
     }
 
@@ -149,8 +145,6 @@ class Importer(lock: SourcesLock, private val cache: SourceCache, private val ov
         val notes = mutableListOf<String>()
         val mapped = CardMapping.heroCards(heroId, data.soaCards.getValue(heroId), unknownIcons) +
             if (heroId == "gydion") CardMapping.spellCards(heroId, data.soaSpells, unknownIcons) else emptyList()
-        mapped.filter { it.source.primaryValueSign == "PLUS" || it.source.modifierValueSign == "PLUS" }
-            .forEach { plusValue += it.card.id }
         val src = heroSources(heroId, data)
 
         // Cross-checks run on the raw source-1 data, before alignment and overrides.
@@ -165,7 +159,7 @@ class Importer(lock: SourcesLock, private val cache: SourceCache, private val ov
             spells.takeIf { it.isNotEmpty() }?.let { CrossCheck.texts(heroId, it, src.faqSpells) },
         )
 
-        val baseHero = buildHero(sh, mapped, src, data)
+        val baseHero = buildHero(sh, mapped, src, data, notes)
         val heroDisagreements = CrossCheck.hero(baseHero, src.faqHero)
         var hero = OverrideApplier.hero(baseHero, overrides.heroes[heroId])
         if (overrides.heroes[heroId]?.containsKey("aliases") != true) {
@@ -185,15 +179,25 @@ class Importer(lock: SourcesLock, private val cache: SourceCache, private val ov
         return hero.copy(verified = verified) to report
     }
 
-    private fun buildHero(sh: SoaHero, mapped: List<MappedCard>, src: HeroSources, data: SourceData): Hero {
+    private fun buildHero(
+        sh: SoaHero,
+        mapped: List<MappedCard>,
+        src: HeroSources,
+        data: SourceData,
+        notes: MutableList<String>,
+    ): Hero {
         // Prefer goa2-faq wording/paragraphs where its words equal source 1 (no print line wraps).
         val faqByKey = (src.faqCards.orEmpty() + src.faqSpells.orEmpty()).groupBy { CrossCheck.nameKey(it.name) }
         fun aligned(card: Card): Card {
             val handicap = card.id.endsWith("-handicap")
             val candidates = faqByKey[CrossCheck.nameKey(card.name)] ?: return card
             val ref = candidates.firstOrNull { (it.tier == "H") == handicap } ?: candidates.first()
-            val text = TextMarkup.aligned(card.text, TextMarkup.fromFaq(ref.text, unknownIcons)) ?: return card
-            return card.copy(text = text)
+            val reference = TextMarkup.fromFaq(ref.text, unknownIcons)
+            val text = TextMarkup.aligned(card.text, reference)
+            if (text == null && TextMarkup.agrees(card.text, reference)) {
+                notes += "${card.id}: bold keywords do not fit goa2-faq paragraphs; source-1 paragraphs kept"
+            }
+            return card.copy(text = text ?: return card)
         }
         val cards = mapped.map { m -> OverrideApplier.card(aligned(m.card), overrides.cards[m.card.id]) to m.slot }
         return Hero(

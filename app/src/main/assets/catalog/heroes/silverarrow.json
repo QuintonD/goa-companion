@@ -79,7 +79,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "You may fast travel, if able.\nThis round: You and friendly heroes in radius may ignore obstacles while performing movement actions.",
+      "text": "You may fast travel, if able.\n**This round:** You and friendly heroes in radius may ignore obstacles while performing movement actions.",
       "image": "official/cards/silverarrow-silver.webp"
     },
     {
@@ -104,7 +104,7 @@
       "ranged": true,
       "block": false,
       "item": null,
-      "text": "Choose one —\n• Target a unit in range, which is not adjacent to any other unit.\n• Target a unit adjacent to you.",
+      "text": "**Choose one —**\n• Target a unit in range, which is not adjacent to any other unit.\n• Target a unit adjacent to you.",
       "image": "official/cards/silverarrow-red-1.webp"
     },
     {
@@ -154,7 +154,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "This turn: Enemy heroes in radius cannot fast travel, or move more than 1 space with a movement action.",
+      "text": "**This turn:** Enemy heroes in radius cannot fast travel, or move more than 1 space with a movement action.",
       "image": "official/cards/silverarrow-blue-1.webp"
     },
     {
@@ -179,7 +179,7 @@
       "ranged": true,
       "block": false,
       "item": "defense",
-      "text": "Choose one —\n• Target a unit in range, which is not adjacent to any other unit.\n• Target a unit adjacent to you.",
+      "text": "**Choose one —**\n• Target a unit in range, which is not adjacent to any other unit.\n• Target a unit adjacent to you.",
       "image": "official/cards/silverarrow-red-2a.webp"
     },
     {
@@ -279,7 +279,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "This turn: Enemy heroes in radius cannot fast travel, or move more than 1 space with a movement action.",
+      "text": "**This turn:** Enemy heroes in radius cannot fast travel, or move more than 1 space with a movement action.",
       "image": "official/cards/silverarrow-blue-2a.webp"
     },
     {
@@ -304,7 +304,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "End of turn: An enemy hero in radius discards a card, if able.",
+      "text": "**End of turn:** An enemy hero in radius discards a card, if able.",
       "image": "official/cards/silverarrow-blue-2b.webp"
     },
     {
@@ -329,7 +329,7 @@
       "ranged": true,
       "block": false,
       "item": "radius",
-      "text": "Choose one —\n• Target a unit in range, which is not adjacent to any other unit.\n• Target a unit adjacent to you.",
+      "text": "**Choose one —**\n• Target a unit in range, which is not adjacent to any other unit.\n• Target a unit adjacent to you.",
       "image": "official/cards/silverarrow-red-3a.webp"
     },
     {
@@ -429,7 +429,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "This turn: Enemy heroes in radius cannot fast travel, or move more than 1 space with a movement action.",
+      "text": "**This turn:** Enemy heroes in radius cannot fast travel, or move more than 1 space with a movement action.",
       "image": "official/cards/silverarrow-blue-3a.webp"
     },
     {
@@ -454,7 +454,7 @@
       "ranged": false,
       "block": false,
       "item": "range",
-      "text": "End of turn: An enemy hero in radius discards a card, or is defeated.",
+      "text": "**End of turn:** An enemy hero in radius discards a card, or is defeated.",
       "image": "official/cards/silverarrow-blue-3b.webp"
     },
     {

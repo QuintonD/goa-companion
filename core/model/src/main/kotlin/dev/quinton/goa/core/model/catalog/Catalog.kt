@@ -1,5 +1,7 @@
 package dev.quinton.goa.core.model.catalog
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -231,6 +233,7 @@ enum class SecondaryAction {
     ATTACK,
 }
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class CardValues(
     val attack: Int? = null,
@@ -238,7 +241,23 @@ data class CardValues(
     val movement: Int? = null,
     val range: Int? = null,
     val radius: Int? = null,
-)
+    /**
+     * Values printed with a `+` (Attack `4+`, Range `1+`): the number is the printed base and the
+     * card text says how it grows. Each stat here has a non-null value; omitted from JSON when empty.
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val plus: List<Stat> = emptyList(),
+) {
+    /** The printed value of [stat] (attack, defense, movement, range or radius), or null. */
+    fun get(stat: Stat): Int? = when (stat) {
+        Stat.ATTACK -> attack
+        Stat.DEFENSE -> defense
+        Stat.MOVEMENT -> movement
+        Stat.RANGE -> range
+        Stat.RADIUS -> radius
+        Stat.INITIATIVE -> null
+    }
+}
 
 @Serializable
 data class Ruling(

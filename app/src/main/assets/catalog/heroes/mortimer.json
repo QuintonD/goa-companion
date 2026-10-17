@@ -50,12 +50,15 @@
         "defense": 3,
         "movement": 1,
         "range": null,
-        "radius": 4
+        "radius": 4,
+        "plus": [
+          "attack"
+        ]
       },
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Target a unit adjacent to you.\nBefore the attack: Choose up to three times —\n• Move a {token_zombie} Zombie token in radius 1 space.\n• Remove a Zombie token adjacent to the target; if you do, gain +1 {attack} Attack.",
+      "text": "Target a unit adjacent to you.\nBefore the attack: **Choose up to three times —**\n• Move a {token_zombie} Zombie token in radius 1 space.\n• Remove a Zombie token adjacent to the target; if you do, gain +1 {attack} Attack.",
       "image": "official/cards/mortimer-gold.webp"
     },
     {
@@ -102,7 +105,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Target a unit adjacent to you.\nAfter the attack: Choose one —\n• Move a {token_zombie} Zombie token in radius 1 space.\n• Another enemy hero in radius, adjacent to a Zombie token, discards a card, if able.",
+      "text": "Target a unit adjacent to you.\nAfter the attack: **Choose one —**\n• Move a {token_zombie} Zombie token in radius 1 space.\n• Another enemy hero in radius, adjacent to a Zombie token, discards a card, if able.",
       "image": "official/cards/mortimer-red-1.webp"
     },
     {
@@ -127,7 +130,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Choose one —\n• Move a {token_zombie} Zombie token in range 1 space.\n• Swap with a Zombie token in range.",
+      "text": "**Choose one —**\n• Move a {token_zombie} Zombie token in range 1 space.\n• Swap with a Zombie token in range.",
       "image": "official/cards/mortimer-green-1.webp"
     },
     {
@@ -152,7 +155,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Choose one —\n• Move a {token_zombie} Zombie token in range up to 1 space; that Zombie token may push a unit or a token adjacent to it 1 space.\n• Move 1 space.",
+      "text": "**Choose one —**\n• Move a {token_zombie} Zombie token in range up to 1 space; that Zombie token may push a unit or a token adjacent to it 1 space.\n• Move 1 space.",
       "image": "official/cards/mortimer-blue-1.webp"
     },
     {
@@ -177,7 +180,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Target a unit adjacent to you.\nAfter the attack: Choose up to two times —\n• Move a {token_zombie} Zombie token in radius 1 space.\n• Another enemy hero in radius, adjacent to a Zombie token, discards a card, if able; each enemy hero can only be targeted once.",
+      "text": "Target a unit adjacent to you.\nAfter the attack: **Choose up to two times —**\n• Move a {token_zombie} Zombie token in radius 1 space.\n• Another enemy hero in radius, adjacent to a Zombie token, discards a card, if able; each enemy hero can only be targeted once.",
       "image": "official/cards/mortimer-red-2a.webp"
     },
     {
@@ -202,7 +205,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "Target a unit adjacent to you.\nBefore the attack: Choose up to two times —\n• Move a {token_zombie} Zombie token in radius 1 space.\n• If an enemy hero in radius is adjacent to a Zombie token, retrieve a discarded card.",
+      "text": "Target a unit adjacent to you.\nBefore the attack: **Choose up to two times —**\n• Move a {token_zombie} Zombie token in radius 1 space.\n• If an enemy hero in radius is adjacent to a Zombie token, retrieve a discarded card.",
       "image": "official/cards/mortimer-red-2b.webp"
     },
     {
@@ -227,7 +230,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "Choose up to two times —\n• Move a {token_zombie} Zombie token in range 1 space.\n• Swap with a Zombie token in range.",
+      "text": "**Choose up to two times —**\n• Move a {token_zombie} Zombie token in range 1 space.\n• Swap with a Zombie token in range.",
       "image": "official/cards/mortimer-green-2a.webp"
     },
     {
@@ -252,7 +255,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "Choose up to two times —\n• Move a {token_zombie} Zombie token in range 1 space.\n• Once per turn: Replace an enemy minion in range adjacent to two or more Zombie tokens with a Zombie token.",
+      "text": "**Choose up to two times —**\n• Move a {token_zombie} Zombie token in range 1 space.\n• Once per turn: Replace an enemy minion in range adjacent to two or more Zombie tokens with a Zombie token.",
       "image": "official/cards/mortimer-green-2b.webp"
     },
     {
@@ -277,7 +280,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "Choose up to two times —\n• Move a {token_zombie} Zombie token in range up to 1 space; that Zombie token may push a unit or a token adjacent to it 1 space.\n• Move 1 space.",
+      "text": "**Choose up to two times —**\n• Move a {token_zombie} Zombie token in range up to 1 space; that Zombie token may push a unit or a token adjacent to it 1 space.\n• Move 1 space.",
       "image": "official/cards/mortimer-blue-2a.webp"
     },
     {
@@ -302,7 +305,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Choose up to two times —\n• Move a {token_zombie} Zombie token in range up to 1 space. Gain 1 coin.\n• Move 1 space.",
+      "text": "**Choose up to two times —**\n• Move a {token_zombie} Zombie token in range up to 1 space. Gain 1 coin.\n• Move 1 space.",
       "image": "official/cards/mortimer-blue-2b.webp"
     },
     {
@@ -327,7 +330,7 @@
       "ranged": false,
       "block": false,
       "item": "range",
-      "text": "Target a unit adjacent to you.\nAfter the attack: Choose up to three times —\n• Move a {token_zombie} Zombie token in radius 1 space.\n• Another enemy hero in radius, adjacent to a Zombie token, discards a card, if able; each enemy hero can only be targeted once.",
+      "text": "Target a unit adjacent to you.\nAfter the attack: **Choose up to three times —**\n• Move a {token_zombie} Zombie token in radius 1 space.\n• Another enemy hero in radius, adjacent to a Zombie token, discards a card, if able; each enemy hero can only be targeted once.",
       "image": "official/cards/mortimer-red-3a.webp"
     },
     {
@@ -352,7 +355,7 @@
       "ranged": false,
       "block": false,
       "item": "movement",
-      "text": "Target a unit adjacent to you.\nBefore the attack: Choose up to three times —\n• Move a {token_zombie} Zombie token in radius 1 space.\n• If an enemy hero in radius is adjacent to a Zombie token, retrieve a discarded card.",
+      "text": "Target a unit adjacent to you.\nBefore the attack: **Choose up to three times —**\n• Move a {token_zombie} Zombie token in radius 1 space.\n• If an enemy hero in radius is adjacent to a Zombie token, retrieve a discarded card.",
       "image": "official/cards/mortimer-red-3b.webp"
     },
     {
@@ -377,7 +380,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "Choose up to three times —\n• Move a {token_zombie} Zombie token in range 1 space.\n• Swap with a Zombie token in range.",
+      "text": "**Choose up to three times —**\n• Move a {token_zombie} Zombie token in range 1 space.\n• Swap with a Zombie token in range.",
       "image": "official/cards/mortimer-green-3a.webp"
     },
     {
@@ -402,7 +405,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "Choose up to three times —\n• Move a {token_zombie} Zombie token in range 1 space.\n• Once per turn: Replace an enemy minion in range adjacent to two or more Zombie tokens with a Zombie token.",
+      "text": "**Choose up to three times —**\n• Move a {token_zombie} Zombie token in range 1 space.\n• Once per turn: Replace an enemy minion in range adjacent to two or more Zombie tokens with a Zombie token.",
       "image": "official/cards/mortimer-green-3b.webp"
     },
     {
@@ -427,7 +430,7 @@
       "ranged": false,
       "block": false,
       "item": "radius",
-      "text": "Choose up to three times —\n• Move a {token_zombie} Zombie token in range up to 1 space; that Zombie token may push a unit or a token adjacent to it 1 space.\n• Move 1 space.",
+      "text": "**Choose up to three times —**\n• Move a {token_zombie} Zombie token in range up to 1 space; that Zombie token may push a unit or a token adjacent to it 1 space.\n• Move 1 space.",
       "image": "official/cards/mortimer-blue-3a.webp"
     },
     {
@@ -452,7 +455,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Choose up to three times —\n• Move a {token_zombie} Zombie token in range up to 1 space. Gain 1 coin.\n• Move 1 space.",
+      "text": "**Choose up to three times —**\n• Move a {token_zombie} Zombie token in range up to 1 space. Gain 1 coin.\n• Move 1 space.",
       "image": "official/cards/mortimer-blue-3b.webp"
     },
     {
@@ -495,12 +498,15 @@
       "defense": 1,
       "movement": 1,
       "range": null,
-      "radius": 4
+      "radius": 4,
+      "plus": [
+        "attack"
+      ]
     },
     "ranged": false,
     "block": false,
     "item": null,
-    "text": "Target a hero adjacent to you.\nBefore the attack: Choose up to two times —\n• Move a {token_zombie} Zombie token in radius 1 space.\n• Remove a Zombie token adjacent to the target; if you do, gain +1 {attack} Attack.",
+    "text": "Target a hero adjacent to you.\nBefore the attack: **Choose up to two times —**\n• Move a {token_zombie} Zombie token in radius 1 space.\n• Remove a Zombie token adjacent to the target; if you do, gain +1 {attack} Attack.",
     "image": "official/cards/mortimer-handicap.webp"
   },
   "extras": [],

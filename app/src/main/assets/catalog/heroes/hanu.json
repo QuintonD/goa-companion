@@ -102,7 +102,7 @@
       "ranged": true,
       "block": false,
       "item": null,
-      "text": "Choose one —\n• Target a unit adjacent to you.\n• Target a hero in range, adjacent to your friendly hero.",
+      "text": "**Choose one —**\n• Target a unit adjacent to you.\n• Target a hero in range, adjacent to your friendly hero.",
       "image": "official/cards/hanu-red-1.webp"
     },
     {
@@ -152,7 +152,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Swap with an enemy hero in radius.\nThis turn: That hero is immune.\nEnd of turn: Swap with that hero, regardless of radius and immunity.",
+      "text": "Swap with an enemy hero in radius.\n**This turn:** That hero is immune.\n**End of turn:** Swap with that hero, regardless of radius and immunity.",
       "image": "official/cards/hanu-blue-1.webp"
     },
     {
@@ -177,7 +177,7 @@
       "ranged": true,
       "block": false,
       "item": "initiative",
-      "text": "Choose one —\n• Target a unit adjacent to you.\n• Target a hero in range, adjacent to your friendly hero.",
+      "text": "**Choose one —**\n• Target a unit adjacent to you.\n• Target a hero in range, adjacent to your friendly hero.",
       "image": "official/cards/hanu-red-2a.webp"
     },
     {
@@ -202,7 +202,7 @@
       "ranged": true,
       "block": false,
       "item": "defense",
-      "text": "Choose one —\n• Target a unit adjacent to you.\n• Target a minion in range, adjacent to your friendly hero.",
+      "text": "**Choose one —**\n• Target a unit adjacent to you.\n• Target a minion in range, adjacent to your friendly hero.",
       "image": "official/cards/hanu-red-2b.webp"
     },
     {
@@ -277,7 +277,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "Swap with an enemy hero in radius.\nThis turn: That hero is immune.\nEnd of turn: Swap with that hero, regardless of radius and immunity.",
+      "text": "Swap with an enemy hero in radius.\n**This turn:** That hero is immune.\n**End of turn:** Swap with that hero, regardless of radius and immunity.",
       "image": "official/cards/hanu-blue-2a.webp"
     },
     {
@@ -327,7 +327,7 @@
       "ranged": true,
       "block": false,
       "item": "movement",
-      "text": "Choose one, or both, in any order —\n• Target a unit adjacent to you.\n• Target a hero in range, adjacent to your friendly hero and not adjacent to you.",
+      "text": "**Choose one, or both,** in any order —\n• Target a unit adjacent to you.\n• Target a hero in range, adjacent to your friendly hero and not adjacent to you.",
       "image": "official/cards/hanu-red-3a.webp"
     },
     {
@@ -352,7 +352,7 @@
       "ranged": true,
       "block": false,
       "item": "radius",
-      "text": "Choose one, or both, in any order —\n• Target a unit adjacent to you.\n• Target a minion in range, adjacent to your friendly hero.",
+      "text": "**Choose one, or both,** in any order —\n• Target a unit adjacent to you.\n• Target a minion in range, adjacent to your friendly hero.",
       "image": "official/cards/hanu-red-3b.webp"
     },
     {
@@ -427,7 +427,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "Swap with an enemy hero in radius.\nThis turn: That hero is immune.\nEnd of turn: Swap with that hero, regardless of radius and immunity. You may move 1 space.",
+      "text": "Swap with an enemy hero in radius.\n**This turn:** That hero is immune.\n**End of turn:** Swap with that hero, regardless of radius and immunity. You may move 1 space.",
       "image": "official/cards/hanu-blue-3a.webp"
     },
     {

@@ -48,11 +48,15 @@ class CrossCheckAndOverridesTest {
     }
 
     @Test
-    fun `printed plus signs and range-radius item labels are tolerated`() {
+    fun `printed plus signs are compared separately and range-radius item labels are tolerated`() {
         assertThat(CrossCheck.number("2+")).isEqualTo(2)
         assertThat(CrossCheck.number(null)).isNull()
-        val rows = Csv.parse(header + "R2B,8,Rogue Wave,II,Red,4,4,4+,Attack - Ranged,2,x,Defense\n")
-        assertThat(CrossCheck.numbers("arien", listOf(card), rows).disagreements).isEmpty()
+        val rows = Csv.parse(header + "R2B,8,Rogue Wave,II,Red,4,4,4+,Attack - Ranged,2+,x,Defense\n")
+        val plus = card.copy(values = card.values.copy(plus = listOf(Stat.ATTACK, Stat.RANGE)))
+        assertThat(CrossCheck.numbers("arien", listOf(plus), rows).disagreements).isEmpty()
+        val missing = CrossCheck.numbers("arien", listOf(card), rows).disagreements.single()
+        assertThat(missing.field).isEqualTo("values.plus")
+        assertThat(missing.other).isEqualTo("[Attack, Range/Radius]")
         val rangeItem = card.copy(item = Stat.RANGE)
         val radiusLabel = Csv.parse(header + "R2B,8,Rogue Wave,II,Red,4,4,4,Attack - Ranged,2,x,Radius\n")
         assertThat(CrossCheck.numbers("arien", listOf(rangeItem), radiusLabel).disagreements).isEmpty()

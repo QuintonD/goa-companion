@@ -53,7 +53,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Target a unit adjacent to you.\nAfter the attack: This turn: Enemy units in radius cannot be swapped or placed by themselves or by enemy heroes.",
+      "text": "Target a unit adjacent to you.\nAfter the attack: **This turn:** Enemy units in radius cannot be swapped or placed by themselves or by enemy heroes.",
       "image": "official/cards/wasp-gold.webp"
     },
     {
@@ -77,7 +77,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "This turn: While an enemy hero outside of radius is performing an action, spaces in radius count as obstacles. While an enemy hero in radius is performing an action, spaces outside of radius count as obstacles.",
+      "text": "**This turn:** While an enemy hero outside of radius is performing an action, spaces in radius count as obstacles. While an enemy hero in radius is performing an action, spaces outside of radius count as obstacles.",
       "image": "official/cards/wasp-silver.webp"
     },
     {
@@ -497,7 +497,7 @@
     "ranged": false,
     "block": false,
     "item": null,
-    "text": "Target a hero adjacent to you.\nAfter the attack: This turn: Enemy units in radius cannot be swapped or placed by themselves or by enemy heroes.",
+    "text": "Target a hero adjacent to you.\nAfter the attack: **This turn:** Enemy units in radius cannot be swapped or placed by themselves or by enemy heroes.",
     "image": "official/cards/wasp-handicap.webp"
   },
   "extras": [],

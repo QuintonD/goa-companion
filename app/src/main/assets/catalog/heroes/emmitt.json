@@ -57,7 +57,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Target a unit adjacent to you.\nAfter the attack: Next turn: Heroes with lower initiative act before heroes with higher initiative; this effect ignores immunity.\n~(Resolve ties as normal.)",
+      "text": "Target a unit adjacent to you.\nAfter the attack: **Next turn:** Heroes with lower initiative act before heroes with higher initiative; this effect ignores immunity.\n~(Resolve ties as normal.)",
       "image": "official/cards/emmitt-gold.webp"
     },
     {
@@ -79,7 +79,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Place 2 {token_glitch} Glitch tokens in radius, with at least two spaces between each token;\nif used as a defense, place 3 tokens instead.\nAn enemy hero in play chooses one of the Glitch tokens; you swap with that token.\nEnd of turn: Remove all Glitch tokens.",
+      "text": "Place 2 {token_glitch} Glitch tokens in radius, with at least two spaces between each token;\nif used as a defense, place 3 tokens instead.\nAn enemy hero in play chooses one of the Glitch tokens; you swap with that token.\n**End of turn:** Remove all Glitch tokens.",
       "image": "official/cards/emmitt-silver.webp"
     },
     {
@@ -204,7 +204,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Target a unit adjacent to you.\nAfter the attack: You may place 3 {token_glitch} Glitch tokens in radius, with at least two spaces between each token;\nif you do, up to 1 enemy hero in radius swaps with a Glitch token of their choice.\nEnd of turn: Remove all Glitch tokens.",
+      "text": "Target a unit adjacent to you.\nAfter the attack: You may place 3 {token_glitch} Glitch tokens in radius, with at least two spaces between each token;\nif you do, up to 1 enemy hero in radius swaps with a Glitch token of their choice.\n**End of turn:** Remove all Glitch tokens.",
       "image": "official/cards/emmitt-red-2b.webp"
     },
     {
@@ -354,7 +354,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Target a unit adjacent to you.\nAfter the attack: You may place 2 {token_glitch} Glitch tokens in radius, with at least two spaces between each token; if you do, up to 1 enemy hero in radius swaps with a Glitch token of their choice.\nEnd of turn: Remove all Glitch tokens.",
+      "text": "Target a unit adjacent to you.\nAfter the attack: You may place 2 {token_glitch} Glitch tokens in radius, with at least two spaces between each token; if you do, up to 1 enemy hero in radius swaps with a Glitch token of their choice.\n**End of turn:** Remove all Glitch tokens.",
       "image": "official/cards/emmitt-red-3b.webp"
     },
     {
@@ -379,7 +379,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "Choose one —\n• Place a unit in range into the space where that unit was at the start of this turn.\n• Move an enemy hero in range, who remained in the same space since the last turn, 2 spaces in a straight line.",
+      "text": "**Choose one —**\n• Place a unit in range into the space where that unit was at the start of this turn.\n• Move an enemy hero in range, who remained in the same space since the last turn, 2 spaces in a straight line.",
       "image": "official/cards/emmitt-green-3a.webp"
     },
     {
@@ -404,7 +404,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "Choose one —\n• You, and friendly heroes in radius, may retrieve all cards discarded this turn.\n• This turn: Friendly heroes in radius are immune to enemy actions.",
+      "text": "**Choose one —**\n• You, and friendly heroes in radius, may retrieve all cards discarded this turn.\n• **This turn:** Friendly heroes in radius are immune to enemy actions.",
       "image": "official/cards/emmitt-green-3b.webp"
     },
     {
@@ -454,7 +454,7 @@
       "ranged": false,
       "block": false,
       "item": "radius",
-      "text": "Choose one —\n• Swap with an enemy hero in range who has already resolved a card this turn.\n• An enemy hero in range swaps their unresolved card with one of their resolved cards of their choice.",
+      "text": "**Choose one —**\n• Swap with an enemy hero in range who has already resolved a card this turn.\n• An enemy hero in range swaps their unresolved card with one of their resolved cards of their choice.",
       "image": "official/cards/emmitt-blue-3b.webp"
     },
     {
@@ -502,7 +502,7 @@
     "ranged": false,
     "block": false,
     "item": null,
-    "text": "Target a hero adjacent to you.\nAfter the attack: Next turn: Heroes with lower initiative act before heroes with higher initiative. This effect ignores immunity.",
+    "text": "Target a hero adjacent to you.\nAfter the attack: **Next turn:** Heroes with lower initiative act before heroes with higher initiative. This effect ignores immunity.",
     "image": "official/cards/emmitt-handicap.webp"
   },
   "extras": [],

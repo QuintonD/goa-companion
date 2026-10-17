@@ -251,7 +251,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "This round: Double your item bonuses.",
+      "text": "**This round:** Double your item bonuses.",
       "image": "official/cards/min-green-2b.webp"
     },
     {
@@ -301,7 +301,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "Place a {token_grenade} Grenade token into a space in radius. End of turn: Up to 1 enemy hero adjacent to that token discards a card, or is defeated. Remove the Grenade token.",
+      "text": "Place a {token_grenade} Grenade token into a space in radius. **End of turn:** Up to 1 enemy hero adjacent to that token discards a card, or is defeated. Remove the Grenade token.",
       "image": "official/cards/min-blue-2b.webp"
     },
     {
@@ -400,7 +400,7 @@
       "ranged": false,
       "block": false,
       "item": "range",
-      "text": "Choose one, or both —\n• This round: Double your item bonuses.\n• Take a Tier II card from your deck and add it to your dashboard as a permanent item.",
+      "text": "**Choose one, or both —**\n• **This round:** Double your item bonuses.\n• Take a Tier II card from your deck and add it to your dashboard as a permanent item.",
       "image": "official/cards/min-green-3b.webp"
     },
     {
@@ -450,7 +450,7 @@
       "ranged": false,
       "block": false,
       "item": "initiative",
-      "text": "Place a {token_grenade} Grenade token into a space in radius. End of turn: Up to 2 enemy heroes adjacent to that token discard a card, or are defeated. Remove the Grenade token.",
+      "text": "Place a {token_grenade} Grenade token into a space in radius. **End of turn:** Up to 2 enemy heroes adjacent to that token discard a card, or are defeated. Remove the Grenade token.",
       "image": "official/cards/min-blue-3b.webp"
     },
     {

@@ -81,7 +81,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Choose one —\n• Place Pyro into a space in radius. Pyro counts as a token, but is not removed at the end of round.\n• If Pyro is in play, move both yourself and Pyro up to 2 spaces, in any order.",
+      "text": "**Choose one —**\n• Place Pyro into a space in radius. Pyro counts as a token, but is not removed at the end of round.\n• If Pyro is in play, move both yourself and Pyro up to 2 spaces, in any order.",
       "image": "official/cards/widget-silver.webp"
     },
     {

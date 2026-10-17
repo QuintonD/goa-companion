@@ -53,7 +53,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Choose one —\n• Perform an action on the card in the previous turn slot of an enemy hero in range; if you would place any tokens this way, place {token_illusion} Illusion tokens instead; skip giving markers.\n• Defeat a minion adjacent to you.",
+      "text": "**Choose one —**\n• Perform an action on the card in the previous turn slot of an enemy hero in range; if you would place any tokens this way, place {token_illusion} Illusion tokens instead; skip giving markers.\n• Defeat a minion adjacent to you.",
       "image": "official/cards/nebkher-gold.webp"
     },
     {
@@ -77,7 +77,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Laugh diabolically; if you do, choose up to three times —\n• Swap with an {token_illusion} Illusion token in radius.\n• Place an Illusion token in an adjacent space.\n• Swap two resolved cards of an enemy hero in radius, without canceling active effects.",
+      "text": "Laugh diabolically; if you do, **choose up to three times —**\n• Swap with an {token_illusion} Illusion token in radius.\n• Place an Illusion token in an adjacent space.\n• Swap two resolved cards of an enemy hero in radius, without canceling active effects.",
       "image": "official/cards/nebkher-silver.webp"
     },
     {
@@ -102,7 +102,7 @@
       "ranged": true,
       "block": false,
       "item": null,
-      "text": "Choose one —\n• Target a hero in range adjacent to an {token_illusion} Illusion token in range.\n• Target a unit adjacent to you.",
+      "text": "**Choose one —**\n• Target a hero in range adjacent to an {token_illusion} Illusion token in range.\n• Target a unit adjacent to you.",
       "image": "official/cards/nebkher-red-1.webp"
     },
     {
@@ -152,7 +152,7 @@
       "ranged": false,
       "block": false,
       "item": null,
-      "text": "Name a color. Next turn, after playing cards:\nAn enemy hero in radius discards a card of that color, if able.",
+      "text": "Name a color. **Next turn, after playing cards:**\nAn enemy hero in radius discards a card of that color, if able.",
       "image": "official/cards/nebkher-blue-1.webp"
     },
     {
@@ -177,7 +177,7 @@
       "ranged": true,
       "block": false,
       "item": "initiative",
-      "text": "Choose one —\n• Before the attack: Move an {token_illusion} Illusion token in range up to 1 space to a space adjacent to an enemy hero in range. Target that hero.\n• Target a unit adjacent to you.",
+      "text": "**Choose one —**\n• Before the attack: Move an {token_illusion} Illusion token in range up to 1 space to a space adjacent to an enemy hero in range. Target that hero.\n• Target a unit adjacent to you.",
       "image": "official/cards/nebkher-red-2a.webp"
     },
     {
@@ -252,7 +252,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "Place up to 2 {token_illusion} Illusion tokens in radius.\nThis round: While you are performing actions, all Illusion tokens count as both tokens and friendly melee minions.",
+      "text": "Place up to 2 {token_illusion} Illusion tokens in radius.\n**This round:** While you are performing actions, all Illusion tokens count as both tokens and friendly melee minions.",
       "image": "official/cards/nebkher-green-2b.webp"
     },
     {
@@ -277,7 +277,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "Name a color. Next turn, after playing cards:\nAn enemy hero in radius discards a card of that color, if able.",
+      "text": "Name a color. **Next turn, after playing cards:**\nAn enemy hero in radius discards a card of that color, if able.",
       "image": "official/cards/nebkher-blue-2a.webp"
     },
     {
@@ -302,7 +302,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "Split the board into two sides with a straight line of spaces drawn through your space.\nThis turn: Units on either side of the line cannot interact with objects and spaces on the other side of the line, as if they did not exist.\n~(This includes movement, placement, radius-based effects, etc.)",
+      "text": "Split the board into two sides with a straight line of spaces drawn through your space.\n**This turn:** Units on either side of the line cannot interact with objects and spaces on the other side of the line, as if they did not exist.\n~(This includes movement, placement, radius-based effects, etc.)",
       "image": "official/cards/nebkher-blue-2b.webp"
     },
     {
@@ -327,7 +327,7 @@
       "ranged": true,
       "block": false,
       "item": "radius",
-      "text": "Choose one —\n• Before the attack: Move an {token_illusion} Illusion token in range up to 2 spaces to a space adjacent to an enemy hero in range. Target that hero.\n• Target a unit adjacent to you.",
+      "text": "**Choose one —**\n• Before the attack: Move an {token_illusion} Illusion token in range up to 2 spaces to a space adjacent to an enemy hero in range. Target that hero.\n• Target a unit adjacent to you.",
       "image": "official/cards/nebkher-red-3a.webp"
     },
     {
@@ -402,7 +402,7 @@
       "ranged": false,
       "block": false,
       "item": "attack",
-      "text": "Place up to 3 {token_illusion} Illusion tokens in radius.\nThis round: While you are performing actions, all Illusion tokens count as both tokens and friendly melee minions.",
+      "text": "Place up to 3 {token_illusion} Illusion tokens in radius.\n**This round:** While you are performing actions, all Illusion tokens count as both tokens and friendly melee minions.",
       "image": "official/cards/nebkher-green-3b.webp"
     },
     {
@@ -427,7 +427,7 @@
       "ranged": false,
       "block": false,
       "item": "movement",
-      "text": "Name a color. Next turn, after playing cards:\nUp to two enemy heroes in radius each discard a card of that color, if able.",
+      "text": "Name a color. **Next turn, after playing cards:**\nUp to two enemy heroes in radius each discard a card of that color, if able.",
       "image": "official/cards/nebkher-blue-3a.webp"
     },
     {
@@ -452,7 +452,7 @@
       "ranged": false,
       "block": false,
       "item": "range",
-      "text": "Split the board into two sides with a straight line of spaces drawn through your space.\nThis turn: Units on either side of the line cannot interact with you, nor with objects and spaces on the other side of the line, as if they did not exist.",
+      "text": "Split the board into two sides with a straight line of spaces drawn through your space.\n**This turn:** Units on either side of the line cannot interact with you, nor with objects and spaces on the other side of the line, as if they did not exist.",
       "image": "official/cards/nebkher-blue-3b.webp"
     },
     {

@@ -208,7 +208,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "This round: If you would discard a card from your hand, you may discard this card instead; you may discard this card to perform its defense action, as if it was in your hand.",
+      "text": "**This round:** If you would discard a card from your hand, you may discard this card instead; you may discard this card to perform its defense action, as if it was in your hand.",
       "image": "official/cards/mrak-red-2b.webp"
     },
     {
@@ -359,7 +359,7 @@
       "ranged": false,
       "block": false,
       "item": "defense",
-      "text": "You may retrieve a discarded card.\nThis round: If you would discard a card from your hand, you may discard this card instead; you may discard this card to perform its defense action, as if it was in your hand.",
+      "text": "You may retrieve a discarded card.\n**This round:** If you would discard a card from your hand, you may discard this card instead; you may discard this card to perform its defense action, as if it was in your hand.",
       "image": "official/cards/mrak-red-3b.webp"
     },
     {
