@@ -108,7 +108,7 @@ enum class Stat {
     RADIUS,
 }
 
-/** Official hero roles (docs/DOMAIN.md). */
+/** The 10 official hero roles (rulebook p.21); a hero has 2-6. */
 @Serializable
 enum class Role {
     @SerialName("tactician")
@@ -137,6 +137,9 @@ enum class Role {
 
     @SerialName("farming")
     FARMING,
+
+    @SerialName("healer")
+    HEALER,
 }
 
 @Serializable
