@@ -108,6 +108,41 @@ class TimerScreenshotTest {
     @Config(fontScale = 1.3f)
     fun upgradeFontScale13() = active(TimerPreviewData.upgrade)
 
+    @Test fun roundViewTurnDark() = active(TimerPreviewData.roundTurn)
+
+    @Test fun roundViewTurnLight() = active(TimerPreviewData.roundTurn, ThemeMode.LIGHT)
+
+    @Test fun roundViewPausedWarningDark() = active(TimerPreviewData.roundTurn.copy(paused = true, warning = true))
+
+    @Test fun roundViewActionSeatsDark() = active(TimerPreviewData.roundAction)
+
+    @Test fun roundViewUpgradeDark() = active(TimerPreviewData.roundUpgrade)
+
+    @Test fun roundViewUpgradeLight() = active(TimerPreviewData.roundUpgrade, ThemeMode.LIGHT)
+
+    @Test fun roundViewHurryUpDark() = active(
+        TimerPreviewData.roundTurn.copy(
+            shotClock = TimerPreviewData.hurryUp.shotClock,
+            timeOuts = TimerPreviewData.hurryUp.timeOuts,
+        ),
+    )
+
+    @Test
+    @Config(fontScale = 2f)
+    fun roundViewTurnFontScale2() = active(TimerPreviewData.roundTurn)
+
+    @Test
+    @Config(fontScale = 2f)
+    fun roundViewActionFontScale2() = active(TimerPreviewData.roundAction)
+
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    fun roundViewLandscapeDark() = active(TimerPreviewData.roundTurn)
+
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    fun roundViewUpgradeLandscapeDark() = active(TimerPreviewData.roundUpgrade)
+
     @Test fun summaryDark() = capture { TimerScreen(TimerPreviewData.summary, TimerActions()) }
 
     @Test fun summaryUnlinkedDark() = capture {

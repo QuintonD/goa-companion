@@ -219,6 +219,57 @@ class TimerEngineTest {
     }
 
     @Test
+    fun `jump starts the target fresh and running, clears the Hurry up, and Back undoes it`() {
+        var s = start().nextTimes(2) // turn 2
+        clocks.advanceSeconds(10.0)
+        s = engine.startShotClock(engine.pause(s))
+        s = engine.jumpTo(s, 9) // Upgrade on Level Up
+
+        assertThat(s.round).isEqualTo(1)
+        assertThat(s.step.endStep!!.id).isEqualTo("level_up")
+        assertThat(s.status).isEqualTo(TimerStatus.RUNNING)
+        assertThat(engine.readout(s).remainingMillis).isEqualTo(120_000)
+        assertThat(s.shotClock).isNull()
+
+        // A mis-tapped row: Back returns to turn 2, paused as it was, with its 20 s left.
+        clocks.advanceSeconds(3.0)
+        s = engine.back(s)
+        assertThat(s.stepIndex).isEqualTo(2)
+        assertThat(s.status).isEqualTo(TimerStatus.PAUSED)
+        assertThat(engine.readout(s).remainingMillis).isEqualTo(20_000)
+    }
+
+    @Test
+    fun `jump stays in the round and ignores the current step, unknown steps and ended sessions`() {
+        var s = engine.timeOut(start(tableRules().copy(timeOutsPerRound = 1)).nextTimes(1), Team.RED)
+        s = engine.jumpTo(engine.jumpTo(s, 9), 0)
+
+        assertThat(s.round).isEqualTo(1)
+        assertThat(s.stepIndex).isEqualTo(0)
+        // Still this round: a time-out used is not handed back by jumping around.
+        assertThat(engine.timeOutsLeft(s, Team.RED)).isEqualTo(0)
+        assertThat(engine.jumpTo(s, 0)).isEqualTo(s)
+        assertThat(engine.jumpTo(s, -1)).isEqualTo(s)
+        assertThat(engine.jumpTo(s, s.plan.lastIndex + 1)).isEqualTo(s)
+        val ended = engine.endMatch(s)
+        assertThat(engine.jumpTo(ended, 3)).isEqualTo(ended)
+    }
+
+    @Test
+    fun `jump within a turn keeps the heroes already resolved, another turn starts clean`() {
+        var s = start(tableRules(actionEnabled = true), slots = 3).nextTimes(2) // turn 1, slot 0
+        s = engine.heroResolves(s, seat = 2)
+        s = engine.jumpTo(s, 4) // turn 1, slot 2 (slot 1 skipped: the last hero isn't guessed)
+        assertThat(s.step.actionSlot).isEqualTo(2)
+        assertThat(s.actors).containsExactly(ActionActor(0, 2))
+
+        s = engine.jumpTo(s, 6) // turn 2, slot 0
+        assertThat(s.step.turn).isEqualTo(2)
+        assertThat(s.actors).isEmpty()
+        assertThat(engine.back(s).actors).containsExactly(ActionActor(0, 2))
+    }
+
+    @Test
     fun `a user next is ignored in the first half second of a step`() {
         var s = engine.next(start())
         clocks.advance(TimerEngine.NEXT_DEBOUNCE_MS - 1)

@@ -60,6 +60,9 @@ sealed interface TimerCommand {
     data object CancelShotClock : TimerCommand
 
     data class TimeOut(val team: Team) : TimerCommand
+
+    /** Round view: jump to step [stepIndex] of [round]; ignored once the session is in another round. */
+    data class JumpTo(val round: Int, val stepIndex: Int) : TimerCommand
 }
 
 /**
@@ -258,6 +261,7 @@ class TimerController @Inject constructor(
         TimerCommand.StartShotClock -> engine.startShotClock(s)
         TimerCommand.CancelShotClock -> engine.cancelShotClock(s)
         is TimerCommand.TimeOut -> engine.timeOut(s, command.team)
+        is TimerCommand.JumpTo -> if (s.round == command.round) engine.jumpTo(s, command.stepIndex) else s
     }
 
     fun timeOutsLeft(s: TimerSnapshot, team: Team): Int = engine.timeOutsLeft(s, team)

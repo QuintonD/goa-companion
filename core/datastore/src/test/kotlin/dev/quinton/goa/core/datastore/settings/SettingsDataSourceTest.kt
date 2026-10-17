@@ -6,6 +6,7 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.model.settings.TimerLayout
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -47,6 +48,8 @@ class SettingsDataSourceTest {
             assertThat(last.theme).isEqualTo(ThemeMode.LIGHT)
             ds.update { it.copy(catalogListView = true) }
             assertThat(awaitItem().catalogListView).isTrue()
+            ds.update { it.copy(timerLayout = TimerLayout.ROUND) }
+            assertThat(awaitItem().timerLayout).isEqualTo(TimerLayout.ROUND)
         }
     }
 
@@ -54,6 +57,12 @@ class SettingsDataSourceTest {
         val store = source()
         store.edit { it[SettingsDataSource.Keys.THEME] = "NEON" }
         assertThat(SettingsDataSource(store).settings.first().theme).isEqualTo(ThemeMode.DARK)
+    }
+
+    @Test fun unknownTimerLayoutFallsBackToSteps() = runTest {
+        val store = source()
+        store.edit { it[SettingsDataSource.Keys.TIMER_LAYOUT] = "GRID" }
+        assertThat(SettingsDataSource(store).settings.first().timerLayout).isEqualTo(TimerLayout.STEPS)
     }
 
     @Test fun clearingOwnedProductsMeansAll() = runTest {

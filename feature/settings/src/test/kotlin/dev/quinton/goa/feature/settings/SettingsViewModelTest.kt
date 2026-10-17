@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.core.testing.TestCatalog
@@ -58,6 +59,16 @@ class SettingsViewModelTest {
         assertThat(settings.state.value).isEqualTo(
             AppSettings(theme = ThemeMode.LIGHT, hapticsEnabled = false, soundsEnabled = false),
         )
+    }
+
+    @Test fun timerLayoutIsShownAndSaved() = runTest {
+        val vm = SettingsViewModel(settings, catalog)
+        vm.uiState.test {
+            assertThat(ready().timerLayout).isEqualTo(TimerLayout.STEPS)
+            vm.onAction(SettingsAction.SetTimerLayout(TimerLayout.ROUND))
+            assertThat(ready().timerLayout).isEqualTo(TimerLayout.ROUND)
+        }
+        assertThat(settings.state.value.timerLayout).isEqualTo(TimerLayout.ROUND)
     }
 
     @Test fun deselectingFromAllStoresTheRest() = runTest {

@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.model.settings.TimerLayout
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -37,6 +38,7 @@ class SettingsDataSource @Inject constructor(@param:SettingsStore private val st
             prefs[Keys.HAPTICS] = next.hapticsEnabled
             prefs[Keys.SOUNDS] = next.soundsEnabled
             prefs[Keys.CATALOG_LIST] = next.catalogListView
+            prefs[Keys.TIMER_LAYOUT] = next.timerLayout.name
         }
     }
 
@@ -46,6 +48,7 @@ class SettingsDataSource @Inject constructor(@param:SettingsStore private val st
         val HAPTICS = booleanPreferencesKey("haptics_enabled")
         val SOUNDS = booleanPreferencesKey("sounds_enabled")
         val CATALOG_LIST = booleanPreferencesKey("catalog_list_view")
+        val TIMER_LAYOUT = stringPreferencesKey("timer_layout")
     }
 
     private companion object {
@@ -58,6 +61,8 @@ class SettingsDataSource @Inject constructor(@param:SettingsStore private val st
             hapticsEnabled = prefs[Keys.HAPTICS] ?: Defaults.hapticsEnabled,
             soundsEnabled = prefs[Keys.SOUNDS] ?: Defaults.soundsEnabled,
             catalogListView = prefs[Keys.CATALOG_LIST] ?: Defaults.catalogListView,
+            timerLayout = prefs[Keys.TIMER_LAYOUT]?.let { name -> TimerLayout.entries.firstOrNull { it.name == name } }
+                ?: Defaults.timerLayout,
         )
     }
 }

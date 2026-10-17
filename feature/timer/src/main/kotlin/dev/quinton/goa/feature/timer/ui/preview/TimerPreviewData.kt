@@ -6,14 +6,18 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.setup.EndOfRoundStep
 import dev.quinton.goa.core.domain.setup.LayoutKind
 import dev.quinton.goa.core.domain.setup.RulesNote
+import dev.quinton.goa.core.domain.timer.ActionActor
 import dev.quinton.goa.core.domain.timer.PhaseKind
 import dev.quinton.goa.core.domain.timer.PhaseScope
 import dev.quinton.goa.core.domain.timer.PhaseSpec
 import dev.quinton.goa.core.domain.timer.RoundSection
 import dev.quinton.goa.core.domain.timer.TimerPreset
+import dev.quinton.goa.core.domain.timer.TimerSnapshot
+import dev.quinton.goa.core.domain.timer.TimerStatus
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.feature.timer.ui.presets.PresetEditActions
 import dev.quinton.goa.feature.timer.ui.presets.PresetEditScreen
 import dev.quinton.goa.feature.timer.ui.presets.PresetEditUiState
@@ -34,6 +38,7 @@ import dev.quinton.goa.feature.timer.ui.timer.ChecklistState
 import dev.quinton.goa.feature.timer.ui.timer.PendingMatchItem
 import dev.quinton.goa.feature.timer.ui.timer.PresetOption
 import dev.quinton.goa.feature.timer.ui.timer.RoundPipsUi
+import dev.quinton.goa.feature.timer.ui.timer.SeatInfo
 import dev.quinton.goa.feature.timer.ui.timer.SeatUi
 import dev.quinton.goa.feature.timer.ui.timer.ShotClockUi
 import dev.quinton.goa.feature.timer.ui.timer.StartUiState
@@ -41,6 +46,7 @@ import dev.quinton.goa.feature.timer.ui.timer.SummaryUiState
 import dev.quinton.goa.feature.timer.ui.timer.TimeOutsUi
 import dev.quinton.goa.feature.timer.ui.timer.TimerActions
 import dev.quinton.goa.feature.timer.ui.timer.TimerScreen
+import dev.quinton.goa.feature.timer.ui.timer.TimerUiMapper
 import dev.quinton.goa.feature.timer.ui.timer.TimerUiState
 import dev.quinton.goa.feature.timer.ui.timer.TonightUi
 
@@ -89,6 +95,9 @@ object TimerPreviewData {
         "Level Up" to "Mandatory: buy every level you can afford. Simultaneous.",
         "Collect a Pity Coin" to "Only if you didn't level up. It can't be spent on a level this round.",
     )
+
+    private val endStepIds =
+        listOf("minion_battle", "remove_tokens", "push_lane", "retrieve_cards", "level_up", "pity_coin")
 
     private fun checklist(current: Int) = endSteps.mapIndexed { i, (title, detail) ->
         ChecklistItemUi(
@@ -234,6 +243,47 @@ object TimerPreviewData {
             )
         },
     )
+
+    private val endOfRound = endSteps.mapIndexed { i, (title, detail) -> EndOfRoundStep(endStepIds[i], title, detail) }
+
+    /** The round view's rows, built by the real mapper from the table-rules round. */
+    private fun rows(stepIndex: Int, action: Boolean = false, actors: List<ActionActor> = emptyList()) =
+        TimerUiMapper.roundRows(
+            TimerSnapshot(
+                sessionId = "preview",
+                preset = editPreset.preset!!.let { preset ->
+                    preset.copy(phases = preset.phases.map { if (it.id == "action") it.copy(enabled = action) else it })
+                },
+                endOfRound = endOfRound,
+                actionSlots = 6,
+                round = 2,
+                stepIndex = stepIndex,
+                status = TimerStatus.RUNNING,
+                actors = actors,
+                matchStartElapsed = 0,
+                matchStartWall = 0,
+                anchorElapsed = 0,
+                anchorWall = 0,
+            ),
+            if (action) {
+                this.action.seats!!.map { SeatInfo(it.heroName, it.heroId, it.portrait, it.team, it.playerName) }
+            } else {
+                null
+            },
+        )
+
+    /** Round view, turn 3 "Play a card" (strategy, then play + resolve per turn: step 5). */
+    val roundTurn get() = turn.copy(layout = TimerLayout.ROUND, stepIndex = 5, rows = rows(5))
+
+    /** Round view, Action timer: turn 3, third hero of six (two resolved, Cleo resolving). */
+    val roundAction get() = action.copy(
+        layout = TimerLayout.ROUND,
+        stepIndex = 18,
+        rows = rows(18, action = true, actors = (0..2).map { ActionActor(it, it) }),
+    )
+
+    /** Round view, end of round: Upgrade on Level Up. */
+    val roundUpgrade get() = upgrade.copy(layout = TimerLayout.ROUND, stepIndex = 13, rows = rows(13))
 
     val summary = TimerUiState(
         loading = false,
@@ -384,12 +434,7 @@ object TimerPreviewData {
                 PhaseSpec("upgrade", "Upgrade", PhaseKind.UPGRADE, PhaseScope.ROUND_END, 120, endStepId = "level_up"),
             ),
         ),
-        endSteps = endSteps.mapIndexed { i, (title, _) ->
-            EndOfRoundStep(
-                listOf("minion_battle", "remove_tokens", "push_lane", "retrieve_cards", "level_up", "pity_coin")[i],
-                title,
-            )
-        },
+        endSteps = endSteps.mapIndexed { i, (title, _) -> EndOfRoundStep(endStepIds[i], title) },
     )
 }
 
@@ -421,6 +466,11 @@ private fun UpgradePreview() =
 @Composable
 private fun ActionPreview() =
     Themed(true) { TimerScreen(TimerUiState(loading = false, active = TimerPreviewData.action), TimerActions()) }
+
+@Preview(name = "Round view", heightDp = 891, widthDp = 411)
+@Composable
+private fun RoundViewPreview() =
+    Themed(true) { TimerScreen(TimerUiState(loading = false, active = TimerPreviewData.roundTurn), TimerActions()) }
 
 @Preview(name = "Match over", heightDp = 891, widthDp = 411)
 @Composable

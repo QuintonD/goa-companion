@@ -349,3 +349,28 @@ Pending rows on the Timer tab show each team's heroes and the time they were set
 Discard (confirmed; deletes only a still-pending match).
 **Consequences:** A rematch backed out of leaves nothing; existing pending matches keep working
 (resume, Who won?, Discard). The Timer tab loses whatever was stacked on it when a timer starts.
+
+## ADR-026 — Timer: optional whole-round view, chosen per device (2026-10-17)
+**Context:** The owner asked for a view of the running timer that shows every phase of the round
+on one screen instead of stepping through them, with the player choosing the view.
+**Decision:** (1) `AppSettings.timerLayout: TimerLayout { STEPS, ROUND }`, default `STEPS`, in the
+settings DataStore (`timer_layout`; unknown values read as the default) and so in backup v3 via
+the settings contributor. A file from before this field imports with the default; the settings
+contributor now also coerces unknown enum values (`coerceInputValues`), so a newer build's layout
+falls back instead of dropping every backed-up setting. It is chosen in Settings → Running timer
+and by a top-bar switch on the running timer that saves immediately (in the overflow menu above
+font scale 1.3, like Levels). (2) The round view is a second body for the same `ActiveUiState`:
+the mapper adds one `RoundRowUi` per step of the current round's `TimerPlan` (only while the
+layout is `ROUND`), everything else — header, alerts banner, Hurry up, time-outs, controls,
+volume keys, auto-advance, cues — is shared with the step view, so the two can't drift. (3)
+Tapping another row confirms, then `TimerEngine.jumpTo(stepIndex)`: pure, within the round,
+navigates exactly like Next/Back (fresh running step, Hurry up cleared, the Action heroes kept only
+inside the same turn, an `UndoPoint` so Back within the undo window restores the step left with
+its time). The command carries the round it was confirmed in and is dropped if the session has
+moved on. (4) The list scrolls the current row into view on each step change (with the step before
+it for context, or less when the current card is tall) and skips that while the user is scrolling.
+**Consequences:** No change to the persisted timer snapshot. The bottom controls stay Pause and
+Next as in the step view; "Previous phase" sits beside the current step's title (in its card in
+portrait, above its clock in landscape). Landscape pins Hurry up and time-outs above the controls too,
+so they and the Level Up rule fit a short window. Rows only cover the current round: jumping to
+another round is not offered.

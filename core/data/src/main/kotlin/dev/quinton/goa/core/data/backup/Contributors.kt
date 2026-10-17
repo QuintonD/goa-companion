@@ -28,7 +28,11 @@ import kotlinx.serialization.json.jsonPrimitive
  * keep owning their schemas and migrations: a backup carries exactly what the store holds.
  */
 
-private val lenient = Json { ignoreUnknownKeys = true }
+/** A newer build's unknown keys are dropped, and its unknown enum values fall back to the default. */
+private val lenient = Json {
+    ignoreUnknownKeys = true
+    coerceInputValues = true
+}
 
 /** App settings: theme, owned products, sounds, haptics (and any field added to [AppSettings] later). */
 internal class SettingsBackup @Inject constructor(private val source: SettingsDataSource) : BackupContributor {
