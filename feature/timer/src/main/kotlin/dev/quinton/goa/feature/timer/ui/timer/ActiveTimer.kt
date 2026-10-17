@@ -247,9 +247,9 @@ private fun LandscapeTimer(state: ActiveUiState, actions: TimerActions, header: 
                     .padding(horizontal = Spacing.screen),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                RoundPips(state.pips, state.round, Modifier.padding(top = Spacing.xs))
-                Spacer(Modifier.height(Spacing.sm))
-                PhaseHeading(state, actions.onBack)
+                // Compact heading: the step text must fit above the controls in a short window.
+                RoundPips(state.pips, state.round)
+                PhaseHeading(state, actions.onBack, compact = true)
                 StepDetail(state, actions.onOpenLevels)
                 SecondaryArea(state, actions)
                 Spacer(Modifier.height(Spacing.md))
@@ -443,7 +443,7 @@ private fun RowScope.TimerTopActions(
  * tab usually is went back a phase (game night).
  */
 @Composable
-private fun PhaseHeading(state: ActiveUiState, onBack: () -> Unit) {
+private fun PhaseHeading(state: ActiveUiState, onBack: () -> Unit, compact: Boolean = false) {
     val reduced = rememberReducedMotion()
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
@@ -463,14 +463,17 @@ private fun PhaseHeading(state: ActiveUiState, onBack: () -> Unit) {
                 state.context.uppercase(),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                modifier = Modifier.padding(
+                    horizontal = Spacing.lg,
+                    vertical = if (compact) Spacing.xs else Spacing.sm,
+                ),
                 textAlign = TextAlign.Center,
             )
         }
         // Balances the button so the chip stays centred.
         Spacer(Modifier.width(48.dp))
     }
-    Spacer(Modifier.height(Spacing.sm))
+    Spacer(Modifier.height(if (compact) Spacing.xs else Spacing.sm))
     AnimatedContent(
         targetState = state.title,
         transitionSpec = {
@@ -481,7 +484,7 @@ private fun PhaseHeading(state: ActiveUiState, onBack: () -> Unit) {
     ) { title ->
         Text(
             title,
-            style = MaterialTheme.typography.headlineMedium,
+            style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
         )
