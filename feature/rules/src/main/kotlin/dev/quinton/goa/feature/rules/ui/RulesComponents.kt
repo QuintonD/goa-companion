@@ -220,7 +220,7 @@ private val cardIcons: Map<String, Pair<ImageVector, String>> = mapOf(
 /** Card text markup ([CardText]) as printed: icons inline, reminders italic, keywords bold. */
 internal fun cardTextAnnotated(text: String, reminderColor: Color): AnnotatedString = buildAnnotatedString {
     fun append(segments: List<CardText.Segment>) {
-        segments.forEach { segment ->
+        segments.forEachIndexed { index, segment ->
             when (segment) {
                 is CardText.Segment.Text -> append(segment.value)
 
@@ -229,7 +229,8 @@ internal fun cardTextAnnotated(text: String, reminderColor: Color): AnnotatedStr
                     if (icon == null) {
                         append(segment.name.replace('_', ' '))
                     } else {
-                        appendInlineContent(ICON_PREFIX + segment.name, alternateText = icon.second)
+                        val spoken = spokenIconLabel(icon.second, segments.getOrNull(index + 1))
+                        appendInlineContent(ICON_PREFIX + segment.name, alternateText = spoken)
                     }
                 }
 
@@ -248,6 +249,15 @@ internal fun cardTextAnnotated(text: String, reminderColor: Color): AnnotatedStr
         }
     }
     append(CardText.parse(text))
+}
+
+/**
+ * TalkBack text for an inline icon: blank when the printed word right after it already names it
+ * ("{life} Life counter" is read once). Inline content needs non-empty alternate text.
+ */
+internal fun spokenIconLabel(label: String, next: CardText.Segment?): String {
+    val following = (next as? CardText.Segment.Text)?.value?.trimStart().orEmpty()
+    return if (following.startsWith(label, ignoreCase = true)) " " else label
 }
 
 @Composable
