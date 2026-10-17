@@ -129,6 +129,19 @@ data class DraftMethod(
     val notes: List<String> = emptyList(),
 ) {
     val isBuiltIn: Boolean get() = origin != MethodOrigin.CUSTOM
+
+    companion object {
+        private val LegacyBanCount = Regex("""\b(\d+) ban\(s\)""")
+
+        /**
+         * Repairs a custom method's summary saved by builds before the editor pluralised its ban
+         * count ("2 ban(s)." → "2 bans."). Applied wherever stored or imported methods are read.
+         */
+        fun repairSummary(summary: String): String = LegacyBanCount.replace(summary) { match ->
+            val count = match.groupValues[1].toInt()
+            if (count == 1) "1 ban" else "$count bans"
+        }
+    }
 }
 
 /** Contents of `catalog/draft-methods.json`. */
