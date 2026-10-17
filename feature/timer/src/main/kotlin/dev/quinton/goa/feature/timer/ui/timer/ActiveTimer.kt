@@ -33,11 +33,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.MilitaryTech
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material.icons.outlined.Settings
@@ -50,6 +52,7 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -76,6 +79,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -133,7 +137,7 @@ internal fun ActiveTimer(state: ActiveUiState, actions: TimerActions) {
                     }
                     state.checklist?.let { items ->
                         Spacer(Modifier.height(Spacing.lg))
-                        EndOfRoundChecklist(items)
+                        EndOfRoundChecklist(items, actions.onOpenLevels)
                     }
                     Spacer(Modifier.height(Spacing.lg))
                 }
@@ -191,6 +195,13 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
             )
         }
         if (state.tieBreaker != null) TieBreakerChip(state, actions.onFlipCoin)
+        // Large text needs the room for "Round N": the ladder moves into the menu.
+        val largeText = LocalDensity.current.fontScale > LARGE_FONT_SCALE
+        if (!largeText) {
+            IconButton(onClick = actions.onOpenLevels) {
+                Icon(Icons.Outlined.MilitaryTech, contentDescription = "Levels and defeats")
+            }
+        }
         IconButton(onClick = onEnd) { Icon(Icons.Outlined.Flag, contentDescription = "End match") }
         Box {
             IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More options") }
@@ -229,6 +240,24 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
                         onEnd()
                     },
                 )
+                if (largeText) {
+                    DropdownMenuItem(
+                        text = { Text("Levels & defeats") },
+                        leadingIcon = { Icon(Icons.Outlined.MilitaryTech, contentDescription = null) },
+                        onClick = {
+                            menu = false
+                            actions.onOpenLevels()
+                        },
+                    )
+                }
+                DropdownMenuItem(
+                    text = { Text("Rules") },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = null) },
+                    onClick = {
+                        menu = false
+                        actions.onOpenRules()
+                    },
+                )
                 DropdownMenuItem(
                     text = { Text("Settings") },
                     leadingIcon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
@@ -239,6 +268,19 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
                 )
             }
         }
+    }
+}
+
+/** End-of-round id of the Level Up step (match-setup.json). */
+private const val LEVEL_UP_STEP = "level_up"
+
+/** On the current Level Up step: the level ladder (costs, max Tier) one tap away. */
+@Composable
+private fun LevelLadderButton(onClick: () -> Unit) {
+    OutlinedButton(onClick = onClick, contentPadding = PaddingValues(horizontal = Spacing.md)) {
+        Icon(Icons.Outlined.MilitaryTech, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(Spacing.xs))
+        Text("Levels")
     }
 }
 
@@ -412,7 +454,7 @@ private fun ChecklistStepCard(state: ActiveUiState, onToggle: () -> Unit) {
 }
 
 @Composable
-private fun EndOfRoundChecklist(items: List<ChecklistItemUi>) {
+private fun EndOfRoundChecklist(items: List<ChecklistItemUi>, onOpenLevels: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -427,12 +469,15 @@ private fun EndOfRoundChecklist(items: List<ChecklistItemUi>) {
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm).semantics { heading() },
         )
-        items.forEach { item -> ChecklistRow(item) }
+        items.forEach { item ->
+            val levelUpNow = item.state == ChecklistState.CURRENT && item.id == LEVEL_UP_STEP
+            ChecklistRow(item, onOpenLevels.takeIf { levelUpNow })
+        }
     }
 }
 
 @Composable
-private fun ChecklistRow(item: ChecklistItemUi) {
+private fun ChecklistRow(item: ChecklistItemUi, onOpenLevels: (() -> Unit)? = null) {
     val colors = MaterialTheme.colorScheme
     val stateText = when (item.state) {
         ChecklistState.DONE -> "done"
@@ -495,6 +540,7 @@ private fun ChecklistRow(item: ChecklistItemUi) {
                 Text(item.timerName, style = MaterialTheme.typography.bodySmall, color = colors.secondary)
             }
         }
+        onOpenLevels?.let { LevelLadderButton(it) }
     }
 }
 

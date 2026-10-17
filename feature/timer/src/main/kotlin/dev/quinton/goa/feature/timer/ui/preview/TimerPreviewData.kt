@@ -77,6 +77,7 @@ object TimerPreviewData {
                 else -> ChecklistState.UPCOMING
             },
             timerName = if (i == 4) "Upgrade 2:00" else null,
+            id = if (i == 4) "level_up" else null,
         )
     }
 

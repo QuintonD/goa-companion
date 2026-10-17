@@ -69,6 +69,7 @@ internal object TimerUiMapper {
             matchClock = TimerText.duration(r.matchElapsedMillis, roundUp = false),
             autoAdvance = s.preset.autoAdvance,
             alertsOff = alertsOff,
+            heroIds = seats.orEmpty().mapNotNull { it.heroId },
         )
     }
 
@@ -89,6 +90,7 @@ internal object TimerUiMapper {
                     else -> ChecklistState.UPCOMING
                 },
                 timerName = timer?.let { "${it.name} ${TimerText.durationLabel(it.seconds)}" },
+                id = end.id,
             )
         }
     }

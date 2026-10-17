@@ -34,6 +34,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CloudOff
@@ -100,6 +101,7 @@ fun CatalogScreen(
     onHeroClick: (heroId: String) -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onRulesClick: () -> Unit = {},
 ) {
     var showFilters by rememberSaveable { mutableStateOf(false) }
     val ready = state as? CatalogUiState.Ready
@@ -119,6 +121,9 @@ fun CatalogScreen(
                         contentDescription = if (grid) "Show as list" else "Show as grid",
                     )
                 }
+            }
+            IconButton(onClick = onRulesClick) {
+                Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = "Rules")
             }
             SettingsActionButton(onSettingsClick)
         },

@@ -9,6 +9,7 @@ import dev.quinton.goa.core.navigation.CardViewerRoute
 import dev.quinton.goa.core.navigation.CatalogRoute
 import dev.quinton.goa.core.navigation.HeroDetailRoute
 import dev.quinton.goa.core.navigation.Navigator
+import dev.quinton.goa.core.navigation.RulesRoute
 import dev.quinton.goa.core.navigation.SettingsRoute
 import dev.quinton.goa.feature.catalog.detail.HeroDetailScreen
 import dev.quinton.goa.feature.catalog.detail.HeroDetailViewModel
@@ -28,6 +29,7 @@ fun EntryProviderScope<NavKey>.catalogEntries(navigator: Navigator) {
             onAction = viewModel::onAction,
             onHeroClick = { navigator.navigate(HeroDetailRoute(it)) },
             onSettingsClick = { navigator.navigate(SettingsRoute) },
+            onRulesClick = { navigator.navigate(RulesRoute) },
         )
     }
     entry<HeroDetailRoute> { key ->

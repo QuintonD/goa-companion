@@ -31,6 +31,9 @@ data class TimerActions(
     val onDone: () -> Unit = {},
     val onOpenNotificationSettings: () -> Unit = {},
     val onDismissAlertsBanner: () -> Unit = {},
+    /** Level & defeat ladder (rules reference) for the heroes in play. */
+    val onOpenLevels: () -> Unit = {},
+    val onOpenRules: () -> Unit = {},
 )
 
 @Composable
@@ -41,6 +44,8 @@ fun TimerRoute(
     onSettings: () -> Unit,
     onOpenMatch: (String) -> Unit,
     onNewMatch: (durationMin: Int, mode: String?) -> Unit,
+    onOpenLevels: (heroIds: List<String>) -> Unit = {},
+    onOpenRules: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LifecycleStartEffect(viewModel) {
@@ -80,6 +85,8 @@ fun TimerRoute(
                 runCatching { context.startActivity(notificationSettingsIntent(context)) }
             },
             onDismissAlertsBanner = viewModel::dismissAlertsBanner,
+            onOpenLevels = { onOpenLevels(state.active?.heroIds.orEmpty()) },
+            onOpenRules = onOpenRules,
         ),
     )
 }
