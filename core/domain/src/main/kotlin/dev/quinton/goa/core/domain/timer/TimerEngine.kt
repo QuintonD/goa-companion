@@ -48,8 +48,8 @@ object MatchDuration {
  * Pure state machine for the phase timer. Every operation takes a snapshot and returns the next
  * one; time comes from the injected clocks only. Sequence per round: see [TimerPlan].
  *
- * Navigation (next, back, skip) always leaves the timer running with a fresh step, except that
- * Back within [UNDO_WINDOW_MS] of a Next undoes that Next (the previous step continues where it
+ * Navigation (next, back, skip, jump) always leaves the timer running with a fresh step, except that
+ * Back within [UNDO_WINDOW_MS] of a Next (or a jump) undoes it (the previous step continues where it
  * was, as if Next had never been tapped). Restart keeps the paused/running state. Ended sessions
  * ignore every operation.
  */
@@ -144,14 +144,7 @@ class TimerEngine(
         val now = elapsed.elapsedMillis()
         val entered = s.stepEnteredAt
         if (debounceMillis > 0 && entered != null && now - entered in 0 until debounceMillis) return s
-        val undo = UndoPoint(
-            round = s.round,
-            stepIndex = s.stepIndex,
-            status = s.status,
-            accumulatedMillis = elapsedInStep(s, now),
-            actors = s.actors,
-            timeOutsUsed = s.timeOutsUsed,
-        )
+        val undo = undoPoint(s, now)
         val moved = if (s.stepIndex >= s.plan.lastIndex) {
             s.moveTo(round = s.round + 1, index = 0, startedAt = now)
         } else {
@@ -159,6 +152,28 @@ class TimerEngine(
         }
         return autoPickLastHero(moved).copy(undo = undo)
     }
+
+    /**
+     * Jumps straight to step [stepIndex] of the current round (the round view's "Jump to …"). It
+     * navigates like Next and Back: the target starts fresh and running, a running Hurry up is
+     * cleared, and the step left behind is kept as the [TimerSnapshot.undo] point, so Back right
+     * after the jump returns to it with its time. No-op on the current step or outside the round.
+     */
+    fun jumpTo(s: TimerSnapshot, stepIndex: Int): TimerSnapshot {
+        if (s.status == TimerStatus.ENDED || stepIndex !in s.plan.steps.indices || stepIndex == s.stepIndex) return s
+        val now = elapsed.elapsedMillis()
+        val undo = undoPoint(s, now)
+        return autoPickLastHero(s.moveTo(round = s.round, index = stepIndex, startedAt = now)).copy(undo = undo)
+    }
+
+    private fun undoPoint(s: TimerSnapshot, now: Long) = UndoPoint(
+        round = s.round,
+        stepIndex = s.stepIndex,
+        status = s.status,
+        accumulatedMillis = elapsedInStep(s, now),
+        actors = s.actors,
+        timeOutsUsed = s.timeOutsUsed,
+    )
 
     /**
      * Within [UNDO_WINDOW_MS] of step time after a Next, restores the step that Next left, with
