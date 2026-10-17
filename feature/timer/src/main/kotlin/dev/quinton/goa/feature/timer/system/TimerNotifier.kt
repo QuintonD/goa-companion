@@ -260,6 +260,8 @@ class AndroidTimerNotifier @Inject constructor(
             "timer_phase_over_sound",
             "timer_phase_over_vibrate",
             "timer_phase_over_silent",
+            // A pre-release sounding alert channel (emulator builds only).
+            "timer_phase_chime",
         )
 
         /** The visual alert clears itself after a while (or on any action). */
