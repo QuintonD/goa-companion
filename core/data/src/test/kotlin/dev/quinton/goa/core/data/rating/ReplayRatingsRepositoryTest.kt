@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.draft.DraftMethodKind
 import dev.quinton.goa.core.model.draft.DraftRecord
@@ -13,8 +14,10 @@ import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Participant
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
+import dev.quinton.goa.core.testing.TestCatalog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -43,10 +46,12 @@ class ReplayRatingsRepositoryTest {
         matches: MatchRepository,
         drafts: FakeDraftRecordRepository = FakeDraftRecordRepository(),
         config: FakeEloConfigRepository = FakeEloConfigRepository(),
+        catalog: Catalog = Catalog.EMPTY,
     ) = ReplayRatingsRepository(
         matchRepository = matches,
         draftRepository = drafts,
         configRepository = config,
+        catalogRepository = FakeCatalogRepository(catalog),
         scope = backgroundScope,
         dispatcher = StandardTestDispatcher(testScheduler),
     )
@@ -63,6 +68,35 @@ class ReplayRatingsRepositoryTest {
             assertThat(awaitItem()).isEmpty()
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun heroesThisCatalogDoesntKnowCountAsUnknownHeroesInRatingsAndBanStats() = runTest {
+        // A newer phone logged "h-new"; this phone's catalog only knows h1 and h2.
+        val catalog = TestCatalog.catalog.copy(
+            heroes = TestCatalog.catalog.heroes.take(2).mapIndexed { i, h -> h.copy(id = "h${i + 1}") },
+        )
+        val logged = match("m1", 1).let { m ->
+            m.copy(participants = m.participants + Participant("cid", "h-new", Team.RED))
+        }
+        val draft = DraftRecord(
+            id = "d1",
+            createdAt = 1,
+            methodId = "house",
+            methodKind = DraftMethodKind.CUSTOM,
+            pool = listOf("h1", "h2", "h-new"),
+            teamA = Team.RED,
+            steps = listOf(DraftStepRecord(Team.BLUE, DraftAction.BAN, "h-new")),
+        )
+        val repo = repository(
+            FakeMatchRepository(listOf(logged)),
+            FakeDraftRecordRepository(listOf(draft)),
+            catalog = catalog,
+        )
+        val snapshot = repo.observeSnapshot().first()
+        assertThat(snapshot.ratings.heroes.keys).containsExactly("h1", "h2")
+        assertThat(snapshot.ratings.players.keys).containsExactly("ann", "bob", "cid")
+        assertThat(snapshot.meta.usage().keys).doesNotContain("h-new")
     }
 
     @Test

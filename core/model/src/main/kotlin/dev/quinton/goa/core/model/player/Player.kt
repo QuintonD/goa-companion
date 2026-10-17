@@ -13,4 +13,10 @@ data class Player(
     val avatarId: Int,
     val createdAt: Long,
     val archived: Boolean = false,
+    /**
+     * When this player was last edited (epoch ms); group sync keeps the later edit (ADR-025).
+     * Set by the repository on every local write; records from before sync count as last edited
+     * when they were created.
+     */
+    val updatedAt: Long = createdAt,
 )

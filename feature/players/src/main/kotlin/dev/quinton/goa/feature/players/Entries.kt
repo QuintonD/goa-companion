@@ -17,6 +17,7 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import dev.quinton.goa.core.data.backup.BackupDocument
 import dev.quinton.goa.core.navigation.BackupRoute
+import dev.quinton.goa.core.navigation.GroupSyncRoute
 import dev.quinton.goa.core.navigation.MatchEditRoute
 import dev.quinton.goa.core.navigation.MatchLogRoute
 import dev.quinton.goa.core.navigation.MatchSetupRoute
@@ -27,6 +28,7 @@ import dev.quinton.goa.core.navigation.PlayerEditRoute
 import dev.quinton.goa.core.navigation.PlayersRoute
 import dev.quinton.goa.core.navigation.RatingSettingsRoute
 import dev.quinton.goa.core.navigation.SettingsRoute
+import dev.quinton.goa.core.navigation.SyncSessionRoute
 import dev.quinton.goa.core.navigation.TopLevelTab
 import dev.quinton.goa.feature.players.backup.BackupActions
 import dev.quinton.goa.feature.players.backup.BackupScreen
@@ -39,6 +41,7 @@ import dev.quinton.goa.feature.players.match.MatchLogViewModel
 import dev.quinton.goa.feature.players.match.MatchNav
 import dev.quinton.goa.feature.players.meta.MetaActions
 import dev.quinton.goa.feature.players.meta.MetaViewModel
+import dev.quinton.goa.feature.players.player.MergeOutcome
 import dev.quinton.goa.feature.players.player.PlayerDetailActions
 import dev.quinton.goa.feature.players.player.PlayerDetailScreen
 import dev.quinton.goa.feature.players.player.PlayerDetailViewModel
@@ -63,6 +66,14 @@ fun EntryProviderScope<NavKey>.playersEntries(navigator: Navigator) {
             creationCallback = { it.create(key.playerId) },
         )
         val state by vm.uiState.collectAsStateWithLifecycle()
+        // Merged: this player now reads as the other one, so show that page instead.
+        LaunchedEffect(state.mergeOutcome) {
+            val merged = state.mergeOutcome as? MergeOutcome.Merged ?: return@LaunchedEffect
+            vm.mergeOutcomeShown()
+            navigator.back()
+            navigator.navigate(PlayerDetailRoute(merged.intoId))
+            navigator.showMessage("Merged into ${merged.intoName}. Sync to update the other phones.")
+        }
         PlayerDetailScreen(
             state = state,
             actions = PlayerDetailActions(
@@ -71,6 +82,8 @@ fun EntryProviderScope<NavKey>.playersEntries(navigator: Navigator) {
                 onOpenMatch = { navigator.navigate(MatchEditRoute(it)) },
                 onOpenMatchLog = { navigator.navigate(MatchLogRoute) },
                 onSetArchived = vm::setArchived,
+                onMerge = vm::merge,
+                onMergeOutcomeShown = vm::mergeOutcomeShown,
             ),
         )
     }
@@ -175,6 +188,7 @@ private fun PlayersHomeEntry(navigator: Navigator) {
             onOpenSettings = { navigator.navigate(SettingsRoute) },
             onOpenRatingSettings = { navigator.navigate(RatingSettingsRoute) },
             onShareStats = statsVm::share,
+            onOpenSync = { navigator.navigate(if (players.inGroup) SyncSessionRoute() else GroupSyncRoute) },
         ),
         followUps = followUps(matchesVm, navigator),
         metaActions = MetaActions(

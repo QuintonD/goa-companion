@@ -19,6 +19,8 @@ data class DraftRecord(
     val teamA: Team,
     val steps: List<DraftStepRecord>,
     val matchId: String? = null,
+    /** When this record was last written (epoch ms); group sync keeps the later write (ADR-025). */
+    val updatedAt: Long = createdAt,
 )
 
 @Serializable

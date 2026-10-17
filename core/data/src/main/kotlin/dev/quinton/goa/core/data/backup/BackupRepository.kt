@@ -6,12 +6,13 @@ import androidx.room3.withWriteTransaction
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.rating.EloConfigRepository
+import dev.quinton.goa.core.data.rating.StampedEloConfigStore
+import dev.quinton.goa.core.data.sync.LocalSyncData
 import dev.quinton.goa.core.database.GoaDatabase
-import dev.quinton.goa.core.database.participantEntities
-import dev.quinton.goa.core.database.stepEntities
-import dev.quinton.goa.core.database.toEntity
-import dev.quinton.goa.core.database.toModel
 import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.domain.sync.StampedEloConfig
+import dev.quinton.goa.core.domain.sync.SyncDocument
+import dev.quinton.goa.core.domain.sync.SyncMerge
 import java.io.InputStream
 import java.io.OutputStream
 import javax.inject.Inject
@@ -56,9 +57,9 @@ interface BackupRepository {
     suspend fun export(): BackupDocument
 
     /**
-     * Loads [document]. Hero ids the catalog doesn't know become "Unknown hero" seats
-     * ([withUnknownHeroesCleared]). [useBackupSettings] (always on for [ImportMode.REPLACE]) applies
-     * the file's rating constants and settings; otherwise the phone's are kept.
+     * Loads [document]. Hero ids the catalog doesn't know are kept and read as "Unknown hero"
+     * seats (DOMAIN.md). [useBackupSettings] (always on for [ImportMode.REPLACE]) applies the
+     * file's rating constants and settings; otherwise the phone's are kept.
      */
     suspend fun import(
         document: BackupDocument,
@@ -82,52 +83,70 @@ interface BackupRepository {
 internal class RoomBackupRepository @Inject constructor(
     private val database: GoaDatabase,
     private val eloConfig: EloConfigRepository,
+    private val stampedElo: StampedEloConfigStore,
     private val contributors: Set<@JvmSuppressWildcards BackupContributor>,
     private val catalog: CatalogRepository,
     private val appInfo: AppInfo,
 ) : BackupRepository {
-    private val players get() = database.playerDao()
-    private val matches get() = database.matchDao()
-    private val drafts get() = database.draftRecordDao()
+    private val local = LocalSyncData(database)
 
     override suspend fun export(): BackupDocument {
         val extras = contributors.sortedBy { it.key }.mapNotNull { c -> c.export()?.let { c.key to it } }.toMap()
         val config = eloConfig.config.first()
-        return database.withReadTransaction {
-            BackupDocument(
-                exportedAt = System.currentTimeMillis(),
-                appVersion = appInfo.versionName(),
-                players = players.getAll().map { it.toModel() },
-                matches = matches.getAll().map { it.toModel() },
-                drafts = drafts.getAll().map { it.toModel() },
-                eloConfig = config.takeIf { it != EloConfig.DEFAULT },
-                extras = extras,
-            )
-        }
+        val stamp = stampedElo.stamped().updatedAt
+        val data = database.withReadTransaction { local.read() }
+        return BackupDocument(
+            exportedAt = System.currentTimeMillis(),
+            appVersion = appInfo.versionName(),
+            players = data.players,
+            matches = data.matches,
+            drafts = data.drafts,
+            eloConfig = config.takeIf { it != EloConfig.DEFAULT },
+            eloConfigUpdatedAt = stamp.takeIf { it > 0 },
+            deletions = data.deletions,
+            playerMerges = data.playerMerges,
+            extras = extras,
+        )
     }
 
     override suspend fun summarize(document: BackupDocument): BackupSummary = document.summary(knownHeroIds())
 
     override suspend fun import(document: BackupDocument, mode: ImportMode, useBackupSettings: Boolean) {
         val settings = useBackupSettings || mode == ImportMode.REPLACE
-        val clean = document.withUnknownHeroesCleared(knownHeroIds())
+        // Stored as they are: unknown hero ids included (read as "Unknown hero"), updatedAt kept.
+        val file = SyncMerge.normalize(
+            SyncDocument(
+                players = document.players,
+                matches = document.matches,
+                drafts = document.drafts,
+                deletions = document.deletions,
+                playerMerges = document.playerMerges,
+            ),
+        )
         database.withWriteTransaction {
             if (mode == ImportMode.REPLACE) {
-                matches.deleteAll()
-                drafts.deleteAll()
-                players.deleteAll()
+                local.clear()
+                local.write(SyncDocument.EMPTY, file)
+            } else {
+                val before = SyncMerge.normalize(local.read())
+                local.write(before, SyncMerge.merge(before, file))
             }
-            players.upsertAll(clean.players.map { it.toEntity() })
-            clean.matches.forEach { matches.upsert(it.toEntity(), it.participantEntities()) }
-            clean.drafts.forEach { drafts.upsert(it.toEntity(), it.stepEntities()) }
         }
         if (settings) {
             // A file without rating constants was made with the defaults.
-            val config = clean.eloConfig
-            if (config == null) eloConfig.reset() else eloConfig.update { config }
+            val config = (document.eloConfig ?: EloConfig.DEFAULT).sanitized()
+            if (mode == ImportMode.MERGE) {
+                // Asked for explicitly: a change made now, which the group gets at the next sync.
+                if (config != eloConfig.config.first()) eloConfig.update { config }
+            } else {
+                // Replace restores the file as it was: its change time is kept, so an old backup's
+                // constants never override newer ones from the group.
+                val stamp = document.eloConfigUpdatedAt ?: if (document.eloConfig != null) 1 else 0
+                stampedElo.applySynced(StampedEloConfig(config, stamp))
+            }
         }
         for (contributor in contributors) {
-            clean.extras[contributor.key]?.let { contributor.import(it, mode, settings) }
+            document.extras[contributor.key]?.let { contributor.import(it, mode, settings) }
         }
     }
 

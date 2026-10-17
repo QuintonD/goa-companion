@@ -60,9 +60,9 @@ class GoaDatabaseTest {
         dao.upsert(ann.toEntity())
         assertThat(dao.observeAll().first().map { it.toModel() }).containsExactly(ann, bob).inOrder()
 
-        dao.setArchived(ann.id, true)
+        dao.setArchived(ann.id, true, updatedAt = 99)
         assertThat(dao.observeActive().first().map { it.id }).containsExactly(bob.id)
-        assertThat(dao.observe(ann.id).first()!!.toModel()).isEqualTo(ann.copy(archived = true))
+        assertThat(dao.observe(ann.id).first()!!.toModel()).isEqualTo(ann.copy(archived = true, updatedAt = 99))
     }
 
     @Test

@@ -5,6 +5,7 @@ import androidx.navigation3.runtime.NavKey
 import dev.quinton.goa.core.navigation.AboutRoute
 import dev.quinton.goa.core.navigation.BackupRoute
 import dev.quinton.goa.core.navigation.DraftMethodsRoute
+import dev.quinton.goa.core.navigation.GroupSyncRoute
 import dev.quinton.goa.core.navigation.Navigator
 import dev.quinton.goa.core.navigation.RatingSettingsRoute
 import dev.quinton.goa.core.navigation.SettingsRoute
@@ -21,6 +22,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(navigator: Navigator) {
                         SettingsLink.TIMER_PRESETS -> TimerPresetsRoute
                         SettingsLink.DRAFT_METHODS -> DraftMethodsRoute
                         SettingsLink.RATINGS -> RatingSettingsRoute
+                        SettingsLink.GROUP_SYNC -> GroupSyncRoute
                         SettingsLink.BACKUP -> BackupRoute
                         SettingsLink.ABOUT -> AboutRoute
                     },

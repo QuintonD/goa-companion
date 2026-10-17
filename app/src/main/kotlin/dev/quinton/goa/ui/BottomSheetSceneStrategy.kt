@@ -3,8 +3,12 @@ package dev.quinton.goa.ui
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.scene.OverlayScene
 import androidx.navigation3.scene.Scene
@@ -43,13 +47,18 @@ private class BottomSheetScene<T : Any>(
 
     @OptIn(ExperimentalMaterial3Api::class)
     override val content: @Composable () -> Unit = {
+        // The entry may hold the sheet open while it is busy (NavSheet.LocalDismissible).
+        val dismissible = remember { mutableStateOf(true) }
         ModalBottomSheet(
-            onDismissRequest = onBack,
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            onDismissRequest = { if (dismissible.value) onBack() },
+            sheetState = rememberModalBottomSheetState(
+                skipPartiallyExpanded = true,
+                confirmValueChange = { it != SheetValue.Hidden || dismissible.value },
+            ),
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
-            entry.Content()
+            CompositionLocalProvider(NavSheet.LocalDismissible provides dismissible) { entry.Content() }
         }
     }
 

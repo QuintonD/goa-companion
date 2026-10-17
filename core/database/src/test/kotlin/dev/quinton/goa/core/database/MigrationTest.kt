@@ -78,6 +78,64 @@ class MigrationTest {
 
         dao.upsert(match.copy(tieBreaker = Team.BLUE).toEntity(), match.participantEntities())
         assertThat(dao.getAll().single().toModel().tieBreaker).isEqualTo(Team.BLUE)
-        assertThat(GoaDatabase.VERSION).isEqualTo(2)
+    }
+
+    private suspend fun seedV2() {
+        helper.createDatabase(2).apply {
+            execSQL(
+                "INSERT INTO players (id, name, color, avatar_id, created_at, archived) " +
+                    "VALUES ('p1', 'Ann', 1, 0, 500, 0)",
+            )
+            // Logged late (created after it was played) and pre-dated (played after it was created).
+            execSQL(
+                "INSERT INTO matches (id, created_at, played_at, status, mode, map, winner, win_condition, " +
+                    "duration_min, notes, draft_id, tie_breaker) " +
+                    "VALUES ('late', 900, 100, 'completed', 'quick', NULL, 'red', NULL, NULL, '', NULL, 'blue')",
+            )
+            execSQL(
+                "INSERT INTO matches (id, created_at, played_at, status, mode, map, winner, win_condition, " +
+                    "duration_min, notes, draft_id, tie_breaker) " +
+                    "VALUES ('ahead', 100, 700, 'pending', 'long', NULL, NULL, NULL, NULL, '', 'd1', NULL)",
+            )
+            execSQL(
+                "INSERT INTO participants (match_id, seat_index, player_id, hero_id, team, handicap) " +
+                    "VALUES ('late', 0, 'p1', 'arien', 'red', 0)",
+            )
+            execSQL(
+                "INSERT INTO draft_records (id, created_at, method_id, method_kind, pool, team_a, match_id) " +
+                    "VALUES ('d1', 300, 'house', 'custom', '[\"arien\"]', 'red', 'ahead')",
+            )
+            close()
+        }
+    }
+
+    @Test
+    fun migrate2To3BackfillsUpdatedAtAndAddsEmptySyncTables() = runTest {
+        seedV2()
+        helper.runMigrationsAndValidate(3, listOf(GoaDatabase.MIGRATION_2_3)).use { connection ->
+            fun long(sql: String): Long = connection.prepare(sql).use {
+                assertThat(it.step()).isTrue()
+                it.getLong(0)
+            }
+            assertThat(long("SELECT updated_at FROM players WHERE id = 'p1'")).isEqualTo(500)
+            assertThat(long("SELECT updated_at FROM matches WHERE id = 'late'")).isEqualTo(900)
+            assertThat(long("SELECT updated_at FROM matches WHERE id = 'ahead'")).isEqualTo(700)
+            assertThat(long("SELECT updated_at FROM draft_records WHERE id = 'd1'")).isEqualTo(300)
+            assertThat(long("SELECT COUNT(*) FROM deletions")).isEqualTo(0)
+            assertThat(long("SELECT COUNT(*) FROM player_merges")).isEqualTo(0)
+        }
+    }
+
+    @Test
+    fun v1DatabaseOpensAtTheCurrentVersionWithEveryRowKept() = runTest {
+        seedV1()
+        val db = openCurrent()
+        val match = db.matchDao().getAll().single().toModel()
+        assertThat(match.id).isEqualTo("m1")
+        assertThat(match.participants).hasSize(1)
+        assertThat(match.updatedAt).isEqualTo(2) // max(created 1, played 2)
+        assertThat(db.deletionDao().getAll()).isEmpty()
+        assertThat(db.playerDao().getMerges()).isEmpty()
+        assertThat(GoaDatabase.VERSION).isEqualTo(3)
     }
 }

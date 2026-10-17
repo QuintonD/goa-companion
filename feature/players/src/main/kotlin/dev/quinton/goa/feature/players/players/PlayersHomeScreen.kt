@@ -9,9 +9,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -60,6 +62,8 @@ data class PlayersHomeActions(
     val onOpenRatingSettings: () -> Unit = {},
     /** Meta tab: share the stats page (ADR-027). */
     val onShareStats: () -> Unit = {},
+    /** Group sync: the sync sheet when in a group, else the Group sync screen. */
+    val onOpenSync: () -> Unit = {},
 )
 
 /** Top-level "Players" destination: leaderboard, match log and meta as tabs. */
@@ -84,6 +88,17 @@ fun PlayersHomeScreen(
                 IconButton(onClick = actions.onShareStats) {
                     Icon(Icons.Outlined.Share, contentDescription = "Share stats page")
                 }
+            }
+            players.meId?.let { me ->
+                IconButton(onClick = { actions.onOpenPlayer(me) }) {
+                    Icon(Icons.Outlined.AccountCircle, contentDescription = "Your player page")
+                }
+            }
+            IconButton(onClick = actions.onOpenSync) {
+                Icon(
+                    Icons.Outlined.Sync,
+                    contentDescription = if (players.inGroup) "Sync with the group" else "Group sync",
+                )
             }
             IconButton(onClick = actions.onOpenBackup) {
                 Icon(Icons.Outlined.SettingsBackupRestore, contentDescription = "Backup and restore")

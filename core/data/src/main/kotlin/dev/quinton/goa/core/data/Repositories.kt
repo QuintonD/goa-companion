@@ -1,5 +1,10 @@
 package dev.quinton.goa.core.data
 
+import dev.quinton.goa.core.domain.sync.GroupCredentials
+import dev.quinton.goa.core.domain.sync.PlayerMerges
+import dev.quinton.goa.core.domain.sync.protocol.SyncApplyResult
+import dev.quinton.goa.core.domain.sync.protocol.SyncDataPort
+import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
@@ -90,4 +95,86 @@ interface SettingsRepository {
     val settings: Flow<AppSettings>
 
     suspend fun update(transform: (AppSettings) -> AppSettings)
+}
+
+/** Wall-clock time (epoch ms) for the `updatedAt` stamps on local writes (ADR-025). */
+fun interface EditClock {
+    fun now(): Long
+
+    companion object {
+        val System = EditClock { java.lang.System.currentTimeMillis() }
+    }
+}
+
+/** Duplicate players (owner: players): one person with two ids, typically from two phones. */
+interface PlayerMergeRepository {
+    fun observeMerges(): Flow<PlayerMerges>
+
+    /**
+     * Records that [fromId] is the same person as [toId]. Refused when the two played in the same
+     * match ([PlayerMergeResult.PlayedTogether]): one person can't sit on both teams, and two
+     * teammates are two people.
+     */
+    suspend fun merge(fromId: String, toId: String): PlayerMergeResult
+}
+
+sealed interface PlayerMergeResult {
+    data object Merged : PlayerMergeResult
+
+    /** The matches both played in (resolved, newest last). */
+    data class PlayedTogether(val matches: List<Match>) : PlayerMergeResult
+
+    /** A player is missing, already merged away, or both ids are the same. */
+    data object NotPossible : PlayerMergeResult
+}
+
+/** This phone's group membership and sync bookkeeping (owner: sync). Never synced or backed up. */
+interface GroupRepository {
+    val state: Flow<GroupState>
+
+    /** Starts a new group with a fresh id and 256-bit key; this phone becomes its first member. */
+    suspend fun start(name: String): GroupCredentials
+
+    /** Joins [group] (from an invite). Joining another group forgets the old one's phones and "who am I". */
+    suspend fun join(group: GroupCredentials)
+
+    /** Leaves the group: the key is forgotten, all data stays on this phone. */
+    suspend fun leave()
+
+    /** Which player this phone belongs to ("Who are you?"); null = not chosen. */
+    suspend fun setMe(playerId: String?)
+
+    suspend fun setDeviceName(name: String?)
+
+    /** Remembers that this phone synced with [phones] at [at]. */
+    suspend fun recordSync(phones: List<SyncDevice>, at: Long)
+}
+
+data class GroupState(
+    val group: GroupCredentials?,
+    /** This install's stable id (not secret; tells phones apart in "last synced"). */
+    val deviceId: String,
+    /** The name other phones see, if set here; otherwise the app uses "who am I" or the model. */
+    val deviceName: String?,
+    val mePlayerId: String?,
+    /** Phones this one has synced with, most recent first. */
+    val phones: List<SyncedPhone>,
+    val lastSyncAt: Long?,
+) {
+    val inGroup: Boolean get() = group != null
+}
+
+@kotlinx.serialization.Serializable
+data class SyncedPhone(val deviceId: String, val name: String, val lastSyncedAt: Long)
+
+/**
+ * This phone's side of group sync (owner: sync): its whole shareable data as a [SyncDocument], and
+ * merging a received one in, all in one database transaction ([SyncDataPort]).
+ */
+interface SyncRepository : SyncDataPort {
+    /** "Share sync file": this phone's data sealed with [group]'s key. */
+    suspend fun exportFile(group: GroupCredentials): ByteArray
+
+    /** Opens a sync file (throws [dev.quinton.goa.core.domain.sync.SyncFileException]) and merges it in. */
+    suspend fun importFile(bytes: ByteArray, group: GroupCredentials?): SyncApplyResult
 }

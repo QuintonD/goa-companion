@@ -9,8 +9,8 @@ import androidx.room3.PrimaryKey
 import androidx.room3.Relation
 
 /*
- * Room schema v1 (exported to core/database/schemas). Enums are stored as their stable
- * serial names ("red", "completed", …) so the database and the JSON backup agree.
+ * Room schema (exported to core/database/schemas; v3 adds `updated_at` and the sync tables).
+ * Enums are stored as their stable serial names ("red", "completed", …) so the database and the JSON backup agree.
  * Players are referenced by id without a foreign key: players are archived, never deleted, and
  * an imported match may name a player that is missing (shown as "Unknown player").
  */
@@ -23,6 +23,8 @@ data class PlayerEntity(
     @ColumnInfo(name = "avatar_id") val avatarId: Int,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     val archived: Boolean,
+    /** Last local edit (epoch ms); group sync keeps the later edit. Schema v3. */
+    @ColumnInfo(name = "updated_at", defaultValue = "0") val updatedAt: Long = 0,
 )
 
 @Entity(
@@ -43,6 +45,8 @@ data class MatchEntity(
     @ColumnInfo(name = "draft_id") val draftId: String?,
     /** Team on the Tie Breaker coin at setup ("red"/"blue"); added in schema v2. */
     @ColumnInfo(name = "tie_breaker") val tieBreaker: String? = null,
+    /** Last edit (epoch ms); group sync keeps the later edit. Schema v3. */
+    @ColumnInfo(name = "updated_at", defaultValue = "0") val updatedAt: Long = 0,
 )
 
 /** One hero seat. A double pilot owns two rows with the same [playerId]. */
@@ -84,6 +88,8 @@ data class DraftRecordEntity(
     val pool: String,
     @ColumnInfo(name = "team_a") val teamA: String,
     @ColumnInfo(name = "match_id") val matchId: String?,
+    /** Last write (epoch ms); group sync keeps the later write. Schema v3. */
+    @ColumnInfo(name = "updated_at", defaultValue = "0") val updatedAt: Long = 0,
 )
 
 @Entity(
@@ -110,4 +116,24 @@ data class DraftWithSteps(
     @Embedded val draft: DraftRecordEntity,
     @Relation(parentColumns = ["id"], entityColumns = ["draft_id"])
     val steps: List<DraftStepEntity>,
+)
+
+/**
+ * A tombstone (schema v3): the match or draft [id] was deleted at [deletedAt]. Written in the same
+ * transaction as the delete, so group sync can carry the deletion to the other phones.
+ */
+@Entity(tableName = "deletions", primaryKeys = ["kind", "id"])
+data class DeletionEntity(
+    /** "match" or "draft". */
+    val kind: String,
+    val id: String,
+    @ColumnInfo(name = "deleted_at") val deletedAt: Long,
+)
+
+/** Player [fromId] is the same person as [toId] (schema v3). Reads resolve it; the log is never rewritten. */
+@Entity(tableName = "player_merges")
+data class PlayerMergeEntity(
+    @PrimaryKey @ColumnInfo(name = "from_id") val fromId: String,
+    @ColumnInfo(name = "to_id") val toId: String,
+    @ColumnInfo(name = "merged_at") val mergedAt: Long,
 )

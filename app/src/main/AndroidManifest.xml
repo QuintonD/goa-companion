@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- No INTERNET permission: the app is offline by design (AGENTS.md). -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<!-- No INTERNET permission: the app is offline by design (AGENTS.md). Group sync (ADR-025) goes
+     phone to phone over Nearby; its permissions come from feature/sync's manifest. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Guard: never let a library (Play services, ML Kit) merge INTERNET in. -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
 
     <application
         android:name=".GoaApplication"
@@ -21,6 +26,27 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- A sync file opened from Files, Drive or a message, or shared to the app (ADR-025). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:mimeType="application/vnd.dev.quinton.goa.sync" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/vnd.dev.quinton.goa.sync" />
+            </intent-filter>
+            <!-- File managers that only know the extension report octet-stream with the name in the path. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:host="*" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:pathPattern=".*\\.goasync" />
             </intent-filter>
         </activity>
     </application>
