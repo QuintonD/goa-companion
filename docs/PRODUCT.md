@@ -33,8 +33,8 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
 
 ### 2. Match setup and timer
 - **Setup:** pick mode (Quick / Long / Double lane) and players → app shows Wave and Life
-  counters to lay out (DOMAIN.md table), handicap reminders for odd counts, and who holds the
-  Tie Breaker coin.
+  counters to lay out (DOMAIN.md table), handicap reminders for odd counts, and which team's symbol
+  shows on the Tie Breaker coin.
 - **Rule timers per phase** (owner's table rules): Pre-round strategy 1:30 → 4 × Turn 0:30 →
   Upgrade 2:00 during the end-of-round Level Up step; optional per-hero Action timer. Every
   phase is configurable (on/off, duration, cues, auto-advance) and presets are saved/editable.
