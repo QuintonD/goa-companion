@@ -83,6 +83,8 @@ data class ChecklistItemUi(
     val state: ChecklistState,
     /** Name of the timer that runs on this step (e.g. "Upgrade"). */
     val timerName: String?,
+    /** The step's id in match-setup.json (`level_up` …). */
+    val id: String? = null,
 )
 
 /** Round progress: optional round-start marker, one pip per turn, end-of-round marker. */
@@ -128,6 +130,8 @@ data class ActiveUiState(
     val timeOuts: TimeOutsUi? = null,
     /** Volume up = Next, volume down = Pause/Resume while this screen shows. */
     val volumeKeys: Boolean = false,
+    /** Heroes of the linked match (for the level & defeat ladder's card exceptions). */
+    val heroIds: List<String> = emptyList(),
 ) {
     /** Rule text of the current end-of-round step (e.g. Level Up is mandatory). */
     val currentDetail: String? get() = checklist?.firstOrNull { it.state == ChecklistState.CURRENT }?.detail

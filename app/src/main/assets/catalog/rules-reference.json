@@ -1,0 +1,504 @@
+{
+  "schemaVersion": 1,
+  "printing": 2,
+  "rulebook": "rulebook",
+  "ladder": {
+    "pages": [13, 15, 23],
+    "levels": [
+      { "level": 1, "lowestTier": 1, "defeatCoins": 1, "assistCoins": 1, "lifeCounters": 1, "levelUpCost": null, "maxTier": null },
+      { "level": 2, "lowestTier": 1, "defeatCoins": 2, "assistCoins": 1, "lifeCounters": 1, "levelUpCost": 1, "maxTier": 2 },
+      { "level": 3, "lowestTier": 1, "defeatCoins": 3, "assistCoins": 1, "lifeCounters": 1, "levelUpCost": 2, "maxTier": 2 },
+      { "level": 4, "lowestTier": 2, "defeatCoins": 4, "assistCoins": 2, "lifeCounters": 2, "levelUpCost": 3, "maxTier": 2 },
+      { "level": 5, "lowestTier": 2, "defeatCoins": 5, "assistCoins": 2, "lifeCounters": 2, "levelUpCost": 4, "maxTier": 3 },
+      { "level": 6, "lowestTier": 2, "defeatCoins": 6, "assistCoins": 2, "lifeCounters": 2, "levelUpCost": 5, "maxTier": 3 },
+      { "level": 7, "lowestTier": 3, "defeatCoins": 7, "assistCoins": 3, "lifeCounters": 3, "levelUpCost": 6, "maxTier": 3 },
+      { "level": 8, "lowestTier": 3, "defeatCoins": 8, "assistCoins": 3, "lifeCounters": 3, "levelUpCost": 7, "maxTier": 4 }
+    ],
+    "defeat": [
+      {
+        "page": 13,
+        "text": "When you defeat an enemy hero, collect coins equal to that hero’s level. Your friendly heroes collect assist coins based on the defeated hero’s lowest card Tier."
+      },
+      {
+        "page": 13,
+        "text": "Defeated hero’s team spends the number of Life counters, equal to that hero’s lowest card Tier. If the last counter is spent, the game ends and the team with no Life counters left, loses the game."
+      },
+      {
+        "page": 15,
+        "text": "If you forget to level up you don’t get to select the card and gain the benefit of the item and will have to wait until the end of round to level up properly. If you are defeated, use your correct Tier and Level (as if you did level up)."
+      },
+      {
+        "page": 13,
+        "text": "Melee and ranged minions are worth 2 coins when defeated."
+      },
+      {
+        "page": 13,
+        "text": "Heavy minions are worth 4 coins if you can defeat one."
+      }
+    ],
+    "levelUp": [
+      {
+        "page": 15,
+        "text": "Leveling up is not optional! At the end of each round, you must purchase a level up if you have enough coins."
+      },
+      {
+        "page": 15,
+        "text": "If you have enough coins for multiple level ups, you must purchase as many levels as you can afford."
+      },
+      {
+        "page": 15,
+        "text": "You cannot skip a level. A level 1 hero needs 3 coins to reach level 3 (1 coin for the first level up, and 2 coins for the second)."
+      },
+      {
+        "page": 15,
+        "text": "All players who are leveling up upgrade their cards simultaneously. When finished, wait for all other players who are still leveling up to upgrade their cards before moving to the next step."
+      },
+      {
+        "page": 8,
+        "heading": "Collect a Pity Coin",
+        "text": "All players who have NOT leveled up this round collect 1 coin. You do not get to level up this round, even if you now have enough coins, after getting this extra coin."
+      },
+      {
+        "page": 16,
+        "text": "Once you unlock your Ultimate, you cannot gain any additional levels, but can still gain coins."
+      }
+    ],
+    "cardText": {
+      "page": 3,
+      "text": "If a card’s text directly contradicts the rules, the card’s text takes precedence."
+    }
+  },
+  "topics": [
+    {
+      "id": "turn-sequence",
+      "title": "Turn sequence & tied initiative",
+      "pages": [4, 7],
+      "keywords": ["round", "turn", "initiative", "tie", "tie breaker", "coin", "flip", "pass", "reveal", "resolve"],
+      "summary": "Everyone plays a card face down, all reveal, then cards resolve one at a time from the highest Initiative.",
+      "excerpts": [
+        {
+          "page": 7,
+          "heading": "Round Structure",
+          "text": "The game is split into rounds. Each round consists of four turns. On each turn, all players select and play one card simultaneously, then resolve them, one by one, in the initiative order.\nAfter four turns, the round ends, players take their cards back into their hand, and a new round begins."
+        },
+        {
+          "page": 7,
+          "heading": "Play One Card",
+          "text": "This part of the game is simultaneous. As soon as you are ready, select and play one Action card from your hand Facedown on any clear area of the game board."
+        },
+        {
+          "page": 7,
+          "text": "You must play a card, if able. You must play a card even if your hero is not on the board. If you have no cards left in your hand, you must announce that you are passing.\nOnce all players have either played a card Facedown, or passed, reveal the cards, by flipping them Faceup."
+        },
+        {
+          "page": 7,
+          "heading": "Check the Initiative",
+          "text": "The Initiative is the number in the top left corner of the Action card.\nIf your card has the highest Initiative, you act first, followed by the player with the next-highest Initiative, and so on.\nTies are broken by the Tie Breaker coin."
+        },
+        {
+          "page": 7,
+          "heading": "Tied Initiative",
+          "text": "• If two (or more) players on different teams are tied for the Initiative, look at the Tie Breaker coin. One of the tied players on the team whose symbol is currently revealed on the coin acts first.* After that player has resolved their card, that player (and only that player!) must flip the Tie Breaker coin to the other side.\n• If only players on the same team are tied for the Initiative, they have to decide which one of them will act first.* Do not flip the Tie Breaker coin in this case!\nAfter the player who acted first has resolved their card, check the Initiative again. Any remaining ties are resolved in the same way, flipping the Tie Breaker coin, when necessary.\n* Players on the same team have to agree on who acts first without discussing it (see Table talk on page 4)."
+        },
+        {
+          "page": 4,
+          "text": "For example, if two players on the same team are tied for the Initiative, they have to decide which one of them will act first. Since the cards are already revealed, they cannot discuss strategy at this point.\nIt would be legal for one of the players to say “I would really like you to go first”, but not “I need to go first, because I have to dodge that attack”. Players must come to an agreement, without discussing their rationale."
+        },
+        {
+          "page": 7,
+          "heading": "Perform One Action",
+          "text": "When it is your time to act, choose one and only one of the available actions to perform."
+        },
+        {
+          "page": 7,
+          "heading": "Resolve Your Card",
+          "text": "After you perform your one action, place your card Faceup on the current Turn slot of your hero dashboard — the card is now resolved, and the player with the highest Initiative on their unresolved card is next to act."
+        },
+        {
+          "page": 7,
+          "heading": "Turn Ends",
+          "text": "If you were the last player with an unresolved card, the turn ends. All active “This Turn” effects are canceled.\nIf this is the end of turn 4, the round ends — follow the “End of Round” steps. Otherwise, start another turn."
+        }
+      ]
+    },
+    {
+      "id": "hero-respawn",
+      "title": "Hero respawn",
+      "pages": [3, 7],
+      "keywords": ["respawn", "spawn point", "throne", "defeated", "off the board"],
+      "excerpts": [
+        {
+          "page": 7,
+          "heading": "Hero Respawn",
+          "text": "If your hero is not on the board, you may choose to respawn on any empty Spawn point in your Throne Zone before performing an action. If no empty Spawn points are available, respawn in the nearest empty space, adjacent to a Spawn point in your Throne Zone. You may also choose not to respawn and resolve your card without performing an action."
+        },
+        {
+          "page": 7,
+          "text": "You must play a card, if able. You must play a card even if your hero is not on the board."
+        },
+        {
+          "page": 3,
+          "text": "The Throne is where your hero starts the game and where they respawn when defeated."
+        }
+      ]
+    },
+    {
+      "id": "attack-defense",
+      "title": "Attack, defense & defeats",
+      "pages": [13, 14],
+      "keywords": ["attack total", "defense total", "defend", "discard", "block", "defeat", "defeated", "life counter", "assist", "coins", "minion defense modifiers"],
+      "excerpts": [
+        {
+          "page": 13,
+          "heading": "Attacking a Hero",
+          "text": "Unlike a minion, when you attack a hero, that hero has an opportunity to defend, by discarding a card and performing the Defense action of that card. The higher your Attack Value, the harder it is to defend against it."
+        },
+        {
+          "page": 13,
+          "heading": "Calculate Your Attack Total:",
+          "text": "• Attack value on your card\n• +1 for every Attack item you have\n• +/- Attack from the card text, if any.\nAfter calculating your Attack Total, announce it to the attacked hero. The attacked hero now gets a chance to defend, by using a Defense action. If the attacked hero has no cards in hand, is unable to defend, or chooses not to, that hero is defeated."
+        },
+        {
+          "page": 14,
+          "heading": "Defense Action",
+          "text": "When attacked, you have an opportunity to defend by performing a Defense action. After the attacker announces their Attack Total, you may reveal exactly one card from your hand and discard it, to perform its Defense action.\nA Defense action is different from all other actions:\n• You cannot perform a Defense action on an already played card! It can only be performed in response to an attack targeting you, by discarding exactly one card from your hand.\n• A Defense action does not count towards your 1 card per turn limit. You can defend each time you are attacked, as long as you have cards in your hand."
+        },
+        {
+          "page": 14,
+          "heading": "Calculate Your Defense Total:",
+          "text": "• Defense value on your card.\n• + Bonus defense from the card text, if any.\n• +1 for every Defense item you have.\n• + Minion defense modifiers"
+        },
+        {
+          "page": 14,
+          "heading": "Minion Defense Modifiers",
+          "text": "• +1 for every adjacent friendly melee or heavy minion.\n• -1 for every adjacent enemy melee or heavy minion.\n• -1 for every enemy ranged minion in radius of 2 spaces around you.\nIf your Defense total is equal or higher than the Attack Total, you successfully defend the Attack.\nYou cannot defend without discarding a card.\nIf you cannot defend successfully, or choose not to defend, you are defeated."
+        },
+        {
+          "page": 14,
+          "heading": "Block",
+          "text": "Defense cards with an exclamation mark on the icon allow you to Block an attack by fulfilling a Block condition in the card text. If the Block condition is fulfilled, you successfully defend, regardless of the attack value. If not, you are defeated."
+        },
+        {
+          "page": 14,
+          "heading": "Attack/Defense Detailed Order",
+          "text": "1. Attacker applies “Before the attack” text, if any.\n2. Calculate minion defense modifier.\n3. Defender may reveal and discard a card.\n4. Defender applies Defense action text, if any.\n5. Calculate the Defense total.\n6. Check if the attack was successful; if it was, remove the defending hero.\n7. Apply “After the attack:” text on the Attack card, if any.\n8. Defense action ends.\n9. Attack action ends."
+        },
+        {
+          "page": 13,
+          "heading": "When a Hero is Defeated:",
+          "text": "• Remove the defeated hero from the board.\n• If the defeated hero had an unresolved card, it is resolved, without performing an action.\n• Defeated hero’s actions with Active effects are canceled. Any markers they had are returned.\n• When you defeat an enemy hero, collect coins equal to that hero’s level. Your friendly heroes collect assist coins based on the defeated hero’s lowest card Tier.\n• Defeated hero’s team spends the number of Life counters, equal to that hero’s lowest card Tier. If the last counter is spent, the game ends and the team with no Life counters left, loses the game."
+        },
+        {
+          "page": 13,
+          "text": "You can never attack or defeat friendly heroes and minions!"
+        }
+      ]
+    },
+    {
+      "id": "minions",
+      "title": "Minions, minion coins & the Heavy minion",
+      "pages": [13, 18, 19],
+      "keywords": ["minion", "melee", "ranged", "heavy", "immune", "immunity", "coins", "remove", "battle zone"],
+      "excerpts": [
+        {
+          "page": 13,
+          "heading": "Attacking a Minion",
+          "text": "Minions cannot defend. When you target an enemy minion with an attack, it is simply defeated.\nWhen a minion is defeated, you collect the appropriate amount of coins for defeating that type of minion and the minion is removed from the board.\nRanged and melee minions are worth 2 coins when defeated, while heavy minions are worth 4, but are protected by the heavy minion immunity (see below).\nAs soon as the last remaining minion on either side is removed, the Lane is pushed immediately (See page 8)."
+        },
+        {
+          "page": 13,
+          "heading": "Heavy Minion Immunity",
+          "text": "As long as there are any friendly non-heavy minions in the Battle Zone, the heavy minion is Immune and can’t be affected by any actions (including actions of friendly heroes). To target an enemy heavy minion you have to first defeat or remove other non-heavy enemy minions in that Battle Zone."
+        },
+        {
+          "page": 19,
+          "heading": "Remove",
+          "text": "Remove a game piece (such as a miniature, or a token) from the board. Do not collect any coins."
+        },
+        {
+          "page": 18,
+          "heading": "Minions Outside of the Battle Zone",
+          "text": "Displacing a minion miniature (by moving, pushing, or swapping it) has no impact on the Minion Battle.\nIf any minion miniature ends up outside the Battle Zone after you perform an action, move it by the shortest path of empty spaces to an empty space in the same Battle Zone. This is only relevant for minions represented by minion miniatures; objects that count as minions are unaffected!\nIf there are multiple valid shortest paths, the minion’s team decides. If there is no path to the Battle Zone, or the minion cannot move, place that minion in the nearest empty space of the Battle Zone.\nIn rare cases where the order matters, the team whose symbol is currently revealed on the Tie Breaker coin moves their minion first. Do not flip the Tie Breaker coin."
+        }
+      ]
+    },
+    {
+      "id": "end-of-round",
+      "title": "End of round: the 6 steps",
+      "pages": [8, 15],
+      "keywords": ["minion battle", "tokens", "markers", "push", "wave counter", "retrieve", "level up", "pity coin", "mandatory"],
+      "excerpts": [
+        {
+          "page": 8,
+          "heading": "Minion Battle",
+          "text": "Count the number of minions each team has in the Battle Zone. If both teams have the same number of minions in the Battle Zone, the Minion Battle ends with no effect.\nIf one team has more minions in the Battle Zone than the other team, the team with fewer minions must remove a number of their minions (of their choice) equal to the difference from the Battle Zone. The Heavy minion must be removed last!"
+        },
+        {
+          "page": 8,
+          "text": "If you need to remove more minions than your team has in the Battle Zone, remove all your remaining minions in the Battle Zone."
+        },
+        {
+          "page": 8,
+          "heading": "Remove Tokens, Return Markers",
+          "text": "Remove all tokens from the board. Return all markers back into the supply."
+        },
+        {
+          "page": 8,
+          "heading": "Push the Lane",
+          "text": "As soon as one of the teams loses their last minion, the Lane is pushed. The team with one or more minions still remaining in the Battle Zone wins the push.\n1. Flip one Wave counter face-down. If the last remaining Wave counter is flipped, the game ends immediately and the team who won this final push wins the game.\n2. The next Zone towards the losing team’s Throne becomes the new Battle Zone. If the enemy Throne Zone itself becomes the new Battle Zone, the team who won the push wins the game.\n3. Remove all minions in the previous Battle Zone. Respawn one minion of the matching type in each Spawn point in the new Battle Zone (If a Spawn point is occupied by a token, first remove that token, then respawn the minion)."
+        },
+        {
+          "page": 8,
+          "heading": "Retrieve Cards",
+          "text": "Take back into your hand all your resolved and discarded cards. Card States are covered on page 10."
+        },
+        {
+          "page": 8,
+          "text": "This cancels all your Active effects, including “Next Turn” effects."
+        },
+        {
+          "page": 8,
+          "heading": "Level Up",
+          "text": "If you have enough coins to buy one or more level ups, you must do so now. Leveling up is covered in detail on pages 15-16."
+        },
+        {
+          "page": 15,
+          "text": "All players who are leveling up upgrade their cards simultaneously. When finished, wait for all other players who are still leveling up to upgrade their cards before moving to the next step."
+        },
+        {
+          "page": 8,
+          "heading": "Collect a Pity Coin",
+          "text": "All players who have NOT leveled up this round collect 1 coin. You do not get to level up this round, even if you now have enough coins, after getting this extra coin."
+        }
+      ]
+    },
+    {
+      "id": "levelling-up",
+      "title": "Levelling up, items & the Ultimate",
+      "pages": [15, 16],
+      "keywords": ["level", "coins", "upgrade", "tier", "item", "ultimate", "mandatory", "dashboard"],
+      "excerpts": [
+        {
+          "page": 15,
+          "heading": "Leveling Up",
+          "text": "Your hero starts the game at level 1. When you collect enough coins, you must purchase a level up."
+        },
+        {
+          "page": 15,
+          "text": "Leveling up is not optional! At the end of each round, you must purchase a level up if you have enough coins.\nThe cost of each level is shown on the left side of your hero dashboard.\nIf you have enough coins for multiple level ups, you must purchase as many levels as you can afford."
+        },
+        {
+          "page": 15,
+          "text": "You cannot skip a level. A level 1 hero needs 3 coins to reach level 3 (1 coin for the first level up, and 2 coins for the second).\nWhen you gain a new level, you choose a card in your hand with the lowest card Tier to upgrade. Since basic cards have no Tier, only non-basic cards can be upgraded."
+        },
+        {
+          "page": 15,
+          "heading": "Upgrade a Card",
+          "text": "Choose a non-basic Action card in your hand with the lowest card Tier or tied for the lowest. Return this card to your deck."
+        },
+        {
+          "page": 15,
+          "text": "Your Basic cards (Gold and Silver), are never upgraded, have no Tier, and are not considered when checking your lowest card Tier."
+        },
+        {
+          "page": 15,
+          "text": "You must first upgrade all your non-basic cards to Tier II, before upgrading your Tier II cards to Tier III."
+        },
+        {
+          "page": 15,
+          "text": "If you forget to level up you don’t get to select the card and gain the benefit of the item and will have to wait until the end of round to level up properly. If you are defeated, use your correct Tier and Level (as if you did level up)."
+        },
+        {
+          "page": 16,
+          "heading": "Gain an Item",
+          "text": "On the bottom of every Tier II and Tier III Action card, there is an Item icon. It matches the icon on one of four slots on the top of your hero dashboard.\nTake each card set aside during the Upgrade card step and tuck it Faceup under your hero dashboard, under the slot with a matching icon, so that only the item section of the card is visible — it becomes your new item.\nMultiple items can be placed under the same item slot.\nYour items must be clearly visible to the opposing team. If your item was not clearly visible or if it was not placed in the appropriate item slot, the item has no effect!"
+        },
+        {
+          "page": 16,
+          "heading": "Item Bonus",
+          "text": "Each item increases the value of the matching icon on each of your Action cards by +1.\nIf an Action card has no matching icon, the item has no effect on that particular Action card.\nItems never affect values in the card text, only the value of the Initiative, Attack, Defense, Movement, Range, or Radius icons on a card are affected."
+        },
+        {
+          "page": 16,
+          "heading": "The Ultimate",
+          "text": "Once you upgrade all your cards to Tier III, the next time you level up, instead of upgrading a card and gaining an item, you unlock the Ultimate card.\nThe Ultimate is a special Tier IV card. It provides you with a powerful permanent ability that is always in effect (as long as your hero is on the board).\nPlace it Faceup to the left side of your hero dashboard, facing the opposing team.\nOnce you unlock your Ultimate, you cannot gain any additional levels, but can still gain coins."
+        }
+      ]
+    },
+    {
+      "id": "active-effects",
+      "title": "Active effects: This turn, Next turn",
+      "pages": [8, 17, 18, 19],
+      "keywords": ["active effect", "this turn", "this round", "next turn", "end of turn", "end of round", "cancel", "sideways"],
+      "excerpts": [
+        {
+          "page": 17,
+          "heading": "Active Effects",
+          "text": "Active effects begin with a bold keyword (“Next Turn:”, “This Round:”, etc.), followed by the card text. This keyword indicates when the card text takes effect and how long it remains in effect.\nIf your Active effect has a Radius, it is always calculated from your current space (it “moves” with you)."
+        },
+        {
+          "page": 17,
+          "text": "After you are done performing the action, if it has an active effect, turn the card on its side to signal this to other players (See page 7). Once the effect no longer applies, flip the card vertically again."
+        },
+        {
+          "page": 17,
+          "text": "An Active effect on your card is cancelled:\n• When it no longer applies\n• If you are defeated\n• When the card changes state (See page 10), including at the end of the round\nIn cases when multiple Active effects come into effect at the same time, and the order in which they are applied matters, use the same method as when resolving tied initiative (See page 7), but do not flip the Tie Breaker coin."
+        },
+        {
+          "page": 19,
+          "heading": "This Turn / Round (Active Effect)",
+          "text": "The text that follows the “This Turn” / “This Round” keyword comes into effect immediately and remains in effect for the duration of that entire turn / round."
+        },
+        {
+          "page": 18,
+          "heading": "Next Turn (Active Effect)",
+          "text": "The text that follows the “Next turn” keyword comes into effect at the start of the next turn and remains in effect for the duration of that entire turn. See “Active Effects”."
+        },
+        {
+          "page": 18,
+          "heading": "Next Turn, After Playing Cards (Active Effect)",
+          "text": "The text that follows the “Next turn, after playing cards:” keyword is applied once next turn, after all players have played and revealed their cards. See “Active Effects”."
+        },
+        {
+          "page": 17,
+          "heading": "End of Turn (Active Effect)",
+          "text": "The text after a bold “End of turn” keyword is applied once, at the end of the current turn (after all players have had their chance to act). See “Active Effects”."
+        },
+        {
+          "page": 17,
+          "heading": "End of Round (Active Effect)",
+          "text": "The text after “End of Round” keyword is applied once, at the end of this round. See “Active Effects”."
+        },
+        {
+          "page": 8,
+          "heading": "Retrieve Cards",
+          "text": "This cancels all your Active effects, including “Next Turn” effects."
+        }
+      ]
+    },
+    {
+      "id": "pushing-the-lane",
+      "title": "Pushing the Lane",
+      "pages": [3, 8],
+      "keywords": ["push", "lane", "battle zone", "wave counter", "mid-turn", "minion", "spawn point", "throne"],
+      "excerpts": [
+        {
+          "page": 3,
+          "heading": "Battle Zone and “Pushing a Lane”",
+          "text": "A Lane is a sequence of Zones connecting the two Thrones. At the start of the game, all minions are placed in the Zone in the middle of the Lane, called the Battle Zone.\nIf all opposing minions are destroyed, your minions advance one Zone closer to the enemy Throne, and that Zone becomes the new Battle Zone. Defeated minions respawn in the new Battle Zone, and the fight continues — this is called “Pushing the Lane”.\nIf your minions ever Push the Lane into the enemy Throne, they capture it and your team wins!"
+        },
+        {
+          "page": 8,
+          "heading": "Push the Lane",
+          "text": "As soon as one of the teams loses their last minion, the Lane is pushed. The team with one or more minions still remaining in the Battle Zone wins the push.\n1. Flip one Wave counter face-down. If the last remaining Wave counter is flipped, the game ends immediately and the team who won this final push wins the game.\n2. The next Zone towards the losing team’s Throne becomes the new Battle Zone. If the enemy Throne Zone itself becomes the new Battle Zone, the team who won the push wins the game.\n3. Remove all minions in the previous Battle Zone. Respawn one minion of the matching type in each Spawn point in the new Battle Zone (If a Spawn point is occupied by a token, first remove that token, then respawn the minion)."
+        },
+        {
+          "page": 8,
+          "text": "A Lane can be Pushed both at the end of round, and in the middle of a turn.\nIf you defeat, or remove, the last remaining enemy minion in the Battle Zone, the Lane is immediately Pushed in the same way as it would during a Minion Battle.\nNote: A Lane Push can never be triggered by moving, pushing, or swapping a minion. It must be either defeated, or removed.\nIf the Lane is pushed in the middle of a turn, the turn continues in the Initiative order as normal."
+        },
+        {
+          "page": 8,
+          "text": "If a Spawn point is occupied by a non-token obstacle, the owning team must place that minion in the nearest empty space of their choice in the Battle Zone (starting with the team whose symbol is on the tie breaker coin)."
+        }
+      ]
+    },
+    {
+      "id": "table-talk",
+      "title": "Table talk & hidden information",
+      "pages": [4],
+      "keywords": ["talk", "strategy", "discuss", "communication", "hidden", "hand", "deck", "facedown", "read", "notes"],
+      "excerpts": [
+        {
+          "page": 4,
+          "heading": "Table Talk",
+          "text": "Guards of Atlantis II has strict rules for communication during the game. Following them ensures that the game is played as intended and runs smoothly. Several heroes are designed and balanced with these rules in mind.\nBetween turns, you are free to discuss strategy with your team, but it must be done out loud so that the other team can clearly hear you. You are not allowed to take notes or show each other cards (though you may read aloud information from your cards)."
+        },
+        {
+          "page": 4,
+          "text": "Use your best judgement to know when to discuss strategy, potentially revealing your plans to the opponents, and when to trust your teammates to do the right thing."
+        },
+        {
+          "page": 4,
+          "text": "Once the Action cards are revealed at the start of a turn, strategy discussions must stop. Players should read the cards played by others to gauge their opponents’ and teammates’ intentions, but each player must make decisions on their own.\nThis simulates the real-time nature of the battle.\nIf teammates need to make a coordinated decision after the Action cards have been revealed, they must do so without discussing strategy; they may simply state their preferences."
+        },
+        {
+          "page": 4,
+          "text": "For example, if two players on the same team are tied for the Initiative, they have to decide which one of them will act first. Since the cards are already revealed, they cannot discuss strategy at this point.\nIt would be legal for one of the players to say “I would really like you to go first”, but not “I need to go first, because I have to dodge that attack”. Players must come to an agreement, without discussing their rationale.\nIf a card instructs another player on your team to name a color, or choose a direction, you are not allowed to suggest which option you would like them to choose."
+        },
+        {
+          "page": 4,
+          "heading": "Hidden Information",
+          "text": "You can always ask another player to read any of their unresolved cards, resolved cards, and discarded cards, as well as visible information on their dashboards.\nEverything else is hidden information, including:\n• Cards in the deck.\n• Cards in hand.\n• The part of the card covered by your hero dashboard (more on this later).\n• Any facedown cards.\nNot knowing or not being 100% certain of the exact values and the exact text of every card is expected and is a part of the game."
+        },
+        {
+          "page": 4,
+          "text": "Exceptions can be made for first-time players. More experienced players are encouraged to reveal information, such as their initiative, attack, or defense value, to newer players during a teaching game."
+        }
+      ]
+    },
+    {
+      "id": "ways-to-win",
+      "title": "Ways to win",
+      "pages": [3, 8, 13, 20, 23],
+      "keywords": ["win", "victory", "throne", "last push", "wave counter", "life counter", "game end", "double lane"],
+      "excerpts": [
+        {
+          "page": 23,
+          "heading": "Ways to Win",
+          "text": "• Push the Lane into opposing Throne.\n• Win the “Last Push”.\n• Opposing team spends their last remaining Life counter."
+        },
+        {
+          "page": 8,
+          "text": "1. Flip one Wave counter face-down. If the last remaining Wave counter is flipped, the game ends immediately and the team who won this final push wins the game.\n2. The next Zone towards the losing team’s Throne becomes the new Battle Zone. If the enemy Throne Zone itself becomes the new Battle Zone, the team who won the push wins the game."
+        },
+        {
+          "page": 3,
+          "heading": "Last Push",
+          "text": "The game also ends when “time” runs out. Whenever a team Pushes the Lane, a Wave counter is removed. When the last counter is gone, the game ends immediately, and the team that won the last Push wins the game!"
+        },
+        {
+          "page": 13,
+          "text": "Defeated hero’s team spends the number of Life counters, equal to that hero’s lowest card Tier. If the last counter is spent, the game ends and the team with no Life counters left, loses the game."
+        },
+        {
+          "page": 20,
+          "text": "After the last Wave counter on either Lane is flipped, each team counts how many Zones on each Lane are between their Throne and that lane’s Battle Zone. The team with more total Zones between their Throne and both Battle Zones wins the game.\nIf both teams would win at the same time as the result of the push, spawn all minions in the Zones they occupied before the push and continue playing until only one team wins the game."
+        }
+      ]
+    },
+    {
+      "id": "double-lane",
+      "title": "Double-lane map",
+      "pages": [20],
+      "keywords": ["double lane", "two lanes", "8 players", "10 players", "battle zone", "wave counters"],
+      "excerpts": [
+        {
+          "page": 20,
+          "heading": "8 or 10 Players",
+          "text": "When playing with 8 or more players, use the double-lane map (see below)."
+        },
+        {
+          "page": 20,
+          "heading": "Playing on a Double-Lane Map",
+          "text": "The double-lane map has two individual Lanes each with its own Battle Zone and minions."
+        },
+        {
+          "page": 20,
+          "text": "Note: The double-lane map is considerably more challenging to play than a single-lane map. Make sure that every participant is very familiar with Guards of Atlantis II before using this map."
+        },
+        {
+          "page": 20,
+          "text": "During setup, place the minions in the two starting Battle Zones (Battle Zone 1 and Battle Zone 2, as shown in the image below).\nWhen playing with more than 3 heroes per team, place the remaining heroes into any empty spaces adjacent to their team’s occupied hero spawn points.\nPushes are tracked by two separate sets of Wave counters, one for each Lane. The number of Life counters used depends on the player count (See below)."
+        },
+        {
+          "page": 20,
+          "text": "When using the double-lane map, whenever an Action card refers to “the Battle Zone” treat it as “a Battle Zone”."
+        },
+        {
+          "page": 20,
+          "text": "Minions are bound to the Battle Zone they were originally spawned in for the purpose of respawning and when applying the “Minions Outside of the Battle Zone” rules (See page 18).\nMinion Battles in each of the two Battle Zones are resolved separately, but happen simultaneously.\n• After the last Wave counter on either Lane is flipped, each team counts how many Zones on each Lane are between their Throne and that lane’s Battle Zone. The team with more total Zones between their Throne and both Battle Zones wins the game.\nIf both teams would win at the same time as the result of the push, spawn all minions in the Zones they occupied before the push and continue playing until only one team wins the game."
+        }
+      ]
+    }
+  ]
+}

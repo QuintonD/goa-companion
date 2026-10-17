@@ -1,0 +1,4 @@
+{
+  "comment": "Reviewed overrides for the rules-reference drift check (--rules-only). Add an entry only where the rulebook PDF's text layer is scrambled (overlapping text frames) so a verbatim excerpt cannot be found on its page: compare the excerpt word by word with the rendered page image, then record {page, startsWith (the excerpt's first words), rulebookSha256 (the pinned PDF you reviewed), reason}. A confirmation stops counting as soon as the pinned rulebook changes. None are needed for the 2nd-printing PDF (PDFBox reads every quoted passage in order).",
+  "confirm": []
+}

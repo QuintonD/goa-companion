@@ -6,7 +6,9 @@ import kotlinx.serialization.json.Json
 
 /**
  * Catalog import (`./gradlew :tools:catalog-import:run`, see .claude/skills/import-catalog).
- * Flags (pass with `--args="..."`): `--offline` (cache only), `--no-images` (data only).
+ * Flags (pass with `--args="..."`): `--offline` (cache only), `--no-images` (data only),
+ * `--rules-only` (only the rules-reference drift check; `--rules-dump=<dir>` also writes each
+ * rulebook page's text layer to `<dir>/p<printed page>.txt`).
  * Paths are relative to the repository root (the run task's working directory).
  */
 fun main(args: Array<String>) {
@@ -25,6 +27,10 @@ fun main(args: Array<String>) {
     overrides.validate()
 
     val cache = SourceCache(File(toolDir, "cache"), offline)
+    if ("--rules-only" in args) {
+        val dump = args.firstOrNull { it.startsWith("--rules-dump=") }?.substringAfter('=')?.let(::File)
+        exitProcess(if (checkRules(root, lock, cache, dump)) 0 else EXIT_RULES)
+    }
     val result = Importer(lock, cache, overrides).run(withImages)
     if (result.unknownIcons.isNotEmpty()) {
         System.err.println(
@@ -38,7 +44,7 @@ fun main(args: Array<String>) {
     if (withImages) {
         val manifest = File(toolDir, "cache/assets-manifest.tsv")
         val encoded = AssetWriter(assetsDir, cache, manifest).write(result.assetSources)
-        output.writeSources(result)
+        output.writeSources(result, lock.documents)
         println("Images: ${result.assetSources.size} total, $encoded re-encoded")
     }
     ReportWriter(result, version, lock, overrides).write(File(toolDir, "REPORT.md"))
@@ -50,4 +56,23 @@ fun main(args: Array<String>) {
         "catalog-import: ${result.heroes.size} heroes, $cards cards, dataVersion $version, $verified verified, " +
             "$unresolved unresolved disagreement(s), ${cache.downloads} download(s)",
     )
+    if (!checkRules(root, lock, cache, dumpDir = null)) exitProcess(EXIT_RULES)
+}
+
+private const val EXIT_RULES = 3
+
+/**
+ * Rules-reference drift guard (docs/DECISIONS.md, "Rules reference"): every excerpt in
+ * `rules-reference.json` must still be on its page of the pinned rulebook. Prints the problems;
+ * true when there are none.
+ */
+private fun checkRules(root: File, lock: SourcesLock, cache: SourceCache, dumpDir: File?): Boolean {
+    val problems = RulesReferenceCheck.run(root, lock, cache, dumpDir)
+    if (problems.isEmpty()) {
+        println("rules-reference: every excerpt matches the pinned rulebook")
+        return true
+    }
+    System.err.println("rules-reference: ${problems.size} problem(s) against the pinned rulebook:")
+    problems.forEach { System.err.println("  - $it") }
+    return false
 }

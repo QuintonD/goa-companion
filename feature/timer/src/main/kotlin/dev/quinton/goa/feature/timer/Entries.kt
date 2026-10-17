@@ -3,9 +3,11 @@ package dev.quinton.goa.feature.timer
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import dev.quinton.goa.core.navigation.LevelLadderRoute
 import dev.quinton.goa.core.navigation.MatchEditRoute
 import dev.quinton.goa.core.navigation.MatchSetupRoute
 import dev.quinton.goa.core.navigation.Navigator
+import dev.quinton.goa.core.navigation.RulesRoute
 import dev.quinton.goa.core.navigation.SettingsRoute
 import dev.quinton.goa.core.navigation.TimerPresetEditRoute
 import dev.quinton.goa.core.navigation.TimerPresetsRoute
@@ -29,6 +31,8 @@ fun EntryProviderScope<NavKey>.timerEntries(navigator: Navigator) {
             onNewMatch = { minutes, mode ->
                 navigator.navigate(MatchEditRoute(matchId = null, prefillDurationMin = minutes, prefillMode = mode))
             },
+            onOpenLevels = { heroIds -> navigator.navigate(LevelLadderRoute(heroIds)) },
+            onOpenRules = { navigator.navigate(RulesRoute) },
         )
     }
     entry<MatchSetupRoute> { key ->

@@ -37,5 +37,17 @@
       "pinned": "2026-10-17",
       "use": "Number cross-check (server/<Hero>.csv; no Ignatia or Whisper)"
     }
+  ],
+  "documents": [
+    {
+      "id": "rulebook",
+      "name": "Guards of Atlantis II rulebook (2nd printing, web PDF)",
+      "url": "https://drive.usercontent.google.com/download?id=1qceAxzEcdkMYP-00F61wNiUiiyj6iJAc&export=download&confirm=t",
+      "landingPage": "https://wolffdesigna.com/products/guards-of-atlantis-ii-1",
+      "sha256": "2c19b11d632759e9e3517e6a1450d643c7308bc1499b40907b284fc65545ba98",
+      "printing": 2,
+      "pinned": "2026-10-17",
+      "use": "Rules authority; verbatim excerpts in catalog/rules-reference.json are checked against its text layer (--rules-only)"
+    }
   ]
 }

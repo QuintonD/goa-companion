@@ -53,7 +53,7 @@ class Output(private val assetsDir: File) {
         return version
     }
 
-    fun writeSources(result: ImportResult) {
+    fun writeSources(result: ImportResult, documents: List<PinnedDocument> = emptyList()) {
         val sb = StringBuilder()
         sb.appendLine("# Official assets — sources")
         sb.appendLine()
@@ -69,6 +69,17 @@ class Output(private val assetsDir: File) {
         result.assetSources.values.map { it.source }.distinctBy { it.id }
             .forEach { sb.appendLine("| https://github.com/${it.repo} | `${it.sha}` |") }
         sb.appendLine()
+        if (documents.isNotEmpty()) {
+            sb.appendLine(
+                "Verbatim rules text in `catalog/rules-reference.json` (hand-picked excerpts, checked against",
+            )
+            sb.appendLine("the document by `--rules-only`):")
+            sb.appendLine()
+            sb.appendLine("| Document | URL | SHA-256 |")
+            sb.appendLine("|---|---|---|")
+            documents.forEach { sb.appendLine("| ${it.name} | ${it.url} | `${it.sha256}` |") }
+            sb.appendLine()
+        }
         sb.appendLine("| File | Source |")
         sb.appendLine("|---|---|")
         result.assetSources.toSortedMap().forEach { (out, src) ->

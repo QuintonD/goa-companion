@@ -9,12 +9,14 @@ verification on the S25 Ultra pending. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## The product in one breath
 
-Four features, offline-first, pass-and-play on one phone at the table:
+Five features, offline-first, pass-and-play on one phone at the table:
 
 1. **Hero catalog** — browse/search/filter heroes, their cards, tiers and abilities.
 2. **Phase timer** — configurable countdowns per game phase, built for table use.
 3. **Players & meta** — friends list, match log, Elo per player and per hero, meta stats.
 4. **Draft** — configurable pick/ban drafting that feeds straight into a match record.
+5. **Rules reference** — level & defeat ladder and verbatim quick-reference topics, checked
+   against the pinned rulebook (`--rules-only`, ADR-019).
 
 Details and acceptance criteria: [docs/PRODUCT.md](docs/PRODUCT.md).
 
@@ -59,6 +61,7 @@ Windows (PowerShell) uses `.\gradlew.bat`; POSIX uses `./gradlew`. C: is nearly 
 
 ```
 .\gradlew.bat :tools:catalog-import:run  # rebuild catalog JSON + images from pinned sources
+.\gradlew.bat :tools:catalog-import:run --args="--rules-only"  # rules-reference.json vs the pinned rulebook
 .\gradlew.bat assembleDebug            # build
 .\gradlew.bat testDebugUnitTest        # JVM unit tests (domain, data, VM)
 .\gradlew.bat verifyRoborazziDebug     # screenshot regression

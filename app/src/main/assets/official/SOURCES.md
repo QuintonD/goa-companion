@@ -9,6 +9,13 @@ WebP q80 (cards ≤ 768 px, portraits ≤ 512 px on the long edge).
 | https://github.com/dmrediger/goa2 | `23544c3a8545edc03954c3d4334989803d42afff` |
 | https://github.com/yvo-niedrich/goa2-faq | `b841b76c466b1a88323579737080f0a7bbf596b0` |
 
+Verbatim rules text in `catalog/rules-reference.json` (hand-picked excerpts, checked against
+the document by `--rules-only`):
+
+| Document | URL | SHA-256 |
+|---|---|---|
+| Guards of Atlantis II rulebook (2nd printing, web PDF) | https://drive.usercontent.google.com/download?id=1qceAxzEcdkMYP-00F61wNiUiiyj6iJAc&export=download&confirm=t | `2c19b11d632759e9e3517e6a1450d643c7308bc1499b40907b284fc65545ba98` |
+
 | File | Source |
 |---|---|
 | `official/cards/arien-blue-1.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/base/arien/arien-4.jpeg |

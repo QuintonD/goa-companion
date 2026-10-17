@@ -19,7 +19,7 @@ SHAs on 2026-10-17.
 | 2 | **dmrediger/goa2** — `public/hero-cards/<pack>/<hero>/<hero>-<n>.jpeg` (729×1026; 0 = hero card, highest = card back; deck order varies by hero, so scans are matched by artwork), `…/gydion/gydions-spellbook/<level-N\|ult>/spellbook-<n>.jpeg` | Full card images (bundled); visual check of every disputed value |
 | 3 | **yvo-niedrich/goa2-faq** — `build/data/heroes.json` (lore, advice, stats, roles), `build/data/cards/<hero>.json` (+ `gydion_spellbook.json`), `build/data/faqs/<hero>.json` + `common.json`, `public/hero/<hero>.png` (portraits). No mojibake at the pinned SHA (repair kept). | Cross-check text; lore, **FAQ rulings**, portraits. Wording sometimes paraphrased or misspelt; card names differ for 4 cards |
 | 4 | **colefin8/guards-of-atlantis-ii-data** — `server/<Hero>.csv` (no Ignatia, Whisper; `Min.csv` holds another hero's cards; Range vs Radius item labels unreliable; some values shifted) | Cross-check numbers |
-| 5 | **Official rulebook PDF**: "latest version of the rules" linked from wolffdesigna.com/products/guards-of-atlantis-ii-1 (Google Drive id `1qceAxzEcdkMYP-00F61wNiUiiyj6iJAc`, 24 pages, text layer). The rules authority. | Rules, terminology |
+| 5 | **Official rulebook PDF**: "latest version of the rules" linked from wolffdesigna.com/products/guards-of-atlantis-ii-1 (Google Drive id `1qceAxzEcdkMYP-00F61wNiUiiyj6iJAc`, 24 pages, text layer), pinned by SHA-256 in `sources.lock.json` (`documents`). The rules authority. | Rules, terminology, verbatim excerpts in `rules-reference.json` |
 | 6 | BGG via `api.geekdo.com` JSON (HTML and XML API are blocked): IDs, "(2nd Printing)" hero spotlight threads | Strategy notes, roster check |
 
 `verified: true` = numeric fields agree between sources 1 and 4 (or 1 and the card image)
@@ -217,9 +217,40 @@ asks "Red shows / Blue shows"; a tapped flip can be undone for 5 s.
   Complex, ★★★★ Wizard. 2–6 role icons. Descriptive, not used in play.
 - **Coins** (pp.13–16): defeating a hero pays its level in coins; teammates get assist coins
   equal to its lowest tier; melee and ranged minions 2, heavy minions 4. Reaching level 8
-  costs 28 coins in total.
+  costs 28 coins in total (1 + 2 + … + 7, the p.15 table; the rulebook doesn't print the sum).
 - **Starting hand:** Gold, Silver and the three Tier I cards; the Handicap card goes back to
   the box unless used (p.6).
+
+## Rules reference (`assets/catalog/rules-reference.json`) [RB]
+Hand-curated, verbatim, checked by machine (ADR-019). Model: `core:model` `RulesReference`.
+- **Source:** the official rulebook PDF (source 5), pinned in `tools/catalog-import/sources.lock.json`
+  under `documents` by URL + SHA-256 (`2c19b11d…`, 2nd printing, 24 PDF pages). Page numbers
+  everywhere are the **printed** page numbers (PDF page = printed page + 1).
+- **Ladder** (`ladder.levels`, levels 1–8): `lowestTier`, `defeatCoins`, `assistCoins` (p.13
+  table), `lifeCounters` (p.23 "Assist coins / Life counters" column; = lowest card Tier, p.13
+  text), `levelUpCost` = cost to reach *this* level (p.15 "Level Up cost", null at 1) and
+  `maxTier` (p.15 "Max card Tier", null at 1, 4 = Ultimate). The UI's "Next level" column reads
+  the following row's `levelUpCost`. `ladder.defeat` / `levelUp` / `cardText` are the verbatim
+  rules shown with the table (p.3, p.8, p.13, p.15, p.16).
+- **Card exceptions** are not stored: the sheet runs a catalog text query
+  (`DefeatExceptions`: `{life}` icon, "Life counter" or "assist coin" in the text, incl.
+  Handicap cards and extras) over the match's heroes (all heroes without a match) and quotes
+  the cards. At dataVersion 2: Bain *Dead or Alive* (Gold) and *Side Quest* (Handicap), Ursafar
+  *Tear*, Gydion *Energy Drain* (spellbook), Rowenna *Glorious Triumph*.
+- **Topics** (`topics`): id, title, printed `pages`, search `keywords`, optional `summary`
+  (our words, always shown labelled "Summary"), and `excerpts` (page, the rulebook's own
+  `heading`, verbatim `text`; `\n` separates paragraphs, "• " and "1. " lines are the printed
+  bullets and numbered steps). An excerpt is one contiguous passage of one text frame.
+- **Drift check:** `:tools:catalog-import:run --args="--rules-only"` (also at the end of every
+  import) extracts the PDF's text layer per page with PDFBox and requires every excerpt, every
+  heading and the three tables' rows to appear on their page after normalising (whitespace,
+  line-break hyphens and dashes removed, quotes unified, case folded). A changed PDF fails the
+  SHA-256 pin first. `tools/catalog-import/rules-confirm.json` holds reviewed overrides for
+  passages the text layer scrambles, each tied to the reviewed PDF's SHA-256; none are needed
+  for the 2nd printing. `--rules-dump=<dir>` writes each page's text for authoring excerpts.
+- **Tests:** `RulesReferenceDataTest` (costs 1–7 summing to 28, tiers follow the upgrade rule,
+  coins/assists/Life counters follow p.13, every topic loads with page refs), `DefeatExceptionsTest`
+  (the five cards above), `RulesCheckTest` (importer guard).
 
 ## Core model (`core:model`, code is authoritative)
 Catalog types are `@Serializable` and shared by the importer and the app

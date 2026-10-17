@@ -3,6 +3,7 @@ package dev.quinton.goa.tools.catalogimport
 import java.io.File
 import java.io.IOException
 import java.net.URLEncoder
+import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -10,10 +11,35 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 
 @Serializable
-data class SourcesLock(val comment: String? = null, val sources: List<PinnedSource>) {
+data class SourcesLock(
+    val comment: String? = null,
+    val sources: List<PinnedSource>,
+    /** Single files pinned by URL + SHA-256 (the official rulebook PDF). */
+    val documents: List<PinnedDocument> = emptyList(),
+) {
     fun source(id: String): PinnedSource =
         sources.firstOrNull { it.id == id } ?: error("Source '$id' missing from sources.lock.json")
+
+    fun document(id: String): PinnedDocument =
+        documents.firstOrNull { it.id == id } ?: error("Document '$id' missing from sources.lock.json")
 }
+
+/**
+ * A single downloadable file pinned by content: [sha256] of the exact bytes. A different file at
+ * [url] (e.g. a reworded rulebook for a new printing) fails the download instead of being used.
+ */
+@Serializable
+data class PinnedDocument(
+    val id: String,
+    val name: String,
+    val url: String,
+    /** Where a human finds the file (the publisher's page that links it). */
+    val landingPage: String? = null,
+    val sha256: String,
+    val printing: Int,
+    val pinned: String,
+    val use: String,
+)
 
 @Serializable
 data class PinnedSource(
@@ -71,6 +97,41 @@ class SourceCache(private val cacheDir: File, private val offline: Boolean) {
 
     fun text(source: PinnedSource, path: String): String = file(source, path).readText(Charsets.UTF_8)
 
+    /**
+     * The pinned document, cached as `documents/<id>/<sha256>.pdf`. Its bytes must hash to the
+     * pinned SHA-256, both when downloaded and when read back from the cache.
+     */
+    fun document(doc: PinnedDocument): File {
+        val target = File(cacheDir, "documents/${doc.id}/${doc.sha256.lowercase()}.pdf")
+        if (!target.isFile || target.length() == 0L) {
+            check(!offline) { "Offline and not cached: ${doc.name} (${doc.url})" }
+            download(doc.url, target)
+        }
+        val actual = sha256(target)
+        if (!actual.equals(doc.sha256, ignoreCase = true)) {
+            target.delete()
+            error(
+                "${doc.name} changed: ${doc.url} now has SHA-256 $actual, pinned ${doc.sha256}. " +
+                    "A new printing or revision? Review every rules excerpt against it, then re-pin it in " +
+                    "sources.lock.json.",
+            )
+        }
+        return target
+    }
+
+    private fun sha256(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(BUFFER_SIZE)
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
     fun tree(source: PinnedSource): GitTree {
         val target = File(dirOf(source), ".tree.json")
         if (!target.isFile) {
@@ -92,5 +153,9 @@ class SourceCache(private val cacheDir: File, private val offline: Boolean) {
             check(tmp.renameTo(target) || (target.delete() && tmp.renameTo(target))) { "Cannot move $tmp" }
             downloads++
         }
+    }
+
+    private companion object {
+        const val BUFFER_SIZE = 1 shl 16
     }
 }

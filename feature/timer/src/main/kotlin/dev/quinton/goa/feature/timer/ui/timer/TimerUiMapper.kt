@@ -76,6 +76,7 @@ internal object TimerUiMapper {
             shotClockSeconds = s.preset.shotClockSeconds,
             timeOuts = timeOuts(s, step),
             volumeKeys = s.preset.volumeKeys,
+            heroIds = seats.orEmpty().mapNotNull { it.heroId },
         )
     }
 
@@ -128,6 +129,7 @@ internal object TimerUiMapper {
                     else -> ChecklistState.UPCOMING
                 },
                 timerName = timer?.let { "${it.name} ${TimerText.durationLabel(it.seconds)}" },
+                id = end.id,
             )
         }
     }
