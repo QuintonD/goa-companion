@@ -161,7 +161,9 @@ class MatchSetupTest {
         assertThat(plan.selected.mode).isEqualTo(GameMode.DOUBLE_LANE)
         assertThat(plan.selected.lifeCountersPerTeam).isEqualTo(6)
         // An explicit choice is still honoured, even without listed Life counters.
-        assertThat(setup.plan(7, layoutId = "handicap-7", mode = GameMode.QUICK).selected.mode).isEqualTo(GameMode.QUICK)
+        assertThat(
+            setup.plan(7, layoutId = "handicap-7", mode = GameMode.QUICK).selected.mode,
+        ).isEqualTo(GameMode.QUICK)
     }
 
     @Test
