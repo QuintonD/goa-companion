@@ -8,6 +8,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -69,7 +70,10 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.draft.SlotStep
 import dev.quinton.goa.core.domain.draft.TeamSlot
+import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Hero
+import dev.quinton.goa.core.model.catalog.HeroStats
+import dev.quinton.goa.core.model.catalog.Role as HeroRole
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.match.Team
 
@@ -98,6 +102,40 @@ internal fun teamLabel(team: Team): String = "${teamGlyph(team)} ${teamName(team
 
 internal fun actionName(action: DraftAction): String = if (action == DraftAction.BAN) "Ban" else "Pick"
 
+/** "1 game", "2 games"; [many] for irregular plurals ("heroes"). */
+internal fun plural(count: Int, one: String, many: String = "${one}s"): String =
+    "$count ${if (count == 1) one else many}"
+
+/** Official role names (rulebook p.21 Hero Profile card). */
+internal val HeroRole.label: String
+    get() = when (this) {
+        HeroRole.TACTICIAN -> "Tactician"
+        HeroRole.DISABLER -> "Disabler"
+        HeroRole.DURABLE -> "Durable"
+        HeroRole.MELEE -> "Melee"
+        HeroRole.PUSHER -> "Pusher"
+        HeroRole.DAMAGER -> "Damager"
+        HeroRole.SNIPER -> "Sniper"
+        HeroRole.TOKENS -> "Tokens"
+        HeroRole.FARMING -> "Farming"
+        HeroRole.HEALER -> "Healer"
+    }
+
+/** One of a hero's starting cards, for the draft's hero peek. */
+@Immutable
+data class CardInfo(val name: String, val color: CardColor, val tier: Int?)
+
+/**
+ * The five starting cards, selected from the catalog by tier and colour (never hard-coded):
+ * "the three Tier I cards and the two basic cards with no Tier" [RB p.6, Hero Setup]. Basic cards
+ * are the Gold and Silver cards (RB p.9). Order: Gold, Silver, then Tier I by colour.
+ */
+internal fun startingCards(hero: Hero): List<CardInfo> {
+    val basic = hero.cards.filter { it.tier == null && (it.color == CardColor.GOLD || it.color == CardColor.SILVER) }
+    val tierOne = hero.cards.filter { it.tier == 1 }
+    return (basic + tierOne).sortedBy { it.color.ordinal }.map { CardInfo(it.name, it.color, it.tier) }
+}
+
 /** Display data for one hero; unknown ids render as "Unknown hero" (ARCHITECTURE.md). */
 @Immutable
 data class HeroInfo(
@@ -107,9 +145,21 @@ data class HeroInfo(
     val portrait: String? = null,
     val complexity: Int? = null,
     val known: Boolean = true,
+    val roles: List<HeroRole> = emptyList(),
+    val stats: HeroStats = HeroStats(),
+    val startingCards: List<CardInfo> = emptyList(),
 ) {
     companion object {
-        fun of(hero: Hero) = HeroInfo(hero.id, hero.name, hero.title, hero.portrait, hero.complexity)
+        fun of(hero: Hero) = HeroInfo(
+            id = hero.id,
+            name = hero.name,
+            title = hero.title,
+            portrait = hero.portrait,
+            complexity = hero.complexity,
+            roles = hero.roles,
+            stats = hero.stats,
+            startingCards = startingCards(hero),
+        )
 
         fun unknown(id: String) = HeroInfo(id, "Unknown hero", known = false)
     }
@@ -129,7 +179,10 @@ sealed interface TileState {
     data class Picked(val team: Team) : TileState
 }
 
-/** A hero tile: official art in our frame, name, and its draft state (struck/dimmed when banned). */
+/**
+ * A hero tile: official art in our frame, name, and its draft state (struck/dimmed when banned).
+ * [onLongClick] opens the hero peek; a tile without [onClick] then opens it on tap too.
+ */
 @Composable
 internal fun HeroTile(
     hero: HeroInfo,
@@ -137,6 +190,8 @@ internal fun HeroTile(
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     selected: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+    compact: Boolean = false,
 ) {
     val reduced = rememberReducedMotion()
     val alpha by animateFloatAsState(
@@ -169,10 +224,23 @@ internal fun HeroTile(
         modifier
             .clip(shape)
             .then(
-                if (onClick != null) {
-                    Modifier.clickable(role = Role.Button, onClickLabel = "Choose ${hero.name}", onClick = onClick)
-                } else {
-                    Modifier
+                when {
+                    onLongClick != null -> Modifier.combinedClickable(
+                        role = Role.Button,
+                        onClickLabel = when {
+                            onClick == null -> "Show ${hero.name}"
+                            state == TileState.Inactive -> "Why ${hero.name} can't be chosen"
+                            else -> "Choose ${hero.name}"
+                        },
+                        onLongClickLabel = "Show ${hero.name}",
+                        onLongClick = onLongClick,
+                        onClick = onClick ?: onLongClick,
+                    )
+
+                    onClick != null ->
+                        Modifier.clickable(role = Role.Button, onClickLabel = "Choose ${hero.name}", onClick = onClick)
+
+                    else -> Modifier
                 },
             )
             .semantics(mergeDescendants = true) {
@@ -217,10 +285,10 @@ internal fun HeroTile(
                 else -> Unit
             }
         }
-        Spacer(Modifier.height(Spacing.xs))
+        Spacer(Modifier.height(if (compact) 2.dp else Spacing.xs))
         Text(
             text = hero.name,
-            style = MaterialTheme.typography.labelLarge,
+            style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
@@ -367,6 +435,7 @@ internal fun SectionCard(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     trailing: (@Composable () -> Unit)? = null,
+    titleColor: Color = MaterialTheme.colorScheme.primary,
     content: @Composable () -> Unit,
 ) {
     Surface(
@@ -378,7 +447,7 @@ internal fun SectionCard(
         Column(Modifier.padding(Spacing.lg)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    Text(title, style = MaterialTheme.typography.titleMedium, color = titleColor)
                     if (subtitle != null) {
                         Text(
                             subtitle,
@@ -473,6 +542,18 @@ internal fun goaFilterChipColors(): SelectableChipColors = FilterChipDefaults.fi
     selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
     selectedTrailingIconColor = MaterialTheme.colorScheme.primary,
 )
+
+/** Filter chip in a team's colour (Tie Breaker "Red shows" / "Blue shows"). */
+@Composable
+internal fun teamFilterChipColors(team: Team): SelectableChipColors {
+    val color = teamColor(team)
+    return FilterChipDefaults.filterChipColors(
+        labelColor = color,
+        selectedContainerColor = color.copy(alpha = 0.18f),
+        selectedLabelColor = color,
+        selectedLeadingIconColor = color,
+    )
+}
 
 @Composable
 internal fun goaSegmentedColors(): SegmentedButtonColors = SegmentedButtonDefaults.colors(

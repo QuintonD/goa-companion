@@ -18,8 +18,9 @@ data class SlotStep(
  * the method editor previews it and the engine walks it (undo = drop the last result).
  *
  * Rules applied to every method:
- * - a pick for a team whose seats are all filled is skipped (the rulebook's odd-count rule for
- *   Pick and Ban, and how the House draft ends with a single last pick);
+ * - a pick for a team whose seats are all filled is skipped [APP]. The rulebook gives Pick and
+ *   Ban sequences for even counts only; skipping the smaller team's surplus pick is the app's
+ *   choice for odd layouts. It is also how the House draft ends with a single last pick;
  * - the draft ends as soon as every seat is filled (no trailing bans).
  */
 object DraftPlanner {

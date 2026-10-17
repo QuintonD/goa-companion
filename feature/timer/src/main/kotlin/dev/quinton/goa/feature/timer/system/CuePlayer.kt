@@ -1,9 +1,11 @@
 package dev.quinton.goa.feature.timer.system
 
 import android.content.Context
+import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Build
+import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -20,11 +22,15 @@ interface CuePlayer {
     fun tap(haptics: Boolean)
 }
 
-/** Generated tones (no bundled audio) and vibration patterns; warnings are short, zero is long. */
+/**
+ * Generated tones and vibration patterns; warnings are short, zero is long. Tones play on the
+ * alarm stream and vibration uses alarm usage, so cues still work on a phone set to silent or
+ * vibrate, or with touch feedback off. The in-app Sounds/Haptics switches still gate them.
+ */
 @Singleton
 class AndroidCuePlayer @Inject constructor(@ApplicationContext private val context: Context) : CuePlayer {
     private val tones: ToneGenerator? by lazy {
-        runCatching { ToneGenerator(AudioManager.STREAM_NOTIFICATION, TONE_VOLUME) }.getOrNull()
+        runCatching { ToneGenerator(AudioManager.STREAM_ALARM, TONE_VOLUME) }.getOrNull()
     }
 
     private val vibrator: Vibrator? by lazy {
@@ -44,17 +50,28 @@ class AndroidCuePlayer @Inject constructor(@ApplicationContext private val conte
                 if (final) FINAL_TONE_MS else WARNING_TONE_MS,
             )
         }
-        if (haptics) vibrate(if (final) FINAL_PATTERN else WARNING_PATTERN)
+        if (haptics) vibrate(if (final) FINAL_PATTERN else WARNING_PATTERN, alarm = true)
     }
 
     override fun tap(haptics: Boolean) {
-        if (haptics) vibrate(TAP_PATTERN)
+        if (haptics) vibrate(TAP_PATTERN, alarm = false)
     }
 
-    private fun vibrate(pattern: LongArray) {
+    private fun vibrate(pattern: LongArray, alarm: Boolean) {
         val v = vibrator ?: return
         if (!v.hasVibrator()) return
-        v.vibrate(VibrationEffect.createWaveform(pattern, -1))
+        val effect = VibrationEffect.createWaveform(pattern, -1)
+        when {
+            !alarm -> v.vibrate(effect)
+
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ->
+                v.vibrate(effect, VibrationAttributes.createForUsage(VibrationAttributes.USAGE_ALARM))
+
+            else -> {
+                @Suppress("DEPRECATION")
+                v.vibrate(effect, AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build())
+            }
+        }
     }
 
     private companion object {

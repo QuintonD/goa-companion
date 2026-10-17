@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.database.dao.MatchDao
+import dev.quinton.goa.core.model.match.Team
 import java.io.File
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -15,8 +16,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Migration baseline: schema v1 is exported to `core/database/schemas` and must open cleanly.
- * Every future version bump adds a `migrate_N_to_N+1` test here (ARCHITECTURE.md).
+ * Every exported schema (`core/database/schemas`) must migrate to the current version without
+ * losing data. Each version bump adds a `migrate_N_to_N+1` test here (ARCHITECTURE.md).
  */
 @RunWith(RobolectricTestRunner::class)
 class MigrationTest {
@@ -31,13 +32,12 @@ class MigrationTest {
         databaseClass = GoaDatabase::class,
     )
 
-    @Test
-    fun schemaV1CreatesAndRoomOpensIt() = runTest {
+    private suspend fun seedV1() {
         helper.createDatabase(1).apply {
             execSQL(
                 "INSERT INTO matches (id, created_at, played_at, status, mode, map, winner, win_condition, " +
                     "duration_min, notes, draft_id) " +
-                    "VALUES ('m1', 1, 2, 'completed', 'quick', NULL, 'red', NULL, NULL, '', NULL)",
+                    "VALUES ('m1', 1, 2, 'completed', 'quick', NULL, 'red', NULL, NULL, '', 'd1')",
             )
             execSQL(
                 "INSERT INTO participants (match_id, seat_index, player_id, hero_id, team, handicap) " +
@@ -45,16 +45,39 @@ class MigrationTest {
             )
             close()
         }
-        val db = androidx.room3.Room.databaseBuilder(
-            ApplicationProvider.getApplicationContext(),
-            GoaDatabase::class.java,
-            dbFile.absolutePath,
-        ).setDriver(AndroidSQLiteDriver()).build()
-        helper.closeWhenFinished(db)
-        val dao: MatchDao = db.matchDao()
+    }
+
+    private fun openCurrent(): GoaDatabase = androidx.room3.Room.databaseBuilder(
+        ApplicationProvider.getApplicationContext(),
+        GoaDatabase::class.java,
+        dbFile.absolutePath,
+    ).addMigrations(*GoaDatabase.MIGRATIONS.toTypedArray()).setDriver(AndroidSQLiteDriver()).build()
+        .also { helper.closeWhenFinished(it) }
+
+    @Test
+    fun migrate1To2AddsAnEmptyTieBreakerAndKeepsTheMatch() = runTest {
+        seedV1()
+        helper.runMigrationsAndValidate(2, listOf(GoaDatabase.MIGRATION_1_2)).use { connection ->
+            connection.prepare("SELECT tie_breaker, draft_id FROM matches WHERE id = 'm1'").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.isNull(0)).isTrue()
+                assertThat(it.getText(1)).isEqualTo("d1")
+            }
+        }
+    }
+
+    @Test
+    fun v1DatabaseOpensAtTheCurrentVersionAndStoresTheCoin() = runTest {
+        seedV1()
+        val dao: MatchDao = openCurrent().matchDao()
         val match = dao.getAll().single().toModel()
         assertThat(match.id).isEqualTo("m1")
+        assertThat(match.winner).isEqualTo(Team.RED)
         assertThat(match.participants.single().heroId).isNull()
-        assertThat(GoaDatabase.VERSION).isEqualTo(1)
+        assertThat(match.tieBreaker).isNull()
+
+        dao.upsert(match.copy(tieBreaker = Team.BLUE).toEntity(), match.participantEntities())
+        assertThat(dao.getAll().single().toModel().tieBreaker).isEqualTo(Team.BLUE)
+        assertThat(GoaDatabase.VERSION).isEqualTo(2)
     }
 }

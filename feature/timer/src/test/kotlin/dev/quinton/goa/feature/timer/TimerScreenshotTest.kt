@@ -64,7 +64,38 @@ class TimerScreenshotTest {
 
     @Test fun actionTimerDark() = active(TimerPreviewData.action)
 
+    @Test fun actionTimerTenHeroesDark() = active(TimerPreviewData.actionTen)
+
+    @Test fun resolveDark() = active(TimerPreviewData.resolve)
+
+    @Test fun hurryUpDark() = active(TimerPreviewData.hurryUp)
+
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    fun turnLandscapeDark() = active(TimerPreviewData.turn)
+
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    fun upgradeLandscapeDark() = active(TimerPreviewData.upgrade)
+
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    fun checklistLandscapeDark() = active(TimerPreviewData.checklistStep)
+
+    @Test
+    @Config(fontScale = 1.3f)
+    fun checklistLongNextFontScale13() = active(TimerPreviewData.checklistLongNext)
+
+    @Test
+    @Config(fontScale = 1.3f)
+    fun upgradeFontScale13() = active(TimerPreviewData.upgrade)
+
     @Test fun summaryDark() = capture { TimerScreen(TimerPreviewData.summary, TimerActions()) }
+
+    @Test fun summaryUnlinkedDark() = capture {
+        val unlinked = TimerPreviewData.summary.summary!!.copy(hasMatch = false)
+        TimerScreen(TimerUiState(loading = false, summary = unlinked), TimerActions())
+    }
 
     @Test fun setupDark() = capture { MatchSetupScreen(TimerPreviewData.setup, SetupActions()) }
 

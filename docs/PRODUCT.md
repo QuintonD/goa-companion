@@ -33,15 +33,25 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
 
 ### 2. Match setup and timer
 - **Setup:** pick mode (Quick / Long / Double lane) and players → app shows Wave and Life
-  counters to lay out (DOMAIN.md table), handicap reminders for odd counts, and which team's symbol
-  shows on the Tie Breaker coin.
+  counters to lay out (DOMAIN.md table), handicap reminders for odd counts, a "House rule" label
+  wherever the double-pilot count gives different numbers than the rulebook's per-player rules,
+  the Double lane rules (p.20) when Double lane is chosen, and which team's symbol shows on the
+  Tie Breaker coin. After a draft the coin is the draft's (leave it as it is; "Correct the coin"
+  fixes a mistake); without a draft the app flips it. The coin is saved to the match and the
+  timer starts with it.
 - **Rule timers per phase** (owner's table rules): Pre-round strategy 1:30 → 4 × Turn 0:30 →
   Upgrade 2:00 during the end-of-round Level Up step; optional per-hero Action timer. Every
   phase is configurable (on/off, duration, cues, auto-advance) and presets are saved/editable.
   Defaults in DOMAIN.md.
 - Big, glanceable countdown; tap to pause; next/back; round and turn pips; overtime counts up.
+  Each turn is "Play a card" (timed) then an untimed "Resolve" step after the reveal, so
+  resolution never shows as overtime. Back right after an accidental Next restores the phase
+  with its time; double taps don't skip phases. Side-by-side layout in landscape.
+- Table rules (house rules, per preset): on-demand "Hurry up" countdown, optional team
+  time-outs, opt-in volume-key control; "turn length tonight" adjustable from the start card.
 - Action timer: tap "next" as each player resolves; shows whose turn it is if heroes known.
-- **End of round:** tap-through checklist of the six official steps, then next round.
+- **End of round:** tap-through checklist of the six official steps (each with a short
+  rulebook summary, p.8 and p.15), then next round.
 - Haptic + audio cues at configurable thresholds (e.g. 10 s, 5 s, 0).
 - Correct when backgrounded, locked or after process death: countdown notification with
   controls (promoted Live Update on Android 16+), alarm at phase end. Screen stays awake on
@@ -70,7 +80,15 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
   alternate pairs, single last pick) plus the official All Random, All Pick, Single Draft,
   Random Draft and Pick and Ban (exact sequences in DOMAIN.md); custom methods can be saved. Animated Tie Breaker coin flip decides Team A.
 - Pass-and-play UI with clear "Team Red — Ban" prompts, hidden picks where the method needs
-  them, optional per-step timer, undo at every step, then assign picks to players.
+  them, optional per-step timer, undo at every step (with "Undid …" feedback and Redo), then
+  assign picks to players. The step banner stays on screen while the pool scrolls; the pool is
+  dense (about five tiles across) with name search, role filters and "Hide taken", and taken
+  heroes shrink to chips. Long-press a hero for a peek (★, roles, stats, starting cards, link to
+  the hero page); each team shows the roles its revealed picks cover. Single Draft shows the
+  current player's own heroes first.
+- The setup form (players, teams, method, pool, coin) survives leaving the tab, Back from the
+  board and process death; after a draft starts, the next game defaults to the same players,
+  teams and method (one "Clear" forgets them).
 - Finished draft → "Start match" creates a pending match and opens setup/timer.
 - **Done when:** every method completes legally for 2–10 players (property tests), undo works
   at every step, and the result flows into match log and timer.

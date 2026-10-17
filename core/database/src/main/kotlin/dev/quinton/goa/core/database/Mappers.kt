@@ -64,6 +64,7 @@ fun MatchWithParticipants.toModel() = Match(
     durationMin = match.durationMin,
     notes = match.notes,
     draftId = match.draftId,
+    tieBreaker = match.tieBreaker?.let { parse<Team>(it) },
     participants = participants.sortedBy { it.seatIndex }.map {
         Participant(playerId = it.playerId, heroId = it.heroId, team = parse(it.team), handicap = it.handicap)
     },
@@ -81,6 +82,7 @@ fun Match.toEntity() = MatchEntity(
     durationMin = durationMin,
     notes = notes,
     draftId = draftId,
+    tieBreaker = tieBreaker?.dbName(),
 )
 
 /** Seats keep their list order via `seat_index`. */

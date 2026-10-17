@@ -44,9 +44,12 @@ object DraftEngine {
             )
         }
         val pool = if (sequence is SequenceRule.Lineup) {
-            // Fixed heroes; a hero that isn't eligible (e.g. not in the catalog) leaves its seat open.
-            plan = plan.filter { lineupHero(sequence, it, countA, countB) in candidates }
-            plan.mapNotNull { lineupHero(sequence, it, countA, countB) }
+            // Fixed heroes, dealt at random within each team [RB p.5 step 7: "distribute them
+            // randomly to the players on the Red team"]; the seed makes the deal repeatable. A hero
+            // that isn't eligible (e.g. not in the catalog) leaves its seat open.
+            val dealt = dealLineup(sequence, countA, countB, Random(setup.seed))
+            plan = plan.filter { lineupHero(dealt, it) in candidates }
+            plan.mapNotNull { lineupHero(dealt, it) }
         } else {
             drawPool(setup.method.pool, candidates, setup.seats.size, slotSteps.size, Random(setup.seed))
         }
@@ -192,7 +195,11 @@ object DraftEngine {
         matchId = matchId,
     )
 
-    /** A PENDING match with one participant per seat; fails if a seat has no pilot. */
+    /**
+     * A PENDING match with one participant per seat; fails if a seat has no pilot. The draft's
+     * Tie Breaker coin carries over: the coin is flipped once at setup, before heroes are chosen
+     * [RB p.5 step 3], and the team showing is Team A [RB p.22].
+     */
     fun toPendingMatch(session: DraftSession, matchId: String, now: Long): Result<Match> = runCatching {
         if (!session.isComplete) throw DraftError.NotComplete
         val participants = assignments(session)
@@ -213,13 +220,15 @@ object DraftEngine {
             mode = suggestedMode(heroes = participants.size),
             draftId = session.id,
             participants = participants,
+            tieBreaker = session.teamA,
         )
     }
 
     /**
      * Starting mode for the pending match, by heroes in play (DOMAIN.md: counters are looked up by
-     * seats); Match setup lets the table change it. Double lane is required from 8 heroes [RB], and
-     * at 7 heroes it is the only mode whose Life counters the rulebook lists; otherwise Quick.
+     * seats); Match setup lets the table change it. Double lane is required from 8 heroes [APP; the
+     * rulebook requires it from 8 players, p.20], and at 7 heroes it is the only mode whose Life
+     * counters the rulebook lists; otherwise Quick.
      * Kept in step with `match-setup.json` by `DraftEngineTest`.
      */
     fun suggestedMode(heroes: Int): GameMode = if (heroes >= 7) GameMode.DOUBLE_LANE else GameMode.QUICK
@@ -281,9 +290,15 @@ object DraftEngine {
         return base.copy(history = history)
     }
 
-    private fun lineupHero(rule: SequenceRule.Lineup, step: PlannedStep, countA: Int, countB: Int): String? {
+    /** The lineup for this layout with each team's heroes shuffled among that team's seats. */
+    private fun dealLineup(rule: SequenceRule.Lineup, countA: Int, countB: Int, rng: Random): TeamLineup? {
         val lineup = rule.forSeats(countA, countB) ?: rule.forSeats(countB, countA) ?: return null
-        val heroes = if (step.team == Team.RED) lineup.red else lineup.blue
+        val red = lineup.red.shuffled(rng)
+        return TeamLineup(red = red, blue = lineup.blue.shuffled(rng))
+    }
+
+    private fun lineupHero(lineup: TeamLineup?, step: PlannedStep): String? {
+        val heroes = (if (step.team == Team.RED) lineup?.red else lineup?.blue) ?: return null
         return step.seat?.let { heroes.getOrNull(it) }
     }
 

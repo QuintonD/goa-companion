@@ -164,6 +164,21 @@ class ViewModelTests {
     }
 
     @Test
+    fun editingAMatchKeepsItsTieBreakerCoin() = runTest {
+        val original = Fixtures.matches.first { it.id == "m09" }
+        matches.upsert(original.copy(tieBreaker = Team.BLUE))
+        val vm = editor("m09")
+        vm.uiState.first { !it.loading }
+        vm.setNotes("edited")
+        vm.uiState.first { it.form.notes == "edited" }
+        vm.save()
+        vm.uiState.first { it.finished }
+        val saved = matches.state.value.single { it.id == "m09" }
+        assertThat(saved.notes).isEqualTo("edited")
+        assertThat(saved.tieBreaker).isEqualTo(Team.BLUE)
+    }
+
+    @Test
     fun pendingMatchWithNoSeatsCanBeSavedAndTypedDurationIsCapped() = runTest {
         val vm = editor()
         val form = vm.uiState.first { !it.loading }.form

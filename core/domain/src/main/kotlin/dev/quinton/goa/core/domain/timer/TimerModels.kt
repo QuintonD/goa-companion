@@ -21,6 +21,13 @@ enum class PhaseKind {
     @SerialName("action")
     ACTION,
 
+    /**
+     * Per-turn step after the reveal: cards resolve one by one in initiative order (rulebook
+     * p.7). Usually untimed. Skipped when an Action timer is on, which then is the resolve step.
+     */
+    @SerialName("resolve")
+    RESOLVE,
+
     @SerialName("upgrade")
     UPGRADE,
 
@@ -76,9 +83,24 @@ data class TimerPreset(
     val turnsPerRound: Int = RULEBOOK_TURNS_PER_ROUND,
     /** Move on automatically when a timed phase reaches zero (otherwise overtime counts up). */
     val autoAdvance: Boolean = false,
+    /**
+     * Data revision of a bundled preset. Stored copies of a bundled preset with a lower revision
+     * are upgraded on read by [TimerPresetMigration] (user-made presets are never touched).
+     */
+    val revision: Int = 0,
+    /** Table rule: on-demand "Hurry up" shot clock length; null = no shot clock button. */
+    val shotClockSeconds: Int? = DEFAULT_SHOT_CLOCK_SECONDS,
+    /** Table rule: time-outs each team may call per round (0 = off). */
+    val timeOutsPerRound: Int = 0,
+    /** Table rule: seconds a time-out adds to the current phase. */
+    val timeOutSeconds: Int = DEFAULT_TIME_OUT_SECONDS,
+    /** Opt-in: while the timer screen shows, volume up = Next and volume down = Pause/Resume. */
+    val volumeKeys: Boolean = false,
 ) {
     companion object {
         const val RULEBOOK_TURNS_PER_ROUND = 4
+        const val DEFAULT_SHOT_CLOCK_SECONDS = 30
+        const val DEFAULT_TIME_OUT_SECONDS = 40
     }
 }
 
@@ -120,7 +142,8 @@ internal const val MILLIS_PER_SECOND = 1_000L
 
 /**
  * The fixed step sequence of every round for a preset:
- * ROUND_START phases → for each turn: TURN phases (Action expands per hero) → end-of-round
+ * ROUND_START phases → for each turn: TURN phases (Action expands per hero; Resolve is dropped
+ * while an Action timer is on, because the Action steps are the resolution) → end-of-round
  * checklist with ROUND_END phases attached to their step → unattached ROUND_END phases.
  */
 class TimerPlan(
@@ -146,7 +169,10 @@ class TimerPlan(
         enabled.filter { it.scope == PhaseScope.ROUND_START }.forEach { phase ->
             add { TimerStep(it, RoundSection.ROUND_START, phase) }
         }
-        val turnPhases = enabled.filter { it.scope == PhaseScope.TURN }
+        val actionOn = enabled.any { it.scope == PhaseScope.TURN && it.kind == PhaseKind.ACTION }
+        val turnPhases = enabled.filter {
+            it.scope == PhaseScope.TURN && !(actionOn && it.kind == PhaseKind.RESOLVE)
+        }
         for (turn in 1..preset.turnsPerRound.coerceAtLeast(1)) {
             turnPhases.forEach { phase ->
                 if (phase.kind == PhaseKind.ACTION) {

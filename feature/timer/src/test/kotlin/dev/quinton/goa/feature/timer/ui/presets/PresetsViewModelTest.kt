@@ -66,14 +66,19 @@ class PresetsViewModelTest {
         vm.addPhase(PhaseScope.TURN)
         val added = vm.uiState.value.preset!!.phases.last()
         vm.move(added.id, -1) // above Action
+        vm.move(added.id, -1) // above Resolve
         vm.move(added.id, -1) // above Turn
         vm.setAutoAdvance(true)
+        vm.setShotClock(45)
+        vm.setTimeOutsPerRound(1)
+        vm.setTimeOutSeconds(60)
+        vm.setVolumeKeys(true)
 
         val preset = vm.uiState.value.preset!!
         assertThat(preset.phases.single { it.id == "strategy" }.cues).containsExactly(5, 0).inOrder()
         assertThat(preset.phases.single { it.id == "turn" }.cues).containsExactly(30, 10, 5, 0).inOrder()
         assertThat(preset.phases.filter { it.scope == PhaseScope.TURN }.map { it.kind })
-            .containsExactly(PhaseKind.CUSTOM, PhaseKind.TURN, PhaseKind.ACTION).inOrder()
+            .containsExactly(PhaseKind.CUSTOM, PhaseKind.TURN, PhaseKind.RESOLVE, PhaseKind.ACTION).inOrder()
 
         vm.navigation.test {
             vm.save()
@@ -82,6 +87,10 @@ class PresetsViewModelTest {
         val saved = h.repository.preset("table-rules")!!
         assertThat(saved.phases.single { it.id == "turn" }.seconds).isEqualTo(45)
         assertThat(saved.autoAdvance).isTrue()
+        assertThat(saved.shotClockSeconds).isEqualTo(45)
+        assertThat(saved.timeOutsPerRound).isEqualTo(1)
+        assertThat(saved.timeOutSeconds).isEqualTo(60)
+        assertThat(saved.volumeKeys).isTrue()
     }
 
     @Test
@@ -99,7 +108,7 @@ class PresetsViewModelTest {
             vm.uiState.value.preset!!.phases.map {
                 it.id
             },
-        ).containsExactly("strategy", "turn", "action", "upgrade")
+        ).containsExactly("strategy", "turn", "resolve", "action", "upgrade")
     }
 
     @Test
@@ -107,7 +116,12 @@ class PresetsViewModelTest {
         val vm = PresetEditViewModel(null, h.repository)
         val loaded = vm.uiState.first { !it.loading }
         assertThat(loaded.isNew).isTrue()
-        assertThat(loaded.preset!!.name).isEqualTo("New preset")
+        // Blank, with a placeholder, so the user doesn't have to delete prefilled text.
+        assertThat(loaded.preset!!.name).isEmpty()
+        assertThat(loaded.showIssues).isFalse()
+        // The new preset copies the selected one, Resolve step and table rules included.
+        assertThat(loaded.preset!!.phases.map { it.id }).contains("resolve")
+        assertThat(loaded.preset!!.revision).isEqualTo(0)
 
         vm.rename("  ")
         vm.save()

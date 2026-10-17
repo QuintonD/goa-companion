@@ -41,6 +41,8 @@ data class MatchEntity(
     @ColumnInfo(name = "duration_min") val durationMin: Int?,
     val notes: String,
     @ColumnInfo(name = "draft_id") val draftId: String?,
+    /** Team on the Tie Breaker coin at setup ("red"/"blue"); added in schema v2. */
+    @ColumnInfo(name = "tie_breaker") val tieBreaker: String? = null,
 )
 
 /** One hero seat. A double pilot owns two rows with the same [playerId]. */

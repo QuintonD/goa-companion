@@ -2,6 +2,7 @@ package dev.quinton.goa.feature.timer.session
 
 import dagger.Lazy
 import dev.quinton.goa.core.data.MatchRepository
+import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.domain.ElapsedClock
 import dev.quinton.goa.core.domain.WallClock
 import dev.quinton.goa.core.domain.timer.MatchDuration
@@ -14,6 +15,7 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.timer.TimerText
 import dev.quinton.goa.feature.timer.data.TimerRepository
 import dev.quinton.goa.feature.timer.di.TimerClock
+import dev.quinton.goa.feature.timer.system.AlertStyle
 import dev.quinton.goa.feature.timer.system.BootCountProvider
 import dev.quinton.goa.feature.timer.system.TimerNotifier
 import dev.quinton.goa.feature.timer.system.TimerScheduler
@@ -48,7 +50,16 @@ sealed interface TimerCommand {
 
     data object FlipTieBreaker : TimerCommand
 
+    /** Which team's symbol shows on the coin (null = stop tracking). */
+    data class SetTieBreaker(val team: Team?) : TimerCommand
+
     data class HeroResolves(val seat: Int) : TimerCommand
+
+    data object StartShotClock : TimerCommand
+
+    data object CancelShotClock : TimerCommand
+
+    data class TimeOut(val team: Team) : TimerCommand
 }
 
 /**
@@ -70,6 +81,8 @@ class TimerController @Inject constructor(
     private val boot: BootCountProvider,
     /** Lazy: the startup provider builds the controller at process start; Room isn't needed then. */
     private val matches: Lazy<MatchRepository>,
+    /** Sounds and haptics switches, honoured by the background phase-over alert too. */
+    private val settings: Lazy<SettingsRepository>,
 ) {
     private val engine = TimerEngine(elapsed, wall)
     private val mutex = Mutex()
@@ -99,9 +112,11 @@ class TimerController @Inject constructor(
         tieBreaker: Team? = null,
     ): TimerSnapshot = mutex.withLock {
         repository.currentSnapshot()?.let { previous -> recordDuration(rebase(previous), onlyIfMissing = true) }
+        notifier.cancelAlert()
         val snapshot = engine.start(
             sessionId = UUID.randomUUID().toString(),
-            preset = preset,
+            // Every start path (Timer tab, Match setup) gets tonight's turn length.
+            preset = repository.withTonight(preset),
             endOfRound = repository.rules().endOfRound,
             actionSlots = actionSlots,
             matchId = matchId,
@@ -115,6 +130,8 @@ class TimerController @Inject constructor(
     }
 
     suspend fun perform(command: TimerCommand): TimerSnapshot? = mutex.withLock {
+        // Any user action means the table has seen it: a stale "Time's up" alert goes away.
+        if (command != TimerCommand.AdvanceDue) notifier.cancelAlert()
         var before: TimerSnapshot? = null
         val updated = repository.updateSnapshot { current ->
             current?.let { rebase(it) }?.also { before = it }?.let { apply(it, command) }
@@ -130,6 +147,7 @@ class TimerController @Inject constructor(
     suspend fun clear() = mutex.withLock {
         repository.currentSnapshot()?.let { recordDuration(rebase(it), onlyIfMissing = true) }
         repository.updateSnapshot { null }
+        notifier.cancelAlert()
         sync(null)
     }
 
@@ -152,7 +170,7 @@ class TimerController @Inject constructor(
             return@withLock
         }
         val updated = repository.updateSnapshot { s -> s?.let { engine.advanceDue(rebase(it)) } }
-        if (updated != null) alertOnce(currentKey, TimerText.stepTitle(current.step), updated)
+        if (updated != null) alertOnce(currentKey, TimerText.endedTitle(current.step, current.round), updated)
         sync(updated)
     }
 
@@ -169,7 +187,7 @@ class TimerController @Inject constructor(
         val previous = before
         if (previous != null && updated != null && advanced(previous, updated)) {
             val key = stepKey(previous, engine.readout(previous).phaseEndElapsed)
-            alertOnce(key, TimerText.stepTitle(previous.step), updated)
+            alertOnce(key, TimerText.endedTitle(previous.step, previous.round), updated)
         }
         sync(updated)
     }
@@ -177,10 +195,12 @@ class TimerController @Inject constructor(
     private fun advanced(from: TimerSnapshot, to: TimerSnapshot): Boolean =
         from.sessionId == to.sessionId && (from.round != to.round || from.stepIndex != to.stepIndex)
 
-    private fun alertOnce(phaseEndKey: String, endedTitle: String, updated: TimerSnapshot) {
+    private suspend fun alertOnce(phaseEndKey: String, endedTitle: String, updated: TimerSnapshot) {
         if (uiVisible || phaseEndKey == lastAlertKey) return
         lastAlertKey = phaseEndKey
-        notifier.alertPhaseOver(updated, endedTitle)
+        val prefs = settings.get().settings.first()
+        val style = AlertStyle.of(sound = prefs.soundsEnabled, haptics = prefs.hapticsEnabled)
+        notifier.alertPhaseOver(updated, endedTitle, style)
     }
 
     /** Writes the ended session's duration (and mode) into its linked match. */
@@ -201,7 +221,7 @@ class TimerController @Inject constructor(
         TimerCommand.TogglePause -> engine.togglePause(s)
         TimerCommand.Pause -> engine.pause(s)
         TimerCommand.Resume -> engine.resume(s)
-        TimerCommand.Next -> engine.next(s)
+        TimerCommand.Next -> engine.next(s, TimerEngine.NEXT_DEBOUNCE_MS)
         TimerCommand.Back -> engine.back(s)
         TimerCommand.Restart -> engine.restartStep(s)
         TimerCommand.SkipToEndOfRound -> engine.skipToEndOfRound(s)
@@ -209,7 +229,13 @@ class TimerController @Inject constructor(
         TimerCommand.AdvanceDue -> engine.advanceDue(s)
         TimerCommand.FlipTieBreaker -> engine.flipTieBreaker(s)
         is TimerCommand.HeroResolves -> engine.heroResolves(s, command.seat)
+        is TimerCommand.SetTieBreaker -> engine.setTieBreaker(s, command.team)
+        TimerCommand.StartShotClock -> engine.startShotClock(s)
+        TimerCommand.CancelShotClock -> engine.cancelShotClock(s)
+        is TimerCommand.TimeOut -> engine.timeOut(s, command.team)
     }
+
+    fun timeOutsLeft(s: TimerSnapshot, team: Team): Int = engine.timeOutsLeft(s, team)
 
     private fun sync(snapshot: TimerSnapshot?) {
         if (snapshot == null || snapshot.status == TimerStatus.ENDED) {

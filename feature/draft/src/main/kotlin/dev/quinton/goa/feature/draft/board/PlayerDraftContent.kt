@@ -58,7 +58,12 @@ import dev.quinton.goa.feature.draft.ui.teamLabel
 
 /** The official Player Draft: heroes for every player first, then captains draft players. */
 @Composable
-internal fun PlayerDraftContent(state: BoardUiState, session: PlayerDraftSession, actions: BoardActions) {
+internal fun PlayerDraftContent(
+    state: BoardUiState,
+    session: PlayerDraftSession,
+    actions: BoardActions,
+    onPeek: (String) -> Unit = {},
+) {
     var drafting by rememberSaveable { mutableStateOf<String?>(null) }
     LazyColumn(
         contentPadding = PaddingValues(Spacing.screen),
@@ -108,7 +113,7 @@ internal fun PlayerDraftContent(state: BoardUiState, session: PlayerDraftSession
             dismissButton = { TextButton(onClick = { drafting = null }) { Text("Cancel") } },
         )
     }
-    state.local.choosingFor?.let { playerId -> HeroChooser(state, session, playerId, actions) }
+    state.local.choosingFor?.let { playerId -> HeroChooser(state, session, playerId, actions, onPeek) }
 }
 
 @Composable
@@ -123,7 +128,8 @@ private fun PhaseBanner(state: BoardUiState, session: PlayerDraftSession) {
         PlayerDraftPhase.CAPTAINS -> {
             val captain = state.playerName(team?.let { session.captains.captainOf(it) })
             "${team?.let { teamLabel(it) }} captain — draft a player" to
-                "$captain picks. Team A's captain drafts first, then captains alternate."
+                "$captain picks. Team A's captain drafts first, then captains alternate; the last player " +
+                "joins the team whose turn it is."
         }
 
         PlayerDraftPhase.DONE -> "Teams complete" to ""
@@ -273,7 +279,13 @@ private fun PlayerCard(state: BoardUiState, session: PlayerDraftSession, playerI
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HeroChooser(state: BoardUiState, session: PlayerDraftSession, playerId: String, actions: BoardActions) {
+private fun HeroChooser(
+    state: BoardUiState,
+    session: PlayerDraftSession,
+    playerId: String,
+    actions: BoardActions,
+    onPeek: (String) -> Unit,
+) {
     val available = session.selection.available(playerId).toSet()
     val shown = session.selection.hands[playerId] ?: session.selection.pool
     ModalBottomSheet(onDismissRequest = { actions.chooseHeroFor(null) }) {
@@ -292,6 +304,7 @@ private fun HeroChooser(state: BoardUiState, session: PlayerDraftSession, player
                         hero = state.heroes.info(heroId),
                         state = if (free) TileState.Available else TileState.Inactive,
                         onClick = if (free) ({ actions.assignHero(heroId) }) else null,
+                        onLongClick = { onPeek(heroId) },
                     )
                 }
             }

@@ -54,19 +54,30 @@ fun DurationPickerSheet(
     initialSeconds: Int?,
     onDismiss: () -> Unit,
     onConfirm: (Int?) -> Unit,
+    off: OffOption? = OffOption.UNTIMED,
+    maxSeconds: Int = TimerPresetValidator.MAX_SECONDS,
 ) {
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var untimed by remember { mutableStateOf(initialSeconds == null) }
+    var untimed by remember { mutableStateOf(initialSeconds == null && off != null) }
     var seconds by remember { mutableIntStateOf(initialSeconds ?: 30) }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
         DurationPickerContent(
             title = title,
             seconds = seconds,
             untimed = untimed,
-            onSeconds = { seconds = it.coerceIn(TimerPresetValidator.MIN_SECONDS, TimerPresetValidator.MAX_SECONDS) },
+            onSeconds = { seconds = it.coerceIn(TimerPresetValidator.MIN_SECONDS, maxSeconds) },
             onUntimed = { untimed = it },
             onDone = { onConfirm(if (untimed) null else seconds) },
+            off = off,
+            maxSeconds = maxSeconds,
         )
+    }
+}
+
+/** The picker's "no duration" switch: untimed phase, or a table rule turned off. */
+data class OffOption(val label: String, val hint: String) {
+    companion object {
+        val UNTIMED = OffOption("Untimed", "Counts up and never alerts.")
     }
 }
 
@@ -78,6 +89,8 @@ internal fun DurationPickerContent(
     onSeconds: (Int) -> Unit,
     onUntimed: (Boolean) -> Unit,
     onDone: () -> Unit,
+    off: OffOption? = OffOption.UNTIMED,
+    maxSeconds: Int = TimerPresetValidator.MAX_SECONDS,
 ) {
     Column(
         Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = Spacing.xl, vertical = Spacing.md),
@@ -91,7 +104,7 @@ internal fun DurationPickerContent(
             style = timerDigits(MaterialTheme.typography.displayLarge),
             color = if (untimed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.semantics {
-                contentDescription = if (untimed) "Untimed" else TimerText.spokenDuration(seconds.toLong())
+                contentDescription = if (untimed) off?.label.orEmpty() else TimerText.spokenDuration(seconds.toLong())
                 liveRegion = LiveRegionMode.Polite
             },
         )
@@ -105,7 +118,7 @@ internal fun DurationPickerContent(
                 )
                 Stepper(
                     value = seconds / 60,
-                    range = 0..(TimerPresetValidator.MAX_SECONDS / 60),
+                    range = 0..(maxSeconds / 60),
                     onChange = { m -> onSeconds(m * 60 + seconds % 60) },
                     label = "minutes",
                 )
@@ -130,7 +143,7 @@ internal fun DurationPickerContent(
             Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            QuickDurations.forEach { quick ->
+            QuickDurations.filter { it <= maxSeconds }.forEach { quick ->
                 FilterChip(
                     selected = !untimed && quick == seconds,
                     onClick = {
@@ -145,22 +158,24 @@ internal fun DurationPickerContent(
             }
         }
         Spacer(Modifier.height(Spacing.md))
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp)
-                .toggleable(value = untimed, onValueChange = onUntimed, role = Role.Switch),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("Untimed", style = MaterialTheme.typography.titleSmall)
-                Text(
-                    "Counts up and never alerts.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+        if (off != null) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .toggleable(value = untimed, onValueChange = onUntimed, role = Role.Switch),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(off.label, style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        off.hint,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = untimed, onCheckedChange = null)
             }
-            Switch(checked = untimed, onCheckedChange = null)
         }
         Spacer(Modifier.height(Spacing.lg))
         Button(

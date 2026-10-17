@@ -146,6 +146,23 @@ class TeamsTest {
     }
 
     @Test
+    fun `the forced last pick is made automatically and undone with the pick that forced it`() {
+        val players = listOf("a", "b", "c", "d", "e")
+        var s = PlayerDraft.start(players, redCaptain = "a", blueCaptain = "b", teamA = Team.RED).getOrThrow()
+        s = PlayerDraft.pickForcingLast(s, "c").getOrThrow()
+        assertThat(s.remaining).containsExactly("d", "e")
+        s = PlayerDraft.pickForcingLast(s, "e").getOrThrow()
+        // Only "d" was left, and alternation gives Red (Team A) the next pick: no choice to make.
+        assertThat(s.isComplete).isTrue()
+        assertThat(s.red).containsExactly("a", "c", "d").inOrder()
+        assertThat(s.blue).containsExactly("b", "e").inOrder()
+        assertThat(s.picks.last().auto).isTrue()
+        val undone = PlayerDraft.undo(s, players).getOrThrow()
+        assertThat(undone.remaining).containsExactly("d", "e").inOrder()
+        assertThat(undone.nextTeam).isEqualTo(Team.BLUE)
+    }
+
+    @Test
     fun `player draft needs four players and distinct captains`() {
         assertThat(PlayerDraft.start(listOf("a", "b", "c"), "a", "b", Team.RED).isFailure).isTrue()
         assertThat(PlayerDraft.start(listOf("a", "b", "c", "d"), "a", "a", Team.RED).isFailure).isTrue()

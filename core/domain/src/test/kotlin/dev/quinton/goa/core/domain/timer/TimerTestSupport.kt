@@ -44,13 +44,14 @@ fun phase(
 ) = PhaseSpec(id, id.replaceFirstChar { it.uppercase() }, kind, scope, seconds, enabled, cues, endStepId)
 
 /** The owner's table rules: Strategy 1:30, Turn 0:30 ×4, Upgrade 2:00 on Level Up, Action off. */
-fun tableRules(autoAdvance: Boolean = false, actionEnabled: Boolean = false) = TimerPreset(
+fun tableRules(autoAdvance: Boolean = false, actionEnabled: Boolean = false, resolve: Boolean = false) = TimerPreset(
     id = "table",
     name = "Table rules",
     autoAdvance = autoAdvance,
-    phases = listOf(
+    phases = listOfNotNull(
         phase("strategy", PhaseKind.STRATEGY, PhaseScope.ROUND_START, 90),
         phase("turn", PhaseKind.TURN, PhaseScope.TURN, 30),
+        if (resolve) phase("resolve", PhaseKind.RESOLVE, PhaseScope.TURN, null, cues = emptyList()) else null,
         phase("action", PhaseKind.ACTION, PhaseScope.TURN, 30, enabled = actionEnabled, cues = listOf(5, 0)),
         phase("upgrade", PhaseKind.UPGRADE, PhaseScope.ROUND_END, 120, endStepId = "level_up"),
     ),

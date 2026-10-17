@@ -48,12 +48,15 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.feature.timer.TimerText
 import dev.quinton.goa.feature.timer.ui.components.goaTonalIconColors
+import dev.quinton.goa.feature.timer.ui.components.timerDigits
 
 @Composable
 internal fun TimerStart(state: StartUiState, actions: TimerActions) {
@@ -154,6 +157,10 @@ private fun ReadyCard(state: StartUiState, actions: TimerActions) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant,
                 )
+                state.tonight?.let { tonight ->
+                    Spacer(Modifier.height(Spacing.md))
+                    TonightTurn(tonight, actions)
+                }
                 Spacer(Modifier.height(Spacing.xl))
                 Button(
                     onClick = actions.onStart,
@@ -180,6 +187,73 @@ private fun ReadyCard(state: StartUiState, actions: TimerActions) {
                     color = colors.onSurfaceVariant,
                     modifier = Modifier.padding(top = Spacing.xs).align(Alignment.CenterHorizontally),
                 )
+            }
+        }
+    }
+}
+
+/** Turn length for tonight in one tap (±15 s), without editing the preset unless asked. */
+@Composable
+private fun TonightTurn(tonight: TonightUi, actions: TimerActions) {
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = colors.surface,
+        border = BorderStroke(1.dp, if (tonight.adjusted) colors.secondary else GoaTheme.colors.engravedBorder),
+    ) {
+        Column(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Turn length tonight", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        if (tonight.adjusted) {
+                            "Preset: ${TimerText.durationLabel(tonight.presetSeconds)}"
+                        } else {
+                            "From the preset"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                    )
+                }
+                FilledTonalIconButton(
+                    onClick = { actions.onTonightTurn(tonight.seconds - TimerViewModel.TONIGHT_STEP_SECONDS) },
+                    enabled = tonight.seconds > TimerViewModel.TONIGHT_MIN_SECONDS,
+                    modifier = Modifier.size(48.dp),
+                    colors = goaTonalIconColors(),
+                ) { Icon(Icons.Filled.Remove, contentDescription = "15 seconds shorter") }
+                Text(
+                    TimerText.durationLabel(tonight.seconds),
+                    style = timerDigits(MaterialTheme.typography.titleLarge),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .width(64.dp)
+                        .semantics {
+                            stateDescription = "Turns ${TimerText.spokenDuration(tonight.seconds.toLong())} tonight"
+                        },
+                )
+                FilledTonalIconButton(
+                    onClick = { actions.onTonightTurn(tonight.seconds + TimerViewModel.TONIGHT_STEP_SECONDS) },
+                    enabled = tonight.seconds < TimerViewModel.TONIGHT_MAX_SECONDS,
+                    modifier = Modifier.size(48.dp),
+                    colors = goaTonalIconColors(),
+                ) { Icon(Icons.Filled.Add, contentDescription = "15 seconds longer") }
+            }
+            if (tonight.adjusted) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Just for tonight.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(
+                        onClick = { actions.onTonightTurn(tonight.presetSeconds) },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) { Text("Reset") }
+                    TextButton(onClick = actions.onSaveTonight, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Text("Save to preset")
+                    }
+                }
             }
         }
     }
@@ -237,7 +311,7 @@ internal fun Stepper(
             modifier = Modifier
                 .width(48.dp)
                 .semantics { stateDescription = "$value $label" },
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            textAlign = TextAlign.Center,
         )
         FilledTonalIconButton(
             onClick = { onChange((value + step).coerceAtMost(range.last)) },
