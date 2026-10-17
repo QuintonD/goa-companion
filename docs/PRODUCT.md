@@ -21,7 +21,7 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
 - Grid/list with official artwork (sigil fallback), name, title, complexity ★–★★★★, roles,
   product. The grid shows three heroes across a phone at any font scale; the list is compact
   (six or more rows per screen); the grid/list choice is saved.
-- Filter by complexity, role, product, attack style (Ranged / Mixed / Melee attack cards, see
+- Filter by complexity, role, product, attack style (Ranged / Mixed / Non-ranged attack cards, see
   DOMAIN.md); full-text search over names, aliases, card names and card text. Search lists
   every matching **card** (whole phrase > all words), ranked above heroes matched only
   partially; tapping a card opens it in the card viewer. When the owned-products collection

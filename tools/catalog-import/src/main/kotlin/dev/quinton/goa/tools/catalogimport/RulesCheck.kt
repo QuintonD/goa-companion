@@ -131,6 +131,16 @@ class RulesReferenceCheck(
 
             !found -> out += "$where p.${excerpt.page}: excerpt not found on the page: \"${preview(excerpt)}\""
         }
+        if (excerpt.table.isNotEmpty()) {
+            if (excerpt.table.map { it.size }.distinct().size != 1) {
+                out += "$where p.${excerpt.page}: table rows have different cell counts"
+            }
+            // The text layer reads a table row by row, left to right.
+            val cells = excerpt.table.flatten().joinToString(" ")
+            if (RulesText.compact(cells) !in page) {
+                out += "$where p.${excerpt.page}: table not found on the page: \"${cells.take(PREVIEW)}\""
+            }
+        }
         return out
     }
 

@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -118,6 +119,52 @@ internal fun ExcerptBlock(excerpt: RulesExcerpt, modifier: Modifier = Modifier, 
             )
             Column(Modifier.padding(start = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 excerptLines(excerpt.text).forEach { line -> ExcerptLineText(line, style) }
+                if (excerpt.table.isNotEmpty()) ExcerptTable(excerpt.table, style)
+            }
+        }
+    }
+}
+
+private const val FIRST_COLUMN_WEIGHT = 1.4f
+
+/** A printed table, verbatim: header row in bold, equal-width columns, one row per line. */
+@Composable
+private fun ExcerptTable(table: List<List<String>>, style: TextStyle) {
+    val header = table.first()
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .border(1.dp, GoaTheme.colors.engravedBorder, MaterialTheme.shapes.small)
+            .padding(vertical = Spacing.xs),
+    ) {
+        table.forEachIndexed { i, row ->
+            // TalkBack reads each body row with its column names: "6-8 Players, Wave Counters 2 x 7, …".
+            val spoken = if (i == 0) {
+                header.joinToString(", ")
+            } else {
+                row.mapIndexed { c, cell ->
+                    if (c ==
+                        0
+                    ) {
+                        cell
+                    } else {
+                        "${header.getOrElse(c) { "" }} $cell"
+                    }
+                }.joinToString(", ")
+            }
+            Row(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = spoken }) {
+                row.forEachIndexed { c, cell ->
+                    Text(
+                        cell,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = if (i == 0) FontWeight.Bold else style.fontWeight,
+                        ),
+                        // The first column holds the longest labels ("9-10 Players").
+                        modifier = Modifier
+                            .weight(if (c == 0) FIRST_COLUMN_WEIGHT else 1f)
+                            .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                    )
+                }
             }
         }
     }

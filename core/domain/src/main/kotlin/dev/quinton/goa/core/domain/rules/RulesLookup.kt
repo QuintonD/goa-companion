@@ -68,6 +68,7 @@ object RulesSearch {
             topic.excerpts.forEach { excerpt ->
                 excerpt.heading?.let { append(it).append(' ') }
                 append(excerpt.text).append(' ')
+                excerpt.table.flatten().forEach { append(it).append(' ') }
             }
         },
     )

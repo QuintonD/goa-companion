@@ -120,7 +120,7 @@ object TimerPreviewData {
         tieBreaker = Team.RED,
         matchClock = "14:32",
         autoAdvance = false,
-        hint = "Strategy talk until the reveal.",
+        hint = "Strategy talk out loud until the reveal.",
         shotClockSeconds = 30,
     )
 
@@ -144,7 +144,8 @@ object TimerPreviewData {
         spokenClock = "42 seconds elapsed",
         fraction = 1f,
         timed = false,
-        hint = "Cards revealed: resolve one by one in initiative order. No strategy talk.",
+        hint = "Cards revealed: resolve one by one in initiative order. No strategy talk: only state preferences, " +
+            "no reasons.",
         nextLabel = "Next: Turn 4",
     )
 
@@ -229,7 +230,9 @@ object TimerPreviewData {
     val setup = MatchSetupUiState(
         loading = false,
         players = 5,
-        extendedNote = "Odd counts and 8 to 10 players are recommended only when everyone has played at least 5 times.",
+        extendedNote =
+            "Not beginner friendly (p.20). Odd player counts and games of up to 10 players \"should only be used " +
+                "if all participants have played the game at least five times\" (p.3).",
         layouts = listOf(
             LayoutOptionUi(
                 "handicap-5",
@@ -285,9 +288,11 @@ object TimerPreviewData {
                 "other side (p.7).",
             "Same-team tie: the team agrees who goes first without discussing why. Don't flip the " +
                 "coin (pp.4, 7).",
-            "The team showing also goes first, without flipping, when the order matters for " +
-                "simultaneous Active effects (p.17) or for minions moved back into the Battle Zone " +
-                "(p.18).",
+            "Simultaneous Active effects whose order matters are resolved like tied initiative, " +
+                "without flipping: the team showing first if the effects are on different teams, " +
+                "otherwise the team decides (p.17).",
+            "Minions moved back into the Battle Zone: the team showing moves its minion first, " +
+                "without flipping (p.18).",
             "It also places first when minions can't respawn on a blocked Spawn point (p.8).",
         ),
         firstGameAdvice = "If anyone is new, the rulebook suggests a Quick game.",
@@ -425,7 +430,8 @@ private val DOUBLE_LANE_NOTE = RulesNote(
         "Considerably more challenging than a single lane: everyone should know the game " +
             "well.",
         "Each lane has its own Battle Zone, minions and Wave counters. Minions stay bound to " +
-            "the Battle Zone they first spawned in.",
+            "the Battle Zone they first spawned in, for respawning and for the \"Minions Outside " +
+            "of the Battle Zone\" rules (p.18).",
         "With more than 3 heroes per team, the extra heroes start in empty spaces next to " +
             "their team's occupied hero spawn points.",
         "On cards, \"the Battle Zone\" means \"a Battle Zone\".",

@@ -50,9 +50,10 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.domain.catalog.StartZone
+import dev.quinton.goa.core.domain.catalog.StartingCards
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
-import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.core.model.catalog.HeroStats
 import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.feature.catalog.model.DeckGroup
@@ -65,9 +66,10 @@ import dev.quinton.goa.feature.catalog.ui.GameIcon
 import dev.quinton.goa.feature.catalog.ui.GameIcons
 import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
 import dev.quinton.goa.feature.catalog.ui.ValueChip
-import dev.quinton.goa.feature.catalog.ui.isBasic
+import dev.quinton.goa.feature.catalog.ui.handicapBasis
 import dev.quinton.goa.feature.catalog.ui.kindLabel
 import dev.quinton.goa.feature.catalog.ui.label
+import dev.quinton.goa.feature.catalog.ui.spokenHandicapBasis
 
 private const val STAT_SCALE = 8
 
@@ -345,7 +347,7 @@ internal fun Card.spokenSummary(isHandicap: Boolean = false): String = buildList
     if (block) add("Block")
     item?.let { add("Item: plus 1 ${it.label}") }
     startsIn()?.let { add(it) }
-    if (isHandicap && color.isBasic) add("Replaces the ${color.label} card")
+    if (isHandicap) spokenHandicapBasis()?.let { add(it) }
 }.joinToString(". ")
 
 /** One printed value; [plus] when the card prints it with a `+` (it grows per the card text). */
@@ -371,13 +373,10 @@ internal fun Card.printedValues(): List<PrintedValue> = VALUE_ORDER.mapNotNull {
 }
 
 /** Where a basic card starts, from its printed reminder "(This card starts the game in your hand.)". */
-internal fun Card.startsIn(): String? {
-    val plain = CardText.plain(text).lowercase()
-    return when {
-        "this card starts the game in your hand" in plain -> STARTS_IN_HAND
-        "this card starts the game in your deck" in plain -> STARTS_IN_DECK
-        else -> null
-    }
+internal fun Card.startsIn(): String? = when (StartingCards.startZone(this)) {
+    StartZone.HAND -> STARTS_IN_HAND
+    StartZone.DECK -> STARTS_IN_DECK
+    null -> null
 }
 
 private const val STARTS_IN_HAND = "Starts in hand"
@@ -385,9 +384,9 @@ private const val STARTS_IN_DECK = "Starts in deck"
 
 /**
  * Compact deck tile: colour accent, name, initiative, primary action, values, markers.
- * [showText] adds the card text (Ultimate tiles, which span the row). A Handicap tile says
- * which basic card it replaces: rulebook p.20, a Handicap card is a weaker version of a basic
- * card; its frame colour (gold, or silver for Takahide) names which one.
+ * [showText] adds the card text (Ultimate tiles, which span the row). A Handicap tile says which
+ * basic card it is a weaker version of, labelled as derived from the frame colour ([handicapBasis]):
+ * the card prints nothing about what it replaces.
  */
 @Composable
 internal fun CardTile(
@@ -445,9 +444,10 @@ internal fun CardTile(
                     )
                 }
             }
-            if (isHandicap && card.color.isBasic) {
+            val handicapBasis = if (isHandicap) card.handicapBasis() else null
+            if (handicapBasis != null) {
                 Text(
-                    "Replaces the ${card.color.label} card",
+                    handicapBasis,
                     style = MaterialTheme.typography.labelMedium,
                     color = accent,
                     modifier = Modifier.padding(top = 2.dp),

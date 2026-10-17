@@ -21,7 +21,9 @@ enum class CatalogSort(val label: String) {
 enum class AttackStyle(val label: String) {
     RANGED("Ranged attacks"),
     MIXED("Mixed attacks"),
-    MELEE("Melee attacks"),
+
+    /** No ranged attack card: the rulebook calls these "Non-Ranged Attacks" (p.13). */
+    MELEE("Non-ranged attacks"),
 }
 
 /**
@@ -60,7 +62,7 @@ fun visibleProducts(catalog: Catalog, owned: Set<String>, includeUnowned: Boolea
 /** How many of a hero's deck Attack cards print the Ranged subtype ("Attack - Ranged"). */
 data class AttackProfile(val ranged: Int, val attacks: Int) {
     /**
-     * Ranged when more than half of the attack cards are ranged, Melee when none is, Mixed
+     * Ranged when more than half of the attack cards are ranged, non-ranged when none is, Mixed
      * otherwise; null without attack cards (unknown, never guessed). docs/DOMAIN.md explains why.
      */
     val style: AttackStyle?
@@ -71,11 +73,11 @@ data class AttackProfile(val ranged: Int, val attacks: Int) {
             else -> AttackStyle.MIXED
         }
 
-    /** "Ranged attacks", "Ranged attacks · 5 of 6", "Melee attacks", "Mixed attacks · 2 of 6 ranged". */
+    /** "Ranged attacks", "Ranged attacks · 5 of 6", "Non-ranged attacks", "Mixed attacks · 2 of 6 ranged". */
     val pill: String?
         get() = when (style) {
             null -> null
-            AttackStyle.MELEE -> "Melee attacks"
+            AttackStyle.MELEE -> "Non-ranged attacks"
             AttackStyle.RANGED -> if (ranged == attacks) "Ranged attacks" else "Ranged attacks · $ranged of $attacks"
             AttackStyle.MIXED -> "Mixed attacks · $ranged of $attacks ranged"
         }

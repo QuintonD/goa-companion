@@ -120,7 +120,11 @@ private fun LazyListScope.ladderContent(
     if (state.exceptions.isEmpty()) {
         item(key = "cards-none") {
             Text(
-                "No card of the heroes in this match changes Life counters or assist coins.",
+                if (state.matchHeroesOnly) {
+                    "No card of the heroes in this match changes Life counters or assist coins."
+                } else {
+                    "No card in the catalog changes Life counters or assist coins."
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -258,7 +262,15 @@ private fun NumberLabels(label: String, detail: String, align: TextAlign) {
 }
 
 private val headers =
-    listOf("Level", "Lowest\nTier", "Coins\n(Defeat)", "Assist\nCoins", "Life\ncounters", "Next\nlevel", "Max\nTier")
+    listOf(
+        "Level",
+        "Lowest\nTier",
+        "Coins\n(Defeat)",
+        "Assist\nCoins",
+        "Life\ncounters",
+        "Next\nlevel\ncost",
+        "Max\nTier",
+    )
 
 private val MIN_CELL = 50.dp
 

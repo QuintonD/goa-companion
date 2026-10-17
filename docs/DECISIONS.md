@@ -257,3 +257,25 @@ their flows stop 5 s after leaving). The app reads the timer controller directly
 depends on every feature). Older builds refuse a v3 backup instead of silently dropping its
 settings.
 
+
+## ADR-022 — Rules review: card-text starting hands, verbatim tables, derived Handicap labels (2026-10-17)
+**Context:** An adversarial review of the rules-facing changes against the rulebook found the
+draft peek dealing Takahide 7 starting cards (his extra golds print "(This card starts the game
+in your deck.)"), excerpts cut before the sentence that limits them (card text applies only on
+the Primary action, p.7), the p.20 double-lane counter table missing because excerpts could
+only hold prose, and the Handicap tile stating "Replaces the Silver card" although no Handicap
+card prints what it replaces.
+**Decision:** (1) `StartingCards` in `core:domain` is the one place that selects a starting hand
+(p.6 by tier and colour, minus basic cards whose own text starts them in the deck, p.3); the
+draft peek and the catalog's "Starts in hand/deck" markers both use it, and a test checks every
+shipped hero has exactly Gold, Silver and three Tier I. (2) `RulesExcerpt.table` holds a printed
+table verbatim (header row first); the drift check requires its cells row by row on the page.
+(3) A callout box printed inside a passage is its own excerpt, in printed order, so every
+excerpt stays one contiguous passage. (4) What a Handicap card weakens is shown as derived
+("Weaker version of the Silver card (frame colour)"); where the frame isn't gold (Takahide) the
+hero page marks the 3-player rule ("replaces a gold card", p.20) as unresolved instead of
+choosing. Cards have no per-card `verified` flag and the card data itself is right, so no
+override was needed.
+**Consequences:** One more optional field in `rules-reference.json` (older app builds would
+reject a file using it, but the JSON ships with the app). The Takahide question stays open in
+the UI until an official ruling exists; recording one goes through `fix-hero`/FAQ data.
