@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    "Guards of Atlantis II rulebook, 2nd printing (as summarised in docs/DOMAIN.md, checked 2026-10-17)",
+    "Double piloting: owner's house option (docs/DOMAIN.md [APP])"
+  ],
+  "minPlayers": 2,
+  "maxPlayers": 10,
+  "modes": [
+    {
+      "mode": "quick",
+      "lanes": 1,
+      "waveCountersPerLane": 3,
+      "lifeCounters": [
+        { "minHeroes": 3, "maxHeroes": 5, "counters": 4 },
+        { "minHeroes": 6, "maxHeroes": 6, "counters": 5 }
+      ]
+    },
+    {
+      "mode": "long",
+      "lanes": 1,
+      "waveCountersPerLane": 5,
+      "lifeCounters": [
+        { "minHeroes": 3, "maxHeroes": 5, "counters": 6 },
+        { "minHeroes": 6, "maxHeroes": 6, "counters": 8 }
+      ]
+    },
+    {
+      "mode": "double_lane",
+      "lanes": 2,
+      "waveCountersPerLane": 7,
+      "minHeroes": 6,
+      "requiredFromHeroes": 8,
+      "lifeCounters": [
+        { "minHeroes": 6, "maxHeroes": 8, "counters": 6 },
+        { "minHeroes": 9, "maxHeroes": 10, "counters": 7 }
+      ]
+    }
+  ],
+  "playerCounts": [
+    {
+      "players": 2,
+      "layouts": [
+        {
+          "id": "two-players",
+          "kind": "rulebook",
+          "largerTeamHeroes": 2,
+          "smallerTeamHeroes": 2,
+          "doublePilots": 2,
+          "guidance": "Each player controls 2 heroes."
+        }
+      ]
+    },
+    {
+      "players": 3,
+      "layouts": [
+        {
+          "id": "three-players",
+          "kind": "rulebook",
+          "largerTeamHeroes": 2,
+          "smallerTeamHeroes": 2,
+          "doublePilots": 1,
+          "handicapHeroes": 1,
+          "guidance": "The most experienced player controls 2 heroes, one of them with its Handicap card."
+        }
+      ]
+    },
+    {
+      "players": 4,
+      "recommended": true,
+      "layouts": [
+        { "id": "standard-4", "kind": "standard", "largerTeamHeroes": 2, "smallerTeamHeroes": 2 }
+      ]
+    },
+    {
+      "players": 5,
+      "layouts": [
+        {
+          "id": "handicap-5",
+          "kind": "handicap",
+          "largerTeamHeroes": 3,
+          "smallerTeamHeroes": 2,
+          "handicapHeroes": 3,
+          "guidance": "Each hero on the larger team swaps a basic card for its Handicap card."
+        },
+        {
+          "id": "double-pilot-5",
+          "kind": "double_pilot",
+          "largerTeamHeroes": 3,
+          "smallerTeamHeroes": 3,
+          "doublePilots": 1,
+          "guidance": "One player on the smaller team controls 2 heroes, so both teams field 3."
+        }
+      ]
+    },
+    {
+      "players": 6,
+      "recommended": true,
+      "layouts": [
+        { "id": "standard-6", "kind": "standard", "largerTeamHeroes": 3, "smallerTeamHeroes": 3 }
+      ]
+    },
+    {
+      "players": 7,
+      "layouts": [
+        {
+          "id": "handicap-7",
+          "kind": "handicap",
+          "largerTeamHeroes": 4,
+          "smallerTeamHeroes": 3,
+          "handicapHeroes": 4,
+          "guidance": "Each hero on the larger team swaps a basic card for its Handicap card."
+        },
+        {
+          "id": "double-pilot-7",
+          "kind": "double_pilot",
+          "largerTeamHeroes": 4,
+          "smallerTeamHeroes": 4,
+          "doublePilots": 1,
+          "guidance": "One player on the smaller team controls 2 heroes, so both teams field 4."
+        }
+      ]
+    },
+    {
+      "players": 8,
+      "layouts": [
+        { "id": "standard-8", "kind": "standard", "largerTeamHeroes": 4, "smallerTeamHeroes": 4 }
+      ]
+    },
+    {
+      "players": 9,
+      "layouts": [
+        {
+          "id": "handicap-9",
+          "kind": "handicap",
+          "largerTeamHeroes": 5,
+          "smallerTeamHeroes": 4,
+          "handicapHeroes": 5,
+          "guidance": "Each hero on the larger team swaps a basic card for its Handicap card."
+        },
+        {
+          "id": "double-pilot-9",
+          "kind": "double_pilot",
+          "largerTeamHeroes": 5,
+          "smallerTeamHeroes": 5,
+          "doublePilots": 1,
+          "guidance": "One player on the smaller team controls 2 heroes, so both teams field 5."
+        }
+      ]
+    },
+    {
+      "players": 10,
+      "layouts": [
+        { "id": "standard-10", "kind": "standard", "largerTeamHeroes": 5, "smallerTeamHeroes": 5 }
+      ]
+    }
+  ],
+  "endOfRound": [
+    { "id": "minion_battle", "title": "Minion Battle" },
+    { "id": "remove_tokens", "title": "Remove tokens", "detail": "Remove tokens and return markers." },
+    {
+      "id": "push_lane",
+      "title": "Push the Lane",
+      "detail": "If a side has no minions, push the lane and flip a Wave counter."
+    },
+    { "id": "retrieve_cards", "title": "Retrieve cards" },
+    { "id": "level_up", "title": "Level Up", "detail": "Mandatory and simultaneous." },
+    { "id": "pity_coin", "title": "Pity Coin", "detail": "Gain 1 coin if you didn't level up." }
+  ],
+  "tieBreaker": "Cross-team initiative ties: the team shown on the Tie Breaker coin acts first, then that player flips the coin. Same-team ties: the team decides; the coin is not flipped."
+}
