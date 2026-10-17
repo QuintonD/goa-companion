@@ -40,11 +40,22 @@ data class PresetsUiState(
 
 @HiltViewModel
 class PresetsViewModel @Inject constructor(private val repository: TimerRepository) : ViewModel() {
-    val uiState: StateFlow<PresetsUiState> = combine(repository.presets, repository.selectedPresetId) { list, selected ->
+    val uiState: StateFlow<PresetsUiState> = combine(repository.presets, repository.selectedPresetId) {
+            list,
+            selected,
+        ->
         PresetsUiState(
             loading = false,
             presets = list.map {
-                PresetOption(it.id, it.name, TimerText.presetSummary(it), it.phases.any { p -> p.enabled && p.kind == PhaseKind.ACTION })
+                PresetOption(
+                    it.id,
+                    it.name,
+                    TimerText.presetSummary(it),
+                    it.phases.any { p ->
+                        p.enabled &&
+                            p.kind == PhaseKind.ACTION
+                    },
+                )
             },
             selectedId = selected,
         )

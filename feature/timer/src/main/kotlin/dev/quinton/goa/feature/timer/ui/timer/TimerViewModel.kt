@@ -132,13 +132,20 @@ class TimerViewModel @Inject constructor(
         )
     }
 
-    val uiState: StateFlow<TimerUiState> = combine(controller.snapshot, linkedSeats, startState, ticks) { s, seats, start, _ ->
+    val uiState: StateFlow<TimerUiState> = combine(controller.snapshot, linkedSeats, startState, ticks) {
+            s,
+            seats,
+            start,
+            _,
+        ->
         when {
             s == null -> TimerUiState(loading = false, start = start)
+
             s.status == TimerStatus.ENDED -> TimerUiState(
                 loading = false,
                 summary = TimerUiMapper.summary(s, controller.readout(s)),
             )
+
             else -> TimerUiState(loading = false, active = TimerUiMapper.active(s, controller.readout(s), seats))
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TimerUiState())

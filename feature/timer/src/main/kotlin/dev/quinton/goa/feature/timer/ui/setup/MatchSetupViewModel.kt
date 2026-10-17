@@ -11,6 +11,8 @@ import dev.quinton.goa.core.domain.setup.LayoutKind
 import dev.quinton.goa.core.domain.setup.MatchRules
 import dev.quinton.goa.core.domain.setup.MatchSetup
 import dev.quinton.goa.core.domain.setup.ModeBlock
+import dev.quinton.goa.core.domain.setup.ModeOption
+import dev.quinton.goa.core.domain.setup.SeatLayout
 import dev.quinton.goa.core.domain.setup.SetupPlan
 import dev.quinton.goa.core.domain.timer.PhaseKind
 import dev.quinton.goa.core.domain.timer.TimerStatus
@@ -21,8 +23,8 @@ import dev.quinton.goa.feature.timer.TimerText
 import dev.quinton.goa.feature.timer.data.TimerRepository
 import dev.quinton.goa.feature.timer.session.TimerController
 import dev.quinton.goa.feature.timer.ui.timer.PresetOption
-import kotlin.random.Random
 import javax.inject.Inject
+import kotlin.random.Random
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -162,7 +164,11 @@ class MatchSetupViewModel @AssistedInject constructor(
             val state = uiState.first { !it.loading }
             val preset = state.selectedPresetId?.let { repository.preset(it) } ?: repository.selectedPreset()
             val linked = matchId?.let { matches.observeMatch(it).first() }
-            if (linked != null && linked.mode != state.selectedMode) matches.upsert(linked.copy(mode = state.selectedMode))
+            if (linked != null &&
+                linked.mode != state.selectedMode
+            ) {
+                matches.upsert(linked.copy(mode = state.selectedMode))
+            }
             val heroes = state.counters?.let { it.largerTeamHeroes + it.smallerTeamHeroes } ?: state.players
             controller.start(
                 preset = preset,
@@ -204,42 +210,9 @@ class MatchSetupViewModel @AssistedInject constructor(
             playersLocked = locked,
             recommended = setup.isRecommended(players),
             extendedNote = if (setup.isExtended(players)) rules.extendedCountNote else null,
-            layouts = layouts.map { layout ->
-                LayoutOptionUi(
-                    id = layout.id,
-                    kind = layout.kind,
-                    title = when (layout.kind) {
-                        LayoutKind.STANDARD -> "Even teams"
-                        LayoutKind.RULEBOOK -> "Rulebook setup"
-                        LayoutKind.HANDICAP -> "Handicap"
-                        LayoutKind.DOUBLE_PILOT -> "Double pilot"
-                    },
-                    teams = "${layout.largerTeamHeroes} vs ${layout.smallerTeamHeroes} heroes",
-                    guidance = layout.guidance,
-                    official = layout.kind != LayoutKind.DOUBLE_PILOT,
-                )
-            },
+            layouts = layouts.map(::layoutOption),
             selectedLayoutId = plan.layout.id,
-            modes = plan.modes.map { option ->
-                ModeOptionUi(
-                    mode = option.mode,
-                    title = TimerText.modeLabel(option.mode),
-                    available = option.available,
-                    required = option.required,
-                    reason = when (option.block) {
-                        ModeBlock.TOO_FEW_HEROES -> "Needs ${rules.mode(option.mode).minHeroes} or more heroes"
-                        ModeBlock.OTHER_MODE_REQUIRED -> "Double lane is required at this size"
-                        null -> null
-                    },
-                    waves = if (option.lanes > 1) {
-                        "${option.lanes} × ${option.waveCountersPerLane} Wave counters"
-                    } else {
-                        "${option.waveCountersPerLane} Wave counters"
-                    },
-                    life = option.lifeCountersPerTeam?.let { "$it Life counters per team" }
-                        ?: "Life counters not specified by the rulebook",
-                )
-            },
+            modes = plan.modes.map { modeOption(it, rules) },
             selectedMode = plan.selected.mode,
             counters = CountersUi(
                 lanes = plan.selected.lanes,
@@ -267,6 +240,39 @@ class MatchSetupViewModel @AssistedInject constructor(
             selectedPresetId = selectedPresetId,
         )
     }
+
+    private fun layoutOption(layout: SeatLayout) = LayoutOptionUi(
+        id = layout.id,
+        kind = layout.kind,
+        title = when (layout.kind) {
+            LayoutKind.STANDARD -> "Even teams"
+            LayoutKind.RULEBOOK -> "Rulebook setup"
+            LayoutKind.HANDICAP -> "Handicap"
+            LayoutKind.DOUBLE_PILOT -> "Double pilot"
+        },
+        teams = "${layout.largerTeamHeroes} vs ${layout.smallerTeamHeroes} heroes",
+        guidance = layout.guidance,
+        official = layout.kind != LayoutKind.DOUBLE_PILOT,
+    )
+
+    private fun modeOption(option: ModeOption, rules: MatchRules) = ModeOptionUi(
+        mode = option.mode,
+        title = TimerText.modeLabel(option.mode),
+        available = option.available,
+        required = option.required,
+        reason = when (option.block) {
+            ModeBlock.TOO_FEW_HEROES -> "Needs ${rules.mode(option.mode).minHeroes} or more heroes"
+            ModeBlock.OTHER_MODE_REQUIRED -> "Double lane is required at this size"
+            null -> null
+        },
+        waves = if (option.lanes > 1) {
+            "${option.lanes} × ${option.waveCountersPerLane} Wave counters"
+        } else {
+            "${option.waveCountersPerLane} Wave counters"
+        },
+        life = option.lifeCountersPerTeam?.let { "$it Life counters per team" }
+            ?: "Life counters not specified by the rulebook",
+    )
 
     private fun presetOption(p: dev.quinton.goa.core.domain.timer.TimerPreset) = PresetOption(
         id = p.id,

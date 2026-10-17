@@ -22,7 +22,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.IconButtonColors
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SelectableChipColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -40,6 +44,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -66,6 +71,31 @@ fun rememberReducedMotion(): Boolean {
         Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
     }
 }
+
+/*
+ * The shared theme defines no secondary/tertiary *container* roles, so Material falls back to its
+ * lavender defaults. Timer controls use these explicit "Sunken bronze" colours instead.
+ */
+@Composable
+fun goaTonalIconColors(): IconButtonColors = IconButtonDefaults.filledTonalIconButtonColors(
+    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+    contentColor = MaterialTheme.colorScheme.onSurface,
+)
+
+@Composable
+fun goaChipColors(): SelectableChipColors = FilterChipDefaults.filterChipColors(
+    selectedContainerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f),
+    selectedLabelColor = MaterialTheme.colorScheme.onSurface,
+    selectedLeadingIconColor = MaterialTheme.colorScheme.secondary,
+)
+
+@Composable
+fun goaChipBorder(selected: Boolean) = FilterChipDefaults.filterChipBorder(
+    enabled = true,
+    selected = selected,
+    selectedBorderColor = MaterialTheme.colorScheme.secondary,
+    selectedBorderWidth = 1.dp,
+)
 
 /** Keeps the display awake while composed (timer screen only, ARCHITECTURE.md "Timer design"). */
 @Composable
@@ -242,6 +272,8 @@ private fun pipState(current: Int, pip: Int) = when {
 private fun Pip(state: PipState, shape: androidx.compose.ui.graphics.Shape, rotate: Boolean, label: String?) {
     val colors = MaterialTheme.colorScheme
     val size = if (state == PipState.CURRENT) 26.dp else 20.dp
+    // Decorative (semantics live on the row), so the digit is sized to the pip, not the font scale.
+    val digit = with(LocalDensity.current) { 11.dp.toSp() }
     val fill = when (state) {
         PipState.DONE -> colors.primary.copy(alpha = 0.55f)
         PipState.CURRENT -> colors.secondary
@@ -265,11 +297,15 @@ private fun Pip(state: PipState, shape: androidx.compose.ui.graphics.Shape, rota
         if (label != null && state != PipState.UPCOMING) {
             Text(
                 label,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = digit, lineHeight = digit),
                 color = if (state == PipState.CURRENT) colors.onSecondary else colors.onPrimary,
             )
         } else if (label != null) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = digit, lineHeight = digit),
+                color = colors.onSurfaceVariant,
+            )
         }
     }
 }
@@ -293,7 +329,10 @@ fun CoinFace(team: Team?, modifier: Modifier = Modifier, size: Dp = 96.dp) {
             .border(3.dp, bronze.copy(alpha = 0.8f), CircleShape)
             .padding(6.dp)
             .border(1.dp, bronze.copy(alpha = 0.5f), CircleShape)
-            .semantics { contentDescription = team?.let { "Tie Breaker coin showing ${teamName(it)}" } ?: "Coin not flipped" },
+            .semantics {
+                contentDescription =
+                    team?.let { "Tie Breaker coin showing ${teamName(it)}" } ?: "Coin not flipped"
+            },
         contentAlignment = Alignment.Center,
     ) {
         Text(

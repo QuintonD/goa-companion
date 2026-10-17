@@ -92,12 +92,18 @@ fun PresetsScreen(state: PresetsUiState, actions: PresetsActions) {
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding).selectableGroup(),
-            contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, top = Spacing.sm, bottom = 96.dp),
+            contentPadding = PaddingValues(
+                start = Spacing.screen,
+                end = Spacing.screen,
+                top = Spacing.sm,
+                bottom = 96.dp,
+            ),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             item {
                 Text(
-                    "The selected preset is used when you start the timer. Timers are table rules; the rulebook sets none.",
+                    "The selected preset is used when you start the timer. " +
+                        "Timers are table rules; the rulebook sets none.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = Spacing.sm),
@@ -117,7 +123,10 @@ private fun PresetRow(preset: PresetOption, selected: Boolean, canDelete: Boolea
     Surface(
         shape = MaterialTheme.shapes.medium,
         color = if (selected) colors.secondary.copy(alpha = 0.10f) else colors.surface,
-        border = BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) colors.secondary else GoaTheme.colors.engravedBorder),
+        border = BorderStroke(
+            if (selected) 1.5.dp else 1.dp,
+            if (selected) colors.secondary else GoaTheme.colors.engravedBorder,
+        ),
         modifier = Modifier
             .fillMaxWidth()
             .selectable(selected = selected, onClick = { actions.onSelect(preset.id) }, role = Role.RadioButton),

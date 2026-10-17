@@ -53,6 +53,7 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.feature.timer.ui.components.goaTonalIconColors
 
 @Composable
 internal fun TimerStart(state: StartUiState, actions: TimerActions) {
@@ -81,8 +82,8 @@ internal fun TimerStart(state: StartUiState, actions: TimerActions) {
                 }
             }
             item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    SectionHeader("Presets", Modifier.weight(1f))
+                Row(Modifier.padding(top = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+                    SectionHeader("Presets", Modifier.weight(1f), topPadding = false)
                     TextButton(onClick = actions.onManagePresets) { Text("Manage") }
                 }
             }
@@ -228,6 +229,7 @@ internal fun Stepper(
             onClick = { onChange((value - step).coerceAtLeast(range.first)) },
             enabled = value > range.first,
             modifier = Modifier.size(48.dp),
+            colors = goaTonalIconColors(),
         ) { Icon(Icons.Filled.Remove, contentDescription = "Fewer $label") }
         Text(
             value.toString(),
@@ -241,17 +243,18 @@ internal fun Stepper(
             onClick = { onChange((value + step).coerceAtMost(range.last)) },
             enabled = value < range.last,
             modifier = Modifier.size(48.dp),
+            colors = goaTonalIconColors(),
         ) { Icon(Icons.Filled.Add, contentDescription = "More $label") }
     }
 }
 
 @Composable
-internal fun SectionHeader(text: String, modifier: Modifier = Modifier) {
+internal fun SectionHeader(text: String, modifier: Modifier = Modifier, topPadding: Boolean = true) {
     Text(
         text.uppercase(),
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.primary,
-        modifier = modifier.padding(top = Spacing.md).semantics { heading() },
+        modifier = modifier.padding(top = if (topPadding) Spacing.md else 0.dp).semantics { heading() },
     )
 }
 

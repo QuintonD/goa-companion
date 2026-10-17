@@ -1,7 +1,10 @@
 package dev.quinton.goa.feature.timer.ui.timer
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,7 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -51,12 +56,20 @@ internal fun MatchSummary(state: SummaryUiState, actions: TimerActions) {
                     Modifier.fillMaxWidth().padding(Spacing.xl),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Icon(
-                        Icons.Outlined.EmojiEvents,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.heightIn(min = 40.dp),
-                    )
+                    Box(
+                        Modifier
+                            .size(72.dp)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), CircleShape)
+                            .border(1.dp, GoaTheme.colors.engravedBorder, CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Outlined.EmojiEvents,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(36.dp),
+                        )
+                    }
                     Spacer(Modifier.height(Spacing.md))
                     Text(
                         "Match over",

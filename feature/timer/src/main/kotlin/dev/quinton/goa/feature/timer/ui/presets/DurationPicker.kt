@@ -39,6 +39,8 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.timer.TimerPresetValidator
 import dev.quinton.goa.feature.timer.TimerText
+import dev.quinton.goa.feature.timer.ui.components.goaChipBorder
+import dev.quinton.goa.feature.timer.ui.components.goaChipColors
 import dev.quinton.goa.feature.timer.ui.components.timerDigits
 import dev.quinton.goa.feature.timer.ui.timer.Stepper
 
@@ -96,7 +98,11 @@ internal fun DurationPickerContent(
         Spacer(Modifier.height(Spacing.lg))
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xl), verticalAlignment = Alignment.CenterVertically) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Minutes", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Minutes",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Stepper(
                     value = seconds / 60,
                     range = 0..(TimerPresetValidator.MAX_SECONDS / 60),
@@ -105,7 +111,11 @@ internal fun DurationPickerContent(
                 )
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Seconds", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Seconds",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Stepper(
                     value = seconds % 60,
                     range = 0..55,
@@ -116,7 +126,10 @@ internal fun DurationPickerContent(
             }
         }
         Spacer(Modifier.height(Spacing.lg))
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
             QuickDurations.forEach { quick ->
                 FilterChip(
                     selected = !untimed && quick == seconds,
@@ -125,6 +138,8 @@ internal fun DurationPickerContent(
                         onSeconds(quick)
                     },
                     label = { Text(TimerText.durationLabel(quick)) },
+                    colors = goaChipColors(),
+                    border = goaChipBorder(!untimed && quick == seconds),
                     modifier = Modifier.heightIn(min = 48.dp),
                 )
             }

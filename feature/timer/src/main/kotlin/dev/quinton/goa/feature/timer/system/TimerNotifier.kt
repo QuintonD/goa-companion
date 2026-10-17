@@ -43,7 +43,6 @@ class AndroidTimerNotifier @Inject constructor(@ApplicationContext private val c
     private val manager = NotificationManagerCompat.from(context)
 
     fun ensureChannels() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val system = context.getSystemService(NotificationManager::class.java) ?: return
         val ongoing = NotificationChannel(CHANNEL_ONGOING, "Running timer", NotificationManager.IMPORTANCE_LOW).apply {
             description = "Countdown for the current phase, with pause and next controls."
@@ -97,6 +96,7 @@ class AndroidTimerNotifier @Inject constructor(@ApplicationContext private val c
                     .setShortCriticalText("Paused")
                     .addAction(0, "Resume", actionIntent(TimerActionReceiver.ACTION_RESUME))
             }
+
             remaining == null -> {
                 builder.setContentText(context)
                     .setUsesChronometer(true)
@@ -104,6 +104,7 @@ class AndroidTimerNotifier @Inject constructor(@ApplicationContext private val c
                     .setShowWhen(true)
                     .addAction(0, "Pause", actionIntent(TimerActionReceiver.ACTION_PAUSE))
             }
+
             remaining < 0 -> {
                 // Chronometer counting up from the moment the phase hit zero.
                 builder.setContentText("Overtime · $context")
@@ -113,6 +114,7 @@ class AndroidTimerNotifier @Inject constructor(@ApplicationContext private val c
                     .setShortCriticalText("Over")
                     .addAction(0, "Pause", actionIntent(TimerActionReceiver.ACTION_PAUSE))
             }
+
             else -> {
                 builder.setContentText(context)
                     .setUsesChronometer(true)

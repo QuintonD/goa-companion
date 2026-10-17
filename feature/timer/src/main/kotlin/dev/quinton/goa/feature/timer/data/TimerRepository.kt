@@ -118,7 +118,9 @@ class TimerRepository @Inject constructor(
         return list.firstOrNull { it.id == bundledDefault }?.id ?: list.first().id
     }
 
-    private fun decodePresetsOrNull(json: String): List<TimerPreset>? = runCatching { TimerJson.decodePresets(json) }.getOrNull()
+    private fun decodePresetsOrNull(json: String): List<TimerPreset>? = runCatching {
+        TimerJson.decodePresets(json)
+    }.getOrNull()
 
     /** A snapshot from an incompatible older version is dropped rather than crashing the app. */
     private fun decodeSnapshotOrNull(json: String): TimerSnapshot? =

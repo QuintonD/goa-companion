@@ -19,10 +19,14 @@ object TimerText {
     /** Where in the round this step sits, e.g. "Turn 3 of 4" or "End of round · step 5 of 6". */
     fun stepContext(step: TimerStep, preset: TimerPreset, endSteps: Int, actionSlots: Int): String = when {
         step.section == RoundSection.ROUND_START -> "Round start"
+
         step.section == RoundSection.TURN && step.isAction ->
             "Turn ${step.turn} of ${preset.turnsPerRound} · resolution ${(step.actionSlot ?: 0) + 1} of $actionSlots"
+
         step.section == RoundSection.TURN -> "Turn ${step.turn} of ${preset.turnsPerRound}"
+
         step.endStepNumber != null -> "End of round · step ${step.endStepNumber} of $endSteps"
+
         else -> "End of round"
     }
 

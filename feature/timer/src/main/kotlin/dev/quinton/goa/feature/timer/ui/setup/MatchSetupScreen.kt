@@ -40,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -63,6 +64,8 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.timer.ui.components.CoinFace
+import dev.quinton.goa.feature.timer.ui.components.goaChipBorder
+import dev.quinton.goa.feature.timer.ui.components.goaChipColors
 import dev.quinton.goa.feature.timer.ui.components.rememberReducedMotion
 import dev.quinton.goa.feature.timer.ui.components.teamName
 import dev.quinton.goa.feature.timer.ui.timer.SectionHeader
@@ -149,12 +152,18 @@ fun MatchSetupScreen(state: MatchSetupUiState, actions: SetupActions) {
                             selected = preset.id == state.selectedPresetId,
                             onClick = { actions.onPreset(preset.id) },
                             label = { Text(preset.name) },
+                            colors = goaChipColors(),
+                            border = goaChipBorder(preset.id == state.selectedPresetId),
                             modifier = Modifier.heightIn(min = 48.dp),
                         )
                     }
                 }
                 state.presets.firstOrNull { it.id == state.selectedPresetId }?.let {
-                    Text(it.summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        it.summary,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 Spacer(Modifier.height(Spacing.lg))
             }
@@ -247,7 +256,9 @@ private fun PlayersCard(state: MatchSetupUiState, onPlayers: (Int) -> Unit) {
                             else -> "Supported: ${state.playerRange.first} to ${state.playerRange.last}"
                         },
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (state.recommended) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = with(MaterialTheme.colorScheme) {
+                            if (state.recommended) secondary else onSurfaceVariant
+                        },
                     )
                 }
                 if (!state.playersLocked) {
@@ -303,7 +314,11 @@ private fun LayoutCard(layout: LayoutOptionUi, selected: Boolean, selectable: Bo
             if (selectable) RadioButton(selected = selected, onClick = null, modifier = Modifier.padding(Spacing.xs))
             Column(Modifier.weight(1f).padding(start = Spacing.xs)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(layout.title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f, fill = false))
+                    Text(
+                        layout.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
                     Spacer(Modifier.width(Spacing.sm))
                     if (layout.official) {
                         Badge("Official", MaterialTheme.colorScheme.primary)
@@ -313,7 +328,11 @@ private fun LayoutCard(layout: LayoutOptionUi, selected: Boolean, selectable: Bo
                 }
                 Text(layout.teams, style = MaterialTheme.typography.bodyMedium)
                 layout.guidance?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -324,11 +343,18 @@ private fun LayoutCard(layout: LayoutOptionUi, selected: Boolean, selectable: Bo
 private fun ModeCard(mode: ModeOptionUi, selected: Boolean, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     SetupCard(
-        modifier = Modifier.selectable(selected = selected, enabled = mode.available, onClick = onClick, role = Role.RadioButton),
+        modifier = Modifier
+            .selectable(selected = selected, enabled = mode.available, onClick = onClick, role = Role.RadioButton)
+            .alpha(if (mode.available) 1f else 0.6f),
         highlighted = selected,
     ) {
         Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.Top) {
-            RadioButton(selected = selected, onClick = null, enabled = mode.available, modifier = Modifier.padding(Spacing.xs))
+            RadioButton(
+                selected = selected,
+                onClick = null,
+                enabled = mode.available,
+                modifier = Modifier.padding(Spacing.xs),
+            )
             Column(Modifier.weight(1f).padding(start = Spacing.xs)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -344,7 +370,11 @@ private fun ModeCard(mode: ModeOptionUi, selected: Boolean, onClick: () -> Unit)
                 if (mode.reason != null) {
                     Text(mode.reason, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
                 } else {
-                    Text("${mode.waves} · ${mode.life}", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                    Text(
+                        "${mode.waves} · ${mode.life}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -395,7 +425,15 @@ private fun CountersBoard(counters: CountersUi) {
                     add("${counters.largerTeamHeroes} vs ${counters.smallerTeamHeroes} heroes")
                 }
                 if (counters.handicapHeroes > 0) {
-                    add(if (counters.handicapHeroes == 1) "1 Handicap card" else "${counters.handicapHeroes} Handicap cards")
+                    add(
+                        if (counters.handicapHeroes ==
+                            1
+                        ) {
+                            "1 Handicap card"
+                        } else {
+                            "${counters.handicapHeroes} Handicap cards"
+                        },
+                    )
                 }
                 if (counters.doublePilots > 0) {
                     add(
@@ -407,7 +445,11 @@ private fun CountersBoard(counters: CountersUi) {
                     )
                 }
             }
-            Text(seatsLine.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                seatsLine.joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -428,10 +470,19 @@ private fun TokenRow(
         Box(Modifier.width(64.dp)) {
             when {
                 leading != null -> leading()
-                label != null -> Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                label != null -> Text(
+                    label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
-        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             repeat(count.coerceAtMost(MAX_TOKENS)) { Token(color, hexagon) }
         }
         Text("×$count", style = MaterialTheme.typography.titleSmall, color = color)

@@ -185,18 +185,20 @@ class TimerEngine(
      * has a hero, moves to the next Action slot of the same turn first.
      */
     fun heroResolves(s: TimerSnapshot, seat: Int): TimerSnapshot {
-        if (s.status == TimerStatus.ENDED || !s.step.isAction) return s
-        val slot = s.step.actionSlot ?: return s
-        if (s.actors.any { it.slot == slot }) {
-            val moved = next(s)
-            val nextSlot = moved.step.actionSlot
-            if (!moved.step.isAction || moved.step.turn != s.step.turn || moved.round != s.round || nextSlot == null) {
-                return moved
-            }
-            return moved.copy(actors = moved.actors.filterNot { it.slot == nextSlot } + ActionActor(nextSlot, seat))
+        val slot = s.step.actionSlot
+        if (s.status == TimerStatus.ENDED || !s.step.isAction || slot == null) return s
+        if (s.actors.none { it.slot == slot }) return s.copy(actors = s.actors + ActionActor(slot, seat))
+        val moved = next(s)
+        val nextSlot = moved.step.actionSlot
+        return if (nextSlot != null && sameTurn(s, moved)) {
+            moved.copy(actors = moved.actors.filterNot { it.slot == nextSlot } + ActionActor(nextSlot, seat))
+        } else {
+            moved
         }
-        return s.copy(actors = s.actors + ActionActor(slot, seat))
     }
+
+    private fun sameTurn(a: TimerSnapshot, b: TimerSnapshot): Boolean =
+        b.step.isAction && a.round == b.round && a.step.turn == b.step.turn
 
     /** Records the Tie Breaker coin being flipped at the table (cross-team initiative tie). */
     fun flipTieBreaker(s: TimerSnapshot): TimerSnapshot {

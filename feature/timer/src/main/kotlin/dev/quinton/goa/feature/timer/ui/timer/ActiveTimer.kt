@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,8 +27,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -85,6 +85,7 @@ import dev.quinton.goa.feature.timer.ui.components.CountdownRing
 import dev.quinton.goa.feature.timer.ui.components.KeepScreenOn
 import dev.quinton.goa.feature.timer.ui.components.RingTone
 import dev.quinton.goa.feature.timer.ui.components.RoundPips
+import dev.quinton.goa.feature.timer.ui.components.goaTonalIconColors
 import dev.quinton.goa.feature.timer.ui.components.rememberReducedMotion
 import dev.quinton.goa.feature.timer.ui.components.teamName
 import dev.quinton.goa.feature.timer.ui.components.timerDigits
@@ -97,10 +98,16 @@ internal fun ActiveTimer(state: ActiveUiState, actions: TimerActions) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             TimerHeader(state, actions, onEnd = { confirmEnd = true })
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-                val ringMax = min(maxWidth - Spacing.xxl * 2, maxHeight * 0.62f).coerceAtLeast(160.dp)
+                val ringMax = min(maxWidth - Spacing.xl * 2, maxHeight * 0.62f).coerceAtLeast(160.dp)
+                val viewport = maxHeight
                 Column(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.screen),
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .heightIn(min = viewport)
+                        .padding(horizontal = Spacing.screen),
                     horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     RoundPips(state.pips, state.round, Modifier.padding(top = Spacing.sm))
                     Spacer(Modifier.height(Spacing.lg))
@@ -159,6 +166,8 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
             Text(
                 "Round ${state.round}",
                 style = MaterialTheme.typography.headlineSmall,
+                maxLines = 1,
+                softWrap = false,
                 modifier = Modifier.semantics { heading() },
             )
             Text(
@@ -167,7 +176,10 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.semantics { contentDescription = "${state.presetName}, match time ${state.matchClock}" },
+                modifier = Modifier.semantics {
+                    contentDescription =
+                        "${state.presetName}, match time ${state.matchClock}"
+                },
             )
         }
         if (state.tieBreaker != null) TieBreakerChip(state, actions.onFlipCoin)
@@ -244,8 +256,6 @@ private fun TieBreakerChip(state: ActiveUiState, onFlip: () -> Unit) {
             Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Coin", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.width(Spacing.xs))
             TeamBadge(team)
         }
     }
@@ -325,7 +335,9 @@ private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 state.clock,
-                style = timerDigits(MaterialTheme.typography.displayLarge).copy(fontSize = digitSize, lineHeight = digitSize),
+                style = timerDigits(
+                    MaterialTheme.typography.displayLarge,
+                ).copy(fontSize = digitSize, lineHeight = digitSize),
                 color = digitColor,
             )
             Spacer(Modifier.height(Spacing.xs))
@@ -342,7 +354,7 @@ private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
                 Text(
                     status.uppercase(),
                     style = MaterialTheme.typography.labelLarge.copy(fontSize = labelSize),
-                    color = if (state.overtime) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = with(MaterialTheme.colorScheme) { if (state.overtime) error else onSurfaceVariant },
                 )
             }
         }
@@ -385,7 +397,7 @@ private fun ChecklistStepCard(state: ActiveUiState, onToggle: () -> Unit) {
         }
         Text(
             "${state.clock} at this step",
-            style = timerDigits(MaterialTheme.typography.titleSmall),
+            style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"),
             color = colors.onSurfaceVariant,
         )
     }
@@ -422,7 +434,15 @@ private fun ChecklistRow(item: ChecklistItemUi) {
     Row(
         Modifier
             .fillMaxWidth()
-            .background(if (item.state == ChecklistState.CURRENT) colors.secondary.copy(alpha = 0.10f) else colors.surface)
+            .background(
+                if (item.state ==
+                    ChecklistState.CURRENT
+                ) {
+                    colors.secondary.copy(alpha = 0.10f)
+                } else {
+                    colors.surface
+                },
+            )
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
             .semantics(mergeDescendants = true) { stateDescription = stateText },
         verticalAlignment = Alignment.CenterVertically,
@@ -441,7 +461,12 @@ private fun ChecklistRow(item: ChecklistItemUi) {
             contentAlignment = Alignment.Center,
         ) {
             if (item.state == ChecklistState.DONE) {
-                Icon(Icons.Filled.Check, contentDescription = null, tint = colors.onPrimary, modifier = Modifier.size(16.dp))
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = colors.onPrimary,
+                    modifier = Modifier.size(16.dp),
+                )
             } else {
                 Text(
                     item.number.toString(),
@@ -465,7 +490,10 @@ private fun ChecklistRow(item: ChecklistItemUi) {
     }
 }
 
+private const val SEATS_PER_ROW = 3
+
 /** Action timer: tap the hero who resolves now (highest unresolved initiative acts first). */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ResolvingHeroes(seats: List<SeatUi>, onResolve: (Int) -> Unit) {
     Column(Modifier.fillMaxWidth()) {
@@ -475,14 +503,20 @@ private fun ResolvingHeroes(seats: List<SeatUi>, onResolve: (Int) -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = Spacing.sm),
         )
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), contentPadding = PaddingValues(0.dp)) {
-            items(seats, key = { it.seat }) { seat -> SeatChip(seat) { onResolve(seat.seat) } }
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            maxItemsInEachRow = SEATS_PER_ROW,
+        ) {
+            seats.forEach { seat -> SeatChip(seat, Modifier.weight(1f)) { onResolve(seat.seat) } }
+            // Keep the last row's chips the same width as the rows above.
+            repeat((SEATS_PER_ROW - seats.size % SEATS_PER_ROW) % SEATS_PER_ROW) { Spacer(Modifier.weight(1f)) }
         }
     }
 }
 
 @Composable
-private fun SeatChip(seat: SeatUi, onClick: () -> Unit) {
+private fun SeatChip(seat: SeatUi, modifier: Modifier, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val team = teamColor(seat.team)
     val status = when {
@@ -495,9 +529,11 @@ private fun SeatChip(seat: SeatUi, onClick: () -> Unit) {
         enabled = !seat.resolved && !seat.acting,
         shape = MaterialTheme.shapes.medium,
         color = if (seat.acting) colors.secondary.copy(alpha = 0.16f) else colors.surface,
-        border = BorderStroke(if (seat.acting) 2.dp else 1.dp, if (seat.acting) colors.secondary else team.copy(alpha = 0.5f)),
-        modifier = Modifier
-            .widthIn(min = 96.dp)
+        border = BorderStroke(
+            if (seat.acting) 2.dp else 1.dp,
+            if (seat.acting) colors.secondary else team.copy(alpha = 0.5f),
+        ),
+        modifier = modifier
             .alpha(if (seat.resolved) 0.5f else 1f)
             .semantics(mergeDescendants = true) {
                 contentDescription = "${seat.heroName}, ${teamName(seat.team)} team" +
@@ -514,13 +550,20 @@ private fun SeatChip(seat: SeatUi, onClick: () -> Unit) {
                 shape = CircleShape,
             )
             Spacer(Modifier.height(Spacing.xs))
-            Text(seat.heroName, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                seat.heroName,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TeamBadge(seat.team, showLabel = false)
                 if (seat.resolved) {
+                    Spacer(Modifier.width(2.dp))
                     Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(14.dp))
                 }
                 seat.playerName?.let {
+                    Spacer(Modifier.width(Spacing.xs))
                     Text(
                         it,
                         style = MaterialTheme.typography.labelSmall,
@@ -542,10 +585,18 @@ private fun TimerControls(state: ActiveUiState, actions: TimerActions) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            FilledTonalIconButton(onClick = actions.onBack, modifier = Modifier.size(56.dp)) {
+            FilledTonalIconButton(
+                onClick = actions.onBack,
+                modifier = Modifier.size(56.dp),
+                colors = goaTonalIconColors(),
+            ) {
                 Icon(Icons.Filled.SkipPrevious, contentDescription = "Previous phase")
             }
-            FilledTonalIconButton(onClick = actions.onTogglePause, modifier = Modifier.size(56.dp)) {
+            FilledTonalIconButton(
+                onClick = actions.onTogglePause,
+                modifier = Modifier.size(56.dp),
+                colors = goaTonalIconColors(),
+            ) {
                 Icon(
                     if (state.paused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
                     contentDescription = if (state.paused) "Resume" else "Pause",

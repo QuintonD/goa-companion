@@ -5,6 +5,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -62,6 +64,8 @@ import dev.quinton.goa.core.domain.timer.PhaseSpec
 import dev.quinton.goa.core.domain.timer.PresetIssue
 import dev.quinton.goa.core.domain.timer.TimerPresetValidator
 import dev.quinton.goa.feature.timer.TimerText
+import dev.quinton.goa.feature.timer.ui.components.goaChipBorder
+import dev.quinton.goa.feature.timer.ui.components.goaChipColors
 import dev.quinton.goa.feature.timer.ui.timer.SectionHeader
 
 data class PresetEditActions(
@@ -114,7 +118,9 @@ fun PresetEditScreen(state: PresetEditUiState, actions: PresetEditActions) {
     ) { padding ->
         val preset = state.preset ?: return@GoaScreen
         Column(
-            Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(horizontal = Spacing.screen),
+            Modifier.fillMaxSize().padding(
+                padding,
+            ).verticalScroll(rememberScrollState()).padding(horizontal = Spacing.screen),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             val nameError = state.issuesFor(null).any { it.kind == PresetIssue.Kind.BLANK_NAME }
@@ -192,7 +198,11 @@ private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onChang
     ) {
         Column(Modifier.weight(1f).padding(end = Spacing.md)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         Switch(checked = checked, onCheckedChange = null)
     }
@@ -229,6 +239,7 @@ private fun ScopeSection(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PhaseCard(
     phase: PhaseSpec,
@@ -252,7 +263,9 @@ private fun PhaseCard(
             Row(
                 Modifier
                     .heightIn(min = 48.dp)
-                    .toggleable(value = phase.enabled, onValueChange = { actions.onEnabled(phase.id, it) }, role = Role.Switch),
+                    .toggleable(value = phase.enabled, onValueChange = {
+                        actions.onEnabled(phase.id, it)
+                    }, role = Role.Switch),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
@@ -261,7 +274,6 @@ private fun PhaseCard(
                         style = MaterialTheme.typography.labelSmall,
                         color = colors.primary,
                     )
-                    Text(phase.name.ifBlank { "Unnamed" }, style = MaterialTheme.typography.titleMedium)
                 }
                 Switch(checked = phase.enabled, onCheckedChange = null)
             }
@@ -280,7 +292,9 @@ private fun PhaseCard(
                     AssistChip(
                         onClick = onEditDuration,
                         label = { Text(TimerText.durationLabel(phase.seconds)) },
-                        leadingIcon = { Icon(Icons.Outlined.Timer, contentDescription = null, modifier = Modifier.height(18.dp)) },
+                        leadingIcon = {
+                            Icon(Icons.Outlined.Timer, contentDescription = null, modifier = Modifier.height(18.dp))
+                        },
                         colors = AssistChipDefaults.assistChipColors(labelColor = colors.secondary),
                         modifier = Modifier.heightIn(min = 48.dp),
                     )
@@ -299,16 +313,19 @@ private fun PhaseCard(
                 }
                 val seconds = phase.seconds
                 if (seconds != null) {
-                    Text("Cues (seconds left)", style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
-                    Row(
-                        Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    ) {
+                    Text(
+                        "Cues (seconds left)",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colors.onSurfaceVariant,
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         PresetEditViewModel.CUE_OPTIONS.filter { it < seconds }.forEach { cue ->
                             FilterChip(
                                 selected = cue in phase.cues,
                                 onClick = { actions.onToggleCue(phase.id, cue) },
                                 label = { Text(if (cue == 0) "Time's up" else "${cue}s") },
+                                colors = goaChipColors(),
+                                border = goaChipBorder(cue in phase.cues),
                                 modifier = Modifier.heightIn(min = 48.dp),
                             )
                         }
@@ -359,11 +376,17 @@ private fun IssueText(issues: List<PresetIssue>) {
         val text = when (issue.kind) {
             PresetIssue.Kind.DURATION_OUT_OF_RANGE ->
                 "Duration must be between ${TimerPresetValidator.MIN_SECONDS} s and ${TimerPresetValidator.MAX_SECONDS / 60} min."
+
             PresetIssue.Kind.CUE_OUT_OF_RANGE -> "Cues must be shorter than the phase."
+
             PresetIssue.Kind.BLANK_PHASE_NAME -> "Give this timer a name."
+
             PresetIssue.Kind.DUPLICATE_PHASE_ID -> "Duplicate timer."
+
             PresetIssue.Kind.ACTION_NOT_PER_TURN -> "The Action timer runs during turns only."
+
             PresetIssue.Kind.UNKNOWN_END_STEP -> "Pick an end-of-round step."
+
             PresetIssue.Kind.BLANK_NAME, PresetIssue.Kind.TURNS_OUT_OF_RANGE -> null
         } ?: return@forEach
         Text(
