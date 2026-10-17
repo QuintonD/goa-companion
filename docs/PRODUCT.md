@@ -57,6 +57,18 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
   Each turn is "Play a card" (timed) then an untimed "Resolve" step after the reveal, so
   resolution never shows as overtime. Back right after an accidental Next restores the phase
   with its time; double taps don't skip phases. Side-by-side layout in landscape.
+- **Two views of the running timer** (device preference, Settings → Running timer, and a switch
+  in the timer's top bar that applies and saves at once; default Step by step):
+  - *Step by step*: one step per screen around the big dial; Next and Back walk the round.
+  - *Whole round*: every step of the round on one scrolling list under Round start / Turn 1…N /
+    End of round headings, each with its length ("0:30", "Untimed") and context (which Action
+    hero, which checklist step carries the Upgrade timer). Done steps are ticked, the current one
+    is expanded with its live clock, progress bar, warning/overtime colours, rules hint, Level Up
+    rule and ladder, and the Action seat chooser; tap its clock to pause. The list keeps the
+    current step in view when the step changes, but never while someone is scrolling it. Tapping
+    another step asks "Jump to …?"; the jump starts that step fresh and Back right after it
+    returns, like an accidental Next. Header, Hurry up, time-outs and the controls stay pinned;
+    landscape puts the list beside the current step's clock and controls.
 - Table rules (house rules, per preset): on-demand "Hurry up" countdown, optional team
   time-outs, opt-in volume-key control; "turn length tonight" adjustable from the start card.
 - Action timer: tap "next" as each player resolves; shows whose turn it is if heroes known.
@@ -141,8 +153,8 @@ research, 2026-10-17). A reference, not a card cheat sheet: hidden information s
   topic page have light/dark (and font scale 2) screenshots.
 
 ### Settings
-Theme (dark default / light / system), owned products (default: all), timer defaults, cue
-sounds and haptics, Elo constants (advanced), export/import, About/credits.
+Theme (dark default / light / system), owned products (default: all), timer defaults, running
+timer view (step by step / whole round), cue sounds and haptics, Elo constants (advanced), export/import, About/credits.
 
 ## Non-goals (v1)
 - Online play, accounts, cloud sync, ads, analytics SDKs, any network access from the app.

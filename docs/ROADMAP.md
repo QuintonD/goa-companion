@@ -34,6 +34,7 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] `TimerEngine` (pure, fake-clock tested, drift < 250 ms / 30 min) + `MatchSetup` (counters by heroes in play) + DataStore state — 2026-10-17
 - [x] Timer screen, preset editor, action timer, end-of-round checklist, cues, `keepScreenOn` — 2026-10-17, E2E `GameNightFlowTest`
 - [x] Alarm scheduling, countdown notification + actions, Live Update on Android 16+ — 2026-10-17 (Robolectric-tested)
+- [x] Whole-round timer view (owner request): every step of the round on one list, current step expanded, "Jump to" with undo, Settings choice + top-bar switch (ADR-026) — 2026-10-17, `TimerEngine.jumpTo` / VM / mapper / settings / backup tests, 11 round-view screenshots (portrait, Action seats, Upgrade, landscape, font scale 2, light/dark); hands-on round on the `goa_api36` emulator (debug build), its fixes included; not yet on the S25 Ultra
 - [ ] Device test on S25 Ultra: locked screen, Doze, process death, reboot, clock change, status-bar chip (checklist in ARCHITECTURE.md)
 
 ## M3 — Players, matches, Elo

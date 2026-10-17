@@ -90,7 +90,11 @@ gallery screenshot test (`GalleryScreenshotTest`) shows them all, dark/light, fo
 Catalog grid → Hero detail · Timer (full-screen, giant ring countdown, phase chip with
 "Previous phase" beside it, turn/round pips; bottom controls are Pause and Next only; a running
 Hurry up is pinned above them (under the dial in landscape); landscape puts the dial on the left half; paused = blinking
-digits and a large "PAUSED" label) · Players list → Player profile (rating chart) · Match log/editor ·
+digits and a large "PAUSED" label; the **round view** alternative lists the whole round under
+section headings — done rows ticked in bronze and stepped back by colour, never by alpha, so they
+keep their contrast; the current row an expanded teal-bordered card whose border and digits turn
+bronze in the final seconds and red in overtime; digits sized in dp so font scale 2 doesn't blow
+them up; landscape = list left, clock and controls right) · Players list → Player profile (rating chart) · Match log/editor ·
 Meta dashboard · Draft setup → Draft board (sticky step banner over a scrolling list of sequence
 chips, two team columns with role coverage and ban chips, then a dense pool grid with search,
 role chips and "Hide taken"; taken heroes shrink to chips; landscape moves the banner and teams

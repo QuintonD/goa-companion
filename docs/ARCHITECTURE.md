@@ -116,7 +116,11 @@ Features never depend on each other; cross-feature navigation goes through `app`
    phase, extras and controls on the right. A running Hurry up is pinned outside the scrolling
    area: above the controls in portrait, under the dial in landscape. The bottom controls are Pause and
    Next only; "Previous phase" sits beside the step chip, away from the bottom edge. Opt-in volume keys are read with
-   `onPreviewKeyEvent` on a focused root while the timer screen shows.
+   `onPreviewKeyEvent` on a focused root while the timer screen shows. The round view
+   (`AppSettings.timerLayout = ROUND`, ADR-026) swaps only the body: header, pinned Hurry up,
+   controls, volume keys and `keepScreenOn` are shared; "Previous phase" sits beside the current
+   step's title. Its "Jump to" is `TimerCommand.JumpTo(round, step)` → `TimerEngine.jumpTo`, which
+   the controller ignores once the session has moved to another round.
 8. **Match link**: `TimerController` is the single writer of the linked match's duration
    (rounded minutes, clamped to 1–600): on End match, and — only if still missing — before
    an ended session is replaced or cleared. "Log result" opens the focused "Who won?" editor
