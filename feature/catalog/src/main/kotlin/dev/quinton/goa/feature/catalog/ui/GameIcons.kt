@@ -2,24 +2,50 @@ package dev.quinton.goa.feature.catalog.ui
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.AddLocationAlt
+import androidx.compose.material.icons.filled.Adjust
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Backpack
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.Carpenter
 import androidx.compose.material.icons.filled.CleaningServices
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.DoNotDisturbOn
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Fence
+import androidx.compose.material.icons.filled.FlutterDash
+import androidx.compose.material.icons.filled.Foundation
 import androidx.compose.material.icons.filled.GpsFixed
+import androidx.compose.material.icons.filled.Hardware
+import androidx.compose.material.icons.filled.Landscape
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.NorthEast
+import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material.icons.filled.PanTool
+import androidx.compose.material.icons.filled.Park
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.PriorityHigh
+import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.SentimentVeryDissatisfied
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Toll
 import androidx.compose.material.icons.filled.TripOrigin
+import androidx.compose.material.icons.filled.Volcano
 import androidx.compose.material.icons.filled.Waves
 import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material.icons.outlined.Campaign as OutlinedCampaign
+import androidx.compose.material.icons.outlined.Carpenter as OutlinedCarpenter
+import androidx.compose.material.icons.outlined.FlutterDash as OutlinedFlutterDash
+import androidx.compose.material.icons.outlined.Hardware as OutlinedHardware
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Toll as OutlinedToll
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -113,6 +139,33 @@ object GameIcons {
             "spawn" to GameIcon(Icons.Filled.AddLocationAlt, "Spawn point"),
             "life" to GameIcon(Icons.Filled.Favorite, "Life counter"),
             "wave" to GameIcon(Icons.Filled.Waves, "Wave counter"),
+            // Hero-specific symbols printed in card text (tokens, markers, runes, tie breaker sides).
+            "tiebreaker_blue" to GameIcon(Icons.Filled.Toll, "Tie Breaker, blue side"),
+            "tiebreaker_orange" to GameIcon(Icons.Outlined.OutlinedToll, "Tie Breaker, orange side"),
+            "marker_bounty" to GameIcon(Icons.Filled.Paid, "Bounty marker"),
+            "marker_poison" to GameIcon(Icons.Filled.Science, "Poison marker"),
+            "rune_anvil" to GameIcon(Icons.Filled.Hardware, "Anvil rune"),
+            "rune_axe" to GameIcon(Icons.Filled.Carpenter, "Axe rune"),
+            "rune_bird" to GameIcon(Icons.Filled.FlutterDash, "Bird rune"),
+            "rune_horn" to GameIcon(Icons.Filled.Campaign, "Horn rune"),
+            "rune_anvil_marker" to GameIcon(Icons.Outlined.OutlinedHardware, "Anvil rune marker"),
+            "rune_axe_marker" to GameIcon(Icons.Outlined.OutlinedCarpenter, "Axe rune marker"),
+            "rune_bird_marker" to GameIcon(Icons.Outlined.OutlinedFlutterDash, "Bird rune marker"),
+            "rune_horn_marker" to GameIcon(Icons.Outlined.OutlinedCampaign, "Horn rune marker"),
+            "token_barrier" to GameIcon(Icons.Filled.Fence, "Barrier token"),
+            "token_blast" to GameIcon(Icons.Filled.LocalFireDepartment, "Blast token"),
+            "token_dud" to GameIcon(Icons.Filled.DoNotDisturbOn, "Dud token"),
+            "token_familiar" to GameIcon(Icons.Filled.Pets, "Familiar token"),
+            "token_glitch" to GameIcon(Icons.Filled.BrokenImage, "Glitch token"),
+            "token_grenade" to GameIcon(Icons.Filled.Adjust, "Grenade token"),
+            "token_ice" to GameIcon(Icons.Filled.AcUnit, "Ice token"),
+            "token_illusion" to GameIcon(Icons.Filled.AutoFixHigh, "Illusion token"),
+            "token_magma" to GameIcon(Icons.Filled.Volcano, "Magma token"),
+            "token_rock" to GameIcon(Icons.Filled.Landscape, "Rock token"),
+            "token_smoke_bomb" to GameIcon(Icons.Filled.Cloud, "Smoke bomb token"),
+            "token_totem" to GameIcon(Icons.Filled.Foundation, "Totem token"),
+            "token_tree" to GameIcon(Icons.Filled.Park, "Tree token"),
+            "token_zombie" to GameIcon(Icons.Filled.SentimentVeryDissatisfied, "Zombie token"),
         )
     }
 
