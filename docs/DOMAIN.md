@@ -49,6 +49,9 @@ and Ice, Across the River, Narrow Passages — verify names against the rulebook
   2 players = 2 heroes each; 3 players = most experienced controls 2 heroes, one with a
   Handicap card; with 5/7/9 the larger team's heroes swap a basic card for their Handicap
   card [RB].
+- **Double piloting** [APP — owner's group]: with an odd count the group often evens the
+  teams by having one player control two heroes. Match setup offers both options for odd
+  counts: *Handicap* (uneven seats) or *Double pilot* (even seats, one player owns two).
 - A **round = exactly 4 turns** [RB]. Each turn:
   1. **Play one card** — simultaneous, face-down (strategy talk allowed *before* reveal,
      out loud, no notes). *Main timed phase.*
@@ -78,11 +81,20 @@ Battle Zone; **LAST_PUSH** — the last Wave counter flips, the team that won th
 a team spends its last Life counter (a defeated hero costs counters = its lowest card tier);
 **OTHER** (concession, house rule). There are no draws.
 
-### Timer phases [APP, informed by BGG practice]
-Rulebook sets no timers. Defaults (user-editable): **Planning 45 s** per turn (community
-range 30–60 s, plus an optional 2-min team discussion), **Action 30 s** per player in
-resolution (optional, range 10–40 s; designer endorses "a 30-second sand timer once someone
-takes too long"), **End of round** = untimed checklist.
+### Timer phases [APP — owner's table rules, 2026-10-17]
+The rulebook sets no timers. The group plays with **rule timers per phase**, all editable per
+preset (enable/disable, duration, cues, auto-advance):
+
+| Phase | Scope | Default | Notes |
+|-------|-------|---------|-------|
+| **Pre-round strategy** | once per round, before turn 1 | **1:30** | Team talk before cards are played |
+| **Turn** (play a card) | each of the 4 turns | **0:30** | Simultaneous card selection |
+| Action (optional, off) | per hero during resolution | 0:30 | Tap "next" as each hero resolves |
+| **Upgrade** | end of round, Level Up step | **2:00** | Spend coins / choose upgrades |
+
+The end of round is still shown as the six-step checklist (see above); the Upgrade timer runs
+on step 5 (Level Up). Users can add custom phases with the same three scopes
+(`ROUND_START`, `TURN`, `ROUND_END`). Overtime counts up; nothing is auto-enforced.
 
 ## Cards and heroes [RB]
 - **Deck:** 18 cards = Gold + Silver (basic, never upgraded) + 3 × Tier I + 6 × Tier II +
@@ -99,27 +111,27 @@ takes too long"), **End of round** = untimed checklist.
 - **Hero card / Profile:** Attack, Defense, Initiative, Movement as 1–8 bars with a base and
   max (items raise them), complexity ★–★★★★ and two roles. Descriptive, not used in play.
 
-## Core model (`core:model`)
+## Core model (`core:model`, code is authoritative)
+Catalog types are `@Serializable` and shared by the importer and the app
+(`core/model/.../catalog/Catalog.kt`). Shared user-data types:
 ```
-Product(id, name, kind: BASE|HERO_PACK|PROMO|UPGRADE, released?)
-Hero(id, name, title, aliases: List<String>, productId, complexity: 1..4,
-     stats: Map<Stat, Range>  // attack, defense, initiative, movement: base..max, 1..8
-     roles: List<Role>, portrait?: AssetPath, cards: List<Card>, handicap?: Card,
-     extras: List<Card>  // e.g. Gydion's spells
-     faq: List<Ruling>, printing: Int, verified: Boolean, sources: List<Source>)
-Card(id, heroId, name, color: GOLD|SILVER|RED|GREEN|BLUE|PURPLE, tier: 1..4|null (basic),
-     initiative: Int, primary: ATTACK|SKILL|DEFENSE|MOVEMENT|DEFENSE_SKILL,
-     secondary: Set<SecondaryAction>, values: CardValues(attack?, defense?, movement?,
-     range?, radius?), ranged: Boolean, block: Boolean, item: Stat?, text: String,
-     image?: AssetPath)
-Player(id, name, colorHex, avatarId, createdAt, archived)
+Hero(id, name, title, product, aliases, complexity?, stats: HeroStats([base,max] per stat),
+     roles: List<Role>, portrait?, printing, cards, handicap?, extras, faq: List<Ruling>,
+     lore?, verified, sources)
+Card(id, heroId, name, color: GOLD|SILVER|RED|GREEN|BLUE|PURPLE|OTHER, tier: 1..4|null,
+     initiative?, primary?, secondary, values: CardValues(attack, defense, movement, range,
+     radius), ranged, block, item: Stat?, text (inline markup, see CardText), image?)
+Player(id, name, color: ARGB, avatarId, createdAt, archived)
 Match(id, createdAt, playedAt, status: PENDING|COMPLETED|ABANDONED, mode: QUICK|LONG|DOUBLE_LANE,
-      map?, winner: Team?, winCondition?, durationMin?, notes, draftId?, participants)
-Participant(playerId, heroId, team: RED|BLUE, handicap: Boolean)
-DraftMethod(id, name, kind: ALL_RANDOM|ALL_PICK|SINGLE_DRAFT|RANDOM_DRAFT|PICK_AND_BAN, steps…)
-DraftSession(id, methodId, pool, teams, teamA: Team, history: List<StepResult>, assignments)
-TimerPreset(id, name, phases: List<PhaseSpec(kind: PLANNING|DISCUSSION|ACTION|CUSTOM, seconds?, cues)>)
+      map?, winner?, winCondition?, durationMin?, notes, draftId?, participants)
+Participant(playerId, heroId?, team: RED|BLUE, handicap)   // one per hero seat
+DraftRecord(id, createdAt, methodId, methodKind, pool, teamA, steps: (team, PICK|BAN, heroId), matchId?)
 ```
+Engine-specific types (timer presets, draft methods/sessions, Elo config) live with their
+engines in `core:domain`.
+- **Card text markup** (`CardText`): `{icon}` inline game icon, `~(…)` reminder text, `
+`
+  paragraph break; everything else is printed text verbatim.
 - IDs: catalog = permanent kebab-case slugs (`"arien"`, `"arien-red-1"`); user data = UUIDs.
 - `Team` is always `RED`/`BLUE` in code. "Team A" exists only inside a draft = the team
   showing on the Tie Breaker coin.
@@ -141,6 +153,7 @@ TimerPreset(id, name, phases: List<PhaseSpec(kind: PLANNING|DISCUSSION|ACTION|CU
   "cards": [
     {
       "id": "example-hero-red-1",
+      "heroId": "example-hero",
       "name": "Card Name",
       "color": "red",
       "tier": 1,
@@ -167,14 +180,32 @@ Validation (unit tests): unknown keys rejected; IDs unique and permanent; asset 
 `deckExceptions` (Gydion, Takahide); `verified: true` per the rule in *Sources*. Values above
 are placeholders, not real data.
 
-## Elo [APP]
-Deterministic replay of COMPLETED matches ordered by `(playedAt, createdAt)`.
-- Start **1200** (players and heroes). Team rating = mean of members' ratings (handles 2v3).
-- `E_A = 1 / (1 + 10^((R_B − R_A) / 400))`; `S_A` = 1 win, 0 loss. Each member:
-  `Δ = K · (S_A − E_A)`; team B mirrored.
-- `K = 40` while provisional (< 10 rated games), then `K = 20`; constants in one `EloConfig`.
-- Hero Elo: same algorithm in a separate rating space.
-- Matches with no winner, or with an unknown hero (for the hero space), are skipped.
+## Elo [APP — ADR-011]
+Deterministic replay of COMPLETED matches ordered by `(playedAt, createdAt, id)`. Two rating
+spaces, players and heroes, updated from the same match. Every constant lives in `EloConfig`
+(editable under Settings → Ratings; changing it recomputes everything).
+
+**Seats, not players.** A match is a list of hero *seats* (`Participant`). A player who
+**double-pilots** (controls two heroes, e.g. 5 players as 3v3) owns two seats.
+- Player space: a seat's strength `s = R_pilot + heroInfluence · (R_hero − 1200)`.
+- Hero space: a seat's strength `s = R_hero + pilotInfluence · (R_pilot − 1200)`.
+  (A strong pilot winning with a hero earns the hero less credit, and vice versa.)
+- Team strength `T = mean(s over the team's seats) + seatAdvantage · (seats − opponentSeats)`.
+  This handles uneven seat counts (e.g. 3 heroes vs 2 with Handicap cards).
+- `E_A = 1 / (1 + 10^((T_B − T_A) / 400))`; `S_A` = 1 win, 0 loss (no draws in GoA2).
+
+**Updates.**
+- Player: each *distinct* player on team A gets `Δ = K · m · w · (S_A − E_A)`, where
+  `w = 1 + doublePilotWeight · (seatsPiloted − 1)` (a double pilot carried more of the result).
+- Hero: each hero seat gets `Δ = K · m · (S − E)`.
+- `K = 40` while provisional (< 10 rated games in that space), then `K = 20`. `m` = mode
+  multiplier (Quick / Long / Double lane).
+- Defaults: `heroInfluence = 0.5`, `pilotInfluence = 0.5`, `seatAdvantage = 0` (the Handicap
+  card is the rulebook's balance), `doublePilotWeight = 0.5`, mode multipliers 1.0.
+- Skipped: matches that aren't COMPLETED or have no winner; seats with an unknown hero are
+  left out of the hero space only (their pilot still counts at hero rating 1200).
+- Stats tracked alongside: games/wins per player, per hero, per player × hero, double-pilot
+  games, and the larger-team win rate (to tune `seatAdvantage`).
 
 ## Meta stats [APP]
 - Pick rate = matches featuring hero ÷ all matches; ban rate = drafts banning hero ÷ Pick
@@ -202,6 +233,15 @@ Official hero selection methods [RB]; `Team A` = team on the Tie Breaker coin:
   | 8 | 6-player + Ban B,A → Pick A,B |
   | 10 | 8-player + Ban B,A → Pick B,A |
   [APP] odd counts: use the next even sequence and skip the smaller team's surplus pick.
+- **House draft** [APP — owner's group, the default method]: deal a **pool of 15** heroes at
+  random from the owned/filtered roster (re-roll or swap allowed before starting). Then
+  Team A **bans 1 and picks 1**, Team B **bans 1 and picks 2**, then teams alternate
+  **2 picks** each, and the last pick is single when one seat remains. 2v2:
+  `Ban A · Pick A · Ban B · Pick B · Pick B · Pick A`. 3v3: `… · Pick A · Pick A · Pick B`.
+  Implemented as a data-defined custom method; pool size, bans and pick pattern are editable,
+  and users can save their own methods.
+- **Seats:** drafting fills hero *seats*. A team with a double pilot drafts as many heroes as
+  it has seats, not players.
 - **Complexity filter** [RB]: remove heroes above the least experienced player's complexity.
 - Team picks are assigned to players on that team before the match starts [APP].
 - Engine: `DraftEngine.apply(session, heroId) -> Result<DraftSession>`; typed errors for

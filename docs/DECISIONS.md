@@ -69,3 +69,33 @@ hand-edited. The catalog is read-only and held in memory (no Room tables). Data 
 current (2nd) printing; `printing` is recorded per hero.
 **Consequences:** Re-runnable when new heroes or a 3rd printing appear; correctness depends on
 source quality, so validation tests + a per-run report are mandatory.
+
+## ADR-010 — Build environment and module additions (2026-10-17)
+**Context:** Scaffolding M0 on the owner's PC. C: has < 5 GB free; only the Android Studio JBR
+21 is installed; Gradle 9.8.1 is current; cross-feature navigation needed a shared home.
+**Decision:** Gradle **9.8.1** wrapper (supersedes "9.6" in ADR-008), AGP 9.4.1, Kotlin 2.4.21.
+Bytecode targets Java 17 but the build runs on JBR 21 (no separate JDK 17 toolchain). Builds use
+`GRADLE_USER_HOME=D:\.gradle-home` and `TMP/TEMP=D:\.tmp-build` to keep caches off C:. Added
+`core:navigation` (all Navigation 3 keys + `Navigator`, so features can open each other's screens
+without depending on each other) and `feature:settings` (settings, ratings config, About).
+Robolectric unit tests need `--add-opens java.base/jdk.internal.access` on JDK 21 (convention plugin).
+Roborazzi baselines live in each module's `src/test/screenshots/`.
+**Consequences:** Anyone building must set the same `GRADLE_USER_HOME` (or free space on C:).
+
+## ADR-011 — Seat-based Elo with double piloting (2026-10-17)
+**Context:** The group often plays odd counts with one player double-piloting two heroes; the
+owner wants this "and more" reflected in ratings.
+**Decision:** Ratings are computed over hero *seats*. Team strength is the mean seat strength,
+where a seat blends pilot and hero ratings (`heroInfluence`, `pilotInfluence`), plus an optional
+`seatAdvantage` for uneven seat counts. Double pilots are updated once, weighted by
+`doublePilotWeight`. All constants in `EloConfig`, user-editable, default values in DOMAIN.md.
+**Consequences:** Still a pure replay of the match log (ADR-003); changing constants recomputes
+history. Plain Elo is recovered by setting both influences and the weights to 0.
+
+## ADR-012 — House draft as default, methods as data (2026-10-17)
+**Context:** The group's usual draft: pool of 15, A ban+pick, B ban+2 picks, alternate pairs,
+single last pick. The official methods must also be available.
+**Decision:** Draft methods are data (`draft-methods.json` + user-saved methods in Room) run by
+one `DraftEngine`. The House draft is the default; official methods are presets.
+**Consequences:** New formats need no code. The engine is property-tested for every bundled
+method × 2–10 players × seat layouts (incl. double pilots).

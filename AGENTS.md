@@ -4,7 +4,7 @@ Native Android companion app for the **Guards of Atlantis II** board game (Wolff
 Private, local-only, never sold or published (see ADR-006). This file is the canonical,
 tool-agnostic entry point; `CLAUDE.md` imports it.
 
-**Status:** pre-code. Only the meta layer exists. The first task is milestone **M0** in
+**Status:** in development; all milestones are being built in parallel. See
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## The product in one breath
@@ -54,7 +54,8 @@ Details and acceptance criteria: [docs/PRODUCT.md](docs/PRODUCT.md).
 
 ## Commands (once M0 lands)
 
-Windows (PowerShell) uses `.\gradlew.bat`; POSIX uses `./gradlew`.
+Windows (PowerShell) uses `.\gradlew.bat`; POSIX uses `./gradlew`. C: is nearly full, so set
+`GRADLE_USER_HOME=D:\.gradle-home` and `TMP`/`TEMP=D:\.tmp-build` first (ADR-010).
 
 ```
 .\gradlew.bat :tools:catalog-import:run  # rebuild catalog JSON + images from pinned sources

@@ -3,7 +3,7 @@
 ## Stack (versions verified 2026-10-17 — re-check for patches at M0, then pin)
 | Concern | Choice |
 |---------|--------|
-| Language / build | Kotlin 2.4.x (AGP built-in Kotlin), AGP 9.4, Gradle 9.6, JDK 17 toolchain |
+| Language / build | Kotlin 2.4.21 (AGP built-in Kotlin), AGP 9.4.1, Gradle 9.8.1, Java 17 bytecode on JBR 21 (ADR-010) |
 | SDK | minSdk 26, compileSdk **37**, targetSdk **37** (set explicitly) |
 | UI | Jetpack Compose, Material 3 (custom theme), **Navigation 3** 1.2 (`navigation3-runtime/ui`, `lifecycle-viewmodel-navigation3`, `@Serializable` keys) |
 | DI | Hilt 2.60.x via **KSP** (no kapt — it doesn't work with AGP 9 built-in Kotlin) |
@@ -34,10 +34,12 @@ core/database/           # Room 3 DB, DAOs, entities, migrations, schemas/
 core/datastore/          # settings + persisted timer state
 core/designsystem/       # theme, tokens, components, icons, sigils
 core/testing/            # fakes, fixtures, test rules
+core/navigation/         # Navigation 3 keys for every screen + Navigator (ADR-010)
 feature/catalog/
 feature/timer/           # timer UI, TimerScheduler (alarms), notification, receivers
 feature/players/         # players, match log, Elo, meta dashboard
 feature/draft/
+feature/settings/        # settings, rating constants, export/import entry, About
 tools/catalog-import/    # JVM CLI (reuses core:model): sources.lock.json, overrides.json,
                          #   cache/ (gitignored), REPORT.md → writes assets/catalog + assets/official
 ```

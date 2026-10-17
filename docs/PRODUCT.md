@@ -35,8 +35,10 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
 - **Setup:** pick mode (Quick / Long / Double lane) and players → app shows Wave and Life
   counters to lay out (DOMAIN.md table), handicap reminders for odd counts, and who holds the
   Tie Breaker coin.
-- **Timer presets:** ordered phases per turn (Planning, optional Discussion, optional
-  per-player Action timer), 4 turns per round, auto-advance on/off. Defaults in DOMAIN.md.
+- **Rule timers per phase** (owner's table rules): Pre-round strategy 1:30 → 4 × Turn 0:30 →
+  Upgrade 2:00 during the end-of-round Level Up step; optional per-hero Action timer. Every
+  phase is configurable (on/off, duration, cues, auto-advance) and presets are saved/editable.
+  Defaults in DOMAIN.md.
 - Big, glanceable countdown; tap to pause; next/back; round and turn pips; overtime counts up.
 - Action timer: tap "next" as each player resolves; shows whose turn it is if heroes known.
 - **End of round:** tap-through checklist of the six official steps, then next round.
@@ -49,10 +51,12 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
 
 ### 3. Players, matches and meta
 - Player profiles (name, colour, avatar from original avatar set). No accounts.
-- Log a match: date, mode, teams (Red/Blue), hero per player, handicap flags, winner, win
+- Log a match: date, mode, teams (Red/Blue), hero seats with their pilot (a player may
+  **double-pilot** two heroes), handicap flags, winner, win
   condition (Throne / Last Push / Life counters / Other), duration, notes. Draft → pending
   match automatically; timer session can fill in duration.
-- Elo per player and per hero, provisional flag for <10 games, rating history chart.
+- Elo per player and per hero (seat-based, double-pilot aware, tunable — DOMAIN.md / ADR-011),
+  provisional flag for <10 games, rating history chart.
 - Meta dashboard: hero win/pick/ban rates, best player per hero, team-composition stats (later).
 - Edit/delete any match; all ratings recompute.
 - Export/import full data as a versioned JSON file (backup, moving phones). Android Auto
@@ -62,8 +66,9 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
 ### 4. Draft
 - Choose players and teams (manual, balanced by Elo, or official Player Draft), complexity
   filter, hero pool (all, owned products, or custom).
-- Methods: the official All Random, All Pick, Single Draft, Random Draft and Pick and Ban
-  (exact sequences in DOMAIN.md). Animated Tie Breaker coin flip decides Team A.
+- Methods: the group's **House draft** (default: pool of 15, A ban+pick, B ban+2 picks,
+  alternate pairs, single last pick) plus the official All Random, All Pick, Single Draft,
+  Random Draft and Pick and Ban (exact sequences in DOMAIN.md); custom methods can be saved. Animated Tie Breaker coin flip decides Team A.
 - Pass-and-play UI with clear "Team Red — Ban" prompts, hidden picks where the method needs
   them, optional per-step timer, undo at every step, then assign picks to players.
 - Finished draft → "Start match" creates a pending match and opens setup/timer.
