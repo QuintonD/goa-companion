@@ -95,7 +95,24 @@ history. Plain Elo is recovered by setting both influences and the weights to 0.
 ## ADR-012 — House draft as default, methods as data (2026-10-17)
 **Context:** The group's usual draft: pool of 15, A ban+pick, B ban+2 picks, alternate pairs,
 single last pick. The official methods must also be available.
-**Decision:** Draft methods are data (`draft-methods.json` + user-saved methods in Room) run by
-one `DraftEngine`. The House draft is the default; official methods are presets.
+**Decision:** Draft methods are data (`draft-methods.json` + user-saved methods in DataStore
+JSON, with the in-progress session) run by one `DraftEngine`. The House draft is the default; official methods are presets.
 **Consequences:** New formats need no code. The engine is property-tested for every bundled
 method × 2–10 players × seat layouts (incl. double pilots).
+
+## ADR-013 — In-house SVG → VectorDrawable converter (2026-10-17)
+**Context:** Original art (32 hero sigils, 24 crests, nav icons, app icon) is hand-authored SVG
+(DESIGN.md). Android Studio's importer is manual; `vd-tool` isn't shipped with the SDK here.
+**Decision:** `design/tools/svg2vd.py` converts the restricted SVG subset we author (paths,
+lines, circles, linear gradients) to VectorDrawable XML; `--check` fails if generated files are
+stale. Generated XML carries a "do not edit" header; the SVG is the master.
+**Consequences:** Reproducible, scriptable asset pipeline; SVG features outside the subset must
+be avoided or the converter extended.
+
+## ADR-014 — Timer re-sync via a feature-owned startup provider (2026-10-17)
+**Context:** Alarms and the countdown notification must be re-synced on every app start
+(ADR-007) without `feature:timer` editing `app`.
+**Decision:** `feature/timer` declares a small `TimerStartupProvider` (ContentProvider) in its
+own manifest that re-syncs persisted timer state at process start; boot/time/package-replaced
+receivers cover the rest. Timer clocks are injected with a `@TimerClock` qualifier.
+**Consequences:** Features stay independent of `app`; one extra provider runs at startup (cheap).

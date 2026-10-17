@@ -92,9 +92,9 @@ Features never depend on each other; cross-feature navigation goes through `app`
 ## Data files
 - `app/src/main/assets/catalog/index.json` — `dataVersion`, printing, product list, hero file list.
 - `app/src/main/assets/catalog/heroes/<hero-id>.json` — one file per hero (schema in DOMAIN.md).
-- `app/src/main/assets/catalog/draft-methods.json` — official selection methods + Pick and Ban orders.
-- `app/src/main/assets/catalog/match-setup.json` — wave/life counters per mode and player count.
-- `app/src/main/assets/catalog/timer-presets.json` — default timer presets.
+- `app/src/main/assets/catalog/draft-methods.json` — House draft + official selection methods (Pick and Ban orders per player count).
+- `app/src/main/assets/catalog/match-setup.json` — wave/life counters per mode, keyed by heroes in play (rulebook table; `null` = not specified).
+- `app/src/main/assets/catalog/timer-presets.json` — default presets (Table rules, Relaxed, Untimed); user presets live in DataStore.
 - `app/src/main/assets/official/heroes/<hero-id>/portrait.webp` — official hero art.
 - `app/src/main/assets/official/cards/<card-id>.webp` — official card images.
 - `app/src/main/assets/official/SOURCES.md` — where each official file came from.

@@ -235,14 +235,19 @@ spaces, players and heroes, updated from the same match. Every constant lives in
   multiplier (Quick / Long / Double lane).
 - Defaults: `heroInfluence = 0.5`, `pilotInfluence = 0.5`, `seatAdvantage = 0` (the Handicap
   card is the rulebook's balance), `doublePilotWeight = 0.5`, mode multipliers 1.0.
-- Skipped: matches that aren't COMPLETED or have no winner; seats with an unknown hero are
-  left out of the hero space only (their pilot still counts at hero rating 1200).
+- Skipped: matches that aren't COMPLETED or have no winner, and matches with the same player
+  on both teams (the editor also blocks them). Seats with an unknown hero are left out of the
+  hero space (not in that team's mean; their pilot still counts at hero rating 1200 in the
+  player space); a match where a team has no known hero, or a hero appears twice, is skipped
+  for the hero space only. `seatAdvantage` always uses the real seat counts.
+- The start rating (1200) is editable in `EloConfig`; the 400 scale is fixed.
 - Stats tracked alongside: games/wins per player, per hero, per player × hero, double-pilot
   games, and the larger-team win rate (to tune `seatAdvantage`).
 
 ## Meta stats [APP]
-- Pick rate = matches featuring hero ÷ all matches; ban rate = drafts banning hero ÷ Pick
-  and Ban drafts; win rate = wins ÷ matches featuring hero.
+- Pick rate = matches featuring hero ÷ all matches; ban rate = drafts banning hero ÷ drafts
+  with at least one ban (House draft and Pick and Ban both count); win rate = wins ÷ matches
+  featuring hero.
 - Rank by **Wilson score lower bound (95%)**; hide below a minimum sample (default 5).
 - "Best with hero": highest hero-specific win rate per player with ≥ 3 games.
 
