@@ -77,15 +77,18 @@ fun PlayersHomeScreen(
         },
         floatingActionButton = {
             when (tab) {
-                PlayersTab.PLAYERS -> ExtendedFloatingActionButton(
-                    onClick = actions.onAddPlayer,
-                    icon = { Icon(Icons.Outlined.PersonAdd, contentDescription = null) },
-                    text = { Text("Add player") },
-                    // M3 1.4 leaves the extended FAB's text out of the semantics tree.
-                    modifier = Modifier.semantics { contentDescription = "Add player" },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                )
+                // The empty state carries its own "Add player" call to action; don't show two.
+                PlayersTab.PLAYERS -> if (!players.isEmpty) {
+                    ExtendedFloatingActionButton(
+                        onClick = actions.onAddPlayer,
+                        icon = { Icon(Icons.Outlined.PersonAdd, contentDescription = null) },
+                        text = { Text("Add player") },
+                        // M3 1.4 leaves the extended FAB's text out of the semantics tree.
+                        modifier = Modifier.semantics { contentDescription = "Add player" },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
 
                 PlayersTab.MATCHES -> if (matches.undo == null) {
                     ExtendedFloatingActionButton(
