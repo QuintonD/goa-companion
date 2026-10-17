@@ -228,6 +228,9 @@ class PlayersScreenshotTest {
 
     @Test fun matchLogFontScale2() = shot(fontScale = 2f) { Home(PlayersTab.MATCHES) }
 
+    /** Large text, side by side: hero names wrap the rating change below instead of "Xarga…". */
+    @Test fun matchLogLightFontScale13() = shot(ThemeMode.LIGHT, fontScale = 1.3f) { Home(PlayersTab.MATCHES) }
+
     @Test fun metaDark() = shot { Home(PlayersTab.META) }
 
     @Test fun metaLight() = shot(ThemeMode.LIGHT) { Home(PlayersTab.META) }
