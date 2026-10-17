@@ -55,7 +55,15 @@ interface Navigator {
 
 @Serializable data object MatchLogRoute : NavKey
 
-@Serializable data class MatchEditRoute(val matchId: String? = null) : NavKey
+/**
+ * Match editor. [matchId] null = new match; [prefillDurationMin] / [prefillMode] (a `GameMode`
+ * serial name, e.g. "quick") pre-fill a NEW match, e.g. from a finished timer session.
+ */
+@Serializable data class MatchEditRoute(
+    val matchId: String? = null,
+    val prefillDurationMin: Int? = null,
+    val prefillMode: String? = null,
+) : NavKey
 
 @Serializable data object MetaRoute : NavKey
 
