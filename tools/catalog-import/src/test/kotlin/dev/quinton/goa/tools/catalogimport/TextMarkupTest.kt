@@ -151,9 +151,9 @@ class TextMarkupTest {
     @Test
     fun `goa2-faq list items keyed by an icon carry no bullet`() {
         // Snorri's cards print the rune icon at the start of the line, without a bullet.
-        val faq = "If a rune is active:\n- ::rune_horn::: Block a basic attack;\n- ::rune_axe::: Block a non-ranged attack;"
-        assertThat(TextMarkup.fromFaq(faq))
-            .isEqualTo("If a rune is active:\n{rune_horn}: Block a basic attack;\n{rune_axe}: Block a non-ranged attack;")
+        val faq = "If a rune is active:\n- ::rune_horn::: Block a basic attack;\n- ::rune_axe::: Block a ranged attack;"
+        val expected = "If a rune is active:\n{rune_horn}: Block a basic attack;\n{rune_axe}: Block a ranged attack;"
+        assertThat(TextMarkup.fromFaq(faq)).isEqualTo(expected)
     }
 
     @Test
