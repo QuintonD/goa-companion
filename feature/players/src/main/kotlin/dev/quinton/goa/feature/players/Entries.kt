@@ -52,6 +52,9 @@ import dev.quinton.goa.feature.players.players.PlayersViewModel
 import dev.quinton.goa.feature.players.ratings.RatingSettingsActions
 import dev.quinton.goa.feature.players.ratings.RatingSettingsScreen
 import dev.quinton.goa.feature.players.ratings.RatingSettingsViewModel
+import dev.quinton.goa.feature.players.share.StatsPageEvent
+import dev.quinton.goa.feature.players.share.StatsPageViewModel
+import dev.quinton.goa.feature.players.share.shareStatsPage
 
 fun EntryProviderScope<NavKey>.playersEntries(navigator: Navigator) {
     entry<PlayersRoute> { PlayersHomeEntry(navigator) }
@@ -140,6 +143,16 @@ private fun PlayersHomeEntry(navigator: Navigator) {
     var tab by rememberSaveable { mutableStateOf(PlayersTab.PLAYERS) }
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(matchesVm) { matchesVm.navigation.collect { navigator.follow(it) } }
+    val statsVm = hiltViewModel<StatsPageViewModel>()
+    val context = LocalContext.current
+    LaunchedEffect(statsVm) {
+        statsVm.events.collect { event ->
+            when (event) {
+                is StatsPageEvent.Share -> context.shareStatsPage(event)
+                is StatsPageEvent.Failed -> navigator.showMessage(event.message)
+            }
+        }
+    }
     // A match saved from this screen's editor: show it in the Matches tab when coming back.
     LaunchedEffect(matches.highlightId) { if (matches.highlightId != null) tab = PlayersTab.MATCHES }
     PlayersHomeScreen(
@@ -161,6 +174,7 @@ private fun PlayersHomeEntry(navigator: Navigator) {
             onOpenBackup = { navigator.navigate(BackupRoute) },
             onOpenSettings = { navigator.navigate(SettingsRoute) },
             onOpenRatingSettings = { navigator.navigate(RatingSettingsRoute) },
+            onShareStats = statsVm::share,
         ),
         followUps = followUps(matchesVm, navigator),
         metaActions = MetaActions(

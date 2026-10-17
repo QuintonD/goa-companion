@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only the stats page directory (CacheStatsPageStore.DIRECTORY) is shareable. -->
+<paths>
+    <cache-path
+        name="stats"
+        path="stats/" />
+</paths>

@@ -38,7 +38,8 @@ core/testing/            # fakes, fixtures, test rules
 core/navigation/         # Navigation 3 keys for every screen + Navigator (ADR-010), NavSheet metadata
 feature/catalog/
 feature/timer/           # timer UI, TimerScheduler (alarms), notification, receivers
-feature/players/         # players, match log, Elo, meta dashboard
+feature/players/         # players, match log, Elo, meta dashboard; shareable HTML stats page
+                         #   (pure StatsPageRenderer + its own StatsPageFileProvider, ADR-027)
 feature/draft/
 feature/settings/        # settings, rating constants, export/import entry, About
 feature/rules/           # rules reference: topic list + search, topic pages, Levels & defeats sheet

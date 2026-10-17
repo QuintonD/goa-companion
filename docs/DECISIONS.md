@@ -374,3 +374,33 @@ Next as in the step view; "Previous phase" sits beside the current step's title 
 portrait, above its clock in landscape). Landscape pins Hurry up and time-outs above the controls too,
 so they and the Level Up rule fit a short window. Rows only cover the current round: jumping to
 another round is not offered.
+
+## ADR-027 — Players: a shareable, self-contained HTML stats page for friends without the app (2026-10-17)
+**Context:** Some of the play group use iPhones and can't run this Android-only, sideloaded app,
+yet they are players: their matches are logged on an Android phone. They want to see ratings,
+the meta and the match log too. The app has no `INTERNET` permission and must keep it, so
+there is nothing to host or sync to.
+**Decision:** (1) "Share stats page" (share icon in the Players top bar, shown on the Meta tab
+only; there is no overflow menu) writes **one self-contained HTML file** and opens the Android
+share sheet (`text/html`), so it travels by any messenger or mail and opens in Safari or Files.
+(2) Content is built only from what the screens already compute, through their own builders over
+one `RatingsSnapshot`: `PlayersViewModel.leaderboard` (Elo, games, W–L, "last N" trend,
+provisional; archived players hidden as on the tab), `PlayerDetailViewModel.build` ("Best
+heroes" or "Most played"), `MetaViewModel.build` (hero meta with the same min-sample "Not enough
+games yet" split; group stats: last game night, movers, streaks, how games end, sides, average
+length, rivalries, teammates, hero pairs) and `MatchLogViewModel.toRow` (the newest 100 matches,
+one line per hero seat, so a double pilot appears on each of their seats with one rating
+change). No new statistic. Unknown heroes and players read "Unknown hero" / "Unknown player" as
+in the app. (3) Rendering is pure Kotlin (`StatsPageRenderer`, no Android imports, unit-tested):
+every data-derived string is HTML-escaped; inline CSS with the DESIGN.md tokens, light by
+default and for print, dark on `prefers-color-scheme: dark`; semantic tables with `scope`,
+`lang`, viewport, a dated title; our inline brand-mark SVG; **no** scripts, fonts, images,
+official card art or external references (system fonts stand in for Cinzel and Inter). (4) The
+file goes to `cache/stats/` (only the latest page is kept; cache is never backed up) and is
+shared through its own `StatsPageFileProvider` (a `FileProvider` subclass, authority
+`<applicationId>.statspage`, declared in `feature/players`' manifest). No FileProvider existed,
+and a subclass can't clash with one another feature adds later.
+**Consequences:** The page is a snapshot: it is right as of its footer ("ratings as of the last
+logged match") and goes stale until shared again. 500 matches render to about 125 KB. Player and
+hero names, notes and maps leave the phone in whichever chat the owner picks at the share sheet.
+Matches beyond the 100 shown still count in every number, and the page says so.
