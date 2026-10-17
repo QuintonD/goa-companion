@@ -10,9 +10,11 @@ import dev.quinton.goa.feature.timer.data.AndroidTimerAssets
 import dev.quinton.goa.feature.timer.data.TimerAssets
 import dev.quinton.goa.feature.timer.system.AlarmTimerScheduler
 import dev.quinton.goa.feature.timer.system.AndroidCuePlayer
+import dev.quinton.goa.feature.timer.system.AndroidPhaseAlertSounder
 import dev.quinton.goa.feature.timer.system.AndroidTimerNotifier
 import dev.quinton.goa.feature.timer.system.BootCountProvider
 import dev.quinton.goa.feature.timer.system.CuePlayer
+import dev.quinton.goa.feature.timer.system.PhaseAlertSounder
 import dev.quinton.goa.feature.timer.system.SettingsBootCountProvider
 import dev.quinton.goa.feature.timer.system.SystemElapsedClock
 import dev.quinton.goa.feature.timer.system.SystemWallClock
@@ -39,6 +41,8 @@ internal interface TimerModule {
     @Binds fun notifier(impl: AndroidTimerNotifier): TimerNotifier
 
     @Binds fun cues(impl: AndroidCuePlayer): CuePlayer
+
+    @Binds fun alertSound(impl: AndroidPhaseAlertSounder): PhaseAlertSounder
 
     @Binds fun coin(impl: RandomCoinFlipper): CoinFlipper
 

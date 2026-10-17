@@ -8,13 +8,11 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
-import android.media.AudioAttributes
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.domain.timer.TimerEngine
 import dev.quinton.goa.feature.timer.FakeClocks
 import dev.quinton.goa.feature.timer.FileTimerAssets
-import dev.quinton.goa.feature.timer.R
 import dev.quinton.goa.feature.timer.session.TimerCommand
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
@@ -32,6 +30,7 @@ class TimerSystemTest {
     private val notifications = context.getSystemService(NotificationManager::class.java)
     private val clocks = FakeClocks()
     private val engine = TimerEngine(clocks, clocks)
+    private val sounder = RecordingSounder()
 
     @Before
     fun grant() {
@@ -68,7 +67,7 @@ class TimerSystemTest {
         notifications.createNotificationChannel(
             NotificationChannel("timer_ongoing", "Old", NotificationManager.IMPORTANCE_LOW),
         )
-        AndroidTimerNotifier(context).ensureChannels()
+        AndroidTimerNotifier(context, sounder).ensureChannels()
 
         val ongoing = notifications.getNotificationChannel(AndroidTimerNotifier.CHANNEL_ONGOING)
         // Low importance hid the countdown from the keyguard and folded it into "Silent".
@@ -82,28 +81,48 @@ class TimerSystemTest {
     }
 
     @Test
-    fun `phase-over channels play the bundled chime on the alarm stream and follow sounds and haptics`() {
-        AndroidTimerNotifier(context).ensureChannels()
+    fun `phase-over channel is a silent heads-up, the per-style sounding channels are removed`() {
+        // Regression: auto-grouping with the countdown marked the alert SILENT, muting a channel sound.
+        notifications.createNotificationChannel(
+            NotificationChannel("timer_phase_over", "Old", NotificationManager.IMPORTANCE_HIGH),
+        )
+        AndroidTimerNotifier(context, sounder).ensureChannels()
 
-        fun channel(style: AlertStyle) = notifications.getNotificationChannel(AndroidTimerNotifier.alertChannel(style))
-        val full = channel(AlertStyle.CHIME_AND_VIBRATE)
-        assertThat(full.importance).isEqualTo(NotificationManager.IMPORTANCE_HIGH)
-        assertThat(full.audioAttributes.usage).isEqualTo(AudioAttributes.USAGE_ALARM)
-        assertThat(full.sound.toString()).endsWith("/${R.raw.phase_chime}")
-        assertThat(full.shouldVibrate()).isTrue()
-        assertThat(channel(AlertStyle.CHIME).shouldVibrate()).isFalse()
-        assertThat(channel(AlertStyle.CHIME).sound).isNotNull()
-        assertThat(channel(AlertStyle.VIBRATE).sound).isNull()
-        assertThat(channel(AlertStyle.VIBRATE).shouldVibrate()).isTrue()
-        assertThat(channel(AlertStyle.SILENT).sound).isNull()
-        assertThat(channel(AlertStyle.SILENT).shouldVibrate()).isFalse()
+        val alert = notifications.getNotificationChannel(AndroidTimerNotifier.CHANNEL_ALERT)
+        assertThat(alert.importance).isEqualTo(NotificationManager.IMPORTANCE_HIGH)
+        assertThat(alert.sound).isNull()
+        assertThat(alert.shouldVibrate()).isFalse()
+        assertThat(alert.lockscreenVisibility).isEqualTo(Notification.VISIBILITY_PUBLIC)
+        assertThat(notifications.getNotificationChannel("timer_phase_over")).isNull()
+    }
+
+    @Test
+    fun `the app sounds the alert itself, following sounds and haptics, even without notification permission`() {
+        val s = engine.next(snapshot())
+        AndroidTimerNotifier(context, sounder).alertPhaseOver(s, "Turn 2 · Round 1", AlertStyle.VIBRATE)
+        shadowOf(context as Application).denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        AndroidTimerNotifier(context, sounder).alertPhaseOver(s, "Turn 2 · Round 1", AlertStyle.CHIME)
+
+        assertThat(sounder.sounded).containsExactly(AlertStyle.VIBRATE, AlertStyle.CHIME).inOrder()
+    }
+
+    @Test
+    fun `turning the phase-over channel off in system settings also stops the sound`() {
+        val notifier = AndroidTimerNotifier(context, sounder)
+        notifier.ensureChannels()
+        notifications.createNotificationChannel(
+            NotificationChannel(AndroidTimerNotifier.CHANNEL_ALERT, "Phase over", NotificationManager.IMPORTANCE_NONE),
+        )
+        notifier.alertPhaseOver(engine.next(snapshot()), "Turn 2 · Round 1", AlertStyle.CHIME_AND_VIBRATE)
+
+        assertThat(sounder.sounded).isEmpty()
     }
 
     @Test
     fun `ongoing notification counts down to the phase end with controls`() {
         val s = snapshot()
         clocks.advance(30_000)
-        AndroidTimerNotifier(context).showOngoing(s, engine.readout(s), clocks.wall)
+        AndroidTimerNotifier(context, sounder).showOngoing(s, engine.readout(s), clocks.wall)
 
         val posted = shadowOf(notifications).getNotification(AndroidTimerNotifier.ID_ONGOING)
         assertThat(posted.flags and Notification.FLAG_ONGOING_EVENT).isNotEqualTo(0)
@@ -118,7 +137,7 @@ class TimerSystemTest {
     @Test
     fun `lock-screen actions are pause and next only, with next behind unlock`() {
         val s = snapshot()
-        AndroidTimerNotifier(context).showOngoing(s, engine.readout(s), clocks.wall)
+        AndroidTimerNotifier(context, sounder).showOngoing(s, engine.readout(s), clocks.wall)
 
         val posted = shadowOf(notifications).getNotification(AndroidTimerNotifier.ID_ONGOING)
         // No Stop: ending a match from the lock screen was one tap and irrecoverable.
@@ -133,7 +152,7 @@ class TimerSystemTest {
     fun `running countdown leaves the status chip to the chronometer`() {
         val s = snapshot()
         clocks.advance(30_000)
-        AndroidTimerNotifier(context).showOngoing(s, engine.readout(s), clocks.wall)
+        AndroidTimerNotifier(context, sounder).showOngoing(s, engine.readout(s), clocks.wall)
 
         val posted = shadowOf(notifications).getNotification(AndroidTimerNotifier.ID_ONGOING)
         // A static short critical text would freeze the Android 16 status-bar chip.
@@ -145,7 +164,7 @@ class TimerSystemTest {
     fun `overtime shows a static Over chip`() {
         val s = snapshot()
         clocks.advance(95_000)
-        AndroidTimerNotifier(context).showOngoing(s, engine.readout(s), clocks.wall)
+        AndroidTimerNotifier(context, sounder).showOngoing(s, engine.readout(s), clocks.wall)
 
         val posted = shadowOf(notifications).getNotification(AndroidTimerNotifier.ID_ONGOING)
         assertThat(posted.extras.getCharSequence(EXTRA_SHORT_CRITICAL_TEXT).toString()).isEqualTo("Over")
@@ -154,7 +173,7 @@ class TimerSystemTest {
     @Test
     fun `swiping the countdown away re-posts it through the action receiver`() {
         val s = snapshot()
-        AndroidTimerNotifier(context).showOngoing(s, engine.readout(s), clocks.wall)
+        AndroidTimerNotifier(context, sounder).showOngoing(s, engine.readout(s), clocks.wall)
 
         val posted = shadowOf(notifications).getNotification(AndroidTimerNotifier.ID_ONGOING)
         val delete = shadowOf(posted.deleteIntent)
@@ -168,7 +187,7 @@ class TimerSystemTest {
     @Test
     fun `paused notification offers resume and no chronometer`() {
         val s = engine.pause(snapshot())
-        AndroidTimerNotifier(context).showOngoing(s, engine.readout(s), clocks.wall)
+        AndroidTimerNotifier(context, sounder).showOngoing(s, engine.readout(s), clocks.wall)
 
         val posted = shadowOf(notifications).getNotification(AndroidTimerNotifier.ID_ONGOING)
         assertThat(posted.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER)).isFalse()
@@ -179,19 +198,19 @@ class TimerSystemTest {
 
     @Test
     fun `notifier reports whether it can post`() {
-        assertThat(AndroidTimerNotifier(context).canPost()).isTrue()
+        assertThat(AndroidTimerNotifier(context, sounder).canPost()).isTrue()
         shadowOf(context as Application).denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
-        assertThat(AndroidTimerNotifier(context).canPost()).isFalse()
+        assertThat(AndroidTimerNotifier(context, sounder).canPost()).isFalse()
     }
 
     @Test
-    fun `phase over alert uses the channel for the chosen style and can be cleared`() {
-        val notifier = AndroidTimerNotifier(context)
+    fun `phase over alert posts on the silent alert channel and can be cleared`() {
+        val notifier = AndroidTimerNotifier(context, sounder)
         val s = engine.next(snapshot())
         notifier.alertPhaseOver(s, "Turn 2 · Round 1", AlertStyle.VIBRATE)
 
         val posted = shadowOf(notifications).getNotification(AndroidTimerNotifier.ID_ALERT)
-        assertThat(posted.channelId).isEqualTo(AndroidTimerNotifier.alertChannel(AlertStyle.VIBRATE))
+        assertThat(posted.channelId).isEqualTo(AndroidTimerNotifier.CHANNEL_ALERT)
         assertThat(posted.extras.getCharSequence(Notification.EXTRA_TITLE).toString())
             .isEqualTo("Time's up: Turn 2 · Round 1")
         assertThat(posted.extras.getCharSequence(Notification.EXTRA_TEXT).toString())
@@ -204,7 +223,7 @@ class TimerSystemTest {
     @Test
     fun `countdown text says what comes next`() {
         val s = engine.next(snapshot())
-        AndroidTimerNotifier(context).showOngoing(s, engine.readout(s), clocks.wall)
+        AndroidTimerNotifier(context, sounder).showOngoing(s, engine.readout(s), clocks.wall)
 
         val posted = shadowOf(notifications).getNotification(AndroidTimerNotifier.ID_ONGOING)
         assertThat(posted.extras.getCharSequence(Notification.EXTRA_TITLE).toString())
@@ -217,7 +236,7 @@ class TimerSystemTest {
     fun `nothing is posted without the notification permission`() {
         shadowOf(context as Application).denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
         val s = snapshot()
-        AndroidTimerNotifier(context).showOngoing(s, engine.readout(s), clocks.wall)
+        AndroidTimerNotifier(context, sounder).showOngoing(s, engine.readout(s), clocks.wall)
 
         assertThat(shadowOf(notifications).allNotifications).isEmpty()
     }
@@ -246,4 +265,15 @@ class TimerSystemTest {
         /** `Notification.EXTRA_SHORT_CRITICAL_TEXT` (API 36). */
         const val EXTRA_SHORT_CRITICAL_TEXT = "android.shortCriticalText"
     }
+}
+
+/** Records the styles the phase-over alert was sounded with. */
+class RecordingSounder : PhaseAlertSounder {
+    val sounded = mutableListOf<AlertStyle>()
+
+    override fun sound(style: AlertStyle) {
+        sounded += style
+    }
+
+    override suspend fun awaitDone() = Unit
 }

@@ -24,15 +24,23 @@ internal fun BroadcastReceiver.runAsync(block: suspend () -> Unit) {
     }
 }
 
-/** The exact alarm for the end of a timed phase. */
+/**
+ * The exact alarm for the end of a timed phase. Keeps the broadcast alive (goAsync) until the
+ * phase-over chime has played, so a backgrounded or dozing process isn't frozen mid-chime.
+ */
 @AndroidEntryPoint
 class TimerAlarmReceiver : BroadcastReceiver() {
     @Inject lateinit var controller: TimerController
 
+    @Inject lateinit var sounder: PhaseAlertSounder
+
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_PHASE_END) return
         val stepKey = intent.getStringExtra(EXTRA_STEP_KEY)
-        runAsync { controller.onAlarm(stepKey) }
+        runAsync {
+            controller.onAlarm(stepKey)
+            sounder.awaitDone()
+        }
     }
 
     companion object {
