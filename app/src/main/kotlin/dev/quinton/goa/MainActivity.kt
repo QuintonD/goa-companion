@@ -1,5 +1,6 @@
 package dev.quinton.goa
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -18,15 +19,26 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.navigation.EXTRA_OPEN_TAB
+import dev.quinton.goa.core.navigation.TopLevelTab
 import dev.quinton.goa.ui.GoaApp
+import dev.quinton.goa.ui.TabRequest
+import kotlinx.coroutines.flow.MutableStateFlow
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
+    /** Tabs asked for by launch intents (the timer notification asks for the Timer tab). */
+    private val tabRequests = MutableStateFlow<TabRequest?>(null)
+    private var requestCount = 0L
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
+        // A recreated activity (rotation, process restore) keeps its tab; only a real launch obeys the intent.
+        val coldStart = savedInstanceState == null
+        if (coldStart) handle(intent)
         splash.setKeepOnScreenCondition { viewModel.uiState.value is MainUiState.Loading }
         enableEdgeToEdge()
         setContent {
@@ -54,8 +66,19 @@ class MainActivity : ComponentActivity() {
                     window.setBackgroundDrawable(canvas.toDrawable())
                     onDispose {}
                 }
-                GoaApp()
+                GoaApp(tabRequests = tabRequests, coldStart = coldStart)
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handle(intent)
+    }
+
+    private fun handle(intent: Intent?) {
+        val name = intent?.getStringExtra(EXTRA_OPEN_TAB) ?: return
+        val tab = TopLevelTab.entries.firstOrNull { it.name == name } ?: return
+        tabRequests.value = TabRequest(tab, requestCount++)
     }
 }

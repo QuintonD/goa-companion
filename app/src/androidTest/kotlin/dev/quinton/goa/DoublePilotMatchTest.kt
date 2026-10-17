@@ -66,6 +66,9 @@ class DoublePilotMatchTest {
         rule.tapDescription("Red won")
         rule.tapText("Throne")
         rule.tap(hasText("Save") and hasClickAction())
+        // The result shows its rating changes and Rematch before closing.
+        rule.waitForText("Result saved")
+        rule.tapText("Done")
 
         rule.tap(hasText("Players") and hasClickAction() and hasRole(Role.Tab) and notBottomNav())
         rule.waitUntilOrDump("leaderboard rated") {

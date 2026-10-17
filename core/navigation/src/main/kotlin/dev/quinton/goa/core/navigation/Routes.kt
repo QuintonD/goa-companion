@@ -11,13 +11,25 @@ import kotlinx.serialization.Serializable
 
 enum class TopLevelTab { CATALOG, TIMER, DRAFT, PLAYERS }
 
+/**
+ * Intent extra naming the [TopLevelTab] to show when the app opens (e.g. "TIMER" from the timer
+ * notification). The app shell reads it in `MainActivity`.
+ */
+const val EXTRA_OPEN_TAB = "dev.quinton.goa.extra.OPEN_TAB"
+
 interface Navigator {
     fun navigate(key: NavKey)
 
-    /** Opens [key] as the root of [tab]'s stack and switches to that tab. */
+    /** Pushes [key] on [tab]'s stack (unless it's already on top) and switches to that tab. */
     fun navigateToTab(tab: TopLevelTab, key: NavKey? = null)
 
     fun back()
+
+    /**
+     * A short app-wide message (snackbar above the bottom bar) that survives the screen that
+     * sent it closing, e.g. "Pending match saved". [onAction] runs when [actionLabel] is tapped.
+     */
+    fun showMessage(message: String, actionLabel: String? = null, onAction: (() -> Unit)? = null) {}
 }
 
 // Catalog
@@ -58,11 +70,18 @@ interface Navigator {
 /**
  * Match editor. [matchId] null = new match; [prefillDurationMin] / [prefillMode] (a `GameMode`
  * serial name, e.g. "quick") pre-fill a NEW match, e.g. from a finished timer session.
+ *
+ * [result] opens the focused "Who won?" layout (winner and win condition first, a pending match
+ * defaults to Completed), used when a game has just ended: from the timer summary or a pending
+ * match. [prefillPlayedAt] (epoch ms, e.g. the timer session's start) replaces the date of a new
+ * or still pending match.
  */
 @Serializable data class MatchEditRoute(
     val matchId: String? = null,
     val prefillDurationMin: Int? = null,
     val prefillMode: String? = null,
+    val result: Boolean = false,
+    val prefillPlayedAt: Long? = null,
 ) : NavKey
 
 @Serializable data object MetaRoute : NavKey

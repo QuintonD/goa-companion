@@ -2,6 +2,7 @@ package dev.quinton.goa.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -16,25 +17,38 @@ import dev.quinton.goa.core.navigation.PlayersRoute
 import dev.quinton.goa.core.navigation.TimerRoute
 import dev.quinton.goa.core.navigation.TopLevelTab
 
-/** One back stack per tab; back on a non-home tab root returns to the Heroes tab. */
+/** A message queued by [Navigator.showMessage] for the shell's snackbar. */
+data class ShellMessage(val id: Long, val text: String, val actionLabel: String?, val onAction: (() -> Unit)?)
+
+/**
+ * One back stack per tab (each keeps its screens and their state while another tab is shown);
+ * back on a non-home tab root returns to the Heroes tab.
+ */
 class AppNavigator(
     private val stacks: Map<TopLevelTab, NavBackStack<NavKey>>,
     initialTab: TopLevelTab,
-    private val onTabChanged: (TopLevelTab) -> Unit,
+    private val onTabChanged: (TopLevelTab) -> Unit = {},
 ) : Navigator {
     var currentTab by mutableStateOf(initialTab)
         private set
 
     val currentStack: NavBackStack<NavKey> get() = stacks.getValue(currentTab)
 
+    fun stack(tab: TopLevelTab): NavBackStack<NavKey> = stacks.getValue(tab)
+
+    /** Messages waiting to be shown, oldest first. */
+    val messages = mutableStateListOf<ShellMessage>()
+    private var nextMessageId = 0L
+
     fun selectTab(tab: TopLevelTab) {
-        if (tab == currentTab) {
-            // Re-selecting a tab pops it to its root.
-            val stack = stacks.getValue(tab)
-            while (stack.size > 1) stack.removeAt(stack.lastIndex)
-        }
-        currentTab = tab
-        onTabChanged(tab)
+        if (tab == currentTab) popToRoot(tab) // Re-selecting a tab pops it to its root.
+        switchTo(tab)
+    }
+
+    /** Shows the timer itself (notification tap, cold start with a session, the running-timer bar). */
+    fun openTimer() {
+        popToRoot(TopLevelTab.TIMER)
+        switchTo(TopLevelTab.TIMER)
     }
 
     override fun navigate(key: NavKey) {
@@ -44,16 +58,33 @@ class AppNavigator(
     override fun navigateToTab(tab: TopLevelTab, key: NavKey?) {
         val stack = stacks.getValue(tab)
         if (key != null && stack.lastOrNull() != key) stack.add(key)
-        currentTab = tab
-        onTabChanged(tab)
+        switchTo(tab)
     }
 
     override fun back() {
         val stack = currentStack
         when {
             stack.size > 1 -> stack.removeAt(stack.lastIndex)
-            currentTab != TopLevelTab.CATALOG -> selectTab(TopLevelTab.CATALOG)
+            currentTab != TopLevelTab.CATALOG -> switchTo(TopLevelTab.CATALOG)
         }
+    }
+
+    override fun showMessage(message: String, actionLabel: String?, onAction: (() -> Unit)?) {
+        messages += ShellMessage(nextMessageId++, message, actionLabel, onAction)
+    }
+
+    fun messageShown(id: Long) {
+        messages.removeAll { it.id == id }
+    }
+
+    private fun popToRoot(tab: TopLevelTab) {
+        val stack = stacks.getValue(tab)
+        while (stack.size > 1) stack.removeAt(stack.lastIndex)
+    }
+
+    private fun switchTo(tab: TopLevelTab) {
+        currentTab = tab
+        onTabChanged(tab)
     }
 }
 
