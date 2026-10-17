@@ -6,6 +6,7 @@
         <item name="android:windowBackground">@color/goa_background</item>
     </style>
 
+    <!-- Splash: the adaptive icon's bronze shield on the app canvas; held until settings load. -->
     <style name="Theme.Goa.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/goa_background</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>

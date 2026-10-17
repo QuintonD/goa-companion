@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from design/icons/brand_mark.svg by design/tools/svg2vd.py. Do not edit; edit the SVG. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M12 1.5L20.5 4.3V11.3c0 5.3-3.5 8.6-8.5 10.9C7 19.9 3.5 16.6 3.5 11.3V4.3z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="12" android:startY="1.5" android:endX="12" android:endY="22.5">
+                <item android:offset="0" android:color="#FFEBCB86" />
+                <item android:offset="0.55" android:color="#FFC9A35B" />
+                <item android:offset="1" android:color="#FF8E6C2E" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:pathData="M12 6.4v13.6M8.1 8v2c0 1.9 1.7 3 3.9 3s3.9-1.1 3.9-3V8M9.6 18.5h4.8"
+        android:strokeColor="#FF0B1622"
+        android:strokeWidth="1.35"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M12 4.2l1.2 2.3h-2.4zM8.1 5.9l1.1 2.1H7zM15.9 5.9l1.1 2.1h-2.2z"
+        android:fillColor="#FF0B1622"
+        android:strokeColor="#FF0B1622"
+        android:strokeWidth="0.6"
+        android:strokeLineCap="butt"
+        android:strokeLineJoin="round" />
+</vector>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="108" height="108">
+  <title>App icon themed (monochrome) layer: shield outline and trident, tinted by the launcher</title>
+  <path d="M54 27.5L77 35V54c0 14.5-9.5 23.5-23 29.5C40.5 77.5 31 68.5 31 54V35z" fill="none" stroke="#000000" stroke-width="3.2" stroke-linejoin="round"/>
+  <path d="M54 39v37M43.5 43.5v5.5c0 5.2 4.6 8 10.5 8s10.5-2.8 10.5-8v-5.5M47.5 72.5h13" fill="none" stroke="#000000" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M54 33.5l3.2 6.2h-6.4zM43.5 38l3 5.8h-6zM64.5 38l3 5.8h-6z" fill="#000000" stroke="#000000" stroke-width="1.6" stroke-linejoin="round"/>
+</svg>
