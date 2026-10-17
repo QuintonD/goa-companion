@@ -38,7 +38,19 @@ internal fun match(
         mode = GameMode.QUICK,
         winner = winner,
         notes = notes,
-        participants = seats.mapIndexed { i, (p, t) -> Participant(p, heroes?.getOrNull(i) ?: "h$i", t) },
+        participants = seats.mapIndexed { i, (p, t) ->
+            Participant(
+                p,
+                if (heroes !=
+                    null
+                ) {
+                    heroes.getOrNull(i)
+                } else {
+                    "h$i"
+                },
+                t,
+            )
+        },
         updatedAt = updatedAt,
     )
 }
@@ -83,6 +95,8 @@ internal object RandomSync {
             },
             playedAt = nextLong(0, 20),
             notes = "v${nextInt(3)}",
+            // Unknown-hero seats, so ties between copies with and without a hero occur too.
+            heroes = List(size * 2) { if (nextInt(4) == 0) null else "h$it" },
         )
     }
 

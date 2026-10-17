@@ -5,6 +5,7 @@ import dev.quinton.goa.core.domain.sync.SyncChanges
 import dev.quinton.goa.core.domain.sync.protocol.ClientPhase
 import dev.quinton.goa.core.domain.sync.protocol.PeerProgress
 import dev.quinton.goa.core.domain.sync.protocol.PeerStage
+import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
 import dev.quinton.goa.core.domain.sync.protocol.SyncFailure
 import dev.quinton.goa.core.model.player.Player
 import java.time.Duration
@@ -89,6 +90,19 @@ object SyncText {
             d.toDays() < 1 -> "${d.toHours()} h ago"
             else -> "${count(d.toDays().toInt(), "day")} ago"
         }
+    }
+
+    /**
+     * Phones on another app version may know different heroes, so hero ratings differ between
+     * them until everyone updates (the data itself is the same). Null when versions match.
+     */
+    fun versionHint(mine: String?, others: List<SyncDevice>): String? {
+        if (mine == null) return null
+        val different = others.filter { it.appVersion != null && it.appVersion != mine }.distinctBy { it.deviceId }
+        if (different.isEmpty()) return null
+        val list = different.joinToString { "${it.name} (${it.appVersion})" }
+        return "Not every phone has the same app version: $list, this phone $mine. The data is the same, but " +
+            "ratings can differ where a phone doesn't know a hero yet. Update every phone to the same version."
     }
 
     /** Names more than one (visible) player has: duplicates that "Merge into…" can fix. */

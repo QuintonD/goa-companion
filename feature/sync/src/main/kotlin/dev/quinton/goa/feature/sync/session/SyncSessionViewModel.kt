@@ -12,6 +12,7 @@ import dev.quinton.goa.core.data.GroupRepository
 import dev.quinton.goa.core.data.GroupState
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.SyncRepository
+import dev.quinton.goa.core.data.backup.AppInfo
 import dev.quinton.goa.core.domain.sync.SyncValidation
 import dev.quinton.goa.core.domain.sync.protocol.ClientPhase
 import dev.quinton.goa.core.domain.sync.protocol.ClientState
@@ -67,6 +68,8 @@ data class SyncSessionUiState(
     val requestedRole: SessionRole? = null,
     /** Two players share a name after the sync. */
     val duplicateHint: String? = null,
+    /** The phones run different app versions (hero ratings can differ). */
+    val versionHint: String? = null,
 ) {
     /** Merged data is being written or sent: the sheet holds open (Cancel is still offered). */
     val busy: Boolean get() = when (val s = stage) {
@@ -104,6 +107,7 @@ class SyncSessionViewModel @AssistedInject constructor(
     private val players: PlayerRepository,
     private val transports: SyncTransportFactory,
     private val clock: EditClock,
+    private val appInfo: AppInfo,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -120,6 +124,9 @@ class SyncSessionViewModel @AssistedInject constructor(
 
     private val session = MutableStateFlow<Session?>(null)
     private var job: Job? = null
+
+    /** The last cancelled session, until it has released the radios. */
+    private var stopping: Job? = null
     private var transport: SessionTransport? = null
     private val requested =
         MutableStateFlow(SessionRole.entries.firstOrNull { it.name.equals(role, ignoreCase = true) })
@@ -144,6 +151,11 @@ class SyncSessionViewModel @AssistedInject constructor(
             is SessionStage.Joining -> stage.state.phase == ClientPhase.DONE
             else -> false
         }
+        val others = when (stage) {
+            is SessionStage.Hosting -> stage.state.peers.mapNotNull { it.device }
+            is SessionStage.Joining -> listOfNotNull(stage.state.host)
+            else -> emptyList()
+        }
         SyncSessionUiState(
             stage = stage ?: if (group.group == null) SessionStage.NotInGroup else SessionStage.Choose,
             groupName = group.group?.name,
@@ -151,6 +163,7 @@ class SyncSessionViewModel @AssistedInject constructor(
             firstSync = firstSync,
             requestedRole = role,
             duplicateHint = if (finishedOk) SyncText.duplicateHint(SyncText.duplicateNames(people)) else null,
+            versionHint = SyncText.versionHint(appInfo.versionName(), others),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SyncSessionUiState(firstSync = firstSync))
 
@@ -158,7 +171,11 @@ class SyncSessionViewModel @AssistedInject constructor(
     fun start(role: SessionRole) {
         if (job?.isActive == true) return
         requested.value = null
+        val previous = stopping
         job = viewModelScope.launch {
+            // A cancelled session releases the shared Nearby client in its `finally`; let it finish
+            // first, or it would stop this session's advertising.
+            previous?.join()
             val state = groups.state.first()
             val group = state.group ?: return@launch
             // Never share data this phone's own checks would refuse from another phone.
@@ -166,8 +183,8 @@ class SyncSessionViewModel @AssistedInject constructor(
                 session.value = Session.Problem(SessionStage.LocalProblem(problem))
                 return@launch
             }
-            val me =
-                SyncDevice(state.deviceId, deviceName(state, players.observePlayers(includeArchived = true).first()))
+            val name = deviceName(state, players.observePlayers(includeArchived = true).first())
+            val me = SyncDevice(state.deviceId, name, appInfo.versionName())
             val opened = transports.create().also { transport = it }
             try {
                 when (role) {
@@ -190,7 +207,7 @@ class SyncSessionViewModel @AssistedInject constructor(
                 }
             } finally {
                 opened.shutdown()
-                transport = null
+                if (transport === opened) transport = null
             }
         }
     }
@@ -213,6 +230,7 @@ class SyncSessionViewModel @AssistedInject constructor(
 
     private fun stop() {
         job?.cancel()
+        stopping = job
         job = null
         transport?.shutdown()
         transport = null

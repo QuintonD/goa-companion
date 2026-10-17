@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.sync
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.EditClock
+import dev.quinton.goa.core.data.backup.AppInfo
 import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.core.domain.sync.InMemorySyncNetwork
 import dev.quinton.goa.core.domain.sync.SyncCodec
@@ -42,14 +43,29 @@ class SyncViewModelsTest {
     private val clock = EditClock { 1_000 }
     private val people = listOf(person("ann"), person("bob"), person("cid"), person("dee"))
 
-    private inner class Phone(name: String, network: InMemorySyncNetwork, data: SyncDocument, inGroup: Boolean = true) {
+    private inner class Phone(
+        name: String,
+        network: InMemorySyncNetwork,
+        data: SyncDocument,
+        inGroup: Boolean = true,
+        version: String = "1.0",
+    ) {
         val groups =
             FakeGroupRepository(
                 groupState(if (inGroup) TestGroup else null).copy(deviceId = "id-$name", deviceName = name),
             )
         val sync = FakeSyncRepository(data)
         val transports = RoomTransports(network, name)
-        val vm = SyncSessionViewModel(null, false, groups, sync, FakePlayerRepository(people), transports, clock)
+        val vm = SyncSessionViewModel(
+            null,
+            false,
+            groups,
+            sync,
+            FakePlayerRepository(people),
+            transports,
+            clock,
+            AppInfo { version },
+        )
     }
 
     private fun TestScope.watch(vararg phones: Phone) = phones.forEach { p ->
@@ -138,6 +154,7 @@ class SyncViewModelsTest {
             FakePlayerRepository(people + person("dee-2", "Dee", createdAt = 9)),
             host.transports,
             clock,
+            AppInfo { "1.0" },
         )
         backgroundScope.launch { hostVm.uiState.collect {} }
         watch(bob)
@@ -147,6 +164,22 @@ class SyncViewModelsTest {
         hostVm.syncNow()
         val done = hostVm.uiState.first { it.finished }
         assertThat(done.duplicateHint).contains("“Dee”")
+    }
+
+    @Test
+    fun phonesOnDifferentAppVersionsAreToldTheirRatingsCanDiffer() = runTest {
+        val network = InMemorySyncNetwork()
+        val host = Phone("Host", network, data("h1"), version = "0.2.0")
+        val bob = Phone("Bob", network, data("b1"), version = "0.1.0")
+        watch(host, bob)
+        bob.vm.start(SessionRole.JOIN)
+        host.vm.start(SessionRole.HOST)
+        host.vm.uiState.first { s -> (s.stage as? SessionStage.Hosting)?.state?.canSync == true }
+        host.vm.syncNow()
+        assertThat(host.vm.uiState.first { it.finished }.versionHint).contains("Bob (0.1.0)")
+        assertThat(bob.vm.uiState.first { it.finished }.versionHint).contains("Host (0.2.0)")
+        // The data itself still ends up the same.
+        assertThat(bob.sync.export()).isEqualTo(host.sync.export())
     }
 
     @Test

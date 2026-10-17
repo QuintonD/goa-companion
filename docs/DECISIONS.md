@@ -425,7 +425,17 @@ non-negotiable. Options weighed:
   checked without real radios.
 - Last writer wins per record: two phones editing the same match before syncing keep only the
   later edit (no field-level merge). Phones with badly wrong clocks win concurrent edits; an edit
-  after a sync always beats what it edited.
+  after a sync always beats what it edited. On an exact tie a match with more known heroes wins
+  (pre-sync data: a backup import on an older catalog had stored a newer hero as null).
+- Phones on different app versions converge on the same data but may rate differently (a missing
+  hero reads as Unknown hero); the greeting carries the app version and the sheet warns.
+- Adversarial review (2026-10-18) fixed: the tie above; Nearby links registered at
+  `onConnectionInitiated` so a first message arriving before the local result isn't dropped; links
+  removed by identity; phones still connecting when Sync is tapped are hung up on; the rating
+  constants re-merged with the stored ones after the transaction; a backup's explicit "use the
+  file's settings" stamped as a new change; a cancelled session releases the radios before the
+  next starts; backups refuse merges naming missing players; COARSE location on Android 12; the
+  host's wording for a phone that dropped after its data was in.
 - Tombstones are kept forever (tens of bytes each). Key rotation isn't built: leaving and
   re-inviting with a new group is the way to cut someone out.
 - Nearby can't be exercised on emulators: the protocol, crypto and merge are proven by JVM tests;

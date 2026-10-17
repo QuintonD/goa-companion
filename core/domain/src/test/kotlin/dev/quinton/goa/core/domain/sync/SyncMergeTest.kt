@@ -39,6 +39,26 @@ class SyncMergeTest {
     }
 
     @Test
+    fun aTieNeverTradesARealHeroForAnUnknownOne() {
+        // Before sync, a backup import on an older catalog stored the newer hero as null; the
+        // migration then gave both copies the same backfilled stamp.
+        val real = match("m", listOf("ann"), listOf("bob"), updatedAt = 10, heroes = listOf("h0", "new-hero"))
+        val cleared = real.copy(
+            participants = real.participants.map {
+                if (it.heroId ==
+                    "new-hero"
+                ) {
+                    it.copy(heroId = null)
+                } else {
+                    it
+                }
+            },
+        )
+        assertThat(SyncMerge.merge(doc(cleared), doc(real)).matches.single()).isEqualTo(real)
+        assertThat(SyncMerge.merge(doc(real), doc(cleared)).matches.single()).isEqualTo(real)
+    }
+
+    @Test
     fun aTombstoneBeatsOlderAndEqualEditsButALaterEditBringsTheMatchBack() {
         val deleted = Deletion(DeletionKind.MATCH, "m1", deletedAt = 10)
         assertThat(SyncMerge.merge(doc(m1), doc(deleted)).matches).isEmpty()

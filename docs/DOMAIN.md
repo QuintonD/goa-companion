@@ -463,7 +463,8 @@ Replace = the file's data and settings as they are (records keep their `updatedA
 newer edits win at the next sync and restoring an old backup never overwrites the group). Merge
 keeps the phone's data and merges the file in **by the group-sync rules** (*Group sync*: the later
 edit of a record wins, tombstones apply, merges union) and keeps the phone's settings unless "Use
-the file's settings" is ticked (then rating constants too, with the file's change time). On a phone
+the file's settings" is ticked (then the file's rating constants too, as a change made now, which
+the group gets at the next sync). On a phone
 with no players and matches, Replace is preselected. A seat whose pilot is not in the file rejects
 the file (never a ghost rated player). A hero id the catalog doesn't know is **kept as stored** and
 read as an **Unknown hero** seat (pilot kept); draft steps/pool entries naming it are left out when
@@ -480,8 +481,10 @@ replays the same log (ADR-003).
   tombstone + 1), so an edit always beats the copy it edited, even with the clock moved back.
   Archiving is an edit. Received records keep their stamps.
 - **Merge** (`SyncMerge`, commutative, associative, idempotent): same id → the higher `updatedAt`
-  wins; an exact tie keeps the copy whose canonical JSON (`SyncJson`) sorts last, the same on every
-  phone. A tombstone beats a match or draft whose `updatedAt` ≤ `deletedAt`; a later edit
+  wins; an exact tie keeps the match with more known heroes (a pre-sync backup import on an older
+  catalog stored a newer hero as null, and the migration gave both copies the same stamp), then the
+  copy whose canonical JSON (`SyncJson`) sorts last, the same on every phone. Other pre-sync
+  differences between copies with equal backfilled stamps are settled by that order, not by intent. A tombstone beats a match or draft whose `updatedAt` ≤ `deletedAt`; a later edit
   resurrects it (the tombstone stays). Deleting a match or discarding a pending match writes a
   tombstone in the same transaction; players are never deleted. Rating constants: the later change
   wins (never changed = 0; constants edited before sync existed count as 1, so they beat untouched
@@ -491,6 +494,12 @@ replays the same log (ADR-003).
   twice in a match, a player on both teams, a pilot missing, duplicate ids, a merge naming a
   missing player) or comes from another sync version. A phone checks its own data the same way
   before it hosts, joins or shares a file, and says which matches to fix.
+- **App versions:** phones on different app versions sync the same data, but a phone whose catalog
+  lacks a hero reads it as Unknown hero, so hero-influenced ratings differ until every phone has the
+  same version; the sync sheet says so (each phone sends its app version in the greeting).
+- **Edits read resolved ids:** editing a match (or the timer adding its duration) saves the pilots
+  as resolved through this phone's merges. Ratings stay identical on every phone; only if two phones
+  merged the same duplicate into different players can such a match keep the overruled target.
 - **Session:** one host; every joiner sends its whole document; the host merges all of them into
   its data in one transaction and sends the result to every joiner, who merges it in one
   transaction. A joiner that drops keeps its data as it was; its upload, if it had arrived, is

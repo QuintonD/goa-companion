@@ -44,7 +44,12 @@ internal class RoomSyncRepository @Inject constructor(
             local.write(before, merged)
             SyncApplyResult(merged, SyncMerge.changes(before, merged))
         }
-        if (result.document.eloConfig != config) eloConfig.applySynced(result.document.eloConfig)
+        // DataStore, after the transaction: merge with what is stored *now*, so a change made on
+        // this phone while the sync ran isn't overwritten by an older one.
+        val current = eloConfig.stamped()
+        val received = SyncDocument(eloConfig = result.document.eloConfig)
+        val winner = SyncMerge.merge(SyncDocument(eloConfig = current), received).eloConfig
+        if (winner != current) eloConfig.applySynced(winner)
         return result
     }
 

@@ -14,7 +14,8 @@ import kotlinx.serialization.KSerializer
  * order of pairwise syncs leaves every phone with the same data.
  *
  * - Players, matches, drafts: union by id; the higher `updatedAt` wins. An exact tie keeps the
- *   copy whose [SyncJson] encoding sorts last, which every phone computes alike.
+ *   match with more known heroes, then the copy whose [SyncJson] encoding sorts last, which every
+ *   phone computes alike.
  * - Deletions: the latest per (kind, id). A tombstone beats a match or draft last edited at or
  *   before it; a later edit brings the record back. Tombstones are kept for good (they are tiny),
  *   so a phone that syncs months later still learns of the deletion.
@@ -52,7 +53,7 @@ object SyncMerge {
             deletedAt[kind to id]?.let { updatedAt > it } ?: true
         return doc.copy(
             players = latest(doc.players, Player::id, Player::updatedAt, Player.serializer()),
-            matches = latest(doc.matches, Match::id, Match::updatedAt, Match.serializer())
+            matches = latest(doc.matches, Match::id, Match::updatedAt, Match.serializer(), ::knownHeroes)
                 .filter { alive(DeletionKind.MATCH, it.id, it.updatedAt) },
             drafts = latest(doc.drafts, DraftRecord::id, DraftRecord::updatedAt, DraftRecord.serializer())
                 .filter { alive(DeletionKind.DRAFT, it.id, it.updatedAt) },
@@ -91,19 +92,36 @@ object SyncMerge {
         )
     }
 
-    private fun <T> latest(items: List<T>, id: (T) -> String, stamp: (T) -> Long, serializer: KSerializer<T>): List<T> =
-        items.groupBy(id).map { (_, copies) -> copies.reduce { a, b -> newer(a, b, stamp, serializer) } }.sortedBy(id)
+    private fun <T> latest(
+        items: List<T>,
+        id: (T) -> String,
+        stamp: (T) -> Long,
+        serializer: KSerializer<T>,
+        detail: (T) -> Int = { 0 },
+    ): List<T> = items.groupBy(id)
+        .map { (_, copies) -> copies.reduce { a, b -> newer(a, b, stamp, serializer, detail) } }
+        .sortedBy(id)
 
-    private fun <T> newer(a: T, b: T, stamp: (T) -> Long, serializer: KSerializer<T>): T {
+    /**
+     * The copy that survives: the higher stamp; on a tie the one with more [detail] (a match with
+     * more known heroes: before sync existed, a backup import on an older catalog stored a newer
+     * hero as null, and both copies got the same backfilled stamp); then the canonical JSON. Still
+     * a fixed total order, so merging stays commutative, associative and idempotent.
+     */
+    private fun <T> newer(a: T, b: T, stamp: (T) -> Long, serializer: KSerializer<T>, detail: (T) -> Int = { 0 }): T {
         val sa = stamp(a)
         val sb = stamp(b)
+        val da = detail(a)
+        val db = detail(b)
         return when {
-            sa > sb -> a
-            sb > sa -> b
+            sa != sb -> if (sa > sb) a else b
             a == b -> a
+            da != db -> if (da > db) a else b
             else -> if (SyncJson.encodeToString(serializer, a) >= SyncJson.encodeToString(serializer, b)) a else b
         }
     }
+
+    private fun knownHeroes(match: Match): Int = match.participants.count { it.heroId != null }
 
     private data class Diff(val added: Int, val updated: Int, val removed: Int)
 

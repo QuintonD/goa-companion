@@ -23,6 +23,7 @@ import dev.quinton.goa.core.domain.sync.protocol.SyncTransport
 import dev.quinton.goa.core.domain.sync.protocol.SyncTransportException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -64,25 +65,42 @@ class NearbySyncTransport(context: Context) : SyncTransport {
         }
     }
 
+    /**
+     * The link is registered as soon as the connection is initiated, so a message the other phone
+     * sends the moment its own side connects is buffered, not dropped, even if it arrives before
+     * this side's `onConnectionResult`.
+     */
+    private fun open(endpointId: String, peer: SyncPeer, info: ConnectionInfo): NearbyLink =
+        NearbyLink(peer, info.rawAuthenticationToken).also { links[endpointId] = it }
+
+    private fun dropped(endpointId: String) {
+        links[endpointId]?.let { link ->
+            links.remove(endpointId, link)
+            link.closedByPeer()
+        }
+    }
+
     override fun advertise(endpointName: String): Flow<SyncLink> = callbackFlow {
-        val names = ConcurrentHashMap<String, ConnectionInfo>()
+        val pending = ConcurrentHashMap<String, NearbyLink>()
         val lifecycle = object : ConnectionLifecycleCallback() {
             override fun onConnectionInitiated(endpointId: String, info: ConnectionInfo) {
-                names[endpointId] = info
+                pending[endpointId] = open(endpointId, SyncPeer(endpointId, info.endpointName), info)
                 client.acceptConnection(endpointId, payloads)
             }
 
             override fun onConnectionResult(endpointId: String, resolution: ConnectionResolution) {
-                val info = names.remove(endpointId) ?: return
-                if (resolution.status.isSuccess) {
-                    val link = NearbyLink(SyncPeer(endpointId, info.endpointName), info.rawAuthenticationToken)
-                    links[endpointId] = link
-                    trySend(link)
+                val link = pending.remove(endpointId) ?: return
+                when {
+                    !resolution.status.isSuccess -> dropped(endpointId)
+
+                    // Advertising already stopped (the host tapped Sync): hang up at once.
+                    trySend(link).isFailure -> link.close()
                 }
             }
 
             override fun onDisconnected(endpointId: String) {
-                links.remove(endpointId)?.closedByPeer()
+                pending.remove(endpointId)
+                dropped(endpointId)
             }
         }
         try {
@@ -95,7 +113,12 @@ class NearbySyncTransport(context: Context) : SyncTransport {
         } catch (e: ApiException) {
             throw unavailable(e)
         }
-        awaitClose { client.stopAdvertising() }
+        awaitClose {
+            client.stopAdvertising()
+            // Phones still connecting when Sync was tapped won't be served: hang up now.
+            pending.values.forEach { it.close() }
+            pending.clear()
+        }
     }
 
     override fun discover(): Flow<List<SyncPeer>> = callbackFlow {
@@ -130,25 +153,25 @@ class NearbySyncTransport(context: Context) : SyncTransport {
 
     override suspend fun connect(endpointName: String, host: SyncPeer): SyncLink {
         val connected = CompletableDeferred<SyncLink>()
-        var token = ByteArray(0)
+        val initiated = AtomicReference<NearbyLink?>(null)
         val lifecycle = object : ConnectionLifecycleCallback() {
             override fun onConnectionInitiated(endpointId: String, info: ConnectionInfo) {
-                token = info.rawAuthenticationToken
+                initiated.set(open(endpointId, host, info))
                 client.acceptConnection(endpointId, payloads)
             }
 
             override fun onConnectionResult(endpointId: String, resolution: ConnectionResolution) {
-                if (resolution.status.isSuccess) {
-                    val link = NearbyLink(host, token)
-                    links[endpointId] = link
+                val link = initiated.get()
+                if (resolution.status.isSuccess && link != null) {
                     connected.complete(link)
                 } else {
+                    dropped(endpointId)
                     connected.completeExceptionally(SyncLinkClosedException("Connection refused"))
                 }
             }
 
             override fun onDisconnected(endpointId: String) {
-                links.remove(endpointId)?.closedByPeer()
+                dropped(endpointId)
                 connected.completeExceptionally(SyncLinkClosedException("Disconnected"))
             }
         }
@@ -218,7 +241,7 @@ class NearbySyncTransport(context: Context) : SyncTransport {
 
         override fun close() {
             if (closed.compareAndSet(false, true)) {
-                links.remove(peer.id)
+                links.remove(peer.id, this) // never a newer link that reuses the endpoint id
                 client.disconnectFromEndpoint(peer.id)
                 finish()
             }

@@ -13,8 +13,11 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 
-/** A phone taking part in a sync: its stable install id and the name other phones see. */
-data class SyncDevice(val deviceId: String, val name: String)
+/**
+ * A phone taking part in a sync: its stable install id, the name other phones see and its app
+ * version (phones on different versions may know different heroes, so their hero ratings differ).
+ */
+data class SyncDevice(val deviceId: String, val name: String, val appVersion: String? = null)
 
 /** Why a sync with one phone (or the whole session) stopped. */
 enum class SyncFailure {
@@ -105,6 +108,8 @@ internal data class Hello(
     val deviceName: String,
     val nonce: String,
     val documentVersion: Int,
+    /** Informational (added without a protocol bump: older peers send none). */
+    val appVersion: String? = null,
 )
 
 @Serializable
@@ -144,7 +149,7 @@ internal suspend fun handshake(
     maxMessageBytes: Int,
 ): Pair<SecureChannel, SyncDevice> {
     val nonce = random.next(SyncCrypto.NONCE_BYTES)
-    val hello = Hello(Wire.PROTOCOL, role.wire, me.deviceId, me.name, b64(nonce), SyncDocument.VERSION)
+    val hello = Hello(Wire.PROTOCOL, role.wire, me.deviceId, me.name, b64(nonce), SyncDocument.VERSION, me.appVersion)
     sendRaw(link, Wire.frame(Wire.HELLO, SyncJson.encodeToString(Hello.serializer(), hello).toByteArray()))
     val theirs = try {
         SyncJson.decodeFromString(Hello.serializer(), expect(link, Wire.HELLO).toString(Charsets.UTF_8))
@@ -152,7 +157,7 @@ internal suspend fun handshake(
         throw SyncProtocolException(SyncFailure.PROTOCOL, "Unexpected greeting", e)
     }
     val theirNonce = check(theirs, role)
-    val peer = SyncDevice(theirs.deviceId, theirs.deviceName)
+    val peer = SyncDevice(theirs.deviceId, theirs.deviceName, theirs.appVersion)
     val (hostNonce, clientNonce) = if (role == Role.HOST) nonce to theirNonce else theirNonce to nonce
     val (hostId, clientId) = if (role == Role.HOST) me.deviceId to peer.deviceId else peer.deviceId to me.deviceId
     val authKey = SyncCrypto.hkdf(group.key, ByteArray(0), "goa-sync/auth/v1|${group.groupId}")

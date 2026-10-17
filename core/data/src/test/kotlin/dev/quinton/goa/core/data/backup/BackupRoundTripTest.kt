@@ -300,6 +300,15 @@ class BackupRoundTripTest {
             """{"id":"a","name":"A","color":1,"avatarId":0,"createdAt":0},""" +
             """{"id":"a","name":"B","color":1,"avatarId":0,"createdAt":0}]}"""
         assertThrows(InvalidBackupException::class.java) { BackupCodec.decode(dupes) }
+        // A merge naming a missing player would block every sync afterwards.
+        val badMerge = BackupDocument(
+            exportedAt = 1,
+            players = listOf(Player("a", "A", 1, 0, 0)),
+            playerMerges = listOf(dev.quinton.goa.core.model.sync.PlayerMerge("a", "ghost", 1)),
+        )
+        val merge =
+            assertThrows(InvalidBackupException::class.java) { BackupCodec.decode(BackupCodec.encode(badMerge)) }
+        assertThat(merge.message).contains("merges a player")
     }
 
     @Test

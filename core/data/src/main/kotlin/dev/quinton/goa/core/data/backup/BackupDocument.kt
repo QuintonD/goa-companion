@@ -142,7 +142,9 @@ object BackupCodec {
         fun List<String>.unique() = toSet().size == size && none { it.isBlank() }
         val idsOk = document.players.map { it.id }.unique() &&
             document.matches.map { it.id }.unique() &&
-            document.drafts.map { it.id }.unique()
+            document.drafts.map { it.id }.unique() &&
+            document.playerMerges.map { it.fromId }.unique()
+        val playerIds = document.players.mapTo(HashSet()) { it.id }
         return when {
             document.format != BackupDocument.FORMAT -> "This file isn't a Guards of Atlantis backup."
 
@@ -152,6 +154,10 @@ object BackupCodec {
             document.version < 1 -> "Unknown backup version ${document.version}."
 
             !idsOk -> "The backup contains duplicate or empty ids."
+
+            // The phone would refuse to sync data like this (SyncValidation).
+            document.playerMerges.any { it.fromId !in playerIds || it.toId !in playerIds } ->
+                "The backup merges a player who isn't in it."
 
             else -> invalidMatches(document)
         }

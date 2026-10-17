@@ -133,11 +133,17 @@ internal class RoomBackupRepository @Inject constructor(
             }
         }
         if (settings) {
-            // A file without rating constants was made with the defaults. Its change time is kept,
-            // so an old file's constants never override newer ones from the group.
-            val config = document.eloConfig ?: EloConfig.DEFAULT
-            val stamp = document.eloConfigUpdatedAt ?: if (document.eloConfig != null) 1 else 0
-            stampedElo.applySynced(StampedEloConfig(config.sanitized(), stamp))
+            // A file without rating constants was made with the defaults.
+            val config = (document.eloConfig ?: EloConfig.DEFAULT).sanitized()
+            if (mode == ImportMode.MERGE) {
+                // Asked for explicitly: a change made now, which the group gets at the next sync.
+                if (config != eloConfig.config.first()) eloConfig.update { config }
+            } else {
+                // Replace restores the file as it was: its change time is kept, so an old backup's
+                // constants never override newer ones from the group.
+                val stamp = document.eloConfigUpdatedAt ?: if (document.eloConfig != null) 1 else 0
+                stampedElo.applySynced(StampedEloConfig(config, stamp))
+            }
         }
         for (contributor in contributors) {
             document.extras[contributor.key]?.let { contributor.import(it, mode, settings) }

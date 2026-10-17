@@ -330,6 +330,7 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
         LinearProgressIndicator(Modifier.fillMaxWidth())
     }
     state.duplicateHint?.let { Hint(it) }
+    state.versionHint?.let { Hint(it) }
     when (host.phase) {
         HostPhase.WAITING -> {
             val ready = host.peers.count { it.stage == PeerStage.READY }
@@ -373,6 +374,7 @@ private fun Joining(client: ClientState, state: SyncSessionUiState, actions: Syn
         }
     }
     state.duplicateHint?.let { Hint(it) }
+    state.versionHint?.let { Hint(it) }
     when (client.phase) {
         ClientPhase.DONE -> Finish(state, actions)
 
