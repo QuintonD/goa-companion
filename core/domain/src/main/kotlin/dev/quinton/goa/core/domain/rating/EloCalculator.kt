@@ -17,7 +17,8 @@ import kotlin.math.pow
  * - Player space: seat strength `s = R_pilot + heroInfluence · (R_hero − B)`.
  * - Hero space: seat strength `s = R_hero + pilotInfluence · (R_pilot − B)`.
  * - Team strength `T = mean(s) + seatAdvantage · (seats − opponentSeats)`;
- *   `E = 1 / (1 + 10^((T_opp − T) / 400))`; `S` = 1 win / 0 loss.
+ *   `E = 1 / (1 + 10^((T_opp − T) / 400))`; `S` = 1 win / 0 loss. Both teams get the seat term
+ *   (with opposite signs), so the strength gap widens by `2 · seatAdvantage` per seat of difference.
  * - Each distinct player: `Δ = K · m · w · (S − E)`, `w = 1 + doublePilotWeight · (seats − 1)`.
  * - Each hero seat: `Δ = K · m · (S − E)`.
  * - `K` = [EloConfig.kProvisional] below [EloConfig.provisionalGames] rated games, else
@@ -26,7 +27,8 @@ import kotlin.math.pow
  * Skip rules: matches that are not COMPLETED, have no winner, have an empty team or put one
  * player on both teams are ignored. A seat with an unknown hero still counts in the player space
  * (at hero rating `B`) but is left out of the hero space; the hero space is skipped for a match
- * when a team has no known hero or a hero appears twice. Seat counts used for `seatAdvantage` are
+ * when a team has no known hero or a hero appears twice ([heroSpaceApplies]; player × hero
+ * records follow the hero space, as do the meta stats). Seat counts used for `seatAdvantage` are
  * always the real seat counts.
  */
 object EloCalculator {
@@ -48,6 +50,17 @@ object EloCalculator {
             red.any { seat -> blue.any { it.playerId == seat.playerId } } -> SkipReason.PLAYER_ON_BOTH_TEAMS
             else -> null
         }
+    }
+
+    /**
+     * Whether the hero part of a rated [match] counts: both teams have a known hero and no hero
+     * appears twice. Shared with the meta stats so both skip the same matches.
+     */
+    fun heroSpaceApplies(match: Match): Boolean {
+        val red = match.team(Team.RED)
+        val blue = match.team(Team.BLUE)
+        val known = match.participants.mapNotNull { it.heroId }
+        return red.any { it.heroId != null } && blue.any { it.heroId != null } && known.size == known.toSet().size
     }
 
     fun replay(matches: Collection<Match>, config: EloConfig = EloConfig.DEFAULT): RatingsResult =
@@ -112,7 +125,7 @@ object EloCalculator {
 
             // Strengths are computed from pre-match ratings for both spaces before any update.
             val expectedRed = expected(red, blue) { playerRating(it) + config.heroInfluence * (heroRating(it) - base) }
-            val heroSpace = heroSpaceApplies(red, blue)
+            val heroSpace = heroSpaceApplies(match)
             val expectedRedHero = if (heroSpace) {
                 expected(red.filter { it.heroId != null }, blue.filter { it.heroId != null }, red.size, blue.size) {
                     heroRating(it) + config.pilotInfluence * (playerRating(it) - base)
@@ -129,7 +142,7 @@ object EloCalculator {
                 player(id).apply(match, delta, red.any { it.playerId == id } == redWon)
             }
             heroDeltas.forEach { (id, delta) -> hero(id).apply(match, delta, red.any { it.heroId == id } == redWon) }
-            trackRecords(red, blue, winner)
+            trackRecords(red, blue, winner, heroSpace)
             changes[match.id] = MatchRatingChange(
                 matchId = match.id,
                 playedAt = match.playedAt,
@@ -181,11 +194,13 @@ object EloCalculator {
             return deltas
         }
 
-        private fun trackRecords(red: List<Participant>, blue: List<Participant>, winner: Team) {
-            for (seat in red + blue) {
-                val heroId = seat.heroId ?: continue
-                val key = PlayerHeroKey(seat.playerId, heroId)
-                playerHero[key] = (playerHero[key] ?: WinLoss.NONE) + (seat.team == winner)
+        private fun trackRecords(red: List<Participant>, blue: List<Participant>, winner: Team, heroSpace: Boolean) {
+            if (heroSpace) {
+                for (seat in red + blue) {
+                    val heroId = seat.heroId ?: continue
+                    val key = PlayerHeroKey(seat.playerId, heroId)
+                    playerHero[key] = (playerHero[key] ?: WinLoss.NONE) + (seat.team == winner)
+                }
             }
             if (red.size != blue.size) {
                 val larger = if (red.size > blue.size) Team.RED else Team.BLUE
@@ -198,11 +213,6 @@ object EloCalculator {
             games += 1
             if (won) wins += 1
             history += RatingPoint(matchId = match.id, playedAt = match.playedAt, value = value, delta = delta)
-        }
-
-        private fun heroSpaceApplies(red: List<Participant>, blue: List<Participant>): Boolean {
-            val known = (red + blue).mapNotNull { it.heroId }
-            return red.any { it.heroId != null } && blue.any { it.heroId != null } && known.size == known.toSet().size
         }
 
         /** Expected score of [red]; seat counts for the advantage term default to the real seat counts. */

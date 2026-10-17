@@ -25,7 +25,11 @@ data class EloConfig(
     val heroInfluence: Double = 0.5,
     /** Hero space: how much the pilot's rating shifts a seat's strength. */
     val pilotInfluence: Double = 0.5,
-    /** Rating points per extra seat a team fields (uneven seat counts). 0 = trust the Handicap card. */
+    /**
+     * Uneven seat counts: each team's strength moves by this much per seat of difference (the
+     * larger team up, the smaller team down), so the gap between them widens by 2× this per seat.
+     * 0 = trust the Handicap card.
+     */
     val seatAdvantage: Double = 0.0,
     /** Extra weight per additional seat a double pilot controls: `w = 1 + weight · (seats − 1)`. */
     val doublePilotWeight: Double = 0.5,

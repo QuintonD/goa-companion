@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.domain.meta
 
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.domain.rating.EloCalculator
 import dev.quinton.goa.core.domain.rating.WinLoss
 import dev.quinton.goa.core.domain.rating.blue
 import dev.quinton.goa.core.domain.rating.match
@@ -133,6 +134,51 @@ class MetaStatsTest {
         assertThat(report.synergies.single().heroA).isEqualTo("a")
         assertThat(report.synergies.single().record).isEqualTo(WinLoss(5, 4))
         assertThat(report.largerTeam).isEqualTo(WinLoss(5, 4))
+    }
+
+    @Test
+    fun `hero part of a match is skipped like in the Elo replay`() {
+        val matches = listOf(
+            // A hero listed twice: Elo skips the hero space, so meta must not count "h" twice here.
+            match("dup", 1, Team.RED, red("p1", "h"), red("p1", "h"), blue("p2", "g")),
+            // Blue has no known hero: hero space skipped.
+            match("unknown", 2, Team.RED, red("p1", "h"), red("p3", "g"), blue("p2", null)),
+            match("ok", 3, Team.BLUE, red("p1", "h"), blue("p2", "g")),
+        )
+        val report = MetaStats.compute(matches, emptyList())
+        val elo = EloCalculator.replay(matches)
+        // Still rated matches: they count for the pick-rate denominator and the larger-team record.
+        assertThat(report.totalMatches).isEqualTo(3)
+        assertThat(report.largerTeam).isEqualTo(WinLoss(2, 2))
+        assertThat(report.hero("h")!!.record).isEqualTo(WinLoss(1, 0))
+        assertThat(report.hero("g")!!.record).isEqualTo(WinLoss(1, 1))
+        assertThat(report.hero("h")!!.record.games).isEqualTo(elo.hero("h").games)
+        assertThat(report.hero("g")!!.record.games).isEqualTo(elo.hero("g").games)
+        assertThat(report.synergies).isEmpty()
+        assertThat(report.pilots("h").all.single().record).isEqualTo(elo.record("p1", "h"))
+    }
+
+    @Test
+    fun `pilots per hero rank qualified players best first and break ties by player id`() {
+        val matches = buildList {
+            // zed and amy are both 3–0 on h; amy wins the tie by id. kim 3–1, lou has 1 game.
+            repeat(3) { add(match("z$it", it.toLong(), Team.RED, red("zed", "h"), blue("x", "g"))) }
+            repeat(3) { add(match("a$it", 10L + it, Team.RED, red("amy", "h"), blue("x", "g"))) }
+            repeat(3) { add(match("k$it", 20L + it, Team.RED, red("kim", "h"), blue("x", "g"))) }
+            add(match("k3", 30, Team.BLUE, red("kim", "h"), blue("x", "g")))
+            add(match("l0", 40, Team.RED, red("lou", "h"), blue("x", "g")))
+        }
+        val pilots = MetaStats.compute(matches, emptyList()).pilots("h")
+        assertThat(pilots.heroId).isEqualTo("h")
+        assertThat(pilots.record).isEqualTo(WinLoss(11, 10))
+        assertThat(pilots.minGames).isEqualTo(3)
+        assertThat(pilots.best.map { it.playerId }).containsExactly("amy", "zed", "kim").inOrder()
+        // Everyone, most games first, then wins, then id.
+        assertThat(pilots.all.map { it.playerId }).containsExactly("kim", "amy", "zed", "lou").inOrder()
+        assertThat(MetaStats.compute(matches, emptyList()).hero("h")!!.bestPlayer!!.playerId).isEqualTo("amy")
+        val none = MetaStats.compute(emptyList(), emptyList()).pilots("nobody")
+        assertThat(none.record).isEqualTo(WinLoss.NONE)
+        assertThat(none.all).isEmpty()
     }
 
     @Test

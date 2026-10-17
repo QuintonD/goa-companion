@@ -210,8 +210,47 @@ class BackupRoundTripTest {
             """{"id":"a","name":"A","color":1,"avatarId":0,"createdAt":0},""" +
             """{"id":"a","name":"B","color":1,"avatarId":0,"createdAt":0}]}"""
         assertThrows(InvalidBackupException::class.java) { BackupCodec.decode(dupes) }
+    }
+
+    @Test
+    fun matchesWithAHeroTwiceOrAPlayerOnBothTeamsAreRejectedByName() {
+        fun match(id: String, vararg seats: Participant) = Match(
+            id = id,
+            createdAt = NOON_UTC,
+            playedAt = NOON_UTC,
+            status = MatchStatus.PENDING,
+            mode = GameMode.QUICK,
+            participants = seats.toList(),
+        )
+        val ann = Player("ann", "Ann", 1, 0, 0)
+        val good = match("good", Participant("ann", "h1", Team.RED), Participant("bob", "h2", Team.BLUE))
+        val twice = match("twice", Participant("ann", "h1", Team.RED), Participant("bob", "h1", Team.BLUE))
+        val both = match("both", Participant("ann", "h1", Team.RED), Participant("ann", "h2", Team.BLUE))
+        fun decode(vararg matches: Match) = BackupCodec.decode(
+            BackupCodec.encode(BackupDocument(exportedAt = 1, players = listOf(ann), matches = matches.toList())),
+        )
+
+        assertThat(decode(good).matches).containsExactly(good)
+        val heroTwice = assertThrows(InvalidBackupException::class.java) { decode(good, twice) }
+        assertThat(heroTwice.message).contains("twice")
+        assertThat(heroTwice.message).contains("h1")
+        assertThat(heroTwice.message).contains("1970-01-01")
+        assertThat(heroTwice.message).contains("(id twice)")
+        val bothTeams = assertThrows(InvalidBackupException::class.java) { decode(both) }
+        assertThat(bothTeams.message).contains("Ann is on both teams")
+        assertThat(bothTeams.message).contains("(id both)")
+        val all = assertThrows(InvalidBackupException::class.java) { decode(twice, both) }
+        assertThat(all.message).contains("(id twice)")
+        assertThat(all.message).contains("(id both)")
+    }
+
+    @Test
+    fun unknownKeysAreIgnored() {
         // Unknown keys from a newer minor version are ignored.
         val doc = BackupCodec.decode("""{"format":"goa-companion-backup","version":1,"exportedAt":5,"future":true}""")
         assertThat(doc.exportedAt).isEqualTo(5)
     }
 }
+
+/** 1970-01-01 12:00 UTC: the same calendar day in every time zone from UTC−11 to UTC+11. */
+private const val NOON_UTC = 43_200_000L

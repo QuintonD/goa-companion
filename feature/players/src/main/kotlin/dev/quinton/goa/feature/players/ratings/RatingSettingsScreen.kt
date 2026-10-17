@@ -99,8 +99,9 @@ fun RatingSettingsScreen(state: RatingSettingsUiState, actions: RatingSettingsAc
             SectionHeader("Uneven teams")
             SliderSetting(
                 title = "Seat advantage",
-                explanation = "Rating points per extra hero a team fields (e.g. 3 heroes against 2). 0 trusts the " +
-                    "Handicap cards to balance it. Check the larger-team win rate on the Meta tab before changing it.",
+                explanation = "Each team's strength moves by this much per hero of difference (3 heroes against 2: " +
+                    "the larger team +, the smaller team −), so the gap widens by 2× this. 0 trusts the Handicap " +
+                    "cards to balance it. Check the larger-team win rate on the Meta tab before changing it.",
                 value = c.seatAdvantage,
                 range = -100.0..100.0,
                 step = 5.0,
