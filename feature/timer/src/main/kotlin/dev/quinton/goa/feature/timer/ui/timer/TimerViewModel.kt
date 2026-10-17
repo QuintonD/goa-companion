@@ -64,15 +64,15 @@ class FrameTicker @Inject constructor() : Ticker {
 }
 
 sealed interface TimerEvent {
-    /** Open the linked match to log its result (its duration is already saved). */
-    data class OpenMatch(val matchId: String) : TimerEvent
+    /** Open the linked match to log its result (its duration is already saved); [startedAt]: session start. */
+    data class OpenMatch(val matchId: String, val startedAt: Long? = null) : TimerEvent
 
     /**
      * No linked match: open a NEW match pre-filled with the duration and, when legal for the
      * session's hero count, its mode (a `GameMode` serial name). Nothing is saved until the
      * user saves that match.
      */
-    data class NewMatch(val durationMin: Int, val mode: String?) : TimerEvent
+    data class NewMatch(val durationMin: Int, val mode: String?, val startedAt: Long? = null) : TimerEvent
 }
 
 @HiltViewModel
@@ -256,9 +256,10 @@ class TimerViewModel @Inject constructor(
      */
     fun logResult() = finishOnce {
         val s = controller.snapshot.first()?.takeIf { it.status == TimerStatus.ENDED } ?: return@finishOnce
-        val event = s.matchId?.let { TimerEvent.OpenMatch(it) } ?: TimerEvent.NewMatch(
+        val event = s.matchId?.let { TimerEvent.OpenMatch(it, s.matchStartWall) } ?: TimerEvent.NewMatch(
             durationMin = TimerUiMapper.durationMinutes(controller.readout(s).matchElapsedMillis),
             mode = legalMode(s)?.let(::serialName),
+            startedAt = s.matchStartWall,
         )
         controller.clear()
         events.send(event)

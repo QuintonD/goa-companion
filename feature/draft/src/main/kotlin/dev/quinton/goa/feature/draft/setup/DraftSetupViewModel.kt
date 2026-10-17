@@ -33,6 +33,7 @@ import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.feature.draft.data.DraftEnvironment
 import dev.quinton.goa.feature.draft.data.DraftProgress
 import dev.quinton.goa.feature.draft.data.DraftRepository
+import dev.quinton.goa.feature.draft.data.DraftSetupPrefills
 import dev.quinton.goa.feature.draft.data.MethodLibrary
 import dev.quinton.goa.feature.draft.ui.HeroInfo
 import dev.quinton.goa.feature.draft.ui.StepToken
@@ -226,6 +227,8 @@ class DraftSetupViewModel @Inject constructor(
     settings: SettingsRepository,
     private val drafts: DraftRepository,
     private val env: DraftEnvironment,
+    /** "Draft again" from a rematch while this setup is already open (shell keeps tab state). */
+    private val prefills: DraftSetupPrefills = DraftSetupPrefills(),
 ) : ViewModel() {
     /** Null until the saved form has been read. */
     private val form = MutableStateFlow<SetupForm?>(null)
@@ -253,6 +256,12 @@ class DraftSetupViewModel @Inject constructor(
             form.value = (saved ?: SetupForm()).keepOnly(known)
             // Every change is written straight away: the screen can be left at any moment.
             form.filterNotNull().drop(1).collect { drafts.saveSetupForm(it) }
+        }
+        viewModelScope.launch {
+            prefills.requests.collect { pushed ->
+                val known = players.observePlayers().first().mapTo(mutableSetOf()) { it.id }
+                form.value = pushed.keepOnly(known)
+            }
         }
     }
 

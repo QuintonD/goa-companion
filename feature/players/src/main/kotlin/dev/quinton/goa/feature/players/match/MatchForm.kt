@@ -112,7 +112,14 @@ sealed interface MatchError {
     data object WinnerRequired : MatchError {
         override val message get() = "Choose the winning team of a completed match."
     }
+
+    data object FutureDate : MatchError {
+        override val message get() = "The match can't be in the future. Check the date and time."
+    }
 }
+
+/** Clock slack for [MatchError.FutureDate]: a phone clock a few minutes off never blocks a save. */
+const val FUTURE_SLACK_MS = 5 * 60_000L
 
 const val MAX_SEATS_PER_TEAM = 5
 
@@ -126,11 +133,14 @@ const val MAX_DURATION_MIN = 600
  * saving: out-of-range values are clamped or dropped ([MatchForm.durationMinutes]).
  */
 object MatchValidation {
+    /** [now]: when set, a [MatchForm.playedAt] later than now (plus [FUTURE_SLACK_MS]) is an error. */
     fun validate(
         form: MatchForm,
         heroName: (String) -> String = { it },
         playerName: (String) -> String = { it },
+        now: Long? = null,
     ): List<MatchError> = buildList {
+        if (now != null && form.playedAt > now + FUTURE_SLACK_MS) add(MatchError.FutureDate)
         val completed = form.status == MatchStatus.COMPLETED
         if (completed && form.red.isEmpty()) add(MatchError.EmptyTeam(Team.RED))
         if (completed && form.blue.isEmpty()) add(MatchError.EmptyTeam(Team.BLUE))

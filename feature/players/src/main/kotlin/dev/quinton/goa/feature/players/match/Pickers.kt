@@ -13,10 +13,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -24,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,6 +42,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ComplexityStars
@@ -49,6 +53,7 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.players.common.Pill
 import dev.quinton.goa.feature.players.common.formatRating
 import dev.quinton.goa.feature.players.common.label
+import dev.quinton.goa.feature.players.player.MAX_NAME_LENGTH
 
 /** Filters heroes by name or title, case-insensitive. */
 fun List<HeroOption>.search(query: String): List<HeroOption> {
@@ -159,7 +164,10 @@ fun PilotPickerSheet(
     otherTeam: Set<String>,
     onPick: (String) -> Unit,
     onDismiss: () -> Unit,
+    /** Adds a new player by name and seats them; never a dead end when the group is empty. */
+    onAddPlayer: ((String) -> Unit)? = null,
 ) {
+    var newName by rememberSaveable { mutableStateOf("") }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -180,7 +188,38 @@ fun PilotPickerSheet(
             )
         }
         LazyColumn(contentPadding = PaddingValues(bottom = Spacing.xl), modifier = Modifier.navigationBarsPadding()) {
-            if (pilots.isEmpty()) {
+            if (onAddPlayer != null) {
+                item(key = "add") {
+                    val add = {
+                        if (newName.isNotBlank()) {
+                            onAddPlayer(newName)
+                            newName = ""
+                        }
+                    }
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = Spacing.screen, vertical = Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        OutlinedTextField(
+                            value = newName,
+                            onValueChange = { newName = it.take(MAX_NAME_LENGTH) },
+                            placeholder = {
+                                Text(if (pilots.isEmpty()) "Name of the first player" else "Someone missing? Add them")
+                            },
+                            leadingIcon = { Icon(Icons.Outlined.PersonAdd, contentDescription = null) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                capitalization = KeyboardCapitalization.Words,
+                                imeAction = ImeAction.Done,
+                            ),
+                            keyboardActions = KeyboardActions(onDone = { add() }),
+                            modifier = Modifier.weight(1f),
+                        )
+                        Spacer(Modifier.width(Spacing.sm))
+                        TextButton(onClick = add, enabled = newName.isNotBlank()) { Text("Add") }
+                    }
+                }
+            } else if (pilots.isEmpty()) {
                 item(key = "none") {
                     Text(
                         "No players yet. Add your group on the Players tab first.",

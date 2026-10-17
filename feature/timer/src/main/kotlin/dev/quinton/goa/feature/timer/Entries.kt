@@ -27,9 +27,20 @@ fun EntryProviderScope<NavKey>.timerEntries(navigator: Navigator) {
             onOpenSetup = { matchId -> navigator.navigate(MatchSetupRoute(matchId)) },
             onManagePresets = { navigator.navigate(TimerPresetsRoute) },
             onSettings = { navigator.navigate(SettingsRoute) },
-            onOpenMatch = { matchId -> navigator.navigate(MatchEditRoute(matchId)) },
-            onNewMatch = { minutes, mode ->
-                navigator.navigate(MatchEditRoute(matchId = null, prefillDurationMin = minutes, prefillMode = mode))
+            // "Who won?": the result first, dated from the session start.
+            onOpenMatch = { matchId, startedAt ->
+                navigator.navigate(MatchEditRoute(matchId, result = true, prefillPlayedAt = startedAt))
+            },
+            onNewMatch = { minutes, mode, startedAt ->
+                navigator.navigate(
+                    MatchEditRoute(
+                        matchId = null,
+                        prefillDurationMin = minutes,
+                        prefillMode = mode,
+                        result = true,
+                        prefillPlayedAt = startedAt,
+                    ),
+                )
             },
             onOpenLevels = { heroIds -> navigator.navigate(LevelLadderRoute(heroIds)) },
             onOpenRules = { navigator.navigate(RulesRoute) },
