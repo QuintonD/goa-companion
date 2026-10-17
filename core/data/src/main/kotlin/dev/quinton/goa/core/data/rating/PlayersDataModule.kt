@@ -7,7 +7,9 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.Multibinds
 import dev.quinton.goa.core.data.DraftRecordRepository
+import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.MatchRepository
+import dev.quinton.goa.core.data.PlayerMergeRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.RatingsRepository
 import dev.quinton.goa.core.data.backup.BackupContributor
@@ -28,6 +30,8 @@ import kotlinx.coroutines.SupervisorJob
 internal interface PlayersDataModule {
     @Binds fun players(impl: RoomPlayerRepository): PlayerRepository
 
+    @Binds fun playerMerges(impl: RoomPlayerRepository): PlayerMergeRepository
+
     @Binds fun matches(impl: RoomMatchRepository): MatchRepository
 
     @Binds fun drafts(impl: RoomDraftRecordRepository): DraftRecordRepository
@@ -39,6 +43,8 @@ internal interface PlayersDataModule {
     @Binds fun heroPilots(impl: ReplayRatingsRepository): HeroPilotsRepository
 
     @Binds fun eloConfig(impl: DataStoreEloConfigRepository): EloConfigRepository
+
+    @Binds fun stampedEloConfig(impl: DataStoreEloConfigRepository): StampedEloConfigStore
 
     @Binds fun backup(impl: RoomBackupRepository): BackupRepository
 
@@ -54,5 +60,8 @@ internal interface PlayersDataModule {
         @Provides
         @RatingsDispatcher
         fun ratingsDispatcher(): CoroutineDispatcher = Dispatchers.Default
+
+        @Provides
+        fun editClock(): EditClock = EditClock.System
     }
 }

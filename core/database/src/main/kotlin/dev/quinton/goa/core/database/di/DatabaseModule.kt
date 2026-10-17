@@ -7,6 +7,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.quinton.goa.core.database.GoaDatabase
+import dev.quinton.goa.core.database.dao.DeletionDao
 import dev.quinton.goa.core.database.dao.DraftRecordDao
 import dev.quinton.goa.core.database.dao.MatchDao
 import dev.quinton.goa.core.database.dao.PlayerDao
@@ -24,4 +25,6 @@ object DatabaseModule {
     @Provides fun matchDao(db: GoaDatabase): MatchDao = db.matchDao()
 
     @Provides fun draftRecordDao(db: GoaDatabase): DraftRecordDao = db.draftRecordDao()
+
+    @Provides fun deletionDao(db: GoaDatabase): DeletionDao = db.deletionDao()
 }

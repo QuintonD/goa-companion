@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.database
 
+import dev.quinton.goa.core.database.entity.DeletionEntity
 import dev.quinton.goa.core.database.entity.DraftRecordEntity
 import dev.quinton.goa.core.database.entity.DraftStepEntity
 import dev.quinton.goa.core.database.entity.DraftWithSteps
@@ -7,6 +8,7 @@ import dev.quinton.goa.core.database.entity.MatchEntity
 import dev.quinton.goa.core.database.entity.MatchWithParticipants
 import dev.quinton.goa.core.database.entity.ParticipantEntity
 import dev.quinton.goa.core.database.entity.PlayerEntity
+import dev.quinton.goa.core.database.entity.PlayerMergeEntity
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.draft.DraftMethodKind
 import dev.quinton.goa.core.model.draft.DraftRecord
@@ -18,6 +20,9 @@ import dev.quinton.goa.core.model.match.Participant
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.core.model.sync.Deletion
+import dev.quinton.goa.core.model.sync.DeletionKind
+import dev.quinton.goa.core.model.sync.PlayerMerge
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -41,6 +46,7 @@ fun PlayerEntity.toModel() = Player(
     avatarId = avatarId,
     createdAt = createdAt,
     archived = archived,
+    updatedAt = updatedAt,
 )
 
 fun Player.toEntity() = PlayerEntity(
@@ -50,6 +56,7 @@ fun Player.toEntity() = PlayerEntity(
     avatarId = avatarId,
     createdAt = createdAt,
     archived = archived,
+    updatedAt = updatedAt,
 )
 
 fun MatchWithParticipants.toModel() = Match(
@@ -65,6 +72,7 @@ fun MatchWithParticipants.toModel() = Match(
     notes = match.notes,
     draftId = match.draftId,
     tieBreaker = match.tieBreaker?.let { parse<Team>(it) },
+    updatedAt = match.updatedAt,
     participants = participants.sortedBy { it.seatIndex }.map {
         Participant(playerId = it.playerId, heroId = it.heroId, team = parse(it.team), handicap = it.handicap)
     },
@@ -83,6 +91,7 @@ fun Match.toEntity() = MatchEntity(
     notes = notes,
     draftId = draftId,
     tieBreaker = tieBreaker?.dbName(),
+    updatedAt = updatedAt,
 )
 
 /** Seats keep their list order via `seat_index`. */
@@ -108,6 +117,7 @@ fun DraftWithSteps.toModel() = DraftRecord(
         DraftStepRecord(team = parse(it.team), action = parse<DraftAction>(it.action), heroId = it.heroId)
     },
     matchId = draft.matchId,
+    updatedAt = draft.updatedAt,
 )
 
 fun DraftRecord.toEntity() = DraftRecordEntity(
@@ -118,6 +128,7 @@ fun DraftRecord.toEntity() = DraftRecordEntity(
     pool = json.encodeToString(stringList, pool),
     teamA = teamA.dbName(),
     matchId = matchId,
+    updatedAt = updatedAt,
 )
 
 fun DraftRecord.stepEntities() = steps.mapIndexed { index, step ->
@@ -129,3 +140,14 @@ fun DraftRecord.stepEntities() = steps.mapIndexed { index, step ->
         heroId = step.heroId,
     )
 }
+
+fun DeletionEntity.toModel() = Deletion(kind = parse<DeletionKind>(kind), id = id, deletedAt = deletedAt)
+
+fun Deletion.toEntity() = DeletionEntity(kind = kind.dbName(), id = id, deletedAt = deletedAt)
+
+fun PlayerMergeEntity.toModel() = PlayerMerge(fromId = fromId, toId = toId, mergedAt = mergedAt)
+
+fun PlayerMerge.toEntity() = PlayerMergeEntity(fromId = fromId, toId = toId, mergedAt = mergedAt)
+
+/** The `deletions.kind` value for this kind. */
+fun DeletionKind.column(): String = dbName()

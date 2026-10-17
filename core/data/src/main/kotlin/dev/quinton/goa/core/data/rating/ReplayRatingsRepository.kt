@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.data.rating
 
+import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.DraftRecordRepository
 import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.RatingsRepository
@@ -8,6 +9,7 @@ import dev.quinton.goa.core.domain.meta.HeroPilots
 import dev.quinton.goa.core.domain.meta.MetaStats
 import dev.quinton.goa.core.domain.rating.EloCalculator
 import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.domain.sync.UnknownHeroes
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.rating.HeroUsage
@@ -37,8 +39,10 @@ annotation class RatingsScope
 annotation class RatingsDispatcher
 
 /**
- * Ratings and meta stats derived by replaying the match log (ADR-003). Nothing is stored: the
- * replay reruns off the main thread whenever matches, drafts or the Elo config change, and the
+ * Ratings and meta stats derived by replaying the match log (ADR-003). The log arrives with merged
+ * players resolved ([MatchRepository]); hero ids this catalog doesn't know count as Unknown hero.
+ * Nothing is stored: the replay reruns off the main thread whenever matches, drafts or the Elo
+ * config change, and the
  * latest snapshot is shared (memoised) by every collector for the life of the process.
  * A replay of 1,000 matches takes milliseconds (EloPropertiesTest).
  */
@@ -48,6 +52,7 @@ internal class ReplayRatingsRepository @Inject constructor(
     matchRepository: MatchRepository,
     draftRepository: DraftRecordRepository,
     configRepository: EloConfigRepository,
+    catalogRepository: CatalogRepository,
     @RatingsScope scope: CoroutineScope,
     @RatingsDispatcher dispatcher: CoroutineDispatcher,
 ) : RatingsRepository, RatingsSnapshotRepository, HeroPilotsRepository {
@@ -60,10 +65,15 @@ internal class ReplayRatingsRepository @Inject constructor(
         matchRepository.observeMatches().distinctUntilChanged(),
         draftRepository.observeDrafts().distinctUntilChanged(),
         configRepository.config.distinctUntilChanged(),
-    ) { m, d, c -> Inputs(m, d, c) }
-        .mapLatest { (m, d, c) ->
-            val ratings = EloCalculator.replay(m, c)
-            RatingsSnapshot(ratings, MetaStats.compute(m, d), c, GroupStats.compute(m, ratings))
+        catalogRepository.catalog.map { c -> c.heroes.mapTo(HashSet()) { it.id } }.distinctUntilChanged(),
+    ) { m, d, c, known -> Inputs(m, d, c, known) }
+        .mapLatest { inputs ->
+            // The Unknown-hero rule applies when reading: stored ids stay intact (ADR-025).
+            val matches = UnknownHeroes.clearMatches(inputs.matches, inputs.knownHeroes)
+            val drafts = UnknownHeroes.clearDrafts(inputs.drafts, inputs.knownHeroes)
+            val config = inputs.config
+            val ratings = EloCalculator.replay(matches, config)
+            RatingsSnapshot(ratings, MetaStats.compute(matches, drafts), config, GroupStats.compute(matches, ratings))
         }
         .flowOn(dispatcher)
         .shareIn(scope, SharingStarted.Lazily, replay = 1)
@@ -91,5 +101,10 @@ internal class ReplayRatingsRepository @Inject constructor(
     override fun observeHeroPilots(heroId: String): Flow<HeroPilots> =
         snapshot.map { it.meta.pilots(heroId) }.distinctUntilChanged()
 
-    private data class Inputs(val matches: List<Match>, val drafts: List<DraftRecord>, val config: EloConfig)
+    private data class Inputs(
+        val matches: List<Match>,
+        val drafts: List<DraftRecord>,
+        val config: EloConfig,
+        val knownHeroes: Set<String>,
+    )
 }

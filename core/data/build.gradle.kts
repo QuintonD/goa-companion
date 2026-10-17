@@ -12,6 +12,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
     testImplementation(projects.core.testing)
+    testImplementation(testFixtures(projects.core.domain))
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.sqlite.framework)

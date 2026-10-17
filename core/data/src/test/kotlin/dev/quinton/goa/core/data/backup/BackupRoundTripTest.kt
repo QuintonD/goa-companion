@@ -4,6 +4,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.match.RoomDraftRecordRepository
 import dev.quinton.goa.core.data.match.RoomMatchRepository
 import dev.quinton.goa.core.data.player.RoomPlayerRepository
@@ -80,9 +81,11 @@ class BackupRoundTripTest {
                 it
         }
         val config = FakeEloConfigRepository(config)
-        val players = RoomPlayerRepository(db.playerDao())
-        val matches = RoomMatchRepository(db.matchDao())
-        val drafts = RoomDraftRecordRepository(db.draftRecordDao())
+        var now = NOW
+        val clock = EditClock { now }
+        val players = RoomPlayerRepository(db, clock)
+        val matches = RoomMatchRepository(db, clock)
+        val drafts = RoomDraftRecordRepository(db, clock)
         val settings = SettingsDataSource(newStore())
         val timer: TimerStateStore = DataStoreTimerStateStore.forFile {
             tmp.newFile().also { it.delete() }.let { File(it.path + ".preferences_pb") }
@@ -90,6 +93,7 @@ class BackupRoundTripTest {
         val draftStore = DraftStore(newStore())
         val backup = RoomBackupRepository(
             db,
+            this.config,
             this.config,
             if (realContributors) {
                 setOf(SettingsBackup(settings), TimerPresetsBackup(timer), DraftMethodsBackup(draftStore))
@@ -178,8 +182,9 @@ class BackupRoundTripTest {
             BackupCodec.encode(second.copy(exportedAt = 0)),
         ).isEqualTo(BackupCodec.encode(first.copy(exportedAt = 0)))
         assertThat(target.config.config.first()).isEqualTo(custom)
-        assertThat(target.matches.observeMatch("m-a").first()).isEqualTo(matchA)
-        assertThat(target.players.observePlayers(includeArchived = true).first()).containsExactly(ann, bob, cid)
+        assertThat(target.matches.observeMatch("m-a").first()).isEqualTo(matchA.copy(updatedAt = NOW))
+        assertThat(target.players.observePlayers(includeArchived = true).first())
+            .containsExactly(ann.copy(updatedAt = NOW), bob.copy(updatedAt = NOW), cid.copy(updatedAt = NOW))
         assertThat(document.summary()).isEqualTo(
             BackupSummary(
                 BackupDocument.CURRENT_VERSION,
@@ -204,29 +209,70 @@ class BackupRoundTripTest {
         target.seed()
         target.backup.import(document, ImportMode.REPLACE)
 
-        assertThat(target.players.observePlayers(includeArchived = true).first()).containsExactly(ann)
+        assertThat(
+            target.players.observePlayers(includeArchived = true).first(),
+        ).containsExactly(ann.copy(updatedAt = NOW))
         assertThat(target.matches.observeMatches().first()).isEmpty()
         assertThat(target.drafts.observeDrafts().first()).isEmpty()
         assertThat(target.config.config.first()).isEqualTo(EloConfig.DEFAULT)
     }
 
     @Test
-    fun mergeKeepsLocalDataOverwritesSameIdsAndKeepsLocalConfig() = runTest {
+    fun mergeAddsWhatIsNewKeepsTheLaterEditOfEachRecordAndKeepsLocalConfig() = runTest {
+        val target = Device(EloConfig(heroInfluence = 0.1))
+        target.seed() // edited at NOW
         val source = Device(EloConfig(kEstablished = 10.0))
+        source.now = NOW + 60_000 // edited later on another phone
         source.players.upsert(ann.copy(name = "Ann (renamed)"))
         source.matches.upsert(matchB.copy(notes = "from backup"))
-        val document = source.backup.export()
-
-        val local = EloConfig(heroInfluence = 0.1)
-        val target = Device(local)
-        target.seed()
-        target.backup.import(document, ImportMode.MERGE)
+        source.now = NOW - 60_000 // and an older copy of match A
+        source.matches.upsert(matchA.copy(notes = "stale"))
+        source.matches.upsert(matchA.copy(id = "m-new"))
+        target.backup.import(source.backup.export(), ImportMode.MERGE)
 
         val players = target.players.observePlayers(includeArchived = true).first()
         assertThat(players.map { it.name }).containsExactly("Ann (renamed)", "Bob", "Cid")
-        assertThat(target.matches.observeMatches().first()).hasSize(2)
+        assertThat(target.matches.observeMatches().first().map { it.id }).containsExactly("m-a", "m-b", "m-new")
         assertThat(target.matches.observeMatch("m-b").first()!!.notes).isEqualTo("from backup")
-        assertThat(target.config.config.first()).isEqualTo(local)
+        assertThat(target.matches.observeMatch("m-a").first()!!.notes).isEqualTo(matchA.notes)
+        assertThat(target.config.config.first()).isEqualTo(EloConfig(heroInfluence = 0.1))
+    }
+
+    @Test
+    fun version4CarriesTombstonesAndMergesSoADeletedMatchStaysDeleted() = runTest {
+        val source = Device()
+        source.seed()
+        source.players.upsert(Player("ann-2", "Ann", 1, 0, createdAt = 9))
+        source.players.merge("ann-2", ann.id)
+        source.now = NOW + 1
+        source.matches.delete(matchB.id)
+        val document = BackupCodec.decode(BackupCodec.encode(source.backup.export()))
+        assertThat(document.version).isEqualTo(4)
+        assertThat(document.deletions.map { it.id }).containsExactly(matchB.id)
+        assertThat(document.playerMerges.map { it.fromId to it.toId }).containsExactly("ann-2" to ann.id)
+
+        // A phone that still has match B: merging the backup in deletes it.
+        val other = Device()
+        other.seed()
+        other.backup.import(document, ImportMode.MERGE)
+        assertThat(other.matches.observeMatches().first().map { it.id }).containsExactly(matchA.id)
+        assertThat(other.players.observePlayers().first().map { it.id }).doesNotContain("ann-2")
+
+        val fresh = Device()
+        fresh.backup.import(document, ImportMode.REPLACE)
+        assertThat(BackupCodec.encode(fresh.backup.export().copy(exportedAt = 0)))
+            .isEqualTo(BackupCodec.encode(source.backup.export().copy(exportedAt = 0)))
+    }
+
+    @Test
+    fun anOldBackupsRatingConstantsNeverBeatTheGroups() = runTest {
+        val phone = Device(EloConfig(kEstablished = 25.0))
+        phone.config.updatedAt = NOW // changed by the group last night
+        val v3 = BackupDocument(version = 3, exportedAt = 1, eloConfig = EloConfig(kEstablished = 15.0))
+        phone.backup.import(v3, ImportMode.REPLACE)
+        // The file's constants apply, with an old stamp: the group's next sync restores its own.
+        assertThat(phone.config.config.first()).isEqualTo(EloConfig(kEstablished = 15.0))
+        assertThat(phone.config.stamped().updatedAt).isEqualTo(1)
     }
 
     @Test
@@ -311,7 +357,7 @@ class BackupRoundTripTest {
     }
 
     @Test
-    fun unknownHeroesImportAsUnknownHeroSeatsAndLeaveNoBanStats() = runTest {
+    fun unknownHeroesAreKeptAsTheyAreAndListedInTheSummary() = runTest {
         val source = Device(realContributors = false)
         source.seed()
         val bad = matchA.copy(
@@ -327,7 +373,7 @@ class BackupRoundTripTest {
         )
         val document = source.backup.export().let { doc ->
             doc.copy(
-                matches = doc.matches.map { if (it.id == bad.id) bad else it },
+                matches = doc.matches.map { if (it.id == bad.id) bad.copy(updatedAt = it.updatedAt) else it },
                 drafts = doc.drafts.map { d ->
                     d.copy(steps = d.steps + DraftStepRecord(Team.RED, DraftAction.BAN, "notahero"))
                 },
@@ -338,12 +384,11 @@ class BackupRoundTripTest {
 
         target.backup.import(document, ImportMode.REPLACE)
 
+        // Stored as is (a newer phone's hero must survive a pass through this one); the ratings
+        // read it as an Unknown hero (ReplayRatingsRepositoryTest).
         val seats = target.matches.observeMatch(bad.id).first()!!.participants
-        assertThat(seats.map { it.heroId }).containsExactly("test-hero-1", "test-hero-2", null, null).inOrder()
-        assertThat(seats.map { it.playerId }).isEqualTo(bad.participants.map { it.playerId })
-        val steps = target.drafts.observeDrafts().first().single().steps
-        assertThat(steps.map { it.heroId }).doesNotContain("notahero")
-        assertThat(steps).hasSize(draft.steps.size)
+        assertThat(seats.map { it.heroId }).containsExactly("test-hero-1", "test-hero-2", null, "notahero").inOrder()
+        assertThat(target.drafts.observeDrafts().first().single().steps.map { it.heroId }).contains("notahero")
     }
 
     @Test
@@ -506,6 +551,9 @@ class BackupRoundTripTest {
         assertThat(doc.exportedAt).isEqualTo(5)
     }
 }
+
+/** The test phones' clock. */
+private const val NOW = 1_700_100_000_000L
 
 /** 1970-01-01 12:00 UTC: the same calendar day in every time zone from UTC−11 to UTC+11. */
 private const val NOON_UTC = 43_200_000L
