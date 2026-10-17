@@ -54,7 +54,7 @@
         "title": "Double lane rules (rulebook p.20)",
         "points": [
           "Considerably more challenging than a single lane: everyone should know the game well.",
-          "Each lane has its own Battle Zone, minions and Wave counters. Minions stay bound to the Battle Zone they first spawned in.",
+          "Each lane has its own Battle Zone, minions and Wave counters. Minions stay bound to the Battle Zone they first spawned in, for respawning and for the \"Minions Outside of the Battle Zone\" rules (p.18).",
           "With more than 3 heroes per team, the extra heroes start in empty spaces next to their team's occupied hero spawn points.",
           "On cards, \"the Battle Zone\" means \"a Battle Zone\".",
           "The two Minion Battles are resolved separately, at the same time.",
@@ -67,6 +67,7 @@
   "playerCounts": [
     {
       "players": 2,
+      "extended": true,
       "layouts": [
         {
           "id": "two-players",
@@ -89,7 +90,7 @@
           "smallerTeamHeroes": 2,
           "doublePilots": 1,
           "handicapHeroes": 1,
-          "guidance": "The most experienced player controls 2 heroes and replaces the Gold card of one of them with its Handicap card."
+          "guidance": "The most experienced player controls 2 heroes and replaces a gold card of one of them with its Handicap card."
         }
       ]
     },
@@ -202,7 +203,7 @@
     {
       "id": "push_lane",
       "title": "Push the Lane",
-      "detail": "If a team has no minions left in the Battle Zone, the other team wins the push: flip a Wave counter (the last one ends the game, push winner wins). The Battle Zone moves one Zone toward the loser's Throne (their Throne Zone: push winner wins); respawn minions there."
+      "detail": "If a team has no minions left in the Battle Zone, the other team wins the push: flip a Wave counter (the last one ends the game, push winner wins). The Battle Zone moves one Zone toward the loser's Throne (their Throne Zone: push winner wins). Remove all minions from the old Battle Zone, then respawn one minion of the matching type on each Spawn point in the new one (remove a token on a Spawn point first)."
     },
     {
       "id": "retrieve_cards",
@@ -223,9 +224,10 @@
   "tieBreaker": [
     "Cross-team initiative tie: one of the tied players on the team showing acts first. After resolving their card, that player (and only that player) flips the coin to the other side (p.7).",
     "Same-team tie: the team agrees who goes first without discussing why. Don't flip the coin (pp.4, 7).",
-    "The team showing also goes first, without flipping, when the order matters for simultaneous Active effects (p.17) or for minions moved back into the Battle Zone (p.18).",
+    "Simultaneous Active effects whose order matters are resolved like tied initiative, without flipping: the team showing first if the effects are on different teams, otherwise the team decides (p.17).",
+    "Minions moved back into the Battle Zone: the team showing moves its minion first, without flipping (p.18).",
     "It also places first when minions can't respawn on a blocked Spawn point (p.8)."
   ],
-  "extendedCountNote": "Odd counts and 8 to 10 players are recommended only when everyone has played at least 5 times.",
+  "extendedCountNote": "Not beginner friendly (p.20). Odd player counts and games of up to 10 players \"should only be used if all participants have played the game at least five times\" (p.3).",
   "firstGameAdvice": "If anyone is new, the rulebook suggests a Quick game."
 }

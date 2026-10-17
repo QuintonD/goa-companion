@@ -206,7 +206,7 @@ class TimerViewModelTest {
         next()
         val turn = vm.uiState.first { it.active?.kind == PhaseKind.TURN }.active!!
         assertThat(turn.title).isEqualTo("Play a card")
-        assertThat(turn.hint).isEqualTo("Strategy talk until the reveal.")
+        assertThat(turn.hint).isEqualTo("Strategy talk out loud until the reveal.")
         assertThat(turn.nextLabel).isEqualTo("Cards revealed")
 
         next()

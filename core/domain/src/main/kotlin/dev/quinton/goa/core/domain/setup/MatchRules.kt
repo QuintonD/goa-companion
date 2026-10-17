@@ -23,7 +23,7 @@ data class MatchRules(
     val endOfRound: List<EndOfRoundStep>,
     /** How the Tie Breaker coin is used during play, one point per line (shown verbatim at setup). */
     val tieBreaker: List<String>,
-    /** Gentle note shown for extended player counts (odd, 8–10). */
+    /** Note shown for extended player counts (2, odd, 8–10: rulebook pp.3, 20). */
     val extendedCountNote: String,
     /** Rulebook first-game advice. */
     val firstGameAdvice: String,
