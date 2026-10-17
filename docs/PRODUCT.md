@@ -19,13 +19,18 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
 - All 32 heroes from **every product** (Core, Devoted, Defiant, Renowned, Arcane, Wayward),
   2nd printing; ready for the 3rd-printing heroes when they appear.
 - Grid/list with official artwork (sigil fallback), name, title, complexity ★–★★★★, roles,
-  product. The grid shows three heroes across a phone at any font scale; the list is compact
-  (six or more rows per screen); the grid/list choice is saved.
+  product. The grid shows three heroes across a phone up to font scale 1.3 and two above it,
+  so names never break inside a word; the list is compact (six or more rows per screen); the
+  grid/list choice is saved.
 - Filter by complexity, role, product, attack style (Ranged / Mixed / Non-ranged attack cards, see
   DOMAIN.md); full-text search over names, aliases, card names and card text. Search lists
   every matching **card** (whole phrase > all words), ranked above heroes matched only
-  partially; tapping a card opens it in the card viewer. When the owned-products collection
-  hides every match, the empty state says so and offers "Show all products".
+  partially; words may span a card and its hero, and a card's kind narrows a multi-word query
+  ("brogan ultimate", "tigerclaw red tier 2"). A result shows the line that matched (a "Choose
+  one —" lead-in comes with its options); tapping a card opens it in the card viewer. Results
+  start at the top whenever the query, filters or sort change. Back with a search typed clears
+  it. When the owned-products collection hides every match, the empty state says so and offers
+  "Show all products".
 - Hero detail: stat bars (Attack/Defense/Initiative/Movement, base → max), roles, full deck
   laid out by colour and tier (basic → I → II → III → Ultimate) with official card images
   (tap to zoom, swipe between cards), card text and values, item each card grants, Handicap

@@ -124,6 +124,7 @@ internal class DefaultDraftRepository @Inject constructor(
 
     private fun decodeCustom(text: String?): List<DraftMethod> =
         text?.let { runCatching { json.decodeFromString(listSerializer, it) }.getOrNull() }.orEmpty()
+            .map { it.copy(summary = DraftMethod.repairSummary(it.summary)) }
 }
 
 @Module

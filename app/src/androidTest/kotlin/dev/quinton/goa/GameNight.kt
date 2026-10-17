@@ -253,7 +253,7 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         rule.tap(hasText("Meta") and hasClickAction())
         picked.forEach { hero ->
             rule.reveal(
-                hasContentDescription("$hero, 1 wins", substring = true) or
+                hasContentDescription("$hero, 1 win,", substring = true) or
                     hasContentDescription("$hero, 0 wins", substring = true),
             )
         }

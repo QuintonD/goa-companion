@@ -66,6 +66,7 @@ import dev.quinton.goa.feature.catalog.ui.GameIcon
 import dev.quinton.goa.feature.catalog.ui.GameIcons
 import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
 import dev.quinton.goa.feature.catalog.ui.ValueChip
+import dev.quinton.goa.feature.catalog.ui.blockMarkerLabel
 import dev.quinton.goa.feature.catalog.ui.handicapBasis
 import dev.quinton.goa.feature.catalog.ui.kindLabel
 import dev.quinton.goa.feature.catalog.ui.label
@@ -344,7 +345,7 @@ internal fun Card.spokenSummary(isHandicap: Boolean = false): String = buildList
     primary?.let { add("Primary action ${GameIcons.forPrimary(it).label}") }
     printedValues().forEach { add(it.spoken) }
     if (ranged) add("Ranged")
-    if (block) add("Block")
+    blockMarkerLabel()?.let { add(it) }
     item?.let { add("Item: plus 1 ${it.label}") }
     startsIn()?.let { add(it) }
     if (isHandicap) spokenHandicapBasis()?.let { add(it) }
@@ -465,7 +466,7 @@ internal fun CardTile(
             WrapRow(horizontalGap = 10.dp, verticalGap = 2.dp) {
                 card.printedValues().forEach { ValueChip(it.icon, it.printed, iconSize = 14.dp, spoken = it.spoken) }
                 if (card.ranged) Marker(GameIcons.ranged, "Ranged")
-                if (card.block) Marker(GameIcons.block, "Block")
+                card.blockMarkerLabel()?.let { Marker(GameIcons.block, it) }
                 card.item?.let { Marker(GameIcons.item, "+1 ${it.label}") }
                 card.startsIn()?.let { Marker(GameIcons.item, it, showIcon = false) }
             }

@@ -23,11 +23,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -40,6 +45,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
@@ -127,43 +133,77 @@ internal fun ExcerptBlock(excerpt: RulesExcerpt, modifier: Modifier = Modifier, 
 
 private const val FIRST_COLUMN_WEIGHT = 1.4f
 
-/** A printed table, verbatim: header row in bold, equal-width columns, one row per line. */
+/** TalkBack reads each body row with its column names: "6-8 Players, Wave Counters 2 x 7, …". */
+private fun spokenRow(header: List<String>, row: List<String>): String =
+    row.mapIndexed { c, cell -> if (c == 0) cell else "${header.getOrElse(c) { "" }} $cell" }.joinToString(", ")
+
+private val TableCellPadding = Spacing.sm
+
+/**
+ * A printed table, verbatim: header row in bold, one row per line. Columns share the width
+ * (the first, with the longest labels, a little more) as long as every word fits its column;
+ * with large text that would break a word ("Coun/ters"), so each body row becomes a small block
+ * instead: its first cell as a label, then "Column: value" lines.
+ */
 @Composable
 private fun ExcerptTable(table: List<List<String>>, style: TextStyle) {
     val header = table.first()
-    Column(
+    val bodyStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = style.fontWeight)
+    val headerStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    // Measured width, not BoxWithConstraints: the excerpt sits in an intrinsic-height row.
+    var widthPx by remember { mutableIntStateOf(0) }
+    Box(
         Modifier
             .fillMaxWidth()
+            .onSizeChanged { widthPx = it.width }
             .border(1.dp, GoaTheme.colors.engravedBorder, MaterialTheme.shapes.small)
             .padding(vertical = Spacing.xs),
     ) {
-        table.forEachIndexed { i, row ->
-            // TalkBack reads each body row with its column names: "6-8 Players, Wave Counters 2 x 7, …".
-            val spoken = if (i == 0) {
-                header.joinToString(", ")
-            } else {
-                row.mapIndexed { c, cell ->
-                    if (c ==
-                        0
-                    ) {
-                        cell
-                    } else {
-                        "${header.getOrElse(c) { "" }} $cell"
-                    }
-                }.joinToString(", ")
+        val totalWeight = FIRST_COLUMN_WEIGHT + (header.size - 1)
+        val fits = remember(table, widthPx, density, bodyStyle, headerStyle) {
+            val padding = with(density) { (TableCellPadding * 2).toPx() }
+            widthPx == 0 || table.withIndex().all { (i, row) ->
+                row.withIndex().all { (c, cell) ->
+                    val column = widthPx * (if (c == 0) FIRST_COLUMN_WEIGHT else 1f) / totalWeight - padding
+                    val cellStyle = if (i == 0) headerStyle else bodyStyle
+                    cell.split(' ').all { word -> measurer.measure(word, cellStyle).size.width <= column }
+                }
             }
-            Row(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = spoken }) {
-                row.forEachIndexed { c, cell ->
-                    Text(
-                        cell,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = if (i == 0) FontWeight.Bold else style.fontWeight,
-                        ),
-                        // The first column holds the longest labels ("9-10 Players").
-                        modifier = Modifier
-                            .weight(if (c == 0) FIRST_COLUMN_WEIGHT else 1f)
-                            .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                    )
+        }
+        if (fits) {
+            Column(Modifier.fillMaxWidth()) {
+                table.forEachIndexed { i, row ->
+                    val spoken = if (i == 0) header.joinToString(", ") else spokenRow(header, row)
+                    Row(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = spoken }) {
+                        row.forEachIndexed { c, cell ->
+                            Text(
+                                cell,
+                                style = if (i == 0) headerStyle else bodyStyle,
+                                // The first column holds the longest labels ("9-10 Players").
+                                modifier = Modifier
+                                    .weight(if (c == 0) FIRST_COLUMN_WEIGHT else 1f)
+                                    .padding(horizontal = TableCellPadding, vertical = Spacing.xs),
+                            )
+                        }
+                    }
+                }
+            }
+        } else {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                table.drop(1).forEach { row ->
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .clearAndSetSemantics { contentDescription = spokenRow(header, row) }
+                            .padding(horizontal = TableCellPadding, vertical = Spacing.xs),
+                    ) {
+                        Text(row.firstOrNull().orEmpty(), style = headerStyle)
+                        row.drop(1).forEachIndexed { c, cell ->
+                            Text("${header.getOrElse(c + 1) { "" }}: $cell", style = bodyStyle)
+                        }
+                    }
                 }
             }
         }

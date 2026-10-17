@@ -121,7 +121,7 @@ class RematchTimerFlowTest {
         rule.openTab("players")
         rule.tap(hasText("Players") and hasClickAction() and hasRole(Role.Tab) and notBottomNav())
         rule.waitUntilOrDump("both games rated") {
-            rule.leaderboardRows().count { it.contains("1 wins 1 losses") } == 4
+            rule.leaderboardRows().count { it.contains("1 win, 1 loss") } == 4
         }
     }
 

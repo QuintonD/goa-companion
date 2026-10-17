@@ -167,6 +167,9 @@ fun MatchLogContent(
 
 private const val FLASH_MS = 2_000L
 
+/** From Android's 1.15 font step up, a seat's rating change gets its own line. */
+private const val SEAT_STACK_FONT_SCALE = 1.1f
+
 /** Bottom padding of lists under an extended FAB: 56 dp FAB + 16 dp margin + room to read the last row. */
 val FAB_CLEARANCE = 112.dp
 
@@ -377,23 +380,20 @@ private fun SeatLine(seat: SeatUi) {
             shape = MaterialTheme.shapes.small,
         )
         Spacer(Modifier.width(Spacing.sm))
+        // The rating change sits on the hero line, so the pilot line keeps the full width for the
+        // name and its ×2/H marks. With large text the hero's name needs the width more: the
+        // change moves to a line of its own.
+        val stacked = LocalDensity.current.fontScale > SEAT_STACK_FONT_SCALE
         Column(Modifier.weight(1f)) {
-            // The rating change sits on the hero line, so the pilot line keeps the full width for
-            // the name and its ×2/H marks. When both don't fit (large text in a half-width column)
-            // the change wraps below instead of cutting the hero's name ("Xarga…").
-            FlowRow(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                itemVerticalAlignment = Alignment.CenterVertically,
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     seat.heroName,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(end = Spacing.xs),
+                    modifier = Modifier.weight(1f),
                 )
-                DeltaIndicator(seat.delta, label = "rating")
+                if (!stacked) DeltaIndicator(seat.delta, label = "rating")
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -410,6 +410,7 @@ private fun SeatLine(seat: SeatUi) {
                 if (seat.handicap) Pill("H")
                 if (seat.doublePilot) Pill("×2")
             }
+            if (stacked) DeltaIndicator(seat.delta, label = "rating")
         }
     }
 }

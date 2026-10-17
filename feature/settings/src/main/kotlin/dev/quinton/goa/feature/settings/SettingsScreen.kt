@@ -183,7 +183,7 @@ private fun SettingsList(
         item { SectionHeader("Data") }
         item {
             GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
-                LinkRow(Icons.Outlined.Backup, "Backup and restore", "Export or import players, matches and drafts") {
+                LinkRow(Icons.Outlined.Backup, "Backup and restore", "Export or import all your data and settings") {
                     onOpen(SettingsLink.BACKUP)
                 }
                 LinkRow(Icons.Outlined.Info, "About", "Version, credits and licences") { onOpen(SettingsLink.ABOUT) }

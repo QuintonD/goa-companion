@@ -95,6 +95,45 @@ class GroupStatsTest {
         assertThat(night.movers.map { it.second }).isInOrder(Comparator.reverseOrder<Double>())
     }
 
+    private val hour = 3_600_000L
+
+    /** Rated 2v2 matches at the given wall-clock times (UTC+10, so "night" is local evening). */
+    private fun nightLog(vararg localTimes: Pair<String, Long>): List<Match> = localTimes.map { (id, at) ->
+        match(id, at, Team.RED, red("ann", "a"), red("bob", "b"), blue("cid", "c"), blue("dee", "d"))
+    }
+
+    private val sydney = ZoneOffset.ofHours(10)
+
+    /** Local midnight of 1970-01-05 in UTC+10, as epoch millis. */
+    private val jan5 = 4 * day - 10 * hour
+
+    @Test fun aGameNightRunsPastMidnight() {
+        val log = nightLog(
+            "earlier" to jan5 - 2 * day + 20 * hour,
+            "n1" to jan5 - 2 * hour,
+            "n2" to jan5 - 30 * 60_000L,
+            "n3" to jan5 + 40 * 60_000L,
+            "n4" to jan5 + 2 * hour + 10 * 60_000L,
+        )
+        val night = GroupStats.compute(log, EloCalculator.replay(log, EloConfig.DEFAULT), sydney).lastNight!!
+        assertThat(night.matchIds).containsExactly("n1", "n2", "n3", "n4").inOrder()
+        // Dated by the evening it started, not the day after.
+        assertThat(night.date).isEqualTo(LocalDate.of(1970, 1, 4))
+    }
+
+    @Test fun aGapOfSixHoursStartsANewNight() {
+        val log = nightLog(
+            "lunch" to jan5 + 12 * hour,
+            "afternoon" to jan5 + 14 * hour,
+            "evening" to jan5 + 20 * hour,
+            "late" to jan5 + 23 * hour,
+        )
+        val night = GroupStats.compute(log, EloCalculator.replay(log, EloConfig.DEFAULT), sydney).lastNight!!
+        // 14:00 → 20:00 is exactly 6 hours: the evening is a new night, though on the same day.
+        assertThat(night.matchIds).containsExactly("evening", "late").inOrder()
+        assertThat(night.date).isEqualTo(LocalDate.of(1970, 1, 5))
+    }
+
     @Test fun anEmptyLogHasNoStats() {
         assertThat(GroupStats.compute(emptyList(), ratings)).isEqualTo(GroupReport.EMPTY)
     }

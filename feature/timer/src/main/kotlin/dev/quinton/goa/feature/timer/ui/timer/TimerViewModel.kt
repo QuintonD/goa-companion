@@ -72,7 +72,13 @@ sealed interface TimerEvent {
      * session's hero count, its mode (a `GameMode` serial name). Nothing is saved until the
      * user saves that match.
      */
-    data class NewMatch(val durationMin: Int, val mode: String?, val startedAt: Long? = null) : TimerEvent
+    data class NewMatch(
+        val durationMin: Int,
+        val mode: String?,
+        val startedAt: Long? = null,
+        /** The id the new match is saved under; saving it clears the ended session. */
+        val matchId: String? = null,
+    ) : TimerEvent
 }
 
 @HiltViewModel
@@ -99,6 +105,9 @@ class TimerViewModel @Inject constructor(
 
     /** Set by Log result / Done so a double tap can't act twice on the same summary. */
     private val finishing = AtomicBoolean(false)
+
+    /** Log result opened a new match's result screen; set until the timer screen shows again. */
+    @Volatile private var resultOpened = false
 
     private val settings: StateFlow<AppSettings> =
         settingsRepository.settings.stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
@@ -188,10 +197,19 @@ class TimerViewModel @Inject constructor(
         viewModelScope.launch {
             combine(controller.snapshot, ticks) { s, _ -> s }.collect { s -> if (visible.value) onTick(s) }
         }
+        // The result logged from the summary was saved: the finished session is done.
+        viewModelScope.launch {
+            controller.snapshot
+                .map { s -> s?.takeIf { it.status == TimerStatus.ENDED }?.loggingMatchId }
+                .distinctUntilChanged()
+                .flatMapLatest { id -> id?.let { matches.observeMatch(it).map { m -> m?.id } } ?: flowOf(null) }
+                .collect { saved -> if (saved != null) controller.clearLogged(saved) }
+        }
     }
 
     /** Screen lifecycle: cues and ticks only run while the timer is on screen. */
     fun setVisible(isVisible: Boolean) {
+        if (isVisible) resultOpened = false // Back on the timer: Log result works again.
         visible.value = isVisible
         controller.uiVisible = isVisible
         if (isVisible) refreshNotificationAccess() else cueKey = null
@@ -251,18 +269,31 @@ class TimerViewModel @Inject constructor(
     fun endMatch() = command(TimerCommand.EndMatch)
 
     /**
-     * Opens the linked match, or a new match pre-filled with the duration (no stub match is
-     * saved), then clears the session. Ignores repeated taps.
+     * Opens the linked match (its duration is already saved) and clears the session. Without a
+     * linked match, opens a new match pre-filled with the duration under an id reserved in the
+     * session (no stub match is saved); the session and its summary stay until that match is
+     * saved, so backing out of the result screen loses nothing. Ignores repeated taps.
      */
     fun logResult() = finishOnce {
         val s = controller.snapshot.first()?.takeIf { it.status == TimerStatus.ENDED } ?: return@finishOnce
-        val event = s.matchId?.let { TimerEvent.OpenMatch(it, s.matchStartWall) } ?: TimerEvent.NewMatch(
-            durationMin = TimerUiMapper.durationMinutes(controller.readout(s).matchElapsedMillis),
-            mode = legalMode(s)?.let(::serialName),
-            startedAt = s.matchStartWall,
+        val linked = s.matchId
+        if (linked != null) {
+            controller.clear()
+            events.send(TimerEvent.OpenMatch(linked, s.matchStartWall))
+            return@finishOnce
+        }
+        // The summary stays on screen while the result screen opens: a second tap must not open it twice.
+        if (resultOpened) return@finishOnce
+        val id = controller.reserveLoggingMatchId() ?: return@finishOnce
+        resultOpened = true
+        events.send(
+            TimerEvent.NewMatch(
+                durationMin = TimerUiMapper.durationMinutes(controller.readout(s).matchElapsedMillis),
+                mode = legalMode(s)?.let(::serialName),
+                startedAt = s.matchStartWall,
+                matchId = id,
+            ),
         )
-        controller.clear()
-        events.send(event)
     }
 
     fun dismissSummary() = finishOnce {

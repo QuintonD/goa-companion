@@ -140,7 +140,9 @@ fun StatBar(
             modifier.clearAndSetSemantics { contentDescription = description },
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            labelText(Modifier.width(labelWidth).padding(end = Spacing.sm))
+            // The label column grows with the text so "Movement" fits up to the stacked layout.
+            val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
+            labelText(Modifier.width(labelWidth * fontScale).padding(end = Spacing.sm))
             bar(Modifier.weight(1f))
             valueText(Modifier.widthIn(min = 48.dp).padding(start = Spacing.sm))
         }

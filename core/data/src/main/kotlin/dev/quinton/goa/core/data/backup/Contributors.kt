@@ -8,6 +8,7 @@ import dagger.multibindings.IntoSet
 import dev.quinton.goa.core.datastore.draft.DraftStore
 import dev.quinton.goa.core.datastore.settings.SettingsDataSource
 import dev.quinton.goa.core.datastore.timer.TimerStateStore
+import dev.quinton.goa.core.domain.draft.DraftMethod
 import dev.quinton.goa.core.model.settings.AppSettings
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
@@ -94,10 +95,10 @@ internal class DraftMethodsBackup @Inject constructor(private val store: DraftSt
     override val key = KEY
 
     override suspend fun export(): JsonElement? =
-        store.customMethods.first()?.let(::parseArrayOrNull)?.takeIf { it.isNotEmpty() }
+        store.customMethods.first()?.let(::parseArrayOrNull)?.takeIf { it.isNotEmpty() }?.withRepairedSummaries()
 
     override suspend fun import(data: JsonElement, mode: ImportMode, useBackupSettings: Boolean) {
-        val incoming = data as? JsonArray ?: return
+        val incoming = (data as? JsonArray)?.withRepairedSummaries() ?: return
         val local = store.customMethods.first()?.let(::parseArrayOrNull)
         val methods = if (mode == ImportMode.REPLACE ||
             local == null
@@ -111,6 +112,20 @@ internal class DraftMethodsBackup @Inject constructor(private val store: DraftSt
 
     companion object {
         const val KEY = "draft-methods"
+        private const val SUMMARY = "summary"
+
+        /** Old builds saved "2 ban(s)." in custom method summaries ([DraftMethod.repairSummary]). */
+        private fun JsonArray.withRepairedSummaries(): JsonArray = JsonArray(
+            map { element ->
+                val method = element as? JsonObject
+                val summary = (method?.get(SUMMARY) as? JsonPrimitive)?.takeIf { it.isString }?.content
+                if (method == null || summary == null) {
+                    element
+                } else {
+                    JsonObject(method + (SUMMARY to JsonPrimitive(DraftMethod.repairSummary(summary))))
+                }
+            },
+        )
     }
 }
 

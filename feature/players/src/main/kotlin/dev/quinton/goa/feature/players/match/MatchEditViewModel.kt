@@ -92,6 +92,11 @@ data class MatchEditUiState(
     val fromDraft: Boolean = false,
     /** The focused "Who won?" layout (a game just ended): the result first, details below. */
     val resultFirst: Boolean = false,
+    /**
+     * A finished game's result that isn't saved anywhere yet (a new match opened by the timer's
+     * "Log result"): leaving asks first, even without edits.
+     */
+    val unsavedResult: Boolean = false,
     /** Set after a result was saved: the screen shows what changed instead of closing. */
     val saved: SavedResultUi? = null,
     /** Set once saved (without a summary) or deleted; the screen navigates back. */
@@ -179,6 +184,7 @@ class MatchEditViewModel @AssistedInject constructor(
             saving = edit.saving,
             fromDraft = edit.original?.draftId != null,
             resultFirst = route.result,
+            unsavedResult = route.result && edit.original == null && !edit.notFound,
             saved = edit.saved?.let { savedSummary(it, people, results) },
             finished = edit.finished,
         )
@@ -312,7 +318,7 @@ class MatchEditViewModel @AssistedInject constructor(
         viewModelScope.launch {
             val original = state.original
             val match = state.form.toMatch(
-                id = original?.id ?: UUID.randomUUID().toString(),
+                id = original?.id ?: route.newMatchId ?: UUID.randomUUID().toString(),
                 createdAt = original?.createdAt ?: System.currentTimeMillis(),
                 draftId = original?.draftId,
             ).copy(tieBreaker = original?.tieBreaker) // Not edited here; keep the coin from setup.

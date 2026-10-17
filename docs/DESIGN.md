@@ -72,13 +72,16 @@ Contrast checks added 2026-10-17 (WCAG ratio vs background / surface / surfaceHi
 - **Spacing:** 4 dp grid (`Spacing`); screen padding 16 dp.
 - **Large text:** above font scale 1.3 (`LARGE_FONT_SCALE`) compact rows stack (StatBar label
   over bars, theme selector becomes a radio list); icons beside text grow with
-  `scaledIconSize` (capped 1.8×).
+  `scaledIconSize` (capped 1.8×). Fixed label and table columns (StatBar labels, Meta table
+  cells) grow with the font scale; the hero grid drops to two columns and a printed rules
+  table becomes one block per row when a word would otherwise break mid-word.
 
 ## Components (`core:designsystem/component`)
 `GoaScreen` (title bar + engraved rule, optional snackbar host) · `GoaCard` · `SectionHeader` ·
 `StatBar` (1..8 base→max) · `FilterChipRow` / `GoaFilterChip` · `VerifiedBadge` /
 `UnverifiedBadge` · `CardColorDot` · `ConfirmDialog` · `DurationText` · `EmptyState` ·
-`HeroPortrait` (bronze double frame, inner gradient, sigil fallback) · `HeroSigil` (monogram
+`HeroPortrait` (bronze double frame, inner gradient, sigil fallback; `framed = false` for the
+grid tile, which draws its own fade, to keep scrolling cheap) · `HeroSigil` (monogram
 fallback) · `PlayerAvatar` (crest in player colour, initial fallback) · `TeamBadge` / `TeamMark`
 · `ComplexityStars` (`showLabel` adds Challenging / Complex / Very Complex / Wizard). The
 gallery screenshot test (`GalleryScreenshotTest`) shows them all, dark/light, font scale 1 and 2.

@@ -143,6 +143,31 @@ class TimerController @Inject constructor(
         updated
     }
 
+    /**
+     * The id for the new match "Log result" opens from an ended session without a linked match;
+     * reserved once and kept in the session, so every Log result tap opens the same match.
+     * Null when there is no ended session.
+     */
+    suspend fun reserveLoggingMatchId(): String? = mutex.withLock {
+        val updated = repository.updateSnapshot { current ->
+            when {
+                current == null || current.status != TimerStatus.ENDED -> current
+                current.loggingMatchId != null -> current
+                else -> current.copy(loggingMatchId = UUID.randomUUID().toString())
+            }
+        }
+        updated?.takeIf { it.status == TimerStatus.ENDED }?.loggingMatchId
+    }
+
+    /** Clears the ended session once the match it was being logged as ([matchId]) is saved. */
+    suspend fun clearLogged(matchId: String) = mutex.withLock {
+        val current = repository.currentSnapshot() ?: return@withLock
+        if (current.status != TimerStatus.ENDED || current.loggingMatchId != matchId) return@withLock
+        repository.updateSnapshot { null }
+        notifier.cancelAlert()
+        sync(null)
+    }
+
     /** Clears the session (after the match summary). An ended session's duration is kept first. */
     suspend fun clear() = mutex.withLock {
         repository.currentSnapshot()?.let { recordDuration(rebase(it), onlyIfMissing = true) }

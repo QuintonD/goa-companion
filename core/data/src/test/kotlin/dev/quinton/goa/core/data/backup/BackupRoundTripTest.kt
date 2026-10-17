@@ -421,6 +421,24 @@ class BackupRoundTripTest {
     }
 
     @Test
+    fun draftMethodSummariesFromOldBuildsArePluralisedOnExportAndImport() = runTest {
+        val old = """[{"id":"m","summary":"Pool of 17. 2 ban(s). Custom order."},""" +
+            """{"id":"n","summary":"Pool of 9. 1 ban(s). Custom order."}]"""
+        val source = Device()
+        source.draftStore.setCustomMethods(old)
+        val exported = source.backup.export().extras.getValue("draft-methods").toString()
+        assertThat(exported).contains("Pool of 17. 2 bans. Custom order.")
+        assertThat(exported).contains("Pool of 9. 1 ban. Custom order.")
+
+        val target = Device()
+        target.backup.import(
+            source.backup.export().copy(extras = mapOf("draft-methods" to Json.parseToJsonElement(old))),
+            ImportMode.REPLACE,
+        )
+        assertThat(target.draftStore.customMethods.first()).doesNotContain("ban(s)")
+    }
+
+    @Test
     fun version1FileImportsLosslesslyWithoutACoin() = runTest {
         // A v1 export as written by the first release: no Match.tieBreaker.
         val v1 = """

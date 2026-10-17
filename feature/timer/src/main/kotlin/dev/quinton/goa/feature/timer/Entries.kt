@@ -38,14 +38,15 @@ fun EntryProviderScope<NavKey>.timerEntries(navigator: Navigator) {
             onOpenMatch = { matchId, startedAt ->
                 navigator.navigate(MatchEditRoute(matchId, result = true, prefillPlayedAt = startedAt))
             },
-            onNewMatch = { minutes, mode, startedAt ->
+            onNewMatch = { event ->
                 navigator.navigate(
                     MatchEditRoute(
                         matchId = null,
-                        prefillDurationMin = minutes,
-                        prefillMode = mode,
+                        prefillDurationMin = event.durationMin,
+                        prefillMode = event.mode,
                         result = true,
-                        prefillPlayedAt = startedAt,
+                        prefillPlayedAt = event.startedAt,
+                        newMatchId = event.matchId,
                     ),
                 )
             },

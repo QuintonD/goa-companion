@@ -217,10 +217,12 @@ fun ImportDialog(
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 if (summary.unknownHeroes.isNotEmpty()) {
+                    val one = summary.unknownHeroes.size == 1
                     Text(
-                        "${plural(summary.unknownHeroes.size, "hero", "heroes")} in this file aren't in this " +
-                            "app's catalog (${summary.unknownHeroes.joinToString()}). Those seats import as " +
-                            "Unknown hero and count for their pilots only.",
+                        "${plural(summary.unknownHeroes.size, "hero", "heroes")} in this file " +
+                            (if (one) "isn't" else "aren't") + " in this app's catalog " +
+                            "(${summary.unknownHeroes.joinToString()}). " + (if (one) "Its" else "Their") +
+                            " seats import as Unknown hero and count for their pilots only.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -235,12 +237,7 @@ fun ImportDialog(
                     ModeOption(
                         selected = mode == ImportMode.REPLACE,
                         title = "Replace everything",
-                        body = if (phoneIsEmpty) {
-                            "This phone has no players or matches yet. Load the file as it is, settings included."
-                        } else {
-                            "Delete this phone's players, matches and drafts first and use the file's " +
-                                "settings. This can't be undone."
-                        },
+                        body = replaceBody(summary, phoneIsEmpty),
                         onClick = { mode = ImportMode.REPLACE },
                     )
                 }
@@ -258,9 +255,14 @@ fun ImportDialog(
                         Column {
                             Text("Use the file's settings", style = MaterialTheme.typography.titleSmall)
                             Text(
-                                "Rating settings" + (if (summary.hasEloConfig) " (custom in this file)" else "") +
-                                    ", theme, owned products, sounds and the selected timer preset. " +
-                                    "Off keeps this phone's.",
+                                if (summary.extras.isEmpty()) {
+                                    // Only rating constants in the file (e.g. an older export).
+                                    "Rating settings (custom in this file). Off keeps this phone's."
+                                } else {
+                                    "Rating settings" + (if (summary.hasEloConfig) " (custom in this file)" else "") +
+                                        ", theme, owned products, sounds and the selected timer preset. " +
+                                        "Off keeps this phone's."
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -283,6 +285,29 @@ fun ImportDialog(
         },
         dismissButton = { TextButton(onClick = onCancel) { Text("Cancel") } },
     )
+}
+
+/**
+ * What Replace does. A file without settings (e.g. a version 1 export) leaves the phone's app
+ * settings, timer presets and draft methods alone; only the rating settings go back to the
+ * defaults the file was made with (`BackupRepository.import`).
+ */
+internal fun replaceBody(summary: BackupSummary, phoneIsEmpty: Boolean): String = when {
+    phoneIsEmpty && summary.hasSettings ->
+        "This phone has no players or matches yet. Load the file as it is, settings included."
+
+    phoneIsEmpty -> "This phone has no players or matches yet. Load the file as it is."
+
+    summary.extras.isNotEmpty() ->
+        "Delete this phone's players, matches and drafts first and use the file's settings. This can't be undone."
+
+    summary.hasEloConfig ->
+        "Delete this phone's players, matches and drafts first and use the file's rating " +
+            "settings; the phone keeps its other settings. This can't be undone."
+
+    else ->
+        "Delete this phone's players, matches and drafts first. This file has no settings: rating " +
+            "settings go back to the defaults and the phone keeps its other settings. This can't be undone."
 }
 
 @Composable

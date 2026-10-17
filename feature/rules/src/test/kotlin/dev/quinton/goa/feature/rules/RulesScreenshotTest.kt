@@ -100,6 +100,14 @@ class RulesScreenshotTest {
         }
     }
 
+    /** At 1.3 "Counters" no longer fits a column: each row becomes "Wave Counters: 2 x 7" lines. */
+    @Test fun excerptTableDarkFontScale13() = capture(ThemeMode.DARK, 1.3f) {
+        val excerpt = bundledReference.topics.flatMap { it.excerpts }.first { it.table.isNotEmpty() }
+        Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
+            ExcerptBlock(excerpt, Modifier.padding(16.dp))
+        }
+    }
+
     @Test fun rulesListDark() = capture(ThemeMode.DARK) { RulesList() }
 
     @Test fun rulesListLight() = capture(ThemeMode.LIGHT) { RulesList() }

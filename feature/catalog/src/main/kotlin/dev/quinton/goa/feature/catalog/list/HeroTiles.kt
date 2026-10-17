@@ -1,7 +1,6 @@
 package dev.quinton.goa.feature.catalog.list
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -114,23 +114,25 @@ internal fun HeroGridTile(item: HeroListItem, sort: CatalogSort, onClick: () -> 
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
     ) {
+        val surface = MaterialTheme.colorScheme.surface
         Box(Modifier.fillMaxWidth().aspectRatio(PORTRAIT_RATIO)) {
+            // Unframed art with the fade into the tile drawn over it in the same node: the fewest
+            // layers per tile while the grid scrolls.
             HeroPortrait(
                 heroId = hero.id,
                 portrait = hero.portrait,
                 contentDescription = null,
                 shape = RectangleShape,
-                modifier = Modifier.fillMaxSize(),
-            )
-            Box(
-                Modifier
+                framed = false,
+                modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            0.55f to Color.Transparent,
-                            1f to MaterialTheme.colorScheme.surface,
-                        ),
-                    ),
+                    .drawWithCache {
+                        val fade = Brush.verticalGradient(0.55f to Color.Transparent, 1f to surface)
+                        onDrawWithContent {
+                            drawContent()
+                            drawRect(fade)
+                        }
+                    },
             )
             ComplexityStars(
                 complexity = hero.complexity,
