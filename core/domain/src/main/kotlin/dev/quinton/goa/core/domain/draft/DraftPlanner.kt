@@ -40,7 +40,9 @@ object DraftPlanner {
      * Dealt hands + bans: bans draw from the whole pool, so they could empty a seat's hand and
      * leave its pick with nothing to choose [APP].
      */
-    fun problem(method: DraftMethod): DraftError? = if (method.pool is PoolRule.DealPerSeat && hasBans(method.sequence)) {
+    fun problem(method: DraftMethod): DraftError? = if (method.pool is PoolRule.DealPerSeat &&
+        hasBans(method.sequence)
+    ) {
         DraftError.NotSupported("Dealt hands can't be combined with bans: a ban could empty a player's hand")
     } else {
         null

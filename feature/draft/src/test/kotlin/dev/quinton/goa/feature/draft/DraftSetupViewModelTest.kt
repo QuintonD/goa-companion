@@ -134,7 +134,12 @@ class DraftSetupViewModelTest {
     fun `custom methods that deal hands and ban are unavailable`() = runTest {
         val house = bundledMethods.methods.first { it.id == "house" }
         drafts.customState.value = listOf(
-            house.copy(id = "dealt-bans", name = "Dealt bans", origin = MethodOrigin.CUSTOM, pool = PoolRule.DealPerSeat(3)),
+            house.copy(
+                id = "dealt-bans",
+                name = "Dealt bans",
+                origin = MethodOrigin.CUSTOM,
+                pool = PoolRule.DealPerSeat(3),
+            ),
         )
         val vm = viewModel()
         listOf("p0", "p1", "p2", "p3").forEach(vm::togglePlayer)

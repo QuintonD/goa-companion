@@ -76,7 +76,13 @@ object DraftEngine {
         if (hero !in session.pool) throw DraftError.NotInPool(hero)
         val seatId = step.seatId
         val hand = seatId?.takeIf { step.action == DraftAction.PICK }?.let { session.handOf(it) }
-        val notInHand = if (seatId != null && hand != null && hero !in hand) DraftError.NotInHand(hero, seatId) else null
+        val notInHand = if (seatId != null && hand != null &&
+            hero !in hand
+        ) {
+            DraftError.NotInHand(hero, seatId)
+        } else {
+            null
+        }
         // A hero concealed in the current hidden run looks available to everyone; refusing it
         // must not say who took it or whether it was banned or picked [APP].
         if (hero in session.concealedIds()) throw notInHand ?: DraftError.Unavailable

@@ -108,7 +108,9 @@ class DraftRulesTest {
         // Once the hidden run is over the ban is public and reported normally.
         s = s.choose(s.pool[1])
         assertThat(s.concealedIds()).isEmpty()
-        assertThat(DraftEngine.apply(s, DraftCommand(secret)).exceptionOrNull()).isEqualTo(DraftError.AlreadyBanned(secret))
+        assertThat(
+            DraftEngine.apply(s, DraftCommand(secret)).exceptionOrNull(),
+        ).isEqualTo(DraftError.AlreadyBanned(secret))
     }
 
     @Test
@@ -128,7 +130,9 @@ class DraftRulesTest {
     fun `dealt hands cannot be combined with bans`() {
         val dealtBans = house.copy(pool = PoolRule.DealPerSeat(3))
         assertThat(DraftPlanner.problem(dealtBans)).isInstanceOf(DraftError.NotSupported::class.java)
-        assertThat(DraftPlanner.plan(dealtBans, 2, 2).exceptionOrNull()).isInstanceOf(DraftError.NotSupported::class.java)
+        assertThat(
+            DraftPlanner.plan(dealtBans, 2, 2).exceptionOrNull(),
+        ).isInstanceOf(DraftError.NotSupported::class.java)
         assertThat(DraftEngine.start(DraftFixtures.setup(dealtBans)).exceptionOrNull())
             .isInstanceOf(DraftError.NotSupported::class.java)
         val dealtPickAndBan = DraftFixtures.method("pick-and-ban").copy(pool = PoolRule.DealPerSeat(3))

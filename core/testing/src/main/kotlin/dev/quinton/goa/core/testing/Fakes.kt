@@ -48,9 +48,7 @@ class FakePlayerRepository(initial: List<Player> = emptyList()) : PlayerReposito
         val existing = findByName(candidate.name)
         return when {
             existing == null -> candidate.copy(name = candidate.name.trim()).also { upsert(it) }
-
             existing.archived -> existing.copy(archived = false).also { archive(it.id, false) }
-
             else -> existing
         }
     }

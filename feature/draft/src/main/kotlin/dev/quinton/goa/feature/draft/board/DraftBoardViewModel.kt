@@ -326,13 +326,21 @@ class DraftBoardViewModel @Inject constructor(
         return when (e) {
             // Neutral on purpose: never says who concealed the hero or how.
             DraftError.Unavailable -> "Choose a different hero"
+
             is DraftError.AlreadyBanned -> "${hero(e.heroId)} is banned"
+
             is DraftError.AlreadyPicked -> "${hero(e.heroId)} was already picked by ${teamName(e.team)}"
+
             is DraftError.Taken -> "${hero(e.heroId)} is already taken"
+
             is DraftError.NotInHand -> "${hero(e.heroId)} wasn't dealt to this seat"
+
             is DraftError.NotInPool -> "${hero(e.heroId)} isn't in the pool"
+
             is DraftError.InvalidSeats -> e.reason
+
             is DraftError -> e.message ?: "That isn't allowed right now"
+
             else -> "Something went wrong"
         }
     }

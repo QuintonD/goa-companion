@@ -41,9 +41,7 @@ internal class RoomPlayerRepository @Inject constructor(private val dao: PlayerD
         val existing = findByName(candidate.name)
         when {
             existing == null -> candidate.copy(name = candidate.name.trim()).also { upsert(it) }
-
             existing.archived -> existing.copy(archived = false).also { dao.setArchived(it.id, false) }
-
             else -> existing
         }
     }
