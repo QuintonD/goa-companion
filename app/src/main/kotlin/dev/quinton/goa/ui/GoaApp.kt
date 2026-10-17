@@ -36,6 +36,7 @@ import dev.quinton.goa.core.navigation.TopLevelTab
 import dev.quinton.goa.feature.catalog.catalogEntries
 import dev.quinton.goa.feature.draft.draftEntries
 import dev.quinton.goa.feature.players.playersEntries
+import dev.quinton.goa.feature.rules.rulesEntries
 import dev.quinton.goa.feature.settings.settingsEntries
 import dev.quinton.goa.feature.timer.timerEntries
 
@@ -83,6 +84,7 @@ fun GoaApp() {
                 rememberSaveableStateHolderNavEntryDecorator(),
                 rememberViewModelStoreNavEntryDecorator(),
             ),
+            sceneStrategies = listOf(BottomSheetSceneStrategy()),
             transitionSpec = { push(forward = true) },
             popTransitionSpec = { push(forward = false) },
             predictivePopTransitionSpec = { _ -> push(forward = false) },
@@ -92,6 +94,7 @@ fun GoaApp() {
                 draftEntries(navigator)
                 playersEntries(navigator)
                 settingsEntries(navigator)
+                rulesEntries(navigator)
             },
         )
     }

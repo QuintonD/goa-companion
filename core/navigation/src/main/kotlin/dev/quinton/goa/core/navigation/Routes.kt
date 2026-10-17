@@ -70,6 +70,30 @@ interface Navigator {
 /** Export / import of all user data (owner: players). */
 @Serializable data object BackupRoute : NavKey
 
+// Rules reference
+@Serializable data object RulesRoute : NavKey
+
+@Serializable data class RulesTopicRoute(val topicId: String) : NavKey
+
+/**
+ * The level & defeat ladder, shown as a bottom sheet ([NavSheet]). [heroIds] are the heroes in the
+ * current match: their cards that change Life counters or defeat rewards are quoted. Empty = all heroes.
+ * [showRulesLink] offers "All rules" (off when opened from the Rules screen itself).
+ */
+@Serializable data class LevelLadderRoute(
+    val heroIds: List<String> = emptyList(),
+    val showRulesLink: Boolean = true,
+) : NavKey
+
+/**
+ * Entry metadata for screens shown as a modal bottom sheet over the previous screen; the app's
+ * scene strategy reads it. Usage: `entry<Key>(metadata = NavSheet.metadata) { … }`.
+ */
+object NavSheet {
+    const val KEY = "goa.bottomSheet"
+    val metadata: Map<String, Any> = mapOf(KEY to true)
+}
+
 // Settings
 @Serializable data object SettingsRoute : NavKey
 
