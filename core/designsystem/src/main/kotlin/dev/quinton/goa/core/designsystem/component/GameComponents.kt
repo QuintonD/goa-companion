@@ -27,6 +27,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +43,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -49,7 +55,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
-import coil3.compose.SubcomposeAsyncImage
+import coil3.compose.AsyncImage
 import dev.quinton.goa.core.designsystem.icon.HeroSigils
 import dev.quinton.goa.core.designsystem.icon.PlayerCrests
 import dev.quinton.goa.core.designsystem.theme.GoaFonts
@@ -59,6 +65,7 @@ import dev.quinton.goa.core.designsystem.theme.playerColor
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
+import kotlin.math.roundToInt
 
 /*
  * Shared game-facing components. APIs are stable contracts used by every feature; visuals may
@@ -94,16 +101,19 @@ fun HeroPortrait(
             .semantics { if (contentDescription != null) this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
     ) {
-        if (portrait == null) {
-            SigilMedallionContent(heroId)
-        } else {
-            SubcomposeAsyncImage(
+        // A plain AsyncImage (no subcomposition per tile: cheap in lazy grids) over the sigil,
+        // which shows while loading, on error and without art. Coil sizes the request to the
+        // tile's constraints, so a 110 dp tile never decodes the full portrait.
+        var loaded by remember(portrait) { mutableStateOf(false) }
+        if (portrait == null || !loaded) SigilMedallionContent(heroId)
+        if (portrait != null) {
+            AsyncImage(
                 model = assetUrl(portrait),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.matchParentSize(),
-                error = { SigilMedallionContent(heroId) },
-                loading = { SigilMedallionContent(heroId) },
+                onSuccess = { loaded = true },
+                onError = { loaded = false },
             )
         }
         // Inner frame: top glow + bottom vignette, then the engraved bronze edge.
@@ -127,14 +137,22 @@ fun HeroPortrait(
 
 @Composable
 private fun SigilMedallionContent(heroId: String) {
-    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        val side = min(maxWidth, maxHeight)
-        HeroSigil(
-            heroId = heroId,
-            modifier = Modifier.size(side * 0.56f),
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
-        )
-    }
+    HeroSigil(
+        heroId = heroId,
+        modifier = Modifier.centeredSquare(SIGIL_FRACTION),
+        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+    )
+}
+
+private const val SIGIL_FRACTION = 0.56f
+
+/** Fills the parent and draws its content as a centred square of [fraction] × the shorter side. */
+private fun Modifier.centeredSquare(fraction: Float): Modifier = layout { measurable, constraints ->
+    val width = if (constraints.hasBoundedWidth) constraints.maxWidth else constraints.minWidth
+    val height = if (constraints.hasBoundedHeight) constraints.maxHeight else constraints.minHeight
+    val side = (minOf(width, height) * fraction).roundToInt().coerceAtLeast(0)
+    val placeable = measurable.measure(Constraints.fixed(side, side))
+    layout(width, height) { placeable.place((width - side) / 2, (height - side) / 2) }
 }
 
 /**
