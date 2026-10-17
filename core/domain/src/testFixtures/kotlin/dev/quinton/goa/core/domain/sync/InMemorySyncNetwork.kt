@@ -4,6 +4,7 @@ import dev.quinton.goa.core.domain.sync.protocol.SyncLink
 import dev.quinton.goa.core.domain.sync.protocol.SyncLinkClosedException
 import dev.quinton.goa.core.domain.sync.protocol.SyncPeer
 import dev.quinton.goa.core.domain.sync.protocol.SyncTransport
+import dev.quinton.goa.core.domain.sync.protocol.SyncTransportException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.awaitClose
@@ -11,6 +12,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -34,6 +37,9 @@ class InMemorySyncNetwork(val maxMessageBytes: Int = 32 * 1024) {
 
     var relayInTheMiddle = false
 
+    /** Non-null: advertising and discovery fail with this message (e.g. "Turn on Bluetooth"). */
+    var unavailable: String? = null
+
     /**
      * Cuts a link once [sender] has sent [messages] messages on it: every link of [sender], or
      * only its link to [receiver] (e.g. the host's link to one client, mid-download).
@@ -49,6 +55,7 @@ class InMemorySyncNetwork(val maxMessageBytes: Int = 32 * 1024) {
         override val maxMessageBytes: Int get() = this@InMemorySyncNetwork.maxMessageBytes
 
         override fun advertise(endpointName: String): Flow<SyncLink> = channelFlow {
+            unavailable?.let { throw SyncTransportException(it) }
             val id = "ep${nextId++}"
             val incoming = Channel<SyncLink>(Channel.UNLIMITED)
             adverts.update { it + (id to Advert(SyncPeer(id, endpointName), deviceName, incoming)) }
@@ -59,8 +66,10 @@ class InMemorySyncNetwork(val maxMessageBytes: Int = 32 * 1024) {
             }
         }
 
-        override fun discover(): Flow<List<SyncPeer>> =
-            adverts.map { all -> all.values.map { it.peer }.sortedBy { it.id } }.distinctUntilChanged()
+        override fun discover(): Flow<List<SyncPeer>> = flow {
+            unavailable?.let { throw SyncTransportException(it) }
+            emitAll(adverts.map { all -> all.values.map { it.peer }.sortedBy { it.id } }.distinctUntilChanged())
+        }
 
         override suspend fun connect(endpointName: String, host: SyncPeer): SyncLink {
             val advert = adverts.value[host.id] ?: throw SyncLinkClosedException("Host gone")

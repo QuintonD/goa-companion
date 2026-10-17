@@ -81,8 +81,10 @@ class SyncClient(
             withTimeout(timeouts.handshakeMs) { transport.connect(SyncEndpointName.format(group.tag, me.name), host) }
         } catch (e: TimeoutCancellationException) {
             return fail(SyncFailure.TIMEOUT, "Couldn't reach $name.")
+        } catch (e: SyncTransportException) {
+            return fail(SyncFailure.UNAVAILABLE, e.message)
         } catch (e: SyncLinkClosedException) {
-            return fail(SyncFailure.DISCONNECTED, e.message ?: "Couldn't reach $name.")
+            return fail(SyncFailure.DISCONNECTED, "Couldn't reach $name. Try again.")
         }
         try {
             exchange(link)
@@ -93,24 +95,37 @@ class SyncClient(
 
     private suspend fun search(): SyncPeer? = coroutineScope {
         val watching = launch {
-            transport.discover().collect { all ->
-                val mine = all.mapNotNull { peer ->
-                    SyncEndpointName.parse(peer.endpointName)
-                        ?.takeIf { (tag, _) -> tag == group.tag }
-                        ?.let { (_, name) -> HostOption(peer, name) }
-                }
-                mutableState.update {
-                    it.copy(hosts = mine, phase = if (mine.size > 1) ClientPhase.CHOOSING else ClientPhase.SEARCHING)
-                }
-                if (mine.size == 1) chosen.complete(mine.single().peer)
+            try {
+                watch()
+            } catch (e: SyncTransportException) {
+                fail(SyncFailure.UNAVAILABLE, e.message)
+                chosen.completeExceptionally(e)
             }
         }
-        val host = withTimeoutOrNull(timeouts.searchMs) { chosen.await() }
+        val host = try {
+            withTimeoutOrNull(timeouts.searchMs) { chosen.await() }
+        } catch (_: SyncTransportException) {
+            null
+        }
         watching.cancel()
-        if (host == null) {
+        if (host == null && state.value.phase != ClientPhase.FAILED) {
             fail(SyncFailure.NO_HOST, "No host found. One phone taps Host, the others tap Join.")
         }
         host
+    }
+
+    private suspend fun watch() {
+        transport.discover().collect { all ->
+            val mine = all.mapNotNull { peer ->
+                SyncEndpointName.parse(peer.endpointName)
+                    ?.takeIf { (tag, _) -> tag == group.tag }
+                    ?.let { (_, name) -> HostOption(peer, name) }
+            }
+            mutableState.update {
+                it.copy(hosts = mine, phase = if (mine.size > 1) ClientPhase.CHOOSING else ClientPhase.SEARCHING)
+            }
+            if (mine.size == 1) chosen.complete(mine.single().peer)
+        }
     }
 
     @Suppress("SwallowedException", "ThrowsCount")
@@ -172,14 +187,9 @@ class SyncClient(
     }
 
     private fun fail(failure: SyncFailure, message: String?) {
-        mutableState.update {
-            if (it.phase ==
-                ClientPhase.DONE
-            ) {
-                it
-            } else {
-                it.copy(phase = ClientPhase.FAILED, failure = failure, message = message)
-            }
+        mutableState.update { state ->
+            val done = state.phase == ClientPhase.DONE
+            if (done) state else state.copy(phase = ClientPhase.FAILED, failure = failure, message = message)
         }
     }
 }

@@ -42,6 +42,9 @@ enum class SyncFailure {
     /** No host of this group was found. */
     NO_HOST,
 
+    /** Nearby can't run here: radios off, a permission missing, or no Play services. */
+    UNAVAILABLE,
+
     /** The other phone broke the protocol. */
     PROTOCOL,
 }

@@ -3,16 +3,23 @@ package dev.quinton.goa.feature.players.players
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.quinton.goa.core.data.GroupRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.rating.RatingsSnapshot
 import dev.quinton.goa.core.data.rating.RatingsSnapshotRepository
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.rating.Rating
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
@@ -24,6 +31,8 @@ data class LeaderboardRow(
     /** Rating change over the last [trendGames] rated games (at most [TREND_GAMES]); null without games. */
     val trend: Double?,
     val trendGames: Int = 0,
+    /** This phone's owner ("Which player are you?", group sync). */
+    val isMe: Boolean = false,
 )
 
 data class PlayersUiState(
@@ -33,30 +42,51 @@ data class PlayersUiState(
     val archived: List<LeaderboardRow> = emptyList(),
     val showArchived: Boolean = false,
     val ratedMatches: Int = 0,
+    /** This phone's player (resolved through merges), if chosen. */
+    val meId: String? = null,
+    /** The phone is in a sync group: the sync action opens the sync sheet directly. */
+    val inGroup: Boolean = false,
 ) {
     val isEmpty: Boolean get() = !loading && ranked.isEmpty() && unrated.isEmpty() && archived.isEmpty()
 }
 
 const val TREND_GAMES = 5
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class PlayersViewModel @Inject constructor(
     players: PlayerRepository,
     ratings: RatingsSnapshotRepository,
+    groups: GroupRepository,
 ) : ViewModel() {
     private val showArchived = MutableStateFlow(false)
+
+    /** "You", resolved through player merges (a merged-away id reads as the player it joined). */
+    private val me: Flow<Pair<String?, Boolean>> = groups.state
+        .map { it.mePlayerId to it.inGroup }
+        .distinctUntilChanged()
+        .flatMapLatest { (id, inGroup) ->
+            if (id == null) flowOf(null to inGroup) else players.observePlayer(id).map { it?.id to inGroup }
+        }
 
     val uiState: StateFlow<PlayersUiState> = combine(
         players.observePlayers(includeArchived = true),
         ratings.observeSnapshot(),
         showArchived,
-    ) { list, snapshot, archivedVisible -> leaderboard(list, snapshot, archivedVisible) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlayersUiState())
+        me,
+    ) { list, snapshot, archivedVisible, (meId, inGroup) ->
+        leaderboard(list, snapshot, archivedVisible, meId).copy(inGroup = inGroup)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlayersUiState())
 
     fun toggleArchived() = showArchived.update { !it }
 
     companion object {
-        fun leaderboard(players: List<Player>, snapshot: RatingsSnapshot, showArchived: Boolean): PlayersUiState {
+        fun leaderboard(
+            players: List<Player>,
+            snapshot: RatingsSnapshot,
+            showArchived: Boolean,
+            meId: String? = null,
+        ): PlayersUiState {
             val ratings = snapshot.ratings
             fun row(player: Player, rank: Int?): LeaderboardRow {
                 val recent = ratings.playerHistory[player.id].orEmpty().takeLast(TREND_GAMES)
@@ -66,6 +96,7 @@ class PlayersViewModel @Inject constructor(
                     rank = rank,
                     trend = recent.takeIf { it.isNotEmpty() }?.sumOf { it.delta },
                     trendGames = recent.size,
+                    isMe = player.id == meId,
                 )
             }
             val (archived, active) = players.partition { it.archived }
@@ -80,6 +111,7 @@ class PlayersViewModel @Inject constructor(
                 archived = archived.sortedBy { it.name.lowercase() }.map { row(it, null) },
                 showArchived = showArchived,
                 ratedMatches = ratings.replayOrder.size,
+                meId = meId?.takeIf { id -> players.any { it.id == id } },
             )
         }
     }

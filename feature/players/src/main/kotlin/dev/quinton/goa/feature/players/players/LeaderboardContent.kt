@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Groups
@@ -141,6 +142,7 @@ private fun LeaderboardRowItem(row: LeaderboardRow, onClick: () -> Unit, archive
     val description = buildString {
         row.rank?.let { append("Rank $it, ") }
         append(row.player.name)
+        if (row.isMe) append(", you")
         if (rating.games > 0) {
             append(", rating ${formatRating(rating.value)}")
             if (rating.provisional) append(", provisional")
@@ -165,13 +167,20 @@ private fun LeaderboardRowItem(row: LeaderboardRow, onClick: () -> Unit, archive
         PlayerAvatar(row.player, size = 44.dp)
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
-            Text(
-                row.player.name,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = if (archived) MaterialTheme.colorScheme.onSurfaceVariant else Color.Unspecified,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    row.player.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = if (archived) MaterialTheme.colorScheme.onSurfaceVariant else Color.Unspecified,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (row.isMe) {
+                    Spacer(Modifier.width(Spacing.sm))
+                    YouPill()
+                }
+            }
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -256,4 +265,18 @@ private fun RankBadge(rank: Int?) {
             },
         )
     }
+}
+
+/** Marks this phone's own player (group sync, "Which player are you?"). */
+@Composable
+private fun YouPill() {
+    Text(
+        "You",
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSecondaryContainer,
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .padding(horizontal = Spacing.sm, vertical = 2.dp),
+    )
 }

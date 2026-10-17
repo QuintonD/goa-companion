@@ -104,29 +104,51 @@ class SyncHost(
             coroutineScope {
                 val session = this
                 val advertising = launch {
-                    transport.advertise(SyncEndpointName.format(group.tag, me.name)).collect { link ->
-                        if (!accepting) {
-                            link.close()
-                        } else {
-                            val peer = Peer(link)
-                            synchronized(peers) { peers += peer }
-                            val name = SyncEndpointName.parse(link.peer.endpointName)?.second ?: "Phone"
-                            mutableState.update { it.copy(peers = it.peers + PeerProgress(link.peer.id, name)) }
-                            session.launch { serve(peer) }
+                    try {
+                        transport.advertise(SyncEndpointName.format(group.tag, me.name)).collect { link ->
+                            accept(link)?.let { peer -> session.launch { serve(peer) } }
                         }
+                    } catch (e: SyncTransportException) {
+                        mutableState.update {
+                            it.copy(phase = HostPhase.FAILED, failure = SyncFailure.UNAVAILABLE, message = e.message)
+                        }
+                        start.completeExceptionally(e)
                     }
                 }
-                start.await()
+                val started = try {
+                    start.await()
+                    true
+                } catch (_: SyncTransportException) {
+                    false // already shown as FAILED
+                }
                 accepting = false
                 advertising.cancel()
-                mutableState.update { it.copy(phase = HostPhase.MERGING) }
-                merge(synchronized(peers) { peers.toList() })
+                val joined = synchronized(peers) { peers.toList() }
+                if (started) {
+                    mutableState.update { it.copy(phase = HostPhase.MERGING) }
+                    merge(joined)
+                } else {
+                    joined.forEach { it.merged.complete(null) }
+                }
             }
             // Every phone's serve() has ended (DONE or FAILED) once the scope returns.
             mutableState.update { if (it.phase == HostPhase.SENDING) it.copy(phase = HostPhase.DONE) else it }
         } finally {
             synchronized(peers) { peers.forEach { it.link.close() } }
         }
+    }
+
+    /** A phone of this group joining while the host still accepts; anyone else is hung up on. */
+    private fun accept(link: SyncLink): Peer? {
+        val (tag, name) = SyncEndpointName.parse(link.peer.endpointName) ?: ("" to "")
+        if (!accepting || tag != group.tag) {
+            link.close()
+            return null
+        }
+        val peer = Peer(link)
+        synchronized(peers) { peers += peer }
+        mutableState.update { it.copy(peers = it.peers + PeerProgress(link.peer.id, name.ifBlank { "Phone" })) }
+        return peer
     }
 
     private suspend fun merge(joined: List<Peer>) {

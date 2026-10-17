@@ -17,7 +17,9 @@ import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.core.navigation.MatchEditRoute
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
+import dev.quinton.goa.core.testing.FakeGroupRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
+import dev.quinton.goa.core.testing.FakePlayerMergeRepository
 import dev.quinton.goa.core.testing.FakePlayerRepository
 import dev.quinton.goa.feature.players.Fixtures.ann
 import dev.quinton.goa.feature.players.Fixtures.bob
@@ -65,7 +67,7 @@ class ViewModelTests {
 
     @Test
     fun leaderboardRanksRatedPlayersAndHidesArchivedUntilToggled() = runTest {
-        val vm = PlayersViewModel(players, ratings)
+        val vm = PlayersViewModel(players, ratings, FakeGroupRepository())
         vm.uiState.test {
             var state = awaitItem()
             while (state.loading) state = awaitItem()
@@ -454,7 +456,7 @@ class ViewModelTests {
 
     @Test
     fun playerDetailShowsHistoryHeroesAndRecentMatches() = runTest {
-        val vm = PlayerDetailViewModel(ann.id, players, matches, ratings, catalog)
+        val vm = PlayerDetailViewModel(ann.id, players, FakePlayerMergeRepository(), matches, ratings, catalog)
         val state = vm.uiState.first { !it.loading }
         assertThat(state.player).isEqualTo(ann)
         assertThat(state.history).hasSize(state.rating.games)
@@ -485,7 +487,16 @@ class ViewModelTests {
         )
         val local = FakeMatchRepository(log)
         val snapshot = FakeRatingsSnapshotRepository(local, FakeDraftRecordRepository(), config)
-        val state = PlayerDetailViewModel(cid.id, players, local, snapshot, catalog).uiState.first { !it.loading }
+        val state = PlayerDetailViewModel(
+            cid.id,
+            players,
+            FakePlayerMergeRepository(),
+            local,
+            snapshot,
+            catalog,
+        ).uiState.first {
+            !it.loading
+        }
         // Cid is 1–2 on hero 7 (3 games): listed as most played, not "best".
         assertThat(state.heroesAreBest).isFalse()
         assertThat(state.heroes.single().record).isEqualTo(WinLoss(3, 1))

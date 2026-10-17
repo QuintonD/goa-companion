@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Leaderboard
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material3.Checkbox
@@ -65,7 +66,7 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.settings.ThemeMode
 
 /** Where each settings link goes; the route maps these to Navigation 3 keys. */
-enum class SettingsLink { TIMER_PRESETS, DRAFT_METHODS, RATINGS, BACKUP, ABOUT }
+enum class SettingsLink { TIMER_PRESETS, DRAFT_METHODS, RATINGS, GROUP_SYNC, BACKUP, ABOUT }
 
 @Composable
 fun SettingsRoute(onBack: () -> Unit, onOpen: (SettingsLink) -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
@@ -183,6 +184,9 @@ private fun SettingsList(
         item { SectionHeader("Data") }
         item {
             GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
+                LinkRow(Icons.Outlined.Sync, "Group sync", "Share matches and players with your friends' phones") {
+                    onOpen(SettingsLink.GROUP_SYNC)
+                }
                 LinkRow(Icons.Outlined.Backup, "Backup and restore", "Export or import all your data and settings") {
                     onOpen(SettingsLink.BACKUP)
                 }

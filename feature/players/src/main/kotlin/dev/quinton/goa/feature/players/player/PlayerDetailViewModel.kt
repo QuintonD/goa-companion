@@ -8,6 +8,8 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.MatchRepository
+import dev.quinton.goa.core.data.PlayerMergeRepository
+import dev.quinton.goa.core.data.PlayerMergeResult
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.rating.RatingsSnapshot
 import dev.quinton.goa.core.data.rating.RatingsSnapshotRepository
@@ -17,15 +19,19 @@ import dev.quinton.goa.core.domain.meta.WinConditionMix
 import dev.quinton.goa.core.domain.rating.WinLoss
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.Match
+import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.rating.Rating
+import dev.quinton.goa.feature.players.common.Dates
 import dev.quinton.goa.feature.players.common.heroName
 import dev.quinton.goa.feature.players.match.MatchLogViewModel.Companion.toRow
 import dev.quinton.goa.feature.players.match.MatchRowUi
 import kotlin.math.abs
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -59,7 +65,20 @@ data class PlayerDetailUiState(
     val heroesAreBest: Boolean = false,
     val recentMatches: List<MatchRowUi> = emptyList(),
     val totalMatches: Int = 0,
+    /** Other active players this one could be merged into (a duplicate of one person), by name. */
+    val mergeCandidates: List<MergeCandidate> = emptyList(),
+    val mergeOutcome: MergeOutcome? = null,
 )
+
+/** A player to merge into, with how many matches they have. */
+data class MergeCandidate(val player: Player, val matches: Int)
+
+sealed interface MergeOutcome {
+    data class Merged(val intoId: String, val intoName: String) : MergeOutcome
+
+    /** Refused: the two played in these matches (one line each: date and teams). */
+    data class PlayedTogether(val matches: List<String>) : MergeOutcome
+}
 
 const val RECENT_MATCHES = 5
 private const val MAX_HEROES = 5
@@ -68,6 +87,7 @@ private const val MAX_HEROES = 5
 class PlayerDetailViewModel @AssistedInject constructor(
     @Assisted private val playerId: String,
     private val players: PlayerRepository,
+    private val merges: PlayerMergeRepository,
     matches: MatchRepository,
     ratings: RatingsSnapshotRepository,
     catalog: CatalogRepository,
@@ -77,16 +97,44 @@ class PlayerDetailViewModel @AssistedInject constructor(
         fun create(playerId: String): PlayerDetailViewModel
     }
 
+    private val outcome = MutableStateFlow<MergeOutcome?>(null)
+
     val uiState: StateFlow<PlayerDetailUiState> = combine(
         players.observePlayers(includeArchived = true),
         matches.observeMatches(),
         ratings.observeSnapshot(),
         catalog.catalog.onStart { emit(Catalog.EMPTY) },
-    ) { people, log, snapshot, cat -> build(playerId, people, log, snapshot, cat) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlayerDetailUiState())
+        outcome,
+    ) { people, log, snapshot, cat, merged ->
+        build(playerId, people, log, snapshot, cat).copy(mergeOutcome = merged)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlayerDetailUiState())
 
     fun setArchived(archived: Boolean) {
         viewModelScope.launch { players.archive(playerId, archived) }
+    }
+
+    /** "Merge into…": this player becomes [intoId] everywhere, unless they played together. */
+    fun merge(intoId: String) {
+        viewModelScope.launch {
+            val people = players.observePlayers(includeArchived = true).first().associateBy { it.id }
+            outcome.value = when (val result = merges.merge(playerId, intoId)) {
+                PlayerMergeResult.Merged -> MergeOutcome.Merged(intoId, people[intoId]?.name.orEmpty())
+
+                is PlayerMergeResult.PlayedTogether -> MergeOutcome.PlayedTogether(
+                    result.matches.sortedBy { it.playedAt }.map { m ->
+                        fun side(team: Team) = m.team(team).map { people[it.playerId]?.name ?: "Unknown player" }
+                            .distinct().joinToString()
+                        "${Dates.localDate(m.playedAt)} · ${side(Team.RED)} vs ${side(Team.BLUE)}"
+                    },
+                )
+
+                PlayerMergeResult.NotPossible -> null
+            }
+        }
+    }
+
+    fun mergeOutcomeShown() {
+        outcome.value = null
     }
 
     companion object {
@@ -165,6 +213,9 @@ class PlayerDetailViewModel @AssistedInject constructor(
                 heroesAreBest = best.isNotEmpty(),
                 recentMatches = mine.take(RECENT_MATCHES).map { it.toRow(byId, catalog, ratings.matchChanges[it.id]) },
                 totalMatches = mine.size,
+                mergeCandidates = players.filter { it.id != playerId && !it.archived }
+                    .sortedBy { it.name.lowercase() }
+                    .map { other -> MergeCandidate(other, matches.count { other.id in it.playerIds }) },
             )
         }
     }

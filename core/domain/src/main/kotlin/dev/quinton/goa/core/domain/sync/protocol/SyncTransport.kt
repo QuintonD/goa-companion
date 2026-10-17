@@ -26,6 +26,12 @@ interface SyncTransport {
     suspend fun connect(endpointName: String, host: SyncPeer): SyncLink
 }
 
+/**
+ * The transport can't run at all (radios off, a permission missing, Play services unavailable).
+ * [message] is shown to the user and says how to fix it.
+ */
+class SyncTransportException(message: String, cause: Throwable? = null) : java.io.IOException(message, cause)
+
 /** The link closed (or a send failed) before a message got through. */
 class SyncLinkClosedException(message: String = "Link closed", cause: Throwable? = null) :
     java.io.IOException(message, cause)

@@ -55,6 +55,7 @@ import dev.quinton.goa.core.designsystem.icon.GoaIcons
 import dev.quinton.goa.core.designsystem.theme.Motion
 import dev.quinton.goa.core.navigation.DraftBoardRoute
 import dev.quinton.goa.core.navigation.NavSheet
+import dev.quinton.goa.core.navigation.SyncFileImportRoute
 import dev.quinton.goa.core.navigation.TimerRoute
 import dev.quinton.goa.core.navigation.TopLevelTab
 import dev.quinton.goa.feature.catalog.catalogEntries
@@ -62,6 +63,7 @@ import dev.quinton.goa.feature.draft.draftEntries
 import dev.quinton.goa.feature.players.playersEntries
 import dev.quinton.goa.feature.rules.rulesEntries
 import dev.quinton.goa.feature.settings.settingsEntries
+import dev.quinton.goa.feature.sync.syncEntries
 import dev.quinton.goa.feature.timer.timerEntries
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -93,6 +95,9 @@ private fun push(forward: Boolean): ContentTransform {
 /** A request from outside the UI (launcher/notification intent) to show a tab; [id] makes repeats distinct. */
 data class TabRequest(val tab: TopLevelTab, val id: Long)
 
+/** A sync file another app handed to this one ([uri], content scheme); opens the import on the Players tab. */
+data class SyncFileRequest(val uri: String, val id: Long)
+
 /**
  * App shell: bottom navigation over one Navigation 3 back stack per top-level tab.
  *
@@ -103,7 +108,11 @@ data class TabRequest(val tab: TopLevelTab, val id: Long)
  * [coldStart]: a fresh launch, which opens the Timer tab when a session is running or paused.
  */
 @Composable
-fun GoaApp(tabRequests: StateFlow<TabRequest?>? = null, coldStart: Boolean = false) {
+fun GoaApp(
+    tabRequests: StateFlow<TabRequest?>? = null,
+    syncFileRequests: StateFlow<SyncFileRequest?>? = null,
+    coldStart: Boolean = false,
+) {
     val navigator = rememberAppNavigator()
     val shell = hiltViewModel<ShellViewModel>()
     val session by shell.session.collectAsStateWithLifecycle()
@@ -113,8 +122,14 @@ fun GoaApp(tabRequests: StateFlow<TabRequest?>? = null, coldStart: Boolean = fal
         val tab = request?.tab ?: return@LaunchedEffect
         if (tab == TopLevelTab.TIMER) navigator.openTimer() else navigator.selectTab(tab)
     }
+    val syncFile = syncFileRequests?.collectAsStateWithLifecycle()?.value
+    LaunchedEffect(syncFile?.id) {
+        val file = syncFile ?: return@LaunchedEffect
+        navigator.navigateToTab(TopLevelTab.PLAYERS, SyncFileImportRoute(file.uri))
+    }
     LaunchedEffect(Unit) {
-        if (coldStart && request == null && shell.session.first { it != SessionState.LOADING }.active) {
+        val asked = request != null || syncFile != null
+        if (coldStart && !asked && shell.session.first { it != SessionState.LOADING }.active) {
             navigator.openTimer()
         }
     }
@@ -126,6 +141,7 @@ fun GoaApp(tabRequests: StateFlow<TabRequest?>? = null, coldStart: Boolean = fal
         playersEntries(navigator)
         settingsEntries(navigator)
         rulesEntries(navigator)
+        syncEntries(navigator)
     }
     val entriesByTab = TopLevelTab.entries.associateWith { tab ->
         key(tab) {

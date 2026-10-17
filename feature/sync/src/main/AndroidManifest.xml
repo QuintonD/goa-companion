@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Group sync (ADR-025): phone to phone over Google Nearby Connections. Permissions exactly as
+  developers.google.com/nearby/connections/android/get-started lists them (checked 2026-10-17);
+  the app asks for the runtime ones only when a sync starts. Still no INTERNET permission.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" android:maxSdkVersion="31" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" android:maxSdkVersion="31" />
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="28" />
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="31"
+        tools:targetApi="29" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" tools:targetApi="31" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" tools:targetApi="31" />
+    <!-- No neverForLocation here: Google's list doesn't use it for Nearby, and it can't be checked on emulators. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" tools:targetApi="31" />
+    <uses-permission
+        android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="32" />
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" tools:targetApi="37" />
+
+    <!-- Guard: the app is offline (AGENTS.md). Drop it if a Play services library merges it in. -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+
+    <application>
+        <!-- Hands "Share sync file" to the share sheet; files live in cache/sync/ only. -->
+        <provider
+            android:name="dev.quinton.goa.feature.sync.share.SyncFileProvider"
+            android:authorities="${applicationId}.syncfiles"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/sync_file_paths" />
+        </provider>
+    </application>
+</manifest>

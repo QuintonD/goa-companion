@@ -184,6 +184,20 @@ class SyncProtocolTest {
     }
 
     @Test
+    fun whenNearbyCantRunBothSidesSayWhyAndNothingChanges() = runTest {
+        val network = InMemorySyncNetwork().apply { unavailable = "Turn on Bluetooth." }
+        val host = Phone("Host", InMemorySyncData(phoneData("Host", 1, 1)), network, group)
+        val bob = Phone("Bob", InMemorySyncData(phoneData("Bob", 1, 2)), network, group)
+        runAll(host, listOf(bob))
+        host.host.state.first { it.phase == HostPhase.FAILED }
+        bob.client.state.first { it.phase == ClientPhase.FAILED }
+        assertThat(host.host.state.value.failure).isEqualTo(SyncFailure.UNAVAILABLE)
+        assertThat(bob.client.state.value.failure).isEqualTo(SyncFailure.UNAVAILABLE)
+        assertThat(bob.client.state.value.message).isEqualTo("Turn on Bluetooth.")
+        assertThat(host.data.writes + bob.data.writes).isEqualTo(0)
+    }
+
+    @Test
     fun aPhoneWithInvalidDataIsRefusedWithTheReasonAndTheOthersSync() = runTest {
         val network = InMemorySyncNetwork()
         val host = Phone("Host", InMemorySyncData(phoneData("Host", 2, 1)), network, group)

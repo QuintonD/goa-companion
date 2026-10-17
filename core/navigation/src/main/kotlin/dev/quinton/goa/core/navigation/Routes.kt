@@ -1,5 +1,7 @@
 package dev.quinton.goa.core.navigation
 
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
@@ -131,7 +133,36 @@ interface Navigator {
 object NavSheet {
     const val KEY = "goa.bottomSheet"
     val metadata: Map<String, Any> = mapOf(KEY to true)
+
+    /**
+     * Inside a sheet entry: set `value = false` while the sheet must not be dismissed (a sync
+     * moving data); swipe, scrim tap and Back then do nothing and the sheet offers its own Cancel.
+     * Null outside a sheet.
+     */
+    val LocalDismissible = staticCompositionLocalOf<MutableState<Boolean>?> { null }
 }
+
+// Group sync (ADR-025, owner: sync)
+
+/** The group: start or join one; once joined, invite, sync, share or import a sync file, leave. */
+@Serializable data object GroupSyncRoute : NavKey
+
+/**
+ * The sync session, shown as a bottom sheet ([NavSheet]). [role]: "host", "join" or null (choose).
+ * [firstSync]: right after joining a group; "Which player are you?" follows. [fromGroup]: opened
+ * from the Group sync screen (its file fallback is right below the sheet).
+ */
+@Serializable data class SyncSessionRoute(
+    val role: String? = null,
+    val firstSync: Boolean = false,
+    val fromGroup: Boolean = false,
+) : NavKey
+
+/** "Which player are you?": links this phone to a player (pick one, or add yourself). */
+@Serializable data object WhoAreYouRoute : NavKey
+
+/** Opens a sync file: [uri] is a content URI from the file picker, the share sheet or a file manager. */
+@Serializable data class SyncFileImportRoute(val uri: String) : NavKey
 
 // Settings
 @Serializable data object SettingsRoute : NavKey

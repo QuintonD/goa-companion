@@ -60,6 +60,8 @@ data class PlayerDetailActions(
     val onOpenMatch: (String) -> Unit = {},
     val onOpenMatchLog: () -> Unit = {},
     val onSetArchived: (Boolean) -> Unit = {},
+    val onMerge: (String) -> Unit = {},
+    val onMergeOutcomeShown: () -> Unit = {},
 )
 
 @Composable
@@ -185,6 +187,7 @@ fun PlayerDetailScreen(state: PlayerDetailUiState, actions: PlayerDetailActions,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = Spacing.sm),
                         )
+                        if (state.mergeCandidates.isNotEmpty()) MergeSection(state, actions)
                     }
                 }
             }

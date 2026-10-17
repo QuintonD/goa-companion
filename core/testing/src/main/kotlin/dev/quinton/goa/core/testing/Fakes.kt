@@ -2,16 +2,24 @@ package dev.quinton.goa.core.testing
 
 import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.DraftRecordRepository
+import dev.quinton.goa.core.data.GroupRepository
+import dev.quinton.goa.core.data.GroupState
 import dev.quinton.goa.core.data.MatchRepository
+import dev.quinton.goa.core.data.PlayerMergeRepository
+import dev.quinton.goa.core.data.PlayerMergeResult
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.RatingsRepository
 import dev.quinton.goa.core.data.SettingsRepository
+import dev.quinton.goa.core.data.SyncedPhone
 import dev.quinton.goa.core.data.player.PlayerNames
 import dev.quinton.goa.core.data.rating.HeroPilotsRepository
 import dev.quinton.goa.core.domain.meta.HeroPilots
 import dev.quinton.goa.core.domain.meta.MetaConfig
 import dev.quinton.goa.core.domain.meta.MetaStats
 import dev.quinton.goa.core.domain.rating.WinLoss
+import dev.quinton.goa.core.domain.sync.GroupCredentials
+import dev.quinton.goa.core.domain.sync.PlayerMerges
+import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
@@ -20,6 +28,7 @@ import dev.quinton.goa.core.model.rating.HeroUsage
 import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.model.rating.RatingPoint
 import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.model.sync.PlayerMerge
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
@@ -110,6 +119,55 @@ class FakeHeroPilotsRepository(initial: Map<String, HeroPilots> = emptyMap()) : 
         /** Pilots computed by the real meta stats, as the app does. */
         fun from(matches: List<Match>): FakeHeroPilotsRepository =
             FakeHeroPilotsRepository(MetaStats.compute(matches, emptyList()).pilotsByHero)
+    }
+}
+
+/** This phone's group (no DataStore). */
+class FakeGroupRepository(initial: GroupState = GroupState(null, "this-phone", null, null, emptyList(), null)) :
+    GroupRepository {
+    val current = MutableStateFlow(initial)
+    override val state: Flow<GroupState> = current
+
+    override suspend fun start(name: String): GroupCredentials =
+        GroupCredentials.create(name).also { join(it) }
+
+    override suspend fun join(group: GroupCredentials) = current.update {
+        val same = it.group?.groupId == group.groupId
+        it.copy(
+            group = group,
+            phones = if (same) it.phones else emptyList(),
+            mePlayerId = if (same) it.mePlayerId else null,
+        )
+    }
+
+    override suspend fun leave() = current.update { it.copy(group = null, phones = emptyList(), lastSyncAt = null) }
+
+    override suspend fun setMe(playerId: String?) = current.update { it.copy(mePlayerId = playerId) }
+
+    override suspend fun setDeviceName(name: String?) = current.update { it.copy(deviceName = name) }
+
+    override suspend fun recordSync(phones: List<SyncDevice>, at: Long) = current.update { s ->
+        s.copy(
+            phones = phones.map { SyncedPhone(it.deviceId, it.name, at) } +
+                s.phones.filterNot { p -> phones.any { it.deviceId == p.deviceId } },
+            lastSyncAt = at,
+        )
+    }
+}
+
+/** Merges over a [FakeMatchRepository]'s log, with the real conflict rule. */
+class FakePlayerMergeRepository(private val matches: FakeMatchRepository = FakeMatchRepository()) :
+    PlayerMergeRepository {
+    val merges = MutableStateFlow<List<PlayerMerge>>(emptyList())
+
+    override fun observeMerges(): Flow<PlayerMerges> = merges.map { PlayerMerges(it) }
+
+    override suspend fun merge(fromId: String, toId: String): PlayerMergeResult {
+        if (fromId == toId) return PlayerMergeResult.NotPossible
+        val conflicts = PlayerMerges.conflicts(fromId, toId, matches.state.value)
+        if (conflicts.isNotEmpty()) return PlayerMergeResult.PlayedTogether(conflicts)
+        merges.update { it + PlayerMerge(fromId, toId, 1) }
+        return PlayerMergeResult.Merged
     }
 }
 

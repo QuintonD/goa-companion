@@ -1,7 +1,9 @@
 package dev.quinton.goa
 
+import android.content.ContentResolver
 import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -13,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.toArgb
+import androidx.core.content.IntentCompat
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -22,6 +25,7 @@ import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.navigation.EXTRA_OPEN_TAB
 import dev.quinton.goa.core.navigation.TopLevelTab
 import dev.quinton.goa.ui.GoaApp
+import dev.quinton.goa.ui.SyncFileRequest
 import dev.quinton.goa.ui.TabRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -31,6 +35,9 @@ class MainActivity : ComponentActivity() {
 
     /** Tabs asked for by launch intents (the timer notification asks for the Timer tab). */
     private val tabRequests = MutableStateFlow<TabRequest?>(null)
+
+    /** Sync files opened from another app or shared to this one (ADR-025). */
+    private val syncFileRequests = MutableStateFlow<SyncFileRequest?>(null)
     private var requestCount = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,7 +73,7 @@ class MainActivity : ComponentActivity() {
                     window.setBackgroundDrawable(canvas.toDrawable())
                     onDispose {}
                 }
-                GoaApp(tabRequests = tabRequests, coldStart = coldStart)
+                GoaApp(tabRequests = tabRequests, syncFileRequests = syncFileRequests, coldStart = coldStart)
             }
         }
     }
@@ -77,8 +84,22 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handle(intent: Intent?) {
+        syncFileUri(intent)?.let { uri ->
+            syncFileRequests.value = SyncFileRequest(uri.toString(), requestCount++)
+            return
+        }
         val name = intent?.getStringExtra(EXTRA_OPEN_TAB) ?: return
         val tab = TopLevelTab.entries.firstOrNull { it.name == name } ?: return
         tabRequests.value = TabRequest(tab, requestCount++)
+    }
+
+    /** The file in a VIEW or SEND intent, if it is one the sync import may read. */
+    private fun syncFileUri(intent: Intent?): Uri? {
+        val uri = when (intent?.action) {
+            Intent.ACTION_VIEW -> intent.data
+            Intent.ACTION_SEND -> IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
+            else -> null
+        }
+        return uri?.takeIf { it.scheme == ContentResolver.SCHEME_CONTENT }
     }
 }
