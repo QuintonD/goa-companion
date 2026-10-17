@@ -15,4 +15,5 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.sqlite.framework)
+    testImplementation(libs.androidx.datastore.preferences)
 }

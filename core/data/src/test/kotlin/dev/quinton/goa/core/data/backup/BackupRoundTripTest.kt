@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.data.backup
 
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
@@ -8,7 +9,12 @@ import dev.quinton.goa.core.data.match.RoomMatchRepository
 import dev.quinton.goa.core.data.player.RoomPlayerRepository
 import dev.quinton.goa.core.data.rating.FakeEloConfigRepository
 import dev.quinton.goa.core.database.GoaDatabase
+import dev.quinton.goa.core.datastore.draft.DraftStore
+import dev.quinton.goa.core.datastore.settings.SettingsDataSource
+import dev.quinton.goa.core.datastore.timer.DataStoreTimerStateStore
+import dev.quinton.goa.core.datastore.timer.TimerStateStore
 import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.draft.DraftMethodKind
 import dev.quinton.goa.core.model.draft.DraftRecord
@@ -20,15 +26,24 @@ import dev.quinton.goa.core.model.match.Participant
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.testing.FakeCatalogRepository
+import dev.quinton.goa.core.testing.TestCatalog
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.File
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.After
 import org.junit.Assert.assertThrows
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
@@ -37,7 +52,7 @@ private class FakeContributor(override val key: String, var data: JsonElement?) 
 
     override suspend fun export(): JsonElement? = data
 
-    override suspend fun import(data: JsonElement, mode: ImportMode) {
+    override suspend fun import(data: JsonElement, mode: ImportMode, useBackupSettings: Boolean) {
         imports += data to mode
         this.data = data
     }
@@ -45,9 +60,21 @@ private class FakeContributor(override val key: String, var data: JsonElement?) 
 
 @RunWith(RobolectricTestRunner::class)
 class BackupRoundTripTest {
+    @get:Rule val tmp = TemporaryFolder()
+
     private val databases = mutableListOf<GoaDatabase>()
 
-    private inner class Device(config: EloConfig = EloConfig.DEFAULT, contributor: FakeContributor? = null) {
+    private fun newStore() = PreferenceDataStoreFactory.create(
+        produceFile = { tmp.newFile().also { it.delete() }.let { File(it.path + ".preferences_pb") } },
+    )
+
+    /** A phone: Room database, settings/timer/draft stores and the real backup contributors. */
+    private inner class Device(
+        config: EloConfig = EloConfig.DEFAULT,
+        contributor: FakeContributor? = null,
+        realContributors: Boolean = contributor == null,
+        catalog: Catalog = TestCatalog.catalog,
+    ) {
         val db = GoaDatabase.inMemory(ApplicationProvider.getApplicationContext(), AndroidSQLiteDriver()).also {
             databases +=
                 it
@@ -56,7 +83,22 @@ class BackupRoundTripTest {
         val players = RoomPlayerRepository(db.playerDao())
         val matches = RoomMatchRepository(db.matchDao())
         val drafts = RoomDraftRecordRepository(db.draftRecordDao())
-        val backup = RoomBackupRepository(db, this.config, setOfNotNull(contributor))
+        val settings = SettingsDataSource(newStore())
+        val timer: TimerStateStore = DataStoreTimerStateStore.forFile {
+            tmp.newFile().also { it.delete() }.let { File(it.path + ".preferences_pb") }
+        }
+        val draftStore = DraftStore(newStore())
+        val backup = RoomBackupRepository(
+            db,
+            this.config,
+            if (realContributors) {
+                setOf(SettingsBackup(settings), TimerPresetsBackup(timer), DraftMethodsBackup(draftStore))
+            } else {
+                setOfNotNull(contributor)
+            },
+            FakeCatalogRepository(catalog),
+            AppInfo { "9.9.9" },
+        )
     }
 
     @After
@@ -81,10 +123,10 @@ class BackupRoundTripTest {
         draftId = "d-1",
         tieBreaker = Team.BLUE,
         participants = listOf(
-            Participant(ann.id, "hero-1", Team.RED),
-            Participant(ann.id, "hero-2", Team.RED, handicap = true),
+            Participant(ann.id, "test-hero-1", Team.RED),
+            Participant(ann.id, "test-hero-2", Team.RED, handicap = true),
             Participant(bob.id, null, Team.BLUE),
-            Participant(cid.id, "hero-3", Team.BLUE),
+            Participant(cid.id, "test-hero-3", Team.BLUE),
         ),
     )
     private val matchB = Match(
@@ -100,12 +142,12 @@ class BackupRoundTripTest {
         createdAt = 1_700_000_080_000,
         methodId = "house",
         methodKind = DraftMethodKind.CUSTOM,
-        pool = listOf("hero-1", "hero-2", "hero-3", "hero-4"),
+        pool = listOf("test-hero-1", "test-hero-2", "test-hero-3", "test-hero-4"),
         teamA = Team.BLUE,
         steps = listOf(
-            DraftStepRecord(Team.BLUE, DraftAction.BAN, "hero-4"),
-            DraftStepRecord(Team.BLUE, DraftAction.PICK, "hero-3"),
-            DraftStepRecord(Team.RED, DraftAction.PICK, "hero-1"),
+            DraftStepRecord(Team.BLUE, DraftAction.BAN, "test-hero-4"),
+            DraftStepRecord(Team.BLUE, DraftAction.PICK, "test-hero-3"),
+            DraftStepRecord(Team.RED, DraftAction.PICK, "test-hero-1"),
         ),
         matchId = "m-a",
     )
@@ -147,6 +189,7 @@ class BackupRoundTripTest {
                 drafts = 1,
                 hasEloConfig = true,
                 extras = setOf("timer-presets"),
+                appVersion = "9.9.9",
             ),
         )
     }
@@ -224,11 +267,12 @@ class BackupRoundTripTest {
             participants = seats.toList(),
         )
         val ann = Player("ann", "Ann", 1, 0, 0)
+        val bob = Player("bob", "Bob", 1, 0, 0)
         val good = match("good", Participant("ann", "h1", Team.RED), Participant("bob", "h2", Team.BLUE))
         val twice = match("twice", Participant("ann", "h1", Team.RED), Participant("bob", "h1", Team.BLUE))
         val both = match("both", Participant("ann", "h1", Team.RED), Participant("ann", "h2", Team.BLUE))
         fun decode(vararg matches: Match) = BackupCodec.decode(
-            BackupCodec.encode(BackupDocument(exportedAt = 1, players = listOf(ann), matches = matches.toList())),
+            BackupCodec.encode(BackupDocument(exportedAt = 1, players = listOf(ann, bob), matches = matches.toList())),
         )
 
         assertThat(decode(good).matches).containsExactly(good)
@@ -246,6 +290,137 @@ class BackupRoundTripTest {
     }
 
     @Test
+    fun aPilotMissingFromTheFileIsRejectedNeverAGhostPlayer() {
+        val ann = Player("ann", "Ann", 1, 0, 0)
+        val match = Match(
+            id = "ghost",
+            createdAt = NOON_UTC,
+            playedAt = NOON_UTC,
+            status = MatchStatus.COMPLETED,
+            mode = GameMode.QUICK,
+            winner = Team.RED,
+            participants = listOf(Participant("ann", null, Team.RED), Participant("nobody", null, Team.BLUE)),
+        )
+        val error = assertThrows(InvalidBackupException::class.java) {
+            BackupCodec.decode(
+                BackupCodec.encode(BackupDocument(exportedAt = 1, players = listOf(ann), matches = listOf(match))),
+            )
+        }
+        assertThat(error.message).contains("player nobody isn't in this backup")
+        assertThat(error.message).contains("(id ghost)")
+    }
+
+    @Test
+    fun unknownHeroesImportAsUnknownHeroSeatsAndLeaveNoBanStats() = runTest {
+        val source = Device(realContributors = false)
+        source.seed()
+        val bad = matchA.copy(
+            participants = matchA.participants.map {
+                if (it.heroId ==
+                    "test-hero-3"
+                ) {
+                    it.copy(heroId = "notahero")
+                } else {
+                    it
+                }
+            },
+        )
+        val document = source.backup.export().let { doc ->
+            doc.copy(
+                matches = doc.matches.map { if (it.id == bad.id) bad else it },
+                drafts = doc.drafts.map { d ->
+                    d.copy(steps = d.steps + DraftStepRecord(Team.RED, DraftAction.BAN, "notahero"))
+                },
+            )
+        }
+        val target = Device(realContributors = false)
+        assertThat(target.backup.summarize(document).unknownHeroes).containsExactly("notahero")
+
+        target.backup.import(document, ImportMode.REPLACE)
+
+        val seats = target.matches.observeMatch(bad.id).first()!!.participants
+        assertThat(seats.map { it.heroId }).containsExactly("test-hero-1", "test-hero-2", null, null).inOrder()
+        assertThat(seats.map { it.playerId }).isEqualTo(bad.participants.map { it.playerId })
+        val steps = target.drafts.observeDrafts().first().single().steps
+        assertThat(steps.map { it.heroId }).doesNotContain("notahero")
+        assertThat(steps).hasSize(draft.steps.size)
+    }
+
+    @Test
+    fun everythingSurvivesExportThenImportIntoAnEmptyPhone() = runTest {
+        val custom = EloConfig(heroInfluence = 0.3, kProvisional = 32.0)
+        val source = Device(custom)
+        source.seed()
+        val settings = AppSettings(
+            theme = ThemeMode.LIGHT,
+            ownedProducts = setOf("core", "devoted"),
+            hapticsEnabled = false,
+            soundsEnabled = false,
+        )
+        source.settings.update { settings }
+        val presets = """[{"id":"table-rules","name":"Table rules","x":1},{"id":"mine","name":"Mine","x":[1,2]}]"""
+        source.timer.writePresets(presets)
+        source.timer.writeSelectedPresetId("mine")
+        val methods = """[{"id":"house-2","name":"House 2","steps":["ban_a","pick_a"]}]"""
+        source.draftStore.setCustomMethods(methods)
+
+        val out = ByteArrayOutputStream()
+        source.backup.exportTo(out)
+        val document = BackupCodec.decode(out.toString(Charsets.UTF_8.name()))
+        assertThat(document.appVersion).isEqualTo("9.9.9")
+        assertThat(document.extras.keys).containsExactly("settings", "timer-presets", "draft-methods")
+
+        val target = Device()
+        target.backup.import(document, ImportMode.REPLACE)
+
+        assertThat(target.settings.settings.first()).isEqualTo(settings)
+        assertThat(
+            Json.parseToJsonElement(target.timer.presetsJson.first()!!),
+        ).isEqualTo(Json.parseToJsonElement(presets))
+        assertThat(target.timer.selectedPresetId.first()).isEqualTo("mine")
+        assertThat(
+            Json.parseToJsonElement(target.draftStore.customMethods.first()!!),
+        ).isEqualTo(Json.parseToJsonElement(methods))
+        assertThat(target.config.config.first()).isEqualTo(custom)
+        // import → export is lossless for everything (bar the export time).
+        assertThat(BackupCodec.encode(target.backup.export().copy(exportedAt = 0)))
+            .isEqualTo(BackupCodec.encode(source.backup.export().copy(exportedAt = 0)))
+    }
+
+    @Test
+    fun mergeKeepsThePhonesSettingsUnlessAskedAndMergesListsById() = runTest {
+        val source = Device(EloConfig(kEstablished = 12.0))
+        source.settings.update { it.copy(theme = ThemeMode.LIGHT) }
+        source.timer.writePresets("""[{"id":"a","v":"file"},{"id":"c","v":"file"}]""")
+        source.timer.writeSelectedPresetId("c")
+        source.draftStore.setCustomMethods("""[{"id":"m2","v":"file"}]""")
+        val document = source.backup.export()
+
+        val keep = Device(EloConfig(heroInfluence = 0.1))
+        keep.timer.writePresets("""[{"id":"a","v":"phone"},{"id":"b","v":"phone"}]""")
+        keep.timer.writeSelectedPresetId("b")
+        keep.draftStore.setCustomMethods("""[{"id":"m1","v":"phone"}]""")
+        keep.backup.import(document, ImportMode.MERGE)
+
+        assertThat(keep.config.config.first()).isEqualTo(EloConfig(heroInfluence = 0.1))
+        assertThat(keep.settings.settings.first().theme).isEqualTo(ThemeMode.DARK)
+        assertThat(keep.timer.selectedPresetId.first()).isEqualTo("b")
+        val merged = Json.parseToJsonElement(keep.timer.presetsJson.first()!!) as JsonArray
+        assertThat(
+            merged.toString(),
+        ).isEqualTo("""[{"id":"a","v":"file"},{"id":"b","v":"phone"},{"id":"c","v":"file"}]""")
+        assertThat(
+            keep.draftStore.customMethods.first(),
+        ).isEqualTo("""[{"id":"m1","v":"phone"},{"id":"m2","v":"file"}]""")
+
+        val adopt = Device(EloConfig(heroInfluence = 0.1))
+        adopt.backup.import(document, ImportMode.MERGE, useBackupSettings = true)
+        assertThat(adopt.config.config.first()).isEqualTo(EloConfig(kEstablished = 12.0))
+        assertThat(adopt.settings.settings.first().theme).isEqualTo(ThemeMode.LIGHT)
+        assertThat(adopt.timer.selectedPresetId.first()).isEqualTo("c")
+    }
+
+    @Test
     fun version1FileImportsLosslesslyWithoutACoin() = runTest {
         // A v1 export as written by the first release: no Match.tieBreaker.
         val v1 = """
@@ -259,7 +434,8 @@ class BackupRoundTripTest {
              "eloConfig":null,"extras":{}}
         """.trimIndent()
         val document = BackupCodec.decode(v1)
-        val target = Device()
+        // A real hero id: this test's phone has no catalog, so no id is treated as unknown.
+        val target = Device(catalog = Catalog.EMPTY)
         target.backup.import(document, ImportMode.REPLACE)
 
         assertThat(target.matches.observeMatch("m1").first()).isEqualTo(
@@ -281,7 +457,28 @@ class BackupRoundTripTest {
         assertThat(target.drafts.observeDrafts().first().single().teamA).isEqualTo(Team.BLUE)
         assertThat(target.players.observePlayers().first().single().name).isEqualTo("Ann")
         // Re-exported as the current version, so an older app refuses it instead of dropping the coin.
-        assertThat(target.backup.export().version).isEqualTo(2)
+        assertThat(target.backup.export().version).isEqualTo(BackupDocument.CURRENT_VERSION)
+    }
+
+    @Test
+    fun version2FileImportsLosslesslyAndKeepsThePhonesSettings() = runTest {
+        val coin = matchA.copy(tieBreaker = Team.BLUE)
+        val v2 = BackupCodec.encode(
+            BackupDocument(
+                version = 2,
+                exportedAt = 7,
+                players = listOf(ann, bob, cid),
+                matches = listOf(coin, matchB),
+            ),
+        )
+        val target = Device()
+        target.settings.update { it.copy(theme = ThemeMode.LIGHT) }
+        target.backup.import(BackupCodec.decode(v2), ImportMode.REPLACE)
+
+        assertThat(target.matches.observeMatch(coin.id).first()).isEqualTo(coin)
+        assertThat(target.matches.observeMatch(matchB.id).first()).isEqualTo(matchB)
+        // No settings in a v2 file: Replace leaves the phone's app settings alone.
+        assertThat(target.settings.settings.first().theme).isEqualTo(ThemeMode.LIGHT)
     }
 
     @Test

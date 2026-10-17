@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudDone
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -49,12 +51,14 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.Dates
 import dev.quinton.goa.feature.players.common.EngravedCard
+import dev.quinton.goa.feature.players.common.plural
 
 data class BackupActions(
     val onBack: () -> Unit = {},
     val onExport: () -> Unit = {},
     val onImport: () -> Unit = {},
-    val onConfirmImport: (ImportMode) -> Unit = {},
+    /** Mode, and whether the file's settings are used (always for Replace). */
+    val onConfirmImport: (ImportMode, Boolean) -> Unit = { _, _ -> },
     val onCancelImport: () -> Unit = {},
     val onMessageShown: () -> Unit = {},
 )
@@ -83,9 +87,11 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions, modifier: Modifie
                 BackupCard(
                     icon = Icons.Outlined.FileUpload,
                     title = "Export",
-                    body = "Save every player, match, draft and your rating settings to one JSON file. " +
-                        "Keep it somewhere safe, or open it on a new phone.",
-                    detail = "${state.players} players · ${state.matches} matches",
+                    body =
+                        "Save every player, match and draft, your settings, timer presets and custom draft methods " +
+                            "to one JSON file. " +
+                            "Keep it somewhere safe, or open it on a new phone.",
+                    detail = "${plural(state.players, "player")} · ${plural(state.matches, "match", "matches")}",
                 ) {
                     Button(
                         onClick = actions.onExport,
@@ -130,7 +136,12 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions, modifier: Modifie
         }
     }
     state.pendingImport?.let { summary ->
-        ImportDialog(summary, onConfirm = actions.onConfirmImport, onCancel = actions.onCancelImport)
+        ImportDialog(
+            summary,
+            onConfirm = actions.onConfirmImport,
+            onCancel = actions.onCancelImport,
+            phoneIsEmpty = state.players == 0 && state.matches == 0,
+        )
     }
 }
 
@@ -177,22 +188,43 @@ private fun Note(icon: ImageVector, text: String) {
     }
 }
 
+/**
+ * Confirms an import. [phoneIsEmpty]: nothing to keep, so Replace is preselected and the file's
+ * settings come along. In Merge the user decides whether the file's settings replace the phone's.
+ */
 @Composable
-fun ImportDialog(summary: BackupSummary, onConfirm: (ImportMode) -> Unit, onCancel: () -> Unit) {
-    var mode by rememberSaveable { mutableStateOf(ImportMode.MERGE) }
+fun ImportDialog(
+    summary: BackupSummary,
+    onConfirm: (ImportMode, Boolean) -> Unit,
+    onCancel: () -> Unit,
+    phoneIsEmpty: Boolean = false,
+) {
+    var mode by rememberSaveable { mutableStateOf(if (phoneIsEmpty) ImportMode.REPLACE else ImportMode.MERGE) }
+    var useSettings by rememberSaveable { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onCancel,
         icon = { Icon(Icons.Outlined.FileDownload, contentDescription = null) },
         title = { Text("Import backup?") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Column(
+                Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
                 Text(
-                    "Exported ${Dates.day(
-                        summary.exportedAt,
-                    )} · ${summary.players} players · ${summary.matches} matches · " +
-                        "${summary.drafts} drafts" + if (summary.hasEloConfig) " · custom rating settings" else "",
+                    "Exported ${Dates.day(summary.exportedAt)} · ${plural(summary.players, "player")} · " +
+                        "${plural(summary.matches, "match", "matches")} · ${plural(summary.drafts, "draft")}" +
+                        if (summary.hasEloConfig) " · custom rating settings" else "",
                     style = MaterialTheme.typography.bodyMedium,
                 )
+                if (summary.unknownHeroes.isNotEmpty()) {
+                    Text(
+                        "${plural(summary.unknownHeroes.size, "hero", "heroes")} in this file aren't in this " +
+                            "app's catalog (${summary.unknownHeroes.joinToString()}). Those seats import as " +
+                            "Unknown hero and count for their pilots only.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Column(Modifier.selectableGroup()) {
                     ModeOption(
                         selected = mode == ImportMode.MERGE,
@@ -203,14 +235,42 @@ fun ImportDialog(summary: BackupSummary, onConfirm: (ImportMode) -> Unit, onCanc
                     ModeOption(
                         selected = mode == ImportMode.REPLACE,
                         title = "Replace everything",
-                        body = "Delete this phone's players, matches and drafts first. This can't be undone.",
+                        body = if (phoneIsEmpty) {
+                            "This phone has no players or matches yet. Load the file as it is, settings included."
+                        } else {
+                            "Delete this phone's players, matches and drafts first and use the file's " +
+                                "settings. This can't be undone."
+                        },
                         onClick = { mode = ImportMode.REPLACE },
                     )
+                }
+                if (mode == ImportMode.MERGE && summary.hasSettings) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp)
+                            .toggleable(value = useSettings, role = Role.Checkbox, onValueChange = { useSettings = it })
+                            .padding(vertical = Spacing.xs),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Checkbox(checked = useSettings, onCheckedChange = null)
+                        Spacer(Modifier.width(Spacing.sm))
+                        Column {
+                            Text("Use the file's settings", style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                "Rating settings" + (if (summary.hasEloConfig) " (custom in this file)" else "") +
+                                    ", theme, owned products, sounds and the selected timer preset. " +
+                                    "Off keeps this phone's.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(mode) }) {
+            TextButton(onClick = { onConfirm(mode, mode == ImportMode.REPLACE || useSettings) }) {
                 Text(
                     if (mode == ImportMode.REPLACE) "Replace" else "Merge",
                     color = if (mode == ImportMode.REPLACE) {

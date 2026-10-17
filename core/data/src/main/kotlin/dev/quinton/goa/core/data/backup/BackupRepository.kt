@@ -1,7 +1,10 @@
 package dev.quinton.goa.core.data.backup
 
+import android.content.Context
 import androidx.room3.withReadTransaction
 import androidx.room3.withWriteTransaction
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.rating.EloConfigRepository
 import dev.quinton.goa.core.database.GoaDatabase
 import dev.quinton.goa.core.database.participantEntities
@@ -17,9 +20,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.JsonElement
 
 /**
- * Lets another feature put its own data in the backup file (e.g. timer presets, custom draft
+ * Puts one kind of non-match-log data in the backup file (settings, timer presets, custom draft
  * methods). Implement it and bind it into the set with Hilt:
- * `@Binds @IntoSet fun timerPresets(impl: TimerPresetBackup): BackupContributor`.
+ * `@Binds @IntoSet fun timerPresets(impl: TimerPresetsBackup): BackupContributor`.
  */
 interface BackupContributor {
     /** Stable key in [BackupDocument.extras]; never rename it once shipped. */
@@ -28,15 +31,43 @@ interface BackupContributor {
     /** This contributor's data, or null to leave it out of the file. */
     suspend fun export(): JsonElement?
 
-    /** Called only when the file contains [key]. In [ImportMode.REPLACE] drop local data first. */
-    suspend fun import(data: JsonElement, mode: ImportMode)
+    /**
+     * Called only when the file contains [key]. In [ImportMode.REPLACE] drop local data first.
+     * [useBackupSettings]: the user wants the file's *settings* (choices such as the theme or the
+     * selected preset) rather than the phone's; always true for [ImportMode.REPLACE]. Lists of
+     * items (presets, methods) are merged by id either way in [ImportMode.MERGE].
+     */
+    suspend fun import(data: JsonElement, mode: ImportMode, useBackupSettings: Boolean)
+}
+
+/** Facts about the running app recorded in a backup. */
+fun interface AppInfo {
+    fun versionName(): String?
+}
+
+internal class AndroidAppInfo @Inject constructor(@ApplicationContext private val context: Context) : AppInfo {
+    override fun versionName(): String? = runCatching {
+        context.packageManager.getPackageInfo(context.packageName, 0).versionName
+    }.getOrNull()
 }
 
 /** Export/import of all user data as a [BackupDocument]. Streams come from the Storage Access Framework. */
 interface BackupRepository {
     suspend fun export(): BackupDocument
 
-    suspend fun import(document: BackupDocument, mode: ImportMode)
+    /**
+     * Loads [document]. Hero ids the catalog doesn't know become "Unknown hero" seats
+     * ([withUnknownHeroesCleared]). [useBackupSettings] (always on for [ImportMode.REPLACE]) applies
+     * the file's rating constants and settings; otherwise the phone's are kept.
+     */
+    suspend fun import(
+        document: BackupDocument,
+        mode: ImportMode,
+        useBackupSettings: Boolean = mode == ImportMode.REPLACE,
+    )
+
+    /** What [document] contains, including heroes this app doesn't know. */
+    suspend fun summarize(document: BackupDocument): BackupSummary = document.summary()
 
     suspend fun exportTo(output: OutputStream) {
         output.writer(Charsets.UTF_8).use { it.write(BackupCodec.encode(export())) }
@@ -52,6 +83,8 @@ internal class RoomBackupRepository @Inject constructor(
     private val database: GoaDatabase,
     private val eloConfig: EloConfigRepository,
     private val contributors: Set<@JvmSuppressWildcards BackupContributor>,
+    private val catalog: CatalogRepository,
+    private val appInfo: AppInfo,
 ) : BackupRepository {
     private val players get() = database.playerDao()
     private val matches get() = database.matchDao()
@@ -63,6 +96,7 @@ internal class RoomBackupRepository @Inject constructor(
         return database.withReadTransaction {
             BackupDocument(
                 exportedAt = System.currentTimeMillis(),
+                appVersion = appInfo.versionName(),
                 players = players.getAll().map { it.toModel() },
                 matches = matches.getAll().map { it.toModel() },
                 drafts = drafts.getAll().map { it.toModel() },
@@ -72,23 +106,30 @@ internal class RoomBackupRepository @Inject constructor(
         }
     }
 
-    override suspend fun import(document: BackupDocument, mode: ImportMode) {
+    override suspend fun summarize(document: BackupDocument): BackupSummary = document.summary(knownHeroIds())
+
+    override suspend fun import(document: BackupDocument, mode: ImportMode, useBackupSettings: Boolean) {
+        val settings = useBackupSettings || mode == ImportMode.REPLACE
+        val clean = document.withUnknownHeroesCleared(knownHeroIds())
         database.withWriteTransaction {
             if (mode == ImportMode.REPLACE) {
                 matches.deleteAll()
                 drafts.deleteAll()
                 players.deleteAll()
             }
-            players.upsertAll(document.players.map { it.toEntity() })
-            document.matches.forEach { matches.upsert(it.toEntity(), it.participantEntities()) }
-            document.drafts.forEach { drafts.upsert(it.toEntity(), it.stepEntities()) }
+            players.upsertAll(clean.players.map { it.toEntity() })
+            clean.matches.forEach { matches.upsert(it.toEntity(), it.participantEntities()) }
+            clean.drafts.forEach { drafts.upsert(it.toEntity(), it.stepEntities()) }
         }
-        if (mode == ImportMode.REPLACE) {
-            val config = document.eloConfig
+        if (settings) {
+            // A file without rating constants was made with the defaults.
+            val config = clean.eloConfig
             if (config == null) eloConfig.reset() else eloConfig.update { config }
         }
         for (contributor in contributors) {
-            document.extras[contributor.key]?.let { contributor.import(it, mode) }
+            clean.extras[contributor.key]?.let { contributor.import(it, mode, settings) }
         }
     }
+
+    private suspend fun knownHeroIds(): Set<String> = catalog.catalog.first().heroes.mapTo(HashSet()) { it.id }
 }
