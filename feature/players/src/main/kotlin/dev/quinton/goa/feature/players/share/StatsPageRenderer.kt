@@ -87,9 +87,8 @@ object StatsPageRenderer {
             empty("No rated matches yet. Ratings appear once a completed match with a winner is logged.")
         } else {
             raw("<div class=\"scroll\"><table>\n<thead><tr>")
-            raw(
-                "<th scope=\"col\" class=\"n\">#</th><th scope=\"col\">Player</th><th scope=\"col\" class=\"n\">Elo</th>",
-            )
+            raw("<th scope=\"col\" class=\"n\">#</th><th scope=\"col\">Player</th>")
+            raw("<th scope=\"col\" class=\"n\">Elo</th>")
             raw("<th scope=\"col\" class=\"n\">Games</th><th scope=\"col\" class=\"n\">W–L</th>")
             raw("<th scope=\"col\" class=\"n\">Recent</th></tr></thead>\n<tbody>\n")
             board.ranked.forEach { leaderboardRow(it) }
@@ -145,7 +144,8 @@ object StatsPageRenderer {
         section("heroes", "Hero meta")
         if (meta.ranked.isEmpty() && meta.unranked.isEmpty()) {
             empty(
-                "The meta is still forming. Win, pick and ban rates appear once completed matches and drafts are logged.",
+                "The meta is still forming. Win, pick and ban rates appear once completed matches and drafts " +
+                    "are logged.",
             )
             raw("</section>\n")
             return
@@ -205,12 +205,13 @@ object StatsPageRenderer {
     // Group stats ---------------------------------------------------------------------------
 
     private fun StringBuilder.group(meta: MetaUiState) {
-        val hasNight = meta.night != null
         val hasGames = meta.winConditions.total > 0
-        if (!hasNight && !hasGames && meta.rivals.isEmpty() && meta.duos.isEmpty() && meta.synergies.isEmpty()) return
+        val parts = listOf(meta.night != null, hasGames, meta.rivals.isNotEmpty(), meta.duos.isNotEmpty())
+        if (parts.none { it } && meta.synergies.isEmpty()) return
         section("group", "Group")
         meta.night?.let { night ->
-            raw("<h3>Last game night · ").text(night.date.format(NightDate)).raw("</h3>\n<div class=\"card\">")
+            val nightDate = DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault())
+            raw("<h3>Last game night · ").text(night.date.format(nightDate)).raw("</h3>\n<div class=\"card\">")
             raw("<p class=\"line\"><span>").text(plural(night.matches, "match", "matches")).raw("</span>")
             raw("<span class=\"num\"><span class=\"red\">◆ Red ").text(night.redWins.toString()).raw("</span>")
             raw(" · <span class=\"blue\">● Blue ").text(night.blueWins.toString()).raw("</span></span></p>\n")
@@ -238,7 +239,8 @@ object StatsPageRenderer {
         if (meta.duos.isNotEmpty()) pairs("Best teammates", meta.duos, versus = false)
         if (meta.synergies.isNotEmpty()) {
             raw("<h3>Strongest hero pairs</h3>\n<div class=\"scroll\"><table>\n<thead><tr><th scope=\"col\">Pair</th>")
-            raw("<th scope=\"col\" class=\"n\">W–L</th><th scope=\"col\" class=\"n\">Win</th></tr></thead>\n<tbody>\n")
+            raw("<th scope=\"col\" class=\"n\">W–L</th><th scope=\"col\" class=\"n\">Win</th>")
+            raw("</tr></thead>\n<tbody>\n")
             meta.synergies.forEach {
                 raw("<tr><th scope=\"row\">").text("${it.heroA} + ${it.heroB}").raw("</th>")
                 cell(winLoss(it.record.wins, it.record.games))
@@ -254,9 +256,8 @@ object StatsPageRenderer {
     private fun StringBuilder.gamesEnd(meta: MetaUiState) {
         val mix = meta.winConditions
         raw("<h3>How games end</h3>\n<div class=\"scroll\"><table>\n<thead><tr><th scope=\"col\">Win condition</th>")
-        raw(
-            "<th scope=\"col\" class=\"n\">Matches</th><th scope=\"col\" class=\"n\">Share</th></tr></thead>\n<tbody>\n",
-        )
+        raw("<th scope=\"col\" class=\"n\">Matches</th><th scope=\"col\" class=\"n\">Share</th>")
+        raw("</tr></thead>\n<tbody>\n")
         (WinCondition.entries + listOf(null)).forEach { condition ->
             val count = mix.counts[condition] ?: 0
             if (count == 0 && condition == null) return@forEach
@@ -407,7 +408,6 @@ object StatsPageRenderer {
         raw("</dl>\n")
     }
 
-    private val NightDate = DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault())
     private const val TOP_MOVERS = 3
     private const val INITIAL_CAPACITY = 64 * 1024
 
