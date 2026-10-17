@@ -28,6 +28,7 @@ import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.TestCatalog
 import java.io.ByteArrayInputStream
@@ -356,6 +357,7 @@ class BackupRoundTripTest {
             ownedProducts = setOf("core", "devoted"),
             hapticsEnabled = false,
             soundsEnabled = false,
+            timerLayout = TimerLayout.ROUND,
         )
         source.settings.update { settings }
         val presets = """[{"id":"table-rules","name":"Table rules","x":1},{"id":"mine","name":"Mine","x":[1,2]}]"""
@@ -497,6 +499,27 @@ class BackupRoundTripTest {
         assertThat(target.matches.observeMatch(matchB.id).first()).isEqualTo(matchB)
         // No settings in a v2 file: Replace leaves the phone's app settings alone.
         assertThat(target.settings.settings.first().theme).isEqualTo(ThemeMode.LIGHT)
+    }
+
+    @Test
+    fun settingsFromOlderAndNewerBuildsImportWithTheTimerLayoutDefault() = runTest {
+        val source = Device()
+        source.settings.update { it.copy(theme = ThemeMode.LIGHT, hapticsEnabled = false) }
+        val document = source.backup.export()
+        // A v3 file from before the round view has no timerLayout; a newer build may know more layouts.
+        val old = """{"theme":"LIGHT","hapticsEnabled":false}"""
+        val newer = """{"theme":"LIGHT","hapticsEnabled":false,"timerLayout":"GRID"}"""
+        for (settings in listOf(old, newer)) {
+            val target = Device()
+            target.settings.update { it.copy(timerLayout = TimerLayout.ROUND) }
+            val file = document.copy(extras = document.extras + ("settings" to Json.parseToJsonElement(settings)))
+            target.backup.import(file, ImportMode.REPLACE)
+
+            val imported = target.settings.settings.first()
+            assertThat(imported.theme).isEqualTo(ThemeMode.LIGHT)
+            assertThat(imported.hapticsEnabled).isFalse()
+            assertThat(imported.timerLayout).isEqualTo(TimerLayout.STEPS)
+        }
     }
 
     @Test
