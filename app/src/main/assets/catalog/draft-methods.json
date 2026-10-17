@@ -1,0 +1,216 @@
+{
+  "version": 1,
+  "defaultMethodId": "house",
+  "methods": [
+    {
+      "id": "house",
+      "name": "House draft",
+      "kind": "custom",
+      "origin": "house",
+      "summary": "Pool of 15. Team A bans 1 and picks 1, Team B bans 1 and picks 2, then teams alternate 2 picks; the last pick is single.",
+      "pool": { "type": "random", "size": 15 },
+      "sequence": {
+        "type": "pattern",
+        "opening": [
+          { "team": "A", "action": "ban" },
+          { "team": "A", "action": "pick" },
+          { "team": "B", "action": "ban" },
+          { "team": "B", "action": "pick" },
+          { "team": "B", "action": "pick" }
+        ],
+        "repeat": [
+          { "team": "A", "action": "pick" },
+          { "team": "A", "action": "pick" },
+          { "team": "B", "action": "pick" },
+          { "team": "B", "action": "pick" }
+        ]
+      },
+      "notes": [
+        "[APP] The owner's group draft: \"usually 15 characters, 1st ban + pick, second ban + 2 picks, last pick\".",
+        "Re-roll or swap pool heroes before the first ban."
+      ]
+    },
+    {
+      "id": "all-random",
+      "name": "All Random",
+      "kind": "all_random",
+      "origin": "rulebook",
+      "summary": "Each player gets a random hero.",
+      "pool": { "type": "seats_plus", "extra": 0 },
+      "sequence": { "type": "random_assign" },
+      "notes": [
+        "[RB p.22] Each player gets a random hero.",
+        "[APP] Counted per hero seat (a double pilot gets two heroes)."
+      ]
+    },
+    {
+      "id": "all-pick",
+      "name": "All Pick",
+      "kind": "all_pick",
+      "origin": "rulebook",
+      "summary": "Pick from every available hero, Team A first, alternating teams.",
+      "pool": { "type": "all" },
+      "sequence": {
+        "type": "pattern",
+        "repeat": [
+          { "team": "A", "action": "pick" },
+          { "team": "B", "action": "pick" }
+        ]
+      },
+      "notes": [
+        "[RB p.22] Pick from all available heroes, starting with Team A and alternating teams.",
+        "[APP] Picks fill hero seats (a double pilot picks twice)."
+      ]
+    },
+    {
+      "id": "single-draft",
+      "name": "Single Draft",
+      "kind": "single_draft",
+      "origin": "rulebook",
+      "summary": "Deal 3 heroes to each player; take turns picking from your own 3, Team A first.",
+      "pool": { "type": "deal_per_seat", "perSeat": 3 },
+      "sequence": {
+        "type": "pattern",
+        "repeat": [
+          { "team": "A", "action": "pick" },
+          { "team": "B", "action": "pick" }
+        ]
+      },
+      "notes": [
+        "[RB p.22] Deal 3 heroes to each player; players take turns picking from their own 3, starting with any Team A player and alternating teams.",
+        "[APP] Dealt per hero seat (a double pilot gets two hands)."
+      ]
+    },
+    {
+      "id": "random-draft",
+      "name": "Random Draft",
+      "kind": "random_draft",
+      "origin": "rulebook",
+      "summary": "Reveal players + 2 heroes; pick from them, Team A first, alternating teams.",
+      "pool": { "type": "seats_plus", "extra": 2 },
+      "sequence": {
+        "type": "pattern",
+        "repeat": [
+          { "team": "A", "action": "pick" },
+          { "team": "B", "action": "pick" }
+        ]
+      },
+      "notes": [
+        "[RB p.22] Reveal (players + 2) heroes; pick starting with Team A, alternating teams.",
+        "[APP] Counted per hero seat."
+      ]
+    },
+    {
+      "id": "pick-and-ban",
+      "name": "Pick and Ban",
+      "kind": "pick_and_ban",
+      "origin": "rulebook",
+      "summary": "Competitive draft: bans and picks in the official order for the player count.",
+      "pool": { "type": "all" },
+      "sequence": {
+        "type": "by_count",
+        "tables": [
+          {
+            "players": 4,
+            "steps": [
+              { "team": "A", "action": "ban" },
+              { "team": "B", "action": "ban" },
+              { "team": "A", "action": "pick" },
+              { "team": "B", "action": "pick" },
+              { "team": "B", "action": "ban" },
+              { "team": "A", "action": "ban" },
+              { "team": "B", "action": "pick" },
+              { "team": "A", "action": "pick" }
+            ]
+          },
+          {
+            "players": 6,
+            "steps": [
+              { "team": "A", "action": "ban" },
+              { "team": "B", "action": "ban" },
+              { "team": "A", "action": "pick" },
+              { "team": "B", "action": "pick" },
+              { "team": "B", "action": "ban" },
+              { "team": "A", "action": "ban" },
+              { "team": "B", "action": "pick" },
+              { "team": "A", "action": "pick" },
+              { "team": "A", "action": "ban" },
+              { "team": "B", "action": "ban" },
+              { "team": "B", "action": "pick" },
+              { "team": "A", "action": "pick" }
+            ]
+          },
+          {
+            "players": 8,
+            "steps": [
+              { "team": "A", "action": "ban" },
+              { "team": "B", "action": "ban" },
+              { "team": "A", "action": "pick" },
+              { "team": "B", "action": "pick" },
+              { "team": "B", "action": "ban" },
+              { "team": "A", "action": "ban" },
+              { "team": "B", "action": "pick" },
+              { "team": "A", "action": "pick" },
+              { "team": "A", "action": "ban" },
+              { "team": "B", "action": "ban" },
+              { "team": "B", "action": "pick" },
+              { "team": "A", "action": "pick" },
+              { "team": "B", "action": "ban" },
+              { "team": "A", "action": "ban" },
+              { "team": "A", "action": "pick" },
+              { "team": "B", "action": "pick" }
+            ]
+          },
+          {
+            "players": 10,
+            "steps": [
+              { "team": "A", "action": "ban" },
+              { "team": "B", "action": "ban" },
+              { "team": "A", "action": "pick" },
+              { "team": "B", "action": "pick" },
+              { "team": "B", "action": "ban" },
+              { "team": "A", "action": "ban" },
+              { "team": "B", "action": "pick" },
+              { "team": "A", "action": "pick" },
+              { "team": "A", "action": "ban" },
+              { "team": "B", "action": "ban" },
+              { "team": "B", "action": "pick" },
+              { "team": "A", "action": "pick" },
+              { "team": "B", "action": "ban" },
+              { "team": "A", "action": "ban" },
+              { "team": "A", "action": "pick" },
+              { "team": "B", "action": "pick" },
+              { "team": "B", "action": "ban" },
+              { "team": "A", "action": "ban" },
+              { "team": "B", "action": "pick" },
+              { "team": "A", "action": "pick" }
+            ]
+          }
+        ]
+      },
+      "notes": [
+        "[RB p.22] Official sequences for 4, 6, 8 and 10 players (the 6-player row ends Pick B, A per the official PDF; RulesPal shows A, B).",
+        "[APP] Odd counts use the next even sequence and skip the smaller team's surplus pick; layouts are counted in hero seats."
+      ]
+    },
+    {
+      "id": "learning-game",
+      "name": "Learning game",
+      "kind": "custom",
+      "origin": "rulebook",
+      "summary": "The rulebook's first-game heroes. 4 heroes: Red Wasp + Xargatha vs Blue Arien + Brogan; 6 heroes add Tigerclaw (Red) and Sabina (Blue).",
+      "pool": { "type": "all" },
+      "sequence": {
+        "type": "lineup",
+        "lineups": [
+          { "red": ["wasp", "xargatha"], "blue": ["arien", "brogan"] },
+          { "red": ["wasp", "xargatha", "tigerclaw"], "blue": ["arien", "brogan", "sabina"] }
+        ]
+      },
+      "notes": [
+        "[RB p.5] First game: 4 players = Red Wasp + Xargatha vs Blue Arien + Brogan; 6 players add Tigerclaw (Red) and Sabina (Blue).",
+        "[APP] Needs 2 v 2 or 3 v 3 seats. A hero missing from the catalog leaves its seat open."
+      ]
+    }
+  ]
+}

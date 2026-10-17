@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "defaultPresetId": "table-rules",
+  "presets": [
+    {
+      "id": "table-rules",
+      "name": "Table rules",
+      "turnsPerRound": 4,
+      "autoAdvance": false,
+      "phases": [
+        { "id": "strategy", "name": "Pre-round strategy", "kind": "strategy", "scope": "round_start", "seconds": 90, "enabled": true, "cues": [10, 5, 0] },
+        { "id": "turn", "name": "Turn", "kind": "turn", "scope": "turn", "seconds": 30, "enabled": true, "cues": [10, 5, 0] },
+        { "id": "action", "name": "Action", "kind": "action", "scope": "turn", "seconds": 30, "enabled": false, "cues": [5, 0] },
+        { "id": "upgrade", "name": "Upgrade", "kind": "upgrade", "scope": "round_end", "seconds": 120, "enabled": true, "cues": [10, 5, 0], "endStepId": "level_up" }
+      ]
+    },
+    {
+      "id": "relaxed",
+      "name": "Relaxed",
+      "turnsPerRound": 4,
+      "autoAdvance": false,
+      "phases": [
+        { "id": "strategy", "name": "Pre-round strategy", "kind": "strategy", "scope": "round_start", "seconds": 180, "enabled": true, "cues": [30, 10, 0] },
+        { "id": "turn", "name": "Turn", "kind": "turn", "scope": "turn", "seconds": 60, "enabled": true, "cues": [10, 0] },
+        { "id": "action", "name": "Action", "kind": "action", "scope": "turn", "seconds": 45, "enabled": false, "cues": [10, 0] },
+        { "id": "upgrade", "name": "Upgrade", "kind": "upgrade", "scope": "round_end", "seconds": 180, "enabled": true, "cues": [30, 10, 0], "endStepId": "level_up" }
+      ]
+    },
+    {
+      "id": "untimed",
+      "name": "Untimed (counters only)",
+      "turnsPerRound": 4,
+      "autoAdvance": false,
+      "phases": [
+        { "id": "strategy", "name": "Pre-round strategy", "kind": "strategy", "scope": "round_start", "seconds": null, "enabled": true, "cues": [] },
+        { "id": "turn", "name": "Turn", "kind": "turn", "scope": "turn", "seconds": null, "enabled": true, "cues": [] },
+        { "id": "action", "name": "Action", "kind": "action", "scope": "turn", "seconds": null, "enabled": false, "cues": [] },
+        { "id": "upgrade", "name": "Upgrade", "kind": "upgrade", "scope": "round_end", "seconds": null, "enabled": true, "cues": [], "endStepId": "level_up" }
+      ]
+    }
+  ]
+}

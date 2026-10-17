@@ -3,4 +3,7 @@ plugins {
 }
 
 dependencies {
+    implementation(projects.core.datastore)
+    implementation(libs.androidx.compose.animation)
+    implementation(libs.androidx.activity.compose)
 }

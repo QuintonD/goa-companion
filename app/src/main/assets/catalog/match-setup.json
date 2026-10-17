@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    "Guards of Atlantis II rulebook, 2nd printing (Wolff Designa PDF; pp. 3, 4, 8, 20) as summarised in docs/DOMAIN.md",
+    "Counters are looked up by heroes in play (seats), an app decision documented in docs/DOMAIN.md",
+    "Double piloting: owner's house option (docs/DOMAIN.md [APP])"
+  ],
+  "minPlayers": 2,
+  "maxPlayers": 10,
+  "modes": [
+    {
+      "mode": "quick",
+      "lanes": 1,
+      "waveCountersPerLane": 3,
+      "lifeCounters": [
+        { "minHeroes": 2, "maxHeroes": 5, "counters": 4 },
+        { "minHeroes": 6, "maxHeroes": 6, "counters": 5 }
+      ]
+    },
+    {
+      "mode": "long",
+      "lanes": 1,
+      "waveCountersPerLane": 5,
+      "lifeCounters": [
+        { "minHeroes": 2, "maxHeroes": 5, "counters": 6 },
+        { "minHeroes": 6, "maxHeroes": 6, "counters": 8 }
+      ]
+    },
+    {
+      "mode": "double_lane",
+      "lanes": 2,
+      "waveCountersPerLane": 7,
+      "minHeroes": 6,
+      "requiredFromHeroes": 8,
+      "lifeCounters": [
+        { "minHeroes": 6, "maxHeroes": 8, "counters": 6 },
+        { "minHeroes": 9, "maxHeroes": 10, "counters": 7 }
+      ]
+    }
+  ],
+  "playerCounts": [
+    {
+      "players": 2,
+      "layouts": [
+        {
+          "id": "two-players",
+          "kind": "rulebook",
+          "largerTeamHeroes": 2,
+          "smallerTeamHeroes": 2,
+          "doublePilots": 2,
+          "guidance": "Each player controls 2 heroes."
+        }
+      ]
+    },
+    {
+      "players": 3,
+      "extended": true,
+      "layouts": [
+        {
+          "id": "three-players",
+          "kind": "rulebook",
+          "largerTeamHeroes": 2,
+          "smallerTeamHeroes": 2,
+          "doublePilots": 1,
+          "handicapHeroes": 1,
+          "guidance": "The most experienced player controls 2 heroes; one of those heroes plays with its Handicap card."
+        }
+      ]
+    },
+    {
+      "players": 4,
+      "recommended": true,
+      "layouts": [
+        { "id": "standard-4", "kind": "standard", "largerTeamHeroes": 2, "smallerTeamHeroes": 2 }
+      ]
+    },
+    {
+      "players": 5,
+      "extended": true,
+      "layouts": [
+        {
+          "id": "handicap-5",
+          "kind": "handicap",
+          "largerTeamHeroes": 3,
+          "smallerTeamHeroes": 2,
+          "handicapHeroes": 3,
+          "guidance": "Each hero on the larger team swaps a basic card for its Handicap card."
+        },
+        {
+          "id": "double-pilot-5",
+          "kind": "double_pilot",
+          "largerTeamHeroes": 3,
+          "smallerTeamHeroes": 3,
+          "doublePilots": 1,
+          "guidance": "House rule: one player on the smaller team controls 2 heroes, so both teams field 3."
+        }
+      ]
+    },
+    {
+      "players": 6,
+      "recommended": true,
+      "layouts": [
+        { "id": "standard-6", "kind": "standard", "largerTeamHeroes": 3, "smallerTeamHeroes": 3 }
+      ]
+    },
+    {
+      "players": 7,
+      "extended": true,
+      "layouts": [
+        {
+          "id": "handicap-7",
+          "kind": "handicap",
+          "largerTeamHeroes": 4,
+          "smallerTeamHeroes": 3,
+          "handicapHeroes": 4,
+          "guidance": "Each hero on the larger team swaps a basic card for its Handicap card."
+        },
+        {
+          "id": "double-pilot-7",
+          "kind": "double_pilot",
+          "largerTeamHeroes": 4,
+          "smallerTeamHeroes": 4,
+          "doublePilots": 1,
+          "guidance": "House rule: one player on the smaller team controls 2 heroes, so both teams field 4."
+        }
+      ]
+    },
+    {
+      "players": 8,
+      "extended": true,
+      "layouts": [
+        { "id": "standard-8", "kind": "standard", "largerTeamHeroes": 4, "smallerTeamHeroes": 4 }
+      ]
+    },
+    {
+      "players": 9,
+      "extended": true,
+      "layouts": [
+        {
+          "id": "handicap-9",
+          "kind": "handicap",
+          "largerTeamHeroes": 5,
+          "smallerTeamHeroes": 4,
+          "handicapHeroes": 5,
+          "guidance": "Each hero on the larger team swaps a basic card for its Handicap card."
+        },
+        {
+          "id": "double-pilot-9",
+          "kind": "double_pilot",
+          "largerTeamHeroes": 5,
+          "smallerTeamHeroes": 5,
+          "doublePilots": 1,
+          "guidance": "House rule: one player on the smaller team controls 2 heroes, so both teams field 5."
+        }
+      ]
+    },
+    {
+      "players": 10,
+      "extended": true,
+      "layouts": [
+        { "id": "standard-10", "kind": "standard", "largerTeamHeroes": 5, "smallerTeamHeroes": 5 }
+      ]
+    }
+  ],
+  "endOfRound": [
+    { "id": "minion_battle", "title": "Minion Battle" },
+    { "id": "remove_tokens", "title": "Remove Tokens, Return Markers" },
+    { "id": "push_lane", "title": "Push the Lane", "detail": "If applicable: flip a Wave counter." },
+    { "id": "retrieve_cards", "title": "Retrieve Cards" },
+    { "id": "level_up", "title": "Level Up", "detail": "Mandatory: buy every level you can afford. Simultaneous." },
+    {
+      "id": "pity_coin",
+      "title": "Collect a Pity Coin",
+      "detail": "Only if you didn't level up. It can't be spent on a level this round."
+    }
+  ],
+  "tieBreaker": "Flip the Tie Breaker coin during setup and place it by the board. On cross-team initiative ties the team whose symbol is showing acts first, then that player flips the coin. Same-team ties: the team decides and the coin is not flipped.",
+  "extendedCountNote": "Odd counts and 8 to 10 players are recommended only when everyone has played at least 5 times.",
+  "firstGameAdvice": "If anyone is new, the rulebook suggests a Quick game."
+}

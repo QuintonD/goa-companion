@@ -1,0 +1,71 @@
+package dev.quinton.goa.core.domain.timer
+
+import com.google.common.truth.Truth.assertThat
+import org.junit.Test
+
+class TimerPresetsDataTest {
+    private val endIds = endOfRound.map { it.id }.toSet()
+
+    @Test
+    fun `bundled presets parse, are unique and valid`() {
+        val catalog = bundledPresets
+        assertThat(catalog.presets.map { it.id }).containsNoDuplicates()
+        assertThat(catalog.presets.map { it.id }).contains(catalog.defaultPresetId)
+        catalog.presets.forEach { preset ->
+            assertThat(TimerPresetValidator.validate(preset, endIds)).isEmpty()
+            assertThat(preset.turnsPerRound).isEqualTo(TimerPreset.RULEBOOK_TURNS_PER_ROUND)
+        }
+        assertThat(catalog.presets.map { it.name }).containsAtLeast("Table rules", "Relaxed", "Untimed (counters only)")
+    }
+
+    @Test
+    fun `default preset matches the owner's table rules`() {
+        val table = bundledPresets.presets.single { it.id == bundledPresets.defaultPresetId }
+        fun kind(k: PhaseKind) = table.phases.single { it.kind == k }
+
+        assertThat(table.name).isEqualTo("Table rules")
+        assertThat(kind(PhaseKind.STRATEGY).seconds).isEqualTo(90)
+        assertThat(kind(PhaseKind.STRATEGY).scope).isEqualTo(PhaseScope.ROUND_START)
+        assertThat(kind(PhaseKind.TURN).seconds).isEqualTo(30)
+        assertThat(kind(PhaseKind.TURN).scope).isEqualTo(PhaseScope.TURN)
+        assertThat(kind(PhaseKind.UPGRADE).seconds).isEqualTo(120)
+        assertThat(kind(PhaseKind.UPGRADE).scope).isEqualTo(PhaseScope.ROUND_END)
+        assertThat(kind(PhaseKind.UPGRADE).endStepId).isEqualTo("level_up")
+        assertThat(kind(PhaseKind.ACTION).enabled).isFalse()
+        assertThat(table.autoAdvance).isFalse()
+    }
+
+    @Test
+    fun `saved presets round trip`() {
+        val presets = bundledPresets.presets
+        assertThat(TimerJson.decodePresets(TimerJson.encodePresets(presets))).isEqualTo(presets)
+    }
+
+    @Test
+    fun `validator reports each problem`() {
+        val bad = TimerPreset(
+            id = "x",
+            name = " ",
+            turnsPerRound = 0,
+            phases = listOf(
+                phase("a", PhaseKind.CUSTOM, PhaseScope.TURN, 2, cues = emptyList()),
+                phase("a", PhaseKind.ACTION, PhaseScope.ROUND_START, 30),
+                phase("c", PhaseKind.CUSTOM, PhaseScope.ROUND_END, 30, endStepId = "nope"),
+                phase("d", PhaseKind.CUSTOM, PhaseScope.TURN, 20, cues = listOf(25)),
+                PhaseSpec("e", "", PhaseKind.CUSTOM, PhaseScope.TURN, null, cues = emptyList()),
+            ),
+        )
+        val kinds = TimerPresetValidator.validate(bad, endIds).map { it.kind }
+
+        assertThat(kinds).containsExactly(
+            PresetIssue.Kind.BLANK_NAME,
+            PresetIssue.Kind.TURNS_OUT_OF_RANGE,
+            PresetIssue.Kind.DURATION_OUT_OF_RANGE,
+            PresetIssue.Kind.DUPLICATE_PHASE_ID,
+            PresetIssue.Kind.ACTION_NOT_PER_TURN,
+            PresetIssue.Kind.UNKNOWN_END_STEP,
+            PresetIssue.Kind.CUE_OUT_OF_RANGE,
+            PresetIssue.Kind.BLANK_PHASE_NAME,
+        )
+    }
+}
