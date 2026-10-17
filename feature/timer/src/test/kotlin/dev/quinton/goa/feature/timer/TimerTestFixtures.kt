@@ -9,6 +9,7 @@ import dev.quinton.goa.core.domain.timer.TimerPresetCatalog
 import dev.quinton.goa.core.domain.timer.TimerReadout
 import dev.quinton.goa.core.domain.timer.TimerSnapshot
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.testing.FakeMatchRepository
 import dev.quinton.goa.feature.timer.data.TimerAssets
 import dev.quinton.goa.feature.timer.data.TimerRepository
 import dev.quinton.goa.feature.timer.session.TimerController
@@ -102,6 +103,9 @@ class FakeScheduler : TimerScheduler {
 class FakeNotifier : TimerNotifier {
     var ongoing: TimerReadout? = null
     val alerts = mutableListOf<String>()
+    var enabled = true
+
+    override fun canPost(): Boolean = enabled
 
     override fun showOngoing(snapshot: TimerSnapshot, readout: TimerReadout, wallNow: Long) {
         ongoing = readout
@@ -151,7 +155,16 @@ class TimerHarness(bootCount: Int? = 1) {
     val scheduler = FakeScheduler()
     val notifier = FakeNotifier()
     var boot: Int? = bootCount
-    val controller = TimerController(repository, clocks, clocks, scheduler, notifier, BootCountProvider { boot })
+    val matches = FakeMatchRepository()
+    val controller = TimerController(
+        repository,
+        clocks,
+        clocks,
+        scheduler,
+        notifier,
+        BootCountProvider { boot },
+        { matches },
+    )
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

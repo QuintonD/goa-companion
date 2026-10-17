@@ -26,6 +26,9 @@ fun EntryProviderScope<NavKey>.timerEntries(navigator: Navigator) {
             onManagePresets = { navigator.navigate(TimerPresetsRoute) },
             onSettings = { navigator.navigate(SettingsRoute) },
             onOpenMatch = { matchId -> navigator.navigate(MatchEditRoute(matchId)) },
+            onNewMatch = { minutes, mode ->
+                navigator.navigate(MatchEditRoute(matchId = null, prefillDurationMin = minutes, prefillMode = mode))
+            },
         )
     }
     entry<MatchSetupRoute> { key ->

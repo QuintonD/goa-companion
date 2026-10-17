@@ -67,6 +67,7 @@ import dev.quinton.goa.feature.timer.ui.components.CoinFace
 import dev.quinton.goa.feature.timer.ui.components.goaChipBorder
 import dev.quinton.goa.feature.timer.ui.components.goaChipColors
 import dev.quinton.goa.feature.timer.ui.components.rememberReducedMotion
+import dev.quinton.goa.feature.timer.ui.components.rememberStartWithNotificationPermission
 import dev.quinton.goa.feature.timer.ui.components.teamName
 import dev.quinton.goa.feature.timer.ui.timer.SectionHeader
 import dev.quinton.goa.feature.timer.ui.timer.Stepper
@@ -102,7 +103,8 @@ fun MatchSetupRoute(viewModel: MatchSetupViewModel, onBack: () -> Unit, onTimerS
             onMode = viewModel::selectMode,
             onFlip = viewModel::flipCoin,
             onPreset = viewModel::selectPreset,
-            onStart = viewModel::startTimer,
+            // Same POST_NOTIFICATIONS request as the Timer tab's start; starts either way.
+            onStart = rememberStartWithNotificationPermission(viewModel::startTimer),
         ),
     )
 }

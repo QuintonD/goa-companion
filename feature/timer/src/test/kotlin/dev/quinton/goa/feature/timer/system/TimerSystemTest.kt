@@ -87,8 +87,57 @@ class TimerSystemTest {
         assertThat(posted.extras.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN)).isTrue()
         assertThat(posted.extras.getCharSequence(Notification.EXTRA_TITLE).toString())
             .isEqualTo("Round 1 · Pre-round strategy")
-        assertThat(posted.actions.map { it.title.toString() }).containsExactly("Pause", "Next", "Stop").inOrder()
         assertThat(posted.extras.getBoolean("android.requestPromotedOngoing")).isTrue()
+    }
+
+    @Test
+    fun `lock-screen actions are pause and next only, with next behind unlock`() {
+        val s = snapshot()
+        AndroidTimerNotifier(context).showOngoing(s, engine.readout(s), clocks.wall)
+
+        val posted = shadowOf(notifications).getNotification(AndroidTimerNotifier.ID_ONGOING)
+        // No Stop: ending a match from the lock screen was one tap and irrecoverable.
+        assertThat(posted.actions.map { it.title.toString() }).containsExactly("Pause", "Next").inOrder()
+        assertThat(posted.actions[0].isAuthenticationRequired).isFalse()
+        assertThat(posted.actions[1].isAuthenticationRequired).isTrue()
+        val actions = posted.actions.map { shadowOf(it.actionIntent).savedIntent.action }
+        assertThat(actions).containsExactly(TimerActionReceiver.ACTION_PAUSE, TimerActionReceiver.ACTION_NEXT).inOrder()
+    }
+
+    @Test
+    fun `running countdown leaves the status chip to the chronometer`() {
+        val s = snapshot()
+        clocks.advance(30_000)
+        AndroidTimerNotifier(context).showOngoing(s, engine.readout(s), clocks.wall)
+
+        val posted = shadowOf(notifications).getNotification(AndroidTimerNotifier.ID_ONGOING)
+        // A static short critical text would freeze the Android 16 status-bar chip.
+        assertThat(posted.extras.getCharSequence(EXTRA_SHORT_CRITICAL_TEXT)).isNull()
+        assertThat(posted.extras.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN)).isTrue()
+    }
+
+    @Test
+    fun `overtime shows a static Over chip`() {
+        val s = snapshot()
+        clocks.advance(95_000)
+        AndroidTimerNotifier(context).showOngoing(s, engine.readout(s), clocks.wall)
+
+        val posted = shadowOf(notifications).getNotification(AndroidTimerNotifier.ID_ONGOING)
+        assertThat(posted.extras.getCharSequence(EXTRA_SHORT_CRITICAL_TEXT).toString()).isEqualTo("Over")
+    }
+
+    @Test
+    fun `swiping the countdown away re-posts it through the action receiver`() {
+        val s = snapshot()
+        AndroidTimerNotifier(context).showOngoing(s, engine.readout(s), clocks.wall)
+
+        val posted = shadowOf(notifications).getNotification(AndroidTimerNotifier.ID_ONGOING)
+        val delete = shadowOf(posted.deleteIntent)
+        assertThat(delete.isBroadcast).isTrue()
+        assertThat(delete.savedIntent.action).isEqualTo(TimerActionReceiver.ACTION_REPOST)
+        assertThat(delete.savedIntent.component!!.className).isEqualTo(TimerActionReceiver::class.java.name)
+        assertThat(TimerActionReceiver.isRepost(TimerActionReceiver.ACTION_REPOST)).isTrue()
+        assertThat(TimerActionReceiver.commandFor(TimerActionReceiver.ACTION_REPOST)).isNull()
     }
 
     @Test
@@ -99,6 +148,15 @@ class TimerSystemTest {
         val posted = shadowOf(notifications).getNotification(AndroidTimerNotifier.ID_ONGOING)
         assertThat(posted.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER)).isFalse()
         assertThat(posted.actions.first().title.toString()).isEqualTo("Resume")
+        assertThat(posted.actions.first().isAuthenticationRequired).isFalse()
+        assertThat(posted.extras.getCharSequence(EXTRA_SHORT_CRITICAL_TEXT).toString()).isEqualTo("Paused")
+    }
+
+    @Test
+    fun `notifier reports whether it can post`() {
+        assertThat(AndroidTimerNotifier(context).canPost()).isTrue()
+        shadowOf(context as Application).denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        assertThat(AndroidTimerNotifier(context).canPost()).isFalse()
     }
 
     @Test
@@ -124,7 +182,8 @@ class TimerSystemTest {
         assertThat(TimerActionReceiver.commandFor(TimerActionReceiver.ACTION_PAUSE)).isEqualTo(TimerCommand.Pause)
         assertThat(TimerActionReceiver.commandFor(TimerActionReceiver.ACTION_RESUME)).isEqualTo(TimerCommand.Resume)
         assertThat(TimerActionReceiver.commandFor(TimerActionReceiver.ACTION_NEXT)).isEqualTo(TimerCommand.Next)
-        assertThat(TimerActionReceiver.commandFor(TimerActionReceiver.ACTION_STOP)).isEqualTo(TimerCommand.EndMatch)
+        // A Stop intent left over from an older notification no longer ends the match.
+        assertThat(TimerActionReceiver.commandFor("dev.quinton.goa.timer.STOP")).isNull()
         assertThat(TimerActionReceiver.commandFor("other")).isNull()
     }
 
@@ -136,5 +195,10 @@ class TimerSystemTest {
             Intent.ACTION_TIMEZONE_CHANGED,
             Intent.ACTION_MY_PACKAGE_REPLACED,
         )
+    }
+
+    private companion object {
+        /** `Notification.EXTRA_SHORT_CRITICAL_TEXT` (API 36). */
+        const val EXTRA_SHORT_CRITICAL_TEXT = "android.shortCriticalText"
     }
 }

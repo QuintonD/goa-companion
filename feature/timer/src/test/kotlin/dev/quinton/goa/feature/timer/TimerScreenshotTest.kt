@@ -50,6 +50,8 @@ class TimerScreenshotTest {
     @Config(fontScale = 2f)
     fun turnFontScale2() = active(TimerPreviewData.turn)
 
+    @Test fun alertsOffBannerDark() = active(TimerPreviewData.turn.copy(alertsOff = true))
+
     @Test fun pausedWarningDark() = active(TimerPreviewData.paused)
 
     @Test fun overtimeDark() = active(TimerPreviewData.overtime)

@@ -7,7 +7,7 @@ import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.SettingsRepository
-import dev.quinton.goa.core.domain.WallClock
+import dev.quinton.goa.core.domain.setup.MatchSetup
 import dev.quinton.goa.core.domain.timer.PhaseKind
 import dev.quinton.goa.core.domain.timer.TimerSnapshot
 import dev.quinton.goa.core.domain.timer.TimerStatus
@@ -18,13 +18,12 @@ import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.feature.timer.TimerText
 import dev.quinton.goa.feature.timer.data.TimerRepository
-import dev.quinton.goa.feature.timer.di.TimerClock
 import dev.quinton.goa.feature.timer.session.TimerCommand
 import dev.quinton.goa.feature.timer.session.TimerController
 import dev.quinton.goa.feature.timer.system.CuePlayer
 import java.text.DateFormat
 import java.util.Date
-import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -64,7 +63,15 @@ class FrameTicker @Inject constructor() : Ticker {
 }
 
 sealed interface TimerEvent {
+    /** Open the linked match to log its result (its duration is already saved). */
     data class OpenMatch(val matchId: String) : TimerEvent
+
+    /**
+     * No linked match: open a NEW match pre-filled with the duration and, when legal for the
+     * session's hero count, its mode (a `GameMode` serial name). Nothing is saved until the
+     * user saves that match.
+     */
+    data class NewMatch(val durationMin: Int, val mode: String?) : TimerEvent
 }
 
 @HiltViewModel
@@ -77,12 +84,20 @@ class TimerViewModel @Inject constructor(
     settingsRepository: SettingsRepository,
     private val cues: CuePlayer,
     private val ticker: Ticker,
-    @param:TimerClock private val wall: WallClock,
 ) : ViewModel() {
     private val visible = MutableStateFlow(false)
     private val seatsChoice = MutableStateFlow(DEFAULT_SEATS)
     private val events = Channel<TimerEvent>(Channel.BUFFERED)
     val navigation: Flow<TimerEvent> = events.receiveAsFlow()
+
+    /** Notifications denied/blocked (re-checked whenever the screen starts). */
+    private val alertsOff = MutableStateFlow(false)
+
+    /** Session whose alerts-off banner was dismissed. */
+    private val bannerDismissedFor = MutableStateFlow<String?>(null)
+
+    /** Set by Log result / Done so a double tap can't act twice on the same summary. */
+    private val finishing = AtomicBoolean(false)
 
     private val settings: StateFlow<AppSettings> =
         settingsRepository.settings.stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
@@ -132,10 +147,13 @@ class TimerViewModel @Inject constructor(
         )
     }
 
-    val uiState: StateFlow<TimerUiState> = combine(controller.snapshot, linkedSeats, startState, ticks) {
+    private val banner: Flow<Pair<Boolean, String?>> = combine(alertsOff, bannerDismissedFor) { off, id -> off to id }
+
+    val uiState: StateFlow<TimerUiState> = combine(controller.snapshot, linkedSeats, startState, banner, ticks) {
             s,
             seats,
             start,
+            (off, dismissedFor),
             _,
         ->
         when {
@@ -146,7 +164,15 @@ class TimerViewModel @Inject constructor(
                 summary = TimerUiMapper.summary(s, controller.readout(s)),
             )
 
-            else -> TimerUiState(loading = false, active = TimerUiMapper.active(s, controller.readout(s), seats))
+            else -> TimerUiState(
+                loading = false,
+                active = TimerUiMapper.active(
+                    s,
+                    controller.readout(s),
+                    seats,
+                    alertsOff = off && dismissedFor != s.sessionId,
+                ),
+            )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TimerUiState())
 
@@ -163,7 +189,16 @@ class TimerViewModel @Inject constructor(
     fun setVisible(isVisible: Boolean) {
         visible.value = isVisible
         controller.uiVisible = isVisible
-        if (!isVisible) cueKey = null
+        if (isVisible) refreshNotificationAccess() else cueKey = null
+    }
+
+    /** Re-checks notification access (screen start, after the permission prompt). */
+    fun refreshNotificationAccess() {
+        alertsOff.value = !controller.notificationsEnabled()
+    }
+
+    fun dismissAlertsBanner() = launch {
+        bannerDismissedFor.value = controller.snapshot.first()?.sessionId
     }
 
     fun selectPreset(id: String) = launch { repository.select(id) }
@@ -173,6 +208,7 @@ class TimerViewModel @Inject constructor(
     }
 
     fun start() = launch {
+        refreshNotificationAccess()
         controller.start(repository.selectedPreset(), actionSlots = seatsChoice.value)
     }
 
@@ -190,46 +226,50 @@ class TimerViewModel @Inject constructor(
 
     fun heroResolves(seat: Int) = command(TimerCommand.HeroResolves(seat))
 
-    fun endMatch() = launch {
-        controller.perform(TimerCommand.EndMatch)?.let { recordDuration(it) }
-    }
+    /** The controller writes the duration to a linked match (single source). */
+    fun endMatch() = command(TimerCommand.EndMatch)
 
-    /** Writes the duration into the match (creating a pending one if needed) and opens it. */
-    fun logResult() = launch {
-        val s = controller.snapshot.first() ?: return@launch
-        val id = recordDuration(s) ?: createMatch(s)
-        controller.clear()
-        events.send(TimerEvent.OpenMatch(id))
-    }
-
-    fun dismissSummary() = launch {
-        controller.snapshot.first()?.let { recordDuration(it) }
-        controller.clear()
-    }
-
-    private suspend fun recordDuration(s: TimerSnapshot): String? {
-        val id = s.matchId ?: return null
-        val match = matches.observeMatch(id).first() ?: return null
-        val minutes = TimerUiMapper.durationMinutes(controller.readout(s).matchElapsedMillis)
-        matches.upsert(match.copy(durationMin = minutes, mode = s.mode ?: match.mode))
-        return id
-    }
-
-    private suspend fun createMatch(s: TimerSnapshot): String {
-        val id = UUID.randomUUID().toString()
-        matches.upsert(
-            Match(
-                id = id,
-                createdAt = wall.nowMillis(),
-                playedAt = s.matchStartWall,
-                status = MatchStatus.PENDING,
-                mode = s.mode ?: GameMode.QUICK,
-                durationMin = TimerUiMapper.durationMinutes(controller.readout(s).matchElapsedMillis),
-                participants = emptyList(),
-            ),
+    /**
+     * Opens the linked match, or a new match pre-filled with the duration (no stub match is
+     * saved), then clears the session. Ignores repeated taps.
+     */
+    fun logResult() = finishOnce {
+        val s = controller.snapshot.first()?.takeIf { it.status == TimerStatus.ENDED } ?: return@finishOnce
+        val event = s.matchId?.let { TimerEvent.OpenMatch(it) } ?: TimerEvent.NewMatch(
+            durationMin = TimerUiMapper.durationMinutes(controller.readout(s).matchElapsedMillis),
+            mode = legalMode(s)?.let(::serialName),
         )
-        return id
+        controller.clear()
+        events.send(event)
     }
+
+    fun dismissSummary() = finishOnce {
+        if (controller.snapshot.first()?.status == TimerStatus.ENDED) controller.clear()
+    }
+
+    /**
+     * Runs [block] unless a Log result / Done is already in flight. Once it completes the session
+     * is cleared, so a late second tap finds no ended session and does nothing.
+     */
+    private fun finishOnce(block: suspend () -> Unit) {
+        if (!finishing.compareAndSet(false, true)) return
+        viewModelScope.launch {
+            try {
+                block()
+            } finally {
+                finishing.set(false)
+            }
+        }
+    }
+
+    /** The session's mode if the rules allow it for its number of heroes (Action slots = seats). */
+    private suspend fun legalMode(s: TimerSnapshot): GameMode? {
+        val mode = s.mode ?: return null
+        val option = MatchSetup(repository.rules()).modeOptions(s.actionSlots).firstOrNull { it.mode == mode }
+        return mode.takeIf { option?.available == true }
+    }
+
+    private fun serialName(mode: GameMode): String = GameMode.serializer().descriptor.getElementName(mode.ordinal)
 
     private suspend fun onTick(s: TimerSnapshot?) {
         if (s == null || s.status != TimerStatus.RUNNING) {

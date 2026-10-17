@@ -1,19 +1,15 @@
 package dev.quinton.goa.feature.timer.ui.timer
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.feature.timer.ui.components.notificationSettingsIntent
+import dev.quinton.goa.feature.timer.ui.components.rememberStartWithNotificationPermission
 
 /** Callbacks from the timer screens; stateless composables take this instead of a ViewModel. */
 data class TimerActions(
@@ -33,6 +29,8 @@ data class TimerActions(
     val onHeroResolves: (Int) -> Unit = {},
     val onLogResult: () -> Unit = {},
     val onDone: () -> Unit = {},
+    val onOpenNotificationSettings: () -> Unit = {},
+    val onDismissAlertsBanner: () -> Unit = {},
 )
 
 @Composable
@@ -42,6 +40,7 @@ fun TimerRoute(
     onManagePresets: () -> Unit,
     onSettings: () -> Unit,
     onOpenMatch: (String) -> Unit,
+    onNewMatch: (durationMin: Int, mode: String?) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LifecycleStartEffect(viewModel) {
@@ -52,20 +51,12 @@ fun TimerRoute(
         viewModel.navigation.collect { event ->
             when (event) {
                 is TimerEvent.OpenMatch -> onOpenMatch(event.matchId)
+                is TimerEvent.NewMatch -> onNewMatch(event.durationMin, event.mode)
             }
         }
     }
     val context = LocalContext.current
-    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        // Start either way; without the permission the timer still works in-app.
-        viewModel.start()
-    }
-    val start = {
-        val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED
-        if (needsPermission) permission.launch(Manifest.permission.POST_NOTIFICATIONS) else viewModel.start()
-    }
+    val start = rememberStartWithNotificationPermission(viewModel::start)
     TimerScreen(
         state = state,
         actions = TimerActions(
@@ -85,6 +76,10 @@ fun TimerRoute(
             onHeroResolves = viewModel::heroResolves,
             onLogResult = viewModel::logResult,
             onDone = viewModel::dismissSummary,
+            onOpenNotificationSettings = {
+                runCatching { context.startActivity(notificationSettingsIntent(context)) }
+            },
+            onDismissAlertsBanner = viewModel::dismissAlertsBanner,
         ),
     )
 }

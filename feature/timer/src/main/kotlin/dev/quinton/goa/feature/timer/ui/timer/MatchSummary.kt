@@ -103,7 +103,7 @@ internal fun MatchSummary(state: SummaryUiState, actions: TimerActions) {
                         if (state.hasMatch) {
                             "The duration is saved to the match. Log the winner and win condition next."
                         } else {
-                            "Log result creates a match with this duration for you to complete."
+                            "Log result opens a new match with this duration filled in."
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

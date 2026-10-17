@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.timer.ui.timer
 
+import dev.quinton.goa.core.domain.timer.MatchDuration
 import dev.quinton.goa.core.domain.timer.PhaseScope
 import dev.quinton.goa.core.domain.timer.RoundSection
 import dev.quinton.goa.core.domain.timer.TimerReadout
@@ -35,7 +36,7 @@ internal object TimerUiMapper {
         )
     }
 
-    fun active(s: TimerSnapshot, r: TimerReadout, seats: List<SeatInfo>?): ActiveUiState {
+    fun active(s: TimerSnapshot, r: TimerReadout, seats: List<SeatInfo>?, alertsOff: Boolean = false): ActiveUiState {
         val step = r.step
         val firstCue = step.cues.filter { it > 0 }.maxOrNull()
         val remaining = r.remainingMillis
@@ -67,6 +68,7 @@ internal object TimerUiMapper {
             tieBreaker = s.tieBreaker,
             matchClock = TimerText.duration(r.matchElapsedMillis, roundUp = false),
             autoAdvance = s.preset.autoAdvance,
+            alertsOff = alertsOff,
         )
     }
 
@@ -132,8 +134,8 @@ internal object TimerUiMapper {
         )
     }
 
-    /** Whole minutes for the match log, rounded to nearest, at least 1. */
-    fun durationMinutes(millis: Long): Int = ((millis + 30_000) / 60_000).toInt().coerceAtLeast(1)
+    /** Whole minutes for the match log, rounded to nearest, clamped like the logged value. */
+    fun durationMinutes(millis: Long): Int = MatchDuration.minutes(millis)
 
     fun humanDuration(millis: Long): String {
         val minutes = durationMinutes(millis)

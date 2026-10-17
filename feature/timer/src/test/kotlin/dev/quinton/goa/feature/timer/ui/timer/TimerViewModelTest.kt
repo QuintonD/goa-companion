@@ -12,7 +12,6 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.testing.FakeCatalogRepository
-import dev.quinton.goa.core.testing.FakeMatchRepository
 import dev.quinton.goa.core.testing.FakePlayerRepository
 import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.core.testing.TestCatalog
@@ -30,7 +29,7 @@ class TimerViewModelTest {
     @get:Rule val main = MainDispatcherRule()
 
     private val h = TimerHarness()
-    private val matches = FakeMatchRepository()
+    private val matches = h.matches
     private val players = FakePlayerRepository(
         listOf(
             Player("p1", "Ana", 0xFF3FC1B0, 0, 0),
@@ -50,7 +49,6 @@ class TimerViewModelTest {
         settingsRepository = settings,
         cues = cues,
         ticker = ticker,
-        wall = h.clocks,
     )
 
     private suspend fun TimerViewModel.awaitActive(): ActiveUiState = uiState.first { it.active != null }.active!!
@@ -221,7 +219,7 @@ class TimerViewModelTest {
     }
 
     @Test
-    fun `log result without a match creates a pending one with the duration`() = runTest {
+    fun `log result without a match opens a new prefilled match and saves nothing`() = runTest {
         val vm = vm()
         vm.start()
         vm.awaitActive()
@@ -230,11 +228,69 @@ class TimerViewModelTest {
         vm.uiState.first { it.summary != null }
         vm.navigation.test {
             vm.logResult()
-            val event = awaitItem() as TimerEvent.OpenMatch
-            val created = matches.state.value.single { it.id == event.matchId }
-            assertThat(created.status).isEqualTo(MatchStatus.PENDING)
-            assertThat(created.durationMin).isEqualTo(90)
+            vm.logResult() // double tap
+            assertThat(awaitItem()).isEqualTo(TimerEvent.NewMatch(durationMin = 90, mode = null))
+            expectNoEvents()
         }
+        assertThat(matches.state.value).isEmpty()
+        assertThat(h.controller.snapshot.first()).isNull()
+    }
+
+    @Test
+    fun `log result passes the session mode only when legal for its hero count`() = runTest {
+        h.controller.start(h.repository.selectedPreset(), 4, mode = GameMode.LONG)
+        h.clocks.advance(30 * 60_000L)
+        h.controller.perform(TimerCommand.EndMatch)
+        val vm = vm()
+        vm.uiState.first { it.summary != null }
+        vm.navigation.test {
+            vm.logResult()
+            assertThat(awaitItem()).isEqualTo(TimerEvent.NewMatch(durationMin = 30, mode = "long"))
+        }
+
+        // Double lane needs 6+ heroes: not passed for a 4-hero session.
+        h.controller.start(h.repository.selectedPreset(), 4, mode = GameMode.DOUBLE_LANE)
+        h.controller.perform(TimerCommand.EndMatch)
+        val vm2 = vm()
+        vm2.uiState.first { it.summary != null }
+        vm2.navigation.test {
+            vm2.logResult()
+            assertThat(awaitItem()).isEqualTo(TimerEvent.NewMatch(durationMin = 1, mode = null))
+        }
+    }
+
+    @Test
+    fun `alerts-off banner shows while notifications are blocked until dismissed`() = runTest {
+        h.notifier.enabled = false
+        val vm = vm()
+        vm.setVisible(true)
+        vm.start()
+        assertThat(vm.uiState.first { it.active != null }.active!!.alertsOff).isTrue()
+
+        vm.dismissAlertsBanner()
+        assertThat(vm.uiState.first { it.active?.alertsOff == false }.active!!.alertsOff).isFalse()
+    }
+
+    @Test
+    fun `alerts-off banner hides once notifications are allowed again`() = runTest {
+        h.notifier.enabled = false
+        val vm = vm()
+        vm.setVisible(true)
+        vm.start()
+        assertThat(vm.uiState.first { it.active != null }.active!!.alertsOff).isTrue()
+
+        h.notifier.enabled = true
+        vm.setVisible(false)
+        vm.setVisible(true) // back from the notification settings
+        assertThat(vm.uiState.first { it.active?.alertsOff == false }.active!!.alertsOff).isFalse()
+    }
+
+    @Test
+    fun `no banner when notifications are allowed`() = runTest {
+        val vm = vm()
+        vm.setVisible(true)
+        vm.start()
+        assertThat(vm.awaitActive().alertsOff).isFalse()
     }
 
     @Test
