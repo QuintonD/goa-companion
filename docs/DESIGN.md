@@ -81,7 +81,8 @@ gallery screenshot test (`GalleryScreenshotTest`) shows them all, dark/light, fo
 
 ## Key screens
 Catalog grid → Hero detail · Timer (full-screen, giant ring countdown, phase chip,
-turn/round pips) · Players list → Player profile (rating chart) · Match log/editor ·
+turn/round pips; landscape puts the dial on the left half; paused = blinking digits and a
+large "PAUSED" label) · Players list → Player profile (rating chart) · Match log/editor ·
 Meta dashboard · Draft setup → Draft board (two team columns, pool grid, step banner).
 Bottom nav: Heroes, Timer, Draft, Players (original icons: shield, hourglass, fanned cards,
 companions; solid variant when selected). Settings from top bar.

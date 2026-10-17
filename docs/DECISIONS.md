@@ -129,3 +129,19 @@ ignored: where its paragraphing is used, source-1 bold is copied word by word, a
 span would not fit, the source-1 text is kept (noted in REPORT.md).
 **Consequences:** Older catalog JSON still loads; every value display shows `4+` and speaks
 "4 plus"; card text renders bold keywords. The importer bumps `dataVersion`.
+
+## ADR-016 (timer) — Preset revisions, per-style alert channels, one-level undo (2026-10-17)
+**Context:** QA found red "overtime" during every reveal/resolve, an ongoing notification hidden
+on the lock screen, a 60 s looping alarm that ignored Settings → Sounds, and accidental Next taps
+that lost the phase's time. Users already have stored copies of the bundled presets.
+**Decision:** (1) `PhaseKind.RESOLVE` (untimed, per turn) is added to the bundled Table rules and
+Relaxed presets; `TimerPreset.revision` lets `TimerPresetMigration` upgrade stored copies of a
+bundled preset on read with additive, targeted changes only (user-made presets untouched). (2)
+The countdown moves to a new default-importance silent public channel; the phase-over alert uses
+a bundled original chime on alarm usage, with one channel per Sounds × Haptics combination
+because channel sound is immutable. (3) The engine keeps one `UndoPoint` per Next (Back within
+15 s restores it with time carried over) and a `stepEnteredAt` stamp for a 500 ms Next debounce;
+both, the "Hurry up" shot clock and team time-outs live in the snapshot and are rebased with it.
+**Consequences:** Four alert channels appear in system settings. A future data change to bundled
+presets bumps `revision` and adds a migration step. Snapshots from older versions decode with
+defaults (no undo, no shot clock).

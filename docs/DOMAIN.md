@@ -74,7 +74,7 @@ free text.
      actor is the highest *unresolved* initiative (re-checked every time). Cross-team ties:
      the team shown on the **Tie Breaker coin** acts first, then that player flips the coin.
      Same-team ties: the team decides (without discussing why), coin not flipped. A hero off
-     the board may respawn before acting. *Optional per-action timer.*
+     the board may respawn before acting. *Untimed Resolve step; optional per-action timer.*
   4. **Turn ends** — "this turn" effects end.
 - **End of round** (in order) [RB p.8]: 1 Minion Battle · 2 Remove Tokens, Return Markers ·
   3 Push the Lane (if applicable; flip a Wave counter) · 4 Retrieve Cards · 5 Level Up
@@ -118,13 +118,36 @@ preset (enable/disable, duration, cues, auto-advance):
 | Phase | Scope | Default | Notes |
 |-------|-------|---------|-------|
 | **Pre-round strategy** | once per round, before turn 1 | **1:30** | Team talk before cards are played |
-| **Turn** (play a card) | each of the 4 turns | **0:30** | Simultaneous card selection |
-| Action (optional, off) | per hero during resolution | 0:30 | Tap "next" as each hero resolves |
+| **Play a card** (`turn`) | each of the 4 turns | **0:30** | Simultaneous card selection; strategy talk until the reveal (p.4) |
+| **Resolve** (`resolve`) | each turn, after the reveal | untimed | Cards resolve one by one in initiative order (p.7); counts up, never overtime |
+| Action (optional, off) | per hero during resolution | 0:30 | Tap "next" as each hero resolves; when on, it *is* the resolve step (Resolve is skipped) |
 | **Upgrade** | end of round, Level Up step | **2:00** | Spend coins / choose upgrades |
 
 The end of round is still shown as the six-step checklist (see above); the Upgrade timer runs
-on step 5 (Level Up). Users can add custom phases with the same three scopes
-(`ROUND_START`, `TURN`, `ROUND_END`). Overtime counts up; nothing is auto-enforced.
+on step 5 (Level Up), with the step's rule text under the dial. Users can add custom phases with
+the same three scopes (`ROUND_START`, `TURN`, `ROUND_END`). Overtime counts up; nothing is
+auto-enforced. The Next button at the end of "Play a card" reads "Cards revealed".
+
+Preset data carries a `revision`: stored copies of a bundled preset with an older revision are
+upgraded on read (`TimerPresetMigration`; revision 1 adds Resolve and renames "Turn" to "Play a
+card" only if unchanged). User-made presets are never touched.
+
+**Table rules in presets [APP — house rules, not in the rulebook]** (research: designer-endorsed
+"hurry up" clock, playtester time-outs):
+- *Hurry up*: on-demand countdown (default 0:30, or off) usable in any phase or overtime; shown
+  under the dial with cues at 10 s, 5 s and zero; pauses with the timer, cleared on the next step.
+- *Time-outs*: N per team per round (default 0 = off), each adds 0:40 (editable) to the current
+  timed phase, also out of overtime; reset each round.
+- *Volume keys* (opt-in, default off): while the timer shows, volume up = Next, volume down =
+  Pause/Resume (also Bluetooth camera shutters).
+- *Tonight's turn length*: the start card adjusts the turn length (±15 s) for this evening's
+  games without editing the preset (in memory until saved to the preset or the app restarts).
+
+**Navigation safety [APP]**: a Next within 0.5 s of entering a step is ignored (double tap, or a
+tap landing on an auto-advance). Back within 15 s of a Next undoes it: the previous step
+continues with its time as if Next had never been tapped (one level). The last Action slot of a
+turn auto-picks the one hero left. The Tie Breaker coin side is never assumed: an untracked coin
+asks "Red shows / Blue shows"; a tapped flip can be undone for 5 s.
 
 ## Cards and heroes [RB]
 - **Deck:** 18 cards = Gold + Silver (basic, never upgraded) + 3 × Tier I + 6 × Tier II +

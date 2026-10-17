@@ -40,6 +40,11 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
   phase is configurable (on/off, duration, cues, auto-advance) and presets are saved/editable.
   Defaults in DOMAIN.md.
 - Big, glanceable countdown; tap to pause; next/back; round and turn pips; overtime counts up.
+  Each turn is "Play a card" (timed) then an untimed "Resolve" step after the reveal, so
+  resolution never shows as overtime. Back right after an accidental Next restores the phase
+  with its time; double taps don't skip phases. Side-by-side layout in landscape.
+- Table rules (house rules, per preset): on-demand "Hurry up" countdown, optional team
+  time-outs, opt-in volume-key control; "turn length tonight" adjustable from the start card.
 - Action timer: tap "next" as each player resolves; shows whose turn it is if heroes known.
 - **End of round:** tap-through checklist of the six official steps, then next round.
 - Haptic + audio cues at configurable thresholds (e.g. 10 s, 5 s, 0).
