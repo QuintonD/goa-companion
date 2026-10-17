@@ -94,6 +94,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.ComplexityStars
@@ -444,7 +445,16 @@ private fun HeroBoard(state: BoardUiState, session: DraftSession, actions: Board
                     if (session.poolEditable()) PoolEditBanner(session, actions)
                     TeamsPanel(state, session, concealed, stacked = true)
                 }
-                PoolGrid(state, session, pool, filters, actions, onPeek, Modifier.weight(1f - SIDE_WEIGHT)) {}
+                PoolGrid(
+                    state,
+                    session,
+                    pool,
+                    filters,
+                    actions,
+                    onPeek,
+                    Modifier.weight(1f - SIDE_WEIGHT),
+                    topGap = Spacing.screen - Spacing.xs,
+                ) {}
             }
         } else {
             Column(Modifier.fillMaxSize()) {
@@ -455,9 +465,9 @@ private fun HeroBoard(state: BoardUiState, session: DraftSession, actions: Board
                     state::playerName,
                     // Large text: a smaller headline so the sticky banner leaves room for the pool.
                     compact = LocalDensity.current.fontScale > LARGE_FONT_SCALE,
-                    modifier = Modifier.padding(horizontal = Spacing.screen).padding(top = Spacing.sm),
+                    modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.sm),
                 )
-                PoolGrid(state, session, pool, filters, actions, onPeek, Modifier.weight(1f)) {
+                PoolGrid(state, session, pool, filters, actions, onPeek, Modifier.weight(1f), topGap = Spacing.xs) {
                     item(span = { GridItemSpan(maxLineSpan) }) { chrome() }
                     if (session.poolEditable()) {
                         item(span = { GridItemSpan(maxLineSpan) }) { PoolEditBanner(session, actions) }
@@ -478,6 +488,7 @@ private fun PoolGrid(
     actions: BoardActions,
     onPeek: (String) -> Unit,
     modifier: Modifier,
+    topGap: Dp,
     leading: LazyGridScope.() -> Unit,
 ) {
     // Dense tiles (about five across on a phone) so a full roster fits in about two screens;
@@ -493,11 +504,14 @@ private fun PoolGrid(
     val full: LazyGridItemSpanScope.() -> GridItemSpan = { GridItemSpan(maxLineSpan) }
     LazyVerticalGrid(
         columns = GridCells.Adaptive(TILE_MIN_WIDTH * fontScale),
-        contentPadding = PaddingValues(Spacing.screen),
+        // No top content padding: items scrolling up would show through it, as a strip under
+        // the sticky banner. The gap above the first item is a spacer that scrolls away instead.
+        contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = Spacing.screen),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         modifier = modifier.fillMaxHeight(),
     ) {
+        item(span = full) { Spacer(Modifier.height(topGap)) }
         leading()
         item(span = full) {
             PoolHeader(
