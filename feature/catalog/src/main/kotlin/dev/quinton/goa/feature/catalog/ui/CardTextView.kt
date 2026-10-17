@@ -26,9 +26,9 @@ private const val ICON_PREFIX = "icon:"
 
 /**
  * Builds the printed card text: icons become inline placeholders whose alternate text is the
- * icon's spoken label (so TalkBack reads "Gain 1 Coin"; not twice when the printed word follows, see [spokenIconLabel]), reminder text is italic, bold keywords
- * (`**This turn:**`) are bold, breaks are paragraph breaks. Unknown icon names fall back to their
- * text, never a blank.
+ * icon's spoken label (so TalkBack reads "Gain 1 Coin"; not twice when the printed word follows,
+ * see [spokenIconLabel]), reminder text is italic, bold keywords (`**This turn:**`) are bold,
+ * breaks are paragraph breaks. Unknown icon names fall back to their text, never a blank.
  */
 fun cardTextAnnotated(text: String, reminderColor: Color): AnnotatedString = buildAnnotatedString {
     appendSegments(CardText.parse(text), reminderColor)
