@@ -9,6 +9,7 @@ import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.model.settings.TimerLayout
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +33,7 @@ sealed interface SettingsUiState {
         val products: List<ProductOption>,
         val hapticsEnabled: Boolean,
         val soundsEnabled: Boolean,
+        val timerLayout: TimerLayout = TimerLayout.STEPS,
     ) : SettingsUiState {
         val ownedCount: Int get() = products.count { it.owned }
     }
@@ -47,6 +49,8 @@ sealed interface SettingsAction {
     data class SetHaptics(val enabled: Boolean) : SettingsAction
 
     data class SetSounds(val enabled: Boolean) : SettingsAction
+
+    data class SetTimerLayout(val layout: TimerLayout) : SettingsAction
 }
 
 @HiltViewModel
@@ -65,6 +69,7 @@ class SettingsViewModel @Inject constructor(
                 is SettingsAction.SetTheme -> settingsRepository.update { it.copy(theme = action.theme) }
                 is SettingsAction.SetHaptics -> settingsRepository.update { it.copy(hapticsEnabled = action.enabled) }
                 is SettingsAction.SetSounds -> settingsRepository.update { it.copy(soundsEnabled = action.enabled) }
+                is SettingsAction.SetTimerLayout -> settingsRepository.update { it.copy(timerLayout = action.layout) }
                 is SettingsAction.SetOwnsEverything -> setOwnsEverything(action.ownsEverything)
                 is SettingsAction.ToggleProduct -> toggleProduct(action.productId)
             }
@@ -119,6 +124,7 @@ class SettingsViewModel @Inject constructor(
             },
             hapticsEnabled = s.hapticsEnabled,
             soundsEnabled = s.soundsEnabled,
+            timerLayout = s.timerLayout,
         )
     }
 }

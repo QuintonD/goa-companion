@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Vibration
+import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -63,6 +64,7 @@ import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.model.settings.TimerLayout
 
 /** Where each settings link goes; the route maps these to Navigation 3 keys. */
 enum class SettingsLink { TIMER_PRESETS, DRAFT_METHODS, RATINGS, BACKUP, ABOUT }
@@ -164,6 +166,20 @@ private fun SettingsList(
                 )
             }
         }
+        item { Spacer(Modifier.size(Spacing.md)) }
+        item {
+            GoaCard(Modifier.fillMaxWidth()) {
+                Text("Running timer", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Step by step shows one big dial per phase; Whole round lists every phase of the round " +
+                        "on one screen. Also switchable from the timer's top bar.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.size(Spacing.md))
+                ChoiceSelector(TimerLayoutOptions, state.timerLayout) { onAction(SettingsAction.SetTimerLayout(it)) }
+            }
+        }
 
         item { SectionHeader("Game setup") }
         item {
@@ -192,32 +208,41 @@ private fun SettingsList(
     }
 }
 
-private data class ThemeOption(val mode: ThemeMode, val label: String, val icon: ImageVector)
+private data class ChoiceOption<T>(val value: T, val label: String, val icon: ImageVector)
 
 private val ThemeOptions = listOf(
-    ThemeOption(ThemeMode.DARK, "Dark", Icons.Outlined.DarkMode),
-    ThemeOption(ThemeMode.LIGHT, "Light", Icons.Outlined.LightMode),
-    ThemeOption(ThemeMode.SYSTEM, "System", Icons.Outlined.Contrast),
+    ChoiceOption(ThemeMode.DARK, "Dark", Icons.Outlined.DarkMode),
+    ChoiceOption(ThemeMode.LIGHT, "Light", Icons.Outlined.LightMode),
+    ChoiceOption(ThemeMode.SYSTEM, "System", Icons.Outlined.Contrast),
+)
+
+private val TimerLayoutOptions = listOf(
+    ChoiceOption(TimerLayout.STEPS, "Step by step", Icons.Outlined.Timer),
+    ChoiceOption(TimerLayout.ROUND, "Whole round", Icons.Outlined.ViewAgenda),
 )
 
 @Composable
-private fun ThemeSelector(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
+private fun ThemeSelector(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) =
+    ChoiceSelector(ThemeOptions, selected, onSelect)
+
+/** Segmented buttons; at large text a radio list, since the segments can't fit their labels. */
+@Composable
+private fun <T> ChoiceSelector(options: List<ChoiceOption<T>>, selected: T, onSelect: (T) -> Unit) {
     if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) {
-        // Large text: three segments can't fit their labels, so use a radio list.
         Column(Modifier.selectableGroup()) {
-            ThemeOptions.forEach { option ->
+            options.forEach { option ->
                 Row(
                     Modifier
                         .fillMaxWidth()
                         .heightIn(min = 56.dp)
                         .selectable(
-                            selected = option.mode == selected,
+                            selected = option.value == selected,
                             role = Role.RadioButton,
-                            onClick = { onSelect(option.mode) },
+                            onClick = { onSelect(option.value) },
                         ),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    RadioButton(selected = option.mode == selected, onClick = null)
+                    RadioButton(selected = option.value == selected, onClick = null)
                     Spacer(Modifier.width(Spacing.md))
                     Text(option.label, style = MaterialTheme.typography.bodyLarge)
                 }
@@ -226,13 +251,13 @@ private fun ThemeSelector(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
         return
     }
     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-        ThemeOptions.forEachIndexed { index, option ->
+        options.forEachIndexed { index, option ->
             SegmentedButton(
-                selected = option.mode == selected,
-                onClick = { onSelect(option.mode) },
-                shape = SegmentedButtonDefaults.itemShape(index, ThemeOptions.size),
+                selected = option.value == selected,
+                onClick = { onSelect(option.value) },
+                shape = SegmentedButtonDefaults.itemShape(index, options.size),
                 icon = {
-                    SegmentedButtonDefaults.Icon(active = option.mode == selected) {
+                    SegmentedButtonDefaults.Icon(active = option.value == selected) {
                         Icon(option.icon, contentDescription = null, modifier = Modifier.size(18.dp))
                     }
                 },
@@ -352,6 +377,7 @@ internal val PreviewSettings = SettingsUiState.Ready(
     ),
     hapticsEnabled = true,
     soundsEnabled = false,
+    timerLayout = TimerLayout.ROUND,
 )
 
 @Preview
