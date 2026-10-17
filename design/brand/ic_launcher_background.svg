@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="108" height="108">
+  <title>App icon background: deep-ocean gradient with a teal glow from above</title>
+  <defs>
+    <linearGradient id="ocean" gradientUnits="userSpaceOnUse" x1="54" y1="0" x2="54" y2="108">
+      <stop offset="0" stop-color="#1A3A57"/>
+      <stop offset="0.6" stop-color="#0E2133"/>
+      <stop offset="1" stop-color="#07101A"/>
+    </linearGradient>
+    <radialGradient id="glow" gradientUnits="userSpaceOnUse" cx="54" cy="30" r="52">
+      <stop offset="0" stop-color="#3FC1B0" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#3FC1B0" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="108" height="108" fill="url(#ocean)"/>
+  <rect x="0" y="0" width="108" height="108" fill="url(#glow)"/>
+</svg>

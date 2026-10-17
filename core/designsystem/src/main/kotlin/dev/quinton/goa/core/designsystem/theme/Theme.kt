@@ -7,6 +7,7 @@ import androidx.compose.material3.Shapes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.model.settings.ThemeMode
 
@@ -28,7 +29,10 @@ fun GoaTheme(
         ThemeMode.LIGHT -> false
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
-    CompositionLocalProvider(LocalGoaColors provides if (dark) DarkExtended else LightExtended) {
+    CompositionLocalProvider(
+        LocalGoaColors provides if (dark) DarkExtended else LightExtended,
+        LocalGoaIsDark provides dark,
+    ) {
         MaterialTheme(
             colorScheme = if (dark) DarkColors else LightColors,
             typography = GoaTypography,
@@ -44,7 +48,15 @@ object GoaTheme {
         @Composable
         @ReadOnlyComposable
         get() = LocalGoaColors.current
+
+    /** True when the dark scheme is active (resolved from [ThemeMode]). */
+    val isDark: Boolean
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalGoaIsDark.current
 }
+
+internal val LocalGoaIsDark = staticCompositionLocalOf { true }
 
 /** 4 dp spacing grid (docs/DESIGN.md). */
 object Spacing {
