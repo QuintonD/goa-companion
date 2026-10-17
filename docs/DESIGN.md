@@ -116,3 +116,10 @@ Private, non-commercial build (ADR-006), so two kinds of asset:
 - Sounds: original, CC0, or official if available; record the source in `third_party/ASSETS.md`.
 
 In-app "About": credit Wolff Designa for game content and art; note this is a private build.
+
+### Container colours (added 2026-10-17)
+Material containers are set explicitly so components never fall back to Material's default
+lavender. Contrast (on-colour vs container): dark primaryContainer `#3D3018`/`#F0DDB0` 9.6:1,
+secondaryContainer `#123F3B`/`#BDEFE7` 9.3:1, errorContainer `#4D1C1C`/`#FFD9D6` 10.8:1; light
+primaryContainer `#F1E2C0`/`#3A2A08` 10.8:1, secondaryContainer `#CDEDE7`/`#0B3B34` 10.0:1,
+errorContainer `#F9DEDC`/`#410E0B` 12.8:1. Tertiary mirrors secondary.
