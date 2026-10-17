@@ -86,7 +86,16 @@ class EloCalculatorTest {
         // E(larger) = 1 / (1 + 10^(−50/400)) = 0.5715.
         val threeVsTwo = EloCalculator.replay(
             listOf(
-                match("m", 1, Team.RED, red("p1", "h1"), red("p2", "h2"), red("p3", "h3"), blue("p4", "h4"), blue("p5", "h5")),
+                match(
+                    "m",
+                    1,
+                    Team.RED,
+                    red("p1", "h1"),
+                    red("p2", "h2"),
+                    red("p3", "h3"),
+                    blue("p4", "h4"),
+                    blue("p5", "h5"),
+                ),
             ),
             config,
         )

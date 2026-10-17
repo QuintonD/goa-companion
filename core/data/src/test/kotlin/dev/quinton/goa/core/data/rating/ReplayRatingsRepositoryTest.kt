@@ -2,6 +2,7 @@ package dev.quinton.goa.core.data.rating
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.draft.DraftMethodKind
@@ -14,7 +15,6 @@ import dev.quinton.goa.core.model.match.Participant
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
-import dev.quinton.goa.core.data.MatchRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
