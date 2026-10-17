@@ -3,7 +3,10 @@ package dev.quinton.goa.core.data.backup
 import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
+import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
+import java.time.Instant
+import java.time.ZoneId
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -106,7 +109,34 @@ object BackupCodec {
 
             !idsOk -> "The backup contains duplicate or empty ids."
 
-            else -> null
+            else -> invalidMatches(document)
         }
     }
+
+    /**
+     * Matches the match editor would never save: a hero listed twice, or a player on both teams.
+     * Lists each one by date and id so the user can find it.
+     */
+    private fun invalidMatches(document: BackupDocument): String? {
+        val names = document.players.associate { it.id to it.name }
+        val lines = document.matches.sortedWith(compareBy({ it.playedAt }, { it.id })).flatMap { match ->
+            val label = "${dateOf(match.playedAt)} (id ${match.id})"
+            val heroes = match.participants.mapNotNull { it.heroId }
+            val twice = heroes.groupingBy { it }.eachCount().filterValues { it > 1 }.keys.sorted()
+            val red = match.team(Team.RED).map { it.playerId }.toSet()
+            val both = match.team(Team.BLUE).map { it.playerId }.distinct().filter { it in red }
+            twice.map { "• $label: hero $it is listed twice." } +
+                both.map { "• $label: ${names[it] ?: it} is on both teams." }
+        }
+        if (lines.isEmpty()) return null
+        val shown = lines.take(MAX_LISTED) + listOfNotNull(
+            (lines.size - MAX_LISTED).takeIf { it > 0 }?.let { "…and $it more." },
+        )
+        return (listOf("This backup has matches the app can't import:") + shown).joinToString(separator = "\n")
+    }
+
+    private const val MAX_LISTED = 5
+
+    private fun dateOf(epochMillis: Long): String =
+        Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate().toString()
 }

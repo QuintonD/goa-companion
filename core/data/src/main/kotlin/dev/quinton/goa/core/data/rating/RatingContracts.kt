@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.data.rating
 
+import dev.quinton.goa.core.domain.meta.HeroPilots
 import dev.quinton.goa.core.domain.meta.MetaReport
 import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.domain.rating.RatingsResult
@@ -23,6 +24,14 @@ data class RatingsSnapshot(
 interface RatingsSnapshotRepository {
     /** Recomputed off the main thread whenever matches, drafts or the Elo config change. */
     fun observeSnapshot(): Flow<RatingsSnapshot>
+}
+
+/**
+ * "Best with this hero" for the catalog: [MetaReport.pilots] from the same snapshot the Meta tab
+ * shows, so the two never disagree.
+ */
+interface HeroPilotsRepository {
+    fun observeHeroPilots(heroId: String): Flow<HeroPilots>
 }
 
 /** The user-editable Elo constants (Settings → Ratings). Changing them recomputes all ratings. */

@@ -40,6 +40,22 @@ data class HeroMeta(
     val bestPlayer: PlayerHeroStat?,
 )
 
+/**
+ * Who has played one hero — the catalog's "Best with this hero" (docs/DOMAIN.md *Meta stats*).
+ * Counts the same matches as [HeroMeta.record] and the Elo hero space.
+ */
+data class HeroPilots(
+    val heroId: String,
+    /** Rated matches featuring the hero. */
+    val record: WinLoss,
+    /** Games a player needs on the hero to be ranked in [best]. */
+    val minGames: Int,
+    /** Players with ≥ [minGames] games: win rate, then games (descending), then player id. */
+    val best: List<PlayerHeroStat>,
+    /** Everyone who played the hero: games, then wins (descending), then player id. */
+    val all: List<PlayerHeroStat>,
+)
+
 /** Two heroes on the same team and how that team fared. */
 data class SynergyPair(val heroA: String, val heroB: String, val record: WinLoss, val wilsonLower: Double)
 
@@ -56,8 +72,15 @@ data class MetaReport(
     val synergies: List<SynergyPair>,
     /** Matches with uneven seat counts; wins = the larger team won. */
     val largerTeam: WinLoss,
+    /** Per hero, who has played it ([pilots] fills in heroes nobody played). */
+    val pilotsByHero: Map<String, HeroPilots> = emptyMap(),
+    /** Games a player needs on a hero for "best with hero" ([MetaConfig.bestWithMinGames]). */
+    val bestWithMinGames: Int = MetaConfig().bestWithMinGames,
 ) {
     fun hero(id: String): HeroMeta? = heroes.firstOrNull { it.heroId == id }
+
+    fun pilots(heroId: String): HeroPilots =
+        pilotsByHero[heroId] ?: HeroPilots(heroId, WinLoss.NONE, bestWithMinGames, emptyList(), emptyList())
 
     /** The shared [HeroUsage] contract (core:model) for every hero seen in matches or bans. */
     fun usage(): Map<String, HeroUsage> = heroes.associate {
@@ -79,9 +102,22 @@ data class MetaReport(
 
 /**
  * Meta statistics derived from the match log and draft records (docs/DOMAIN.md *Meta stats*).
- * Only matches the Elo replay would rate are counted, so the dashboard and ratings agree.
+ * Only matches the Elo replay would rate are counted, and hero records (heroes, player × hero,
+ * pairs) only where the replay's hero space applies ([EloCalculator.heroSpaceApplies]), so the
+ * dashboard and ratings agree.
  */
 object MetaStats {
+    /** Best win rate first; ties by more games, then player id and hero id (deterministic). */
+    private val bestFirst = compareByDescending<PlayerHeroStat> { it.record.winRate ?: 0.0 }
+        .thenByDescending { it.record.games }
+        .thenBy { it.playerId }
+        .thenBy { it.heroId }
+
+    private val mostPlayedFirst = compareByDescending<PlayerHeroStat> { it.record.games }
+        .thenByDescending { it.record.wins }
+        .thenBy { it.playerId }
+        .thenBy { it.heroId }
+
     /**
      * Wilson score interval lower bound for [wins] successes in [games] trials. Ranks win rates
      * so that 3–0 does not beat 30–10.
@@ -116,10 +152,18 @@ object MetaStats {
         val bestByPlayer = playerHero
             .filter { (_, record) -> record.games >= config.bestWithMinGames }
             .map { (key, record) -> PlayerHeroStat(key.first, key.second, record) }
-        val bestComparator = compareByDescending<PlayerHeroStat> { it.record.winRate ?: 0.0 }
-            .thenByDescending { it.record.games }
-            .thenBy { it.playerId }
-            .thenBy { it.heroId }
+        val pilotsByHero = playerHero
+            .map { (key, record) -> PlayerHeroStat(key.first, key.second, record) }
+            .groupBy { it.heroId }
+            .mapValues { (heroId, stats) ->
+                HeroPilots(
+                    heroId = heroId,
+                    record = heroRecords[heroId] ?: WinLoss.NONE,
+                    minGames = config.bestWithMinGames,
+                    best = stats.filter { it.record.games >= config.bestWithMinGames }.sortedWith(bestFirst),
+                    all = stats.sortedWith(mostPlayedFirst),
+                )
+            }
 
         val total = rated.size
         val heroIds = (heroRecords.keys + bans.keys).distinct()
@@ -134,7 +178,7 @@ object MetaStats {
                 banRate = if (banDrafts.isEmpty()) null else (bans[heroId] ?: 0).toDouble() / banDrafts.size,
                 wilsonLower = wilsonLowerBound(record.wins, record.games, config.z),
                 ranked = record.games >= config.minSample,
-                bestPlayer = bestByPlayer.filter { it.heroId == heroId }.minWithOrNull(bestComparator),
+                bestPlayer = pilotsByHero[heroId]?.best?.firstOrNull(),
             )
         }.sortedWith(
             compareByDescending<HeroMeta> { it.ranked }
@@ -156,9 +200,11 @@ object MetaStats {
             heroes = heroes,
             bestHeroesByPlayer = bestByPlayer.groupBy {
                 it.playerId
-            }.mapValues { (_, list) -> list.sortedWith(bestComparator) },
+            }.mapValues { (_, list) -> list.sortedWith(bestFirst) },
             synergies = synergies,
             largerTeam = largerTeam,
+            pilotsByHero = pilotsByHero,
+            bestWithMinGames = config.bestWithMinGames,
         )
     }
 
@@ -171,6 +217,11 @@ object MetaStats {
 
         fun add(match: Match) {
             val winner = requireNotNull(match.winner)
+            val red = match.team(Team.RED).size
+            val blue = match.team(Team.BLUE).size
+            if (red != blue) largerTeam += ((if (red > blue) Team.RED else Team.BLUE) == winner)
+            // Same rule as the Elo hero space: a hero listed twice, or a team without a known hero.
+            if (!EloCalculator.heroSpaceApplies(match)) return
             for (seat in match.participants) {
                 val heroId = seat.heroId ?: continue
                 val won = seat.team == winner
@@ -180,13 +231,10 @@ object MetaStats {
             }
             for (team in Team.entries) {
                 addPairs(
-                    match.team(team).mapNotNull { it.heroId }.distinct().sorted(),
+                    match.team(team).mapNotNull { it.heroId }.sorted(),
                     team == winner,
                 )
             }
-            val red = match.team(Team.RED).size
-            val blue = match.team(Team.BLUE).size
-            if (red != blue) largerTeam += ((if (red > blue) Team.RED else Team.BLUE) == winner)
         }
 
         private fun addPairs(heroes: List<String>, won: Boolean) {

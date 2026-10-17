@@ -19,6 +19,7 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.rating.Rating
+import dev.quinton.goa.core.navigation.MatchEditRoute
 import dev.quinton.goa.feature.players.common.heroName
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -65,7 +66,7 @@ data class MatchEditUiState(
 
 @HiltViewModel(assistedFactory = MatchEditViewModel.Factory::class)
 class MatchEditViewModel @AssistedInject constructor(
-    @Assisted private val matchId: String?,
+    @Assisted private val route: MatchEditRoute,
     private val matches: MatchRepository,
     players: PlayerRepository,
     catalog: CatalogRepository,
@@ -74,8 +75,10 @@ class MatchEditViewModel @AssistedInject constructor(
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
-        fun create(matchId: String?): MatchEditViewModel
+        fun create(route: MatchEditRoute): MatchEditViewModel
     }
+
+    private val matchId = route.matchId
 
     private var nextKey = 0L
     private fun key() = nextKey++
@@ -139,8 +142,11 @@ class MatchEditViewModel @AssistedInject constructor(
                 )
 
                 else -> {
+                    // A new match may be pre-filled (e.g. by the timer's "Log result"); bad values are ignored.
                     val form = MatchForm(
                         playedAt = now(),
+                        mode = gameModeOrNull(route.prefillMode) ?: GameMode.QUICK,
+                        duration = MatchForm.durationText(route.prefillDurationMin),
                         red = List(2) { SeatDraft(key()) },
                         blue = List(2) { SeatDraft(key()) },
                     )
@@ -174,7 +180,12 @@ class MatchEditViewModel @AssistedInject constructor(
 
     fun setWinCondition(condition: WinCondition?) = updateForm { it.copy(winCondition = condition) }
 
-    fun setDuration(text: String) = updateForm { it.copy(duration = text.filter(Char::isDigit).take(3)) }
+    /** Digits only; values above [MAX_DURATION_MIN] are capped as you type. */
+    fun setDuration(text: String) = updateForm { form ->
+        val digits = text.filter(Char::isDigit).take(3)
+        val capped = digits.toIntOrNull()?.takeIf { it > MAX_DURATION_MIN }?.let { MAX_DURATION_MIN.toString() }
+        form.copy(duration = capped ?: digits)
+    }
 
     fun setNotes(notes: String) = updateForm { it.copy(notes = notes.take(MAX_NOTES)) }
 
@@ -238,5 +249,11 @@ class MatchEditViewModel @AssistedInject constructor(
     private companion object {
         const val MAX_TEXT = 60
         const val MAX_NOTES = 1_000
+
+        /** [GameMode] by its serial name ("quick", "long", "double_lane"), or null if unknown. */
+        fun gameModeOrNull(serialName: String?): GameMode? {
+            val descriptor = GameMode.serializer().descriptor
+            return GameMode.entries.firstOrNull { descriptor.getElementName(it.ordinal) == serialName }
+        }
     }
 }

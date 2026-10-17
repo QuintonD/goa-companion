@@ -80,6 +80,66 @@ class EloCalculatorTest {
     }
 
     @Test
+    fun `seatAdvantage moves each team by its value per seat of difference, so the gap widens by twice it`() {
+        val config = EloConfig(seatAdvantage = 25.0)
+        // DOMAIN.md example: 3v2 at equal ratings. T_larger = 1200 + 25, T_smaller = 1200 − 25 → gap 50,
+        // E(larger) = 1 / (1 + 10^(−50/400)) = 0.5715.
+        val threeVsTwo = EloCalculator.replay(
+            listOf(
+                match(
+                    "m",
+                    1,
+                    Team.RED,
+                    red("p1", "h1"),
+                    red("p2", "h2"),
+                    red("p3", "h3"),
+                    blue("p4", "h4"),
+                    blue("p5", "h5"),
+                ),
+            ),
+            config,
+        )
+        val e = threeVsTwo.matchChanges.getValue("m").expectedRed
+        assertThat(e).isWithin(EPS).of(EloCalculator.expectedScore(1250.0, 1200.0))
+        assertThat(e).isWithin(5e-5).of(0.5715)
+        // Two seats of difference (4v2): gap = 2 · 25 · 2 = 100.
+        val fourVsTwo = EloCalculator.replay(
+            listOf(
+                match(
+                    "m",
+                    1,
+                    Team.RED,
+                    red("p1", "h1"),
+                    red("p2", "h2"),
+                    red("p3", "h3"),
+                    red("p6", "h6"),
+                    blue("p4", "h4"),
+                    blue("p5", "h5"),
+                ),
+            ),
+            config,
+        )
+        assertThat(fourVsTwo.matchChanges.getValue("m").expectedRed)
+            .isWithin(EPS).of(EloCalculator.expectedScore(1300.0, 1200.0))
+    }
+
+    @Test
+    fun `player x hero records skip matches whose hero space is skipped`() {
+        val result = EloCalculator.replay(
+            listOf(
+                // Hero listed twice: the hero part of this match is skipped, including player × hero records.
+                match("dup", 1, Team.RED, red("p1", "h1"), red("p1", "h1"), blue("p2", "h2")),
+                // Blue has no known hero: same.
+                match("unknown", 2, Team.RED, red("p1", "h1"), blue("p2", null)),
+                match("ok", 3, Team.RED, red("p1", "h1"), blue("p2", "h2")),
+            ),
+        )
+        assertThat(result.record("p1", "h1")).isEqualTo(WinLoss(games = 1, wins = 1))
+        assertThat(result.record("p2", "h2")).isEqualTo(WinLoss(games = 1, wins = 0))
+        assertThat(result.player("p1").games).isEqualTo(3)
+    }
+
+    @Test
     fun `seatAdvantage 0 treats uneven teams as even`() {
         val result = EloCalculator.replay(
             listOf(match("m1", 1, Team.RED, red("p1", "h1"), red("p2", "h2"), blue("p3", "h3"))),

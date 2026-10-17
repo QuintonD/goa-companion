@@ -7,16 +7,16 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.CatalogRepository
-import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.RatingsRepository
+import dev.quinton.goa.core.data.rating.HeroPilotsRepository
+import dev.quinton.goa.core.domain.meta.HeroPilots
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.rating.HeroUsage
 import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.navigation.HeroDetailRoute
 import dev.quinton.goa.feature.catalog.model.DeckLayout
 import dev.quinton.goa.feature.catalog.model.HeroLogSummary
-import dev.quinton.goa.feature.catalog.model.HeroPilots
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -25,7 +25,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 
-/** Personal stats for the hero: derived Elo/usage plus a summary of the match log. */
+/** Personal stats for the hero: derived Elo/usage plus who played it (shared meta stats). */
 data class HeroPersonalStats(
     val rating: Rating?,
     val usage: HeroUsage?,
@@ -52,7 +52,7 @@ class HeroDetailViewModel @AssistedInject constructor(
     @Assisted route: HeroDetailRoute,
     catalogRepository: CatalogRepository,
     ratingsRepository: RatingsRepository,
-    matchRepository: MatchRepository,
+    heroPilotsRepository: HeroPilotsRepository,
     playerRepository: PlayerRepository,
 ) : ViewModel() {
     @AssistedFactory
@@ -71,11 +71,11 @@ class HeroDetailViewModel @AssistedInject constructor(
     private val stats = combine(
         ratingsRepository.observeHeroRatings().map { it[heroId] }.onStart { emit(null) },
         ratingsRepository.observeHeroUsage().map { it[heroId] }.onStart { emit(null) },
-        matchRepository.observeMatches().onStart { emit(emptyList()) },
+        heroPilotsRepository.observeHeroPilots(heroId).onStart<HeroPilots?> { emit(null) },
         playerRepository.observePlayers(includeArchived = true).onStart { emit(emptyList()) },
-    ) { rating, usage, matches, players ->
-        HeroPersonalStats(rating, usage, HeroPilots.summarize(heroId, matches, players))
-    }.catch { emit(HeroPersonalStats(null, null, HeroPilots.summarize(heroId, emptyList(), emptyList()))) }
+    ) { rating, usage, pilots, players ->
+        HeroPersonalStats(rating, usage, pilots?.let { HeroLogSummary.of(it, players) } ?: HeroLogSummary.EMPTY)
+    }.catch { emit(HeroPersonalStats(null, null, HeroLogSummary.EMPTY)) }
 
     val uiState: StateFlow<HeroDetailUiState> = combine(hero, stats) { found, stats ->
         if (found == null) {

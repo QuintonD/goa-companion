@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.catalog
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.domain.meta.MetaStats
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Match
@@ -16,7 +17,7 @@ import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.navigation.CardViewerRoute
 import dev.quinton.goa.core.navigation.HeroDetailRoute
 import dev.quinton.goa.core.testing.FakeCatalogRepository
-import dev.quinton.goa.core.testing.FakeMatchRepository
+import dev.quinton.goa.core.testing.FakeHeroPilotsRepository
 import dev.quinton.goa.core.testing.FakePlayerRepository
 import dev.quinton.goa.core.testing.FakeRatingsRepository
 import dev.quinton.goa.core.testing.FakeSettingsRepository
@@ -166,7 +167,7 @@ class HeroDetailViewModelTest {
             HeroDetailRoute("test-hero-1"),
             FakeCatalogRepository(),
             ratings,
-            FakeMatchRepository(listOf(match("1", Team.RED), match("2", Team.RED), match("3", Team.BLUE))),
+            FakeHeroPilotsRepository.from(listOf(match("1", Team.RED), match("2", Team.RED), match("3", Team.BLUE))),
             FakePlayerRepository(listOf(ana)),
         )
         vm.uiState.test {
@@ -182,12 +183,50 @@ class HeroDetailViewModelTest {
     }
 
     @Test
+    fun bestWithThisHeroIsTheMetaTabResult() = runTest {
+        // Ann and Bob are both 3–0 on hero 1; the tie goes to the lower player id, as on the Meta tab.
+        val bob = Player("bob", "Bob", 0xFFC9A35B, 2, 0)
+        fun game(id: String, pilot: String) = match(id, Team.RED).copy(
+            participants = listOf(
+                Participant(pilot, "test-hero-1", Team.RED),
+                Participant("x", "test-hero-2", Team.BLUE),
+            ),
+        )
+        val matches =
+            listOf("b1", "b2", "b3").map { game(it, "bob") } + listOf("a1", "a2", "a3").map { game(it, "ana") } +
+                // A hero listed twice is skipped for heroes, by Elo and meta alike.
+                match("dup", Team.RED).copy(
+                    participants = listOf(
+                        Participant("bob", "test-hero-1", Team.RED),
+                        Participant("x", "test-hero-1", Team.BLUE),
+                    ),
+                )
+        val meta = MetaStats.compute(matches, emptyList())
+        val vm = HeroDetailViewModel(
+            HeroDetailRoute("test-hero-1"),
+            FakeCatalogRepository(),
+            FakeRatingsRepository(),
+            FakeHeroPilotsRepository.from(matches),
+            FakePlayerRepository(listOf(bob, ana)),
+        )
+        vm.uiState.test {
+            val ready = expectMostRecentItem() as HeroDetailUiState.Ready
+            assertThat(ready.stats.log.bestPilots.map { it.playerId }).containsExactly("ana", "bob").inOrder()
+            assertThat(
+                ready.stats.log.bestPilots.first().playerId,
+            ).isEqualTo(meta.hero("test-hero-1")!!.bestPlayer!!.playerId)
+            assertThat(ready.stats.log.games).isEqualTo(meta.hero("test-hero-1")!!.record.games)
+            assertThat(ready.stats.log.games).isEqualTo(6)
+        }
+    }
+
+    @Test
     fun unknownHeroIsNotFound() = runTest {
         val vm = HeroDetailViewModel(
             HeroDetailRoute("nope"),
             FakeCatalogRepository(),
             FakeRatingsRepository(),
-            FakeMatchRepository(),
+            FakeHeroPilotsRepository(),
             FakePlayerRepository(),
         )
         vm.uiState.test {

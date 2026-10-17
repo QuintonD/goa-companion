@@ -10,6 +10,7 @@ import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
+import dev.quinton.goa.core.navigation.MatchEditRoute
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
@@ -127,7 +128,59 @@ class ViewModelTests {
         assertThat(PlayerEditViewModel("missing", players).uiState.value.notFound).isTrue()
     }
 
-    private fun editor(id: String? = null) = MatchEditViewModel(id, matches, players, catalog, ratings, deleted)
+    private fun editor(id: String? = null) = editor(MatchEditRoute(id))
+
+    private fun editor(route: MatchEditRoute) = MatchEditViewModel(route, matches, players, catalog, ratings, deleted)
+
+    @Test
+    fun newMatchHonoursTimerPrefill() = runTest {
+        val vm = editor(MatchEditRoute(prefillDurationMin = 47, prefillMode = "double_lane"))
+        val state = vm.uiState.first { !it.loading }
+        assertThat(state.isNew).isTrue()
+        assertThat(state.form.duration).isEqualTo("47")
+        assertThat(state.form.mode).isEqualTo(GameMode.DOUBLE_LANE)
+        assertThat(state.form.red).hasSize(2)
+        // Pre-filled values are the starting point, not unsaved edits.
+        assertThat(state.dirty).isFalse()
+    }
+
+    @Test
+    fun invalidPrefillIsIgnoredOrClamped() = runTest {
+        val bad = editor(MatchEditRoute(prefillDurationMin = 0, prefillMode = "blitz")).uiState.first { !it.loading }
+        assertThat(bad.form.duration).isEmpty()
+        assertThat(bad.form.mode).isEqualTo(GameMode.QUICK)
+        val long = editor(MatchEditRoute(prefillDurationMin = 900, prefillMode = "long")).uiState.first { !it.loading }
+        assertThat(long.form.duration).isEqualTo("600")
+        assertThat(long.form.mode).isEqualTo(GameMode.LONG)
+    }
+
+    @Test
+    fun prefillDoesNotTouchAnExistingMatch() = runTest {
+        val original = Fixtures.matches.first { it.id == "m09" }
+        val state = editor(MatchEditRoute("m09", prefillDurationMin = 12, prefillMode = "long"))
+            .uiState.first { !it.loading }
+        assertThat(state.form.duration).isEqualTo(original.durationMin.toString())
+        assertThat(state.form.mode).isEqualTo(original.mode)
+    }
+
+    @Test
+    fun pendingMatchWithNoSeatsCanBeSavedAndTypedDurationIsCapped() = runTest {
+        val vm = editor()
+        val form = vm.uiState.first { !it.loading }.form
+        (form.red + form.blue).forEach { vm.removeSeat(if (it in form.red) Team.RED else Team.BLUE, it.key) }
+        vm.setStatus(MatchStatus.ABANDONED)
+        vm.setNotes("Rained off")
+        vm.setDuration("750")
+        val state = vm.uiState.first { it.form.notes == "Rained off" }
+        assertThat(state.form.duration).isEqualTo("600")
+        assertThat(state.errors).isEmpty()
+        vm.save()
+        vm.uiState.first { it.finished }
+        val saved = matches.state.value.single { m -> Fixtures.matches.none { it.id == m.id } }
+        assertThat(saved.status).isEqualTo(MatchStatus.ABANDONED)
+        assertThat(saved.participants).isEmpty()
+        assertThat(saved.durationMin).isEqualTo(600)
+    }
 
     @Test
     fun newMatchStartsWithTwoSeatsPerTeamAndRequiresPilotsAndWinner() = runTest {

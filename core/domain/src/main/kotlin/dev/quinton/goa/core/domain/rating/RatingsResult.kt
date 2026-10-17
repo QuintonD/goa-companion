@@ -59,7 +59,7 @@ data class RatingsResult(
     val playerHistory: Map<String, List<RatingPoint>>,
     /** Per hero, one point per rated match (hero space) in replay order. */
     val heroHistory: Map<String, List<RatingPoint>>,
-    /** Results per player piloting a specific hero (rated matches, known heroes only). */
+    /** Results per player piloting a specific hero (rated matches whose hero space applies, known heroes only). */
     val playerHeroRecords: Map<PlayerHeroKey, WinLoss>,
     /** Rated matches in which each player double-piloted (two or more seats). */
     val doublePilotGames: Map<String, Int>,

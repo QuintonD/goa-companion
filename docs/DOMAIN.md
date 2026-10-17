@@ -232,7 +232,10 @@ spaces, players and heroes, updated from the same match. Every constant lives in
 - Hero space: a seat's strength `s = R_hero + pilotInfluence · (R_pilot − 1200)`.
   (A strong pilot winning with a hero earns the hero less credit, and vice versa.)
 - Team strength `T = mean(s over the team's seats) + seatAdvantage · (seats − opponentSeats)`.
-  This handles uneven seat counts (e.g. 3 heroes vs 2 with Handicap cards).
+  This handles uneven seat counts (e.g. 3 heroes vs 2 with Handicap cards). Each team's strength
+  moves by `seatAdvantage` per seat of difference (the larger team up, the smaller down), so the
+  gap widens by **2 × seatAdvantage** per seat. Example: 3v2 at equal ratings with
+  `seatAdvantage = 25` → gap 50 → `E(larger) = 0.5715`.
 - `E_A = 1 / (1 + 10^((T_B − T_A) / 400))`; `S_A` = 1 win, 0 loss (no draws in GoA2).
 
 **Updates.**
@@ -249,15 +252,22 @@ spaces, players and heroes, updated from the same match. Every constant lives in
   player space); a match where a team has no known hero, or a hero appears twice, is skipped
   for the hero space only. `seatAdvantage` always uses the real seat counts.
 - The start rating (1200) is editable in `EloConfig`; the 400 scale is fixed.
-- Stats tracked alongside: games/wins per player, per hero, per player × hero, double-pilot
-  games, and the larger-team win rate (to tune `seatAdvantage`).
+- Stats tracked alongside: games/wins per player, per hero, per player × hero (hero space
+  only, so a skipped hero space adds no player × hero game), double-pilot games, and the
+  larger-team win rate (to tune `seatAdvantage`).
 
 ## Meta stats [APP]
 - Pick rate = matches featuring hero ÷ all matches; ban rate = drafts banning hero ÷ drafts
   with at least one ban (House draft and Pick and Ban both count); win rate = wins ÷ matches
   featuring hero.
 - Rank by **Wilson score lower bound (95%)**; hide below a minimum sample (default 5).
-- "Best with hero": highest hero-specific win rate per player with ≥ 3 games.
+- Counted matches are exactly the ones the Elo replay rates. Hero records (per hero, per
+  player × hero, synergy pairs) follow the Elo hero-space rule: a match where a hero is listed
+  twice, or a team has no known hero, still counts for the pick-rate denominator and the
+  larger-team record but adds nothing to any hero; unknown-hero seats are left out.
+- "Best with hero": highest hero-specific win rate per player with ≥ 3 games; ties by more
+  games, then player id. The catalog's hero page and the Meta tab read the same computation
+  (`MetaReport.pilots`) from the same snapshot.
 
 ## Team balancing [APP]
 Enumerate all splits into ⌈n/2⌉ / ⌊n/2⌋ (≤ 126 for n ≤ 10), minimise `|mean(A) − mean(B)|`,
