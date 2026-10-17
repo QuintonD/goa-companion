@@ -8,21 +8,25 @@ BGG designer posts. Page refs `p.N` are the PDF's printed pages. `[RB]` = rulebo
 ## Sources (catalog import — ADR-009)
 All heroes from all products, **2nd printing** (current). Pin each source to a commit SHA
 in `tools/catalog-import/sources.lock.json`; fetch from `raw.githubusercontent.com` (the
-GitHub API allows only 60 unauthenticated requests per hour). None of these repos has a
-licence; content belongs to Wolff Designa. Fine for this private build, never redistribute.
+GitHub API allows only 60 unauthenticated requests per hour; the importer makes one cached
+tree listing per pinned SHA). None of these repos has a licence; content belongs to Wolff
+Designa. Fine for this private build, never redistribute. Facts below verified at the pinned
+SHAs on 2026-10-17.
 
 | # | Source | Use for |
 |---|--------|---------|
-| 1 | **Stats-of-Atlantis** — github.com/QuasiStellar/Stats-of-Atlantis: `src/new_heroes.json` (2nd printing, 32 heroes, 610 cards), `src/spells.json` (Gydion), `src/states.ts` (title, ★, pack, roles, [base,max] stats), `src/lib/images/cards/<hero>/*.webp` (card artwork) | **Primary** card data, hero metadata, artwork/portraits |
-| 2 | **dmrediger/goa2** — `public/hero-cards/<pack>/<hero>/<hero>-<n>.jpeg` (729×1026; 0 = hero card, 1–19 = deck, 20 = back) | Full card images; visual check of values |
-| 3 | **yvo-niedrich/goa2-faq** — `build/data/heroes.json`, `cards/<hero>.json`, `faqs/*.json` (2nd printing; fix `â€™` mojibake) | Cross-check text; lore, tips, **per-hero FAQ rulings** |
-| 4 | **colefin8/guards-of-atlantis-ii-data** — `server/<Hero>.csv` (30 heroes; no Ignatia, Whisper) | Cross-check numbers |
+| 1 | **Stats-of-Atlantis** — github.com/QuasiStellar/Stats-of-Atlantis: `src/new_heroes.json` (2nd printing, 32 heroes, 610 cards incl. Handicap cards and Takahide's 2 extra golds), `src/spells.json` (Gydion's 22 spells), `src/states.ts` (title, ★, pack, all 2–6 roles incl. Healer, [base,max] stats in A/D/I/M order), `src/lib/images/cards/<hero>/<Slot>.webp` (card illustration without frame, e.g. `RedIIA`) | **Primary** card data and hero metadata; artwork used to identify scans. Known errors at the pinned SHA: Hanu Movement, two stray commas (fixed in overrides) |
+| 2 | **dmrediger/goa2** — `public/hero-cards/<pack>/<hero>/<hero>-<n>.jpeg` (729×1026; 0 = hero card, highest = card back; deck order varies by hero, so scans are matched by artwork), `…/gydion/gydions-spellbook/<level-N\|ult>/spellbook-<n>.jpeg` | Full card images (bundled); visual check of every disputed value |
+| 3 | **yvo-niedrich/goa2-faq** — `build/data/heroes.json` (lore, advice, stats, roles), `build/data/cards/<hero>.json` (+ `gydion_spellbook.json`), `build/data/faqs/<hero>.json` + `common.json`, `public/hero/<hero>.png` (portraits). No mojibake at the pinned SHA (repair kept). | Cross-check text; lore, **FAQ rulings**, portraits. Wording sometimes paraphrased or misspelt; card names differ for 4 cards |
+| 4 | **colefin8/guards-of-atlantis-ii-data** — `server/<Hero>.csv` (no Ignatia, Whisper; `Min.csv` holds another hero's cards; Range vs Radius item labels unreliable; some values shifted) | Cross-check numbers |
 | 5 | **Official rulebook PDF**: "latest version of the rules" linked from wolffdesigna.com/products/guards-of-atlantis-ii-1 (Google Drive id `1qceAxzEcdkMYP-00F61wNiUiiyj6iJAc`, 24 pages, text layer). The rules authority. | Rules, terminology |
 | 6 | BGG via `api.geekdo.com` JSON (HTML and XML API are blocked): IDs, "(2nd Printing)" hero spotlight threads | Strategy notes, roster check |
 
 `verified: true` = numeric fields agree between sources 1 and 4 (or 1 and the card image)
 **and** text agrees between 1 and 3. Disagreements go to `REPORT.md`; resolve them in
-`tools/catalog-import/overrides.json`, never by editing generated files.
+`tools/catalog-import/overrides.json`, never by editing generated files. A disagreement counts
+as agreement once the card image has decided it (patched or `confirm`ed with evidence); heroes
+without usable source-4 data are verified via `imageChecks` (Whisper, Ignatia, Min).
 
 ### Roster — 32 heroes (titles per BGG/Wolff; source 1 spells "Wuk the Grove Keeper", "Emmitt the Traveller", "Widget and Pyro": store those as aliases)
 | Product (BGG id, year) | Heroes (★ complexity) |

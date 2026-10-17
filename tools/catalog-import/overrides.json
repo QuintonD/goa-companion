@@ -1,0 +1,1049 @@
+{
+  "comment": "Corrections applied after import (see .claude/skills/fix-hero). Keys patch fields; 'confirm' marks source-1 values as checked against the evidence when a cross-check source disagrees.",
+  "heroes": {
+    "wuk": {
+      "title": "the Grovekeeper",
+      "reason": "Official title; source 1 spells it 'the Grove Keeper' (kept as alias).",
+      "evidence": "docs/DOMAIN.md roster (titles per BGG/Wolff Designa, lead decision 2026-10-17)"
+    },
+    "emmitt": {
+      "title": "the Traveler",
+      "reason": "Official title; sources 1 and 3 spell it 'the Traveller' (kept as alias).",
+      "evidence": "docs/DOMAIN.md roster (titles per BGG/Wolff Designa, lead decision 2026-10-17)"
+    },
+    "widget": {
+      "title": "the Dragonbonded",
+      "reason": "Official title; source 1 uses 'Widget and Pyro' (kept as alias). goa2-faq roles differ; the hero card's role icons match source 1.",
+      "evidence": "docs/DOMAIN.md roster (titles per BGG/Wolff Designa, lead decision 2026-10-17); Hero profile card scan (dmrediger/goa2 widget-0.jpeg), read 2026-10-17",
+      "confirm": [
+        "roles"
+      ]
+    },
+    "wasp": {
+      "confirm": [
+        "stats.defense"
+      ],
+      "reason": "goa2-faq stat differs; the hero card shows 4 base + 1 bright segment (source 1).",
+      "evidence": "Hero profile card scan (dmrediger/goa2 wasp-0.jpeg), read 2026-10-17"
+    },
+    "razzle": {
+      "confirm": [
+        "stats.movement"
+      ],
+      "reason": "goa2-faq stat differs; the hero card shows 5 base + 1 bright segment (source 1).",
+      "evidence": "Hero profile card scan (dmrediger/goa2 razzle-0.jpeg), read 2026-10-17"
+    },
+    "takahide": {
+      "confirm": [
+        "stats.movement"
+      ],
+      "reason": "goa2-faq stat differs; the hero card shows 1 base + 3 bright segments (source 1).",
+      "evidence": "Hero profile card scan (dmrediger/goa2 takahide-0.jpeg), read 2026-10-17"
+    },
+    "cutter": {
+      "confirm": [
+        "roles"
+      ],
+      "reason": "goa2-faq roles differ; the hero card's role icons match source 1.",
+      "evidence": "Hero profile card scan (dmrediger/goa2 cutter-0.jpeg), read 2026-10-17"
+    },
+    "trinkets": {
+      "confirm": [
+        "roles"
+      ],
+      "reason": "goa2-faq roles differ; the hero card's role icons match source 1.",
+      "evidence": "Hero profile card scan (dmrediger/goa2 trinkets-0.jpeg), read 2026-10-17"
+    },
+    "hanu": {
+      "stats": {
+        "movement": [
+          7,
+          8
+        ]
+      },
+      "reason": "Source 1 has Movement [8, 8]; the hero card shows 7 base + 1 bright segment, as goa2-faq says.",
+      "evidence": "Hero profile card scan (dmrediger/goa2 hanu-0.jpeg), read 2026-10-17"
+    }
+  },
+  "cards": {
+    "brogan-red-3b": {
+      "confirm": [
+        "values.defense",
+        "values.movement"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/brogan-red-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "wasp-purple-4": {
+      "confirm": [
+        "values.attack",
+        "values.range/radius"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/wasp-purple-4.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "wasp-green-1": {
+      "confirm": [
+        "block",
+        "values.defense",
+        "values.movement"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/wasp-green-1.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "wasp-green-2a": {
+      "confirm": [
+        "block",
+        "values.defense",
+        "values.movement"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/wasp-green-2a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "wasp-green-3a": {
+      "confirm": [
+        "block",
+        "values.defense"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/wasp-green-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "tali-green-2a": {
+      "confirm": [
+        "item"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/tali-green-2a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "tali-red-2b": {
+      "confirm": [
+        "item"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/tali-red-2b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "tali-green-2b": {
+      "confirm": [
+        "item",
+        "text"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/tali-green-2b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "tali-green-3a": {
+      "confirm": [
+        "item"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/tali-green-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "tali-blue-3b": {
+      "confirm": [
+        "item",
+        "text"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/tali-blue-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "bain-red-2a": {
+      "confirm": [
+        "item"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/bain-red-2a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "bain-red-3a": {
+      "confirm": [
+        "item"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/bain-red-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "hanu-handicap": {
+      "confirm": [
+        "item"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/hanu-handicap.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "wuk-red-3b": {
+      "confirm": [
+        "item"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/wuk-red-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "wuk-green-3b": {
+      "confirm": [
+        "item"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/wuk-green-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "mrak-purple-4": {
+      "confirm": [
+        "values.attack"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/mrak-purple-4.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "razzle-blue-2a": {
+      "confirm": [
+        "item"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/razzle-blue-2a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "snorri-green-1": {
+      "confirm": [
+        "block"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/snorri-green-1.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "snorri-green-2a": {
+      "confirm": [
+        "block"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/snorri-green-2a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "snorri-green-3a": {
+      "confirm": [
+        "block"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/snorri-green-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "snorri-red-2b": {
+      "confirm": [
+        "item"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/snorri-red-2b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "snorri-green-3b": {
+      "confirm": [
+        "item"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/snorri-green-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "emmitt-blue-2b": {
+      "confirm": [
+        "item"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/emmitt-blue-2b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "emmitt-red-2b": {
+      "confirm": [
+        "values.range/radius"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/emmitt-red-2b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "takahide-blue-3a": {
+      "confirm": [
+        "item"
+      ],
+      "reason": "colefin8 value differs; the printed card matches source 1.",
+      "evidence": "Card scan official/cards/takahide-blue-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "brogan-red-3a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/brogan-red-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "sabina-gold": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/sabina-gold.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "sabina-red-2b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/sabina-red-2b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "tigerclaw-gold": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/tigerclaw-gold.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "misa-silver": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/misa-silver.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "misa-blue-2a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/misa-blue-2a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "misa-green-2a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/misa-green-2a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "misa-green-3a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/misa-green-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "silverarrow-purple-4": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/silverarrow-purple-4.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "tali-blue-2b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/tali-blue-2b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "tali-blue-3a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/tali-blue-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "tali-green-3b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/tali-green-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ursafar-gold": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ursafar-gold.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ursafar-handicap": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ursafar-handicap.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ursafar-purple-4": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ursafar-purple-4.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ursafar-blue-1": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ursafar-blue-1.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ursafar-blue-2a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ursafar-blue-2a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ursafar-blue-3a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ursafar-blue-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ursafar-red-3b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ursafar-red-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "whisper-gold": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/whisper-gold.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "whisper-handicap": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/whisper-handicap.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "whisper-red-2a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/whisper-red-2a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "whisper-red-2b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/whisper-red-2b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "whisper-green-2b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/whisper-green-2b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "whisper-red-3a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/whisper-red-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "whisper-green-3b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/whisper-green-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "bain-gold": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/bain-gold.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "bain-handicap": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/bain-handicap.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "bain-silver": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/bain-silver.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "bain-purple-4": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/bain-purple-4.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "bain-red-1": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/bain-red-1.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "bain-green-1": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/bain-green-1.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "bain-green-2a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/bain-green-2a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "bain-green-3a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/bain-green-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "garrus-gold": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/garrus-gold.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "garrus-handicap": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/garrus-handicap.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "garrus-green-1": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/garrus-green-1.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "nebkher-gold": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/nebkher-gold.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "nebkher-handicap": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/nebkher-handicap.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "trinkets-silver": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/trinkets-silver.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "trinkets-green-1": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/trinkets-green-1.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "trinkets-blue-2b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/trinkets-blue-2b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "trinkets-red-3a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/trinkets-red-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "trinkets-blue-3b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/trinkets-blue-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "trinkets-green-3b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/trinkets-green-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "hanu-blue-3b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/hanu-blue-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ignatia-gold": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ignatia-gold.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ignatia-handicap": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ignatia-handicap.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ignatia-blue-1": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ignatia-blue-1.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ignatia-red-1": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ignatia-red-1.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ignatia-green-1": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ignatia-green-1.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ignatia-blue-2a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ignatia-blue-2a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ignatia-red-2a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ignatia-red-2a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ignatia-green-2a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ignatia-green-2a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ignatia-blue-2b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ignatia-blue-2b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ignatia-red-2b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ignatia-red-2b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ignatia-green-2b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ignatia-green-2b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ignatia-blue-3a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ignatia-blue-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ignatia-red-3a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ignatia-red-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ignatia-green-3a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ignatia-green-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ignatia-blue-3b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ignatia-blue-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ignatia-red-3b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ignatia-red-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "ignatia-green-3b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/ignatia-green-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "min-silver": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/min-silver.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "min-blue-1": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/min-blue-1.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "min-green-1": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/min-green-1.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "min-blue-2a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/min-blue-2a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "min-green-2a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/min-green-2a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "min-blue-3a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/min-blue-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "min-blue-3b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/min-blue-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "min-red-3b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/min-red-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "swift-red-1": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/swift-red-1.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "wuk-silver": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/wuk-silver.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "wuk-blue-2b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/wuk-blue-2b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "gydion-spell-shield": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/gydion-spell-shield.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "razzle-blue-2b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/razzle-blue-2b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "razzle-blue-3b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/razzle-blue-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "rowenna-purple-4": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/rowenna-purple-4.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "rowenna-green-3a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/rowenna-green-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "snorri-gold": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/snorri-gold.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "snorri-handicap": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/snorri-handicap.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "snorri-silver": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/snorri-silver.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "snorri-purple-4": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/snorri-purple-4.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "snorri-red-2a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/snorri-red-2a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "snorri-red-3a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/snorri-red-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "brynn-silver": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/brynn-silver.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "mortimer-blue-1": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/mortimer-blue-1.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "mortimer-blue-2a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/mortimer-blue-2a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "mortimer-blue-3a": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/mortimer-blue-3a.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "takahide-green-2b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/takahide-green-2b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "takahide-green-3b": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/takahide-green-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "widget-purple-4": {
+      "confirm": [
+        "text"
+      ],
+      "reason": "goa2-faq wording differs; the printed text box matches source 1 word for word.",
+      "evidence": "Card scan official/cards/widget-purple-4.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "tigerclaw-red-3b": {
+      "text": "Target a unit in range; if a friendly unit is adjacent to the target +2 {attack} Attack, and the target cannot perform a primary action to defend.",
+      "reason": "Source 1 adds a comma that is not printed on the card (goa2-faq has it right).",
+      "evidence": "Card scan official/cards/tigerclaw-red-3b.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "gydion-spell-fireball": {
+      "text": "Target a unit in range, not adjacent to you or to your friendly unit.",
+      "reason": "Source 1 adds a comma that is not printed on the card (goa2-faq has it right).",
+      "evidence": "Card scan official/cards/gydion-spell-fireball.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "trinkets-gold": {
+      "confirm": [
+        "name",
+        "text"
+      ],
+      "reason": "goa2-faq names it 'Rapid Deployment' and appends the Turret reminder, which is printed on the Handicap card (Ramshackle Turret), not on this card. The card matches source 1.",
+      "evidence": "Card scan official/cards/trinkets-gold.webp (dmrediger/goa2), read 2026-10-17"
+    },
+    "emmitt-red-3a": {
+      "confirm": [
+        "name"
+      ],
+      "reason": "goa2-faq spells it 'Temporal Judgement'; the card prints 'Temporal Judgment' (source 1).",
+      "evidence": "Card scan official/cards/emmitt-red-3a.webp (dmrediger/goa2), read 2026-10-17"
+    }
+  },
+  "images": {
+    "gydion-spell-magic-missile": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-1/spellbook-0.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-shocking-grasp": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-1/spellbook-1.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-expeditious-retreat": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-1/spellbook-2.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-burning-hands": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-1/spellbook-3.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-create-undead": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-2/spellbook-4.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-vampiric-touch": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-2/spellbook-5.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-fireball": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-2/spellbook-6.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-sunburst": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-3/spellbook-7.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-energy-drain": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-3/spellbook-8.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-suggestion": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-1/spellbook-9.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-dominate-person": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-2/spellbook-10.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-disintegrate": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-2/spellbook-11.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-midas-touch": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-2/spellbook-12.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-power-word-kill": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-3/spellbook-13.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-polymorph": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-3/spellbook-14.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-shield": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-1/spellbook-15.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-banishment": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-2/spellbook-16.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-find-familiar": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-2/spellbook-17.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-dimension-door": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-2/spellbook-18.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-cloud-kill": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-3/spellbook-19.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-invulnerability": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/level-3/spellbook-20.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    },
+    "gydion-spell-wish": {
+      "path": "public/hero-cards/arcane/gydion/gydions-spellbook/ult/spellbook-21.jpeg",
+      "reason": "Source 1 has no artwork for spellbook pages, so the scan cannot be matched automatically.",
+      "evidence": "Spell name read from the scan's title banner (contact sheet of all 22 spellbook scans, 2026-10-17)."
+    }
+  },
+  "imageChecks": {
+    "whisper": {
+      "evidence": "Every card's initiative, values, block, range/radius and item icon plus the hero card's stat bars compared with the scans in dmrediger/goa2 (not in colefin8).",
+      "checked": "2026-10-17"
+    },
+    "ignatia": {
+      "evidence": "Every card's initiative, values, block, range/radius and item icon plus the hero card's stat bars compared with the scans in dmrediger/goa2 (not in colefin8).",
+      "checked": "2026-10-17"
+    },
+    "min": {
+      "evidence": "colefin8 server/Min.csv contains another hero's cards (Bullrush, Bulwark), so every Min card's initiative, values, block, range/radius and item icon plus the hero card's stat bars were compared with the scans in dmrediger/goa2 instead.",
+      "checked": "2026-10-17"
+    }
+  }
+}
