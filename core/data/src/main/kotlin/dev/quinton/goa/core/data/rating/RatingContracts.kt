@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.data.rating
 
+import dev.quinton.goa.core.domain.meta.GroupReport
 import dev.quinton.goa.core.domain.meta.HeroPilots
 import dev.quinton.goa.core.domain.meta.MetaReport
 import dev.quinton.goa.core.domain.rating.EloConfig
@@ -11,6 +12,8 @@ data class RatingsSnapshot(
     val ratings: RatingsResult,
     val meta: MetaReport,
     val config: EloConfig,
+    /** Group stats (win conditions, sides, player pairs, streaks, last game night) from the same log. */
+    val group: GroupReport = GroupReport.EMPTY,
 ) {
     companion object {
         val EMPTY = RatingsSnapshot(RatingsResult.EMPTY, MetaReport.EMPTY, EloConfig.DEFAULT)

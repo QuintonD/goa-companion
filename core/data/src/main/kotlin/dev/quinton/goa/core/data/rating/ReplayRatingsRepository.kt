@@ -3,6 +3,7 @@ package dev.quinton.goa.core.data.rating
 import dev.quinton.goa.core.data.DraftRecordRepository
 import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.RatingsRepository
+import dev.quinton.goa.core.domain.meta.GroupStats
 import dev.quinton.goa.core.domain.meta.HeroPilots
 import dev.quinton.goa.core.domain.meta.MetaStats
 import dev.quinton.goa.core.domain.rating.EloCalculator
@@ -60,7 +61,10 @@ internal class ReplayRatingsRepository @Inject constructor(
         draftRepository.observeDrafts().distinctUntilChanged(),
         configRepository.config.distinctUntilChanged(),
     ) { m, d, c -> Inputs(m, d, c) }
-        .mapLatest { (m, d, c) -> RatingsSnapshot(EloCalculator.replay(m, c), MetaStats.compute(m, d), c) }
+        .mapLatest { (m, d, c) ->
+            val ratings = EloCalculator.replay(m, c)
+            RatingsSnapshot(ratings, MetaStats.compute(m, d), c, GroupStats.compute(m, ratings))
+        }
         .flowOn(dispatcher)
         .shareIn(scope, SharingStarted.Lazily, replay = 1)
 

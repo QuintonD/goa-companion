@@ -42,6 +42,7 @@ import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.feature.players.common.EngravedCard
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.SectionHeader
+import dev.quinton.goa.feature.players.common.plural
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -146,7 +147,7 @@ fun RatingSettingsScreen(state: RatingSettingsUiState, actions: RatingSettingsAc
                 value = c.provisionalGames.toDouble(),
                 range = 0.0..30.0,
                 step = 1.0,
-                format = { "${it.roundToInt()} games" },
+                format = { plural(it.roundToInt(), "game") },
                 onChange = { v -> update { it.copy(provisionalGames = v.roundToInt()) } },
             )
 

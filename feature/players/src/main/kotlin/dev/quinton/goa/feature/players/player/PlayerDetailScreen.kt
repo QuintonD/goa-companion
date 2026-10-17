@@ -51,6 +51,7 @@ import dev.quinton.goa.feature.players.common.formatPercent
 import dev.quinton.goa.feature.players.common.formatRating
 import dev.quinton.goa.feature.players.common.winLoss
 import dev.quinton.goa.feature.players.match.MatchCard
+import dev.quinton.goa.feature.players.meta.WinConditionBars
 
 data class PlayerDetailActions(
     val onBack: () -> Unit = {},
@@ -97,7 +98,7 @@ fun PlayerDetailScreen(state: PlayerDetailUiState, actions: PlayerDetailActions,
                             )
                         } else {
                             Column(Modifier.padding(Spacing.md)) {
-                                RatingChart(state.history, state.initialRating)
+                                RatingChart(state.history, state.initialRating, dates = state.historyDates)
                                 state.peak?.let {
                                     Text(
                                         "Peak ${formatRating(it)} · start ${formatRating(state.initialRating)}",
@@ -122,6 +123,22 @@ fun PlayerDetailScreen(state: PlayerDetailUiState, actions: PlayerDetailActions,
                             }
                         }
                     }
+                }
+                if (state.winConditions.total > 0) {
+                    item(key = "h-wins") { SectionHeader("How ${player.name} wins") }
+                    item(key = "wins") {
+                        EngravedCard(Modifier.fillMaxWidth()) {
+                            WinConditionBars(state.winConditions, Modifier.padding(Spacing.md))
+                        }
+                    }
+                }
+                if (state.rivals.isNotEmpty()) {
+                    item(key = "h-rivals") { SectionHeader("Head to head") }
+                    item(key = "rivals") { OpponentCard(state.rivals, versus = true) }
+                }
+                if (state.teammates.isNotEmpty()) {
+                    item(key = "h-mates") { SectionHeader("Teammates") }
+                    item(key = "mates") { OpponentCard(state.teammates, versus = false) }
                 }
                 item(key = "h-recent") {
                     SectionHeader(
@@ -234,6 +251,43 @@ private fun Stats(state: PlayerDetailUiState) {
             state.doublePilotGames.toString() to "Double pilot",
         ),
     )
+}
+
+@Composable
+private fun OpponentCard(rows: List<OpponentRow>, versus: Boolean) {
+    EngravedCard(Modifier.fillMaxWidth()) {
+        Column {
+            rows.forEachIndexed { i, row ->
+                if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .semantics(mergeDescendants = true) {
+                            contentDescription = "${if (versus) "Against" else "With"} ${row.name}: " +
+                                "${row.record.wins} wins ${row.record.losses} losses"
+                        }
+                        .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    row.player?.let { PlayerAvatar(it, size = 28.dp) }
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text(
+                        "${if (versus) "vs" else "with"} ${row.name}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        "${winLoss(row.record.wins, row.record.games)} · ${formatPercent(row.record.winRate)}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable

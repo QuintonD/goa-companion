@@ -16,6 +16,7 @@ import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModel
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianLayerRangeProvider
+import com.patrykandpatrick.vico.compose.cartesian.data.CartesianValueFormatter
 import com.patrykandpatrick.vico.compose.cartesian.data.LineCartesianLayerModel
 import com.patrykandpatrick.vico.compose.cartesian.layer.LineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
@@ -25,23 +26,32 @@ import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
 import com.patrykandpatrick.vico.compose.common.Fill
 import com.patrykandpatrick.vico.compose.common.ProvideVicoTheme
 import com.patrykandpatrick.vico.compose.m3.common.rememberM3VicoTheme
+import dev.quinton.goa.feature.players.common.Dates
 import dev.quinton.goa.feature.players.common.formatRating
+import dev.quinton.goa.feature.players.common.plural
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.roundToInt
 
 /**
  * Rating after each rated match (Vico line chart), starting from the initial rating. The whole
  * chart is one accessibility node with a spoken summary.
  */
 @Composable
-fun RatingChart(history: List<Double>, initial: Double, modifier: Modifier = Modifier) {
+fun RatingChart(
+    history: List<Double>,
+    initial: Double,
+    modifier: Modifier = Modifier,
+    dates: List<Long> = emptyList(),
+) {
     val values = remember(history, initial) { listOf(initial) + history }
     val model = remember(values) { CartesianChartModel(LineCartesianLayerModel.build { series(values) }) }
     val low = floor((values.min() - CHART_PADDING) / STEP) * STEP
     val high = ceil((values.max() + CHART_PADDING) / STEP) * STEP
     val lineColor = MaterialTheme.colorScheme.secondary
-    val summary = "Rating history over ${history.size} matches: started at ${formatRating(initial)}, " +
-        "now ${formatRating(values.last())}, peak ${formatRating(values.max())}, low ${formatRating(values.min())}."
+    val summary =
+        "Rating history over ${plural(history.size, "match", "matches")}: started at ${formatRating(initial)}, " +
+            "now ${formatRating(values.last())}, peak ${formatRating(values.max())}, low ${formatRating(values.min())}."
 
     ProvideVicoTheme(rememberM3VicoTheme()) {
         CartesianChartHost(
@@ -58,7 +68,18 @@ fun RatingChart(history: List<Double>, initial: Double, modifier: Modifier = Mod
                     rangeProvider = CartesianLayerRangeProvider.fixed(minY = low, maxY = high),
                 ),
                 startAxis = VerticalAxis.rememberStart(),
-                bottomAxis = HorizontalAxis.rememberBottom(),
+                // Dates under the line: x = 0 is the starting rating, x = i the i-th rated match.
+                bottomAxis = HorizontalAxis.rememberBottom(
+                    valueFormatter = remember(dates) {
+                        CartesianValueFormatter { _, x, _ ->
+                            val i = x.roundToInt()
+                            if (i == 0) "Start" else dates.getOrNull(i - 1)?.let(Dates::short) ?: ""
+                        }
+                    },
+                    itemPlacer = remember(history.size) {
+                        HorizontalAxis.ItemPlacer.aligned(spacing = { maxOf(1, (history.size + 1) / AXIS_LABELS) })
+                    },
+                ),
             ),
             model = model,
             scrollState = rememberVicoScrollState(scrollEnabled = false),
@@ -72,3 +93,6 @@ fun RatingChart(history: List<Double>, initial: Double, modifier: Modifier = Mod
 
 private const val CHART_PADDING = 10.0
 private const val STEP = 10.0
+
+/** About this many date labels fit under a phone-width chart. */
+private const val AXIS_LABELS = 4

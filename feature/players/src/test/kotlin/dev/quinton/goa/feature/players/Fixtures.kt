@@ -1,11 +1,13 @@
 package dev.quinton.goa.feature.players
 
+import dev.quinton.goa.core.data.DraftSetupPrefill
 import dev.quinton.goa.core.data.backup.BackupDocument
 import dev.quinton.goa.core.data.backup.BackupRepository
 import dev.quinton.goa.core.data.backup.ImportMode
 import dev.quinton.goa.core.data.rating.EloConfigRepository
 import dev.quinton.goa.core.data.rating.RatingsSnapshot
 import dev.quinton.goa.core.data.rating.RatingsSnapshotRepository
+import dev.quinton.goa.core.domain.meta.GroupStats
 import dev.quinton.goa.core.domain.meta.MetaStats
 import dev.quinton.goa.core.domain.rating.EloCalculator
 import dev.quinton.goa.core.domain.rating.EloConfig
@@ -199,7 +201,8 @@ class FakeRatingsSnapshotRepository(
             d,
             c,
         ->
-        RatingsSnapshot(EloCalculator.replay(m, c), MetaStats.compute(m, d), c)
+        val ratings = EloCalculator.replay(m, c)
+        RatingsSnapshot(ratings, MetaStats.compute(m, d), c, GroupStats.compute(m, ratings))
     }
 }
 
@@ -208,8 +211,18 @@ class FakeBackupRepository(var document: BackupDocument = BackupDocument(exporte
 
     override suspend fun export(): BackupDocument = document
 
-    override suspend fun import(document: BackupDocument, mode: ImportMode) {
+    override suspend fun import(document: BackupDocument, mode: ImportMode, useBackupSettings: Boolean) {
         imports += document to mode
+    }
+}
+
+class FakeDraftSetupPrefill : DraftSetupPrefill {
+    data class Call(val red: List<String>, val blue: List<String>, val doublePilot: String?, val handicap: Boolean)
+
+    val calls = mutableListOf<Call>()
+
+    override suspend fun prefill(red: List<String>, blue: List<String>, doublePilot: String?, handicap: Boolean) {
+        calls += Call(red, blue, doublePilot, handicap)
     }
 }
 

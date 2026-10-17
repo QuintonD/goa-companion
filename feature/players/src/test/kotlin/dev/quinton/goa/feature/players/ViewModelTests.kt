@@ -5,9 +5,13 @@ import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.backup.BackupCodec
 import dev.quinton.goa.core.data.backup.BackupDocument
 import dev.quinton.goa.core.data.backup.ImportMode
+import dev.quinton.goa.core.domain.match.RematchKind
 import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.domain.rating.WinLoss
 import dev.quinton.goa.core.model.match.GameMode
+import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.MatchStatus
+import dev.quinton.goa.core.model.match.Participant
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.core.navigation.MatchEditRoute
@@ -24,7 +28,12 @@ import dev.quinton.goa.feature.players.backup.BackupViewModel
 import dev.quinton.goa.feature.players.match.MatchEditViewModel
 import dev.quinton.goa.feature.players.match.MatchError
 import dev.quinton.goa.feature.players.match.MatchLogViewModel
+import dev.quinton.goa.feature.players.match.MatchNav
 import dev.quinton.goa.feature.players.match.RecentlyDeletedMatch
+import dev.quinton.goa.feature.players.match.RecentlySavedMatch
+import dev.quinton.goa.feature.players.match.RematchLauncher
+import dev.quinton.goa.feature.players.meta.HeroSort
+import dev.quinton.goa.feature.players.meta.MetaView
 import dev.quinton.goa.feature.players.meta.MetaViewModel
 import dev.quinton.goa.feature.players.player.PlayerDetailViewModel
 import dev.quinton.goa.feature.players.player.PlayerEditViewModel
@@ -50,6 +59,9 @@ class ViewModelTests {
     private val ratings = FakeRatingsSnapshotRepository(matches, drafts, config)
     private val catalog = FakeCatalogRepository()
     private val deleted = RecentlyDeletedMatch()
+    private val saved = RecentlySavedMatch()
+    private val prefill = FakeDraftSetupPrefill()
+    private val rematches = RematchLauncher(matches, prefill)
 
     @Test
     fun leaderboardRanksRatedPlayersAndHidesArchivedUntilToggled() = runTest {
@@ -130,7 +142,16 @@ class ViewModelTests {
 
     private fun editor(id: String? = null) = editor(MatchEditRoute(id))
 
-    private fun editor(route: MatchEditRoute) = MatchEditViewModel(route, matches, players, catalog, ratings, deleted)
+    private fun editor(route: MatchEditRoute) = MatchEditViewModel(
+        route,
+        matches,
+        players,
+        catalog,
+        ratings,
+        deleted,
+        saved,
+        rematches,
+    )
 
     @Test
     fun newMatchHonoursTimerPrefill() = runTest {
@@ -161,6 +182,102 @@ class ViewModelTests {
             .uiState.first { !it.loading }
         assertThat(state.form.duration).isEqualTo(original.durationMin.toString())
         assertThat(state.form.mode).isEqualTo(original.mode)
+    }
+
+    @Test
+    fun whoWonFromTheTimerDefaultsAPendingMatchToCompletedDatedFromTheSessionStart() = runTest {
+        val pending = Match(
+            "pend",
+            createdAt = Fixtures.at(15),
+            playedAt = Fixtures.at(15),
+            status = MatchStatus.PENDING,
+            mode = GameMode.QUICK,
+            participants = listOf(
+                Participant(Fixtures.ann.id, "test-hero-1", Team.RED),
+                Participant(Fixtures.bob.id, "test-hero-2", Team.BLUE),
+            ),
+            tieBreaker = Team.RED,
+        )
+        matches.upsert(pending)
+        val start = Fixtures.at(15, hour = 19, minute = 5)
+        val vm = editor(MatchEditRoute("pend", result = true, prefillPlayedAt = start + 42_000))
+        val state = vm.uiState.first { !it.loading }
+        assertThat(state.resultFirst).isTrue()
+        assertThat(state.form.status).isEqualTo(MatchStatus.COMPLETED)
+        assertThat(state.form.playedAt).isEqualTo(start) // whole minutes
+        assertThat(state.dirty).isFalse()
+
+        vm.save()
+        assertThat(vm.uiState.first { it.saveAttempts == 1 }.errors).contains(MatchError.WinnerRequired)
+        vm.setWinner(Team.BLUE)
+        vm.setWinCondition(WinCondition.LAST_PUSH)
+        vm.uiState.first { it.form.winCondition == WinCondition.LAST_PUSH }
+        vm.save()
+
+        // The result shows what changed instead of closing.
+        val saved = vm.uiState.first { it.saved?.ratingsReady == true }.saved!!
+        assertThat(saved.match.tieBreaker).isEqualTo(Team.RED)
+        assertThat(saved.players.map { it.name }).containsExactly("Bob", "Ann").inOrder()
+        assertThat(saved.players.first().delta!!).isGreaterThan(0.0)
+        assertThat(saved.players.last().delta!!).isLessThan(0.0)
+        assertThat(saved.leaderName).isNotNull()
+        assertThat(saved.rematchOptions.map { it.kind }).containsExactly(
+            RematchKind.SAME_SEATS,
+            RematchKind.SWAP_HEROES,
+            RematchKind.SWAP_TEAMS,
+            null,
+        )
+        assertThat(matches.state.value.single { it.id == "pend" }.status).isEqualTo(MatchStatus.COMPLETED)
+        assertThat(saved.match.playedAt).isEqualTo(start)
+    }
+
+    @Test
+    fun rematchSavesANewPendingMatchWithoutACoinAndOpensSetup() = runTest {
+        val vm = editor("m09")
+        vm.uiState.first { !it.loading }
+        vm.navigation.test {
+            vm.rematch(RematchKind.SWAP_TEAMS)
+            val open = awaitItem() as MatchNav.OpenSetup
+            val created = matches.state.value.single { it.id == open.matchId }
+            val source = Fixtures.matches.single { it.id == "m09" }
+            assertThat(created.status).isEqualTo(MatchStatus.PENDING)
+            assertThat(created.tieBreaker).isNull()
+            assertThat(created.team(Team.RED).map { it.playerId }).isEqualTo(source.team(Team.BLUE).map { it.playerId })
+
+            vm.rematch(null)
+            assertThat(awaitItem()).isEqualTo(MatchNav.OpenDraft)
+            assertThat(prefill.calls.single().red).isEqualTo(source.team(Team.RED).map { it.playerId }.distinct())
+        }
+    }
+
+    @Test
+    fun aPilotCanBeAddedFromThePickerAndFutureDatesAreRefused() = runTest {
+        val vm = editor()
+        val seat = vm.uiState.first { !it.loading }.form.red.first()
+        vm.addPilot(Team.RED, seat.key, "  Zed ")
+        val state = vm.uiState.first { it.form.red.first().playerId != null }
+        val zed = players.state.value.single { it.name == "Zed" }
+        assertThat(state.form.red.first().playerId).isEqualTo(zed.id)
+        // A known name picks that player instead of creating a second one.
+        vm.addPilot(Team.BLUE, state.form.blue.first().key, "ann")
+        assertThat(vm.uiState.first { it.form.blue.first().playerId != null }.form.blue.first().playerId)
+            .isEqualTo(Fixtures.ann.id)
+
+        vm.setPlayedAt(System.currentTimeMillis() + 86_400_000)
+        assertThat(vm.uiState.first { MatchError.FutureDate in it.errors }.errors).contains(MatchError.FutureDate)
+    }
+
+    @Test
+    fun matchLogResumesPendingMatchesAndScrollsToTheSavedOne() = runTest {
+        val log = MatchLogViewModel(matches, players, catalog, ratings, deleted, saved, rematches)
+        saved.put("m09")
+        assertThat(log.uiState.first { !it.loading }.highlightId).isEqualTo("m09")
+        log.highlightShown("m09")
+        assertThat(log.uiState.first { it.highlightId == null }.highlightId).isNull()
+        log.navigation.test {
+            log.resume("m09")
+            assertThat(awaitItem()).isEqualTo(MatchNav.OpenSetup("m09"))
+        }
     }
 
     @Test
@@ -252,7 +369,7 @@ class ViewModelTests {
         assertThat(state.errors).isEmpty()
         assertThat(state.dirty).isTrue()
         vm.save()
-        assertThat(vm.uiState.first { it.finished }.finished).isTrue()
+        assertThat(vm.uiState.first { it.saved != null }.saved).isNotNull()
 
         val saved = matches.state.value.single { m -> Fixtures.matches.none { it.id == m.id } }
         assertThat(saved.winner).isEqualTo(Team.BLUE)
@@ -298,7 +415,7 @@ class ViewModelTests {
         vm.uiState.first { it.finished }
         assertThat(matches.state.value.map { it.id }).doesNotContain("m05")
 
-        val log = MatchLogViewModel(matches, players, catalog, ratings, deleted)
+        val log = MatchLogViewModel(matches, players, catalog, ratings, deleted, saved, rematches)
         log.uiState.test {
             var state = awaitItem()
             while (state.loading || state.undo == null) state = awaitItem()
@@ -313,7 +430,7 @@ class ViewModelTests {
 
     @Test
     fun logGroupsByDayNewestFirstWithDeltasOnce() = runTest {
-        val log = MatchLogViewModel(matches, players, catalog, ratings, deleted)
+        val log = MatchLogViewModel(matches, players, catalog, ratings, deleted, saved, rematches)
         val state = log.uiState.first { !it.loading }
         assertThat(state.groups.first().matches.map { it.id }).containsExactly("m10", "m09").inOrder()
         assertThat(state.groups.flatMap { it.matches }).hasSize(10)
@@ -349,6 +466,46 @@ class ViewModelTests {
     }
 
     @Test
+    fun aLosingHeroIsNeverCalledBestAndProfilesShowHowAPlayerWins() = runTest {
+        val log = listOf(
+            Fixtures.match("x1", 1, Team.BLUE, Fixtures.red(cid, 7), Fixtures.blue(dee, 8)),
+            Fixtures.match("x2", 2, Team.BLUE, Fixtures.red(cid, 7), Fixtures.blue(dee, 8)),
+            Fixtures.match(
+                "x3",
+                3,
+                Team.RED,
+                Fixtures.red(cid, 7),
+                Fixtures.blue(dee, 8),
+                condition = WinCondition.LAST_PUSH,
+            ),
+        )
+        val local = FakeMatchRepository(log)
+        val snapshot = FakeRatingsSnapshotRepository(local, FakeDraftRecordRepository(), config)
+        val state = PlayerDetailViewModel(cid.id, players, local, snapshot, catalog).uiState.first { !it.loading }
+        // Cid is 1–2 on hero 7 (3 games): listed as most played, not "best".
+        assertThat(state.heroesAreBest).isFalse()
+        assertThat(state.heroes.single().record).isEqualTo(WinLoss(3, 1))
+        assertThat(state.winConditions.counts).containsExactly(WinCondition.LAST_PUSH, 1)
+        assertThat(state.historyDates).isEqualTo(log.map { it.playedAt })
+    }
+
+    @Test
+    fun metaShowsGroupStatsAndSortsTheCompactTable() = runTest {
+        val vm = MetaViewModel(ratings, players, catalog)
+        val state = vm.uiState.first { !it.loading }
+        assertThat(state.view).isEqualTo(MetaView.TABLE)
+        assertThat(state.winConditions.total).isEqualTo(state.totalMatches)
+        assertThat(state.red.games).isEqualTo(state.totalMatches)
+        assertThat(state.night).isNotNull()
+        assertThat(state.sortedHeroes).isEqualTo(state.ranked + state.unranked)
+        vm.setSort(HeroSort.GAMES)
+        val byGames = vm.uiState.first { it.sort == HeroSort.GAMES }.sortedHeroes.map { it.meta.record.games }
+        assertThat(byGames).isInOrder(Comparator.reverseOrder<Int>())
+        vm.setView(MetaView.CARDS)
+        assertThat(vm.uiState.first { it.view == MetaView.CARDS }.sort).isEqualTo(HeroSort.GAMES)
+    }
+
+    @Test
     fun metaSplitsRankedHeroesAndNamesBestPilots() = runTest {
         val vm = MetaViewModel(ratings, players, catalog)
         val state = vm.uiState.first { !it.loading }
@@ -378,7 +535,7 @@ class ViewModelTests {
     @Test
     fun backupExportsReadsAndImportsAfterConfirmation() = runTest {
         val backup =
-            FakeBackupRepository(BackupDocument(exportedAt = 7, players = listOf(ann), matches = Fixtures.matches))
+            FakeBackupRepository(BackupDocument(exportedAt = 7, players = Fixtures.players, matches = Fixtures.matches))
         val vm = BackupViewModel(backup, players, matches).apply { io = UnconfinedTestDispatcher(testScheduler) }
         vm.uiState.first { it.players == Fixtures.players.size }
 
@@ -397,7 +554,8 @@ class ViewModelTests {
         assertThat(pending.matches).isEqualTo(10)
         assertThat(backup.imports).isEmpty()
         vm.confirmImport(ImportMode.REPLACE)
-        assertThat(vm.uiState.first { it.message != null }.message).startsWith("Restored 1 player and 10 matches")
+        assertThat(vm.uiState.first { it.message != null }.message)
+            .startsWith("Restored ${Fixtures.players.size} players and 10 matches")
         assertThat(backup.imports.single().second).isEqualTo(ImportMode.REPLACE)
         assertThat(vm.suggestedFileName(Fixtures.at(17))).isEqualTo("goa-backup-2026-10-17.json")
     }

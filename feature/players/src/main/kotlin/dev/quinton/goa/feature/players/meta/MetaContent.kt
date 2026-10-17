@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.players.meta
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,39 +15,74 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
+import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.domain.meta.WinConditionMix
+import dev.quinton.goa.core.model.match.GameMode
+import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.model.match.WinCondition
+import dev.quinton.goa.feature.players.common.DeltaIndicator
 import dev.quinton.goa.feature.players.common.EngravedCard
+import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.SectionHeader
 import dev.quinton.goa.feature.players.common.StatRow
 import dev.quinton.goa.feature.players.common.formatPercent
 import dev.quinton.goa.feature.players.common.formatRating
+import dev.quinton.goa.feature.players.common.goaFilterChipColors
+import dev.quinton.goa.feature.players.common.goaSegmentedColors
+import dev.quinton.goa.feature.players.common.label
+import dev.quinton.goa.feature.players.common.plural
 import dev.quinton.goa.feature.players.common.winLoss
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import kotlin.math.roundToInt
 
-/** Meta dashboard: hero win/pick/ban rates ranked by Wilson bound, best pilots, pairs. */
+/** Callbacks of the Meta tab. */
+data class MetaActions(
+    val onOpenRatingSettings: () -> Unit = {},
+    val onView: (MetaView) -> Unit = {},
+    val onSort: (HeroSort) -> Unit = {},
+)
+
+/**
+ * Meta dashboard: the last game night, how games end, sides and length, the hero ranking (compact
+ * sortable table or cards, Wilson-ranked), rivalries and duos, hero pairs. All from the match log.
+ */
 @Composable
-fun MetaContent(state: MetaUiState, onOpenRatingSettings: () -> Unit, modifier: Modifier = Modifier) {
+fun MetaContent(state: MetaUiState, actions: MetaActions, modifier: Modifier = Modifier) {
     when {
         state.loading -> LoadingState(modifier)
 
@@ -69,7 +105,9 @@ fun MetaContent(state: MetaUiState, onOpenRatingSettings: () -> Unit, modifier: 
                         state.draftsWithBans.toString() to "Drafts with bans",
                         (if (state.largerTeam.games == 0) "—" else formatPercent(state.largerTeam.winRate)) to
                             (
-                                "Larger team won" + if (state.largerTeam.games > 0) {
+                                "Larger team won" + if (state.largerTeam.games >
+                                    0
+                                ) {
                                     " (${state.largerTeam.games})"
                                 } else {
                                     ""
@@ -79,45 +117,59 @@ fun MetaContent(state: MetaUiState, onOpenRatingSettings: () -> Unit, modifier: 
                     Modifier.padding(top = Spacing.md),
                 )
             }
+            state.night?.let { night -> item(key = "night") { GameNightCard(night, state.streaks) } }
+            if (state.winConditions.total > 0) {
+                item(key = "h-games") { SectionHeader("How games end") }
+                item(key = "games") { GamesCard(state) }
+            }
+            item(key = "h-heroes") { HeroHeader(state, actions) }
+            if (state.view == MetaView.TABLE) {
+                item(key = "table") { HeroCompactTable(state) }
+            } else {
+                if (state.ranked.isNotEmpty()) item(key = "ranked") { HeroCards(state.ranked, ranked = true) }
+                if (state.unranked.isNotEmpty()) {
+                    item(key = "h-unranked") { SectionHeader("Not enough games yet") }
+                    item(key = "unranked") { HeroCards(state.unranked, ranked = false) }
+                }
+            }
             item(key = "explain") {
                 Text(
-                    "Heroes are ranked by the 95 % Wilson lower bound of their win rate, so small samples " +
-                        "don't top the table. A hero needs ${state.minSample} games to be ranked.",
+                    "Heroes and pairs are ranked by the 95 % Wilson lower bound of their win rate, so small " +
+                        "samples don't top the table. Ranking needs ${plural(state.minSample, "game")}.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = Spacing.md),
                 )
             }
-            if (state.ranked.isNotEmpty()) {
-                item(key = "h-ranked") { SectionHeader("Hero ranking") }
-                item(key = "ranked") { HeroTable(state.ranked, ranked = true) }
+            if (state.rivals.isNotEmpty()) {
+                item(key = "h-rivals") { SectionHeader("Rivalries") }
+                item(key = "rivals") { PairsCard(state.rivals, versus = true) }
             }
-            if (state.unranked.isNotEmpty()) {
-                item(key = "h-unranked") { SectionHeader("Not enough games yet") }
-                item(key = "unranked") { HeroTable(state.unranked, ranked = false) }
+            if (state.duos.isNotEmpty()) {
+                item(key = "h-duos") { SectionHeader("Best teammates") }
+                item(key = "duos") { PairsCard(state.duos, versus = false) }
             }
             if (state.synergies.isNotEmpty()) {
-                item(key = "h-pairs") { SectionHeader("Strongest pairs") }
-                items(state.synergies, key = { "p-" + it.heroA + it.heroB }) { pair ->
-                    Row(
-                        Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics(mergeDescendants = true) {},
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            "${pair.heroA} + ${pair.heroB}",
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Text(
-                            "${winLoss(pair.record.wins, pair.record.games)} · ${formatPercent(pair.record.winRate)}",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                item(key = "h-pairs") { SectionHeader("Strongest hero pairs") }
+                item(key = "pairs") {
+                    EngravedCard(Modifier.fillMaxWidth()) {
+                        Column {
+                            state.synergies.forEachIndexed { i, pair ->
+                                if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                LineRow(
+                                    "${pair.heroA} + ${pair.heroB}",
+                                    "${winLoss(
+                                        pair.record.wins,
+                                        pair.record.games,
+                                    )} · ${formatPercent(pair.record.winRate)}",
+                                )
+                            }
+                        }
                     }
                 }
             }
             item(key = "settings") {
-                TextButton(onClick = onOpenRatingSettings, modifier = Modifier.padding(top = Spacing.lg)) {
+                TextButton(onClick = actions.onOpenRatingSettings, modifier = Modifier.padding(top = Spacing.lg)) {
                     Icon(Icons.Outlined.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(Spacing.sm))
                     Text("How ratings are calculated")
@@ -127,8 +179,347 @@ fun MetaContent(state: MetaUiState, onOpenRatingSettings: () -> Unit, modifier: 
     }
 }
 
+private val NightDate = DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault())
+
 @Composable
-private fun HeroTable(rows: List<HeroMetaRow>, ranked: Boolean) {
+private fun GameNightCard(night: GameNightUi, streaks: List<StreakRow>) {
+    SectionHeader("Last game night · ${night.date.format(NightDate)}")
+    EngravedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.semantics(mergeDescendants = true) {
+                },
+            ) {
+                Text(plural(night.matches, "match", "matches"), style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.weight(1f))
+                TeamBadge(Team.RED)
+                Text(" ${night.redWins}  ", style = MaterialTheme.typography.titleMedium)
+                TeamBadge(Team.BLUE)
+                Text(" ${night.blueWins}", style = MaterialTheme.typography.titleMedium)
+            }
+            val up = night.movers.filter { it.delta.roundToInt() > 0 }.take(TOP_MOVERS)
+            val down = night.movers.filter { it.delta.roundToInt() < 0 }.reversed().take(1)
+            if (up.isNotEmpty() || down.isNotEmpty()) {
+                Text(
+                    "Biggest movers",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                (up + down).forEach { mover ->
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 40.dp).semantics(mergeDescendants = true) {},
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        mover.player?.let { PlayerAvatar(it, size = 28.dp) }
+                        Spacer(Modifier.width(Spacing.sm))
+                        Text(mover.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        DeltaIndicator(mover.delta, label = "rating change that night")
+                    }
+                }
+            }
+            if (streaks.isNotEmpty()) {
+                Text(
+                    "Streaks",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                ) {
+                    streaks.forEach { s ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.semantics(mergeDescendants = true) {
+                                contentDescription =
+                                    "${s.name}, ${s.length} ${if (s.won) "wins" else "losses"} in a row"
+                            },
+                        ) {
+                            s.player?.let { PlayerAvatar(it, size = 20.dp) }
+                            Spacer(Modifier.width(Spacing.xs))
+                            Text(
+                                "${s.name} ${if (s.won) "W" else "L"}${s.length}",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = if (s.won) {
+                                    MaterialTheme.colorScheme.secondary
+                                } else {
+                                    MaterialTheme.colorScheme.error
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GamesCard(state: MetaUiState) {
+    EngravedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            WinConditionBars(state.winConditions)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            val red = state.red
+            Row(
+                Modifier.semantics(mergeDescendants = true) {
+                    contentDescription = "Red won ${red.wins} of ${red.games}, Blue won ${red.losses}"
+                },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Sides", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                TeamBadge(Team.RED)
+                Text(" ${red.wins} (${formatPercent(red.winRate)})   ", style = MaterialTheme.typography.labelLarge)
+                TeamBadge(Team.BLUE)
+                Text(" ${red.losses}", style = MaterialTheme.typography.labelLarge)
+            }
+            GameMode.entries.forEach { mode ->
+                state.durationByMode[mode]?.let { d ->
+                    LineRow(
+                        "Average ${mode.label()}",
+                        "${d.meanMinutes.roundToInt()} min · ${plural(d.matches, "match", "matches")}",
+                        inset = 0.dp,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Share of wins per condition as labelled bars ("Not recorded" when no condition was logged). */
+@Composable
+fun WinConditionBars(mix: WinConditionMix, modifier: Modifier = Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        (WinCondition.entries + listOf(null)).forEach { condition ->
+            val count = mix.counts[condition] ?: 0
+            if (count == 0 && condition == null) return@forEach
+            val name = condition?.label() ?: "Not recorded"
+            Row(
+                Modifier.semantics(mergeDescendants = true) { contentDescription = "$name, $count of ${mix.total}" },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.width(112.dp), maxLines = 1)
+                LinearProgressIndicator(
+                    progress = { (mix.share(condition) ?: 0.0).toFloat() },
+                    modifier = Modifier.weight(1f),
+                    color = MaterialTheme.colorScheme.secondary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    drawStopIndicator = {},
+                )
+                Text(
+                    "$count",
+                    style = MaterialTheme.typography.labelLarge,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.width(40.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeroHeader(state: MetaUiState, actions: MetaActions) {
+    Column(Modifier.padding(top = Spacing.lg)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "HERO RANKING",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f).semantics { heading() },
+            )
+            SingleChoiceSegmentedButtonRow {
+                MetaView.entries.forEachIndexed { i, view ->
+                    SegmentedButton(
+                        selected = state.view == view,
+                        onClick = { actions.onView(view) },
+                        shape = SegmentedButtonDefaults.itemShape(i, MetaView.entries.size),
+                        colors = goaSegmentedColors(),
+                        icon = {},
+                    ) { Text(if (view == MetaView.TABLE) "Table" else "Cards", maxLines = 1) }
+                }
+            }
+        }
+        if (state.view == MetaView.TABLE) {
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()).padding(vertical = Spacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                HeroSort.entries.forEach { sort ->
+                    val selected = state.sort == sort
+                    FilterChip(
+                        selected = selected,
+                        onClick = { actions.onSort(sort) },
+                        label = { Text(sort.label) },
+                        leadingIcon = if (selected) {
+                            { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                        } else {
+                            null
+                        },
+                        colors = goaFilterChipColors(),
+                        modifier = Modifier.heightIn(min = 48.dp).semantics {
+                            contentDescription =
+                                "Sort by ${sort.label}"
+                        },
+                    )
+                }
+            }
+        } else {
+            Spacer(Modifier.size(Spacing.sm))
+        }
+    }
+}
+
+/** Compact table: one 48 dp line per hero. Unranked heroes are dimmed and have no rank number. */
+@Composable
+private fun HeroCompactTable(state: MetaUiState) {
+    val wide = LocalDensity.current.fontScale < LARGE_FONT_SCALE
+    val rankOf = state.ranked.mapIndexed { i, row -> row.heroId to i + 1 }.toMap()
+    EngravedCard(Modifier.fillMaxWidth()) {
+        Column {
+            Row(
+                Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm).clearAndSetSemantics {},
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Cell("#", 28.dp)
+                Text(
+                    "Hero",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                Cell("W–L", 60.dp)
+                Cell("Win", 48.dp)
+                if (wide) {
+                    Cell("Pick", 48.dp)
+                    Cell("Ban", 44.dp)
+                }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            state.sortedHeroes.forEach { row ->
+                val rank = rankOf[row.heroId]
+                val meta = row.meta
+                val dim = if (rank == null) 0.6f else 1f
+                val description = buildString {
+                    rank?.let { append("Rank $it, ") } ?: append("Not ranked yet, ")
+                    append("${row.name}, ${meta.record.wins} wins ${meta.record.losses} losses")
+                    append(", win rate ${formatPercent(meta.winRate)}, pick rate ${formatPercent(meta.pickRate)}")
+                    meta.banRate?.let { append(", ban rate ${formatPercent(it)}") }
+                    row.rating?.let { append(", hero rating ${formatRating(it.value)}") }
+                }
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .semantics(mergeDescendants = true) { contentDescription = description }
+                        .padding(horizontal = Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Cell(
+                        rank?.toString() ?: "–",
+                        28.dp,
+                        bold = rank != null,
+                        color = if (rank !=
+                            null
+                        ) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            null
+                        },
+                    )
+                    HeroPortrait(row.heroId, row.portrait, contentDescription = null, modifier = Modifier.size(28.dp))
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text(
+                        row.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = dim),
+                        modifier = Modifier.weight(1f),
+                    )
+                    Cell(winLoss(meta.record.wins, meta.record.games), 60.dp)
+                    Cell(formatPercent(meta.winRate), 48.dp, bold = true)
+                    if (wide) {
+                        Cell(formatPercent(meta.pickRate), 48.dp)
+                        Cell(meta.banRate?.let { formatPercent(it) } ?: "—", 44.dp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Cell(text: String, width: Dp, bold: Boolean = false, color: Color? = null) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = if (bold) FontWeight.SemiBold else FontWeight.Normal,
+        color = color ?: MaterialTheme.colorScheme.onSurface,
+        textAlign = TextAlign.End,
+        maxLines = 1,
+        softWrap = false,
+        modifier = Modifier.width(width),
+    )
+}
+
+@Composable
+private fun PairsCard(rows: List<PairRow>, versus: Boolean) {
+    EngravedCard(Modifier.fillMaxWidth()) {
+        Column {
+            rows.forEachIndexed { i, pair ->
+                if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                val joiner = if (versus) "vs" else "+"
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .semantics(mergeDescendants = true) {
+                            contentDescription = if (versus) {
+                                "${pair.aName} against ${pair.bName}: ${pair.record.wins} wins ${pair.record.losses} losses"
+                            } else {
+                                "${pair.aName} and ${pair.bName} together: ${pair.record.wins} wins ${pair.record.losses} losses"
+                            }
+                        }
+                        .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    pair.a?.let { PlayerAvatar(it, size = 24.dp) }
+                    Spacer(Modifier.width(Spacing.xs))
+                    Text(
+                        "${pair.aName} $joiner ${pair.bName}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 2,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        "${winLoss(pair.record.wins, pair.record.games)} · ${formatPercent(pair.record.winRate)}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LineRow(label: String, value: String, inset: Dp = Spacing.md) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 40.dp)
+            .padding(horizontal = inset)
+            .semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Text(value, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun HeroCards(rows: List<HeroMetaRow>, ranked: Boolean) {
     EngravedCard(Modifier.fillMaxWidth()) {
         Column {
             rows.forEachIndexed { i, row ->
@@ -178,7 +569,7 @@ private fun HeroMetaItem(row: HeroMetaRow, rank: Int?) {
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    "${winLoss(meta.record.wins, meta.record.games)} · ${meta.record.games} games",
+                    "${winLoss(meta.record.wins, meta.record.games)} · ${plural(meta.record.games, "game")}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -225,6 +616,16 @@ private fun HeroMetaItem(row: HeroMetaRow, rank: Int?) {
                 }
             }
         }
+        if (row.winConditions.total > 0) {
+            Text(
+                "Wins: " + (WinCondition.entries + listOf(null))
+                    .mapNotNull { c -> row.winConditions.counts[c]?.let { "${c?.label() ?: "not recorded"} $it" } }
+                    .joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.xs),
+            )
+        }
     }
 }
 
@@ -236,3 +637,5 @@ private fun Metric(label: String, value: String) {
         Text(value, style = MaterialTheme.typography.labelLarge)
     }
 }
+
+private const val TOP_MOVERS = 3
