@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.players
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import dev.quinton.goa.core.designsystem.component.PlaceholderScreen
+import dev.quinton.goa.core.navigation.BackupRoute
 import dev.quinton.goa.core.navigation.MatchEditRoute
 import dev.quinton.goa.core.navigation.MatchLogRoute
 import dev.quinton.goa.core.navigation.MetaRoute
@@ -18,4 +19,5 @@ fun EntryProviderScope<NavKey>.playersEntries(navigator: Navigator) {
     entry<MatchLogRoute> { PlaceholderScreen("Matches", onBack = navigator::back) }
     entry<MatchEditRoute> { PlaceholderScreen("Edit match", onBack = navigator::back) }
     entry<MetaRoute> { PlaceholderScreen("Meta", onBack = navigator::back) }
+    entry<BackupRoute> { PlaceholderScreen("Backup", onBack = navigator::back) }
 }

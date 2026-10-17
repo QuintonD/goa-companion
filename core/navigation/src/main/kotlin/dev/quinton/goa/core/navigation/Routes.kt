@@ -59,6 +59,9 @@ interface Navigator {
 
 @Serializable data object MetaRoute : NavKey
 
+/** Export / import of all user data (owner: players). */
+@Serializable data object BackupRoute : NavKey
+
 // Settings
 @Serializable data object SettingsRoute : NavKey
 
