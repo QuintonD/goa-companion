@@ -26,6 +26,15 @@ prompt, then run the `adb install` line above (or copy the APK to the phone and 
 The debug build (`.\gradlew.bat :app:installDebug`) installs side by side as
 `dev.quinton.goa.debug` with its own separate data.
 
+## Sharing with the play group
+
+Share the signed release APK with your group only, through a private, unlisted link (Google
+Drive on your personal account; ADR-006 addendum). Never publish it: no GitHub Releases, no
+public posts. `D:\GoA-share\` holds the APK and a `HOW-TO-INSTALL.txt` for friends. For an update,
+bump `versionCode`/`versionName` in `app/build.gradle.kts`, rebuild, and replace the file in the
+same Drive folder (Drive "Manage versions" keeps the link). Friends install over the old version
+and keep their data.
+
 ## Release signing key — back it up
 
 Release builds are signed with a private key kept **outside** the repo:

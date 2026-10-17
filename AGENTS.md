@@ -44,7 +44,9 @@ Details and acceptance criteria: [docs/PRODUCT.md](docs/PRODUCT.md).
   (see [docs/DESIGN.md](docs/DESIGN.md#asset-policy)).
 - **2nd printing is the data baseline.** Every hero/card records its printing; a 3rd printing
   (2027) will need a refresh, not a rewrite.
-- **Keep it private.** Never push to a public remote and never publish the APK. Official
+- **Keep it private.** Never push to a public remote and never publish the APK publicly. The
+  owner may share the signed APK with their play group via a private Drive link (ADR-006
+  addendum); never via public releases or the owner's company accounts. Official
   assets sit in `assets/official/` so they can be removed easily if that ever changes.
 - **Match history is the source of truth.** Ratings and meta stats are derived, recomputable
   from the ordered match log. Never store a rating that cannot be rebuilt.

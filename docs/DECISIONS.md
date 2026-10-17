@@ -41,6 +41,12 @@ and game iconography may be bundled. Our own UI/brand assets stay original. Offi
 live in `assets/official/` with a `SOURCES.md` record. No public remote, no store release.
 **Consequences:** Much richer catalog with far less design work. If the app is ever
 distributed, ADR-004's restrictions must be reinstated and `assets/official/` removed or licensed.
+**Addendum (2026-10-17):** the owner shares the signed release APK with their own play group
+(a handful of friends who play together) through a private, unlisted Google Drive link on their
+personal account. That stays private, non-commercial use for one group. Still not allowed: public
+releases (GitHub Releases, stores, public posts), links posted anywhere public, and the owner's
+company accounts. Every friend installs the same signed APK, so updates install over it and keep
+their data (versionCode must increase per update).
 
 ## ADR-007 — Timer uses exact alarms + countdown notification, no foreground service (2026-10-17)
 **Context:** The timer must stay correct while locked/backgrounded. `shortService` caps at ~3 min;
