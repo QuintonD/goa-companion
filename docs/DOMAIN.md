@@ -1,7 +1,8 @@
 # Domain
 
-Rules below were checked on 2026-10-17 against the 2nd-printing rulebook text (as
-reproduced on RulesPal) and BGG designer posts. `[RB]` = rulebook, `[BGG]` = forum,
+Rules below were audited on 2026-10-17 against the **official Wolff Designa rulebook PDF**
+(RulesPal used as a cross-check: it mirrors the PDF except the 6-player Pick and Ban row) and
+BGG designer posts. Page refs `p.N` are the PDF's printed pages. `[RB]` = rulebook, `[BGG]` = forum,
 `[APP]` = our own design choice, not a game rule. Use official terminology in UI copy.
 
 ## Sources (catalog import — ADR-009)
@@ -16,14 +17,14 @@ licence; content belongs to Wolff Designa. Fine for this private build, never re
 | 2 | **dmrediger/goa2** — `public/hero-cards/<pack>/<hero>/<hero>-<n>.jpeg` (729×1026; 0 = hero card, 1–19 = deck, 20 = back) | Full card images; visual check of values |
 | 3 | **yvo-niedrich/goa2-faq** — `build/data/heroes.json`, `cards/<hero>.json`, `faqs/*.json` (2nd printing; fix `â€™` mojibake) | Cross-check text; lore, tips, **per-hero FAQ rulings** |
 | 4 | **colefin8/guards-of-atlantis-ii-data** — `server/<Hero>.csv` (30 heroes; no Ignatia, Whisper) | Cross-check numbers |
-| 5 | Official: 2nd-printing rulebook PDF on Tabletopia (image-only); wolffdesigna.com | Rules, terminology |
+| 5 | **Official rulebook PDF**: "latest version of the rules" linked from wolffdesigna.com/products/guards-of-atlantis-ii-1 (Google Drive id `1qceAxzEcdkMYP-00F61wNiUiiyj6iJAc`, 24 pages, text layer). The rules authority. | Rules, terminology |
 | 6 | BGG via `api.geekdo.com` JSON (HTML and XML API are blocked): IDs, "(2nd Printing)" hero spotlight threads | Strategy notes, roster check |
 
 `verified: true` = numeric fields agree between sources 1 and 4 (or 1 and the card image)
 **and** text agrees between 1 and 3. Disagreements go to `REPORT.md`; resolve them in
 `tools/catalog-import/overrides.json`, never by editing generated files.
 
-### Roster — 32 heroes (titles from source 1; other spellings are aliases)
+### Roster — 32 heroes (titles per BGG/Wolff; source 1 spells "Wuk the Grove Keeper", "Emmitt the Traveller", "Widget and Pyro": store those as aliases)
 | Product (BGG id, year) | Heroes (★ complexity) |
 |---|---|
 | Core (267609, 2022) | Arien the Tidemaster ★, Brogan the Destroyer ★, Tigerclaw the Cutpurse ★, Wasp the Warmaiden ★, Sabina the Commander ★, Xargatha the Changed ★, Dodger the Warlock ★ |
@@ -33,13 +34,16 @@ licence; content belongs to Wolff Designa. Fine for this private build, never re
 | Arcane (412138, 2025) | Rowenna the Vanguard ★★, Mrak the Rockshaper ★★★, Snorri the Runescribe ★★★★, Razzle the Ringmaster ★★★★, Gydion the Archwizard ★★★★ |
 | Wayward (412139, 2025) | Brynn the Seeker ★★★, Mortimer the Awakener ★★★, Widget the Dragonbonded (with Pyro) ★★★, Takahide the Warlord ★★★★, Emmitt the Traveler ★★★★ |
 
-Official roles: Tactician, Disabler, Durable, Melee, Pusher, Damager, Sniper, Tokens, Farming.
+Official roles (10, p.21): Damager, Disabler, Durable, Farming, **Healer**, Melee, Pusher, Sniper,
+Tactician, Tokens. A hero has 2–6 role icons.
 **Exceptions:** Gydion has a 22-card spellbook; Takahide has 21 cards instead of 19.
 **Printings:** 1st (2022, 22 heroes; every hero later changed by the Update Pack), 2nd (2025,
 current; small watermark bottom-right on cards), **3rd announced** (Gamefound project 11755,
 2027: two new packs ≈ 10 heroes, reworks rumoured for Sabina, Cutter, Tigerclaw, Wasp) —
-expect a data refresh. Maps (source: PedroVIOliv/goa2-backend): Forgotten Island, Magma
-and Ice, Across the River, Narrow Passages — verify names against the rulebook.
+expect a data refresh. **Maps:** the rulebook names none. The core board is double-sided:
+a single-lane map and a double-lane map. Names like Forgotten Island / Magma and Ice / Across the
+River / Narrow Passages / Vexing Cliffs come only from goa2-backend (unverified); `Match.map` is
+free text.
 
 
 ## Game structure (drives the timer)
@@ -48,38 +52,60 @@ and Ice, Across the River, Narrow Passages — verify names against the rulebook
 - Players: 4 or 6 recommended; up to 10 and odd counts are allowed for experienced groups.
   2 players = 2 heroes each; 3 players = most experienced controls 2 heroes, one with a
   Handicap card; with 5/7/9 the larger team's heroes swap a basic card for their Handicap
-  card [RB].
+  card [RB] (p.20). The official **3-player** setup is a double pilot **plus** a Handicap card
+  on one of that player's heroes. Extended counts (odd, 8–10) are for groups where everyone
+  has played at least 5 times (p.3). Handicap cards may also be used at even counts to
+  calibrate skill (any seat may carry the Handicap flag).
 - **Double piloting** [APP — owner's group]: with an odd count the group often evens the
-  teams by having one player control two heroes. Match setup offers both options for odd
-  counts: *Handicap* (uneven seats) or *Double pilot* (even seats, one player owns two).
+  teams by having one player control two heroes. Match setup offers for 5/7/9: *Handicap*
+  (uneven seats, official) or *Double pilot* (even seats, one player owns two, house rule);
+  3 players default to the official double pilot + Handicap.
 - A **round = exactly 4 turns** [RB]. Each turn:
-  1. **Play one card** — simultaneous, face-down (strategy talk allowed *before* reveal,
-     out loud, no notes). *Main timed phase.*
+  1. **Play one card** — simultaneous, face-down. You must play a card if able (even with your
+     hero off the board); with no cards you announce a pass. Strategy talk is allowed from the
+     end of one turn until the reveal: out loud only, no notes, no showing cards (reading your
+     own cards aloud is fine) (p.4). *Main timed phase.*
   2. **Reveal** — all at once; table talk stops.
   3. **Resolve** — sequential: highest initiative acts first; after each resolution the next
      actor is the highest *unresolved* initiative (re-checked every time). Cross-team ties:
      the team shown on the **Tie Breaker coin** acts first, then that player flips the coin.
-     Same-team ties: the team decides, coin not flipped. *Optional per-action timer.*
+     Same-team ties: the team decides (without discussing why), coin not flipped. A hero off
+     the board may respawn before acting. *Optional per-action timer.*
   4. **Turn ends** — "this turn" effects end.
-- **End of round** (in order) [RB]: 1 Minion Battle · 2 Remove tokens / return markers ·
-  3 Push the Lane (if a side has no minions; flip a Wave counter) · 4 Retrieve cards ·
-  5 Level Up (mandatory, simultaneous) · 6 Pity Coin (1 coin if you didn't level).
-  *Not timed — the app shows it as a tap-through checklist.*
+- **End of round** (in order) [RB p.8]: 1 Minion Battle · 2 Remove Tokens, Return Markers ·
+  3 Push the Lane (if applicable; flip a Wave counter) · 4 Retrieve Cards · 5 Level Up
+  (mandatory; buy every level you can afford; simultaneous) · 6 Collect a Pity Coin (1 coin
+  if you didn't level up; it can't be spent on a level this round). The app shows these as a
+  tap-through checklist (Upgrade timer on step 5). A lane can also be pushed mid-turn (last
+  enemy minion in the Battle Zone defeated or removed), and **a match can end mid-turn**, so
+  "End match" must be reachable from every phase.
+- **Tie Breaker coin:** flipped during setup and placed by the board; the app tracks *which
+  team's symbol shows*, not who holds it. It also breaks ties for simultaneous effects and
+  minion placement (not flipped in those cases).
 - Hand: 5 cards per round (one per colour) for 4 turns; Defense is played by discarding from
   hand and doesn't use your turn card [RB].
 
 ### Match setup and win conditions [RB]
 | Mode | Wave counters | Life counters per team |
 |------|---------------|------------------------|
-| Quick | 3 | 4 (3–5 players), 5 (6 players) |
-| Long | 5 | 6 (3–5 players), 8 (6 players) |
-| Double lane (required 8+, optional 6–8) | 2 × 7 | 6 (6–8 players), 7 (9–10 players) |
+| Quick (single lane) | 3 | 4 (2–5 players), 5 (6 players) |
+| Long (single lane) | 5 | 6 (2–5 players), 8 (6 players) |
+| Double lane (long game; **required at 8+**, allowed at 6–7) | 2 × 7 (one set per lane) | 6 (6–8 players), 7 (9–10 players) |
+
+2 players use the 4-player setup; 3 and 5 players use 4-player Life counters (p.20). The
+rulebook gives **no single-lane counts for 7+ players** (the app shows "not specified").
+[APP] Counts are looked up by the number of **heroes in play** (seats). This reproduces every
+official case (2 or 3 players = 4 heroes; 5 players with Handicap = 5 heroes → 4-player
+counts) and gives the owner's double-pilot house rule (5 players as 3v3 = 6 heroes) the
+6-player counts. Rulebook first-game advice: play a Quick game if anyone is new.
 
 Win conditions (`WinCondition` enum): **THRONE** — a push makes the enemy Throne Zone the
 Battle Zone; **LAST_PUSH** — the last Wave counter flips, the team that won that push wins
 (double lane: more total Zones between own Throne and both Battle Zones); **LIFE_COUNTERS** —
-a team spends its last Life counter (a defeated hero costs counters = its lowest card tier);
-**OTHER** (concession, house rule). There are no draws.
+a team spends its last Life counter (a defeated hero costs counters = its lowest card tier:
+1 at levels 1–3, 2 at 4–6, 3 at 7–8); **OTHER** (concession, house rule). If both teams would
+win at once from a push, the push is undone and play continues. The rulebook has no draw
+outcome (and is silent on a tied double-lane Zone count), so the app has no draws.
 
 ### Timer phases [APP — owner's table rules, 2026-10-17]
 The rulebook sets no timers. The group plays with **rule timers per phase**, all editable per
@@ -108,8 +134,15 @@ on step 5 (Level Up). Users can add custom phases with the same three scopes
 - **Levels 1–8**, costs 1–7 coins per step; max tier II at levels 2–4, III at 5–7, Ultimate
   at 8. Each level: upgrade lowest-tier colour; of two next-tier cards one goes to hand, the
   other becomes an item. All colours reach II before any reaches III.
-- **Hero card / Profile:** Attack, Defense, Initiative, Movement as 1–8 bars with a base and
-  max (items raise them), complexity ★–★★★★ and two roles. Descriptive, not used in play.
+- **Hero Profile card** (p.21): Attack, Initiative, Defense, Movement bars from 1 ("Very
+  poor") to 8 ("Exceptional"); brighter sections are conditional (level-up choices, card
+  text) and are stored as [base, max]. Complexity: ★ Challenging, ★★ Complex, ★★★ Very
+  Complex, ★★★★ Wizard. 2–6 role icons. Descriptive, not used in play.
+- **Coins** (pp.13–16): defeating a hero pays its level in coins; teammates get assist coins
+  equal to its lowest tier; melee and ranged minions 2, heavy minions 4. Reaching level 8
+  costs 28 coins in total.
+- **Starting hand:** Gold, Silver and the three Tier I cards; the Handicap card goes back to
+  the box unless used (p.6).
 
 ## Core model (`core:model`, code is authoritative)
 Catalog types are `@Serializable` and shared by the importer and the app
@@ -215,21 +248,24 @@ spaces, players and heroes, updated from the same match. Every constant lives in
 
 ## Team balancing [APP]
 Enumerate all splits into ⌈n/2⌉ / ⌊n/2⌋ (≤ 126 for n ≤ 10), minimise `|mean(A) − mean(B)|`,
-tie-break by seed, respect locked players. Offer the official **Player Draft** too (captains
-pick players alternately).
+tie-break by seed, respect locked players. Offer the official **Player Draft** too [RB p.22]:
+the two most experienced players are Captains; first a hero is chosen for *every* player with
+any hero selection method; then Captains draft players one at a time, Team A's captain first;
+everyone plays their pre-selected hero.
 
 ## Draft
-Official hero selection methods [RB]; `Team A` = team on the Tie Breaker coin:
+Official hero selection methods [RB p.22]; `Team A` = the team showing on the Tie Breaker
+coin at the time of selection (the coin is flipped in setup step 3, before heroes are chosen):
 - **All Random** — each player gets a random hero.
-- **All Pick** — players choose freely. [APP] order: alternate teams, Team A first.
-- **Single Draft** — deal 3 heroes to each player; each picks one.
-- **Random Draft** — reveal (players + 2) heroes; players pick from them. [APP] order:
-  alternate teams, Team A first.
+- **All Pick** — pick from all available heroes, starting with Team A and alternating teams.
+- **Single Draft** — deal 3 heroes to each player; players take turns picking from their own
+  3, starting with any player on Team A and alternating teams.
+- **Random Draft** — reveal (players + 2) heroes; pick starting with Team A, alternating.
 - **Pick and Ban** (competitive/tournament):
   | Players | Sequence |
   |---------|----------|
   | 4 | Ban A,B → Pick A,B → Ban B,A → Pick B,A |
-  | 6 | 4-player + Ban A,B → Pick A,B |
+  | 6 | 4-player + Ban A,B → Pick **B,A** (official PDF; RulesPal shows A,B) |
   | 8 | 6-player + Ban B,A → Pick A,B |
   | 10 | 8-player + Ban B,A → Pick B,A |
   [APP] odd counts: use the next even sequence and skip the smaller team's surplus pick.
@@ -243,6 +279,8 @@ Official hero selection methods [RB]; `Team A` = team on the Tie Breaker coin:
 - **Seats:** drafting fills hero *seats*. A team with a double pilot drafts as many heroes as
   it has seats, not players.
 - **Complexity filter** [RB]: remove heroes above the least experienced player's complexity.
+- **First game** [RB p.5]: 4 players = Red Wasp + Xargatha vs Blue Arien + Brogan; 6 players
+  add Tigerclaw (Red) and Sabina (Blue). Offered as a "Learning game" preset.
 - Team picks are assigned to players on that team before the match starts [APP].
 - Engine: `DraftEngine.apply(session, heroId) -> Result<DraftSession>`; typed errors for
   taken/banned/not-in-pool/wrong-step; undo = drop last result. Property test: every method ×
