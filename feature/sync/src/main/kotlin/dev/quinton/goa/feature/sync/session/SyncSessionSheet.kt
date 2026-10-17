@@ -323,12 +323,8 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
 
         HostPhase.FAILED -> host.failure?.let { SyncText.failure(it, host.message) } ?: "Sync stopped"
     }
-    StatusLine(
-        status,
-        working = host.phase == HostPhase.MERGING || host.phase == HostPhase.SENDING,
-        error =
-            host.phase == HostPhase.FAILED,
-    )
+    val working = host.phase != HostPhase.DONE && host.phase != HostPhase.FAILED
+    StatusLine(status, working = working, error = host.phase == HostPhase.FAILED)
     host.peers.forEach { PeerRow(it) }
     if (host.phase == HostPhase.WAITING && host.peers.isEmpty()) {
         LinearProgressIndicator(Modifier.fillMaxWidth())

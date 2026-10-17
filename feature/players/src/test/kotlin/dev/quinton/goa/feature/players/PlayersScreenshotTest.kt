@@ -218,6 +218,16 @@ class PlayersScreenshotTest {
 
     @Test fun leaderboardLight() = shot(ThemeMode.LIGHT) { Home(PlayersTab.PLAYERS) }
 
+    /** Group sync: this phone's player wears "You" and the top bar opens their page. */
+    @Test fun leaderboardWithYouLight() = shot(ThemeMode.LIGHT) {
+        val players = Shots.players
+        val me = players.ranked[1].player.id
+        Home(
+            PlayersTab.PLAYERS,
+            players.copy(meId = me, inGroup = true, ranked = players.ranked.map { it.copy(isMe = it.player.id == me) }),
+        )
+    }
+
     @Test fun leaderboardFontScale2() = shot(fontScale = 2f) { Home(PlayersTab.PLAYERS) }
 
     @Test fun leaderboardEmptyDark() = shot { Home(PlayersTab.PLAYERS, PlayersUiState(loading = false)) }
