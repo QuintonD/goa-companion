@@ -29,6 +29,19 @@ data class TimerReadout(
         }
 }
 
+/** Match length as written to the match log. */
+object MatchDuration {
+    /** A forgotten timer must not log days of play; 10 h is far beyond any real match. */
+    const val MAX_MINUTES = 600
+
+    /** Whole minutes, rounded to nearest, clamped to 1..[MAX_MINUTES]. */
+    fun minutes(millis: Long): Int =
+        ((millis.coerceAtLeast(0) + HALF_MINUTE_MS) / MINUTE_MS).coerceIn(1L, MAX_MINUTES.toLong()).toInt()
+
+    private const val MINUTE_MS = 60_000L
+    private const val HALF_MINUTE_MS = 30_000L
+}
+
 /**
  * Pure state machine for the phase timer. Every operation takes a snapshot and returns the next
  * one; time comes from the injected clocks only. Sequence per round: see [TimerPlan].

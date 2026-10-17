@@ -8,7 +8,6 @@ import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Participant
 import dev.quinton.goa.core.model.match.Team
-import dev.quinton.goa.core.testing.FakeMatchRepository
 import dev.quinton.goa.feature.timer.FixedCoin
 import dev.quinton.goa.feature.timer.MainDispatcherRule
 import dev.quinton.goa.feature.timer.TimerHarness
@@ -21,7 +20,7 @@ class MatchSetupViewModelTest {
     @get:Rule val main = MainDispatcherRule()
 
     private val h = TimerHarness()
-    private val matches = FakeMatchRepository()
+    private val matches = h.matches
     private val coin = FixedCoin(Team.BLUE)
 
     private fun vm(matchId: String? = null) = MatchSetupViewModel(matchId, h.repository, h.controller, matches, coin)
@@ -97,6 +96,27 @@ class MatchSetupViewModelTest {
                 it.mode == GameMode.LONG
             }.life,
         ).isEqualTo("Life counters not specified by the rulebook")
+    }
+
+    @Test
+    fun `seven players with the official handicap layout default to double lane with life counters`() = runTest {
+        val vm = vm()
+        vm.setPlayers(7)
+        val s = vm.uiState.first { it.players == 7 }
+
+        assertThat(s.selectedLayoutId).isEqualTo("handicap-7")
+        assertThat(s.selectedMode).isEqualTo(GameMode.DOUBLE_LANE)
+        assertThat(s.counters!!.lifePerTeam).isEqualTo(6)
+    }
+
+    @Test
+    fun `a drafted seven-hero match stored as quick opens on double lane`() = runTest {
+        val seats = (0 until 7).map { i -> Participant("p$i", "h$i", if (i < 4) Team.RED else Team.BLUE) }
+        matches.upsert(Match("m7", 1, 1, MatchStatus.PENDING, GameMode.QUICK, participants = seats))
+        val s = vm("m7").loaded()
+
+        assertThat(s.selectedMode).isEqualTo(GameMode.DOUBLE_LANE)
+        assertThat(s.counters!!.lifePerTeam).isEqualTo(6)
     }
 
     @Test

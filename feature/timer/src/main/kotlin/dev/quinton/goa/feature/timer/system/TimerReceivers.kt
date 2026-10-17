@@ -41,12 +41,20 @@ class TimerAlarmReceiver : BroadcastReceiver() {
     }
 }
 
-/** Pause / Resume / Next / Stop buttons on the ongoing notification. */
+/**
+ * Pause / Resume / Next buttons on the ongoing notification, and its delete intent (swipe-away
+ * re-posts it while a session runs). There is no Stop action: ending a match stays in the app,
+ * behind a confirmation.
+ */
 @AndroidEntryPoint
 class TimerActionReceiver : BroadcastReceiver() {
     @Inject lateinit var controller: TimerController
 
     override fun onReceive(context: Context, intent: Intent) {
+        if (isRepost(intent.action)) {
+            runAsync { controller.resync() }
+            return
+        }
         val command = commandFor(intent.action) ?: return
         runAsync { controller.perform(command) }
     }
@@ -55,15 +63,18 @@ class TimerActionReceiver : BroadcastReceiver() {
         const val ACTION_PAUSE = "dev.quinton.goa.timer.PAUSE"
         const val ACTION_RESUME = "dev.quinton.goa.timer.RESUME"
         const val ACTION_NEXT = "dev.quinton.goa.timer.NEXT"
-        const val ACTION_STOP = "dev.quinton.goa.timer.STOP"
+
+        /** Delete intent of the ongoing notification. */
+        const val ACTION_REPOST = "dev.quinton.goa.timer.REPOST"
 
         fun commandFor(action: String?): TimerCommand? = when (action) {
             ACTION_PAUSE -> TimerCommand.Pause
             ACTION_RESUME -> TimerCommand.Resume
             ACTION_NEXT -> TimerCommand.Next
-            ACTION_STOP -> TimerCommand.EndMatch
             else -> null
         }
+
+        fun isRepost(action: String?): Boolean = action == ACTION_REPOST
     }
 }
 

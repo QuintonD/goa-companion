@@ -62,22 +62,53 @@ Features never depend on each other; cross-feature navigation goes through `app`
 ## Timer design (no foreground service — ADR-007)
 1. **State** in DataStore: preset, phase index, turn/round, `phaseEndElapsed` (+ wall-clock
    copy for reboot), paused remaining. UI derives remaining time from
-   `SystemClock.elapsedRealtime()` — never counts ticks.
+   `SystemClock.elapsedRealtime()` — never counts ticks. Every write re-anchors the
+   (elapsed, wall) pair at the current clocks, so a wall-clock change (`TIME_SET` → re-sync)
+   is absorbed before a later reboot rebases the session.
 2. **Phase end** via `AlarmManager.setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP)` with
    `USE_EXACT_ALARM` (auto-granted, timer use case).
 3. **Ongoing notification**: `setOngoing`, `setWhen(end)`, `setUsesChronometer(true)`,
-   `setChronometerCountDown(true)`; actions Pause/Resume/Next/Stop → `BroadcastReceiver`
-   (update state, repost, reschedule). On Android 16+: `POST_PROMOTED_NOTIFICATIONS`,
-   `setRequestPromotedOngoing(true)`, `setShortCriticalText`, optionally `ProgressStyle`
-   with one segment per phase. No custom RemoteViews or colorized style (blocks promotion).
+   `setChronometerCountDown(true)`; actions → `BroadcastReceiver` (update state, repost,
+   reschedule). On Android 16+: `POST_PROMOTED_NOTIFICATIONS`,
+   `setRequestPromotedOngoing(true)`, optionally `ProgressStyle` with one segment per phase.
+   No custom RemoteViews or colorized style (blocks promotion).
+   - **Actions**: Pause/Resume stays one tap, also from the lock screen (harmless and
+     reversible, and the table needs it fast). Next uses `setAuthenticationRequired(true)`
+     (API 31+: a lock-screen tap asks for an unlock first). There is **no Stop**: ending a
+     match is irrecoverable, so it stays in the app behind a confirmation.
+   - **Status-bar chip**: the running countdown sets **no** `setShortCriticalText` (a static
+     string would freeze the chip); `setWhen` + chronometer count-down drive it. Static states
+     set one: "Paused", "Over" (overtime).
 4. **Alarm fires** → receiver advances phase, posts a high-importance "phase over" alert
    (channel audio `USAGE_ALARM` + vibration — required for background audio on API 37),
-   schedules next alarm.
+   schedules next alarm. A re-sync that auto-advances past a phase end also alerts (e.g. a
+   cold start whose startup re-sync runs before the alarm broadcast); both paths share the
+   controller mutex and dedupe by step key, so each phase end alerts at most once.
 5. **Robustness**: reschedule on app start, `BOOT_COMPLETED`, `TIME_SET`,
-   `MY_PACKAGE_REPLACED`; `setDeleteIntent` for swiped-away notifications (allowed since
-   Android 14); request `POST_NOTIFICATIONS` at runtime.
-6. Timer screen uses `Modifier.keepScreenOn()`. In-app cues (ticks, haptics) only run while
+   `MY_PACKAGE_REPLACED`. `setDeleteIntent` → the action receiver re-syncs, which re-posts
+   the notification while a session runs (ongoing notifications are dismissible since
+   Android 14); nothing is re-posted once the match has ended.
+6. **Notification permission**: every start path (Timer tab, Match setup) requests
+   `POST_NOTIFICATIONS` first via one shared helper and starts whatever the answer. If
+   notifications are denied or blocked, the running timer shows a dismissible banner ("Lock-
+   screen alerts are off") with a button to the app's notification settings.
+7. Timer screen uses `Modifier.keepScreenOn()`. In-app cues (ticks, haptics) only run while
    the screen is visible.
+8. **Match link**: `TimerController` is the single writer of the linked match's duration
+   (rounded minutes, clamped to 1–600): on End match, and — only if still missing — before
+   an ended session is replaced or cleared. "Log result" without a linked match saves
+   nothing; it opens a new match pre-filled with the duration and, if legal for the
+   session's hero count, its mode (`MatchEditRoute(prefillDurationMin, prefillMode)`).
+
+**Device checks (S25 Ultra, Android 16)** — Robolectric can't prove these:
+- Android 16 status-bar chip / Live Update keeps ticking down while running (no frozen
+  text), shows "Paused" and "Over" in those states.
+- Lock screen: Pause/Resume works with one tap without unlocking; Next prompts for unlock.
+- Swiping the countdown away re-posts it; it stays gone after End match.
+- First start from Match setup shows the notification prompt; after "Don't allow" the timer
+  runs, the banner appears, and "Turn on" opens the app's notification settings.
+- Phase-over alert after process death with auto-advance (force-stop is not representative:
+  it drops alarms); Doze; reboot mid-phase; wall-clock change then reboot.
 
 ## Testing strategy
 | Layer | Tests |

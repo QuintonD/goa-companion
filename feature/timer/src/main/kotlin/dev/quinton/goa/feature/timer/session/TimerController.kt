@@ -1,7 +1,10 @@
 package dev.quinton.goa.feature.timer.session
 
+import dagger.Lazy
+import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.domain.ElapsedClock
 import dev.quinton.goa.core.domain.WallClock
+import dev.quinton.goa.core.domain.timer.MatchDuration
 import dev.quinton.goa.core.domain.timer.TimerEngine
 import dev.quinton.goa.core.domain.timer.TimerPreset
 import dev.quinton.goa.core.domain.timer.TimerSnapshot
@@ -18,6 +21,7 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -50,7 +54,11 @@ sealed interface TimerCommand {
 /**
  * Single entry point for every timer change, from the UI, notification actions, alarms and
  * system broadcasts. Each command runs the pure [TimerEngine] on the persisted snapshot, writes
- * it back, then re-syncs the exact alarm and the ongoing notification (ADR-007).
+ * it back (re-anchored at the current clock pair), then re-syncs the exact alarm and the ongoing
+ * notification (ADR-007).
+ *
+ * The controller is also the single writer of the linked match's duration: when a session ends,
+ * and again (only if still missing) before an ended session is replaced or cleared.
  */
 @Singleton
 class TimerController @Inject constructor(
@@ -60,9 +68,14 @@ class TimerController @Inject constructor(
     private val scheduler: TimerScheduler,
     private val notifier: TimerNotifier,
     private val boot: BootCountProvider,
+    /** Lazy: the startup provider builds the controller at process start; Room isn't needed then. */
+    private val matches: Lazy<MatchRepository>,
 ) {
     private val engine = TimerEngine(elapsed, wall)
     private val mutex = Mutex()
+
+    /** Phase end that last raised a "phase over" alert in this process (dedupes alarm vs resync). */
+    private var lastAlertKey: String? = null
 
     /** True while the timer screen is on screen: in-app cues replace the background alert. */
     @Volatile var uiVisible: Boolean = false
@@ -75,6 +88,9 @@ class TimerController @Inject constructor(
     fun cuesCrossed(snapshot: TimerSnapshot, fromElapsed: Long, toElapsed: Long): List<Int> =
         engine.cuesCrossed(snapshot.step, fromElapsed, toElapsed)
 
+    /** False when the countdown notification and phase-over alerts can't be shown. */
+    fun notificationsEnabled(): Boolean = notifier.canPost()
+
     suspend fun start(
         preset: TimerPreset,
         actionSlots: Int,
@@ -82,6 +98,7 @@ class TimerController @Inject constructor(
         mode: GameMode? = null,
         tieBreaker: Team? = null,
     ): TimerSnapshot = mutex.withLock {
+        repository.currentSnapshot()?.let { previous -> recordDuration(rebase(previous), onlyIfMissing = true) }
         val snapshot = engine.start(
             sessionId = UUID.randomUUID().toString(),
             preset = preset,
@@ -98,13 +115,20 @@ class TimerController @Inject constructor(
     }
 
     suspend fun perform(command: TimerCommand): TimerSnapshot? = mutex.withLock {
-        val updated = repository.updateSnapshot { current -> current?.let { apply(rebase(it), command) } }
+        var before: TimerSnapshot? = null
+        val updated = repository.updateSnapshot { current ->
+            current?.let { rebase(it) }?.also { before = it }?.let { apply(it, command) }
+        }
+        if (updated != null && updated.status == TimerStatus.ENDED && before?.status != TimerStatus.ENDED) {
+            recordDuration(updated, onlyIfMissing = false)
+        }
         sync(updated)
         updated
     }
 
-    /** Clears the session (after the match summary is dismissed). */
+    /** Clears the session (after the match summary). An ended session's duration is kept first. */
     suspend fun clear() = mutex.withLock {
+        repository.currentSnapshot()?.let { recordDuration(rebase(it), onlyIfMissing = true) }
         repository.updateSnapshot { null }
         sync(null)
     }
@@ -120,22 +144,54 @@ class TimerController @Inject constructor(
             return@withLock
         }
         val readout = engine.readout(current)
-        val matches = stepKey == null || stepKey == stepKey(current, readout.phaseEndElapsed)
+        val currentKey = stepKey(current, readout.phaseEndElapsed)
+        val matches = stepKey == null || stepKey == currentKey
         val due = readout.remainingMillis != null && readout.remainingMillis!! <= 0
         if (!matches || !due) {
             sync(current)
             return@withLock
         }
-        val endedTitle = TimerText.stepTitle(current.step)
         val updated = repository.updateSnapshot { s -> s?.let { engine.advanceDue(rebase(it)) } }
-        if (!uiVisible && updated != null) notifier.alertPhaseOver(updated, endedTitle)
+        if (updated != null) alertOnce(currentKey, TimerText.stepTitle(current.step), updated)
         sync(updated)
     }
 
-    /** Re-establishes the alarm and notification (app start, boot, time change, app update). */
+    /**
+     * Re-establishes the alarm and notification (app start, boot, time change, app update,
+     * swiped-away notification). If auto-advance moved past a phase end that no alarm reported
+     * (e.g. this cold start raced the alarm broadcast), alerts for it once.
+     */
     suspend fun resync() = mutex.withLock {
-        val updated = repository.updateSnapshot { s -> s?.let { engine.advanceDue(rebase(it)) } }
+        var before: TimerSnapshot? = null
+        val updated = repository.updateSnapshot { s ->
+            s?.let { rebase(it) }?.also { before = it }?.let { engine.advanceDue(it) }
+        }
+        val previous = before
+        if (previous != null && updated != null && advanced(previous, updated)) {
+            val key = stepKey(previous, engine.readout(previous).phaseEndElapsed)
+            alertOnce(key, TimerText.stepTitle(previous.step), updated)
+        }
         sync(updated)
+    }
+
+    private fun advanced(from: TimerSnapshot, to: TimerSnapshot): Boolean =
+        from.sessionId == to.sessionId && (from.round != to.round || from.stepIndex != to.stepIndex)
+
+    private fun alertOnce(phaseEndKey: String, endedTitle: String, updated: TimerSnapshot) {
+        if (uiVisible || phaseEndKey == lastAlertKey) return
+        lastAlertKey = phaseEndKey
+        notifier.alertPhaseOver(updated, endedTitle)
+    }
+
+    /** Writes the ended session's duration (and mode) into its linked match. */
+    private suspend fun recordDuration(s: TimerSnapshot, onlyIfMissing: Boolean) {
+        if (s.status != TimerStatus.ENDED) return
+        val id = s.matchId ?: return
+        val repo = matches.get()
+        val match = repo.observeMatch(id).first() ?: return
+        if (onlyIfMissing && match.durationMin != null) return
+        val minutes = MatchDuration.minutes(engine.readout(s).matchElapsedMillis)
+        repo.upsert(match.copy(durationMin = minutes, mode = s.mode ?: match.mode))
     }
 
     private fun rebase(s: TimerSnapshot): TimerSnapshot =

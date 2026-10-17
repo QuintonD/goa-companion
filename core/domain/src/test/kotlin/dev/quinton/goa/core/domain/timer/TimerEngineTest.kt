@@ -376,11 +376,31 @@ class TimerEngineTest {
     }
 
     @Test
-    fun `rebase without a reboot changes nothing`() {
+    fun `rebase without a reboot keeps the timeline and refreshes the anchor`() {
         val s = engine.start("s", tableRules(), endOfRound, 4, bootCount = 3)
         clocks.advanceSeconds(10.0)
 
-        assertThat(s.rebased(clocks.elapsed, clocks.wall, 3)).isEqualTo(s)
+        val rebased = s.rebased(clocks.elapsed, clocks.wall, 3)
+        assertThat(rebased.copy(anchorElapsed = s.anchorElapsed, anchorWall = s.anchorWall)).isEqualTo(s)
+        assertThat(rebased.anchorElapsed).isEqualTo(clocks.elapsed)
+        assertThat(rebased.anchorWall).isEqualTo(clocks.wall)
+    }
+
+    @Test
+    fun `wall clock jump followed by a reboot rebases from the refreshed anchor`() {
+        val s = engine.start("s", tableRules(), endOfRound, 4, bootCount = 3)
+        clocks.advanceSeconds(20.0)
+        // The wall clock is corrected by +5 min (TIME_SET); the session is re-synced and persisted.
+        clocks.wall += 5 * 60_000L
+        val resynced = s.rebased(clocks.elapsed, clocks.wall, 3)
+
+        // Reboot: elapsed restarts, 20 s more of real time pass.
+        clocks.elapsed = 10_000
+        clocks.wall += 20_000
+        val rebooted = resynced.rebased(clocks.elapsed, clocks.wall, 4)
+
+        assertThat(engine.readout(rebooted).remainingMillis).isEqualTo(50_000)
+        assertThat(engine.readout(rebooted).matchElapsedMillis).isEqualTo(40_000)
     }
 
     @Test
@@ -391,5 +411,14 @@ class TimerEngineTest {
 
         val rebased = s.rebased(clocks.elapsed, clocks.wall, null)
         assertThat(engine.readout(rebased).elapsedInStepMillis).isEqualTo(30_000)
+    }
+
+    @Test
+    fun `match duration rounds to whole minutes and is clamped to a sane range`() {
+        assertThat(MatchDuration.minutes(0)).isEqualTo(1)
+        assertThat(MatchDuration.minutes(47 * 60_000L + 10_000)).isEqualTo(47)
+        assertThat(MatchDuration.minutes(47 * 60_000L + 30_000)).isEqualTo(48)
+        assertThat(MatchDuration.minutes(3L * 24 * 60 * 60_000)).isEqualTo(MatchDuration.MAX_MINUTES)
+        assertThat(MatchDuration.minutes(-5_000)).isEqualTo(1)
     }
 }

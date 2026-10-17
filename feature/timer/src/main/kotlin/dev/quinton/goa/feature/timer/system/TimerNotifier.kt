@@ -24,6 +24,9 @@ import javax.inject.Inject
 
 /** Posts the ongoing countdown and the "phase over" alert. */
 interface TimerNotifier {
+    /** False when the countdown and phase-over alerts can't be shown (permission denied or blocked). */
+    fun canPost(): Boolean
+
     fun showOngoing(snapshot: TimerSnapshot, readout: TimerReadout, wallNow: Long)
 
     fun cancelOngoing()
@@ -38,6 +41,12 @@ interface TimerNotifier {
  * requests promotion to a Live Update on Android 16+; and a high-importance alert channel whose
  * sound uses `USAGE_ALARM` so it is audible in the background and in Do Not Disturb's alarm lane.
  * No custom views or colorized style, which would block promotion.
+ *
+ * Actions are Pause/Resume (one tap, also from the lock screen) and Next (needs an unlock on
+ * API 31+). There is deliberately no Stop: ending a match is irrecoverable and stays in the app.
+ * The running countdown sets no short critical text, so the Android 16 status-bar chip is driven
+ * by the chronometer; static states ("Paused", "Over") set one. A swipe-away (allowed for
+ * ongoing notifications since Android 14) fires the delete intent, which re-posts it.
  */
 class AndroidTimerNotifier @Inject constructor(@ApplicationContext private val context: Context) : TimerNotifier {
     private val manager = NotificationManagerCompat.from(context)
@@ -86,6 +95,7 @@ class AndroidTimerNotifier @Inject constructor(@ApplicationContext private val c
             .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(openAppIntent())
+            .setDeleteIntent(actionIntent(TimerActionReceiver.ACTION_REPOST))
             .setRequestPromotedOngoing(true)
 
         val remaining = readout.remainingMillis
@@ -94,7 +104,7 @@ class AndroidTimerNotifier @Inject constructor(@ApplicationContext private val c
                 builder.setContentText("Paused · ${TimerText.clock(readout)} · $context")
                     .setShowWhen(false)
                     .setShortCriticalText("Paused")
-                    .addAction(0, "Resume", actionIntent(TimerActionReceiver.ACTION_RESUME))
+                    .addAction(action("Resume", TimerActionReceiver.ACTION_RESUME, unlock = false))
             }
 
             remaining == null -> {
@@ -102,7 +112,7 @@ class AndroidTimerNotifier @Inject constructor(@ApplicationContext private val c
                     .setUsesChronometer(true)
                     .setWhen(wallNow - readout.elapsedInStepMillis)
                     .setShowWhen(true)
-                    .addAction(0, "Pause", actionIntent(TimerActionReceiver.ACTION_PAUSE))
+                    .addAction(action("Pause", TimerActionReceiver.ACTION_PAUSE, unlock = false))
             }
 
             remaining < 0 -> {
@@ -112,23 +122,29 @@ class AndroidTimerNotifier @Inject constructor(@ApplicationContext private val c
                     .setWhen(wallNow + remaining)
                     .setShowWhen(true)
                     .setShortCriticalText("Over")
-                    .addAction(0, "Pause", actionIntent(TimerActionReceiver.ACTION_PAUSE))
+                    .addAction(action("Pause", TimerActionReceiver.ACTION_PAUSE, unlock = false))
             }
 
             else -> {
+                // No short critical text: a static string would freeze the status-bar chip;
+                // the chronometer (setWhen + count-down) keeps it ticking.
                 builder.setContentText(context)
                     .setUsesChronometer(true)
                     .setChronometerCountDown(true)
                     .setWhen(wallNow + remaining)
                     .setShowWhen(true)
-                    .setShortCriticalText(TimerText.clock(readout))
-                    .addAction(0, "Pause", actionIntent(TimerActionReceiver.ACTION_PAUSE))
+                    .addAction(action("Pause", TimerActionReceiver.ACTION_PAUSE, unlock = false))
             }
         }
-        builder.addAction(0, "Next", actionIntent(TimerActionReceiver.ACTION_NEXT))
-        builder.addAction(0, "Stop", actionIntent(TimerActionReceiver.ACTION_STOP))
+        builder.addAction(action("Next", TimerActionReceiver.ACTION_NEXT, unlock = true))
         manager.notify(ID_ONGOING, builder.build())
     }
+
+    /** [unlock]: API 31+ asks for the device credential before a lock-screen tap runs the action. */
+    private fun action(title: String, action: String, unlock: Boolean): NotificationCompat.Action =
+        NotificationCompat.Action.Builder(0, title, actionIntent(action))
+            .setAuthenticationRequired(unlock)
+            .build()
 
     override fun cancelOngoing() {
         manager.cancel(ID_ONGOING)
@@ -159,7 +175,7 @@ class AndroidTimerNotifier @Inject constructor(@ApplicationContext private val c
         manager.notify(ID_ALERT, notification)
     }
 
-    private fun canPost(): Boolean {
+    override fun canPost(): Boolean {
         val granted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED

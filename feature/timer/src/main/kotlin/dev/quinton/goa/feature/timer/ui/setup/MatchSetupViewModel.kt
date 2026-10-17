@@ -198,7 +198,8 @@ class MatchSetupViewModel @AssistedInject constructor(
             else -> (choice.players ?: DEFAULT_PLAYERS).coerceIn(setup.playerRange)
         }
         val plan: SetupPlan = if (locked) {
-            setup.planForSeats(players, red, blue, choice.mode ?: match!!.mode)
+            // The stored mode (e.g. a draft's default) is kept only if its counters are listed.
+            setup.planForSeats(players, red, blue, mode = choice.mode, suggestedMode = match!!.mode)
         } else {
             setup.plan(players, choice.layoutId, choice.mode)
         }

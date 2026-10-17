@@ -90,6 +90,8 @@ data class ActiveUiState(
     val tieBreaker: Team?,
     val matchClock: String,
     val autoAdvance: Boolean,
+    /** Notifications are denied or blocked: no lock-screen countdown or phase-over alert. */
+    val alertsOff: Boolean = false,
 )
 
 data class SummaryUiState(

@@ -81,6 +81,7 @@ import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.timer.RoundSection
+import dev.quinton.goa.feature.timer.ui.components.AlertsOffBanner
 import dev.quinton.goa.feature.timer.ui.components.CountdownRing
 import dev.quinton.goa.feature.timer.ui.components.KeepScreenOn
 import dev.quinton.goa.feature.timer.ui.components.RingTone
@@ -97,6 +98,13 @@ internal fun ActiveTimer(state: ActiveUiState, actions: TimerActions) {
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             TimerHeader(state, actions, onEnd = { confirmEnd = true })
+            if (state.alertsOff) {
+                AlertsOffBanner(
+                    onOpenSettings = actions.onOpenNotificationSettings,
+                    onDismiss = actions.onDismissAlertsBanner,
+                    modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.sm),
+                )
+            }
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                 val ringMax = min(maxWidth - Spacing.xl * 2, maxHeight * 0.62f).coerceAtLeast(160.dp)
                 val viewport = maxHeight
