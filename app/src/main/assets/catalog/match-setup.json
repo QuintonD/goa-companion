@@ -1,7 +1,8 @@
 {
   "schemaVersion": 1,
   "sources": [
-    "Guards of Atlantis II rulebook, 2nd printing (as summarised in docs/DOMAIN.md, checked 2026-10-17)",
+    "Guards of Atlantis II rulebook, 2nd printing (Wolff Designa PDF; pp. 3, 4, 8, 20) as summarised in docs/DOMAIN.md",
+    "Counters are looked up by heroes in play (seats), an app decision documented in docs/DOMAIN.md",
     "Double piloting: owner's house option (docs/DOMAIN.md [APP])"
   ],
   "minPlayers": 2,
@@ -12,7 +13,7 @@
       "lanes": 1,
       "waveCountersPerLane": 3,
       "lifeCounters": [
-        { "minHeroes": 3, "maxHeroes": 5, "counters": 4 },
+        { "minHeroes": 2, "maxHeroes": 5, "counters": 4 },
         { "minHeroes": 6, "maxHeroes": 6, "counters": 5 }
       ]
     },
@@ -21,7 +22,7 @@
       "lanes": 1,
       "waveCountersPerLane": 5,
       "lifeCounters": [
-        { "minHeroes": 3, "maxHeroes": 5, "counters": 6 },
+        { "minHeroes": 2, "maxHeroes": 5, "counters": 6 },
         { "minHeroes": 6, "maxHeroes": 6, "counters": 8 }
       ]
     },
@@ -53,6 +54,7 @@
     },
     {
       "players": 3,
+      "extended": true,
       "layouts": [
         {
           "id": "three-players",
@@ -61,7 +63,7 @@
           "smallerTeamHeroes": 2,
           "doublePilots": 1,
           "handicapHeroes": 1,
-          "guidance": "The most experienced player controls 2 heroes, one of them with its Handicap card."
+          "guidance": "The most experienced player controls 2 heroes; one of those heroes plays with its Handicap card."
         }
       ]
     },
@@ -74,6 +76,7 @@
     },
     {
       "players": 5,
+      "extended": true,
       "layouts": [
         {
           "id": "handicap-5",
@@ -89,7 +92,7 @@
           "largerTeamHeroes": 3,
           "smallerTeamHeroes": 3,
           "doublePilots": 1,
-          "guidance": "One player on the smaller team controls 2 heroes, so both teams field 3."
+          "guidance": "House rule: one player on the smaller team controls 2 heroes, so both teams field 3."
         }
       ]
     },
@@ -102,6 +105,7 @@
     },
     {
       "players": 7,
+      "extended": true,
       "layouts": [
         {
           "id": "handicap-7",
@@ -117,18 +121,20 @@
           "largerTeamHeroes": 4,
           "smallerTeamHeroes": 4,
           "doublePilots": 1,
-          "guidance": "One player on the smaller team controls 2 heroes, so both teams field 4."
+          "guidance": "House rule: one player on the smaller team controls 2 heroes, so both teams field 4."
         }
       ]
     },
     {
       "players": 8,
+      "extended": true,
       "layouts": [
         { "id": "standard-8", "kind": "standard", "largerTeamHeroes": 4, "smallerTeamHeroes": 4 }
       ]
     },
     {
       "players": 9,
+      "extended": true,
       "layouts": [
         {
           "id": "handicap-9",
@@ -144,12 +150,13 @@
           "largerTeamHeroes": 5,
           "smallerTeamHeroes": 5,
           "doublePilots": 1,
-          "guidance": "One player on the smaller team controls 2 heroes, so both teams field 5."
+          "guidance": "House rule: one player on the smaller team controls 2 heroes, so both teams field 5."
         }
       ]
     },
     {
       "players": 10,
+      "extended": true,
       "layouts": [
         { "id": "standard-10", "kind": "standard", "largerTeamHeroes": 5, "smallerTeamHeroes": 5 }
       ]
@@ -157,15 +164,17 @@
   ],
   "endOfRound": [
     { "id": "minion_battle", "title": "Minion Battle" },
-    { "id": "remove_tokens", "title": "Remove tokens", "detail": "Remove tokens and return markers." },
+    { "id": "remove_tokens", "title": "Remove Tokens, Return Markers" },
+    { "id": "push_lane", "title": "Push the Lane", "detail": "If applicable: flip a Wave counter." },
+    { "id": "retrieve_cards", "title": "Retrieve Cards" },
+    { "id": "level_up", "title": "Level Up", "detail": "Mandatory: buy every level you can afford. Simultaneous." },
     {
-      "id": "push_lane",
-      "title": "Push the Lane",
-      "detail": "If a side has no minions, push the lane and flip a Wave counter."
-    },
-    { "id": "retrieve_cards", "title": "Retrieve cards" },
-    { "id": "level_up", "title": "Level Up", "detail": "Mandatory and simultaneous." },
-    { "id": "pity_coin", "title": "Pity Coin", "detail": "Gain 1 coin if you didn't level up." }
+      "id": "pity_coin",
+      "title": "Collect a Pity Coin",
+      "detail": "Only if you didn't level up. It can't be spent on a level this round."
+    }
   ],
-  "tieBreaker": "Cross-team initiative ties: the team shown on the Tie Breaker coin acts first, then that player flips the coin. Same-team ties: the team decides; the coin is not flipped."
+  "tieBreaker": "Flip the Tie Breaker coin during setup and place it by the board. On cross-team initiative ties the team whose symbol is showing acts first, then that player flips the coin. Same-team ties: the team decides and the coin is not flipped.",
+  "extendedCountNote": "Odd counts and 8 to 10 players are recommended only when everyone has played at least 5 times.",
+  "firstGameAdvice": "If anyone is new, the rulebook suggests a Quick game."
 }

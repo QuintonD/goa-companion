@@ -1,6 +1,8 @@
 package dev.quinton.goa.core.domain.timer
 
 import dev.quinton.goa.core.domain.setup.EndOfRoundStep
+import dev.quinton.goa.core.model.match.GameMode
+import dev.quinton.goa.core.model.match.Team
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
@@ -36,6 +38,10 @@ data class TimerSnapshot(
     val matchStartElapsed: Long,
     val matchStartWall: Long,
     val endedElapsed: Long? = null,
+    /** Mode chosen at match setup, if setup was used. */
+    val mode: GameMode? = null,
+    /** Team whose symbol shows on the Tie Breaker coin; flips during play on cross-team ties. */
+    val tieBreaker: Team? = null,
     /** Who resolved in each Action slot of the current turn (only when heroes are known). */
     val actors: List<ActionActor> = emptyList(),
     /** Last time the snapshot was written: elapsed + wall pair, used to rebase after a reboot. */

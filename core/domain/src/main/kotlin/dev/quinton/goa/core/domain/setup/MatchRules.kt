@@ -23,6 +23,10 @@ data class MatchRules(
     val endOfRound: List<EndOfRoundStep>,
     /** How the Tie Breaker coin is used (shown verbatim at setup). */
     val tieBreaker: String,
+    /** Gentle note shown for extended player counts (odd, 8–10). */
+    val extendedCountNote: String,
+    /** Rulebook first-game advice. */
+    val firstGameAdvice: String,
 ) {
     fun mode(mode: GameMode): ModeRule = modes.first { it.mode == mode }
 
@@ -59,6 +63,8 @@ data class LifeBracket(val minHeroes: Int, val maxHeroes: Int, val counters: Int
 data class PlayerCountRule(
     val players: Int,
     val recommended: Boolean = false,
+    /** Extended count: recommended only when everyone has played at least 5 times. */
+    val extended: Boolean = false,
     val layouts: List<SeatLayout>,
 )
 

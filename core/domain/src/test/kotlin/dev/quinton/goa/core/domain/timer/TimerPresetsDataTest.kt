@@ -48,7 +48,7 @@ class TimerPresetsDataTest {
             name = " ",
             turnsPerRound = 0,
             phases = listOf(
-                phase("a", PhaseKind.CUSTOM, PhaseScope.TURN, 2),
+                phase("a", PhaseKind.CUSTOM, PhaseScope.TURN, 2, cues = emptyList()),
                 phase("a", PhaseKind.ACTION, PhaseScope.ROUND_START, 30),
                 phase("c", PhaseKind.CUSTOM, PhaseScope.ROUND_END, 30, endStepId = "nope"),
                 phase("d", PhaseKind.CUSTOM, PhaseScope.TURN, 20, cues = listOf(25)),

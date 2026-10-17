@@ -3,6 +3,8 @@ package dev.quinton.goa.core.domain.timer
 import dev.quinton.goa.core.domain.ElapsedClock
 import dev.quinton.goa.core.domain.WallClock
 import dev.quinton.goa.core.domain.setup.EndOfRoundStep
+import dev.quinton.goa.core.model.match.GameMode
+import dev.quinton.goa.core.model.match.Team
 
 /** What the UI and notification show at one instant, derived from a snapshot and the clock. */
 data class TimerReadout(
@@ -45,6 +47,8 @@ class TimerEngine(
         actionSlots: Int,
         matchId: String? = null,
         bootCount: Int? = null,
+        mode: GameMode? = null,
+        tieBreaker: Team? = null,
     ): TimerSnapshot {
         val now = elapsed.elapsedMillis()
         val wallNow = wall.nowMillis()
@@ -54,6 +58,8 @@ class TimerEngine(
             endOfRound = endOfRound,
             actionSlots = actionSlots.coerceAtLeast(1),
             matchId = matchId,
+            mode = mode,
+            tieBreaker = tieBreaker,
             status = TimerStatus.RUNNING,
             runningSince = now,
             matchStartElapsed = now,
@@ -190,6 +196,12 @@ class TimerEngine(
             return moved.copy(actors = moved.actors.filterNot { it.slot == nextSlot } + ActionActor(nextSlot, seat))
         }
         return s.copy(actors = s.actors + ActionActor(slot, seat))
+    }
+
+    /** Records the Tie Breaker coin being flipped at the table (cross-team initiative tie). */
+    fun flipTieBreaker(s: TimerSnapshot): TimerSnapshot {
+        if (s.status == TimerStatus.ENDED) return s
+        return s.copy(tieBreaker = (s.tieBreaker ?: Team.BLUE).opponent)
     }
 
     private fun elapsedInStep(s: TimerSnapshot, now: Long): Long = when (s.status) {

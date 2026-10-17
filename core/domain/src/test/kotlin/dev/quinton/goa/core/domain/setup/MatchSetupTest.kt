@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.domain.setup
 
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import dev.quinton.goa.core.domain.timer.bundledRules
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Team
@@ -19,9 +20,9 @@ class MatchSetupTest {
         val o = options(heroes)
         listOf(GameMode.QUICK to quick, GameMode.LONG to long, GameMode.DOUBLE_LANE to double).forEach { (mode, e) ->
             val option = o.getValue(mode)
-            assertThat(option.available).named("$mode available @ $heroes heroes").isEqualTo(e.available)
-            assertThat(option.required).named("$mode required @ $heroes heroes").isEqualTo(e.required)
-            assertThat(option.lifeCountersPerTeam).named("$mode life @ $heroes heroes").isEqualTo(e.life)
+            assertWithMessage("$mode available @ $heroes heroes").that(option.available).isEqualTo(e.available)
+            assertWithMessage("$mode required @ $heroes heroes").that(option.required).isEqualTo(e.required)
+            assertWithMessage("$mode life @ $heroes heroes").that(option.lifeCountersPerTeam).isEqualTo(e.life)
         }
     }
 
@@ -39,6 +40,7 @@ class MatchSetupTest {
     fun `player range is 2 to 10 with 4 and 6 recommended`() {
         assertThat(setup.playerRange).isEqualTo(2..10)
         assertThat((2..10).filter(setup::isRecommended)).containsExactly(4, 6)
+        assertThat((2..10).filter(setup::isExtended)).containsExactly(3, 5, 7, 8, 9, 10)
     }
 
     @Test
@@ -153,11 +155,11 @@ class MatchSetupTest {
     fun `end of round has the six official steps`() {
         assertThat(bundledRules.endOfRound.map { it.title }).containsExactly(
             "Minion Battle",
-            "Remove tokens",
+            "Remove Tokens, Return Markers",
             "Push the Lane",
-            "Retrieve cards",
+            "Retrieve Cards",
             "Level Up",
-            "Pity Coin",
+            "Collect a Pity Coin",
         ).inOrder()
     }
 

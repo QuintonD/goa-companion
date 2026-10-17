@@ -44,6 +44,8 @@ class MatchSetup(private val rules: MatchRules) {
 
     fun isRecommended(players: Int): Boolean = rules.playerCount(players)?.recommended == true
 
+    fun isExtended(players: Int): Boolean = rules.playerCount(players)?.extended == true
+
     /** Seat layouts the rules offer for [players]; odd counts offer Handicap and Double pilot. */
     fun layouts(players: Int): List<SeatLayout> = rules.playerCount(players)?.layouts.orEmpty()
 

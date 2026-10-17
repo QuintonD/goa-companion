@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.domain.timer
 
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.model.match.Team
 import kotlin.math.abs
 import kotlin.random.Random
 import org.junit.Test
@@ -324,6 +325,18 @@ class TimerEngineTest {
         s = engine.next(s) // turn 2
         assertThat(s.step.turn).isEqualTo(2)
         assertThat(s.actors).isEmpty()
+    }
+
+    @Test
+    fun `tie breaker coin side flips during play and is kept across steps`() {
+        var s = engine.start("s", tableRules(), endOfRound, 4, tieBreaker = Team.RED)
+        s = engine.flipTieBreaker(s)
+        assertThat(s.tieBreaker).isEqualTo(Team.BLUE)
+        s = engine.next(engine.next(s))
+        assertThat(s.tieBreaker).isEqualTo(Team.BLUE)
+        assertThat(engine.flipTieBreaker(s).tieBreaker).isEqualTo(Team.RED)
+        val ended = engine.endMatch(s)
+        assertThat(engine.flipTieBreaker(ended)).isEqualTo(ended)
     }
 
     @Test
