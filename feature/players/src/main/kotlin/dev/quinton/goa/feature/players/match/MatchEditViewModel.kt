@@ -231,7 +231,7 @@ class MatchEditViewModel @AssistedInject constructor(
                 id = original?.id ?: UUID.randomUUID().toString(),
                 createdAt = original?.createdAt ?: System.currentTimeMillis(),
                 draftId = original?.draftId,
-            )
+            ).copy(tieBreaker = original?.tieBreaker) // Not edited here; keep the coin from setup.
             matches.upsert(match)
             edit.update { it?.copy(saving = false, finished = true) }
         }

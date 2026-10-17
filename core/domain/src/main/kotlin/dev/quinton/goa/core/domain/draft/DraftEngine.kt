@@ -192,7 +192,11 @@ object DraftEngine {
         matchId = matchId,
     )
 
-    /** A PENDING match with one participant per seat; fails if a seat has no pilot. */
+    /**
+     * A PENDING match with one participant per seat; fails if a seat has no pilot. The draft's
+     * Tie Breaker coin carries over: the coin is flipped once at setup, before heroes are chosen
+     * [RB p.5 step 3], and the team showing is Team A [RB p.22].
+     */
     fun toPendingMatch(session: DraftSession, matchId: String, now: Long): Result<Match> = runCatching {
         if (!session.isComplete) throw DraftError.NotComplete
         val participants = assignments(session)
@@ -213,13 +217,15 @@ object DraftEngine {
             mode = suggestedMode(heroes = participants.size),
             draftId = session.id,
             participants = participants,
+            tieBreaker = session.teamA,
         )
     }
 
     /**
      * Starting mode for the pending match, by heroes in play (DOMAIN.md: counters are looked up by
-     * seats); Match setup lets the table change it. Double lane is required from 8 heroes [RB], and
-     * at 7 heroes it is the only mode whose Life counters the rulebook lists; otherwise Quick.
+     * seats); Match setup lets the table change it. Double lane is required from 8 heroes [APP; the
+     * rulebook requires it from 8 players, p.20], and at 7 heroes it is the only mode whose Life
+     * counters the rulebook lists; otherwise Quick.
      * Kept in step with `match-setup.json` by `DraftEngineTest`.
      */
     fun suggestedMode(heroes: Int): GameMode = if (heroes >= 7) GameMode.DOUBLE_LANE else GameMode.QUICK

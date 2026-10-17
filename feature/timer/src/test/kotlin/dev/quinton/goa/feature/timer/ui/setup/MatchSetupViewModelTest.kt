@@ -2,6 +2,11 @@ package dev.quinton.goa.feature.timer.ui.setup
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.domain.draft.DraftCommand
+import dev.quinton.goa.core.domain.draft.DraftEngine
+import dev.quinton.goa.core.domain.draft.DraftJson
+import dev.quinton.goa.core.domain.draft.DraftSetup
+import dev.quinton.goa.core.domain.draft.Seat
 import dev.quinton.goa.core.domain.setup.LayoutKind
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Match
@@ -11,6 +16,7 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.timer.FixedCoin
 import dev.quinton.goa.feature.timer.MainDispatcherRule
 import dev.quinton.goa.feature.timer.TimerHarness
+import dev.quinton.goa.feature.timer.bundledAsset
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -38,8 +44,14 @@ class MatchSetupViewModelTest {
         assertThat(s.counters!!.wavesPerLane).isEqualTo(3)
         assertThat(s.counters!!.lifePerTeam).isEqualTo(4)
         assertThat(s.modes.single { it.mode == GameMode.DOUBLE_LANE }.available).isFalse()
-        assertThat(s.modes.single { it.mode == GameMode.DOUBLE_LANE }.reason).isEqualTo("Needs 6 or more heroes")
+        assertThat(
+            s.modes.single { it.mode == GameMode.DOUBLE_LANE }.reason,
+        ).isEqualTo("The rulebook lists Double lane counters from 6 players")
         assertThat(s.firstGameAdvice).contains("Quick")
+        assertThat(s.counters!!.houseRuleNote).isNull()
+        assertThat(s.counters!!.modeNote).isNull()
+        assertThat(s.coinSource).isEqualTo(CoinSource.NONE)
+        assertThat(s.coinPlaced).isFalse()
     }
 
     @Test
@@ -62,6 +74,37 @@ class MatchSetupViewModelTest {
         assertThat(double.counters!!.lifePerTeam).isEqualTo(5)
         assertThat(double.counters!!.doublePilots).isEqualTo(1)
         assertThat(double.modes.single { it.mode == GameMode.DOUBLE_LANE }.available).isTrue()
+        // Rulebook p.20: 5 players use 4-player Life counters; the house count is labelled.
+        assertThat(handicap.counters!!.houseRuleNote).isNull()
+        assertThat(double.counters!!.houseRuleNote).isEqualTo(
+            "House rule: counted as 6 heroes. The rulebook gives 5 players 4 (Quick) / 6 (Long) Life counters.",
+        )
+
+        vm.selectMode(GameMode.DOUBLE_LANE)
+        val lanes = vm.uiState.first { it.selectedMode == GameMode.DOUBLE_LANE }
+        assertThat(lanes.counters!!.houseRuleNote).isEqualTo(
+            "House rule: counted as 6 heroes. The rulebook gives 5 players 4 (Quick) / 6 (Long) Life counters. " +
+                "The rulebook lists Double lane counters from 6 players.",
+        )
+        assertThat(lanes.counters!!.modeNote!!.title).contains("p.20")
+    }
+
+    @Test
+    fun `seven players with a double pilot label double lane as a house-rule requirement`() = runTest {
+        val vm = vm()
+        vm.setPlayers(7)
+        vm.selectLayout("double-pilot-7")
+        val s = vm.uiState.first { it.selectedLayoutId == "double-pilot-7" }
+
+        val double = s.modes.single { it.mode == GameMode.DOUBLE_LANE }
+        assertThat(double.required).isTrue()
+        assertThat(double.requiredLabel).isEqualTo("Required (house rule)")
+        assertThat(s.modes.single { it.mode == GameMode.QUICK }.reason).isEqualTo(
+            "House rule: 8 heroes play on the double-lane map. The rulebook requires it from 8 players",
+        )
+        // Same Life counters either way (6-8 players: 6), so no counter note.
+        assertThat(s.counters!!.houseRuleNote).isNull()
+        assertThat(s.firstGameAdvice).isEmpty()
     }
 
     @Test
@@ -77,7 +120,12 @@ class MatchSetupViewModelTest {
             s.modes.single {
                 it.mode == GameMode.QUICK
             }.reason,
-        ).isEqualTo("Double lane is required at this size")
+        ).isEqualTo("The rulebook uses the double-lane map from 8 players")
+        assertThat(s.modes.single { it.mode == GameMode.DOUBLE_LANE }.requiredLabel).isEqualTo("Required")
+        // "Quick game if anyone is new" is not shown when Quick can't be chosen.
+        assertThat(s.firstGameAdvice).isEmpty()
+        assertThat(s.counters!!.houseRuleNote).isNull()
+        assertThat(s.counters!!.modeNote!!.points.joinToString()).contains("a Battle Zone")
         assertThat(s.counters!!.lanes).isEqualTo(2)
         assertThat(s.counters!!.wavesPerLane).isEqualTo(7)
         assertThat(s.counters!!.lifePerTeam).isEqualTo(6)
@@ -126,7 +174,8 @@ class MatchSetupViewModelTest {
         vm.flipCoin()
         val s = vm.uiState.first { it.flips == 1 }
         assertThat(s.tieBreaker).isEqualTo(Team.BLUE)
-        assertThat(s.tieBreakerRule).contains("Tie Breaker")
+        assertThat(s.coinSource).isEqualTo(CoinSource.HERE)
+        assertThat(s.tieBreakerRule.first()).contains("that player (and only that player) flips the coin")
     }
 
     @Test
@@ -169,6 +218,71 @@ class MatchSetupViewModelTest {
         assertThat(session.actionSlots).isEqualTo(6)
         assertThat(session.mode).isEqualTo(GameMode.LONG)
         assertThat(session.tieBreaker).isEqualTo(Team.BLUE)
+        // A coin flipped at setup is recorded on the linked match.
+        assertThat(matches.state.value.single().tieBreaker).isEqualTo(Team.BLUE)
+    }
+
+    /** A finished draft with Team A = [teamA], turned into its pending match the way the draft board does. */
+    private suspend fun draftedMatch(teamA: Team): String {
+        val method = DraftJson.decodeMethods(bundledAsset("draft-methods.json")).methods.first { it.id == "all-random" }
+        val seats =
+            listOf(Seat(Team.RED, 0, "a"), Seat(Team.RED, 1, "b"), Seat(Team.BLUE, 0, "c"), Seat(Team.BLUE, 1, "d"))
+        var session = DraftEngine.start(
+            DraftSetup(
+                id = "d1",
+                createdAt = 1,
+                method = method,
+                seats = seats,
+                teamA = teamA,
+                candidates = (1..12).map { "hero-$it" },
+                seed = 3,
+            ),
+        ).getOrThrow()
+        while (!session.isComplete) {
+            session = DraftEngine.apply(session, DraftCommand(DraftEngine.available(session).first())).getOrThrow()
+        }
+        matches.upsert(DraftEngine.toPendingMatch(session, "m-draft", now = 5).getOrThrow())
+        return "m-draft"
+    }
+
+    @Test
+    fun `a draft with Team A Blue gives setup and timer the Blue coin`() = runTest {
+        val vm = vm(draftedMatch(teamA = Team.BLUE))
+        val s = vm.loaded()
+        assertThat(s.tieBreaker).isEqualTo(Team.BLUE)
+        assertThat(s.coinSource).isEqualTo(CoinSource.DRAFT)
+        assertThat(s.coinPlaced).isTrue()
+        assertThat(s.flips).isEqualTo(0)
+
+        vm.navigation.test {
+            vm.startTimer()
+            assertThat(awaitItem()).isEqualTo(SetupEvent.TimerStarted)
+        }
+        assertThat(h.controller.snapshot.first()!!.tieBreaker).isEqualTo(Team.BLUE)
+        assertThat(matches.state.value.single().tieBreaker).isEqualTo(Team.BLUE)
+    }
+
+    @Test
+    fun `correcting the draft coin is saved to the match and used by the timer`() = runTest {
+        val vm = vm(draftedMatch(teamA = Team.BLUE))
+        vm.loaded()
+        vm.correctCoin()
+        vm.uiState.first { it.correctingCoin }
+        vm.setCoin(Team.RED)
+        val s = vm.uiState.first { it.tieBreaker == Team.RED }
+        assertThat(s.coinSource).isEqualTo(CoinSource.HERE)
+        assertThat(s.flips).isEqualTo(0)
+
+        vm.navigation.test {
+            vm.startTimer()
+            assertThat(awaitItem()).isEqualTo(SetupEvent.TimerStarted)
+        }
+        assertThat(h.controller.snapshot.first()!!.tieBreaker).isEqualTo(Team.RED)
+        assertThat(matches.state.value.single().tieBreaker).isEqualTo(Team.RED)
+        // Back on setup for the same match, the corrected coin is the one recorded.
+        val again = vm(matches.state.value.single().id).loaded()
+        assertThat(again.tieBreaker).isEqualTo(Team.RED)
+        assertThat(again.coinSource).isEqualTo(CoinSource.DRAFT)
     }
 
     @Test

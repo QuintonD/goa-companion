@@ -79,6 +79,7 @@ class BackupRoundTripTest {
         durationMin = 64,
         notes = "Line one\nLine two — ünïcødé",
         draftId = "d-1",
+        tieBreaker = Team.BLUE,
         participants = listOf(
             Participant(ann.id, "hero-1", Team.RED),
             Participant(ann.id, "hero-2", Team.RED, handicap = true),
@@ -139,7 +140,7 @@ class BackupRoundTripTest {
         assertThat(target.players.observePlayers(includeArchived = true).first()).containsExactly(ann, bob, cid)
         assertThat(document.summary()).isEqualTo(
             BackupSummary(
-                1,
+                BackupDocument.CURRENT_VERSION,
                 document.exportedAt,
                 players = 3,
                 matches = 2,
@@ -242,6 +243,45 @@ class BackupRoundTripTest {
         val all = assertThrows(InvalidBackupException::class.java) { decode(twice, both) }
         assertThat(all.message).contains("(id twice)")
         assertThat(all.message).contains("(id both)")
+    }
+
+    @Test
+    fun version1FileImportsLosslesslyWithoutACoin() = runTest {
+        // A v1 export as written by the first release: no Match.tieBreaker.
+        val v1 = """
+            {"format":"goa-companion-backup","version":1,"exportedAt":7,"appVersion":"1.0",
+             "players":[{"id":"ann","name":"Ann","color":1,"avatarId":2,"createdAt":3,"archived":false}],
+             "matches":[{"id":"m1","createdAt":10,"playedAt":11,"status":"completed","mode":"long",
+               "map":null,"winner":"blue","winCondition":"last_push","durationMin":50,"notes":"n",
+               "draftId":"d1","participants":[{"playerId":"ann","heroId":"arien","team":"blue","handicap":true}]}],
+             "drafts":[{"id":"d1","createdAt":9,"methodId":"house","methodKind":"custom","pool":["arien"],
+               "teamA":"blue","steps":[{"team":"blue","action":"pick","heroId":"arien"}],"matchId":"m1"}],
+             "eloConfig":null,"extras":{}}
+        """.trimIndent()
+        val document = BackupCodec.decode(v1)
+        val target = Device()
+        target.backup.import(document, ImportMode.REPLACE)
+
+        assertThat(target.matches.observeMatch("m1").first()).isEqualTo(
+            Match(
+                id = "m1",
+                createdAt = 10,
+                playedAt = 11,
+                status = MatchStatus.COMPLETED,
+                mode = GameMode.LONG,
+                winner = Team.BLUE,
+                winCondition = WinCondition.LAST_PUSH,
+                durationMin = 50,
+                notes = "n",
+                draftId = "d1",
+                participants = listOf(Participant("ann", "arien", Team.BLUE, handicap = true)),
+                tieBreaker = null,
+            ),
+        )
+        assertThat(target.drafts.observeDrafts().first().single().teamA).isEqualTo(Team.BLUE)
+        assertThat(target.players.observePlayers().first().single().name).isEqualTo("Ann")
+        // Re-exported as the current version, so an older app refuses it instead of dropping the coin.
+        assertThat(target.backup.export().version).isEqualTo(2)
     }
 
     @Test

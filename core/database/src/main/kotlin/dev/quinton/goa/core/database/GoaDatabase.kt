@@ -4,8 +4,10 @@ import android.content.Context
 import androidx.room3.Database
 import androidx.room3.Room
 import androidx.room3.RoomDatabase
+import androidx.room3.migration.Migration
 import androidx.sqlite.SQLiteDriver
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import androidx.sqlite.execSQL
 import dev.quinton.goa.core.database.dao.DraftRecordDao
 import dev.quinton.goa.core.database.dao.MatchDao
 import dev.quinton.goa.core.database.dao.PlayerDao
@@ -39,12 +41,24 @@ abstract class GoaDatabase : RoomDatabase() {
     abstract fun draftRecordDao(): DraftRecordDao
 
     companion object {
-        const val VERSION = 1
+        const val VERSION = 2
         const val NAME = "goa.db"
+
+        /**
+         * v2: `matches.tie_breaker`, the team on the Tie Breaker coin at setup (ADR-016 setup).
+         * Existing matches keep null: the coin they were played with was never recorded.
+         */
+        val MIGRATION_1_2 = Migration(1, 2) { connection ->
+            connection.execSQL("ALTER TABLE matches ADD COLUMN tie_breaker TEXT")
+        }
+
+        /** Every schema migration, oldest first. Never destructive: the match log is the source of truth. */
+        val MIGRATIONS: List<Migration> = listOf(MIGRATION_1_2)
 
         /** On-disk database with the bundled SQLite driver (same SQLite on every device). */
         fun create(context: Context, driver: SQLiteDriver = BundledSQLiteDriver()): GoaDatabase =
             Room.databaseBuilder(context, GoaDatabase::class.java, NAME)
+                .addMigrations(*MIGRATIONS.toTypedArray())
                 .setDriver(driver)
                 .setQueryCoroutineContext(Dispatchers.IO)
                 .build()

@@ -31,12 +31,16 @@ without usable source-4 data are verified via `imageChecks` (Whisper, Ignatia, M
 ### Roster — 32 heroes (titles per BGG/Wolff; source 1 spells "Wuk the Grove Keeper", "Emmitt the Traveller", "Widget and Pyro": store those as aliases)
 | Product (BGG id, year) | Heroes (★ complexity) |
 |---|---|
-| Core (267609, 2022) | Arien the Tidemaster ★, Brogan the Destroyer ★, Tigerclaw the Cutpurse ★, Wasp the Warmaiden ★, Sabina the Commander ★, Xargatha the Changed ★, Dodger the Warlock ★ |
+| Core (267609, 2022) | Arien the Tidemaster ★, Brogan the Destroyer ★, Tigerclaw the Cutpurse ★, Wasp the Warmaiden ★, Sabina the Commander ★¹, Xargatha the Changed ★, Dodger the Warlock ★ |
 | Devoted (356292, 2022) | Misa the Samurai ★★, Whisper the Outcast ★★, Ursafar the Savage ★★, Silverarrow the Pathfinder ★★, Tali the Spiritcaller ★★★ |
 | Defiant (356290, 2022) | Garrus the Gladiator ★★, Bain the Bounty Hunter ★★, Cutter the Sky Pirate ★★★, Trinkets the Scavenger ★★★, NebKher the Harbinger ★★★★ |
 | Renowned (356291, 2022) | Min the Dragonmonk ★★, Swift the Sharpshooter ★★★, Wuk the Grovekeeper ★★★, Hanu the Trickster ★★★, Ignatia the Mad ★★★★ |
 | Arcane (412138, 2025) | Rowenna the Vanguard ★★, Mrak the Rockshaper ★★★, Snorri the Runescribe ★★★★, Razzle the Ringmaster ★★★★, Gydion the Archwizard ★★★★ |
 | Wayward (412139, 2025) | Brynn the Seeker ★★★, Mortimer the Awakener ★★★, Widget the Dragonbonded (with Pyro) ★★★, Takahide the Warlord ★★★★, Emmitt the Traveler ★★★★ |
+
+¹ The rulebook's first-game line-up (p.5) calls her "Sabina the Gunslinger"; the pinned
+2nd-printing catalog sources title her "the Commander". The catalog title is correct: don't
+"fix" it to the rulebook's wording.
 
 Official roles (10, p.21): Damager, Disabler, Durable, Farming, **Healer**, Melee, Pusher, Sniper,
 Tactician, Tokens. A hero has 2–6 role icons.
@@ -83,9 +87,16 @@ free text.
   tap-through checklist (Upgrade timer on step 5). A lane can also be pushed mid-turn (last
   enemy minion in the Battle Zone defeated or removed), and **a match can end mid-turn**, so
   "End match" must be reachable from every phase.
-- **Tie Breaker coin:** flipped during setup and placed by the board; the app tracks *which
-  team's symbol shows*, not who holds it. It also breaks ties for simultaneous effects and
-  minion placement (not flipped in those cases).
+- **Tie Breaker coin:** flipped once during setup, before heroes are chosen, and placed result
+  side up by the board (p.5 step 3); the team showing is "Team A" for hero selection (p.22).
+  It is re-flipped only by the player who acted first after a cross-team initiative tie (p.7).
+  The team showing also goes first, without a flip, when the order of simultaneous Active
+  effects matters (p.17) or of minions moved back into the Battle Zone (p.18), and places
+  first when a Spawn point is blocked (p.8). The app tracks *which team's symbol shows*, not
+  who holds it. `Match.tieBreaker` records the coin as placed at setup: a draft fills it with
+  Team A, Match setup shows it ("leave the coin as it is", with "Correct the coin") and saves
+  any correction; the app flips only when there was no draft. Flips during play are not
+  written back to the match.
 - Hand: 5 cards per round (one per colour) for 4 turns; Defense is played by discarding from
   hand and doesn't use your turn card [RB].
 
@@ -101,15 +112,31 @@ rulebook gives **no single-lane counts for 7+ players** (the app shows "not spec
 [APP] Counts are looked up by the number of **heroes in play** (seats). This reproduces every
 official case (2 or 3 players = 4 heroes; 5 players with Handicap = 5 heroes → 4-player
 counts) and gives the owner's double-pilot house rule (5 players as 3v3 = 6 heroes) the
-6-player counts. Rulebook first-game advice: play a Quick game if anyone is new.
+6-player counts. `match-setup.json` also holds the rulebook's **per-player** values
+(`lifeCountersByPlayers`, Double lane `listedFromPlayers: 6`, `requiredFromPlayers: 8`), and
+Match setup labels every place the heroes count differs: e.g. 5 players as 3v3 → "House rule:
+counted as 6 heroes. The rulebook gives 5 players 4 (Quick) / 6 (Long) Life counters."; 7
+players as 4v4 (8 heroes) → Double lane "Required (house rule)", "the rulebook requires it from
+8 players". Official layouts never get a label (tested). Rulebook first-game advice: play a
+Quick game if anyone is new (shown only when Quick can be chosen). 2 players: the rulebook
+warns this is considerably more challenging and takes longer (p.20).
+
+Double lane rules (p.20, shown at setup when chosen): each lane has its own Battle Zone,
+minions and Wave counters; minions stay bound to the Battle Zone they first spawned in; with
+more than 3 heroes per team the extra heroes start next to their team's occupied hero spawn
+points; on cards "the Battle Zone" means "a Battle Zone"; the two Minion Battles resolve
+separately but at the same time.
 
 Win conditions (`WinCondition` enum): **THRONE** — a push makes the enemy Throne Zone the
 Battle Zone; **LAST_PUSH** — the last Wave counter flips, the team that won that push wins
-(double lane: more total Zones between own Throne and both Battle Zones); **LIFE_COUNTERS** —
+(double lane: after the last Wave counter on either lane, more total Zones between own Throne
+and both Battle Zones); **LIFE_COUNTERS** —
 a team spends its last Life counter (a defeated hero costs counters = its lowest card tier:
-1 at levels 1–3, 2 at 4–6, 3 at 7–8); **OTHER** (concession, house rule). If both teams would
-win at once from a push, the push is undone and play continues. The rulebook has no draw
-outcome (and is silent on a tied double-lane Zone count), so the app has no draws.
+1 at levels 1–3, 2 at 4–6, 3 at 7–8); **OTHER** (concession, house rule). **Double lane only**
+(p.20): if both teams would win at once as the result of a push, all minions spawn back in the
+Zones they occupied before the push and play continues until only one team wins (in effect
+the push is undone). The rulebook has no draw outcome (and is silent on
+a tied double-lane Zone count), so the app has no draws.
 
 ### Timer phases [APP — owner's table rules, 2026-10-17]
 The rulebook sets no timers. The group plays with **rule timers per phase**, all editable per
@@ -161,7 +188,8 @@ Card(id, heroId, name, color: GOLD|SILVER|RED|GREEN|BLUE|PURPLE|OTHER, tier: 1..
      image?)
 Player(id, name, color: ARGB, avatarId, createdAt, archived)   // name unique, see below
 Match(id, createdAt, playedAt, status: PENDING|COMPLETED|ABANDONED, mode: QUICK|LONG|DOUBLE_LANE,
-      map?, winner?, winCondition?, durationMin?, notes, draftId?, participants)
+      map?, winner?, winCondition?, durationMin?, notes, draftId?, participants,
+      tieBreaker?: RED|BLUE)   // coin as placed at setup; null = not recorded (DB v2, backup v2)
 Participant(playerId, heroId?, team: RED|BLUE, handicap)   // one per hero seat
 DraftRecord(id, createdAt, methodId, methodKind, pool, teamA, steps: (team, PICK|BAN, heroId), matchId?)
 ```

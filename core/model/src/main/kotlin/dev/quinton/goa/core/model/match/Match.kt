@@ -89,6 +89,12 @@ data class Match(
     val notes: String = "",
     val draftId: String? = null,
     val participants: List<Participant>,
+    /**
+     * The team showing on the Tie Breaker coin when it was placed at setup (rulebook p.5 step 3;
+     * p.22: that team is "Team A" in a draft). Carried from the draft and confirmed or corrected
+     * at Match setup. Not updated by flips during play. Null = not recorded (older matches).
+     */
+    val tieBreaker: Team? = null,
 ) {
     fun team(team: Team): List<Participant> = participants.filter { it.team == team }
 
