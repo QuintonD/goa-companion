@@ -46,7 +46,7 @@ import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.Pill
 import dev.quinton.goa.feature.players.common.ProvisionalPill
 import dev.quinton.goa.feature.players.common.SectionHeader
-import dev.quinton.goa.feature.players.common.StatTile
+import dev.quinton.goa.feature.players.common.StatRow
 import dev.quinton.goa.feature.players.common.formatPercent
 import dev.quinton.goa.feature.players.common.formatRating
 import dev.quinton.goa.feature.players.common.winLoss
@@ -206,18 +206,14 @@ private fun Header(state: PlayerDetailUiState) {
 @Composable
 private fun Stats(state: PlayerDetailUiState) {
     val rating = state.rating
-    FlowRow(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        maxItemsInEachRow = 4,
-    ) {
-        val tile = Modifier.weight(1f)
-        StatTile(rating.games.toString(), "Rated games", tile)
-        StatTile(if (rating.games > 0) winLoss(rating.wins, rating.games) else "—", "Won–lost", tile)
-        StatTile(if (rating.games > 0) formatPercent(rating.wins.toDouble() / rating.games) else "—", "Win rate", tile)
-        StatTile(state.doublePilotGames.toString(), "Double pilot", tile)
-    }
+    StatRow(
+        listOf(
+            rating.games.toString() to "Games",
+            (if (rating.games > 0) winLoss(rating.wins, rating.games) else "—") to "Won–lost",
+            (if (rating.games > 0) formatPercent(rating.wins.toDouble() / rating.games) else "—") to "Win rate",
+            state.doublePilotGames.toString() to "Double pilot",
+        ),
+    )
 }
 
 @Composable

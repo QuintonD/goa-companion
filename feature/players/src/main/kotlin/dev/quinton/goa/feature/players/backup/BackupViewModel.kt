@@ -90,7 +90,8 @@ class BackupViewModel @Inject constructor(
         run {
             withContext(io) { backup.import(document, mode) }
             val verb = if (mode == ImportMode.REPLACE) "Restored" else "Merged"
-            "$verb ${document.players.size} players and ${document.matches.size} matches. Ratings recalculated."
+            "$verb ${plural(document.players.size, "player")} and ${plural(document.matches.size, "match", "matches")}. " +
+                "Ratings recalculated."
         }
     }
 
@@ -116,3 +117,5 @@ class BackupViewModel @Inject constructor(
         }
     }
 }
+
+private fun plural(count: Int, one: String, many: String = one + "s") = "$count ${if (count == 1) one else many}"

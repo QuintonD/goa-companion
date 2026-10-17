@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -130,6 +132,7 @@ fun StatTile(value: String, caption: String, modifier: Modifier = Modifier) {
             .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             .semantics(mergeDescendants = true) {},
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
         Text(value, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(
@@ -137,6 +140,7 @@ fun StatTile(value: String, caption: String, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 2,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
     }
 }
@@ -183,3 +187,47 @@ object Motion {
     fun <T> spec(): androidx.compose.animation.core.FiniteAnimationSpec<T> =
         androidx.compose.animation.core.tween(DURATION_MS, easing = androidx.compose.animation.core.FastOutSlowInEasing)
 }
+
+/** Equal-height row of [StatTile]s; wraps two per row at large font scales. */
+@Composable
+fun StatRow(tiles: List<Pair<String, String>>, modifier: Modifier = Modifier) {
+    val large = androidx.compose.ui.platform.LocalDensity.current.fontScale >= LARGE_FONT_SCALE
+    if (large) {
+        androidx.compose.foundation.layout.FlowRow(
+            modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            maxItemsInEachRow = 2,
+        ) {
+            tiles.forEach { (value, caption) -> StatTile(value, caption, Modifier.weight(1f)) }
+        }
+    } else {
+        Row(
+            modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            tiles.forEach { (value, caption) -> StatTile(value, caption, Modifier.weight(1f).fillMaxHeight()) }
+        }
+    }
+}
+
+/** Font scale from which compact controls switch to roomier, wrapping layouts. */
+const val LARGE_FONT_SCALE = 1.3f
+
+/** Brand colours for selected chips: tide-teal tint, never the default Material purple. */
+@Composable
+fun goaFilterChipColors() = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+    selectedContainerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
+    selectedLabelColor = MaterialTheme.colorScheme.onSurface,
+    selectedLeadingIconColor = MaterialTheme.colorScheme.secondary,
+)
+
+@Composable
+fun goaSegmentedColors() = androidx.compose.material3.SegmentedButtonDefaults.colors(
+    activeContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+    activeContentColor = MaterialTheme.colorScheme.onSurface,
+    activeBorderColor = MaterialTheme.colorScheme.primary,
+    inactiveContainerColor = Color.Transparent,
+    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    inactiveBorderColor = MaterialTheme.colorScheme.outline,
+)

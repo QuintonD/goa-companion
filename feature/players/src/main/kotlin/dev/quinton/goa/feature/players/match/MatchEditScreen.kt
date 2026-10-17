@@ -28,6 +28,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -45,7 +46,6 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -89,6 +89,9 @@ import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.feature.players.common.Dates
+import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
+import dev.quinton.goa.feature.players.common.goaFilterChipColors
+import dev.quinton.goa.feature.players.common.goaSegmentedColors
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.Motion
 import dev.quinton.goa.feature.players.common.Pill
@@ -265,15 +268,12 @@ private fun MatchFormContent(
         SectionHeader("When and where")
         WhenRow(form.playedAt, actions.onPlayedAt)
         Spacer(Modifier.size(Spacing.md))
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            GameMode.entries.forEachIndexed { i, mode ->
-                SegmentedButton(
-                    selected = form.mode == mode,
-                    onClick = { actions.onMode(mode) },
-                    shape = SegmentedButtonDefaults.itemShape(i, GameMode.entries.size),
-                ) { Text(mode.label(), maxLines = 1) }
-            }
-        }
+        ChoiceRow(
+            options = GameMode.entries,
+            selected = form.mode,
+            label = { it.label() },
+            onSelect = actions.onMode,
+        )
         Spacer(Modifier.size(Spacing.md))
         OutlinedTextField(
             value = form.map,
@@ -315,16 +315,12 @@ private fun MatchFormContent(
         }
 
         SectionHeader("Result")
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            val statuses = listOf(MatchStatus.COMPLETED, MatchStatus.PENDING, MatchStatus.ABANDONED)
-            statuses.forEachIndexed { i, status ->
-                SegmentedButton(
-                    selected = form.status == status,
-                    onClick = { actions.onStatus(status) },
-                    shape = SegmentedButtonDefaults.itemShape(i, statuses.size),
-                ) { Text(status.label(), maxLines = 1) }
-            }
-        }
+        ChoiceRow(
+            options = listOf(MatchStatus.COMPLETED, MatchStatus.PENDING, MatchStatus.ABANDONED),
+            selected = form.status,
+            label = { it.label() },
+            onSelect = actions.onStatus,
+        )
         AnimatedVisibility(
             visible = form.status == MatchStatus.COMPLETED,
             enter = fadeIn(Motion.spec()) + expandVertically(Motion.spec()),
@@ -353,9 +349,12 @@ private fun MatchFormContent(
                             selected = selected,
                             onClick = { actions.onWinCondition(if (selected) null else condition) },
                             label = { Text(condition.label()) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
-                            ),
+                            leadingIcon = if (selected) {
+                                { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                            } else {
+                                null
+                            },
+                            colors = goaFilterChipColors(),
                             modifier = Modifier.heightIn(min = 48.dp),
                         )
                     }
@@ -428,7 +427,7 @@ private fun WhenRow(playedAt: Long, onPlayedAt: (Long) -> Unit) {
     var pickTime by rememberSaveable { mutableStateOf(false) }
     val zone = ZoneId.systemDefault()
     val dateTime = Instant.ofEpochMilli(playedAt).atZone(zone)
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         AssistChip(
             onClick = { pickDate = true },
             label = { Text(Dates.day(playedAt)) },
@@ -612,6 +611,12 @@ private fun SeatEditor(
                     selected = seat.handicap,
                     onClick = onToggleHandicap,
                     label = { Text("Handicap") },
+                    leadingIcon = if (seat.handicap) {
+                        { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    } else {
+                        null
+                    },
+                    colors = goaFilterChipColors(),
                     modifier = Modifier.heightIn(min = 48.dp),
                 )
                 if (doublePilot) Pill("Double pilot", icon = Icons.Outlined.People, color = MaterialTheme.colorScheme.secondary)
@@ -650,6 +655,41 @@ private fun WinnerOption(team: Team, selected: Boolean, onClick: () -> Unit, mod
             if (selected) {
                 Spacer(Modifier.width(Spacing.sm))
                 Icon(Icons.Filled.EmojiEvents, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
+            }
+        }
+    }
+}
+
+/** Single choice: a segmented row, or wrapping chips when the font is large. */
+@Composable
+private fun <T> ChoiceRow(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
+    if (LocalDensity.current.fontScale >= LARGE_FONT_SCALE) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            options.forEach { option ->
+                val isSelected = option == selected
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { onSelect(option) },
+                    label = { Text(label(option)) },
+                    leadingIcon = if (isSelected) {
+                        { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    } else {
+                        null
+                    },
+                    colors = goaFilterChipColors(),
+                    modifier = Modifier.heightIn(min = 48.dp),
+                )
+            }
+        }
+    } else {
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            options.forEachIndexed { i, option ->
+                SegmentedButton(
+                    selected = option == selected,
+                    onClick = { onSelect(option) },
+                    shape = SegmentedButtonDefaults.itemShape(i, options.size),
+                    colors = goaSegmentedColors(),
+                ) { Text(label(option), maxLines = 1) }
             }
         }
     }

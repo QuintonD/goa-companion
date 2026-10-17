@@ -39,7 +39,7 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.EngravedCard
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.SectionHeader
-import dev.quinton.goa.feature.players.common.StatTile
+import dev.quinton.goa.feature.players.common.StatRow
 import dev.quinton.goa.feature.players.common.formatPercent
 import dev.quinton.goa.feature.players.common.formatRating
 import dev.quinton.goa.feature.players.common.winLoss
@@ -61,15 +61,15 @@ fun MetaContent(state: MetaUiState, onOpenRatingSettings: () -> Unit, modifier: 
             contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = Spacing.xxl),
         ) {
             item(key = "summary") {
-                Row(Modifier.fillMaxWidth().padding(top = Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    StatTile(state.totalMatches.toString(), "Rated matches", Modifier.weight(1f))
-                    StatTile(state.draftsWithBans.toString(), "Drafts with bans", Modifier.weight(1f))
-                    StatTile(
-                        if (state.largerTeam.games == 0) "—" else formatPercent(state.largerTeam.winRate),
-                        "Larger team wins" + if (state.largerTeam.games > 0) " (${state.largerTeam.games})" else "",
-                        Modifier.weight(1f),
-                    )
-                }
+                StatRow(
+                    listOf(
+                        state.totalMatches.toString() to "Rated matches",
+                        state.draftsWithBans.toString() to "Drafts with bans",
+                        (if (state.largerTeam.games == 0) "—" else formatPercent(state.largerTeam.winRate)) to
+                            ("Larger team won" + if (state.largerTeam.games > 0) " (${state.largerTeam.games})" else ""),
+                    ),
+                    Modifier.padding(top = Spacing.md),
+                )
             }
             item(key = "explain") {
                 Text(

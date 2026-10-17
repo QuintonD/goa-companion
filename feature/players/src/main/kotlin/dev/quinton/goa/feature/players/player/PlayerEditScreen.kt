@@ -131,7 +131,7 @@ fun PlayerEditScreen(state: PlayerEditUiState, actions: PlayerEditActions, modif
                             Modifier
                                 .size(56.dp)
                                 .clip(CircleShape)
-                                .border(ring, MaterialTheme.colorScheme.primary, CircleShape)
+                                .then(if (ring > 0.dp) Modifier.border(ring, MaterialTheme.colorScheme.primary, CircleShape) else Modifier)
                                 .selectable(selected = selected, role = Role.RadioButton) { actions.onAvatarChange(id) }
                                 .semantics { contentDescription = "Crest ${id + 1}" },
                             contentAlignment = Alignment.Center,
@@ -159,7 +159,7 @@ private fun ColorSwatch(color: Color, name: String, selected: Boolean, onClick: 
         Modifier
             .size(48.dp)
             .clip(CircleShape)
-            .border(ring, MaterialTheme.colorScheme.onSurface, CircleShape)
+            .then(if (ring > 0.dp) Modifier.border(ring, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .semantics { contentDescription = name }
             .padding(6.dp)
