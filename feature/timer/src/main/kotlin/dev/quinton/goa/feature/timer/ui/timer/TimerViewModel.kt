@@ -15,6 +15,7 @@ import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.MatchStatus
+import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.feature.timer.TimerText
 import dev.quinton.goa.feature.timer.data.TimerRepository
@@ -131,8 +132,12 @@ class TimerViewModel @Inject constructor(
         repository.selectedPresetId,
         pending,
         seatsChoice,
-    ) { presets, selected, pendingList, seats ->
+        repository.tonightTurn,
+    ) { presets, selected, pendingList, seats, tonight ->
+        val own = presets.firstOrNull { it.id == selected }
+            ?.phases?.firstOrNull { it.enabled && it.kind == PhaseKind.TURN }?.seconds
         StartUiState(
+            tonight = own?.let { TonightUi(tonight?.takeIf { t -> t.presetId == selected }?.seconds ?: it, it) },
             presets = presets.map { p ->
                 PresetOption(
                     id = p.id,
@@ -224,7 +229,23 @@ class TimerViewModel @Inject constructor(
 
     fun flipTieBreaker() = command(TimerCommand.FlipTieBreaker)
 
+    fun setTieBreaker(team: Team?) = command(TimerCommand.SetTieBreaker(team))
+
     fun heroResolves(seat: Int) = command(TimerCommand.HeroResolves(seat))
+
+    fun startShotClock() = command(TimerCommand.StartShotClock)
+
+    fun cancelShotClock() = command(TimerCommand.CancelShotClock)
+
+    fun timeOut(team: Team) = command(TimerCommand.TimeOut(team))
+
+    /** Tonight's turn length for the selected preset (the preset itself is unchanged). */
+    fun setTonightTurn(seconds: Int) = launch {
+        val id = repository.selectedPresetId.first()
+        repository.setTonightTurn(id, seconds.coerceIn(TONIGHT_MIN_SECONDS, TONIGHT_MAX_SECONDS))
+    }
+
+    fun saveTonightToPreset() = launch { repository.saveTonightToPreset() }
 
     /** The controller writes the duration to a linked match (single source). */
     fun endMatch() = command(TimerCommand.EndMatch)
@@ -286,10 +307,32 @@ class TimerViewModel @Inject constructor(
         }
         cueKey = key
         cueElapsed = now
+        shotCues(s, readout.shotClockRemainingMillis)
         val remaining = readout.remainingMillis
         if (s.preset.autoAdvance && remaining != null && remaining <= 0) {
             controller.perform(TimerCommand.AdvanceDue)
         }
+    }
+
+    private var shotKey: String? = null
+    private var shotRemaining: Long = 0
+
+    /** "Hurry up" cues at 10 s, 5 s and zero, played once each like phase cues. */
+    private fun shotCues(s: TimerSnapshot, remaining: Long?) {
+        val clock = s.shotClock
+        if (clock == null || remaining == null) {
+            shotKey = null
+            return
+        }
+        val key = "${s.sessionId}:${s.round}:${s.stepIndex}:${clock.durationMillis}:" +
+            "${(clock.runningSince ?: 0) - clock.accumulatedMillis}"
+        if (key == shotKey && shotRemaining - remaining <= STALE_CUE_MS) {
+            val crossed = SHOT_CUES.filter { it * 1000L in remaining until shotRemaining }
+            val prefs = settings.value
+            crossed.lastOrNull()?.let { cues.cue(it, prefs.hapticsEnabled, prefs.soundsEnabled) }
+        }
+        shotKey = key
+        shotRemaining = remaining
     }
 
     private fun command(command: TimerCommand) = launch { controller.perform(command) }
@@ -318,5 +361,10 @@ class TimerViewModel @Inject constructor(
 
         /** Gaps longer than this (app was hidden) don't replay old cues. */
         private const val STALE_CUE_MS = 2_000L
+
+        private val SHOT_CUES = listOf(10, 5, 0)
+        const val TONIGHT_STEP_SECONDS = 15
+        const val TONIGHT_MIN_SECONDS = 15
+        const val TONIGHT_MAX_SECONDS = 300
     }
 }

@@ -8,6 +8,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.timer.ui.components.notificationSettingsIntent
 import dev.quinton.goa.feature.timer.ui.components.rememberStartWithNotificationPermission
 
@@ -26,7 +27,13 @@ data class TimerActions(
     val onSkipToEnd: () -> Unit = {},
     val onEndMatch: () -> Unit = {},
     val onFlipCoin: () -> Unit = {},
+    val onSetCoin: (Team?) -> Unit = {},
     val onHeroResolves: (Int) -> Unit = {},
+    val onShotClock: () -> Unit = {},
+    val onCancelShotClock: () -> Unit = {},
+    val onTimeOut: (Team) -> Unit = {},
+    val onTonightTurn: (Int) -> Unit = {},
+    val onSaveTonight: () -> Unit = {},
     val onLogResult: () -> Unit = {},
     val onDone: () -> Unit = {},
     val onOpenNotificationSettings: () -> Unit = {},
@@ -73,7 +80,13 @@ fun TimerRoute(
             onSkipToEnd = viewModel::skipToEndOfRound,
             onEndMatch = viewModel::endMatch,
             onFlipCoin = viewModel::flipTieBreaker,
+            onSetCoin = viewModel::setTieBreaker,
             onHeroResolves = viewModel::heroResolves,
+            onShotClock = viewModel::startShotClock,
+            onCancelShotClock = viewModel::cancelShotClock,
+            onTimeOut = viewModel::timeOut,
+            onTonightTurn = viewModel::setTonightTurn,
+            onSaveTonight = viewModel::saveTonightToPreset,
             onLogResult = viewModel::logResult,
             onDone = viewModel::dismissSummary,
             onOpenNotificationSettings = {

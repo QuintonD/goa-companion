@@ -111,8 +111,9 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         pauseAndAssertClock(90)
         checkpoint("Timer · Strategy (paused)")
 
+        settle()
         rule.tapText("Next: Turn 1")
-        assertPhase("Turn", "TURN 1 OF 4")
+        assertPhase("Play a card", "TURN 1 OF 4")
         rule.waitFor(hasStateDescription("Running"))
         checkpoint("Timer · Turn (running)")
         pauseAndAssertClock(30)
@@ -125,10 +126,18 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         rule.waitFor(hasStateDescription("Running"))
         rule.waitUntil(5_000) { clock() != frozen }
 
+        // Each turn: play a card (timed), then the untimed Resolve step after the reveal.
+        settle()
+        rule.tapText("Cards revealed")
+        assertPhase("Resolve", "TURN 1 OF 4")
         for (turn in 2..4) {
+            settle()
             rule.tapText("Next: Turn $turn")
-            assertPhase("Turn", "TURN $turn OF 4")
+            assertPhase("Play a card", "TURN $turn OF 4")
             pauseAndAssertClock(30)
+            settle()
+            rule.tapText("Cards revealed")
+            assertPhase("Resolve", "TURN $turn OF 4")
         }
 
         // ---- End of round: the six official steps in order, Upgrade timer on Level Up.
@@ -142,6 +151,7 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         )
         endSteps.forEachIndexed { i, step ->
             val title = if (step == "Level Up") "Upgrade · Level Up" else step
+            settle()
             rule.tapText("Next: $title")
             assertPhase(title, "END OF ROUND · STEP ${i + 1} OF 6")
             assertEquals(endSteps, checklistOrder())
@@ -153,6 +163,7 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
                 checkpoint("Timer · Upgrade on Level Up")
             }
         }
+        settle()
         rule.tapText("Start round 2")
         rule.waitForText("Round 2")
         assertPhase("Pre-round strategy", "ROUND START")
@@ -220,6 +231,12 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
             )
         }
         checkpoint("Players · Meta")
+    }
+
+    /** The timer ignores a Next within 0.5 s of a step starting (double-tap guard): wait it out. */
+    private fun settle() {
+        Thread.sleep(600)
+        rule.waitForIdle()
     }
 
     private fun assertPhase(title: String, context: String) {

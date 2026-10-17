@@ -23,9 +23,8 @@ object TimerPresetValidator {
     val TURNS_RANGE = 1..8
     val TIME_OUTS_RANGE = 0..3
 
-    fun validate(preset: TimerPreset, endStepIds: Set<String>): List<PresetIssue> = buildList {
-        if (preset.name.isBlank()) add(PresetIssue(PresetIssue.Kind.BLANK_NAME))
-        if (preset.turnsPerRound !in TURNS_RANGE) add(PresetIssue(PresetIssue.Kind.TURNS_OUT_OF_RANGE))
+    /** Hurry up and time-out settings (house rules). */
+    private fun tableRuleIssues(preset: TimerPreset): List<PresetIssue> = buildList {
         val shot = preset.shotClockSeconds
         if (shot != null && shot !in MIN_SECONDS..MAX_CUE_SECONDS) {
             add(PresetIssue(PresetIssue.Kind.SHOT_CLOCK_OUT_OF_RANGE))
@@ -33,6 +32,12 @@ object TimerPresetValidator {
         if (preset.timeOutsPerRound !in TIME_OUTS_RANGE || preset.timeOutSeconds !in MIN_SECONDS..MAX_CUE_SECONDS) {
             add(PresetIssue(PresetIssue.Kind.TIME_OUTS_OUT_OF_RANGE))
         }
+    }
+
+    fun validate(preset: TimerPreset, endStepIds: Set<String>): List<PresetIssue> = buildList {
+        if (preset.name.isBlank()) add(PresetIssue(PresetIssue.Kind.BLANK_NAME))
+        if (preset.turnsPerRound !in TURNS_RANGE) add(PresetIssue(PresetIssue.Kind.TURNS_OUT_OF_RANGE))
+        addAll(tableRuleIssues(preset))
         val seen = mutableSetOf<String>()
         preset.phases.forEach { phase ->
             if (!seen.add(phase.id)) add(PresetIssue(PresetIssue.Kind.DUPLICATE_PHASE_ID, phase.id))

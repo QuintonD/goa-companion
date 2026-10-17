@@ -49,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -67,6 +68,7 @@ import dev.quinton.goa.feature.timer.TimerText
 import dev.quinton.goa.feature.timer.ui.components.goaChipBorder
 import dev.quinton.goa.feature.timer.ui.components.goaChipColors
 import dev.quinton.goa.feature.timer.ui.timer.SectionHeader
+import dev.quinton.goa.feature.timer.ui.timer.Stepper
 
 data class PresetEditActions(
     val onBack: () -> Unit = {},
@@ -81,6 +83,10 @@ data class PresetEditActions(
     val onMove: (String, Int) -> Unit = { _, _ -> },
     val onAdd: (PhaseScope) -> Unit = {},
     val onRemove: (String) -> Unit = {},
+    val onShotClock: (Int?) -> Unit = {},
+    val onTimeOuts: (Int) -> Unit = {},
+    val onTimeOutSeconds: (Int?) -> Unit = {},
+    val onVolumeKeys: (Boolean) -> Unit = {},
 )
 
 @Composable
@@ -104,13 +110,21 @@ fun PresetEditRoute(viewModel: PresetEditViewModel, onBack: () -> Unit) {
             onMove = viewModel::move,
             onAdd = viewModel::addPhase,
             onRemove = viewModel::removePhase,
+            onShotClock = viewModel::setShotClock,
+            onTimeOuts = viewModel::setTimeOutsPerRound,
+            onTimeOutSeconds = viewModel::setTimeOutSeconds,
+            onVolumeKeys = viewModel::setVolumeKeys,
         ),
     )
 }
 
+/** Which table-rule duration the picker edits. */
+private enum class RuleDuration { SHOT_CLOCK, TIME_OUT }
+
 @Composable
 fun PresetEditScreen(state: PresetEditUiState, actions: PresetEditActions) {
     var editing by remember { mutableStateOf<PhaseSpec?>(null) }
+    var editingRule by remember { mutableStateOf<RuleDuration?>(null) }
     GoaScreen(
         title = if (state.isNew) "New preset" else "Edit preset",
         onBack = actions.onBack,
@@ -123,11 +137,14 @@ fun PresetEditScreen(state: PresetEditUiState, actions: PresetEditActions) {
             ).verticalScroll(rememberScrollState()).padding(horizontal = Spacing.screen),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            val nameError = state.issuesFor(null).any { it.kind == PresetIssue.Kind.BLANK_NAME }
+            // A new preset starts blank: only flag the name once the user tries to save.
+            val nameError = state.issuesFor(null).any { it.kind == PresetIssue.Kind.BLANK_NAME } &&
+                (state.showIssues || !state.isNew)
             OutlinedTextField(
                 value = preset.name,
                 onValueChange = actions.onRename,
                 label = { Text("Preset name") },
+                placeholder = { Text("e.g. Fast game") },
                 singleLine = true,
                 isError = nameError,
                 supportingText = if (nameError) ({ Text("Give the preset a name") }) else null,
@@ -157,7 +174,8 @@ fun PresetEditScreen(state: PresetEditUiState, actions: PresetEditActions) {
             )
             ScopeSection(
                 title = "Every turn",
-                hint = "Each of the ${preset.turnsPerRound} turns. The Action timer repeats for every hero.",
+                hint = "Each of the ${preset.turnsPerRound} turns: play a card, then resolve after the reveal. " +
+                    "The Action timer repeats for every hero and replaces Resolve when on.",
                 scope = PhaseScope.TURN,
                 state = state,
                 actions = actions,
@@ -171,8 +189,23 @@ fun PresetEditScreen(state: PresetEditUiState, actions: PresetEditActions) {
                 actions = actions,
                 onEditDuration = { editing = it },
             )
+            TableRulesSection(state, actions, onEditDuration = { editingRule = it })
             Spacer(Modifier.height(Spacing.xl))
         }
+    }
+    editingRule?.let { rule ->
+        val preset = state.preset
+        DurationPickerSheet(
+            title = if (rule == RuleDuration.SHOT_CLOCK) "Hurry up" else "Time-out length",
+            initialSeconds = if (rule == RuleDuration.SHOT_CLOCK) preset?.shotClockSeconds else preset?.timeOutSeconds,
+            onDismiss = { editingRule = null },
+            onConfirm = {
+                if (rule == RuleDuration.SHOT_CLOCK) actions.onShotClock(it) else actions.onTimeOutSeconds(it)
+                editingRule = null
+            },
+            off = if (rule == RuleDuration.SHOT_CLOCK) OffOption("Off", "No Hurry up button on the timer.") else null,
+            maxSeconds = TimerPresetValidator.MAX_CUE_SECONDS,
+        )
     }
     editing?.let { phase ->
         DurationPickerSheet(
@@ -183,6 +216,98 @@ fun PresetEditScreen(state: PresetEditUiState, actions: PresetEditActions) {
                 actions.onSeconds(phase.id, it)
                 editing = null
             },
+        )
+    }
+}
+
+/** House rules for pace and control; none of these are in the rulebook. */
+@Composable
+private fun TableRulesSection(
+    state: PresetEditUiState,
+    actions: PresetEditActions,
+    onEditDuration: (RuleDuration) -> Unit,
+) {
+    val preset = state.preset ?: return
+    val colors = MaterialTheme.colorScheme
+    SectionHeader("Table rules")
+    Text(
+        "House rules, not in the rulebook.",
+        style = MaterialTheme.typography.bodySmall,
+        color = colors.onSurfaceVariant,
+    )
+    RuleRow(
+        title = "Hurry up",
+        subtitle = "On-demand countdown for a slow decision, in any phase or in overtime.",
+        value = preset.shotClockSeconds?.let { TimerText.durationLabel(it) } ?: "Off",
+        onClick = { onEditDuration(RuleDuration.SHOT_CLOCK) },
+    )
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f).padding(end = Spacing.md)) {
+            Text("Time-outs per team per round", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Each adds time to the current phase. 0 = off.",
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+            )
+        }
+        Stepper(
+            value = preset.timeOutsPerRound,
+            range = TimerPresetValidator.TIME_OUTS_RANGE,
+            onChange = actions.onTimeOuts,
+            label = "time-outs",
+        )
+    }
+    if (preset.timeOutsPerRound > 0) {
+        RuleRow(
+            title = "Time-out length",
+            subtitle = "Added to the current phase.",
+            value = "+" + TimerText.durationLabel(preset.timeOutSeconds),
+            onClick = { onEditDuration(RuleDuration.TIME_OUT) },
+        )
+    }
+    ToggleRow(
+        title = "Volume keys control the timer",
+        subtitle = "While the timer shows: volume up = Next, volume down = Pause/Resume. Works with most " +
+            "Bluetooth camera shutters. The keys won't change the volume then.",
+        checked = preset.volumeKeys,
+        onChange = actions.onVolumeKeys,
+    )
+    if (state.showIssues) {
+        state.issuesFor(null).filter {
+            it.kind == PresetIssue.Kind.SHOT_CLOCK_OUT_OF_RANGE || it.kind == PresetIssue.Kind.TIME_OUTS_OUT_OF_RANGE
+        }.forEach { issue ->
+            val text = if (issue.kind == PresetIssue.Kind.SHOT_CLOCK_OUT_OF_RANGE) {
+                "Hurry up must be between ${TimerPresetValidator.MIN_SECONDS} s and 10 min."
+            } else {
+                "Time-outs: up to ${TimerPresetValidator.TIME_OUTS_RANGE.last}, each up to 10 min."
+            }
+            Text(
+                text,
+                color = colors.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.semantics { error(text) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun RuleRow(title: String, subtitle: String, value: String, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f).padding(end = Spacing.md)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        AssistChip(
+            onClick = onClick,
+            label = { Text(value) },
+            leadingIcon = { Icon(Icons.Outlined.Timer, contentDescription = null, modifier = Modifier.height(18.dp)) },
+            colors = AssistChipDefaults.assistChipColors(labelColor = MaterialTheme.colorScheme.secondary),
+            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "$title: $value. Change" },
         )
     }
 }
@@ -387,7 +512,11 @@ private fun IssueText(issues: List<PresetIssue>) {
 
             PresetIssue.Kind.UNKNOWN_END_STEP -> "Pick an end-of-round step."
 
-            PresetIssue.Kind.BLANK_NAME, PresetIssue.Kind.TURNS_OUT_OF_RANGE -> null
+            PresetIssue.Kind.BLANK_NAME,
+            PresetIssue.Kind.TURNS_OUT_OF_RANGE,
+            PresetIssue.Kind.SHOT_CLOCK_OUT_OF_RANGE,
+            PresetIssue.Kind.TIME_OUTS_OUT_OF_RANGE,
+            -> null
         } ?: return@forEach
         Text(
             text,

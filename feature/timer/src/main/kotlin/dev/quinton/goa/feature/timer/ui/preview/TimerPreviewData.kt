@@ -33,17 +33,30 @@ import dev.quinton.goa.feature.timer.ui.timer.PendingMatchItem
 import dev.quinton.goa.feature.timer.ui.timer.PresetOption
 import dev.quinton.goa.feature.timer.ui.timer.RoundPipsUi
 import dev.quinton.goa.feature.timer.ui.timer.SeatUi
+import dev.quinton.goa.feature.timer.ui.timer.ShotClockUi
 import dev.quinton.goa.feature.timer.ui.timer.StartUiState
 import dev.quinton.goa.feature.timer.ui.timer.SummaryUiState
+import dev.quinton.goa.feature.timer.ui.timer.TimeOutsUi
 import dev.quinton.goa.feature.timer.ui.timer.TimerActions
 import dev.quinton.goa.feature.timer.ui.timer.TimerScreen
 import dev.quinton.goa.feature.timer.ui.timer.TimerUiState
+import dev.quinton.goa.feature.timer.ui.timer.TonightUi
 
 /** Sample states for previews and screenshot tests (shapes of real data, not game data). */
 object TimerPreviewData {
     val presets = listOf(
-        PresetOption("table-rules", "Table rules", "Pre-round strategy 1:30 · Turn 0:30 ×4 · Upgrade 2:00", false),
-        PresetOption("relaxed", "Relaxed", "Pre-round strategy 3:00 · Turn 1:00 ×4 · Upgrade 3:00", false),
+        PresetOption(
+            "table-rules",
+            "Table rules",
+            "Pre-round strategy 1:30 · Play a card 0:30 ×4 · Resolve · Upgrade 2:00",
+            false,
+        ),
+        PresetOption(
+            "relaxed",
+            "Relaxed",
+            "Pre-round strategy 3:00 · Play a card 1:00 ×4 · Resolve · Upgrade 3:00",
+            false,
+        ),
         PresetOption("untimed", "Untimed (counters only)", "Untimed · round and turn counters", false),
     )
 
@@ -54,6 +67,7 @@ object TimerPreviewData {
             selectedPresetId = "table-rules",
             pendingMatches = listOf(PendingMatchItem("m1", "Quick · 6 heroes, 5 players", "Pending since 17 Oct 2026")),
             seats = 4,
+            tonight = TonightUi(seconds = 45, presetSeconds = 30),
         ),
     )
 
@@ -83,7 +97,7 @@ object TimerPreviewData {
     val turn = ActiveUiState(
         presetName = "Table rules",
         round = 2,
-        title = "Turn",
+        title = "Play a card",
         context = "Turn 3 of 4",
         kind = PhaseKind.TURN,
         section = RoundSection.TURN,
@@ -99,10 +113,12 @@ object TimerPreviewData {
         seats = null,
         actionSlot = null,
         actionSlots = 6,
-        nextLabel = "Next: Turn 4",
+        nextLabel = "Cards revealed",
         tieBreaker = Team.RED,
         matchClock = "14:32",
         autoAdvance = false,
+        hint = "Strategy talk until the reveal.",
+        shotClockSeconds = 30,
     )
 
     val overtime = turn.copy(
@@ -112,9 +128,27 @@ object TimerPreviewData {
         overtime = true,
     )
 
+    /** Overtime with the Hurry up countdown running and team time-outs on. */
+    val hurryUp = overtime.copy(
+        shotClock = ShotClockUi("0:08", "Hurry up, 8 seconds left", 0.27f, over = false, warning = true),
+        timeOuts = TimeOutsUi(seconds = 40, redLeft = 1, blueLeft = 0, usable = true),
+    )
+
+    val resolve = turn.copy(
+        title = "Resolve",
+        kind = PhaseKind.RESOLVE,
+        clock = "0:42",
+        spokenClock = "42 seconds elapsed",
+        fraction = 1f,
+        timed = false,
+        hint = "Cards revealed: resolve one by one in initiative order. No strategy talk.",
+        nextLabel = "Next: Turn 4",
+    )
+
     val paused = turn.copy(paused = true, clock = "0:09", fraction = 0.3f, warning = true)
 
     val upgrade = turn.copy(
+        hint = null,
         title = "Upgrade · Level Up",
         context = "End of round · step 5 of 6",
         kind = PhaseKind.UPGRADE,
@@ -139,10 +173,19 @@ object TimerPreviewData {
         nextLabel = "Next: Retrieve Cards",
     )
 
+    /** Longest Next label of the round, for large font scales. */
+    val checklistLongNext = checklistStep.copy(
+        title = "Minion Battle",
+        context = "End of round · step 1 of 6",
+        checklist = checklist(1),
+        nextLabel = "Next: Remove Tokens, Return Markers",
+    )
+
     val action = turn.copy(
-        title = "Action",
+        title = "Test Hero 3 · Cleo",
         context = "Turn 3 of 4 · resolution 3 of 6",
         kind = PhaseKind.ACTION,
+        hint = null,
         clock = "0:21",
         fraction = 0.7f,
         actionSlot = 2,
@@ -155,6 +198,24 @@ object TimerPreviewData {
             SeatUi(5, "Test Hero 6", "test-hero-6", null, Team.BLUE, "Eli", resolved = false, acting = false),
         ),
         nextLabel = "Next hero",
+    )
+
+    /** Ten heroes: every tile must be reachable above the controls. */
+    val actionTen = action.copy(
+        context = "Turn 3 of 4 · resolution 3 of 10",
+        actionSlots = 10,
+        seats = (0 until 10).map { i ->
+            SeatUi(
+                seat = i,
+                heroName = "Test Hero ${i + 1}",
+                heroId = "test-hero-${i + 1}",
+                portrait = null,
+                team = if (i % 2 == 0) Team.RED else Team.BLUE,
+                playerName = listOf("Ana", "Ben", "Cleo", "Dev", "Eli", "Fay", "Gus", "Hal", "Ivy", "Jo")[i],
+                resolved = i < 2,
+                acting = i == 2,
+            )
+        },
     )
 
     val summary = TimerUiState(
@@ -261,7 +322,8 @@ object TimerPreviewData {
             name = "Table rules",
             phases = listOf(
                 PhaseSpec("strategy", "Pre-round strategy", PhaseKind.STRATEGY, PhaseScope.ROUND_START, 90),
-                PhaseSpec("turn", "Turn", PhaseKind.TURN, PhaseScope.TURN, 30),
+                PhaseSpec("turn", "Play a card", PhaseKind.TURN, PhaseScope.TURN, 30),
+                PhaseSpec("resolve", "Resolve", PhaseKind.RESOLVE, PhaseScope.TURN, null, cues = emptyList()),
                 PhaseSpec(
                     "action",
                     "Action",

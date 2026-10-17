@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.AlarmManager
 import android.app.Application
 import android.app.Notification
+import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
@@ -13,6 +14,7 @@ import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.domain.timer.TimerEngine
 import dev.quinton.goa.feature.timer.FakeClocks
 import dev.quinton.goa.feature.timer.FileTimerAssets
+import dev.quinton.goa.feature.timer.R
 import dev.quinton.goa.feature.timer.session.TimerCommand
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
@@ -62,16 +64,39 @@ class TimerSystemTest {
     }
 
     @Test
-    fun `channels separate the silent countdown from the alarm-usage alert`() {
+    fun `countdown channel is silent but visible on the lock screen, old channels are removed`() {
+        notifications.createNotificationChannel(
+            NotificationChannel("timer_ongoing", "Old", NotificationManager.IMPORTANCE_LOW),
+        )
         AndroidTimerNotifier(context).ensureChannels()
 
         val ongoing = notifications.getNotificationChannel(AndroidTimerNotifier.CHANNEL_ONGOING)
-        val alerts = notifications.getNotificationChannel(AndroidTimerNotifier.CHANNEL_ALERTS)
-        assertThat(ongoing.importance).isEqualTo(NotificationManager.IMPORTANCE_LOW)
+        // Low importance hid the countdown from the keyguard and folded it into "Silent".
+        assertThat(ongoing.importance).isEqualTo(NotificationManager.IMPORTANCE_DEFAULT)
         assertThat(ongoing.sound).isNull()
-        assertThat(alerts.importance).isEqualTo(NotificationManager.IMPORTANCE_HIGH)
-        assertThat(alerts.audioAttributes.usage).isEqualTo(AudioAttributes.USAGE_ALARM)
-        assertThat(alerts.shouldVibrate()).isTrue()
+        assertThat(ongoing.shouldVibrate()).isFalse()
+        assertThat(ongoing.lockscreenVisibility).isEqualTo(Notification.VISIBILITY_PUBLIC)
+        AndroidTimerNotifier.LEGACY_CHANNELS.forEach {
+            assertThat(notifications.getNotificationChannel(it)).isNull()
+        }
+    }
+
+    @Test
+    fun `phase-over channels play the bundled chime on the alarm stream and follow sounds and haptics`() {
+        AndroidTimerNotifier(context).ensureChannels()
+
+        fun channel(style: AlertStyle) = notifications.getNotificationChannel(AndroidTimerNotifier.alertChannel(style))
+        val full = channel(AlertStyle.CHIME_AND_VIBRATE)
+        assertThat(full.importance).isEqualTo(NotificationManager.IMPORTANCE_HIGH)
+        assertThat(full.audioAttributes.usage).isEqualTo(AudioAttributes.USAGE_ALARM)
+        assertThat(full.sound.toString()).endsWith("/${R.raw.phase_chime}")
+        assertThat(full.shouldVibrate()).isTrue()
+        assertThat(channel(AlertStyle.CHIME).shouldVibrate()).isFalse()
+        assertThat(channel(AlertStyle.CHIME).sound).isNotNull()
+        assertThat(channel(AlertStyle.VIBRATE).sound).isNull()
+        assertThat(channel(AlertStyle.VIBRATE).shouldVibrate()).isTrue()
+        assertThat(channel(AlertStyle.SILENT).sound).isNull()
+        assertThat(channel(AlertStyle.SILENT).shouldVibrate()).isFalse()
     }
 
     @Test
@@ -160,12 +185,32 @@ class TimerSystemTest {
     }
 
     @Test
-    fun `phase over alert uses the alert channel`() {
-        AndroidTimerNotifier(context).alertPhaseOver(snapshot(), "Turn")
+    fun `phase over alert uses the channel for the chosen style and can be cleared`() {
+        val notifier = AndroidTimerNotifier(context)
+        val s = engine.next(snapshot())
+        notifier.alertPhaseOver(s, "Turn 2 · Round 1", AlertStyle.VIBRATE)
 
         val posted = shadowOf(notifications).getNotification(AndroidTimerNotifier.ID_ALERT)
-        assertThat(posted.channelId).isEqualTo(AndroidTimerNotifier.CHANNEL_ALERTS)
-        assertThat(posted.extras.getCharSequence(Notification.EXTRA_TITLE).toString()).isEqualTo("Time's up: Turn")
+        assertThat(posted.channelId).isEqualTo(AndroidTimerNotifier.alertChannel(AlertStyle.VIBRATE))
+        assertThat(posted.extras.getCharSequence(Notification.EXTRA_TITLE).toString())
+            .isEqualTo("Time's up: Turn 2 · Round 1")
+        assertThat(posted.extras.getCharSequence(Notification.EXTRA_TEXT).toString())
+            .isEqualTo("Overtime is counting · Next: Cards revealed")
+
+        notifier.cancelAlert()
+        assertThat(shadowOf(notifications).getNotification(AndroidTimerNotifier.ID_ALERT)).isNull()
+    }
+
+    @Test
+    fun `countdown text says what comes next`() {
+        val s = engine.next(snapshot())
+        AndroidTimerNotifier(context).showOngoing(s, engine.readout(s), clocks.wall)
+
+        val posted = shadowOf(notifications).getNotification(AndroidTimerNotifier.ID_ONGOING)
+        assertThat(posted.extras.getCharSequence(Notification.EXTRA_TITLE).toString())
+            .isEqualTo("Round 1 · Play a card")
+        assertThat(posted.extras.getCharSequence(Notification.EXTRA_TEXT).toString())
+            .isEqualTo("Turn 1 of 4 · Next: Cards revealed")
     }
 
     @Test
