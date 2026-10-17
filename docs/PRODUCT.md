@@ -92,6 +92,15 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
   sample), strongest hero pairs. Profiles add the player's win-condition mix, head-to-head and
   teammate records, and dates under the rating chart.
 - Edit/delete any match; all ratings recompute.
+- **Share stats page** (ADR-027), for friends who can't run the app (iPhone players whose matches
+  an Android phone logs): the share icon on the Meta tab's top bar writes one self-contained HTML
+  file and opens the share sheet. It holds the leaderboard (Elo, games, W–L, recent trend,
+  provisional), each player's best heroes as their profile lists them, the hero meta (same
+  "Not enough games yet" rule), the group stats the Meta tab shows, and the newest 100 matches
+  (date, mode, teams with pilots and heroes, winner, win condition, notes), with "Generated …,
+  ratings as of the last logged match" in the footer. All numbers come from the app's own
+  calculations; nothing new is computed. Text only (no card art), light/dark, printable, opens
+  offline in any browser; no scripts or network references.
 - Export/import full data as a versioned JSON file (backup, moving phones): players, matches,
   drafts, rating constants, app settings, timer presets and custom draft methods. Android Auto
   Backup enabled for the database and settings.
