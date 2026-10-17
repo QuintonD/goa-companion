@@ -5,6 +5,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.setup.EndOfRoundStep
 import dev.quinton.goa.core.domain.setup.LayoutKind
+import dev.quinton.goa.core.domain.setup.RulesNote
 import dev.quinton.goa.core.domain.timer.PhaseKind
 import dev.quinton.goa.core.domain.timer.PhaseScope
 import dev.quinton.goa.core.domain.timer.PhaseSpec
@@ -19,6 +20,7 @@ import dev.quinton.goa.feature.timer.ui.presets.PresetEditUiState
 import dev.quinton.goa.feature.timer.ui.presets.PresetsActions
 import dev.quinton.goa.feature.timer.ui.presets.PresetsScreen
 import dev.quinton.goa.feature.timer.ui.presets.PresetsUiState
+import dev.quinton.goa.feature.timer.ui.setup.CoinSource
 import dev.quinton.goa.feature.timer.ui.setup.CountersUi
 import dev.quinton.goa.feature.timer.ui.setup.LayoutOptionUi
 import dev.quinton.goa.feature.timer.ui.setup.LinkedMatchUi
@@ -172,7 +174,7 @@ object TimerPreviewData {
                 LayoutKind.HANDICAP,
                 "Handicap",
                 "3 vs 2 heroes",
-                "Each hero on the larger team swaps a basic card for its Handicap card.",
+                "Each hero on the larger team replaces one of its basic cards with its Handicap card.",
                 official = true,
             ),
             LayoutOptionUi(
@@ -199,11 +201,33 @@ object TimerPreviewData {
             ),
         ),
         selectedMode = GameMode.QUICK,
-        counters = CountersUi(1, 3, 5, null, null, 3, 3, 0, 1),
+        counters = CountersUi(
+            1,
+            3,
+            5,
+            null,
+            null,
+            3,
+            3,
+            0,
+            1,
+            houseRuleNote = "House rule: counted as 6 heroes. The rulebook gives 5 players 4 (Quick) / 6 (Long) " +
+                "Life counters.",
+        ),
         tieBreaker = Team.RED,
+        coinSource = CoinSource.HERE,
         flips = 0,
-        tieBreakerRule = "Flip the Tie Breaker coin during setup and place it by the board. On cross-team initiative " +
-            "ties the team whose symbol is showing acts first, then that player flips the coin.",
+        tieBreakerRule = listOf(
+            "Cross-team initiative tie: one of the tied players on the team showing acts first. " +
+                "After resolving their card, that player (and only that player) flips the coin to the " +
+                "other side (p.7).",
+            "Same-team tie: the team agrees who goes first without discussing why. Don't flip the " +
+                "coin (pp.4, 7).",
+            "The team showing also goes first, without flipping, when the order matters for " +
+                "simultaneous Active effects (p.17) or for minions moved back into the Battle Zone " +
+                "(p.18).",
+            "It also places first when minions can't respawn on a blocked Spawn point (p.8).",
+        ),
         firstGameAdvice = "If anyone is new, the rulebook suggests a Quick game.",
         linkedMatch = null,
         presets = presets,
@@ -222,7 +246,7 @@ object TimerPreviewData {
                 "Quick",
                 false,
                 false,
-                "Double lane is required at this size",
+                "The rulebook uses the double-lane map from 8 players",
                 "3 Wave counters",
                 "",
             ),
@@ -231,7 +255,7 @@ object TimerPreviewData {
                 "Long",
                 false,
                 false,
-                "Double lane is required at this size",
+                "The rulebook uses the double-lane map from 8 players",
                 "5 Wave counters",
                 "",
             ),
@@ -243,11 +267,15 @@ object TimerPreviewData {
                 null,
                 "2 × 7 Wave counters",
                 "6 Life counters per team",
+                requiredLabel = "Required",
             ),
         ),
         selectedMode = GameMode.DOUBLE_LANE,
-        counters = CountersUi(2, 7, 6, 4, 4, 4, 4, 0, 0),
-        tieBreaker = null,
+        counters = CountersUi(2, 7, 6, 4, 4, 4, 4, 0, 0, modeNote = DOUBLE_LANE_NOTE),
+        firstGameAdvice = "",
+        tieBreaker = Team.BLUE,
+        coinSource = CoinSource.DRAFT,
+        coinPlaced = true,
         linkedMatch = LinkedMatchUi("Pending match · 8 heroes", 4, 4),
     )
 
@@ -327,3 +355,21 @@ private fun PresetsPreview() = Themed(true) { PresetsScreen(TimerPreviewData.pre
 @Preview(name = "Edit preset", heightDp = 891, widthDp = 411)
 @Composable
 private fun EditPresetPreview() = Themed(true) { PresetEditScreen(TimerPreviewData.editPreset, PresetEditActions()) }
+
+private val DOUBLE_LANE_NOTE = RulesNote(
+    "Double lane rules (rulebook p.20)",
+    listOf(
+        "Considerably more challenging than a single lane: everyone should know the game " +
+            "well.",
+        "Each lane has its own Battle Zone, minions and Wave counters. Minions stay bound to " +
+            "the Battle Zone they first spawned in.",
+        "With more than 3 heroes per team, the extra heroes start in empty spaces next to " +
+            "their team's occupied hero spawn points.",
+        "On cards, \"the Battle Zone\" means \"a Battle Zone\".",
+        "The two Minion Battles are resolved separately, at the same time.",
+        "After the last Wave counter on either lane flips, the team with more total Zones " +
+            "between its Throne and both Battle Zones wins.",
+        "If a push would make both teams win at once, spawn all minions back in the Zones " +
+            "they held before the push and keep playing.",
+    ),
+)

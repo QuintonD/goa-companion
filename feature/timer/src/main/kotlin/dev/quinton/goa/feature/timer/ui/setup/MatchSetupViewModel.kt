@@ -7,11 +7,13 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.MatchRepository
+import dev.quinton.goa.core.domain.setup.HouseRuleDifference
 import dev.quinton.goa.core.domain.setup.LayoutKind
 import dev.quinton.goa.core.domain.setup.MatchRules
 import dev.quinton.goa.core.domain.setup.MatchSetup
 import dev.quinton.goa.core.domain.setup.ModeBlock
 import dev.quinton.goa.core.domain.setup.ModeOption
+import dev.quinton.goa.core.domain.setup.RulesNote
 import dev.quinton.goa.core.domain.setup.SeatLayout
 import dev.quinton.goa.core.domain.setup.SetupPlan
 import dev.quinton.goa.core.domain.timer.PhaseKind
@@ -65,6 +67,8 @@ data class ModeOptionUi(
     val reason: String?,
     val waves: String,
     val life: String,
+    /** Badge for a required mode: "Required", or "Required (house rule)" when only the hero count requires it. */
+    val requiredLabel: String? = null,
 )
 
 data class CountersUi(
@@ -78,7 +82,26 @@ data class CountersUi(
     val smallerTeamHeroes: Int,
     val handicapHeroes: Int,
     val doublePilots: Int,
+    /** Where counting by heroes differs from the rulebook's per-player counters (house rule label). */
+    val houseRuleNote: String? = null,
+    /** Rules for the chosen mode (Double lane, p.20). */
+    val modeNote: RulesNote? = null,
 )
+
+/** Where the Tie Breaker coin shown at setup comes from. */
+enum class CoinSource {
+    /** Not flipped yet: flip it now. */
+    NONE,
+
+    /** Flipped during the draft that created this match; leave it as it is. */
+    DRAFT,
+
+    /** Recorded on this match at an earlier setup; leave it as it is. */
+    MATCH,
+
+    /** Flipped or set on this screen. */
+    HERE,
+}
 
 data class LinkedMatchUi(val title: String, val redSeats: Int, val blueSeats: Int)
 
@@ -95,8 +118,13 @@ data class MatchSetupUiState(
     val selectedMode: GameMode = GameMode.QUICK,
     val counters: CountersUi? = null,
     val tieBreaker: Team? = null,
+    val coinSource: CoinSource = CoinSource.NONE,
+    /** The coin was already placed (draft or earlier setup): offer a correction, not a new flip. */
+    val coinPlaced: Boolean = false,
+    /** "Correct the coin" was tapped: show the Red/Blue choice. */
+    val correctingCoin: Boolean = false,
     val flips: Int = 0,
-    val tieBreakerRule: String = "",
+    val tieBreakerRule: List<String> = emptyList(),
     val firstGameAdvice: String = "",
     val linkedMatch: LinkedMatchUi? = null,
     val presets: List<PresetOption> = emptyList(),
@@ -114,6 +142,7 @@ private data class Choices(
     val mode: GameMode? = null,
     val tieBreaker: Team? = null,
     val flips: Int = 0,
+    val correctingCoin: Boolean = false,
     val presetId: String? = null,
 )
 
@@ -159,15 +188,20 @@ class MatchSetupViewModel @AssistedInject constructor(
 
     fun flipCoin() = choices.update { it.copy(tieBreaker = coin.flip(), flips = it.flips + 1) }
 
+    /** Records the side the real coin shows (a correction, or a coin flipped at the table). */
+    fun setCoin(team: Team) = choices.update { it.copy(tieBreaker = team) }
+
+    fun correctCoin() = choices.update { it.copy(correctingCoin = true) }
+
     fun startTimer() {
         viewModelScope.launch {
             val state = uiState.first { !it.loading }
             val preset = state.selectedPresetId?.let { repository.preset(it) } ?: repository.selectedPreset()
             val linked = matchId?.let { matches.observeMatch(it).first() }
-            if (linked != null &&
-                linked.mode != state.selectedMode
-            ) {
-                matches.upsert(linked.copy(mode = state.selectedMode))
+            if (linked != null) {
+                // The coin as placed at setup is part of the match record (draft coin, or corrected here).
+                val updated = linked.copy(mode = state.selectedMode, tieBreaker = state.tieBreaker ?: linked.tieBreaker)
+                if (updated != linked) matches.upsert(updated)
             }
             val heroes = state.counters?.let { it.largerTeamHeroes + it.smallerTeamHeroes } ?: state.players
             controller.start(
@@ -204,6 +238,8 @@ class MatchSetupViewModel @AssistedInject constructor(
             setup.plan(players, choice.layoutId, choice.mode)
         }
         val layouts = if (locked) listOf(plan.layout) else setup.layouts(players)
+        val storedCoin = match?.tieBreaker
+        val quickAvailable = plan.modes.any { it.mode == GameMode.QUICK && it.available }
         return MatchSetupUiState(
             loading = false,
             players = players,
@@ -213,7 +249,7 @@ class MatchSetupViewModel @AssistedInject constructor(
             extendedNote = if (setup.isExtended(players)) rules.extendedCountNote else null,
             layouts = layouts.map(::layoutOption),
             selectedLayoutId = plan.layout.id,
-            modes = plan.modes.map { modeOption(it, rules) },
+            modes = plan.modes.map { modeOption(it, rules, players, plan.heroes) },
             selectedMode = plan.selected.mode,
             counters = CountersUi(
                 lanes = plan.selected.lanes,
@@ -225,11 +261,22 @@ class MatchSetupViewModel @AssistedInject constructor(
                 smallerTeamHeroes = plan.layout.smallerTeamHeroes,
                 handicapHeroes = if (locked) seats.count { it.handicap } else plan.layout.handicapHeroes,
                 doublePilots = plan.layout.doublePilots,
+                houseRuleNote = houseRuleNote(setup.houseRuleDifference(plan), rules),
+                modeNote = rules.mode(plan.selected.mode).rulesNote,
             ),
-            tieBreaker = choice.tieBreaker,
+            tieBreaker = choice.tieBreaker ?: storedCoin,
+            coinSource = when {
+                choice.tieBreaker != null -> CoinSource.HERE
+                storedCoin != null && match?.draftId != null -> CoinSource.DRAFT
+                storedCoin != null -> CoinSource.MATCH
+                else -> CoinSource.NONE
+            },
+            coinPlaced = storedCoin != null,
+            correctingCoin = choice.correctingCoin,
             flips = choice.flips,
             tieBreakerRule = rules.tieBreaker,
-            firstGameAdvice = rules.firstGameAdvice,
+            // The rulebook's "Quick game if anyone is new" (p.5) only applies when Quick can be chosen.
+            firstGameAdvice = if (quickAvailable) rules.firstGameAdvice else "",
             linkedMatch = match?.let {
                 LinkedMatchUi(
                     title = if (locked) "Pending match · ${seats.size} heroes" else "Pending match",
@@ -256,14 +303,26 @@ class MatchSetupViewModel @AssistedInject constructor(
         official = layout.kind != LayoutKind.DOUBLE_PILOT,
     )
 
-    private fun modeOption(option: ModeOption, rules: MatchRules) = ModeOptionUi(
+    private fun modeOption(option: ModeOption, rules: MatchRules, players: Int, heroes: Int) = ModeOptionUi(
         mode = option.mode,
         title = TimerText.modeLabel(option.mode),
         available = option.available,
         required = option.required,
+        requiredLabel = when {
+            !option.required -> null
+            rules.mode(option.mode).requiredFor(players) -> "Required"
+            else -> "Required (house rule)"
+        },
         reason = when (option.block) {
-            ModeBlock.TOO_FEW_HEROES -> "Needs ${rules.mode(option.mode).minHeroes} or more heroes"
-            ModeBlock.OTHER_MODE_REQUIRED -> "Double lane is required at this size"
+            ModeBlock.TOO_FEW_HEROES -> {
+                val rule = rules.mode(option.mode)
+                rule.listedFromPlayers?.let {
+                    "The rulebook lists ${TimerText.modeLabel(option.mode)} counters from $it players"
+                } ?: "Needs ${rule.minHeroes} or more heroes"
+            }
+
+            ModeBlock.OTHER_MODE_REQUIRED -> requiredElsewhere(rules, players, heroes)
+
             null -> null
         },
         waves = if (option.lanes > 1) {
@@ -274,6 +333,38 @@ class MatchSetupViewModel @AssistedInject constructor(
         life = option.lifeCountersPerTeam?.let { "$it Life counters per team" }
             ?: "Life counters not specified by the rulebook",
     )
+
+    /** Why a mode is blocked because another is required: the rulebook's rule, or the heroes-count house rule. */
+    private fun requiredElsewhere(rules: MatchRules, players: Int, heroes: Int): String {
+        val required = rules.modes.first { rule -> rule.requiredFromHeroes?.let { heroes >= it } == true }
+        val map = if (required.lanes > 1) "the double-lane map" else TimerText.modeLabel(required.mode)
+        val from = required.requiredFromPlayers ?: required.requiredFromHeroes
+        return if (required.requiredFor(players)) {
+            "The rulebook uses $map from $from players"
+        } else {
+            "House rule: $heroes heroes play on $map. The rulebook requires it from $from players"
+        }
+    }
+
+    /**
+     * "House rule: counted as 6 heroes. The rulebook gives 5 players 4 (Quick) / 6 (Long) Life
+     * counters." Null when the rulebook's per-player counters agree (a house-rule requirement is
+     * labelled on the mode cards instead).
+     */
+    private fun houseRuleNote(difference: HouseRuleDifference?, rules: MatchRules): String? {
+        val d = difference?.takeIf { it.lifeDiffers || it.modeNotListed } ?: return null
+        val life = d.rulebookLife.entries.joinToString(" / ") { (mode, count) ->
+            "$count (${TimerText.modeLabel(mode)})"
+        }
+        return buildList {
+            add("House rule: counted as ${d.heroes} heroes.")
+            if (d.lifeDiffers && life.isNotEmpty()) add("The rulebook gives ${d.players} players $life Life counters.")
+            if (d.modeNotListed) {
+                val from = rules.mode(d.mode).listedFromPlayers
+                add("The rulebook lists ${TimerText.modeLabel(d.mode)} counters from $from players.")
+            }
+        }.joinToString(" ")
+    }
 
     private fun presetOption(p: dev.quinton.goa.core.domain.timer.TimerPreset) = PresetOption(
         id = p.id,

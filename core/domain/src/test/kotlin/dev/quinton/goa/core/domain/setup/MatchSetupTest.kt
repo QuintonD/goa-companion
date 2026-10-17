@@ -187,6 +187,62 @@ class MatchSetupTest {
     }
 
     @Test
+    fun `rulebook per-player values match pages 5 and 20`() {
+        fun life(mode: GameMode) = (2..10).map { bundledRules.mode(mode).rulebookLifeCountersFor(it) }
+        // Players 2..10. p.5 (4 and 6 players); p.20: 2 players use the 4-player setup, 3 and 5 use
+        // 4-player Life counters; double-lane table 6-8 players 6, 9-10 players 7.
+        assertThat(life(GameMode.QUICK)).containsExactly(4, 4, 4, 4, 5, null, null, null, null).inOrder()
+        assertThat(life(GameMode.LONG)).containsExactly(6, 6, 6, 6, 8, null, null, null, null).inOrder()
+        assertThat(life(GameMode.DOUBLE_LANE)).containsExactly(null, null, null, null, 6, 6, 6, 7, 7).inOrder()
+        val double = bundledRules.mode(GameMode.DOUBLE_LANE)
+        assertThat((2..10).filter(double::listedFor)).containsExactly(6, 7, 8, 9, 10)
+        assertThat((2..10).filter(double::requiredFor)).containsExactly(8, 9, 10)
+        assertThat(double.rulesNote!!.title).contains("p.20")
+        assertThat(double.rulesNote!!.points).isNotEmpty()
+    }
+
+    @Test
+    fun `official layouts never differ from the rulebook`() {
+        for (players in 2..10) {
+            setup.layouts(players).filter { it.kind != LayoutKind.DOUBLE_PILOT }.forEach { layout ->
+                setup.modeOptions(layout.heroes).filter { it.available }.forEach { option ->
+                    val plan = setup.plan(players, layout.id, option.mode)
+                    assertWithMessage("${layout.id} ${option.mode}").that(setup.houseRuleDifference(plan)).isNull()
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `double pilot differences from the rulebook are reported`() {
+        val fiveQuick = setup.houseRuleDifference(setup.plan(5, "double-pilot-5", GameMode.QUICK))!!
+        assertThat(fiveQuick.heroes).isEqualTo(6)
+        assertThat(fiveQuick.lifeDiffers).isTrue()
+        assertThat(fiveQuick.rulebookLife).isEqualTo(mapOf(GameMode.QUICK to 4, GameMode.LONG to 6))
+        assertThat(fiveQuick.modeNotListed).isFalse()
+
+        val fiveDouble = setup.houseRuleDifference(setup.plan(5, "double-pilot-5", GameMode.DOUBLE_LANE))!!
+        assertThat(fiveDouble.modeNotListed).isTrue()
+
+        val seven = setup.houseRuleDifference(setup.plan(7, "double-pilot-7"))!!
+        assertThat(seven.mode).isEqualTo(GameMode.DOUBLE_LANE)
+        assertThat(seven.requiredByHouseRule).isTrue()
+        assertThat(seven.lifeDiffers).isFalse()
+
+        // 9 players as 5 v 5: same counters and the rulebook requires Double lane from 8 players anyway.
+        assertThat(setup.houseRuleDifference(setup.plan(9, "double-pilot-9"))).isNull()
+    }
+
+    @Test
+    fun `every end of round step explains itself`() {
+        bundledRules.endOfRound.forEach { assertWithMessage(it.id).that(it.detail).isNotEmpty() }
+        val byId = bundledRules.endOfRound.associateBy { it.id }
+        assertThat(byId.getValue("minion_battle").detail).contains("Heavy minion goes last")
+        assertThat(byId.getValue("retrieve_cards").detail).contains("Next Turn")
+        assertThat(byId.getValue("level_up").detail).startsWith("Mandatory")
+    }
+
+    @Test
     fun `end of round has the six official steps`() {
         assertThat(bundledRules.endOfRound.map { it.title }).containsExactly(
             "Minion Battle",

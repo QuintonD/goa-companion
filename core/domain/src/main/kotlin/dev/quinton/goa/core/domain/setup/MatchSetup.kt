@@ -41,6 +41,25 @@ data class SetupPlan(
     val heroes: Int get() = layout.heroes
 }
 
+/**
+ * Where counting by heroes in play (the app's house rule, DOMAIN.md) gives the selected mode
+ * different numbers than the rulebook's per-player rules. Null from
+ * [MatchSetup.houseRuleDifference] when they agree.
+ */
+data class HouseRuleDifference(
+    val players: Int,
+    val heroes: Int,
+    val mode: GameMode,
+    /** The rulebook's Life counters per team for [players], by mode; modes it doesn't list are absent. */
+    val rulebookLife: Map<GameMode, Int>,
+    /** The selected mode's Life counters differ from the rulebook's for [players]. */
+    val lifeDiffers: Boolean,
+    /** The rulebook doesn't list the selected mode for [players] (Double lane below 6 players). */
+    val modeNotListed: Boolean,
+    /** The selected mode is required only by the hero count, not by the rulebook's player count. */
+    val requiredByHouseRule: Boolean,
+)
+
 /** Pure match-setup calculations over [MatchRules] (pure Kotlin, no Android). */
 class MatchSetup(private val rules: MatchRules) {
     val playerRange: IntRange get() = rules.minPlayers..rules.maxPlayers
@@ -118,6 +137,23 @@ class MatchSetup(private val rules: MatchRules) {
             ?: options.firstOrNull { it.fullySpecified }
             ?: options.first { it.available }
         return SetupPlan(players = players, layout = layout, modes = options, selected = selected)
+    }
+
+    /** Compares [plan]'s selected mode with the rulebook's per-player values; null when they agree. */
+    fun houseRuleDifference(plan: SetupPlan): HouseRuleDifference? {
+        val players = plan.players
+        val rule = rules.mode(plan.selected.mode)
+        val difference = HouseRuleDifference(
+            players = players,
+            heroes = plan.heroes,
+            mode = rule.mode,
+            rulebookLife = rules.modes.mapNotNull { m -> m.rulebookLifeCountersFor(players)?.let { m.mode to it } }
+                .toMap(),
+            lifeDiffers = plan.selected.lifeCountersPerTeam != rule.rulebookLifeCountersFor(players),
+            modeNotListed = !rule.listedFor(players),
+            requiredByHouseRule = plan.selected.required && !rule.requiredFor(players),
+        )
+        return difference.takeIf { it.lifeDiffers || it.modeNotListed || it.requiredByHouseRule }
     }
 
     companion object {

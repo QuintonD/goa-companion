@@ -223,8 +223,9 @@ object DraftEngine {
 
     /**
      * Starting mode for the pending match, by heroes in play (DOMAIN.md: counters are looked up by
-     * seats); Match setup lets the table change it. Double lane is required from 8 heroes [RB], and
-     * at 7 heroes it is the only mode whose Life counters the rulebook lists; otherwise Quick.
+     * seats); Match setup lets the table change it. Double lane is required from 8 heroes [APP; the
+     * rulebook requires it from 8 players, p.20], and at 7 heroes it is the only mode whose Life
+     * counters the rulebook lists; otherwise Quick.
      * Kept in step with `match-setup.json` by `DraftEngineTest`.
      */
     fun suggestedMode(heroes: Int): GameMode = if (heroes >= 7) GameMode.DOUBLE_LANE else GameMode.QUICK
