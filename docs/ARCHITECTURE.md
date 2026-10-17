@@ -153,7 +153,7 @@ the draft setup for "Draft again".
 | core:database | Room in-memory tests; migration tests for every schema bump (v1 → v2: `matches.tie_breaker`) |
 | ViewModels | Turbine on `uiState` with fakes from `core:testing` |
 | UI | Roborazzi (`recordRoborazziDebug` / `verifyRoborazziDebug`), light/dark × font scale 1.0/2.0 |
-| End to end | `app/src/androidTest` (`connectedDebugAndroidTest`): real Hilt graph and bundled catalog, a scripted game night (`GameNight`: House draft → setup → timer round → result → ratings/meta), catalog, players, double pilot, settings, and ATF accessibility checks on every main screen. Runs through the AndroidX Test Orchestrator with `clearPackageData`, so each test starts from a fresh install |
+| End to end | `app/src/androidTest` (`connectedDebugAndroidTest`): real Hilt graph and bundled catalog, a scripted game night (`GameNight`: House draft → setup → timer round → "Who won?" → rating changes → ratings/meta), a rematch night (`RematchTimerFlowTest`: logged match → Rematch "Same seats" → setup → timer with the rules sheet, rules screen and a notification tap back to the Timer tab → second result), catalog, players, double pilot, settings, and ATF accessibility checks on every main screen. Runs through the AndroidX Test Orchestrator with `clearPackageData`, so each test starts from a fresh install |
 | Device | Manual smoke checklist on S25 Ultra per milestone (timer: lock screen, Doze, reboot) |
 
 ## Data files

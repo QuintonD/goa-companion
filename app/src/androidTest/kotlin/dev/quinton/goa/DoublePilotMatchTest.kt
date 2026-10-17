@@ -3,12 +3,10 @@ package dev.quinton.goa
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -26,7 +24,9 @@ class DoublePilotMatchTest {
         listOf("Ana", "Ben", "Cal", "Dee", "Eve").forEach { rule.createPlayerViaProfile(it) }
 
         rule.tap(hasText("Matches") and hasClickAction())
-        rule.tapLabel("Log match")
+        // An empty match log offers one call to action (no floating button on top of it).
+        rule.waitForText("No matches yet")
+        rule.tapText("Log a match")
         rule.waitForText("Duration (minutes, optional)")
 
         // New matches start 2v2; add the third seat on each team (Red's button comes first).
@@ -48,26 +48,21 @@ class DoublePilotMatchTest {
             "Sabina" to "Dee",
             "Xargatha" to "Eve",
         )
-        seats.forEach { (hero, pilot) ->
-            rule.tap(hasContentDescription("Hero: Unknown hero. Change hero") and hasClickAction())
-            rule.waitForText("Search heroes")
-            rule.onNode(hasSetTextAction() and hasText("Search heroes")).performTextInput(hero)
-            rule.tap(hasText(hero) and hasRole(Role.RadioButton))
-            rule.waitForDescription("Hero: $hero. Change hero")
-
-            rule.tap(hasContentDescription("Pilot: none. Change pilot") and hasClickAction())
-            rule.waitForText("Pilot for", substring = true)
-            rule.tap(hasText(pilot) and hasRole(Role.RadioButton))
-            rule.waitGone(hasText("Pilot for", substring = true))
-        }
+        seats.forEach { (hero, pilot) -> rule.fillNextSeat(hero, pilot) }
         rule.waitForText("Double pilot")
 
         if (rule.exists(hasText("Completed") and hasClickAction())) rule.tapText("Completed")
-        rule.tapDescription("Red won")
+        // The winner buttons name each team's pilots once, even Ana who sits twice.
+        assertEquals(setOf("Ana", "Ben"), rule.winnerPilots("Red"))
+        assertEquals(setOf("Cal", "Dee", "Eve"), rule.winnerPilots("Blue"))
+        rule.tapDescription("Red won", substring = true)
         rule.tapText("Throne")
         rule.tap(hasText("Save") and hasClickAction())
-        // The result shows its rating changes and Rematch before closing.
+        // The result shows its rating changes (one line per player) and Rematch before closing.
         rule.waitForText("Result saved")
+        val changes = rule.ratingChanges(5)
+        listOf("Ana", "Ben").forEach { assertTrue(changes.getValue(it).raw, changes.getValue(it).delta > 0) }
+        listOf("Cal", "Dee", "Eve").forEach { assertTrue(changes.getValue(it).raw, changes.getValue(it).delta < 0) }
         rule.tapText("Done")
 
         rule.tap(hasText("Players") and hasClickAction() and hasRole(Role.Tab) and notBottomNav())

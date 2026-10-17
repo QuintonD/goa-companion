@@ -188,22 +188,37 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         // Ground truth from the draft: each team's pilots are the pilots of the heroes it picked.
         val red = pickedBy.filterValues { it == Side.RED }.keys.map { pilotOf.getValue(it) }.toSet()
         val blue = pickedBy.filterValues { it == Side.BLUE }.keys.map { pilotOf.getValue(it) }.toSet()
-        // The editor shows the same split: seats above the first "Team Blue" badge are Red.
-        val blueTop = rule.onAllNodes(hasContentDescription("Team Blue"))
-            .fetchSemanticsNodes().minOf { it.positionInRoot.y }
+        // "Who won?" names each team's pilots on its winner button, so the table sees who it credits.
+        assertEquals("Red winner button names the Red pilots", red, rule.winnerPilots("Red"))
+        assertEquals("Blue winner button names the Blue pilots", blue, rule.winnerPilots("Blue"))
+        // The Teams section below shows the same split: seats above Blue's "Add seat" are Red.
+        val blueTop = rule.onNode(hasContentDescription("Add seat to Blue")).fetchSemanticsNode().positionInRoot.y
         val pilotRows = rule.onAllNodes(hasContentDescription("Pilot: ", substring = true)).fetchSemanticsNodes()
             .map {
                 it.descriptions.first().removePrefix("Pilot: ").removeSuffix(". Change pilot") to it.positionInRoot.y
             }
         val editorRed = pilotRows.filter { it.second < blueTop }.map { it.first }.toSet()
+        val editorBlue = pilotRows.filter { it.second > blueTop }.map { it.first }.toSet()
         assertEquals("Editor Red seats match the Red draft picks ($pickedBy, $pilotOf)", red, editorRed)
+        assertEquals("Editor Blue seats match the Blue draft picks ($pickedBy, $pilotOf)", blue, editorBlue)
 
         if (rule.exists(hasText("Completed") and hasClickAction())) rule.tapText("Completed")
-        rule.tapDescription("Red won")
+        rule.tapDescription("Red won", substring = true)
         rule.tapText("Throne")
         rule.tap(hasText("Save") and hasClickAction())
-        // The result shows its rating changes and Rematch before closing.
+
+        // ---- Result saved: every player's rating change, winners up and losers down.
         rule.waitForText("Result saved")
+        checkpoint("Result saved")
+        val changes = rule.ratingChanges(players.size)
+        red.forEach { name ->
+            val change = changes.getValue(name)
+            assertTrue("Winner $name gained: ${change.raw}", change.won && change.delta > 0 && change.now > 1200)
+        }
+        blue.forEach { name ->
+            val change = changes.getValue(name)
+            assertTrue("Loser $name lost: ${change.raw}", !change.won && change.delta < 0 && change.now < 1200)
+        }
         rule.tapText("Done")
 
         // ---- Leaderboard: winners above 1200, losers below, all provisional.
@@ -214,6 +229,10 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         }
         checkpoint("Players · Leaderboard")
         val rows = rule.leaderboardRows().map(::parseRow).associateBy { it.name }
+        players.forEach { name ->
+            val announced = changes.getValue(name).now
+            assertEquals("Leaderboard shows the rating 'Result saved' announced for $name", announced, rows.getValue(name).rating)
+        }
         red.forEach { name ->
             val row = rows.getValue(name)
             assertTrue("Winner $name above 1200: ${row.raw}", row.rating!! > 1200)
