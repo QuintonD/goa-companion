@@ -7,6 +7,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isNotSelected
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
@@ -330,5 +337,25 @@ class PlayersScreenshotTest {
 
     @Test fun ratingSettingsFontScale2() = shot(fontScale = 2f) {
         RatingSettingsScreen(RatingSettingsUiState(loading = false, ratedMatches = 9), RatingSettingsActions())
+    }
+}
+
+/** TalkBack: the winner buttons and win-condition chips are radio buttons that announce "selected". */
+@RunWith(RobolectricTestRunner::class)
+@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+class WhoWonSemanticsTest {
+    @get:Rule val compose = createComposeRule()
+
+    @Test fun winnerAndWinConditionExposeRadioSelection() {
+        val state = Shots.editor()
+        compose.setContent {
+            GoaTheme { MatchEditScreen(state.copy(resultFirst = true), MatchEditActions()) }
+        }
+        val radio = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton)
+        val winner = hasContentDescription("won", substring = true) and radio
+        compose.onNode(winner and isSelected()).assertExists()
+        compose.onNode(winner and isNotSelected()).assertExists()
+        compose.onNode(hasText("Throne") and radio and isSelected()).assertExists()
+        compose.onNode(hasText("Last push") and radio and isNotSelected()).assertExists()
     }
 }
