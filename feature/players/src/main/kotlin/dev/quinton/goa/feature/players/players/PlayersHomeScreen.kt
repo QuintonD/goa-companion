@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,6 +58,8 @@ data class PlayersHomeActions(
     val onOpenBackup: () -> Unit = {},
     val onOpenSettings: () -> Unit = {},
     val onOpenRatingSettings: () -> Unit = {},
+    /** Meta tab: share the stats page (ADR-027). */
+    val onShareStats: () -> Unit = {},
 )
 
 /** Top-level "Players" destination: leaderboard, match log and meta as tabs. */
@@ -77,6 +80,11 @@ fun PlayersHomeScreen(
         title = "Players",
         modifier = modifier,
         actions = {
+            if (tab == PlayersTab.META) {
+                IconButton(onClick = actions.onShareStats) {
+                    Icon(Icons.Outlined.Share, contentDescription = "Share stats page")
+                }
+            }
             IconButton(onClick = actions.onOpenBackup) {
                 Icon(Icons.Outlined.SettingsBackupRestore, contentDescription = "Backup and restore")
             }
