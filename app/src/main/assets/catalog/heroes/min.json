@@ -1,0 +1,536 @@
+{
+  "id": "min",
+  "name": "Min",
+  "title": "the Dragonmonk",
+  "product": "renowned",
+  "aliases": [],
+  "complexity": 2,
+  "stats": {
+    "attack": [
+      4,
+      8
+    ],
+    "defense": [
+      3,
+      8
+    ],
+    "initiative": [
+      8,
+      8
+    ],
+    "movement": [
+      6,
+      6
+    ]
+  },
+  "roles": [
+    "tokens",
+    "disabler",
+    "damager",
+    "melee"
+  ],
+  "portrait": "official/heroes/min/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "min-gold",
+      "heroId": "min",
+      "name": "Fast as Lightning",
+      "color": "gold",
+      "tier": null,
+      "initiative": 13,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 2,
+        "defense": 1,
+        "movement": 1,
+        "range": 1,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Target a unit in range.\nAfter the attack: Apply the “After the attack” text of your resolved or discarded red card.\n~(If it has radius, use that card's value.)",
+      "image": "official/cards/min-gold.webp"
+    },
+    {
+      "id": "min-silver",
+      "heroId": "min",
+      "name": "Smoke Bomb",
+      "color": "silver",
+      "tier": null,
+      "initiative": 12,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 1,
+        "movement": null,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Place the {token_smoke_bomb} Smoke bomb token in radius; enemy heroes cannot target you or another unit if the Smoke bomb token is on a straight line between that enemy hero and their target.",
+      "image": "official/cards/min-silver.webp"
+    },
+    {
+      "id": "min-red-1",
+      "heroId": "min",
+      "name": "Crane Stance",
+      "color": "red",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 5,
+        "movement": 5,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: Push an enemy unit adjacent to you up to 3 spaces.",
+      "image": "official/cards/min-red-1.webp"
+    },
+    {
+      "id": "min-green-1",
+      "heroId": "min",
+      "name": "Poof!",
+      "color": "green",
+      "tier": 1,
+      "initiative": 2,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 3,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": true,
+      "item": null,
+      "text": "Swap with a {token_smoke_bomb} Smoke bomb token in range; if you do, block the attack.",
+      "image": "official/cards/min-green-1.webp"
+    },
+    {
+      "id": "min-blue-1",
+      "heroId": "min",
+      "name": "Trip Mine",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Place 2 Mine tokens, 1 {token_blast} blast and 1 {token_dud} dud, facedown in radius; units may move through them; remove mine tokens after an enemy hero moves through them; for every blast removed, that hero discards a card, if able.",
+      "image": "official/cards/min-blue-1.webp"
+    },
+    {
+      "id": "min-red-2a",
+      "heroId": "min",
+      "name": "Tiger Stance",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 5,
+        "movement": 5,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit adjacent to you.\nAfter the attack: You may move 1 space to a space adjacent to the target. Push an enemy unit adjacent to you up to 3 spaces.",
+      "image": "official/cards/min-red-2a.webp"
+    },
+    {
+      "id": "min-red-2b",
+      "heroId": "min",
+      "name": "Viper Stance",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 5,
+        "movement": 5,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit adjacent to you.\nAfter the attack: You may swap with a {token_smoke_bomb} Smoke bomb in radius.",
+      "image": "official/cards/min-red-2b.webp"
+    },
+    {
+      "id": "min-green-2a",
+      "heroId": "min",
+      "name": "Vanish",
+      "color": "green",
+      "tier": 2,
+      "initiative": 2,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 3,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": true,
+      "item": "defense",
+      "text": "Swap with a {token_smoke_bomb} Smoke bomb token in range; if you do, block the attack.",
+      "image": "official/cards/min-green-2a.webp"
+    },
+    {
+      "id": "min-green-2b",
+      "heroId": "min",
+      "name": "Inner Strength",
+      "color": "green",
+      "tier": 2,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "This round: Double your item bonuses.",
+      "image": "official/cards/min-green-2b.webp"
+    },
+    {
+      "id": "min-blue-2a",
+      "heroId": "min",
+      "name": "Cluster Mine",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Place 3 Mine tokens, 1 {token_blast} blast and 2 {token_dud} duds, facedown in radius; units may move through them; remove mine tokens after an enemy hero moves through them; for every blast removed, that hero discards a card, if able.",
+      "image": "official/cards/min-blue-2a.webp"
+    },
+    {
+      "id": "min-blue-2b",
+      "heroId": "min",
+      "name": "Death Grenade",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Place a {token_grenade} Grenade token into a space in radius. End of turn: Up to 1 enemy hero adjacent to that token discards a card, or is defeated. Remove the Grenade token.",
+      "image": "official/cards/min-blue-2b.webp"
+    },
+    {
+      "id": "min-red-3a",
+      "heroId": "min",
+      "name": "Dragon Stance",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 6,
+        "movement": 5,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "Target a unit adjacent to you.\nAfter the attack: You may move 1 or 2 spaces to a space adjacent to the target. Push an enemy unit adjacent to you up to 3 spaces.",
+      "image": "official/cards/min-red-3a.webp"
+    },
+    {
+      "id": "min-red-3b",
+      "heroId": "min",
+      "name": "Cobra Stance",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 5,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit adjacent to you.\nAfter the attack: You may swap with a {token_smoke_bomb} Smoke bomb in radius; if you do, you may place the Smoke bomb into a space in radius.",
+      "image": "official/cards/min-red-3b.webp"
+    },
+    {
+      "id": "min-green-3a",
+      "heroId": "min",
+      "name": "Ruse",
+      "color": "green",
+      "tier": 3,
+      "initiative": 1,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 3,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": true,
+      "item": "radius",
+      "text": "Swap with a {token_smoke_bomb} Smoke bomb in range;\nif you do, block the attack. You may place the Smoke bomb into a space in range.",
+      "image": "official/cards/min-green-3a.webp"
+    },
+    {
+      "id": "min-green-3b",
+      "heroId": "min",
+      "name": "Perfect Self",
+      "color": "green",
+      "tier": 3,
+      "initiative": 1,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Choose one, or both —\n• This round: Double your item bonuses.\n• Take a Tier II card from your deck and add it to your dashboard as a permanent item.",
+      "image": "official/cards/min-green-3b.webp"
+    },
+    {
+      "id": "min-blue-3a",
+      "heroId": "min",
+      "name": "Minefield",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Place 3 Mine tokens, 2 {token_blast} blasts and 1 {token_dud} dud, facedown in radius; units may move through them; remove mine tokens after an enemy hero moves through them; for every blast removed, that hero discards a card, if able.",
+      "image": "official/cards/min-blue-3a.webp"
+    },
+    {
+      "id": "min-blue-3b",
+      "heroId": "min",
+      "name": "Holy Death Grenade",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 2,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Place a {token_grenade} Grenade token into a space in radius. End of turn: Up to 2 enemy heroes adjacent to that token discard a card, or are defeated. Remove the Grenade token.",
+      "image": "official/cards/min-blue-3b.webp"
+    },
+    {
+      "id": "min-purple-4",
+      "heroId": "min",
+      "name": "Flurry of blows",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Each time after you perform an attack action, you may repeat it once on a different target.",
+      "image": "official/cards/min-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "min-handicap",
+    "heroId": "min",
+    "name": "Chop Down",
+    "color": "other",
+    "tier": null,
+    "initiative": 12,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 1,
+      "defense": 1,
+      "movement": 1,
+      "range": 1,
+      "radius": null
+    },
+    "ranged": true,
+    "block": false,
+    "item": null,
+    "text": "Target a hero adjacent to you.\nAfter the attack: Apply the “After the attack” text of your resolved or discarded red card.",
+    "image": "official/cards/min-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "How does temporary immunity interact with abilities and triggers that target a unit at end of turn?",
+      "answer": "All players resolve their End of Turn abilities before the turn ends, so a unit that is immune during “this turn” is still immune when end of turn resolves.\nBecause immune units cannot be chosen as targets, they are still protected from end of turn effects such as Min’s Death Grenade.",
+      "source": "goa2-faq (common)"
+    }
+  ],
+  "lore": "The monks of the Order of the Dragon once worshipped the ancient beasts. But with their patrons gone, Min and his brothers had to adopt more practical applications of their beliefs",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/min.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

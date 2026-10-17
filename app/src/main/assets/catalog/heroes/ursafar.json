@@ -1,0 +1,539 @@
+{
+  "id": "ursafar",
+  "name": "Ursafar",
+  "title": "the Savage",
+  "product": "devoted",
+  "aliases": [],
+  "complexity": 2,
+  "stats": {
+    "attack": [
+      6,
+      6
+    ],
+    "defense": [
+      6,
+      6
+    ],
+    "initiative": [
+      5,
+      5
+    ],
+    "movement": [
+      1,
+      5
+    ]
+  },
+  "roles": [
+    "durable",
+    "pusher",
+    "farming",
+    "melee"
+  ],
+  "portrait": "official/heroes/ursafar/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "ursafar-gold",
+      "heroId": "ursafar",
+      "name": "Claws That Catch",
+      "color": "gold",
+      "tier": null,
+      "initiative": 12,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 2,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Before the attack: If enraged, you may move 1 space to a space adjacent to an enemy hero. Target a unit adjacent to you.\nThis round: You are enraged.",
+      "image": "official/cards/ursafar-gold.webp"
+    },
+    {
+      "id": "ursafar-silver",
+      "heroId": "ursafar",
+      "name": "Angry Roar",
+      "color": "silver",
+      "tier": null,
+      "initiative": 7,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "If enraged, perform the primary action on one of your active cards with an active effect.\nThis round: You are enraged.",
+      "image": "official/cards/ursafar-silver.webp"
+    },
+    {
+      "id": "ursafar-red-1",
+      "heroId": "ursafar",
+      "name": "Prey Drive",
+      "color": "red",
+      "tier": 1,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: If enraged, and the target was not removed, remove up to 1 enemy minion in radius.\nThis round: You are enraged.",
+      "image": "official/cards/ursafar-red-1.webp"
+    },
+    {
+      "id": "ursafar-green-1",
+      "heroId": "ursafar",
+      "name": "Sniff Out",
+      "color": "green",
+      "tier": 1,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "If enraged, an enemy hero in range discards a card, if able.",
+      "image": "official/cards/ursafar-green-1.webp"
+    },
+    {
+      "id": "ursafar-blue-1",
+      "heroId": "ursafar",
+      "name": "Prowling Brute",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "If enraged, after movement, you may swap with a unit or a token adjacent to you.\nThis round: You are enraged.",
+      "image": "official/cards/ursafar-blue-1.webp"
+    },
+    {
+      "id": "ursafar-red-2a",
+      "heroId": "ursafar",
+      "name": "Prey Abundance",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit adjacent to you.\nAfter the attack: If enraged, and the target was not removed, remove up to 1 enemy minion in radius.\nThis round: You are enraged.",
+      "image": "official/cards/ursafar-red-2a.webp"
+    },
+    {
+      "id": "ursafar-red-2b",
+      "heroId": "ursafar",
+      "name": "Rip",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit adjacent to you.\nAfter the attack: If enraged, gain 1 coin.\nThis round: You are enraged.",
+      "image": "official/cards/ursafar-red-2b.webp"
+    },
+    {
+      "id": "ursafar-green-2a",
+      "heroId": "ursafar",
+      "name": "Eyes on the Prey",
+      "color": "green",
+      "tier": 2,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "If enraged, an enemy hero in range discards a card, if able.",
+      "image": "official/cards/ursafar-green-2a.webp"
+    },
+    {
+      "id": "ursafar-green-2b",
+      "heroId": "ursafar",
+      "name": "Instinctive Reaction",
+      "color": "green",
+      "tier": 2,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "If enraged, choose one —\n• Perform the primary action on one of your discarded cards.\n• You may retrieve a discarded card.",
+      "image": "official/cards/ursafar-green-2b.webp"
+    },
+    {
+      "id": "ursafar-blue-2a",
+      "heroId": "ursafar",
+      "name": "Rampaging Beast",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "If enraged, after movement, you may swap with a unit or a token adjacent to you; if you do, move up to 1 additional space.\nThis round: You are enraged.",
+      "image": "official/cards/ursafar-blue-2a.webp"
+    },
+    {
+      "id": "ursafar-blue-2b",
+      "heroId": "ursafar",
+      "name": "Cold Ire",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "If enraged, gain +1 {movement} Movement.\nThis round: You are enraged.",
+      "image": "official/cards/ursafar-blue-2b.webp"
+    },
+    {
+      "id": "ursafar-red-3a",
+      "heroId": "ursafar",
+      "name": "Feeding Frenzy",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 8,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit adjacent to you.\nAfter the attack: If enraged, and the target was not removed, remove up to 2 enemy minions in radius.\nThis round: You are enraged.",
+      "image": "official/cards/ursafar-red-3a.webp"
+    },
+    {
+      "id": "ursafar-red-3b",
+      "heroId": "ursafar",
+      "name": "Tear",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit adjacent to you.\nAfter the attack: If enraged, gain 2 coins; if you defeated a hero, that hero spends 1 additional {life} Life counter.\nThis round: You are enraged.",
+      "image": "official/cards/ursafar-red-3b.webp"
+    },
+    {
+      "id": "ursafar-green-3a",
+      "heroId": "ursafar",
+      "name": "Apex Predator",
+      "color": "green",
+      "tier": 3,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "If enraged, an enemy hero in range discards a card, or is defeated.",
+      "image": "official/cards/ursafar-green-3a.webp"
+    },
+    {
+      "id": "ursafar-green-3b",
+      "heroId": "ursafar",
+      "name": "Evolutionary Response",
+      "color": "green",
+      "tier": 3,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "If enraged, choose one, or both —\n• Perform the primary action on one of your discarded cards.\n• You may retrieve a discarded card.",
+      "image": "official/cards/ursafar-green-3b.webp"
+    },
+    {
+      "id": "ursafar-blue-3a",
+      "heroId": "ursafar",
+      "name": "Unstoppable Force",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "If enraged, after movement, you may swap with a unit or a token adjacent to you; if you do, move up to 2 additional spaces.\nThis round: You are enraged.",
+      "image": "official/cards/ursafar-blue-3a.webp"
+    },
+    {
+      "id": "ursafar-blue-3b",
+      "heroId": "ursafar",
+      "name": "Eyes of Flame",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "If enraged, gain +2 {movement} Movement.\nThis round: You are enraged.",
+      "image": "official/cards/ursafar-blue-3b.webp"
+    },
+    {
+      "id": "ursafar-purple-4",
+      "heroId": "ursafar",
+      "name": "Unbound Fury",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "You are always enraged, and all your resolved cards count as active.",
+      "image": "official/cards/ursafar-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "ursafar-handicap",
+    "heroId": "ursafar",
+    "name": "Jaws That Bite",
+    "color": "other",
+    "tier": null,
+    "initiative": 11,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 3,
+      "defense": 1,
+      "movement": 1,
+      "range": null,
+      "radius": null
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Before the attack: If enraged, you may move 1 space to a space adjacent to an enemy hero. Target a hero adjacent to you.\nThis round: You are enraged.",
+    "image": "official/cards/ursafar-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "Does Ursafar gain coins for removing a minion on his Primary Red?",
+      "answer": "No. Coins are only gained for defeating a Minion, not Removing one.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Does the additional movement only apply to the card it is printed on?",
+      "answer": "Yes. When Ursafar is enraged, his blue allows him to move further with that explicit action. It does not apply to any other cards (there is no “This round” indication).",
+      "source": "goa2-faq"
+    }
+  ],
+  "lore": "When Ursafar roars, the frost beasts cower in their icy caves, and the tribesmen place fresh fish outside their igloos to appease the great bear.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/ursafar.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

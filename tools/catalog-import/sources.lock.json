@@ -1,0 +1,41 @@
+{
+  "comment": "Pinned catalog sources (docs/DOMAIN.md#sources). Change a sha only when deliberately refreshing; then re-run the importer and review REPORT.md.",
+  "sources": [
+    {
+      "id": "stats-of-atlantis",
+      "name": "Stats of Atlantis",
+      "repo": "QuasiStellar/Stats-of-Atlantis",
+      "branch": "master",
+      "sha": "3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4",
+      "pinned": "2026-10-17",
+      "use": "Primary card data (src/new_heroes.json, src/spells.json), hero metadata (src/states.ts), card artwork used to identify card scans"
+    },
+    {
+      "id": "dmrediger-goa2",
+      "name": "dmrediger/goa2",
+      "repo": "dmrediger/goa2",
+      "branch": "main",
+      "sha": "23544c3a8545edc03954c3d4334989803d42afff",
+      "pinned": "2026-10-17",
+      "use": "Full card scans (public/hero-cards/<pack>/<hero>/<hero>-<n>.jpeg, Gydion's spellbook)"
+    },
+    {
+      "id": "goa2-faq",
+      "name": "GoA2 FAQ",
+      "repo": "yvo-niedrich/goa2-faq",
+      "branch": "main",
+      "sha": "b841b76c466b1a88323579737080f0a7bbf596b0",
+      "pinned": "2026-10-17",
+      "use": "Text cross-check (build/data/cards), lore (build/data/heroes.json), FAQ rulings (build/data/faqs), hero portraits (public/hero)"
+    },
+    {
+      "id": "colefin8-data",
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "repo": "colefin8/guards-of-atlantis-ii-data",
+      "branch": "master",
+      "sha": "008adfaad415406aab6afcc782b54a6ad45896ba",
+      "pinned": "2026-10-17",
+      "use": "Number cross-check (server/<Hero>.csv; no Ignatia or Whisper)"
+    }
+  ]
+}

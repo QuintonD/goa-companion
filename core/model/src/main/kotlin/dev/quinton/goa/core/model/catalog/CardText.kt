@@ -12,6 +12,13 @@ object CardText {
         "attack", "defense", "initiative", "movement", "range", "radius", "skill",
         "coin", "hold", "fast_travel", "clear", "ranged", "block", "item", "ultimate",
         "minion", "heavy_minion", "spawn", "life", "wave",
+        // Hero-specific tokens, markers and symbols printed in card text (catalog import).
+        "tiebreaker_blue", "tiebreaker_orange", "marker_bounty", "marker_poison",
+        "rune_anvil", "rune_axe", "rune_bird", "rune_horn",
+        "rune_anvil_marker", "rune_axe_marker", "rune_bird_marker", "rune_horn_marker",
+        "token_barrier", "token_blast", "token_dud", "token_familiar", "token_glitch", "token_grenade",
+        "token_ice", "token_illusion", "token_magma", "token_rock", "token_smoke_bomb", "token_totem",
+        "token_tree", "token_zombie",
     )
 
     sealed interface Segment {

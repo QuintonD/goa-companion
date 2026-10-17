@@ -1,0 +1,538 @@
+{
+  "id": "cutter",
+  "name": "Cutter",
+  "title": "the Sky Pirate",
+  "product": "defiant",
+  "aliases": [],
+  "complexity": 3,
+  "stats": {
+    "attack": [
+      4,
+      8
+    ],
+    "defense": [
+      4,
+      4
+    ],
+    "initiative": [
+      6,
+      6
+    ],
+    "movement": [
+      4,
+      8
+    ]
+  },
+  "roles": [
+    "tactician",
+    "damager",
+    "farming"
+  ],
+  "portrait": "official/heroes/cutter/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "cutter-gold",
+      "heroId": "cutter",
+      "name": "Walk the Plank",
+      "color": "gold",
+      "tier": null,
+      "initiative": 12,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• Push an enemy hero adjacent to you up to 4 spaces; if that hero is pushed into another zone, that hero discards a card, or is defeated.\n• Defeat a minion adjacent to you.",
+      "image": "official/cards/cutter-gold.webp"
+    },
+    {
+      "id": "cutter-silver",
+      "heroId": "cutter",
+      "name": "Grappling Bolt",
+      "color": "silver",
+      "tier": null,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": null,
+        "range": 5,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target an obstacle in range and in a straight line, with no obstacles between you; ignore immunity. Move in a straight line towards that obstacle until you are adjacent to it.",
+      "image": "official/cards/cutter-silver.webp"
+    },
+    {
+      "id": "cutter-red-1",
+      "heroId": "cutter",
+      "name": "Daring Strike",
+      "color": "red",
+      "tier": 1,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• Before the attack: Move 1 space.\nTarget a hero adjacent to you in the direction of the move; +2 {attack} Attack.\n• Target a unit adjacent to you.",
+      "image": "official/cards/cutter-red-1.webp"
+    },
+    {
+      "id": "cutter-green-1",
+      "heroId": "cutter",
+      "name": "Brace for Impact",
+      "color": "green",
+      "tier": 1,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Move 3 spaces in a straight line, ignoring obstacles, to a space adjacent to an enemy hero; that hero discards a card, if able.",
+      "image": "official/cards/cutter-green-1.webp"
+    },
+    {
+      "id": "cutter-blue-1",
+      "heroId": "cutter",
+      "name": "Bombardment",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "An enemy hero in radius, adjacent to another enemy unit and not adjacent to you, discards a card, if able.",
+      "image": "official/cards/cutter-blue-1.webp"
+    },
+    {
+      "id": "cutter-red-2a",
+      "heroId": "cutter",
+      "name": "Bold Thrust",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Choose one —\n• Before the attack: Move 1 or 2 spaces in a straight line. Target a hero adjacent to you in the direction of the move; +2 {attack} Attack.\n• Target a unit adjacent to you.",
+      "image": "official/cards/cutter-red-2a.webp"
+    },
+    {
+      "id": "cutter-red-2b",
+      "heroId": "cutter",
+      "name": "Evasive Shot",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 4,
+        "movement": 3,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit in range and in a straight line.\nAfter the attack: Move up to 2 spaces in the opposite direction.",
+      "image": "official/cards/cutter-red-2b.webp"
+    },
+    {
+      "id": "cutter-green-2a",
+      "heroId": "cutter",
+      "name": "Ramming Speed",
+      "color": "green",
+      "tier": 2,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Move 3 or 4 spaces in a straight line, ignoring obstacles, to a space adjacent to an enemy hero; that hero discards a card, if able.",
+      "image": "official/cards/cutter-green-2a.webp"
+    },
+    {
+      "id": "cutter-green-2b",
+      "heroId": "cutter",
+      "name": "Outmaneuver",
+      "color": "green",
+      "tier": 2,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Swap with an enemy minion in radius;\nyou may move that minion up to 2 spaces.",
+      "image": "official/cards/cutter-green-2b.webp"
+    },
+    {
+      "id": "cutter-blue-2a",
+      "heroId": "cutter",
+      "name": "Barrage",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "An enemy hero in radius, adjacent to another enemy unit and not adjacent to you, discards a card, if able.",
+      "image": "official/cards/cutter-blue-2a.webp"
+    },
+    {
+      "id": "cutter-blue-2b",
+      "heroId": "cutter",
+      "name": "X Marks the Spot",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "An enemy hero in radius chooses one —\n• You place that hero in a space in radius.\n• You gain 2 coins.",
+      "image": "official/cards/cutter-blue-2b.webp"
+    },
+    {
+      "id": "cutter-red-3a",
+      "heroId": "cutter",
+      "name": "Fearless Lunge",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "Choose one —\n• Before the attack: Move 1, 2 or 3 spaces in a straight line. Target a hero adjacent to you in the direction of the move; +2 {attack} Attack.\n• Target a unit adjacent to you.",
+      "image": "official/cards/cutter-red-3a.webp"
+    },
+    {
+      "id": "cutter-red-3b",
+      "heroId": "cutter",
+      "name": "Tumble Shot",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 5,
+        "movement": 3,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "radius",
+      "text": "Target a unit in range and in a straight line.\nAfter the attack: Move up to 3 spaces in the opposite direction.",
+      "image": "official/cards/cutter-red-3b.webp"
+    },
+    {
+      "id": "cutter-green-3a",
+      "heroId": "cutter",
+      "name": "Crashland",
+      "color": "green",
+      "tier": 3,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Move 3, 4 or 5 spaces in a straight line, ignoring obstacles, to a space adjacent to an enemy hero; that hero discards a card, if able.",
+      "image": "official/cards/cutter-green-3a.webp"
+    },
+    {
+      "id": "cutter-green-3b",
+      "heroId": "cutter",
+      "name": "Outsmart",
+      "color": "green",
+      "tier": 3,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Swap with an enemy minion in radius;\nyou may move that minion up to 3 spaces.",
+      "image": "official/cards/cutter-green-3b.webp"
+    },
+    {
+      "id": "cutter-blue-3a",
+      "heroId": "cutter",
+      "name": "Broadside",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "An enemy hero in radius, adjacent to another enemy unit and not adjacent to you, discards a card, if able.\nMay repeat once on a different target.",
+      "image": "official/cards/cutter-blue-3a.webp"
+    },
+    {
+      "id": "cutter-blue-3b",
+      "heroId": "cutter",
+      "name": "A Fistful of Coins",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "An enemy hero in radius chooses one —\n• You place that hero in a space in radius.\n• You gain 3 coins. If you have 13 or more coins, you alone win the game.",
+      "image": "official/cards/cutter-blue-3b.webp"
+    },
+    {
+      "id": "cutter-purple-4",
+      "heroId": "cutter",
+      "name": "Legend of the Skies",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "The first time each turn after you perform a primary action, you may perform the primary action of a card in the previous turn slot.",
+      "image": "official/cards/cutter-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "cutter-handicap",
+    "heroId": "cutter",
+    "name": "Few More Steps",
+    "color": "other",
+    "tier": null,
+    "initiative": 12,
+    "primary": "skill",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": null,
+      "defense": 1,
+      "movement": 1,
+      "range": null,
+      "radius": null
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Push an enemy hero adjacent to you up to 3 spaces; if that hero is pushed into another zone, that hero discards a card, or is defeated.",
+    "image": "official/cards/cutter-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "What can Cutter’s Silver (Grappling Bolt) target?",
+      "answer": "Any obstacle (units, tokens, terrain, or other miniatures) can be targeted by Grappling Bolt. This includes immune units as well as the terrain spaces around the edge of the map (she can grapple onto the water).",
+      "source": "goa2-faq"
+    }
+  ],
+  "lore": "The daring exploits of Cutter, the captain of the skyship Black Sparrow, are the crowd favorite in every tavern across the continent! She traded her life as a noble-born debutante for that of a swashbuckler and a scoundrel.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/cutter.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

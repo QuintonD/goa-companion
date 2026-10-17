@@ -1,0 +1,565 @@
+{
+  "id": "wasp",
+  "name": "Wasp",
+  "title": "the Warmaiden",
+  "product": "core",
+  "aliases": [],
+  "complexity": 1,
+  "stats": {
+    "attack": [
+      5,
+      5
+    ],
+    "defense": [
+      4,
+      5
+    ],
+    "initiative": [
+      6,
+      6
+    ],
+    "movement": [
+      5,
+      5
+    ]
+  },
+  "roles": [
+    "disabler",
+    "tactician",
+    "sniper"
+  ],
+  "portrait": "official/heroes/wasp/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "wasp-gold",
+      "heroId": "wasp",
+      "name": "Magnetic Dagger",
+      "color": "gold",
+      "tier": null,
+      "initiative": 12,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 2,
+        "movement": 1,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: This turn: Enemy units in radius cannot be swapped or placed by themselves or by enemy heroes.",
+      "image": "official/cards/wasp-gold.webp"
+    },
+    {
+      "id": "wasp-silver",
+      "heroId": "wasp",
+      "name": "Static Barrier",
+      "color": "silver",
+      "tier": null,
+      "initiative": 13,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": null,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "This turn: While an enemy hero outside of radius is performing an action, spaces in radius count as obstacles. While an enemy hero in radius is performing an action, spaces outside of radius count as obstacles.",
+      "image": "official/cards/wasp-silver.webp"
+    },
+    {
+      "id": "wasp-red-1",
+      "heroId": "wasp",
+      "name": "Shock",
+      "color": "red",
+      "tier": 1,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 4,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: An enemy hero in radius and not adjacent to you discards a card, if able.",
+      "image": "official/cards/wasp-red-1.webp"
+    },
+    {
+      "id": "wasp-green-1",
+      "heroId": "wasp",
+      "name": "Stop Projectiles",
+      "color": "green",
+      "tier": 1,
+      "initiative": 3,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": true,
+      "item": null,
+      "text": "Block a ranged attack.",
+      "image": "official/cards/wasp-green-1.webp"
+    },
+    {
+      "id": "wasp-blue-1",
+      "heroId": "wasp",
+      "name": "Lift Up",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 3,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Move a unit, or a token, in radius 1 space, without moving it away from you or closer to you.\nMay repeat once on the same target.",
+      "image": "official/cards/wasp-blue-1.webp"
+    },
+    {
+      "id": "wasp-red-2a",
+      "heroId": "wasp",
+      "name": "Electrocute",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 4,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit adjacent to you.\nAfter the attack: An enemy hero in radius and not adjacent to you discards a card, if able.",
+      "image": "official/cards/wasp-red-2a.webp"
+    },
+    {
+      "id": "wasp-red-2b",
+      "heroId": "wasp",
+      "name": "Charged Boomerang",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 3,
+        "movement": 4,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit in range and not in a straight line.\n~(Units adjacent to you are in a straight line from you.)",
+      "image": "official/cards/wasp-red-2b.webp"
+    },
+    {
+      "id": "wasp-green-2a",
+      "heroId": "wasp",
+      "name": "Deflect Projectiles",
+      "color": "green",
+      "tier": 2,
+      "initiative": 3,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": true,
+      "item": "initiative",
+      "text": "Block a ranged attack; if you do, an enemy hero in range, other than the attacker, discards a card, if able.",
+      "image": "official/cards/wasp-green-2a.webp"
+    },
+    {
+      "id": "wasp-green-2b",
+      "heroId": "wasp",
+      "name": "Telekinesis",
+      "color": "green",
+      "tier": 2,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Place a unit or a token in range, which is not in a straight line, into a space adjacent to you.",
+      "image": "official/cards/wasp-green-2b.webp"
+    },
+    {
+      "id": "wasp-blue-2a",
+      "heroId": "wasp",
+      "name": "Control Gravity",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Move a unit, or a token, in radius 1 space, without moving it away from you or closer to you.\nMay repeat once on the same target.",
+      "image": "official/cards/wasp-blue-2a.webp"
+    },
+    {
+      "id": "wasp-blue-2b",
+      "heroId": "wasp",
+      "name": "Kinetic Repulse",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Push up to 2 enemy units adjacent to you 3 spaces; if a pushed hero is stopped by an obstacle, that hero discards a card, if able.",
+      "image": "official/cards/wasp-blue-2b.webp"
+    },
+    {
+      "id": "wasp-red-3a",
+      "heroId": "wasp",
+      "name": "Electroblast",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 7,
+        "movement": 4,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit adjacent to you.\nAfter the attack: An enemy hero in radius and not adjacent to you discards a card, or is defeated.",
+      "image": "official/cards/wasp-red-3a.webp"
+    },
+    {
+      "id": "wasp-red-3b",
+      "heroId": "wasp",
+      "name": "Thunder Boomerang",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 4,
+        "movement": 4,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "movement",
+      "text": "Target a unit in range and not in a straight line.\nAfter the attack: If you targeted a hero, may repeat once on a different target.",
+      "image": "official/cards/wasp-red-3b.webp"
+    },
+    {
+      "id": "wasp-green-3a",
+      "heroId": "wasp",
+      "name": "Reflect Projectiles",
+      "color": "green",
+      "tier": 3,
+      "initiative": 2,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": true,
+      "item": "radius",
+      "text": "Block a ranged attack; if you do, an enemy hero in range discards a card, if able.",
+      "image": "official/cards/wasp-green-3a.webp"
+    },
+    {
+      "id": "wasp-green-3b",
+      "heroId": "wasp",
+      "name": "Mass Telekinesis",
+      "color": "green",
+      "tier": 3,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Place a unit or a token in range, which is not in a straight line, into a space adjacent to you.\nMay repeat once.",
+      "image": "official/cards/wasp-green-3b.webp"
+    },
+    {
+      "id": "wasp-blue-3a",
+      "heroId": "wasp",
+      "name": "Center of Mass",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Move a unit, or a token, in radius 1 space, without moving it away from you or closer to you.\nMay repeat up to two times on the same target.",
+      "image": "official/cards/wasp-blue-3a.webp"
+    },
+    {
+      "id": "wasp-blue-3b",
+      "heroId": "wasp",
+      "name": "Kinetic Blast",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Push up to 2 enemy units adjacent to you 3 or 4 spaces; if a pushed hero is stopped by an obstacle, that hero discards a card, if able.",
+      "image": "official/cards/wasp-blue-3b.webp"
+    },
+    {
+      "id": "wasp-purple-4",
+      "heroId": "wasp",
+      "name": "High Voltage",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Each time after you perform a basic skill, you may defeat an enemy minion in radius;\nan enemy hero who was adjacent to that minion discards a card, if able.",
+      "image": "official/cards/wasp-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "wasp-handicap",
+    "heroId": "wasp",
+    "name": "Crackling Dagger",
+    "color": "other",
+    "tier": null,
+    "initiative": 11,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 2,
+      "defense": 1,
+      "movement": 1,
+      "range": null,
+      "radius": 3
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Target a hero adjacent to you.\nAfter the attack: This turn: Enemy units in radius cannot be swapped or placed by themselves or by enemy heroes.",
+    "image": "official/cards/wasp-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "How does Wasp’s Static Barrier work?",
+      "answer": "Static Barrier divides the map into 2 regions: spaces within its radius and outside its radius. Enemy units are restricted by the “barrier” as follows:\n• ❌They cannot take a move action (to move or fast travel) to move across the barrier.\n• ❌They cannot use an attack or skill involving movement to cross the barrier.\n• ❌They cannot end any movement on the other side of the barrier - even if they are allowed to “move through obstacles”.\n• ❌They cannot push units through the barrier unless the push is “ignoring obstacles” - in which case the target still has to reach an empty space.\n• ✅They can use a “swap” effect to cross the barrier and remain on the other side.\n• ✅They can perform an attack that targets a unit on the other side of the barrier.\nReminder: These restrictions only apply when an enemy hero is taking the action.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "How does Wasp’s ability move units and tokens?",
+      "answer": "The target cannot move farther away or closer, so the distance between you and the target must remain unchanged.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "When does Wasp’s  push ability force a discard?",
+      "answer": "This card pushes adjacent enemies away from you (in a straight line). If an enemy Hero cannot be pushed the full distance, because an obstacle is located along the straight line path, the Hero is forced to discard.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Why do Wasp’s Tier II and III abilities say “If you do”? Why would the block fail?",
+      "answer": "You can always discard a card to attempt to defend, even if it does not defend successfully.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Does Wasp’s Gold prevent movement?",
+      "answer": "No, Wasp’s dagger interferes with magical placement abilites – and only if they are controlled by enemy heroes. Normal movement and pushes can still be used by enemy heroes to reposition.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Can enemies from further away use their placement abilities to approach Wasp?",
+      "answer": "Yes, the ability does not prevent enemey heroes from placing or swapping themselfs (or their friends) into the radius of Wasp’s dagger.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "What are Obstacles?",
+      "answer": "Obstacles are basically anything on the map: Units (Heroes and Minions), terrain shown on the map, tokens, and any other miniatures. There can only be one Obstacle on each space, and Obstacles generally can’t move through each other.\nIf an ability does allow Obstacles to pass through each other (“you can move through Obstacles”, ignore Obstacles”, “Heroes may move through a space with a tree token”), they still may not end movement on such a space.\nAny space with an Obstacle is considered occupied and not empty.",
+      "source": "goa2-faq (common)"
+    }
+  ],
+  "lore": "As all heiresses to the throne of the Gilded Empire, Wasp was exiled from the palace as soon as she could hold a dagger. She needs to learn to control her powers before she can face the ultimate challenge and claim her birthright.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/wasp.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

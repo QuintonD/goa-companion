@@ -1,0 +1,553 @@
+{
+  "id": "tigerclaw",
+  "name": "Tigerclaw",
+  "title": "the Cutpurse",
+  "product": "core",
+  "aliases": [],
+  "complexity": 1,
+  "stats": {
+    "attack": [
+      4,
+      8
+    ],
+    "defense": [
+      1,
+      4
+    ],
+    "initiative": [
+      8,
+      8
+    ],
+    "movement": [
+      7,
+      8
+    ]
+  },
+  "roles": [
+    "melee",
+    "disabler",
+    "farming"
+  ],
+  "portrait": "official/heroes/tigerclaw/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "tigerclaw-gold",
+      "heroId": "tigerclaw",
+      "name": "Blink Strike",
+      "color": "gold",
+      "tier": null,
+      "initiative": 13,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 1,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Before the attack: Move 2 spaces in a straight line through an enemy unit; target that unit.\n~(If you cannot make this move, you cannot attack.)",
+      "image": "official/cards/tigerclaw-gold.webp"
+    },
+    {
+      "id": "tigerclaw-silver",
+      "heroId": "tigerclaw",
+      "name": "Blend Into Shadows",
+      "color": "silver",
+      "tier": null,
+      "initiative": 6,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": null,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "If you are adjacent to terrain, place yourself into a space in radius; if you do, Next turn:\nYou are immune to enemy attack actions.",
+      "image": "official/cards/tigerclaw-silver.webp"
+    },
+    {
+      "id": "tigerclaw-red-1",
+      "heroId": "tigerclaw",
+      "name": "Hit and Run",
+      "color": "red",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 3,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: You may move 1 space.",
+      "image": "official/cards/tigerclaw-red-1.webp"
+    },
+    {
+      "id": "tigerclaw-green-1",
+      "heroId": "tigerclaw",
+      "name": "Light-Fingered",
+      "color": "green",
+      "tier": 1,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 1,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "You may move 1 space.\nTake 1 coin from an enemy hero adjacent to you; if you do, you may move 1 space.",
+      "image": "official/cards/tigerclaw-green-1.webp"
+    },
+    {
+      "id": "tigerclaw-blue-1",
+      "heroId": "tigerclaw",
+      "name": "Dodge",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 10,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": true,
+      "item": null,
+      "text": "Block a ranged attack.",
+      "image": "official/cards/tigerclaw-blue-1.webp"
+    },
+    {
+      "id": "tigerclaw-red-2a",
+      "heroId": "tigerclaw",
+      "name": "Combat Reflexes",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 3,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Before the attack: You may move 1 space.\nTarget a unit adjacent to you.\nAfter the attack: If you did not move before the attack, you may move 1 space.",
+      "image": "official/cards/tigerclaw-red-2a.webp"
+    },
+    {
+      "id": "tigerclaw-red-2b",
+      "heroId": "tigerclaw",
+      "name": "Backstab",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 5,
+        "movement": 5,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit adjacent to you; if a friendly unit is adjacent to the target, +2 {attack} Attack.\n~(A “friendly unit” is another hero or a minion on your team.)",
+      "image": "official/cards/tigerclaw-red-2b.webp"
+    },
+    {
+      "id": "tigerclaw-green-2a",
+      "heroId": "tigerclaw",
+      "name": "Pick Pocket",
+      "color": "green",
+      "tier": 2,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 1,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Move up to 2 spaces.\nTake 1 coin from an enemy hero adjacent to you; if you do, you may move 1 space.",
+      "image": "official/cards/tigerclaw-green-2a.webp"
+    },
+    {
+      "id": "tigerclaw-green-2b",
+      "heroId": "tigerclaw",
+      "name": "Poisoned Dagger",
+      "color": "green",
+      "tier": 2,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 1,
+        "movement": 3,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Give a hero in range a {marker_poison} Poison marker.\nThe hero with a poison marker has -1 {initiative} Initiative, -1 {attack} Attack and -1 {defense} Defense.",
+      "image": "official/cards/tigerclaw-green-2b.webp"
+    },
+    {
+      "id": "tigerclaw-blue-2a",
+      "heroId": "tigerclaw",
+      "name": "Sidestep",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 11,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": true,
+      "item": "attack",
+      "text": "Block a ranged attack.\nYou may move 1 space.",
+      "image": "official/cards/tigerclaw-blue-2a.webp"
+    },
+    {
+      "id": "tigerclaw-blue-2b",
+      "heroId": "tigerclaw",
+      "name": "Parry",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 11,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": true,
+      "item": "defense",
+      "text": "Block a non-ranged attack.\nThe attacker discards a card, if able.",
+      "image": "official/cards/tigerclaw-blue-2b.webp"
+    },
+    {
+      "id": "tigerclaw-red-3a",
+      "heroId": "tigerclaw",
+      "name": "Leaping Strike",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 4,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "Before the attack: You may move 1 space.\nTarget a unit adjacent to you.\nAfter the attack: You may move 1 space.",
+      "image": "official/cards/tigerclaw-red-3a.webp"
+    },
+    {
+      "id": "tigerclaw-red-3b",
+      "heroId": "tigerclaw",
+      "name": "Backstab with a Ballista",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 5,
+        "range": 1,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit in range; if a friendly unit is adjacent to the target +2 {attack} Attack, and the target cannot perform a primary action to defend.",
+      "image": "official/cards/tigerclaw-red-3b.webp"
+    },
+    {
+      "id": "tigerclaw-green-3a",
+      "heroId": "tigerclaw",
+      "name": "Master Thief",
+      "color": "green",
+      "tier": 3,
+      "initiative": 1,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "Move up to 2 spaces. Take 1 or 2 coins from an enemy hero adjacent to you;\nif you do, you may move up to 2 spaces.",
+      "image": "official/cards/tigerclaw-green-3a.webp"
+    },
+    {
+      "id": "tigerclaw-green-3b",
+      "heroId": "tigerclaw",
+      "name": "Poisoned Dart",
+      "color": "green",
+      "tier": 3,
+      "initiative": 1,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 3,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Give a hero in range a {marker_poison} Poison marker.\nThe hero with a poison marker has -2 {initiative} Initiative, -2 {attack} Attack and -2 {defense} Defense.",
+      "image": "official/cards/tigerclaw-green-3b.webp"
+    },
+    {
+      "id": "tigerclaw-blue-3a",
+      "heroId": "tigerclaw",
+      "name": "Evade",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": true,
+      "item": "attack",
+      "text": "Block a ranged attack.\nYou may move 1 space. You may retrieve your resolved or discarded basic skill card.",
+      "image": "official/cards/tigerclaw-blue-3a.webp"
+    },
+    {
+      "id": "tigerclaw-blue-3b",
+      "heroId": "tigerclaw",
+      "name": "Riposte",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": true,
+      "item": "range",
+      "text": "Block a non-ranged attack. The attacker discards a card, or is defeated.",
+      "image": "official/cards/tigerclaw-blue-3b.webp"
+    },
+    {
+      "id": "tigerclaw-purple-4",
+      "heroId": "tigerclaw",
+      "name": "Cloak and Daggers",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "After you perform a basic action, you may repeat it once; if you repeat an attack action, you cannot target the same unit.",
+      "image": "official/cards/tigerclaw-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "tigerclaw-handicap",
+    "heroId": "tigerclaw",
+    "name": "Nimble Strike",
+    "color": "other",
+    "tier": null,
+    "initiative": 12,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 2,
+      "defense": 1,
+      "movement": 1,
+      "range": null,
+      "radius": null
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Before the attack: Move 2 spaces in a straight line through an enemy hero; target that hero.",
+    "image": "official/cards/tigerclaw-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "Does Tigerclaw’s Blink Strike attack require movement?",
+      "answer": "Yes! If Tigerclaw cannot move through the target in a straight line, the effect will “fizzle” — stop resolving — and he will not attack. A crafty opponent can anticipate and deny this attack with clever positioning.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Does Tigerclaw’s green thievery skill require an enemy hero?",
+      "answer": "Yes, to perform it completely. After Tigerclaw performs the first movement on the card, it checks for an adjacent enemy hero to steal from. If there is no adjacent enemy hero, the card “fizzles” — stops resolving — and he will not make the final movement. In this case, it is usually better to simply play the card for its movement.\nThere are cases where performing the action without an enemy hero is still advantageous, such as if other effects restrict movement actions (such as Arien’s Alt Blue or Xargatha’s Primary Blue) or other effects will reward him for performing a skill action.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "What happens if Tigerclaw’s poison reduces a value below 1?",
+      "answer": "Values can drop to 0 and even be negative:\n• Initiative values are resolved in the normal order from highest to lowest.\n• Negative defense values are calculated normally and may still block an attack if the Defense Total is greater than or equal to the Attack Total.\n• Negative Attack Totals will still defeat a Minion and must still be defended against (or will defeat the hero).",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "What does immunity protect from?",
+      "answer": "Basically everything. An immune unit can’t be targeted or affected by any action. They can choose to move through and ignore tokens.\nBeware that conditional immunity only applies when the sources of an effect matches the condition (eg. “immune to enemy attack actions”)",
+      "source": "goa2-faq (common)"
+    },
+    {
+      "question": "Can I play an action if only some of its instructions can be performed?",
+      "answer": "You must follow the cards instructions step by step, starting from the top.\n• If you cannot perform the first instruction (e.g., there is no valid target in range, or you cannot make the required movement), you may not perform the action at all.\n• After the first instruction is successfully exectued, you continue resolving the rest of the instructions in order.\n• If you reach an instruction that is not optional and you cannot perform it, the action immediately fizzles — no further instructions are resolved. You place the card on your hero dashboard, and your turn ends.\n_See page 10 of the rulebook for additional reference._",
+      "source": "goa2-faq (common)"
+    }
+  ],
+  "lore": "Tigerclaw is as elusive as a shadow in the desert. A useful quality to have, when half the continent wants you dead and the other half wants you quartered first and then dead.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/tigerclaw.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

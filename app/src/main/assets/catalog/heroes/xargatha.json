@@ -1,0 +1,547 @@
+{
+  "id": "xargatha",
+  "name": "Xargatha",
+  "title": "the Changed",
+  "product": "core",
+  "aliases": [],
+  "complexity": 1,
+  "stats": {
+    "attack": [
+      5,
+      8
+    ],
+    "defense": [
+      6,
+      6
+    ],
+    "initiative": [
+      3,
+      3
+    ],
+    "movement": [
+      6,
+      6
+    ]
+  },
+  "roles": [
+    "tactician",
+    "pusher",
+    "disabler",
+    "durable",
+    "sniper"
+  ],
+  "portrait": "official/heroes/xargatha/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "xargatha-gold",
+      "heroId": "xargatha",
+      "name": "Cleave",
+      "color": "gold",
+      "tier": null,
+      "initiative": 11,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 2,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: May repeat once on a different enemy hero.\n~(You may repeat even if the original target was a minion.)",
+      "image": "official/cards/xargatha-gold.webp"
+    },
+    {
+      "id": "xargatha-silver",
+      "heroId": "xargatha",
+      "name": "Siren's Call",
+      "color": "silver",
+      "tier": null,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": null,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target an enemy unit not adjacent to you and in range; if able, move the target up to 3 spaces to a space adjacent to you.",
+      "image": "official/cards/xargatha-silver.webp"
+    },
+    {
+      "id": "xargatha-red-1",
+      "heroId": "xargatha",
+      "name": "Threatening Slash",
+      "color": "red",
+      "tier": 1,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 5,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\n+1 {attack} Attack for each other enemy unit adjacent to you.\n~(Do not count the target when calculating the attack bonus.)",
+      "image": "official/cards/xargatha-red-1.webp"
+    },
+    {
+      "id": "xargatha-green-1",
+      "heroId": "xargatha",
+      "name": "Charm",
+      "color": "green",
+      "tier": 1,
+      "initiative": 5,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Before or after movement, you may move an enemy ranged minion in radius up to 2 spaces.",
+      "image": "official/cards/xargatha-green-1.webp"
+    },
+    {
+      "id": "xargatha-blue-1",
+      "heroId": "xargatha",
+      "name": "Stone Gaze",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 3,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Next turn: Enemy heroes in radius count as both heroes and terrain, and cannot perform movement actions.\n~(If you move, the radius “moves” with you.)",
+      "image": "official/cards/xargatha-blue-1.webp"
+    },
+    {
+      "id": "xargatha-red-2a",
+      "heroId": "xargatha",
+      "name": "Deadly Swipe",
+      "color": "red",
+      "tier": 2,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 7,
+        "movement": 5,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit adjacent to you.\n+2 {attack} Attack for each other enemy unit adjacent to you.",
+      "image": "official/cards/xargatha-red-2a.webp"
+    },
+    {
+      "id": "xargatha-red-2b",
+      "heroId": "xargatha",
+      "name": "Long Thrust",
+      "color": "red",
+      "tier": 2,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 4,
+        "movement": 4,
+        "range": 1,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit in range. +1 {range} Range for each enemy unit adjacent to you.",
+      "image": "official/cards/xargatha-red-2b.webp"
+    },
+    {
+      "id": "xargatha-green-2a",
+      "heroId": "xargatha",
+      "name": "Control",
+      "color": "green",
+      "tier": 2,
+      "initiative": 4,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Before or after movement, you may move an enemy ranged or melee minion in radius up to 2 spaces.",
+      "image": "official/cards/xargatha-green-2a.webp"
+    },
+    {
+      "id": "xargatha-green-2b",
+      "heroId": "xargatha",
+      "name": "Constrict",
+      "color": "green",
+      "tier": 2,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "End of round: Defeat an enemy melee minion adjacent to you.\n~(Before the end of round minion battle.)",
+      "image": "official/cards/xargatha-green-2b.webp"
+    },
+    {
+      "id": "xargatha-blue-2a",
+      "heroId": "xargatha",
+      "name": "Petrifying Stare",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Next turn: Enemy heroes in radius count as both heroes and terrain, and cannot perform movement actions.",
+      "image": "official/cards/xargatha-blue-2a.webp"
+    },
+    {
+      "id": "xargatha-blue-2b",
+      "heroId": "xargatha",
+      "name": "Fresh Converts",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "If you are adjacent to an enemy minion, you may retrieve a discarded card.",
+      "image": "official/cards/xargatha-blue-2b.webp"
+    },
+    {
+      "id": "xargatha-red-3a",
+      "heroId": "xargatha",
+      "name": "Lethal Spin",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 7,
+        "movement": 5,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "Target a unit adjacent to you.\n+3 {attack} Attack for each other enemy unit adjacent to you.",
+      "image": "official/cards/xargatha-red-3a.webp"
+    },
+    {
+      "id": "xargatha-red-3b",
+      "heroId": "xargatha",
+      "name": "Rapid Thrusts",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 4,
+        "movement": 4,
+        "range": 1,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "movement",
+      "text": "Target a unit in range. +1 {range} Range for each enemy unit adjacent to you.\nMay repeat once on a different enemy hero.",
+      "image": "official/cards/xargatha-red-3b.webp"
+    },
+    {
+      "id": "xargatha-green-3a",
+      "heroId": "xargatha",
+      "name": "Dominate",
+      "color": "green",
+      "tier": 3,
+      "initiative": 4,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Before or after movement, you may move an enemy minion in radius up to 2 spaces; ignore heavy minion immunity.",
+      "image": "official/cards/xargatha-green-3a.webp"
+    },
+    {
+      "id": "xargatha-green-3b",
+      "heroId": "xargatha",
+      "name": "Final Embrace",
+      "color": "green",
+      "tier": 3,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "End of round: Defeat an enemy melee or ranged minion adjacent to you.",
+      "image": "official/cards/xargatha-green-3b.webp"
+    },
+    {
+      "id": "xargatha-blue-3a",
+      "heroId": "xargatha",
+      "name": "Turn into Statues",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Next turn: Enemy heroes in radius count as both heroes and terrain, and cannot perform movement actions.",
+      "image": "official/cards/xargatha-blue-3a.webp"
+    },
+    {
+      "id": "xargatha-blue-3b",
+      "heroId": "xargatha",
+      "name": "Devoted Followers",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "If you are adjacent to an enemy unit, you may retrieve a discarded card.",
+      "image": "official/cards/xargatha-blue-3b.webp"
+    },
+    {
+      "id": "xargatha-purple-4",
+      "heroId": "xargatha",
+      "name": "Metamorphosis",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Gain +1 {movement} Movement and +1 {initiative} Initiative for each enemy unit adjacent to you.\nYou may move through obstacles.",
+      "image": "official/cards/xargatha-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "xargatha-handicap",
+    "heroId": "xargatha",
+    "name": "Desperate Cleave",
+    "color": "other",
+    "tier": null,
+    "initiative": 10,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 3,
+      "defense": 1,
+      "movement": 1,
+      "range": null,
+      "radius": null
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Target a hero adjacent to you.\nAfter the attack: May repeat once on a different enemy hero.",
+    "image": "official/cards/xargatha-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "What does Xargatha's Stone Gaze affect and not affect?",
+      "answer": "It prevents “movement actions”, that is, selecting the movement option when resolving a card:\n• ❌ They can’t use a normal movement action to move.\n• ❌ They can’t use a movement action to fast travel (which chooses, then replaces, a movement action).\n• ✅ They can use a “place” or “swap” effect (such as Arien’s Alt Blue).\n• ✅ They can be pushed or moved by another effect (if the effect ignores immunity).\n• ✅ They can take another action type that involves movement (such as Brogan’s Primary Red) or a Fast Travel (Silverarrow’s Gold).",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Does Xargatha's Constrict affect heavy minions as well?",
+      "answer": "No. Initially you can only kill melee minions, but on Tier 3 you can get melee or ranged minions, but never the heavy minion.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Does my effect trigger next round?",
+      "answer": "No. Active effects always “clear” at the end of the round: A “next turn” effect played on Turn 4 will not carry over to the next round.",
+      "source": "goa2-faq (common)"
+    }
+  ],
+  "lore": "Xargatha was the high priestess of the sacred shrine when it was desecrated and the holy relic was stolen. Her anger and grief were so powerful that they’ve changed her into a monster. She abandoned the temple to find the thieves and return the relic.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/xargatha.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

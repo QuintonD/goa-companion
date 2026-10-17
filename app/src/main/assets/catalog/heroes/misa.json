@@ -1,0 +1,531 @@
+{
+  "id": "misa",
+  "name": "Misa",
+  "title": "the Samurai",
+  "product": "devoted",
+  "aliases": [],
+  "complexity": 2,
+  "stats": {
+    "attack": [
+      6,
+      6
+    ],
+    "defense": [
+      5,
+      5
+    ],
+    "initiative": [
+      7,
+      7
+    ],
+    "movement": [
+      1,
+      8
+    ]
+  },
+  "roles": [
+    "tactician",
+    "durable",
+    "damager"
+  ],
+  "portrait": "official/heroes/misa/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "misa-gold",
+      "heroId": "misa",
+      "name": "Watch How I Soar",
+      "color": "gold",
+      "tier": null,
+      "initiative": 12,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 1,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• Place yourself into a space at maximum range.\n• Defeat a minion adjacent to you.",
+      "image": "official/cards/misa-gold.webp"
+    },
+    {
+      "id": "misa-silver",
+      "heroId": "misa",
+      "name": "Swoop In",
+      "color": "silver",
+      "tier": null,
+      "initiative": 6,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": null,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Place yourself into a space in radius adjacent to two or more enemy units; if you do, you may retrieve a discarded card.",
+      "image": "official/cards/misa-silver.webp"
+    },
+    {
+      "id": "misa-red-1",
+      "heroId": "misa",
+      "name": "Challenge Accepted",
+      "color": "red",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: This turn: Gain +2 {defense} Defense.",
+      "image": "official/cards/misa-red-1.webp"
+    },
+    {
+      "id": "misa-green-1",
+      "heroId": "misa",
+      "name": "Focus",
+      "color": "green",
+      "tier": 1,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Next turn: Before you perform a primary action, you may move 1 space.",
+      "image": "official/cards/misa-green-1.webp"
+    },
+    {
+      "id": "misa-blue-1",
+      "heroId": "misa",
+      "name": "Sudden Breeze",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Move up to 3 spaces in a straight line, ignoring obstacles; you may place an enemy unit you moved through into a space adjacent to you.",
+      "image": "official/cards/misa-blue-1.webp"
+    },
+    {
+      "id": "misa-red-2a",
+      "heroId": "misa",
+      "name": "Matter of Honor",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit adjacent to you.\nAfter the attack: This turn: Gain +3 {defense} Defense.",
+      "image": "official/cards/misa-red-2a.webp"
+    },
+    {
+      "id": "misa-red-2b",
+      "heroId": "misa",
+      "name": "Power Shot",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 4,
+        "movement": 3,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit in range.\nAfter the attack: If the target was at maximum range, you may move it 1 space, to a space farther away from you.",
+      "image": "official/cards/misa-red-2b.webp"
+    },
+    {
+      "id": "misa-green-2a",
+      "heroId": "misa",
+      "name": "Discipline",
+      "color": "green",
+      "tier": 2,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Next turn: Before you perform a primary action, move up to 2 spaces.",
+      "image": "official/cards/misa-green-2a.webp"
+    },
+    {
+      "id": "misa-green-2b",
+      "heroId": "misa",
+      "name": "Living Tornado",
+      "color": "green",
+      "tier": 2,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Swap two units at maximum radius.",
+      "image": "official/cards/misa-green-2b.webp"
+    },
+    {
+      "id": "misa-blue-2a",
+      "heroId": "misa",
+      "name": "Gust of Wind",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Move up to 4 spaces in a straight line, ignoring obstacles; you may place an enemy unit you moved through into a space adjacent to you.",
+      "image": "official/cards/misa-blue-2a.webp"
+    },
+    {
+      "id": "misa-blue-2b",
+      "heroId": "misa",
+      "name": "Dash and Slash",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Move up to 4 spaces in a straight line, ignoring obstacles; an enemy hero you moved through discards a card, if able.",
+      "image": "official/cards/misa-blue-2b.webp"
+    },
+    {
+      "id": "misa-red-3a",
+      "heroId": "misa",
+      "name": "Worthy Opponent",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "Target a unit adjacent to you.\nAfter the attack: This turn: Gain +5 {defense} Defense.",
+      "image": "official/cards/misa-red-3a.webp"
+    },
+    {
+      "id": "misa-red-3b",
+      "heroId": "misa",
+      "name": "Thunder Shot",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 4,
+        "movement": 3,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit in range.\nAfter the attack: If the target is not adjacent to you, you may move it 1 space, to a space farther away from you.",
+      "image": "official/cards/misa-red-3b.webp"
+    },
+    {
+      "id": "misa-green-3a",
+      "heroId": "misa",
+      "name": "Mastery",
+      "color": "green",
+      "tier": 3,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Next turn: Before you perform a primary action, move up to 3 spaces.",
+      "image": "official/cards/misa-green-3a.webp"
+    },
+    {
+      "id": "misa-green-3b",
+      "heroId": "misa",
+      "name": "Storm Spirit",
+      "color": "green",
+      "tier": 3,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Swap two units in radius and at equal distance from you.",
+      "image": "official/cards/misa-green-3b.webp"
+    },
+    {
+      "id": "misa-blue-3a",
+      "heroId": "misa",
+      "name": "Crushing Squall",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "Move up to 5 spaces in a straight line, ignoring obstacles; you may place an enemy unit you moved through into a space adjacent to you.",
+      "image": "official/cards/misa-blue-3a.webp"
+    },
+    {
+      "id": "misa-blue-3b",
+      "heroId": "misa",
+      "name": "Death from Above",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Move up to 5 spaces in a straight line, ignoring obstacles; an enemy hero you moved through discards a card, if able.",
+      "image": "official/cards/misa-blue-3b.webp"
+    },
+    {
+      "id": "misa-purple-4",
+      "heroId": "misa",
+      "name": "Power Overwhelming",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Whenever you choose one, you may choose two different options instead, in any order.\nEach time after you place yourself, an enemy hero adjacent to you discards a card, if able.",
+      "image": "official/cards/misa-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "misa-handicap",
+    "heroId": "misa",
+    "name": "Leaf on the Wind",
+    "color": "other",
+    "tier": null,
+    "initiative": 11,
+    "primary": "skill",
+    "secondary": [
+      "defense"
+    ],
+    "values": {
+      "attack": null,
+      "defense": 1,
+      "movement": null,
+      "range": 4,
+      "radius": null
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Place yourself into a space at maximum range.",
+    "image": "official/cards/misa-handicap.webp"
+  },
+  "extras": [],
+  "faq": [],
+  "lore": "Misa will fight against overwhelming odds to protect her master. Unfortunately, she has yet to find anyone worthy of her blade and loyalty.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/misa.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

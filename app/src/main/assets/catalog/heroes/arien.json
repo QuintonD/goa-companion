@@ -1,0 +1,544 @@
+{
+  "id": "arien",
+  "name": "Arien",
+  "title": "the Tidemaster",
+  "product": "core",
+  "aliases": [],
+  "complexity": 1,
+  "stats": {
+    "attack": [
+      8,
+      8
+    ],
+    "defense": [
+      5,
+      6
+    ],
+    "initiative": [
+      4,
+      4
+    ],
+    "movement": [
+      5,
+      6
+    ]
+  },
+  "roles": [
+    "tactician",
+    "disabler",
+    "durable",
+    "pusher"
+  ],
+  "portrait": "official/heroes/arien/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "arien-gold",
+      "heroId": "arien",
+      "name": "Noble Blade",
+      "color": "gold",
+      "tier": null,
+      "initiative": 11,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 2,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nBefore the attack: You may move another unit that is adjacent to the target 1 space.\n~(“Another unit” never includes you.)",
+      "image": "official/cards/arien-gold.webp"
+    },
+    {
+      "id": "arien-silver",
+      "heroId": "arien",
+      "name": "Spell Break",
+      "color": "silver",
+      "tier": null,
+      "initiative": 13,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": null,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "This turn: Enemy heroes in radius cannot perform skill actions, except on gold cards.\n~(Skill {skill} is an action type. Other action types are unaffected.)",
+      "image": "official/cards/arien-silver.webp"
+    },
+    {
+      "id": "arien-red-1",
+      "heroId": "arien",
+      "name": "Dangerous Current",
+      "color": "red",
+      "tier": 1,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 6,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nBefore the attack: Up to 1 enemy hero in any of the 2 spaces in a straight line directly behind the target discards a card, or is defeated.",
+      "image": "official/cards/arien-red-1.webp"
+    },
+    {
+      "id": "arien-green-1",
+      "heroId": "arien",
+      "name": "Liquid Leap",
+      "color": "green",
+      "tier": 1,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Place yourself into a space in range without a spawn point and not adjacent to an empty spawn point.",
+      "image": "official/cards/arien-green-1.webp"
+    },
+    {
+      "id": "arien-blue-1",
+      "heroId": "arien",
+      "name": "Aspiring Duelist",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Ignore all minion defense modifiers.\n~(This includes your minions, as well as enemy minions.)",
+      "image": "official/cards/arien-blue-1.webp"
+    },
+    {
+      "id": "arien-red-2a",
+      "heroId": "arien",
+      "name": "Raging Stream",
+      "color": "red",
+      "tier": 2,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 7,
+        "defense": 7,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit adjacent to you.\nBefore the attack: Up to 1 enemy hero in any of the 3 spaces in a straight line directly behind the target discards a card, or is defeated.",
+      "image": "official/cards/arien-red-2a.webp"
+    },
+    {
+      "id": "arien-red-2b",
+      "heroId": "arien",
+      "name": "Rogue Wave",
+      "color": "red",
+      "tier": 2,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 4,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit in range.\nAfter the attack: You may push an enemy unit adjacent to you up to 2 spaces.",
+      "image": "official/cards/arien-red-2b.webp"
+    },
+    {
+      "id": "arien-green-2a",
+      "heroId": "arien",
+      "name": "Magical Current",
+      "color": "green",
+      "tier": 2,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Place yourself into a space in range without a spawn point and not adjacent to an empty spawn point.",
+      "image": "official/cards/arien-green-2a.webp"
+    },
+    {
+      "id": "arien-green-2b",
+      "heroId": "arien",
+      "name": "Arcane Whirlpool",
+      "color": "green",
+      "tier": 2,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Swap with an enemy minion in range.\n~(Swap places with the target. This is not movement.)",
+      "image": "official/cards/arien-green-2b.webp"
+    },
+    {
+      "id": "arien-blue-2a",
+      "heroId": "arien",
+      "name": "Expert Duelist",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Ignore all minion defense modifiers.\nThis turn: You are immune to attack actions of all enemy heroes, except this attacker.",
+      "image": "official/cards/arien-blue-2a.webp"
+    },
+    {
+      "id": "arien-blue-2b",
+      "heroId": "arien",
+      "name": "Slippery Ground",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "This turn: Enemy heroes adjacent to you cannot fast travel, or move more than 1 space with a movement action.",
+      "image": "official/cards/arien-blue-2b.webp"
+    },
+    {
+      "id": "arien-red-3a",
+      "heroId": "arien",
+      "name": "Violent Torrent",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 7,
+        "defense": 7,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit adjacent to you.\nBefore the attack: Up to 1 enemy hero in any of the 5 spaces in a straight line directly behind the target discards a card, or is defeated.\nMay repeat once on a different unit.",
+      "image": "official/cards/arien-red-3a.webp"
+    },
+    {
+      "id": "arien-red-3b",
+      "heroId": "arien",
+      "name": "Tidal Blast",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 4,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "movement",
+      "text": "Target a unit in range.\nAfter the attack: You may push an enemy unit adjacent to you up to 3 spaces.",
+      "image": "official/cards/arien-red-3b.webp"
+    },
+    {
+      "id": "arien-green-3a",
+      "heroId": "arien",
+      "name": "Stranger Tide",
+      "color": "green",
+      "tier": 3,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "Place yourself into a space in range without a spawn point.",
+      "image": "official/cards/arien-green-3a.webp"
+    },
+    {
+      "id": "arien-green-3b",
+      "heroId": "arien",
+      "name": "Ebb and Flow",
+      "color": "green",
+      "tier": 3,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Swap with an enemy minion in range; if it was adjacent to you, may repeat once.",
+      "image": "official/cards/arien-green-3b.webp"
+    },
+    {
+      "id": "arien-blue-3a",
+      "heroId": "arien",
+      "name": "Master Duelist",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Ignore all minion defense modifiers.\nThis round: You are immune to attack actions of all enemy heroes, except this attacker.",
+      "image": "official/cards/arien-blue-3a.webp"
+    },
+    {
+      "id": "arien-blue-3b",
+      "heroId": "arien",
+      "name": "Deluge",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": 1
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "This turn: Enemy heroes in radius cannot fast travel, or move more than 1 space with a movement action.",
+      "image": "official/cards/arien-blue-3b.webp"
+    },
+    {
+      "id": "arien-purple-4",
+      "heroId": "arien",
+      "name": "Living Tsunami",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Once per turn, before performing an Attack action, you may move 1 space.",
+      "image": "official/cards/arien-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "arien-handicap",
+    "heroId": "arien",
+    "name": "Ceremonial Blade",
+    "color": "other",
+    "tier": null,
+    "initiative": 10,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 3,
+      "defense": 1,
+      "movement": 1,
+      "range": null,
+      "radius": null
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Target a hero adjacent to you.\nBefore the attack: You may move a minion that is adjacent to the target 1 space.",
+    "image": "official/cards/arien-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "Does Arien’s attack require a hero behind the target?",
+      "answer": "No, this effect says \"Up to 1 enemy hero\"",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Do Arien’s green skill cards perform movement?",
+      "answer": "No. The primary Green places Arien, the alternative Green swaps. These are not movement and are not restricted by effects that restrict movement.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "What does Arien's Slippery Ground restrict?",
+      "answer": "This card restricts the movement, by a movement action, of Heroes in radius. It will not affect pushing, swapping, or placement effects (including fast travel!). It also will not restrict movement as part of other actions (such as Brogan’s Primary Red or Tigerclaw’s Primary Green).\nAdditionally, because movement restrictions are checked at the beginning of a movement, a Hero can freely move into and through the radius of Arien’s effect without being affected.",
+      "source": "goa2-faq"
+    }
+  ],
+  "lore": "Start mocking his name, and you’ll quickly discover the difference between a mermaid princess and a high elf seafarer.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/arien.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

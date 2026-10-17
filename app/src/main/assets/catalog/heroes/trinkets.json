@@ -1,0 +1,544 @@
+{
+  "id": "trinkets",
+  "name": "Trinkets",
+  "title": "the Scavenger",
+  "product": "defiant",
+  "aliases": [],
+  "complexity": 3,
+  "stats": {
+    "attack": [
+      3,
+      5
+    ],
+    "defense": [
+      2,
+      4
+    ],
+    "initiative": [
+      6,
+      6
+    ],
+    "movement": [
+      7,
+      8
+    ]
+  },
+  "roles": [
+    "sniper",
+    "damager",
+    "pusher",
+    "tokens"
+  ],
+  "portrait": "official/heroes/trinkets/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "trinkets-gold",
+      "heroId": "trinkets",
+      "name": "Rapid Redeployment",
+      "color": "gold",
+      "tier": null,
+      "initiative": 12,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 1,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• Move up to 3 spaces and place the Turret into a space adjacent to you; it counts as an obstacle.\n• Defeat a minion adjacent to you.",
+      "image": "official/cards/trinkets-gold.webp"
+    },
+    {
+      "id": "trinkets-silver",
+      "heroId": "trinkets",
+      "name": "Salvage Parts",
+      "color": "silver",
+      "tier": null,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• Place the Turret into a space adjacent to you; it counts as an obstacle.\n• Remove the Turret; move up to 3 spaces.\n• Remove the Turret; you may retrieve a discarded card.",
+      "image": "official/cards/trinkets-silver.webp"
+    },
+    {
+      "id": "trinkets-red-1",
+      "heroId": "trinkets",
+      "name": "Makeshift Minigun",
+      "color": "red",
+      "tier": 1,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 5,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Target a unit in range of both you and the Turret. If the target is in a straight line from you, and in a straight line from the Turret, gain +2 {attack} Attack.",
+      "image": "official/cards/trinkets-red-1.webp"
+    },
+    {
+      "id": "trinkets-green-1",
+      "heroId": "trinkets",
+      "name": "Early Prototype",
+      "color": "green",
+      "tier": 1,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "If you are in radius of the Turret, swap with a unit or a token in radius of the Turret, then remove the Turret.",
+      "image": "official/cards/trinkets-green-1.webp"
+    },
+    {
+      "id": "trinkets-blue-1",
+      "heroId": "trinkets",
+      "name": "Disruptor Jolt",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "This turn: Before any enemy hero in radius of the Turret performs a primary action, that hero discards a card, if able; if they discard a card, deactivate this effect.",
+      "image": "official/cards/trinkets-blue-1.webp"
+    },
+    {
+      "id": "trinkets-red-2a",
+      "heroId": "trinkets",
+      "name": "Gatling Gun",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 6,
+        "movement": 4,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit in range of both you and the Turret. If the target is in a straight line from you, and in a straight line from the Turret, gain +2 {attack} Attack.",
+      "image": "official/cards/trinkets-red-2a.webp"
+    },
+    {
+      "id": "trinkets-red-2b",
+      "heroId": "trinkets",
+      "name": "Steam Discharge",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 6,
+        "movement": 4,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit in range adjacent to the Turret.\nMay repeat once on a different enemy unit.",
+      "image": "official/cards/trinkets-red-2b.webp"
+    },
+    {
+      "id": "trinkets-green-2a",
+      "heroId": "trinkets",
+      "name": "Updated Design",
+      "color": "green",
+      "tier": 2,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "If you are in radius of the Turret, swap with a unit or a token in radius of the Turret.",
+      "image": "official/cards/trinkets-green-2a.webp"
+    },
+    {
+      "id": "trinkets-green-2b",
+      "heroId": "trinkets",
+      "name": "Self-Destruct",
+      "color": "green",
+      "tier": 2,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Up to two enemy heroes in radius of the Turret discard a card, if able. Remove the Turret.",
+      "image": "official/cards/trinkets-green-2b.webp"
+    },
+    {
+      "id": "trinkets-blue-2a",
+      "heroId": "trinkets",
+      "name": "Disruptor Pulse",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "This turn: Before any enemy hero in radius of the Turret performs a primary action, that hero discards a card, if able; if they discard a card, deactivate this effect.",
+      "image": "official/cards/trinkets-blue-2a.webp"
+    },
+    {
+      "id": "trinkets-blue-2b",
+      "heroId": "trinkets",
+      "name": "Deployable Barrier",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Place up to 2 {token_barrier} Barrier tokens in radius, with at least one of them adjacent to the Turret; you and friendly heroes gain +1 {defense} Defense for each Barrier token they are adjacent to.",
+      "image": "official/cards/trinkets-blue-2b.webp"
+    },
+    {
+      "id": "trinkets-red-3a",
+      "heroId": "trinkets",
+      "name": "Supercharged Cannon",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 6,
+        "movement": 4,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit in range of both you and the Turret. If the target is in a straight line from you and in a straight line from the Turret, gain +3 {attack} Attack.",
+      "image": "official/cards/trinkets-red-3a.webp"
+    },
+    {
+      "id": "trinkets-red-3b",
+      "heroId": "trinkets",
+      "name": "Flame Belcher",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 4,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "radius",
+      "text": "Target a unit in range adjacent to the Turret.\nMay repeat up to two times on different enemy units.",
+      "image": "official/cards/trinkets-red-3b.webp"
+    },
+    {
+      "id": "trinkets-green-3a",
+      "heroId": "trinkets",
+      "name": "Perfected Design",
+      "color": "green",
+      "tier": 3,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "If you are in radius of the Turret,\nChoose one —\n• Swap with a unit or a token in radius of the Turret.\n• Place yourself into a space in radius of the Turret.",
+      "image": "official/cards/trinkets-green-3a.webp"
+    },
+    {
+      "id": "trinkets-green-3b",
+      "heroId": "trinkets",
+      "name": "Emergency Protocol",
+      "color": "green",
+      "tier": 3,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Up to two enemy heroes in radius of the Turret discard a card, or are defeated.\nRemove the Turret.",
+      "image": "official/cards/trinkets-green-3b.webp"
+    },
+    {
+      "id": "trinkets-blue-3a",
+      "heroId": "trinkets",
+      "name": "Disruptor Grid",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "This turn: Before any enemy hero in radius of the Turret performs a primary action, that hero discards a card, or is defeated; if they discard a card, deactivate this effect.",
+      "image": "official/cards/trinkets-blue-3a.webp"
+    },
+    {
+      "id": "trinkets-blue-3b",
+      "heroId": "trinkets",
+      "name": "Deployable Bastion",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Place up to 3 {token_barrier} Barrier tokens in radius, with at least one of them adjacent to the Turret; you and friendly heroes gain +1 {defense} Defense for each Barrier token they are adjacent to.",
+      "image": "official/cards/trinkets-blue-3b.webp"
+    },
+    {
+      "id": "trinkets-purple-4",
+      "heroId": "trinkets",
+      "name": "Unlimited Firepower",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Gain +1 {range} Range and +1 {radius} Radius.",
+      "image": "official/cards/trinkets-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "trinkets-handicap",
+    "heroId": "trinkets",
+    "name": "Ramshackle Turret",
+    "color": "other",
+    "tier": null,
+    "initiative": 12,
+    "primary": "skill",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": null,
+      "defense": 1,
+      "movement": 4,
+      "range": null,
+      "radius": null
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Move up to 3 spaces and place the Turret into a space adjacent to you; it counts as an obstacle.\n~(The Turret is not a token and remains in play between rounds.)",
+    "image": "official/cards/trinkets-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "What is the Turret?",
+      "answer": "It’s an obstacle and counts as terrain. It’s not a unit, minion, or hero, and it doesn’t do anything other than as instructed by Trinkets’ cards. The Turret’s presence and counting as terrain are properties, not an active effect, so they don’t change if Trinkets’ cards change zones, between rounds, or if Trinkets dies. You’re limited to the single provided Turret, so placing a Turret while it’s already on the map will reposition it, not add a Turret. Several of Trinkets’ effects require a target in range of Trinkets and the Turret, measuring the range of both of these independently.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "How do Trinkets cards target?",
+      "answer": "Several of Trinkets cards target based on the location of the Turret. While thematically the Turret is shooting them, Trinkets is still the one playing these cards, targeting enemies, etc.: the Turret only provides a targeting restriction. Therefore:\n• Arien’s Silver (Spell Break) could prevent a nearby Trinkets from using skills like Primary Blue (Disruptor Jolt) or Alt Green (Self-Destruct), even if the Turret is far away.\n• Min’s Silver (Smoke Bomb) can interrupt a Trinkets attack if the Smoke Bomb is between Trinkets and the taret, irrespective of the position of the Turret.",
+      "source": "goa2-faq"
+    }
+  ],
+  "lore": "Trinkets is really smart — well, by kobold standards, that is. He was expelled from Drakenhuff after almost destroying the entire city. When he’s not busy constructing doomsday devices or unearthing spare parts, he’s tinkering with his automated turret.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/trinkets.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

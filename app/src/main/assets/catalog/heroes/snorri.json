@@ -1,0 +1,535 @@
+{
+  "id": "snorri",
+  "name": "Snorri",
+  "title": "the Runescribe",
+  "product": "arcane",
+  "aliases": [],
+  "complexity": 4,
+  "stats": {
+    "attack": [
+      5,
+      6
+    ],
+    "defense": [
+      5,
+      6
+    ],
+    "initiative": [
+      2,
+      2
+    ],
+    "movement": [
+      4,
+      5
+    ]
+  },
+  "roles": [
+    "sniper",
+    "farming",
+    "durable",
+    "damager",
+    "pusher",
+    "healer"
+  ],
+  "portrait": "official/heroes/snorri/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "snorri-gold",
+      "heroId": "snorri",
+      "name": "Rune Sigils",
+      "color": "gold",
+      "tier": null,
+      "initiative": 11,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 2,
+        "defense": 2,
+        "movement": 1,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you; if a rune is active:\n{rune_bird}: You may target a minion in range instead.\n{rune_axe}: +3 {attack} Attack.\n{rune_anvil}: If you target a hero, gain 3 coins.\n{rune_horn}: Repeat once on a different hero in range.",
+      "image": "official/cards/snorri-gold.webp"
+    },
+    {
+      "id": "snorri-silver",
+      "heroId": "snorri",
+      "name": "Inscribe the Runes",
+      "color": "silver",
+      "tier": null,
+      "initiative": 1,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Give yourself 4 {rune_axe_marker}{rune_bird_marker}{rune_anvil_marker}{rune_horn_marker} Rune markers and place one below each of your turn slots.\nA rune is active as long as it is below the turn slot matching the current turn.\nRune markers are not removed at the end of round, nor if you are defeated.",
+      "image": "official/cards/snorri-silver.webp"
+    },
+    {
+      "id": "snorri-red-1",
+      "heroId": "snorri",
+      "name": "Runic Dagger",
+      "color": "red",
+      "tier": 1,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: If the {rune_anvil} rune is active, you may retrieve a discarded card.",
+      "image": "official/cards/snorri-red-1.webp"
+    },
+    {
+      "id": "snorri-green-1",
+      "heroId": "snorri",
+      "name": "Oath of Endurance",
+      "color": "green",
+      "tier": 1,
+      "initiative": 5,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": true,
+      "item": null,
+      "text": "If a rune is active:\n• {rune_horn}: Block a basic attack.\n• {rune_axe}: Block a non-ranged attack.\nThis Turn: You are immune to enemy actions.",
+      "image": "official/cards/snorri-green-1.webp"
+    },
+    {
+      "id": "snorri-blue-1",
+      "heroId": "snorri",
+      "name": "Safe Passage",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "If the {rune_bird} rune is active,\nThis turn: You may ignore obstacles.",
+      "image": "official/cards/snorri-blue-1.webp"
+    },
+    {
+      "id": "snorri-red-2a",
+      "heroId": "snorri",
+      "name": "Runic Hammer",
+      "color": "red",
+      "tier": 2,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Before the attack: If the {rune_horn} rune is active, you may move 1 space.\nTarget a unit adjacent to you.\nAfter the attack: If the {rune_anvil} rune is active, you may retrieve a discarded card.",
+      "image": "official/cards/snorri-red-2a.webp"
+    },
+    {
+      "id": "snorri-red-2b",
+      "heroId": "snorri",
+      "name": "Runecaster",
+      "color": "red",
+      "tier": 2,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 6,
+        "movement": 3,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit at maximum range.\nAfter the attack: If a rune is active:\n• {rune_horn}: Move up to 2 spaces.\n• {rune_axe}: An enemy hero who was adjacent to the target discards a card, or is defeated.",
+      "image": "official/cards/snorri-red-2b.webp"
+    },
+    {
+      "id": "snorri-green-2a",
+      "heroId": "snorri",
+      "name": "Oath of Fortitude",
+      "color": "green",
+      "tier": 2,
+      "initiative": 5,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": true,
+      "item": "initiative",
+      "text": "If a rune is active:\n• {rune_horn}: Block a basic attack;\n• {rune_axe}: Block a non-ranged attack;\n• {rune_bird}: Block a ranged attack;\nThis Turn: You are immune to enemy actions.",
+      "image": "official/cards/snorri-green-2a.webp"
+    },
+    {
+      "id": "snorri-green-2b",
+      "heroId": "snorri",
+      "name": "Runetrap",
+      "color": "green",
+      "tier": 2,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "If a rune is active, an enemy hero in radius:\n• {rune_horn}: Discards a green card, if able.\n• {rune_axe}: Discards a silver card, if able.\n• {rune_anvil}: Discards a blue card, if able.",
+      "image": "official/cards/snorri-green-2b.webp"
+    },
+    {
+      "id": "snorri-blue-2a",
+      "heroId": "snorri",
+      "name": "Hidden Passage",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "If a rune is active:\n• {rune_bird}: This turn: You may ignore obstacles.\n• {rune_anvil}: This turn: You are immune to enemy actions.",
+      "image": "official/cards/snorri-blue-2a.webp"
+    },
+    {
+      "id": "snorri-blue-2b",
+      "heroId": "snorri",
+      "name": "Ancestral Boon",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "If a rune is active, a friendly hero in radius may:\n• {rune_axe}: Swap a resolved card with a card in hand.\n• {rune_anvil}: Retrieve all their discarded cards.",
+      "image": "official/cards/snorri-blue-2b.webp"
+    },
+    {
+      "id": "snorri-red-3a",
+      "heroId": "snorri",
+      "name": "Runic Battleaxe",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "Before the attack: If the {rune_horn} rune is active, you may move 1 space.\nTarget a unit adjacent to you.\nAfter the attack: If a rune is active:\n{rune_axe}: May repeat once on an enemy minion.\n{rune_anvil}: You may retrieve a discarded card.",
+      "image": "official/cards/snorri-red-3a.webp"
+    },
+    {
+      "id": "snorri-red-3b",
+      "heroId": "snorri",
+      "name": "Runeblaster",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 3,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "movement",
+      "text": "If the {rune_bird} rune is active, target a unit in range, otherwise target a unit at maximum range.\nAfter the attack: If a rune is active:\n• {rune_horn}: Move up to 2 spaces.\n• {rune_axe}: An enemy hero who was adjacent to the target discards a card, or is defeated.",
+      "image": "official/cards/snorri-red-3b.webp"
+    },
+    {
+      "id": "snorri-green-3a",
+      "heroId": "snorri",
+      "name": "Oath of Perseverance",
+      "color": "green",
+      "tier": 3,
+      "initiative": 4,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": true,
+      "item": "initiative",
+      "text": "Choose one active rune:\n• {rune_horn}: Block a basic attack;\n• {rune_axe}: Block a non-ranged attack;\n• {rune_bird}: Block a ranged attack;\n• {rune_anvil}: Block a non-basic attack;\nThis Turn: You are immune to enemy actions.",
+      "image": "official/cards/snorri-green-3a.webp"
+    },
+    {
+      "id": "snorri-green-3b",
+      "heroId": "snorri",
+      "name": "Runebomb",
+      "color": "green",
+      "tier": 3,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Choose one active rune; depending on that rune, an enemy hero in radius:\n• {rune_horn}: Discards a green card, if able.\n• {rune_axe}: Discards a silver card, if able.\n• {rune_anvil}: Discards a blue card, if able.\n• {rune_bird}: Discards a gold card, if able.",
+      "image": "official/cards/snorri-green-3b.webp"
+    },
+    {
+      "id": "snorri-blue-3a",
+      "heroId": "snorri",
+      "name": "Deep Passage",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "If a rune is active:\n• {rune_bird}: This turn: You may ignore obstacles.\n• {rune_anvil}: This turn: You are immune to enemy actions.\n• {rune_horn}: Gain +2 {movement} Movement.",
+      "image": "official/cards/snorri-blue-3a.webp"
+    },
+    {
+      "id": "snorri-blue-3b",
+      "heroId": "snorri",
+      "name": "Ancestral Grace",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "If a rune is active, a friendly hero in radius may:\n• {rune_axe}: Swap a resolved card with a card in hand.\n• {rune_anvil}: Retrieve all their discarded cards.\n• {rune_bird}: Swap one of their items with an item on their card of the same tier and color.",
+      "image": "official/cards/snorri-blue-3b.webp"
+    },
+    {
+      "id": "snorri-purple-4",
+      "heroId": "snorri",
+      "name": "Rune Mastery",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Each time you perform an action, choose one inactive rune; that rune counts as a second active rune for this action.",
+      "image": "official/cards/snorri-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "snorri-handicap",
+    "heroId": "snorri",
+    "name": "Rune Shards",
+    "color": "other",
+    "tier": null,
+    "initiative": 10,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 1,
+      "defense": 1,
+      "movement": 1,
+      "range": 2,
+      "radius": null
+    },
+    "ranged": true,
+    "block": false,
+    "item": null,
+    "text": "Target a hero adjacent to you; if a rune is active:\n{rune_axe}: +3 {attack} Attack.\n{rune_anvil}: Gain 2 coins.\n{rune_horn}: Repeat once on a different hero in range.",
+    "image": "official/cards/snorri-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "How does “choose” work here?",
+      "answer": "The language is different from “Runetrap” and “Oath of Fortitude” to accommodate Snorri's Ultimate (as there can now be two active runes), the player has to choose one of them. If the Ultimate is not active, there is no choice.",
+      "source": "goa2-faq"
+    }
+  ],
+  "lore": "Like any other self-respecting dwarf, Snorri never planned to go on an adventure. That plan went south when his former apprentice strayed from the path of tradition and delved into the murky realm of experimental runic graffiti. Snorri needed to adjust his plans.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/snorri.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

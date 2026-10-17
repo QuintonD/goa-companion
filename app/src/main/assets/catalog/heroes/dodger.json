@@ -1,0 +1,542 @@
+{
+  "id": "dodger",
+  "name": "Dodger",
+  "title": "the Warlock",
+  "product": "core",
+  "aliases": [],
+  "complexity": 1,
+  "stats": {
+    "attack": [
+      3,
+      3
+    ],
+    "defense": [
+      2,
+      5
+    ],
+    "initiative": [
+      7,
+      7
+    ],
+    "movement": [
+      5,
+      5
+    ]
+  },
+  "roles": [
+    "damager",
+    "sniper",
+    "pusher",
+    "farming",
+    "disabler"
+  ],
+  "portrait": "official/heroes/dodger/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "dodger-gold",
+      "heroId": "dodger",
+      "name": "Dread Razor",
+      "color": "gold",
+      "tier": null,
+      "initiative": 12,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 2,
+        "defense": 1,
+        "movement": 1,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• Target a unit adjacent to you.\n• If you are adjacent to an empty spawn point in the battle zone, target a unit in range.",
+      "image": "official/cards/dodger-gold.webp"
+    },
+    {
+      "id": "dodger-silver",
+      "heroId": "dodger",
+      "name": "Death Trap",
+      "color": "silver",
+      "tier": null,
+      "initiative": 7,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 1,
+        "movement": null,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "An enemy hero in radius who is adjacent to an empty spawn point in the battle zone discards a card, if able.",
+      "image": "official/cards/dodger-silver.webp"
+    },
+    {
+      "id": "dodger-red-1",
+      "heroId": "dodger",
+      "name": "Littlefinger of Death",
+      "color": "red",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 5,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• Target a unit adjacent to you.\n• Target a hero in range who has one or more cards in the discard.",
+      "image": "official/cards/dodger-red-1.webp"
+    },
+    {
+      "id": "dodger-green-1",
+      "heroId": "dodger",
+      "name": "Dark Ritual",
+      "color": "green",
+      "tier": 1,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "If there are 2 or more empty spawn points in radius in the battle zone, gain 1 coin.",
+      "image": "official/cards/dodger-green-1.webp"
+    },
+    {
+      "id": "dodger-blue-1",
+      "heroId": "dodger",
+      "name": "Shield of Decay",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 10,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 3,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "+2 {defense} Defense if there are 2 or more empty spawn points in radius in the battle zone.",
+      "image": "official/cards/dodger-blue-1.webp"
+    },
+    {
+      "id": "dodger-red-2a",
+      "heroId": "dodger",
+      "name": "Finger of Death",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 6,
+        "movement": 4,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "initiative",
+      "text": "Choose one —\n• Target a unit adjacent to you.\n• Target a hero in range who has one or more cards in the discard.",
+      "image": "official/cards/dodger-red-2a.webp"
+    },
+    {
+      "id": "dodger-red-2b",
+      "heroId": "dodger",
+      "name": "Burning Skull",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 5,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit in range.\nAfter the attack: Move up to 1 minion adjacent to you 1 space, to a space not adjacent to you.",
+      "image": "official/cards/dodger-red-2b.webp"
+    },
+    {
+      "id": "dodger-green-2a",
+      "heroId": "dodger",
+      "name": "Darker Ritual",
+      "color": "green",
+      "tier": 2,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "If there are 2 or more empty spawn points in radius in the battle zone, gain 2 coins.",
+      "image": "official/cards/dodger-green-2a.webp"
+    },
+    {
+      "id": "dodger-green-2b",
+      "heroId": "dodger",
+      "name": "Necromancy",
+      "color": "green",
+      "tier": 2,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Respawn a friendly minion in an empty friendly spawn point adjacent to you in the battle zone.",
+      "image": "official/cards/dodger-green-2b.webp"
+    },
+    {
+      "id": "dodger-blue-2a",
+      "heroId": "dodger",
+      "name": "Vampiric Shield",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "+2 {defense} Defense if there are 2 or more empty spawn points in radius in the battle zone.",
+      "image": "official/cards/dodger-blue-2a.webp"
+    },
+    {
+      "id": "dodger-blue-2b",
+      "heroId": "dodger",
+      "name": "Weakness",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "This turn: Enemy heroes in radius have -4 {attack} Attack.\n~(They can still attack, even with a negative attack value.)",
+      "image": "official/cards/dodger-blue-2b.webp"
+    },
+    {
+      "id": "dodger-red-3a",
+      "heroId": "dodger",
+      "name": "Middlefinger of Death",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 4,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "movement",
+      "text": "Choose one, or both, on different targets —\n• Target a unit adjacent to you.\n• Target a hero in range who has one or more cards in the discard.",
+      "image": "official/cards/dodger-red-3a.webp"
+    },
+    {
+      "id": "dodger-red-3b",
+      "heroId": "dodger",
+      "name": "Blazing Skull",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 5,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "radius",
+      "text": "Target a unit in range.\nAfter the attack: Move up to 2 minions adjacent to you 1 space each, to spaces not adjacent to you.",
+      "image": "official/cards/dodger-red-3b.webp"
+    },
+    {
+      "id": "dodger-green-3a",
+      "heroId": "dodger",
+      "name": "Darkest Ritual",
+      "color": "green",
+      "tier": 3,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "If there are 2 or more empty spawn points in radius in the battle zone, gain 2 coins.\nIf you have your Ultimate, gain an {attack} Attack item.\n~(Use any spare card from the box with the corresponding icon.)",
+      "image": "official/cards/dodger-green-3a.webp"
+    },
+    {
+      "id": "dodger-green-3b",
+      "heroId": "dodger",
+      "name": "Necromastery",
+      "color": "green",
+      "tier": 3,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 1
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Respawn a friendly minion in an empty friendly spawn point in radius in the battle zone.",
+      "image": "official/cards/dodger-green-3b.webp"
+    },
+    {
+      "id": "dodger-blue-3a",
+      "heroId": "dodger",
+      "name": "Aegis of Doom",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "+4 {defense} Defense if there are 2 or more empty spawn points in radius in the battle zone.",
+      "image": "official/cards/dodger-blue-3a.webp"
+    },
+    {
+      "id": "dodger-blue-3b",
+      "heroId": "dodger",
+      "name": "Enfeeblement",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "This turn: Enemy heroes in radius have -6 {attack} Attack and cannot repeat actions.",
+      "image": "official/cards/dodger-blue-3b.webp"
+    },
+    {
+      "id": "dodger-purple-4",
+      "heroId": "dodger",
+      "name": "Tide of Darkness",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "While you are performing an action, all spaces count as if they were in the battle zone and had a friendly minion spawn point.",
+      "image": "official/cards/dodger-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "dodger-handicap",
+    "heroId": "dodger",
+    "name": "Rusty Razor",
+    "color": "other",
+    "tier": null,
+    "initiative": 11,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 1,
+      "defense": 1,
+      "movement": 1,
+      "range": 2,
+      "radius": null
+    },
+    "ranged": true,
+    "block": false,
+    "item": null,
+    "text": "Choose one —\n• Target a hero adjacent to you.\n• If you are adjacent to an empty spawn point in the battle zone, target a hero in range.",
+    "image": "official/cards/dodger-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "What is an “empty minion spawn point in the battle zone”?",
+      "answer": "Thematically Dodger’s magic grows stronger as minions are defeated. Many of her cards check for “empty minion spawn points in the battle zone.” These are the minion spawn points printed on the board, but only the ones in the current battle zone — there is only 1 battle zone (2, on the 2-lane map). Only empty spaces (with nothing on them) are counted.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "What minions can Dodger respawn with her Necromancy?",
+      "answer": "She can return a friendly defeated/removed minion of any type to any friendly spawn point.\n• It need not be a matching minion type: if her friendly ranged minion is defeated, Dodger could respawn it on a melee minion spawn point.\n• It must be a minion that was originally in play in this wave, before being defeated or removed. Dodger cannot “respawn” a minion that was not originally in play at the start of the wave.\n• She must respawn a minion directly onto a spawn point. She cannot respawn the minion on a space adjacent to the spawn point. Note that this is different than respawning minions after the lane pushes.",
+      "source": "goa2-faq"
+    }
+  ],
+  "lore": "Dodger hated delving through the dusty tomes. It was always the more practical aspects of dark magic that fascinated her, so when a daemon offered to complete her training by bypassing the boring formalities, it took a mirror for her to realize that there was fine print in that contract.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/dodger.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

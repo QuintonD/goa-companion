@@ -148,7 +148,10 @@ data class Card(
     val heroId: String,
     val name: String,
     val color: CardColor,
-    /** 1..4 (4 = Ultimate); null for basic Gold/Silver cards, the Handicap card and extras. */
+    /**
+     * 1..4 (4 = Ultimate); null for basic Gold/Silver cards, the Handicap card and unlevelled
+     * extras. Spellbook pages carry their printed spell level (null for cantrips).
+     */
     val tier: Int? = null,
     val initiative: Int? = null,
     val primary: PrimaryAction? = null,
@@ -222,6 +225,10 @@ enum class SecondaryAction {
 
     @SerialName("clear")
     CLEAR,
+
+    /** A secondary Attack action (e.g. Mrak's red cards); its value is in [CardValues.attack]. */
+    @SerialName("attack")
+    ATTACK,
 }
 
 @Serializable

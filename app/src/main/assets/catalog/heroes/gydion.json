@@ -1,0 +1,1029 @@
+{
+  "id": "gydion",
+  "name": "Gydion",
+  "title": "the Archwizard",
+  "product": "arcane",
+  "aliases": [],
+  "complexity": 4,
+  "stats": {
+    "attack": [
+      5,
+      6
+    ],
+    "defense": [
+      3,
+      5
+    ],
+    "initiative": [
+      3,
+      3
+    ],
+    "movement": [
+      1,
+      4
+    ]
+  },
+  "roles": [
+    "sniper",
+    "tactician",
+    "farming",
+    "damager",
+    "pusher",
+    "tokens"
+  ],
+  "portrait": "official/heroes/gydion/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "gydion-gold",
+      "heroId": "gydion",
+      "name": "Cantrip",
+      "color": "gold",
+      "tier": null,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 1,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Choose and cast one spell in the spellbook —\n• “Shocking Grasp” ~(To repel a foe!)\n• “Magic Missile” ~(To blast at range!)\n• “Expeditious Retreat” ~(To dart a great distance!)",
+      "image": "official/cards/gydion-gold.webp"
+    },
+    {
+      "id": "gydion-silver",
+      "heroId": "gydion",
+      "name": "Prepare Spells",
+      "color": "silver",
+      "tier": null,
+      "initiative": 13,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Add all spell cards to the spellbook. Only Gydion can look at the cards in the spellbook.\nAs each spell is cast, remove it from the spellbook faceup. The action on the spell card is performed by the hero casting the spell.",
+      "image": "official/cards/gydion-silver.webp"
+    },
+    {
+      "id": "gydion-red-1",
+      "heroId": "gydion",
+      "name": "Elementary Evocation",
+      "color": "red",
+      "tier": 1,
+      "initiative": 7,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Cast the “Burning Hands” spell in the spellbook.\n~(Burn multiple opponents in near vicinity.)",
+      "image": "official/cards/gydion-red-1.webp"
+    },
+    {
+      "id": "gydion-green-1",
+      "heroId": "gydion",
+      "name": "Elementary Abjuration",
+      "color": "green",
+      "tier": 1,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Cast the “Shield” spell in the spellbook.\n~(The magic shield protects against mundane threats.)",
+      "image": "official/cards/gydion-green-1.webp"
+    },
+    {
+      "id": "gydion-blue-1",
+      "heroId": "gydion",
+      "name": "Elementary Enchantment",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Cast the “Suggestion” spell in the spellbook.\n~(Compel the opposing champion to take a few extra steps.)",
+      "image": "official/cards/gydion-blue-1.webp"
+    },
+    {
+      "id": "gydion-red-2a",
+      "heroId": "gydion",
+      "name": "Lesser Evocation",
+      "color": "red",
+      "tier": 2,
+      "initiative": 8,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Choose and cast one spell in the spellbook —\n• “Burning Hands”\n• “Fireball”\n~(Wait for your allies to clear the area before hurling a fireball!)",
+      "image": "official/cards/gydion-red-2a.webp"
+    },
+    {
+      "id": "gydion-red-2b",
+      "heroId": "gydion",
+      "name": "Lesser Necromancy",
+      "color": "red",
+      "tier": 2,
+      "initiative": 8,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Choose and cast one spell in the spellbook —\n• “Vampiric Touch”\n• “Create Undead”\n~(Harm your foe to heal yourself. Raise an undead servant.)",
+      "image": "official/cards/gydion-red-2b.webp"
+    },
+    {
+      "id": "gydion-green-2a",
+      "heroId": "gydion",
+      "name": "Lesser Abjuration",
+      "color": "green",
+      "tier": 2,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Choose and cast one spell in the spellbook —\n• “Shield”\n• “Banishment”\n~(Touch anything to have it banished where you please.)",
+      "image": "official/cards/gydion-green-2a.webp"
+    },
+    {
+      "id": "gydion-green-2b",
+      "heroId": "gydion",
+      "name": "Lesser Conjuration",
+      "color": "green",
+      "tier": 2,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Choose and cast one spell in the spellbook —\n• “Find Familiar”\n• “Dimension Door”\n~(Summon a familiar to assist you. Travel to a faraway place.)",
+      "image": "official/cards/gydion-green-2b.webp"
+    },
+    {
+      "id": "gydion-blue-2a",
+      "heroId": "gydion",
+      "name": "Lesser Enchantment",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Choose and cast one spell in the spellbook —\n• “Suggestion”\n• “Dominate Person”\n~(Turn the dominated person against their own troops.)",
+      "image": "official/cards/gydion-blue-2a.webp"
+    },
+    {
+      "id": "gydion-blue-2b",
+      "heroId": "gydion",
+      "name": "Lesser Transmutation",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Choose and cast one spell in the spellbook —\n• “Midas Touch”\n• “Disintegrate”\n~(Create gold. Turn objects and lesser creatures into dust.)",
+      "image": "official/cards/gydion-blue-2b.webp"
+    },
+    {
+      "id": "gydion-red-3a",
+      "heroId": "gydion",
+      "name": "Greater Evocation",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Choose and cast one spell in the spellbook —\n• “Burning Hands”\n• “Fireball”\n• “Sunburst”\n~(Sunburst's reach and power grows with every cast spell.)",
+      "image": "official/cards/gydion-red-3a.webp"
+    },
+    {
+      "id": "gydion-red-3b",
+      "heroId": "gydion",
+      "name": "Greater Necromancy",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "Choose and cast one spell in the spellbook —\n• “Vampiric Touch”\n• “Create Undead”\n• “Energy Drain”\n~(Drain energy from a foe in sight to restore your vitality.)",
+      "image": "official/cards/gydion-red-3b.webp"
+    },
+    {
+      "id": "gydion-green-3a",
+      "heroId": "gydion",
+      "name": "Greater Abjuration",
+      "color": "green",
+      "tier": 3,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Choose and cast one spell in the spellbook —\n• “Shield”\n• “Banishment”\n• “Invulnerability”\n~(Invulnerability makes you impervious to deadly perils.)",
+      "image": "official/cards/gydion-green-3a.webp"
+    },
+    {
+      "id": "gydion-green-3b",
+      "heroId": "gydion",
+      "name": "Greater Conjuration",
+      "color": "green",
+      "tier": 3,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "Choose and cast one spell in the spellbook —\n• “Find Familiar”\n• “Dimension Door”\n• “Cloud Kill”\n~(Create a deadly cloud within distance to weaken your foe.)",
+      "image": "official/cards/gydion-green-3b.webp"
+    },
+    {
+      "id": "gydion-blue-3a",
+      "heroId": "gydion",
+      "name": "Greater Enchantment",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Choose and cast one spell in the spellbook —\n• “Suggestion”\n• “Dominate Person”\n• “Power Word Kill”\n~(Command a weakened foe within earshot to perish instantly.)",
+      "image": "official/cards/gydion-blue-3a.webp"
+    },
+    {
+      "id": "gydion-blue-3b",
+      "heroId": "gydion",
+      "name": "Greater Transmutation",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Choose and cast one spell in the spellbook —\n• “Midas Touch”\n• “Disintegrate”\n• “Polymorph”\n~(Polymorph enemies into creatures or objects and vice versa.)",
+      "image": "official/cards/gydion-blue-3b.webp"
+    },
+    {
+      "id": "gydion-purple-4",
+      "heroId": "gydion",
+      "name": "The Archwizard",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Whenever you would add cards to the spellbook, you may cast the “Wish” spell in the spellbook instead.",
+      "image": "official/cards/gydion-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "gydion-handicap",
+    "heroId": "gydion",
+    "name": "Cheap Trick",
+    "color": "other",
+    "tier": null,
+    "initiative": 10,
+    "primary": "skill",
+    "secondary": [
+      "defense"
+    ],
+    "values": {
+      "attack": null,
+      "defense": 1,
+      "movement": null,
+      "range": null,
+      "radius": null
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Cast the “Expeditious Retreat” spell in the spellbook.\n~(To dart a great distance!)",
+    "image": "official/cards/gydion-handicap.webp"
+  },
+  "extras": [
+    {
+      "id": "gydion-spell-magic-missile",
+      "heroId": "gydion",
+      "name": "Magic Missile",
+      "color": "other",
+      "tier": null,
+      "initiative": null,
+      "primary": "attack",
+      "secondary": [],
+      "values": {
+        "attack": 1,
+        "defense": null,
+        "movement": null,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Target a unit in range and not adjacent to you.",
+      "image": "official/cards/gydion-spell-magic-missile.webp"
+    },
+    {
+      "id": "gydion-spell-shocking-grasp",
+      "heroId": "gydion",
+      "name": "Shocking Grasp",
+      "color": "other",
+      "tier": null,
+      "initiative": null,
+      "primary": "attack",
+      "secondary": [],
+      "values": {
+        "attack": 3,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: Move the target up to 1 space.",
+      "image": "official/cards/gydion-spell-shocking-grasp.webp"
+    },
+    {
+      "id": "gydion-spell-expeditious-retreat",
+      "heroId": "gydion",
+      "name": "Expeditious Retreat",
+      "color": "other",
+      "tier": null,
+      "initiative": null,
+      "primary": "movement",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 5,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Move only in a straight line.",
+      "image": "official/cards/gydion-spell-expeditious-retreat.webp"
+    },
+    {
+      "id": "gydion-spell-burning-hands",
+      "heroId": "gydion",
+      "name": "Burning Hands",
+      "color": "other",
+      "tier": 1,
+      "initiative": null,
+      "primary": "attack",
+      "secondary": [],
+      "values": {
+        "attack": 5,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nBefore the attack: Up to 1 enemy hero adjacent to the target discards a card, if able.",
+      "image": "official/cards/gydion-spell-burning-hands.webp"
+    },
+    {
+      "id": "gydion-spell-fireball",
+      "heroId": "gydion",
+      "name": "Fireball",
+      "color": "other",
+      "tier": 2,
+      "initiative": null,
+      "primary": "attack",
+      "secondary": [],
+      "values": {
+        "attack": 5,
+        "defense": null,
+        "movement": null,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Target a unit in range, not adjacent to you or to your friendly unit.",
+      "image": "official/cards/gydion-spell-fireball.webp"
+    },
+    {
+      "id": "gydion-spell-sunburst",
+      "heroId": "gydion",
+      "name": "Sunburst",
+      "color": "other",
+      "tier": 3,
+      "initiative": null,
+      "primary": "attack",
+      "secondary": [],
+      "values": {
+        "attack": 0,
+        "defense": null,
+        "movement": null,
+        "range": 0,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Target a unit at maximum range. +1 {attack} Attack and +1 {range} Range for each other spell card removed from the spellbook.",
+      "image": "official/cards/gydion-spell-sunburst.webp"
+    },
+    {
+      "id": "gydion-spell-vampiric-touch",
+      "heroId": "gydion",
+      "name": "Vampiric Touch",
+      "color": "other",
+      "tier": 2,
+      "initiative": null,
+      "primary": "attack",
+      "secondary": [],
+      "values": {
+        "attack": 5,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: You may retrieve a discarded card.",
+      "image": "official/cards/gydion-spell-vampiric-touch.webp"
+    },
+    {
+      "id": "gydion-spell-create-undead",
+      "heroId": "gydion",
+      "name": "Create Undead",
+      "color": "other",
+      "tier": 2,
+      "initiative": null,
+      "primary": "skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Respawn a friendly minion in an empty friendly spawn point in range in the battle zone.",
+      "image": "official/cards/gydion-spell-create-undead.webp"
+    },
+    {
+      "id": "gydion-spell-energy-drain",
+      "heroId": "gydion",
+      "name": "Energy Drain",
+      "color": "other",
+      "tier": 3,
+      "initiative": null,
+      "primary": "skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "An enemy hero in range discards a non-basic card, if able. Your team regains 1 spent {life} Life counter.",
+      "image": "official/cards/gydion-spell-energy-drain.webp"
+    },
+    {
+      "id": "gydion-spell-shield",
+      "heroId": "gydion",
+      "name": "Shield",
+      "color": "other",
+      "tier": 1,
+      "initiative": null,
+      "primary": "skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "This round: You are immune to basic attacks.\n~(Cancelled if the spell is returned to the spellbook.)",
+      "image": "official/cards/gydion-spell-shield.webp"
+    },
+    {
+      "id": "gydion-spell-banishment",
+      "heroId": "gydion",
+      "name": "Banishment",
+      "color": "other",
+      "tier": 2,
+      "initiative": null,
+      "primary": "skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Place a unit or a token adjacent to you into a space in radius.",
+      "image": "official/cards/gydion-spell-banishment.webp"
+    },
+    {
+      "id": "gydion-spell-invulnerability",
+      "heroId": "gydion",
+      "name": "Invulnerability",
+      "color": "other",
+      "tier": 3,
+      "initiative": null,
+      "primary": "skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "This Round: You are immune to non-basic attacks.",
+      "image": "official/cards/gydion-spell-invulnerability.webp"
+    },
+    {
+      "id": "gydion-spell-dimension-door",
+      "heroId": "gydion",
+      "name": "Dimension Door",
+      "color": "other",
+      "tier": 2,
+      "initiative": null,
+      "primary": "skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": 0
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Place yourself into a space at maximum radius. +1 {radius} Radius for each other spell card removed from the spellbook.",
+      "image": "official/cards/gydion-spell-dimension-door.webp"
+    },
+    {
+      "id": "gydion-spell-find-familiar",
+      "heroId": "gydion",
+      "name": "Find Familiar",
+      "color": "other",
+      "tier": 2,
+      "initiative": null,
+      "primary": "skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Place a {token_familiar} Familiar token in radius.\nYou may remove up to three other spell cards from the spellbook faceup.",
+      "image": "official/cards/gydion-spell-find-familiar.webp"
+    },
+    {
+      "id": "gydion-spell-cloud-kill",
+      "heroId": "gydion",
+      "name": "Cloud Kill",
+      "color": "other",
+      "tier": 3,
+      "initiative": null,
+      "primary": "skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "An enemy hero in radius discards a basic card, if able.",
+      "image": "official/cards/gydion-spell-cloud-kill.webp"
+    },
+    {
+      "id": "gydion-spell-suggestion",
+      "heroId": "gydion",
+      "name": "Suggestion",
+      "color": "other",
+      "tier": 1,
+      "initiative": null,
+      "primary": "skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "If able, an enemy hero in radius moves 3 spaces in a straight line.",
+      "image": "official/cards/gydion-spell-suggestion.webp"
+    },
+    {
+      "id": "gydion-spell-dominate-person",
+      "heroId": "gydion",
+      "name": "Dominate Person",
+      "color": "other",
+      "tier": 2,
+      "initiative": null,
+      "primary": "skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target an enemy hero in radius.\nDefeat an enemy minion in radius adjacent to the target.",
+      "image": "official/cards/gydion-spell-dominate-person.webp"
+    },
+    {
+      "id": "gydion-spell-power-word-kill",
+      "heroId": "gydion",
+      "name": "Power Word Kill",
+      "color": "other",
+      "tier": 3,
+      "initiative": null,
+      "primary": "skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Defeat an enemy hero in radius with no cards in hand.",
+      "image": "official/cards/gydion-spell-power-word-kill.webp"
+    },
+    {
+      "id": "gydion-spell-midas-touch",
+      "heroId": "gydion",
+      "name": "Midas' Touch",
+      "color": "other",
+      "tier": 2,
+      "initiative": null,
+      "primary": "skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Gain 1 coin for every two other spell cards removed from the spellbook.",
+      "image": "official/cards/gydion-spell-midas-touch.webp"
+    },
+    {
+      "id": "gydion-spell-disintegrate",
+      "heroId": "gydion",
+      "name": "Disintegrate",
+      "color": "other",
+      "tier": 2,
+      "initiative": null,
+      "primary": "skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Remove a token or an enemy non-heavy minion adjacent to you.",
+      "image": "official/cards/gydion-spell-disintegrate.webp"
+    },
+    {
+      "id": "gydion-spell-polymorph",
+      "heroId": "gydion",
+      "name": "Polymorph",
+      "color": "other",
+      "tier": 3,
+      "initiative": null,
+      "primary": "skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Swap an enemy hero in radius with a token in radius or with an enemy minion in radius.",
+      "image": "official/cards/gydion-spell-polymorph.webp"
+    },
+    {
+      "id": "gydion-spell-wish",
+      "heroId": "gydion",
+      "name": "Wish",
+      "color": "other",
+      "tier": 4,
+      "initiative": null,
+      "primary": "skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Cast any spell in the Spellbook.\nAfter you cast the “Wish” spell three times your team wins the game.",
+      "image": "official/cards/gydion-spell-wish.webp"
+    }
+  ],
+  "faq": [
+    {
+      "question": "Does \"Energy Drain\" require a non-immune enemy hero in range for my team to be able to regain 1 spent Life counter?",
+      "answer": "Yes, you need to be able to target a hero first.\n\"If able\" after a comma makes the preceding step non-mandatory (p. 17), so it only applies to the \"discard\" step of the instructions.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Can I play an action if only some of its instructions can be performed?",
+      "answer": "You must follow the cards instructions step by step, starting from the top.\n• If you cannot perform the first instruction (e.g., there is no valid target in range, or you cannot make the required movement), you may not perform the action at all.\n• After the first instruction is successfully exectued, you continue resolving the rest of the instructions in order.\n• If you reach an instruction that is not optional and you cannot perform it, the action immediately fizzles — no further instructions are resolved. You place the card on your hero dashboard, and your turn ends.\n_See page 10 of the rulebook for additional reference._",
+      "source": "goa2-faq (common)"
+    }
+  ],
+  "lore": "Gydion the Archwizard is an odd blend of ancient wisdom and forgetfulness that could make a goldfish look like a meticulous archivist. Despite this, he has an uncanny knack for invoking the right spells at exactly the right moment.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/gydion.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

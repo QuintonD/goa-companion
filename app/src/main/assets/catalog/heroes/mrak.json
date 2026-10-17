@@ -1,0 +1,539 @@
+{
+  "id": "mrak",
+  "name": "Mrak",
+  "title": "the Rockshaper",
+  "product": "arcane",
+  "aliases": [
+    "Mrak the Stoneshaper"
+  ],
+  "complexity": 3,
+  "stats": {
+    "attack": [
+      8,
+      8
+    ],
+    "defense": [
+      8,
+      8
+    ],
+    "initiative": [
+      1,
+      1
+    ],
+    "movement": [
+      2,
+      4
+    ]
+  },
+  "roles": [
+    "melee",
+    "tokens",
+    "durable",
+    "disabler",
+    "tactician"
+  ],
+  "portrait": "official/heroes/mrak/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "mrak-gold",
+      "heroId": "mrak",
+      "name": "Fissure",
+      "color": "gold",
+      "tier": null,
+      "initiative": 11,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 3,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: Place a {token_rock} Rock token in each of the first three empty spaces in the straight line from you in the direction of the attack.",
+      "image": "official/cards/mrak-gold.webp"
+    },
+    {
+      "id": "mrak-silver",
+      "heroId": "mrak",
+      "name": "Stone Grip",
+      "color": "silver",
+      "tier": null,
+      "initiative": 12,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": null,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Place exactly 3 {token_rock} Rock tokens into empty spaces adjacent to an enemy hero in range, and as far away from you as possible.",
+      "image": "official/cards/mrak-silver.webp"
+    },
+    {
+      "id": "mrak-red-1",
+      "heroId": "mrak",
+      "name": "Seismic Slam",
+      "color": "red",
+      "tier": 1,
+      "initiative": 7,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense",
+        "attack"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "An enemy hero in radius adjacent to terrain, or to a {token_rock} Rock token, discards a card, or is defeated.\n~(The {attack} secondary Attack action is non-ranged.)",
+      "image": "official/cards/mrak-red-1.webp"
+    },
+    {
+      "id": "mrak-green-1",
+      "heroId": "mrak",
+      "name": "Treacherous Ground",
+      "color": "green",
+      "tier": 1,
+      "initiative": 6,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "You may move a unit in range 1 space to a space adjacent to terrain, or a {token_rock} Rock token.",
+      "image": "official/cards/mrak-green-1.webp"
+    },
+    {
+      "id": "mrak-blue-1",
+      "heroId": "mrak",
+      "name": "Boulder Rush",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 8,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Push a token, or an enemy unit, adjacent to you 1 or 2 spaces, ignoring obstacles;\nyou may move up to 2 spaces in the direction of the push, ignoring obstacles.",
+      "image": "official/cards/mrak-blue-1.webp"
+    },
+    {
+      "id": "mrak-red-2a",
+      "heroId": "mrak",
+      "name": "Seismic Assault",
+      "color": "red",
+      "tier": 2,
+      "initiative": 7,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense",
+        "attack"
+      ],
+      "values": {
+        "attack": 7,
+        "defense": 8,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "An enemy hero in radius adjacent to terrain, or to a {token_rock} Rock token, discards a card, or is defeated.",
+      "image": "official/cards/mrak-red-2a.webp"
+    },
+    {
+      "id": "mrak-red-2b",
+      "heroId": "mrak",
+      "name": "Stone Carapace",
+      "color": "red",
+      "tier": 2,
+      "initiative": 7,
+      "primary": "movement",
+      "secondary": [
+        "defense",
+        "attack"
+      ],
+      "values": {
+        "attack": 7,
+        "defense": 6,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "This round: If you would discard a card from your hand, you may discard this card instead; you may discard this card to perform its defense action, as if it was in your hand.",
+      "image": "official/cards/mrak-red-2b.webp"
+    },
+    {
+      "id": "mrak-green-2a",
+      "heroId": "mrak",
+      "name": "Rockslide",
+      "color": "green",
+      "tier": 2,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "You may move a unit in range 1 space to a space adjacent to terrain, or a {token_rock} Rock token.",
+      "image": "official/cards/mrak-green-2a.webp"
+    },
+    {
+      "id": "mrak-green-2b",
+      "heroId": "mrak",
+      "name": "Rolling Stone",
+      "color": "green",
+      "tier": 2,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Move any number of spaces in a straight line, ignoring obstacles, without moving through more than one empty space.\n~(The starting space and the destination space do not count.)",
+      "image": "official/cards/mrak-green-2b.webp"
+    },
+    {
+      "id": "mrak-blue-2a",
+      "heroId": "mrak",
+      "name": "Boulder Blitz",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 7,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Push a token, or an enemy unit, adjacent to you 1, 2 or 3 spaces, ignoring obstacles;\nyou may move up to 3 spaces in the direction of the push, ignoring obstacles.",
+      "image": "official/cards/mrak-blue-2a.webp"
+    },
+    {
+      "id": "mrak-blue-2b",
+      "heroId": "mrak",
+      "name": "Stomping Step",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 7,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Move a unit in radius which is adjacent to terrain, or to a {token_rock} Rock token, 1 space.\nPlace a Rock token in the space it occupied.",
+      "image": "official/cards/mrak-blue-2b.webp"
+    },
+    {
+      "id": "mrak-red-3a",
+      "heroId": "mrak",
+      "name": "Epicenter",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense",
+        "attack"
+      ],
+      "values": {
+        "attack": 7,
+        "defense": 8,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "An enemy hero in radius adjacent to terrain, or to a {token_rock} Rock token, discards a card, or is defeated. May repeat once on a different target.",
+      "image": "official/cards/mrak-red-3a.webp"
+    },
+    {
+      "id": "mrak-red-3b",
+      "heroId": "mrak",
+      "name": "Rock Solid",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "movement",
+      "secondary": [
+        "defense",
+        "attack"
+      ],
+      "values": {
+        "attack": 7,
+        "defense": 6,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "You may retrieve a discarded card.\nThis round: If you would discard a card from your hand, you may discard this card instead; you may discard this card to perform its defense action, as if it was in your hand.",
+      "image": "official/cards/mrak-red-3b.webp"
+    },
+    {
+      "id": "mrak-green-3a",
+      "heroId": "mrak",
+      "name": "Avalanche",
+      "color": "green",
+      "tier": 3,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "You may move a unit in range 1 space to a space adjacent to terrain, or a {token_rock} Rock token.\nMay repeat once.",
+      "image": "official/cards/mrak-green-3a.webp"
+    },
+    {
+      "id": "mrak-green-3b",
+      "heroId": "mrak",
+      "name": "Strolling Stone",
+      "color": "green",
+      "tier": 3,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Move any number of spaces in a straight line, ignoring obstacles, without moving through more than two empty spaces.",
+      "image": "official/cards/mrak-green-3b.webp"
+    },
+    {
+      "id": "mrak-blue-3a",
+      "heroId": "mrak",
+      "name": "Boulderdozer",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 7,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "Push a token, or an enemy unit, adjacent to you 1, 2, 3 or 4 spaces, ignoring obstacles;\nyou may move up to 4 spaces in the direction of the push, ignoring obstacles.",
+      "image": "official/cards/mrak-blue-3a.webp"
+    },
+    {
+      "id": "mrak-blue-3b",
+      "heroId": "mrak",
+      "name": "Ground Shaker",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 7,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Move a unit in radius which is adjacent to terrain, or to a {token_rock} Rock token, 1 space.\nPlace a Rock token in the space it occupied.\nMay repeat once on a different target.",
+      "image": "official/cards/mrak-blue-3b.webp"
+    },
+    {
+      "id": "mrak-purple-4",
+      "heroId": "mrak",
+      "name": "Rock and a Hard Place",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Once per turn, after you place one or more {token_rock} Rock tokens into one or more spaces adjacent to one or more enemy heroes, each of those heroes discards a card, if able.",
+      "image": "official/cards/mrak-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "mrak-handicap",
+    "heroId": "mrak",
+    "name": "Lesser Fissure",
+    "color": "other",
+    "tier": null,
+    "initiative": 10,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 3,
+      "defense": 2,
+      "movement": 1,
+      "range": null,
+      "radius": null
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Target a hero adjacent to you.\nAfter the attack: Place a {token_rock} Rock token in each of the first three empty spaces in the straight line from you in the direction of the attack.",
+    "image": "official/cards/mrak-handicap.webp"
+  },
+  "extras": [],
+  "faq": [],
+  "lore": "In the shadows beneath the old cobblestone bridge, where whispers of forgotten tales and echoes of passing travelers intertwine, resides Mrak. As befits a retired troll geomancer, he isn’t particularly fond of unexpected guests.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/mrak.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

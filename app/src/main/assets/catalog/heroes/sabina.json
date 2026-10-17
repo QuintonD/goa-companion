@@ -1,0 +1,542 @@
+{
+  "id": "sabina",
+  "name": "Sabina",
+  "title": "the Commander",
+  "product": "core",
+  "aliases": [],
+  "complexity": 1,
+  "stats": {
+    "attack": [
+      1,
+      7
+    ],
+    "defense": [
+      3,
+      3
+    ],
+    "initiative": [
+      5,
+      5
+    ],
+    "movement": [
+      5,
+      6
+    ]
+  },
+  "roles": [
+    "tactician",
+    "pusher"
+  ],
+  "portrait": "official/heroes/sabina/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "sabina-gold",
+      "heroId": "sabina",
+      "name": "Point Blank Shot",
+      "color": "gold",
+      "tier": null,
+      "initiative": 12,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 2,
+        "defense": 2,
+        "movement": 1,
+        "range": 1,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Target a unit in range. After the attack: If the target is adjacent to you, push it 1 space.",
+      "image": "official/cards/sabina-gold.webp"
+    },
+    {
+      "id": "sabina-silver",
+      "heroId": "sabina",
+      "name": "Back to Back",
+      "color": "silver",
+      "tier": null,
+      "initiative": 8,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": null,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Swap with a friendly minion in radius.",
+      "image": "official/cards/sabina-silver.webp"
+    },
+    {
+      "id": "sabina-red-1",
+      "heroId": "sabina",
+      "name": "Quickdraw",
+      "color": "red",
+      "tier": 1,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 2,
+        "defense": 6,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Target a unit in range. +3 {attack} Attack if the target played an attack card this turn.",
+      "image": "official/cards/sabina-red-1.webp"
+    },
+    {
+      "id": "sabina-green-1",
+      "heroId": "sabina",
+      "name": "Troop Movement",
+      "color": "green",
+      "tier": 1,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Move a friendly minion in radius 1 space, to a space in radius. May repeat once.",
+      "image": "official/cards/sabina-green-1.webp"
+    },
+    {
+      "id": "sabina-blue-1",
+      "heroId": "sabina",
+      "name": "Listen Up",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 3,
+        "range": null,
+        "radius": 1
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Swap two minions in radius.",
+      "image": "official/cards/sabina-blue-1.webp"
+    },
+    {
+      "id": "sabina-red-2a",
+      "heroId": "sabina",
+      "name": "Gunslinger",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 6,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit in range. +3 {attack} Attack if the target played an attack card this turn.",
+      "image": "official/cards/sabina-red-2a.webp"
+    },
+    {
+      "id": "sabina-red-2b",
+      "heroId": "sabina",
+      "name": "Shootout",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 6,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit in range. After the attack: If the target was adjacent to you, remove up to one enemy minion adjacent to you.\n~(You gain no coins for removing a minion, only for defeating.)",
+      "image": "official/cards/sabina-red-2b.webp"
+    },
+    {
+      "id": "sabina-green-2a",
+      "heroId": "sabina",
+      "name": "Marching Orders",
+      "color": "green",
+      "tier": 2,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Move a friendly minion in radius 1 space, to a space in radius. May repeat once.",
+      "image": "official/cards/sabina-green-2a.webp"
+    },
+    {
+      "id": "sabina-green-2b",
+      "heroId": "sabina",
+      "name": "Close Support",
+      "color": "green",
+      "tier": 2,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "An enemy hero in radius adjacent to your friendly minion discards a card, if able.",
+      "image": "official/cards/sabina-green-2b.webp"
+    },
+    {
+      "id": "sabina-blue-2a",
+      "heroId": "sabina",
+      "name": "Roger Roger",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Swap two minions in radius.",
+      "image": "official/cards/sabina-blue-2a.webp"
+    },
+    {
+      "id": "sabina-blue-2b",
+      "heroId": "sabina",
+      "name": "Steady Advance",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "If there are two or more friendly minions in radius, you may retrieve a discarded card;\nif you do, you may move 1 space.",
+      "image": "official/cards/sabina-blue-2b.webp"
+    },
+    {
+      "id": "sabina-red-3a",
+      "heroId": "sabina",
+      "name": "Dead Shot",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 7,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "movement",
+      "text": "Target a unit in range. +4 {attack} Attack if the target played an attack card this turn.",
+      "image": "official/cards/sabina-red-3a.webp"
+    },
+    {
+      "id": "sabina-red-3b",
+      "heroId": "sabina",
+      "name": "Bullet Hell",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 7,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "radius",
+      "text": "Target a unit in range.\nAfter the attack: If the target was adjacent to you, remove up to two enemy minions adjacent to you.",
+      "image": "official/cards/sabina-red-3b.webp"
+    },
+    {
+      "id": "sabina-green-3a",
+      "heroId": "sabina",
+      "name": "Path to Victory",
+      "color": "green",
+      "tier": 3,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Move a friendly minion in radius 1 space, to a space in radius. May repeat up to two times.",
+      "image": "official/cards/sabina-green-3a.webp"
+    },
+    {
+      "id": "sabina-green-3b",
+      "heroId": "sabina",
+      "name": "Covering Fire",
+      "color": "green",
+      "tier": 3,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "An enemy hero in radius adjacent to your friendly minion discards a card, or is defeated.",
+      "image": "official/cards/sabina-green-3b.webp"
+    },
+    {
+      "id": "sabina-blue-3a",
+      "heroId": "sabina",
+      "name": "Ready and Waiting",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Swap two minions in radius, ignoring heavy minion immunity.",
+      "image": "official/cards/sabina-blue-3a.webp"
+    },
+    {
+      "id": "sabina-blue-3b",
+      "heroId": "sabina",
+      "name": "Unwavering Resolve",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "If there are two or more friendly minions in radius, you may retrieve a discarded card;\nif you do, move up to 2 spaces.",
+      "image": "official/cards/sabina-blue-3b.webp"
+    },
+    {
+      "id": "sabina-purple-4",
+      "heroId": "sabina",
+      "name": "Big Sodding Gun",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Your basic attack has +2 {range} Range and +2 {attack} Attack. If you push an enemy hero, that hero discards a card, or is defeated.",
+      "image": "official/cards/sabina-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "sabina-handicap",
+    "heroId": "sabina",
+    "name": "Bang",
+    "color": "other",
+    "tier": null,
+    "initiative": 11,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 1,
+      "defense": 1,
+      "movement": 1,
+      "range": null,
+      "radius": null
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Target a hero adjacent to you.\nAfter the attack: Push the target 1 space.",
+    "image": "official/cards/sabina-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "Does Sabina gain the attack bonus against Heroes who have played but not resolved an attack card?",
+      "answer": "Yes: the card only checks for Heroes that played an attack card, regardless of whether they’ve resolved the action, which action they performed, and even whether this is still their card for the turn (it will “remember” whether they have played a card, even if it is discarded or switched for another card by an effect).",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Why is there a range 1 attack? Isn’t that non-ranged?",
+      "answer": "A range of 1 can only target an adjacent space (but the range may be increased by items or other effects). A range of 0 has no targets.\nSome cards explicitly interact with ranged or non-ranged attacks.",
+      "source": "goa2-faq (common)"
+    }
+  ],
+  "lore": "Sabina was unfairly accused of atrocities after a rogue faction of soldiers in similar uniforms committed horrific acts in a neighboring city. Despite her protests of innocence, suspicion weighed heavily upon her. Feeling betrayed by those she once considered comrades, she now leads a band of minions into battle.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/sabina.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

@@ -1,0 +1,548 @@
+{
+  "id": "mortimer",
+  "name": "Mortimer",
+  "title": "the Awakener",
+  "product": "wayward",
+  "aliases": [],
+  "complexity": 3,
+  "stats": {
+    "attack": [
+      8,
+      8
+    ],
+    "defense": [
+      7,
+      7
+    ],
+    "initiative": [
+      2,
+      2
+    ],
+    "movement": [
+      4,
+      4
+    ]
+  },
+  "roles": [
+    "melee",
+    "tokens",
+    "farming",
+    "durable",
+    "pusher"
+  ],
+  "portrait": "official/heroes/mortimer/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "mortimer-gold",
+      "heroId": "mortimer",
+      "name": "Knife of the Living Dead",
+      "color": "gold",
+      "tier": null,
+      "initiative": 11,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 3,
+        "movement": 1,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nBefore the attack: Choose up to three times —\n• Move a {token_zombie} Zombie token in radius 1 space.\n• Remove a Zombie token adjacent to the target; if you do, gain +1 {attack} Attack.",
+      "image": "official/cards/mortimer-gold.webp"
+    },
+    {
+      "id": "mortimer-silver",
+      "heroId": "mortimer",
+      "name": "Awaken!",
+      "color": "silver",
+      "tier": null,
+      "initiative": 6,
+      "primary": "defense_skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": null,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Place up to 4 {token_zombie} Zombie tokens into spaces adjacent to you, or into spawn points in radius. Zombie tokens are not removed at the end of round.",
+      "image": "official/cards/mortimer-silver.webp"
+    },
+    {
+      "id": "mortimer-red-1",
+      "heroId": "mortimer",
+      "name": "Crawling Dead",
+      "color": "red",
+      "tier": 1,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: Choose one —\n• Move a {token_zombie} Zombie token in radius 1 space.\n• Another enemy hero in radius, adjacent to a Zombie token, discards a card, if able.",
+      "image": "official/cards/mortimer-red-1.webp"
+    },
+    {
+      "id": "mortimer-green-1",
+      "heroId": "mortimer",
+      "name": "Stage Dive",
+      "color": "green",
+      "tier": 1,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• Move a {token_zombie} Zombie token in range 1 space.\n• Swap with a Zombie token in range.",
+      "image": "official/cards/mortimer-green-1.webp"
+    },
+    {
+      "id": "mortimer-blue-1",
+      "heroId": "mortimer",
+      "name": "Corpse Slam",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• Move a {token_zombie} Zombie token in range up to 1 space; that Zombie token may push a unit or a token adjacent to it 1 space.\n• Move 1 space.",
+      "image": "official/cards/mortimer-blue-1.webp"
+    },
+    {
+      "id": "mortimer-red-2a",
+      "heroId": "mortimer",
+      "name": "Walking Dead",
+      "color": "red",
+      "tier": 2,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 7,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit adjacent to you.\nAfter the attack: Choose up to two times —\n• Move a {token_zombie} Zombie token in radius 1 space.\n• Another enemy hero in radius, adjacent to a Zombie token, discards a card, if able; each enemy hero can only be targeted once.",
+      "image": "official/cards/mortimer-red-2a.webp"
+    },
+    {
+      "id": "mortimer-red-2b",
+      "heroId": "mortimer",
+      "name": "Braains...!",
+      "color": "red",
+      "tier": 2,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 7,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit adjacent to you.\nBefore the attack: Choose up to two times —\n• Move a {token_zombie} Zombie token in radius 1 space.\n• If an enemy hero in radius is adjacent to a Zombie token, retrieve a discarded card.",
+      "image": "official/cards/mortimer-red-2b.webp"
+    },
+    {
+      "id": "mortimer-green-2a",
+      "heroId": "mortimer",
+      "name": "Crowd Drift",
+      "color": "green",
+      "tier": 2,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Choose up to two times —\n• Move a {token_zombie} Zombie token in range 1 space.\n• Swap with a Zombie token in range.",
+      "image": "official/cards/mortimer-green-2a.webp"
+    },
+    {
+      "id": "mortimer-green-2b",
+      "heroId": "mortimer",
+      "name": "Gathering Horde",
+      "color": "green",
+      "tier": 2,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Choose up to two times —\n• Move a {token_zombie} Zombie token in range 1 space.\n• Once per turn: Replace an enemy minion in range adjacent to two or more Zombie tokens with a Zombie token.",
+      "image": "official/cards/mortimer-green-2b.webp"
+    },
+    {
+      "id": "mortimer-blue-2a",
+      "heroId": "mortimer",
+      "name": "Morbid Mosh",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Choose up to two times —\n• Move a {token_zombie} Zombie token in range up to 1 space; that Zombie token may push a unit or a token adjacent to it 1 space.\n• Move 1 space.",
+      "image": "official/cards/mortimer-blue-2a.webp"
+    },
+    {
+      "id": "mortimer-blue-2b",
+      "heroId": "mortimer",
+      "name": "Robbing Zombies",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Choose up to two times —\n• Move a {token_zombie} Zombie token in range up to 1 space. Gain 1 coin.\n• Move 1 space.",
+      "image": "official/cards/mortimer-blue-2b.webp"
+    },
+    {
+      "id": "mortimer-red-3a",
+      "heroId": "mortimer",
+      "name": "Racing Dead",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 7,
+        "defense": 8,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Target a unit adjacent to you.\nAfter the attack: Choose up to three times —\n• Move a {token_zombie} Zombie token in radius 1 space.\n• Another enemy hero in radius, adjacent to a Zombie token, discards a card, if able; each enemy hero can only be targeted once.",
+      "image": "official/cards/mortimer-red-3a.webp"
+    },
+    {
+      "id": "mortimer-red-3b",
+      "heroId": "mortimer",
+      "name": "Braaaaaaaains...!",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 7,
+        "defense": 8,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "Target a unit adjacent to you.\nBefore the attack: Choose up to three times —\n• Move a {token_zombie} Zombie token in radius 1 space.\n• If an enemy hero in radius is adjacent to a Zombie token, retrieve a discarded card.",
+      "image": "official/cards/mortimer-red-3b.webp"
+    },
+    {
+      "id": "mortimer-green-3a",
+      "heroId": "mortimer",
+      "name": "Crowd Surf",
+      "color": "green",
+      "tier": 3,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Choose up to three times —\n• Move a {token_zombie} Zombie token in range 1 space.\n• Swap with a Zombie token in range.",
+      "image": "official/cards/mortimer-green-3a.webp"
+    },
+    {
+      "id": "mortimer-green-3b",
+      "heroId": "mortimer",
+      "name": "Army of Darkness",
+      "color": "green",
+      "tier": 3,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Choose up to three times —\n• Move a {token_zombie} Zombie token in range 1 space.\n• Once per turn: Replace an enemy minion in range adjacent to two or more Zombie tokens with a Zombie token.",
+      "image": "official/cards/mortimer-green-3b.webp"
+    },
+    {
+      "id": "mortimer-blue-3a",
+      "heroId": "mortimer",
+      "name": "Macabre Mayhem",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 7,
+        "movement": 3,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "Choose up to three times —\n• Move a {token_zombie} Zombie token in range up to 1 space; that Zombie token may push a unit or a token adjacent to it 1 space.\n• Move 1 space.",
+      "image": "official/cards/mortimer-blue-3a.webp"
+    },
+    {
+      "id": "mortimer-blue-3b",
+      "heroId": "mortimer",
+      "name": "Stalking Scalpers",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 7,
+        "movement": 3,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Choose up to three times —\n• Move a {token_zombie} Zombie token in range up to 1 space. Gain 1 coin.\n• Move 1 space.",
+      "image": "official/cards/mortimer-blue-3b.webp"
+    },
+    {
+      "id": "mortimer-purple-4",
+      "heroId": "mortimer",
+      "name": "Master of Puppets",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Whenever you would choose up to three times, you may choose up to five times instead.",
+      "image": "official/cards/mortimer-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "mortimer-handicap",
+    "heroId": "mortimer",
+    "name": "Shallow Graves",
+    "color": "other",
+    "tier": null,
+    "initiative": 10,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 3,
+      "defense": 1,
+      "movement": 1,
+      "range": null,
+      "radius": 4
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Target a hero adjacent to you.\nBefore the attack: Choose up to two times —\n• Move a {token_zombie} Zombie token in radius 1 space.\n• Remove a Zombie token adjacent to the target; if you do, gain +1 {attack} Attack.",
+    "image": "official/cards/mortimer-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "Can I take Zombie tokens from the board if all Zombie tokens are already in play?",
+      "answer": "Yes. Tokens should come from the Supply first, but if you need to place more tokens than are available in the supply, first remove up to that number of tokens of the same type from the board. Page 18 of the rulebook under \"Place\" clarifies this in further detail.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "If I cannot defend against an attack, can I still discard this to place the Zombie tokens?",
+      "answer": "Yes. You can always play a card to defend even if the Defense value does not allow you to successfully defend. As this is a Defense/Skill card, you are allowed to place the Zombie tokens. (See p. 14 for more detail.)",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Would an immune hero trigger effects, that require adjacency?",
+      "answer": "No. Whenever you are required to check the status of a unit, it counts as targeting, which you cannot do with an immune unit. This is different from cards such as Sabina's Steady Advance where you simply check the presence of units, rather than their status.",
+      "source": "goa2-faq (common)"
+    }
+  ],
+  "lore": "Mortimer the Awakener wields an ancient relic from a bygone age, forged from obsidian and infused with the pure essence of Death Metal. As he plucks the strings of his isntrument, the fallen souls of his fans rise!",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/mortimer.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

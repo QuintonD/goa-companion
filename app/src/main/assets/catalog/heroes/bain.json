@@ -1,0 +1,535 @@
+{
+  "id": "bain",
+  "name": "Bain",
+  "title": "the Bounty Hunter",
+  "product": "defiant",
+  "aliases": [],
+  "complexity": 2,
+  "stats": {
+    "attack": [
+      5,
+      5
+    ],
+    "defense": [
+      4,
+      6
+    ],
+    "initiative": [
+      4,
+      4
+    ],
+    "movement": [
+      5,
+      6
+    ]
+  },
+  "roles": [
+    "tactician",
+    "sniper",
+    "healer",
+    "farming",
+    "durable"
+  ],
+  "portrait": "official/heroes/bain/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "bain-gold",
+      "heroId": "bain",
+      "name": "Dead or Alive",
+      "color": "gold",
+      "tier": null,
+      "initiative": 11,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 2,
+        "movement": 1,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: You may give an enemy hero in radius the {marker_bounty} Bounty marker.\nA hero with the Bounty marker spends 1 additional {life} Life counter when defeated.",
+      "image": "official/cards/bain-gold.webp"
+    },
+    {
+      "id": "bain-silver",
+      "heroId": "bain",
+      "name": "Get over here!",
+      "color": "silver",
+      "tier": null,
+      "initiative": 13,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": null,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit or a token in range and in a straight line, with no obstacles between you and the target. Move the target towards you in a straight line, until you are adjacent.",
+      "image": "official/cards/bain-silver.webp"
+    },
+    {
+      "id": "bain-red-1",
+      "heroId": "bain",
+      "name": "Light Crossbow",
+      "color": "red",
+      "tier": 1,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 5,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Target a unit in range and in a straight line with no units or terrain between you.",
+      "image": "official/cards/bain-red-1.webp"
+    },
+    {
+      "id": "bain-green-1",
+      "heroId": "bain",
+      "name": "Close Call",
+      "color": "green",
+      "tier": 1,
+      "initiative": 4,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": true,
+      "item": null,
+      "text": "If a hero in play has a {marker_bounty} Bounty marker, block the attack and that hero gives the marker to you.\n~(The marker's effect is applied to you.)",
+      "image": "official/cards/bain-green-1.webp"
+    },
+    {
+      "id": "bain-blue-1",
+      "heroId": "bain",
+      "name": "A Game of Chance",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "An enemy hero in radius with two or more cards in hand chooses one of those cards.\nGuess that card's color, then reveal it.\nIf you guessed correctly, discard that card;\notherwise you gain 1 coin.\n~(You can only guess colors that could be in that player's hand.)",
+      "image": "official/cards/bain-blue-1.webp"
+    },
+    {
+      "id": "bain-red-2a",
+      "heroId": "bain",
+      "name": "Heavy Crossbow",
+      "color": "red",
+      "tier": 2,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 5,
+        "movement": 4,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit in range and in a straight line with no units or terrain between you.",
+      "image": "official/cards/bain-red-2a.webp"
+    },
+    {
+      "id": "bain-red-2b",
+      "heroId": "bain",
+      "name": "Hand Crossbow",
+      "color": "red",
+      "tier": 2,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 6,
+        "movement": 4,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "initiative",
+      "text": "Choose one —\n• Target a hero in range with a {marker_bounty} Bounty marker.\n• Target a unit adjacent to you.",
+      "image": "official/cards/bain-red-2b.webp"
+    },
+    {
+      "id": "bain-green-2a",
+      "heroId": "bain",
+      "name": "Narrow Escape",
+      "color": "green",
+      "tier": 2,
+      "initiative": 4,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": true,
+      "item": "initiative",
+      "text": "If a hero in play has a {marker_bounty} Bounty marker, block the attack and retrieve the marker.",
+      "image": "official/cards/bain-green-2a.webp"
+    },
+    {
+      "id": "bain-green-2b",
+      "heroId": "bain",
+      "name": "Vantage Point",
+      "color": "green",
+      "tier": 2,
+      "initiative": 4,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Ignore obstacles. If a hero in play has a {marker_bounty} Bounty marker, +1 {movement} movement.",
+      "image": "official/cards/bain-green-2b.webp"
+    },
+    {
+      "id": "bain-blue-2a",
+      "heroId": "bain",
+      "name": "Dead Man's Hand",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "An enemy hero in radius with two or more cards in hand chooses one of those cards.\nGuess that card's color, then reveal it.\nIf you guessed correctly, discard that card;\notherwise you gain 2 coins.",
+      "image": "official/cards/bain-blue-2a.webp"
+    },
+    {
+      "id": "bain-blue-2b",
+      "heroId": "bain",
+      "name": "Drinking Buddies",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "You may have a hero in radius retrieve a discarded card. If they do, you may also retrieve a discarded card.",
+      "image": "official/cards/bain-blue-2b.webp"
+    },
+    {
+      "id": "bain-red-3a",
+      "heroId": "bain",
+      "name": "Arbalest",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 6,
+        "movement": 4,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit in range and in a straight line with no units or terrain between you.",
+      "image": "official/cards/bain-red-3a.webp"
+    },
+    {
+      "id": "bain-red-3b",
+      "heroId": "bain",
+      "name": "Hunter-Seeker",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 7,
+        "movement": 4,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "movement",
+      "text": "Choose one, or both, on different targets —\n• Target a hero in range with a {marker_bounty} Bounty marker.\n• Target a unit adjacent to you.",
+      "image": "official/cards/bain-red-3b.webp"
+    },
+    {
+      "id": "bain-green-3a",
+      "heroId": "bain",
+      "name": "Perfect Getaway",
+      "color": "green",
+      "tier": 3,
+      "initiative": 3,
+      "primary": "defense",
+      "secondary": [
+        "movement"
+      ],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": true,
+      "item": "initiative",
+      "text": "If a hero in play has a {marker_bounty} Bounty marker, block the attack.",
+      "image": "official/cards/bain-green-3a.webp"
+    },
+    {
+      "id": "bain-green-3b",
+      "heroId": "bain",
+      "name": "High Ground",
+      "color": "green",
+      "tier": 3,
+      "initiative": 3,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "Ignore obstacles. If a hero in play has a {marker_bounty} Bounty marker, +2 {movement} movement.",
+      "image": "official/cards/bain-green-3b.webp"
+    },
+    {
+      "id": "bain-blue-3a",
+      "heroId": "bain",
+      "name": "We're Not Done Yet!",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "An enemy hero in radius with two or more cards in hand chooses one of those cards.\nGuess that card's color, then reveal it.\nIf you guessed correctly, discard that card;\notherwise may repeat once or gain 2 coins.",
+      "image": "official/cards/bain-blue-3a.webp"
+    },
+    {
+      "id": "bain-blue-3b",
+      "heroId": "bain",
+      "name": "Another One!",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "You may have a hero in radius retrieve a discarded card. If they do, you may also retrieve a discarded card.\nEnd of turn: May repeat once.",
+      "image": "official/cards/bain-blue-3b.webp"
+    },
+    {
+      "id": "bain-purple-4",
+      "heroId": "bain",
+      "name": "A Complicated Profession",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "After you give a hero the {marker_bounty} Bounty marker, that hero discards a card, if able.",
+      "image": "official/cards/bain-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "bain-handicap",
+    "heroId": "bain",
+    "name": "Side Quest",
+    "color": "other",
+    "tier": null,
+    "initiative": 10,
+    "primary": "skill",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": null,
+      "defense": 1,
+      "movement": 1,
+      "range": null,
+      "radius": 4
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "If you are adjacent to an enemy unit, give a hero in radius the {marker_bounty} Bounty marker.\nA hero with the Bounty marker spends 1 additional {life} Life counter when defeated.",
+    "image": "official/cards/bain-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "What does a marker bounty Bounty Marker from Bain’s Gold (Dead or Alive) do?",
+      "answer": "A Bounty Marker doesn’t do anything by itself. If Bain’s enemy is defeated that round, they spend an additional life counter (and return the Marker). At the end of the round, the Bounty Marker is returned. If Bain is defeated, the Marker is not returned.",
+      "source": "goa2-faq"
+    }
+  ],
+  "lore": "I wouldn't go around asking questions about Bain. Shady character, that one. Some say he is a nobleman looking for his lost sister, some say he is just an ordinary drunk. Drunk or not, he is the best shot this side of the desert. Unless you want him for a job, stay clear of him, partner!",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/bain.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

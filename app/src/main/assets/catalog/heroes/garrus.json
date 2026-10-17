@@ -1,0 +1,548 @@
+{
+  "id": "garrus",
+  "name": "Garrus",
+  "title": "the Gladiator",
+  "product": "defiant",
+  "aliases": [],
+  "complexity": 2,
+  "stats": {
+    "attack": [
+      8,
+      8
+    ],
+    "defense": [
+      7,
+      7
+    ],
+    "initiative": [
+      3,
+      3
+    ],
+    "movement": [
+      5,
+      6
+    ]
+  },
+  "roles": [
+    "disabler",
+    "durable",
+    "tactician"
+  ],
+  "portrait": "official/heroes/garrus/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "garrus-gold",
+      "heroId": "garrus",
+      "name": "Angry Strike",
+      "color": "gold",
+      "tier": null,
+      "initiative": 11,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 3,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you; +1 {attack} Attack for every card in your discard.",
+      "image": "official/cards/garrus-gold.webp"
+    },
+    {
+      "id": "garrus-silver",
+      "heroId": "garrus",
+      "name": "Chilling Howl",
+      "color": "silver",
+      "tier": null,
+      "initiative": 13,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": null,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "You may discard one of your resolved cards.\nThis round: Enemy heroes in radius cannot fast travel, or move more than 2 spaces with a movement action.",
+      "image": "official/cards/garrus-silver.webp"
+    },
+    {
+      "id": "garrus-red-1",
+      "heroId": "garrus",
+      "name": "Trace",
+      "color": "red",
+      "tier": 1,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 5,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• Before the attack: If you have one or more cards in the discard, you may move 1 space. Target a hero adjacent to you.\n• Target a unit adjacent to you.",
+      "image": "official/cards/garrus-red-1.webp"
+    },
+    {
+      "id": "garrus-green-1",
+      "heroId": "garrus",
+      "name": "Hold Ground",
+      "color": "green",
+      "tier": 1,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "If there are at least two enemy heroes in radius, you may retrieve a discarded card.",
+      "image": "official/cards/garrus-green-1.webp"
+    },
+    {
+      "id": "garrus-blue-1",
+      "heroId": "garrus",
+      "name": "Menace",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Move an enemy unit in range 1 space to a space farther away from you.",
+      "image": "official/cards/garrus-blue-1.webp"
+    },
+    {
+      "id": "garrus-red-2a",
+      "heroId": "garrus",
+      "name": "Chase",
+      "color": "red",
+      "tier": 2,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 5,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Choose one —\n• Before the attack: If you have one or more cards in the discard, move up to 2 spaces. Target a hero adjacent to you.\n• Target a unit adjacent to you.",
+      "image": "official/cards/garrus-red-2a.webp"
+    },
+    {
+      "id": "garrus-red-2b",
+      "heroId": "garrus",
+      "name": "Blunt Force",
+      "color": "red",
+      "tier": 2,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 7,
+        "defense": 7,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit adjacent to you.\nAfter the attack: You may move 1 space to a space adjacent to an enemy hero; if you do, push that hero 3 spaces, ignoring obstacles.",
+      "image": "official/cards/garrus-red-2b.webp"
+    },
+    {
+      "id": "garrus-green-2a",
+      "heroId": "garrus",
+      "name": "Make a Stand",
+      "color": "green",
+      "tier": 2,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "If there are at least two enemy heroes in radius, you may retrieve a discarded card.",
+      "image": "official/cards/garrus-green-2a.webp"
+    },
+    {
+      "id": "garrus-green-2b",
+      "heroId": "garrus",
+      "name": "Light Pilum",
+      "color": "green",
+      "tier": 2,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "An enemy hero in range discards a card, if able. You may move 1 space.",
+      "image": "official/cards/garrus-green-2b.webp"
+    },
+    {
+      "id": "garrus-blue-2a",
+      "heroId": "garrus",
+      "name": "Threaten",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Move an enemy unit in range 1 space to a space farther away from you.\nMay repeat once.",
+      "image": "official/cards/garrus-blue-2a.webp"
+    },
+    {
+      "id": "garrus-blue-2b",
+      "heroId": "garrus",
+      "name": "Form Up!",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Move a friendly unit in range 1 space to a space closer to you.\nMay repeat once.",
+      "image": "official/cards/garrus-blue-2b.webp"
+    },
+    {
+      "id": "garrus-red-3a",
+      "heroId": "garrus",
+      "name": "Hunt Down",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 6,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Choose one —\n• Before the attack: If you have one or more cards in the discard, move up to 3 spaces. Target a hero adjacent to you.\n• Target a unit adjacent to you.",
+      "image": "official/cards/garrus-red-3a.webp"
+    },
+    {
+      "id": "garrus-red-3b",
+      "heroId": "garrus",
+      "name": "Send Flying",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 7,
+        "defense": 8,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "Target a unit adjacent to you.\nAfter the attack: You may move up to 2 spaces to a space adjacent to an enemy hero; if you do, push that hero 3 spaces, ignoring obstacles.",
+      "image": "official/cards/garrus-red-3b.webp"
+    },
+    {
+      "id": "garrus-green-3a",
+      "heroId": "garrus",
+      "name": "Battle Ready",
+      "color": "green",
+      "tier": 3,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "If there are at least two enemy heroes in radius, you may retrieve up to two discarded cards.",
+      "image": "official/cards/garrus-green-3a.webp"
+    },
+    {
+      "id": "garrus-green-3b",
+      "heroId": "garrus",
+      "name": "Heavy Pilum",
+      "color": "green",
+      "tier": 3,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "An enemy hero in range discards a card, or is defeated. You may move up to 2 spaces.",
+      "image": "official/cards/garrus-green-3b.webp"
+    },
+    {
+      "id": "garrus-blue-3a",
+      "heroId": "garrus",
+      "name": "Terrify",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 7,
+        "movement": 3,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Move an enemy unit in range 1 space to a space farther away from you.\nMay repeat up to two times.",
+      "image": "official/cards/garrus-blue-3a.webp"
+    },
+    {
+      "id": "garrus-blue-3b",
+      "heroId": "garrus",
+      "name": "Testudo!",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 7,
+        "movement": 3,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Move a friendly unit in range 1 space to a space closer to you.\nMay repeat up to two times.",
+      "image": "official/cards/garrus-blue-3b.webp"
+    },
+    {
+      "id": "garrus-purple-4",
+      "heroId": "garrus",
+      "name": "Battle Fury",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Each time after one of your resolved cards is discarded, you may perform its primary action.",
+      "image": "official/cards/garrus-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "garrus-handicap",
+    "heroId": "garrus",
+    "name": "Angry Swipe",
+    "color": "other",
+    "tier": null,
+    "initiative": 10,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 3,
+      "defense": 2,
+      "movement": 1,
+      "range": null,
+      "radius": null
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Target a hero adjacent to you; +1 {attack} Attack for every card in your discard.",
+    "image": "official/cards/garrus-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "Does Garrus’s Silver (Chilling Howl) slow an enemy moving into radius from outside?",
+      "answer": "No. Movement restrictions are checked at the beginning of movement, so a hero within Garrus’s radius is affected, but a hero moving into the radius will complete their full movement value.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Can Garrus’s Alt Reds (Blunt Force) move away from the attacked hero to another?",
+      "answer": "If your attack against an opposing hero does not defeat them, they will still be adjacent to you. There are several valid options for movement:\n• You could move to a different space adjacent to the hero you attacked\n• You may move and end the movement adjacent to a different enemy hero.\n• You may move and end the movement adjacent multiple enemy heroes (you can still only choose one of them as your target)\nIf you cannot end your movement next to an enemey hero, you cannot move at all after the attack.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "What are Obstacles?",
+      "answer": "Obstacles are basically anything on the map: Units (Heroes and Minions), terrain shown on the map, tokens, and any other miniatures. There can only be one Obstacle on each space, and Obstacles generally can’t move through each other.\nIf an ability does allow Obstacles to pass through each other (“you can move through Obstacles”, ignore Obstacles”, “Heroes may move through a space with a tree token”), they still may not end movement on such a space.\nAny space with an Obstacle is considered occupied and not empty.",
+      "source": "goa2-faq (common)"
+    }
+  ],
+  "lore": "Garrus was the reigning champion of the Arena until his defeat at the hands of a stranger, who tricked him into losing his temper. He roams the land, seeking to regain his title and his honor. They say that his shield can deflect a point-blank ballista shot. No one has ever dared to check if it's true.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/garrus.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

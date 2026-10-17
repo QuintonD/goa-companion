@@ -1,0 +1,559 @@
+{
+  "id": "brogan",
+  "name": "Brogan",
+  "title": "the Destroyer",
+  "product": "core",
+  "aliases": [],
+  "complexity": 1,
+  "stats": {
+    "attack": [
+      7,
+      7
+    ],
+    "defense": [
+      8,
+      8
+    ],
+    "initiative": [
+      1,
+      1
+    ],
+    "movement": [
+      2,
+      4
+    ]
+  },
+  "roles": [
+    "durable",
+    "disabler",
+    "pusher",
+    "farming"
+  ],
+  "portrait": "official/heroes/brogan/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "brogan-gold",
+      "heroId": "brogan",
+      "name": "Onslaught",
+      "color": "gold",
+      "tier": null,
+      "initiative": 11,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 3,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: Move into the space it occupied, if able.",
+      "image": "official/cards/brogan-gold.webp"
+    },
+    {
+      "id": "brogan-silver",
+      "heroId": "brogan",
+      "name": "Bulwark",
+      "color": "silver",
+      "tier": null,
+      "initiative": 12,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": null,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "You may retrieve a discarded card.\nThis turn: You and friendly units in radius cannot be moved, pushed, swapped or placed by enemy heroes.",
+      "image": "official/cards/brogan-silver.webp"
+    },
+    {
+      "id": "brogan-red-1",
+      "heroId": "brogan",
+      "name": "Mad Dash",
+      "color": "red",
+      "tier": 1,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Before the attack: Move 2 spaces in a straight line to a space adjacent to an enemy unit, then target that unit.\n~(If you cannot make this move, you cannot attack.)",
+      "image": "official/cards/brogan-red-1.webp"
+    },
+    {
+      "id": "brogan-green-1",
+      "heroId": "brogan",
+      "name": "Shield",
+      "color": "green",
+      "tier": 1,
+      "initiative": 6,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 1
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "This round: When any friendly minion in radius is defeated you may discard a silver card.\nIf you do, the minion is not removed.\n~(The enemy hero still gains the coins for defeating the minion.)",
+      "image": "official/cards/brogan-green-1.webp"
+    },
+    {
+      "id": "brogan-blue-1",
+      "heroId": "brogan",
+      "name": "Brutal Jab",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 8,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "You may move 1 space. Push an enemy unit or a token adjacent to you up to 1 space.",
+      "image": "official/cards/brogan-blue-1.webp"
+    },
+    {
+      "id": "brogan-red-2a",
+      "heroId": "brogan",
+      "name": "Bullrush",
+      "color": "red",
+      "tier": 2,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 8,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Before the attack: Move 2 or 3 spaces in a straight line to a space adjacent to an enemy unit, then target that unit.",
+      "image": "official/cards/brogan-red-2a.webp"
+    },
+    {
+      "id": "brogan-red-2b",
+      "heroId": "brogan",
+      "name": "Throwing Axe",
+      "color": "red",
+      "tier": 2,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 7,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Choose one —\n• Target a unit adjacent to you.\n• You may discard a card;\nif you do, target a unit in range.",
+      "image": "official/cards/brogan-red-2b.webp"
+    },
+    {
+      "id": "brogan-green-2a",
+      "heroId": "brogan",
+      "name": "Bolster",
+      "color": "green",
+      "tier": 2,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 2,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "This round: When any friendly minion in radius is defeated you may discard a silver card.\nIf you do, the minion is not removed.",
+      "image": "official/cards/brogan-green-2a.webp"
+    },
+    {
+      "id": "brogan-green-2b",
+      "heroId": "brogan",
+      "name": "War Drummer",
+      "color": "green",
+      "tier": 2,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "A friendly hero in range gains 1 coin;\nif any hero was defeated this round, that friendly hero gains 3 coins instead.",
+      "image": "official/cards/brogan-green-2b.webp"
+    },
+    {
+      "id": "brogan-blue-2a",
+      "heroId": "brogan",
+      "name": "Mighty Punch",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "You may move 1 space. Push an enemy unit or a token adjacent to you up to 2 spaces.",
+      "image": "official/cards/brogan-blue-2a.webp"
+    },
+    {
+      "id": "brogan-blue-2b",
+      "heroId": "brogan",
+      "name": "Shield Bash",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "An enemy hero adjacent to you who has played an attack card this turn discards a card, if able.",
+      "image": "official/cards/brogan-blue-2b.webp"
+    },
+    {
+      "id": "brogan-red-3a",
+      "heroId": "brogan",
+      "name": "Furious Charge",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 7,
+        "defense": 8,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "Before the attack: Move 2, 3, or 4 spaces in a straight line to a space adjacent to an enemy unit, then target that unit.",
+      "image": "official/cards/brogan-red-3a.webp"
+    },
+    {
+      "id": "brogan-red-3b",
+      "heroId": "brogan",
+      "name": "Throwing Spear",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 7,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "radius",
+      "text": "Choose one —\n• Target a unit adjacent to you.\n• You may discard a card. If you have a card in the discard, target a unit in range.",
+      "image": "official/cards/brogan-red-3b.webp"
+    },
+    {
+      "id": "brogan-green-3a",
+      "heroId": "brogan",
+      "name": "Fortify",
+      "color": "green",
+      "tier": 3,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 2,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "This round: When any friendly minion in radius is defeated you may discard a basic card.\nIf you do, the minion is not removed.",
+      "image": "official/cards/brogan-green-3a.webp"
+    },
+    {
+      "id": "brogan-green-3b",
+      "heroId": "brogan",
+      "name": "Master Skald",
+      "color": "green",
+      "tier": 3,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "A friendly hero in range gains 2 coins;\nif any hero was defeated this round, that friendly hero gains 4 coins instead.",
+      "image": "official/cards/brogan-green-3b.webp"
+    },
+    {
+      "id": "brogan-blue-3a",
+      "heroId": "brogan",
+      "name": "Savage Kick",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Move up to 2 spaces. Push an enemy unit or a token adjacent to you up to 2 spaces.",
+      "image": "official/cards/brogan-blue-3a.webp"
+    },
+    {
+      "id": "brogan-blue-3b",
+      "heroId": "brogan",
+      "name": "Counterattack",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "An enemy hero adjacent to you who has played an attack card this turn discards a card, or is defeated.",
+      "image": "official/cards/brogan-blue-3b.webp"
+    },
+    {
+      "id": "brogan-purple-4",
+      "heroId": "brogan",
+      "name": "One Man Army",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "During minion battle you count as a heavy minion; if you would be removed, lose the push instead.",
+      "image": "official/cards/brogan-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "brogan-handicap",
+    "heroId": "brogan",
+    "name": "Leap Forward",
+    "color": "other",
+    "tier": null,
+    "initiative": 10,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 3,
+      "defense": 3,
+      "movement": 1,
+      "range": null,
+      "radius": null
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Target a hero adjacent to you.\nAfter the attack: Move into the space it occupied, if able.",
+    "image": "official/cards/brogan-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "Is the movement required?",
+      "answer": "Yes. Unless otherwise indicated, card text is mandatory. Brogan most move into the space where the target was, if he is able to (if it is empty).",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Does Brogan’s Primary Red attack require movement?",
+      "answer": "Yes! If Brogan cannot move 2 spaces in a straight line to a space adjacent to an enemy unit, the effect will “fizzle” — stop resolving — and he will not attack. A crafty opponent can anticipate and deny this attack with clever positioning.\n• Brogan can charge next to an immune unit, at which point his attack would fizzle.\n• Brogan can charge through Min’s Smoke Bomb Token, since the Smoke Bomb only prevents targeting across the Smoke Bomb and Brogan would not target until after the movement.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Does Brogan’s Primary Green (Shield) work during Minion Battle?",
+      "answer": "No. Minions are not “defeated” in Minion Battle, they are removed.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Can Brogan’s “Shield Bash” target a Hero who has played an attack card but not attacked?",
+      "answer": "Yes: it only checks for Heroes that “played” an attack card, regardless of whether they’ve resolved the action, which action they performed, and even whether this is still their card for the turn (it will “remember” whether they have played a card, even if it is discarded or switched for another card by an effect).",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Can I play an action if only some of its instructions can be performed?",
+      "answer": "You must follow the cards instructions step by step, starting from the top.\n• If you cannot perform the first instruction (e.g., there is no valid target in range, or you cannot make the required movement), you may not perform the action at all.\n• After the first instruction is successfully exectued, you continue resolving the rest of the instructions in order.\n• If you reach an instruction that is not optional and you cannot perform it, the action immediately fizzles — no further instructions are resolved. You place the card on your hero dashboard, and your turn ends.\n_See page 10 of the rulebook for additional reference._",
+      "source": "goa2-faq (common)"
+    }
+  ],
+  "lore": "Brogan regained his senses in the midst of battle. War drums resonated with the pounding in his ears, and the elf made a note to quit Drakenhuff Grog. As the enemy mounted their charge, he reached behind him: first feeling the strings of his lute, then the handle of his axe.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/brogan.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}
