@@ -26,33 +26,27 @@ object DraftPlanner {
     /** Hard stop for pattern rules that never fill the seats (bad custom methods). */
     private const val MAX_STEPS = 200
 
-    fun plan(sequence: SequenceRule, seatsA: Int, seatsB: Int): Result<List<SlotStep>> {
-        if (seatsA < 1 || seatsB < 1) return Result.failure(DraftError.InvalidSeats("Each team needs at least one seat"))
-        val source: Sequence<StepSpec> = when (sequence) {
-            SequenceRule.RandomAssign -> cycle(listOf(pick(TeamSlot.A), pick(TeamSlot.B)))
+    fun plan(sequence: SequenceRule, seatsA: Int, seatsB: Int): Result<List<SlotStep>> = runCatching {
+        if (seatsA < 1 || seatsB < 1) throw DraftError.InvalidSeats("Each team needs at least one seat")
+        expand(source(sequence, seatsA, seatsB), seatsA, seatsB)
+    }
 
-            is SequenceRule.Lineup -> {
-                // Seat counts are symmetric here, so slots map to Red/Blue either way.
-                if (sequence.lineups.none { it.red.size == seatsA && it.blue.size == seatsB }) {
-                    return Result.failure(DraftError.NotSupported(lineupSizes(sequence)))
-                }
-                cycle(listOf(pick(TeamSlot.A), pick(TeamSlot.B)))
-            }
+    /** The raw step stream before skipping; throws [DraftError] when the rule can't serve the layout. */
+    private fun source(sequence: SequenceRule, seatsA: Int, seatsB: Int): Sequence<StepSpec> = when (sequence) {
+        SequenceRule.RandomAssign -> cycle(listOf(pick(TeamSlot.A), pick(TeamSlot.B)))
 
-            is SequenceRule.Pattern -> {
-                if (sequence.repeat.none { it.action == DraftAction.PICK } && sequence.opening.isEmpty()) {
-                    return Result.failure(DraftError.SequenceTooShort(seatsA, seatsB))
-                }
-                sequence.opening.asSequence() + cycle(sequence.repeat)
+        is SequenceRule.Lineup -> {
+            // Seat counts are symmetric here, so slots map to Red/Blue either way.
+            if (sequence.lineups.none { it.red.size == seatsA && it.blue.size == seatsB }) {
+                throw DraftError.NotSupported(lineupSizes(sequence))
             }
-
-            is SequenceRule.ByCount -> {
-                val table = table(sequence, seatsA, seatsB)
-                    ?: return Result.failure(DraftError.SequenceTooShort(seatsA, seatsB))
-                table.steps.asSequence()
-            }
+            cycle(listOf(pick(TeamSlot.A), pick(TeamSlot.B)))
         }
-        return expand(source, seatsA, seatsB)
+
+        is SequenceRule.Pattern -> sequence.opening.asSequence() + cycle(sequence.repeat)
+
+        is SequenceRule.ByCount -> table(sequence, seatsA, seatsB)?.steps?.asSequence()
+            ?: throw DraftError.SequenceTooShort(seatsA, seatsB)
     }
 
     /** The table a [SequenceRule.ByCount] uses for this layout (smallest covering 2 × larger team). */
@@ -68,13 +62,16 @@ object DraftPlanner {
     private fun cycle(steps: List<StepSpec>): Sequence<StepSpec> =
         if (steps.isEmpty()) emptySequence() else generateSequence(0) { it + 1 }.map { steps[it % steps.size] }
 
-    private fun expand(source: Sequence<StepSpec>, seatsA: Int, seatsB: Int): Result<List<SlotStep>> {
+    private fun expand(source: Sequence<StepSpec>, seatsA: Int, seatsB: Int): List<SlotStep> {
         val filled = intArrayOf(0, 0)
         val need = intArrayOf(seatsA, seatsB)
         val out = mutableListOf<SlotStep>()
         var sincePick = 0
-        for (spec in source) {
-            if (filled[0] == need[0] && filled[1] == need[1]) break
+        val steps = source.iterator()
+        fun full() = filled[0] == need[0] && filled[1] == need[1]
+        fun runaway() = out.size > MAX_STEPS || sincePick > MAX_STEPS
+        while (!full() && !runaway() && steps.hasNext()) {
+            val spec = steps.next()
             val t = spec.team.ordinal
             when (spec.action) {
                 DraftAction.PICK -> if (filled[t] < need[t]) {
@@ -90,13 +87,9 @@ object DraftPlanner {
                     sincePick++
                 }
             }
-            if (out.size > MAX_STEPS || sincePick > MAX_STEPS) break
         }
-        return if (filled[0] == need[0] && filled[1] == need[1]) {
-            Result.success(out)
-        } else {
-            Result.failure(DraftError.SequenceTooShort(seatsA, seatsB))
-        }
+        if (!full()) throw DraftError.SequenceTooShort(seatsA, seatsB)
+        return out
     }
 }
 

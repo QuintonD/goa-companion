@@ -37,7 +37,9 @@ class DraftEngineTest {
 
     @Test
     fun `small rosters shrink the random pool but still fit the plan`() {
-        val session = DraftEngine.start(DraftFixtures.setup(house, candidates = DraftFixtures.heroes.take(9))).getOrThrow()
+        val session = DraftEngine.start(
+            DraftFixtures.setup(house, candidates = DraftFixtures.heroes.take(9)),
+        ).getOrThrow()
         assertThat(session.pool).hasSize(9)
     }
 
@@ -48,8 +50,12 @@ class DraftEngineTest {
         s = s.choose(h1) // Red bans h1
         assertThat(DraftEngine.apply(s, DraftCommand(h1)).exceptionOrNull()).isEqualTo(DraftError.AlreadyBanned(h1))
         s = s.choose(h2) // Red picks h2
-        assertThat(DraftEngine.apply(s, DraftCommand(h2)).exceptionOrNull()).isEqualTo(DraftError.AlreadyPicked(h2, Team.RED))
-        assertThat(DraftEngine.apply(s, DraftCommand("hero-99")).exceptionOrNull()).isInstanceOf(DraftError.NotInPool::class.java)
+        assertThat(
+            DraftEngine.apply(s, DraftCommand(h2)).exceptionOrNull(),
+        ).isEqualTo(DraftError.AlreadyPicked(h2, Team.RED))
+        assertThat(
+            DraftEngine.apply(s, DraftCommand("hero-99")).exceptionOrNull(),
+        ).isInstanceOf(DraftError.NotInPool::class.java)
         assertThat(DraftEngine.apply(s, DraftCommand(h3, team = Team.RED)).exceptionOrNull())
             .isEqualTo(DraftError.WrongTeam(Team.BLUE, Team.RED))
         assertThat(DraftEngine.apply(s, DraftCommand(h3, action = DraftAction.PICK)).exceptionOrNull())
@@ -116,8 +122,18 @@ class DraftEngineTest {
     @Test
     fun `learning game seats fixed heroes and leaves missing ones open`() {
         val rule = SequenceRule.Lineup(listOf(TeamLineup(listOf("r1", "r2"), listOf("b1", "b2"))))
-        val method = DraftMethod("learn", "Learn", DraftMethodKind.CUSTOM, MethodOrigin.RULEBOOK, pool = PoolRule.All, sequence = rule)
-        val s = DraftEngine.start(DraftFixtures.setup(method, teamA = Team.BLUE, candidates = listOf("r1", "r2", "b1"))).getOrThrow()
+        val method =
+            DraftMethod(
+                "learn",
+                "Learn",
+                DraftMethodKind.CUSTOM,
+                MethodOrigin.RULEBOOK,
+                pool = PoolRule.All,
+                sequence = rule,
+            )
+        val s = DraftEngine.start(
+            DraftFixtures.setup(method, teamA = Team.BLUE, candidates = listOf("r1", "r2", "b1")),
+        ).getOrThrow()
         assertThat(s.isComplete).isTrue()
         val bySeat = DraftEngine.assignments(s).associate { it.seat.id to it.heroId }
         assertThat(bySeat).containsExactly("red-0", "r1", "red-1", "r2", "blue-0", "b1", "blue-1", null)
@@ -128,7 +144,9 @@ class DraftEngineTest {
     @Test
     fun `hidden steps stay concealed until the hidden run ends`() {
         val method = house.copy(
-            sequence = SequenceRule.Pattern(repeat = listOf(pick(TeamSlot.A, hidden = true), pick(TeamSlot.B, hidden = true))),
+            sequence = SequenceRule.Pattern(
+                repeat = listOf(pick(TeamSlot.A, hidden = true), pick(TeamSlot.B, hidden = true)),
+            ),
         )
         var s = DraftEngine.start(DraftFixtures.setup(method, DraftFixtures.seats(1, 1))).getOrThrow()
         s = s.choose(s.pool[0])
@@ -174,7 +192,9 @@ class DraftEngineTest {
     fun `pending match needs a pilot for every seat`() {
         val method = DraftFixtures.method("all-random")
         val s = DraftEngine.start(DraftFixtures.setup(method, DraftFixtures.seats(2, 2, pilots = false))).getOrThrow()
-        assertThat(DraftEngine.toPendingMatch(s, "m", 0).exceptionOrNull()).isInstanceOf(DraftError.InvalidSeats::class.java)
+        assertThat(
+            DraftEngine.toPendingMatch(s, "m", 0).exceptionOrNull(),
+        ).isInstanceOf(DraftError.InvalidSeats::class.java)
     }
 
     @Test
@@ -203,8 +223,12 @@ class DraftEngineTest {
     @Test
     fun `custom patterns that never fill the seats are rejected`() {
         val onlyBans = SequenceRule.Pattern(repeat = listOf(ban(TeamSlot.A)))
-        assertThat(DraftPlanner.plan(onlyBans, 2, 2).exceptionOrNull()).isInstanceOf(DraftError.SequenceTooShort::class.java)
+        assertThat(
+            DraftPlanner.plan(onlyBans, 2, 2).exceptionOrNull(),
+        ).isInstanceOf(DraftError.SequenceTooShort::class.java)
         val onlyA = SequenceRule.Pattern(repeat = listOf(pick(TeamSlot.A)))
-        assertThat(DraftPlanner.plan(onlyA, 2, 2).exceptionOrNull()).isInstanceOf(DraftError.SequenceTooShort::class.java)
+        assertThat(
+            DraftPlanner.plan(onlyA, 2, 2).exceptionOrNull(),
+        ).isInstanceOf(DraftError.SequenceTooShort::class.java)
     }
 }

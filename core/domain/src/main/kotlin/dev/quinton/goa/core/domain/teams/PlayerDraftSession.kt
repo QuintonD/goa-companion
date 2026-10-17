@@ -1,6 +1,5 @@
 package dev.quinton.goa.core.domain.teams
 
-import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.domain.draft.DraftEngine
 import dev.quinton.goa.core.domain.draft.DraftError
 import dev.quinton.goa.core.domain.draft.DraftEvent
@@ -9,9 +8,10 @@ import dev.quinton.goa.core.domain.draft.DraftSession
 import dev.quinton.goa.core.domain.draft.PlannedStep
 import dev.quinton.goa.core.domain.draft.PoolRule
 import dev.quinton.goa.core.domain.draft.SequenceRule
+import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.match.Team
-import kotlinx.serialization.Serializable
 import kotlin.random.Random
+import kotlinx.serialization.Serializable
 
 /**
  * Heroes chosen for individual players before teams exist (first half of the Player Draft):
@@ -46,9 +46,18 @@ object HeroSelections {
     fun start(method: DraftMethod, players: List<String>, candidates: List<String>, seed: Long): Result<HeroSelection> =
         runCatching {
             if (!supports(method)) throw DraftError.NotSupported("${method.name} needs teams; choose another method")
-            val pool = DraftEngine.drawPool(method.pool, candidates.distinct(), players.size, players.size, Random(seed))
+            val pool = DraftEngine.drawPool(
+                method.pool,
+                candidates.distinct(),
+                players.size,
+                players.size,
+                Random(seed),
+            )
             val hands = (method.pool as? PoolRule.DealPerSeat)?.let { rule ->
-                players.withIndex().associate { (i, id) -> id to pool.subList(i * rule.perSeat, (i + 1) * rule.perSeat).toList() }
+                players.withIndex().associate { (i, id) ->
+                    id to
+                        pool.subList(i * rule.perSeat, (i + 1) * rule.perSeat).toList()
+                }
             }.orEmpty()
             val auto = method.sequence == SequenceRule.RandomAssign
             HeroSelection(

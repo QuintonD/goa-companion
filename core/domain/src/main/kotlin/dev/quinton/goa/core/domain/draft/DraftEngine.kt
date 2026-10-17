@@ -207,15 +207,28 @@ object DraftEngine {
     fun suggestedMode(players: Int): GameMode = if (players >= 8) GameMode.DOUBLE_LANE else GameMode.QUICK
 
     private fun validateSeats(seats: List<Seat>) {
-        if (seats.map { it.id }.toSet().size != seats.size) throw DraftError.InvalidSeats("Duplicate seats")
-        for (team in Team.entries) {
+        seatProblem(seats)?.let { throw DraftError.InvalidSeats(it) }
+    }
+
+    private fun seatProblem(seats: List<Seat>): String? {
+        if (seats.map { it.id }.toSet().size != seats.size) return "Duplicate seats"
+        return Team.entries.firstNotNullOfOrNull { team ->
             val indices = seats.filter { it.team == team }.map { it.index }.sorted()
-            if (indices.isEmpty()) throw DraftError.InvalidSeats("${team.name} has no seats")
-            if (indices != indices.indices.toList()) throw DraftError.InvalidSeats("Seat indices must be 0..n-1")
+            when {
+                indices.isEmpty() -> "${team.name} has no seats"
+                indices != indices.indices.toList() -> "Seat indices must be 0..n-1"
+                else -> null
+            }
         }
     }
 
-    internal fun drawPool(rule: PoolRule, candidates: List<String>, seats: Int, required: Int, rng: Random): List<String> {
+    internal fun drawPool(
+        rule: PoolRule,
+        candidates: List<String>,
+        seats: Int,
+        required: Int,
+        rng: Random,
+    ): List<String> {
         val size = when (rule) {
             PoolRule.All -> candidates.size
             is PoolRule.Random -> rule.size
@@ -225,7 +238,11 @@ object DraftEngine {
         if (size < required) throw DraftError.PoolTooSmall(required, size)
         val strict = rule is PoolRule.DealPerSeat || rule is PoolRule.SeatsPlus
         val target = if (strict) size else minOf(size, candidates.size)
-        if (candidates.size < maxOf(target, required)) throw DraftError.PoolTooSmall(maxOf(target, required), candidates.size)
+        if (candidates.size <
+            maxOf(target, required)
+        ) {
+            throw DraftError.PoolTooSmall(maxOf(target, required), candidates.size)
+        }
         return if (rule == PoolRule.All) candidates else candidates.shuffled(rng).take(target)
     }
 

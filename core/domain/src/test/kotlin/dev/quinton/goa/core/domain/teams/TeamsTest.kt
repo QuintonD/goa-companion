@@ -8,15 +8,15 @@ import dev.quinton.goa.core.domain.draft.Seat
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.match.Team
 import io.kotest.property.Arb
-import io.kotest.property.arbitrary.map
 import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.list
 import io.kotest.property.arbitrary.long
+import io.kotest.property.arbitrary.map
 import io.kotest.property.checkAll
-import kotlinx.coroutines.runBlocking
-import org.junit.Test
 import java.io.File
 import kotlin.math.abs
+import kotlinx.coroutines.runBlocking
+import org.junit.Test
 
 class TeamsTest {
     // --- Seat layouts ---
@@ -64,7 +64,12 @@ class TeamsTest {
 
     @Test
     fun `five players with a double pilot give the smaller team an extra seat`() {
-        val seats = SeatLayouts.build(listOf("a", "b"), listOf("c", "d", "e"), OddSeatMode.DOUBLE_PILOT, "b").getOrThrow()
+        val seats = SeatLayouts.build(
+            listOf("a", "b"),
+            listOf("c", "d", "e"),
+            OddSeatMode.DOUBLE_PILOT,
+            "b",
+        ).getOrThrow()
         assertThat(seats.filter { it.team == Team.RED }.map { it.pilotId }).containsExactly("a", "b", "b").inOrder()
         assertThat(seats.none { it.handicap }).isTrue()
     }
@@ -193,14 +198,19 @@ class TeamsTest {
         assertThat(sel.hands.getValue("a")).hasSize(3)
         assertThat(HeroSelections.choose(sel, "a", sel.hands.getValue("b").first()).isFailure).isTrue()
         val random = methods.first { it.id == "all-random" }
-        assertThat(HeroSelections.start(random, listOf("a", "b"), listOf("h1", "h2"), 3).getOrThrow().isComplete).isTrue()
+        assertThat(
+            HeroSelections.start(random, listOf("a", "b"), listOf("h1", "h2"), 3).getOrThrow().isComplete,
+        ).isTrue()
     }
 
     // --- Complexity ---
 
     @Test
     fun `complexity filter removes heroes above the cap and keeps unknowns`() {
-        fun hero(id: String, c: Int?) = Hero(id, id, "", "p", complexity = c, printing = 2, cards = emptyList(), verified = false)
+        fun hero(
+            id: String,
+            c: Int?,
+        ) = Hero(id, id, "", "p", complexity = c, printing = 2, cards = emptyList(), verified = false)
         val heroes = listOf(hero("a", 1), hero("b", 2), hero("c", 4), hero("d", null))
         assertThat(ComplexityFilter.filter(heroes, ComplexityFilter.capFor(listOf(3, 2, 4))).map { it.id })
             .containsExactly("a", "b", "d")
@@ -218,5 +228,4 @@ class TeamsTest {
         }
         error("draft-methods.json not found")
     }
-
 }

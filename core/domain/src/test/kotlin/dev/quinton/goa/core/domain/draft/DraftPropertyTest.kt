@@ -9,9 +9,9 @@ import dev.quinton.goa.core.model.match.Team
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.long
 import io.kotest.property.checkAll
+import kotlin.random.Random
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
-import kotlin.random.Random
 
 /**
  * Every bundled method × player counts 2–10 × seat layouts (even, Handicap, double pilot,
@@ -28,7 +28,10 @@ class DraftPropertyTest {
             val blue = ids.drop((n + 1) / 2)
             for (mode in OddSeatMode.entries) {
                 add("$n players $mode" to SeatLayouts.build(red, blue, mode).getOrThrow())
-                add("$n players $mode swapped" to SeatLayouts.build(blue, red, mode, doublePilot = blue.lastOrNull()).getOrThrow())
+                add(
+                    "$n players $mode swapped" to
+                        SeatLayouts.build(blue, red, mode, doublePilot = blue.lastOrNull()).getOrThrow(),
+                )
             }
         }
         for (a in 1..5) {
@@ -78,7 +81,12 @@ class DraftPropertyTest {
         for (method in methods) {
             checkAll(5, Arb.long()) { seed ->
                 val result = DraftEngine.start(
-                    DraftFixtures.setup(method, DraftFixtures.seats(5, 5), candidates = DraftFixtures.heroes.take(5), seed = seed),
+                    DraftFixtures.setup(
+                        method,
+                        DraftFixtures.seats(5, 5),
+                        candidates = DraftFixtures.heroes.take(5),
+                        seed = seed,
+                    ),
                 )
                 assertThat(result.exceptionOrNull()).isInstanceOf(DraftError.PoolTooSmall::class.java)
             }
@@ -105,11 +113,19 @@ class DraftPropertyTest {
             }
             assertThat(DraftEngine.apply(session, DraftCommand("not-a-hero")).exceptionOrNull())
                 .isInstanceOf(DraftError.NotInPool::class.java)
-            assertThat(DraftEngine.apply(session, DraftCommand(available.first(), team = step.team.opponent)).exceptionOrNull())
+            assertThat(
+                DraftEngine.apply(
+                    session,
+                    DraftCommand(available.first(), team = step.team.opponent),
+                ).exceptionOrNull(),
+            )
                 .isInstanceOf(DraftError.WrongTeam::class.java)
 
             val before = session
-            val next = DraftEngine.apply(session, DraftCommand(available.random(rng), step.team, step.action)).getOrThrow()
+            val next = DraftEngine.apply(
+                session,
+                DraftCommand(available.random(rng), step.team, step.action),
+            ).getOrThrow()
             // Undo at every step restores the previous state exactly.
             assertThat(DraftEngine.undo(next).getOrThrow()).isEqualTo(before)
             session = next

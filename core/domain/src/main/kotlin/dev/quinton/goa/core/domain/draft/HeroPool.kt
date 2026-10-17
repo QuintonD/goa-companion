@@ -3,8 +3,8 @@ package dev.quinton.goa.core.domain.draft
 import dev.quinton.goa.core.domain.teams.ComplexityFilter
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.match.Team
-import kotlinx.serialization.Serializable
 import kotlin.random.Random
+import kotlinx.serialization.Serializable
 
 /** Which heroes are eligible before the method's [PoolRule] draws from them. */
 @Serializable

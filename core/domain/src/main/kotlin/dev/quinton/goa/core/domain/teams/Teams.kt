@@ -4,9 +4,9 @@ import dev.quinton.goa.core.domain.draft.DraftError
 import dev.quinton.goa.core.domain.draft.Seat
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.match.Team
-import kotlinx.serialization.Serializable
 import kotlin.math.abs
 import kotlin.random.Random
+import kotlinx.serialization.Serializable
 
 /** How a 5/7/9 player count is evened out (docs/DOMAIN.md, Double piloting). */
 @Serializable
@@ -100,8 +100,7 @@ object TeamBalancer {
         var best = Double.MAX_VALUE
         val optimal = mutableListOf<Int>()
         for (mask in 0 until (1 shl n)) {
-            if (mask.countOneBits() !in sizes) continue
-            if (!respectsLocks(mask, players, locked)) continue
+            if (mask.countOneBits() !in sizes || !respectsLocks(mask, players, locked)) continue
             val diff = diff(mask, rating)
             when {
                 diff < best - EPSILON -> {
@@ -164,7 +163,13 @@ data class PlayerDraftState(
     val isComplete: Boolean get() = remaining.isEmpty()
 
     /** Team whose captain is on the clock; null once everyone is drafted. */
-    val nextTeam: Team? get() = if (isComplete) null else if (picks.size % 2 == 0) teamA else teamA.opponent
+    val nextTeam: Team? get() = if (isComplete) {
+        null
+    } else if (picks.size % 2 == 0) {
+        teamA
+    } else {
+        teamA.opponent
+    }
 
     val red: List<String> get() = listOf(redCaptain) + picks.filter { it.team == Team.RED }.map { it.playerId }
 
@@ -182,9 +187,17 @@ object PlayerDraft {
 
     fun start(players: List<String>, redCaptain: String, blueCaptain: String, teamA: Team): Result<PlayerDraftState> =
         runCatching {
-            if (players.size < MIN_PLAYERS) throw DraftError.NotSupported("Player Draft needs at least $MIN_PLAYERS players")
+            if (players.size <
+                MIN_PLAYERS
+            ) {
+                throw DraftError.NotSupported("Player Draft needs at least $MIN_PLAYERS players")
+            }
             if (redCaptain == blueCaptain) throw DraftError.InvalidSeats("Captains must be different players")
-            if (redCaptain !in players || blueCaptain !in players) throw DraftError.InvalidSeats("Captains must be playing")
+            if (redCaptain !in players ||
+                blueCaptain !in players
+            ) {
+                throw DraftError.InvalidSeats("Captains must be playing")
+            }
             PlayerDraftState(redCaptain, blueCaptain, teamA, players.filter { it != redCaptain && it != blueCaptain })
         }
 
