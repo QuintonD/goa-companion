@@ -142,5 +142,6 @@ object GameIcons {
         SecondaryAction.HOLD -> hold
         SecondaryAction.FAST_TRAVEL -> fastTravel
         SecondaryAction.CLEAR -> clear
+        SecondaryAction.ATTACK -> attack
     }
 }
