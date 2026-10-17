@@ -129,3 +129,23 @@ ignored: where its paragraphing is used, source-1 bold is copied word by word, a
 span would not fit, the source-1 text is kept (noted in REPORT.md).
 **Consequences:** Older catalog JSON still loads; every value display shows `4+` and speaks
 "4 plus"; card text renders bold keywords. The importer bumps `dataVersion`.
+
+## ADR-016 (setup) — Tie Breaker coin carried from draft to match; house-rule counters labelled (2026-10-17)
+**Context:** The draft flips the Tie Breaker coin (Team A), but Match setup ignored it and asked
+the table to flip again, contradicting the rulebook (p.5 step 3: flipped once at setup, before
+heroes are chosen; p.7: re-flipped only after a cross-team initiative tie). Separately, the
+owner's double-pilot house rule counts counters by heroes in play, which at 5 and 7 players
+shows numbers (and a Double lane "requirement") the rulebook's per-player rules don't give,
+without saying so.
+**Decision:** `Match` gains a nullable `tieBreaker` (the coin as placed at setup).
+`DraftEngine.toPendingMatch` fills it from Team A; Match setup shows it as already placed with
+"Correct the coin" (flipping is offered only without a draft), starts the timer with it and
+saves any correction. Room schema v2 adds `matches.tie_breaker` with a manual, non-destructive
+migration (existing rows stay null: their coin was never recorded); the backup format goes to
+v2 so an older app refuses a file instead of silently dropping the coin, and v1 files still
+import losslessly. The heroes-in-play lookup stays (owner's choice); `match-setup.json` also
+carries the rulebook's per-player values and `MatchSetup.houseRuleDifference` drives "House
+rule" labels wherever the two disagree.
+**Consequences:** One coin from draft to timer, recorded per match for later use. Rules data
+stays the single source of every number and label. Older matches have no coin (shown as
+unknown); flips during play are not tracked on the match.

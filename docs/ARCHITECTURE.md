@@ -115,7 +115,7 @@ Features never depend on each other; cross-feature navigation goes through `app`
 |-------|-------|
 | core:domain | Unit + property tests (Elo maths, draft legality for every method/player count, timer with fake clock) |
 | core:data | Catalog validation (schema, unique IDs, asset paths exist, every hero has a full deck), export/import round-trip |
-| core:database | Room in-memory tests; migration tests for every schema bump |
+| core:database | Room in-memory tests; migration tests for every schema bump (v1 → v2: `matches.tie_breaker`) |
 | ViewModels | Turbine on `uiState` with fakes from `core:testing` |
 | UI | Roborazzi (`recordRoborazziDebug` / `verifyRoborazziDebug`), light/dark × font scale 1.0/2.0 |
 | End to end | `app/src/androidTest` (`connectedDebugAndroidTest`): real Hilt graph and bundled catalog, a scripted game night (`GameNight`: House draft → setup → timer round → result → ratings/meta), catalog, players, double pilot, settings, and ATF accessibility checks on every main screen. Runs through the AndroidX Test Orchestrator with `clearPackageData`, so each test starts from a fresh install |
