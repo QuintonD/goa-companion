@@ -58,6 +58,7 @@ import dev.quinton.goa.feature.catalog.ui.kindLabel
 import dev.quinton.goa.feature.catalog.ui.label
 
 private const val STAT_SCALE = 8
+
 /** Order printed on the official Hero Profile card (rulebook p.21). */
 private val PROFILE_STATS = listOf(Stat.ATTACK, Stat.INITIATIVE, Stat.DEFENSE, Stat.MOVEMENT)
 
@@ -76,12 +77,20 @@ internal fun StatBars(stats: HeroStats, modifier: Modifier = Modifier) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
             )
-            Text("Exceptional · 8", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "Exceptional · 8",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             LegendSwatch(MaterialTheme.colorScheme.primary)
-            Text(" Base   ", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            LegendSwatch(MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
+            Text(
+                " Base   ",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            LegendSwatch(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), outlined = true)
             Text(
                 " Conditional (level-ups, card text)",
                 style = MaterialTheme.typography.labelSmall,
@@ -92,8 +101,15 @@ internal fun StatBars(stats: HeroStats, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun LegendSwatch(color: Color) {
-    Box(Modifier.size(width = 14.dp, height = 8.dp).clip(RoundedCornerShape(2.dp)).background(color))
+private fun LegendSwatch(color: Color, outlined: Boolean = false) {
+    val shape = RoundedCornerShape(2.dp)
+    Box(
+        Modifier
+            .size(width = 14.dp, height = 8.dp)
+            .clip(shape)
+            .background(color)
+            .then(if (outlined) Modifier.border(1.dp, MaterialTheme.colorScheme.primary, shape) else Modifier),
+    )
 }
 
 @Composable
@@ -106,13 +122,23 @@ private fun StatBar(stat: Stat, stats: HeroStats) {
         "${stat.label}: ${range.base} of $STAT_SCALE" +
             if (range.max > range.base) ", up to ${range.max} conditionally" else ""
     }
+    val rangeText = when {
+        range == null -> "—"
+        range.base == range.max -> "${range.base}"
+        else -> "${range.base} → ${range.max}"
+    }
     Column(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = description }) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon.vector, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+            Icon(
+                icon.vector,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp),
+            )
             Spacer(Modifier.width(Spacing.sm))
             Text(stat.label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
             Text(
-                if (range == null) "—" else if (range.base == range.max) "${range.base}" else "${range.base} → ${range.max}",
+                rangeText,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
             )
@@ -121,18 +147,26 @@ private fun StatBar(stat: Stat, stats: HeroStats) {
         Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
             repeat(STAT_SCALE) { i ->
                 val level = i + 1
+                val conditional = range != null && level > range.base && level <= range.max
                 val color = when {
                     range == null -> MaterialTheme.colorScheme.surfaceVariant
                     level <= range.base -> MaterialTheme.colorScheme.primary
-                    level <= range.max -> MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                    conditional -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                     else -> MaterialTheme.colorScheme.surfaceVariant
+                }
+                val segmentShape = RoundedCornerShape(3.dp)
+                val conditionalBorder = if (conditional) {
+                    Modifier.border(1.dp, MaterialTheme.colorScheme.primary, segmentShape)
+                } else {
+                    Modifier
                 }
                 Box(
                     Modifier
                         .weight(1f)
                         .height(10.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(color),
+                        .clip(segmentShape)
+                        .background(color)
+                        .then(conditionalBorder),
                 )
             }
         }
@@ -304,8 +338,18 @@ private fun Marker(icon: GameIcon, text: String) {
             .padding(horizontal = 4.dp, vertical = 1.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon.vector, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(12.dp))
+        Icon(
+            icon.vector,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.size(12.dp),
+        )
         Spacer(Modifier.width(2.dp))
-        Text(text, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, maxLines = 1)
+        Text(
+            text,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.secondary,
+            maxLines = 1,
+        )
     }
 }

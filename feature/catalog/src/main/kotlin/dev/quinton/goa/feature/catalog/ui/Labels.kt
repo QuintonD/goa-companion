@@ -33,7 +33,9 @@ fun complexityName(level: Int): String? = when (level) {
 }
 
 /** "★★★ Very Complex". */
-fun complexityLabel(level: Int): String = listOfNotNull("★".repeat(level.coerceIn(0, 8)), complexityName(level)).joinToString(" ")
+fun complexityLabel(
+    level: Int,
+): String = listOfNotNull("★".repeat(level.coerceIn(0, 8)), complexityName(level)).joinToString(" ")
 
 val Stat.label: String
     get() = when (this) {

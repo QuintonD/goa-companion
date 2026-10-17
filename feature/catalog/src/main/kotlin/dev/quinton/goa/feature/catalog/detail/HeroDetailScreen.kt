@@ -32,8 +32,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.PersonSearch
 import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material3.CircularProgressIndicator
@@ -107,7 +107,10 @@ fun HeroDetailScreen(
                     modifier = Modifier.align(Alignment.Center),
                 )
 
-                is HeroDetailUiState.Ready -> LazyColumn(state = listState, contentPadding = PaddingValues(bottom = Spacing.xxl)) {
+                is HeroDetailUiState.Ready -> LazyColumn(
+                    state = listState,
+                    contentPadding = PaddingValues(bottom = Spacing.xxl),
+                ) {
                     heroDetailContent(state, onCardClick = { onCardClick(state.hero.id, it.id) })
                 }
             }
@@ -189,7 +192,9 @@ private fun LazyListScope.heroDetailContent(state: HeroDetailUiState.Ready, onCa
             )
         }
     } else {
-        itemsIndexed(hero.faq, key = { i, _ -> "faq-$i" }) { _, ruling -> FaqItem(ruling, padded.padding(bottom = Spacing.sm)) }
+        itemsIndexed(hero.faq, key = { i, _ ->
+            "faq-$i"
+        }) { _, ruling -> FaqItem(ruling, padded.padding(bottom = Spacing.sm)) }
     }
     hero.lore?.takeIf { it.isNotBlank() }?.let { lore ->
         item(key = "lore") {
@@ -253,7 +258,11 @@ private fun HeroHeader(hero: Hero, productName: String) {
                         ComplexityStars(level, starSize = 18.dp)
                         complexityName(level)?.let {
                             Spacer(Modifier.width(6.dp))
-                            Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
                         }
                     }
                 }
@@ -281,7 +290,12 @@ private fun VerifiedPill() {
         Modifier.semantics(mergeDescendants = true) { contentDescription = "Verified data" },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Outlined.Verified, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(16.dp))
+        Icon(
+            Icons.Outlined.Verified,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.size(16.dp),
+        )
         Spacer(Modifier.width(4.dp))
         Text("Verified", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
     }
@@ -408,7 +422,10 @@ private fun PilotRow(rank: Int, pilot: HeroPilotStat, ranked: Boolean) {
                 "${pilot.wins}–${pilot.games - pilot.wins}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.semantics { contentDescription = "${pilot.wins} wins, ${pilot.games - pilot.wins} losses" },
+                modifier = Modifier.semantics {
+                    contentDescription =
+                        "${pilot.wins} wins, ${pilot.games - pilot.wins} losses"
+                },
             )
         }
     }
@@ -504,7 +521,11 @@ private fun SourcesBlock(hero: Hero) {
             Text(source.name, style = MaterialTheme.typography.bodyMedium)
             val meta = listOfNotNull(source.url, source.retrieved?.let { "retrieved $it" }).joinToString(" · ")
             if (meta.isNotEmpty()) {
-                Text(meta, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    meta,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

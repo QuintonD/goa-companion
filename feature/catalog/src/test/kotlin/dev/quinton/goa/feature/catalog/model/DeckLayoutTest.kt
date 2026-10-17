@@ -24,7 +24,8 @@ class DeckLayoutTest {
     @Test
     fun basicIsGoldThenSilverAndColoursHaveTiersOneToThree() {
         val layout = DeckLayout.of(hero)
-        assertThat(layout.groups.first().cards.map { it.color }).containsExactly(CardColor.GOLD, CardColor.SILVER).inOrder()
+        val basicColors = layout.groups.first().cards.map { it.color }
+        assertThat(basicColors).containsExactly(CardColor.GOLD, CardColor.SILVER).inOrder()
         val red = layout.groups.first { it.kind == DeckGroupKind.RED }
         assertThat(red.rows.map { it.tier }).containsExactly(1, 2, 3).inOrder()
         assertThat(red.rows.map { it.cards.size }).containsExactly(1, 2, 2).inOrder()

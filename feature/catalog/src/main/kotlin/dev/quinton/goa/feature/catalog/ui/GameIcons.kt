@@ -39,7 +39,13 @@ data class GameIcon(val vector: ImageVector, val label: String)
 object GameIcons {
     /** Original sword glyph on the 24-unit grid (no Material equivalent). */
     val Sword: ImageVector by lazy {
-        ImageVector.Builder(name = "Sword", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f)
+        ImageVector.Builder(
+            name = "Sword",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        )
             .path(fill = SolidColor(Color.Black)) {
                 // Blade
                 moveTo(12f, 1.5f)
@@ -85,30 +91,33 @@ object GameIcons {
     val fastTravel get() = GameIcon(Icons.Filled.FastForward, "Fast Travel")
     val clear get() = GameIcon(Icons.Filled.CleaningServices, "Clear")
 
-    /** Icon for a markup token such as `attack`; null for unknown names (rendered as text). */
-    fun forToken(name: String): GameIcon? = when (name) {
-        "attack" -> attack
-        "defense" -> defense
-        "initiative" -> initiative
-        "movement" -> movement
-        "range" -> range
-        "radius" -> radius
-        "skill" -> skill
-        "coin" -> GameIcon(Icons.Filled.MonetizationOn, "Coin")
-        "hold" -> hold
-        "fast_travel" -> fastTravel
-        "clear" -> clear
-        "ranged" -> ranged
-        "block" -> block
-        "item" -> item
-        "ultimate" -> ultimate
-        "minion" -> GameIcon(Icons.Outlined.Person, "Minion")
-        "heavy_minion" -> GameIcon(Icons.Filled.Person, "Heavy minion")
-        "spawn" -> GameIcon(Icons.Filled.AddLocationAlt, "Spawn point")
-        "life" -> GameIcon(Icons.Filled.Favorite, "Life counter")
-        "wave" -> GameIcon(Icons.Filled.Waves, "Wave counter")
-        else -> null
+    private val byToken: Map<String, GameIcon> by lazy {
+        mapOf(
+            "attack" to attack,
+            "defense" to defense,
+            "initiative" to initiative,
+            "movement" to movement,
+            "range" to range,
+            "radius" to radius,
+            "skill" to skill,
+            "coin" to GameIcon(Icons.Filled.MonetizationOn, "Coin"),
+            "hold" to hold,
+            "fast_travel" to fastTravel,
+            "clear" to clear,
+            "ranged" to ranged,
+            "block" to block,
+            "item" to item,
+            "ultimate" to ultimate,
+            "minion" to GameIcon(Icons.Outlined.Person, "Minion"),
+            "heavy_minion" to GameIcon(Icons.Filled.Person, "Heavy minion"),
+            "spawn" to GameIcon(Icons.Filled.AddLocationAlt, "Spawn point"),
+            "life" to GameIcon(Icons.Filled.Favorite, "Life counter"),
+            "wave" to GameIcon(Icons.Filled.Waves, "Wave counter"),
+        )
     }
+
+    /** Icon for a markup token such as `attack`; null for unknown names (rendered as text). */
+    fun forToken(name: String): GameIcon? = byToken[name]
 
     fun forStat(stat: Stat): GameIcon = when (stat) {
         Stat.ATTACK -> attack

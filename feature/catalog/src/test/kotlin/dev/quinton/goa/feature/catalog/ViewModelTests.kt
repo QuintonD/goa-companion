@@ -74,7 +74,11 @@ class CatalogViewModelTest {
             awaitReady()
             vm.onAction(CatalogAction.Search("test hero 7"))
             assertThat(vm.query.value).isEqualTo("test hero 7")
-            assertThat((expectMostRecentItem() as CatalogUiState.Ready).heroes.map { it.hero.id }).containsExactly("test-hero-7")
+            assertThat(
+                (expectMostRecentItem() as CatalogUiState.Ready).heroes.map {
+                    it.hero.id
+                },
+            ).containsExactly("test-hero-7")
 
             vm.onAction(CatalogAction.Search(""))
             vm.onAction(CatalogAction.SetFilter(CatalogFilter(complexities = setOf(4))))

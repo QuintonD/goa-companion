@@ -98,7 +98,9 @@ object CatalogBrowser {
         return items.sortedWith(ordered)
     }
 
-    private val byName: Comparator<HeroListItem> = compareBy<HeroListItem> { it.hero.name.lowercase() }.thenBy { it.hero.id }
+    private val byName: Comparator<HeroListItem> = compareBy<HeroListItem> {
+        it.hero.name.lowercase()
+    }.thenBy { it.hero.id }
 
     private fun comparator(sort: CatalogSort, productOrder: Map<String, Int>): Comparator<HeroListItem> = when (sort) {
         CatalogSort.NAME -> byName
@@ -110,11 +112,15 @@ object CatalogBrowser {
             compareBy<HeroListItem> { productOrder[it.hero.product] ?: Int.MAX_VALUE }.then(byName)
 
         CatalogSort.ELO ->
-            compareBy<HeroListItem, Double?>(nullsLast()) { item -> item.rating?.takeIf { it.games > 0 }?.value?.let { -it } }
+            compareBy<HeroListItem, Double?>(nullsLast()) { item ->
+                item.rating?.takeIf { it.games > 0 }?.value?.let { -it }
+            }
                 .then(byName)
 
         CatalogSort.WIN_RATE ->
-            compareBy<HeroListItem, Double?>(nullsLast()) { item -> item.usage?.takeIf { it.matches > 0 }?.winRate?.let { -it } }
+            compareBy<HeroListItem, Double?>(nullsLast()) { item ->
+                item.usage?.takeIf { it.matches > 0 }?.winRate?.let { -it }
+            }
                 .thenByDescending { it.usage?.matches ?: 0 }
                 .then(byName)
     }

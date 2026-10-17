@@ -67,7 +67,9 @@ class CatalogBrowserTest {
 
     @Test
     fun attackStyleComesFromTheGoldCard() {
-        assertThat(browse(filter = CatalogFilter(attackStyle = AttackStyle.RANGED)).ids()).containsExactly("test-hero-5")
+        assertThat(
+            browse(filter = CatalogFilter(attackStyle = AttackStyle.RANGED)).ids(),
+        ).containsExactly("test-hero-5")
         assertThat(browse(filter = CatalogFilter(attackStyle = AttackStyle.MELEE))).hasSize(11)
         val noGold = TestCatalog.hero(1).let { h -> h.copy(cards = h.cards.filter { it.color != CardColor.GOLD }) }
         assertThat(noGold.attackStyle()).isNull()
@@ -107,7 +109,16 @@ class CatalogBrowserTest {
     @Test
     fun sortsByWinRateThenGames() {
         fun usage(id: String, matches: Int, wins: Int) =
-            id to HeroUsage(id, matches, wins, bans = 0, pickRate = 0.5, winRate = wins.toDouble() / matches, banRate = 0.0)
+            id to
+                HeroUsage(
+                    id,
+                    matches,
+                    wins,
+                    bans = 0,
+                    pickRate = 0.5,
+                    winRate = wins.toDouble() / matches,
+                    banRate = 0.0,
+                )
         val usage = mapOf(usage("test-hero-4", 4, 2), usage("test-hero-6", 10, 5), usage("test-hero-9", 3, 3))
         val items = browse(sort = CatalogSort.WIN_RATE, usage = usage)
         assertThat(items.take(3).ids()).containsExactly("test-hero-9", "test-hero-6", "test-hero-4").inOrder()

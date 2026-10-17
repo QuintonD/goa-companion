@@ -78,17 +78,24 @@ class CatalogSearchIndex(heroes: List<Hero>) {
     private class TokenMatch(val field: MatchField, val score: Int, val card: Card? = null)
 
     private fun bestMatch(doc: HeroDoc, token: String): TokenMatch? {
-        doc.names.bestScore(token)?.let { return TokenMatch(MatchField.NAME, MatchField.NAME.weight + it) }
-        doc.aliases.bestScore(token)?.let { return TokenMatch(MatchField.ALIAS, MatchField.ALIAS.weight + it) }
-        positionBonus(doc.title, token)?.let { return TokenMatch(MatchField.TITLE, MatchField.TITLE.weight + it) }
-        var textMatch: CardDoc? = null
-        for (card in doc.cards) {
-            positionBonus(card.name, token)?.let {
-                return TokenMatch(MatchField.CARD_NAME, MatchField.CARD_NAME.weight + it, card.card)
-            }
-            if (textMatch == null && card.text.contains(token)) textMatch = card
+        val nameScore = doc.names.bestScore(token)
+        val aliasScore = doc.aliases.bestScore(token)
+        val titleScore = positionBonus(doc.title, token)
+        return when {
+            nameScore != null -> TokenMatch(MatchField.NAME, MatchField.NAME.weight + nameScore)
+            aliasScore != null -> TokenMatch(MatchField.ALIAS, MatchField.ALIAS.weight + aliasScore)
+            titleScore != null -> TokenMatch(MatchField.TITLE, MatchField.TITLE.weight + titleScore)
+            else -> bestCardMatch(doc, token)
         }
-        return textMatch?.let { TokenMatch(MatchField.CARD_TEXT, MatchField.CARD_TEXT.weight, it.card) }
+    }
+
+    private fun bestCardMatch(doc: HeroDoc, token: String): TokenMatch? {
+        for (card in doc.cards) {
+            val bonus = positionBonus(card.name, token) ?: continue
+            return TokenMatch(MatchField.CARD_NAME, MatchField.CARD_NAME.weight + bonus, card.card)
+        }
+        return doc.cards.firstOrNull { it.text.contains(token) }
+            ?.let { TokenMatch(MatchField.CARD_TEXT, MatchField.CARD_TEXT.weight, it.card) }
     }
 
     private fun List<String>.bestScore(token: String): Int? = mapNotNull { positionBonus(it, token) }.maxOrNull()

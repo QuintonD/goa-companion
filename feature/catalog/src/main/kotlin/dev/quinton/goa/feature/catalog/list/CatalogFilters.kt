@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.catalog.model.CatalogFilter
 import dev.quinton.goa.feature.catalog.ui.complexityName
+import dev.quinton.goa.feature.catalog.ui.goaFilterChipColors
 import dev.quinton.goa.feature.catalog.ui.label
 import dev.quinton.goa.feature.catalog.ui.plural
 
@@ -77,6 +78,7 @@ internal fun CatalogFilterContent(
                     options.complexities.forEach { level ->
                         val selected = level in filter.complexities
                         FilterChip(
+                            colors = goaFilterChipColors(),
                             selected = selected,
                             onClick = { onFilterChange(filter.copy(complexities = filter.complexities.toggle(level))) },
                             label = {
@@ -96,6 +98,7 @@ internal fun CatalogFilterContent(
                     options.roles.forEach { role ->
                         val selected = role in filter.roles
                         FilterChip(
+                            colors = goaFilterChipColors(),
                             selected = selected,
                             onClick = { onFilterChange(filter.copy(roles = filter.roles.toggle(role))) },
                             label = { Text(role.label) },
@@ -108,6 +111,7 @@ internal fun CatalogFilterContent(
                 options.attackStyles.forEach { style ->
                     val selected = filter.attackStyle == style
                     FilterChip(
+                        colors = goaFilterChipColors(),
                         selected = selected,
                         onClick = { onFilterChange(filter.copy(attackStyle = if (selected) null else style)) },
                         label = { Text(style.label) },
@@ -120,6 +124,7 @@ internal fun CatalogFilterContent(
                     options.products.forEach { product ->
                         val selected = product.id in filter.products
                         FilterChip(
+                            colors = goaFilterChipColors(),
                             selected = selected,
                             onClick = { onFilterChange(filter.copy(products = filter.products.toggle(product.id))) },
                             label = { Text(product.name) },

@@ -57,7 +57,11 @@ fun rememberCardTextInlineContent(tint: Color): Map<String, InlineTextContent> =
     CardText.ICONS.mapNotNull { name ->
         val icon = GameIcons.forToken(name) ?: return@mapNotNull null
         ICON_PREFIX + name to InlineTextContent(
-            Placeholder(width = 1.15.em, height = 1.15.em, placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter),
+            Placeholder(
+                width = 1.15.em,
+                height = 1.15.em,
+                placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter,
+            ),
         ) {
             Icon(icon.vector, contentDescription = null, tint = tint)
         }

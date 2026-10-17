@@ -104,7 +104,7 @@ internal fun HeroGridTile(item: HeroListItem, sort: CatalogSort, onClick: () -> 
                     .background(
                         Brush.verticalGradient(
                             0.55f to Color.Transparent,
-                            1f to MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                            1f to MaterialTheme.colorScheme.surface,
                         ),
                     ),
             )
@@ -122,7 +122,7 @@ internal fun HeroGridTile(item: HeroListItem, sort: CatalogSort, onClick: () -> 
                 hero.title,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Spacer(Modifier.size(Spacing.sm))
@@ -197,15 +197,14 @@ internal fun HeroListRow(item: HeroListItem, sort: CatalogSort, onClick: () -> U
             )
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        hero.displayName,
-                        style = heroNameStyle(),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                }
+                Text(hero.name, style = heroNameStyle(), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(
+                    hero.title,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),

@@ -40,7 +40,8 @@ data class DeckLayout(
                 val cards = byGroup[kind].orEmpty()
                 if (cards.isEmpty()) return@mapNotNull null
                 val rows = when (kind) {
-                    DeckGroupKind.BASIC -> listOf(TierRow(null, cards.sortedBy { if (it.color == CardColor.GOLD) 0 else 1 }))
+                    DeckGroupKind.BASIC -> listOf(TierRow(null, cards.sortedBy { it.color != CardColor.GOLD }))
+
                     else -> cards.groupBy { it.tier }
                         .toSortedMap(nullsFirst())
                         .map { (tier, tierCards) -> TierRow(tier, tierCards) }

@@ -13,8 +13,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SelectableChipColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -135,3 +138,20 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier, trailing: (@Compos
         trailing?.invoke()
     }
 }
+
+/** Bronze-tinted selected state for filter chips (the Material default is off-palette). */
+@Composable
+fun goaFilterChipColors(): SelectableChipColors = FilterChipDefaults.filterChipColors(
+    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+    selectedLabelColor = MaterialTheme.colorScheme.onSurface,
+    selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
+    selectedTrailingIconColor = MaterialTheme.colorScheme.primary,
+    iconColor = MaterialTheme.colorScheme.primary,
+)
+
+@Composable
+fun goaInputChipColors(): SelectableChipColors = InputChipDefaults.inputChipColors(
+    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+    selectedLabelColor = MaterialTheme.colorScheme.onSurface,
+    selectedTrailingIconColor = MaterialTheme.colorScheme.primary,
+)

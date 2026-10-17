@@ -69,12 +69,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaScreen
@@ -83,6 +85,8 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.catalog.model.CatalogFilter
 import dev.quinton.goa.feature.catalog.model.CatalogSort
 import dev.quinton.goa.feature.catalog.ui.complexityLabel
+import dev.quinton.goa.feature.catalog.ui.goaFilterChipColors
+import dev.quinton.goa.feature.catalog.ui.goaInputChipColors
 import dev.quinton.goa.feature.catalog.ui.label
 import dev.quinton.goa.feature.catalog.ui.plural
 
@@ -106,7 +110,9 @@ fun CatalogScreen(
             if (ready != null) {
                 val grid = ready.controls.layout == CatalogLayout.GRID
                 IconButton(
-                    onClick = { onAction(CatalogAction.SetLayout(if (grid) CatalogLayout.LIST else CatalogLayout.GRID)) },
+                    onClick = {
+                        onAction(CatalogAction.SetLayout(if (grid) CatalogLayout.LIST else CatalogLayout.GRID))
+                    },
                 ) {
                     Icon(
                         if (grid) Icons.Outlined.ViewAgenda else Icons.Outlined.GridView,
@@ -214,7 +220,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = Spacing.screen)
             .padding(bottom = Spacing.sm),
-        placeholder = { Text("Search heroes, cards, card text") },
+        placeholder = { Text("Search heroes, cards, card text", maxLines = 1, overflow = TextOverflow.Ellipsis) },
         leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
@@ -245,15 +251,19 @@ private fun ControlsRow(state: CatalogUiState.Ready, onAction: (CatalogAction) -
     ) {
         item(key = "filters") {
             FilterChip(
+                colors = goaFilterChipColors(),
                 selected = filter.activeCount > 0,
                 onClick = onOpenFilters,
                 label = { Text(if (filter.activeCount > 0) "Filters · ${filter.activeCount}" else "Filters") },
-                leadingIcon = { Icon(Icons.Outlined.Tune, contentDescription = null, Modifier.size(FilterChipDefaults.IconSize)) },
+                leadingIcon = {
+                    Icon(Icons.Outlined.Tune, contentDescription = null, Modifier.size(FilterChipDefaults.IconSize))
+                },
             )
         }
         item(key = "sort") { SortChip(state.controls.sort) { onAction(CatalogAction.SetSort(it)) } }
         items(activeFilterChips(filter, state.options), key = { it.key }) { chip ->
             InputChip(
+                colors = goaInputChipColors(),
                 selected = true,
                 onClick = { onAction(CatalogAction.SetFilter(chip.remove(filter))) },
                 label = { Text(chip.label) },
@@ -269,11 +279,16 @@ private fun SortChip(sort: CatalogSort, onSort: (CatalogSort) -> Unit) {
     var open by rememberSaveable { mutableStateOf(false) }
     Box {
         FilterChip(
+            colors = goaFilterChipColors(),
             selected = false,
             onClick = { open = true },
             label = { Text("Sort: ${sort.label}") },
             leadingIcon = {
-                Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = null, Modifier.size(FilterChipDefaults.IconSize))
+                Icon(
+                    Icons.AutoMirrored.Filled.Sort,
+                    contentDescription = null,
+                    Modifier.size(FilterChipDefaults.IconSize),
+                )
             },
         )
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
@@ -327,15 +342,19 @@ private fun ResultSummary(state: CatalogUiState.Ready, query: String) {
 
 @Composable
 private fun HeroGrid(state: CatalogUiState.Ready, onHeroClick: (String) -> Unit) {
+    // Large font scales get wider cells (one column on phones) so names never wrap word by word.
+    val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 2f)
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = GRID_MIN_CELL),
+        columns = GridCells.Adaptive(minSize = GRID_MIN_CELL * fontScale),
         contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = Spacing.xl),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         modifier = Modifier.fillMaxSize(),
     ) {
         items(state.heroes, key = { it.hero.id }) { item ->
-            HeroGridTile(item, state.controls.sort, onClick = { onHeroClick(item.hero.id) }, modifier = Modifier.animateItem())
+            HeroGridTile(item, state.controls.sort, onClick = {
+                onHeroClick(item.hero.id)
+            }, modifier = Modifier.animateItem())
         }
         item(span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(Spacing.sm)) }
     }
@@ -349,7 +368,9 @@ private fun HeroList(state: CatalogUiState.Ready, onHeroClick: (String) -> Unit)
         modifier = Modifier.fillMaxSize(),
     ) {
         items(state.heroes, key = { it.hero.id }) { item ->
-            HeroListRow(item, state.controls.sort, onClick = { onHeroClick(item.hero.id) }, modifier = Modifier.animateItem())
+            HeroListRow(item, state.controls.sort, onClick = {
+                onHeroClick(item.hero.id)
+            }, modifier = Modifier.animateItem())
         }
     }
 }

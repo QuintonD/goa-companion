@@ -120,12 +120,12 @@ fun CardViewerScreen(state: CardViewerUiState, onBack: () -> Unit, modifier: Mod
 
 @Composable
 private fun TextModeToggle(textOnly: Boolean, onToggle: () -> Unit) {
-                    IconButton(onClick = onToggle) {
-                        Icon(
-                            if (textOnly) Icons.Outlined.Image else Icons.AutoMirrored.Outlined.Article,
-                            contentDescription = if (textOnly) "Show card image" else "Show text only",
-                        )
-                    }
+    IconButton(onClick = onToggle) {
+        Icon(
+            if (textOnly) Icons.Outlined.Image else Icons.AutoMirrored.Outlined.Article,
+            contentDescription = if (textOnly) "Show card image" else "Show text only",
+        )
+    }
 }
 
 @Composable
@@ -288,7 +288,9 @@ private fun CardDetails(card: Card, includeText: Boolean, modifier: Modifier = M
         if (card.secondary.isNotEmpty()) {
             DetailRow("Secondary") {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    card.secondary.forEach { IconLabel(GameIcons.forSecondary(it), MaterialTheme.colorScheme.onSurfaceVariant) }
+                    card.secondary.forEach {
+                        IconLabel(GameIcons.forSecondary(it), MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }

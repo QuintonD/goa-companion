@@ -133,10 +133,15 @@ class CatalogViewModel internal constructor(
     fun onAction(action: CatalogAction) {
         when (action) {
             is CatalogAction.Search -> queryState.value = action.query
+
             is CatalogAction.SetLayout -> controls.update { it.copy(layout = action.layout) }
+
             is CatalogAction.SetSort -> controls.update { it.copy(sort = action.sort) }
+
             is CatalogAction.SetFilter -> controls.update { it.copy(filter = action.filter) }
+
             CatalogAction.ClearFilters -> controls.update { it.copy(filter = it.filter.cleared()) }
+
             CatalogAction.ClearAll -> {
                 queryState.value = ""
                 controls.update { it.copy(filter = it.filter.cleared()) }
@@ -156,7 +161,8 @@ class CatalogViewModel internal constructor(
         val products = visibleProducts(catalog, owned, controls.filter.includeUnowned)
         // Drop product selections that are no longer visible (e.g. owned products changed).
         val visibleIds = products.mapTo(mutableSetOf()) { it.id }
-        val filter = controls.filter.copy(products = controls.filter.products.filterTo(mutableSetOf()) { it in visibleIds })
+        val keptProducts = controls.filter.products.intersect(visibleIds)
+        val filter = controls.filter.copy(products = keptProducts)
         val inScope = catalog.heroes.count { owned.isEmpty() || filter.includeUnowned || it.product in owned }
         val heroes = CatalogBrowser.browse(
             catalog = catalog,

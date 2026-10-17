@@ -67,7 +67,18 @@ class CatalogSearchIndexTest {
     @Test
     fun ignoresAccentsAndTypographicApostrophes() {
         val hero = Fixtures.heroWith(1) {
-            copy(name = "Nébula", cards = cards.mapIndexed { i, c -> if (i == 0) c.copy(text = "The hero’s shield") else c })
+            copy(
+                name = "Nébula",
+                cards = cards.mapIndexed { i, c ->
+                    if (i ==
+                        0
+                    ) {
+                        c.copy(text = "The hero’s shield")
+                    } else {
+                        c
+                    }
+                },
+            )
         }
         val local = CatalogSearchIndex(listOf(hero))
         assertThat(local.search("NEBULA")).hasSize(1)
