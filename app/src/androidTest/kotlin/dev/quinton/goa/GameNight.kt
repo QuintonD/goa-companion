@@ -32,9 +32,10 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         players.forEach { name ->
             rule.typeInto("Quick add a player", name)
             rule.tapDescription("Add player")
-            rule.waitForText(name)
+            // Scrolls to the new row: an on-screen keyboard can cover the end of the list.
+            rule.reveal(hasText(name))
         }
-        rule.waitForText("4 selected", substring = true)
+        rule.reveal(hasText("4 selected", substring = true))
         checkpoint("Draft setup · Players")
         rule.tapText("Next: Teams")
         rule.waitForText("2 players · 2 heroes", substring = true)
