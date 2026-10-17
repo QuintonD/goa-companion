@@ -6,10 +6,15 @@ import dev.quinton.goa.core.domain.draft.MethodOrigin
 import dev.quinton.goa.core.domain.draft.PoolRule
 import dev.quinton.goa.core.domain.draft.PoolSource
 import dev.quinton.goa.core.domain.teams.OddSeatMode
+import dev.quinton.goa.core.model.match.GameMode
+import dev.quinton.goa.core.model.match.Match
+import dev.quinton.goa.core.model.match.MatchStatus
+import dev.quinton.goa.core.model.match.Participant
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.testing.FakeCatalogRepository
+import dev.quinton.goa.core.testing.FakeMatchRepository
 import dev.quinton.goa.core.testing.FakePlayerRepository
 import dev.quinton.goa.core.testing.FakeRatingsRepository
 import dev.quinton.goa.core.testing.FakeSettingsRepository
@@ -40,6 +45,7 @@ class DraftSetupViewModelTest {
         )
     }
     private val drafts = FakeDraftRepository()
+    private val matches = FakeMatchRepository()
 
     private fun TestScope.viewModel(): DraftSetupViewModel {
         val vm =
@@ -50,6 +56,7 @@ class DraftSetupViewModelTest {
                 FakeSettingsRepository(),
                 drafts,
                 FakeDraftEnvironment(),
+                matches,
             )
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
@@ -246,6 +253,39 @@ class DraftSetupViewModelTest {
         assertThat(cleared.selected).isEmpty()
         assertThat(cleared.red + cleared.blue).isEmpty()
         assertThat(cleared.methodId).isEqualTo("all-pick")
+    }
+
+    @Test
+    fun `the last-game note shows only after this group really played the last completed match`() = runTest {
+        drafts.setupFormState.value = SetupForm(
+            selected = listOf("p0", "p1", "p2", "p3"),
+            red = listOf("p0", "p1"),
+            blue = listOf("p2", "p3"),
+            lastGame = true,
+        )
+        val vm = viewModel()
+        // Carried over from a draft, but no game was ever completed: no claim about a last game.
+        assertThat(vm.uiState.value.lastGameNote).isNull()
+
+        fun match(id: String, at: Long, status: MatchStatus, red: List<String>, blue: List<String>) = Match(
+            id = id,
+            createdAt = at,
+            playedAt = at,
+            status = status,
+            mode = GameMode.QUICK,
+            participants = red.map { Participant(it, null, Team.RED) } + blue.map { Participant(it, null, Team.BLUE) },
+        )
+        matches.state.value = listOf(match("pending", 3, MatchStatus.PENDING, listOf("p0", "p1"), listOf("p2", "p3")))
+        assertThat(vm.uiState.value.lastGameNote).isNull()
+
+        matches.state.value += match("played", 2, MatchStatus.COMPLETED, listOf("p2", "p3"), listOf("p0", "p1"))
+        assertThat(vm.uiState.value.lastGameNote).isEqualTo("Same players and teams as last game")
+
+        matches.state.value += match("swap", 4, MatchStatus.COMPLETED, listOf("p0", "p2"), listOf("p1", "p3"))
+        assertThat(vm.uiState.value.lastGameNote).isEqualTo("Same players as last game")
+
+        matches.state.value += match("others", 5, MatchStatus.COMPLETED, listOf("p0", "p4"), listOf("p1", "p5"))
+        assertThat(vm.uiState.value.lastGameNote).isNull()
     }
 
     @Test
