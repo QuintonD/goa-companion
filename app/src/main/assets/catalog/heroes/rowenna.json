@@ -1,0 +1,543 @@
+{
+  "id": "rowenna",
+  "name": "Rowenna",
+  "title": "the Vanguard",
+  "product": "arcane",
+  "aliases": [],
+  "complexity": 2,
+  "stats": {
+    "attack": [
+      8,
+      8
+    ],
+    "defense": [
+      7,
+      7
+    ],
+    "initiative": [
+      4,
+      4
+    ],
+    "movement": [
+      3,
+      5
+    ]
+  },
+  "roles": [
+    "melee",
+    "durable",
+    "healer",
+    "farming",
+    "pusher",
+    "tactician"
+  ],
+  "portrait": "official/heroes/rowenna/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "rowenna-gold",
+      "heroId": "rowenna",
+      "name": "Code of Chivalry",
+      "color": "gold",
+      "tier": null,
+      "initiative": 11,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 2,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nBefore the attack: If you target a hero, both you and the target may retrieve a discarded card.",
+      "image": "official/cards/rowenna-gold.webp"
+    },
+    {
+      "id": "rowenna-silver",
+      "heroId": "rowenna",
+      "name": "Throw the Gauntlet",
+      "color": "silver",
+      "tier": null,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": null,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Place yourself into a space in range adjacent to an enemy hero in range; that hero may move 1 space; if they do, gain 2 coins.",
+      "image": "official/cards/rowenna-silver.webp"
+    },
+    {
+      "id": "rowenna-red-1",
+      "heroId": "rowenna",
+      "name": "Token of Gratitude",
+      "color": "red",
+      "tier": 1,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 4,
+        "range": null,
+        "radius": 1
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: A friendly hero in radius gains 1 coin.",
+      "image": "official/cards/rowenna-red-1.webp"
+    },
+    {
+      "id": "rowenna-green-1",
+      "heroId": "rowenna",
+      "name": "Close Quarters",
+      "color": "green",
+      "tier": 1,
+      "initiative": 4,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "After movement, if you are adjacent to an enemy hero, you may Choose one —\n• Place a friendly minion in radius into a space adjacent to that enemy hero.\n• Place an enemy minion in radius into a space adjacent to you.",
+      "image": "official/cards/rowenna-green-1.webp"
+    },
+    {
+      "id": "rowenna-blue-1",
+      "heroId": "rowenna",
+      "name": "Stand Guard",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Swap with a friendly unit in range which is adjacent to an enemy hero, or who has a card in the discard.",
+      "image": "official/cards/rowenna-blue-1.webp"
+    },
+    {
+      "id": "rowenna-red-2a",
+      "heroId": "rowenna",
+      "name": "Fair Share",
+      "color": "red",
+      "tier": 2,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 6,
+        "movement": 4,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit adjacent to you.\nAfter the attack: A friendly hero in radius gains 1 coin.",
+      "image": "official/cards/rowenna-red-2a.webp"
+    },
+    {
+      "id": "rowenna-red-2b",
+      "heroId": "rowenna",
+      "name": "Feat of Bravery",
+      "color": "red",
+      "tier": 2,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 7,
+        "defense": 7,
+        "movement": 4,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit adjacent to you.\nAfter the attack: A friendly hero in radius may retrieve a discarded card.",
+      "image": "official/cards/rowenna-red-2b.webp"
+    },
+    {
+      "id": "rowenna-green-2a",
+      "heroId": "rowenna",
+      "name": "Melee",
+      "color": "green",
+      "tier": 2,
+      "initiative": 4,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "After movement, if you are adjacent to an enemy hero, you may Choose one —\n• Place a friendly minion in radius into a space adjacent to that enemy hero.\n• Place an enemy minion in radius into a space adjacent to you.",
+      "image": "official/cards/rowenna-green-2a.webp"
+    },
+    {
+      "id": "rowenna-green-2b",
+      "heroId": "rowenna",
+      "name": "Opening Shots",
+      "color": "green",
+      "tier": 2,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "If both you and an enemy hero in radius have no cards in the discard, that hero discards a card, if able.",
+      "image": "official/cards/rowenna-green-2b.webp"
+    },
+    {
+      "id": "rowenna-blue-2a",
+      "heroId": "rowenna",
+      "name": "Protect the Weak",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Swap with a friendly unit in range which is adjacent to an enemy hero, or who has a card in the discard.",
+      "image": "official/cards/rowenna-blue-2a.webp"
+    },
+    {
+      "id": "rowenna-blue-2b",
+      "heroId": "rowenna",
+      "name": "Accept Surrender",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Defeat an enemy hero adjacent to you with no cards in hand.",
+      "image": "official/cards/rowenna-blue-2b.webp"
+    },
+    {
+      "id": "rowenna-red-3a",
+      "heroId": "rowenna",
+      "name": "Paragon of Grace",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 7,
+        "movement": 4,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Target a unit adjacent to you.\nAfter the attack: A friendly hero in radius gains 1 coin.\nMay repeat once on a different target.",
+      "image": "official/cards/rowenna-red-3a.webp"
+    },
+    {
+      "id": "rowenna-red-3b",
+      "heroId": "rowenna",
+      "name": "Paragon of Valor",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 7,
+        "defense": 8,
+        "movement": 4,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit adjacent to you.\nAfter the attack: A friendly hero in radius may retrieve a discarded card; if they do, you may repeat once on a different target.",
+      "image": "official/cards/rowenna-red-3b.webp"
+    },
+    {
+      "id": "rowenna-green-3a",
+      "heroId": "rowenna",
+      "name": "Grand Melee",
+      "color": "green",
+      "tier": 3,
+      "initiative": 3,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "After movement, if you are adjacent to an enemy hero, Choose up to two times —\n• Place a friendly minion in radius into a space adjacent to that enemy hero.\n• Place an enemy minion in radius into a space adjacent to you.",
+      "image": "official/cards/rowenna-green-3a.webp"
+    },
+    {
+      "id": "rowenna-green-3b",
+      "heroId": "rowenna",
+      "name": "Opening Volley",
+      "color": "green",
+      "tier": 3,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "If both you and an enemy hero in radius have no cards in the discard, that hero discards a card, if able. May repeat once.",
+      "image": "official/cards/rowenna-green-3b.webp"
+    },
+    {
+      "id": "rowenna-blue-3a",
+      "heroId": "rowenna",
+      "name": "Defend the Innocent",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 7,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "Swap with a friendly unit in range which is adjacent to an enemy hero, or who has a card in the discard.\nYou may retrieve a discarded card.",
+      "image": "official/cards/rowenna-blue-3a.webp"
+    },
+    {
+      "id": "rowenna-blue-3b",
+      "heroId": "rowenna",
+      "name": "Glorious Triumph",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 7,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "Defeat an enemy hero adjacent to you with no cards in hand; your friendly heroes gain triple assist coins.",
+      "image": "official/cards/rowenna-blue-3b.webp"
+    },
+    {
+      "id": "rowenna-purple-4",
+      "heroId": "rowenna",
+      "name": "Fabled Lance",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "All your attack actions gain the \"Ranged\" subtype, target a unit in range, and count as having a printed {range} Range value of 2.",
+      "image": "official/cards/rowenna-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "rowenna-handicap",
+    "heroId": "rowenna",
+    "name": "Earn the Spurs",
+    "color": "other",
+    "tier": null,
+    "initiative": 10,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 4,
+      "defense": 1,
+      "movement": 1,
+      "range": null,
+      "radius": null
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Target a hero adjacent to you.\nBefore the attack: Both you and the target may retrieve a discarded card.",
+    "image": "official/cards/rowenna-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "Your best chance to defeat an enemy hero with your gold card is when they have a low defense card in their discard; why is that?",
+      "answer": "The simplest way to kill a hero is by getting a discard on them and waiting for turn 4 when they have no card to defend with. In Rowenna’s case, that doesn't work so well since she heals them first, but if that healed card's defense isn't high enough to block, you still can finish them off with her gold card. In other words, for Rowenna's gold to be effective, look for characters that have already played their high defense cards while having a low defense in the discard.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Can my hero target themself with this ability?",
+      "answer": "No. If your action is affecting you (your hero), it will say so in the card text. Otherwise, it will not affect you, even if it targets all units around you (“in radius”).",
+      "source": "goa2-faq (common)"
+    }
+  ],
+  "lore": "From a young age, Rowenna dreamed of becoming a knight. She trained relentlessly, honing her combat skills and mastering the code of chivalry. Whether facing monstrous beasts or overwhelming odds, Rowenna stands unwavering, ready to defend the innocent, support her comrades, and lead her troops to victory.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/rowenna.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

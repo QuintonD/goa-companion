@@ -1,0 +1,580 @@
+{
+  "id": "takahide",
+  "name": "Takahide",
+  "title": "the Warlord",
+  "product": "wayward",
+  "aliases": [],
+  "complexity": 4,
+  "stats": {
+    "attack": [
+      5,
+      7
+    ],
+    "defense": [
+      4,
+      7
+    ],
+    "initiative": [
+      3,
+      5
+    ],
+    "movement": [
+      1,
+      4
+    ]
+  },
+  "roles": [
+    "durable",
+    "sniper",
+    "tactician",
+    "damager",
+    "farming"
+  ],
+  "portrait": "official/heroes/takahide/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "takahide-gold",
+      "heroId": "takahide",
+      "name": "Float like a Butterfly",
+      "color": "gold",
+      "tier": null,
+      "initiative": 8,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 8,
+        "movement": 5,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Swap this card with a different gold card in your deck.\n~(This card starts the game in your hand.)",
+      "image": "official/cards/takahide-gold.webp"
+    },
+    {
+      "id": "takahide-gold-extra-1",
+      "heroId": "takahide",
+      "name": "Sting like a Bee",
+      "color": "gold",
+      "tier": null,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 1,
+        "movement": 1,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Target a unit at maximum range.\nAfter the attack: Swap this card with a different gold card in your deck.\n~(This card starts the game in your deck.)",
+      "image": "official/cards/takahide-gold-extra-1.webp"
+    },
+    {
+      "id": "takahide-gold-extra-2",
+      "heroId": "takahide",
+      "name": "Strike like a Tiger",
+      "color": "gold",
+      "tier": null,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 7,
+        "defense": 3,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: Swap this card with a different gold card in your deck.\n~(This card starts the game in your deck.)",
+      "image": "official/cards/takahide-gold-extra-2.webp"
+    },
+    {
+      "id": "takahide-silver",
+      "heroId": "takahide",
+      "name": "Bushido",
+      "color": "silver",
+      "tier": null,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Swap your gold card with a different gold card in your deck; if you swap a resolved or discarded card this way, place the new card facedown.",
+      "image": "official/cards/takahide-silver.webp"
+    },
+    {
+      "id": "takahide-red-1",
+      "heroId": "takahide",
+      "name": "Set an Example",
+      "color": "red",
+      "tier": 1,
+      "initiative": 11,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 2,
+        "defense": 1,
+        "movement": 1,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: A friendly hero in radius may swap their unresolved card with a card in their hand.",
+      "image": "official/cards/takahide-red-1.webp"
+    },
+    {
+      "id": "takahide-green-1",
+      "heroId": "takahide",
+      "name": "Come to Aid",
+      "color": "green",
+      "tier": 1,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "A friendly hero in range may discard a card.\nIf that hero has a card in the discard, you may move up to 3 spaces.",
+      "image": "official/cards/takahide-green-1.webp"
+    },
+    {
+      "id": "takahide-blue-1",
+      "heroId": "takahide",
+      "name": "Proven Warrior",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Choose a card in the discard of a friendly hero in radius. An enemy hero in radius discards a card of the same color, if able.",
+      "image": "official/cards/takahide-blue-1.webp"
+    },
+    {
+      "id": "takahide-red-2a",
+      "heroId": "takahide",
+      "name": "Lead from the Front",
+      "color": "red",
+      "tier": 2,
+      "initiative": 11,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 2,
+        "movement": 1,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit adjacent to you.\nAfter the attack: A friendly hero in radius may swap their unresolved card with a card in their hand.",
+      "image": "official/cards/takahide-red-2a.webp"
+    },
+    {
+      "id": "takahide-red-2b",
+      "heroId": "takahide",
+      "name": "Spinning Blade",
+      "color": "red",
+      "tier": 2,
+      "initiative": 11,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 2,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit adjacent to you.\nAfter the attack: This turn: Empty spaces adjacent to you count as obstacles for enemy units.",
+      "image": "official/cards/takahide-red-2b.webp"
+    },
+    {
+      "id": "takahide-green-2a",
+      "heroId": "takahide",
+      "name": "Bring the Relief",
+      "color": "green",
+      "tier": 2,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "A friendly hero in range may discard a card.\nIf that hero has a card in the discard, you may move up to 4 spaces.",
+      "image": "official/cards/takahide-green-2a.webp"
+    },
+    {
+      "id": "takahide-green-2b",
+      "heroId": "takahide",
+      "name": "Pledge of Allegiance",
+      "color": "green",
+      "tier": 2,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "A friendly hero in range may discard a card.\nIf that hero has a card in the discard, both you and that hero gain 1 coin and you may retrieve a discarded card.",
+      "image": "official/cards/takahide-green-2b.webp"
+    },
+    {
+      "id": "takahide-blue-2a",
+      "heroId": "takahide",
+      "name": "Chosen Champion",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Choose a card in the discard of a friendly hero in radius. An enemy hero in radius discards a card of the same color, if able.",
+      "image": "official/cards/takahide-blue-2a.webp"
+    },
+    {
+      "id": "takahide-blue-2b",
+      "heroId": "takahide",
+      "name": "Calculated Risk",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "A friendly hero in radius may discard an attack card. If that hero has a card in the discard, that hero may move up to 2 spaces.",
+      "image": "official/cards/takahide-blue-2b.webp"
+    },
+    {
+      "id": "takahide-red-3a",
+      "heroId": "takahide",
+      "name": "Hold my Saké",
+      "color": "red",
+      "tier": 3,
+      "initiative": 12,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 2,
+        "movement": 1,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "Target a unit adjacent to you.\nAfter the attack: A friendly hero in radius may swap their unresolved card with a card in their hand, or in their discard.",
+      "image": "official/cards/takahide-red-3a.webp"
+    },
+    {
+      "id": "takahide-red-3b",
+      "heroId": "takahide",
+      "name": "Blade Helix",
+      "color": "red",
+      "tier": 3,
+      "initiative": 12,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 2,
+        "movement": 1,
+        "range": null,
+        "radius": 1
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Target a unit adjacent to you.\nAfter the attack: This turn: Empty spaces in radius count as obstacles for enemy units.",
+      "image": "official/cards/takahide-red-3b.webp"
+    },
+    {
+      "id": "takahide-green-3a",
+      "heroId": "takahide",
+      "name": "Commit Reserves",
+      "color": "green",
+      "tier": 3,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "A friendly hero in range may discard a card.\nIf that hero has a card in the discard, you may move up to 4 spaces, ignoring obstacles.",
+      "image": "official/cards/takahide-green-3a.webp"
+    },
+    {
+      "id": "takahide-green-3b",
+      "heroId": "takahide",
+      "name": "Loyal Retainer",
+      "color": "green",
+      "tier": 3,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "A friendly hero in range may discard a card.\nIf that hero has a card in the discard, both you and that hero gain 2 coins and you may retrieve a discarded card.",
+      "image": "official/cards/takahide-green-3b.webp"
+    },
+    {
+      "id": "takahide-blue-3a",
+      "heroId": "takahide",
+      "name": "The Right Hand",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Choose a card in the discard of a friendly hero in radius. Up to two enemy heroes in radius discard a card of the same color, if able.",
+      "image": "official/cards/takahide-blue-3a.webp"
+    },
+    {
+      "id": "takahide-blue-3b",
+      "heroId": "takahide",
+      "name": "Tactical Gambit",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "A friendly hero in radius may discard an attack card. If that hero has a card in the discard, that hero may move up to 2 spaces, ignoring obstacles.",
+      "image": "official/cards/takahide-blue-3b.webp"
+    },
+    {
+      "id": "takahide-purple-4",
+      "heroId": "takahide",
+      "name": "Ready for War",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Return your silver card to your deck and take two gold cards from your deck into your hand.\n~(You now have a total hand size of 6 cards.)",
+      "image": "official/cards/takahide-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "takahide-handicap",
+    "heroId": "takahide",
+    "name": "Shameful Display",
+    "color": "other",
+    "tier": null,
+    "initiative": 5,
+    "primary": "defense",
+    "secondary": [],
+    "values": {
+      "attack": null,
+      "defense": null,
+      "movement": null,
+      "range": null,
+      "radius": null
+    },
+    "ranged": false,
+    "block": true,
+    "item": null,
+    "text": "~(You are defeated.)",
+    "image": "official/cards/takahide-handicap.webp"
+  },
+  "extras": [],
+  "faq": [],
+  "lore": "Takahide rose to become a feared warlord, leading his armies from victory to victory — until a lone warrior refused to obey his orders. Now, he is consumed by a relentless obsession to crush his warrior for defying him.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/takahide.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

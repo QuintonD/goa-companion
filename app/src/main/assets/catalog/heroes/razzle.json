@@ -1,0 +1,534 @@
+{
+  "id": "razzle",
+  "name": "Razzle",
+  "title": "the Ringmaster",
+  "product": "arcane",
+  "aliases": [
+    "Razzle the Fay"
+  ],
+  "complexity": 4,
+  "stats": {
+    "attack": [
+      3,
+      3
+    ],
+    "defense": [
+      1,
+      4
+    ],
+    "initiative": [
+      8,
+      8
+    ],
+    "movement": [
+      5,
+      6
+    ]
+  },
+  "roles": [
+    "tactician",
+    "melee"
+  ],
+  "portrait": "official/heroes/razzle/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "razzle-gold",
+      "heroId": "razzle",
+      "name": "Stunt Doubles",
+      "color": "gold",
+      "tier": null,
+      "initiative": 13,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 2,
+        "defense": 1,
+        "movement": 1,
+        "range": null,
+        "radius": 1
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: Spawn up to 3 more of you in radius; each of you is the same hero, except when actions are performed. If defeated, remove all of you.",
+      "image": "official/cards/razzle-gold.webp"
+    },
+    {
+      "id": "razzle-silver",
+      "heroId": "razzle",
+      "name": "Crowd Control",
+      "color": "silver",
+      "tier": null,
+      "initiative": 13,
+      "primary": "defense_skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": 1,
+        "movement": null,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "When used as a defense action, +2 {defense}\nDefense for each other one of you in radius.\nWhen used as a skill action, remove all other you in play.",
+      "image": "official/cards/razzle-silver.webp"
+    },
+    {
+      "id": "razzle-red-1",
+      "heroId": "razzle",
+      "name": "Phantom Strike",
+      "color": "red",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 3,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: If there is more than one of you in play, you may remove one of you.",
+      "image": "official/cards/razzle-red-1.webp"
+    },
+    {
+      "id": "razzle-green-1",
+      "heroId": "razzle",
+      "name": "Tightrope",
+      "color": "green",
+      "tier": 1,
+      "initiative": 2,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 1,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "After you move, you may move another one of you 1 space.",
+      "image": "official/cards/razzle-green-1.webp"
+    },
+    {
+      "id": "razzle-blue-1",
+      "heroId": "razzle",
+      "name": "Alleyoop",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 3,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Swap with a friendly hero in range.\nMove another one of you up to 1 space.",
+      "image": "official/cards/razzle-blue-1.webp"
+    },
+    {
+      "id": "razzle-red-2a",
+      "heroId": "razzle",
+      "name": "Hit and Gone",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 4,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit adjacent to you.\nAfter the attack: You may remove one or more of you in play, except the last one of you.",
+      "image": "official/cards/razzle-red-2a.webp"
+    },
+    {
+      "id": "razzle-red-2b",
+      "heroId": "razzle",
+      "name": "Rummage",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 4,
+        "movement": 4,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit adjacent to you.\nAfter the attack: If there is another one of you in radius, you may retrieve a discarded card.\n~(All of you share cards in hand, deck, and discard.)",
+      "image": "official/cards/razzle-red-2b.webp"
+    },
+    {
+      "id": "razzle-green-2a",
+      "heroId": "razzle",
+      "name": "High Wire",
+      "color": "green",
+      "tier": 2,
+      "initiative": 2,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "After you move, move another one of you up to 2 spaces.",
+      "image": "official/cards/razzle-green-2a.webp"
+    },
+    {
+      "id": "razzle-green-2b",
+      "heroId": "razzle",
+      "name": "Theatrics",
+      "color": "green",
+      "tier": 2,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Swap with a minion in range.",
+      "image": "official/cards/razzle-green-2b.webp"
+    },
+    {
+      "id": "razzle-blue-2a",
+      "heroId": "razzle",
+      "name": "Group Performance",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 3,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Swap with a friendly hero in range.\nMove another one of you up to 2 spaces.",
+      "image": "official/cards/razzle-blue-2a.webp"
+    },
+    {
+      "id": "razzle-blue-2b",
+      "heroId": "razzle",
+      "name": "Magic Trick",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Push a unit adjacent to you up to 2 spaces; for every space the target moved, move this one of you one space in the opposite direction.",
+      "image": "official/cards/razzle-blue-2b.webp"
+    },
+    {
+      "id": "razzle-red-3a",
+      "heroId": "razzle",
+      "name": "Into Thin Air",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 4,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Target a unit adjacent to you.\nAfter the attack: You may remove one or more of you in play, including all of you.\n~(If all are removed, you are not defeated. Respawn as normal.)",
+      "image": "official/cards/razzle-red-3a.webp"
+    },
+    {
+      "id": "razzle-red-3b",
+      "heroId": "razzle",
+      "name": "Ransack",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 4,
+        "movement": 4,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "Target a unit adjacent to you.\nAfter the attack: For each other one of you in radius, you may retrieve a discarded card.",
+      "image": "official/cards/razzle-red-3b.webp"
+    },
+    {
+      "id": "razzle-green-3a",
+      "heroId": "razzle",
+      "name": "Wire Dancers",
+      "color": "green",
+      "tier": 3,
+      "initiative": 1,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "After you move, move another one of you up to 3 spaces.",
+      "image": "official/cards/razzle-green-3a.webp"
+    },
+    {
+      "id": "razzle-green-3b",
+      "heroId": "razzle",
+      "name": "Spectacle",
+      "color": "green",
+      "tier": 3,
+      "initiative": 1,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Swap with a minion in range.\nMay repeat once by another one of you, targeting a different minion.",
+      "image": "official/cards/razzle-green-3b.webp"
+    },
+    {
+      "id": "razzle-blue-3a",
+      "heroId": "razzle",
+      "name": "Team Spirit",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 3,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "Swap with a friendly hero in range.\nMove another one of you up to 3 spaces.",
+      "image": "official/cards/razzle-blue-3a.webp"
+    },
+    {
+      "id": "razzle-blue-3b",
+      "heroId": "razzle",
+      "name": "Aaaand it's gone!",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Push a unit adjacent to you up to 3 spaces; for every space the target moved, move this one of you one space in the opposite direction.",
+      "image": "official/cards/razzle-blue-3b.webp"
+    },
+    {
+      "id": "razzle-purple-4",
+      "heroId": "razzle",
+      "name": "Twin Strike",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "After you perform a basic attack action, another one of you may repeat it once, targeting a different unit.",
+      "image": "official/cards/razzle-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "razzle-handicap",
+    "heroId": "razzle",
+    "name": "Stunted Doubles",
+    "color": "other",
+    "tier": null,
+    "initiative": 12,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 1,
+      "defense": 1,
+      "movement": 1,
+      "range": null,
+      "radius": 1
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Target a hero adjacent to you.\nAfter the attack: Spawn up to 3 more of you in radius; each of you is the same hero, except when actions are performed. If defeated, remove all of you.",
+    "image": "official/cards/razzle-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "Each instance of Razzle is “the same hero, except when actions are performed.” Is that only when your own actions are performed, or when enemy actions are performed as well?",
+      "answer": "During any action, regardless of whether it is performed by your enemy, ally or yourself, all the Razzles other than the active one is considered “another hero”.\nCards such as Mortimer’s Crawling Dead (which let you affect “another enemy hero in radius”) or Xargatha's Cleave (which can be repeated on a “different enemy hero”) can target Razzle twice by targeting two Razzle figures.\nIt is therefore very important to not have multiple Razzles near a hero that has multi-target discards as it is an easy way to be card killed.",
+      "source": "goa2-faq"
+    }
+  ],
+  "lore": "A lesser-known fact about magical mirrors is that they break easily. Razzle froze as her mirror shattered into a myriad of twinkling fragments, as if a troupe of mischievous pixies had decided to test their acrobatic skills. When the silence fell, she found herself surrounded by a host of identical faces, each wearing an expression of utter confusion.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/razzle.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

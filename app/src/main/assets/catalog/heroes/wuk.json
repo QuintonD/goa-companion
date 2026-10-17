@@ -1,0 +1,542 @@
+{
+  "id": "wuk",
+  "name": "Wuk",
+  "title": "the Grovekeeper",
+  "product": "renowned",
+  "aliases": [
+    "Wuk the Grove Keeper",
+    "Wuk the Grove Guardian"
+  ],
+  "complexity": 3,
+  "stats": {
+    "attack": [
+      5,
+      5
+    ],
+    "defense": [
+      8,
+      8
+    ],
+    "initiative": [
+      1,
+      1
+    ],
+    "movement": [
+      3,
+      4
+    ]
+  },
+  "roles": [
+    "tokens",
+    "pusher",
+    "durable",
+    "sniper",
+    "tactician",
+    "healer"
+  ],
+  "portrait": "official/heroes/wuk/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "wuk-gold",
+      "heroId": "wuk",
+      "name": "Tree Slam",
+      "color": "gold",
+      "tier": null,
+      "initiative": 11,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 3,
+        "movement": 1,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• Target a minion adjacent to you.\n• Remove a {token_tree} Tree token adjacent to you. Target a unit in range.",
+      "image": "official/cards/wuk-gold.webp"
+    },
+    {
+      "id": "wuk-silver",
+      "heroId": "wuk",
+      "name": "Mystic Saplings",
+      "color": "silver",
+      "tier": null,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": null,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Place up to 3 {token_tree} Tree tokens in radius; Tree tokens are not removed at the end of round.",
+      "image": "official/cards/wuk-silver.webp"
+    },
+    {
+      "id": "wuk-red-1",
+      "heroId": "wuk",
+      "name": "Nature's Protector",
+      "color": "red",
+      "tier": 1,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 7,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• Target a hero adjacent to you.\n• Target a unit in range adjacent to a {token_tree} Tree token.",
+      "image": "official/cards/wuk-red-1.webp"
+    },
+    {
+      "id": "wuk-green-1",
+      "heroId": "wuk",
+      "name": "Toss Away",
+      "color": "green",
+      "tier": 1,
+      "initiative": 6,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Place a token, or an enemy unit, adjacent to you into a space in range.",
+      "image": "official/cards/wuk-green-1.webp"
+    },
+    {
+      "id": "wuk-blue-1",
+      "heroId": "wuk",
+      "name": "Gifts of Nature",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 8,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Remove a {token_tree} Tree token in radius.\nYou may retrieve a discarded card.",
+      "image": "official/cards/wuk-blue-1.webp"
+    },
+    {
+      "id": "wuk-red-2a",
+      "heroId": "wuk",
+      "name": "Nature's Guardian",
+      "color": "red",
+      "tier": 2,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 8,
+        "movement": 4,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "initiative",
+      "text": "Choose one —\n• Target a hero adjacent to you.\n• Target a unit in range adjacent to a {token_tree} Tree token.",
+      "image": "official/cards/wuk-red-2a.webp"
+    },
+    {
+      "id": "wuk-red-2b",
+      "heroId": "wuk",
+      "name": "Trample",
+      "color": "red",
+      "tier": 2,
+      "initiative": 7,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 7,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "If you move in a straight line: You may ignore obstacles; each enemy hero you moved through discards a card, or is defeated;\ndefeat up to one minion you moved through.",
+      "image": "official/cards/wuk-red-2b.webp"
+    },
+    {
+      "id": "wuk-green-2a",
+      "heroId": "wuk",
+      "name": "Mighty Throw",
+      "color": "green",
+      "tier": 2,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Place a token, or an enemy unit, adjacent to you into a space in range.",
+      "image": "official/cards/wuk-green-2a.webp"
+    },
+    {
+      "id": "wuk-green-2b",
+      "heroId": "wuk",
+      "name": "Into the Canopy",
+      "color": "green",
+      "tier": 2,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Choose one —\n• Swap with a {token_tree} Tree token in radius.\n• Swap a friendly unit in radius with a Tree token in radius.",
+      "image": "official/cards/wuk-green-2b.webp"
+    },
+    {
+      "id": "wuk-blue-2a",
+      "heroId": "wuk",
+      "name": "Tree of Plenty",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Remove a {token_tree} Tree token in radius.\nChoose one —\n• You may retrieve a discarded card.\n• A friendly hero in radius may retrieve a discarded card.",
+      "image": "official/cards/wuk-blue-2a.webp"
+    },
+    {
+      "id": "wuk-blue-2b",
+      "heroId": "wuk",
+      "name": "Claim Dominance",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "This round: Up to 1 enemy minion adjacent to you does not count towards the minion total during minion battle, regardless of immunity.",
+      "image": "official/cards/wuk-blue-2b.webp"
+    },
+    {
+      "id": "wuk-red-3a",
+      "heroId": "wuk",
+      "name": "Nature's Champion",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 8,
+        "movement": 4,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "initiative",
+      "text": "Choose one, or both, on different targets —\n• Target a hero adjacent to you.\n• Target a unit in range adjacent to a {token_tree} Tree token.",
+      "image": "official/cards/wuk-red-3a.webp"
+    },
+    {
+      "id": "wuk-red-3b",
+      "heroId": "wuk",
+      "name": "Angry Stampede",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "movement",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 7,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "If you move in a straight line: You may ignore obstacles; each enemy hero you moved through discards a card, or is defeated;\ndefeat up to two minions you moved through.",
+      "image": "official/cards/wuk-red-3b.webp"
+    },
+    {
+      "id": "wuk-green-3a",
+      "heroId": "wuk",
+      "name": "Monstrous Throw",
+      "color": "green",
+      "tier": 3,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Place a token, or an enemy unit, adjacent to you into a space in range. May repeat once.",
+      "image": "official/cards/wuk-green-3a.webp"
+    },
+    {
+      "id": "wuk-green-3b",
+      "heroId": "wuk",
+      "name": "Treetop Ride",
+      "color": "green",
+      "tier": 3,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 2,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Choose up to two times —\n• Swap with a {token_tree} Tree token in radius.\n• Swap a friendly unit in radius with a Tree token in radius.",
+      "image": "official/cards/wuk-green-3b.webp"
+    },
+    {
+      "id": "wuk-blue-3a",
+      "heroId": "wuk",
+      "name": "Abundance",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Remove a {token_tree} Tree token in radius.\nChoose one or both —\n• You may retrieve a discarded card.\n• A friendly hero in radius may retrieve a discarded card.",
+      "image": "official/cards/wuk-blue-3a.webp"
+    },
+    {
+      "id": "wuk-blue-3b",
+      "heroId": "wuk",
+      "name": "Assert Dominance",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "This round: Up to 2 enemy minions adjacent to you do not count towards the minion total during minion battle, regardless of immunity.",
+      "image": "official/cards/wuk-blue-3b.webp"
+    },
+    {
+      "id": "wuk-purple-4",
+      "heroId": "wuk",
+      "name": "March of Nature",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Each time after you resolve a card, you may place a {token_tree} Tree token in radius.",
+      "image": "official/cards/wuk-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "wuk-handicap",
+    "heroId": "wuk",
+    "name": "Makeshift Weapon",
+    "color": "other",
+    "tier": null,
+    "initiative": 10,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 3,
+      "defense": 2,
+      "movement": 1,
+      "range": 2,
+      "radius": null
+    },
+    "ranged": true,
+    "block": false,
+    "item": null,
+    "text": "Choose one —\n• Target a hero adjacent to you.\n• Remove a {token_tree} Tree token adjacent to you. Target a hero in range.",
+    "image": "official/cards/wuk-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "When moving through a heavy minion and another one, does the order of minions matter?",
+      "answer": "\"Up to two minions\" resolves at the same time, so the heavy minion cannot be targeted and will not be defeated.",
+      "source": "goa2-faq"
+    }
+  ],
+  "lore": "The grove does not need protection; Wuk simply chooses to stay here. Trees make the best company when you prefer not to be disturbed. If you’re daring enough to enter his domain, whatever you do, don’t touch the trees!",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/wuk.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

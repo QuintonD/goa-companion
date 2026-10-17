@@ -1,0 +1,538 @@
+{
+  "id": "swift",
+  "name": "Swift",
+  "title": "the Sharpshooter",
+  "product": "renowned",
+  "aliases": [],
+  "complexity": 3,
+  "stats": {
+    "attack": [
+      5,
+      5
+    ],
+    "defense": [
+      2,
+      2
+    ],
+    "initiative": [
+      4,
+      4
+    ],
+    "movement": [
+      3,
+      7
+    ]
+  },
+  "roles": [
+    "sniper",
+    "farming",
+    "tactician"
+  ],
+  "portrait": "official/heroes/swift/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "swift-gold",
+      "heroId": "swift",
+      "name": "Reload!",
+      "color": "gold",
+      "tier": null,
+      "initiative": 6,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 1,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• Perform the primary action of your rightmost resolved card.\n• Defeat a minion adjacent to you.",
+      "image": "official/cards/swift-gold.webp"
+    },
+    {
+      "id": "swift-silver",
+      "heroId": "swift",
+      "name": "Bounce",
+      "color": "silver",
+      "tier": null,
+      "initiative": 12,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Move 2 spaces in a straight line, ignoring obstacles; if this card is already resolved as you perform this action, may repeat once.",
+      "image": "official/cards/swift-silver.webp"
+    },
+    {
+      "id": "swift-red-1",
+      "heroId": "swift",
+      "name": "Snipe",
+      "color": "red",
+      "tier": 1,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 4,
+        "movement": 4,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Target a unit at maximum range, and in a straight line.",
+      "image": "official/cards/swift-red-1.webp"
+    },
+    {
+      "id": "swift-green-1",
+      "heroId": "swift",
+      "name": "Suppress",
+      "color": "green",
+      "tier": 1,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "An enemy hero in radius who is not adjacent to terrain discards a card, if able.",
+      "image": "official/cards/swift-green-1.webp"
+    },
+    {
+      "id": "swift-blue-1",
+      "heroId": "swift",
+      "name": "Steam Jump",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Place yourself into a space in a straight line in radius. Push an enemy unit adjacent to you up to 1 space.",
+      "image": "official/cards/swift-blue-1.webp"
+    },
+    {
+      "id": "swift-red-2a",
+      "heroId": "swift",
+      "name": "Prepared Shot",
+      "color": "red",
+      "tier": 2,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 5,
+        "movement": 4,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit in range, in a straight line, and not adjacent to you.",
+      "image": "official/cards/swift-red-2a.webp"
+    },
+    {
+      "id": "swift-red-2b",
+      "heroId": "swift",
+      "name": "Shotgun",
+      "color": "red",
+      "tier": 2,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 6,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit in range. Before the attack:\nAn enemy hero adjacent to the target discards a card, if able.",
+      "image": "official/cards/swift-red-2b.webp"
+    },
+    {
+      "id": "swift-green-2a",
+      "heroId": "swift",
+      "name": "Pin Down",
+      "color": "green",
+      "tier": 2,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "An enemy hero in radius who is not adjacent to terrain discards a card, if able.",
+      "image": "official/cards/swift-green-2a.webp"
+    },
+    {
+      "id": "swift-green-2b",
+      "heroId": "swift",
+      "name": "Mark for Death",
+      "color": "green",
+      "tier": 2,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Move an enemy minion in radius up to 3 spaces to a space in radius.\nNext turn: The first time an enemy minion in radius is defeated, gain 1 coin.",
+      "image": "official/cards/swift-green-2b.webp"
+    },
+    {
+      "id": "swift-blue-2a",
+      "heroId": "swift",
+      "name": "Assault Jump",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Place yourself into a space in a straight line in radius. Push an enemy unit adjacent to you up to 2 spaces.",
+      "image": "official/cards/swift-blue-2a.webp"
+    },
+    {
+      "id": "swift-blue-2b",
+      "heroId": "swift",
+      "name": "Delayed Jump",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 1,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "End of turn: Place yourself into a space in radius not in a straight line from you.",
+      "image": "official/cards/swift-blue-2b.webp"
+    },
+    {
+      "id": "swift-red-3a",
+      "heroId": "swift",
+      "name": "Killshot",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 5,
+        "movement": 4,
+        "range": 5,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit in range, in a straight line, and not adjacent to you.",
+      "image": "official/cards/swift-red-3a.webp"
+    },
+    {
+      "id": "swift-red-3b",
+      "heroId": "swift",
+      "name": "Super-Shotgun",
+      "color": "red",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "radius",
+      "text": "Target a unit in range. Before the attack:\nAn enemy hero adjacent to the target discards a card, or is defeated.",
+      "image": "official/cards/swift-red-3b.webp"
+    },
+    {
+      "id": "swift-green-3a",
+      "heroId": "swift",
+      "name": "Killing Ground",
+      "color": "green",
+      "tier": 3,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "An enemy hero in radius who is not adjacent to terrain discards a card, or is defeated.",
+      "image": "official/cards/swift-green-3a.webp"
+    },
+    {
+      "id": "swift-green-3b",
+      "heroId": "swift",
+      "name": "Hunting Season",
+      "color": "green",
+      "tier": 3,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Move up to two enemy minions in radius, up to 3 spaces each, to spaces in radius.\nNext turn: The first two times an enemy minion in radius is defeated, gain 1 coin.",
+      "image": "official/cards/swift-green-3b.webp"
+    },
+    {
+      "id": "swift-blue-3a",
+      "heroId": "swift",
+      "name": "Drop Trooper",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Place yourself into a space in a straight line in radius. Push up to two enemy units adjacent to you up to 2 spaces.",
+      "image": "official/cards/swift-blue-3a.webp"
+    },
+    {
+      "id": "swift-blue-3b",
+      "heroId": "swift",
+      "name": "Mobile Scout",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 1,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "End of turn: Place yourself into a space in radius not in a straight line from you.\nYou may then fast travel, if able.",
+      "image": "official/cards/swift-blue-3b.webp"
+    },
+    {
+      "id": "swift-purple-4",
+      "heroId": "swift",
+      "name": "Bullet Time",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "After you resolve a basic card, you may perform the primary action on that card;\nyou cannot target the same enemy hero twice in the same turn this way.",
+      "image": "official/cards/swift-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "swift-handicap",
+    "heroId": "swift",
+    "name": "Backup",
+    "color": "other",
+    "tier": null,
+    "initiative": 6,
+    "primary": "skill",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": null,
+      "defense": 1,
+      "movement": 1,
+      "range": null,
+      "radius": null
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Perform the primary action of your rightmost resolved card. If you perform an Attack action this way, you cannot target minions.",
+    "image": "official/cards/swift-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "How can Swift's Silver card already be resolved while its action is being performed?",
+      "answer": "If this card is played before Swift's Gold card, it will already be resolved when the Gold card triggers it again.",
+      "source": "goa2-faq"
+    }
+  ],
+  "lore": "When Swift’s application to the Royal Fleet Academy was declined, she didn’t give up on her dreams of roaming the skies. She joined the mobile scouts just before the Last War and earned her place as the best shot of her regiment.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/swift.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

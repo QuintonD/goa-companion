@@ -1,0 +1,529 @@
+{
+  "id": "ignatia",
+  "name": "Ignatia",
+  "title": "the Mad",
+  "product": "renowned",
+  "aliases": [],
+  "complexity": 4,
+  "stats": {
+    "attack": [
+      5,
+      5
+    ],
+    "defense": [
+      6,
+      6
+    ],
+    "initiative": [
+      2,
+      2
+    ],
+    "movement": [
+      4,
+      5
+    ]
+  },
+  "roles": [
+    "sniper",
+    "damager",
+    "tokens",
+    "tactician",
+    "pusher"
+  ],
+  "portrait": "official/heroes/ignatia/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "ignatia-gold",
+      "heroId": "ignatia",
+      "name": "Chaos Bolt",
+      "color": "gold",
+      "tier": null,
+      "initiative": 11,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 2,
+        "defense": 2,
+        "movement": 1,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "{tiebreaker_blue}: Target a minion adjacent to you.\n{tiebreaker_orange}: Target a hero in range.\n~(Apply the text matching the symbol on the Tie Breaker coin.)",
+      "image": "official/cards/ignatia-gold.webp"
+    },
+    {
+      "id": "ignatia-silver",
+      "heroId": "ignatia",
+      "name": "Equilibrium",
+      "color": "silver",
+      "tier": null,
+      "initiative": 1,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 7,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "This round: Each time you perform or repeat a primary action, you may apply either {tiebreaker_blue} or {tiebreaker_orange}\ncard text, regardless of the Tie Breaker coin.",
+      "image": "official/cards/ignatia-silver.webp"
+    },
+    {
+      "id": "ignatia-red-1",
+      "heroId": "ignatia",
+      "name": "Playing with Fire",
+      "color": "red",
+      "tier": 1,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 4,
+        "movement": 3,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "{tiebreaker_blue}: Target a unit in range not in a straight line.\n{tiebreaker_orange}: Target a unit in range in a straight line.",
+      "image": "official/cards/ignatia-red-1.webp"
+    },
+    {
+      "id": "ignatia-green-1",
+      "heroId": "ignatia",
+      "name": "Path of Ashes",
+      "color": "green",
+      "tier": 1,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "{tiebreaker_blue}: Move up to 2 spaces in a straight line.\nPlace a {token_magma} Magma token in each empty space you moved through, or out of.\n{tiebreaker_orange}: Place up to 2 Magma tokens in radius.",
+      "image": "official/cards/ignatia-green-1.webp"
+    },
+    {
+      "id": "ignatia-blue-1",
+      "heroId": "ignatia",
+      "name": "Abrupt Combustion",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "{tiebreaker_blue}: An enemy hero in radius adjacent to a token or to a minion discards a card, if able.\n{tiebreaker_orange}: Remove an enemy minion in radius adjacent to an enemy hero.",
+      "image": "official/cards/ignatia-blue-1.webp"
+    },
+    {
+      "id": "ignatia-red-2a",
+      "heroId": "ignatia",
+      "name": "Erratic Fireblast",
+      "color": "red",
+      "tier": 2,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 5,
+        "movement": 3,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "{tiebreaker_blue}: Target a unit in range not in a straight line.\n{tiebreaker_orange}: Target a unit in range in a straight line.",
+      "image": "official/cards/ignatia-red-2a.webp"
+    },
+    {
+      "id": "ignatia-red-2b",
+      "heroId": "ignatia",
+      "name": "Crack of Doom",
+      "color": "red",
+      "tier": 2,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 3,
+        "range": 5,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "initiative",
+      "text": "{tiebreaker_blue}: Target a unit adjacent to you.\n{tiebreaker_orange}: Target a unit at maximum range.",
+      "image": "official/cards/ignatia-red-2b.webp"
+    },
+    {
+      "id": "ignatia-green-2a",
+      "heroId": "ignatia",
+      "name": "Path of Cinders",
+      "color": "green",
+      "tier": 2,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "{tiebreaker_blue}: Move up to 3 spaces in a straight line.\nPlace a {token_magma} Magma token in each empty space you moved through, or out of.\n{tiebreaker_orange}: Place up to 3 Magma tokens in radius.",
+      "image": "official/cards/ignatia-green-2a.webp"
+    },
+    {
+      "id": "ignatia-green-2b",
+      "heroId": "ignatia",
+      "name": "Unstable Portal",
+      "color": "green",
+      "tier": 2,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "{tiebreaker_blue}: Swap with a friendly unit in radius.\n{tiebreaker_orange}: Swap with an enemy unit in radius.",
+      "image": "official/cards/ignatia-green-2b.webp"
+    },
+    {
+      "id": "ignatia-blue-2a",
+      "heroId": "ignatia",
+      "name": "Spontaneous Immolation",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "{tiebreaker_blue}: An enemy hero in radius adjacent to a token or to a minion discards a card, if able.\n{tiebreaker_orange}: Remove an enemy minion in radius adjacent to an enemy hero.",
+      "image": "official/cards/ignatia-blue-2a.webp"
+    },
+    {
+      "id": "ignatia-blue-2b",
+      "heroId": "ignatia",
+      "name": "Searing Heat",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "{tiebreaker_blue}: Move a friendly hero in radius 2 spaces in a straight line.\n{tiebreaker_orange}: Move an enemy hero in radius 2 spaces in a straight line.",
+      "image": "official/cards/ignatia-blue-2b.webp"
+    },
+    {
+      "id": "ignatia-red-3a",
+      "heroId": "ignatia",
+      "name": "Loosely-Aimed Firebolts",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 5,
+        "movement": 3,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "radius",
+      "text": "{tiebreaker_blue}: Target a unit in range not in a straight line.\n{tiebreaker_orange}: Target a unit in range in a straight line.\nMay repeat once on a different hero.",
+      "image": "official/cards/ignatia-red-3a.webp"
+    },
+    {
+      "id": "ignatia-red-3b",
+      "heroId": "ignatia",
+      "name": "Imminent Eruption",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 6,
+        "movement": 3,
+        "range": 5,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "initiative",
+      "text": "{tiebreaker_blue}: Target a unit adjacent to you.\nMay repeat once on a minion.\n{tiebreaker_orange}: Target a unit at maximum range.",
+      "image": "official/cards/ignatia-red-3b.webp"
+    },
+    {
+      "id": "ignatia-green-3a",
+      "heroId": "ignatia",
+      "name": "Path of Flames",
+      "color": "green",
+      "tier": 3,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "{tiebreaker_blue}: Move up to 4 spaces in a straight line.\nPlace a {token_magma} Magma token in each empty space you moved through, or out of.\n{tiebreaker_orange}: Place up to 4 Magma tokens in radius.",
+      "image": "official/cards/ignatia-green-3a.webp"
+    },
+    {
+      "id": "ignatia-green-3b",
+      "heroId": "ignatia",
+      "name": "Chaos Gate",
+      "color": "green",
+      "tier": 3,
+      "initiative": 4,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "{tiebreaker_blue}: Swap with a friendly unit in radius.\nYou may move that unit 1 space.\n{tiebreaker_orange}: Swap with an enemy unit in radius.\nYou may move 1 space.",
+      "image": "official/cards/ignatia-green-3b.webp"
+    },
+    {
+      "id": "ignatia-blue-3a",
+      "heroId": "ignatia",
+      "name": "Violent Conflagration",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "{tiebreaker_blue}: An enemy hero in radius adjacent to a token or to a minion discards a card, or is defeated.\n{tiebreaker_orange}: Defeat an enemy minion in radius adjacent to an enemy hero.",
+      "image": "official/cards/ignatia-blue-3a.webp"
+    },
+    {
+      "id": "ignatia-blue-3b",
+      "heroId": "ignatia",
+      "name": "Scorching Blaze",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "{tiebreaker_blue}: Move a friendly hero in radius 2 or 3 spaces in a straight line.\n{tiebreaker_orange}: Move an enemy hero in radius 2 or 3 spaces in a straight line.",
+      "image": "official/cards/ignatia-blue-3b.webp"
+    },
+    {
+      "id": "ignatia-purple-4",
+      "heroId": "ignatia",
+      "name": "Chaos Incarnate",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "The first time each turn after you perform a primary action, you may flip the Tie Breaker coin; if you do, you may perform that action again, choosing different targets.",
+      "image": "official/cards/ignatia-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "ignatia-handicap",
+    "heroId": "ignatia",
+    "name": "Unreliable Jolt",
+    "color": "other",
+    "tier": null,
+    "initiative": 10,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 1,
+      "defense": 1,
+      "movement": 1,
+      "range": 2,
+      "radius": null
+    },
+    "ranged": true,
+    "block": false,
+    "item": null,
+    "text": "{tiebreaker_blue}: Target a hero adjacent to you.\n{tiebreaker_orange}: Target a hero in range not adjacent to you.",
+    "image": "official/cards/ignatia-handicap.webp"
+  },
+  "extras": [],
+  "faq": [],
+  "lore": "There is a fine line between genius and madness, and Ignatia is the living proof of this. The dwarven fire-mage is as powerful as she is unpredictable, just like the forces she commands.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/ignatia.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

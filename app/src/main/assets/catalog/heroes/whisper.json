@@ -1,0 +1,539 @@
+{
+  "id": "whisper",
+  "name": "Whisper",
+  "title": "the Outcast",
+  "product": "devoted",
+  "aliases": [],
+  "complexity": 2,
+  "stats": {
+    "attack": [
+      7,
+      7
+    ],
+    "defense": [
+      4,
+      4
+    ],
+    "initiative": [
+      7,
+      7
+    ],
+    "movement": [
+      3,
+      5
+    ]
+  },
+  "roles": [
+    "damager",
+    "durable",
+    "tactician",
+    "pusher"
+  ],
+  "portrait": "official/heroes/whisper/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "whisper-gold",
+      "heroId": "whisper",
+      "name": "Swift Justice",
+      "color": "gold",
+      "tier": null,
+      "initiative": 12,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 2,
+        "defense": 2,
+        "movement": 1,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• Target a hero in range with an empty discard. After the attack: If able, that hero performs a movement action on the card they defended with, moving full distance in a straight line.\n• Target a unit adjacent to you.",
+      "image": "official/cards/whisper-gold.webp"
+    },
+    {
+      "id": "whisper-silver",
+      "heroId": "whisper",
+      "name": "Death Seeker",
+      "color": "silver",
+      "tier": null,
+      "initiative": 13,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": null,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "If an enemy hero in radius has a card in the discard, choose one —\n• This turn: You are immune to enemy actions.\n• You may retrieve a discarded card.",
+      "image": "official/cards/whisper-silver.webp"
+    },
+    {
+      "id": "whisper-red-1",
+      "heroId": "whisper",
+      "name": "Crimson Trail",
+      "color": "red",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 4,
+        "movement": 4,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Before the attack: You may move up to 1 space if there is an empty minion spawn point in radius in the battle zone.\nTarget a unit adjacent to you.",
+      "image": "official/cards/whisper-red-1.webp"
+    },
+    {
+      "id": "whisper-green-1",
+      "heroId": "whisper",
+      "name": "Shadow Step",
+      "color": "green",
+      "tier": 1,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Place yourself into an empty minion spawn point in range in the battle zone.",
+      "image": "official/cards/whisper-green-1.webp"
+    },
+    {
+      "id": "whisper-blue-1",
+      "heroId": "whisper",
+      "name": "Seeds of Fear",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 2,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target an enemy unit in radius occupying a spawn point. Move that unit 1 space.",
+      "image": "official/cards/whisper-blue-1.webp"
+    },
+    {
+      "id": "whisper-red-2a",
+      "heroId": "whisper",
+      "name": "Sanguine Path",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 4,
+        "movement": 4,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Before the attack: You may move up to 1 space for every empty minion spawn point in radius in the battle zone, up to a maximum of 2 spaces. Target a unit adjacent to you.",
+      "image": "official/cards/whisper-red-2a.webp"
+    },
+    {
+      "id": "whisper-red-2b",
+      "heroId": "whisper",
+      "name": "Blood Fury",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 6,
+        "movement": 4,
+        "range": null,
+        "radius": 5
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit adjacent to you. After the attack: If an enemy hero in radius has a card in the discard, may repeat once on a different target.",
+      "image": "official/cards/whisper-red-2b.webp"
+    },
+    {
+      "id": "whisper-green-2a",
+      "heroId": "whisper",
+      "name": "Shadow Walk",
+      "color": "green",
+      "tier": 2,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Place yourself into an empty minion spawn point in range in the battle zone.",
+      "image": "official/cards/whisper-green-2a.webp"
+    },
+    {
+      "id": "whisper-green-2b",
+      "heroId": "whisper",
+      "name": "Cruel Twist",
+      "color": "green",
+      "tier": 2,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Swap with a unit adjacent to you, or with an enemy hero in range with a card in the discard. Move up to 2 spaces.",
+      "image": "official/cards/whisper-green-2b.webp"
+    },
+    {
+      "id": "whisper-blue-2a",
+      "heroId": "whisper",
+      "name": "Sprouts of Panic",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target an enemy unit in radius occupying a spawn point. Move that unit up to 2 spaces.",
+      "image": "official/cards/whisper-blue-2a.webp"
+    },
+    {
+      "id": "whisper-blue-2b",
+      "heroId": "whisper",
+      "name": "Lesser Evil",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "An enemy hero in range chooses one —\n• That hero discards a card, if able.\n• You may defeat a minion adjacent to you.\n~(Any option can be chosen, even if it would have no effect.)",
+      "image": "official/cards/whisper-blue-2b.webp"
+    },
+    {
+      "id": "whisper-red-3a",
+      "heroId": "whisper",
+      "name": "Blood Pilgrimage",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 5,
+        "movement": 4,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "Before the attack: You may move up to 1 space for every empty minion spawn point in radius in the battle zone, up to a maximum of 3 spaces. Target a unit adjacent to you.",
+      "image": "official/cards/whisper-red-3a.webp"
+    },
+    {
+      "id": "whisper-red-3b",
+      "heroId": "whisper",
+      "name": "Blood Frenzy",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 7,
+        "defense": 7,
+        "movement": 4,
+        "range": null,
+        "radius": 5
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Target a unit adjacent to you.\nAfter the attack: If an enemy hero in radius has a card in the discard, repeat up to five times on different targets.",
+      "image": "official/cards/whisper-red-3b.webp"
+    },
+    {
+      "id": "whisper-green-3a",
+      "heroId": "whisper",
+      "name": "Creeping Shadow",
+      "color": "green",
+      "tier": 3,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "Place yourself into an empty minion spawn point in range in the battle zone, or into a space in range adjacent to such a spawn point.",
+      "image": "official/cards/whisper-green-3a.webp"
+    },
+    {
+      "id": "whisper-green-3b",
+      "heroId": "whisper",
+      "name": "Sealed Fate",
+      "color": "green",
+      "tier": 3,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Swap with a unit adjacent to you, or with an enemy hero in range with a card in the discard. Move up to 3 spaces.",
+      "image": "official/cards/whisper-green-3b.webp"
+    },
+    {
+      "id": "whisper-blue-3a",
+      "heroId": "whisper",
+      "name": "Blooming Nightmare",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target an enemy unit in radius occupying a spawn point. Move that unit up to 3 spaces.",
+      "image": "official/cards/whisper-blue-3a.webp"
+    },
+    {
+      "id": "whisper-blue-3b",
+      "heroId": "whisper",
+      "name": "Greater Good",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "An enemy hero in range chooses one —\n• That hero discards a card, or is defeated.\n• You defeat up to 3 minions adjacent to you.",
+      "image": "official/cards/whisper-blue-3b.webp"
+    },
+    {
+      "id": "whisper-purple-4",
+      "heroId": "whisper",
+      "name": "Grim Reaper",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "When performing basic actions, you may choose one, or both.",
+      "image": "official/cards/whisper-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "whisper-handicap",
+    "heroId": "whisper",
+    "name": "Vile Accusation",
+    "color": "other",
+    "tier": null,
+    "initiative": 11,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 1,
+      "defense": 1,
+      "movement": 1,
+      "range": 2,
+      "radius": null
+    },
+    "ranged": true,
+    "block": false,
+    "item": null,
+    "text": "Choose one —\n• Target a hero in range with an empty discard. After the attack: If able, that hero performs a movement action on the card they defended with, moving full distance in a straight line.\n• Target a hero adjacent to you.",
+    "image": "official/cards/whisper-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "When Whisper plays Gold (Swift Justice) against an enemy Hero, how do they move?",
+      "answer": "First, the targeted Hero chooses and discards a Card of their choice (if they have any cards remaining in hand). If they do so and the discarded Card has a movement value, that Hero must then move that distance in a straight line. They would only be unable to do so (and therefore stay on the same space) if they could not move the full movement value in a straight line in any of the 6 directions from their current space.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Does this ability require an enemy Hero? Can they pick an option that does nothing?",
+      "answer": "Whisper’s Alternate Blue requires targeting an enemy Hero in range or it will fizzle and have no effect. That Hero then picks one of the two options, regardless of whether they will have any effect. In other words, the card won’t “work” unless Whisper is adjacent to a Minion.\nNote that on Tier III, Whisper can target 3 minions simultaneously. He cannot use this action to defeat the last non-Heavy Minion at the same time as the Heavy.",
+      "source": "goa2-faq"
+    }
+  ],
+  "lore": "Whisper was the Grand Judicator of the Underkingdom when he condemned a powerful noble attempting to escape punishment. Refusing to look the other way, he was blinded and left to die. As if he wasn't dead in the first place! The fools!",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/whisper.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

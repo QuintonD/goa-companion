@@ -1,0 +1,534 @@
+{
+  "id": "emmitt",
+  "name": "Emmitt",
+  "title": "the Traveler",
+  "product": "wayward",
+  "aliases": [
+    "Emmitt the Traveller"
+  ],
+  "complexity": 4,
+  "stats": {
+    "attack": [
+      5,
+      8
+    ],
+    "defense": [
+      6,
+      6
+    ],
+    "initiative": [
+      1,
+      1
+    ],
+    "movement": [
+      2,
+      4
+    ]
+  },
+  "roles": [
+    "melee",
+    "tactician",
+    "durable",
+    "disabler",
+    "tokens"
+  ],
+  "portrait": "official/heroes/emmitt/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "emmitt-gold",
+      "heroId": "emmitt",
+      "name": "Reverse Time",
+      "color": "gold",
+      "tier": null,
+      "initiative": 11,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 2,
+        "movement": 1,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nAfter the attack: Next turn: Heroes with lower initiative act before heroes with higher initiative; this effect ignores immunity.\n~(Resolve ties as normal.)",
+      "image": "official/cards/emmitt-gold.webp"
+    },
+    {
+      "id": "emmitt-silver",
+      "heroId": "emmitt",
+      "name": "Unstable Timeline",
+      "color": "silver",
+      "tier": null,
+      "initiative": 1,
+      "primary": "defense_skill",
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": null,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Place 2 {token_glitch} Glitch tokens in radius, with at least two spaces between each token;\nif used as a defense, place 3 tokens instead.\nAn enemy hero in play chooses one of the Glitch tokens; you swap with that token.\nEnd of turn: Remove all Glitch tokens.",
+      "image": "official/cards/emmitt-silver.webp"
+    },
+    {
+      "id": "emmitt-red-1",
+      "heroId": "emmitt",
+      "name": "Temporal Punch",
+      "color": "red",
+      "tier": 1,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 9,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you; when defending, the enemy hero must use the {initiative} Initiative value of their card and items instead of the {defense} Defense value of their card and items.\n~(Minion defense modifiers are applied as normal.)",
+      "image": "official/cards/emmitt-red-1.webp"
+    },
+    {
+      "id": "emmitt-green-1",
+      "heroId": "emmitt",
+      "name": "Time Walk",
+      "color": "green",
+      "tier": 1,
+      "initiative": 6,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Move an enemy hero in range, who remained in the same space since the last turn, 2 spaces in a straight line.",
+      "image": "official/cards/emmitt-green-1.webp"
+    },
+    {
+      "id": "emmitt-blue-1",
+      "heroId": "emmitt",
+      "name": "Time Snare",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 8,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "An enemy hero in range who has already resolved a card this turn discards a card, if able.",
+      "image": "official/cards/emmitt-blue-1.webp"
+    },
+    {
+      "id": "emmitt-red-2a",
+      "heroId": "emmitt",
+      "name": "Temporal Slam",
+      "color": "red",
+      "tier": 2,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 11,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit adjacent to you; when defending, the enemy hero must use the {initiative} Initiative value of their card and items instead of the {defense} Defense value of their card and items.",
+      "image": "official/cards/emmitt-red-2a.webp"
+    },
+    {
+      "id": "emmitt-red-2b",
+      "heroId": "emmitt",
+      "name": "Flashback",
+      "color": "red",
+      "tier": 2,
+      "initiative": 7,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit adjacent to you.\nAfter the attack: You may place 3 {token_glitch} Glitch tokens in radius, with at least two spaces between each token;\nif you do, up to 1 enemy hero in radius swaps with a Glitch token of their choice.\nEnd of turn: Remove all Glitch tokens.",
+      "image": "official/cards/emmitt-red-2b.webp"
+    },
+    {
+      "id": "emmitt-green-2a",
+      "heroId": "emmitt",
+      "name": "Fast Forward",
+      "color": "green",
+      "tier": 2,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Move an enemy hero in range, who remained in the same space since the last turn, 2 spaces in a straight line.",
+      "image": "official/cards/emmitt-green-2a.webp"
+    },
+    {
+      "id": "emmitt-green-2b",
+      "heroId": "emmitt",
+      "name": "Time Capsule",
+      "color": "green",
+      "tier": 2,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "You, and friendly heroes in radius, may retrieve all cards discarded this turn.",
+      "image": "official/cards/emmitt-green-2b.webp"
+    },
+    {
+      "id": "emmitt-blue-2a",
+      "heroId": "emmitt",
+      "name": "Time Trap",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "An enemy hero in range who has already resolved a card this turn discards a card, if able.",
+      "image": "official/cards/emmitt-blue-2a.webp"
+    },
+    {
+      "id": "emmitt-blue-2b",
+      "heroId": "emmitt",
+      "name": "Time Loop",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Swap with an enemy hero in range who has already resolved a card this turn.",
+      "image": "official/cards/emmitt-blue-2b.webp"
+    },
+    {
+      "id": "emmitt-red-3a",
+      "heroId": "emmitt",
+      "name": "Temporal Judgment",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 12,
+        "defense": 8,
+        "movement": 3,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Target a unit adjacent to you; when defending, the enemy hero must use the {initiative} Initiative value of their card and items instead of the {defense} Defense value of their card and items.",
+      "image": "official/cards/emmitt-red-3a.webp"
+    },
+    {
+      "id": "emmitt-red-3b",
+      "heroId": "emmitt",
+      "name": "Déjà Vu",
+      "color": "red",
+      "tier": 3,
+      "initiative": 8,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 6,
+        "defense": 7,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit adjacent to you.\nAfter the attack: You may place 2 {token_glitch} Glitch tokens in radius, with at least two spaces between each token; if you do, up to 1 enemy hero in radius swaps with a Glitch token of their choice.\nEnd of turn: Remove all Glitch tokens.",
+      "image": "official/cards/emmitt-red-3b.webp"
+    },
+    {
+      "id": "emmitt-green-3a",
+      "heroId": "emmitt",
+      "name": "Back to the Future",
+      "color": "green",
+      "tier": 3,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Choose one —\n• Place a unit in range into the space where that unit was at the start of this turn.\n• Move an enemy hero in range, who remained in the same space since the last turn, 2 spaces in a straight line.",
+      "image": "official/cards/emmitt-green-3a.webp"
+    },
+    {
+      "id": "emmitt-green-3b",
+      "heroId": "emmitt",
+      "name": "Future Proof",
+      "color": "green",
+      "tier": 3,
+      "initiative": 5,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Choose one —\n• You, and friendly heroes in radius, may retrieve all cards discarded this turn.\n• This turn: Friendly heroes in radius are immune to enemy actions.",
+      "image": "official/cards/emmitt-green-3b.webp"
+    },
+    {
+      "id": "emmitt-blue-3a",
+      "heroId": "emmitt",
+      "name": "Time Bomb",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "An enemy hero in range who has already resolved a card this turn discards a card, or is defeated.",
+      "image": "official/cards/emmitt-blue-3a.webp"
+    },
+    {
+      "id": "emmitt-blue-3b",
+      "heroId": "emmitt",
+      "name": "Time Warp",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 9,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "Choose one —\n• Swap with an enemy hero in range who has already resolved a card this turn.\n• An enemy hero in range swaps their unresolved card with one of their resolved cards of their choice.",
+      "image": "official/cards/emmitt-blue-3b.webp"
+    },
+    {
+      "id": "emmitt-purple-4",
+      "heroId": "emmitt",
+      "name": "Alternative Timelines",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "You may play two cards each turn;\nif you do, after the cards are revealed, retrieve one of your unresolved cards.",
+      "image": "official/cards/emmitt-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "emmitt-handicap",
+    "heroId": "emmitt",
+    "name": "Tear in Time",
+    "color": "other",
+    "tier": null,
+    "initiative": 10,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 3,
+      "defense": 1,
+      "movement": 1,
+      "range": null,
+      "radius": null
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Target a hero adjacent to you.\nAfter the attack: Next turn: Heroes with lower initiative act before heroes with higher initiative. This effect ignores immunity.",
+    "image": "official/cards/emmitt-handicap.webp"
+  },
+  "extras": [],
+  "faq": [],
+  "lore": "Emmitt the Traveler is a visitor from the distant future. Armed with a portable time-travel device, he fights to restore fractured timelines, using both his sharp mind and the occasional power-fist punch, appearing where and when he is needed most.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/emmitt.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

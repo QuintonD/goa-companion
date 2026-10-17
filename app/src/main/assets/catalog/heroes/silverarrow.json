@@ -1,0 +1,565 @@
+{
+  "id": "silverarrow",
+  "name": "Silverarrow",
+  "title": "the Pathfinder",
+  "product": "devoted",
+  "aliases": [],
+  "complexity": 2,
+  "stats": {
+    "attack": [
+      2,
+      2
+    ],
+    "defense": [
+      1,
+      1
+    ],
+    "initiative": [
+      7,
+      7
+    ],
+    "movement": [
+      6,
+      7
+    ]
+  },
+  "roles": [
+    "sniper",
+    "damager",
+    "disabler",
+    "healer",
+    "farming"
+  ],
+  "portrait": "official/heroes/silverarrow/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "silverarrow-gold",
+      "heroId": "silverarrow",
+      "name": "Shoot and Scoot",
+      "color": "gold",
+      "tier": null,
+      "initiative": 12,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 1,
+        "defense": 1,
+        "movement": 1,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Target a unit at maximum range.\nAfter the attack: If able, you may fast travel to an adjacent zone.",
+      "image": "official/cards/silverarrow-gold.webp"
+    },
+    {
+      "id": "silverarrow-silver",
+      "heroId": "silverarrow",
+      "name": "Trailblazer",
+      "color": "silver",
+      "tier": null,
+      "initiative": 13,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 1,
+        "movement": null,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "You may fast travel, if able.\nThis round: You and friendly heroes in radius may ignore obstacles while performing movement actions.",
+      "image": "official/cards/silverarrow-silver.webp"
+    },
+    {
+      "id": "silverarrow-red-1",
+      "heroId": "silverarrow",
+      "name": "Snap Shot",
+      "color": "red",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 5,
+        "movement": 5,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• Target a unit in range, which is not adjacent to any other unit.\n• Target a unit adjacent to you.",
+      "image": "official/cards/silverarrow-red-1.webp"
+    },
+    {
+      "id": "silverarrow-green-1",
+      "heroId": "silverarrow",
+      "name": "Disorient",
+      "color": "green",
+      "tier": 1,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 1,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Move an enemy unit adjacent to you 1 space;\nif you do, you may move 1 space.",
+      "image": "official/cards/silverarrow-green-1.webp"
+    },
+    {
+      "id": "silverarrow-blue-1",
+      "heroId": "silverarrow",
+      "name": "Grasping Roots",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 3,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "This turn: Enemy heroes in radius cannot fast travel, or move more than 1 space with a movement action.",
+      "image": "official/cards/silverarrow-blue-1.webp"
+    },
+    {
+      "id": "silverarrow-red-2a",
+      "heroId": "silverarrow",
+      "name": "Opportunity Shot",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 5,
+        "movement": 5,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Choose one —\n• Target a unit in range, which is not adjacent to any other unit.\n• Target a unit adjacent to you.",
+      "image": "official/cards/silverarrow-red-2a.webp"
+    },
+    {
+      "id": "silverarrow-red-2b",
+      "heroId": "silverarrow",
+      "name": "Long Shot",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 4,
+        "movement": 5,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit at maximum range.",
+      "image": "official/cards/silverarrow-red-2b.webp"
+    },
+    {
+      "id": "silverarrow-green-2a",
+      "heroId": "silverarrow",
+      "name": "Divert Attention",
+      "color": "green",
+      "tier": 2,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Move an enemy unit adjacent to you up to 2 spaces; if you do, move up to that number of spaces in a straight line.",
+      "image": "official/cards/silverarrow-green-2a.webp"
+    },
+    {
+      "id": "silverarrow-green-2b",
+      "heroId": "silverarrow",
+      "name": "Fae Healing",
+      "color": "green",
+      "tier": 2,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "A hero in radius may retrieve a discarded card; if they do, that hero gains 1 coin.",
+      "image": "official/cards/silverarrow-green-2b.webp"
+    },
+    {
+      "id": "silverarrow-blue-2a",
+      "heroId": "silverarrow",
+      "name": "Entangling Vines",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "This turn: Enemy heroes in radius cannot fast travel, or move more than 1 space with a movement action.",
+      "image": "official/cards/silverarrow-blue-2a.webp"
+    },
+    {
+      "id": "silverarrow-blue-2b",
+      "heroId": "silverarrow",
+      "name": "Warning Shot",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "End of turn: An enemy hero in radius discards a card, if able.",
+      "image": "official/cards/silverarrow-blue-2b.webp"
+    },
+    {
+      "id": "silverarrow-red-3a",
+      "heroId": "silverarrow",
+      "name": "Clear Shot",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 5,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "radius",
+      "text": "Choose one —\n• Target a unit in range, which is not adjacent to any other unit.\n• Target a unit adjacent to you.",
+      "image": "official/cards/silverarrow-red-3a.webp"
+    },
+    {
+      "id": "silverarrow-red-3b",
+      "heroId": "silverarrow",
+      "name": "Rain of Arrows",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 5,
+        "movement": 5,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit at maximum range.\nIf you target a hero, repeat once on a different hero; if you do, may repeat once on a minion.",
+      "image": "official/cards/silverarrow-red-3b.webp"
+    },
+    {
+      "id": "silverarrow-green-3a",
+      "heroId": "silverarrow",
+      "name": "Lead Astray",
+      "color": "green",
+      "tier": 3,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "Move an enemy unit adjacent to you up to 3 spaces; if you do, move up to that number of spaces in a straight line.",
+      "image": "official/cards/silverarrow-green-3a.webp"
+    },
+    {
+      "id": "silverarrow-green-3b",
+      "heroId": "silverarrow",
+      "name": "Nature's Blessing",
+      "color": "green",
+      "tier": 3,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "A hero in radius may retrieve a discarded card; if they do, that hero gains 2 coins.",
+      "image": "official/cards/silverarrow-green-3b.webp"
+    },
+    {
+      "id": "silverarrow-blue-3a",
+      "heroId": "silverarrow",
+      "name": "Grappling Branches",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "This turn: Enemy heroes in radius cannot fast travel, or move more than 1 space with a movement action.",
+      "image": "official/cards/silverarrow-blue-3a.webp"
+    },
+    {
+      "id": "silverarrow-blue-3b",
+      "heroId": "silverarrow",
+      "name": "Treetop Sentinel",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "End of turn: An enemy hero in radius discards a card, or is defeated.",
+      "image": "official/cards/silverarrow-blue-3b.webp"
+    },
+    {
+      "id": "silverarrow-purple-4",
+      "heroId": "silverarrow",
+      "name": "Wild Hunt",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Each time before you perform an action, you may move 2 spaces in a straight line.",
+      "image": "official/cards/silverarrow-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "silverarrow-handicap",
+    "heroId": "silverarrow",
+    "name": "Keep the Distance",
+    "color": "other",
+    "tier": null,
+    "initiative": 11,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 1,
+      "defense": 1,
+      "movement": 1,
+      "range": 2,
+      "radius": null
+    },
+    "ranged": true,
+    "block": false,
+    "item": null,
+    "text": "Target a hero at maximum range.\nAfter the attack: If able, you may fast travel to an adjacent zone.",
+    "image": "official/cards/silverarrow-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "When can Silverarrow’s Gold Fast Travel?",
+      "answer": "The Fast Travel has all the normal restrictions of a Fast Travel action: there must be no enemy units in her Zone. If those conditions are met, she can move to anywhere in an adjacent Zone that has no enemy units.\n_Note that this is a rare instance of a Fast Travel which is not replacing a movement action. Silverarrow could Fast Travel (if valid), even if she cannot move due to another effect._",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Does Silverarrow’s Primary Blue (Grasping Roots) affect a Hero who moves in range of Silverarrow during their movement?",
+      "answer": "No, movement restrictions are checked at the beginning of the movement.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Can Silverarrow's silver allow her to fast-travel through obstacles (and travel move from beach to jungle on the single-lane map)?",
+      "answer": "No, ignoring obstacles has no effect on zone adjacency. Additionally, you may ignore obstacles during your movement, but fast travel is a special action that replaces movement.",
+      "source": "goa2-faq"
+    },
+    {
+      "question": "Is Fast Travel the same thing as movement?",
+      "answer": "No. Fast Travel is a special type of action that usually replaces a Movement action. They are related but different:\n• When you would take a Movement action, you can fast travel instead.\n• If you use a primary Movement action to Fast Travel, you would ignore the card text, since you are replacing the action.\n• A card that lets you move (“Move 2 spaces…”) would not let you Fast Travel instead.\n• If you are prevented from moving or from taking a Movement action, you could not use a Movement action to Fast Travel.\n• If you are limited in how you move (“May only move 1 space”), you may still Fast Travel as normal, since you are allowed to select, then replace, the Movement action (and Fast Travel is a placement, not movement).",
+      "source": "goa2-faq (common)"
+    },
+    {
+      "question": "What are Obstacles?",
+      "answer": "Obstacles are basically anything on the map: Units (Heroes and Minions), terrain shown on the map, tokens, and any other miniatures. There can only be one Obstacle on each space, and Obstacles generally can’t move through each other.\nIf an ability does allow Obstacles to pass through each other (“you can move through Obstacles”, ignore Obstacles”, “Heroes may move through a space with a tree token”), they still may not end movement on such a space.\nAny space with an Obstacle is considered occupied and not empty.",
+      "source": "goa2-faq (common)"
+    },
+    {
+      "question": "Can my hero target themself with this ability?",
+      "answer": "No. If your action is affecting you (your hero), it will say so in the card text. Otherwise, it will not affect you, even if it targets all units around you (“in radius”).",
+      "source": "goa2-faq (common)"
+    }
+  ],
+  "lore": "Silverarrow never imagined she would leave the Forest until the Oracle uttered the prophecy. The hardest step of any path is the very first one; after that, you just keep moving.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/silverarrow.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

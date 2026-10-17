@@ -1,0 +1,82 @@
+{
+  "dataVersion": 1,
+  "printing": 2,
+  "products": [
+    {
+      "id": "core",
+      "name": "Core",
+      "kind": "base",
+      "released": 2022,
+      "bggId": 267609
+    },
+    {
+      "id": "devoted",
+      "name": "Devoted",
+      "kind": "hero_pack",
+      "released": 2022,
+      "bggId": 356292
+    },
+    {
+      "id": "defiant",
+      "name": "Defiant",
+      "kind": "hero_pack",
+      "released": 2022,
+      "bggId": 356290
+    },
+    {
+      "id": "renowned",
+      "name": "Renowned",
+      "kind": "hero_pack",
+      "released": 2022,
+      "bggId": 356291
+    },
+    {
+      "id": "arcane",
+      "name": "Arcane",
+      "kind": "hero_pack",
+      "released": 2025,
+      "bggId": 412138
+    },
+    {
+      "id": "wayward",
+      "name": "Wayward",
+      "kind": "hero_pack",
+      "released": 2025,
+      "bggId": 412139
+    }
+  ],
+  "heroes": [
+    "arien",
+    "brogan",
+    "dodger",
+    "sabina",
+    "tigerclaw",
+    "wasp",
+    "xargatha",
+    "misa",
+    "silverarrow",
+    "tali",
+    "ursafar",
+    "whisper",
+    "bain",
+    "cutter",
+    "garrus",
+    "nebkher",
+    "trinkets",
+    "hanu",
+    "ignatia",
+    "min",
+    "swift",
+    "wuk",
+    "gydion",
+    "mrak",
+    "razzle",
+    "rowenna",
+    "snorri",
+    "brynn",
+    "emmitt",
+    "mortimer",
+    "takahide",
+    "widget"
+  ]
+}

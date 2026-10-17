@@ -1,0 +1,538 @@
+{
+  "id": "hanu",
+  "name": "Hanu",
+  "title": "the Trickster",
+  "product": "renowned",
+  "aliases": [],
+  "complexity": 3,
+  "stats": {
+    "attack": [
+      4,
+      4
+    ],
+    "defense": [
+      1,
+      1
+    ],
+    "initiative": [
+      8,
+      8
+    ],
+    "movement": [
+      7,
+      8
+    ]
+  },
+  "roles": [
+    "tactician",
+    "sniper",
+    "pusher"
+  ],
+  "portrait": "official/heroes/hanu/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "hanu-gold",
+      "heroId": "hanu",
+      "name": "Fight and Flight",
+      "color": "gold",
+      "tier": null,
+      "initiative": 13,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 2,
+        "defense": 1,
+        "movement": 2,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nIf the target is not defeated, After the attack: If able, move 3 spaces in a straight line.",
+      "image": "official/cards/hanu-gold.webp"
+    },
+    {
+      "id": "hanu-silver",
+      "heroId": "hanu",
+      "name": "Hurry up!",
+      "color": "silver",
+      "tier": null,
+      "initiative": 12,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 1,
+        "movement": null,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Set the printed {initiative} Initiative value of an unresolved card of a hero in range to 11, until it is resolved, or otherwise changes state.\n~(This may change the initiative order and tie breakers.)",
+      "image": "official/cards/hanu-silver.webp"
+    },
+    {
+      "id": "hanu-red-1",
+      "heroId": "hanu",
+      "name": "Helping Hand",
+      "color": "red",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 4,
+        "movement": 5,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• Target a unit adjacent to you.\n• Target a hero in range, adjacent to your friendly hero.",
+      "image": "official/cards/hanu-red-1.webp"
+    },
+    {
+      "id": "hanu-green-1",
+      "heroId": "hanu",
+      "name": "Monkey Trick",
+      "color": "green",
+      "tier": 1,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 1,
+        "movement": 2,
+        "range": null,
+        "radius": 1
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Swap two friendly units in radius.",
+      "image": "official/cards/hanu-green-1.webp"
+    },
+    {
+      "id": "hanu-blue-1",
+      "heroId": "hanu",
+      "name": "Unexpected Journey",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Swap with an enemy hero in radius.\nThis turn: That hero is immune.\nEnd of turn: Swap with that hero, regardless of radius and immunity.",
+      "image": "official/cards/hanu-blue-1.webp"
+    },
+    {
+      "id": "hanu-red-2a",
+      "heroId": "hanu",
+      "name": "Even the Odds",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 4,
+        "movement": 5,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "initiative",
+      "text": "Choose one —\n• Target a unit adjacent to you.\n• Target a hero in range, adjacent to your friendly hero.",
+      "image": "official/cards/hanu-red-2a.webp"
+    },
+    {
+      "id": "hanu-red-2b",
+      "heroId": "hanu",
+      "name": "Outnumber",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 5,
+        "movement": 5,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Choose one —\n• Target a unit adjacent to you.\n• Target a minion in range, adjacent to your friendly hero.",
+      "image": "official/cards/hanu-red-2b.webp"
+    },
+    {
+      "id": "hanu-green-2a",
+      "heroId": "hanu",
+      "name": "Monkey Twist",
+      "color": "green",
+      "tier": 2,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Swap two friendly units in radius.",
+      "image": "official/cards/hanu-green-2a.webp"
+    },
+    {
+      "id": "hanu-green-2b",
+      "heroId": "hanu",
+      "name": "Hear Nothing",
+      "color": "green",
+      "tier": 2,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Swap with an enemy hero in radius.",
+      "image": "official/cards/hanu-green-2b.webp"
+    },
+    {
+      "id": "hanu-blue-2a",
+      "heroId": "hanu",
+      "name": "There and Back Again",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Swap with an enemy hero in radius.\nThis turn: That hero is immune.\nEnd of turn: Swap with that hero, regardless of radius and immunity.",
+      "image": "official/cards/hanu-blue-2a.webp"
+    },
+    {
+      "id": "hanu-blue-2b",
+      "heroId": "hanu",
+      "name": "This Way!",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "A friendly hero in radius chooses a distance of 1 or 2; move both of you that number of spaces in the same direction of your choice.\n~(Both must be moved the full distance, or neither one moves.)",
+      "image": "official/cards/hanu-blue-2b.webp"
+    },
+    {
+      "id": "hanu-red-3a",
+      "heroId": "hanu",
+      "name": "Trusted Sidekick",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 5,
+        "movement": 5,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "movement",
+      "text": "Choose one, or both, in any order —\n• Target a unit adjacent to you.\n• Target a hero in range, adjacent to your friendly hero and not adjacent to you.",
+      "image": "official/cards/hanu-red-3a.webp"
+    },
+    {
+      "id": "hanu-red-3b",
+      "heroId": "hanu",
+      "name": "Pile On",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 5,
+        "range": 4,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "radius",
+      "text": "Choose one, or both, in any order —\n• Target a unit adjacent to you.\n• Target a minion in range, adjacent to your friendly hero.",
+      "image": "official/cards/hanu-red-3b.webp"
+    },
+    {
+      "id": "hanu-green-3a",
+      "heroId": "hanu",
+      "name": "Monkey Business",
+      "color": "green",
+      "tier": 3,
+      "initiative": 1,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Swap two friendly units in radius.\nYou may move 1 space.",
+      "image": "official/cards/hanu-green-3a.webp"
+    },
+    {
+      "id": "hanu-green-3b",
+      "heroId": "hanu",
+      "name": "See Nothing",
+      "color": "green",
+      "tier": 3,
+      "initiative": 1,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Swap with an enemy hero in radius.\nYou may move 1 space.",
+      "image": "official/cards/hanu-green-3b.webp"
+    },
+    {
+      "id": "hanu-blue-3a",
+      "heroId": "hanu",
+      "name": "Safe Travels",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "Swap with an enemy hero in radius.\nThis turn: That hero is immune.\nEnd of turn: Swap with that hero, regardless of radius and immunity. You may move 1 space.",
+      "image": "official/cards/hanu-blue-3a.webp"
+    },
+    {
+      "id": "hanu-blue-3b",
+      "heroId": "hanu",
+      "name": "That Way!",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "A friendly hero in radius chooses a distance of 1, 2 or 3; move both of you that number of spaces in the same direction of your choice.",
+      "image": "official/cards/hanu-blue-3b.webp"
+    },
+    {
+      "id": "hanu-purple-4",
+      "heroId": "hanu",
+      "name": "The Ultimate Trick",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "You choose the next action, and how it is performed, for a hero you target with the “Hurry Up!”.",
+      "image": "official/cards/hanu-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "hanu-handicap",
+    "heroId": "hanu",
+    "name": "Fight or Flight",
+    "color": "other",
+    "tier": null,
+    "initiative": 12,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 1,
+      "defense": 1,
+      "movement": 1,
+      "range": null,
+      "radius": null
+    },
+    "ranged": false,
+    "block": false,
+    "item": null,
+    "text": "Target a hero adjacent to you.\nIf the target is not defeated, After the attack: If able, move 3 spaces in a straight line.",
+    "image": "official/cards/hanu-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "How does temporary immunity interact with abilities and triggers that target a unit at end of turn?",
+      "answer": "All players resolve their End of Turn abilities before the turn ends, so a unit that is immune during “this turn” is still immune when end of turn resolves.\nBecause immune units cannot be chosen as targets, they are still protected from end of turn effects such as Min’s Death Grenade.",
+      "source": "goa2-faq (common)"
+    }
+  ],
+  "lore": "A day without mischief is a day wasted. Free from his brother’s wise guidance, Hanu roams the ruins of the old Atlantean capital, playing tricks on any would-be explorer reckless enough to enter the domain of the Great Tricker.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/hanu.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}

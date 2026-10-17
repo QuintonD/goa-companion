@@ -1,0 +1,538 @@
+{
+  "id": "brynn",
+  "name": "Brynn",
+  "title": "the Seeker",
+  "product": "wayward",
+  "aliases": [],
+  "complexity": 3,
+  "stats": {
+    "attack": [
+      4,
+      8
+    ],
+    "defense": [
+      4,
+      4
+    ],
+    "initiative": [
+      7,
+      7
+    ],
+    "movement": [
+      5,
+      6
+    ]
+  },
+  "roles": [
+    "tactician",
+    "damager",
+    "durable"
+  ],
+  "portrait": "official/heroes/brynn/portrait.webp",
+  "printing": 2,
+  "cards": [
+    {
+      "id": "brynn-gold",
+      "heroId": "brynn",
+      "name": "Familiar Ground",
+      "color": "gold",
+      "tier": null,
+      "initiative": 12,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 2,
+        "defense": 2,
+        "movement": 1,
+        "range": 3,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• Target a unit adjacent to you.\n• Target a hero in range who is adjacent to 3 or more obstacles.\n~(You, other heroes, minions, tokens, and terrain are obstacles.)",
+      "image": "official/cards/brynn-gold.webp"
+    },
+    {
+      "id": "brynn-silver",
+      "heroId": "brynn",
+      "name": "Decoy",
+      "color": "silver",
+      "tier": null,
+      "initiative": 1,
+      "primary": "skill",
+      "secondary": [
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 2,
+        "movement": null,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Choose up to two times, on different targets —\n• Move an enemy minion in radius 1 space.\n• Move an enemy hero in radius who is adjacent to 3 or more obstacles 1 space.",
+      "image": "official/cards/brynn-silver.webp"
+    },
+    {
+      "id": "brynn-red-1",
+      "heroId": "brynn",
+      "name": "High Ground",
+      "color": "red",
+      "tier": 1,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 4,
+        "defense": 6,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Target a unit adjacent to you.\nIf you target a hero adjacent to 3 or more obstacles, +2 {attack} attack.",
+      "image": "official/cards/brynn-red-1.webp"
+    },
+    {
+      "id": "brynn-green-1",
+      "heroId": "brynn",
+      "name": "Bear Trap",
+      "color": "green",
+      "tier": 1,
+      "initiative": 3,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Choose one —\n• An enemy hero adjacent to you discards a card, if able.\n• An enemy hero in radius who is adjacent to 3 or more obstacles discards a card, if able.",
+      "image": "official/cards/brynn-green-1.webp"
+    },
+    {
+      "id": "brynn-blue-1",
+      "heroId": "brynn",
+      "name": "Tread Lightly",
+      "color": "blue",
+      "tier": 1,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 3,
+        "range": null,
+        "radius": 2
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "Swap with either a unit adjacent to you, or with an enemy hero in radius who is adjacent to 3 or more obstacles.",
+      "image": "official/cards/brynn-blue-1.webp"
+    },
+    {
+      "id": "brynn-red-2a",
+      "heroId": "brynn",
+      "name": "Elevated Ambush",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 6,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Target a unit adjacent to you.\nIf you target a hero adjacent to 3 or more obstacles, +2 {attack} attack.",
+      "image": "official/cards/brynn-red-2a.webp"
+    },
+    {
+      "id": "brynn-red-2b",
+      "heroId": "brynn",
+      "name": "Split Attack",
+      "color": "red",
+      "tier": 2,
+      "initiative": 9,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 3,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit in range. If you target a hero who is adjacent to 3 or more obstacles, may repeat once on a different unit adjacent to you.",
+      "image": "official/cards/brynn-red-2b.webp"
+    },
+    {
+      "id": "brynn-green-2a",
+      "heroId": "brynn",
+      "name": "Log Trap",
+      "color": "green",
+      "tier": 2,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Choose one —\n• An enemy hero adjacent to you discards a card, if able.\n• An enemy hero in radius who is adjacent to 3 or more obstacles discards a card, if able.",
+      "image": "official/cards/brynn-green-2a.webp"
+    },
+    {
+      "id": "brynn-green-2b",
+      "heroId": "brynn",
+      "name": "True Grit",
+      "color": "green",
+      "tier": 2,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 3,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "You may retrieve a discarded attack card.\nIf an enemy hero in radius is adjacent to 3 or more obstacles, move up to 3 spaces.",
+      "image": "official/cards/brynn-green-2b.webp"
+    },
+    {
+      "id": "brynn-blue-2a",
+      "heroId": "brynn",
+      "name": "Cover Tracks",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "defense",
+      "text": "Swap with either a unit adjacent to you, or with an enemy hero in radius who is adjacent to 3 or more obstacles.\nYou may move 1 space.",
+      "image": "official/cards/brynn-blue-2a.webp"
+    },
+    {
+      "id": "brynn-blue-2b",
+      "heroId": "brynn",
+      "name": "Mountain Guide",
+      "color": "blue",
+      "tier": 2,
+      "initiative": 10,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 5,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "You may move a friendly unit, which is adjacent to you, up to 2 spaces. If an enemy hero in radius is adjacent to 3 or more obstacles, move a different friendly unit in radius up to 2 spaces.",
+      "image": "official/cards/brynn-blue-2b.webp"
+    },
+    {
+      "id": "brynn-red-3a",
+      "heroId": "brynn",
+      "name": "Peak Precision",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 5,
+        "defense": 7,
+        "movement": 4,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": "radius",
+      "text": "Target a unit adjacent to you.\nIf you target a hero adjacent to 3 or more obstacles, +2 {attack} attack and After the attack: You may retrieve this card.",
+      "image": "official/cards/brynn-red-3a.webp"
+    },
+    {
+      "id": "brynn-red-3b",
+      "heroId": "brynn",
+      "name": "Split Throw",
+      "color": "red",
+      "tier": 3,
+      "initiative": 10,
+      "primary": "attack",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": 3,
+        "defense": 4,
+        "movement": 4,
+        "range": 2,
+        "radius": null
+      },
+      "ranged": true,
+      "block": false,
+      "item": "defense",
+      "text": "Target a unit in range. If you target a hero who is adjacent to 3 or more obstacles, may repeat once on a different unit.",
+      "image": "official/cards/brynn-red-3b.webp"
+    },
+    {
+      "id": "brynn-green-3a",
+      "heroId": "brynn",
+      "name": "Deadfall Trap",
+      "color": "green",
+      "tier": 3,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "initiative",
+      "text": "Choose one —\n• An enemy hero adjacent to you discards a card, or is defeated.\n• An enemy hero in radius who is adjacent to 3 or more obstacles discards a card, or is defeated.",
+      "image": "official/cards/brynn-green-3a.webp"
+    },
+    {
+      "id": "brynn-green-3b",
+      "heroId": "brynn",
+      "name": "Die Hard",
+      "color": "green",
+      "tier": 3,
+      "initiative": 2,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 4,
+        "movement": 2,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "movement",
+      "text": "You may retrieve a discarded attack card.\nIf an enemy hero in radius is adjacent to 3 or more obstacles, move up to 4 spaces.",
+      "image": "official/cards/brynn-green-3b.webp"
+    },
+    {
+      "id": "brynn-blue-3a",
+      "heroId": "brynn",
+      "name": "Hide Traces",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": 3
+      },
+      "ranged": false,
+      "block": false,
+      "item": "range",
+      "text": "Swap with either a unit adjacent to you, or with an enemy hero in radius who is adjacent to 3 or more obstacles.\nMove up to 2 spaces.",
+      "image": "official/cards/brynn-blue-3a.webp"
+    },
+    {
+      "id": "brynn-blue-3b",
+      "heroId": "brynn",
+      "name": "Expedition Leader",
+      "color": "blue",
+      "tier": 3,
+      "initiative": 11,
+      "primary": "skill",
+      "secondary": [
+        "movement",
+        "defense"
+      ],
+      "values": {
+        "attack": null,
+        "defense": 6,
+        "movement": 3,
+        "range": null,
+        "radius": 4
+      },
+      "ranged": false,
+      "block": false,
+      "item": "attack",
+      "text": "You may move a friendly unit, which is adjacent to you, up to 3 spaces. If an enemy hero in radius is adjacent to 3 or more obstacles, move a different friendly unit in radius up to 3 spaces.",
+      "image": "official/cards/brynn-blue-3b.webp"
+    },
+    {
+      "id": "brynn-purple-4",
+      "heroId": "brynn",
+      "name": "Over the Top",
+      "color": "purple",
+      "tier": 4,
+      "initiative": null,
+      "primary": null,
+      "secondary": [],
+      "values": {
+        "attack": null,
+        "defense": null,
+        "movement": null,
+        "range": null,
+        "radius": null
+      },
+      "ranged": false,
+      "block": false,
+      "item": null,
+      "text": "While you are performing actions, all enemy heroes in play count as being adjacent to 3 or more obstacles.",
+      "image": "official/cards/brynn-purple-4.webp"
+    }
+  ],
+  "handicap": {
+    "id": "brynn-handicap",
+    "heroId": "brynn",
+    "name": "Home Turf",
+    "color": "other",
+    "tier": null,
+    "initiative": 11,
+    "primary": "attack",
+    "secondary": [
+      "movement",
+      "defense"
+    ],
+    "values": {
+      "attack": 2,
+      "defense": 1,
+      "movement": 1,
+      "range": 2,
+      "radius": null
+    },
+    "ranged": true,
+    "block": false,
+    "item": null,
+    "text": "Choose one —\n• Target a hero adjacent to you.\n• Target a hero in range who is adjacent to 3 or more obstacles.\n~(You, other heroes, minions, tokens, and terrain are obstacles.)",
+    "image": "official/cards/brynn-handicap.webp"
+  },
+  "extras": [],
+  "faq": [
+    {
+      "question": "Would an immune hero trigger effects, that require adjacency?",
+      "answer": "No. Whenever you are required to check the status of a unit, it counts as targeting, which you cannot do with an immune unit. This is different from cards such as Sabina's Steady Advance where you simply check the presence of units, rather than their status.",
+      "source": "goa2-faq (common)"
+    }
+  ],
+  "lore": "Born in a remote mountain settlement, Brunn was expected to become a healer like her mother. However, her true passion lay in braving the surrounding wilderness. When a mysterious plague struck and even her mother fell ill, Bryn set out for the fabled grove where the only cure could be found.",
+  "verified": true,
+  "sources": [
+    {
+      "name": "Stats of Atlantis",
+      "url": "https://github.com/QuasiStellar/Stats-of-Atlantis/blob/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/new_heroes.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "GoA2 FAQ",
+      "url": "https://github.com/yvo-niedrich/goa2-faq/blob/b841b76c466b1a88323579737080f0a7bbf596b0/build/data/cards/brynn.json",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "colefin8/guards-of-atlantis-ii-data",
+      "url": "https://github.com/colefin8/guards-of-atlantis-ii-data/tree/008adfaad415406aab6afcc782b54a6ad45896ba/server",
+      "retrieved": "2026-10-17"
+    },
+    {
+      "name": "dmrediger/goa2",
+      "url": "https://github.com/dmrediger/goa2/tree/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards",
+      "retrieved": "2026-10-17"
+    }
+  ]
+}
