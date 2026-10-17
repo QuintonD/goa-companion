@@ -30,6 +30,19 @@ interface PlayerRepository {
     suspend fun upsert(player: Player)
 
     suspend fun archive(id: String, archived: Boolean)
+
+    /**
+     * The player with this name, compared trimmed and case-insensitively
+     * ([dev.quinton.goa.core.data.player.PlayerNames]); archived players included. Null if none.
+     */
+    suspend fun findByName(name: String): Player?
+
+    /**
+     * Returns the player called `candidate.name`: the existing one (unarchived if it was
+     * archived) when the name is taken, otherwise [candidate] itself, saved with a trimmed name.
+     * Never creates a second player with the same name.
+     */
+    suspend fun ensurePlayer(candidate: Player): Player
 }
 
 /** The match log — source of truth for every rating and stat (owner: players). */

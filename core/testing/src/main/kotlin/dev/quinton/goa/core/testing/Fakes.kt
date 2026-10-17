@@ -6,6 +6,7 @@ import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.RatingsRepository
 import dev.quinton.goa.core.data.SettingsRepository
+import dev.quinton.goa.core.data.player.PlayerNames
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
@@ -39,6 +40,20 @@ class FakePlayerRepository(initial: List<Player> = emptyList()) : PlayerReposito
 
     override suspend fun archive(id: String, archived: Boolean) =
         state.update { list -> list.map { if (it.id == id) it.copy(archived = archived) else it } }
+
+    override suspend fun findByName(name: String): Player? =
+        state.value.sortedBy { it.createdAt }.firstOrNull { PlayerNames.same(it.name, name) }
+
+    override suspend fun ensurePlayer(candidate: Player): Player {
+        val existing = findByName(candidate.name)
+        return when {
+            existing == null -> candidate.copy(name = candidate.name.trim()).also { upsert(it) }
+
+            existing.archived -> existing.copy(archived = false).also { archive(it.id, false) }
+
+            else -> existing
+        }
+    }
 }
 
 class FakeMatchRepository(initial: List<Match> = emptyList()) : MatchRepository {

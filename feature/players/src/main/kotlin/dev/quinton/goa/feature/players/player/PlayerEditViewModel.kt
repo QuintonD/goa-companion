@@ -109,8 +109,8 @@ class PlayerEditViewModel @AssistedInject constructor(
         }
         state.update { it.copy(saving = true) }
         viewModelScope.launch {
-            val all = players.observePlayers(includeArchived = true).first()
-            val clash = all.any { it.id != playerId && it.name.trim().equals(name, ignoreCase = true) }
+            // Same rule as quick add in draft setup: one player per name, archived included.
+            val clash = players.findByName(name)?.let { it.id != playerId } == true
             if (clash) {
                 state.update { it.copy(saving = false, nameError = "“$name” is already in your group") }
                 return@launch
