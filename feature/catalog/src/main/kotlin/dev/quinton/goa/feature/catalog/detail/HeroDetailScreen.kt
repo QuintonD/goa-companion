@@ -72,7 +72,6 @@ import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.catalog.Ruling
 import dev.quinton.goa.feature.catalog.model.HeroPilotStat
-import dev.quinton.goa.feature.catalog.model.HeroPilots
 import dev.quinton.goa.feature.catalog.model.attackStyle
 import dev.quinton.goa.feature.catalog.ui.MetaPill
 import dev.quinton.goa.feature.catalog.ui.SectionTitle
@@ -386,7 +385,7 @@ private fun PilotsBlock(stats: HeroPersonalStats) {
     )
     if (best.isEmpty()) {
         Text(
-            "Rankings start at ${HeroPilots.MIN_GAMES} games per player.",
+            "Rankings start at ${stats.log.minGames} games per player.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

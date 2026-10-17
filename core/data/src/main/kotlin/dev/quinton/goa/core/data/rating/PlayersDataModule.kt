@@ -36,6 +36,8 @@ internal interface PlayersDataModule {
 
     @Binds fun ratingsSnapshot(impl: ReplayRatingsRepository): RatingsSnapshotRepository
 
+    @Binds fun heroPilots(impl: ReplayRatingsRepository): HeroPilotsRepository
+
     @Binds fun eloConfig(impl: DataStoreEloConfigRepository): EloConfigRepository
 
     @Binds fun backup(impl: RoomBackupRepository): BackupRepository

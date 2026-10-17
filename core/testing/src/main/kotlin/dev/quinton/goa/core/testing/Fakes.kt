@@ -6,6 +6,11 @@ import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.RatingsRepository
 import dev.quinton.goa.core.data.SettingsRepository
+import dev.quinton.goa.core.data.rating.HeroPilotsRepository
+import dev.quinton.goa.core.domain.meta.HeroPilots
+import dev.quinton.goa.core.domain.meta.MetaConfig
+import dev.quinton.goa.core.domain.meta.MetaStats
+import dev.quinton.goa.core.domain.rating.WinLoss
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
@@ -79,6 +84,20 @@ class FakeRatingsRepository : RatingsRepository {
     override fun observeHeroHistory(heroId: String): Flow<List<RatingPoint>> = heroHistory.map { it[heroId].orEmpty() }
 
     override fun observeHeroUsage(): Flow<Map<String, HeroUsage>> = heroUsage
+}
+
+class FakeHeroPilotsRepository(initial: Map<String, HeroPilots> = emptyMap()) : HeroPilotsRepository {
+    val pilots = MutableStateFlow(initial)
+
+    override fun observeHeroPilots(heroId: String): Flow<HeroPilots> = pilots.map {
+        it[heroId] ?: HeroPilots(heroId, WinLoss.NONE, MetaConfig().bestWithMinGames, emptyList(), emptyList())
+    }
+
+    companion object {
+        /** Pilots computed by the real meta stats, as the app does. */
+        fun from(matches: List<Match>): FakeHeroPilotsRepository =
+            FakeHeroPilotsRepository(MetaStats.compute(matches, emptyList()).pilotsByHero)
+    }
 }
 
 class FakeSettingsRepository(initial: AppSettings = AppSettings()) : SettingsRepository {

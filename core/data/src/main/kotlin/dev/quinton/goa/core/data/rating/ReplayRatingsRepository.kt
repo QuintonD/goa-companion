@@ -3,8 +3,12 @@ package dev.quinton.goa.core.data.rating
 import dev.quinton.goa.core.data.DraftRecordRepository
 import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.RatingsRepository
+import dev.quinton.goa.core.domain.meta.HeroPilots
 import dev.quinton.goa.core.domain.meta.MetaStats
 import dev.quinton.goa.core.domain.rating.EloCalculator
+import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.model.draft.DraftRecord
+import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.rating.HeroUsage
 import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.model.rating.RatingPoint
@@ -45,20 +49,19 @@ internal class ReplayRatingsRepository @Inject constructor(
     configRepository: EloConfigRepository,
     @RatingsScope scope: CoroutineScope,
     @RatingsDispatcher dispatcher: CoroutineDispatcher,
-) : RatingsRepository, RatingsSnapshotRepository {
-    private val matches = matchRepository.observeMatches().distinctUntilChanged()
-    private val config = configRepository.config.distinctUntilChanged()
-
-    private val ratings = combine(matches, config) { m, c -> m to c }
-        .mapLatest { (m, c) -> EloCalculator.replay(m, c) to c }
+) : RatingsRepository, RatingsSnapshotRepository, HeroPilotsRepository {
+    /**
+     * Matches, drafts and config are each read through exactly one subscription, and the replay
+     * and meta stats are computed together from the same inputs, so a snapshot never pairs
+     * ratings from one version of the match log with meta stats from another.
+     */
+    private val snapshot: Flow<RatingsSnapshot> = combine(
+        matchRepository.observeMatches().distinctUntilChanged(),
+        draftRepository.observeDrafts().distinctUntilChanged(),
+        configRepository.config.distinctUntilChanged(),
+    ) { m, d, c -> Inputs(m, d, c) }
+        .mapLatest { (m, d, c) -> RatingsSnapshot(EloCalculator.replay(m, c), MetaStats.compute(m, d), c) }
         .flowOn(dispatcher)
-
-    private val meta = combine(matches, draftRepository.observeDrafts().distinctUntilChanged()) { m, d -> m to d }
-        .mapLatest { (m, d) -> MetaStats.compute(m, d) }
-        .flowOn(dispatcher)
-
-    // The config travels with the ratings it produced, so a snapshot is never half-updated.
-    private val snapshot: Flow<RatingsSnapshot> = combine(ratings, meta) { (r, c), m -> RatingsSnapshot(r, m, c) }
         .shareIn(scope, SharingStarted.Lazily, replay = 1)
 
     override fun observeSnapshot(): Flow<RatingsSnapshot> = snapshot
@@ -80,4 +83,9 @@ internal class ReplayRatingsRepository @Inject constructor(
     override fun observeHeroUsage(): Flow<Map<String, HeroUsage>> = snapshot.map {
         it.meta.usage()
     }.distinctUntilChanged()
+
+    override fun observeHeroPilots(heroId: String): Flow<HeroPilots> =
+        snapshot.map { it.meta.pilots(heroId) }.distinctUntilChanged()
+
+    private data class Inputs(val matches: List<Match>, val drafts: List<DraftRecord>, val config: EloConfig)
 }
