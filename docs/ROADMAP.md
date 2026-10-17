@@ -9,6 +9,14 @@ independent rules/engine reviewers and fixed. Evidence: JVM gate (`assembleDebug
 testDebugUnitTest verifyRoborazziDebug lintDebug detekt ktlintCheck`) green; 9 end-to-end
 instrumented tests green on an API 36 emulator (`goa_api36`), twice.
 
+**Validation round, 2026-10-17 (afternoon):** independent rules audit against the rulebook PDF,
+card-by-card check of 282 cards against the scans, BGG research into what groups need, and
+hands-on game nights on S25-sized emulators with the release build; findings fixed on eight
+branches (ADR-016–024), then an adversarial review of all new rules text and two final hands-on
+passes (including an in-place upgrade from the morning build with real data). Evidence on
+`main`: 694 JVM tests, screenshot, lint, detekt and ktlint green; rulebook drift check green;
+10 end-to-end instrumented tests green on the emulator. QA reports: `D:\.goa-qa\`.
+
 ## M0 — Scaffold
 - [x] `git init`; Gradle 9.8.1 / AGP 9.4.1 project, version catalog, `build-logic` convention plugins (AGP 9 DSL) — 2026-10-17, ADR-010
 - [x] Module skeleton per ARCHITECTURE.md; Hilt (KSP), Navigation 3, theme from DESIGN.md tokens — 2026-10-17
@@ -34,7 +42,7 @@ instrumented tests green on an API 36 emulator (`goa_api36`), twice.
 - [x] Meta dashboard; versioned JSON export/import (lossless round-trip test); Auto Backup rules — 2026-10-17
 - [ ] Backup export/import file pickers exercised on the S25 Ultra
 - [x] Game-night flow (ADR-020): tab state kept across tabs, notification/cold start → Timer, running-timer bar, "Who won?" with rating changes, Rematch, pending-match resume, backup v3 (settings, presets, methods), group stats and compact Meta table — 2026-10-17, JVM tests + screenshots
-- [ ] ADR-020 flows checked on the emulator/S25 Ultra (tab switches mid-form, notification tap, running bar, rematch → setup)
+- [x] ADR-020 flows checked on the emulator (tab switches mid-form, notification tap, running bar, rematch → setup) — 2026-10-17, final hands-on pass + E2E `RematchTimerFlowTest`; S25 Ultra still pending
 - [x] Game-night fixes (ADR-018 addendum, ADR-024): background phase-over alert sounded by the app; Start timer always shows the running timer; rematches saved on Start timer, pending rows with heroes and Discard; Hurry up pinned; Previous phase off the bottom edge — 2026-10-17, emulator-5556 (Home, screen off, Doze, Sounds off)
 - [ ] Phase-over chime before Android 17 reaches the S25 Ultra: background-audio hardening would silence it (ADR-018 addendum)
 

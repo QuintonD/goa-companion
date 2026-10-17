@@ -4,8 +4,9 @@ Native Android companion app for the **Guards of Atlantis II** board game (Wolff
 Private, local-only, never sold or published (see ADR-006). This file is the canonical,
 tool-agnostic entry point; `CLAUDE.md` imports it.
 
-**Status:** feature-complete v1 built and tested on JVM + emulator (2026-10-17); device
-verification on the S25 Ultra pending. See [docs/ROADMAP.md](docs/ROADMAP.md).
+**Status:** feature-complete v1 plus a full validation round (rules audit, card-scan check,
+hands-on game nights, rules reference) — built and tested on JVM + emulator (2026-10-17);
+device verification on the S25 Ultra pending. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## The product in one breath
 
