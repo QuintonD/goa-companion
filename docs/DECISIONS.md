@@ -163,3 +163,19 @@ coin, stage back to Players, marked "Same players and teams as last game" with a
 would not cover the main case, and DataStore already covers process death.
 **Consequences:** The form survives whatever the shell does with tab state. Writes are small
 (one JSON string per edit). The transient `starting` flag is not persisted.
+
+## ADR-018 — Timer: Preset revisions, per-style alert channels, one-level undo (2026-10-17)
+**Context:** QA found red "overtime" during every reveal/resolve, an ongoing notification hidden
+on the lock screen, a 60 s looping alarm that ignored Settings → Sounds, and accidental Next taps
+that lost the phase's time. Users already have stored copies of the bundled presets.
+**Decision:** (1) `PhaseKind.RESOLVE` (untimed, per turn) is added to the bundled Table rules and
+Relaxed presets; `TimerPreset.revision` lets `TimerPresetMigration` upgrade stored copies of a
+bundled preset on read with additive, targeted changes only (user-made presets untouched). (2)
+The countdown moves to a new default-importance silent public channel; the phase-over alert uses
+a bundled original chime on alarm usage, with one channel per Sounds × Haptics combination
+because channel sound is immutable. (3) The engine keeps one `UndoPoint` per Next (Back within
+15 s restores it with time carried over) and a `stepEnteredAt` stamp for a 500 ms Next debounce;
+both, the "Hurry up" shot clock and team time-outs live in the snapshot and are rebased with it.
+**Consequences:** Four alert channels appear in system settings. A future data change to bundled
+presets bumps `revision` and adds a migration step. Snapshots from older versions decode with
+defaults (no undo, no shot clock).

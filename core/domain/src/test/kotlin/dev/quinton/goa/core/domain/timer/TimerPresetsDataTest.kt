@@ -33,6 +33,21 @@ class TimerPresetsDataTest {
         assertThat(kind(PhaseKind.UPGRADE).endStepId).isEqualTo("level_up")
         assertThat(kind(PhaseKind.ACTION).enabled).isFalse()
         assertThat(table.autoAdvance).isFalse()
+        // Rulebook p.7: cards are revealed, then resolved one by one in initiative order (untimed).
+        assertThat(kind(PhaseKind.TURN).name).isEqualTo("Play a card")
+        assertThat(kind(PhaseKind.RESOLVE).scope).isEqualTo(PhaseScope.TURN)
+        assertThat(kind(PhaseKind.RESOLVE).seconds).isNull()
+        val turnAt = table.phases.indexOf(kind(PhaseKind.TURN))
+        assertThat(table.phases.indexOf(kind(PhaseKind.RESOLVE))).isEqualTo(turnAt + 1)
+        // Table rules (not in the rulebook): hurry-up on demand, no time-outs, volume keys off.
+        assertThat(table.shotClockSeconds).isEqualTo(30)
+        assertThat(table.timeOutsPerRound).isEqualTo(0)
+        assertThat(table.volumeKeys).isFalse()
+    }
+
+    @Test
+    fun `every bundled preset carries the current data revision`() {
+        assertThat(bundledPresets.presets.map { it.revision }.distinct()).containsExactly(1)
     }
 
     @Test

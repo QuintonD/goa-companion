@@ -85,7 +85,8 @@ gallery screenshot test (`GalleryScreenshotTest`) shows them all, dark/light, fo
 
 ## Key screens
 Catalog grid → Hero detail · Timer (full-screen, giant ring countdown, phase chip,
-turn/round pips) · Players list → Player profile (rating chart) · Match log/editor ·
+turn/round pips; landscape puts the dial on the left half; paused = blinking digits and a
+large "PAUSED" label) · Players list → Player profile (rating chart) · Match log/editor ·
 Meta dashboard · Draft setup → Draft board (sticky step banner over a scrolling list of sequence
 chips, two team columns with role coverage and ban chips, then a dense pool grid with search,
 role chips and "Hide taken"; taken heroes shrink to chips; landscape moves the banner and teams

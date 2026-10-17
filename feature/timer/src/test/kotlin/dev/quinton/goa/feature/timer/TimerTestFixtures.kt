@@ -10,9 +10,11 @@ import dev.quinton.goa.core.domain.timer.TimerReadout
 import dev.quinton.goa.core.domain.timer.TimerSnapshot
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.testing.FakeMatchRepository
+import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.feature.timer.data.TimerAssets
 import dev.quinton.goa.feature.timer.data.TimerRepository
 import dev.quinton.goa.feature.timer.session.TimerController
+import dev.quinton.goa.feature.timer.system.AlertStyle
 import dev.quinton.goa.feature.timer.system.BootCountProvider
 import dev.quinton.goa.feature.timer.system.CuePlayer
 import dev.quinton.goa.feature.timer.system.TimerNotifier
@@ -103,6 +105,10 @@ class FakeScheduler : TimerScheduler {
 class FakeNotifier : TimerNotifier {
     var ongoing: TimerReadout? = null
     val alerts = mutableListOf<String>()
+    val styles = mutableListOf<AlertStyle>()
+
+    /** The "Time's up" alert currently showing, if any. */
+    var alertShowing: String? = null
     var enabled = true
 
     override fun canPost(): Boolean = enabled
@@ -115,8 +121,14 @@ class FakeNotifier : TimerNotifier {
         ongoing = null
     }
 
-    override fun alertPhaseOver(snapshot: TimerSnapshot, endedTitle: String) {
+    override fun alertPhaseOver(snapshot: TimerSnapshot, endedTitle: String, style: AlertStyle) {
         alerts += endedTitle
+        styles += style
+        alertShowing = endedTitle
+    }
+
+    override fun cancelAlert() {
+        alertShowing = null
     }
 }
 
@@ -156,6 +168,7 @@ class TimerHarness(bootCount: Int? = 1) {
     val notifier = FakeNotifier()
     var boot: Int? = bootCount
     val matches = FakeMatchRepository()
+    val settings = FakeSettingsRepository()
     val controller = TimerController(
         repository,
         clocks,
@@ -164,6 +177,7 @@ class TimerHarness(bootCount: Int? = 1) {
         notifier,
         BootCountProvider { boot },
         { matches },
+        { settings },
     )
 }
 

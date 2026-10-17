@@ -3,11 +3,13 @@ package dev.quinton.goa.feature.timer.session
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.domain.timer.MatchDuration
 import dev.quinton.goa.core.domain.timer.PhaseKind
+import dev.quinton.goa.core.domain.timer.TimerJson
 import dev.quinton.goa.core.domain.timer.TimerStatus
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.feature.timer.TimerHarness
+import dev.quinton.goa.feature.timer.system.AlertStyle
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -60,7 +62,7 @@ class TimerControllerTest {
         h.clocks.advance(90_000)
         h.controller.onAlarm(key)
 
-        assertThat(h.notifier.alerts).containsExactly("Pre-round strategy")
+        assertThat(h.notifier.alerts).containsExactly("Pre-round strategy · Round 1")
         val s = h.controller.snapshot.first()!!
         assertThat(s.stepIndex).isEqualTo(0)
         assertThat(h.scheduler.scheduledAt).isNull()
@@ -95,6 +97,7 @@ class TimerControllerTest {
     fun `stale alarm from an earlier step is ignored`() = runTest {
         startTable()
         val oldKey = h.scheduler.stepKey
+        h.clocks.advance(1_000)
         h.controller.perform(TimerCommand.Next)
         h.clocks.advance(95_000)
         h.controller.onAlarm(oldKey)
@@ -195,7 +198,7 @@ class TimerControllerTest {
         h.controller.resync()
         h.controller.onAlarm(key)
 
-        assertThat(h.notifier.alerts).containsExactly("Pre-round strategy")
+        assertThat(h.notifier.alerts).containsExactly("Pre-round strategy · Round 1")
         assertThat(h.controller.snapshot.first()!!.step.phase!!.kind).isEqualTo(PhaseKind.TURN)
     }
 
@@ -207,7 +210,7 @@ class TimerControllerTest {
         h.controller.onAlarm(key)
         h.controller.resync()
 
-        assertThat(h.notifier.alerts).containsExactly("Pre-round strategy")
+        assertThat(h.notifier.alerts).containsExactly("Pre-round strategy · Round 1")
     }
 
     @Test
@@ -255,5 +258,83 @@ class TimerControllerTest {
         h.controller.clear()
         assertThat(h.controller.snapshot.first()).isNull()
         assertThat(h.notifier.ongoing).isNull()
+    }
+
+    @Test
+    fun `background alert follows the sounds and haptics settings`() = runTest {
+        suspend fun alertWith(sound: Boolean, haptics: Boolean): AlertStyle {
+            h.settings.update { it.copy(soundsEnabled = sound, hapticsEnabled = haptics) }
+            h.clocks.advance(1_000)
+            startTable()
+            val key = h.scheduler.stepKey
+            h.clocks.advance(90_000)
+            h.controller.onAlarm(key)
+            return h.notifier.styles.last()
+        }
+
+        assertThat(alertWith(sound = true, haptics = true)).isEqualTo(AlertStyle.CHIME_AND_VIBRATE)
+        assertThat(alertWith(sound = false, haptics = true)).isEqualTo(AlertStyle.VIBRATE)
+        assertThat(alertWith(sound = true, haptics = false)).isEqualTo(AlertStyle.CHIME)
+        assertThat(alertWith(sound = false, haptics = false)).isEqualTo(AlertStyle.SILENT)
+    }
+
+    @Test
+    fun `any user action clears a stale time's up alert, the tick does not`() = runTest {
+        startTable()
+        val key = h.scheduler.stepKey
+        h.clocks.advance(90_000)
+        h.controller.onAlarm(key)
+        assertThat(h.notifier.alertShowing).isNotNull()
+
+        h.controller.perform(TimerCommand.AdvanceDue)
+        assertThat(h.notifier.alertShowing).isNotNull()
+        h.controller.perform(TimerCommand.Pause)
+        assertThat(h.notifier.alertShowing).isNull()
+    }
+
+    @Test
+    fun `a double tap on next moves one step only`() = runTest {
+        startTable()
+        h.clocks.advance(5_000)
+        h.controller.perform(TimerCommand.Next)
+        h.clocks.advance(200)
+        h.controller.perform(TimerCommand.Next)
+
+        assertThat(h.controller.snapshot.first()!!.stepIndex).isEqualTo(1)
+    }
+
+    @Test
+    fun `tonight's turn length applies to every start of that preset until saved or reset`() = runTest {
+        h.repository.setTonightTurn("table-rules", 45)
+        startTable()
+        var s = h.controller.snapshot.first()!!
+        assertThat(s.preset.phases.single { it.kind == PhaseKind.TURN }.seconds).isEqualTo(45)
+        // The preset itself is untouched.
+        assertThat(h.repository.preset("table-rules")!!.phases.single { it.kind == PhaseKind.TURN }.seconds)
+            .isEqualTo(30)
+
+        h.repository.saveTonightToPreset()
+        assertThat(h.repository.tonightTurn.value).isNull()
+        assertThat(h.repository.preset("table-rules")!!.phases.single { it.kind == PhaseKind.TURN }.seconds)
+            .isEqualTo(45)
+
+        h.repository.setTonightTurn("table-rules", 45) // same as the preset now: no override
+        assertThat(h.repository.tonightTurn.value).isNull()
+        h.repository.setTonightTurn("relaxed", 90)
+        startTable()
+        s = h.controller.snapshot.first()!!
+        assertThat(s.preset.phases.single { it.kind == PhaseKind.TURN }.seconds).isEqualTo(45)
+    }
+
+    @Test
+    fun `stored default presets from before the resolve step get it on read`() = runTest {
+        val old = h.repository.presets.first().map { p ->
+            p.copy(revision = 0, phases = p.phases.filterNot { it.kind == PhaseKind.RESOLVE })
+        }
+        h.store.writePresets(TimerJson.encodePresets(old))
+
+        val table = h.repository.preset("table-rules")!!
+        assertThat(table.phases.map { it.id }).containsExactly("strategy", "turn", "resolve", "action", "upgrade")
+            .inOrder()
     }
 }

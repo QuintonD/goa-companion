@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -27,6 +28,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
@@ -42,6 +47,7 @@ import dev.quinton.goa.feature.timer.ui.components.timerDigits
 
 @Composable
 internal fun MatchSummary(state: SummaryUiState, actions: TimerActions) {
+    var confirmDiscard by remember { mutableStateOf(false) }
     GoaScreen(title = "Timer", actions = { SettingsActionButton(actions.onSettings) }) { padding ->
         Column(
             Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(Spacing.screen),
@@ -97,8 +103,6 @@ internal fun MatchSummary(state: SummaryUiState, actions: TimerActions) {
                         shape = RoundedCornerShape(16.dp),
                     ) { Text("Log result", style = MaterialTheme.typography.titleMedium) }
                     Spacer(Modifier.height(Spacing.sm))
-                    TextButton(onClick = actions.onDone, modifier = Modifier.heightIn(min = 48.dp)) { Text("Done") }
-                    Spacer(Modifier.height(Spacing.sm))
                     Text(
                         if (state.hasMatch) {
                             "The duration is saved to the match. Log the winner and win condition next."
@@ -109,8 +113,34 @@ internal fun MatchSummary(state: SummaryUiState, actions: TimerActions) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                     )
+                    Spacer(Modifier.height(Spacing.lg))
+                    // A linked match already has its duration, so closing loses nothing. Without a
+                    // match, closing throws the duration away: ask first.
+                    TextButton(
+                        onClick = { if (state.hasMatch) actions.onDone() else confirmDiscard = true },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) { Text(if (state.hasMatch) "Close, log later" else "Discard") }
                 }
             }
         }
+    }
+    if (confirmDiscard) {
+        AlertDialog(
+            onDismissRequest = { confirmDiscard = false },
+            title = { Text("Discard this match?") },
+            text = { Text("The ${state.duration} of play won't be logged anywhere.") },
+            confirmButton = {
+                Button(onClick = {
+                    confirmDiscard = false
+                    actions.onLogResult()
+                }) { Text("Log result") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    confirmDiscard = false
+                    actions.onDone()
+                }) { Text("Discard") }
+            },
+        )
     }
 }

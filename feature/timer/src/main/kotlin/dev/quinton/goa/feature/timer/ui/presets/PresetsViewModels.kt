@@ -128,17 +128,28 @@ class PresetEditViewModel @AssistedInject constructor(
 
     private suspend fun newPreset(): TimerPreset {
         val template = repository.presets.first().firstOrNull { it.id == repository.selectedPresetId.first() }
-        return TimerPreset(
+        // Blank name: the field shows a placeholder instead of text the user has to delete.
+        return (template ?: TimerPreset(id = "", name = "", phases = emptyList())).copy(
             id = UUID.randomUUID().toString(),
-            name = "New preset",
-            phases = template?.phases.orEmpty(),
+            name = "",
             autoAdvance = false,
+            revision = 0,
         )
     }
 
     fun rename(name: String) = edit { it.copy(name = name) }
 
     fun setAutoAdvance(on: Boolean) = edit { it.copy(autoAdvance = on) }
+
+    /** "Hurry up" shot clock length; null = no shot clock. */
+    fun setShotClock(seconds: Int?) = edit { it.copy(shotClockSeconds = seconds) }
+
+    fun setTimeOutsPerRound(count: Int) =
+        edit { it.copy(timeOutsPerRound = count.coerceIn(TimerPresetValidator.TIME_OUTS_RANGE)) }
+
+    fun setTimeOutSeconds(seconds: Int?) = edit { it.copy(timeOutSeconds = seconds ?: it.timeOutSeconds) }
+
+    fun setVolumeKeys(on: Boolean) = edit { it.copy(volumeKeys = on) }
 
     fun setEnabled(phaseId: String, enabled: Boolean) = editPhase(phaseId) { it.copy(enabled = enabled) }
 

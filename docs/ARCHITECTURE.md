@@ -71,7 +71,10 @@ Features never depend on each other; cross-feature navigation goes through `app`
    `setChronometerCountDown(true)`; actions → `BroadcastReceiver` (update state, repost,
    reschedule). On Android 16+: `POST_PROMOTED_NOTIFICATIONS`,
    `setRequestPromotedOngoing(true)`, optionally `ProgressStyle` with one segment per phase.
-   No custom RemoteViews or colorized style (blocks promotion).
+   No custom RemoteViews or colorized style (blocks promotion). Channel `timer_running`:
+   `IMPORTANCE_DEFAULT`, no sound, no vibration, `VISIBILITY_PUBLIC` (a low-importance channel
+   was hidden on the keyguard and folded into "Silent"); the old `timer_ongoing` channel is
+   deleted. Text names what comes next ("Turn 1 of 4 · Next: Cards revealed").
    - **Actions**: Pause/Resume stays one tap, also from the lock screen (harmless and
      reversible, and the table needs it fast). Next uses `setAuthenticationRequired(true)`
      (API 31+: a lock-screen tap asks for an unlock first). There is **no Stop**: ending a
@@ -80,8 +83,13 @@ Features never depend on each other; cross-feature navigation goes through `app`
      string would freeze the chip); `setWhen` + chronometer count-down drive it. Static states
      set one: "Paused", "Over" (overtime).
 4. **Alarm fires** → receiver advances phase, posts a high-importance "phase over" alert
-   (channel audio `USAGE_ALARM` + vibration — required for background audio on API 37),
-   schedules next alarm. A re-sync that auto-advances past a phase end also alerts (e.g. a
+   ("Time's up: Turn 2 · Round 1"; channel audio `USAGE_ALARM` so Do Not Disturb's alarm lane
+   lets it through — required for background audio on API 37), schedules next alarm. The sound
+   is a short bundled original chime (`res/raw/phase_chime.wav`, plays once; it replaced the
+   looping alarm ringtone). Channel sound can't change after creation, so there is one alert
+   channel per Settings → Sounds × Haptics combination (`timer_phase_over`, `_sound`,
+   `_vibrate`, `_silent`); the controller picks one from the settings. Any user command clears
+   a stale alert; it also times out after 5 min. A re-sync that auto-advances past a phase end also alerts (e.g. a
    cold start whose startup re-sync runs before the alarm broadcast); both paths share the
    controller mutex and dedupe by step key, so each phase end alerts at most once.
 5. **Robustness**: reschedule on app start, `BOOT_COMPLETED`, `TIME_SET`,
@@ -93,7 +101,12 @@ Features never depend on each other; cross-feature navigation goes through `app`
    notifications are denied or blocked, the running timer shows a dismissible banner ("Lock-
    screen alerts are off") with a button to the app's notification settings.
 7. Timer screen uses `Modifier.keepScreenOn()`. In-app cues (ticks, haptics) only run while
-   the screen is visible.
+   the screen is visible. Tones use `STREAM_ALARM` and warning/zero vibration uses alarm usage,
+   so they work on a phone set to silent/vibrate or with touch feedback off; the in-app Sounds
+   and Haptics switches still gate them. The "Hurry up" shot clock cues in-app only (no alarm).
+   Portrait: dial above extras; landscape (width > height): dial on the left half, header,
+   phase, extras and controls on the right. Opt-in volume keys are read with
+   `onPreviewKeyEvent` on a focused root while the timer screen shows.
 8. **Match link**: `TimerController` is the single writer of the linked match's duration
    (rounded minutes, clamped to 1–600): on End match, and — only if still missing — before
    an ended session is replaced or cleared. "Log result" without a linked match saves

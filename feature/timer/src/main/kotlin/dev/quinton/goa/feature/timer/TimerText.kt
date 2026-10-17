@@ -1,9 +1,11 @@
 package dev.quinton.goa.feature.timer
 
 import dev.quinton.goa.core.domain.timer.PhaseKind
+import dev.quinton.goa.core.domain.timer.PhaseScope
 import dev.quinton.goa.core.domain.timer.RoundSection
 import dev.quinton.goa.core.domain.timer.TimerPreset
 import dev.quinton.goa.core.domain.timer.TimerReadout
+import dev.quinton.goa.core.domain.timer.TimerSnapshot
 import dev.quinton.goa.core.domain.timer.TimerStep
 import dev.quinton.goa.core.model.match.GameMode
 import kotlin.math.abs
@@ -67,11 +69,63 @@ object TimerText {
         }
     }
 
+    /**
+     * One-line rules reminder under the step title. Paraphrases of the rulebook: table talk p.4
+     * ("Between turns, you are free to discuss strategy… Once the Action cards are revealed…
+     * strategy discussions must stop"), turn sequence p.7 ("resolve them, one by one, in the
+     * initiative order").
+     */
+    fun stepHint(step: TimerStep): String? = when (step.phase?.kind) {
+        PhaseKind.STRATEGY -> "Talk strategy out loud. No notes, no showing cards."
+        PhaseKind.TURN -> "Strategy talk until the reveal."
+        PhaseKind.RESOLVE -> "Cards revealed: resolve one by one in initiative order. No strategy talk."
+        else -> null
+    }
+
+    /** Label of the Next button: what comes next. */
+    fun nextLabel(s: TimerSnapshot): String {
+        val nextIndex = s.stepIndex + 1
+        if (nextIndex > s.plan.lastIndex) return "Start round ${s.round + 1}"
+        val next = s.plan.steps[nextIndex]
+        val sameTurn = next.section == RoundSection.TURN && next.turn == s.step.turn
+        return when {
+            s.step.phase?.kind == PhaseKind.TURN && sameTurn &&
+                (next.phase?.kind == PhaseKind.RESOLVE || next.isAction) -> "Cards revealed"
+
+            next.isAction -> "Next hero"
+
+            next.section == RoundSection.TURN && !sameTurn -> "Next: Turn ${next.turn}"
+
+            else -> "Next: ${stepTitle(next)}"
+        }
+    }
+
+    /** What comes next, for notifications: "Next: Turn 2", "Next: Cards revealed", "Next: Round 3". */
+    fun nextText(s: TimerSnapshot): String {
+        val label = nextLabel(s)
+        return when {
+            label.startsWith("Next") -> label
+            label.startsWith("Start round") -> "Next: Round ${s.round + 1}"
+            else -> "Next: $label"
+        }
+    }
+
+    /** Title of the "time's up" alert, e.g. "Turn 2 · Round 1" or "Upgrade · Level Up · Round 3". */
+    fun endedTitle(step: TimerStep, round: Int): String {
+        val what = when {
+            step.section == RoundSection.TURN && step.phase?.kind == PhaseKind.TURN -> "Turn ${step.turn}"
+            step.section == RoundSection.TURN -> "${stepTitle(step)} · Turn ${step.turn}"
+            else -> stepTitle(step)
+        }
+        return "$what · Round $round"
+    }
+
     fun durationLabel(seconds: Int?): String = seconds?.let { duration(it * 1000L, roundUp = false) } ?: "Untimed"
 
     fun kindLabel(kind: PhaseKind): String = when (kind) {
         PhaseKind.STRATEGY -> "Strategy"
         PhaseKind.TURN -> "Turn"
+        PhaseKind.RESOLVE -> "Resolve"
         PhaseKind.ACTION -> "Action"
         PhaseKind.UPGRADE -> "Upgrade"
         PhaseKind.CUSTOM -> "Custom"
@@ -83,9 +137,15 @@ object TimerText {
         GameMode.DOUBLE_LANE -> "Double lane"
     }
 
-    /** One-line preset summary, e.g. "Strategy 1:30 · Turn 0:30 ×4 · Upgrade 2:00". */
+    /**
+     * One-line preset summary in play order (round start, per turn, end of round), e.g.
+     * "Pre-round strategy 1:30 · Play a card 0:30 ×4 · Resolve · Upgrade 2:00".
+     */
     fun presetSummary(preset: TimerPreset): String {
-        val parts = preset.phases.filter { it.enabled }.map { phase ->
+        val enabled = preset.phases.filter { it.enabled }
+        val actionOn = enabled.any { it.kind == PhaseKind.ACTION && it.scope == PhaseScope.TURN }
+        val shown = enabled.filterNot { actionOn && it.kind == PhaseKind.RESOLVE }.sortedBy { it.scope.ordinal }
+        val parts = shown.map { phase ->
             val base = "${phase.name} ${durationLabel(phase.seconds)}".let {
                 if (phase.seconds == null) phase.name else it
             }
@@ -96,7 +156,7 @@ object TimerText {
             }
         }
         val summary = if (parts.isEmpty()) "Checklist only" else parts.joinToString(" · ")
-        val untimed = preset.phases.filter { it.enabled }.all { it.seconds == null }
+        val untimed = enabled.all { it.seconds == null }
         return if (untimed && parts.isNotEmpty()) "Untimed · round and turn counters" else summary
     }
 }

@@ -35,6 +35,10 @@ hero's name and title.
 
 UI icons from `androidx.compose.material:material-icons-extended` (Apache 2.0, Google).
 
-## Sounds
+## Sounds (original, made for this app)
 
-None bundled yet.
+| Asset | Master | Generated |
+|-------|--------|-----------|
+| "Phase over" chime (three rising bell-like notes, ~1.3 s, mono 22.05 kHz WAV) | `design/sounds/make_chime.py` (additive synthesis, no samples) | `feature/timer/src/main/res/raw/phase_chime.wav` |
+
+In-app threshold cues are generated at runtime by `ToneGenerator`; nothing else is bundled.
