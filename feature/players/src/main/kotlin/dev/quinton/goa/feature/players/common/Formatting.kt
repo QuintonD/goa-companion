@@ -34,6 +34,9 @@ fun formatPercent(value: Double?): String = value?.let { "${(it * 100).roundToIn
 
 fun winLoss(wins: Int, games: Int): String = "$wins–${games - wins}"
 
+/** A record for TalkBack: "1 win, 2 losses". */
+fun spokenRecord(wins: Int, losses: Int): String = "${plural(wins, "win")}, ${plural(losses, "loss", "losses")}"
+
 fun Team.label(): String = if (this == Team.RED) "Red" else "Blue"
 
 fun GameMode.label(): String = when (this) {

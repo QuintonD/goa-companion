@@ -193,7 +193,7 @@ fun AppRule.fillNextSeat(hero: String, pilot: String) {
     waitGone(hasText("Pilot for", substring = true))
 }
 
-/** Leaderboard row content descriptions, e.g. "Rank 1, Ana, rating 1220, provisional, 1 wins 0 losses". */
+/** Leaderboard row content descriptions, e.g. "Rank 1, Ana, rating 1220, provisional, 1 win, 0 losses". */
 fun AppRule.leaderboardRows(): List<String> = onAllNodes(hasClickLabel("Open profile"))
     .fetchSemanticsNodes()
     .mapNotNull { node -> node.descriptions.firstOrNull { RowPattern.containsMatchIn(it) } }

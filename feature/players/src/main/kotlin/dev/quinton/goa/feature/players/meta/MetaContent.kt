@@ -65,6 +65,7 @@ import dev.quinton.goa.feature.players.common.goaFilterChipColors
 import dev.quinton.goa.feature.players.common.goaSegmentedColors
 import dev.quinton.goa.feature.players.common.label
 import dev.quinton.goa.feature.players.common.plural
+import dev.quinton.goa.feature.players.common.spokenRecord
 import dev.quinton.goa.feature.players.common.winLoss
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -382,6 +383,7 @@ private fun HeroCompactTable(state: MetaUiState) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Cell("#", 28.dp)
+                Spacer(Modifier.width(Spacing.xs))
                 Text(
                     "Hero",
                     style = MaterialTheme.typography.labelMedium,
@@ -402,7 +404,7 @@ private fun HeroCompactTable(state: MetaUiState) {
                 val dim = if (rank == null) 0.6f else 1f
                 val description = buildString {
                     rank?.let { append("Rank $it, ") } ?: append("Not ranked yet, ")
-                    append("${row.name}, ${meta.record.wins} wins ${meta.record.losses} losses")
+                    append("${row.name}, ${spokenRecord(meta.record.wins, meta.record.losses)}")
                     append(", win rate ${formatPercent(meta.winRate)}, pick rate ${formatPercent(meta.pickRate)}")
                     meta.banRate?.let { append(", ban rate ${formatPercent(it)}") }
                     row.rating?.let { append(", hero rating ${formatRating(it.value)}") }
@@ -427,6 +429,7 @@ private fun HeroCompactTable(state: MetaUiState) {
                             null
                         },
                     )
+                    Spacer(Modifier.width(Spacing.xs))
                     HeroPortrait(row.heroId, row.portrait, contentDescription = null, modifier = Modifier.size(28.dp))
                     Spacer(Modifier.width(Spacing.sm))
                     Text(
@@ -449,6 +452,7 @@ private fun HeroCompactTable(state: MetaUiState) {
     }
 }
 
+/** A right-aligned table cell; [width] is for font scale 1 and grows with the text. */
 @Composable
 private fun Cell(text: String, width: Dp, bold: Boolean = false, color: Color? = null) {
     Text(
@@ -459,7 +463,7 @@ private fun Cell(text: String, width: Dp, bold: Boolean = false, color: Color? =
         textAlign = TextAlign.End,
         maxLines = 1,
         softWrap = false,
-        modifier = Modifier.width(width),
+        modifier = Modifier.width(width * LocalDensity.current.fontScale.coerceAtLeast(1f)),
     )
 }
 
@@ -476,9 +480,11 @@ private fun PairsCard(rows: List<PairRow>, versus: Boolean) {
                         .heightIn(min = 48.dp)
                         .semantics(mergeDescendants = true) {
                             contentDescription = if (versus) {
-                                "${pair.aName} against ${pair.bName}: ${pair.record.wins} wins ${pair.record.losses} losses"
+                                "${pair.aName} against ${pair.bName}: " +
+                                    spokenRecord(pair.record.wins, pair.record.losses)
                             } else {
-                                "${pair.aName} and ${pair.bName} together: ${pair.record.wins} wins ${pair.record.losses} losses"
+                                "${pair.aName} and ${pair.bName} together: " +
+                                    spokenRecord(pair.record.wins, pair.record.losses)
                             }
                         }
                         .padding(horizontal = Spacing.md, vertical = Spacing.xs),
@@ -536,7 +542,7 @@ private fun HeroMetaItem(row: HeroMetaRow, rank: Int?) {
     val description = buildString {
         rank?.let { append("Rank $it, ") }
         append(row.name)
-        append(", ${meta.record.wins} wins ${meta.record.losses} losses")
+        append(", ${spokenRecord(meta.record.wins, meta.record.losses)}")
         append(", win rate ${formatPercent(meta.winRate)}, at least ${formatPercent(meta.wilsonLower)}")
         append(", pick rate ${formatPercent(meta.pickRate)}")
         meta.banRate?.let { append(", ban rate ${formatPercent(it)}") }

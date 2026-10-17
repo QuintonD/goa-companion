@@ -49,6 +49,7 @@ import dev.quinton.goa.feature.players.common.SectionHeader
 import dev.quinton.goa.feature.players.common.StatRow
 import dev.quinton.goa.feature.players.common.formatPercent
 import dev.quinton.goa.feature.players.common.formatRating
+import dev.quinton.goa.feature.players.common.spokenRecord
 import dev.quinton.goa.feature.players.common.winLoss
 import dev.quinton.goa.feature.players.match.MatchCard
 import dev.quinton.goa.feature.players.meta.WinConditionBars
@@ -265,7 +266,7 @@ private fun OpponentCard(rows: List<OpponentRow>, versus: Boolean) {
                         .heightIn(min = 48.dp)
                         .semantics(mergeDescendants = true) {
                             contentDescription = "${if (versus) "Against" else "With"} ${row.name}: " +
-                                "${row.record.wins} wins ${row.record.losses} losses"
+                                spokenRecord(row.record.wins, row.record.losses)
                         }
                         .padding(horizontal = Spacing.md, vertical = Spacing.xs),
                     verticalAlignment = Alignment.CenterVertically,
@@ -297,7 +298,7 @@ private fun HeroRecordItem(hero: HeroRecordRow) {
             .fillMaxWidth()
             .heightIn(min = 56.dp)
             .semantics(mergeDescendants = true) {
-                contentDescription = "${hero.name}, ${hero.record.wins} wins ${hero.record.losses} losses, " +
+                contentDescription = "${hero.name}, ${spokenRecord(hero.record.wins, hero.record.losses)}, " +
                     "win rate ${formatPercent(hero.record.winRate)}"
             }
             .padding(horizontal = Spacing.md, vertical = Spacing.sm),

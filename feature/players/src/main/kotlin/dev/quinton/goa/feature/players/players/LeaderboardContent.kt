@@ -51,6 +51,7 @@ import dev.quinton.goa.feature.players.common.SectionHeader
 import dev.quinton.goa.feature.players.common.formatDelta
 import dev.quinton.goa.feature.players.common.formatRating
 import dev.quinton.goa.feature.players.common.plural
+import dev.quinton.goa.feature.players.common.spokenRecord
 import dev.quinton.goa.feature.players.common.winLoss
 import dev.quinton.goa.feature.players.match.FAB_CLEARANCE
 
@@ -143,7 +144,7 @@ private fun LeaderboardRowItem(row: LeaderboardRow, onClick: () -> Unit, archive
         if (rating.games > 0) {
             append(", rating ${formatRating(rating.value)}")
             if (rating.provisional) append(", provisional")
-            append(", ${rating.wins} wins ${rating.losses} losses")
+            append(", ${spokenRecord(rating.wins, rating.losses)}")
             row.trend?.let { append(", ${formatDelta(it)} over the last ${plural(row.trendGames, "game")}") }
         } else {
             append(", no games yet")
