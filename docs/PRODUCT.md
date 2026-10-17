@@ -19,13 +19,18 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
 - All 32 heroes from **every product** (Core, Devoted, Defiant, Renowned, Arcane, Wayward),
   2nd printing; ready for the 3rd-printing heroes when they appear.
 - Grid/list with official artwork (sigil fallback), name, title, complexity ★–★★★★, roles,
-  product.
-- Filter by complexity, role, product, ranged; full-text search over names, aliases, card
-  names and card text.
+  product. The grid shows three heroes across a phone at any font scale; the list is compact
+  (six or more rows per screen); the grid/list choice is saved.
+- Filter by complexity, role, product, attack style (Ranged / Mixed / Melee attack cards, see
+  DOMAIN.md); full-text search over names, aliases, card names and card text. Search lists
+  every matching **card** (whole phrase > all words), ranked above heroes matched only
+  partially; tapping a card opens it in the card viewer. When the owned-products collection
+  hides every match, the empty state says so and offers "Show all products".
 - Hero detail: stat bars (Attack/Defense/Initiative/Movement, base → max), roles, full deck
   laid out by colour and tier (basic → I → II → III → Ultimate) with official card images
   (tap to zoom, swipe between cards), card text and values, item each card grants, Handicap
-  card, extras (e.g. Gydion's spellbook), **FAQ rulings**, and personal stats (games, win
+  card (which basic card it replaces), extras (Gydion's spellbook grouped by tier), Ultimate
+  tiles with their text, **FAQ rulings**, and personal stats (games, win
   rate, Elo) from the match log.
 - Unverified data is visibly badged. Works fully offline.
 - **Done when:** every hero passes catalog validation, search returns in <100 ms, screenshot

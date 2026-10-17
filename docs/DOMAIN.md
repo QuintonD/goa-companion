@@ -185,6 +185,29 @@ asks "Red shows / Blue shows"; a tapped flip can be undone for 5 s.
   Hold on any card; Fast Travel replaces Movement; Clear replaces Attack), values
   (Attack, Defense, Movement, Range, Radius), Ranged flag, Block ("!") on Defense, card text,
   item icon on Tier II+ (the stat the card gives when tucked as an item: +1).
+- **`ranged` means a ranged *attack*** [APP data rule]: true only on cards whose primary
+  action is Attack and whose banner reads "Attack - Ranged" (source 1 `modifier` RANGE on an
+  Attack card; correct on all 88 such cards, card-fidelity QA 2026-10-17). About 100 Skill and
+  Defense cards also print a "- Ranged" subtype (e.g. "Skill - Ranged"); the app does not store
+  or show that subtype, and `ranged` stays false on them.
+- **Handicap card colour:** stored as the printed frame colour — Gold on 31 heroes, **Silver
+  on Takahide** (corner letter S). Rulebook p.20: Handicap cards "are weaker versions of the
+  regular basic cards (Usually Gold)"; with 5/7/9 players the larger team's heroes "replace
+  one of their basic cards with a handicap card", with 3 players a Gold card is replaced. The
+  app shows "Replaces the Gold card" / "Replaces the Silver card" from the frame colour.
+  The card is still identified by its slot (`hero.handicap`, ID `<hero>-handicap`), not by
+  colour.
+- **Spellbook pages** (Gydion's `extras`) keep their printed colours from source 1
+  `spells.json`: 3 Gold cantrips (no tier), 6 Red, 6 Green, 6 Blue (Tiers I–III), Purple Wish
+  (Tier IV). They print no initiative and no item. The app groups them by tier.
+- **Attack style** [APP — derived, not an official trait]: the rulebook has no hero-level
+  "ranged" or "melee" trait (Sniper and Melee are role icons, shown separately). The catalog
+  counts the hero's deck cards (basic, extra basic, coloured, Ultimate; not the Handicap card
+  or spellbook) whose primary action is Attack: **Ranged** when more than half are ranged,
+  **Melee** when none is, **Mixed** otherwise, unknown with no Attack cards (Gydion). The Gold
+  card alone is not used: Cutter, Gydion, Misa, NebKher, Swift, Takahide and Trinkets have a
+  Skill or Movement Gold, and Bain or Hanu attack from range on every Red card behind a melee
+  Gold. Pills show the count ("Ranged attacks · 5 of 6").
 - **Levels 1–8**, costs 1–7 coins per step; max tier II at levels 2–4, III at 5–7, Ultimate
   at 8. Each level: upgrade lowest-tier colour; of two next-tier cards one goes to hand, the
   other becomes an item. All colours reach II before any reaches III.
@@ -205,7 +228,8 @@ Catalog types are `@Serializable` and shared by the importer and the app
 Hero(id, name, title, product, aliases, complexity?, stats: HeroStats([base,max] per stat),
      roles: List<Role>, portrait?, printing, cards, handicap?, extras, faq: List<Ruling>,
      lore?, verified, sources)
-Card(id, heroId, name, color: GOLD|SILVER|RED|GREEN|BLUE|PURPLE|OTHER, tier: 1..4|null,
+Card(id, heroId, name, color: GOLD|SILVER|RED|GREEN|BLUE|PURPLE|OTHER (printed frame;
+     OTHER unused since dataVersion 3), tier: 1..4|null,
      initiative?, primary?, secondary, values: CardValues(attack, defense, movement, range,
      radius, plus: List<Stat>), ranged, block, item: Stat?, text (inline markup, see CardText),
      image?)
