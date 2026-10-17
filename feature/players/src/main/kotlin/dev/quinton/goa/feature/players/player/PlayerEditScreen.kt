@@ -45,11 +45,13 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
+import dev.quinton.goa.core.designsystem.icon.PlayerCrests
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
+import dev.quinton.goa.core.designsystem.theme.PlayerColors
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.players.common.AVATAR_COUNT
+import dev.quinton.goa.core.designsystem.theme.playerColor
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.Motion
-import dev.quinton.goa.feature.players.common.PlayerPalette
 import dev.quinton.goa.feature.players.common.SectionHeader
 
 data class PlayerEditActions(
@@ -109,9 +111,9 @@ fun PlayerEditScreen(state: PlayerEditUiState, actions: PlayerEditActions, modif
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
-                    PlayerPalette.swatches.forEach { swatch ->
+                    PlayerColors.all.forEach { swatch ->
                         ColorSwatch(
-                            color = Color(swatch.argb.toInt()),
+                            color = playerColor(swatch.argb),
                             name = swatch.name,
                             selected = swatch.argb == state.color,
                             onClick = { actions.onColorChange(swatch.argb) },
@@ -124,7 +126,7 @@ fun PlayerEditScreen(state: PlayerEditUiState, actions: PlayerEditActions, modif
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
-                    repeat(AVATAR_COUNT) { id ->
+                    repeat(PlayerCrests.count) { id ->
                         val selected = id == state.avatarId
                         val ring by animateDpAsState(if (selected) 3.dp else 0.dp, Motion.spec(), label = "crest-ring")
                         Box(
@@ -133,7 +135,7 @@ fun PlayerEditScreen(state: PlayerEditUiState, actions: PlayerEditActions, modif
                                 .clip(CircleShape)
                                 .then(if (ring > 0.dp) Modifier.border(ring, MaterialTheme.colorScheme.primary, CircleShape) else Modifier)
                                 .selectable(selected = selected, role = Role.RadioButton) { actions.onAvatarChange(id) }
-                                .semantics { contentDescription = "Crest ${id + 1}" },
+                                .semantics { contentDescription = PlayerCrests.names.getOrElse(id) { "Crest ${id + 1}" } },
                             contentAlignment = Alignment.Center,
                         ) {
                             PlayerAvatar(state.preview.copy(avatarId = id), size = 44.dp)
@@ -167,6 +169,6 @@ private fun ColorSwatch(color: Color, name: String, selected: Boolean, onClick: 
             .background(color),
         contentAlignment = Alignment.Center,
     ) {
-        if (selected) Icon(Icons.Filled.Check, contentDescription = null, tint = Color(0xFF0B1622))
+        if (selected) Icon(Icons.Filled.Check, contentDescription = null, tint = if (GoaTheme.isDark) Color(0xFF0B1622) else Color.White)
     }
 }

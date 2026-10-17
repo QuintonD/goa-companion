@@ -42,11 +42,11 @@ import org.junit.runner.Description
 /** Synthetic fixture data — fake names, never real game data. Heroes come from TestCatalog. */
 object Fixtures {
     val ann = Player("p-ann", "Ann", 0xFF3FC1B0, avatarId = 0, createdAt = 1)
-    val bob = Player("p-bob", "Bob", 0xFFE26459, avatarId = 1, createdAt = 2)
-    val cid = Player("p-cid", "Cid", 0xFF4F8FE0, avatarId = 2, createdAt = 3)
-    val dee = Player("p-dee", "Dee", 0xFF9B7FE6, avatarId = 3, createdAt = 4)
-    val eve = Player("p-eve", "Eve", 0xFFE89A3C, avatarId = 4, createdAt = 5)
-    val fay = Player("p-fay", "Fay", 0xFFB0B8C4, avatarId = 5, createdAt = 6, archived = true)
+    val bob = Player("p-bob", "Bob", 0xFFEE7F6F, avatarId = 1, createdAt = 2)
+    val cid = Player("p-cid", "Cid", 0xFF62A8F2, avatarId = 2, createdAt = 3)
+    val dee = Player("p-dee", "Dee", 0xFFB892E6, avatarId = 3, createdAt = 4)
+    val eve = Player("p-eve", "Eve", 0xFFEE9A52, avatarId = 4, createdAt = 5)
+    val fay = Player("p-fay", "Fay", 0xFFC3CCD6, avatarId = 5, createdAt = 6, archived = true)
     val players = listOf(ann, bob, cid, dee, eve, fay)
 
     /** 18:30 local time on 2026-10-[day]. */

@@ -194,7 +194,7 @@ class PlayersScreenshotTest {
 
     @Test fun playerEditDark() = shot {
         PlayerEditScreen(
-            PlayerEditUiState(loading = false, isNew = true, name = "Gus", color = 0xFF9B7FE6, avatarId = 5),
+            PlayerEditUiState(loading = false, isNew = true, name = "Gus", color = 0xFFB892E6, avatarId = 5),
             PlayerEditActions(),
         )
     }

@@ -15,31 +15,6 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-/** Player identity colours (original palette; each reads on both themes as a 2 dp ring). */
-object PlayerPalette {
-    data class Swatch(val argb: Long, val name: String)
-
-    val swatches = listOf(
-        Swatch(0xFF3FC1B0, "Tide teal"),
-        Swatch(0xFFC9A35B, "Bronze"),
-        Swatch(0xFFE26459, "Coral"),
-        Swatch(0xFF4F8FE0, "Azure"),
-        Swatch(0xFF9B7FE6, "Violet"),
-        Swatch(0xFF6CC27A, "Kelp"),
-        Swatch(0xFFE89A3C, "Amber"),
-        Swatch(0xFFE06FAE, "Rose"),
-        Swatch(0xFF5BC0EB, "Sky"),
-        Swatch(0xFFB5C24A, "Olive"),
-        Swatch(0xFFB0B8C4, "Silver"),
-        Swatch(0xFFF2C94C, "Sun gold"),
-    )
-
-    fun name(argb: Long): String = swatches.firstOrNull { it.argb == argb }?.name ?: "Custom"
-}
-
-/** Number of original avatar crests in core:designsystem (docs/DESIGN.md). */
-const val AVATAR_COUNT = 24
-
 fun formatRating(value: Double): String = value.roundToInt().toString()
 
 /** "+12", "−8", "±0" — always signed, with a real minus sign. */
