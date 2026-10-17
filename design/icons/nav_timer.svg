@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <title>Timer tab: hourglass</title>
+  <path d="M5 2.5h14M5 21.5h14"/>
+  <path d="M7 2.5v2c0 3.5 5 5 5 7.5s-5 4-5 7.5v2M17 2.5v2c0 3.5-5 5-5 7.5s5 4 5 7.5v2"/>
+  <path d="M9.5 19.5h5L12 17z" fill="#FFFFFF" stroke-width="1"/>
+</svg>

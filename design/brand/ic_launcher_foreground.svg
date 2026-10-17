@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="108" height="108">
+  <title>App icon foreground: bronze shield bearing a trident (inside the r33 safe zone around 54,54)</title>
+  <defs>
+    <linearGradient id="bronze" gradientUnits="userSpaceOnUse" x1="54" y1="27" x2="54" y2="84">
+      <stop offset="0" stop-color="#EBCB86"/>
+      <stop offset="0.55" stop-color="#C9A35B"/>
+      <stop offset="1" stop-color="#8E6C2E"/>
+    </linearGradient>
+  </defs>
+  <path d="M54 27.5L77 35V54c0 14.5-9.5 23.5-23 29.5C40.5 77.5 31 68.5 31 54V35z" fill="url(#bronze)"/>
+  <path d="M54 31.5L73 37.7V54c0 12.3-7.9 20-19 25.2C42.9 74 35 66.3 35 54V37.7z" fill="none" stroke="#0B1622" stroke-opacity="0.35" stroke-width="1.2"/>
+  <path d="M54 39v37M43.5 43.5v5.5c0 5.2 4.6 8 10.5 8s10.5-2.8 10.5-8v-5.5M47.5 72.5h13" fill="none" stroke="#0B1622" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M54 33.5l3.2 6.2h-6.4zM43.5 38l3 5.8h-6zM64.5 38l3 5.8h-6z" fill="#0B1622" stroke="#0B1622" stroke-width="1.6" stroke-linejoin="round"/>
+</svg>
