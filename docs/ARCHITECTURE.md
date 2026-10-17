@@ -86,14 +86,18 @@ Features never depend on each other; cross-feature navigation goes through `app`
    - **Status-bar chip**: the running countdown sets **no** `setShortCriticalText` (a static
      string would freeze the chip); `setWhen` + chronometer count-down drive it. Static states
      set one: "Paused", "Over" (overtime).
-4. **Alarm fires** → receiver advances phase, posts a high-importance "phase over" alert
-   ("Time's up: Turn 2 · Round 1"; channel audio `USAGE_ALARM` so Do Not Disturb's alarm lane
-   lets it through — required for background audio on API 37), schedules next alarm. The sound
-   is a short bundled original chime (`res/raw/phase_chime.wav`, plays once; it replaced the
-   looping alarm ringtone). Channel sound can't change after creation, so there is one alert
-   channel per Settings → Sounds × Haptics combination (`timer_phase_over`, `_sound`,
-   `_vibrate`, `_silent`); the controller picks one from the settings. Any user command clears
-   a stale alert; it also times out after 5 min. A re-sync that auto-advances past a phase end also alerts (e.g. a
+4. **Alarm fires** → receiver advances phase, raises the "phase over" alert, schedules next
+   alarm (ADR-018 addendum). The app makes the noise itself, from the alarm receiver
+   (`goAsync`, held until the chime ends): `PhaseAlertSounder` plays the short bundled original
+   chime (`res/raw/phase_chime.wav`, 1.3 s, once) with `USAGE_ALARM` (works on a phone set to
+   silent or vibrate, and in Do Not Disturb's alarm lane) when Settings → Sounds is on, and
+   vibrates with alarm usage when Haptics is on. The notification ("Time's up: Turn 2 · Round 1")
+   is only the visual part: one high-importance channel `timer_phase_alert` with no sound or
+   vibration. (Android 16 auto-groups it with the countdown and marks it `SILENT`, which muted
+   the old per-style sounding channels; it also made the group summary chime late.) Turning the
+   "Phase over" channel off in system settings silences the alert completely; with notifications
+   denied the app still chimes and vibrates. Any user command clears a stale alert; it also
+   times out after 5 min. A re-sync that auto-advances past a phase end also alerts (e.g. a
    cold start whose startup re-sync runs before the alarm broadcast); both paths share the
    controller mutex and dedupe by step key, so each phase end alerts at most once.
 5. **Robustness**: reschedule on app start, `BOOT_COMPLETED`, `TIME_SET`,
@@ -109,7 +113,9 @@ Features never depend on each other; cross-feature navigation goes through `app`
    so they work on a phone set to silent/vibrate or with touch feedback off; the in-app Sounds
    and Haptics switches still gate them. The "Hurry up" shot clock cues in-app only (no alarm).
    Portrait: dial above extras; landscape (width > height): dial on the left half, header,
-   phase, extras and controls on the right. Opt-in volume keys are read with
+   phase, extras and controls on the right. A running Hurry up is pinned just above the
+   controls (outside the scrolling area) in both orientations. The bottom controls are Pause and
+   Next only; "Previous phase" sits beside the step chip, away from the bottom edge. Opt-in volume keys are read with
    `onPreviewKeyEvent` on a focused root while the timer screen shows.
 8. **Match link**: `TimerController` is the single writer of the linked match's duration
    (rounded minutes, clamped to 1–600): on End match, and — only if still missing — before

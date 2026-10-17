@@ -167,8 +167,9 @@ card" only if unchanged). User-made presets are never touched.
 
 **Table rules in presets [APP — house rules, not in the rulebook]** (research: designer-endorsed
 "hurry up" clock, playtester time-outs):
-- *Hurry up*: on-demand countdown (default 0:30, or off) usable in any phase or overtime; shown
-  under the dial with cues at 10 s, 5 s and zero; pauses with the timer, cleared on the next step.
+- *Hurry up*: on-demand countdown (default 0:30, or off) usable in any phase or overtime; started
+  from under the dial, then pinned above the timer controls while it runs, with cues at 10 s, 5 s
+  and zero; pauses with the timer, cleared on the next step.
 - *Time-outs*: N per team per round (default 0 = off), each adds 0:40 (editable) to the current
   timed phase, also out of overtime; reset each round.
 - *Volume keys* (opt-in, default off): while the timer shows, volume up = Next, volume down =
@@ -180,7 +181,11 @@ card" only if unchanged). User-made presets are never touched.
 tap landing on an auto-advance). Back within 15 s of a Next undoes it: the previous step
 continues with its time as if Next had never been tapped (one level). The last Action slot of a
 turn auto-picks the one hero left. The Tie Breaker coin side is never assumed: an untracked coin
-asks "Red shows / Blue shows"; a tapped flip can be undone for 5 s.
+asks "Red shows / Blue shows"; a tapped flip can be undone for 8 s or until the next timer
+action. At Match setup, picking the side the placed coin already shows is no correction (the
+coin stays as placed). "Previous phase" sits beside the step chip, not in the bottom controls:
+the running timer has no tab bar, and a habitual tap where the Heroes tab usually is went back
+a phase.
 
 ## Cards and heroes [RB]
 - **Deck:** 18 cards = Gold + Silver (basic, never upgraded) + 3 × Tier I + 6 × Tier II +
@@ -417,8 +422,9 @@ spaces, players and heroes, updated from the same match. Every constant lives in
 - **Leaderboard change**: the sum of the last 5 (or fewer) rating changes, labelled "last N".
 
 ## Rematch [APP]
-From a completed match (after saving its result, or from the match log), a rematch creates a
-new **pending** match with the same players and opens Match setup: *Same seats*; *Swap heroes*
+From a completed match (after saving its result, or from the match log), a rematch opens Match
+setup for a new match with the same players; it is saved as a **pending** match only when its
+timer starts, so backing out of setup leaves nothing behind: *Same seats*; *Swap heroes*
 (players keep team and seat, the two teams trade heroes; only with equal seat counts); *Swap
 sides* (every seat moves to the other team); or *Draft again* (the draft setup is filled with the
 same players and teams, no match is created until the draft finishes). Mode and map are kept;

@@ -35,6 +35,8 @@ instrumented tests green on an API 36 emulator (`goa_api36`), twice.
 - [ ] Backup export/import file pickers exercised on the S25 Ultra
 - [x] Game-night flow (ADR-020): tab state kept across tabs, notification/cold start → Timer, running-timer bar, "Who won?" with rating changes, Rematch, pending-match resume, backup v3 (settings, presets, methods), group stats and compact Meta table — 2026-10-17, JVM tests + screenshots
 - [ ] ADR-020 flows checked on the emulator/S25 Ultra (tab switches mid-form, notification tap, running bar, rematch → setup)
+- [x] Game-night fixes (ADR-018 addendum, ADR-023): background phase-over alert sounded by the app; Start timer always shows the running timer; rematches saved on Start timer, pending rows with heroes and Discard; Hurry up pinned; Previous phase off the bottom edge — 2026-10-17, emulator-5556 (Home, screen off, Doze, Sounds off)
+- [ ] Phase-over chime before Android 17 reaches the S25 Ultra: background-audio hardening would silence it (ADR-018 addendum)
 
 ## M4 — Draft
 - [x] `DraftEngine` with House draft + all official methods + property tests (2–10 players, seat layouts) — 2026-10-17
