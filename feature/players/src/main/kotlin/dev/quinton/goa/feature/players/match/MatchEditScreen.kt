@@ -77,6 +77,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
@@ -286,7 +287,7 @@ private fun MatchFormContent(
         }
         if (state.resultFirst) {
             // "Who won?": the two answers the table has right now, then everything else.
-            WinnerAndCondition(form, actions, showHeader = false)
+            WinnerAndCondition(state, actions, showHeader = false)
             Text(
                 "Everything below is optional: check the seats, then save.",
                 style = MaterialTheme.typography.bodySmall,
@@ -316,7 +317,7 @@ private fun MatchFormContent(
                 enter = fadeIn(Motion.spec()) + expandVertically(Motion.spec()),
                 exit = fadeOut(Motion.spec()) + shrinkVertically(Motion.spec()),
             ) {
-                WinnerAndCondition(form, actions, showHeader = true)
+                WinnerAndCondition(state, actions, showHeader = true)
             }
             DetailsSection(form, actions)
         }
@@ -417,7 +418,8 @@ private fun TeamsSection(
 }
 
 @Composable
-private fun WinnerAndCondition(form: MatchForm, actions: MatchEditActions, showHeader: Boolean) {
+private fun WinnerAndCondition(state: MatchEditUiState, actions: MatchEditActions, showHeader: Boolean) {
+    val form = state.form
     Column {
         Text(
             if (showHeader) "Winner" else "Which team won?",
@@ -426,9 +428,13 @@ private fun WinnerAndCondition(form: MatchForm, actions: MatchEditActions, showH
         )
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             Team.entries.forEach { team ->
-                WinnerOption(team, selected = form.winner == team, onClick = {
-                    actions.onWinner(team)
-                }, Modifier.weight(1f))
+                WinnerOption(
+                    team = team,
+                    pilots = state.pilotNames(team),
+                    selected = form.winner == team,
+                    onClick = { actions.onWinner(team) },
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
         Text(
@@ -759,14 +765,31 @@ private fun SeatEditor(
     }
 }
 
+/** The team's pilots in seat order, each once (a double pilot sits twice). */
+private fun MatchEditUiState.pilotNames(team: Team): List<String> =
+    form.seats(team).mapNotNull { seat -> seat.playerId?.let { playersById[it]?.name } }.distinct()
+
+/**
+ * "Red won" with the team's pilots under it, so the table confirms who it is crediting at a
+ * glance (the seats themselves are further down the form).
+ */
 @Composable
-private fun WinnerOption(team: Team, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun WinnerOption(
+    team: Team,
+    pilots: List<String>,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val color = teamColor(team)
     Surface(
         modifier = modifier
             .heightIn(min = 64.dp)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-            .semantics { contentDescription = "${team.label()} won" },
+            .semantics {
+                contentDescription = "${team.label()} won" +
+                    if (pilots.isEmpty()) "" else ": ${pilots.joinToString(", ")}"
+            },
         shape = MaterialTheme.shapes.medium,
         color = if (selected) color.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surface,
         border = BorderStroke(
@@ -774,16 +797,33 @@ private fun WinnerOption(team: Team, selected: Boolean, onClick: () -> Unit, mod
             if (selected) color else MaterialTheme.colorScheme.outlineVariant,
         ),
     ) {
-        Row(
-            Modifier.padding(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            TeamBadge(team)
-            Text(" won", style = MaterialTheme.typography.labelLarge, color = color, fontWeight = FontWeight.SemiBold)
-            if (selected) {
-                Spacer(Modifier.width(Spacing.sm))
-                Icon(Icons.Filled.EmojiEvents, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
+        Column(Modifier.padding(Spacing.md), horizontalAlignment = Alignment.CenterHorizontally) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                TeamBadge(team)
+                Text(
+                    " won",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = color,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                if (selected) {
+                    Spacer(Modifier.width(Spacing.sm))
+                    Icon(
+                        Icons.Filled.EmojiEvents,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+            if (pilots.isNotEmpty()) {
+                Text(
+                    pilots.joinToString(" · "),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = Spacing.xs),
+                )
             }
         }
     }
