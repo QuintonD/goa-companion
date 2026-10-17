@@ -126,10 +126,17 @@ object DraftEngine {
         rebuild(session, pool)
     }
 
-    /** Hero per seat, in seat order, after any rearranging. */
+    /**
+     * Hero per seat, in seat order, after any rearranging. Once seats were rearranged,
+     * [DraftSession.assignments] is the full seat → hero map (open seats are null) and is used
+     * as is; there is no fallback to the original picks, so a hero never shows on two seats.
+     */
     fun assignments(session: DraftSession): List<SeatAssignment> {
+        if (session.assignments.isNotEmpty()) {
+            return session.seats.map { seat -> SeatAssignment(seat, session.assignments[seat.id]) }
+        }
         val picked = session.picks.associate { it.seatId to it.heroId }
-        return session.seats.map { seat -> SeatAssignment(seat, session.assignments[seat.id] ?: picked[seat.id]) }
+        return session.seats.map { seat -> SeatAssignment(seat, picked[seat.id]) }
     }
 
     /** Swaps the heroes of two seats on the same team once the draft is complete. */
@@ -139,16 +146,8 @@ object DraftEngine {
         val b = session.seat(second) ?: throw DraftError.UnknownSeat(second)
         if (a.team != b.team) throw DraftError.InvalidSeats("Heroes can only move between seats of the same team")
         val current = assignments(session).associate { it.seat.id to it.heroId }
-        val updated = buildMap {
-            for ((seatId, hero) in current) {
-                val moved = when (seatId) {
-                    a.id -> current[b.id]
-                    b.id -> current[a.id]
-                    else -> hero
-                }
-                if (moved != null) put(seatId, moved)
-            }
-        }
+        // A full map (open seats included as null): swapping with an open seat moves the hero.
+        val updated = current + mapOf(a.id to current[b.id], b.id to current[a.id])
         session.copy(assignments = updated)
     }
 

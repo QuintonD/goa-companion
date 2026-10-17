@@ -81,8 +81,11 @@ data class DraftSession(
     val plan: List<PlannedStep>,
     val history: List<DraftEvent> = emptyList(),
     val stepSeconds: Int? = null,
-    /** Seat id → hero after the finished draft was rearranged within teams. */
-    val assignments: Map<String, String> = emptyMap(),
+    /**
+     * Seat id → hero after the finished draft was rearranged within teams: empty until the
+     * first rearrangement, then a full map of every seat (null = open seat).
+     */
+    val assignments: Map<String, String?> = emptyMap(),
 ) {
     val teamB: Team get() = teamA.opponent
 
