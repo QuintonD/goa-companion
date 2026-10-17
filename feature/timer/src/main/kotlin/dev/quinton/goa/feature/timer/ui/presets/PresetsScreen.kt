@@ -38,6 +38,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.GoaScreen
@@ -85,6 +87,8 @@ fun PresetsScreen(state: PresetsUiState, actions: PresetsActions) {
                 onClick = { actions.onEdit(null) },
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                 text = { Text("New preset") },
+                // M3 1.4 leaves the extended FAB's text out of the semantics tree.
+                modifier = Modifier.semantics { contentDescription = "New preset" },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             )

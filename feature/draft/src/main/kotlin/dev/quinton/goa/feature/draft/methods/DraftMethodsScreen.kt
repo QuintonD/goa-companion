@@ -38,6 +38,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -100,6 +101,8 @@ fun DraftMethodsScreen(state: MethodsUiState, actions: MethodsActions) {
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                 text = { Text("New method") },
+                // M3 1.4 leaves the extended FAB's text out of the semantics tree.
+                modifier = Modifier.semantics { contentDescription = "New method" },
             )
         },
     ) { padding ->
