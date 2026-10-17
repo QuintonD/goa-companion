@@ -69,6 +69,7 @@ import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
+import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.catalog.Ruling
 import dev.quinton.goa.feature.catalog.model.HeroPilotStat
@@ -117,6 +118,20 @@ fun HeroDetailScreen(
     }
 }
 
+/**
+ * Rulebook p.20 has the 3-player Handicap card replace "a gold card of one of those heroes", but a
+ * Handicap card without a gold frame (Takahide's is silver, and he has three gold cards) leaves
+ * open which card it replaces. Shown as unresolved; the app never picks an answer.
+ */
+internal fun handicapConflict(hero: Hero, handicap: Card): String? {
+    if (handicap.color == CardColor.GOLD) return null
+    val golds = hero.cards.count { it.color == CardColor.GOLD }
+    val frame = handicap.color.label.lowercase()
+    val goldCards = if (golds > 1) " and ${hero.name} has $golds gold cards" else ""
+    return "Unresolved: rulebook p.20 says that with 3 players the Handicap card replaces a gold card, but this " +
+        "one has a $frame frame$goldCards. Neither the rulebook nor the card says which card it replaces."
+}
+
 private fun LazyListScope.heroDetailContent(state: HeroDetailUiState.Ready, onCardClick: (Card) -> Unit) {
     val hero = state.hero
     val padded = Modifier.padding(horizontal = Spacing.screen)
@@ -157,12 +172,20 @@ private fun LazyListScope.heroDetailContent(state: HeroDetailUiState.Ready, onCa
                     // Rulebook p.20.
                     "A weaker version of a basic card (usually Gold). With 5, 7 or 9 players, every hero on the " +
                         "larger team replaces one of its basic cards with it. With 3 players, the player controlling " +
-                        "two heroes replaces the Gold card of one of them with it. In even-count games, the most " +
+                        "two heroes replaces a gold card of one of them with it. In even-count games, the most " +
                         "experienced players may use it to even out skill.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = Spacing.sm),
                 )
+                handicapConflict(hero, handicap)?.let { note ->
+                    Text(
+                        note,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(bottom = Spacing.sm),
+                    )
+                }
                 CardTileGrid(listOf(handicap), columns = 2, onCardClick = onCardClick, isHandicap = true)
             }
         }
@@ -257,7 +280,7 @@ private fun HeroHeader(hero: Hero, productName: String) {
                 }
                 MetaPill(productName)
                 // App-derived from the Ranged subtype of the deck's Attack cards (DOMAIN.md); kept
-                // apart from the official role chips because "Melee" is also an official role name.
+                // apart from the official role chips (the rulebook calls no-range attacks "Non-Ranged", p.13).
                 hero.attackProfile().pill?.let { MetaPill(it) }
                 if (hero.printing != 2) MetaPill("Printing ${hero.printing}")
                 if (hero.verified) VerifiedPill() else UnverifiedBadge()

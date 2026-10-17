@@ -213,6 +213,7 @@ private fun selectedIcon(selected: Boolean): (@Composable () -> Unit)? = if (sel
 
 private fun <T> Set<T>.toggle(value: T): Set<T> = if (value in this) this - value else this + value
 
-/** How the app derives the attack style (docs/DOMAIN.md); "Melee" here is not the Melee role. */
+/** How the app derives the attack style (docs/DOMAIN.md); "Non-ranged" is the rulebook term (p.13). */
 private const val ATTACK_NOTE =
-    "From the Ranged subtype on the hero's Attack cards: Ranged = more than half ranged, Melee = none ranged."
+    "Derived from the Ranged subtype on the hero's Attack cards: Ranged = more than half ranged, Mixed = some " +
+        "but at most half ranged, Non-ranged = none ranged."

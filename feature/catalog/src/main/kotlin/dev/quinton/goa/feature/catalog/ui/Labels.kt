@@ -58,8 +58,20 @@ val CardColor.label: String
         CardColor.OTHER -> "Special"
     }
 
-/** Gold or Silver: the colours of basic cards (and of the Handicap cards that replace them). */
+/** Gold or Silver: the colours of basic cards (and the frame colours of Handicap cards). */
 val CardColor.isBasic: Boolean get() = this == CardColor.GOLD || this == CardColor.SILVER
+
+/**
+ * What a Handicap card is a weaker version of, derived from its frame colour; the card itself
+ * prints nothing about it. Rulebook p.20: "These cards are weaker versions of the regular basic
+ * cards (Usually Gold)." Null for a card without a basic frame colour.
+ */
+fun Card.handicapBasis(): String? =
+    if (color.isBasic) "Weaker version of the ${color.label} card (frame colour)" else null
+
+/** [handicapBasis] for TalkBack. */
+fun Card.spokenHandicapBasis(): String? =
+    if (color.isBasic) "Weaker version of the ${color.label} card, judged from its frame colour" else null
 
 /** Spellbook pages have IDs `<hero>-spell-<name>` (permanent, see DOMAIN.md). */
 val Card.isSpell: Boolean get() = id.startsWith("$heroId-spell-")
