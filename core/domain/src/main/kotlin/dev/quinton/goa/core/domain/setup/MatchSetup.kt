@@ -26,6 +26,9 @@ data class ModeOption(
 ) {
     val available: Boolean get() = block == null
     val totalWaveCounters: Int get() = lanes * waveCountersPerLane
+
+    /** Allowed, and the rules list both its Wave and Life counters for this many heroes. */
+    val fullySpecified: Boolean get() = available && waveCountersPerLane > 0 && lifeCountersPerTeam != null
 }
 
 /** Everything the setup screen shows for a player count, layout and mode. */
@@ -71,7 +74,9 @@ class MatchSetup(private val rules: MatchRules) {
 
     /**
      * Builds the plan for [players] using [layoutId] (default: the first layout for the count)
-     * and [mode] (falls back to the first available mode when [mode] isn't allowed).
+     * and [mode]. Without an allowed [mode] the default is the required mode, else the first
+     * allowed mode whose counters are fully specified (7 heroes: Double lane, as the rules list
+     * no single-lane Life counters there), else the first allowed mode.
      */
     fun plan(players: Int, layoutId: String? = null, mode: GameMode? = null): SetupPlan {
         val layouts = layouts(players)
@@ -80,8 +85,18 @@ class MatchSetup(private val rules: MatchRules) {
         return planFor(players, layout, mode)
     }
 
-    /** Plan for an existing match whose seats are already known (e.g. from a draft). */
-    fun planForSeats(players: Int, redHeroes: Int, blueHeroes: Int, mode: GameMode? = null): SetupPlan {
+    /**
+     * Plan for an existing match whose seats are already known (e.g. from a draft). [mode] is an
+     * explicit choice; [suggestedMode] (e.g. the mode a draft stored) is only used when its
+     * counters are fully specified for these seats.
+     */
+    fun planForSeats(
+        players: Int,
+        redHeroes: Int,
+        blueHeroes: Int,
+        mode: GameMode? = null,
+        suggestedMode: GameMode? = null,
+    ): SetupPlan {
         val larger = maxOf(redHeroes, blueHeroes)
         val smaller = minOf(redHeroes, blueHeroes)
         val known = layouts(players).firstOrNull { it.largerTeamHeroes == larger && it.smallerTeamHeroes == smaller }
@@ -92,13 +107,15 @@ class MatchSetup(private val rules: MatchRules) {
             smallerTeamHeroes = smaller,
             doublePilots = (redHeroes + blueHeroes - players).coerceAtLeast(0),
         )
-        return planFor(players, layout, mode)
+        return planFor(players, layout, mode, suggestedMode)
     }
 
-    private fun planFor(players: Int, layout: SeatLayout, mode: GameMode?): SetupPlan {
+    private fun planFor(players: Int, layout: SeatLayout, mode: GameMode?, suggested: GameMode? = null): SetupPlan {
         val options = modeOptions(layout.heroes)
         val selected = options.firstOrNull { it.mode == mode && it.available }
             ?: options.firstOrNull { it.required }
+            ?: options.firstOrNull { it.mode == suggested && it.fullySpecified }
+            ?: options.firstOrNull { it.fullySpecified }
             ?: options.first { it.available }
         return SetupPlan(players = players, layout = layout, modes = options, selected = selected)
     }

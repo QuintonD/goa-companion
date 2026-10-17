@@ -140,6 +140,39 @@ class MatchSetupTest {
     }
 
     @Test
+    fun `default mode has wave and life counts for every hero count 2 to 10`() {
+        for (heroes in 2..10) {
+            val plan = setup.planForSeats(players = heroes, redHeroes = (heroes + 1) / 2, blueHeroes = heroes / 2)
+            assertWithMessage("default mode @ $heroes heroes").that(plan.selected.available).isTrue()
+            assertWithMessage("wave counters @ $heroes heroes").that(plan.selected.waveCountersPerLane).isGreaterThan(0)
+            assertWithMessage("life counters @ $heroes heroes").that(plan.selected.lifeCountersPerTeam).isNotNull()
+        }
+        for (players in 2..10) {
+            setup.layouts(players).forEach { layout ->
+                val selected = setup.plan(players, layout.id).selected
+                assertWithMessage("life counters for ${layout.id}").that(selected.lifeCountersPerTeam).isNotNull()
+            }
+        }
+    }
+
+    @Test
+    fun `seven heroes with the handicap layout default to double lane`() {
+        val plan = setup.plan(7, layoutId = "handicap-7")
+        assertThat(plan.selected.mode).isEqualTo(GameMode.DOUBLE_LANE)
+        assertThat(plan.selected.lifeCountersPerTeam).isEqualTo(6)
+        // An explicit choice is still honoured, even without listed Life counters.
+        assertThat(setup.plan(7, layoutId = "handicap-7", mode = GameMode.QUICK).selected.mode).isEqualTo(GameMode.QUICK)
+    }
+
+    @Test
+    fun `a suggested mode is only used when its counters are fully specified`() {
+        val sevenQuick = setup.planForSeats(players = 7, redHeroes = 4, blueHeroes = 3, suggestedMode = GameMode.QUICK)
+        assertThat(sevenQuick.selected.mode).isEqualTo(GameMode.DOUBLE_LANE)
+        val sixLong = setup.planForSeats(players = 6, redHeroes = 3, blueHeroes = 3, suggestedMode = GameMode.LONG)
+        assertThat(sixLong.selected.mode).isEqualTo(GameMode.LONG)
+    }
+
+    @Test
     fun `plan for known seats finds the matching layout`() {
         val plan = setup.planForSeats(players = 5, redHeroes = 3, blueHeroes = 3, mode = GameMode.LONG)
         assertThat(plan.layout.id).isEqualTo("double-pilot-5")

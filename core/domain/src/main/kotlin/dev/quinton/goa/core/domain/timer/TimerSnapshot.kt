@@ -56,14 +56,19 @@ data class TimerSnapshot(
     val step: TimerStep get() = plan.steps[stepIndex.coerceIn(0, plan.lastIndex)]
 
     /**
-     * Returns this snapshot on the current boot's elapsed timeline. After a reboot (boot count
-     * changed, or elapsed time went backwards) every elapsed timestamp is shifted using the
-     * wall-clock anchor; time spent powered off counts as elapsed.
+     * Returns this snapshot on the current boot's elapsed timeline, re-anchored at
+     * ([elapsedNow], [wallNow]). After a reboot (boot count changed, or elapsed time went
+     * backwards) every elapsed timestamp is shifted using the wall-clock anchor; time spent
+     * powered off counts as elapsed. Without a reboot only the anchor moves, so a wall-clock
+     * change (TIME_SET) is absorbed once the re-anchored snapshot is persisted, and a later
+     * reboot rebases against the corrected wall clock.
      */
     fun rebased(elapsedNow: Long, wallNow: Long, currentBootCount: Int?): TimerSnapshot {
         val rebooted = (currentBootCount != null && bootCount != null && currentBootCount != bootCount) ||
             elapsedNow < anchorElapsed
-        if (!rebooted) return copy(bootCount = currentBootCount ?: bootCount)
+        if (!rebooted) {
+            return copy(anchorElapsed = elapsedNow, anchorWall = wallNow, bootCount = currentBootCount ?: bootCount)
+        }
         // Map old-timeline t to new: t - anchorElapsed + anchorWall (wall time) - wallNow + elapsedNow.
         val shift = elapsedNow - wallNow + anchorWall - anchorElapsed
         return copy(
