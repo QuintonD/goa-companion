@@ -107,6 +107,20 @@ class EloCalculatorTest {
     }
 
     @Test
+    fun `official 3-player setup - double pilot with a Handicap seat - is rated like any 2v2`() {
+        // Rulebook p.20: the most experienced player controls two heroes, one with its Handicap card.
+        val result = EloCalculator.replay(
+            listOf(match("m1", 1, Team.BLUE, red("p1", "h1"), red("p1", "h2", handicap = true), blue("p2", "h3"), blue("p3", "h4"))),
+        )
+        // E = 0.5; p1 (w = 1.5) loses 30, p2 and p3 gain 20 each. The Handicap flag is not a rating input.
+        assertThat(result.player("p1").value).isWithin(EPS).of(1170.0)
+        assertThat(result.player("p2").value).isWithin(EPS).of(1220.0)
+        assertThat(result.hero("h2").value).isWithin(EPS).of(1180.0)
+        assertThat(result.doublePilotGames).containsExactly("p1", 1)
+        assertThat(result.largerTeam).isEqualTo(WinLoss.NONE)
+    }
+
+    @Test
     fun `double pilot strength uses each hero it controls`() {
         val config = EloConfig(heroInfluence = 1.0)
         val result = EloCalculator.replay(

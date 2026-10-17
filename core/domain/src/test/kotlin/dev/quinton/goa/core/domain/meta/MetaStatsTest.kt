@@ -105,7 +105,7 @@ class MetaStatsTest {
         // ann 3–0 on h beats cid 3–1; bob has only 2 games on h.
         assertThat(report.hero("h")!!.bestPlayer!!.playerId).isEqualTo("ann")
         assertThat(report.bestHeroesByPlayer.getValue("cid").single().record).isEqualTo(WinLoss(4, 3))
-        assertThat(report.bestHeroesByPlayer["bob"]).isNull()
+        assertThat(report.bestHeroesByPlayer.getValue("bob").map { it.heroId }).containsExactly("g")
     }
 
     @Test
