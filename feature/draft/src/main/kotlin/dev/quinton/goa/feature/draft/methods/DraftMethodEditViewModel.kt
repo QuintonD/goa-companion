@@ -7,6 +7,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.domain.draft.DraftMethod
+import dev.quinton.goa.core.domain.draft.DraftPlanner
 import dev.quinton.goa.core.domain.draft.MethodOrigin
 import dev.quinton.goa.core.domain.draft.PoolRule
 import dev.quinton.goa.core.domain.draft.SequenceRule
@@ -86,10 +87,14 @@ data class MethodEditUiState(
                 opening.none { it.action == DraftAction.PICK } ->
                 "Add at least one pick"
 
+            // Checked for fixed sequences too (e.g. a Pick and Ban copy with dealt hands).
+            DraftPlanner.problem(toMethod()) != null -> DraftPlanner.problem(toMethod())?.message
+
+            fixedSequence != null -> null
+
             else -> PreviewLayout.OPTIONS.firstNotNullOfOrNull {
                 previewOf(toMethod(), it).error?.let { e -> "${it.label}: $e" }
             }
-                ?.takeIf { fixedSequence == null }
         }
 
     private fun describe(): String {

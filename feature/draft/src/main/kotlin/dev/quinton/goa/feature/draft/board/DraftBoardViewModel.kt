@@ -44,6 +44,8 @@ import kotlinx.coroutines.launch
 data class BoardLocal(
     /** Hero waiting for confirm-before-commit. */
     val confirm: String? = null,
+    /** Step index [confirm] was chosen for; the commit is refused if the draft moved on. */
+    val confirmStep: Int? = null,
     /** Step index whose "pass the phone" screen was acknowledged. */
     val privacyAcknowledged: Int? = null,
     /** Seconds left on the step timer; negative = overtime. */
@@ -72,6 +74,17 @@ data class BoardUiState(
             val s = board ?: return false
             val step = s.currentStep ?: return false
             return step.hidden && local.privacyAcknowledged != s.currentStepIndex
+        }
+
+    /**
+     * Undo is offered for the last real board step, the captains' last pick in a Player Draft,
+     * and — after a Player Draft was handed off to the board — that final captain pick.
+     */
+    val canUndo: Boolean
+        get() = when (val p = progress) {
+            is DraftProgress.Board -> p.session.canUndo || p.playerDraft?.captains?.picks?.isNotEmpty() == true
+            is DraftProgress.Players -> p.session.captains.picks.isNotEmpty()
+            null -> false
         }
 
     fun playerName(id: String?): String = id?.let { players[it]?.name } ?: "Unknown player"
@@ -150,24 +163,33 @@ class DraftBoardViewModel @Inject constructor(
     fun tapHero(heroId: String) {
         val s = uiState.value.board ?: return
         if (s.isComplete) return
-        local.update { it.copy(confirm = heroId) }
+        local.update { it.copy(confirm = heroId, confirmStep = s.currentStepIndex) }
     }
 
-    fun cancelConfirm() = local.update { it.copy(confirm = null) }
+    fun cancelConfirm() = local.update { it.copy(confirm = null, confirmStep = null) }
 
     fun confirm() {
-        val heroId = local.value.confirm ?: return
-        local.update { it.copy(confirm = null) }
+        val pending = local.value
+        val heroId = pending.confirm ?: return
+        val stepIndex = pending.confirmStep ?: return
+        local.update { it.copy(confirm = null, confirmStep = null) }
         updateBoard { s ->
-            val step = s.currentStep
-            DraftEngine.apply(s, DraftCommand(heroId, step?.team, step?.action))
+            // The command names the step it was made for: if the draft moved on in between
+            // (a double tap, a restored screen) the engine refuses it instead of applying it to
+            // the next step.
+            val step = s.plan.getOrNull(stepIndex)
+            DraftEngine.apply(s, DraftCommand(heroId, step?.team, step?.action, step = stepIndex))
         }
     }
 
     /** Before the first choice: replace a pool hero with a random eligible one. */
     fun swapOut(heroId: String) {
-        local.update { it.copy(confirm = null) }
+        local.update { it.copy(confirm = null, confirmStep = null) }
         val session = uiState.value.board ?: return
+        if (session.fromPlayerDraft) {
+            local.update { it.copy(message = message(DraftError.PlayerDraftFixed)) }
+            return
+        }
         val options = DraftEngine.swapCandidates(session)
         if (options.isEmpty()) {
             local.update { it.copy(message = "Every eligible hero is already in the pool") }
@@ -179,8 +201,20 @@ class DraftBoardViewModel @Inject constructor(
     fun reroll() = updateBoard { DraftEngine.reroll(it, env.newSeed()) }
 
     fun undo() {
-        local.update { it.copy(confirm = null, selectedSeat = null) }
-        updateBoard { DraftEngine.undo(it) }
+        local.update { it.copy(confirm = null, confirmStep = null, selectedSeat = null) }
+        viewModelScope.launch {
+            val board = current() as? DraftProgress.Board ?: return@launch
+            val origin = board.playerDraft
+            if (!board.session.canUndo && origin != null) {
+                // A finished Player Draft: take back the captains' last pick (heroes stay chosen).
+                PlayerDraft.undo(origin.captains, origin.selection.players).fold(
+                    onSuccess = { drafts.saveActive(DraftProgress.Players(origin.copy(captains = it))) },
+                    onFailure = { e -> local.update { it.copy(message = message(e)) } },
+                )
+            } else {
+                updateBoard { DraftEngine.undo(it) }
+            }
+        }
     }
 
     fun acknowledgePrivacy() {
@@ -191,6 +225,10 @@ class DraftBoardViewModel @Inject constructor(
     // --- Completion ---
 
     fun selectSeat(seatId: String) {
+        uiState.value.board?.seatLock?.let { lock ->
+            local.update { it.copy(selectedSeat = null, message = message(lock)) }
+            return
+        }
         val first = local.value.selectedSeat
         when {
             first == null -> local.update { it.copy(selectedSeat = seatId) }
@@ -250,7 +288,7 @@ class DraftBoardViewModel @Inject constructor(
                 onSuccess = { updated ->
                     val next = if (updated.phase == PlayerDraftPhase.DONE) {
                         updated.toDraftSession().map {
-                            DraftProgress.Board(it)
+                            DraftProgress.Board(it, playerDraft = updated)
                         }.getOrElse { DraftProgress.Players(updated) }
                     } else {
                         DraftProgress.Players(updated)
@@ -286,6 +324,8 @@ class DraftBoardViewModel @Inject constructor(
         val heroes = uiState.value.heroes
         fun hero(id: String) = heroes[id]?.name ?: "That hero"
         return when (e) {
+            // Neutral on purpose: never says who concealed the hero or how.
+            DraftError.Unavailable -> "Choose a different hero"
             is DraftError.AlreadyBanned -> "${hero(e.heroId)} is banned"
             is DraftError.AlreadyPicked -> "${hero(e.heroId)} was already picked by ${teamName(e.team)}"
             is DraftError.Taken -> "${hero(e.heroId)} is already taken"

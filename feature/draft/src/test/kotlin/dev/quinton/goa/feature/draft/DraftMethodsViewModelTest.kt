@@ -93,6 +93,25 @@ class DraftMethodsViewModelTest {
     }
 
     @Test
+    fun `dealt hands cannot be saved with bans`() = runTest {
+        val vm = DraftMethodEditViewModel(null, drafts, FakeDraftEnvironment())
+        vm.setName("Dealt")
+        vm.setPoolKind(PoolKind.DEAL) // the new-method template opens with two bans
+        assertThat(vm.uiState.value.error).isEqualTo(DEALT_BANS)
+        vm.save()
+        assertThat(drafts.customState.value).isEmpty()
+        vm.removeStep(StepSection.OPENING, 0)
+        vm.removeStep(StepSection.OPENING, 0)
+        assertThat(vm.uiState.value.error).isNull()
+
+        // Fixed sequences (a Pick and Ban copy) are checked too.
+        val copy = DraftMethodEditViewModel("pick-and-ban", drafts, FakeDraftEnvironment())
+        assertThat(copy.uiState.value.error).isNull()
+        copy.setPoolKind(PoolKind.DEAL)
+        assertThat(copy.uiState.value.error).isEqualTo(DEALT_BANS)
+    }
+
+    @Test
     fun `editing a custom method updates it in place`() = runTest {
         val existing = bundledMethods.methods.first { it.id == "all-pick" }
             .copy(id = "mine", name = "Mine", origin = MethodOrigin.CUSTOM, kind = DraftMethodKind.CUSTOM)
@@ -103,5 +122,9 @@ class DraftMethodsViewModelTest {
         vm.save()
         assertThat(repo.customState.value.single().name).isEqualTo("Mine v2")
         assertThat(repo.customState.value.single().id).isEqualTo("mine")
+    }
+
+    private companion object {
+        const val DEALT_BANS = "Dealt hands can't be combined with bans: a ban could empty a player's hand"
     }
 }

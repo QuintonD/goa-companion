@@ -45,6 +45,7 @@ import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.draft.DraftEngine
+import dev.quinton.goa.core.domain.draft.DraftError
 import dev.quinton.goa.core.domain.draft.DraftSession
 import dev.quinton.goa.core.domain.draft.SeatAssignment
 import dev.quinton.goa.core.model.match.Team
@@ -76,7 +77,11 @@ internal fun CompletionContent(state: BoardUiState, session: DraftSession, actio
                     modifier = Modifier.semantics { heading() },
                 )
                 Text(
-                    "Tap two heroes on the same team to swap who plays them.",
+                    when (session.seatLock) {
+                        null -> "Tap two heroes on the same team to swap who plays them."
+                        DraftError.PlayerDraftFixed -> "Everyone plays the hero chosen for them."
+                        else -> "Everyone plays the hero they picked from their own hand."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -167,19 +172,20 @@ private fun TeamResult(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            seats.forEach { assignment -> SeatRow(state, assignment, actions) }
+            seats.forEach { assignment -> SeatRow(state, assignment, session.canSwapSeats, actions) }
         }
     }
 }
 
 @Composable
-private fun SeatRow(state: BoardUiState, assignment: SeatAssignment, actions: BoardActions) {
+private fun SeatRow(state: BoardUiState, assignment: SeatAssignment, swappable: Boolean, actions: BoardActions) {
     val seat = assignment.seat
     val hero = assignment.heroId?.let { state.heroes.info(it) }
     val selected = state.local.selectedSeat == seat.id
     val pilot = state.players[seat.pilotId]
     Surface(
         onClick = { actions.selectSeat(seat.id) },
+        enabled = swappable,
         shape = MaterialTheme.shapes.medium,
         color = if (selected) {
             MaterialTheme.colorScheme.secondary.copy(
@@ -195,7 +201,7 @@ private fun SeatRow(state: BoardUiState, assignment: SeatAssignment, actions: Bo
         modifier = Modifier
             .fillMaxWidth()
             .semantics {
-                role = Role.Button
+                if (swappable) role = Role.Button
                 contentDescription = "${hero?.name ?: "Open seat"}, played by ${state.playerName(seat.pilotId)}" +
                     if (seat.handicap) ", Handicap card" else ""
                 stateDescription = if (selected) "Selected — tap another hero on this team to swap" else ""

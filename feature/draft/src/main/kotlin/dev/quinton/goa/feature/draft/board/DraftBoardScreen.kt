@@ -79,8 +79,6 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.draft.DraftEngine
 import dev.quinton.goa.core.domain.draft.DraftSession
-import dev.quinton.goa.core.domain.draft.PoolRule
-import dev.quinton.goa.core.domain.draft.SequenceRule
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.draft.ui.ConcealedTile
@@ -193,11 +191,7 @@ fun DraftBoardScreen(state: BoardUiState, actions: BoardActions) {
     val board = state.board
     val players = state.playerDraft
     val title = board?.method?.name ?: players?.let { "Player Draft" } ?: "Draft"
-    val canUndo = when {
-        board != null -> board.canUndo
-        players != null -> players.captains.picks.isNotEmpty()
-        else -> false
-    }
+    val canUndo = state.canUndo
     GoaScreen(
         title = title,
         onBack = actions::back,
@@ -267,18 +261,16 @@ fun DraftBoardScreen(state: BoardUiState, actions: BoardActions) {
     }
 }
 
-/** True while the pool may still be re-rolled or swapped (before the first real choice). */
-internal fun DraftSession.poolEditable(): Boolean = !isStarted &&
-    method.sequence !is SequenceRule.Lineup &&
-    method.pool != PoolRule.All
+/**
+ * True while the pool may still be re-rolled or swapped (before the first real choice). Never
+ * for a Player Draft: everyone plays their pre-selected hero [RB p.22].
+ */
+internal fun DraftSession.poolEditable(): Boolean = canEditPool
 
 @Composable
 private fun HeroBoard(state: BoardUiState, session: DraftSession, actions: BoardActions) {
     val available = remember(session) { DraftEngine.available(session).toSet() }
-    val concealed =
-        remember(session) {
-            session.history.indices.filter { session.isConcealed(it) }.map { session.history[it].heroId }.toSet()
-        }
+    val concealed = remember(session) { session.concealedIds() }
     val tokens = remember(session) {
         session.plan.map { StepToken("${actionName(it.action)} ${teamGlyph(it.team)}", it.action, it.team, it.hidden) }
     }
