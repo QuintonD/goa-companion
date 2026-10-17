@@ -10,6 +10,7 @@ import dev.quinton.goa.core.domain.draft.DraftSetup
 import dev.quinton.goa.core.domain.draft.PoolRule
 import dev.quinton.goa.core.domain.draft.SequenceRule
 import dev.quinton.goa.core.domain.draft.TeamSlot
+import dev.quinton.goa.core.domain.draft.ban
 import dev.quinton.goa.core.domain.draft.pick
 import dev.quinton.goa.core.domain.teams.OddSeatMode
 import dev.quinton.goa.core.domain.teams.PlayerDraftPhase
@@ -74,6 +75,58 @@ class DraftBoardViewModelTest {
         assertThat(drafts.board.history.single().action).isEqualTo(DraftAction.BAN)
         assertThat(drafts.board.history.single().team).isEqualTo(Team.RED)
         assertThat(vm.uiState.value.local.confirm).isNull()
+    }
+
+    @Test
+    fun `a confirm for a step that already moved on is not applied to the next step`() = runTest {
+        val drafts = FakeDraftRepository(active = DraftProgress.Board(session()))
+        val vm = viewModel(drafts)
+        val start = drafts.board
+        val (first, second) = DraftEngine.available(start)
+        vm.tapHero(second) // chosen for step 0 (Red's ban)…
+        // …but step 0 is committed elsewhere first (another confirm, a resumed screen).
+        drafts.activeState.value =
+            DraftProgress.Board(DraftEngine.apply(start, DraftCommand(first)).getOrThrow())
+        assertThat(drafts.board.currentStepIndex).isEqualTo(1)
+        vm.confirm()
+        // Step 1 (Red's pick) must not receive the hero meant as a ban.
+        assertThat(drafts.board.history.map { it.heroId }).containsExactly(first)
+        assertThat(vm.uiState.value.local.message).isEqualTo("The draft has moved on; choose again")
+        assertThat(vm.uiState.value.local.confirm).isNull()
+    }
+
+    @Test
+    fun `a hero concealed by a hidden step is refused with a neutral message`() = runTest {
+        val blindBans = house.copy(
+            sequence = SequenceRule.Pattern(
+                opening = listOf(ban(TeamSlot.A, hidden = true), ban(TeamSlot.B, hidden = true)),
+                repeat = listOf(pick(TeamSlot.A), pick(TeamSlot.B)),
+            ),
+        )
+        val drafts = FakeDraftRepository(active = DraftProgress.Board(session(blindBans)))
+        val vm = viewModel(drafts)
+        val secret = drafts.board.pool.first()
+        vm.acknowledgePrivacy()
+        vm.tapHero(secret)
+        vm.confirm()
+        vm.acknowledgePrivacy()
+        vm.tapHero(secret)
+        vm.confirm()
+        assertThat(drafts.board.history).hasSize(1)
+        assertThat(vm.uiState.value.local.message).isEqualTo("Choose a different hero")
+    }
+
+    @Test
+    fun `single draft seats cannot be rearranged`() = runTest {
+        val single = bundledMethods.methods.first { it.id == "single-draft" }
+        var s = session(single)
+        while (!s.isComplete) s = DraftEngine.apply(s, DraftCommand(DraftEngine.available(s).first())).getOrThrow()
+        val drafts = FakeDraftRepository(active = DraftProgress.Board(s))
+        val vm = viewModel(drafts)
+        vm.selectSeat("red-0")
+        vm.selectSeat("red-1")
+        assertThat(drafts.board).isEqualTo(s)
+        assertThat(vm.uiState.value.local.message).isEqualTo("Each player plays the hero picked from their own hand")
     }
 
     @Test
@@ -178,7 +231,49 @@ class DraftBoardViewModelTest {
         vm.draftPlayer("d")
         val board = drafts.board
         assertThat(board.isComplete).isTrue()
+        assertThat(board.fromPlayerDraft).isTrue()
         assertThat(board.seatsOf(Team.BLUE).map { it.pilotId }).containsExactly("b", "c")
         assertThat(DraftEngine.assignments(board).first { it.seat.pilotId == "c" }.heroId).isEqualTo(heroIds[2])
     }
+
+    @Test
+    fun `a finished player draft keeps everyone's hero and can undo the captains' last pick`() = runTest {
+        val randomDraft = bundledMethods.methods.first { it.id == "random-draft" }
+        val players = listOf("a", "b", "c", "d")
+        val start = PlayerDraftSession.start("pd", 0, randomDraft, players, "a", "b", Team.RED, heroIds, 1)
+            .getOrThrow()
+        val drafts = FakeDraftRepository(active = DraftProgress.Players(start))
+        val vm = viewModel(drafts)
+        players.forEach { p ->
+            vm.chooseHeroFor(p)
+            vm.assignHero(start.selection.available(p).first { h -> h !in chosen(drafts).values })
+        }
+        val heroes = chosen(drafts)
+        vm.draftPlayer("c")
+        vm.draftPlayer("d")
+        val board = drafts.board
+        val bySeat = { s: DraftSession -> DraftEngine.assignments(s).associate { it.seat.pilotId to it.heroId } }
+        assertThat(bySeat(board)).isEqualTo(heroes)
+
+        // "Deal again", pool swaps and seat swaps are not offered and are refused.
+        assertThat(board.canEditPool).isFalse()
+        assertThat(board.canSwapSeats).isFalse()
+        vm.reroll()
+        vm.swapOut(board.pool.first())
+        vm.selectSeat("red-0")
+        vm.selectSeat("red-1")
+        assertThat(drafts.board).isEqualTo(board)
+        assertThat(bySeat(drafts.board)).isEqualTo(heroes)
+
+        // The captains' last pick can still be taken back.
+        assertThat(vm.uiState.value.canUndo).isTrue()
+        vm.undo()
+        val progress = drafts.activeState.value as DraftProgress.Players
+        assertThat(progress.session.phase).isEqualTo(PlayerDraftPhase.CAPTAINS)
+        assertThat(progress.session.captains.remaining).containsExactly("d")
+        assertThat(progress.session.selection.choices).isEqualTo(heroes)
+    }
+
+    private fun chosen(drafts: FakeDraftRepository): Map<String, String> =
+        (drafts.activeState.value as DraftProgress.Players).session.selection.choices
 }

@@ -253,7 +253,7 @@ class DraftSetupViewModel @Inject constructor(
         val teamA = form.teamA ?: Team.RED
         val countA = seats.count { it.team == teamA }
         val countB = seats.size - countA
-        val plan = DraftPlanner.plan(method.sequence, countA, countB)
+        val plan = DraftPlanner.plan(method, countA, countB)
         val steps = plan.getOrNull()
         val needed = when (val p = method.pool) {
             is PoolRule.SeatsPlus -> seats.size + p.extra
@@ -299,14 +299,17 @@ class DraftSetupViewModel @Inject constructor(
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
             val count = players.observePlayers(includeArchived = true).first().size
-            val player = Player(
-                id = env.newId(),
-                name = trimmed,
-                color = QUICK_ADD_COLORS[count % QUICK_ADD_COLORS.size],
-                avatarId = count % AVATAR_COUNT,
-                createdAt = env.nowMillis(),
+            // A known name (archived players included) selects that player rather than
+            // creating a second one whose games would split the rating.
+            val player = players.ensurePlayer(
+                Player(
+                    id = env.newId(),
+                    name = trimmed,
+                    color = QUICK_ADD_COLORS[count % QUICK_ADD_COLORS.size],
+                    avatarId = count % AVATAR_COUNT,
+                    createdAt = env.nowMillis(),
+                ),
             )
-            players.upsert(player)
             form.update { it.copy(selected = it.selected + player.id).withDefaultTeams() }
         }
     }

@@ -15,6 +15,8 @@ data class DraftCommand(
     val heroId: String,
     val team: Team? = null,
     val action: DraftAction? = null,
+    /** The step index the choice was made for; a different current step is [DraftError.StaleStep]. */
+    val step: Int? = null,
 )
 
 /**
@@ -27,7 +29,7 @@ object DraftEngine {
         validateSeats(setup.seats)
         val countA = setup.seats.count { it.team == setup.teamA }
         val countB = setup.seats.size - countA
-        val slotSteps = DraftPlanner.plan(setup.method.sequence, countA, countB).getOrThrow()
+        val slotSteps = DraftPlanner.plan(setup.method, countA, countB).getOrThrow()
         val candidates = setup.candidates.distinct()
         val sequence = setup.method.sequence
         val auto = sequence == SequenceRule.RandomAssign || sequence is SequenceRule.Lineup
@@ -64,20 +66,30 @@ object DraftEngine {
     }
 
     fun apply(session: DraftSession, command: DraftCommand): Result<DraftSession> = runCatching {
-        val index = session.currentStepIndex ?: throw DraftError.Complete
+        val index = session.currentStepIndex
+        command.step?.let { if (it != index) throw DraftError.StaleStep(it, index) }
+        if (index == null) throw DraftError.Complete
         val step = session.plan[index]
         command.team?.let { if (it != step.team) throw DraftError.WrongTeam(step.team, it) }
         command.action?.let { if (it != step.action) throw DraftError.WrongAction(step.action, it) }
-        if (available(session).isEmpty()) throw DraftError.PoolExhausted
         val hero = command.heroId
         if (hero !in session.pool) throw DraftError.NotInPool(hero)
+        val seatId = step.seatId
+        val hand = seatId?.takeIf { step.action == DraftAction.PICK }?.let { session.handOf(it) }
+        val notInHand = if (seatId != null && hand != null &&
+            hero !in hand
+        ) {
+            DraftError.NotInHand(hero, seatId)
+        } else {
+            null
+        }
+        // A hero concealed in the current hidden run looks available to everyone; refusing it
+        // must not say who took it or whether it was banned or picked [APP].
+        if (hero in session.concealedIds()) throw notInHand ?: DraftError.Unavailable
+        if (available(session).isEmpty()) throw DraftError.PoolExhausted
         if (hero in session.bannedIds) throw DraftError.AlreadyBanned(hero)
         session.picks.firstOrNull { it.heroId == hero }?.let { throw DraftError.AlreadyPicked(hero, it.team) }
-        val seatId = step.seatId
-        if (step.action == DraftAction.PICK && seatId != null) {
-            val hand = session.handOf(seatId)
-            if (hand != null && hero !in hand) throw DraftError.NotInHand(hero, seatId)
-        }
+        notInHand?.let { throw it }
         session.copy(history = session.history + DraftEvent(index, step.team, step.action, hero, seatId))
     }
 
@@ -98,6 +110,7 @@ object DraftEngine {
 
     /** Deals a fresh pool with [seed]; only before the first choice. */
     fun reroll(session: DraftSession, seed: Long): Result<DraftSession> {
+        if (session.fromPlayerDraft) return Result.failure(DraftError.PlayerDraftFixed)
         if (session.isStarted) return Result.failure(DraftError.AlreadyStarted)
         return start(
             DraftSetup(
@@ -118,6 +131,7 @@ object DraftEngine {
 
     /** Replaces [out] with [replacement] in the pool; only before the first choice. */
     fun swapPoolHero(session: DraftSession, out: String, replacement: String): Result<DraftSession> = runCatching {
+        if (session.fromPlayerDraft) throw DraftError.PlayerDraftFixed
         if (session.isStarted) throw DraftError.AlreadyStarted
         val position = session.pool.indexOf(out)
         if (position < 0) throw DraftError.NotInPool(out)
@@ -126,29 +140,32 @@ object DraftEngine {
         rebuild(session, pool)
     }
 
-    /** Hero per seat, in seat order, after any rearranging. */
+    /**
+     * Hero per seat, in seat order, after any rearranging. Once seats were rearranged,
+     * [DraftSession.assignments] is the full seat → hero map (open seats are null) and is used
+     * as is; there is no fallback to the original picks, so a hero never shows on two seats.
+     */
     fun assignments(session: DraftSession): List<SeatAssignment> {
+        if (session.assignments.isNotEmpty()) {
+            return session.seats.map { seat -> SeatAssignment(seat, session.assignments[seat.id]) }
+        }
         val picked = session.picks.associate { it.seatId to it.heroId }
-        return session.seats.map { seat -> SeatAssignment(seat, session.assignments[seat.id] ?: picked[seat.id]) }
+        return session.seats.map { seat -> SeatAssignment(seat, picked[seat.id]) }
     }
 
-    /** Swaps the heroes of two seats on the same team once the draft is complete. */
+    /**
+     * Swaps the heroes of two seats on the same team once the draft is complete. Only for
+     * team-pick methods; see [DraftSession.seatLock].
+     */
     fun swapSeats(session: DraftSession, first: String, second: String): Result<DraftSession> = runCatching {
+        session.seatLock?.let { throw it }
         if (!session.isComplete) throw DraftError.NotComplete
         val a = session.seat(first) ?: throw DraftError.UnknownSeat(first)
         val b = session.seat(second) ?: throw DraftError.UnknownSeat(second)
         if (a.team != b.team) throw DraftError.InvalidSeats("Heroes can only move between seats of the same team")
         val current = assignments(session).associate { it.seat.id to it.heroId }
-        val updated = buildMap {
-            for ((seatId, hero) in current) {
-                val moved = when (seatId) {
-                    a.id -> current[b.id]
-                    b.id -> current[a.id]
-                    else -> hero
-                }
-                if (moved != null) put(seatId, moved)
-            }
-        }
+        // A full map (open seats included as null): swapping with an open seat moves the hero.
+        val updated = current + mapOf(a.id to current[b.id], b.id to current[a.id])
         session.copy(assignments = updated)
     }
 

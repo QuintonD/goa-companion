@@ -158,7 +158,7 @@ Hero(id, name, title, product, aliases, complexity?, stats: HeroStats([base,max]
 Card(id, heroId, name, color: GOLD|SILVER|RED|GREEN|BLUE|PURPLE|OTHER, tier: 1..4|null,
      initiative?, primary?, secondary, values: CardValues(attack, defense, movement, range,
      radius), ranged, block, item: Stat?, text (inline markup, see CardText), image?)
-Player(id, name, color: ARGB, avatarId, createdAt, archived)
+Player(id, name, color: ARGB, avatarId, createdAt, archived)   // name unique, see below
 Match(id, createdAt, playedAt, status: PENDING|COMPLETED|ABANDONED, mode: QUICK|LONG|DOUBLE_LANE,
       map?, winner?, winCondition?, durationMin?, notes, draftId?, participants)
 Participant(playerId, heroId?, team: RED|BLUE, handicap)   // one per hero seat
@@ -170,6 +170,10 @@ engines in `core:domain`.
 `
   paragraph break; everything else is printed text verbatim.
 - IDs: catalog = permanent kebab-case slugs (`"arien"`, `"arien-red-1"`); user data = UUIDs.
+- **Player names are unique** [APP], compared trimmed and case-insensitively, archived
+  players included (`PlayerNames`), so one person never has two ids and two split ratings.
+  `PlayerRepository.ensurePlayer` (draft setup's quick add) reuses — and unarchives — the
+  existing player; the player editor refuses a taken name.
 - `Team` is always `RED`/`BLUE` in code. "Team A" exists only inside a draft = the team
   showing on the Tie Breaker coin.
 - Unknown values are `null`, never guessed.
@@ -291,6 +295,26 @@ coin at the time of selection (the coin is flipped in setup step 3, before heroe
 - **First game** [RB p.5]: 4 players = Red Wasp + Xargatha vs Blue Arien + Brogan; 6 players
   add Tigerclaw (Red) and Sabina (Blue). Offered as a "Learning game" preset.
 - Team picks are assigned to players on that team before the match starts [APP].
-- Engine: `DraftEngine.apply(session, heroId) -> Result<DraftSession>`; typed errors for
-  taken/banned/not-in-pool/wrong-step; undo = drop last result. Property test: every method ×
-  every player count 2–10 completes with unique heroes when the pool is large enough.
+- **Rearranging seats** after the draft [APP]: only for methods where a *team* picks (House
+  draft, Pick and Ban, All Pick, Random Draft, All Random): heroes swap between two seats of
+  the same team; swapping with an open seat moves the hero (once rearranged, the session keeps
+  a full seat → hero map with `null` for open seats, so a hero never appears twice). Refused
+  (typed errors) for **Single Draft** — each player picks from their own 3 [RB], so the hero
+  stays with that seat — and for a **Player Draft** hand-off.
+- **Player Draft hand-off** [RB p.22: everyone plays their pre-selected hero]: the finished
+  board is flagged `fromPlayerDraft`, so re-roll ("Deal again"), pool swaps and seat swaps are
+  refused (`DraftError.PlayerDraftFixed`) and hidden. Undo on that board takes back the
+  captains' last pick (back to the Player Draft) [APP].
+- **Hidden steps** [APP]: a hero chosen in the current run of hidden steps still looks
+  available to the next team. Choosing it is refused with the neutral
+  `DraftError.Unavailable` ("Choose a different hero"), which does not say who chose it or
+  whether it was banned or picked. Once the hidden run ends, the normal banned/picked errors
+  apply. (Duplicate blind bans are *not* accepted: every hero appears at most once per draft.)
+- **Dealt hands + bans** [APP]: a method that deals hands (`deal_per_seat`) may not contain
+  bans — a ban draws from the whole pool and could empty a player's hand. The planner
+  (`DraftPlanner.problem`) and the method editor reject the combination.
+- Engine: `DraftEngine.apply(session, command) -> Result<DraftSession>`; typed errors for
+  taken/banned/not-in-pool/wrong-step; a command may name its step, and a draft that moved on
+  refuses it (`StaleStep`, e.g. a confirm racing a step change); undo = drop last result.
+  Property tests: every method × every player count 2–10 completes with unique heroes when the
+  pool is large enough; random seat-swap sequences keep the assigned heroes equal to the picks.

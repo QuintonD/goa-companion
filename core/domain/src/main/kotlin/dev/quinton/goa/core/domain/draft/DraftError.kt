@@ -39,6 +39,16 @@ sealed class DraftError(message: String) : Exception(message) {
 
     data class Taken(val heroId: String) : DraftError("$heroId is already taken")
 
+    /**
+     * Neutral refusal for a hero concealed by a hidden step in the current hidden run: says
+     * nothing about who chose it or whether it was banned or picked.
+     */
+    data object Unavailable : DraftError("Choose a different hero")
+
+    /** The command was made for an earlier step (e.g. a confirm that raced a step change). */
+    data class StaleStep(val expected: Int, val actual: Int?) :
+        DraftError("The draft has moved on; choose again")
+
     // Editing
     data object NothingToUndo : DraftError("Nothing to undo")
 
@@ -47,4 +57,10 @@ sealed class DraftError(message: String) : Exception(message) {
     data object NotComplete : DraftError("Seats can be rearranged once the draft is complete")
 
     data class UnknownSeat(val seatId: String) : DraftError("Unknown seat $seatId")
+
+    /** Player Draft [RB p.22]: everyone plays the hero chosen for them before the captains drafted. */
+    data object PlayerDraftFixed : DraftError("In a Player Draft everyone plays the hero chosen for them")
+
+    /** Dealt hands (Single Draft): each player plays a hero from their own hand. */
+    data object HandsFixed : DraftError("Each player plays the hero picked from their own hand")
 }

@@ -2,6 +2,8 @@ package dev.quinton.goa.feature.draft
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.domain.draft.MethodOrigin
+import dev.quinton.goa.core.domain.draft.PoolRule
 import dev.quinton.goa.core.domain.draft.PoolSource
 import dev.quinton.goa.core.domain.teams.OddSeatMode
 import dev.quinton.goa.core.model.match.Team
@@ -106,6 +108,44 @@ class DraftSetupViewModelTest {
         val added = playerRepo.state.value.last()
         assertThat(added.name).isEqualTo("Guest")
         assertThat(vm.uiState.value.form.selected).contains(added.id)
+    }
+
+    @Test
+    fun `quick add reuses a player with the same name instead of creating a duplicate`() = runTest {
+        val vm = viewModel()
+        vm.quickAddPlayer("  player 2 ")
+        assertThat(playerRepo.state.value).hasSize(6)
+        assertThat(vm.uiState.value.form.selected).containsExactly("p2")
+    }
+
+    @Test
+    fun `quick add brings back an archived player with the same name`() = runTest {
+        playerRepo.state.value = players + Player("old", "Old Friend", 0xFF3FC1B0, 0, 0L, archived = true)
+        val vm = viewModel()
+        assertThat(vm.uiState.value.players.map { it.player.id }).doesNotContain("old")
+        vm.quickAddPlayer("OLD FRIEND")
+        assertThat(playerRepo.state.value).hasSize(7)
+        assertThat(playerRepo.state.value.single { it.id == "old" }.archived).isFalse()
+        assertThat(vm.uiState.value.form.selected).containsExactly("old")
+        assertThat(vm.uiState.value.players.map { it.player.id }).contains("old")
+    }
+
+    @Test
+    fun `custom methods that deal hands and ban are unavailable`() = runTest {
+        val house = bundledMethods.methods.first { it.id == "house" }
+        drafts.customState.value = listOf(
+            house.copy(
+                id = "dealt-bans",
+                name = "Dealt bans",
+                origin = MethodOrigin.CUSTOM,
+                pool = PoolRule.DealPerSeat(3),
+            ),
+        )
+        val vm = viewModel()
+        listOf("p0", "p1", "p2", "p3").forEach(vm::togglePlayer)
+        repeat(2) { vm.next() }
+        assertThat(vm.uiState.value.methods.first { it.method.id == "dealt-bans" }.unavailable)
+            .contains("Dealt hands can't be combined with bans")
     }
 
     @Test

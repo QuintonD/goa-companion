@@ -94,6 +94,25 @@ class ViewModelTests {
     }
 
     @Test
+    fun playerNamesStayUniqueIncludingArchivedPlayers() = runTest {
+        // Fay is archived: reusing her name would split her rating across two ids.
+        val vm = PlayerEditViewModel(null, players)
+        vm.onNameChange(" FAY ")
+        vm.save()
+        assertThat(vm.uiState.value.nameError).isEqualTo("“FAY” is already in your group")
+        assertThat(players.state.value).isEqualTo(Fixtures.players)
+
+        // Renaming a player to another player's name is refused; keeping their own name is fine.
+        val bobEdit = PlayerEditViewModel(bob.id, players)
+        bobEdit.onNameChange("ann")
+        bobEdit.save()
+        assertThat(bobEdit.uiState.value.nameError).contains("already in your group")
+        bobEdit.onNameChange("  BOB ")
+        bobEdit.save()
+        assertThat(bobEdit.uiState.value.saved).isTrue()
+    }
+
+    @Test
     fun editingPlayerKeepsIdAndCreatedAt() = runTest {
         val vm = PlayerEditViewModel(bob.id, players)
         assertThat(vm.uiState.value.name).isEqualTo("Bob")

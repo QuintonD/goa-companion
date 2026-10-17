@@ -81,8 +81,16 @@ data class DraftSession(
     val plan: List<PlannedStep>,
     val history: List<DraftEvent> = emptyList(),
     val stepSeconds: Int? = null,
-    /** Seat id → hero after the finished draft was rearranged within teams. */
-    val assignments: Map<String, String> = emptyMap(),
+    /**
+     * Seat id → hero after the finished draft was rearranged within teams: empty until the
+     * first rearrangement, then a full map of every seat (null = open seat).
+     */
+    val assignments: Map<String, String?> = emptyMap(),
+    /**
+     * Built from a finished Player Draft [RB p.22]: everyone plays their pre-selected hero, so
+     * the pool and seats are fixed. Absent in sessions saved before this flag existed.
+     */
+    val fromPlayerDraft: Boolean = false,
 ) {
     val teamB: Team get() = teamA.opponent
 
@@ -103,6 +111,31 @@ data class DraftSession(
     val bannedIds: Set<String> get() = bans.mapTo(mutableSetOf()) { it.heroId }
 
     val pickedIds: Set<String> get() = picks.mapTo(mutableSetOf()) { it.heroId }
+
+    /** True while the pool may still be re-rolled or swapped (before the first real choice). */
+    val canEditPool: Boolean
+        get() = !isStarted &&
+            !fromPlayerDraft &&
+            method.sequence !is SequenceRule.Lineup &&
+            method.pool != PoolRule.All
+
+    /**
+     * Why heroes may not move between seats; null = within-team swaps are allowed (team-pick
+     * methods). Player Draft heroes belong to their players [RB p.22]; dealt hands (Single
+     * Draft) belong to the seat they were dealt to [RB].
+     */
+    val seatLock: DraftError?
+        get() = when {
+            fromPlayerDraft -> DraftError.PlayerDraftFixed
+            method.pool is PoolRule.DealPerSeat -> DraftError.HandsFixed
+            else -> null
+        }
+
+    val canSwapSeats: Boolean get() = seatLock == null
+
+    /** Heroes chosen in the current hidden run, still secret. */
+    fun concealedIds(): Set<String> =
+        history.indices.filter { isConcealed(it) }.mapTo(mutableSetOf()) { history[it].heroId }
 
     fun seatsOf(team: Team): List<Seat> = seats.filter { it.team == team }.sortedBy { it.index }
 

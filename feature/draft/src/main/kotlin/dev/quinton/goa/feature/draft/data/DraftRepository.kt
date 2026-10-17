@@ -29,7 +29,11 @@ sealed interface DraftProgress {
 
     @Serializable
     @SerialName("board")
-    data class Board(val session: DraftSession) : DraftProgress {
+    data class Board(
+        val session: DraftSession,
+        /** The Player Draft this board was handed off from, so its last captain pick can be undone. */
+        val playerDraft: PlayerDraftSession? = null,
+    ) : DraftProgress {
         override val id: String get() = session.id
     }
 

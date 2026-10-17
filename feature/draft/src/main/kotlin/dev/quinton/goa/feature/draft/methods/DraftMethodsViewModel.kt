@@ -46,7 +46,7 @@ data class PreviewLayout(val a: Int, val b: Int) {
 data class SequencePreview(val tokens: List<StepToken>, val error: String?, val heroesNeeded: Int)
 
 fun previewOf(method: DraftMethod, layout: PreviewLayout): SequencePreview {
-    val plan = DraftPlanner.plan(method.sequence, layout.a, layout.b)
+    val plan = DraftPlanner.plan(method, layout.a, layout.b)
     val steps = plan.getOrNull()
     val error = when (val e = plan.exceptionOrNull()) {
         null -> null

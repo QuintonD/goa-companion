@@ -31,6 +31,29 @@ object DraftPlanner {
         expand(source(sequence, seatsA, seatsB), seatsA, seatsB)
     }
 
+    /** [plan] for a method, rejecting pool/sequence combinations that can't run ([problem]). */
+    fun plan(method: DraftMethod, seatsA: Int, seatsB: Int): Result<List<SlotStep>> =
+        problem(method)?.let { Result.failure(it) } ?: plan(method.sequence, seatsA, seatsB)
+
+    /**
+     * A method-level problem independent of the seat layout; null when the method can run.
+     * Dealt hands + bans: bans draw from the whole pool, so they could empty a seat's hand and
+     * leave its pick with nothing to choose [APP].
+     */
+    fun problem(method: DraftMethod): DraftError? = if (method.pool is PoolRule.DealPerSeat &&
+        hasBans(method.sequence)
+    ) {
+        DraftError.NotSupported("Dealt hands can't be combined with bans: a ban could empty a player's hand")
+    } else {
+        null
+    }
+
+    private fun hasBans(sequence: SequenceRule): Boolean = when (sequence) {
+        SequenceRule.RandomAssign, is SequenceRule.Lineup -> false
+        is SequenceRule.Pattern -> (sequence.opening + sequence.repeat).any { it.action == DraftAction.BAN }
+        is SequenceRule.ByCount -> sequence.tables.any { table -> table.steps.any { it.action == DraftAction.BAN } }
+    }
+
     /** The raw step stream before skipping; throws [DraftError] when the rule can't serve the layout. */
     private fun source(sequence: SequenceRule, seatsA: Int, seatsB: Int): Sequence<StepSpec> = when (sequence) {
         SequenceRule.RandomAssign -> cycle(listOf(pick(TeamSlot.A), pick(TeamSlot.B)))

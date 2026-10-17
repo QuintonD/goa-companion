@@ -147,6 +147,7 @@ data class PlayerDraftSession(
             pool = selection.pool,
             plan = plan,
             history = history,
+            fromPlayerDraft = true,
         )
     }
 }
