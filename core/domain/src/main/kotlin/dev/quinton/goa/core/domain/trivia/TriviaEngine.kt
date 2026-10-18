@@ -191,8 +191,10 @@ object TriviaEngine {
         // Only a card-number question tests a number exactly; a duel can be right by a rough sense of order.
         val updates = when (question) {
             is TriviaQuestion.CardNumber -> mapOf(
-                question.fact.key to TriviaMastery.record(question.fact, session.progress[question.fact.key], correct, now),
+                question.fact.key to
+                    TriviaMastery.record(question.fact, session.progress[question.fact.key], correct, now),
             )
+
             is TriviaQuestion.HigherInitiative -> emptyMap()
         }
         val asked = session.results.size + 1
@@ -244,17 +246,18 @@ object TriviaEngine {
 
     private fun pick(session: TriviaSession, random: Random): TriviaQuestion {
         val asked = session.results.size
-        val due = session.retries.firstOrNull { it.dueAfter <= asked }
-        return if (due != null) {
-            numberQuestion(session, due.fact, random)
+        val last = session.lastCards()
+        val elsewhere = session.pool.any { it.cardId !in last }
+        // A due retry on the card just asked waits a question when the pool has another card.
+        val due = session.retries.firstOrNull { it.dueAfter <= asked && (it.fact.cardId !in last || !elsewhere) }
+        if (due != null) return numberQuestion(session, due.fact, random)
+        // A duel needs two cards besides the ones just asked, so it never repeats the last card.
+        val initiative = session.pool.filter { it.stat == TriviaStat.INITIATIVE && it.cardId !in last }
+        val canDuel = session.config.duels && initiative.map { it.cardId }.distinct().size >= 2
+        return if (canDuel && random.nextDouble() < DUEL_SHARE) {
+            duel(session, initiative, random)
         } else {
-            val initiative = session.pool.filter { it.stat == TriviaStat.INITIATIVE }
-            val canDuel = session.config.duels && initiative.map { it.cardId }.distinct().size >= 2
-            if (canDuel && random.nextDouble() < DUEL_SHARE) {
-                duel(session, initiative, random)
-            } else {
-                numberQuestion(session, weighted(session, avoidRecent(session, session.pool), random), random)
-            }
+            numberQuestion(session, weighted(session, avoidRecent(session, session.pool), random), random)
         }
     }
 
@@ -262,11 +265,14 @@ object TriviaEngine {
         val range = (session.ranges[fact.stat].orEmpty() + fact.value).distinct().sorted()
         val choices = when (session.config.answerStyle) {
             AnswerStyle.RECALL -> range
+
             AnswerStyle.CHOICES -> {
-                val others = range.filter { it != fact.value }
-                    .shuffled(random)
-                    .sortedBy { abs(it - fact.value) } // stable: ties stay shuffled
-                (others.take(CHOICE_COUNT - 1) + fact.value).sorted()
+                // A run of neighbouring values with the answer at a random place in it. (The nearest
+                // values alone would keep an inner answer off both ends: a tell.)
+                val count = CHOICE_COUNT.coerceAtMost(range.size)
+                val at = range.indexOf(fact.value)
+                val from = random.nextInt((at - count + 1).coerceAtLeast(0), at.coerceAtMost(range.size - count) + 1)
+                range.subList(from, from + count).toList()
             }
         }
         return TriviaQuestion.CardNumber(fact, choices)
@@ -274,7 +280,7 @@ object TriviaEngine {
 
     private fun duel(session: TriviaSession, initiative: List<TriviaFact>, random: Random): TriviaQuestion {
         val first = weighted(session, avoidRecent(session, initiative), random)
-        val others = initiative.filter { it.cardId != first.cardId }
+        val others = avoidRecent(session, initiative.filter { it.cardId != first.cardId })
         val close = others.filter { abs(it.value - first.value) <= DUEL_CLOSE }
         val second = (close.ifEmpty { others }).random(random)
         return if (random.nextBoolean()) {
@@ -284,9 +290,21 @@ object TriviaEngine {
         }
     }
 
+    /** Cards of the question just answered. */
+    private fun TriviaSession.lastCards(): Set<String> =
+        results.lastOrNull()?.question?.facts?.map { it.cardId }?.toSet().orEmpty()
+
+    /**
+     * [facts] not on the cards of the last [RECENT_CARDS] questions. When that leaves none the
+     * window shrinks, so even a small pool never repeats the card just asked if it has another.
+     */
     private fun avoidRecent(session: TriviaSession, facts: List<TriviaFact>): List<TriviaFact> {
-        val recent = session.results.takeLast(RECENT_CARDS).flatMap { r -> r.question.facts.map { it.cardId } }.toSet()
-        return facts.filter { it.cardId !in recent }.ifEmpty { facts }
+        for (window in RECENT_CARDS downTo 1) {
+            val recent = session.results.takeLast(window).flatMap { r -> r.question.facts.map { it.cardId } }.toSet()
+            val fresh = facts.filter { it.cardId !in recent }
+            if (fresh.isNotEmpty()) return fresh
+        }
+        return facts
     }
 
     /** Weighted towards facts the player missed, hasn't seen, or is still learning. */
