@@ -33,6 +33,8 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.server.application.ApplicationCall
+import io.ktor.server.request.contentType
+import io.ktor.server.request.header
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.request.receiveParameters
 import io.ktor.server.response.header
@@ -41,6 +43,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.utils.io.jvm.javaio.toInputStream
+import java.io.IOException
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Dispatchers
@@ -154,15 +157,23 @@ internal fun Route.backupRoutes(ctx: HubContext) {
 
 /** The uploaded file's text (the multipart `file` part), or null when there is none or it is over 8 MB. */
 private suspend fun ApplicationCall.receiveBackupText(): String? {
+    if (request.contentType().withoutParameters() != ContentType.MultiPart.FormData) return null
+    val declared = request.header(HttpHeaders.ContentLength)?.toLongOrNull()
+    if (declared != null && declared > MAX_BODY_BYTES + MULTIPART_SLACK) return null
     var file: ByteArray? = null
     var read = false
-    receiveMultipart(formFieldLimit = MAX_BODY_BYTES + MULTIPART_SLACK).forEachPart { part ->
-        if (!read && part is PartData.FileItem && part.name == "file") {
-            read = true
-            // Over the limit reads as null: the same 8 MB as the sync API.
-            file = withContext(Dispatchers.IO) { readLimited(part.provider().toInputStream(), MAX_BODY_BYTES) }
+    try {
+        receiveMultipart(formFieldLimit = MAX_BODY_BYTES + MULTIPART_SLACK).forEachPart { part ->
+            if (!read && part is PartData.FileItem && part.name == "file") {
+                read = true
+                // Over the limit reads as null: the same 8 MB as the sync API.
+                file = withContext(Dispatchers.IO) { readLimited(part.provider().toInputStream(), MAX_BODY_BYTES) }
+            }
+            part.release()
         }
-        part.release()
+    } catch (_: IOException) {
+        // A body over the multipart limit, or a broken upload: as no file.
+        return null
     }
     return file?.toString(Charsets.UTF_8)?.takeIf { it.isNotBlank() }
 }

@@ -281,6 +281,10 @@ class SettingsPagesTest {
                 matches = listOf(match("g", listOf("ann"), listOf("nobody"))),
             )
             assertThat(b.upload(BackupCodec.encode(ghost)).bodyAsText()).contains("player nobody isn't in this backup")
+            // Not a file upload at all.
+            val form = b.post("/settings/backup/import", "file" to "{}")
+            assertThat(form.status).isEqualTo(HttpStatusCode.BadRequest)
+            assertThat(form.bodyAsText()).contains("Choose a backup file")
         }
     }
 
