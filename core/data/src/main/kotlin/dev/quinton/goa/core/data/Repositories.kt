@@ -40,7 +40,7 @@ interface PlayerRepository {
 
     /**
      * The player with this name, compared trimmed and case-insensitively
-     * ([dev.quinton.goa.core.data.player.PlayerNames]); archived players included. Null if none.
+     * ([dev.quinton.goa.core.domain.player.PlayerNames]); archived players included. Null if none.
      */
     suspend fun findByName(name: String): Player?
 
@@ -148,6 +148,19 @@ sealed interface PlayerMergeResult {
 
     /** A player is missing, already merged away, or both ids are the same. */
     data object NotPossible : PlayerMergeResult
+}
+
+/**
+ * "Same people?" answers on this phone (owner: players, ADR-031): the pairs it was told are
+ * different people, as `PlayerMatchUp.pairKey`s. Never synced, not in the backup file.
+ */
+interface PlayerMatchUpRepository {
+    val differentPeople: Flow<Set<String>>
+
+    suspend fun markDifferent(pairKey: String)
+
+    /** Asks again about every pair. */
+    suspend fun forgetDifferent()
 }
 
 /** This phone's group membership and sync bookkeeping (owner: sync). Never synced or backed up. */

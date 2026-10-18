@@ -39,6 +39,13 @@ class WhoAreYouActions(
     val onChoose: (String) -> Unit = {},
     val onNameChange: (String) -> Unit = {},
     val onCreate: () -> Unit = {},
+    val onConfirmInvited: () -> Unit = {},
+    val onNotMe: () -> Unit = {},
+    val onMergeOld: () -> Unit = {},
+    val onKeepBoth: () -> Unit = {},
+    val onRefusalShown: () -> Unit = {},
+    val onAddAnyway: () -> Unit = {},
+    val onDismissAddCheck: () -> Unit = {},
 )
 
 @Composable
@@ -58,6 +65,7 @@ fun WhoAreYouScreen(state: WhoAreYouUiState, actions: WhoAreYouActions) {
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
+            state.invited?.let { invited -> item(key = "invited") { InvitedCard(invited, actions) } }
             item {
                 Text(
                     "This phone opens your player page first and marks you as “You”. Only this phone knows.",
@@ -111,4 +119,5 @@ fun WhoAreYouScreen(state: WhoAreYouUiState, actions: WhoAreYouActions) {
             }
         }
     }
+    LinkDialogs(state, actions)
 }

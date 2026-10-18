@@ -7,6 +7,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.CatalogRepository
+import dev.quinton.goa.core.data.GroupRepository
 import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.PlayerMergeRepository
 import dev.quinton.goa.core.data.PlayerMergeResult
@@ -19,10 +20,8 @@ import dev.quinton.goa.core.domain.meta.WinConditionMix
 import dev.quinton.goa.core.domain.rating.WinLoss
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.Match
-import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.rating.Rating
-import dev.quinton.goa.feature.players.common.Dates
 import dev.quinton.goa.feature.players.common.heroName
 import dev.quinton.goa.feature.players.match.MatchLogViewModel.Companion.toRow
 import dev.quinton.goa.feature.players.match.MatchRowUi
@@ -68,6 +67,8 @@ data class PlayerDetailUiState(
     /** Other active players this one could be merged into (a duplicate of one person), by name. */
     val mergeCandidates: List<MergeCandidate> = emptyList(),
     val mergeOutcome: MergeOutcome? = null,
+    /** This phone is in a group and this isn't its own player: "Invite <name>" (ADR-031). */
+    val canInvite: Boolean = false,
 )
 
 /** A player to merge into, with how many matches they have. */
@@ -91,6 +92,7 @@ class PlayerDetailViewModel @AssistedInject constructor(
     matches: MatchRepository,
     ratings: RatingsSnapshotRepository,
     catalog: CatalogRepository,
+    groups: GroupRepository,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -104,9 +106,14 @@ class PlayerDetailViewModel @AssistedInject constructor(
         matches.observeMatches(),
         ratings.observeSnapshot(),
         catalog.catalog.onStart { emit(Catalog.EMPTY) },
-        outcome,
-    ) { people, log, snapshot, cat, merged ->
-        build(playerId, people, log, snapshot, cat).copy(mergeOutcome = merged)
+        combine(outcome, groups.state) { merged, group -> merged to group },
+    ) { people, log, snapshot, cat, (merged, group) ->
+        val state = build(playerId, people, log, snapshot, cat)
+        val player = state.player
+        state.copy(
+            mergeOutcome = merged,
+            canInvite = group.inGroup && player != null && !player.archived && group.mePlayerId != player.id,
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlayerDetailUiState())
 
     fun setArchived(archived: Boolean) {
@@ -121,11 +128,7 @@ class PlayerDetailViewModel @AssistedInject constructor(
                 PlayerMergeResult.Merged -> MergeOutcome.Merged(intoId, people[intoId]?.name.orEmpty())
 
                 is PlayerMergeResult.PlayedTogether -> MergeOutcome.PlayedTogether(
-                    result.matches.sortedBy { it.playedAt }.map { m ->
-                        fun side(team: Team) = m.team(team).map { people[it.playerId]?.name ?: "Unknown player" }
-                            .distinct().joinToString()
-                        "${Dates.localDate(m.playedAt)} · ${side(Team.RED)} vs ${side(Team.BLUE)}"
-                    },
+                    playedTogether(result.matches, people),
                 )
 
                 PlayerMergeResult.NotPossible -> null

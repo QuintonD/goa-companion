@@ -32,6 +32,11 @@ import dev.quinton.goa.feature.sync.importfile.ImportStage
 import dev.quinton.goa.feature.sync.importfile.SyncFileImportActions
 import dev.quinton.goa.feature.sync.importfile.SyncFileImportScreen
 import dev.quinton.goa.feature.sync.importfile.SyncFileImportUiState
+import dev.quinton.goa.feature.sync.invite.GroupInviteUiState
+import dev.quinton.goa.feature.sync.invite.InviteSheet
+import dev.quinton.goa.feature.sync.invite.InviteSheetActions
+import dev.quinton.goa.feature.sync.me.AddCheck
+import dev.quinton.goa.feature.sync.me.MergeOffer
 import dev.quinton.goa.feature.sync.me.WhoAreYouActions
 import dev.quinton.goa.feature.sync.me.WhoAreYouScreen
 import dev.quinton.goa.feature.sync.me.WhoAreYouUiState
@@ -88,8 +93,7 @@ class SyncScreenshotTest {
         matches = 41,
     )
 
-    @Composable private fun Group(state: GroupUiState, invite: Boolean = false) =
-        GroupScreen(state, GroupActions(), showInvite = invite)
+    @Composable private fun Group(state: GroupUiState) = GroupScreen(state, GroupActions())
 
     @Test fun groupNoGroupDark() = shot { Group(noGroup) }
 
@@ -101,7 +105,34 @@ class SyncScreenshotTest {
 
     @Test fun groupJoinedDarkFontScale2() = shot(fontScale = 2f) { Group(joined) }
 
-    @Test fun inviteDialogDark() = screen { Group(joined, invite = true) }
+    private val inviteChoice = GroupInviteUiState(
+        loading = false,
+        groupName = "Friday nights",
+        players = listOf(person("bob", "Bob"), person("cid", "Cid"), person("dee", "Dee")),
+        choosing = true,
+    )
+    private val inviteForBob = inviteChoice.copy(
+        choosing = false,
+        player = person("bob", "Bob"),
+        invite = GroupInvite.format(TestGroup, playerId = "bob"),
+        shareText = "For Bob: …",
+    )
+
+    @Composable private fun Invite(state: GroupInviteUiState) = InviteSheet(state, InviteSheetActions())
+
+    @Test fun inviteChooseDark() = shot { Invite(inviteChoice) }
+
+    @Test fun inviteChooseLight() = shot(ThemeMode.LIGHT) { Invite(inviteChoice) }
+
+    @Test fun inviteForPlayerDark() = shot { Invite(inviteForBob) }
+
+    @Test fun inviteAnyoneLight() = shot(ThemeMode.LIGHT) {
+        Invite(inviteForBob.copy(player = null, invite = GroupInvite.format(TestGroup)))
+    }
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun inviteForPlayerDarkW384FontScale2() = shot(fontScale = 2f) { Invite(inviteForBob) }
 
     private val session = SyncSessionUiState(groupName = "Friday nights", deviceName = "Ann")
     private val peers = listOf(
@@ -133,12 +164,7 @@ class SyncScreenshotTest {
             peers = peers.take(2).map { it.copy(stage = PeerStage.DONE, progress = null) },
             changes = SyncChanges(matchesAdded = 5, playersAdded = 1, matchesUpdated = 2),
         )
-        Sheet(
-            session.copy(
-                stage = SessionStage.Hosting(done),
-                duplicateHint = SyncText.duplicateHint(listOf("Dee")),
-            ),
-        )
+        Sheet(session.copy(stage = SessionStage.Hosting(done)))
     }
 
     @Test fun sessionJoinWaitingDark() = shot {
@@ -183,6 +209,43 @@ class SyncScreenshotTest {
             ),
             WhoAreYouActions(),
         )
+    }
+
+    /** ADR-031: a personal invite leads with "You're Bob?". */
+    @Test fun whoAreYouInvitedDark() = shot {
+        WhoAreYouScreen(whoAreYou.copy(meId = null, invited = person("bob", "Bob")), WhoAreYouActions())
+    }
+
+    @Test fun whoAreYouInvitedLight() = shot(ThemeMode.LIGHT) {
+        WhoAreYouScreen(whoAreYou.copy(meId = null, invited = person("bob", "Bob")), WhoAreYouActions())
+    }
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun whoAreYouInvitedDarkW384FontScale2() = shot(fontScale = 2f) {
+        WhoAreYouScreen(whoAreYou.copy(meId = null, invited = person("bob", "Bob")), WhoAreYouActions())
+    }
+
+    @Test fun whoAreYouMergeOldDark() = screen {
+        val offer = MergeOffer(person("quin", "Quin"), 3, person("bob", "Bob"))
+        WhoAreYouScreen(whoAreYou.copy(mergeOffer = offer), WhoAreYouActions())
+    }
+
+    @Test fun whoAreYouMergeRefusedLight() = screen(ThemeMode.LIGHT) {
+        WhoAreYouScreen(
+            whoAreYou.copy(mergeRefused = listOf("2026-10-12 · Quin, Bob vs Cid, Dee")),
+            WhoAreYouActions(),
+        )
+    }
+
+    @Test fun whoAreYouAddCheckDark() = screen {
+        val check = AddCheck("Rob", listOf(person("robert", "Robert"), person("robbie", "Robbie")), nameTaken = false)
+        WhoAreYouScreen(whoAreYou.copy(meId = null, newName = "Rob", addCheck = check), WhoAreYouActions())
+    }
+
+    @Test fun whoAreYouAddCheckTakenLight() = screen(ThemeMode.LIGHT) {
+        val check = AddCheck("Ann", listOf(person("ann", "Ann"), person("anna", "Anna")), nameTaken = true)
+        WhoAreYouScreen(whoAreYou.copy(meId = null, newName = "Ann", addCheck = check), WhoAreYouActions())
     }
 
     @Test fun importReadyDark() = shot {
