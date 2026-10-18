@@ -198,6 +198,10 @@ sends `/players/matches/<new id>/result?new=1&durationMin=<n>&playedAt=<epoch ms
 `hubButton`'s / `primaryButton`'s trailing block runs before the icon and label are written, so it
 is the place for attributes (`attributes["hx-post"] = "/x"`, `data-*`, `hidden`); don't add content there.
 
+Draft (`DraftSlots`, owner `draft/`): `draft-setup` (the setup form, the next game's default),
+`draft-methods` (custom methods, never synced), `draft-active` (the draft in progress),
+`draft-board` (the board's screen state and step clock), `draft-notes`, `draft-method-edit`.
+
 ## Pages and components
 
 `call.respondPage(HubPage(title, tab, back = "/x", actions = …, showTabs = true, scripts = listOf("timer.js"))) { … }`

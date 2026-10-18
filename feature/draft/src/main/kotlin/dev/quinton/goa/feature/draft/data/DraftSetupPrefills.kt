@@ -5,9 +5,8 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dev.quinton.goa.core.data.DraftSetupPrefill
-import dev.quinton.goa.core.domain.teams.OddSeatMode
-import dev.quinton.goa.feature.draft.setup.SetupForm
-import dev.quinton.goa.feature.draft.setup.TeamMode
+import dev.quinton.goa.core.presentation.draft.DraftAgain
+import dev.quinton.goa.core.presentation.draft.SetupForm
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -34,15 +33,7 @@ internal class DefaultDraftSetupPrefill @Inject constructor(
     private val prefills: DraftSetupPrefills,
 ) : DraftSetupPrefill {
     override suspend fun prefill(red: List<String>, blue: List<String>, doublePilot: String?, handicap: Boolean) {
-        val form = (drafts.setupForm.first() ?: SetupForm()).cleared().copy(
-            selected = red + blue,
-            teamMode = TeamMode.MANUAL,
-            red = red,
-            blue = blue,
-            oddMode = if (handicap) OddSeatMode.HANDICAP else OddSeatMode.DOUBLE_PILOT,
-            doublePilot = doublePilot,
-            lastGame = true,
-        )
+        val form = (drafts.setupForm.first() ?: SetupForm()).redraft(DraftAgain(red, blue, doublePilot, handicap))
         drafts.saveSetupForm(form)
         prefills.push(form)
     }

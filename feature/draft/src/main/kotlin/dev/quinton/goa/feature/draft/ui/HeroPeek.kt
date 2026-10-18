@@ -41,6 +41,9 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Role
 import dev.quinton.goa.core.model.catalog.Stat
+import dev.quinton.goa.core.presentation.draft.HeroInfo
+import dev.quinton.goa.core.presentation.draft.cardKind
+import dev.quinton.goa.core.presentation.draft.label
 
 /**
  * Hero peek during a draft (long-press a pool tile): complexity, roles, stat bars (base → max),
@@ -142,16 +145,6 @@ private fun PeekHeading(text: String) {
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.semantics { heading() },
     )
-}
-
-/** "Gold · Basic", "Red · Tier I". */
-internal fun cardKind(card: CardInfo): String = when {
-    card.tier == null && (card.color == CardColor.GOLD || card.color == CardColor.SILVER) ->
-        "${cardColorName(card.color)} · Basic"
-
-    card.tier != null -> "${cardColorName(card.color)} · Tier ${"I".repeat(card.tier.coerceIn(1, 3))}"
-
-    else -> cardColorName(card.color)
 }
 
 /** A hero's roles as small outlined labels. */
