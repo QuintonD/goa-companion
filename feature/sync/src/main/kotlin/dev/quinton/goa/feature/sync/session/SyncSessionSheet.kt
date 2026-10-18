@@ -47,6 +47,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -122,13 +123,15 @@ fun SyncSessionEntry(state: SyncSessionUiState, viewModel: SyncSessionViewModel,
     }
     // A role from the route ("Join" right after scanning an invite) starts on its own.
     LaunchedEffect(state.requestedRole) { state.requestedRole?.let(::choose) }
-    // Back from system settings with the permission now on.
-    LaunchedEffect(permission) {
+    // Back from system settings with the permission now on: checked on every resume, since nothing
+    // in the sheet changes while the user is away.
+    LifecycleResumeEffect(permission) {
         if (permission != null && NearbyPermissions.missing(context).isEmpty()) {
             pending?.let(viewModel::start)
             pending = null
             permission = null
         }
+        onPauseOrDispose {}
     }
     KeepScreenOn()
     SyncSessionSheet(
