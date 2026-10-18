@@ -151,6 +151,33 @@ class GroupViewModel @Inject constructor(
         )
     }
 
+    private var linkOpened = false
+
+    /**
+     * An invite link opened from another app (App Links, ADR-030 §6): joins like a pasted invite.
+     * A phone in another group is told to leave it first; nothing is replaced without asking.
+     */
+    fun openLink(link: String) {
+        if (linkOpened) return
+        linkOpened = true
+        val parsed = GroupInvite.parseInvite(link).getOrElse { e ->
+            local.update { it.copy(message = e.message) }
+            return
+        }
+        viewModelScope.launch {
+            val current = groups.state.first().group
+            if (current != null && current.groupId != parsed.group.groupId) {
+                local.update {
+                    it.copy(
+                        message = "This phone is in “${current.name}”. Leave it first to join “${parsed.group.name}”.",
+                    )
+                }
+            } else {
+                join(link)
+            }
+        }
+    }
+
     fun scanFailed(message: String) = local.update { it.copy(joinError = message) }
 
     fun leave() {

@@ -17,6 +17,7 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.core.navigation.GroupSyncRoute
+import dev.quinton.goa.core.navigation.JoinGroupLinkRoute
 import dev.quinton.goa.core.navigation.NavSheet
 import dev.quinton.goa.core.navigation.Navigator
 import dev.quinton.goa.core.navigation.SyncFileImportRoute
@@ -44,6 +45,7 @@ import kotlinx.coroutines.launch
 /** Group sync (ADR-025): the Group screen, the sync sheet, "Which player are you?" and file import. */
 fun EntryProviderScope<NavKey>.syncEntries(navigator: Navigator) {
     entry<GroupSyncRoute> { GroupEntry(navigator) }
+    entry<JoinGroupLinkRoute> { key -> GroupEntry(navigator, link = key.link) }
     entry<SyncSessionRoute>(metadata = NavSheet.metadata) { key ->
         val vm = hiltViewModel<SyncSessionViewModel, SyncSessionViewModel.Factory>(
             creationCallback = { it.create(key.role, key.firstSync) },
@@ -102,8 +104,9 @@ fun EntryProviderScope<NavKey>.syncEntries(navigator: Navigator) {
 }
 
 @Composable
-private fun GroupEntry(navigator: Navigator) {
+private fun GroupEntry(navigator: Navigator, link: String? = null) {
     val vm = hiltViewModel<GroupViewModel>()
+    LaunchedEffect(link) { link?.let(vm::openLink) }
     val state by vm.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = LocalActivity.current

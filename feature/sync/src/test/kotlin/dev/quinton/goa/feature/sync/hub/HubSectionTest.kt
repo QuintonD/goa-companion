@@ -127,6 +127,30 @@ class HubSectionTest {
     }
 
     @Test
+    fun anInviteLinkOpenedFromOutsideJoinsButNeverReplacesAnotherGroup() = runTest {
+        val link = "https://goa.example/join#" + GroupInvite.format(TestGroup, hubUrl = "https://goa.example")
+        val other = dev.quinton.goa.core.domain.sync.GroupCredentials.create("Tuesday club")
+        val groups = FakeGroupRepository(groupState(group = other))
+        val inOther = vm(groups)
+        backgroundScope.launch { inOther.uiState.collect {} }
+        inOther.openLink(link)
+        assertThat(inOther.uiState.first { it.message != null }.message)
+            .isEqualTo("This phone is in “Tuesday club”. Leave it first to join “Friday nights”.")
+        assertThat(groups.current.value.group).isEqualTo(other)
+
+        val fresh = FakeGroupRepository(groupState(group = null))
+        val vm = vm(fresh)
+        backgroundScope.launch { vm.uiState.collect {} }
+        vm.openLink(link)
+        vm.uiState.first { it.inGroup }
+        assertThat(fresh.current.value.group?.groupId).isEqualTo(TestGroup.groupId)
+        assertThat(fresh.current.value.hubUrl).isEqualTo("https://goa.example")
+        // The same link handled once, however often the screen recomposes.
+        vm.openLink(link)
+        vm.openLink("https://goa.example/join")
+    }
+
+    @Test
     fun anInviteWithAHubJoinsWithoutANearbySessionTheHubSyncsInstead() = runTest {
         val groups = FakeGroupRepository(groupState(group = null))
         val vm = vm(groups)
