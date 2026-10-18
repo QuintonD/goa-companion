@@ -57,6 +57,8 @@ val bundleAppFiles by tasks.registering(Sync::class) {
     // Licence texts the About page links to (Settings → About).
     from(rootProject.file("third_party/htmx")) { into("static/licenses/htmx") }
     from(rootProject.file("third_party/material-symbols")) { into("static/licenses/material-symbols") }
+    // The timer's phase-over chime (original, third_party/ASSETS.md "Sounds"), for the web timer.
+    from(rootProject.file("feature/timer/src/main/res/raw/phase_chime.wav")) { into("static/timer") }
 }
 
 tasks.named<Jar>("jar") {

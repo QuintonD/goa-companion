@@ -45,7 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.timer.ui.timer.PresetOption
+import dev.quinton.goa.core.presentation.timer.PresetOption
 
 data class PresetsActions(
     val onBack: () -> Unit = {},

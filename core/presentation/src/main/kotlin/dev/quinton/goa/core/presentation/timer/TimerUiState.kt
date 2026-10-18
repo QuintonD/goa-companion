@@ -1,4 +1,4 @@
-package dev.quinton.goa.feature.timer.ui.timer
+package dev.quinton.goa.core.presentation.timer
 
 import dev.quinton.goa.core.domain.timer.PhaseKind
 import dev.quinton.goa.core.domain.timer.RoundSection

@@ -14,6 +14,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.timer.TimerSnapshot
+import dev.quinton.goa.core.presentation.timer.TimerUiState
 import dev.quinton.goa.feature.timer.FixedCoin
 import dev.quinton.goa.feature.timer.TimerHarness
 import dev.quinton.goa.feature.timer.ui.components.notificationSettingsIntent
@@ -22,7 +23,6 @@ import dev.quinton.goa.feature.timer.ui.setup.MatchSetupRoute
 import dev.quinton.goa.feature.timer.ui.setup.MatchSetupViewModel
 import dev.quinton.goa.feature.timer.ui.timer.TimerActions
 import dev.quinton.goa.feature.timer.ui.timer.TimerScreen
-import dev.quinton.goa.feature.timer.ui.timer.TimerUiState
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule

@@ -13,12 +13,12 @@ import dev.quinton.goa.core.navigation.SettingsRoute
 import dev.quinton.goa.core.navigation.TimerPresetEditRoute
 import dev.quinton.goa.core.navigation.TimerPresetsRoute
 import dev.quinton.goa.core.navigation.TimerRoute
+import dev.quinton.goa.core.presentation.timer.RematchRequest
 import dev.quinton.goa.feature.timer.ui.presets.PresetEditRoute
 import dev.quinton.goa.feature.timer.ui.presets.PresetEditViewModel
 import dev.quinton.goa.feature.timer.ui.presets.PresetsRoute
 import dev.quinton.goa.feature.timer.ui.setup.MatchSetupRoute
 import dev.quinton.goa.feature.timer.ui.setup.MatchSetupViewModel
-import dev.quinton.goa.feature.timer.ui.setup.RematchRequest
 import dev.quinton.goa.feature.timer.ui.timer.TimerRoute
 
 private fun rematchRequest(key: MatchSetupRoute): RematchRequest? {

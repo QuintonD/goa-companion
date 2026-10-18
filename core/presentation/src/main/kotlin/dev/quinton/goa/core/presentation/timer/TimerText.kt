@@ -1,4 +1,4 @@
-package dev.quinton.goa.feature.timer
+package dev.quinton.goa.core.presentation.timer
 
 import dev.quinton.goa.core.domain.timer.PhaseKind
 import dev.quinton.goa.core.domain.timer.PhaseScope
@@ -122,6 +122,13 @@ object TimerText {
             else -> stepTitle(step)
         }
         return "$what · Round $round"
+    }
+
+    /** Second line of the "Time's up" alert, for the session after the phase end ([s]). */
+    fun alertBody(s: TimerSnapshot): String = if (s.preset.autoAdvance) {
+        "Now: ${stepTitle(s.step)}"
+    } else {
+        "Overtime is counting · ${nextText(s)}"
     }
 
     fun durationLabel(seconds: Int?): String = seconds?.let { duration(it * 1000L, roundUp = false) } ?: "Untimed"

@@ -13,7 +13,7 @@ val HubFeatures: List<HubFeature> = listOf(
     // Rules reference
     ComingSoon.Rules,
     // Timer
-    ComingSoon.Timer,
+    dev.quinton.goa.hub.timer.TimerFeature,
     // Draft
     ComingSoon.Draft,
     // Players: leaderboard, player page, match log, editor, meta

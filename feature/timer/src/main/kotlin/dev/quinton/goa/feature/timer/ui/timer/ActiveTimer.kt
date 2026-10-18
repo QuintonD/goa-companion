@@ -99,6 +99,9 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.timer.RoundSection
 import dev.quinton.goa.core.model.settings.TimerLayout
+import dev.quinton.goa.core.presentation.timer.ActiveUiState
+import dev.quinton.goa.core.presentation.timer.ChecklistItemUi
+import dev.quinton.goa.core.presentation.timer.ChecklistState
 import dev.quinton.goa.feature.timer.ui.components.AlertsOffBanner
 import dev.quinton.goa.feature.timer.ui.components.CountdownRing
 import dev.quinton.goa.feature.timer.ui.components.KeepScreenOn
@@ -414,7 +417,7 @@ private fun RowScope.TimerTopActions(
     var menu by remember { mutableStateOf(false) }
     if (state.tieBreaker != null) {
         TieBreakerChip(
-            state.tieBreaker,
+            state.tieBreaker!!,
             actions.onFlipCoin,
             actionKey = "${state.round}:${state.title}:${state.paused}",
             onUndoShown = onCoinUndo,
@@ -788,7 +791,7 @@ private fun ChecklistRow(item: ChecklistItemUi, onOpenLevels: (() -> Unit)? = nu
                 modifier = Modifier.alpha(if (item.state == ChecklistState.DONE) 0.7f else 1f),
             )
             if (item.timerName != null) {
-                Text(item.timerName, style = MaterialTheme.typography.bodySmall, color = colors.secondary)
+                Text(item.timerName!!, style = MaterialTheme.typography.bodySmall, color = colors.secondary)
             }
         }
         onOpenLevels?.let { LevelLadderButton(it) }
