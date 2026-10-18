@@ -14,6 +14,7 @@ import dev.quinton.goa.core.domain.trivia.AnswerStyle
 import dev.quinton.goa.core.domain.trivia.CardGroup
 import dev.quinton.goa.core.domain.trivia.MasterySummary
 import dev.quinton.goa.core.domain.trivia.TriviaConfig
+import dev.quinton.goa.core.domain.trivia.TriviaFact
 import dev.quinton.goa.core.domain.trivia.TriviaFacts
 import dev.quinton.goa.core.domain.trivia.TriviaMastery
 import dev.quinton.goa.core.domain.trivia.TriviaStat
@@ -21,19 +22,30 @@ import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.navigation.TriviaQuizRoute
 import dev.quinton.goa.feature.trivia.TriviaText
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** A hero offered in the quiz's hero picker. */
+/** A hero offered in the quiz's hero picker; [verified] false = the picker marks it. */
 @Immutable
-data class HeroOption(val heroId: String, val name: String, val title: String?, val portrait: String?)
+data class HeroOption(
+    val heroId: String,
+    val name: String,
+    val title: String?,
+    val portrait: String?,
+    val verified: Boolean = true,
+)
 
 /** One hero's row in the progress list: every printed number on its deck cards. */
 @Immutable
@@ -44,6 +56,8 @@ data class HeroProgressUi(
     val progress: MasterySummary,
     /** Numbers a quiz on this hero alone would ask with the current Numbers and Cards. */
     val quizNumbers: Int,
+    /** False when the hero's data isn't verified yet: the row marks it. */
+    val verified: Boolean = true,
 )
 
 sealed interface TriviaHomeUiState {
@@ -61,6 +75,8 @@ sealed interface TriviaHomeUiState {
         val heroOptions: List<HeroOption>,
         /** True when Settings limits the heroes to owned products. */
         val ownedOnly: Boolean,
+        /** Heroes in the owned products (every hero when Settings doesn't limit them). */
+        val ownedHeroCount: Int,
         /** The numbers the quiz as set up would ask. */
         val selection: MasterySummary,
         val heroes: List<HeroProgressUi>,
@@ -91,13 +107,39 @@ sealed interface TriviaHomeAction {
     data object AllHeroes : TriviaHomeAction
 }
 
+/**
+ * Every hero's facts with each fact's card group, built once per catalog: the home's state is
+ * rebuilt on every progress or setup change and filters these instead of re-reading the cards.
+ */
+private class CatalogFacts(val catalog: Catalog) {
+    private val byHero: Map<String, List<Pair<TriviaFact, CardGroup?>>> = catalog.heroes.associate { hero ->
+        val groups = hero.cards.associate { it.id to CardGroup.of(it) }
+        hero.id to TriviaFacts.of(hero).map { it to groups[it.cardId] }
+    }
+
+    fun all(hero: Hero): List<TriviaFact> = byHero[hero.id].orEmpty().map { it.first }
+
+    /** The same facts as [TriviaFacts.of] with these stats and groups, in the same order. */
+    fun of(hero: Hero, stats: Set<TriviaStat>, groups: Set<CardGroup>): List<TriviaFact> =
+        byHero[hero.id].orEmpty().filter { (fact, group) -> fact.stat in stats && group in groups }.map { it.first }
+}
+
 @HiltViewModel(assistedFactory = TriviaHomeViewModel.Factory::class)
-class TriviaHomeViewModel @AssistedInject constructor(
-    @Assisted heroId: String?,
+class TriviaHomeViewModel internal constructor(
+    heroId: String?,
     catalogRepository: CatalogRepository,
     settingsRepository: SettingsRepository,
     private val progressRepository: TriviaProgressRepository,
+    /** Builds the state off the main thread; a test dispatcher in tests. */
+    computeDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
+    @AssistedInject constructor(
+        @Assisted heroId: String?,
+        catalogRepository: CatalogRepository,
+        settingsRepository: SettingsRepository,
+        progressRepository: TriviaProgressRepository,
+    ) : this(heroId, catalogRepository, settingsRepository, progressRepository, Dispatchers.Default)
+
     @AssistedFactory
     interface Factory {
         fun create(heroId: String?): TriviaHomeViewModel
@@ -113,28 +155,33 @@ class TriviaHomeViewModel @AssistedInject constructor(
         }
     }
 
-    private val catalog = catalogRepository.catalog.catch { emit(Catalog.EMPTY) }
+    /** The facts, rebuilt only when the catalog itself changes (it is loaded once per process). */
+    private val facts = catalogRepository.catalog.catch { emit(Catalog.EMPTY) }
+        .distinctUntilChanged { a, b -> a === b }
+        .map(::CatalogFacts)
 
     val uiState: StateFlow<TriviaHomeUiState> = combine(
-        catalog,
+        facts,
         settingsRepository.settings,
         progressRepository.progress,
         setup,
-    ) { catalog, settings, progress, config ->
+    ) { facts, settings, progress, config ->
         if (config == null) return@combine TriviaHomeUiState.Loading
+        val catalog = facts.catalog
         if (catalog.heroes.isEmpty()) return@combine TriviaHomeUiState.Unavailable
         val owned = ownedHeroes(catalog, settings.ownedProducts)
         val chosen = config.heroIds.mapNotNull(catalog::hero)
         val scope = chosen.ifEmpty { owned }
         val options = (owned + chosen).distinctBy { it.id }.sortedBy { it.name }
-            .map { HeroOption(it.id, it.name, it.title, it.portrait) }
+            .map { HeroOption(it.id, it.name, it.title, it.portrait, it.verified) }
         TriviaHomeUiState.Ready(
-            overall = TriviaMastery.summary(owned.flatMap { TriviaFacts.of(it) }, progress),
+            overall = TriviaMastery.summary(owned.flatMap(facts::all), progress),
             setup = config.copy(heroIds = chosen.map { it.id }),
             heroOptions = options,
             ownedOnly = settings.ownedProducts.isNotEmpty(),
+            ownedHeroCount = owned.size,
             selection = TriviaMastery.summary(
-                scope.flatMap { TriviaFacts.of(it, config.stats, config.groups) },
+                scope.flatMap { facts.of(it, config.stats, config.groups) },
                 progress,
             ),
             heroes = owned.sortedBy { it.name }.map { hero ->
@@ -142,13 +189,16 @@ class TriviaHomeViewModel @AssistedInject constructor(
                     heroId = hero.id,
                     name = hero.name,
                     portrait = hero.portrait,
-                    progress = TriviaMastery.summary(TriviaFacts.of(hero), progress),
-                    quizNumbers = TriviaFacts.of(hero, config.stats, config.groups).size,
+                    progress = TriviaMastery.summary(facts.all(hero), progress),
+                    quizNumbers = facts.of(hero, config.stats, config.groups).size,
+                    verified = hero.verified,
                 )
             },
-            stored = TriviaMastery.summary(catalog.heroes.flatMap { TriviaFacts.of(it) }, progress),
+            stored = TriviaMastery.summary(catalog.heroes.flatMap(facts::all), progress),
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TriviaHomeUiState.Loading)
+    }
+        .flowOn(computeDispatcher)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TriviaHomeUiState.Loading)
 
     fun onAction(action: TriviaHomeAction) {
         setup.update { current -> current?.let { reduce(it, action) } }
