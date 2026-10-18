@@ -100,7 +100,8 @@ fun SyncSessionEntry(state: SyncSessionUiState, viewModel: SyncSessionViewModel,
     var permission by rememberSaveable { mutableStateOf<PermissionUi?>(null) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         val role = pending ?: return@rememberLauncherForActivityResult
-        if (result.values.all { it }) {
+        // What counts is what Nearby needs now (Android 12: "Approximate" leaves FINE refused).
+        if (result.isNotEmpty() && NearbyPermissions.missing(context).isEmpty()) {
             permission = null
             pending = null
             viewModel.start(role)

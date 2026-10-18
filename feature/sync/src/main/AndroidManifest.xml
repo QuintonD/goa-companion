@@ -2,7 +2,7 @@
 <!--
   Group sync (ADR-025): phone to phone over Google Nearby Connections. Permissions as
   developers.google.com/nearby/connections/android/get-started lists them (checked 2026-10-17), with
-  the two changes noted below; the app asks for the runtime ones only when a sync starts. Still no INTERNET permission.
+  the changes noted below; the app asks for the runtime ones only when a sync starts. Still no INTERNET permission.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
@@ -24,8 +24,13 @@
         tools:targetApi="29" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" tools:targetApi="31" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" tools:targetApi="31" />
-    <!-- No neverForLocation here: Google's list doesn't use it for Nearby, and it can't be checked on emulators. -->
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" tools:targetApi="31" />
+    <!-- neverForLocation: without it Play services' Nearby refuses to discover unless the app also holds
+         COARSE and FINE location on Android 12+ (8034, then 8036 MISSING_PERMISSION_ACCESS_FINE_LOCATION);
+         with it, discovery and a full sync ran with no location permission (API 36 emulators, 2026-10-18). -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="31" />
     <uses-permission
         android:name="android.permission.NEARBY_WIFI_DEVICES"
         android:usesPermissionFlags="neverForLocation"
