@@ -101,8 +101,11 @@ data class TriviaFact(
     val value: Int,
     val plus: Boolean = false,
 ) {
-    /** Stable key for progress: survives app updates as long as the card id does. */
-    val key: String get() = keyOf(cardId, stat)
+    /**
+     * Stable key for progress: survives app updates as long as the card id does. Computed once (it
+     * is looked up for every fact on every emission); derived, so it stays out of equals/hashCode.
+     */
+    val key: String = keyOf(cardId, stat)
 
     companion object {
         fun keyOf(cardId: String, stat: TriviaStat): String = "$cardId/${stat.key}"

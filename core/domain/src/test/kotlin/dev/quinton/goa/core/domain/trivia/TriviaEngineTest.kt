@@ -226,6 +226,106 @@ class TriviaEngineTest {
         assertThat(session.retries).isEmpty()
     }
 
+    @Test
+    fun `a duel on a card with a pending retry doesn't use the retry up`() {
+        val a = fact("a", TriviaStat.INITIATIVE, 5)
+        val b = fact("b", TriviaStat.INITIATIVE, 6)
+        val c = fact("c", TriviaStat.ATTACK, 3)
+        val asked = TriviaResult(number(c), TriviaAnswer.Number(c.value), correct = true)
+        // Answered c; a's retry isn't due for a while, so the next question may be a duel on a and b.
+        val session = TriviaSession(
+            config = TriviaConfig(length = TriviaConfig.ENDLESS),
+            pool = listOf(a, b, c),
+            ranges = ranges,
+            progress = emptyMap(),
+            current = number(c),
+            answer = TriviaAnswer.Number(c.value),
+            results = listOf(asked),
+            retries = listOf(TriviaRetry(a, dueAfter = 50)),
+        )
+        val duels = (0 until 200).map { TriviaEngine.next(session, Random(it)) }
+            .filter { it.current is TriviaQuestion.HigherInitiative }
+        assertThat(duels).isNotEmpty()
+        duels.forEach { next ->
+            assertThat(next.current!!.facts).contains(a)
+            assertThat(next.retries.map { it.fact }).containsExactly(a)
+        }
+        // A card-number question on the fact is what uses it up.
+        val due = session.copy(retries = listOf(TriviaRetry(a, dueAfter = 1)))
+        val retried = TriviaEngine.next(due, Random(1))
+        assertThat((retried.current as TriviaQuestion.CardNumber).fact).isEqualTo(a)
+        assertThat(retried.retries).isEmpty()
+    }
+
+    // --- Spacing ---
+
+    private fun number(f: TriviaFact) = TriviaQuestion.CardNumber(f, listOf(f.value))
+
+    private fun rightResult(f: TriviaFact) = TriviaResult(number(f), TriviaAnswer.Number(f.value), correct = true)
+
+    @Test
+    fun `a right answer moves up a box only when spaced out from the fact's last card-number question`() {
+        val a = fact("a", TriviaStat.ATTACK, 3)
+        val others = (1..5).map { fact("o$it", TriviaStat.ATTACK, 4) }
+        val duel = TriviaQuestion.HigherInitiative(
+            fact("x", TriviaStat.INITIATIVE, 2),
+            fact("y", TriviaStat.INITIATIVE, 3),
+        )
+        val duelResult = TriviaResult(duel, TriviaAnswer.Duel(DuelPick.SECOND), correct = true)
+        val progress = mapOf(a.key to FactProgress(3, box = 1, seen = 1, correct = 1))
+        fun answer(results: List<TriviaResult>, value: Int = a.value): FactProgress {
+            val session = TriviaSession(
+                config = TriviaConfig(length = TriviaConfig.ENDLESS, duels = false),
+                pool = listOf(a) + others,
+                ranges = ranges,
+                progress = progress,
+                current = number(a),
+                results = results,
+            )
+            return TriviaEngine.answer(session, TriviaAnswer.Number(value), now).updates.getValue(a.key)
+        }
+        // The fact's first card-number question this round: up a box.
+        assertThat(answer(emptyList()).box).isEqualTo(2)
+        assertThat(answer(others.map(::rightResult)).box).isEqualTo(2)
+        // Asked again after three other questions: counted, but the box stays.
+        val soon = answer(listOf(rightResult(a)) + others.take(3).map(::rightResult))
+        assertThat(soon).isEqualTo(FactProgress(3, box = 1, seen = 2, correct = 2, lastSeenAt = now))
+        assertThat(answer(listOf(rightResult(a))).box).isEqualTo(1)
+        // Four other questions (a duel counts as one) are enough.
+        assertThat(answer(listOf(rightResult(a)) + others.take(4).map(::rightResult)).box).isEqualTo(2)
+        assertThat(answer(listOf(rightResult(a)) + others.take(3).map(::rightResult) + duelResult).box).isEqualTo(2)
+        assertThat(TriviaEngine.MIN_SPACING).isEqualTo(4)
+        // A wrong answer always drops to zero, spaced or not.
+        assertThat(answer(listOf(rightResult(a)), value = 9).box).isEqualTo(0)
+        assertThat(answer(emptyList(), value = 9).box).isEqualTo(0)
+    }
+
+    @Test
+    fun `a one-number round can't answer a fact up to learned`() {
+        val only = listOf(fact("a", TriviaStat.ATTACK, 3))
+        val random = Random(4)
+        var session = start(only, TriviaConfig(length = 20, duels = false))
+        repeat(20) { session = session.step(right = true, random = random) }
+        assertThat(session.finished).isTrue()
+        val p = session.progress.getValue(only.single().key)
+        assertThat(p.box).isEqualTo(1)
+        assertThat(p.seen).isEqualTo(20)
+        assertThat(p.correct).isEqualTo(20)
+    }
+
+    @Test
+    fun `practice rounds ask each missed number twice, capped by the round's length, never endless`() {
+        val ten = TriviaConfig(length = 10, duels = true)
+        assertThat(ten.forPractice(3)).isEqualTo(ten.copy(length = 6, duels = false))
+        assertThat(ten.forPractice(5).length).isEqualTo(10)
+        assertThat(ten.forPractice(8).length).isEqualTo(10)
+        assertThat(TriviaConfig(length = 20).forPractice(12).length).isEqualTo(20)
+        val endless = TriviaConfig(length = TriviaConfig.ENDLESS)
+        assertThat(endless.forPractice(3).length).isEqualTo(6)
+        assertThat(endless.forPractice(40).length).isEqualTo(80)
+        assertThat(endless.forPractice(1).duels).isFalse()
+    }
+
     // --- Duels ---
 
     @Test
@@ -455,6 +555,7 @@ class TriviaEngineTest {
             val limit = config.length.takeIf { it != TriviaConfig.ENDLESS } ?: 60
             var previous = emptySet<String>()
             var asked = 0
+            val lastAsked = mutableMapOf<String, Int>()
             while (!session.finished && asked < limit) {
                 val question = session.current!!
                 assertWithMessage(label).that(poolKeys).containsAtLeastElementsIn(question.facts.map { it.key })
@@ -492,8 +593,16 @@ class TriviaEngineTest {
                         val update = outcome.updates.getValue(question.fact.key)
                         assertWithMessage(label).that(update.value).isEqualTo(question.fact.value)
                         val before = TriviaMastery.box(question.fact, session.progress[question.fact.key])
-                        val box = if (right) (before + 1).coerceAtMost(TriviaMastery.MAX_BOX) else 0
+                        // Spacing, counted here independently of the engine.
+                        val spaced = lastAsked[question.fact.key]?.let { asked - 1 - it >= TriviaEngine.MIN_SPACING }
+                            ?: true
+                        val box = when {
+                            !right -> 0
+                            spaced -> (before + 1).coerceAtMost(TriviaMastery.MAX_BOX)
+                            else -> before
+                        }
                         assertWithMessage(label).that(update.box).isEqualTo(box)
+                        lastAsked[question.fact.key] = asked
                     }
 
                     is TriviaQuestion.HigherInitiative -> assertWithMessage(label).that(outcome.updates).isEmpty()
