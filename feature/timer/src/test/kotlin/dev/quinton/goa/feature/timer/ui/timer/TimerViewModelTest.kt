@@ -63,7 +63,7 @@ class TimerViewModelTest {
             start.presets.map {
                 it.name
             },
-        ).containsExactly("Table rules", "Relaxed", "Untimed (counters only)").inOrder()
+        ).containsExactly("Table rules", "Speed guards", "Relaxed", "Untimed (counters only)").inOrder()
         assertThat(start.selectedPresetId).isEqualTo("table-rules")
         // Every hero resolving gets their own 0:30, so the start card asks how many heroes play.
         assertThat(start.selected!!.usesActionTimer).isTrue()

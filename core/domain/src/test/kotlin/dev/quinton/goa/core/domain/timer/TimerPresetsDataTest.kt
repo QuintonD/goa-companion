@@ -15,7 +15,8 @@ class TimerPresetsDataTest {
             assertThat(TimerPresetValidator.validate(preset, endIds)).isEmpty()
             assertThat(preset.turnsPerRound).isEqualTo(TimerPreset.RULEBOOK_TURNS_PER_ROUND)
         }
-        assertThat(catalog.presets.map { it.name }).containsAtLeast("Table rules", "Relaxed", "Untimed (counters only)")
+        assertThat(catalog.presets.map { it.name })
+            .containsAtLeast("Table rules", "Speed guards", "Relaxed", "Untimed (counters only)")
     }
 
     @Test
@@ -51,7 +52,7 @@ class TimerPresetsDataTest {
 
     @Test
     fun `every bundled preset carries the current data revision`() {
-        assertThat(bundledPresets.presets.map { it.revision }.distinct()).containsExactly(2)
+        assertThat(bundledPresets.presets.map { it.revision }.distinct()).containsExactly(3)
     }
 
     @Test
@@ -72,6 +73,24 @@ class TimerPresetsDataTest {
         assertThat(turn.drop(1).map { it.seconds }.toSet()).containsExactly(30)
         assertThat(plan.steps.count { it.isAction }).isEqualTo(6 * TimerPreset.RULEBOOK_TURNS_PER_ROUND)
         assertThat(plan.steps.none { it.phase?.kind == PhaseKind.RESOLVE }).isTrue()
+    }
+
+    @Test
+    fun `speed guards is table rules with 0_30 to strategise and 0_10 per hero resolving`() {
+        val speed = bundledPresets.presets.single { it.id == "speed-guards" }
+        val table = bundledPresets.presets.single { it.id == bundledPresets.defaultPresetId }
+        fun seconds(p: TimerPreset, k: PhaseKind) = p.phases.single { it.kind == k }.seconds
+
+        assertThat(speed.name).isEqualTo("Speed guards")
+        assertThat(seconds(speed, PhaseKind.STRATEGY)).isEqualTo(30)
+        assertThat(seconds(speed, PhaseKind.ACTION)).isEqualTo(10)
+        assertThat(speed.phases.single { it.kind == PhaseKind.ACTION }.enabled).isTrue()
+        // Everything else as at the table: same steps, Play a card 0:30, Upgrade 2:00.
+        assertThat(speed.phases.map { it.id }).isEqualTo(table.phases.map { it.id })
+        assertThat(seconds(speed, PhaseKind.TURN)).isEqualTo(seconds(table, PhaseKind.TURN))
+        assertThat(seconds(speed, PhaseKind.UPGRADE)).isEqualTo(seconds(table, PhaseKind.UPGRADE))
+        val turn = TimerPlan(speed, endOfRound, actionSlots = 4).steps.filter { it.turn == 1 }
+        assertThat(turn.drop(1).map { it.seconds }).containsExactly(10, 10, 10, 10)
     }
 
     @Test

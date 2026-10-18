@@ -60,6 +60,12 @@ object TimerPreviewData {
             true,
         ),
         PresetOption(
+            "speed-guards",
+            "Speed guards",
+            "Pre-round strategy 0:30 · Play a card 0:30 ×4 · Action 0:10 per hero · Upgrade 2:00",
+            true,
+        ),
+        PresetOption(
             "relaxed",
             "Relaxed",
             "Pre-round strategy 3:00 · Play a card 1:00 ×4 · Action 0:45 per hero · Upgrade 3:00",

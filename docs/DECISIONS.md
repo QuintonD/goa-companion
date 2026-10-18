@@ -569,3 +569,21 @@ prompt says a tap starts that hero's time.
 longer and the Timer tab shows the "Heroes at the table" stepper by default. Every hero's countdown
 ends with the phase-over alert, so a full round can fire up to 4 × heroes extra alerts (the cues are
 0:05 and 0:00). No snapshot change: running sessions keep the preset they started with.
+
+## ADR-030 — Timer: a bundled "Speed guards" preset, offered once to saved preset lists (2026-10-18)
+**Context:** The owner asked for a speed version of the game: 30 s to strategise and 10 s to
+resolve cards. A saved preset list replaces the bundled list (`TimerRepository.presets`), so a new
+bundled preset would never reach a phone where presets had been edited, deleted or restored.
+**Decision:** (1) A bundled preset `speed-guards` ("Speed guards"), second in the catalog: Table
+rules with Pre-round strategy 0:30 (cues 0:10, 0:05, 0:00) and the per-hero Action timer at 0:10
+(cues 0:05, 0:00). "Strategise" is the pre-round team talk: Play a card is already 0:30 at the
+table, so it stays; Upgrade (2:00), Hurry up (0:30) and the rest are unchanged, all editable.
+(2) Bundled presets move to `revision` 3. `TimerPresetMigration` adds a bundled preset introduced
+at a later revision (`ADDED_IN`) to a saved list whose newest bundled copy predates it, after the
+bundled presets that precede it in the catalog. Every write stores the upgraded copies, so once
+the user deletes it, the list's copies are at revision 3 and it stays deleted. A list with no
+bundled copy at all (only the user's presets) gets nothing. No phase changes in revision 3.
+**Consequences:** No new store key, so backups need no change; restoring a backup made before
+this change offers Speed guards again, which is right for that list. At 0:10 per hero the
+phase-over alert fires for most heroes; the Action cues can be trimmed in the preset if it gets
+noisy.

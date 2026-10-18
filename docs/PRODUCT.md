@@ -52,6 +52,8 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
 - **Rule timers per phase** (owner's table rules): Pre-round strategy 1:30 → 4 × (Turn 0:30 →
   0:30 for each hero as they resolve) → Upgrade 2:00 during the end-of-round Level Up step. Every
   phase is configurable (on/off, duration, cues, auto-advance) and presets are saved/editable.
+  A bundled **Speed guards** preset plays fast: 0:30 to strategise before each round and 0:10
+  for each hero resolving.
   Defaults in DOMAIN.md.
 - Big, glanceable countdown; tap to pause; next/back; round and turn pips; overtime counts up.
   Each turn is "Play a card" (timed), then after the reveal every hero resolving gets their own

@@ -20,7 +20,7 @@ class TimerPresetMigrationTest {
 
     @Test
     fun `stored copy of a default gets the resolve step and keeps the user's edits`() {
-        val upgraded = TimerPresetMigration.upgrade(listOf(storedV0), bundled).single()
+        val upgraded = upgradeOne(storedV0)
 
         assertThat(upgraded.phases.map { it.id }).containsExactly("strategy", "turn", "resolve", "action", "upgrade")
             .inOrder()
@@ -28,7 +28,7 @@ class TimerPresetMigrationTest {
         assertThat(upgraded.phases.single { it.id == "turn" }.name).isEqualTo("Play a card")
         assertThat(upgraded.phases.single { it.id == "resolve" }.seconds).isNull()
         assertThat(upgraded.phases.single { it.id == "action" }.enabled).isTrue()
-        assertThat(upgraded.revision).isEqualTo(2)
+        assertThat(upgraded.revision).isEqualTo(3)
         assertThat(upgraded.shotClockSeconds).isEqualTo(TimerPreset.DEFAULT_SHOT_CLOCK_SECONDS)
     }
 
@@ -45,7 +45,7 @@ class TimerPresetMigrationTest {
             phases = storedV0.phases.map { if (it.id == "turn") it.copy(name = "Cards") else it },
         )
 
-        val upgraded = TimerPresetMigration.upgrade(listOf(renamed), bundled).single()
+        val upgraded = upgradeOne(renamed)
 
         assertThat(upgraded.phases.single { it.id == "turn" }.name).isEqualTo("Cards")
     }
@@ -55,7 +55,7 @@ class TimerPresetMigrationTest {
         val custom = phase("x1", PhaseKind.CUSTOM, PhaseScope.TURN, null, cues = emptyList()).copy(name = "Resolve")
         val withCustom = storedV0.copy(phases = storedV0.phases + custom)
 
-        val upgraded = TimerPresetMigration.upgrade(listOf(withCustom), bundled).single()
+        val upgraded = upgradeOne(withCustom)
 
         assertThat(upgraded.phases.count { it.name == "Resolve" }).isEqualTo(1)
         assertThat(upgraded.phases.none { it.kind == PhaseKind.RESOLVE }).isTrue()
@@ -73,13 +73,13 @@ class TimerPresetMigrationTest {
 
     @Test
     fun `revision 2 switches the per-hero action timer on and keeps its length`() {
-        val upgraded = TimerPresetMigration.upgrade(listOf(storedV1), bundled).single()
+        val upgraded = upgradeOne(storedV1)
 
         val action = upgraded.phases.single { it.kind == PhaseKind.ACTION }
         assertThat(action.enabled).isTrue()
         assertThat(action.seconds).isEqualTo(40)
         assertThat(upgraded.phases.map { it.id }).isEqualTo(storedV1.phases.map { it.id })
-        assertThat(upgraded.revision).isEqualTo(2)
+        assertThat(upgraded.revision).isEqualTo(3)
         assertThat(TimerPresetMigration.upgrade(listOf(upgraded), bundled)).containsExactly(upgraded)
     }
 
@@ -87,7 +87,7 @@ class TimerPresetMigrationTest {
     fun `revision 2 adds the action timer after the turn phases when the copy has none`() {
         val noAction = storedV1.copy(phases = storedV1.phases.filterNot { it.kind == PhaseKind.ACTION })
 
-        val upgraded = TimerPresetMigration.upgrade(listOf(noAction), bundled).single()
+        val upgraded = upgradeOne(noAction)
 
         assertThat(upgraded.phases.map { it.id }).containsExactly("strategy", "turn", "resolve", "action", "upgrade")
             .inOrder()
@@ -109,6 +109,35 @@ class TimerPresetMigrationTest {
             phases = untimed.phases.map { if (it.kind == PhaseKind.TURN) it.copy(name = "Turn") else it },
         )
 
-        assertThat(TimerPresetMigration.upgrade(listOf(old), bundled)).containsExactly(untimed)
+        assertThat(upgradeOne(old)).isEqualTo(untimed)
     }
+
+    @Test
+    fun `revision 3 adds speed guards once, after the bundled presets before it`() {
+        val oldList = listOf(storedV1, storedV1.copy(id = "6b0f-user", name = "Mine", revision = 0))
+
+        val upgraded = TimerPresetMigration.upgrade(oldList, bundled)
+
+        assertThat(upgraded.map { it.id }).containsExactly("table-rules", "speed-guards", "6b0f-user").inOrder()
+        assertThat(upgraded[1]).isEqualTo(bundled.single { it.id == "speed-guards" })
+        assertThat(TimerPresetMigration.upgrade(upgraded, bundled)).isEqualTo(upgraded)
+    }
+
+    @Test
+    fun `a deleted speed guards stays deleted`() {
+        // Any write stores the upgraded copies, so a list without it at revision 3 was curated.
+        val deleted = TimerPresetMigration.upgrade(listOf(storedV1), bundled).filterNot { it.id == "speed-guards" }
+
+        assertThat(TimerPresetMigration.upgrade(deleted, bundled)).isEqualTo(deleted)
+    }
+
+    @Test
+    fun `a list of only the user's presets gets no new bundled preset`() {
+        val mine = listOf(storedV0.copy(id = "6b0f-user", name = "Mine"))
+
+        assertThat(TimerPresetMigration.upgrade(mine, bundled)).isEqualTo(mine)
+    }
+
+    private fun upgradeOne(preset: TimerPreset): TimerPreset =
+        TimerPresetMigration.upgrade(listOf(preset), bundled).single { it.id == preset.id }
 }

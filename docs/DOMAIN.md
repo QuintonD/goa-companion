@@ -165,7 +165,13 @@ auto-enforced. The Next button at the end of "Play a card" reads "Cards revealed
 Preset data carries a `revision`: stored copies of a bundled preset with an older revision are
 upgraded on read (`TimerPresetMigration`; revision 1 adds Resolve and renames "Turn" to "Play a
 card" only if unchanged; revision 2 switches the Action timer on where the bundled preset has it
-on, keeping its stored length). User-made presets are never touched.
+on, keeping its stored length; revision 3 adds the Speed guards preset to a saved list once).
+User-made presets are never touched.
+
+**Bundled presets:** *Table rules* (the defaults above, selected by default) · *Speed guards*
+(owner request, 2026-10-18: Pre-round strategy **0:30** and **0:10** per hero resolving; Play a
+card 0:30, Upgrade 2:00 as at the table) · *Relaxed* (3:00 / 1:00 / 0:45 per hero / 3:00) ·
+*Untimed (counters only)*.
 
 The Action timer counts **heroes**, not players: a double pilot's two heroes each resolve their own
 card, so each gets a slot. Seats come from the linked match, or the "Heroes at the table" stepper

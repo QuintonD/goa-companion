@@ -16,15 +16,46 @@ package dev.quinton.goa.core.domain.timer
  * Where the bundled Action phase is on, the stored copy's Action phase is switched on too (it
  * shipped switched off, so an off Action is the old default), or added after the Resolve step
  * when the copy has none. Its length and cues are left as the user set them.
+ *
+ * Revision 3 (2026-10-18, owner request): adds the bundled "Speed guards" preset (0:30 strategy,
+ * 0:10 per hero resolving). A stored list only replaces the bundled list, so a new bundled preset
+ * is added to it once: when its newest bundled copy predates the preset. Any later write stores
+ * the copies at the new revision, so deleting the new preset keeps it deleted. A list with no
+ * bundled copy at all is left as the user curated it. No phase changes.
  */
 object TimerPresetMigration {
     private const val OLD_TURN_NAME = "Turn"
     private const val RESOLVE_NAME = "resolve"
     private const val ACTION_ON_REVISION = 2
 
-    fun upgrade(stored: List<TimerPreset>, bundled: List<TimerPreset>): List<TimerPreset> = stored.map { preset ->
-        val target = bundled.firstOrNull { it.id == preset.id }
-        if (target == null || preset.revision >= target.revision) preset else upgradeOne(preset, target)
+    /** Bundled presets added after the first release, by id, with the revision that added them. */
+    private val ADDED_IN = mapOf("speed-guards" to 3)
+
+    fun upgrade(stored: List<TimerPreset>, bundled: List<TimerPreset>): List<TimerPreset> {
+        val upgraded = stored.map { preset ->
+            val target = bundled.firstOrNull { it.id == preset.id }
+            if (target == null || preset.revision >= target.revision) preset else upgradeOne(preset, target)
+        }
+        return addNewBundled(stored, upgraded, bundled)
+    }
+
+    /** Adds each newer bundled preset after the bundled presets that precede it in the catalog. */
+    private fun addNewBundled(
+        stored: List<TimerPreset>,
+        upgraded: List<TimerPreset>,
+        bundled: List<TimerPreset>,
+    ): List<TimerPreset> {
+        val bundledIds = bundled.map { it.id }.toSet()
+        val storedRevision = stored.filter { it.id in bundledIds }.maxOfOrNull { it.revision } ?: return upgraded
+        val list = upgraded.toMutableList()
+        bundled.forEachIndexed { index, preset ->
+            val since = ADDED_IN[preset.id]
+            if (since != null && storedRevision < since && list.none { it.id == preset.id }) {
+                val before = bundled.take(index).map { it.id }.toSet()
+                list.add(list.indexOfLast { it.id in before } + 1, preset)
+            }
+        }
+        return list
     }
 
     private fun upgradeOne(preset: TimerPreset, target: TimerPreset): TimerPreset {

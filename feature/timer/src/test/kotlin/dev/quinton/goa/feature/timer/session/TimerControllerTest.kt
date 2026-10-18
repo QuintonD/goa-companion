@@ -337,4 +337,19 @@ class TimerControllerTest {
         assertThat(table.phases.map { it.id }).containsExactly("strategy", "turn", "resolve", "action", "upgrade")
             .inOrder()
     }
+
+    @Test
+    fun `a saved preset list from 0_3_0 gets speed guards once, and deleting it sticks`() = runTest {
+        val saved = h.repository.presets.first()
+            .filterNot { it.id == "speed-guards" }
+            .map { it.copy(revision = 2) }
+        h.store.writePresets(TimerJson.encodePresets(saved))
+
+        assertThat(h.repository.presets.first().map { it.id })
+            .containsExactly("table-rules", "speed-guards", "relaxed", "untimed").inOrder()
+
+        assertThat(h.repository.delete("speed-guards")).isTrue()
+        assertThat(h.repository.presets.first().map { it.id }).containsExactly("table-rules", "relaxed", "untimed")
+            .inOrder()
+    }
 }

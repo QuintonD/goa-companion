@@ -20,23 +20,23 @@ class PresetsViewModelTest {
     @Test
     fun `select, duplicate, delete and restore defaults`() = runTest {
         val vm = PresetsViewModel(h.repository)
-        assertThat(vm.uiState.first { !it.loading }.presets).hasSize(3)
+        assertThat(vm.uiState.first { !it.loading }.presets).hasSize(4)
 
         vm.select("relaxed")
         assertThat(vm.uiState.first { it.selectedId == "relaxed" }.selectedId).isEqualTo("relaxed")
 
         vm.duplicate("table-rules")
-        val copy = vm.uiState.first { it.presets.size == 4 }.presets.last()
+        val copy = vm.uiState.first { it.presets.size == 5 }.presets.last()
         assertThat(copy.name).isEqualTo("Table rules copy")
 
         vm.delete("table-rules")
         vm.delete("untimed")
-        assertThat(vm.uiState.first { it.presets.size == 2 }.presets.map { it.id }).doesNotContain("table-rules")
+        assertThat(vm.uiState.first { it.presets.size == 3 }.presets.map { it.id }).doesNotContain("table-rules")
 
         vm.restoreDefaults()
         assertThat(
             vm.uiState.first {
-                it.presets.size == 4
+                it.presets.size == 5
             }.presets.map { it.id },
         ).containsAtLeast("table-rules", "untimed")
     }
@@ -45,6 +45,7 @@ class PresetsViewModelTest {
     fun `the last preset cannot be deleted`() = runTest {
         val vm = PresetsViewModel(h.repository)
         vm.delete("relaxed")
+        vm.delete("speed-guards")
         vm.delete("untimed")
         vm.delete("table-rules")
         val state = vm.uiState.first { it.presets.size == 1 }
@@ -128,7 +129,7 @@ class PresetsViewModelTest {
         val state = vm.uiState.value
         assertThat(state.showIssues).isTrue()
         assertThat(state.issues.map { it.kind }).contains(PresetIssue.Kind.BLANK_NAME)
-        assertThat(h.repository.presets.first()).hasSize(3)
+        assertThat(h.repository.presets.first()).hasSize(4)
 
         vm.rename("Tournament")
         vm.navigation.test {
