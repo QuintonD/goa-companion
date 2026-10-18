@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.data.EditClock
+import dev.quinton.goa.core.data.GroupState
+import dev.quinton.goa.core.data.TriviaProgressRepository
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.trivia.AnswerStyle
 import dev.quinton.goa.core.domain.trivia.CardGroup
@@ -32,7 +34,6 @@ import dev.quinton.goa.core.domain.trivia.TriviaStat
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.navigation.TriviaQuizRoute
-import dev.quinton.goa.core.data.GroupState
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeGroupRepository
 import dev.quinton.goa.core.testing.FakePlayerRepository
@@ -40,7 +41,6 @@ import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.core.testing.FakeTriviaProgressRepository
 import dev.quinton.goa.core.testing.FakeTriviaRoundRepository
 import dev.quinton.goa.feature.trivia.home.HeroOption
-import dev.quinton.goa.core.data.TriviaProgressRepository
 import dev.quinton.goa.feature.trivia.home.HeroPickerContent
 import dev.quinton.goa.feature.trivia.home.PlayingAsContent
 import dev.quinton.goa.feature.trivia.home.PlayingAsPicker
@@ -192,7 +192,13 @@ class TriviaScreenshotTest {
 
     @Composable
     private fun Picker(mode: PlayingAsPicker, playingAs: String? = "sam", me: String? = "ann") {
-        val state = PlayingAsState.resolve(playingAs, ScreenshotPlayers.all.firstOrNull { it.id == me }, ScreenshotPlayers.all)
+        val state = PlayingAsState.resolve(
+            playingAs,
+            ScreenshotPlayers.all.firstOrNull {
+                it.id == me
+            },
+            ScreenshotPlayers.all,
+        )
         Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
             PlayingAsContent(state, mode, onPick = {}, onAdd = {})
         }

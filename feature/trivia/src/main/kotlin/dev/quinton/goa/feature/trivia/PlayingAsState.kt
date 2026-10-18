@@ -50,7 +50,8 @@ data class PlayingAsState(
                 stored != null && stored in byId -> byId.getValue(stored)
                 else -> activeMe
             }
-            val ordered = listOfNotNull(activeMe) + active.filter { it.id != activeMe?.id }.sortedBy { it.name.lowercase() }
+            val ordered =
+                listOfNotNull(activeMe) + active.filter { it.id != activeMe?.id }.sortedBy { it.name.lowercase() }
             return PlayingAsState(player = player, me = me, players = ordered)
         }
     }
@@ -88,6 +89,8 @@ internal fun playingAs(
     val stored = progress.playingAs.distinctUntilChanged().flatMapLatest { id ->
         if (id == null || id == TriviaProgressRepository.GUEST) flowOf(id) else resolved(id).map { it?.id ?: id }
     }
-    return combine(stored, me, players.observePlayers()) { pick, you, active -> PlayingAsState.resolve(pick, you, active) }
+    return combine(stored, me, players.observePlayers()) { pick, you, active ->
+        PlayingAsState.resolve(pick, you, active)
+    }
         .distinctUntilChanged()
 }

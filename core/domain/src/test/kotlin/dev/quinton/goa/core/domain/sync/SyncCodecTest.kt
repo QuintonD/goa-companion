@@ -97,7 +97,11 @@ class SyncCodecTest {
         val doc = valid.copy(triviaRounds = listOf(round))
         assertThat(SyncCodec.decode(SyncCodec.encode(doc)).triviaRounds).containsExactly(round)
         val inflated = valid.copy(triviaRounds = listOf(round.copy(correct = 21)))
-        assertThat(assertThrows(SyncFormatException::class.java) { SyncCodec.decode(SyncCodec.encode(inflated)) }.message)
+        assertThat(
+            assertThrows(SyncFormatException::class.java) {
+                SyncCodec.decode(SyncCodec.encode(inflated))
+            }.message,
+        )
             .contains("more right answers than questions")
     }
 

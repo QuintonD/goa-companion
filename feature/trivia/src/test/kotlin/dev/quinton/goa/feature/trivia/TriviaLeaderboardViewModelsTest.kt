@@ -110,7 +110,15 @@ class TriviaLeaderboardViewModelsTest {
             is QuizQuestionUi.Number ->
                 TriviaAnswer.Number(if (right) q.value else q.choices.firstOrNull { it != q.value } ?: (q.value + 1))
 
-            is QuizQuestionUi.Duel -> TriviaAnswer.Duel(if (right) q.right else DuelPick.entries.first { it != q.right })
+            is QuizQuestionUi.Duel -> TriviaAnswer.Duel(
+                if (right) {
+                    q.right
+                } else {
+                    DuelPick.entries.first {
+                        it != q.right
+                    }
+                },
+            )
         },
     )
 
@@ -159,7 +167,9 @@ class TriviaLeaderboardViewModelsTest {
         }
         progress.playingAsState.value = TriviaProgressRepository.GUEST
         home().uiState.test {
-            assertThat(playingAsNote(ready().playingAs)).isEqualTo("Practice progress here stays Ann's; Guest rounds aren't recorded.")
+            assertThat(
+                playingAsNote(ready().playingAs),
+            ).isEqualTo("Practice progress here stays Ann's; Guest rounds aren't recorded.")
         }
         progress.playingAsState.value = "ann"
         home().uiState.test { assertThat(playingAsNote(ready().playingAs)).isNull() }

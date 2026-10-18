@@ -185,7 +185,10 @@ class SyncProtocolTest {
         )
         link.send(Wire.frame(Wire.HELLO, SyncJson.encodeToString(Hello.serializer(), hello).toByteArray()))
 
-        val theirs = SyncJson.decodeFromString(Hello.serializer(), Wire.bodyOf(link.incoming.receive()).decodeToString())
+        val theirs = SyncJson.decodeFromString(
+            Hello.serializer(),
+            Wire.bodyOf(link.incoming.receive()).decodeToString(),
+        )
         assertThat(theirs.documentVersion).isEqualTo(SyncDocument.VERSION)
         assertThat(theirs.documentVersion).isGreaterThan(1)
         val failed = host.host.state.first { s -> s.peers.singleOrNull()?.stage == PeerStage.FAILED }.peers.single()

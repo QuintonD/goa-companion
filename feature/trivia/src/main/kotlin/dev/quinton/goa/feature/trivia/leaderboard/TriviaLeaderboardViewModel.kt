@@ -147,7 +147,12 @@ class TriviaLeaderboardViewModel @Inject constructor(
         viewModelScope.launch { rounds.delete(id) }
     }
 
-    private fun build(all: List<TriviaRound>, people: List<Player>, meId: String?, c: Choice): TriviaLeaderboardUiState {
+    private fun build(
+        all: List<TriviaRound>,
+        people: List<Player>,
+        meId: String?,
+        c: Choice,
+    ): TriviaLeaderboardUiState {
         val now = clock.now()
         val board = TriviaLeaderboard.build(all, people, meId, now, c.period)
         val byId = people.associateBy { it.id }
@@ -156,7 +161,9 @@ class TriviaLeaderboardViewModel @Inject constructor(
             PlayerRoundsUi(
                 player = player,
                 isMe = player.id == meId,
-                rounds = TriviaLeaderboard.recentRounds(all, player.id, now, c.period).map { roundUi(it, player, dates) },
+                rounds = TriviaLeaderboard.recentRounds(all, player.id, now, c.period).map {
+                    roundUi(it, player, dates)
+                },
             )
         }
         return TriviaLeaderboardUiState.Ready(
@@ -239,7 +246,11 @@ class TriviaLeaderboardViewModel @Inject constructor(
         val kind = if (round.kind == TriviaRoundKind.CHALLENGE) "Challenge" else "Practice"
         val score = "${round.correct}/${round.questions}"
         val date = dates.short(round.playedAt)
-        val detail = listOf(formatDuration(round.answerMillis), "best streak ${round.bestStreak}", date).joinToString(" · ")
+        val detail = listOf(
+            formatDuration(round.answerMillis),
+            "best streak ${round.bestStreak}",
+            date,
+        ).joinToString(" · ")
         return RoundUi(
             id = round.id,
             kind = kind,

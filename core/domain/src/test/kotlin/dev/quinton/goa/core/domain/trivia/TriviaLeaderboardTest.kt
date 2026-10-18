@@ -19,7 +19,13 @@ class TriviaLeaderboardTest {
     private var nextId = 0
 
     @Suppress("LongParameterList")
-    private fun challenge(player: String, correct: Int, millis: Long = 100_000, at: Long = now - DAY, id: String? = null) =
+    private fun challenge(
+        player: String,
+        correct: Int,
+        millis: Long = 100_000,
+        at: Long = now - DAY,
+        id: String? = null,
+    ) =
         TriviaRound(
             id = id ?: "c${nextId++}",
             playerId = player,
@@ -108,7 +114,7 @@ class TriviaLeaderboardTest {
     }
 
     @Test
-    fun `the practice board sums every round, challenges included, by right answers then accuracy then fewer questions`() {
+    fun `the practice board sums all rounds, challenges too, by right answers, accuracy, fewer questions`() {
         val rows = board(
             listOf(
                 practice("ann", 30, 40, streak = 12),
@@ -146,7 +152,11 @@ class TriviaLeaderboardTest {
         assertThat(all.challenge.first().best).isEqualTo(old)
         assertThat(all.practice.map { it.playerId }).contains("cid")
         val month = board(rounds, period = LeaderboardPeriod.LAST_30_DAYS)
-        assertThat(month.challenge.map { it.playerId to it.best }).containsExactly("bob" to edge, "ann" to recent).inOrder()
+        assertThat(
+            month.challenge.map {
+                it.playerId to it.best
+            },
+        ).containsExactly("bob" to edge, "ann" to recent).inOrder()
         assertThat(month.practice.map { it.playerId }).doesNotContain("cid")
         assertThat(TriviaLeaderboard.recentRounds(rounds, "ann", now, LeaderboardPeriod.LAST_30_DAYS))
             .containsExactly(recent)

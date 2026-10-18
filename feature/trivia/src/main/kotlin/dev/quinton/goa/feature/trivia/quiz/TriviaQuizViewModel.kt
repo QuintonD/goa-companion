@@ -382,7 +382,10 @@ class TriviaQuizViewModel internal constructor(
     }
 
     private suspend fun follow(round: TriviaRound) {
-        combine(roundRepository.observeRounds(), playerRepository.observePlayers(includeArchived = true)) { rounds, all ->
+        combine(roundRepository.observeRounds(), playerRepository.observePlayers(includeArchived = true)) {
+                rounds,
+                all,
+            ->
             if (rounds.none { it.id == round.id }) {
                 null
             } else {

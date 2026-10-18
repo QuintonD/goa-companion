@@ -97,7 +97,13 @@ class TriviaLeaderboardScreenshotTest {
     private var next = 0
 
     @Suppress("LongParameterList")
-    private fun challenge(player: String, correct: Int, millis: Long, daysAgo: Int, id: String = "c${next++}") = TriviaRound(
+    private fun challenge(
+        player: String,
+        correct: Int,
+        millis: Long,
+        daysAgo: Int,
+        id: String = "c${next++}",
+    ) = TriviaRound(
         id = id,
         playerId = player,
         kind = TriviaRoundKind.CHALLENGE,
@@ -198,7 +204,9 @@ class TriviaLeaderboardScreenshotTest {
         capture(ThemeMode.DARK) { Board(leaderboard(busy(), period = LeaderboardPeriod.LAST_30_DAYS)) }
 
     @Test
-    fun leaderboardPracticeDark() = capture(ThemeMode.DARK) { Board(leaderboard(busy(), tab = LeaderboardTab.PRACTICE)) }
+    fun leaderboardPracticeDark() = capture(ThemeMode.DARK) {
+        Board(leaderboard(busy(), tab = LeaderboardTab.PRACTICE))
+    }
 
     @Test
     fun leaderboardPracticeLight() =
@@ -330,7 +338,9 @@ class TriviaLeaderboardScreenshotTest {
 
     /** A Challenge question: the title says so. */
     @Test
-    fun challengeQuestionDark() = capture(ThemeMode.DARK) { Quiz(challengeQuiz(emptyList()).apply { play(3, emptySet()) }) }
+    fun challengeQuestionDark() = capture(ThemeMode.DARK) {
+        Quiz(challengeQuiz(emptyList()).apply { play(3, emptySet()) })
+    }
 
     private companion object {
         const val IMAGE_TIMEOUT_MS = 10_000L

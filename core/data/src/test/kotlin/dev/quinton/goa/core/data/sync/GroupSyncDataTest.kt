@@ -8,8 +8,8 @@ import dev.quinton.goa.core.data.PlayerMergeResult
 import dev.quinton.goa.core.data.match.RoomDraftRecordRepository
 import dev.quinton.goa.core.data.match.RoomMatchRepository
 import dev.quinton.goa.core.data.player.RoomPlayerRepository
-import dev.quinton.goa.core.data.trivia.RoomTriviaRoundRepository
 import dev.quinton.goa.core.data.rating.FakeEloConfigRepository
+import dev.quinton.goa.core.data.trivia.RoomTriviaRoundRepository
 import dev.quinton.goa.core.database.GoaDatabase
 import dev.quinton.goa.core.domain.rating.EloCalculator
 import dev.quinton.goa.core.domain.rating.EloConfig
@@ -203,7 +203,9 @@ class GroupSyncDataTest {
         val ann = Phone("Ann")
         val bob = Phone("Bob")
         val cid = Phone("Cid")
-        listOf(ann, bob, cid).forEach { phone -> listOf("ann", "bob", "cid").forEach { phone.players.upsert(player(it)) } }
+        listOf(ann, bob, cid).forEach { phone ->
+            listOf("ann", "bob", "cid").forEach { phone.players.upsert(player(it)) }
+        }
         ann.rounds.add(round("a-r1", "ann", correct = 18))
         bob.now = 1_100
         bob.rounds.add(round("b-r1", "bob", correct = 12))
@@ -222,7 +224,11 @@ class GroupSyncDataTest {
         syncSession(ann, bob)
         listOf(ann, bob, cid).forEach { phone ->
             assertThat(phone.rounds.observeRounds().first().map { it.id }).containsExactly("a-r1", "b-r1")
-            assertThat(phone.db.deletionDao().getAll().map { it.kind to it.id }).containsExactly("trivia_round" to "b-r2")
+            assertThat(
+                phone.db.deletionDao().getAll().map {
+                    it.kind to it.id
+                },
+            ).containsExactly("trivia_round" to "b-r2")
         }
     }
 

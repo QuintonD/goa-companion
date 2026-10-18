@@ -18,8 +18,8 @@ import dev.quinton.goa.core.datastore.timer.TimerStateStore
 import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.model.board.BoardLineup
 import dev.quinton.goa.core.model.board.BoardState
-import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.HeroPiece
+import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.board.SavedBoard

@@ -76,8 +76,9 @@ data class BackupDocument(
 enum class ImportMode {
     /**
      * Wipe players, matches, drafts, trivia rounds, tombstones, merges, the boards (when the file
-     * carries them, v5) and the settings covered by the backup, then load it as it is (records keep their `updatedAt`, so the group's newer edits win at the
-     * next sync: restoring an old backup never overwrites the group).
+     * carries them, v5) and the settings covered by the backup, then load it as it is (records
+     * keep their `updatedAt`, so the group's newer edits win at the next sync: restoring an old
+     * backup never overwrites the group).
      */
     REPLACE,
 
