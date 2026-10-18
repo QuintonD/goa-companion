@@ -61,6 +61,16 @@ class TimerScreenshotTest {
     fun roundViewNarrowBlueRound10Light() =
         active(TimerPreviewData.roundTurn.copy(round = 10, tieBreaker = Team.BLUE), ThemeMode.LIGHT)
 
+    /** S25 Ultra held sideways: 832 x 384 dp. Clock, Hurry up and controls must all be in view. */
+    @Test
+    @Config(qualifiers = "w832dp-h384dp-land-xxhdpi")
+    fun resolveLandscapeShortDark() = active(TimerPreviewData.resolve)
+
+    @Test
+    @Config(qualifiers = "w832dp-h384dp-land-xxhdpi")
+    fun roundViewLandscapeShortLight() =
+        active(TimerPreviewData.roundTurn.copy(paused = true, tieBreaker = Team.BLUE), ThemeMode.LIGHT)
+
     @Test fun alertsOffBannerDark() = active(TimerPreviewData.turn.copy(alertsOff = true))
 
     @Test fun pausedWarningDark() = active(TimerPreviewData.paused)

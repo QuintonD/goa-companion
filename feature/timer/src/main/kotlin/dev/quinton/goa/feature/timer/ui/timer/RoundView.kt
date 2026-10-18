@@ -13,6 +13,7 @@ import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -104,30 +105,19 @@ internal fun LandscapeRoundTimer(state: ActiveUiState, actions: TimerActions, he
         RoundList(state, actions, expandCurrent = false, onJump = { jump = it }, Modifier.weight(0.45f).fillMaxHeight())
         Column(Modifier.weight(0.55f).fillMaxHeight()) {
             header()
-            Column(
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = Spacing.screen),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                state.rows.firstOrNull { it.state == RoundRowState.CURRENT }?.let { row ->
-                    // One line, not the step view's chip and headline: the list beside it already
-                    // places the step, and the Level Up rule must fit above the controls.
-                    StepTitle(row, actions.onBack, Modifier.padding(top = Spacing.xs))
-                    RoundClock(state, row, actions.onTogglePause, digits = 56.dp)
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                // A phone held sideways can leave ~130 dp here (S25 Ultra: 384 dp tall): the digits
+                // shrink so the clock stays in view above the pinned buttons instead of scrolling off.
+                val digits = (maxHeight - LANDSCAPE_CLOCK_CHROME).coerceIn(LANDSCAPE_DIGITS_MIN, LANDSCAPE_DIGITS)
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = Spacing.screen),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    LandscapeCurrentStep(state, actions, digits)
                 }
-                state.hint?.let {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                CurrentStepExtras(state, actions)
-                Spacer(Modifier.height(Spacing.md))
             }
             // Pinned here too: in a short landscape window it scrolled under the controls.
             PinnedTableRules(state, actions)
@@ -137,6 +127,33 @@ internal fun LandscapeRoundTimer(state: ActiveUiState, actions: TimerActions, he
     }
     JumpDialog(state, jump, actions, onDismiss = { jump = null })
 }
+
+/** Step title (one line: the list beside it already places the step), clock, hint and extras. */
+@Composable
+private fun LandscapeCurrentStep(state: ActiveUiState, actions: TimerActions, digits: Dp) {
+    state.rows.firstOrNull { it.state == RoundRowState.CURRENT }?.let { row ->
+        // One line, not the step view's chip and headline: the list beside it already
+        // places the step, and the Level Up rule must fit above the controls.
+        StepTitle(row, actions.onBack, Modifier.padding(top = Spacing.xs))
+        RoundClock(state, row, actions.onTogglePause, digits = digits)
+    }
+    state.hint?.let {
+        Text(
+            it,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+    CurrentStepExtras(state, actions)
+    Spacer(Modifier.height(Spacing.md))
+}
+
+private val LANDSCAPE_DIGITS = 56.dp
+private val LANDSCAPE_DIGITS_MIN = 36.dp
+
+/** Step title row (48 dp + 4), the clock's padding (16) and progress bar with its gap (~16). */
+private val LANDSCAPE_CLOCK_CHROME = 84.dp
 
 /** Hurry up and time-out buttons, pinned above the controls so they never scroll away. */
 @Composable

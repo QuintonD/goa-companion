@@ -233,7 +233,8 @@ internal fun PinnedShotClock(state: ActiveUiState, actions: TimerActions, compac
 @Composable
 private fun LandscapeTimer(state: ActiveUiState, actions: TimerActions, header: @Composable () -> Unit) {
     Row(Modifier.fillMaxSize()) {
-        // A running Hurry up sits under the dial here, leaving the right column to the step text.
+        // Hurry up and time-outs (and a running Hurry up) sit under the dial here, leaving the right
+        // column to the step text: there they scrolled under the controls in a 384 dp-tall window.
         Column(Modifier.weight(0.45f).fillMaxHeight()) {
             BoxWithConstraints(
                 Modifier.weight(1f).fillMaxWidth().padding(Spacing.md),
@@ -245,6 +246,7 @@ private fun LandscapeTimer(state: ActiveUiState, actions: TimerActions, header: 
                     TimerDial(state, min(maxWidth, maxHeight).coerceAtLeast(120.dp), actions.onTogglePause)
                 }
             }
+            Column(Modifier.padding(horizontal = Spacing.screen)) { TableRulesBar(state, actions) }
             PinnedShotClock(state, actions, compact = true)
         }
         Column(Modifier.weight(0.55f).fillMaxHeight()) {
@@ -261,7 +263,7 @@ private fun LandscapeTimer(state: ActiveUiState, actions: TimerActions, header: 
                 RoundPips(state.pips, state.round)
                 PhaseHeading(state, actions.onBack, compact = true)
                 StepDetail(state, actions.onOpenLevels)
-                SecondaryArea(state, actions)
+                SecondaryArea(state, actions, tableRules = false)
                 Spacer(Modifier.height(Spacing.md))
             }
             TimerControls(state, actions, compact = true)
@@ -311,8 +313,8 @@ private fun StepDetail(state: ActiveUiState, onOpenLevels: () -> Unit) {
 }
 
 @Composable
-private fun SecondaryArea(state: ActiveUiState, actions: TimerActions) {
-    TableRulesBar(state, actions)
+private fun SecondaryArea(state: ActiveUiState, actions: TimerActions, tableRules: Boolean = true) {
+    if (tableRules) TableRulesBar(state, actions)
     state.seats?.let { seats ->
         Spacer(Modifier.height(Spacing.lg))
         ResolvingHeroes(seats, actions.onHeroResolves)
