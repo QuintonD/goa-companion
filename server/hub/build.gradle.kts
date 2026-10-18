@@ -34,6 +34,8 @@ dependencies {
     implementation(libs.ktor.server.html.builder)
     implementation(libs.ktor.server.status.pages)
     implementation(libs.kotlinx.html)
+    // The invite QR code on /group/invite, drawn as SVG on the server (pure Java, no AWT).
+    implementation(libs.zxing.core)
     runtimeOnly(libs.slf4j.simple)
 
     testImplementation(libs.ktor.server.test.host)

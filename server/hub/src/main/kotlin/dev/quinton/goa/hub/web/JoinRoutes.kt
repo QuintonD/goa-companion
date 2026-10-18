@@ -5,7 +5,9 @@ import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.core.domain.sync.Invite
 import dev.quinton.goa.core.domain.sync.SyncCrypto
 import dev.quinton.goa.hub.Hub
+import dev.quinton.goa.hub.store.Device
 import dev.quinton.goa.hub.store.DeviceSlot
+import dev.quinton.goa.hub.store.SharedSlots
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -63,8 +65,8 @@ internal fun Route.joinRoutes(hub: Hub) {
                 "This invite is for another group, not “${group.name}”.",
             )
         }
-        call.signIn(hub, invite)
-        call.joined()
+        val device = call.signIn(hub, invite)
+        call.joined(landing(hub, device, invite))
     }
 }
 
@@ -80,8 +82,20 @@ internal fun Route.signOutRoute(hub: Hub) {
 private fun sameGroup(invited: GroupCredentials, group: GroupCredentials): Boolean =
     invited.groupId == group.groupId && SyncCrypto.same(invited.key, group.key)
 
+/**
+ * Where a browser lands after signing in: "Which player are you?" while it doesn't know yet, or when
+ * a personal invite names someone else (ADR-031; the app opens it after the first sync). Once only:
+ * the other pages never send it there.
+ */
+private fun landing(hub: Hub, device: Device, invite: Invite): String {
+    val merges = hub.groupStore.data().merges
+    val me = hub.deviceStore.read(device.id, SharedSlots.Me)?.let(merges::resolve)
+    val invited = invite.playerId?.let(merges::resolve)
+    return if (me == null || (invited != null && invited != me)) WHO_ARE_YOU_PATH else "/"
+}
+
 /** Keeps a browser that is already signed in; otherwise creates its device and sets the cookie. */
-private fun ApplicationCall.signIn(hub: Hub, invite: Invite) {
+private fun ApplicationCall.signIn(hub: Hub, invite: Invite): Device {
     val existing = request.cookies[DeviceCookie.NAME]?.let(hub.devices::find)
     val device = existing ?: hub.devices.create(
         name = dev.quinton.goa.hub.store.Devices.nameFromUserAgent(request.header(HttpHeaders.UserAgent)),
@@ -91,16 +105,17 @@ private fun ApplicationCall.signIn(hub: Hub, invite: Invite) {
         device
     }
     invite.playerId?.let { hub.deviceStore.write(device.id, SignInSlots.InvitedPlayerId, it) }
+    return device
 }
 
 private val ApplicationCall.wantsJson: Boolean
     get() = request.header(HttpHeaders.Accept)?.contains("application/json") == true
 
-private suspend fun ApplicationCall.joined() {
+private suspend fun ApplicationCall.joined(target: String) {
     if (wantsJson) {
-        respondText(buildJsonObject { put("redirect", "/") }.toString(), ContentType.Application.Json)
+        respondText(buildJsonObject { put("redirect", target) }.toString(), ContentType.Application.Json)
     } else {
-        respondRedirect("/")
+        respondRedirect(target)
     }
 }
 
@@ -114,3 +129,6 @@ private suspend fun ApplicationCall.joinFailed(status: HttpStatusCode, message: 
 
 internal const val JOIN_PATH = "/join"
 internal const val SIGN_OUT_PATH = "/signout"
+
+/** "Which player are you?" (served by the Group area). */
+internal const val WHO_ARE_YOU_PATH = "/group/me"

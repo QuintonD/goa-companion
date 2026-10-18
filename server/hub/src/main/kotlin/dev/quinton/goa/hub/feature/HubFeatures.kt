@@ -19,7 +19,7 @@ val HubFeatures: List<HubFeature> = listOf(
     // Players: leaderboard, player page, match log, editor, meta
     ComingSoon.Players,
     // Group: who am I, invite, devices
-    ComingSoon.Group,
+    dev.quinton.goa.hub.group.GroupFeature,
     // Settings
     ComingSoon.Settings,
     // Core pages: Get the app (APK)
