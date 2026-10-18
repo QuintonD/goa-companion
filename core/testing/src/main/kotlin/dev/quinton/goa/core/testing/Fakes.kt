@@ -11,6 +11,7 @@ import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.RatingsRepository
 import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.data.SyncedPhone
+import dev.quinton.goa.core.data.TriviaProgressRepository
 import dev.quinton.goa.core.data.player.PlayerNames
 import dev.quinton.goa.core.data.rating.HeroPilotsRepository
 import dev.quinton.goa.core.domain.meta.HeroPilots
@@ -20,6 +21,8 @@ import dev.quinton.goa.core.domain.rating.WinLoss
 import dev.quinton.goa.core.domain.sync.GroupCredentials
 import dev.quinton.goa.core.domain.sync.PlayerMerges
 import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
+import dev.quinton.goa.core.domain.trivia.FactProgress
+import dev.quinton.goa.core.domain.trivia.TriviaConfig
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
@@ -176,4 +179,25 @@ class FakeSettingsRepository(initial: AppSettings = AppSettings()) : SettingsRep
     override val settings: Flow<AppSettings> = state
 
     override suspend fun update(transform: (AppSettings) -> AppSettings) = state.update(transform)
+}
+
+class FakeTriviaProgressRepository(
+    initial: Map<String, FactProgress> = emptyMap(),
+    config: TriviaConfig? = null,
+) : TriviaProgressRepository {
+    val state = MutableStateFlow(initial)
+    val configState = MutableStateFlow(config)
+    override val progress: Flow<Map<String, FactProgress>> = state
+    override val lastConfig: Flow<TriviaConfig?> = configState
+
+    override suspend fun record(updates: Map<String, FactProgress>) = state.update { it + updates }
+
+    override suspend fun saveConfig(config: TriviaConfig) {
+        configState.value = config
+    }
+
+    /** Fact keys are `<cardId>/<stat>` and card ids start with `<heroId>-`. */
+    override suspend fun reset(heroIds: Set<String>?) = state.update { map ->
+        if (heroIds == null) emptyMap() else map.filterKeys { key -> heroIds.none { key.startsWith("$it-") } }
+    }
 }

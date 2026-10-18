@@ -5,6 +5,8 @@ import dev.quinton.goa.core.domain.sync.PlayerMerges
 import dev.quinton.goa.core.domain.sync.protocol.SyncApplyResult
 import dev.quinton.goa.core.domain.sync.protocol.SyncDataPort
 import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
+import dev.quinton.goa.core.domain.trivia.FactProgress
+import dev.quinton.goa.core.domain.trivia.TriviaConfig
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
@@ -95,6 +97,26 @@ interface SettingsRepository {
     val settings: Flow<AppSettings>
 
     suspend fun update(transform: (AppSettings) -> AppSettings)
+}
+
+/**
+ * Card-number trivia progress and the last quiz setup (owner: trivia, ADR-028). This phone's own
+ * practice record: never synced, not in the backup file (Android Auto Backup still covers it).
+ */
+interface TriviaProgressRepository {
+    /** Mastery per fact key ([dev.quinton.goa.core.domain.trivia.TriviaFact.key]). */
+    val progress: Flow<Map<String, FactProgress>>
+
+    /** The setup of the last quiz started, or null before the first one. */
+    val lastConfig: Flow<TriviaConfig?>
+
+    /** Stores the new progress of the given facts (merged into what is stored). */
+    suspend fun record(updates: Map<String, FactProgress>)
+
+    suspend fun saveConfig(config: TriviaConfig)
+
+    /** Forgets the progress of facts on these heroes' cards; null = everything. */
+    suspend fun reset(heroIds: Set<String>? = null)
 }
 
 /** Wall-clock time (epoch ms) for the `updatedAt` stamps on local writes (ADR-025). */
