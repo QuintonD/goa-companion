@@ -143,6 +143,18 @@ data class TriviaResult(val question: TriviaQuestion, val answer: TriviaAnswer, 
 /** A missed fact asked again once [dueAfter] questions have been answered this round. */
 data class TriviaRetry(val fact: TriviaFact, val dueAfter: Int)
 
+/** How a round draws its questions. */
+enum class TriviaDraw {
+    /** Practice: weighted towards missed, new and still-learning facts; misses come back (ADR-028). */
+    WEIGHTED,
+
+    /**
+     * The Challenge (ADR-032): every fact equally likely whatever the progress, no fact asked twice
+     * (a duel uses up both its cards' Initiative), no retries. Scores compare across players.
+     */
+    UNIFORM,
+}
+
 /**
  * One round of trivia: the pool it asks from, the question on screen ([current]; null once the
  * round is over), and the answer given to it ([answer], null until answered).
@@ -156,6 +168,7 @@ data class TriviaSession(
     val answer: TriviaAnswer? = null,
     val results: List<TriviaResult> = emptyList(),
     val retries: List<TriviaRetry> = emptyList(),
+    val draw: TriviaDraw = TriviaDraw.WEIGHTED,
 ) {
     val finished: Boolean get() = current == null
     val answered: Boolean get() = answer != null
@@ -166,6 +179,18 @@ data class TriviaSession(
 
     /** Right answers in a row, counting back from the latest. */
     val streak: Int get() = results.asReversed().takeWhile { it.correct }.size
+
+    /** The longest run of right answers this round. */
+    val bestStreak: Int
+        get() {
+            var best = 0
+            var run = 0
+            results.forEach { r ->
+                run = if (r.correct) run + 1 else 0
+                best = maxOf(best, run)
+            }
+            return best
+        }
 
     /** Facts behind each wrong answer (both cards of a missed duel), first miss first, no repeats. */
     val missedFacts: List<TriviaFact>
@@ -207,8 +232,9 @@ object TriviaEngine {
         progress: Map<String, FactProgress>,
         config: TriviaConfig,
         random: Random = Random.Default,
+        draw: TriviaDraw = TriviaDraw.WEIGHTED,
     ): TriviaSession {
-        val empty = TriviaSession(config, pool.distinctBy { it.key }, ranges, progress, current = null)
+        val empty = TriviaSession(config, pool.distinctBy { it.key }, ranges, progress, current = null, draw = draw)
         return if (empty.pool.isEmpty()) empty else empty.ask(pick(empty, random))
     }
 
@@ -232,7 +258,8 @@ object TriviaEngine {
             is TriviaQuestion.HigherInitiative -> emptyMap()
         }
         val asked = session.results.size + 1
-        val retries = if (correct) {
+        val retries = if (correct || session.draw == TriviaDraw.UNIFORM) {
+            // A Challenge never asks a number twice, so a miss isn't queued again.
             session.retries
         } else {
             session.retries + question.facts.filter { f -> session.retries.none { it.fact.key == f.key } }
@@ -290,7 +317,37 @@ object TriviaEngine {
         else -> DuelPick.TIE
     }
 
-    private fun pick(session: TriviaSession, random: Random): TriviaQuestion {
+    private fun pick(session: TriviaSession, random: Random): TriviaQuestion =
+        if (session.draw == TriviaDraw.UNIFORM) pickUniform(session, random) else pickWeighted(session, random)
+
+    /**
+     * The Challenge's draw: uniform over the facts not asked yet this round (a duel's two facts
+     * count as asked), avoiding the card just asked when another is left. Progress plays no part.
+     * When every fact has been asked the whole pool is open again (never in a 20-question round
+     * over the full catalog).
+     */
+    private fun pickUniform(session: TriviaSession, random: Random): TriviaQuestion {
+        val used = session.results.flatMapTo(HashSet()) { r -> r.question.facts.map { it.key } }
+        val fresh = session.pool.filter { it.key !in used }.ifEmpty { session.pool }
+        val last = session.lastCards()
+        val candidates = fresh.filter { it.cardId !in last }.ifEmpty { fresh }
+        val initiative = candidates.filter { it.stat == TriviaStat.INITIATIVE }
+        val canDuel = session.config.duels && initiative.map { it.cardId }.distinct().size >= 2
+        if (canDuel && random.nextDouble() < DUEL_SHARE) {
+            val first = initiative.random(random)
+            val others = initiative.filter { it.cardId != first.cardId }
+            val close = others.filter { abs(it.value - first.value) <= DUEL_CLOSE }
+            val second = close.ifEmpty { others }.random(random)
+            return if (random.nextBoolean()) {
+                TriviaQuestion.HigherInitiative(first, second)
+            } else {
+                TriviaQuestion.HigherInitiative(second, first)
+            }
+        }
+        return numberQuestion(session, candidates.random(random), random)
+    }
+
+    private fun pickWeighted(session: TriviaSession, random: Random): TriviaQuestion {
         val asked = session.results.size
         val last = session.lastCards()
         val elsewhere = session.pool.any { it.cardId !in last }
