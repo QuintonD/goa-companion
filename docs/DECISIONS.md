@@ -581,10 +581,11 @@ INTERNET permission. Options weighed:
 2. *One group per hub.* `goa-hub join "<invite>"` on the hub machine (command line only; there is
    no web first-run page) stores the group credentials in the data directory (`GOA_HUB_DATA`, default
    `/var/lib/goa-hub`; files `0600`). From then on the hub is a member like a phone: it holds the key.
-3. *Storage.* `group.json` holds the group's `SyncDocument` in `SyncJson`. Every change goes
-   through one mutex and is written atomically (temp file, fsync, rename); a dated copy is kept per
-   day for 30 days. `devices/<deviceId>.json` holds each browser's own state, the things a phone
-   keeps to itself: who am I, app settings, timer presets and the running timer, draft methods,
+3. *Storage.* `data.json` holds the group's `SyncDocument` in `SyncJson` (`group.json` the group
+   id, key and name; `hub.json` the config). Every change goes
+   through one mutex and is written atomically (temp file `*.tmp`, fsync, rename); a dated copy is
+   kept per day for 30 days (`backups/`). `devices/<deviceId>/<slot>.json` (one file per feature slot)
+   holds each browser's own state, the things a phone keeps to itself: who am I, app settings, timer presets and the running timer, draft methods,
    setup form and in-progress draft, trivia progress. Web writes to shared data follow the
    repositories' rules exactly: `EditStamp.next`, a tombstone on delete, merges as `PlayerMerge`
    rows, players never deleted, and `SyncValidation` before every store.
@@ -613,16 +614,19 @@ INTERNET permission. Options weighed:
    reads it as before; the hub serves `/.well-known/assetlinks.json` (release certificate
    fingerprint from its config) so the link opens the app where it is installed.
 7. *Web sign-in.* `/join` reads the fragment in the page and posts the invite to the hub over
-   HTTPS; the hub checks group id and key (constant time), creates a device (random 256-bit id) and
-   sets the cookie `goa_device` (`HttpOnly; Secure; SameSite=Lax`, 400 days). Every page and API
+   HTTPS; the hub checks group id and key (constant time), creates a device and sets the cookie
+   `goa_device` (`HttpOnly; Secure; SameSite=Lax`, 400 days) to a random 256-bit token; the stored
+   device id is a hash of it, so neither the data directory nor any page holds a usable cookie. Every page and API
    needs a known device except `/join`, `/api/v1/health`, `/api/v1/sync` (bearer), the web
    manifest, icons, `/static/` and `assetlinks.json`. State-changing requests need a same-origin
-   `Origin` header. Join attempts are rate-limited per IP. Settings lists the devices; any device
+   `Origin` header (the configured public URL). Failed join attempts are throttled per client and
+   overall; the hub is published from loopback (Tailscale Funnel or Caddy), so a loopback address is
+   never trusted for anything. Settings lists the devices; any device
    can sign one out. All responses carry `X-Robots-Tag: noindex` and a strict CSP (self only).
 8. *Web app.* Server-rendered HTML with htmx (vendored, 0BSD, recorded in `third_party/`) for
    partial updates, and small plain-JS modules where the browser must act on its own (timer clock,
    Screen Wake Lock, chimes, push subscription). No npm, no SPA framework, no external requests
-   (system fonts, our SVG sigils, card images from the bundled catalog). Mobile-first at 390 px,
+   (the app's bundled OFL fonts, our SVG sigils and crests, card images from the bundled catalog). Mobile-first at 390 px,
    light and dark from the DESIGN.md tokens, a bottom tab bar mirroring the app. Feature parity:
    every Android screen and flow has a web page — Heroes (catalog, hero page, cards, FAQ, Card
    trivia), Timer (presets, running timer, round view, Action seats, levels, end of round), Draft
@@ -666,6 +670,19 @@ INTERNET permission. Options weighed:
   already open (a running timer keeps counting and catches up on the next request).
 - A phone and the hub on different `SyncDocument.VERSION`s refuse to sync (409) until updated, as
   phones do with each other.
+- Hub core as built (2026-10-19, `server/hub/README.md`): Ktor 3.6 on the **CIO** engine (pure
+  Kotlin coroutines, no native transports or TLS needed behind Funnel/Caddy, smaller than Netty),
+  kotlinx.html 0.12, slf4j-simple. Web Push (RFC 8291 `aes128gcm` + RFC 8292 VAPID) is written
+  with JDK crypto only and checked byte for byte against RFC 8291's worked example; no push
+  library. Push endpoints are limited to the browsers' push services (no request to arbitrary
+  URLs). Manifest PNG icons are drawn at run time with Java2D from the launcher SVG masters (no
+  raster in git); `ImageIO` disk caching is off, so the hub writes only under its data directory.
+  The sync API also answers `503` before a group is joined. `goa-hub join` also reads the invite
+  from standard input, because `goa-hub.bat` (cmd.exe) splits an unquoted invite at every `&`.
+  `X-Forwarded-For`'s *last* hop is the client for throttling (the one the local proxy appended;
+  the first can be forged by the client), with a shared budget when no proxy names the client and
+  an overall cap. Features register in one list (`HubFeatures.kt`) and keep per-browser state in
+  typed `DeviceSlot`s.
 
 ## ADR-031 — Linking a phone (or browser) to its player: personal invites and "Same people?" (2026-10-18)
 **Context:** The owner enters friends as players before they install the app. When a friend joins,

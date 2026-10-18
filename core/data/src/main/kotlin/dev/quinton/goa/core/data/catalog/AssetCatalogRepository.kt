@@ -8,6 +8,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.quinton.goa.core.data.CatalogRepository
+import dev.quinton.goa.core.domain.catalog.CatalogAssets
+import dev.quinton.goa.core.domain.catalog.CatalogLoader
 import dev.quinton.goa.core.model.catalog.Catalog
 import java.io.IOException
 import javax.inject.Inject

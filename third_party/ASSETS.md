@@ -35,6 +35,17 @@ hero's name and title.
 
 UI icons from `androidx.compose.material:material-icons-extended` (Apache 2.0, Google).
 
+## The hub's web app (`server/hub`)
+
+| Item | Files | Source | Licence |
+|------|-------|--------|---------|
+| htmx 2.0.11 (Big Sky Software) | `server/hub/src/main/resources/static/htmx.min.js` | npm `htmx.org@2.0.11`, `dist/htmx.min.js` (tarball sha512 `Thx/WtpeOQqS…tamA==` as published; file sha256 `d6fdc75f…f717`), unmodified | 0BSD, [`htmx/LICENSE`](htmx/LICENSE) |
+| Material Symbols (Outlined, 24 px): arrow_back, settings, menu_book, quiz, close, add, chevron_right, download, error, info, check, delete, edit, share, notifications, logout, devices, group, search | `server/hub/src/main/resources/static/material/*.svg` | `github.com/google/material-design-icons` @ `49d4db35df873165d6bd6ba09b063c7dafbac2f4`, `symbols/web/<name>/materialsymbolsoutlined/<name>_24px.svg`, unmodified | Apache 2.0, [`material-symbols/LICENSE`](material-symbols/LICENSE) |
+
+The hub also serves, from the build (no copy in git): the fonts and licences above, our crests,
+sigils, icons and launcher SVGs from `design/`, and the official catalog files (signed-in
+devices only). Its manifest PNG icons are rendered at run time from `design/brand/` by Java2D.
+
 ## Sounds (original, made for this app)
 
 | Asset | Master | Generated |

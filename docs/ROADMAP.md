@@ -82,7 +82,7 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 
 ## M8 — The hub and the web app (ADR-030)
 - [x] Contracts: invite links with hub and player (`GroupInvite.parseInvite`, `HubAddress`), `HubToken`; ADR-030/031; `:core:presentation` module — 2026-10-18, `HubInviteTest`
-- [ ] `:server:hub` core: storage, sign-in, sync API, page shell, catalog/static assets, Web Push base
+- [x] `:server:hub` core: storage, sign-in, sync API, page shell, catalog/static assets, Web Push base — 2026-10-19, 59 JVM tests (`SyncApiTest`, `SharedWritesTest`, `GroupStoreTest`, `SignInTest`, `ShellTest`, `WebPushTest` vs RFC 8291, `HubCliTest`), ktlint + detekt clean; `installDist` run locally: `goa-hub join` (also via stdin through `goa-hub.bat`), `serve`, sign-in through an invite link in headless Edge, pages in dark and light. Every tab is a "Coming soon" placeholder until its feature lands. **Not yet behind Funnel/Caddy or on an iPhone**
 - [ ] Android: hub address, auto-sync (WorkManager), invite links, `INTERNET`, assetlinks
 - [ ] Shared builders moved to `:core:presentation` (Android behaviour unchanged, tests moved)
 - [ ] Web: Players (leaderboard, player page, merge, log, editor, "Who won?", meta, group stats)

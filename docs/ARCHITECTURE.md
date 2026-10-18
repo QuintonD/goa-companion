@@ -13,6 +13,7 @@
 | Charts | Vico 3.x (`compose`, `compose-m3`) |
 | Images | Coil 3 — `AsyncImage(model = "file:///android_asset/official/…")` |
 | Group sync | Google Nearby Connections 19.5.1 (`P2P_STAR`), Google code scanner 16.1.0 (invite QR, no CAMERA permission), ZXing core 3.5.4 (draws the QR), `javax.crypto` only (ADR-025) |
+| The hub (`server/hub`) | Ktor 3.6.0 server on CIO, kotlinx.html 0.12.0, slf4j-simple 2.0.19, vendored htmx 2.0.11; JDK crypto for Web Push (ADR-030) |
 | Quality | Android Lint, ktlint (`org.jlleitschuh.gradle.ktlint`), detekt 2.0 (`dev.detekt`, alpha — see ADR-008), Roborazzi, JUnit + Turbine + Truth |
 
 Pin versions in `gradle/libs.versions.toml`; never inline a version in a module build file.
@@ -86,6 +87,36 @@ Features never depend on each other; cross-feature navigation goes through `app`
   and phone to phone over Nearby (below).
 - **Web layer = presentation only.** Hub pages render what `core:presentation` builders and
   `core:domain` engines return; HTML/JS never computes a rule or statistic.
+
+## The hub (ADR-030, `server/hub`)
+Feature authors start with [server/hub/README.md](../server/hub/README.md).
+- **Process.** `goa-hub serve` (Ktor/CIO) binds `127.0.0.1:8080`; Tailscale Funnel (or Caddy) on the
+  same machine publishes it. Every public request therefore arrives from loopback: no decision
+  trusts a loopback address. `X-Forwarded-For` only keys the join throttle; the hub's own origin is
+  the configured public URL (`goa-hub config --public-url`, also taken from the invite at join).
+- **Composition.** `Hub` wires the stores once; `hubModule` adds security headers (strict CSP,
+  `X-Robots-Tag: noindex`, no framing) and the same-origin check on every state-changing request
+  (except the bearer-token sync API), then the open routes (health, sync, join, static files,
+  manifest, icons, `assetlinks.json`) and the signed-in area (Ktor `Authentication` with a device
+  provider). Each web area is a `HubFeature` registered with one line in `HubFeatures.kt`; it gets a
+  `HubContext` (group store, device store, devices, catalog, clock, push, config).
+- **Storage** (`GOA_HUB_DATA`): `data.json` = the group's canonical `SyncDocument`, written only by
+  `GroupStore` (one mutex, `SyncValidation` before every store, atomic temp+fsync+rename, a copy
+  per day kept 30 days). Web writes go through `SharedWrites`, which mirrors the Room repositories'
+  stamping (`EditStamp.next`, tombstones, `PlayerMerge` rows with the same refusal). `GroupData`
+  reads like the repositories (merges resolved, same orderings). Per-browser state lives in typed
+  `DeviceSlot`s (`devices/<deviceId>/<slot>.json`); the device id is a hash of the cookie token.
+- **Sync API.** `POST /api/v1/sync` = open the sealed file (`SyncCodec`), merge into the store,
+  answer the merged document sealed again; 401/409/422/413/503 as in ADR-030 §4.
+- **Web.** kotlinx.html pages through `respondPage(HubPage(...)) { … }` (top bar, the app's four
+  bottom tabs, safe areas), components in `web/ui/Components.kt`, one stylesheet
+  (`static/app.css`, DESIGN.md tokens, light/dark), htmx configured for the CSP (no injected
+  style, no eval), `hub.js`/`join.js`/`push.js`, and a service worker (`/sw.js`: static cache,
+  push, notification click). The build copies the app's catalog, official images, OFL fonts and
+  our SVG crests, sigils and icons into the hub's resources (`bundleAppFiles`), so nothing is
+  duplicated in git; official images are served under `/assets/` to signed-in devices only.
+- **Web Push.** VAPID P-256 keys made at first start (`vapid.json`), RFC 8291 encryption,
+  per-device subscriptions and a persistent per-device schedule (`PushService`).
 
 ## Group sync (ADR-025)
 - **Layers.** `core:domain/sync` is pure Kotlin: `SyncDocument` (players, matches, drafts,
@@ -218,6 +249,7 @@ the draft setup for "Draft again".
 | Group sync | `core:domain`: merge properties (commutative, associative, idempotent, convergence, identical ratings), examples (ties, tombstones, merge chains and cycles, unknown heroes), crypto/codec (RFC 5869 vector, tamper, other group), protocol over the in-memory transport (host + 3, drops mid-upload and mid-download, wrong key, relay, Nearby unavailable). `core:data`: real Room phones syncing (game night, deletions, duplicates), stamping, backup v4. `feature:sync`: VM tests, screenshots. Real Nearby: two physical phones only |
 | ViewModels | Turbine on `uiState` with fakes from `core:testing` |
 | UI | Roborazzi (`recordRoborazziDebug` / `verifyRoborazziDebug`), light/dark × font scale 1.0/2.0 |
+| Hub | `server/hub` JVM tests (Ktor `testApplication`, JUnit + Truth): sync API with real sealed files (round trip, 401/409/422/413/503, idempotence, 8 phones at once converge), stamping like the Room repositories, atomic store and daily copies, sign-in (cookie, wrong key, throttle with and without `X-Forwarded-For`, no join page before a group, origin check, CSP/noindex), shell and static files, Web Push against RFC 8291's example, CLI |
 | End to end | `app/src/androidTest` (`connectedDebugAndroidTest`): real Hilt graph and bundled catalog, a scripted game night (`GameNight`: House draft → setup → timer round → "Who won?" → rating changes → ratings/meta), a rematch night (`RematchTimerFlowTest`: logged match → Rematch "Same seats" → setup → timer with the rules sheet, rules screen and a notification tap back to the Timer tab → second result), catalog, players, double pilot, settings, and ATF accessibility checks on every main screen. Runs through the AndroidX Test Orchestrator with `clearPackageData`, so each test starts from a fresh install |
 | Device | Manual smoke checklist on S25 Ultra per milestone (timer: lock screen, Doze, reboot) |
 
