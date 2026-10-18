@@ -31,10 +31,12 @@ app/                     # Application, MainActivity, Navigation 3 back stack + 
 build-logic/             # convention plugins (android-library, compose, feature, hilt, jvm-library)
 core/model/              # JVM: data classes (Hero, Card, Player, Match, DraftMethod…)
 core/domain/             # JVM: TimerEngine, EloCalculator, DraftEngine, MetaStats, MatchSetup, TriviaEngine,
+                         #   trivia/ TriviaChallenge + TriviaLeaderboard (derived, ADR-032),
                          #   sync/ (SyncMerge, PlayerMerges, crypto, codec, SyncHost/SyncClient protocol);
                          #   testFixtures: in-memory SyncTransport + data port
 core/data/               # repositories; catalog loader; JSON/Room <-> model; export/import
-core/database/           # Room 3 DB, DAOs, entities, migrations, schemas/
+core/database/           # Room 3 DB (schema v4: players, matches, drafts, trivia_rounds, deletions,
+                         #   player_merges), DAOs, entities, migrations, schemas/
 core/datastore/          # settings + persisted timer state
 core/designsystem/       # theme, tokens, components, icons, sigils
 core/testing/            # fakes, fixtures, test rules
@@ -46,8 +48,9 @@ feature/players/         # players, match log, Elo, meta dashboard; shareable HT
 feature/draft/
 feature/settings/        # settings, rating constants, export/import entry, About
 feature/rules/           # rules reference: topic list + search, topic pages, Levels & defeats sheet
-feature/trivia/          # card trivia (ADR-028): home (progress + setup), quiz and summary;
-                         #   questions from core:domain/trivia, progress in datastore/trivia_progress
+feature/trivia/          # card trivia (ADR-028): home (Playing as, progress + setup, Challenge), quiz and
+                         #   summary, leaderboard (ADR-032); questions from core:domain/trivia, progress and
+                         #   the Playing-as pick in datastore/trivia_progress, rounds in Room (synced)
 feature/sync/            # group sync (ADR-025): Group screen, sync sheet, Who are you, sync-file import;
                          #   NearbySyncTransport, invite QR + scanner, FileProvider, permissions
 tools/catalog-import/    # JVM CLI (reuses core:model): sources.lock.json, overrides.json,
@@ -74,8 +77,9 @@ Features never depend on each other; cross-feature navigation goes through `app`
   sync is phone to phone (below).
 
 ## Group sync (ADR-025)
-- **Layers.** `core:domain/sync` is pure Kotlin: `SyncDocument` (players, matches, drafts,
-  `deletions`, `playerMerges`, stamped `EloConfig`), `SyncMerge`, `PlayerMerges`, `UnknownHeroes`,
+- **Layers.** `core:domain/sync` is pure Kotlin: `SyncDocument` (version 2: players, matches,
+  drafts, `triviaRounds`, `deletions`, `playerMerges`, stamped `EloConfig`), `SyncMerge`,
+  `PlayerMerges`, `UnknownHeroes`,
   `SyncValidation` (the backup import's rules), `SyncCrypto` (HKDF, HMAC-SHA256, AES-256-GCM),
   `GroupInvite`, `SyncCodec` (gzip payloads, sealed sync file) and the protocol
   (`SyncHost`/`SyncClient` over `SyncTransport`/`SyncLink`). `core:data` owns
@@ -85,7 +89,8 @@ Features never depend on each other; cross-feature navigation goes through `app`
   has `NearbySyncTransport` and the UI.
 - **Writes.** Repositories stamp `updatedAt` = `EditStamp.next(now, previous, tombstone)`; a delete
   writes its tombstone in the same transaction; merges are rows, never rewrites. Reads resolve
-  merged player ids (`RoomMatchRepository`, `RoomPlayerRepository`), and the replay applies the
+  merged player ids (`RoomMatchRepository`, `RoomPlayerRepository`, `RoomTriviaRoundRepository`),
+  and the replay applies the
   Unknown-hero rule (`ReplayRatingsRepository`). Backup Merge and sync share `LocalSyncData`.
 - **Protocol.** Wire messages are `'G' ‖ kind ‖ body`: HELLO (JSON: protocol, role, device id/name,
   16-byte nonce, document version) → PROOF (HMAC over role, the link's auth token, both nonces,
@@ -198,11 +203,11 @@ the draft setup for "Draft again".
 |-------|-------|
 | core:domain | Unit + property tests (Elo maths, draft legality for every method/player count, timer with fake clock) |
 | core:data | Catalog validation (schema, unique IDs, asset paths exist, every hero has a full deck), export/import round-trip |
-| core:database | Room in-memory tests; migration tests for every schema bump (v1 → v2: `matches.tie_breaker`; v2 → v3: `updated_at` backfill, `deletions`, `player_merges`) |
-| Group sync | `core:domain`: merge properties (commutative, associative, idempotent, convergence, identical ratings), examples (ties, tombstones, merge chains and cycles, unknown heroes), crypto/codec (RFC 5869 vector, tamper, other group), protocol over the in-memory transport (host + 3, drops mid-upload and mid-download, wrong key, relay, Nearby unavailable). `core:data`: real Room phones syncing (game night, deletions, duplicates), stamping, backup v4. `feature:sync`: VM tests, screenshots. Real Nearby: two physical phones only |
+| core:database | Room in-memory tests; migration tests for every schema bump (v1 → v2: `matches.tie_breaker`; v2 → v3: `updated_at` backfill, `deletions`, `player_merges`; v3 → v4: `trivia_rounds`) |
+| Group sync | `core:domain`: merge properties (commutative, associative, idempotent, convergence, identical ratings), examples (ties, tombstones, merge chains and cycles, unknown heroes), crypto/codec (RFC 5869 vector, tamper, other group), protocol over the in-memory transport (host + 3, drops mid-upload and mid-download, wrong key, relay, Nearby unavailable). `core:data`: real Room phones syncing (game night, deletions, duplicates, trivia rounds), stamping, backup v5. `feature:sync`: VM tests, screenshots. Real Nearby: two physical phones only |
 | ViewModels | Turbine on `uiState` with fakes from `core:testing` |
 | UI | Roborazzi (`recordRoborazziDebug` / `verifyRoborazziDebug`), light/dark × font scale 1.0/2.0 |
-| End to end | `app/src/androidTest` (`connectedDebugAndroidTest`): real Hilt graph and bundled catalog, a scripted game night (`GameNight`: House draft → setup → timer round → "Who won?" → rating changes → ratings/meta), a rematch night (`RematchTimerFlowTest`: logged match → Rematch "Same seats" → setup → timer with the rules sheet, rules screen and a notification tap back to the Timer tab → second result), catalog, players, double pilot, settings, and ATF accessibility checks on every main screen. Runs through the AndroidX Test Orchestrator with `clearPackageData`, so each test starts from a fresh install |
+| End to end | `app/src/androidTest` (`connectedDebugAndroidTest`): real Hilt graph and bundled catalog, a scripted game night (`GameNight`: House draft → setup → timer round → "Who won?" → rating changes → ratings/meta), a rematch night (`RematchTimerFlowTest`: logged match → Rematch "Same seats" → setup → timer with the rules sheet, rules screen and a notification tap back to the Timer tab → second result), catalog, players, double pilot, settings, card trivia and the trivia Challenge → leaderboard (`TriviaChallengeFlowTest`), and ATF accessibility checks on every main screen. Runs through the AndroidX Test Orchestrator with `clearPackageData`, so each test starts from a fresh install |
 | Device | Manual smoke checklist on S25 Ultra per milestone (timer: lock screen, Doze, reboot) |
 
 ## Data files
