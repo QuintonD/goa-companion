@@ -134,11 +134,11 @@ class HubSyncScheduler @Inject constructor(
 
         fun oneTimeRequest(delaySeconds: Long, needsNetwork: Boolean = true): OneTimeWorkRequest =
             OneTimeWorkRequestBuilder<HubSyncWorker>()
-            .setConstraints(if (needsNetwork) network else Constraints.NONE)
-            .setInitialDelay(delaySeconds, TimeUnit.SECONDS)
-            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, BACKOFF_SECONDS, TimeUnit.SECONDS)
-            .addTag(NOW)
-            .build()
+                .setConstraints(if (needsNetwork) network else Constraints.NONE)
+                .setInitialDelay(delaySeconds, TimeUnit.SECONDS)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, BACKOFF_SECONDS, TimeUnit.SECONDS)
+                .addTag(NOW)
+                .build()
 
         fun hourlyRequest(): PeriodicWorkRequest = PeriodicWorkRequestBuilder<HubSyncWorker>(1, TimeUnit.HOURS)
             .setConstraints(network)

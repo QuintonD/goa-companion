@@ -67,10 +67,10 @@ class HubSectionTest {
         vm.clearHubAddressError()
         assertThat(vm.uiState.first { it.hub.addressError == null }.hub.addressError).isNull()
 
-        vm.setHub("  Goa-Friday.DuckDNS.org/ ")
+        vm.setHub("  Goa.Tail4F2A9C.ts.net/ ")
         val hub = vm.uiState.first { it.hub.url != null }.hub
-        assertThat(groups.current.value.hubUrl).isEqualTo("https://goa-friday.duckdns.org")
-        assertThat(hub.host).isEqualTo("goa-friday.duckdns.org")
+        assertThat(groups.current.value.hubUrl).isEqualTo("https://goa.tail4f2a9c.ts.net")
+        assertThat(hub.host).isEqualTo("goa.tail4f2a9c.ts.net")
         assertThat(hub.status).isEqualTo("Not synced yet")
         assertThat(vm.uiState.value.message).contains("Hub saved")
     }

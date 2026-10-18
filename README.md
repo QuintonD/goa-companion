@@ -74,12 +74,12 @@ don't see each other (different app ids). Leaving a group keeps all data on the 
 
 ## The group's hub: automatic sync (ADR-030)
 
-With a hub (the group's own server, see `deploy/`), every phone syncs on its own: when the app
+With a hub (the group's own server, published with Tailscale Funnel, see `deploy/`), every phone syncs on its own: when the app
 opens, 15 s after a change, every hour, and from **Sync with hub**.
 
-**Set the hub on a phone:** Group sync → **Hub** → type the address (`goa-friday.duckdns.org`; it
-must be HTTPS) → **Save hub**. Invites made on a phone with a hub carry it, so friends who join
-with that invite get it automatically. The Hub card shows "Synced 2 min ago" or what went wrong;
+**Set the hub on a phone:** Settings → Group sync → **Hub** → type the address
+(`goa.<tailnet>.ts.net`; it must be HTTPS) → **Save hub**. Invites made on a phone with a hub
+carry it, so friends who join with that invite get it automatically. The Hub card shows "Synced 2 min ago" or what went wrong;
 **Remove hub** goes back to Nearby and sync files only (nothing is deleted).
 
 **Testing against a hub on this PC:** the debug build may use plain HTTP to `10.0.2.2` (the
@@ -91,8 +91,8 @@ speak HTTPS only.
 committed) or pass it on the command line:
 
 ```
-goa.hubHost=goa-friday.duckdns.org
-.\gradlew.bat :app:assembleRelease -Pgoa.hubHost=goa-friday.duckdns.org
+goa.hubHost=goa.<tailnet>.ts.net
+.\gradlew.bat :app:assembleRelease -Pgoa.hubHost=goa.<tailnet>.ts.net
 ```
 
 Without `goa.hubHost` the app has no link filter (invites still work by scanning or pasting).

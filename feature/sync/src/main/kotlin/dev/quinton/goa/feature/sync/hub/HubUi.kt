@@ -30,7 +30,7 @@ object HubText {
     const val EXPLAINER = "Your group's server for automatic sync and the iPhone web app."
     const val AUTOMATIC = "Syncs on its own when the app opens, shortly after every change, and every hour."
     const val NOT_AN_ADDRESS = "That isn't a hub address. Type the address your group's hub runs at, " +
-        "like goa-friday.duckdns.org (it must use https)."
+        "like goa.your-tailnet.ts.net (it must use https)."
     const val RETRYING = "Trying again on its own."
 
     fun ui(state: GroupState, syncing: Boolean, now: Long, addressError: String? = null): HubUi {

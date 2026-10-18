@@ -26,6 +26,7 @@
              and drops its events, so INTERNET (for the hub) doesn't switch it on. -->
         <service
             android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+            tools:ignore="MissingClass"
             tools:node="merge">
             <meta-data
                 android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"

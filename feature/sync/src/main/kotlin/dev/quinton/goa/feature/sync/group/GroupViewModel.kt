@@ -135,7 +135,10 @@ class GroupViewModel @Inject constructor(
                     if (current?.groupId != group.groupId && parsed.hubUrl != null) {
                         // The hub sync starts on its own (HubSyncScheduler): no Nearby session needed.
                         local.update {
-                            it.copy(joinError = null, message = "Joined “${group.name}”. Getting the group's data from its hub…")
+                            it.copy(
+                                joinError = null,
+                                message = "Joined “${group.name}”. Getting the group's data from its hub…",
+                            )
                         }
                     } else if (current?.groupId != group.groupId) {
                         local.update { it.copy(joinError = null) }

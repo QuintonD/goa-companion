@@ -16,9 +16,9 @@ import dev.quinton.goa.core.datastore.sync.GroupSyncStore
 import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.domain.sync.GroupCredentials
 import dev.quinton.goa.core.domain.sync.HubToken
+import dev.quinton.goa.core.domain.sync.StampedEloConfig
 import dev.quinton.goa.core.domain.sync.SyncCodec
 import dev.quinton.goa.core.domain.sync.SyncDocument
-import dev.quinton.goa.core.domain.sync.StampedEloConfig
 import dev.quinton.goa.core.domain.sync.SyncMerge
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Match
@@ -235,7 +235,9 @@ class HubSyncRepositoryTest {
         val error = (syncNow() as HubSyncResult.Failed).error
 
         assertThat(error.problem).isEqualTo(HubProblem.INVALID_DATA)
-        assertThat(error.message).isEqualTo("The hub refused this phone's data.\nMatch 2026-10-17: Ann is on both teams.")
+        assertThat(
+            error.message,
+        ).isEqualTo("The hub refused this phone's data.\nMatch 2026-10-17: Ann is on both teams.")
     }
 
     @Test

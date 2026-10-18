@@ -139,7 +139,8 @@ abstract class HubLinksManifest : DefaultTask() {
             |        </activity>
             |    </application>
             |</manifest>
-            |""".trimMargin(),
+            |
+            """.trimMargin(),
         )
     }
 }
@@ -151,7 +152,7 @@ val hubHost: String? = run {
     val raw = (findProperty("goa.hubHost") as String?) ?: local
     raw?.trim()?.removePrefix("https://")?.trimEnd('/')?.lowercase()?.takeIf { it.isNotEmpty() }?.also {
         require(Regex("""[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+""").matches(it)) {
-            "goa.hubHost must be a host name like goa-friday.duckdns.org, got \"$it\""
+            "goa.hubHost must be a host name like goa.your-tailnet.ts.net, got \"$it\""
         }
     }
 }
@@ -159,7 +160,9 @@ val hubHost: String? = run {
 if (hubHost != null) {
     androidComponents {
         onVariants { variant ->
-            val task = tasks.register<HubLinksManifest>("generate${variant.name.replaceFirstChar(Char::uppercase)}HubLinks") {
+            val task = tasks.register<HubLinksManifest>(
+                "generate${variant.name.replaceFirstChar(Char::uppercase)}HubLinks",
+            ) {
                 host.set(hubHost)
                 manifest.set(layout.buildDirectory.file("generated/hubLinks/${variant.name}/AndroidManifest.xml"))
             }

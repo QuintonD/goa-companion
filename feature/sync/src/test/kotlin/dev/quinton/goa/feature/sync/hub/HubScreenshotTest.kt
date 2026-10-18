@@ -49,7 +49,7 @@ class HubScreenshotTest {
     @Composable
     private fun Card(hub: HubUi) = Box(Modifier.padding(Spacing.screen)) { HubCard(hub, HubActions()) }
 
-    private val hub = "https://goa-friday.duckdns.org"
+    private val hub = "https://goa.tail4f2a9c.ts.net"
     private val synced = HubUi(url = hub, status = "Synced 2 min ago")
     private val offline = synced.copy(
         error = "Can't reach the hub. Check the internet connection and the hub address.",

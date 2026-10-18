@@ -93,7 +93,7 @@ private fun AddHub(hub: HubUi, actions: HubActions) {
             actions.onClearAddressError()
         },
         label = { Text("Hub address") },
-        placeholder = { Text("goa-friday.duckdns.org") },
+        placeholder = { Text("goa.your-tailnet.ts.net") },
         singleLine = true,
         isError = hub.addressError != null,
         supportingText = hub.addressError?.let { { Text(it) } },

@@ -77,7 +77,7 @@ internal class OkHttpHubSyncRepository @Inject constructor(
     }
 
     /** Null when the group or hub changed while the request ran: the reply is no longer ours to apply. */
-    @Suppress("TooGenericExceptionCaught")
+    @Suppress("TooGenericExceptionCaught", "ThrowsCount")
     private suspend fun roundTrip(group: GroupCredentials, hub: String): HubSyncResult.Synced? {
         val local = sync.export()
         // Never send what this phone's own checks would refuse from another phone (as Nearby sync).
@@ -98,7 +98,11 @@ internal class OkHttpHubSyncRepository @Inject constructor(
             throw e
         } catch (e: Exception) {
             // A database failure rolls the whole merge back.
-            throw HubFailure(HubProblem.BAD_REPLY, "The hub's data couldn't be saved on this phone. Nothing changed.", e)
+            throw HubFailure(
+                HubProblem.BAD_REPLY,
+                "The hub's data couldn't be saved on this phone. Nothing changed.",
+                e,
+            )
         }
         return HubSyncResult.Synced(applied.changes, clock.now())
     }
@@ -117,33 +121,37 @@ internal class OkHttpHubSyncRepository @Inject constructor(
         return response.use { withContext(Dispatchers.IO) { read(it) } }
     }
 
-    @Suppress("CyclomaticComplexMethod")
+    @Suppress("ThrowsCount")
     private fun read(response: Response): ByteArray {
+        if (response.code != HTTP_OK) throw refusal(response)
+        return try {
+            limited(response, MAX_REPLY_BYTES)
+                ?: throw HubFailure(HubProblem.BAD_REPLY, "The hub's answer is too big for this phone.")
+        } catch (e: IOException) {
+            throw networkFailure(e)
+        }
+    }
+
+    /** What a status other than 200 means, in words. */
+    private fun refusal(response: Response): HubFailure {
         val code = response.code
         return when {
-            code == HTTP_OK -> try {
-                limited(response, MAX_REPLY_BYTES)
-                    ?: throw HubFailure(HubProblem.BAD_REPLY, "The hub's answer is too big for this phone.")
-            } catch (e: IOException) {
-                throw networkFailure(e)
-            }
+            code == HTTP_UNAUTHORIZED -> HubFailure(HubProblem.WRONG_KEY, WRONG_KEY)
 
-            code == HTTP_UNAUTHORIZED -> throw HubFailure(HubProblem.WRONG_KEY, WRONG_KEY)
+            code == HTTP_CONFLICT -> HubFailure(HubProblem.VERSION, text(response) ?: VERSION)
 
-            code == HTTP_CONFLICT -> throw HubFailure(HubProblem.VERSION, text(response) ?: VERSION)
+            code == HTTP_TOO_BIG -> HubFailure(HubProblem.TOO_BIG, TOO_BIG)
 
-            code == HTTP_TOO_BIG -> throw HubFailure(HubProblem.TOO_BIG, TOO_BIG)
-
-            code == HTTP_UNPROCESSABLE -> throw HubFailure(
+            code == HTTP_UNPROCESSABLE -> HubFailure(
                 HubProblem.INVALID_DATA,
                 "The hub refused this phone's data." + (text(response)?.let { "\n$it" } ?: ""),
             )
 
-            code == HTTP_NOT_FOUND -> throw HubFailure(HubProblem.WRONG_ADDRESS, NO_HUB)
+            code == HTTP_NOT_FOUND -> HubFailure(HubProblem.WRONG_ADDRESS, NO_HUB)
 
-            code in REDIRECTS -> throw HubFailure(HubProblem.WRONG_ADDRESS, REDIRECTED)
+            code in REDIRECTS -> HubFailure(HubProblem.WRONG_ADDRESS, REDIRECTED)
 
-            else -> throw HubFailure(HubProblem.SERVER, "The hub had a problem (error $code).")
+            else -> HubFailure(HubProblem.SERVER, "The hub had a problem (error $code).")
         }
     }
 
@@ -195,8 +203,11 @@ internal class OkHttpHubSyncRepository @Inject constructor(
     private fun networkFailure(e: IOException): HubFailure = when (e) {
         // Release builds refuse plain HTTP (network_security_config).
         is UnknownServiceException -> HubFailure(HubProblem.WRONG_ADDRESS, HTTPS_ONLY, e)
+
         is SSLException -> HubFailure(HubProblem.WRONG_ADDRESS, CERTIFICATE, e)
+
         is InterruptedIOException -> HubFailure(HubProblem.TIMEOUT, TIMEOUT, e)
+
         else -> HubFailure(HubProblem.UNREACHABLE, UNREACHABLE, e)
     }
 
@@ -208,8 +219,11 @@ internal class OkHttpHubSyncRepository @Inject constructor(
 
     private fun replyMessage(e: SyncFileException) = when (e.problem) {
         SyncFileProblem.OTHER_GROUP -> "This hub syncs another group. Check the hub address."
+
         SyncFileProblem.CANT_DECRYPT -> WRONG_KEY
+
         SyncFileProblem.NOT_A_SYNC_FILE, SyncFileProblem.NOT_IN_A_GROUP -> NO_HUB
+
         SyncFileProblem.INVALID -> when {
             "newer version" in e.message.orEmpty() -> "The hub runs a newer version. Update the app."
             "older version" in e.message.orEmpty() -> "The hub runs an older version. Ask the hub's owner to update it."

@@ -81,7 +81,9 @@ class HubSyncSchedulerTest {
 
     private fun infos(name: String): List<WorkInfo> = workManager.getWorkInfosForUniqueWork(name).get()
 
-    private fun pending(name: String = HubSyncScheduler.NOW) = infos(name).filter { it.state == WorkInfo.State.ENQUEUED }
+    private fun pending(name: String = HubSyncScheduler.NOW) = infos(name).filter {
+        it.state == WorkInfo.State.ENQUEUED
+    }
 
     /** CoroutineWorker runs on its own threads: wait for the run to settle. */
     private fun settled(id: UUID, done: (WorkInfo) -> Boolean = { it.state.isFinished }): WorkInfo {
