@@ -549,7 +549,25 @@ player on both sides; teammates are two people), and the dialog lists those matc
 merge in opposite directions before syncing; the cycle resolves to the smallest id on every phone.
 The same id merged into two different players keeps the later merge. A match logged elsewhere after
 a merge that names both ids on opposite teams is skipped by the replay (player on both teams); on
-one team they count as a double pilot. After a sync, two players with the same name get a hint.
+one team they count as a double pilot.
+
+**Finding them (ADR-031).** `PlayerMatchUp` (core:domain) suggests pairs of active players that
+might be one person. Names are compared by a key: trimmed, lowercased, accents stripped (NFD) and
+everything but letters dropped ("José B." → "joseb"). A pair is suggested when the keys are equal,
+when one starts with the other and the shorter has at least 3 letters ("Quin"/"Quinton", "Ann"/
+"Anna"; never "Q"/"Quinton"), or when they are one Damerau–Levenshtein edit apart (a swap of two
+neighbouring letters is one edit) and the shorter key has at least 4 letters ("Jhon"/"John",
+"Katherine"/"Catherine"), two edits from 8 letters. Three-letter names one letter apart ("Rob"/
+"Bob", "Tom"/"Tim", "Jon"/"John") are not suggested: too often two people; a personal invite
+links those. A name without letters only matches itself. Never suggested: a pair that played in
+the same match (resolved through the merges: they are two people, and the merge would be refused),
+archived or merged-away players, and pairs this phone was told are "Different people" (kept in
+`datastore/player_matchup`, resolved through later merges; not synced, not in the backup file).
+"Same person" merges the newer player (createdAt, then id) into the older one. Suggestions are
+computed from the current data whenever it changes, so every way data arrives (Nearby, sync
+file, the hub) surfaces them alike. "Add me" on "Which player are you?" uses the same rule
+(`PlayerMatchUp.similar`) before adding a name. `PlayerNames` (exact-name uniqueness) lives in
+`core:domain/player` beside it.
 
 ## Team balancing [APP]
 Enumerate all splits into ⌈n/2⌉ / ⌊n/2⌋ (≤ 126 for n ≤ 10), minimise `|mean(A) − mean(B)|`,

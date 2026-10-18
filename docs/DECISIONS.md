@@ -672,9 +672,9 @@ name.
    player, asks "You're <name>?" (Yes / Not me → the list). If this phone already has its own "me"
    from solo use and that is another player, Yes also offers "Merge your old player into <name>?"
    (the normal merge, with its refusal rule).
-2. *"Same people?"* After a sync that brings players this phone has never seen, when it already
-   had players of its own, a screen pairs each new player with likely twins among the old ones and
-   offers "Same person" (merge the new one into the old one) or "Different people". Suggestions
+2. *"Same people?"* Pairs of players that look like one person (worked out from the current data,
+   so after any sync; see the implementation notes) are offered for review from the Players tab:
+   "Same person" (merge the newer one into the older one) or "Different people". Suggestions
    come from a pure `PlayerMatchUp` in `core:domain`: names compared after trimming, lowercasing,
    and stripping accents and non-letters; a pair is suggested when the keys are equal, one is a
    prefix of the other (≥ 3 letters), or they are one edit apart (≥ 4 letters; two edits at ≥ 8).
@@ -685,3 +685,26 @@ name.
 4. The web app (ADR-030) has the same three flows.
 **Consequences:** `PlayerNames` moves to `core:domain` so the hub and `PlayerMatchUp` share it. No
 synced type changes (no `SyncDocument.VERSION` bump): the decisions are local and merges already sync.
+**Implementation notes (2026-10-18, Android):**
+- *"Same people?" is worked out on the fly, not shown after a sync.* With the hub's background
+  auto-sync (ADR-030) there is often no sync screen to follow, and a modal after a sync would
+  interrupt the table. Suggestions are computed from the current data whenever it changes (any
+  pair, not only "new vs old"), so Nearby, sync files and the hub surface them alike: the Players
+  tab shows a quiet card ("2 players might be the same person · Review") and "Find duplicates"
+  under the list opens the review. "Same person" merges the newer player (createdAt, then id) into
+  the older. The old same-name hint in the sync sheet is gone.
+- *Thresholds* apply to the shorter name key: prefix ≥ 3 letters, one edit ≥ 4, two edits ≥ 8
+  (Damerau–Levenshtein, optimal string alignment). So "Rob"/"Bob" and "Jon"/"John" are *not*
+  suggested (three-letter names one letter apart are too often two people); a personal invite
+  covers them. One- and two-letter prefixes ("Q"/"Quinton") never count.
+- *"Different people"* is stored as order-free pair keys in its own DataStore file
+  (`datastore/player_matchup`); keys resolve through later merges. Not synced, not in the backup
+  file (Auto Backup covers `datastore/`). "Ask again" forgets them.
+- *"You're <name>?"* leads "Which player are you?" while the invite's player resolves (through the
+  merges) to an active player other than "me"; one not on the phone yet (the first sync failed)
+  is kept for later and the list shows without a question. Any choice clears it. "Add me" lists
+  look-alikes (an exact name included; then only picking or another name are offered).
+- *Invites* are a sheet (`GroupInviteRoute(playerId?)`, feature:sync) opened from the Group screen
+  (chooser first) and from a player page ("Invite <name>", top bar, only in a group, not for this
+  phone's own or an archived player). The personal share text starts "For <name>: ". The Group
+  screen's invite dialog is gone.

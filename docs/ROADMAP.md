@@ -96,8 +96,10 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] **Real iPhone over the internet** against the owner's hub (home screen, timer locked, push)
 
 ## M9 — Linking players (ADR-031)
-- [ ] Personal invites ("Invite <name>"), "You're <name>?" after the first sync, old "me" merge
-- [ ] `PlayerMatchUp` + "Same people?" after a sync and from Players; "Add me" checks similar names
+- [x] Personal invites ("Invite <name>"), "You're <name>?" after the first sync, old "me" merge — 2026-10-18, `PlayerLinkingTest` (invite chooser, yes/not me/merge/refusal/missing player, add-me check), Roborazzi light/dark/font 2 at 384 dp. JVM + screenshots only
+- [x] `PlayerMatchUp` + "Same people?" on the Players tab (on the fly, any sync) and "Find duplicates"; "Add me" checks similar names — 2026-10-18, `PlayerMatchUpTest` (rules + order/same-match properties), `SamePeopleTest`, `PlayerMatchUpStoreTest`. JVM + screenshots only
+- [ ] Android linking flows on two phones (personal invite → "You're <name>?", look-alike merge after a sync)
+- [ ] Web: the same three flows on the hub (ADR-031 §4)
 
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
