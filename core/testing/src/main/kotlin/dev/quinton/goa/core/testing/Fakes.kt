@@ -5,6 +5,7 @@ import dev.quinton.goa.core.data.DraftRecordRepository
 import dev.quinton.goa.core.data.GroupRepository
 import dev.quinton.goa.core.data.GroupState
 import dev.quinton.goa.core.data.MatchRepository
+import dev.quinton.goa.core.data.PlayerMatchUpRepository
 import dev.quinton.goa.core.data.PlayerMergeRepository
 import dev.quinton.goa.core.data.PlayerMergeResult
 import dev.quinton.goa.core.data.PlayerRepository
@@ -34,6 +35,7 @@ import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.model.sync.PlayerMerge
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -43,13 +45,24 @@ class FakeCatalogRepository(initial: Catalog? = TestCatalog.catalog) : CatalogRe
     override val catalog: Flow<Catalog> = state.filterNotNull()
 }
 
-class FakePlayerRepository(initial: List<Player> = emptyList()) : PlayerRepository {
+/**
+ * Players in memory. Like the real repository, lists hide players merged away in [merges] and
+ * reading a merged-away id gives the player it joined (share [merges] with a [FakePlayerMergeRepository]).
+ */
+class FakePlayerRepository(
+    initial: List<Player> = emptyList(),
+    val merges: MutableStateFlow<List<PlayerMerge>> = MutableStateFlow(emptyList()),
+) : PlayerRepository {
     val state = MutableStateFlow(initial)
 
-    override fun observePlayers(includeArchived: Boolean): Flow<List<Player>> =
-        state.map { list -> list.filter { includeArchived || !it.archived } }
+    override fun observePlayers(includeArchived: Boolean): Flow<List<Player>> = combine(state, merges) { list, m ->
+        PlayerMerges(m).visible(list).filter { includeArchived || !it.archived }
+    }
 
-    override fun observePlayer(id: String): Flow<Player?> = state.map { list -> list.firstOrNull { it.id == id } }
+    override fun observePlayer(id: String): Flow<Player?> = combine(state, merges) { list, m ->
+        val resolved = PlayerMerges(m).resolve(id)
+        list.firstOrNull { it.id == resolved }
+    }
 
     override suspend fun upsert(player: Player) = state.update { list ->
         list.filterNot { it.id == player.id } + player
@@ -166,19 +179,35 @@ class FakeGroupRepository(initial: GroupState = GroupState(null, "this-phone", n
     }
 }
 
-/** Merges over a [FakeMatchRepository]'s log, with the real conflict rule. */
-class FakePlayerMergeRepository(private val matches: FakeMatchRepository = FakeMatchRepository()) :
-    PlayerMergeRepository {
-    val merges = MutableStateFlow<List<PlayerMerge>>(emptyList())
-
+/**
+ * Merges over a [FakeMatchRepository]'s log, with the real conflict rule. Pass a
+ * [FakePlayerRepository]'s `merges` so its lists follow the merges, as the real ones do.
+ */
+class FakePlayerMergeRepository(
+    private val matches: FakeMatchRepository = FakeMatchRepository(),
+    val merges: MutableStateFlow<List<PlayerMerge>> = MutableStateFlow(emptyList()),
+) : PlayerMergeRepository {
     override fun observeMerges(): Flow<PlayerMerges> = merges.map { PlayerMerges(it) }
 
     override suspend fun merge(fromId: String, toId: String): PlayerMergeResult {
-        if (fromId == toId) return PlayerMergeResult.NotPossible
+        val mergedAway = PlayerMerges(merges.value).mergedAway
+        if (fromId == toId || fromId in mergedAway || toId in mergedAway) return PlayerMergeResult.NotPossible
         val conflicts = PlayerMerges.conflicts(fromId, toId, matches.state.value)
         if (conflicts.isNotEmpty()) return PlayerMergeResult.PlayedTogether(conflicts)
         merges.update { it + PlayerMerge(fromId, toId, 1) }
         return PlayerMergeResult.Merged
+    }
+}
+
+/** "Different people" answers in memory. */
+class FakePlayerMatchUpRepository(initial: Set<String> = emptySet()) : PlayerMatchUpRepository {
+    val state = MutableStateFlow(initial)
+    override val differentPeople: Flow<Set<String>> = state
+
+    override suspend fun markDifferent(pairKey: String) = state.update { it + pairKey }
+
+    override suspend fun forgetDifferent() {
+        state.value = emptySet()
     }
 }
 

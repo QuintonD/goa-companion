@@ -150,6 +150,19 @@ sealed interface PlayerMergeResult {
     data object NotPossible : PlayerMergeResult
 }
 
+/**
+ * "Same people?" answers on this phone (owner: players, ADR-031): the pairs it was told are
+ * different people, as `PlayerMatchUp.pairKey`s. Never synced, not in the backup file.
+ */
+interface PlayerMatchUpRepository {
+    val differentPeople: Flow<Set<String>>
+
+    suspend fun markDifferent(pairKey: String)
+
+    /** Asks again about every pair. */
+    suspend fun forgetDifferent()
+}
+
 /** This phone's group membership and sync bookkeeping (owner: sync). Never synced or backed up. */
 interface GroupRepository {
     val state: Flow<GroupState>
