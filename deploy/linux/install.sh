@@ -193,6 +193,7 @@ if [[ "$kit_root" != "$install_root/deploy" ]]; then
 	if [[ -f "$kit_root/README.md" ]]; then cp "$kit_root/README.md" "$install_root/deploy.new/"; fi
 	chown -R root:root "$install_root/deploy.new"
 	chmod -R u=rwX,go=rX "$install_root/deploy.new"
+	find "$install_root/deploy.new" -name '*.sh' -exec chmod 0755 {} +
 	rm -rf "$install_root/deploy"
 	mv "$install_root/deploy.new" "$install_root/deploy"
 fi
