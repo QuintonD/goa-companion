@@ -1,6 +1,6 @@
 package dev.quinton.goa.feature.sync
 
-import dev.quinton.goa.core.data.player.PlayerNames
+import dev.quinton.goa.core.domain.player.PlayerNames
 import dev.quinton.goa.core.domain.sync.SyncChanges
 import dev.quinton.goa.core.domain.sync.protocol.ClientPhase
 import dev.quinton.goa.core.domain.sync.protocol.PeerProgress

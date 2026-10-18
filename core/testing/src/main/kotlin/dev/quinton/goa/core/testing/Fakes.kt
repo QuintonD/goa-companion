@@ -12,11 +12,11 @@ import dev.quinton.goa.core.data.RatingsRepository
 import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.data.SyncedPhone
 import dev.quinton.goa.core.data.TriviaProgressRepository
-import dev.quinton.goa.core.data.player.PlayerNames
 import dev.quinton.goa.core.data.rating.HeroPilotsRepository
 import dev.quinton.goa.core.domain.meta.HeroPilots
 import dev.quinton.goa.core.domain.meta.MetaConfig
 import dev.quinton.goa.core.domain.meta.MetaStats
+import dev.quinton.goa.core.domain.player.PlayerNames
 import dev.quinton.goa.core.domain.rating.WinLoss
 import dev.quinton.goa.core.domain.sync.GroupCredentials
 import dev.quinton.goa.core.domain.sync.PlayerMerges

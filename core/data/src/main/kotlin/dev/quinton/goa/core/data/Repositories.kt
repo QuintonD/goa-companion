@@ -40,7 +40,7 @@ interface PlayerRepository {
 
     /**
      * The player with this name, compared trimmed and case-insensitively
-     * ([dev.quinton.goa.core.data.player.PlayerNames]); archived players included. Null if none.
+     * ([dev.quinton.goa.core.domain.player.PlayerNames]); archived players included. Null if none.
      */
     suspend fun findByName(name: String): Player?
 

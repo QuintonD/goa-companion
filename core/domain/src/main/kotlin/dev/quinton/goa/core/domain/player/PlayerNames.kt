@@ -1,4 +1,4 @@
-package dev.quinton.goa.core.data.player
+package dev.quinton.goa.core.domain.player
 
 import java.util.Locale
 
