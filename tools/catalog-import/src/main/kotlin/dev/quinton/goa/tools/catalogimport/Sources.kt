@@ -97,6 +97,18 @@ class SourceCache(private val cacheDir: File, private val offline: Boolean) {
 
     fun text(source: PinnedSource, path: String): String = file(source, path).readText(Charsets.UTF_8)
 
+    /** Any file by URL (map art for the overlay check), cached as [relPath] under the cache. */
+    fun url(url: String, relPath: String): File {
+        val target = File(cacheDir, relPath)
+        if (target.isFile && target.length() > 0) return target
+        check(!offline) { "Offline and not cached: $url" }
+        download(url, target)
+        return target
+    }
+
+    /** Where generated check files (map overlays) go: `cache/<relPath>`. */
+    fun output(relPath: String): File = File(cacheDir, relPath)
+
     /**
      * The pinned document, cached as `documents/<id>/<sha256>.pdf`. Its bytes must hash to the
      * pinned SHA-256, both when downloaded and when read back from the cache.

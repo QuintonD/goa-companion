@@ -25,6 +25,12 @@ data class Overrides(
     val images: Map<String, ImageOverride> = emptyMap(),
     /** Hero ID → record that every card's numbers were compared with the card images. */
     val imageChecks: Map<String, ImageCheck> = emptyMap(),
+    /** Map ID → corrections to the community map data (spawn points, spaces), with evidence. */
+    val maps: Map<String, MapOverride> = emptyMap(),
+    /** Map ID → official art the importer overlays the map onto (`cache/maps/<id>-<n>.png`). */
+    val mapArt: Map<String, List<MapArt>> = emptyMap(),
+    /** Map ID → record that the overlay was compared space by space and matches (`verified`). */
+    val mapChecks: Map<String, MapCheck> = emptyMap(),
 ) {
     /**
      * Fields an entry patches or explicitly confirms. `confirm` lists fields where source 1 is
@@ -59,10 +65,33 @@ data class Overrides(
             }
             require("id" !in obj && "heroId" !in obj) { "overrides.json: $id must not change IDs" }
         }
+        maps.forEach { (id, o) ->
+            require(o.reason.isNotBlank() && o.evidence.isNotBlank()) {
+                "overrides.json: map $id needs reason and evidence"
+            }
+            o.spawns.forEach { (hex, spawn) ->
+                MapOverride.hex(hex)
+                if (spawn != null) MapOverride.spawn(spawn)
+            }
+            o.removeSpaces.forEach(MapOverride::hex)
+        }
+        mapArt.forEach { (id, arts) ->
+            arts.forEach { art ->
+                require(art.anchors.size >= MIN_ANCHORS && art.anchors.all { it.size == 4 }) {
+                    "overrides.json: mapArt $id needs at least $MIN_ANCHORS anchors [q, r, x, y]"
+                }
+            }
+        }
+        mapChecks.forEach { (id, c) ->
+            require(c.evidence.isNotBlank() && c.checked.isNotBlank()) {
+                "overrides.json: mapChecks $id needs evidence"
+            }
+        }
     }
 
     companion object {
         val META = setOf("reason", "evidence", "confirm")
+        private const val MIN_ANCHORS = 3
     }
 }
 
@@ -71,6 +100,53 @@ data class ImageOverride(val path: String, val reason: String, val evidence: Str
 
 @Serializable
 data class ImageCheck(val evidence: String, val checked: String)
+
+/**
+ * Corrections to one community map, in the source's coordinates (`"q,r"`). [spawns]: the printed
+ * spawn point of a space (`"red-melee"`, `"blue-hero"`, …) or null for none; [removeSpaces]:
+ * spaces the source lists that the board prints as terrain.
+ */
+@Serializable
+data class MapOverride(
+    val spawns: Map<String, String?> = emptyMap(),
+    val removeSpaces: List<String> = emptyList(),
+    val reason: String,
+    val evidence: String,
+) {
+    companion object {
+        fun hex(key: String): Pair<Int, Int> {
+            val parts = key.split(',').map { it.trim().toIntOrNull() }
+            require(parts.size == 2 && parts.all { it != null }) { "overrides.json: bad hex '$key' (want \"q,r\")" }
+            return parts[0]!! to parts[1]!!
+        }
+
+        /** `"red-melee"` → `RedMeleeSpawn`, the source's tag. */
+        fun spawn(value: String): String {
+            val (team, kind) = value.split('-').takeIf { it.size == 2 }
+                ?: error("overrides.json: bad spawn '$value' (want team-kind)")
+            require(team in setOf("red", "blue") && kind in setOf("hero", "melee", "ranged", "heavy")) {
+                "overrides.json: bad spawn '$value'"
+            }
+            return team.replaceFirstChar { it.uppercase() } + kind.replaceFirstChar { it.uppercase() } + "Spawn"
+        }
+    }
+}
+
+/**
+ * Official art of a map and where some spaces sit in it: [anchors] are `[q, r, x, y]` (source
+ * coordinates → pixel). [model]: `similarity` for top-down art, `homography` for a photo.
+ */
+@Serializable
+data class MapArt(
+    val name: String,
+    val url: String,
+    val anchors: List<List<Double>>,
+    val model: String = "similarity",
+)
+
+/** The overlay of a map on its art was compared space by space ([checked] = date, what). */
+@Serializable
+data class MapCheck(val evidence: String, val checked: String)
 
 object OverrideApplier {
     private val json = Json {

@@ -8,7 +8,8 @@ import kotlinx.serialization.json.Json
  * Catalog import (`./gradlew :tools:catalog-import:run`, see .claude/skills/import-catalog).
  * Flags (pass with `--args="..."`): `--offline` (cache only), `--no-images` (data only),
  * `--rules-only` (only the rules-reference drift check; `--rules-dump=<dir>` also writes each
- * rulebook page's text layer to `<dir>/p<printed page>.txt`).
+ * rulebook page's text layer to `<dir>/p<printed page>.txt`), `--maps-only` (only the board maps:
+ * `catalog/maps`, the overlay images in `cache/maps/` and the "Maps" section of REPORT.md).
  * Paths are relative to the repository root (the run task's working directory).
  */
 fun main(args: Array<String>) {
@@ -31,6 +32,10 @@ fun main(args: Array<String>) {
         val dump = args.firstOrNull { it.startsWith("--rules-dump=") }?.substringAfter('=')?.let(::File)
         exitProcess(if (checkRules(root, lock, cache, dump)) 0 else EXIT_RULES)
     }
+    if ("--maps-only" in args) {
+        importMaps(lock, cache, overrides, assetsDir, File(toolDir, "REPORT.md"))
+        return
+    }
     val result = Importer(lock, cache, overrides).run(withImages)
     if (result.unknownIcons.isNotEmpty()) {
         System.err.println(
@@ -48,6 +53,7 @@ fun main(args: Array<String>) {
         println("Images: ${result.assetSources.size} total, $encoded re-encoded")
     }
     ReportWriter(result, version, lock, overrides).write(File(toolDir, "REPORT.md"))
+    importMaps(lock, cache, overrides, assetsDir, File(toolDir, "REPORT.md"))
 
     val cards = result.heroes.sumOf { it.allCards.size }
     val verified = result.heroes.count { it.verified }
@@ -60,6 +66,20 @@ fun main(args: Array<String>) {
 }
 
 private const val EXIT_RULES = 3
+
+/** The maps stage: map JSON + index, overlay images in the cache, the "Maps" section of REPORT.md. */
+private fun importMaps(lock: SourcesLock, cache: SourceCache, overrides: Overrides, assetsDir: File, report: File) {
+    val maps = MapStage(lock, cache, overrides).run()
+    MapStage.write(assetsDir, maps.map { it.map })
+    MapStage.replaceSection(report, MapStage.report(maps, lock))
+    maps.forEach { r ->
+        val failed = r.findings.filter { it.required && !it.pass }
+        println(
+            "maps: ${r.map.id} ${r.map.spaces.size} spaces, ${r.map.terrain.size} terrain, " +
+                "verified=${r.map.verified}" + if (failed.isEmpty()) "" else ", ${failed.size} failed check(s)",
+        )
+    }
+}
 
 /**
  * Rules-reference drift guard (docs/DECISIONS.md, "Rules reference"): every excerpt in
