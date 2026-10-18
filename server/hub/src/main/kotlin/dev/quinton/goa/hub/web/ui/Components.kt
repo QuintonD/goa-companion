@@ -137,16 +137,16 @@ fun FlowContent.chip(
     if (href != null) {
         a(href, classes = css) {
             if (selected) attributes["aria-current"] = "true"
+            block() // attributes (htmx); before the content, which kotlinx.html streams
             if (selected) icon(Icons.CHECK)
             span { +label }
-            block()
         }
     } else {
         button(type = ButtonType.button, classes = css) {
             attributes["aria-pressed"] = selected.toString()
+            block() // attributes (htmx); before the content, which kotlinx.html streams
             if (selected) icon(Icons.CHECK)
             span { +label }
-            block()
         }
     }
 }

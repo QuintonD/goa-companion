@@ -2,6 +2,7 @@ package dev.quinton.goa.hub.web
 
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.hub.web.ui.chip
 import dev.quinton.goa.hub.web.ui.primaryButton
 import dev.quinton.goa.hub.web.ui.teamBadge
 import kotlinx.html.div
@@ -22,5 +23,11 @@ class ButtonAttributesTest {
         val html = createHTML().div { teamBadge(Team.RED, showLabel = false) }
         assertThat(html).contains("aria-label=\"Red\"")
         assertThat(html).doesNotContain(">Red<")
+    }
+
+    @Test
+    fun chipsTakeHtmxAttributesFromTheirBlock() {
+        val html = createHTML().div { chip("Tank", selected = true) { attributes["hx-get"] = "/heroes?role=tank" } }
+        assertThat(html).contains("hx-get=\"/heroes?role=tank\"")
     }
 }
