@@ -344,7 +344,8 @@
 .tr-controls .btn { min-width: 0; min-height: 72px; padding: 0 16px; border-radius: 36px; font-size: 19px; }
 .tr-controls .btn .icon { width: 30px; height: 30px; }
 .tr-pause { border-color: var(--engraved); background: var(--surface-high); color: var(--on-surface); }
-.tr-next span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.tr-next { font-size: 17px; line-height: 1.15; }
+.tr-next span { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-align: left; }
 .tr-prev { color: var(--on-surface); }
 
 /* Round view */
@@ -428,7 +429,8 @@
     row-gap: 8px;
   }
   .tr-steps > .tr-head { grid-area: head; }
-  .tr-steps > .tr-alert, .tr-steps > .tr-push-banner, .tr-steps > .tr-sound-hint, .tr-steps > .tr-shot { grid-column: 2; }
+  .tr-steps > .tr-alert, .tr-steps > .tr-push-banner, .tr-steps > .tr-sound-hint { grid-column: 1 / -1; }
+  .tr-steps > .tr-shot { grid-column: 2; }
   .tr-steps > .tr-body { display: contents; }
   .tr-steps .tr-dial { grid-area: dial; align-self: start; }
   .tr-steps .tr-extras { grid-area: extras; }

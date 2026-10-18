@@ -178,7 +178,17 @@ Slot names: a lower-case letter then letters, digits or `-` (don't declare two t
 in case). A slot that can't be decoded reads as null. Slots in use: `theme` (`ShellSlots.Theme`,
 `ThemeChoice` — written by Settings, read by every page), `invitedPlayerId`
 (`SignInSlots.InvitedPlayerId`, set when a browser joins with a personal invite `p=`; the Group
-pages ask "You're <name>?" and delete it once answered), `push`, `push-schedule` (PushService).
+pages ask "You're <name>?" and delete it once answered), `push`, `push-schedule` (PushService),
+`timer` and `timer-presets` (`TimerSlots`, the Timer area: the running session and this browser's
+presets; the Timer's push schedules use the keys `timer`, `timer-2`, …). The running timer's view
+switch also writes `settings.timerLayout` (only that field, under the device lock), as the phone's
+top-bar switch saves to AppSettings.
+
+**Timer links** (keep them): `/timer`, `/timer/setup?match=<id>` (a pending match, e.g. after a
+draft; `&rematch=<id>&kind=SAME_SEATS|SWAP_HEROES|SWAP_TEAMS` for a rematch), `/timer/run`. Log
+result sends a linked match to `/players/matches/<id>/result`; without one it reserves an id and
+sends `/players/matches/<new id>/result?new=1&durationMin=<n>&playedAt=<epoch ms>[&mode=quick|long|double_lane]`
+— the timer's summary stays until a match with that id is saved.
 
 ## Pages and components
 

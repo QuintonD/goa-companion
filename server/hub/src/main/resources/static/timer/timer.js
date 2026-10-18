@@ -393,6 +393,9 @@
     describePush();
   });
 
+  // The pure part, for test/js/timer-format.test.mjs.
+  window.goaTimer = { fmt: fmt };
+
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
   setInterval(tick, TICK_MS);
