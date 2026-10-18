@@ -21,6 +21,8 @@ SHAs on 2026-10-17.
 | 4 | **colefin8/guards-of-atlantis-ii-data** — `server/<Hero>.csv` (no Ignatia, Whisper; `Min.csv` holds another hero's cards; Range vs Radius item labels unreliable; some values shifted) | Cross-check numbers |
 | 5 | **Official rulebook PDF**: "latest version of the rules" linked from wolffdesigna.com/products/guards-of-atlantis-ii-1 (Google Drive id `1qceAxzEcdkMYP-00F61wNiUiiyj6iJAc`, 24 pages, text layer), pinned by SHA-256 in `sources.lock.json` (`documents`). The rules authority. | Rules, terminology, verbatim excerpts in `rules-reference.json` |
 | 6 | BGG via `api.geekdo.com` JSON (HTML and XML API are blocked): IDs, "(2nd Printing)" hero spotlight threads | Strategy notes, roster check |
+| 7 | **goa2-backend** — github.com/PedroVIOliv/goa2-backend (community rules engine): `src/goa2/data/maps/<map>.json` (integer cube/axial hexes of the nonterrain spaces with `zone_id` and spawn `tags` such as `RedMeleeSpawn`, `BlueHeroSpawn`; `lane`/`lanes` from Red's side to Blue's; `battle_zones`) | Board maps (ADR-033), converted by the importer's maps stage, corrected in `overrides.json` `maps`; see *Board map JSON* |
+| 8 | **Map art, for checks only (never bundled):** CasperCB/Guards_Replay `assets/maps/forbidden_island.webp` @ `210ff0c` (official top-down art of the core single-lane map, 1400 px); BGG thread 3741412 photos of the four official neoprene mats (images 9704864 Narrow Passages, 9704865 Across the River, 9704866 Forgotten Island, 9704867 Magma and Ice); rulebook p.5–6 and p.20 images; Wolff Designa store listing (`wolffdesigna.com/products.json`, read 2026-10-19) | `verified` maps: overlay of the grid on the art (`overrides.json` `mapArt`, rendered into `tools/catalog-import/cache/maps/`), map names |
 
 `verified: true` = numeric fields agree between sources 1 and 4 (or 1 and the card image)
 **and** text agrees between 1 and 3. Disagreements go to `REPORT.md`; resolve them in
@@ -48,10 +50,18 @@ Tactician, Tokens. A hero has 2–6 role icons.
 **Printings:** 1st (2022, 22 heroes; every hero later changed by the Update Pack), 2nd (2025,
 current; small watermark bottom-right on cards), **3rd announced** (Gamefound project 11755,
 2027: two new packs ≈ 10 heroes, reworks rumoured for Sabina, Cutter, Tigerclaw, Wasp) —
-expect a data refresh. **Maps:** the rulebook names none. The core board is double-sided:
-a single-lane map and a double-lane map. Names like Forgotten Island / Magma and Ice / Across the
-River / Narrow Passages / Vexing Cliffs come only from goa2-backend (unverified); `Match.map` is
-free text.
+expect a data refresh. **Maps:** the rulebook names none and shows the core board in
+perspective only. Wolff Designa sells exactly four maps, as two double-sided neoprene mats:
+"Forgotten Island" / "Magma and Ice" and "Narrow passages" / "Across the River"; per the store,
+"Forgotten Island side of the mat is the same as one of the maps included in the base game" and
+"Across the river side of the mat is the same as one of the maps included in the base game"
+(store listing, read 2026-10-19). So the 2nd-printing core board is double-sided **Forgotten
+Island** (single lane, rulebook p.5–6) and **Across the River** (double lane, the p.20 image);
+players report Magma and Ice as the 1st printing's double-lane side and Narrow Passages / Across
+the River as the original game's maps (BGG 3541070; the designer: "These are all usable maps with
+any version of the game", BGG 3741412). Map names come from the store listing. goa2-backend's
+"Vexing Cliffs" (and v2) is fan-made (not among the four; 2 hero spawn points per team) and is
+not shipped. `Match.map` is free text.
 
 
 ## Game structure (drives the timer)
@@ -416,6 +426,126 @@ when empty (older JSON without it still loads). Values above are placeholders, n
   setup says so, naming its scope ("No Ultimate card of the heroes you own prints Initiative").
 - **Practice:** "Practise the missed ones" = the round's missed facts, no duels, length
   2 × missed facts capped by the round's length; never endless (`TriviaConfig.forPractice`).
+
+## Board sandbox [RB + APP — ADR-033]
+`core:domain/board` (`HexGrid`, `BoardGeometry`, `BoardRules`, `BoardSetup`), pure and
+unit-tested on small synthetic maps and on every bundled map. It **measures, never plays**: no
+turns, card resolution, coins, Minion Battle, Wave or Life counters. Pages are printed pages of
+the pinned 2nd-printing rulebook.
+- **Grid.** Axial `q`/`r`, pointy-top. Drawn with `x = √3·(q + r/2)`, `y = 1.5·r` in y-down screen
+  coordinates a map is a rotation of the printed board, never a mirror (checked on the overlays).
+  The printed grid covers the whole board: "Any board space without a full grid outline counts
+  as terrain and is an obstacle, including the water spaces surrounding the board" (p.19
+  "Terrain"); the designer: "the hex grid covers the entire map, even if borders are not depicted
+  in full" (BGG 3475112). A map lists its nonterrain spaces; every other hex is terrain.
+- **Distance** (`HexGrid.distance`): "count the spaces between them (including spaces with
+  obstacles)" (p.17 "Farther / Farthest", p.18 "Nearest"; p.17 "Closer": "the shortest path of
+  spaces ... (including spaces with obstacles)"), so terrain and units don't lengthen it (the
+  designer: "Range is always calculated by the shortest path, regardless of any obstacles", BGG
+  3475112). Adjacent = 1: "If your card has a Range/Radius value of 1, your primary action can only
+  affect adjacent targets. With a Range/Radius value of 3, your primary action can affect targets
+  up to 3 spaces away" (p.9).
+- **Range / Radius** (`BoardRules.within`): the spaces (and enclosed terrain) 1..N away; "There are
+  no 'line of sight' rules" (p.9). The centre is left out: it holds the acting hero, whom a card
+  never affects unless it says so (goa2-faq common ruling).
+- **Adjacent** (`HexGrid.adjacent`): "Adjacent spaces are any two spaces that share a border"
+  (p.17). **Zone adjacency** (`BoardGeometry.adjacentZones`): "Two Zones are adjacent if they have
+  at least two nonterrain spaces that are adjacent to each other" (p.17); static, "Tokens and units
+  have no effect on Zone adjacency" (p.11). Zones touching only across terrain are not adjacent.
+- **Obstacles** (`isObstacle`): "Units, terrain (including printed on the board), tokens, as well
+  as any objects represented by miniatures, are obstacles. There can never be more than one
+  obstacle in any one space" (p.18). **Empty**: "An empty space is a space with no obstacles. An
+  empty space can have a Spawn point" (p.17); "Spawn points are not obstacles" (p.19).
+- **Movement** (`movementReach`): "you may move your hero up to the number of spaces shown on the
+  movement icon" and "Units cannot move through or into spaces with obstacles (Units -- heroes and
+  minions, terrain, and tokens all count as obstacles)" (p.11); friendly units block too. Returns
+  each reachable empty space with the fewest steps.
+- **Ignoring obstacles** (`movementReach(ignoreObstacles = true)`): "allowed to enter a space with
+  an obstacle and leave that space in any direction, while moving. However, a unit can never end
+  its movement on the same space as an obstacle" (p.18). Water around the map is terrain, so such a
+  move may cut across it.
+- **Fast Travel** (`fastTravel`): "you may move to any space in the same Zone, or an adjacent Zone,
+  as long as all of the below are true: The destination space is either in the same Zone, or in an
+  adjacent Zone. There are no enemy heroes or minions in the Zone you are Fast Traveling from.
+  There are no enemy heroes or minions in the Zone you are Fast Traveling to" (p.11); "You do not
+  need to have a path of empty spaces to the destination space". The Arien example allows the own
+  Zone ("Arien may Fast Travel to any space in Zone B, because there are no enemies in Zone B and
+  Arien is in Zone B"). The destination must be empty: Fast Travel places the hero ("Fast Travel is
+  a placement, not movement", goa2-faq) and "A game piece can only be placed into an empty space"
+  (p.18 "Place"). Tokens and friendly units never block a Zone.
+- **Straight line** (`HexGrid.straightLine`, `inStraightLine`): "A straight line is a sequence of
+  spaces arranged in a file. A single space counts as a straight line. Two units are in a straight
+  line if they are adjacent, or if you can draw a straight line of spaces through spaces occupied
+  by both of those units" (p.19); the six directions (p.17 "Direction").
+- **Push** (`push`): "move it in a straight line directly away from the pushing unit the number of
+  spaces equal to the push distance. If the push is 'ignoring obstacles' ... the pushed target is
+  moved through obstacles as long as it can reach an empty space. If the target cannot be moved the
+  full distance, move it as far as possible; this can result in pushing it 0 spaces" (p.18).
+- **Opening** (`BoardSetup.opening`): "Place the hero miniatures on the marked spaces in their
+  corresponding Throne Zone ... These spaces are called hero spawn points" (p.6 step 9); "Place the
+  minions on the board in the starting Battle Zone ... on spaces marked with a minion icon that
+  matches the team color and the type of that minion" (p.6 step 10; 1 Ranged, 4 Melee, 1 Heavy per
+  team on the single-lane map); double lane: "place the minions in the two starting Battle Zones"
+  and "When playing with more than 3 heroes per team, place the remaining heroes into any empty
+  spaces adjacent to their team's occupied hero spawn points" (p.20). [APP] Heroes take the spawn
+  points in pick order (map order); extras the first free neighbour; any left over wait in the tray.
+- **Push the Lane** (`pushLane`, p.8 steps 2–3): "The next Zone towards the losing team's Throne
+  becomes the new Battle Zone. If the enemy Throne Zone itself becomes the new Battle Zone, the team
+  who won the push wins the game" (`ThroneCaptured`). "Remove all minions in the previous Battle
+  Zone. Respawn one minion of the matching type in each Spawn point in the new Battle Zone (If a
+  Spawn point is occupied by a token, first remove that token, then respawn the minion)." "If a
+  Spawn point is occupied by a non-token obstacle, the owning team must place that minion in the
+  nearest empty space of their choice in the Battle Zone" (`waiting` + `nearestEmpty`, distance
+  counting obstacles). Wave counters are the table's. Double lane: each Lane is pushed on its own
+  (p.20). [APP] Minions already waiting in the tray stay there (the tray has no lane).
+- **Minions outside of the Battle Zone** (`returnToBattleZone`): "move it by the shortest path of
+  empty spaces to an empty space in the same Battle Zone. If there are multiple valid shortest
+  paths, the minion's team decides. If there is no path to the Battle Zone, or the minion cannot
+  move, place that minion in the nearest empty space of the Battle Zone" (p.18).
+- **Hero respawn** (`heroRespawn`): "you may respawn on any empty Spawn point in your Throne Zone
+  ... If no empty Spawn points are available, respawn in the nearest empty space, adjacent to a
+  Spawn point in your Throne Zone" (p.7). [APP] If no such adjacent space is empty, the empty
+  spaces nearest a hero spawn point are offered.
+- **Not modelled:** exact-distance moves in card text ("you must move the exact number of spaces",
+  p.11), Respawn by card text (p.19's "more minion spawn points ... than there are minion
+  miniatures" limit), token effects, Minion Battle; cards are quoted for the table to apply.
+
+## Board map JSON (`assets/catalog/maps/<id>.json`)
+Generated by the importer's maps stage (`--maps-only` runs just it) from source 7, corrected in
+`overrides.json` (`maps`: per-space spawn changes and removed spaces, each with reason and
+evidence); never hand-edited. `maps/index.json` = `{"maps": [ids]}` in app order, the core
+single-lane map first. Schema = `BoardMap` (`core/model/.../board/Board.kt`), decoded strictly:
+```
+BoardMap(id: kebab-case, name, lanes: [BoardLane], zones: [BoardZone], spaces: [BoardSpace],
+         terrain: [Hex] (enclosed holes), printing: 2, verified, sources: [SourceRef])
+BoardLane(id: "lane-1"|"lane-2", zones: Red's Throne Zone → Blue's, startingBattleZone)
+BoardZone(id, kind: throne|lane|side, team (thrones only), name? (none: the rulebook names no Zone))
+BoardSpace(q, r, zone, spawn?: {team: red|blue, kind: hero|melee|ranged|heavy})
+```
+- **Zone ids** are neutral, never the community names (Beach, Jungle, Mid): `red-throne`,
+  `blue-throne`; `lane-<n>-<k>` = k-th Zone of Lane n counted from Red's side; Zones outside every
+  Lane `red-side` / `blue-side` / `middle-side` by which Throne Zone is fewer Zones away (`-1`, `-2`
+  when several). Lane order: source order, except Across the River, where `lane-1` is the Lane
+  whose starting Battle Zone p.20 labels "Battle Zone 1". Lanes the source lists from Blue to Red
+  are reversed; a Lane must start and end at the Throne Zones holding each team's hero spawn
+  points.
+- **Terrain** lists only the holes the map encloses (not reachable from outside without crossing
+  a space); the rest of the board around the map is terrain too (p.19), just not listed.
+- **`verified`** = the rulebook checks pass (3 hero spawn points per team in its Throne Zone, p.6/
+  p.20; each Lane joins the Throne Zones through adjacent Zones, p.3; the single-lane starting
+  Battle Zone is the middle one with 4 Melee/1 Ranged/1 Heavy spawn points per team, p.3/p.6; two
+  Lanes with their own starting Battle Zones on a double-lane map, p.20; every Zone reachable)
+  **and** the overlay of the map on official art matched space by space (`overrides.json`
+  `mapChecks`): spaces on the printed grid, terrain holes on the printed rocks, Zone borders, every
+  spawn icon's team and type. A map whose community data had to be corrected from the art alone
+  stays unverified (one source). p.8's "the defending team has more minion spawn points in their
+  Pre-Throne Zone" is said of the core single-lane map; Forgotten Island has it (6 vs 5), the other
+  maps have equal counts there (for Narrow Passages the designer confirms "both sides have 5
+  minions in those zones", BGG 3527919). Tower icons on the mats are decoration ("No. Ignore it.",
+  the designer, BGG 3527919).
+- **Shipped** (REPORT.md "Maps"): Forgotten Island (210 spaces, verified), Across the River (334,
+  verified), Narrow Passages (186, unverified: 20 spawn points corrected), Magma and Ice (284,
+  unverified: 16 spawn points corrected, 4 edge rocks removed).
 
 ## Elo [APP — ADR-011]
 Deterministic replay of COMPLETED matches ordered by `(playedAt, createdAt, id)`. Two rating

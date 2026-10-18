@@ -624,8 +624,8 @@ rulebook's setup (p.6: 4 Melee, 1 Ranged, 1 Heavy per team in the starting Battl
 spawn points per team; p.8: the defending team has more spawn points in its pre-Throne Zone).
 Community zone names are not shown. (2) **Rules are pure Kotlin** in `core:domain/board`
 (`HexGrid`, `BoardGeometry`, `BoardRules`, `BoardSetup`), page-referenced and tested: obstacles
-(p.19), movement through empty spaces and Ignoring Obstacles (p.11, p.19), Fast Travel (p.11), Zone
-adjacency (p.18), distance counting obstacles (p.18), opening (p.6, p.20), Push the Lane steps 2–3
+(p.18), movement through empty spaces and Ignoring Obstacles (p.11, p.18), Fast Travel (p.11), Zone
+adjacency (p.17), distance counting obstacles (p.17, p.18), opening (p.6, p.20), Push the Lane steps 2–3
 (p.8). (3) The app **measures, never plays**: no turns, card resolution, coins or Life counters;
 the user moves pieces freely (one per space) and reads overlays. (4) Boards are local
 (`datastore/boards`), autosaved, in the backup file, not synced. (5) Drawn in an original vector
@@ -634,3 +634,9 @@ style (no map art bundled), so it stays legible on a phone and owes nothing to t
 full rules engine. The community map data has no licence (like the other sources: private build,
 never redistribute). A map we can't verify ships badged Unverified or not at all. Card effects
 ("move 2 in a straight line", pushes, swaps) are quoted for the table to apply by hand.
+**Addendum (2026-10-19, map import):** Ship the four official maps (Wolff Designa's two
+double-sided mats): Forgotten Island and Across the River (the 2nd-printing core board) verified;
+Narrow Passages and Magma and Ice badged Unverified, because the community data placed many
+Pre-Throne spawn points wrongly and was corrected from photos of the mats alone. goa2-backend's
+Vexing Cliffs is fan-made and left out. "Verified" needs the community data and the art to agree
+space by space (two sources), like the hero catalog's rule.
