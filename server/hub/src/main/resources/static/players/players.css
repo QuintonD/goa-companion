@@ -148,6 +148,8 @@ a.pl-row:hover { background: var(--surface-high); }
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
 }
 
+/* Room under the floating button for the last row. */
+.content:has(.pl-fab) { padding-bottom: calc(var(--tab-bar) + 6rem + env(safe-area-inset-bottom)); }
 .has-bars .pl-fab { bottom: calc(var(--tab-bar) + 72px + var(--pad) + env(safe-area-inset-bottom)); }
 .pl-list:last-of-type { margin-bottom: 0; }
 
@@ -167,7 +169,7 @@ a.pl-row:hover { background: var(--surface-high); }
 .pl-portrait-unknown { display: inline-flex; align-items: center; justify-content: center; color: var(--on-surface-variant); font-weight: 700; }
 
 /* ---- Stat tiles, bars ---- */
-.pl-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr)); gap: 0.5rem; }
+.pl-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 4.75rem), 1fr)); gap: 0.5rem; }
 
 .pl-stat {
   display: flex;
@@ -347,8 +349,8 @@ a.pl-match-head { min-height: 2.75rem; }
 .pl-red .pl-winner-label { color: var(--team-red); }
 .pl-blue .pl-winner-label { color: var(--team-blue); }
 .pl-winner-pilots { font-size: 0.875rem; }
-.pl-red:has(input:checked) { border: 2px solid var(--team-red); background: color-mix(in srgb, var(--team-red) 16%, transparent); }
-.pl-blue:has(input:checked) { border: 2px solid var(--team-blue); background: color-mix(in srgb, var(--team-blue) 16%, transparent); }
+.pl-winner-option.pl-red:has(input:checked) { border: 2px solid var(--team-red); background: color-mix(in srgb, var(--team-red) 16%, transparent); }
+.pl-winner-option.pl-blue:has(input:checked) { border: 2px solid var(--team-blue); background: color-mix(in srgb, var(--team-blue) 16%, transparent); }
 
 /* The winner only matters for a completed match (the phone hides it too). */
 .pl-result-block:has(input[name="status"][value="COMPLETED"]:not(:checked)) .pl-winner-block { display: none; }
@@ -368,8 +370,8 @@ a.pl-match-head { min-height: 2.75rem; }
   background: var(--surface);
 }
 
-.pl-seat-editor.pl-red { border-color: color-mix(in srgb, var(--team-red) 45%, transparent); }
-.pl-seat-editor.pl-blue { border-color: color-mix(in srgb, var(--team-blue) 45%, transparent); }
+.pl-seat-editor.pl-seat-red { border-color: color-mix(in srgb, var(--team-red) 45%, transparent); }
+.pl-seat-editor.pl-seat-blue { border-color: color-mix(in srgb, var(--team-blue) 45%, transparent); }
 .pl-seat-editor.invalid { border-color: var(--error); }
 .pl-seat-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.5rem; }
 .pl-seat-flags { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }

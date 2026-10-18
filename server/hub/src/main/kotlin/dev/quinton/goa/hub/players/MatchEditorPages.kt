@@ -85,15 +85,7 @@ internal data class EditorState(
 internal fun Route.matchEditorRoutes(ctx: HubContext) {
     get(PlayersPaths.NEW_MATCH) {
         val q = call.request.queryParameters
-        val now = MatchEditor.toMinute(ctx.clock.nowMillis())
-        val form = MatchForm(
-            // A new match may be pre-filled (the timer's "Log result"); bad values are ignored.
-            playedAt = q["playedAt"]?.toLongOrNull()?.let(MatchEditor::toMinute)?.coerceAtMost(now) ?: now,
-            mode = MatchEditor.gameModeOrNull(q["mode"]) ?: GameMode.QUICK,
-            duration = MatchForm.durationText(q["duration"]?.toIntOrNull()),
-            red = List(MatchEditor.NEW_SEATS_PER_TEAM) { SeatDraft(it.toLong()) },
-            blue = List(MatchEditor.NEW_SEATS_PER_TEAM) { SeatDraft((it + MAX_SEATS_PER_TEAM).toLong()) },
-        )
+        val form = newMatchForm(q, ctx.clock.nowMillis())
         val view = PlayersData.of(ctx)
         val newId = q["id"]?.takeIf { isSafeId(it) && view.data.document.matches.none { m -> m.id == it } }
             ?: UUID.randomUUID().toString()
@@ -121,7 +113,17 @@ internal fun Route.matchEditorRoutes(ctx: HubContext) {
     get("/players/matches/{id}/result") {
         val id = call.parameters["id"].orEmpty()
         val view = PlayersData.of(ctx)
-        val match = view.match(id) ?: return@get call.respondMatchGone(view, id)
+        val q = call.request.queryParameters
+        val match = view.match(id)
+        val newFromTimer = q["new"] == "1" && isSafeId(id) && !view.wasDeleted(id)
+        if (match == null && newFromTimer) {
+            // The timer's "Log result" without a pending match: a new match with the timer's id, so a
+            // double submit saves one match (ADR-023's result handoff).
+            val state = EditorState(newMatchForm(q, ctx.clock.nowMillis()), resultFirst = true, newId = id)
+            call.respondEditor(ctx, view, state, null)
+            return@get
+        }
+        if (match == null) return@get call.respondMatchGone(view, id)
         val pending = match.status == MatchStatus.PENDING
         val loaded = formOf(match)
         // A game that just ended: the pending match becomes a result, dated from the session start.
@@ -145,6 +147,21 @@ internal fun Route.matchEditorRoutes(ctx: HubContext) {
             resultFirst = true,
         )
     }
+}
+
+/**
+ * A new match, pre-filled from a link (the timer's "Log result": `playedAt` epoch ms, `durationMin`
+ * or `duration` minutes, `mode` quick | long | double_lane); bad values are ignored, as on the phone.
+ */
+private fun newMatchForm(q: Parameters, nowMillis: Long): MatchForm {
+    val now = MatchEditor.toMinute(nowMillis)
+    return MatchForm(
+        playedAt = q["playedAt"]?.toLongOrNull()?.let(MatchEditor::toMinute)?.coerceAtMost(now) ?: now,
+        mode = MatchEditor.gameModeOrNull(q["mode"]) ?: GameMode.QUICK,
+        duration = MatchForm.durationText((q["durationMin"] ?: q["duration"])?.toIntOrNull()),
+        red = List(MatchEditor.NEW_SEATS_PER_TEAM) { SeatDraft(it.toLong()) },
+        blue = List(MatchEditor.NEW_SEATS_PER_TEAM) { SeatDraft((it + MAX_SEATS_PER_TEAM).toLong()) },
+    )
 }
 
 private fun formOf(match: Match): MatchForm {
@@ -196,7 +213,7 @@ private suspend fun ApplicationCall.handleEditorPost(
     val fresh = PlayersData.of(ctx)
     val everyone = fresh.data.document.players.associateBy { it.id } + fresh.byId
     if (MatchEditor.errors(form, fresh.catalog, everyone, now).isNotEmpty()) {
-        respondEditor(ctx, fresh, state.copy(showErrors = true), original, HttpStatusCode.UnprocessableEntity)
+        respondEditor(ctx, fresh, state.copy(showErrors = true), original, refusedStatus())
         return
     }
     val id = existingId ?: newId ?: UUID.randomUUID().toString()
@@ -206,7 +223,7 @@ private suspend fun ApplicationCall.handleEditorPost(
     try {
         ctx.groupStore.upsertMatch(match)
     } catch (e: InvalidGroupDataException) {
-        respondEditor(ctx, fresh, state.copy(problem = e.message), original, HttpStatusCode.UnprocessableEntity)
+        respondEditor(ctx, fresh, state.copy(problem = e.message), original, refusedStatus())
         return
     }
     val target = if (MatchEditor.isNewResult(match, original, resultFirst)) {
@@ -221,6 +238,9 @@ private suspend fun ApplicationCall.handleEditorPost(
         respondRedirect(target)
     }
 }
+
+/** A refused save re-renders the form: 422, except for htmx, which swaps only 2xx answers. */
+private fun ApplicationCall.refusedStatus() = if (isHtmx) HttpStatusCode.OK else HttpStatusCode.UnprocessableEntity
 
 /** The pilot picker's quick add: a known name (archived included) picks that player, as on the phone. */
 private suspend fun addPilot(ctx: HubContext, view: PlayersData, name: String): Player = ctx.groupStore.ensurePlayer(
@@ -386,7 +406,7 @@ private suspend fun ApplicationCall.respondEditor(
             attributes["hx-select"] = "#match-editor"
             attributes["hx-swap"] = "outerHTML"
             attributes["hx-trigger"] =
-                "submit, change from:#match-editor select, change from:#match-editor .pl-handicap input"
+                "submit, change from:select, change from:.pl-handicap-input"
             // A finished game's result not saved anywhere yet (the timer's "Log result"): leaving asks first.
             if (state.resultFirst && isNew) attributes["data-unsaved"] = "true"
             editor.render(this, action)
@@ -469,6 +489,7 @@ private class EditorView(
         div("error-state pl-errors") {
             id = "errors"
             attributes["role"] = "alert"
+            attributes["tabindex"] = "-1"
             div {
                 p("pl-errors-title") { +"Can't save yet" }
                 ul { messages.forEach { li { +it } } }
@@ -668,7 +689,15 @@ private class EditorView(
             seats.forEachIndexed { i, seat ->
                 val problem = MatchEditor.seatProblem(edited, team, seat, state.showErrors)
                 val heroLabel = seat.heroId?.let { id -> heroes.firstOrNull { it.id == id }?.name } ?: "Unknown hero"
-                fieldSet(if (problem != null) "pl-seat-editor pl-$prefix invalid" else "pl-seat-editor pl-$prefix") {
+                fieldSet(
+                    if (problem !=
+                        null
+                    ) {
+                        "pl-seat-editor pl-seat-$prefix invalid"
+                    } else {
+                        "pl-seat-editor pl-seat-$prefix"
+                    },
+                ) {
                     legend("visually-hidden") { +"${team.label()} seat ${i + 1}" }
                     hidden("$prefix-$i", "1")
                     div("pl-seat-fields") {
@@ -697,7 +726,11 @@ private class EditorView(
                     }
                     div("pl-seat-flags") {
                         label("check pl-handicap") {
-                            input(type = InputType.checkBox, name = "$prefix-$i-handicap") {
+                            input(
+                                type = InputType.checkBox,
+                                name = "$prefix-$i-handicap",
+                                classes = "pl-handicap-input",
+                            ) {
                                 value = "true"
                                 checked = seat.handicap
                             }

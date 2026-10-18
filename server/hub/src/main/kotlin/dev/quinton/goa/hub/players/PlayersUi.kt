@@ -69,10 +69,10 @@ object PlayersPaths {
     fun redraft(id: String) = "/draft?rematch=${segment(id)}"
 
     /** The Timer area's Match setup for a rematch of [id] ([kind]: a `RematchKind` name). */
-    fun timerRematch(id: String, kind: String) = "/timer?rematch=${segment(id)}&kind=$kind"
+    fun timerRematch(id: String, kind: String) = "/timer/setup?rematch=${segment(id)}&kind=$kind"
 
     /** The Timer area's Match setup for a pending match ("Resume: setup & timer"). */
-    fun timerResume(id: String) = "/timer?resume=${segment(id)}"
+    fun timerResume(id: String) = "/timer/setup?match=${segment(id)}"
 
     fun segment(id: String): String = URLEncoder.encode(id, Charsets.UTF_8).replace("+", "%20")
 

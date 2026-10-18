@@ -684,6 +684,28 @@ INTERNET permission. Options weighed:
   an overall cap. Features register in one list (`HubFeatures.kt`) and keep per-browser state in
   typed `DeviceSlot`s.
 
+**Implementation notes — Players on the web (2026-10-19):**
+- `RatingsSnapshot` (replay + meta + group stats from one input) moved from core:data to
+  core:domain with `compute(matches, drafts, config, knownHeroes, zone)`; the phone's
+  `ReplayRatingsRepository` and the hub call it. The Players builders live in
+  `core:presentation/players`; texts the phone computed in Compose (biggest movers, match summary,
+  merge copy, chart range/labels, result chip) moved there too, so both render the same strings.
+  `Dates` take an optional zone (the hub passes `HubClock.zone`; dates follow the hub machine's zone).
+- Dialogs became pages (merge picker → confirmation, delete/discard confirmation, Rematch), so every
+  flow works without JS. A match has its own page (`/players/matches/{id}`); the log shows 60 matches
+  and "Show older matches". "Undo" after a delete is kept per browser for 30 s, as on the phone.
+- The editor's hero list shows the browser's owned products first ("Your collection", then "Other
+  heroes"); nothing is hidden, since a match may be logged with a borrowed hero (the phone lists all
+  heroes). A form posted for a match deleted meanwhile answers 409 and says so; nothing is stored.
+- "Share stats page" serves the ADR-027 file as a download (`/players/stats-page`): its inline CSS
+  can't run under the hub's CSP, but the saved file opens anywhere; `players.js` hands it to the
+  share sheet where the browser can share files.
+- Links into other areas: `/draft?rematch={id}` (draft again), `/timer/setup?rematch={id}&kind={RematchKind}`
+  (same seats / swap heroes / swap sides), `/timer/setup?match={id}` (pending match → setup and timer),
+  `/group/invite?player={id}`, `/settings/ratings`. The timer's "Log result" without a pending match
+  opens `/players/matches/{newId}/result?new=1&durationMin=&playedAt=&mode=`; saving creates the match
+  with that id, so a double submit saves one match.
+
 ## ADR-031 — Linking a phone (or browser) to its player: personal invites and "Same people?" (2026-10-18)
 **Context:** The owner enters friends as players before they install the app. When a friend joins,
 their phone must become that player, not a new one. Today "Which player are you?" works only if the

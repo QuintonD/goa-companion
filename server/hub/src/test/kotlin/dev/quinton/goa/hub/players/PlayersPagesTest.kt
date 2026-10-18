@@ -176,7 +176,7 @@ class PlayersPagesTest {
             assertThat(html).contains("/players/matches/m10/result")
             assertThat(html).contains("Who won?")
             assertThat(html).contains("Resume: setup &amp; timer")
-            assertThat(html).contains("/timer?resume=m10")
+            assertThat(html).contains("/timer/setup?match=m10")
             // m05 was logged with Ann's duplicate: it reads as Ann.
             val m05 = client.page("/players/matches/m05", token).bodyAsText()
             assertThat(m05).contains(">Ann<")
@@ -227,7 +227,7 @@ class PlayersPagesTest {
             assertThat(html).contains("On top now: ${saved.leaderName}")
             assertThat(html).contains("/players/matches/m09/rematch")
             val rematch = client.page("/players/matches/m09/rematch", token).bodyAsText()
-            assertThat(rematch).contains("/timer?rematch=m09&amp;kind=SAME_SEATS")
+            assertThat(rematch).contains("/timer/setup?rematch=m09&amp;kind=SAME_SEATS")
             assertThat(rematch).contains("/draft?rematch=m09")
         }
     }

@@ -50,13 +50,23 @@
   document.addEventListener("change", function (event) {
     if (event.target.closest && event.target.closest("#match-editor")) dirty = true;
   });
+  var saving = false;
   document.addEventListener("submit", function (event) {
     var submitter = event.submitter;
-    if (event.target.id === "match-editor" && (!submitter || submitter.value === "save")) leaving = true;
+    saving = event.target.id === "match-editor" && (!submitter || submitter.value === "save");
+    if (saving) leaving = true;
   }, true);
-  document.addEventListener("htmx:afterSwap", function () {
+  // After htmx has settled (it restores the focus it saw before the swap).
+  document.addEventListener("htmx:afterSettle", function () {
     leaving = false;
     markFromForm();
+    // A refused save: bring "Can't save yet" into view (the Save button is at the bottom), as the phone does.
+    var errors = document.getElementById("errors");
+    if (saving && errors) {
+      errors.scrollIntoView({ block: "start" });
+      errors.focus({ preventScroll: true });
+    }
+    saving = false;
   });
   window.addEventListener("beforeunload", function (event) {
     if (dirty && !leaving && editor()) {

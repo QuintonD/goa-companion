@@ -429,6 +429,42 @@ class PlayersWritesTest {
     }
 
     @Test
+    fun `the timer's log result without a pending match creates one match with the timer's id`() {
+        val hub = seeded()
+        clock.set(1_800_000_000_000)
+        val start = PlayersTestGroup.at(20, 19)
+        hubTest(hub) {
+            val token = plainClient().signIn()
+            val id = "3f2a9c1e-0000-4000-8000-00000000abcd"
+            val page = client.page(
+                "/players/matches/$id/result?new=1&durationMin=47&playedAt=$start&mode=double_lane",
+                token,
+            )
+            assertThat(page.status).isEqualTo(HttpStatusCode.OK)
+            val html = page.bodyAsText()
+            assertThat(html).contains("Which team won?")
+            assertThat(html).contains("value=\"47\"")
+            assertThat(html).contains("value=\"${localTime(start)}\"")
+            assertThat(html).contains("value=\"DOUBLE_LANE\" checked")
+            assertThat(html).contains("name=\"id\" value=\"$id\"")
+            assertThat(html).contains("data-unsaved=\"true\"")
+            repeat(2) {
+                val saved = plainClient().send("/players/matches/new", token) {
+                    append("id", id)
+                    append("result", "1")
+                    result(hub)
+                }
+                assertThat(saved.headers[HttpHeaders.Location]).isEqualTo("/players/matches/$id/saved")
+            }
+            assertThat(hub.groupStore.read().matches.count { it.id == id }).isEqualTo(1)
+            // Without new=1 an unknown id is just not found.
+            assertThat(
+                client.page("/players/matches/other-id-1234/result", token).status,
+            ).isEqualTo(HttpStatusCode.NotFound)
+        }
+    }
+
+    @Test
     fun `deleting leaves a tombstone and undo brings the match back for a while`() {
         val hub = seeded()
         clock.set(1_800_000_000_000)
