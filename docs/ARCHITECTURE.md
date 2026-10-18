@@ -125,7 +125,9 @@ Features never depend on each other; cross-feature navigation goes through `app`
 - **Network.** `INTERNET` is declared for the hub only. `res/xml/network_security_config.xml`:
   release = HTTPS with system CAs, no cleartext; `src/debug` overrides it to allow plain HTTP to
   `10.0.2.2`, `localhost` and `127.0.0.1` (the hosts `HubAddress` accepts over http). The code
-  scanner's datatransport CCT backend registration is removed in the app manifest.
+  scanner's datatransport CCT backend registration is removed in the app manifest. WorkManager
+  adds `WAKE_LOCK` (kept); its `SystemForegroundService` and `FOREGROUND_SERVICE` are removed, so a
+  worker must never call `setForeground` or be expedited.
 - **Invite links.** With the Gradle property `goa.hubHost`, `app/build.gradle.kts` generates a
   manifest overlay with an `autoVerify` filter for `https://<host>/join`; `MainActivity` turns the VIEW
   into `JoinGroupLinkRoute`, which joins through the paste path.

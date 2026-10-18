@@ -7,6 +7,9 @@
 
     <!-- Hub sync (ADR-030 §5): WorkManager posts this phone's sealed sync file to the hub. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- WorkManager's foreground-worker support: hub sync never runs as a foreground service
+         (no setForeground, no expedited work), and the timer has none either (ADR-007). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
 
     <application
         android:name=".GoaApplication"
@@ -32,6 +35,10 @@
                 android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
                 tools:node="remove" />
         </service>
+
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            tools:node="remove" />
 
         <!-- WorkManager is started by GoaApplication (Configuration.Provider, Hilt workers), not by
              androidx.startup. -->
