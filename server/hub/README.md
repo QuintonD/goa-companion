@@ -180,6 +180,10 @@ in case). A slot that can't be decoded reads as null. Slots in use: `theme` (`Sh
 (`SignInSlots.InvitedPlayerId`, set when a browser joins with a personal invite `p=`; the Group
 pages ask "You're <name>?" and delete it once answered), `push`, `push-schedule` (PushService).
 
+Draft (`DraftSlots`, owner `draft/`): `draft-setup` (the setup form, the next game's default),
+`draft-methods` (custom methods, never synced), `draft-active` (the draft in progress),
+`draft-board` (the board's screen state and step clock), `draft-notes`, `draft-method-edit`.
+
 ## Pages and components
 
 `call.respondPage(HubPage(title, tab, back = "/x", actions = …, showTabs = true, scripts = listOf("timer.js"))) { … }`

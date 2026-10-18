@@ -145,6 +145,10 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
   board and process death; after a draft starts, the next game defaults to the same players,
   teams and method (one "Clear" forgets them).
 - Finished draft → "Start match" creates a pending match and opens setup/timer.
+- On the web (ADR-030): the same setup, methods and board (`/draft`, `/draft/methods`,
+  `/draft/board`) run the same `core:presentation` draft code; a finished draft continues to the
+  timer's match setup, "Who won?", or is saved for later. Every tap is POST → redirect → GET with
+  `no-store`, so a hidden pick never sits in a page the browser keeps (Back re-asks the hub).
 - **Done when:** every method completes legally for 2–10 players (property tests), undo works
   at every step, and the result flows into match log and timer.
 
