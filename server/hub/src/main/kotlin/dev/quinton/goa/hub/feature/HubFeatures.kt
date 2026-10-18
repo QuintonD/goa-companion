@@ -21,7 +21,7 @@ val HubFeatures: List<HubFeature> = listOf(
     // Group: who am I, invite, devices
     dev.quinton.goa.hub.group.GroupFeature,
     // Settings
-    ComingSoon.Settings,
+    dev.quinton.goa.hub.settings.SettingsFeature,
     // Core pages: Get the app (APK)
     AppDownloadFeature,
 )

@@ -62,13 +62,17 @@ object OwnedProducts {
     }
 
     /**
-     * The products ticked on a submitted form (the hub's `/settings`, which posts the whole list):
-     * none or all of them is "everything"; unknown ids are dropped.
+     * A submitted Collection form (the hub's `/settings` posts the switch and every ticked product),
+     * with the phone's rules: switching "everything" off keeps every product ticked, the last
+     * product can't be unticked, all of them ticked is "everything"; unknown ids are dropped.
      */
     fun fromForm(settings: AppSettings, all: Set<String>, everything: Boolean, ticked: Set<String>): AppSettings {
         val owned = ticked intersect all
         return when {
-            everything || owned.isEmpty() || owned.containsAll(all) -> settings.copy(ownedProducts = emptySet())
+            everything -> setOwnsEverything(settings, all, true)
+            ownsEverything(settings) -> setOwnsEverything(settings, all, false)
+            owned.isEmpty() -> settings
+            owned.containsAll(all) -> settings.copy(ownedProducts = emptySet())
             else -> settings.copy(ownedProducts = owned)
         }
     }

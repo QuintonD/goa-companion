@@ -78,22 +78,24 @@ class ShellTest {
     }
 
     @Test
-    fun `the theme slot sets data-theme, system leaves it to the browser`() {
+    fun `the theme slot sets data-theme, dark like the app until chosen, system leaves it to the browser`() {
         val hub = testHub(tmp.root.toPath(), clock)
         hubTest(hub) {
             val token = plainClient().signIn()
             val device = hub.devices.list().single()
-            assertThat(
-                client.get("/heroes") {
-                    header(HttpHeaders.Cookie, cookie(token))
-                }.bodyAsText(),
-            ).doesNotContain("data-theme")
+            suspend fun page() = client.get("/heroes") { header(HttpHeaders.Cookie, cookie(token)) }.bodyAsText()
+            val fresh = page()
+            assertThat(fresh).contains("data-theme=\"dark\"")
+            assertThat(fresh).contains("content=\"black-translucent\"")
             hub.deviceStore.write(device.id, ShellSlots.Theme, ThemeChoice.LIGHT)
-            assertThat(
-                client.get("/heroes") {
-                    header(HttpHeaders.Cookie, cookie(token))
-                }.bodyAsText(),
-            ).contains("data-theme=\"light\"")
+            val light = page()
+            assertThat(light).contains("data-theme=\"light\"")
+            // iOS: dark status-bar text on a light page.
+            assertThat(light).contains("name=\"apple-mobile-web-app-status-bar-style\" content=\"default\"")
+            hub.deviceStore.write(device.id, ShellSlots.Theme, ThemeChoice.SYSTEM)
+            val system = page()
+            assertThat(system).doesNotContain("data-theme")
+            assertThat(system).contains("(prefers-color-scheme: light)")
         }
     }
 

@@ -1,0 +1,128 @@
+/* Settings pages (/settings, /settings/ratings, /settings/backup, /settings/about). No inline styles (CSP). */
+
+.icon-upload { --icon: url(/static/material/upload.svg); }
+
+.muted { color: var(--on-surface-variant); }
+
+/* `hidden` wins over the button's display (script-driven buttons stay hidden until shown) */
+.btn[hidden] { display: none; }
+.small { font-size: 14px; }
+.row-icon { display: inline-flex; flex: none; color: var(--primary); }
+.actions.end { justify-content: flex-end; }
+.card h3 { font-size: 17px; }
+.card-title-row { display: flex; align-items: center; gap: calc(var(--space) * 3); color: var(--primary); }
+.card-title-row h3 { color: var(--on-surface); }
+
+/* With script, changes save at once: the Save buttons are for browsers without it. */
+.js .nojs-only { display: none; }
+
+.settings-form { display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
+.link-card { display: flex; flex-direction: column; gap: var(--space); }
+.link-card .row + .row { margin-top: 0; }
+
+/* Switch rows: the label is the whole row (a 48 px+ target) */
+.switch-row {
+  display: flex;
+  align-items: center;
+  gap: var(--pad);
+  min-height: 56px;
+  cursor: pointer;
+}
+
+.check-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.check-title { font-weight: 500; }
+.check-subtitle { color: var(--on-surface-variant); font-size: 14px; }
+
+.switch-input {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 32px;
+  margin: 0;
+  border: 2px solid var(--on-surface-variant);
+  border-radius: 16px;
+  background: var(--surface-high);
+  cursor: pointer;
+  transition: background var(--motion), border-color var(--motion);
+}
+
+.switch-input::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--on-surface-variant);
+  transform: translateY(-50%);
+  transition: left var(--motion), width var(--motion), height var(--motion), background var(--motion);
+}
+
+.switch-input:checked { border-color: var(--primary); background: var(--primary); }
+.switch-input:checked::before { left: 22px; width: 22px; height: 22px; background: var(--on-primary); }
+.switch-input:focus-visible { outline: 2px solid var(--secondary); outline-offset: 2px; }
+
+/* Owned products */
+.product-list { display: flex; flex-direction: column; border-top: 1px solid var(--engraved); }
+.check.product { min-height: 56px; padding-left: calc(var(--space) * 2); }
+.check.product.disabled { opacity: 0.55; cursor: default; }
+.check.product input { flex: none; }
+
+/* Segmented buttons (theme, running timer) */
+.segmented {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--engraved);
+  border-radius: 24px;
+}
+
+.segment {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--space) * 2);
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 calc(var(--space) * 3);
+  border: 0;
+  background: var(--surface);
+  color: var(--on-surface-variant);
+  font: 500 15px/1.2 var(--font-body);
+  cursor: pointer;
+}
+
+.segment + .segment { border-left: 1px solid var(--engraved); }
+.segment .icon { width: 18px; height: 18px; }
+.segment.selected { background: color-mix(in srgb, var(--primary) 18%, var(--surface)); color: var(--on-surface); font-weight: 600; }
+
+/* Narrow screens or large text: the segments stack, as the app's radio list does at large font scales */
+@media (max-width: 359px) {
+  .segmented { flex-direction: column; border-radius: var(--radius-card); }
+  .segment + .segment { border-left: 0; border-top: 1px solid var(--engraved); }
+}
+
+/* Ratings */
+.ratings-form { display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
+.slider { display: flex; flex-direction: column; gap: var(--space); padding: calc(var(--space) * 2) 0; border-bottom: 1px solid var(--engraved); }
+.slider-head { display: flex; align-items: baseline; gap: var(--pad); }
+.slider-head label { flex: 1; font-weight: 600; }
+.slider-value { color: var(--primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+.slider input[type="range"] { width: 100%; min-height: 44px; margin: 0; accent-color: var(--primary); }
+
+/* About */
+.about-header { display: flex; flex-direction: column; align-items: center; gap: calc(var(--space) * 2); padding: var(--pad) 0; text-align: center; }
+.about-header .brand-mark { width: 88px; height: 88px; }
+.credits { display: flex; flex-direction: column; gap: var(--space); margin: 0; }
+.credits dt { font-weight: 600; }
+.credits dd { margin: 0 0 calc(var(--space) * 2); color: var(--on-surface-variant); }
+.source-list { margin: 0; padding-left: 20px; color: var(--on-surface-variant); overflow-wrap: anywhere; }
+.source-list code { font-size: 13px; }
+
+/* Backup */
+.field input[type="file"] { padding: calc(var(--space) * 2); }
+.stack .check { align-items: flex-start; }
+.stack .check input { margin-top: 2px; flex: none; }

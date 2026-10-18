@@ -53,12 +53,18 @@ class SettingsSectionsTest {
 
     @Test
     fun aSubmittedProductListFollowsTheSameRules() {
-        val s = AppSettings()
-        assertThat(OwnedProducts.fromForm(s, all, everything = false, ticked = setOf("core", "x")).ownedProducts)
+        val narrowed = AppSettings(ownedProducts = setOf("core", "devoted"))
+        assertThat(OwnedProducts.fromForm(narrowed, all, everything = false, ticked = setOf("core", "x")).ownedProducts)
             .containsExactly("core")
-        assertThat(OwnedProducts.fromForm(s, all, everything = false, ticked = emptySet()).ownedProducts).isEmpty()
-        assertThat(OwnedProducts.fromForm(s, all, everything = false, ticked = all).ownedProducts).isEmpty()
-        assertThat(OwnedProducts.fromForm(s, all, everything = true, ticked = setOf("core")).ownedProducts).isEmpty()
+        // The last product can't be unticked; all of them is "everything".
+        assertThat(OwnedProducts.fromForm(narrowed, all, everything = false, ticked = emptySet())).isEqualTo(narrowed)
+        assertThat(OwnedProducts.fromForm(narrowed, all, everything = false, ticked = all).ownedProducts).isEmpty()
+        assertThat(
+            OwnedProducts.fromForm(narrowed, all, everything = true, ticked = emptySet()).ownedProducts,
+        ).isEmpty()
+        // Switching "everything" off (the products were disabled, so none are posted) ticks them all.
+        assertThat(OwnedProducts.fromForm(AppSettings(), all, everything = false, ticked = emptySet()).ownedProducts)
+            .isEqualTo(all)
     }
 
     @Test
