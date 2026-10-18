@@ -33,7 +33,7 @@ data class PhoneRow(val name: String, val lastSynced: String)
 data class GroupUiState(
     val loading: Boolean = true,
     val groupName: String? = null,
-    /** The invite the QR code shows (`goa-sync:1?…`). */
+    /** The invite the QR code shows (`goa-sync:1?…`, or `<hub>/join#goa-sync:1?…` with a hub, ADR-030). */
     val invite: String? = null,
     val me: Player? = null,
     val deviceName: String = "",
@@ -85,7 +85,7 @@ class GroupViewModel @Inject constructor(
         GroupUiState(
             loading = false,
             groupName = group.group?.name,
-            invite = group.group?.let(GroupInvite::format),
+            invite = group.group?.let { GroupInvite.format(it, hubUrl = group.hubUrl) },
             me = me,
             deviceName = me?.name ?: group.deviceName ?: phoneName.get(),
             phones = group.phones.map { PhoneRow(it.name, SyncText.ago(it.lastSyncedAt, now)) },
@@ -112,11 +112,12 @@ class GroupViewModel @Inject constructor(
 
     /** Joins the group in a scanned or pasted invite, then opens the first sync. */
     fun join(invite: String) {
-        GroupInvite.parse(invite).fold(
-            onSuccess = { group ->
+        GroupInvite.parseInvite(invite).fold(
+            onSuccess = { parsed ->
+                val group = parsed.group
                 viewModelScope.launch {
                     val current = groups.state.first().group
-                    groups.join(group)
+                    groups.join(group, hubUrl = parsed.hubUrl, invitedPlayerId = parsed.playerId)
                     if (current?.groupId != group.groupId) {
                         local.update { it.copy(joinError = null) }
                         events.send(GroupEvent.OpenFirstSync)
