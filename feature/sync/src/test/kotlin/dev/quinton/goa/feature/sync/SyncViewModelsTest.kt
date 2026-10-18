@@ -12,6 +12,7 @@ import dev.quinton.goa.core.domain.sync.SyncFileProblem
 import dev.quinton.goa.core.domain.sync.protocol.PeerStage
 import dev.quinton.goa.core.testing.FakeGroupRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
+import dev.quinton.goa.core.testing.FakePlayerMergeRepository
 import dev.quinton.goa.core.testing.FakePlayerRepository
 import dev.quinton.goa.feature.sync.group.GroupEvent
 import dev.quinton.goa.feature.sync.group.GroupViewModel
@@ -244,11 +245,13 @@ class SyncViewModelsTest {
     fun whoAreYouNeverAddsATakenNameAndRemembersTheChoice() = runTest {
         val players = FakePlayerRepository(people)
         val groups = FakeGroupRepository(groupState())
-        val vm = WhoAreYouViewModel(players, groups, clock)
+        val vm = WhoAreYouViewModel(players, groups, FakeMatchRepository(), FakePlayerMergeRepository(), clock)
         backgroundScope.launch { vm.uiState.collect {} }
         vm.onNameChange(" ann ")
         vm.createMe()
-        assertThat(vm.uiState.first { it.nameError != null }.nameError).contains("already in the group")
+        assertThat(vm.uiState.first { it.addCheck != null }.addCheck?.nameTaken).isTrue()
+        vm.addAnyway()
+        vm.dismissAddCheck()
         assertThat(players.state.value).hasSize(4)
 
         vm.onNameChange("Eve")
@@ -258,7 +261,7 @@ class SyncViewModelsTest {
         assertThat(groups.current.value.mePlayerId).isEqualTo(eve.id)
         assertThat(eve.color).isNotEqualTo(0L)
 
-        val again = WhoAreYouViewModel(players, groups, clock)
+        val again = WhoAreYouViewModel(players, groups, FakeMatchRepository(), FakePlayerMergeRepository(), clock)
         again.choose("bob")
         assertThat(groups.current.value.mePlayerId).isEqualTo("bob")
     }

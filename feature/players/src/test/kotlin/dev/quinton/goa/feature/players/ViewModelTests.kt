@@ -464,7 +464,15 @@ class ViewModelTests {
 
     @Test
     fun playerDetailShowsHistoryHeroesAndRecentMatches() = runTest {
-        val vm = PlayerDetailViewModel(ann.id, players, FakePlayerMergeRepository(), matches, ratings, catalog)
+        val vm = PlayerDetailViewModel(
+            ann.id,
+            players,
+            FakePlayerMergeRepository(),
+            matches,
+            ratings,
+            catalog,
+            FakeGroupRepository(),
+        )
         val state = vm.uiState.first { !it.loading }
         assertThat(state.player).isEqualTo(ann)
         assertThat(state.history).hasSize(state.rating.games)
@@ -477,6 +485,22 @@ class ViewModelTests {
         assertThat(state.recentMatches).hasSize(5)
         vm.setArchived(true)
         assertThat(players.state.value.single { it.id == ann.id }.archived).isTrue()
+    }
+
+    @Test
+    fun aPlayerPageOffersAPersonalInviteOnlyInAGroupAndNotForYourself() = runTest {
+        fun detail(id: String, groups: FakeGroupRepository) =
+            PlayerDetailViewModel(id, players, FakePlayerMergeRepository(), matches, ratings, catalog, groups)
+        val solo = FakeGroupRepository()
+        assertThat(detail(bob.id, solo).uiState.first { !it.loading }.canInvite).isFalse()
+        val inGroup = FakeGroupRepository().apply {
+            start("Friday nights")
+            setMe(ann.id)
+        }
+        assertThat(detail(bob.id, inGroup).uiState.first { !it.loading }.canInvite).isTrue()
+        assertThat(detail(ann.id, inGroup).uiState.first { !it.loading }.canInvite).isFalse()
+        // Archived players aren't invited.
+        assertThat(detail(Fixtures.fay.id, inGroup).uiState.first { !it.loading }.canInvite).isFalse()
     }
 
     @Test
@@ -502,6 +526,7 @@ class ViewModelTests {
             local,
             snapshot,
             catalog,
+            FakeGroupRepository(),
         ).uiState.first {
             !it.loading
         }

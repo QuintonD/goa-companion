@@ -7,6 +7,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.CatalogRepository
+import dev.quinton.goa.core.data.GroupRepository
 import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.PlayerMergeRepository
 import dev.quinton.goa.core.data.PlayerMergeResult
@@ -66,6 +67,8 @@ data class PlayerDetailUiState(
     /** Other active players this one could be merged into (a duplicate of one person), by name. */
     val mergeCandidates: List<MergeCandidate> = emptyList(),
     val mergeOutcome: MergeOutcome? = null,
+    /** This phone is in a group and this isn't its own player: "Invite <name>" (ADR-031). */
+    val canInvite: Boolean = false,
 )
 
 /** A player to merge into, with how many matches they have. */
@@ -89,6 +92,7 @@ class PlayerDetailViewModel @AssistedInject constructor(
     matches: MatchRepository,
     ratings: RatingsSnapshotRepository,
     catalog: CatalogRepository,
+    groups: GroupRepository,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -102,9 +106,14 @@ class PlayerDetailViewModel @AssistedInject constructor(
         matches.observeMatches(),
         ratings.observeSnapshot(),
         catalog.catalog.onStart { emit(Catalog.EMPTY) },
-        outcome,
-    ) { people, log, snapshot, cat, merged ->
-        build(playerId, people, log, snapshot, cat).copy(mergeOutcome = merged)
+        combine(outcome, groups.state) { merged, group -> merged to group },
+    ) { people, log, snapshot, cat, (merged, group) ->
+        val state = build(playerId, people, log, snapshot, cat)
+        val player = state.player
+        state.copy(
+            mergeOutcome = merged,
+            canInvite = group.inGroup && player != null && !player.archived && group.mePlayerId != player.id,
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlayerDetailUiState())
 
     fun setArchived(archived: Boolean) {

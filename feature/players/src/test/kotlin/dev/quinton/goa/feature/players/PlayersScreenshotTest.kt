@@ -304,6 +304,11 @@ class PlayersScreenshotTest {
 
     @Test fun playerDetailLight() = shot(ThemeMode.LIGHT) { PlayerDetailScreen(Shots.detail, PlayerDetailActions()) }
 
+    /** In a group: "Invite Ann" (a personal invite, ADR-031) sits by Edit in the top bar. */
+    @Test fun playerDetailInGroupLight() = shot(ThemeMode.LIGHT) {
+        PlayerDetailScreen(Shots.detail.copy(canInvite = true), PlayerDetailActions())
+    }
+
     @Test fun playerDetailFontScale2() = shot(fontScale = 2f) {
         PlayerDetailScreen(Shots.detail, PlayerDetailActions())
     }
