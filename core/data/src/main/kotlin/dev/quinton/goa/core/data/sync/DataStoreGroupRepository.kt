@@ -6,6 +6,7 @@ import dev.quinton.goa.core.data.SyncedPhone
 import dev.quinton.goa.core.datastore.sync.GroupSyncPrefs
 import dev.quinton.goa.core.datastore.sync.GroupSyncStore
 import dev.quinton.goa.core.domain.sync.GroupCredentials
+import dev.quinton.goa.core.domain.sync.HubAddress
 import dev.quinton.goa.core.domain.sync.SecureBytes
 import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
 import java.util.Base64
@@ -39,9 +40,15 @@ internal class DataStoreGroupRepository @Inject constructor(
         return group
     }
 
-    override suspend fun join(group: GroupCredentials) = store.edit { prefs ->
+    override suspend fun join(
+        group: GroupCredentials,
+        hubUrl: String?,
+        invitedPlayerId: String?,
+    ) = store.edit { prefs ->
         val same = prefs.groupId == group.groupId
         prefs.copy(
+            hubUrl = hubUrl?.let(HubAddress::normalize) ?: prefs.hubUrl.takeIf { same },
+            invitedPlayerId = invitedPlayerId ?: prefs.invitedPlayerId.takeIf { same },
             groupId = group.groupId,
             groupKey = Base64.getEncoder().encodeToString(group.key),
             groupName = group.name,
@@ -53,8 +60,20 @@ internal class DataStoreGroupRepository @Inject constructor(
     }
 
     override suspend fun leave() = store.edit {
-        it.copy(groupId = null, groupKey = null, groupName = null, phonesJson = null, lastSyncAt = null)
+        it.copy(
+            groupId = null,
+            groupKey = null,
+            groupName = null,
+            phonesJson = null,
+            lastSyncAt = null,
+            hubUrl = null,
+            invitedPlayerId = null,
+        )
     }
+
+    override suspend fun setHubUrl(url: String?) = store.edit { it.copy(hubUrl = url?.let(HubAddress::normalize)) }
+
+    override suspend fun setInvitedPlayer(playerId: String?) = store.edit { it.copy(invitedPlayerId = playerId) }
 
     override suspend fun setMe(playerId: String?) = store.edit { it.copy(mePlayerId = playerId) }
 
@@ -86,6 +105,8 @@ internal class DataStoreGroupRepository @Inject constructor(
             mePlayerId = prefs.mePlayerId,
             phones = decodePhones(prefs.phonesJson),
             lastSyncAt = prefs.lastSyncAt,
+            hubUrl = prefs.hubUrl,
+            invitedPlayerId = prefs.invitedPlayerId,
         )
     }
 

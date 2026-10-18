@@ -134,16 +134,24 @@ class FakeGroupRepository(initial: GroupState = GroupState(null, "this-phone", n
     override suspend fun start(name: String): GroupCredentials =
         GroupCredentials.create(name).also { join(it) }
 
-    override suspend fun join(group: GroupCredentials) = current.update {
+    override suspend fun join(group: GroupCredentials, hubUrl: String?, invitedPlayerId: String?) = current.update {
         val same = it.group?.groupId == group.groupId
         it.copy(
+            hubUrl = hubUrl ?: it.hubUrl.takeIf { same },
+            invitedPlayerId = invitedPlayerId ?: it.invitedPlayerId.takeIf { same },
             group = group,
             phones = if (same) it.phones else emptyList(),
             mePlayerId = if (same) it.mePlayerId else null,
         )
     }
 
-    override suspend fun leave() = current.update { it.copy(group = null, phones = emptyList(), lastSyncAt = null) }
+    override suspend fun leave() = current.update {
+        it.copy(group = null, phones = emptyList(), lastSyncAt = null, hubUrl = null, invitedPlayerId = null)
+    }
+
+    override suspend fun setHubUrl(url: String?) = current.update { it.copy(hubUrl = url) }
+
+    override suspend fun setInvitedPlayer(playerId: String?) = current.update { it.copy(invitedPlayerId = playerId) }
 
     override suspend fun setMe(playerId: String?) = current.update { it.copy(mePlayerId = playerId) }
 

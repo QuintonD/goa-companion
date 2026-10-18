@@ -157,8 +157,18 @@ interface GroupRepository {
     /** Starts a new group with a fresh id and 256-bit key; this phone becomes its first member. */
     suspend fun start(name: String): GroupCredentials
 
-    /** Joins [group] (from an invite). Joining another group forgets the old one's phones and "who am I". */
-    suspend fun join(group: GroupCredentials)
+    /**
+     * Joins [group] (from an invite). Joining another group forgets the old one's phones, hub and
+     * "who am I". [hubUrl] and [invitedPlayerId] come from the invite (ADR-030, ADR-031); null
+     * keeps what this phone already knows about the same group.
+     */
+    suspend fun join(group: GroupCredentials, hubUrl: String? = null, invitedPlayerId: String? = null)
+
+    /** The group's hub origin ([dev.quinton.goa.core.domain.sync.HubAddress]); null = no hub. */
+    suspend fun setHubUrl(url: String?)
+
+    /** The player a personal invite named; cleared once this phone answers "You're …?". */
+    suspend fun setInvitedPlayer(playerId: String?)
 
     /** Leaves the group: the key is forgotten, all data stays on this phone. */
     suspend fun leave()
@@ -182,6 +192,10 @@ data class GroupState(
     /** Phones this one has synced with, most recent first. */
     val phones: List<SyncedPhone>,
     val lastSyncAt: Long?,
+    /** The group's hub origin (ADR-030); null = no hub, Nearby and files only. */
+    val hubUrl: String? = null,
+    /** The player a personal invite was made for, not yet confirmed (ADR-031). */
+    val invitedPlayerId: String? = null,
 ) {
     val inGroup: Boolean get() = group != null
 }

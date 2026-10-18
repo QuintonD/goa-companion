@@ -26,8 +26,8 @@ import kotlinx.coroutines.flow.map
 /**
  * This phone's group-sync state (ADR-025), in its own DataStore file (`datastore/group_sync`),
  * apart from the app settings: the group joined (id, key, name), this install's id and name,
- * "who am I" and the phones last synced with. None of it is synced or put in a backup file.
- * Values are plain strings; core:data owns their meaning.
+ * "who am I", the phones last synced with, the group's hub address and the invited player. None
+ * of it is synced or put in a backup file. Values are plain strings; core:data owns their meaning.
  */
 class GroupSyncStore(private val store: DataStore<Preferences>) {
     val prefs: Flow<GroupSyncPrefs> = store.data
@@ -49,6 +49,8 @@ class GroupSyncStore(private val store: DataStore<Preferences>) {
         val ME = stringPreferencesKey("me_player_id")
         val PHONES = stringPreferencesKey("phones_json")
         val LAST_SYNC = longPreferencesKey("last_sync_at")
+        val HUB_URL = stringPreferencesKey("hub_url")
+        val INVITED_PLAYER = stringPreferencesKey("invited_player_id")
     }
 
     private fun read(prefs: Preferences) = GroupSyncPrefs(
@@ -60,6 +62,8 @@ class GroupSyncStore(private val store: DataStore<Preferences>) {
         mePlayerId = prefs[Keys.ME],
         phonesJson = prefs[Keys.PHONES],
         lastSyncAt = prefs[Keys.LAST_SYNC],
+        hubUrl = prefs[Keys.HUB_URL],
+        invitedPlayerId = prefs[Keys.INVITED_PLAYER],
     )
 
     private fun write(prefs: MutablePreferences, value: GroupSyncPrefs) {
@@ -71,6 +75,8 @@ class GroupSyncStore(private val store: DataStore<Preferences>) {
         prefs.set(Keys.ME, value.mePlayerId)
         prefs.set(Keys.PHONES, value.phonesJson)
         prefs.set(Keys.LAST_SYNC, value.lastSyncAt)
+        prefs.set(Keys.HUB_URL, value.hubUrl)
+        prefs.set(Keys.INVITED_PLAYER, value.invitedPlayerId)
     }
 
     private fun <T> MutablePreferences.set(key: Preferences.Key<T>, value: T?) {
@@ -92,6 +98,10 @@ data class GroupSyncPrefs(
     val mePlayerId: String? = null,
     val phonesJson: String? = null,
     val lastSyncAt: Long? = null,
+    /** The group's hub origin (ADR-030). */
+    val hubUrl: String? = null,
+    /** The player a personal invite was made for, until this phone answers "You're …?" (ADR-031). */
+    val invitedPlayerId: String? = null,
 )
 
 @Module
