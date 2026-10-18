@@ -130,7 +130,7 @@ fun BoardMapView(
         modifier
             .clipToBounds()
             .background(palette.canvas)
-            .onSizeChanged { viewport.setUp(layout, Size(it.width.toFloat(), it.height.toFloat()), maxHexPx, layout) }
+            .onSizeChanged { viewport.setUp(layout, Size(it.width.toFloat(), it.height.toFloat()), maxHexPx) }
             .pointerInput(layout, viewport) {
                 var lastTap: Triple<Long, Offset, Boolean>? = null
                 awaitEachGesture {
@@ -498,6 +498,8 @@ private fun ZoneLabels(state: BoardUiState.Ready, layout: MapLayout, viewport: M
         }
     }
     val margin = with(LocalDensity.current) { 6.dp.toPx() }
+    val fontScale = LocalDensity.current.fontScale
+    val labelScale = minOf(fontScale, MAX_LABEL_SCALE) / fontScale
     labels.forEach { label ->
         Row(
             Modifier
@@ -505,9 +507,13 @@ private fun ZoneLabels(state: BoardUiState.Ready, layout: MapLayout, viewport: M
                     val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
                     layout(constraints.maxWidth, constraints.maxHeight) {
                         val at = viewport.mapToScreen(label.at)
-                        val x = (at.x - placeable.width / 2f).coerceIn(margin, viewport.viewport.width - placeable.width - margin)
-                        val y = (at.y - placeable.height / 2f).coerceIn(margin, viewport.viewport.height - placeable.height - margin)
-                        placeable.place(x.roundToInt(), y.roundToInt())
+                        // A label whose Zone is out of view goes, rather than crowding the edge.
+                        val inView = at.x in 0f..viewport.viewport.width && at.y in 0f..viewport.viewport.height
+                        if (inView) {
+                            val x = (at.x - placeable.width / 2f).coerceIn(margin, viewport.viewport.width - placeable.width - margin)
+                            val y = (at.y - placeable.height / 2f).coerceIn(margin, viewport.viewport.height - placeable.height - margin)
+                            placeable.place(x.roundToInt(), y.roundToInt())
+                        }
                     }
                 }
                 .background(palette.labelBackground, RoundedCornerShape(50))
@@ -526,13 +532,16 @@ private fun ZoneLabels(state: BoardUiState.Ready, layout: MapLayout, viewport: M
             }
             Text(
                 label.text,
-                style = GoaTextStyles.overline.copy(fontSize = 9.sp, lineHeight = 12.sp),
+                // Map furniture: grows a little with large text, never enough to cover the map.
+                style = GoaTextStyles.overline.copy(fontSize = 9.sp * labelScale, lineHeight = 12.sp * labelScale),
                 color = label.team?.let(palette::team) ?: palette.label,
                 maxLines = 1,
             )
         }
     }
 }
+
+private const val MAX_LABEL_SCALE = 1.3f
 
 private data class ZoneLabel(val text: String, val team: Team?, val at: Offset)
 

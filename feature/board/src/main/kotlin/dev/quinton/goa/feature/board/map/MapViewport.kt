@@ -14,7 +14,8 @@ import dev.quinton.goa.core.designsystem.theme.Motion
 
 /**
  * Zoom and pan of the map. The map is laid out once at [unit] px per map unit (the "Fit" scale,
- * where the whole map fits the viewport) and shown at [zoom] × that, shifted by [pan] (px).
+ * where the whole map fits the viewport above [bottomInset], the tools floating over the map's
+ * bottom edge) and shown at [zoom] × that, shifted by [pan] (px).
  * Screen = pan + zoom × content, content = map units × [unit].
  */
 @Stable
@@ -35,31 +36,61 @@ class MapViewport {
     var pan by mutableStateOf(Offset.Zero)
         private set
 
-    /** Largest zoom: a hex then spans about [maxHexPx] px. */
-    private var maxZoom = MIN_MAX_ZOOM
+    /** Height (px) at the bottom covered by floating tools: Fit keeps the map above it. */
+    var bottomInset by mutableFloatStateOf(0f)
+        private set
 
-    private var layoutKey: Any? = null
+    /** Largest zoom: a hex then spans about `maxHexPx` px. */
+    private var maxZoom = MIN_MAX_ZOOM
+    private var maxHexPx = 0f
+    private var layout: MapLayout? = null
+
+    /** The user has zoomed or panned since the last Fit: nothing re-fits by itself then. */
+    private var moved = false
 
     /**
      * Fits [layout] into a viewport of [size] (px) the first time, and again when the layout or the
      * viewport changes (rotation, flip). [maxHexPx]: how big a hex may get at the largest zoom.
      */
-    fun setUp(layout: MapLayout, size: Size, maxHexPx: Float, key: Any) {
+    fun setUp(layout: MapLayout, size: Size, maxHexPx: Float) {
         if (size.width <= 0f || size.height <= 0f) return
-        if (key == layoutKey && size == viewport) return
-        layoutKey = key
+        if (layout === this.layout && size == viewport) return
+        this.layout = layout
+        this.maxHexPx = maxHexPx
         viewport = size
-        unit = minOf(size.width / layout.width, size.height / layout.height)
+        measure()
+        fit()
+    }
+
+    /** The floating tools' height changed; re-fits unless the user has moved the map. */
+    fun updateBottomInset(px: Float) {
+        if (px == bottomInset) return
+        bottomInset = px
+        if (!moved && layout != null) {
+            measure()
+            fit()
+        }
+    }
+
+    private fun measure() {
+        val layout = layout ?: return
+        val usable = (viewport.height - bottomInset).coerceAtLeast(viewport.height * MIN_USABLE)
+        unit = minOf(viewport.width / layout.width, usable / layout.height)
         content = Size(layout.width * unit, layout.height * unit)
         maxZoom = (maxHexPx / (2f * unit)).coerceAtLeast(MIN_MAX_ZOOM)
-        fit()
     }
 
     val isFit: Boolean get() = zoom <= 1.001f
 
     fun fit() {
         zoom = 1f
-        pan = Offset((viewport.width - content.width) / 2f, (viewport.height - content.height) / 2f)
+        pan = fitPan()
+        moved = false
+    }
+
+    private fun fitPan(): Offset {
+        val usable = (viewport.height - bottomInset).coerceAtLeast(content.height)
+        return Offset((viewport.width - content.width) / 2f, (usable - content.height) / 2f)
     }
 
     fun toContent(screen: Offset): Offset = (screen - pan) / zoom
@@ -76,11 +107,13 @@ class MapViewport {
     val scale: Float get() = unit * zoom
 
     fun panBy(delta: Offset) {
+        moved = true
         pan = clampPan(pan + delta, zoom)
     }
 
     /** Pinch: zooms by [factor] keeping [focus] (screen px) still, then pans by [delta]. */
     fun transform(factor: Float, focus: Offset, delta: Offset) {
+        moved = true
         val next = (zoom * factor).coerceIn(MIN_ZOOM, maxZoom)
         val applied = next / zoom
         val panned = focus - (focus - pan) * applied + delta
@@ -91,8 +124,9 @@ class MapViewport {
     /** Double tap: zoom in around [focus]; at the largest zoom, back to Fit. */
     suspend fun zoomStep(focus: Offset) {
         if (zoom >= maxZoom * 0.95f) {
-            animateTo(1f, Offset((viewport.width - content.width) / 2f, (viewport.height - content.height) / 2f))
+            animateFit()
         } else {
+            moved = true
             val next = (zoom * DOUBLE_TAP_FACTOR).coerceAtMost(maxZoom)
             val applied = next / zoom
             animateTo(next, clampPan(focus - (focus - pan) * applied, next))
@@ -100,11 +134,14 @@ class MapViewport {
     }
 
     /** Animated Fit. */
-    suspend fun animateFit() =
-        animateTo(1f, Offset((viewport.width - content.width) / 2f, (viewport.height - content.height) / 2f))
+    suspend fun animateFit() {
+        animateTo(1f, fitPan())
+        moved = false
+    }
 
     /** Pans (animated) so [map] (map units) sits at [target] (screen px). */
     suspend fun bringTo(map: Offset, target: Offset) {
+        moved = true
         val screen = mapToScreen(map)
         animateTo(zoom, clampPan(pan + (target - screen), zoom))
     }
@@ -133,5 +170,8 @@ class MapViewport {
         const val MIN_ZOOM = 1f
         const val MIN_MAX_ZOOM = 2f
         const val DOUBLE_TAP_FACTOR = 2.2f
+
+        /** Fit never shrinks the map into less than this share of the height. */
+        const val MIN_USABLE = 0.5f
     }
 }

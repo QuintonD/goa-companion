@@ -201,10 +201,10 @@ fun DrawScope.drawTargetCell(corners: List<Offset>, center: Offset, u: Float, pa
     )
 }
 
-/** The selected piece's space: a bright double outline. */
+/** The selected piece's space: a bright outline on a dark halo (reads over any overlay). */
 fun DrawScope.drawSelectionCell(corners: List<Offset>, center: Offset, u: Float, palette: BoardPalette) {
-    drawPath(hexPath(corners, 1.0f, center), palette.halo, style = Stroke(width = u * 0.26f, join = StrokeJoin.Round))
-    drawPath(hexPath(corners, 1.0f, center), palette.selection, style = Stroke(width = u * 0.14f, join = StrokeJoin.Round))
+    drawPath(hexPath(corners, 1.0f, center), palette.halo, style = Stroke(width = u * 0.3f, join = StrokeJoin.Round))
+    drawPath(hexPath(corners, 1.0f, center), palette.label, style = Stroke(width = u * 0.14f, join = StrokeJoin.Round))
 }
 
 /** A legend swatch: one space of [fill] with [cue] drawn on it, filling the draw area. */

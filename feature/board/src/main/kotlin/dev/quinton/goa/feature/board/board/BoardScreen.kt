@@ -70,6 +70,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
@@ -262,6 +263,7 @@ private fun BoardContent(
         val orientation = if (landscape) MapOrientation.LANDSCAPE else MapOrientation.PORTRAIT
         val layout = remember(state.map, orientation, state.bottomTeam) { MapLayout(state.map, orientation, state.bottomTeam) }
         var collapsed by rememberSaveable { mutableStateOf(false) }
+        val scope = rememberCoroutineScope()
         var panelSize by remember { mutableIntStateOf(0) }
         val selected = state.selected
         val density = LocalDensity.current
@@ -277,6 +279,16 @@ private fun BoardContent(
             val visibleBottom = viewport.viewport.height - if (landscape) 0f else panelSize.toFloat()
             val outside = screen.x < margin || screen.x > visibleRight - margin || screen.y < margin || screen.y > visibleBottom - margin
             if (outside) viewport.bringTo(layout.center(at), Offset(visibleRight / 2f, visibleBottom / 2f))
+        }
+
+        // A minion waits in the tray: bring the spaces it can go to into view, above the tray.
+        val targets = state.activeWaiting?.targets.orEmpty()
+        LaunchedEffect(state.activeWaitingId, targets.size, viewport.unit, viewport.bottomInset) {
+            if (targets.isEmpty() || viewport.unit == 0f || selected != null) return@LaunchedEffect
+            val centers = targets.map(layout::center)
+            val middle = Offset(centers.map { it.x }.average().toFloat(), centers.map { it.y }.average().toFloat())
+            val visibleBottom = viewport.viewport.height - viewport.bottomInset
+            viewport.bringTo(middle, Offset(viewport.viewport.width / 2f, visibleBottom / 2f))
         }
 
         BoardMapView(
@@ -304,8 +316,7 @@ private fun BoardContent(
             Spacer(Modifier.width(Spacing.sm))
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 MapButton(Icons.Outlined.CenterFocusStrong, "Fit the board") {
-                    // Fit is instant from the button too: the animation would fight a pinch.
-                    viewport.fit()
+                    scope.launch { viewport.animateFit() }
                 }
                 MapButton(Icons.Outlined.SwapVert, "Flip: ${BoardText.team(state.bottomTeam.opponent)} at the bottom") {
                     onAction(BoardAction.Flip)
@@ -343,27 +354,41 @@ private fun BoardContent(
                 Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .padding(Spacing.sm)
-                    .onSizeChanged { panelSize = 0 },
+                    .onSizeChanged {
+                        panelSize = 0
+                        // Fit keeps the map clear of the floating tools (and the tray).
+                        if (it.height > 0) viewport.updateBottomInset(it.height.toFloat())
+                    }
+                    .padding(Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (state.waiting.isNotEmpty()) WaitingTray(state, onAction)
-                if (state.tool == BoardTool.Move) Toolbar(onOpen)
+                if (state.waiting.isNotEmpty()) WaitingTray(state, onAction, Modifier.widthIn(max = 560.dp))
+                if (state.tool == BoardTool.Move) Toolbar(onOpen, compact = landscape)
             }
         }
     }
 }
 
+/** The map isn't checked against the official art and rulebook yet (ADR-033). */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun UnverifiedMap(name: String) {
     Surface(
-        shape = RoundedCornerShape(50),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
         modifier = Modifier.semantics(mergeDescendants = true) {},
     ) {
-        Row(Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-            Text(name, style = MaterialTheme.typography.labelMedium, maxLines = 1)
-            Spacer(Modifier.width(Spacing.sm))
+        FlowRow(
+            Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            // With large text the badge alone says it; the map name would cover the board.
+            if (LocalDensity.current.fontScale <= LARGE_FONT) {
+                Text(name, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
             UnverifiedBadge()
         }
     }
@@ -430,38 +455,56 @@ private fun MapButton(icon: ImageVector, description: String, onClick: () -> Uni
     }
 }
 
-/** Add, Push the lane, Pieces: the board's tools when nothing is selected. */
+/**
+ * Add, Push the lane, Pieces: the board's tools when nothing is selected. [compact] (landscape,
+ * where height is scarce) lays each icon beside its label.
+ */
 @Composable
-private fun Toolbar(onOpen: (BoardOverlay) -> Unit) {
+private fun Toolbar(onOpen: (BoardOverlay) -> Unit, compact: Boolean) {
     Surface(
         shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+        color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
         shadowElevation = 6.dp,
-        modifier = Modifier.fillMaxWidth().widthIn(max = 560.dp),
+        modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth(),
     ) {
         Row(Modifier.padding(Spacing.xs)) {
-            ToolButton(Icons.Outlined.AddCircleOutline, "Add", Modifier.weight(1f)) { onOpen(BoardOverlay.ADD) }
-            ToolButton(Icons.Outlined.KeyboardDoubleArrowUp, "Push the lane", Modifier.weight(1f)) { onOpen(BoardOverlay.PUSH) }
-            ToolButton(Icons.AutoMirrored.Outlined.FormatListBulleted, "Pieces", Modifier.weight(1f)) { onOpen(BoardOverlay.PIECES) }
+            ToolButton(Icons.Outlined.AddCircleOutline, "Add", compact, Modifier.weight(1f)) { onOpen(BoardOverlay.ADD) }
+            ToolButton(Icons.Outlined.KeyboardDoubleArrowUp, "Push the lane", compact, Modifier.weight(1f)) { onOpen(BoardOverlay.PUSH) }
+            ToolButton(Icons.AutoMirrored.Outlined.FormatListBulleted, "Pieces", compact, Modifier.weight(1f)) { onOpen(BoardOverlay.PIECES) }
         }
     }
 }
 
 @Composable
-private fun ToolButton(icon: ImageVector, label: String, modifier: Modifier, onClick: () -> Unit) {
+private fun ToolButton(icon: ImageVector, label: String, compact: Boolean, modifier: Modifier, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0f),
-        modifier = modifier.heightIn(min = 56.dp),
+        modifier = modifier.heightIn(min = if (compact) 48.dp else 56.dp),
     ) {
-        Column(
-            Modifier.padding(vertical = Spacing.sm, horizontal = Spacing.xs),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
+        val iconContent = @Composable {
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(scaledIconSize(24.dp, 1.4f)))
-            Text(label, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, maxLines = 2)
+        }
+        if (compact) {
+            Row(
+                Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.sm),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                iconContent()
+                Spacer(Modifier.width(Spacing.sm))
+                Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            }
+        } else {
+            Column(
+                Modifier.padding(vertical = Spacing.sm, horizontal = Spacing.xs),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                iconContent()
+                Text(label, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, maxLines = 2)
+            }
         }
     }
 }
@@ -473,7 +516,7 @@ private fun WaitingTray(state: BoardUiState.Ready, onAction: (BoardAction) -> Un
     val palette = boardPalette()
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+        color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)),
         shadowElevation = 4.dp,
         modifier = modifier.fillMaxWidth(),
@@ -523,3 +566,4 @@ private fun WaitingTray(state: BoardUiState.Ready, onAction: (BoardAction) -> Un
 
 private val SIDE_PANEL = 380.dp
 private const val PANEL_MAX = 0.5f
+private const val LARGE_FONT = 1.3f

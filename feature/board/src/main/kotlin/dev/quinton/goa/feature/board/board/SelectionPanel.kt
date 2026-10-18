@@ -147,7 +147,7 @@ private fun PanelHeader(
     }
     val inBattle = zone != null && zone in state.board.state.battleZones.values
     val subtitle = listOfNotNull(
-        team?.let(BoardText::team),
+        team?.let { "${BoardText.team(it)} team" },
         if (piece.at == null) "in the tray" else BoardText.zone(state.map, zone),
         "Battle Zone".takeIf { inBattle },
     ).joinToString(" · ")
