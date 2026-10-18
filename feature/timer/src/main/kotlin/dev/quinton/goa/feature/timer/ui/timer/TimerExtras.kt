@@ -116,7 +116,12 @@ internal fun VolumeKeyControls(
  * [COIN_UNDO_MS] or until the next timer action ([actionKey] changes), whichever comes first.
  */
 @Composable
-internal fun TieBreakerChip(team: Team, onFlip: () -> Unit, actionKey: Any? = null) {
+internal fun TieBreakerChip(
+    team: Team,
+    onFlip: () -> Unit,
+    actionKey: Any? = null,
+    onUndoShown: (Boolean) -> Unit = {},
+) {
     var flips by remember { mutableIntStateOf(0) }
     var showUndo by remember { mutableStateOf(false) }
     LaunchedEffect(flips) {
@@ -126,6 +131,8 @@ internal fun TieBreakerChip(team: Team, onFlip: () -> Unit, actionKey: Any? = nu
         showUndo = false
     }
     LaunchedEffect(actionKey) { showUndo = false }
+    // The header makes room for Undo by moving optional icons into its menu.
+    LaunchedEffect(showUndo) { onUndoShown(showUndo) }
     if (showUndo) {
         TextButton(
             onClick = {

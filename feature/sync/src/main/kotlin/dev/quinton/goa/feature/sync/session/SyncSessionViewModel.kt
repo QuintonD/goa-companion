@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.sync.session
 
-import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
@@ -23,6 +22,7 @@ import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
 import dev.quinton.goa.core.domain.sync.protocol.SyncHost
 import dev.quinton.goa.core.domain.sync.protocol.SyncPeer
 import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.feature.sync.PhoneName
 import dev.quinton.goa.feature.sync.SyncText
 import dev.quinton.goa.feature.sync.di.SessionTransport
 import dev.quinton.goa.feature.sync.di.SyncTransportFactory
@@ -64,6 +64,8 @@ data class SyncSessionUiState(
     val deviceName: String = "",
     /** Right after joining: "Which player are you?" comes next. */
     val firstSync: Boolean = false,
+    /** This phone has picked its player ("Who are you?"); if not, a finished sync offers it. */
+    val meChosen: Boolean = true,
     /** Asked for by the route; the sheet starts it once the permissions are granted. */
     val requestedRole: SessionRole? = null,
     /** Two players share a name after the sync. */
@@ -108,6 +110,7 @@ class SyncSessionViewModel @AssistedInject constructor(
     private val transports: SyncTransportFactory,
     private val clock: EditClock,
     private val appInfo: AppInfo,
+    private val phoneName: PhoneName,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -161,6 +164,7 @@ class SyncSessionViewModel @AssistedInject constructor(
             groupName = group.group?.name,
             deviceName = deviceName(group, people),
             firstSync = firstSync,
+            meChosen = people.any { it.id == group.mePlayerId },
             requestedRole = role,
             duplicateHint = if (finishedOk) SyncText.duplicateHint(SyncText.duplicateNames(people)) else null,
             versionHint = SyncText.versionHint(appInfo.versionName(), others),
@@ -241,5 +245,5 @@ class SyncSessionViewModel @AssistedInject constructor(
     }
 
     private fun deviceName(state: GroupState, people: List<Player>): String =
-        people.firstOrNull { it.id == state.mePlayerId }?.name ?: state.deviceName ?: Build.MODEL ?: "Phone"
+        people.firstOrNull { it.id == state.mePlayerId }?.name ?: state.deviceName ?: phoneName.get()
 }

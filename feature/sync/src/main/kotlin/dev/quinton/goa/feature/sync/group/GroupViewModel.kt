@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.sync.group
 
-import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,6 +12,7 @@ import dev.quinton.goa.core.domain.sync.GroupCredentials
 import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.core.domain.sync.SyncValidation
 import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.feature.sync.PhoneName
 import dev.quinton.goa.feature.sync.SyncText
 import dev.quinton.goa.feature.sync.share.SyncFiles
 import javax.inject.Inject
@@ -68,6 +68,7 @@ class GroupViewModel @Inject constructor(
     matches: MatchRepository,
     private val sync: SyncRepository,
     private val clock: EditClock,
+    private val phoneName: PhoneName,
 ) : ViewModel() {
     private val local = MutableStateFlow(Local())
     private val events = Channel<GroupEvent>(Channel.BUFFERED)
@@ -86,7 +87,7 @@ class GroupViewModel @Inject constructor(
             groupName = group.group?.name,
             invite = group.group?.let(GroupInvite::format),
             me = me,
-            deviceName = me?.name ?: group.deviceName ?: Build.MODEL ?: "This phone",
+            deviceName = me?.name ?: group.deviceName ?: phoneName.get(),
             phones = group.phones.map { PhoneRow(it.name, SyncText.ago(it.lastSyncedAt, now)) },
             lastSync = group.lastSyncAt?.let { SyncText.ago(it, now) },
             players = people.count { !it.archived },

@@ -268,7 +268,8 @@ class NearbySyncTransport(context: Context) : SyncTransport {
             val name = ConnectionsStatusCodes.getStatusCodeString(code)
             val message = when {
                 name.contains("PERMISSION") ->
-                    "Nearby devices permission is off. Allow it in the app's settings, or use a sync file."
+                    "Nearby is missing a permission ($name). Allow it in the app's settings (Permissions), " +
+                        "or use a sync file."
 
                 code == ConnectionsStatusCodes.STATUS_BLUETOOTH_ERROR ||
                     code == ConnectionsStatusCodes.STATUS_RADIO_ERROR ->

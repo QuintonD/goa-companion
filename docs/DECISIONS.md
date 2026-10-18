@@ -418,11 +418,15 @@ non-negotiable. Options weighed:
   it; it opens no connection).
 - New runtime permission group ("Nearby devices" on Android 12+, Location before), asked only
   when a sync starts, with a rationale, a settings link after a refusal, and the file fallback.
-  The manifest follows Google's Nearby list with one change: `ACCESS_COARSE_LOCATION` is
+  The manifest follows Google's Nearby list with three changes: `ACCESS_COARSE_LOCATION` is
   declared up to API 31 (Google: 28) and asked together with FINE on Android 12, which ignores a
-  FINE request made alone (lint `CoarseFineLocation`). `neverForLocation` is set on
-  `NEARBY_WIFI_DEVICES` only; Google's list doesn't use it on `BLUETOOTH_SCAN`, and it can't be
-  checked without real radios.
+  FINE request made alone (lint `CoarseFineLocation`); `ACCESS_WIFI_STATE` and
+  `CHANGE_WIFI_STATE` are declared on every version (Google: up to 31), because Play services'
+  Nearby refused to advertise or discover without `ACCESS_WIFI_STATE` on Android 12+ (8032); and
+  `BLUETOOTH_SCAN` carries `neverForLocation` (as `NEARBY_WIFI_DEVICES` does), because without it
+  Nearby demanded COARSE and then FINE location on Android 12+ (8034, 8036), which the app never
+  asks for there. Found in the 0.2.0 hands-on pass (2026-10-18): with Google's list as written,
+  every Sync now failed on Android 12+.
 - Last writer wins per record: two phones editing the same match before syncing keep only the
   later edit (no field-level merge). Phones with badly wrong clocks win concurrent edits; an edit
   after a sync always beats what it edited. On an exact tie a match with more known heroes wins
@@ -438,8 +442,16 @@ non-negotiable. Options weighed:
   host's wording for a phone that dropped after its data was in.
 - Tombstones are kept forever (tens of bytes each). Key rotation isn't built: leaving and
   re-inviting with a new group is the way to cut someone out.
-- Nearby can't be exercised on emulators: the protocol, crypto and merge are proven by JVM tests;
-  two physical phones at the table are the open check (ROADMAP M6).
+- Nearby runs between two API 36 emulators over the emulator's virtual Bluetooth (2026-10-18:
+  host + join, a full sync, a duplicate merge, the permission flows). The protocol, crypto and
+  merge are proven by JVM tests; real radios (range, Wi-Fi Direct upgrade, a phone walking away)
+  on two physical phones are the open check (ROADMAP M6).
+- Hands-on pass (2026-10-18) also fixed: a phone is named by Android's device name ("Galaxy S25
+  Ultra"), not `Build.MODEL` ("SM-S938B"), until its owner picks themselves; a first refusal of
+  the permission says so and offers the sync file; a permission turned on in system settings is
+  noticed on return; "Which player are you?" follows any finished sync until it is answered;
+  "Share as text" sends the invite with instructions, and the paste field finds the invite in a
+  whole pasted message; the app is left out of its own sync-file share sheet.
 
 ## ADR-026 — Timer: optional whole-round view, chosen per device (2026-10-17)
 **Context:** The owner asked for a view of the running timer that shows every phase of the round
@@ -449,8 +461,10 @@ settings DataStore (`timer_layout`; unknown values read as the default) and so i
 the settings contributor. A file from before this field imports with the default; the settings
 contributor now also coerces unknown enum values (`coerceInputValues`), so a newer build's layout
 falls back instead of dropping every backed-up setting. It is chosen in Settings → Running timer
-and by a top-bar switch on the running timer that saves immediately (in the overflow menu above
-font scale 1.3, like Levels). (2) The round view is a second body for the same `ActiveUiState`:
+and by a top-bar switch on the running timer that saves immediately. The header measures
+"Round N", the coin chip and its Undo; what doesn't fit beside them moves into the overflow menu,
+the view switch first, then Levels (on a 384 dp S25 Ultra with the coin tracked the switch is in
+the menu; above font scale 1.3 both are). (2) The round view is a second body for the same `ActiveUiState`:
 the mapper adds one `RoundRowUi` per step of the current round's `TimerPlan` (only while the
 layout is `ROUND`), everything else — header, alerts banner, Hurry up, time-outs, controls,
 volume keys, auto-advance, cues — is shared with the step view, so the two can't drift. (3)
@@ -463,7 +477,8 @@ it for context, or less when the current card is tall) and skips that while the 
 **Consequences:** No change to the persisted timer snapshot. The bottom controls stay Pause and
 Next as in the step view; "Previous phase" sits beside the current step's title (in its card in
 portrait, above its clock in landscape). Landscape pins Hurry up and time-outs above the controls too,
-so they and the Level Up rule fit a short window. Rows only cover the current round: jumping to
+so they and the Level Up rule fit a short window, and sizes the clock digits (36–56 dp) to the
+room left (an S25 Ultra held sideways leaves about 130 dp); the step view puts them under the dial. Rows only cover the current round: jumping to
 another round is not offered.
 
 ## ADR-027 — Players: a shareable, self-contained HTML stats page for friends without the app (2026-10-17)

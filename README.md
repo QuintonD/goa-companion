@@ -49,7 +49,8 @@ Connections). No internet, no accounts, no server; the app still has no internet
 3. On the friend's phone: Settings → Group sync (or the sync icon on the Players tab) →
    **Scan invite QR code**. The scanner is Google Play services' (no camera permission for the
    app); the first scan needs Play services to fetch it once, so the phone needs a connection
-   that one time. No scanner? "Share as text" on the invite, then **Or paste an invite**.
+   that one time. No scanner? "Share as text" on the invite, then paste the whole message into
+   **Or paste an invite**.
 4. The first sync starts right away: allow **Nearby devices** (Android 12+; "Location" on older
    phones) when asked. On the inviting phone, tap Sync now → **Host**; the friend's phone joins
    by itself.

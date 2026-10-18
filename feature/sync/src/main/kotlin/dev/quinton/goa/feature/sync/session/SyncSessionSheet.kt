@@ -47,6 +47,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -66,6 +67,9 @@ import dev.quinton.goa.feature.sync.nearby.NearbyPermissions
 enum class PermissionUi {
     /** Explain, then ask. */
     NEEDED,
+
+    /** Refused once: Android can still ask again. Say so, and offer the sync file. */
+    REFUSED,
 
     /** Denied for good: only system settings can turn it on. */
     DENIED,
@@ -97,7 +101,8 @@ fun SyncSessionEntry(state: SyncSessionUiState, viewModel: SyncSessionViewModel,
     var permission by rememberSaveable { mutableStateOf<PermissionUi?>(null) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         val role = pending ?: return@rememberLauncherForActivityResult
-        if (result.values.all { it }) {
+        // What counts is what Nearby needs now (Android 12: "Approximate" leaves FINE refused).
+        if (result.isNotEmpty() && NearbyPermissions.missing(context).isEmpty()) {
             permission = null
             pending = null
             viewModel.start(role)
@@ -105,7 +110,7 @@ fun SyncSessionEntry(state: SyncSessionUiState, viewModel: SyncSessionViewModel,
             val permanent = activity != null && NearbyPermissions.missing(context).none {
                 activity.shouldShowRequestPermissionRationale(it)
             }
-            permission = if (permanent) PermissionUi.DENIED else PermissionUi.NEEDED
+            permission = if (permanent) PermissionUi.DENIED else PermissionUi.REFUSED
         }
     }
     fun choose(role: SessionRole) {
@@ -118,13 +123,15 @@ fun SyncSessionEntry(state: SyncSessionUiState, viewModel: SyncSessionViewModel,
     }
     // A role from the route ("Join" right after scanning an invite) starts on its own.
     LaunchedEffect(state.requestedRole) { state.requestedRole?.let(::choose) }
-    // Back from system settings with the permission now on.
-    LaunchedEffect(permission) {
+    // Back from system settings with the permission now on: checked on every resume, since nothing
+    // in the sheet changes while the user is away.
+    LifecycleResumeEffect(permission) {
         if (permission != null && NearbyPermissions.missing(context).isEmpty()) {
             pending?.let(viewModel::start)
             pending = null
             permission = null
         }
+        onPauseOrDispose {}
     }
     KeepScreenOn()
     SyncSessionSheet(
@@ -287,6 +294,20 @@ private fun PermissionContent(permission: PermissionUi, actions: SyncSessionActi
             TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Not now") }
         }
 
+        PermissionUi.REFUSED -> Message(
+            icon = Icons.Outlined.ErrorOutline,
+            title = "“$group” wasn't allowed",
+            body = "Sync needs it to find the phones next to you. Ask again, or share a sync file instead: it " +
+                "works through Quick Share, a message or Drive.",
+            error = true,
+        ) {
+            Button(onClick = actions.onAllow, modifier = Modifier.heightIn(min = 48.dp)) { Text("Ask again") }
+            OutlinedButton(onClick = actions.onUseFile, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text("Use a sync file")
+            }
+            TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Not now") }
+        }
+
         PermissionUi.DENIED -> Message(
             icon = Icons.Outlined.ErrorOutline,
             title = "“$group” is off",
@@ -395,6 +416,12 @@ private fun Finish(state: SyncSessionUiState, actions: SyncSessionActions) {
         }
     } else {
         Button(onClick = actions.onClose, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text("Done") }
+        // The first sync after joining may have failed (phones apart, Nearby off): ask here instead.
+        if (!state.meChosen) {
+            TextButton(onClick = actions.onWhoAreYou, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text("Which player are you?")
+            }
+        }
     }
 }
 

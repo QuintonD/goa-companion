@@ -171,8 +171,9 @@ phones keep the same matches, players, drafts, deletions and rating constants by
 face at the table**, phone to phone over Bluetooth and Wi-Fi Direct (Google Nearby Connections).
 No server, no accounts, no internet; the app still has no INTERNET permission.
 - **Group:** "Start a group" (name) creates the group and its key; "Invite a friend" shows a QR
-  code (and "Share as text"); a friend's phone joins by scanning it (Google's code scanner, no
-  camera permission) or pasting the invite. Leave group keeps all data.
+  code (and "Share as text", which sends the invite with what to do with it); a friend's phone
+  joins by scanning it (Google's code scanner, no camera permission) or pasting the invite (or the
+  whole message it came in). Leave group keeps all data.
 - **Join flow:** install → Group sync → scan → the first sync starts right away → "Which player
   are you?" (pick yourself, or add yourself: this is how a friend adds themself as a player).
   Your player shows "You" in the Players list, and the Players tab's top bar opens your page.
@@ -180,7 +181,8 @@ No server, no accounts, no internet; the app still has no INTERNET permission.
   taps Host, the others Join (a joiner finds the host on its own; with two hosts in range it asks
   which). The host lists each phone with its progress and taps Sync when everyone is in; result
   summary per phone ("+5 matches, +1 player, 2 updated"). Permissions are asked when a sync starts,
-  with an explanation; after a refusal the sheet offers system settings and the file fallback.
+  with an explanation; after a refusal the sheet says so and offers asking again (or system
+  settings) and the file fallback.
   Every stage times out; Cancel always works; the sheet can't be swiped away while merged data is
   being written.
 - **Merge rules:** the later edit of a match, player or draft wins; a deleted match stays deleted
@@ -193,7 +195,7 @@ No server, no accounts, no internet; the app still has no INTERNET permission.
 - **Done when:** merge properties (commutative, associative, idempotent, convergence, identical
   ratings) and the protocol over a fake transport (host + 3 phones, a dropped phone, a wrong key)
   pass on the JVM; the merged release manifest has no INTERNET permission; **two physical phones
-  sync at the table** (Nearby can't be proven on emulators).
+  sync at the table** (emulators prove Nearby only over virtual Bluetooth).
 
 ### Settings
 Theme (dark default / light / system), owned products (default: all), timer defaults, running
