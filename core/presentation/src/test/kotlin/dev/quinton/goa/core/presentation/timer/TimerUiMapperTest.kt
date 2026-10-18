@@ -1,27 +1,23 @@
-package dev.quinton.goa.feature.timer.ui.timer
+package dev.quinton.goa.core.presentation.timer
 
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.domain.timer.TimerEngine
 import dev.quinton.goa.core.model.settings.TimerLayout
-import dev.quinton.goa.feature.timer.FakeClocks
-import dev.quinton.goa.feature.timer.FileTimerAssets
-import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 class TimerUiMapperTest {
     private val clocks = FakeClocks()
     private val engine = TimerEngine(clocks, clocks)
-    private val assets = FileTimerAssets()
 
-    private suspend fun tableRules() = engine.start(
+    private fun tableRules() = engine.start(
         "s",
-        assets.presetCatalog().presets.first { it.id == "table-rules" },
-        assets.rules().endOfRound,
+        TimerTestData.presets.presets.first { it.id == "table-rules" },
+        TimerTestData.rules.endOfRound,
         actionSlots = 4,
     )
 
     @Test
-    fun `round rows show where the round is and read out for TalkBack`() = runTest {
+    fun `round rows show where the round is and read out for TalkBack`() {
         val s = engine.jumpTo(tableRules(), 3) // turn 2, play a card
         clocks.advance(4_000)
         val active = TimerUiMapper.active(s, engine.readout(s), seats = null, layout = TimerLayout.ROUND)

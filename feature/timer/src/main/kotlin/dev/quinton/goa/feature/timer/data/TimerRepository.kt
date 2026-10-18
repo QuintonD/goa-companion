@@ -4,12 +4,11 @@ import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.quinton.goa.core.datastore.timer.TimerStateStore
 import dev.quinton.goa.core.domain.setup.MatchRules
-import dev.quinton.goa.core.domain.timer.PhaseKind
 import dev.quinton.goa.core.domain.timer.TimerJson
 import dev.quinton.goa.core.domain.timer.TimerPreset
 import dev.quinton.goa.core.domain.timer.TimerPresetCatalog
-import dev.quinton.goa.core.domain.timer.TimerPresetMigration
 import dev.quinton.goa.core.domain.timer.TimerSnapshot
+import dev.quinton.goa.core.presentation.timer.TimerPresets
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
@@ -64,9 +63,7 @@ class TimerRepository @Inject constructor(
     private val assets: TimerAssets,
 ) {
     val presets: Flow<List<TimerPreset>> = store.presetsJson.map { json ->
-        val bundled = assets.presetCatalog().presets
-        val stored = json?.let(::decodePresetsOrNull)?.takeIf { it.isNotEmpty() }
-        stored?.let { TimerPresetMigration.upgrade(it, bundled) } ?: bundled
+        TimerPresets.effective(json?.let(::decodePresetsOrNull), assets.presetCatalog())
     }
 
     private val tonight = MutableStateFlow<TonightTurn?>(null)
@@ -77,7 +74,7 @@ class TimerRepository @Inject constructor(
     /** Sets tonight's turn length for [presetId]; null (or the preset's own length) clears it. */
     suspend fun setTonightTurn(presetId: String, seconds: Int?) {
         val preset = preset(presetId)
-        val own = preset?.phases?.firstOrNull { it.enabled && it.kind == PhaseKind.TURN }?.seconds
+        val own = preset?.let(TimerPresets::turnSeconds)
         tonight.value = when {
             seconds == null || preset == null || seconds == own -> null
             else -> TonightTurn(presetId, seconds)
@@ -87,15 +84,7 @@ class TimerRepository @Inject constructor(
     /** [preset] with tonight's turn length applied, if one is set for it. */
     fun withTonight(preset: TimerPreset): TimerPreset {
         val override = tonight.value?.takeIf { it.presetId == preset.id } ?: return preset
-        return preset.copy(
-            phases = preset.phases.map { phase ->
-                if (phase.kind == PhaseKind.TURN && phase.seconds != null) {
-                    phase.copy(seconds = override.seconds, cues = phase.cues.filter { it < override.seconds })
-                } else {
-                    phase
-                }
-            },
-        )
+        return TimerPresets.withTonight(preset, override.seconds)
     }
 
     /** Writes tonight's turn length into the preset itself and clears the override. */
@@ -108,7 +97,7 @@ class TimerRepository @Inject constructor(
 
     /** The selected preset id, falling back to the bundled default (or the first preset). */
     val selectedPresetId: Flow<String> = combine(presets, store.selectedPresetId) { list, id ->
-        list.firstOrNull { it.id == id }?.id ?: defaultIdIn(list)
+        TimerPresets.selectedId(list, id, assets.presetCatalog())
     }
 
     val snapshot: Flow<TimerSnapshot?> = store.snapshotJson.map { json -> json?.let(::decodeSnapshotOrNull) }
@@ -126,27 +115,20 @@ class TimerRepository @Inject constructor(
 
     /** Inserts or replaces [preset] (keeping its position). */
     suspend fun save(preset: TimerPreset) {
-        val list = presets.first()
-        val updated = if (list.any { it.id == preset.id }) {
-            list.map { if (it.id == preset.id) preset else it }
-        } else {
-            list + preset
-        }
-        store.writePresets(TimerJson.encodePresets(updated))
+        store.writePresets(TimerJson.encodePresets(TimerPresets.save(presets.first(), preset)))
     }
 
     /** Deletes [id] unless it's the last preset. Returns false when refused. */
     suspend fun delete(id: String): Boolean {
-        val list = presets.first()
-        if (list.size <= 1 || list.none { it.id == id }) return false
-        store.writePresets(TimerJson.encodePresets(list.filterNot { it.id == id }))
+        val remaining = TimerPresets.delete(presets.first(), id) ?: return false
+        store.writePresets(TimerJson.encodePresets(remaining))
         return true
     }
 
     suspend fun restoreDefaults() {
-        val list = presets.first()
-        val missing = assets.presetCatalog().presets.filter { bundled -> list.none { it.id == bundled.id } }
-        store.writePresets(TimerJson.encodePresets(missing + list))
+        store.writePresets(
+            TimerJson.encodePresets(TimerPresets.restoreDefaults(presets.first(), assets.presetCatalog())),
+        )
     }
 
     suspend fun currentSnapshot(): TimerSnapshot? = store.currentSnapshotJson()?.let(::decodeSnapshotOrNull)
@@ -159,11 +141,6 @@ class TimerRepository @Inject constructor(
             result?.let(TimerJson::encodeSnapshot)
         }
         return result
-    }
-
-    private suspend fun defaultIdIn(list: List<TimerPreset>): String {
-        val bundledDefault = assets.presetCatalog().defaultPresetId
-        return list.firstOrNull { it.id == bundledDefault }?.id ?: list.first().id
     }
 
     private fun decodePresetsOrNull(json: String): List<TimerPreset>? = runCatching {

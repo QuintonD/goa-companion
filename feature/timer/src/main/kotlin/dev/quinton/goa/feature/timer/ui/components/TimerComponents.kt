@@ -60,7 +60,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.timer.RoundSection
 import dev.quinton.goa.core.model.match.Team
-import dev.quinton.goa.feature.timer.ui.timer.RoundPipsUi
+import dev.quinton.goa.core.presentation.timer.RoundPipsUi
 
 /** True when the user turned animations off (Settings → Accessibility → Remove animations). */
 @Composable

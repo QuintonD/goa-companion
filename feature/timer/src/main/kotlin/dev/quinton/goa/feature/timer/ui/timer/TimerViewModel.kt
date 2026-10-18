@@ -18,9 +18,14 @@ import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.model.settings.TimerLayout
-import dev.quinton.goa.feature.timer.TimerText
+import dev.quinton.goa.core.presentation.timer.PendingMatchItem
+import dev.quinton.goa.core.presentation.timer.SeatInfo
+import dev.quinton.goa.core.presentation.timer.StartUiState
+import dev.quinton.goa.core.presentation.timer.TimerCommand
+import dev.quinton.goa.core.presentation.timer.TimerPresets
+import dev.quinton.goa.core.presentation.timer.TimerUiMapper
+import dev.quinton.goa.core.presentation.timer.TimerUiState
 import dev.quinton.goa.feature.timer.data.TimerRepository
-import dev.quinton.goa.feature.timer.session.TimerCommand
 import dev.quinton.goa.feature.timer.session.TimerController
 import dev.quinton.goa.feature.timer.system.CuePlayer
 import java.text.DateFormat
@@ -132,9 +137,7 @@ class TimerViewModel @Inject constructor(
         }
 
     private val pending: Flow<List<PendingMatchItem>> = combine(matches.observeMatches(), catalog) { list, c ->
-        list.filter { it.status == MatchStatus.PENDING }
-            .sortedByDescending { it.createdAt }
-            .map { pendingItem(it, c) }
+        TimerUiMapper.pendingMatches(list).map { TimerUiMapper.pendingItem(it, c, since(it.createdAt)) }
     }
 
     private val startState: Flow<StartUiState> = combine(
@@ -144,18 +147,12 @@ class TimerViewModel @Inject constructor(
         seatsChoice,
         repository.tonightTurn,
     ) { presets, selected, pendingList, seats, tonight ->
-        val own = presets.firstOrNull { it.id == selected }
-            ?.phases?.firstOrNull { it.enabled && it.kind == PhaseKind.TURN }?.seconds
         StartUiState(
-            tonight = own?.let { TonightUi(tonight?.takeIf { t -> t.presetId == selected }?.seconds ?: it, it) },
-            presets = presets.map { p ->
-                PresetOption(
-                    id = p.id,
-                    name = p.name,
-                    summary = TimerText.presetSummary(p),
-                    usesActionTimer = p.phases.any { it.enabled && it.kind == PhaseKind.ACTION },
-                )
-            },
+            tonight = TimerUiMapper.tonight(
+                presets.firstOrNull { it.id == selected },
+                tonight?.takeIf { t -> t.presetId == selected }?.seconds,
+            ),
+            presets = presets.map(TimerUiMapper::presetOption),
             selectedPresetId = selected,
             pendingMatches = pendingList,
             seats = seats,
@@ -333,11 +330,7 @@ class TimerViewModel @Inject constructor(
     }
 
     /** The session's mode if the rules allow it for its number of heroes (Action slots = seats). */
-    private suspend fun legalMode(s: TimerSnapshot): GameMode? {
-        val mode = s.mode ?: return null
-        val option = MatchSetup(repository.rules()).modeOptions(s.actionSlots).firstOrNull { it.mode == mode }
-        return mode.takeIf { option?.available == true }
-    }
+    private suspend fun legalMode(s: TimerSnapshot): GameMode? = TimerUiMapper.legalMode(s, repository.rules())
 
     private fun serialName(mode: GameMode): String = GameMode.serializer().descriptor.getElementName(mode.ordinal)
 
@@ -396,32 +389,6 @@ class TimerViewModel @Inject constructor(
         if (match.status == MatchStatus.PENDING) matches.delete(matchId)
     }
 
-    private fun pendingItem(match: Match, catalog: Catalog?): PendingMatchItem {
-        val seats = match.participants.size
-        val players = match.playerIds.size
-        val title = buildString {
-            append(TimerText.modeLabel(match.mode))
-            if (seats > 0) append(" · $seats heroes")
-            if (players in 1 until seats) append(", $players players")
-        }
-
-        fun heroes(team: Team): String? = match.participants
-            .filter { it.team == team }
-            .map { seat ->
-                seat.heroId?.let { id -> catalog?.heroes?.firstOrNull { it.id == id }?.name ?: id }
-                    ?: "Hero not picked"
-            }
-            .takeIf { it.isNotEmpty() }
-            ?.joinToString(", ")
-        return PendingMatchItem(
-            id = match.id,
-            title = title,
-            subtitle = "Pending since ${since(match.createdAt)}",
-            red = heroes(Team.RED),
-            blue = heroes(Team.BLUE),
-        )
-    }
-
     /** "5:06 PM" today, else "Oct 16, 2026, 5:06 PM": pending matches from one evening differ by time. */
     private fun since(millis: Long): String {
         val dates = DateFormat.getDateInstance(DateFormat.MEDIUM)
@@ -440,8 +407,8 @@ class TimerViewModel @Inject constructor(
         private const val STALE_CUE_MS = 2_000L
 
         private val SHOT_CUES = listOf(10, 5, 0)
-        const val TONIGHT_STEP_SECONDS = 15
-        const val TONIGHT_MIN_SECONDS = 15
-        const val TONIGHT_MAX_SECONDS = 300
+        const val TONIGHT_STEP_SECONDS = TimerPresets.TONIGHT_STEP_SECONDS
+        const val TONIGHT_MIN_SECONDS = TimerPresets.TONIGHT_MIN_SECONDS
+        const val TONIGHT_MAX_SECONDS = TimerPresets.TONIGHT_MAX_SECONDS
     }
 }

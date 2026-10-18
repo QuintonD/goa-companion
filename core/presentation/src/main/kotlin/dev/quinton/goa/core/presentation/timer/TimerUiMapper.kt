@@ -1,18 +1,23 @@
-package dev.quinton.goa.feature.timer.ui.timer
+package dev.quinton.goa.core.presentation.timer
 
+import dev.quinton.goa.core.domain.setup.MatchRules
+import dev.quinton.goa.core.domain.setup.MatchSetup
 import dev.quinton.goa.core.domain.timer.MatchDuration
+import dev.quinton.goa.core.domain.timer.PhaseKind
 import dev.quinton.goa.core.domain.timer.PhaseScope
 import dev.quinton.goa.core.domain.timer.RoundSection
+import dev.quinton.goa.core.domain.timer.TimerPreset
 import dev.quinton.goa.core.domain.timer.TimerReadout
 import dev.quinton.goa.core.domain.timer.TimerSnapshot
 import dev.quinton.goa.core.domain.timer.TimerStatus
 import dev.quinton.goa.core.domain.timer.TimerStep
 import dev.quinton.goa.core.model.catalog.Catalog
+import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Match
+import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.settings.TimerLayout
-import dev.quinton.goa.feature.timer.TimerText
 
 /** Seat names for the linked match (null when no match or no seats). */
 data class MatchSeats(val match: Match, val seats: List<SeatInfo>)
@@ -21,11 +26,15 @@ data class SeatInfo(
     val heroName: String,
     val heroId: String?,
     val portrait: String?,
-    val team: dev.quinton.goa.core.model.match.Team,
+    val team: Team,
     val playerName: String?,
 )
 
-internal object TimerUiMapper {
+/**
+ * The running timer's screen state, from a snapshot and its readout (ADR-030 §1): the phone's
+ * TimerViewModel and the hub's web timer both render what this returns, so they can't drift.
+ */
+object TimerUiMapper {
     fun seats(match: Match, catalog: Catalog?, players: List<Player>): List<SeatInfo> = match.participants.map { p ->
         val hero = p.heroId?.let { id -> catalog?.heroes?.firstOrNull { it.id == id } }
         val player = players.firstOrNull { it.id == p.playerId }
@@ -210,6 +219,61 @@ internal object TimerUiMapper {
                 acting = i == acting,
             )
         }
+    }
+
+    /** A preset as the start card, the preset list and match setup show it. */
+    fun presetOption(p: TimerPreset) = PresetOption(
+        id = p.id,
+        name = p.name,
+        summary = TimerText.presetSummary(p),
+        usesActionTimer = p.phases.any { it.enabled && it.kind == PhaseKind.ACTION },
+    )
+
+    /**
+     * A pending match on the Timer tab: mode and size, each team's heroes, and [since] (when it
+     * was set up, formatted by the caller in its locale).
+     */
+    fun pendingItem(match: Match, catalog: Catalog?, since: String): PendingMatchItem {
+        val seats = match.participants.size
+        val players = match.playerIds.size
+        val title = buildString {
+            append(TimerText.modeLabel(match.mode))
+            if (seats > 0) append(" · $seats heroes")
+            if (players in 1 until seats) append(", $players players")
+        }
+
+        fun heroes(team: Team): String? = match.participants
+            .filter { it.team == team }
+            .map { seat ->
+                seat.heroId?.let { id -> catalog?.heroes?.firstOrNull { it.id == id }?.name ?: id }
+                    ?: "Hero not picked"
+            }
+            .takeIf { it.isNotEmpty() }
+            ?.joinToString(", ")
+        return PendingMatchItem(
+            id = match.id,
+            title = title,
+            subtitle = "Pending since $since",
+            red = heroes(Team.RED),
+            blue = heroes(Team.BLUE),
+        )
+    }
+
+    /** Pending matches, newest first (the Timer tab's list). */
+    fun pendingMatches(matches: List<Match>): List<Match> =
+        matches.filter { it.status == MatchStatus.PENDING }.sortedByDescending { it.createdAt }
+
+    /** The session's mode if the rules allow it for its number of heroes (Action slots = seats). */
+    fun legalMode(s: TimerSnapshot, rules: MatchRules): GameMode? {
+        val mode = s.mode ?: return null
+        val option = MatchSetup(rules).modeOptions(s.actionSlots).firstOrNull { it.mode == mode }
+        return mode.takeIf { option?.available == true }
+    }
+
+    /** The start card's "tonight" turn length for [preset] ([tonightSeconds] = tonight's choice, if any). */
+    fun tonight(preset: TimerPreset?, tonightSeconds: Int?): TonightUi? {
+        val own = preset?.phases?.firstOrNull { it.enabled && it.kind == PhaseKind.TURN }?.seconds ?: return null
+        return TonightUi(tonightSeconds ?: own, own)
     }
 
     fun summary(s: TimerSnapshot, r: TimerReadout): SummaryUiState {
