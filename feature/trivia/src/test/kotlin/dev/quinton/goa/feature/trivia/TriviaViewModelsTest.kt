@@ -1,9 +1,11 @@
 package dev.quinton.goa.feature.trivia
 
+import androidx.lifecycle.viewModelScope
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.EditClock
+import dev.quinton.goa.core.data.TriviaProgressRepository
 import dev.quinton.goa.core.domain.trivia.AnswerStyle
 import dev.quinton.goa.core.domain.trivia.CardGroup
 import dev.quinton.goa.core.domain.trivia.FactProgress
@@ -27,8 +29,10 @@ import dev.quinton.goa.feature.trivia.home.startNote
 import dev.quinton.goa.feature.trivia.quiz.QuizQuestionUi
 import dev.quinton.goa.feature.trivia.quiz.TriviaQuizUiState
 import dev.quinton.goa.feature.trivia.quiz.TriviaQuizViewModel
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -54,8 +58,8 @@ class TriviaViewModelsTest {
         }
     }
 
-    private fun home(heroId: String? = null) =
-        TriviaHomeViewModel(heroId, FakeCatalogRepository(catalog), settings, progress)
+    private fun home(heroId: String? = null, data: Catalog = catalog) =
+        TriviaHomeViewModel(heroId, FakeCatalogRepository(data), settings, progress, Dispatchers.Main)
 
     private fun quiz(config: TriviaConfig, factKeys: List<String> = emptyList(), data: Catalog = catalog) =
         TriviaQuizViewModel(
@@ -157,6 +161,58 @@ class TriviaViewModelsTest {
             assertThat(startNote(ready)).isEqualTo(
                 "No Basic, Tier I, Tier II, Tier III or Ultimate card prints Radius. Add a number or more cards.",
             )
+        }
+    }
+
+    @Test
+    fun `why Start is off names the quiz's own scope, so the claim is true as written`() = runTest {
+        val vm = home()
+        vm.uiState.test {
+            ready()
+            // The test cards print Range on Tier II only.
+            CardGroup.entries.filter { it != CardGroup.ULTIMATE }
+                .forEach { vm.onAction(TriviaHomeAction.ToggleGroup(it)) }
+            TriviaStat.entries.filter { it != TriviaStat.RANGE }
+                .forEach { vm.onAction(TriviaHomeAction.ToggleStat(it)) }
+            fun note() = startNote(expectMostRecentItem() as TriviaHomeUiState.Ready)
+            val add = " Add a number or more cards."
+            // Settings limits the heroes to one product: the scope is the heroes you own.
+            settings.state.value = AppSettings(ownedProducts = setOf("test-core"))
+            assertThat(note()).isEqualTo("No Ultimate card of the heroes you own prints Range.$add")
+            vm.onAction(TriviaHomeAction.ToggleHero("test-hero-1"))
+            assertThat(note()).isEqualTo("No Ultimate card of the chosen hero prints Range.$add")
+            vm.onAction(TriviaHomeAction.ToggleHero("test-hero-2"))
+            assertThat(note()).isEqualTo("No Ultimate card of the chosen heroes prints Range.$add")
+            // Every hero, nothing limited: the plain claim.
+            vm.onAction(TriviaHomeAction.AllHeroes)
+            settings.state.value = AppSettings()
+            assertThat(note()).isEqualTo("No Ultimate card prints Range.$add")
+        }
+    }
+
+    @Test
+    fun `all heroes counts the owned heroes, not a chosen hero outside them`() = runTest {
+        settings.state.value = AppSettings(ownedProducts = setOf("test-core"))
+        val core = catalog.heroes.filter { it.product == "test-core" }
+        val vm = home()
+        vm.uiState.test {
+            ready()
+            vm.onAction(TriviaHomeAction.ToggleHero("test-hero-1")) // a Test Pack hero
+            val ready = expectMostRecentItem() as TriviaHomeUiState.Ready
+            assertThat(ready.heroOptions).hasSize(core.size + 1)
+            assertThat(ready.ownedHeroCount).isEqualTo(core.size)
+        }
+    }
+
+    @Test
+    fun `unverified heroes are marked in the picker options and progress rows`() = runTest {
+        home().uiState.test {
+            val ready = ready()
+            val unverified = catalog.heroes.filterNot { it.verified }.map { it.id }
+            assertThat(unverified).isNotEmpty()
+            assertThat(ready.heroOptions.filterNot { it.verified }.map { it.heroId })
+                .containsExactlyElementsIn(unverified)
+            assertThat(ready.heroes.filterNot { it.verified }.map { it.heroId }).containsExactlyElementsIn(unverified)
         }
     }
 
@@ -338,39 +394,112 @@ class TriviaViewModelsTest {
         val q = vm.playing().question as QuizQuestionUi.Number
         vm.answer(wrongAnswer(vm.playing()))
         assertThat(vm.playing().correct).isFalse()
-        assertThat(vm.playing().feedback).isEqualTo("${q.card.name} is initiative ${q.value}.")
+        assertThat(vm.playing().feedback).isEqualTo("Not quite. ${q.card.name} is initiative ${q.value}.")
         assertThat(progress.state.value.values.single().box).isEqualTo(0)
     }
 
     @Test
     fun `a fixed round ends in a summary with the misses and newly learned numbers`() = runTest {
-        // One number, two right answers away from learned.
-        val fact = facts("test-hero-3").first()
-        progress.state.value = mapOf(fact.key to FactProgress(fact.value, fact.plus, box = 2))
-        val vm = quiz(TriviaConfig(length = 10, duels = false), factKeys = listOf(fact.key))
+        // A is one right answer away from learned; B is new and always missed. Two cards, so they alternate.
+        val known = facts("test-hero-3").first()
+        val missed = facts("test-hero-3").first { it.cardId != known.cardId }
+        progress.state.value = mapOf(known.key to FactProgress(known.value, known.plus, box = 2))
+        val vm = quiz(TriviaConfig(length = 10, duels = false), factKeys = listOf(known.key, missed.key))
         vm.uiState.test {
             repeat(10) { i ->
                 val state = expectMostRecentItem() as TriviaQuizUiState.Playing
                 assertThat(state.number).isEqualTo(i + 1)
                 assertThat(state.length).isEqualTo(10)
-                vm.answer(if (i == 0) wrongAnswer(state) else rightAnswer(state))
+                val q = state.question as QuizQuestionUi.Number
+                vm.answer(if (q.card.cardId == missed.cardId) wrongAnswer(state) else rightAnswer(state))
                 val answered = expectMostRecentItem() as TriviaQuizUiState.Playing
                 assertThat(answered.lastQuestion).isEqualTo(i == 9)
                 vm.next()
             }
             val summary = expectMostRecentItem() as TriviaQuizUiState.Summary
-            assertThat(summary.correct).isEqualTo(9)
             assertThat(summary.asked).isEqualTo(10)
-            assertThat(summary.bestStreak).isEqualTo(9)
-            // Box 2 → missed (0) → right three times → learned (it wasn't when the round began).
+            assertThat(summary.correct).isEqualTo(5)
+            assertThat(summary.bestStreak).isEqualTo(1)
+            // A's first answer this round lifts it to box 3: learned (it wasn't when the round began).
+            // Its later answers come two questions apart: counted, but they don't lift it further.
             assertThat(summary.learned).isEqualTo(1)
-            assertThat(summary.misses).hasSize(1)
-            assertThat(summary.misses.single().right).isEqualTo("${fact.value}")
+            assertThat(progress.state.value.getValue(known.key).box).isEqualTo(TriviaMastery.MASTERED_BOX)
+            assertThat(progress.state.value.getValue(known.key).seen).isEqualTo(5)
+            assertThat(summary.misses).hasSize(5)
+            assertThat(summary.misses.map { it.card.cardId }.toSet()).containsExactly(missed.cardId)
+            assertThat(summary.misses.first().right).isEqualTo("${missed.value}")
             assertThat(summary.canPractise).isTrue()
         }
         val practise = vm.practiseRoute()!!
-        assertThat(practise.factKeys).containsExactly(fact.key)
-        assertThat(TriviaText.decode(practise.config).duels).isFalse()
+        assertThat(practise.factKeys).containsExactly(missed.key)
+        val config = TriviaText.decode(practise.config)
+        assertThat(config.duels).isFalse()
+        // Each missed number twice, never more than the round's length.
+        assertThat(config.length).isEqualTo(2)
+    }
+
+    @Test
+    fun `practising the misses of an endless round is a fixed round`() = runTest {
+        val vm = quiz(TriviaConfig(heroIds = listOf("test-hero-1"), length = TriviaConfig.ENDLESS, duels = false))
+        val keys = mutableSetOf<String>()
+        repeat(6) {
+            val q = vm.playing().question as QuizQuestionUi.Number
+            keys += TriviaFact.keyOf(q.card.cardId, q.stat)
+            vm.answer(wrongAnswer(vm.playing()))
+            vm.next()
+        }
+        vm.stop()
+        val config = TriviaText.decode(vm.practiseRoute()!!.config)
+        assertThat(config.length).isEqualTo(2 * vm.practiseRoute()!!.factKeys.size)
+        assertThat(config.length).isNotEqualTo(TriviaConfig.ENDLESS)
+    }
+
+    @Test
+    fun `an answer's progress is stored even when the quiz is closed straight after`() = runTest {
+        val gated = GatedProgress(progress)
+        val vm = TriviaQuizViewModel(
+            TriviaQuizRoute(TriviaText.encode(TriviaConfig(heroIds = listOf("test-hero-1"), duels = false))),
+            FakeCatalogRepository(catalog),
+            settings,
+            gated,
+            EditClock { NOW },
+        )
+        val q = vm.playing().question as QuizQuestionUi.Number
+        vm.answer(TriviaAnswer.Number(q.value))
+        // The write is under way when the screen goes (its view model scope is cancelled).
+        vm.viewModelScope.cancel()
+        gated.gate.complete(Unit)
+        assertThat(progress.state.value[TriviaFact.keyOf(q.card.cardId, q.stat)]!!.box).isEqualTo(1)
+    }
+
+    /** Holds every write until [gate] opens. */
+    private class GatedProgress(private val inner: FakeTriviaProgressRepository) :
+        TriviaProgressRepository by inner {
+        val gate = CompletableDeferred<Unit>()
+
+        override suspend fun record(updates: Map<String, FactProgress>) {
+            gate.await()
+            inner.record(updates)
+        }
+    }
+
+    @Test
+    fun `leaving asks only once a question is answered`() = runTest {
+        val vm = quiz(TriviaConfig(heroIds = listOf("test-hero-1"), duels = false))
+        assertThat(vm.playing().started).isFalse()
+        vm.answer(rightAnswer(vm.playing()))
+        assertThat(vm.playing().started).isTrue()
+        vm.next()
+        assertThat(vm.playing().started).isTrue()
+    }
+
+    @Test
+    fun `a question on an unverified hero's card says so`() = runTest {
+        val unverified = catalog.heroes.first { !it.verified }
+        val vm = quiz(TriviaConfig(heroIds = listOf(unverified.id), duels = false))
+        assertThat((vm.playing().question as QuizQuestionUi.Number).card.heroVerified).isFalse()
+        val verified = quiz(TriviaConfig(heroIds = listOf("test-hero-1"), duels = false))
+        assertThat((verified.playing().question as QuizQuestionUi.Number).card.heroVerified).isTrue()
     }
 
     @Test
