@@ -184,11 +184,16 @@ fun FlowContent.playerName(player: Player?) {
 fun FlowContent.teamBadge(team: Team, showLabel: Boolean = true) {
     val (css, mark, label) = if (team == Team.RED) Triple("team-red", "◆", "Red") else Triple("team-blue", "●", "Blue")
     span("team-badge $css") {
+        // Attributes before children: kotlinx.html streams the tag.
+        if (!showLabel) {
+            attributes["role"] = "img"
+            attributes["aria-label"] = label
+        }
         span("team-mark") {
             attributes["aria-hidden"] = "true"
             +mark
         }
-        if (showLabel) span { +label } else attributes["aria-label"] = label
+        if (showLabel) span { +label }
     }
 }
 
