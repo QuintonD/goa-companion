@@ -53,8 +53,16 @@ feature/sync/            # group sync (ADR-025): Group screen, sync sheet, Who a
 tools/catalog-import/    # JVM CLI (reuses core:model): sources.lock.json, overrides.json,
                          #   cache/ (gitignored), REPORT.md → writes assets/catalog + assets/official;
                          #   --rules-only: rules-reference drift check vs the pinned rulebook (PDFBox)
+core/presentation/       # JVM: screen-state builders shared by ViewModels and the hub (ADR-030), a package
+                         #   per feature; no Android, no HTML
+server/hub/              # JVM app (Ktor): the group's hub — sync API, device sign-in, the web app
+                         #   (kotlinx.html + vendored htmx + small JS), storage in GOA_HUB_DATA (ADR-030)
+deploy/                  # hub hosting: systemd unit, Caddyfile, DuckDNS updater, install/update scripts,
+                         #   runbook (Linux first, Windows notes)
 ```
-Dependency direction: `feature → core:data/domain/designsystem → core:model`.
+Dependency direction: `feature → core:data/domain/designsystem → core:model`;
+`feature → core:presentation → core:domain`; `server:hub → core:presentation/domain/model` (never
+an Android module).
 Features never depend on each other; cross-feature navigation goes through `app`.
 
 ## Layering and patterns
@@ -68,10 +76,13 @@ Features never depend on each other; cross-feature navigation goes through `app`
   an in-memory index. Hero IDs are permanent: never rename or reuse one, since matches
   reference them. Unknown IDs render as "Unknown hero"; imported or synced ones are stored as
   they are and read as Unknown-hero seats (DOMAIN.md *Backup import*, ADR-025).
-- **The app never goes online.** Catalog data and images are fetched at dev time by
-  `tools/catalog-import` and bundled. No `INTERNET` permission: the app manifest removes it
-  (`tools:node="remove"`) because the code scanner's `transport-backend-cct` declares it. Group
-  sync is phone to phone (below).
+- **The only server is the group's hub** (ADR-030). Catalog data and images are fetched at dev
+  time by `tools/catalog-import` and bundled (the hub bundles the same files). The app declares
+  `INTERNET` for hub sync only; the code scanner's datatransport logger stays disabled (its
+  `transport-backend-cct` service is removed in the manifest). Sync runs with the hub over HTTPS
+  and phone to phone over Nearby (below).
+- **Web layer = presentation only.** Hub pages render what `core:presentation` builders and
+  `core:domain` engines return; HTML/JS never computes a rule or statistic.
 
 ## Group sync (ADR-025)
 - **Layers.** `core:domain/sync` is pure Kotlin: `SyncDocument` (players, matches, drafts,

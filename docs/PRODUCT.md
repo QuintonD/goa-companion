@@ -234,12 +234,36 @@ Theme (dark default / light / system), owned products (default: all), timer defa
 timer view (step by step / whole round), cue sounds and haptics, Elo constants (advanced; shared
 with the sync group), Group sync, export/import, About/credits.
 
+### 8. The hub and the web app (ADR-030) — linking players (ADR-031)
+The owner runs **the group's hub** on a spare machine at home (Linux or Windows; free: a DuckDNS
+name, Caddy with Let's Encrypt, one router port). It is a member of the group like a phone.
+- **Auto-sync:** Android phones with a hub address sync with it over HTTPS on their own (app
+  start, shortly after any change, hourly, "Sync now"); the Group screen shows "Hub: synced 2 min
+  ago" or what went wrong. Nearby sync at the table still works without internet.
+- **Web app for iPhones (and any browser):** the same features as the app — Heroes and Card
+  trivia, Timer, Draft, Players (log, editor, meta), Rules, Group, Settings — computed by the same
+  Kotlin code on the hub. Installable to the home screen; the running timer keeps the screen on,
+  chimes, and sends a notification at each phase end when the phone is locked (iOS 16.4+).
+  Friends install nothing; signing in is scanning the invite QR with the iPhone camera.
+- **Invites are links** (`https://<hub>/join#…`) when the group has a hub; one QR code works for
+  Android (in-app scanner, or the link opens the app) and iPhone (opens the web app).
+- **Linking a friend to the player you entered:** "Invite <name>" makes a personal invite; the
+  friend's phone or browser asks "You're <name>?" and becomes that player. After a sync that brings
+  new players, "Same people?" pairs likely twins ("Rob"/"Bob", "Quinton"/"Q") for one-tap merges;
+  "Add me" asks "Is one of these you?" first.
+- **Parity:** every Android screen has a web page. A feature PR that adds an Android screen adds
+  its web page (or a ROADMAP line saying when).
+- **Done when:** the sync API round-trips with the Android client and refuses wrong keys, other
+  versions and invalid data; two phones and a browser converge; every web page works at 390 px in
+  Safari's engine, light and dark; the deploy runbook brings a fresh Linux machine to a working
+  HTTPS hub; **verified with a real iPhone over the internet**.
+
 ## Non-goals (v1)
-- Online play, accounts, cloud sync, ads, analytics SDKs, any network access from the app. (Group
-  sync is phone to phone at the table, ADR-025; nothing goes through the internet.)
-- Play Store or any public distribution — sideloaded only.
+- Online play, accounts, third-party cloud, ads, analytics SDKs. (The group's own hub is the
+  only server, ADR-030.)
+- Play Store, App Store or any public distribution — sideloaded APK; iPhones use the web app.
 - Full rules engine or board-state simulation (we don't track minions, coins or positions).
-- iOS; tablet-first layouts (phone-first; tablets must not break).
+- A native iOS app; tablet-first layouts (phone-first; tablets must not break).
 
 ## Open questions (owner to decide)
 - Which printing the group plays (data targets the 2nd printing / upgrade kit; a 3rd printing

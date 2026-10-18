@@ -80,6 +80,25 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] Hands-on with the release build on an S25-sized emulator — 2026-10-18: in-place upgrade over 0.2.0 with real data, owned-products scope (27 heroes, 1,793 numbers), answers checked against the JSON and the shown card scans, progress kept across a force-stop mid-round. Fixed from it: the card scan sat below the fold after an answer; Start was two screens down. Emulator only
 - [ ] Trivia round on the S25 Ultra (TalkBack announcements, haptics, card scans)
 
+## M8 — The hub and the web app (ADR-030)
+- [x] Contracts: invite links with hub and player (`GroupInvite.parseInvite`, `HubAddress`), `HubToken`; ADR-030/031; `:core:presentation` module — 2026-10-18, `HubInviteTest`
+- [ ] `:server:hub` core: storage, sign-in, sync API, page shell, catalog/static assets, Web Push base
+- [ ] Android: hub address, auto-sync (WorkManager), invite links, `INTERNET`, assetlinks
+- [ ] Shared builders moved to `:core:presentation` (Android behaviour unchanged, tests moved)
+- [ ] Web: Players (leaderboard, player page, merge, log, editor, "Who won?", meta, group stats)
+- [ ] Web: Heroes (catalog, hero page, cards, FAQ) and Rules
+- [ ] Web: Timer (presets, running timer, round view, Action seats, wake lock, chimes, push)
+- [ ] Web: Draft (setup, methods, board, → match)
+- [ ] Web: Card trivia, Group (join, who am I, invite QR, devices), Settings (constants, backup)
+- [ ] Deploy kit and runbook: systemd, Caddy + Let's Encrypt, DuckDNS, router, CGNAT check, Windows notes
+- [ ] Security review of sign-in, sync API and hosting; adversarial review of web writes vs the sync rules
+- [ ] Hands-on: two emulators + a browser at 390 px converge through a local hub; game night on the web
+- [ ] **Real iPhone over the internet** against the owner's hub (home screen, timer locked, push)
+
+## M9 — Linking players (ADR-031)
+- [ ] Personal invites ("Invite <name>"), "You're <name>?" after the first sync, old "me" merge
+- [ ] `PlayerMatchUp` + "Same people?" after a sync and from Players; "Add me" checks similar names
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check

@@ -548,3 +548,140 @@ is not saved: every answer's progress is stored as it is given (a write that sur
 the screen), but after process death the quiz restarts from question 1 from its saved route.
 Every round can be ended (End → summary); Back once a question is answered asks "Leave this
 round?" (See results / Leave), since leaving drops the round's results.
+
+## ADR-030 — The group's hub: a self-hosted server, auto-sync, and the web app for iPhones (2026-10-18)
+Supersedes the "no network" parts of ADR-002 and ADR-025 (the app may now reach the group's own
+hub) and the "iOS" non-goal; ADR-027's stats page stays as the no-server fallback.
+
+**Context:** Part of the group uses iPhones and wants the whole app, not a snapshot page. The
+owner asked for a web app hosted on a spare machine (Linux likely, Windows possible): free, no
+Cloudflare, no extra app downloads for friends, simple, automatic sync, and no rule against the
+INTERNET permission. Options weighed:
+- *Native iOS (Compose Multiplatform iOS):* needs a Mac and a paid Apple developer account, or
+  re-signing every 7 days. Rejected.
+- *Compose Multiplatform for web (Wasm), sharing the Android UI:* still Beta in 1.12 (TextField,
+  accessibility and mobile-browser input are open roadmap items); every module would move to KMP
+  (Hilt, Room, DataStore, Android resources) and Room's web target is an RC with a hand-written
+  OPFS worker. A huge migration of a finished, validated app for a canvas UI that types badly on
+  iOS. Rejected for now.
+- *An SPA (TypeScript) with the logic re-implemented in JS:* two implementations of ratings,
+  timer, draft and trivia that would drift. Rejected.
+- *A Kotlin/JVM hub that runs the same `:core:domain`, renders HTML, and syncs with the Android
+  phones over HTTPS:* one implementation of every rule, native browser controls on iOS, one
+  process to host. Chosen.
+
+**Decision:**
+1. *Modules and stack.* `:server:hub`: a Kotlin/JVM application (Ktor server, kotlinx.html,
+   kotlinx.serialization) depending on `:core:model`, `:core:domain` and `:core:presentation`.
+   `:core:presentation` is a pure JVM module for the screen-state builders shared by the Android
+   ViewModels and the hub (leaderboard, player detail, meta, match-log rows, the stats-page
+   renderer, catalog search and filters, …), so each number is computed in one place. Moving a
+   builder there changes no Android behaviour; its tests move with it. The hub ships as
+   `installDist` (a `bin/goa-hub` script plus libs) and needs only a Java 21 runtime.
+2. *One group per hub.* `goa-hub join "<invite>"` (or the first-run page, served on `localhost`
+   only) stores the group credentials in the data directory (`GOA_HUB_DATA`, default
+   `/var/lib/goa-hub`; files `0600`). From then on the hub is a member like a phone: it holds the key.
+3. *Storage.* `group.json` holds the group's `SyncDocument` in `SyncJson`. Every change goes
+   through one mutex and is written atomically (temp file, fsync, rename); a dated copy is kept per
+   day for 30 days. `devices/<deviceId>.json` holds each browser's own state, the things a phone
+   keeps to itself: who am I, app settings, timer presets and the running timer, draft methods,
+   setup form and in-progress draft, trivia progress. Web writes to shared data follow the
+   repositories' rules exactly: `EditStamp.next`, a tombstone on delete, merges as `PlayerMerge`
+   rows, players never deleted, and `SyncValidation` before every store.
+4. *Sync API (Android ↔ hub).* `POST /api/v1/sync`, `Authorization: Bearer <token>`,
+   `Content-Type: application/vnd.dev.quinton.goa.sync`, body = `SyncCodec.encodeFile(doc, group)`.
+   `token` = base64url (no padding) of `SyncCrypto.hkdf(groupKey, salt = groupId UTF-8,
+   info = "goa-hub/token/v1")` (`HubToken` in `core:domain`), compared in constant time. The hub
+   opens the file, validates, merges with `SyncMerge`, stores, and answers `200` with the merged
+   document sealed the same way; the phone applies it through the same path as an imported sync
+   file (`LocalSyncData`). `401`: wrong token or group. `409`: another `SyncDocument.VERSION` (text
+   body says which side to update). `422`: invalid document (body: `SyncValidation`'s message).
+   `413`: over 8 MB. Idempotent; the hub never logs bodies. `GET /api/v1/health` is open.
+5. *Android auto-sync.* The manifest declares `INTERNET` (the removal guard goes;
+   `ACCESS_NETWORK_STATE` stays). The hub address lives with the group in the `group_sync`
+   DataStore, set from the invite (`h=`) or on the Group screen. WorkManager unique work `hub-sync`
+   runs at app start, 15 s after the last write to synced data (debounced), every hour with a
+   network constraint, and from "Sync now". Failures back off and show on the Group screen ("Hub:
+   synced 2 min ago", or the error). Release builds speak HTTPS only; debug builds may use
+   cleartext to `10.0.2.2` and `localhost` for testing. Nearby sync (ADR-025) stays for tables
+   without internet.
+6. *An invite is a link.* With a hub, an invite is
+   `https://<hub>/join#goa-sync:1?g=…&k=…&n=…&h=<hub origin>[&p=<playerId>]`; without one, the
+   plain `goa-sync:1?…` as before. `GroupInvite.parse` already finds `goa-sync:` inside any text and
+   ignores unknown fields, so older apps still join. The key sits in the fragment, which browsers
+   never send to a server. An iPhone's Camera opens the link in Safari; Android's in-app scanner
+   reads it as before; the hub serves `/.well-known/assetlinks.json` (release certificate
+   fingerprint from its config) so the link opens the app where it is installed.
+7. *Web sign-in.* `/join` reads the fragment in the page and posts the invite to the hub over
+   HTTPS; the hub checks group id and key (constant time), creates a device (random 256-bit id) and
+   sets the cookie `goa_device` (`HttpOnly; Secure; SameSite=Lax`, 400 days). Every page and API
+   needs a known device except `/join`, `/api/v1/health`, `/api/v1/sync` (bearer), the web
+   manifest, icons, `/static/` and `assetlinks.json`. State-changing requests need a same-origin
+   `Origin` header. Join attempts are rate-limited per IP. Settings lists the devices; any device
+   can sign one out. All responses carry `X-Robots-Tag: noindex` and a strict CSP (self only).
+8. *Web app.* Server-rendered HTML with htmx (vendored, 0BSD, recorded in `third_party/`) for
+   partial updates, and small plain-JS modules where the browser must act on its own (timer clock,
+   Screen Wake Lock, chimes, push subscription). No npm, no SPA framework, no external requests
+   (system fonts, our SVG sigils, card images from the bundled catalog). Mobile-first at 390 px,
+   light and dark from the DESIGN.md tokens, a bottom tab bar mirroring the app. Feature parity:
+   every Android screen and flow has a web page — Heroes (catalog, hero page, cards, FAQ, Card
+   trivia), Timer (presets, running timer, round view, Action seats, levels, end of round), Draft
+   (setup, methods, board, → match), Players (leaderboard, player page, merge, match log, match
+   editor, "Who won?", meta, group stats), Rules, Group (who am I, invite QR, devices) and Settings
+   (rating constants, backup export/import). A web app manifest and a minimal service worker
+   (static assets and push only) let it install to the iPhone home screen.
+9. *Timer on the web.* `TimerEngine` runs on the hub per device; its state lives in the device
+   file with wall-clock anchors and is re-synced on every read, as the Android re-sync does. The
+   page counts down from the server's `endsAt` (clock offset measured per response) and asks the
+   hub to advance at zero. While running: Screen Wake Lock (iOS 18.4+ in home-screen apps) and
+   chimes through Web Audio (unlocked by the Start tap). A locked iPhone suspends the page, so the
+   hub sends a Web Push at each phase end (VAPID keys made at first start and kept in the data
+   directory; iOS 16.4+, home-screen app, permission asked from a tap). Pass-and-play: one device
+   runs a match's timer.
+10. *Hosting (free, nothing to install for friends).* `deploy/` holds: a systemd unit (dedicated
+    `goa-hub` user); Caddy as the TLS front with automatic Let's Encrypt certificates; a free
+    DuckDNS name kept current by a timer; the router forwarding TCP 443 (and 80 for the HTTP
+    challenge) to the machine. This needs a public IPv4 (no carrier-grade NAT); the runbook shows
+    the check (router WAN address = public address). Behind CGNAT, Tailscale Funnel on the hub
+    machine alone is the fallback (friends still install nothing). Windows: the same build as a
+    scheduled task plus Caddy for Windows, documented.
+11. *APK from the hub.* `/app` (signed-in devices) offers the latest signed release APK, copied in
+    by the deploy script, in place of the Drive link of ADR-006's addendum. Still private.
+
+**Consequences:**
+- The hub holds the group key and all group data; whoever controls the machine can read it. The
+  owner's machine, behind HTTPS and device sign-in, is the only server; no third party stores data.
+- Official card images and data are served only to signed-in devices of the group (ADR-006:
+  private, non-commercial). The hub must never be exposed without the sign-in.
+- Every future feature needs its web page too; the parity table in PRODUCT.md tracks it.
+- iPhone users need a connection to the hub. Nothing on the web works offline beyond a page
+  already open (a running timer keeps counting and catches up on the next request).
+- A phone and the hub on different `SyncDocument.VERSION`s refuse to sync (409) until updated, as
+  phones do with each other.
+
+## ADR-031 — Linking a phone (or browser) to its player: personal invites and "Same people?" (2026-10-18)
+**Context:** The owner enters friends as players before they install the app. When a friend joins,
+their phone must become that player, not a new one. Today "Which player are you?" works only if the
+friend picks themselves: typing a variant ("Rob" for "Bob") creates a duplicate, and a friend who
+used the app alone before joining brings a second copy of everyone. `createMe` blocks only an exact
+name.
+**Decision:**
+1. *Personal invite.* "Invite…" (Group screen, and "Invite <name>" on a player page) can be made
+   for a player: the invite carries `p=<playerId>` (not secret; older apps ignore it). After the
+   first sync the joining phone or browser resolves it through the merges and, if it is an active
+   player, asks "You're <name>?" (Yes / Not me → the list). If this phone already has its own "me"
+   from solo use and that is another player, Yes also offers "Merge your old player into <name>?"
+   (the normal merge, with its refusal rule).
+2. *"Same people?"* After a sync that brings players this phone has never seen, when it already
+   had players of its own, a screen pairs each new player with likely twins among the old ones and
+   offers "Same person" (merge the new one into the old one) or "Different people". Suggestions
+   come from a pure `PlayerMatchUp` in `core:domain`: names compared after trimming, lowercasing,
+   and stripping accents and non-letters; a pair is suggested when the keys are equal, one is a
+   prefix of the other (≥ 3 letters), or they are one edit apart (≥ 4 letters; two edits at ≥ 8).
+   Pairs that played in the same match are never suggested. "Different people" is remembered on
+   this phone only. The screen is also reachable from Players ("Find duplicates").
+3. *"Add me" checks first.* Adding yourself on "Which player are you?" lists similar players (same
+   rule) and asks "Is one of these you?" before adding.
+4. The web app (ADR-030) has the same three flows.
+**Consequences:** `PlayerNames` moves to `core:domain` so the hub and `PlayerMatchUp` share it. No
+synced type changes (no `SyncDocument.VERSION` bump): the decisions are local and merges already sync.
