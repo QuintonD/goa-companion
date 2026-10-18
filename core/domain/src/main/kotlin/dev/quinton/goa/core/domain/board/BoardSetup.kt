@@ -13,9 +13,13 @@ import dev.quinton.goa.core.model.match.Team
 object BoardSetup {
     /**
      * The opening position (p.6 steps 9–10, p.20): each lane's starting Battle Zone gets one minion
-     * of the matching team and type on every minion spawn point; heroes stand on their team's hero
-     * spawn points in [lineup] order. With more heroes than spawn points, the rest go to empty spaces
-     * adjacent to their team's occupied hero spawn points (p.20); any still left wait in the tray.
+     * of the matching team and type on every minion spawn point ("on spaces marked with a minion
+     * icon that matches the team color and the type of that minion"); heroes stand on their team's
+     * hero spawn points in [lineup] order ("Place the hero miniatures on the marked spaces in their
+     * corresponding Throne Zone"). With more heroes than spawn points, the rest go to empty spaces
+     * adjacent to their team's occupied hero spawn points (p.20: "When playing with more than 3
+     * heroes per team, place the remaining heroes into any empty spaces adjacent to their team's
+     * occupied hero spawn points"), first free neighbour first; any still left wait in the tray.
      */
     fun opening(geometry: BoardGeometry, lineup: BoardLineup, newId: () -> String): BoardState {
         val pieces = mutableListOf<BoardPiece>()
@@ -76,11 +80,14 @@ object BoardSetup {
 
     /**
      * Pushes [laneId] (p.8 "Push the Lane", steps 2–3; flipping the Wave counter is left to the table):
-     * the next Zone towards the losing team's Throne becomes the Battle Zone; all minions in the
-     * previous Battle Zone are removed; one minion of the matching type respawns on each Spawn point
-     * in the new Battle Zone. A token on a Spawn point is removed first; a minion whose Spawn point
-     * holds another obstacle waits in the tray, to be placed in the nearest empty space of the Battle
-     * Zone ([nearestEmpty]).
+     * "The next Zone towards the losing team's Throne becomes the new Battle Zone. If the enemy Throne
+     * Zone itself becomes the new Battle Zone, the team who won the push wins the game." Then "Remove
+     * all minions in the previous Battle Zone. Respawn one minion of the matching type in each Spawn
+     * point in the new Battle Zone (If a Spawn point is occupied by a token, first remove that token,
+     * then respawn the minion)." A minion whose Spawn point holds another obstacle ("a non-token
+     * obstacle") waits in the tray, to be placed by its team in the nearest empty space of the
+     * Battle Zone ([nearestEmpty]). Minions already waiting in the tray are left there: the tray
+     * doesn't record which lane they belong to. On a double-lane map only [laneId] moves (p.20).
      */
     fun pushLane(
         geometry: BoardGeometry,
@@ -119,7 +126,7 @@ object BoardSetup {
     /**
      * The empty spaces of [zoneId] nearest to [from] (p.8: a minion that can't respawn on its Spawn
      * point goes to "the nearest empty space of their choice in the Battle Zone"; distance counts
-     * obstacles, p.19 "Nearest"). Empty when the Zone has no empty space.
+     * spaces with obstacles, p.18 "Nearest"). Empty when the Zone has no empty space.
      */
     fun nearestEmpty(geometry: BoardGeometry, state: BoardState, zoneId: String, from: Hex): Set<Hex> {
         val occupied = BoardRules.occupancy(state)
