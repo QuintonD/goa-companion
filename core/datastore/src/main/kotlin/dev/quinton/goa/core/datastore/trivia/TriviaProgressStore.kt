@@ -32,6 +32,13 @@ class TriviaProgressStore @Inject constructor(@TriviaStore private val store: Da
     /** JSON of the last quiz setup, or null before the first quiz. */
     val configJson: Flow<String?> = store.data.map { it[CONFIG] }
 
+    /** Who the next round is played as: a player id or "guest" (ADR-031); null before the first pick. */
+    val playingAs: Flow<String?> = store.data.map { it[PLAYING_AS] }
+
+    suspend fun writePlayingAs(value: String) {
+        store.edit { prefs -> prefs[PLAYING_AS] = value }
+    }
+
     /**
      * Rewrites the progress document in one transaction: [transform] gets the stored JSON (or null)
      * and returns the new one (null removes it).
@@ -50,6 +57,7 @@ class TriviaProgressStore @Inject constructor(@TriviaStore private val store: Da
     private companion object {
         val PROGRESS = stringPreferencesKey("trivia_progress_json")
         val CONFIG = stringPreferencesKey("trivia_last_config_json")
+        val PLAYING_AS = stringPreferencesKey("trivia_playing_as")
     }
 }
 

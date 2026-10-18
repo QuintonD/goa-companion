@@ -7,6 +7,8 @@ import dev.quinton.goa.core.domain.sync.protocol.SyncDataPort
 import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
 import dev.quinton.goa.core.domain.trivia.FactProgress
 import dev.quinton.goa.core.domain.trivia.TriviaConfig
+import dev.quinton.goa.core.model.board.BoardMap
+import dev.quinton.goa.core.model.board.SavedBoard
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
@@ -15,6 +17,7 @@ import dev.quinton.goa.core.model.rating.HeroUsage
 import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.model.rating.RatingPoint
 import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.model.trivia.TriviaRound
 import kotlinx.coroutines.flow.Flow
 
 /*
@@ -117,6 +120,59 @@ interface TriviaProgressRepository {
 
     /** Forgets the progress of facts on these heroes' cards; null = everything. */
     suspend fun reset(heroIds: Set<String>? = null)
+
+    /**
+     * Who the next round is played as (ADR-031): a player id, [GUEST], or null before anyone was
+     * picked on this phone (the home then defaults to this phone's "You", else Guest).
+     */
+    val playingAs: Flow<String?>
+
+    suspend fun setPlayingAs(playerIdOrGuest: String)
+
+    companion object {
+        /** [playingAs] for a round played by nobody in particular: not on the leaderboard. */
+        const val GUEST = "guest"
+    }
+}
+
+/**
+ * Finished trivia rounds played as a player, the source of the trivia leaderboard (owner: trivia,
+ * ADR-031). Synced with the group and kept in the backup file like the match log: writes are stamped,
+ * a delete leaves a tombstone.
+ */
+interface TriviaRoundRepository {
+    /** Every round not deleted, player ids resolved through player merges, oldest first. */
+    fun observeRounds(): Flow<List<TriviaRound>>
+
+    /** Writes a finished round (stamped `updatedAt`). */
+    suspend fun add(round: TriviaRound)
+
+    /** Removes a round from the leaderboard everywhere (tombstone, ADR-025). */
+    suspend fun delete(id: String)
+}
+
+/** Bundled board maps from `assets/catalog/maps/` (owner: board, ADR-032). Read-only. */
+interface BoardMapRepository {
+    /** Every bundled map, in catalog order (the core single-lane map first). Emits once loaded. */
+    val maps: Flow<List<BoardMap>>
+}
+
+/**
+ * Boards set up in the board sandbox (owner: board, ADR-032): on this phone and in the backup file,
+ * never synced. Every change is written as it happens.
+ */
+interface BoardRepository {
+    /** All boards, most recently changed first. */
+    val boards: Flow<List<SavedBoard>>
+
+    fun observe(id: String): Flow<SavedBoard?>
+
+    suspend fun upsert(board: SavedBoard)
+
+    suspend fun delete(id: String)
+
+    /** Backup import: Replace = exactly [boards]; Merge = the later `updatedAt` of each id wins. */
+    suspend fun import(boards: List<SavedBoard>, replace: Boolean)
 }
 
 /** Wall-clock time (epoch ms) for the `updatedAt` stamps on local writes (ADR-025). */

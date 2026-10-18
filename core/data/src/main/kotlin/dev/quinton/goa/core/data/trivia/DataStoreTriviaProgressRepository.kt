@@ -61,6 +61,10 @@ internal class DataStoreTriviaProgressRepository internal constructor(
 
     override suspend fun saveConfig(config: TriviaConfig) = store.writeConfig(TriviaJson.encodeConfig(config))
 
+    override val playingAs: Flow<String?> = store.playingAs.distinctUntilChanged()
+
+    override suspend fun setPlayingAs(playerIdOrGuest: String) = store.writePlayingAs(playerIdOrGuest)
+
     override suspend fun reset(heroIds: Set<String>?) {
         if (heroIds == null) {
             store.updateProgress { null }

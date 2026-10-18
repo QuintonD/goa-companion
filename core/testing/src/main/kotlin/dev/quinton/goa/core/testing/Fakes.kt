@@ -1,5 +1,7 @@
 package dev.quinton.goa.core.testing
 
+import dev.quinton.goa.core.data.BoardMapRepository
+import dev.quinton.goa.core.data.BoardRepository
 import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.DraftRecordRepository
 import dev.quinton.goa.core.data.GroupRepository
@@ -12,6 +14,7 @@ import dev.quinton.goa.core.data.RatingsRepository
 import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.data.SyncedPhone
 import dev.quinton.goa.core.data.TriviaProgressRepository
+import dev.quinton.goa.core.data.TriviaRoundRepository
 import dev.quinton.goa.core.data.player.PlayerNames
 import dev.quinton.goa.core.data.rating.HeroPilotsRepository
 import dev.quinton.goa.core.domain.meta.HeroPilots
@@ -23,6 +26,8 @@ import dev.quinton.goa.core.domain.sync.PlayerMerges
 import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
 import dev.quinton.goa.core.domain.trivia.FactProgress
 import dev.quinton.goa.core.domain.trivia.TriviaConfig
+import dev.quinton.goa.core.model.board.BoardMap
+import dev.quinton.goa.core.model.board.SavedBoard
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
@@ -32,6 +37,7 @@ import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.model.rating.RatingPoint
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.model.sync.PlayerMerge
+import dev.quinton.goa.core.model.trivia.TriviaRound
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
@@ -184,6 +190,7 @@ class FakeSettingsRepository(initial: AppSettings = AppSettings()) : SettingsRep
 class FakeTriviaProgressRepository(
     initial: Map<String, FactProgress> = emptyMap(),
     config: TriviaConfig? = null,
+    playingAs: String? = null,
 ) : TriviaProgressRepository {
     val state = MutableStateFlow(initial)
     val configState = MutableStateFlow(config)
@@ -199,5 +206,46 @@ class FakeTriviaProgressRepository(
     /** Fact keys are `<cardId>/<stat>` and card ids start with `<heroId>-`. */
     override suspend fun reset(heroIds: Set<String>?) = state.update { map ->
         if (heroIds == null) emptyMap() else map.filterKeys { key -> heroIds.none { key.startsWith("$it-") } }
+    }
+
+    val playingAsState = MutableStateFlow(playingAs)
+    override val playingAs: Flow<String?> = playingAsState
+
+    override suspend fun setPlayingAs(playerIdOrGuest: String) {
+        playingAsState.value = playerIdOrGuest
+    }
+}
+
+class FakeTriviaRoundRepository(initial: List<TriviaRound> = emptyList()) : TriviaRoundRepository {
+    val state = MutableStateFlow(initial)
+
+    override fun observeRounds(): Flow<List<TriviaRound>> = state.map { rounds -> rounds.sortedBy { it.playedAt } }
+
+    override suspend fun add(round: TriviaRound) = state.update { rounds -> rounds.filterNot { it.id == round.id } + round }
+
+    override suspend fun delete(id: String) = state.update { rounds -> rounds.filterNot { it.id == id } }
+}
+
+class FakeBoardMapRepository(maps: List<BoardMap>) : BoardMapRepository {
+    override val maps: Flow<List<BoardMap>> = MutableStateFlow(maps)
+}
+
+class FakeBoardRepository(initial: List<SavedBoard> = emptyList()) : BoardRepository {
+    val state = MutableStateFlow(initial)
+
+    override val boards: Flow<List<SavedBoard>> = state.map { boards -> boards.sortedByDescending { it.updatedAt } }
+
+    override fun observe(id: String): Flow<SavedBoard?> = state.map { boards -> boards.firstOrNull { it.id == id } }
+
+    override suspend fun upsert(board: SavedBoard) = state.update { boards -> boards.filterNot { it.id == board.id } + board }
+
+    override suspend fun delete(id: String) = state.update { boards -> boards.filterNot { it.id == id } }
+
+    override suspend fun import(boards: List<SavedBoard>, replace: Boolean) = state.update { current ->
+        if (replace) {
+            boards
+        } else {
+            (current + boards).groupBy { it.id }.values.map { copies -> copies.maxBy { it.updatedAt } }
+        }
     }
 }

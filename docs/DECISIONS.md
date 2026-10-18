@@ -587,3 +587,50 @@ bundled copy at all (only the user's presets) gets nothing. No phase changes in 
 this change offers Speed guards again, which is right for that list. At 0:10 per hero the
 phase-over alert fires for most heroes; the Action cues can be trimmed in the preset if it gets
 noisy.
+
+## ADR-031 — Trivia leaderboard: rounds played as a player, synced like matches (2026-10-19)
+**Context:** The owner asked for a leaderboard for the card quiz. Trivia progress is this phone's
+own (ADR-028), with no idea who is playing, and rounds of different setups (one easy hero, 4 choices
+vs Recall, 10 vs endless) can't be compared. Friends play on their own phones and at the table.
+**Decision:** (1) A round is played *as* someone: Card trivia's "Playing as" (any player, or Guest);
+the pick is remembered on the phone (`trivia_progress` store). (2) A fixed **Challenge** (20
+questions, all heroes regardless of owned products, all numbers and tiers, 4 choices, duels on,
+uniform draw without repeats, answer time summed) is the comparable score; everything else is
+Practice. (3) Each round reaching its summary as a player becomes an immutable `TriviaRound`
+(core:model) in Room (`trivia_rounds`, database v4), stamped, deletable by tombstone
+(`DeletionKind.TRIVIA_ROUND`), merged-player aware, in the sync document and the backup file. The
+leaderboard is derived from the rounds (core:domain `TriviaLeaderboard`), never stored. (4)
+Learning progress stays per phone and moves only for rounds played as this phone's "You" (or while
+no "You" is set), so passing the phone round the table doesn't pollute the owner's mastery.
+**Consequences:** `SyncDocument.VERSION` 1 → 2 and the backup format gains `triviaRounds` (older
+files still import): every phone in the group must update before syncing again; an old phone
+refuses with "update the app". A Challenge is only as fair as the catalog: the round records the
+catalog `dataVersion`, so a later data fix doesn't silently change what an old score meant. Answer
+time measures from question shown to answer, so a slow card-scan reader isn't penalised.
+Alternatives rejected: ranking by numbers learned (per-phone, can't sync without merging mastery
+per fact); a per-setup board for every quiz configuration (too many boards to mean anything).
+
+## ADR-032 — Board sandbox: community hex maps checked against the official art; measure, never play (2026-10-19)
+**Context:** The owner asked for a virtual board to try out board states, e.g. the opening for a
+line-up, with set-up "as easy and intuitive as possible". The rulebook shows the board only in
+perspective, so a playable hex grid can't be read from it. Its rules give everything needed to
+*measure* (distance, movement, Fast Travel, Zone adjacency, opening placement, pushing a lane), but
+card effects are open-ended text. PRODUCT's non-goals excluded board simulation.
+**Decision:** (1) **Map data** comes through the import pipeline from a new pinned source,
+`PedroVIOliv/goa2-backend` (`src/goa2/data/maps/*.json`: axial hexes, zones, spawn tags, lanes),
+normalised to our `BoardMap` (core:model) in `assets/catalog/maps/`. A map is `verified` only when
+an overlay on the official map art matches space by space and its spawn points satisfy the
+rulebook's setup (p.6: 4 Melee, 1 Ranged, 1 Heavy per team in the starting Battle Zone; three hero
+spawn points per team; p.8: the defending team has more spawn points in its pre-Throne Zone).
+Community zone names are not shown. (2) **Rules are pure Kotlin** in `core:domain/board`
+(`HexGrid`, `BoardGeometry`, `BoardRules`, `BoardSetup`), page-referenced and tested: obstacles
+(p.19), movement through empty spaces and Ignoring Obstacles (p.11, p.19), Fast Travel (p.11), Zone
+adjacency (p.18), distance counting obstacles (p.18), opening (p.6, p.20), Push the Lane steps 2–3
+(p.8). (3) The app **measures, never plays**: no turns, card resolution, coins or Life counters;
+the user moves pieces freely (one per space) and reads overlays. (4) Boards are local
+(`datastore/boards`), autosaved, in the backup file, not synced. (5) Drawn in an original vector
+style (no map art bundled), so it stays legible on a phone and owes nothing to the art's layout.
+**Consequences:** A new feature module `:feature:board`; the PRODUCT non-goal now excludes only a
+full rules engine. The community map data has no licence (like the other sources: private build,
+never redistribute). A map we can't verify ships badged Unverified or not at all. Card effects
+("move 2 in a straight line", pushes, swaps) are quoted for the table to apply by hand.

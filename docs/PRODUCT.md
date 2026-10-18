@@ -234,6 +234,80 @@ Ultimate), about 2,150 numbers over 32 heroes. Every question is generated from 
   question, answered, duel and summary screens have light/dark, font scale 2, 384 dp and landscape
   screenshots.
 
+- **Leaderboard** (ADR-031): who knows the cards best, across the group.
+  - *Playing as:* the Card trivia home shows who the next round is played as ("Playing as Sam ▾"):
+    any active player, or Guest (not on the leaderboard). Default: the last pick on this phone, else
+    this phone's "You" (Group sync), else Guest. The picker can add a player. Learning progress stays
+    this phone's (ADR-028): a round moves it only when played as this phone's "You", or by anyone
+    while no "You" is set; the home says so when another player is picked.
+  - *Challenge:* one fixed quiz so scores compare: 20 questions drawn evenly (not weighted by
+    progress) from every hero's numbers (all heroes, whatever the owned products), all six numbers,
+    all tiers, 4 choices, initiative duels on, no number asked twice. Shown on the home as its own
+    "Challenge" action next to Start quiz; needs a named player (Guest is asked to pick one). The
+    time from each question appearing to its answer is summed (reading the card scan afterwards
+    doesn't count). Only a Challenge with all 20 answered goes on the board; ending one early says
+    "Unfinished challenges don't go on the leaderboard" in the summary. A finished Challenge's
+    summary shows the player's place ("2nd of 5 · your best 18/20").
+  - *Rounds:* every round played as a player that reaches its summary is recorded (score, questions,
+    best streak, answer time, Challenge or Practice). Guest rounds are not recorded.
+  - *Leaderboard screen* (trophy on the Card trivia top bar, and "Leaderboard" on a Challenge
+    summary): **Challenge** board = each player's best Challenge (score, then less answer time, then
+    earlier); **Practice** board = every recorded round including Challenges: right answers (rank),
+    accuracy, best streak, rounds. Period: All time / Last 30 days. Each row: place, the player's
+    colour and avatar, name ("You" tag), main figure and detail. Tap a player: their recent rounds,
+    each removable ("Remove from leaderboard", confirmed; a tombstone, so it goes everywhere). Empty
+    states say how to get on the board.
+  - *Shared:* rounds sync with the group like matches (Group sync and sync files) and are in the
+    backup file; merged duplicate players count as one. Phones on an older app version can't sync
+    until updated (sync document version 2).
+- **Leaderboard done when:** ranking and tie-break tests, a Challenge draws evenly with no repeats,
+  merge properties hold with rounds and their tombstones, backup round-trips them, a finished round is
+  recorded exactly once, and the leaderboard, Challenge summary and Playing-as picker have light/dark,
+  font scale 2, 384 dp and landscape screenshots.
+
+### 8. Board sandbox (ADR-032)
+Set up a position on the real map and see what can happen: an opening for a line-up, where a
+hero can get to, who is in range. A sandbox: you move the pieces and the app measures with the
+rulebook's movement and distance rules; it never plays the game (no turns, card resolution, coins or
+Life counters).
+- **Maps:** bundled from the import pipeline (`assets/catalog/maps/`), drawn by the app (original
+  vector style): spaces by Zone, Throne Zones in team colours, Zone borders, printed terrain, hero
+  and minion Spawn points by team and type, each Lane's current Battle Zone. The core single-lane
+  map first; any map not verified against the official art and rulebook is badged Unverified.
+- **New board in two taps:** "New board" → pick each team's heroes (search, tap to add in order;
+  "Use a draft or match" fills both teams from the latest finished draft, a pending match or a logged
+  match) → **Set up**: the board opens on the opening position (p.6): minions on their Spawn points in
+  each starting Battle Zone, heroes on their team's hero Spawn points in pick order (more than three
+  per team: next to them, p.20). Default map: single lane; the double-lane map when chosen or with
+  8+ heroes (if bundled). From a finished draft ("Try on the board") or a match ("Open on the board")
+  it is one tap.
+- **Moving pieces:** tap a piece to select it; tap an empty space to move it there; tap another piece
+  to select that one; drag a piece to move it, dropping on another piece swaps them. One piece per
+  space, always. "Add" puts in a hero (catalog picker), a minion (team and type) or a token (short
+  label, an obstacle) — then tap where. Remove. Undo/redo every change; "Reset to opening".
+- **Measuring** (a hero selected): pick one of its cards (by colour, Basic → Tier III → Ultimate)
+  and switch on overlays: Movement (the card's movement value: spaces it can end on, moving only
+  through empty spaces, p.11; "Ignore obstacles" switch), Fast Travel (p.11: own or adjacent Zone,
+  no enemy hero or minion in either), Range and Radius (from the card's values, ± for items), and
+  the card's text quoted. A minion or token selected: Movement N with a stepper. "Measure": tap any
+  space to read its distance in spaces and whether it lies in a straight line.
+- **Battle Zone:** "Push the lane" (pick the team that won the push; per lane on a double-lane map)
+  applies p.8 steps 2–3; a minion whose Spawn point is taken waits in a tray, with the nearest empty
+  spaces of the Battle Zone highlighted. Pushing into a Throne Zone says that team wins.
+- **Boards:** every change is saved as it happens; the Boards list (name, map, line-up, last change)
+  opens, renames, duplicates and deletes them (delete can be undone). On this phone and in the
+  backup file, not synced.
+- **Layout:** the board fills the screen with the Lane running top to bottom in portrait (your
+  team's Throne at the bottom; "Flip" swaps), left to right in landscape; pinch to zoom, drag to pan,
+  double tap zooms, "Fit" resets. Selection details sit in a bottom panel that never covers the
+  selected piece. Pieces show the hero's portrait ringed in team colour, minions by type, tokens by
+  label. TalkBack: a "Pieces" list selects any piece; spaces read their Zone and what stands there.
+- **Entry points:** Heroes tab top bar (Board), finished draft, a pending or logged match.
+- **Done when:** hex distance, movement, Fast Travel, opening and push tests match rulebook cases;
+  every bundled map passes validation (spawn counts per p.6, Lanes, Zones, no overlaps); the board,
+  new-board and boards screens have light/dark, font scale 2, 384 dp and landscape screenshots; an
+  end-to-end test sets up a board from a draft and moves a hero.
+
 ### Settings
 Theme (dark default / light / system), owned products (default: all), timer defaults, running
 timer view (step by step / whole round), cue sounds and haptics, Elo constants (advanced; shared
@@ -243,7 +317,8 @@ with the sync group), Group sync, export/import, About/credits.
 - Online play, accounts, cloud sync, ads, analytics SDKs, any network access from the app. (Group
   sync is phone to phone at the table, ADR-025; nothing goes through the internet.)
 - Play Store or any public distribution — sideloaded only.
-- Full rules engine or board-state simulation (we don't track minions, coins or positions).
+- A full rules engine. The board sandbox (8) moves pieces and measures movement, Fast Travel,
+  range and distance; it never resolves cards, attacks, coins, turns or Life counters.
 - iOS; tablet-first layouts (phone-first; tablets must not break).
 
 ## Open questions (owner to decide)

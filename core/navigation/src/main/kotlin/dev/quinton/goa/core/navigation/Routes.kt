@@ -149,9 +149,45 @@ object NavSheet {
 
 /**
  * A quiz round. [config] is a `TriviaConfig` as JSON (core:domain); [factKeys], when not empty,
- * limits the round to those facts ("Practice the ones I missed").
+ * limits the round to those facts ("Practice the ones I missed"). [challenge]: the fixed Challenge
+ * quiz (ADR-031); [config] is then ignored.
  */
-@Serializable data class TriviaQuizRoute(val config: String, val factKeys: List<String> = emptyList()) : NavKey
+@Serializable data class TriviaQuizRoute(
+    val config: String,
+    val factKeys: List<String> = emptyList(),
+    val challenge: Boolean = false,
+) : NavKey
+
+/** The trivia leaderboard (ADR-031): Challenge and Practice boards from the synced rounds. */
+@Serializable data object TriviaLeaderboardRoute : NavKey
+
+// Board sandbox (ADR-032, owner: board)
+
+/** Saved boards and "New board". */
+@Serializable data object BoardsRoute : NavKey
+
+/**
+ * Choosing a new board's line-up and map. [red]/[blue] pre-fill the teams (hero ids in pick order),
+ * e.g. from a draft or a match.
+ */
+@Serializable data class NewBoardRoute(
+    val red: List<String> = emptyList(),
+    val blue: List<String> = emptyList(),
+    val mapId: String? = null,
+) : NavKey
+
+/**
+ * A board. [boardId] opens a saved board; null creates a new board with the opening position for the
+ * line-up [red]/[blue] on [mapId] (null = the default map for that many heroes) and opens it. [name]
+ * names the new board (null = named after the line-up).
+ */
+@Serializable data class BoardRoute(
+    val boardId: String? = null,
+    val red: List<String> = emptyList(),
+    val blue: List<String> = emptyList(),
+    val mapId: String? = null,
+    val name: String? = null,
+) : NavKey
 
 // Group sync (ADR-025, owner: sync)
 
