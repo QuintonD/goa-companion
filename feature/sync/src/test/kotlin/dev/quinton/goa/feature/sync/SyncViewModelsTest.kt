@@ -41,6 +41,7 @@ class SyncViewModelsTest {
     @get:Rule val main = MainDispatcherRule()
 
     private val clock = EditClock { 1_000 }
+    private val phoneName = PhoneName { "Galaxy S25 Ultra" }
     private val people = listOf(person("ann"), person("bob"), person("cid"), person("dee"))
 
     private inner class Phone(
@@ -65,6 +66,7 @@ class SyncViewModelsTest {
             transports,
             clock,
             AppInfo { version },
+            PhoneName { "Galaxy S25 Ultra" },
         )
     }
 
@@ -155,6 +157,7 @@ class SyncViewModelsTest {
             host.transports,
             clock,
             AppInfo { "1.0" },
+            PhoneName { "Galaxy S25 Ultra" },
         )
         backgroundScope.launch { hostVm.uiState.collect {} }
         watch(bob)
@@ -183,10 +186,29 @@ class SyncViewModelsTest {
     }
 
     @Test
+    fun beforeChoosingYourselfThePhoneGoesByItsOwnNameNotItsModelCode() = runTest {
+        val vm = GroupViewModel(
+            FakeGroupRepository(groupState()),
+            FakePlayerRepository(people),
+            FakeMatchRepository(),
+            FakeSyncRepository(),
+            clock,
+            phoneName,
+        )
+        assertThat(vm.uiState.first { !it.loading }.deviceName).isEqualTo("Galaxy S25 Ultra")
+    }
+
+    @Test
     fun joiningWithAnInviteGoesStraightToTheFirstSyncAndBadInvitesSayWhy() = runTest {
         val groups = FakeGroupRepository(groupState(group = null))
-        val vm =
-            GroupViewModel(groups, FakePlayerRepository(people), FakeMatchRepository(), FakeSyncRepository(), clock)
+        val vm = GroupViewModel(
+            groups,
+            FakePlayerRepository(people),
+            FakeMatchRepository(),
+            FakeSyncRepository(),
+            clock,
+            phoneName,
+        )
         backgroundScope.launch { vm.uiState.collect {} }
         vm.navigation.test {
             vm.join("https://example.com")
@@ -209,7 +231,7 @@ class SyncViewModelsTest {
     fun startingAGroupShowsItsInviteAndLeavingKeepsTheData() = runTest {
         val groups = FakeGroupRepository(groupState(group = null))
         val sync = FakeSyncRepository(data("m1"))
-        val vm = GroupViewModel(groups, FakePlayerRepository(people), FakeMatchRepository(), sync, clock)
+        val vm = GroupViewModel(groups, FakePlayerRepository(people), FakeMatchRepository(), sync, clock, phoneName)
         backgroundScope.launch { vm.uiState.collect {} }
         vm.start("   ")
         assertThat(vm.uiState.first { it.message != null }.inGroup).isFalse()
@@ -233,6 +255,7 @@ class SyncViewModelsTest {
                 FakeMatchRepository(),
                 sync,
                 clock,
+                phoneName,
             )
         vm.navigation.test {
             vm.shareFile()

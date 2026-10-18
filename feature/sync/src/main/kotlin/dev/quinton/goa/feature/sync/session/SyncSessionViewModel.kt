@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.sync.session
 
-import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
@@ -23,6 +22,7 @@ import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
 import dev.quinton.goa.core.domain.sync.protocol.SyncHost
 import dev.quinton.goa.core.domain.sync.protocol.SyncPeer
 import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.feature.sync.PhoneName
 import dev.quinton.goa.feature.sync.SyncText
 import dev.quinton.goa.feature.sync.di.SessionTransport
 import dev.quinton.goa.feature.sync.di.SyncTransportFactory
@@ -108,6 +108,7 @@ class SyncSessionViewModel @AssistedInject constructor(
     private val transports: SyncTransportFactory,
     private val clock: EditClock,
     private val appInfo: AppInfo,
+    private val phoneName: PhoneName,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -241,5 +242,5 @@ class SyncSessionViewModel @AssistedInject constructor(
     }
 
     private fun deviceName(state: GroupState, people: List<Player>): String =
-        people.firstOrNull { it.id == state.mePlayerId }?.name ?: state.deviceName ?: Build.MODEL ?: "Phone"
+        people.firstOrNull { it.id == state.mePlayerId }?.name ?: state.deviceName ?: phoneName.get()
 }
