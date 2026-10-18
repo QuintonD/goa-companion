@@ -11,10 +11,14 @@ import dev.quinton.goa.core.domain.trivia.TriviaMastery
 import dev.quinton.goa.core.domain.trivia.TriviaStat
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
@@ -28,20 +32,31 @@ import kotlinx.serialization.json.JsonPrimitive
  * Card-trivia progress (ADR-028): this phone's own practice record, in its own DataStore file.
  * Reading never fails: an unreadable document is "no progress yet" / "no last setup", and one
  * unreadable entry only loses that entry.
+ *
+ * The progress document holds up to ~2,000 entries, so decoding, merging and encoding it run on
+ * [computeDispatcher], never on the caller's (main) thread. DataStore runs an edit's transform in
+ * the caller's context, hence the `withContext` around each edit.
  */
 @Singleton
-internal class DataStoreTriviaProgressRepository @Inject constructor(
+internal class DataStoreTriviaProgressRepository internal constructor(
     private val store: TriviaProgressStore,
     private val catalogRepository: CatalogRepository,
+    private val computeDispatcher: CoroutineDispatcher,
 ) : TriviaProgressRepository {
+    @Inject
+    constructor(store: TriviaProgressStore, catalogRepository: CatalogRepository) :
+        this(store, catalogRepository, Dispatchers.Default)
+
     override val progress: Flow<Map<String, FactProgress>> =
-        store.progressJson.distinctUntilChanged().map(TriviaJson::decodeProgress)
+        store.progressJson.distinctUntilChanged().map(TriviaJson::decodeProgress).flowOn(computeDispatcher)
 
     override val lastConfig: Flow<TriviaConfig?> = store.configJson.distinctUntilChanged().map(TriviaJson::decodeConfig)
 
     override suspend fun record(updates: Map<String, FactProgress>) {
         if (updates.isEmpty()) return
-        store.updateProgress { stored -> TriviaJson.encodeProgress(TriviaJson.decodeProgress(stored) + updates) }
+        withContext(computeDispatcher) {
+            store.updateProgress { stored -> TriviaJson.encodeProgress(TriviaJson.decodeProgress(stored) + updates) }
+        }
     }
 
     override suspend fun saveConfig(config: TriviaConfig) = store.writeConfig(TriviaJson.encodeConfig(config))
@@ -57,9 +72,11 @@ internal class DataStoreTriviaProgressRepository @Inject constructor(
             .flatMap { card -> TriviaStat.entries.map { TriviaFact.keyOf(card.id, it) } }
             .toSet()
         if (keys.isEmpty()) return
-        store.updateProgress { stored ->
-            val kept = TriviaJson.decodeProgress(stored) - keys
-            if (kept.isEmpty()) null else TriviaJson.encodeProgress(kept)
+        withContext(computeDispatcher) {
+            store.updateProgress { stored ->
+                val kept = TriviaJson.decodeProgress(stored) - keys
+                if (kept.isEmpty()) null else TriviaJson.encodeProgress(kept)
+            }
         }
     }
 }
