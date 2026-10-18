@@ -379,8 +379,9 @@ when empty (older JSON without it still loads). Values above are placeholders, n
   and extra basics such as Takahide's, Tier I–III, Ultimate). The Handicap card and `extras`
   (Gydion's spellbook) are left out. Key `<cardId>/<stat>`; `plus` from `values.plus`. Ultimate
   cards print no Initiative, so they only appear with the stats they print.
-- **Questions:** *card number* (choices = the answer and the three nearest other values the stat
-  takes anywhere in the catalog, ties shuffled; *Recall* = every such value, e.g. Initiative 1–13);
+- **Questions:** *card number* (choices = four neighbouring values from those the stat takes
+  anywhere in the catalog, the answer at a random place among them, so no button position gives
+  it away; *Recall* = every such value, e.g. Initiative 1–13, Attack 1–7, 9, 11, 12);
   *initiative duel* (about 1 in 5 questions when Initiative is in the quiz and at least two cards
   print one): two cards, preferably within 2 Initiative of each other; answer first / second /
   same. Higher number = "higher initiative"; the duel says nothing more about turn order.
@@ -388,7 +389,10 @@ when empty (older JSON without it still loads). Values above are placeholders, n
   value learned (`FactProgress.value`/`plus`); a different catalog value = a new fact. Duels never
   change boxes; a wrong one queues both Initiative facts. A miss is asked again after 3 other
   questions in the round. Draw weights: missed 6, new 3, box 1 → 4, 2 → 2, 3 → 1, 4 → 0.5,
-  5 → 0.25; the previous 3 questions' cards are skipped when the pool has others.
+  5 → 0.25; the previous 3 questions' cards are skipped when the pool has others (the window
+  shrinks to 1 for a small pool, so the card just asked never comes straight back if there is
+  another). Ultimates print no Initiative and only five print any number, so an Ultimate-only
+  quiz is small or empty; the setup says so.
 
 ## Elo [APP — ADR-011]
 Deterministic replay of COMPLETED matches ordered by `(playedAt, createdAt, id)`. Two rating
