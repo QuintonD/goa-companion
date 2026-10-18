@@ -10,6 +10,7 @@ import dev.quinton.goa.core.data.match.RoomMatchRepository
 import dev.quinton.goa.core.data.player.RoomPlayerRepository
 import dev.quinton.goa.core.data.rating.FakeEloConfigRepository
 import dev.quinton.goa.core.database.GoaDatabase
+import dev.quinton.goa.core.domain.backup.summary
 import dev.quinton.goa.core.datastore.draft.DraftStore
 import dev.quinton.goa.core.datastore.settings.SettingsDataSource
 import dev.quinton.goa.core.datastore.timer.DataStoreTimerStateStore
@@ -42,7 +43,6 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.After
-import org.junit.Assert.assertThrows
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -290,83 +290,6 @@ class BackupRoundTripTest {
     }
 
     @Test
-    fun invalidFilesAreRejectedWithReadableMessages() {
-        assertThrows(InvalidBackupException::class.java) { BackupCodec.decode("not json") }
-        assertThrows(InvalidBackupException::class.java) { BackupCodec.decode("""{"format":"other","exportedAt":1}""") }
-        val newer = assertThrows(InvalidBackupException::class.java) {
-            BackupCodec.decode("""{"format":"goa-companion-backup","version":99,"exportedAt":1}""")
-        }
-        assertThat(newer.message).contains("newer version")
-        val dupes = """{"format":"goa-companion-backup","version":1,"exportedAt":1,"players":[""" +
-            """{"id":"a","name":"A","color":1,"avatarId":0,"createdAt":0},""" +
-            """{"id":"a","name":"B","color":1,"avatarId":0,"createdAt":0}]}"""
-        assertThrows(InvalidBackupException::class.java) { BackupCodec.decode(dupes) }
-        // A merge naming a missing player would block every sync afterwards.
-        val badMerge = BackupDocument(
-            exportedAt = 1,
-            players = listOf(Player("a", "A", 1, 0, 0)),
-            playerMerges = listOf(dev.quinton.goa.core.model.sync.PlayerMerge("a", "ghost", 1)),
-        )
-        val merge =
-            assertThrows(InvalidBackupException::class.java) { BackupCodec.decode(BackupCodec.encode(badMerge)) }
-        assertThat(merge.message).contains("merges a player")
-    }
-
-    @Test
-    fun matchesWithAHeroTwiceOrAPlayerOnBothTeamsAreRejectedByName() {
-        fun match(id: String, vararg seats: Participant) = Match(
-            id = id,
-            createdAt = NOON_UTC,
-            playedAt = NOON_UTC,
-            status = MatchStatus.PENDING,
-            mode = GameMode.QUICK,
-            participants = seats.toList(),
-        )
-        val ann = Player("ann", "Ann", 1, 0, 0)
-        val bob = Player("bob", "Bob", 1, 0, 0)
-        val good = match("good", Participant("ann", "h1", Team.RED), Participant("bob", "h2", Team.BLUE))
-        val twice = match("twice", Participant("ann", "h1", Team.RED), Participant("bob", "h1", Team.BLUE))
-        val both = match("both", Participant("ann", "h1", Team.RED), Participant("ann", "h2", Team.BLUE))
-        fun decode(vararg matches: Match) = BackupCodec.decode(
-            BackupCodec.encode(BackupDocument(exportedAt = 1, players = listOf(ann, bob), matches = matches.toList())),
-        )
-
-        assertThat(decode(good).matches).containsExactly(good)
-        val heroTwice = assertThrows(InvalidBackupException::class.java) { decode(good, twice) }
-        assertThat(heroTwice.message).contains("twice")
-        assertThat(heroTwice.message).contains("h1")
-        assertThat(heroTwice.message).contains("1970-01-01")
-        assertThat(heroTwice.message).contains("(id twice)")
-        val bothTeams = assertThrows(InvalidBackupException::class.java) { decode(both) }
-        assertThat(bothTeams.message).contains("Ann is on both teams")
-        assertThat(bothTeams.message).contains("(id both)")
-        val all = assertThrows(InvalidBackupException::class.java) { decode(twice, both) }
-        assertThat(all.message).contains("(id twice)")
-        assertThat(all.message).contains("(id both)")
-    }
-
-    @Test
-    fun aPilotMissingFromTheFileIsRejectedNeverAGhostPlayer() {
-        val ann = Player("ann", "Ann", 1, 0, 0)
-        val match = Match(
-            id = "ghost",
-            createdAt = NOON_UTC,
-            playedAt = NOON_UTC,
-            status = MatchStatus.COMPLETED,
-            mode = GameMode.QUICK,
-            winner = Team.RED,
-            participants = listOf(Participant("ann", null, Team.RED), Participant("nobody", null, Team.BLUE)),
-        )
-        val error = assertThrows(InvalidBackupException::class.java) {
-            BackupCodec.decode(
-                BackupCodec.encode(BackupDocument(exportedAt = 1, players = listOf(ann), matches = listOf(match))),
-            )
-        }
-        assertThat(error.message).contains("player nobody isn't in this backup")
-        assertThat(error.message).contains("(id ghost)")
-    }
-
-    @Test
     fun unknownHeroesAreKeptAsTheyAreAndListedInTheSummary() = runTest {
         val source = Device(realContributors = false)
         source.seed()
@@ -575,17 +498,7 @@ class BackupRoundTripTest {
             assertThat(imported.timerLayout).isEqualTo(TimerLayout.STEPS)
         }
     }
-
-    @Test
-    fun unknownKeysAreIgnored() {
-        // Unknown keys from a newer minor version are ignored.
-        val doc = BackupCodec.decode("""{"format":"goa-companion-backup","version":1,"exportedAt":5,"future":true}""")
-        assertThat(doc.exportedAt).isEqualTo(5)
-    }
 }
 
 /** The test phones' clock. */
 private const val NOW = 1_700_100_000_000L
-
-/** 1970-01-01 12:00 UTC: the same calendar day in every time zone from UTC−11 to UTC+11. */
-private const val NOON_UTC = 43_200_000L

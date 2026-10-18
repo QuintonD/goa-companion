@@ -9,7 +9,8 @@ import dev.quinton.goa.core.data.rating.EloConfigRepository
 import dev.quinton.goa.core.data.rating.StampedEloConfigStore
 import dev.quinton.goa.core.data.sync.LocalSyncData
 import dev.quinton.goa.core.database.GoaDatabase
-import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.domain.backup.BackupFiles
+import dev.quinton.goa.core.domain.backup.summary
 import dev.quinton.goa.core.domain.sync.StampedEloConfig
 import dev.quinton.goa.core.domain.sync.SyncDocument
 import dev.quinton.goa.core.domain.sync.SyncMerge
@@ -95,16 +96,10 @@ internal class RoomBackupRepository @Inject constructor(
         val config = eloConfig.config.first()
         val stamp = stampedElo.stamped().updatedAt
         val data = database.withReadTransaction { local.read() }
-        return BackupDocument(
+        return BackupFiles.export(
+            data.copy(eloConfig = StampedEloConfig(config, stamp)),
             exportedAt = System.currentTimeMillis(),
             appVersion = appInfo.versionName(),
-            players = data.players,
-            matches = data.matches,
-            drafts = data.drafts,
-            eloConfig = config.takeIf { it != EloConfig.DEFAULT },
-            eloConfigUpdatedAt = stamp.takeIf { it > 0 },
-            deletions = data.deletions,
-            playerMerges = data.playerMerges,
             extras = extras,
         )
     }
@@ -114,35 +109,23 @@ internal class RoomBackupRepository @Inject constructor(
     override suspend fun import(document: BackupDocument, mode: ImportMode, useBackupSettings: Boolean) {
         val settings = useBackupSettings || mode == ImportMode.REPLACE
         // Stored as they are: unknown hero ids included (read as "Unknown hero"), updatedAt kept.
-        val file = SyncMerge.normalize(
-            SyncDocument(
-                players = document.players,
-                matches = document.matches,
-                drafts = document.drafts,
-                deletions = document.deletions,
-                playerMerges = document.playerMerges,
-            ),
-        )
         database.withWriteTransaction {
             if (mode == ImportMode.REPLACE) {
                 local.clear()
-                local.write(SyncDocument.EMPTY, file)
+                local.write(SyncDocument.EMPTY, BackupFiles.records(document))
             } else {
                 val before = SyncMerge.normalize(local.read())
-                local.write(before, SyncMerge.merge(before, file))
+                local.write(before, BackupFiles.merge(before, document))
             }
         }
         if (settings) {
-            // A file without rating constants was made with the defaults.
-            val config = (document.eloConfig ?: EloConfig.DEFAULT).sanitized()
             if (mode == ImportMode.MERGE) {
                 // Asked for explicitly: a change made now, which the group gets at the next sync.
+                val config = BackupFiles.eloConfig(document)
                 if (config != eloConfig.config.first()) eloConfig.update { config }
             } else {
-                // Replace restores the file as it was: its change time is kept, so an old backup's
-                // constants never override newer ones from the group.
-                val stamp = document.eloConfigUpdatedAt ?: if (document.eloConfig != null) 1 else 0
-                stampedElo.applySynced(StampedEloConfig(config, stamp))
+                // Replace restores the file as it was (BackupFiles.restoredEloConfig).
+                stampedElo.applySynced(BackupFiles.restoredEloConfig(document))
             }
         }
         for (contributor in contributors) {
