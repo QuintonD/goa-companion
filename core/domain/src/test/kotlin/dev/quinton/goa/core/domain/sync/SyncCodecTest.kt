@@ -99,6 +99,13 @@ class SyncCodecTest {
         assertThat(GroupInvite.parse(invite.substringBefore("&k=")).exceptionOrNull()?.message).contains("incomplete")
         val shortKey = "goa-sync:1?g=${group.groupId}&k=AAAA&n=x"
         assertThat(GroupInvite.parse(shortKey).isFailure).isTrue()
+        // A friend pastes the whole shared message, not just the invite line.
+        val message = GroupInvite.shareText(group.withName("Friday nights & co"))
+        assertThat(message).contains("Friday nights & co")
+        assertThat(GroupInvite.parse(message).getOrThrow()).isEqualTo(parsed)
+        assertThat(GroupInvite.parse("Here you go:\n $invite \n").getOrThrow()).isEqualTo(parsed)
+        // A single-line field may join the lines: the invite is still found.
+        assertThat(GroupInvite.parse(message.replace("\n", "")).getOrThrow()).isEqualTo(parsed)
         assertThat(GroupCredentials.create("  Friday   nights  ").name).isEqualTo("Friday nights")
         assertThat(group.toString()).doesNotContain(group.key.toHex())
     }

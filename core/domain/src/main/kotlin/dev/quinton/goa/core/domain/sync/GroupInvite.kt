@@ -50,9 +50,18 @@ object GroupInvite {
         return "$SCHEME:$VERSION?g=${group.groupId}&k=$key&n=${encode(group.name)}"
     }
 
-    /** The group in [text], or a user-readable error. */
+    /**
+     * The invite as a message for the share sheet: what to do with it, then the invite on its own
+     * line. [parse] finds the invite inside the whole message, so a friend can paste all of it.
+     */
+    fun shareText(group: GroupCredentials): String =
+        "Join “${group.name}” in the Guards of Atlantis companion: install the app, open Settings → " +
+            "Group sync and paste this whole message under “Join a group”. It's the key to the group's " +
+            "data, so only send it to the group.\n\n${format(group)}"
+
+    /** The group in [text] (an invite, or a message containing one), or a user-readable error. */
     fun parse(text: String): Result<GroupCredentials> = runCatching {
-        val trimmed = text.trim()
+        val trimmed = INVITE.find(text)?.value ?: text.trim()
         require(trimmed.startsWith("$SCHEME:")) { "This isn't a Guards of Atlantis group invite." }
         val rest = trimmed.removePrefix("$SCHEME:")
         val version = rest.substringBefore('?')
@@ -66,6 +75,8 @@ object GroupInvite {
         val name = GroupCredentials.cleanName(params["n"].orEmpty()).ifEmpty { "Our group" }
         GroupCredentials(groupId, key, name)
     }
+
+    private val INVITE = Regex("$SCHEME:\\S+")
 
     private const val BROKEN = "This invite is incomplete. Scan the QR code again."
 
