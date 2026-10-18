@@ -87,6 +87,8 @@ data class HubPage(
     val actions: List<TopAction> = TopActions.forTab(tab),
     val showTabs: Boolean = true,
     val scripts: List<String> = emptyList(),
+    /** Extra stylesheets after app.css, relative to `static/` (e.g. `timer/timer.css`). */
+    val styles: List<String> = emptyList(),
 )
 
 /** Renders [page] around [content] (the `<main>` element) and sends it. */
@@ -162,6 +164,7 @@ private fun HEAD.hubHead(page: HubPage) {
     link(rel = "icon", href = "/static/icons/brand_mark.svg", type = "image/svg+xml")
     link(rel = "apple-touch-icon", href = "/apple-touch-icon.png")
     link(rel = "stylesheet", href = StaticFiles.url("app.css"))
+    page.styles.forEach { link(rel = "stylesheet", href = StaticFiles.url(it)) }
     script(src = StaticFiles.url("htmx.min.js")) { defer = true }
     script(src = StaticFiles.url("hub.js")) { defer = true }
     page.scripts.forEach { script(src = StaticFiles.url(it)) { defer = true } }
