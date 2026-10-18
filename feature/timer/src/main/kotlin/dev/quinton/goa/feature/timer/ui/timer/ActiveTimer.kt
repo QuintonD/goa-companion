@@ -69,6 +69,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -85,6 +86,9 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -102,6 +106,7 @@ import dev.quinton.goa.feature.timer.ui.components.RingTone
 import dev.quinton.goa.feature.timer.ui.components.RoundPips
 import dev.quinton.goa.feature.timer.ui.components.goaTonalIconColors
 import dev.quinton.goa.feature.timer.ui.components.rememberReducedMotion
+import dev.quinton.goa.feature.timer.ui.components.teamName
 import dev.quinton.goa.feature.timer.ui.components.timerDigits
 
 @Composable
@@ -321,33 +326,75 @@ private fun SecondaryArea(state: ActiveUiState, actions: TimerActions) {
 
 @Composable
 private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -> Unit, onCoin: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().padding(start = Spacing.screen, end = Spacing.xs, top = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                "Round ${state.round}",
-                style = MaterialTheme.typography.headlineSmall,
-                maxLines = 1,
-                softWrap = false,
-                modifier = Modifier.semantics { heading() },
-            )
-            Text(
-                "${state.presetName} · ${state.matchClock}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.semantics {
-                    contentDescription =
-                        "${state.presetName}, match time ${state.matchClock}"
-                },
-            )
+    var coinUndo by remember { mutableStateOf(false) }
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val tools = headerTools(state, maxWidth, coinUndo)
+        Row(
+            Modifier.fillMaxWidth().padding(start = Spacing.screen, end = Spacing.xs, top = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Round ${state.round}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Text(
+                    "${state.presetName} · ${state.matchClock}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.semantics {
+                        contentDescription =
+                            "${state.presetName}, match time ${state.matchClock}"
+                    },
+                )
+            }
+            TimerTopActions(state, actions, tools, onEnd, onCoin, onCoinUndo = { coinUndo = it })
         }
-        TimerTopActions(state, actions, onEnd, onCoin)
     }
 }
+
+/** Which optional top-bar icons sit in the bar; the others are in the overflow menu. */
+private data class HeaderTools(val levels: Boolean, val viewSwitch: Boolean)
+
+/**
+ * "Round N" must never be clipped (S25 Ultra: 384 dp wide, where Blue's coin chip plus four icons
+ * left too little room). The title, coin chip and its Undo are measured; the view switch moves into
+ * the menu first (it is also in Settings), then Levels & defeats. Large text: both are in the menu.
+ */
+@Composable
+private fun headerTools(state: ActiveUiState, width: Dp, coinUndo: Boolean): HeaderTools {
+    val density = LocalDensity.current
+    if (density.fontScale > LARGE_FONT_SCALE) return HeaderTools(levels = false, viewSwitch = false)
+    val measurer = rememberTextMeasurer()
+    val titleStyle = MaterialTheme.typography.headlineSmall
+    val labelStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+    val team = state.tieBreaker
+    val undo = coinUndo && team != null
+    return remember(state.round, team, undo, width, density, titleStyle, labelStyle) {
+        fun textWidth(text: String, style: TextStyle) =
+            with(density) { measurer.measure(text, style, maxLines = 1, softWrap = false).size.width.toDp() }
+        val chip = team?.let { CHIP_CHROME * density.fontScale + textWidth(teamName(it), labelStyle) } ?: 0.dp
+        val undoButton = if (undo) maxOf(UNDO_MIN_WIDTH, textWidth("Undo", labelStyle) + UNDO_PADDING) else 0.dp
+        val fixed = Spacing.screen + Spacing.xs + HEADER_SLACK + chip + undoButton + HEADER_ICON * 2
+        val room = width - fixed - textWidth("Round ${state.round}", titleStyle)
+        HeaderTools(levels = room >= HEADER_ICON, viewSwitch = room >= HEADER_ICON * 2)
+    }
+}
+
+private val HEADER_ICON = 48.dp
+
+/** Chip padding (12 dp each side), team mark (12 dp) and its gap (6 dp). */
+private val CHIP_CHROME = 42.dp
+private val UNDO_MIN_WIDTH = 58.dp
+private val UNDO_PADDING = 24.dp
+
+/** Rounding and font-metric safety margin. */
+private val HEADER_SLACK = 4.dp
 
 /**
  * Top-bar actions, left to right: Tie Breaker coin (when tracked), Levels & defeats (rules
@@ -357,8 +404,10 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
 private fun RowScope.TimerTopActions(
     state: ActiveUiState,
     actions: TimerActions,
+    tools: HeaderTools,
     onEnd: () -> Unit,
     onCoin: () -> Unit,
+    onCoinUndo: (Boolean) -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
     if (state.tieBreaker != null) {
@@ -366,16 +415,20 @@ private fun RowScope.TimerTopActions(
             state.tieBreaker,
             actions.onFlipCoin,
             actionKey = "${state.round}:${state.title}:${state.paused}",
+            onUndoShown = onCoinUndo,
         )
+    } else {
+        LaunchedEffect(Unit) { onCoinUndo(false) }
     }
-    // Large text needs the room for "Round N": the ladder and the view switch move into the menu.
-    val largeText = LocalDensity.current.fontScale > LARGE_FONT_SCALE
+    // What doesn't fit beside "Round N" (narrow phones, large text) is in the menu instead.
     val roundView = state.layout == TimerLayout.ROUND
     val switchLayout = { actions.onTimerLayout(if (roundView) TimerLayout.STEPS else TimerLayout.ROUND) }
-    if (!largeText) {
+    if (tools.levels) {
         IconButton(onClick = actions.onOpenLevels) {
             Icon(Icons.Outlined.MilitaryTech, contentDescription = "Levels and defeats")
         }
+    }
+    if (tools.viewSwitch) {
         IconButton(onClick = switchLayout) {
             Icon(
                 if (roundView) Icons.Outlined.Timer else Icons.Outlined.ViewAgenda,
@@ -420,7 +473,7 @@ private fun RowScope.TimerTopActions(
                     onEnd()
                 },
             )
-            if (largeText) {
+            if (!tools.viewSwitch) {
                 DropdownMenuItem(
                     text = { Text(if (roundView) "Step-by-step view" else "Whole-round view") },
                     leadingIcon = {
@@ -434,6 +487,8 @@ private fun RowScope.TimerTopActions(
                         switchLayout()
                     },
                 )
+            }
+            if (!tools.levels) {
                 DropdownMenuItem(
                     text = { Text("Levels & defeats") },
                     leadingIcon = { Icon(Icons.Outlined.MilitaryTech, contentDescription = null) },

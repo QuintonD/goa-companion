@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
+import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.feature.timer.ui.presets.PresetEditActions
 import dev.quinton.goa.feature.timer.ui.presets.PresetEditScreen
@@ -49,6 +50,16 @@ class TimerScreenshotTest {
     @Test
     @Config(fontScale = 2f)
     fun turnFontScale2() = active(TimerPreviewData.turn)
+
+    /** S25 Ultra at its default resolution is 384 dp wide: "Round 10" and Blue's coin chip must both fit. */
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun turnNarrowBlueRound10Dark() = active(TimerPreviewData.turn.copy(round = 10, tieBreaker = Team.BLUE))
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun roundViewNarrowBlueRound10Light() =
+        active(TimerPreviewData.roundTurn.copy(round = 10, tieBreaker = Team.BLUE), ThemeMode.LIGHT)
 
     @Test fun alertsOffBannerDark() = active(TimerPreviewData.turn.copy(alertsOff = true))
 
