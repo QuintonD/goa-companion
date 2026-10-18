@@ -1,8 +1,8 @@
 package dev.quinton.goa.core.data.catalog
 
-import dev.quinton.goa.core.domain.catalog.CatalogLoader
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import dev.quinton.goa.core.domain.catalog.CatalogLoader
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.CardText

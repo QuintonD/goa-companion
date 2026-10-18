@@ -1,8 +1,8 @@
 package dev.quinton.goa.core.data.catalog
 
-import dev.quinton.goa.core.domain.catalog.CatalogAssets
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.domain.catalog.CatalogAssets
 import dev.quinton.goa.core.model.catalog.Catalog
 import java.io.FileNotFoundException
 import java.util.concurrent.atomic.AtomicInteger
