@@ -90,14 +90,16 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] Web: Timer (presets, running timer, round view, Action seats, wake lock, chimes, push)
 - [ ] Web: Draft (setup, methods, board, → match)
 - [ ] Web: Card trivia, Group (join, who am I, invite QR, devices), Settings (constants, backup)
-- [ ] Deploy kit and runbook: systemd, Caddy + Let's Encrypt, DuckDNS, router, CGNAT check, Windows notes
+- [x] Deploy kit and runbook ([deploy/README.md](../deploy/README.md)): Tailscale Funnel first, Caddy + DuckDNS + router as the alternative, hardened systemd unit, update with rollback, daily backups, Windows variant — 2026-10-19, `shellcheck` clean, Caddyfile `caddy validate`/`fmt` (2.11.7) and its log filter checked, `systemd-analyze verify`/`security` (hub 1.5 OK); `install.sh` (both modes), `update.sh` (rollback on a broken build, APK publish) and the restore steps run in systemd containers (Debian 13, Ubuntu 24.04 with ufw, Fedora 44 with Java 25) against a stand-in hub; PowerShell scripts parse-checked, invite quoting through `cmd` tested. **Not yet tried on a real machine, a real tailnet or Windows end to end**
 - [ ] Security review of sign-in, sync API and hosting; adversarial review of web writes vs the sync rules
 - [ ] Hands-on: two emulators + a browser at 390 px converge through a local hub; game night on the web
 - [ ] **Real iPhone over the internet** against the owner's hub (home screen, timer locked, push)
 
 ## M9 — Linking players (ADR-031)
-- [ ] Personal invites ("Invite <name>"), "You're <name>?" after the first sync, old "me" merge
-- [ ] `PlayerMatchUp` + "Same people?" after a sync and from Players; "Add me" checks similar names
+- [x] Personal invites ("Invite <name>"), "You're <name>?" after the first sync, old "me" merge — 2026-10-18, `PlayerLinkingTest` (invite chooser, yes/not me/merge/refusal/missing player, add-me check), Roborazzi light/dark/font 2 at 384 dp. JVM + screenshots only
+- [x] `PlayerMatchUp` + "Same people?" on the Players tab (on the fly, any sync) and "Find duplicates"; "Add me" checks similar names — 2026-10-18, `PlayerMatchUpTest` (rules + order/same-match properties), `SamePeopleTest`, `PlayerMatchUpStoreTest`. JVM + screenshots only
+- [ ] Android linking flows on two phones (personal invite → "You're <name>?", look-alike merge after a sync)
+- [ ] Web: the same three flows on the hub (ADR-031 §4)
 
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)

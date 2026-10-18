@@ -33,6 +33,10 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.model.match.Match
+import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.feature.players.common.Dates
 import dev.quinton.goa.feature.players.common.plural
 
 /**
@@ -124,20 +128,34 @@ internal fun MergeSection(state: PlayerDetailUiState, actions: PlayerDetailActio
         )
     }
     (state.mergeOutcome as? MergeOutcome.PlayedTogether)?.let { refused ->
-        AlertDialog(
-            onDismissRequest = actions.onMergeOutcomeShown,
-            title = { Text("Can't merge") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Text(
-                        "They played in the same match, so they are two people (one person can't sit on both " +
-                            "teams, and teammates are two players):",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    refused.matches.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
-                }
-            },
-            confirmButton = { TextButton(onClick = actions.onMergeOutcomeShown) { Text("OK") } },
-        )
+        PlayedTogetherDialog(refused.matches, onDismiss = actions.onMergeOutcomeShown)
     }
 }
+
+/** A refused merge: the two played in these [matches] (one line each), so they are two people. */
+@Composable
+internal fun PlayedTogetherDialog(matches: List<String>, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Can't merge") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(
+                    "They played in the same match, so they are two people (one person can't sit on both " +
+                        "teams, and teammates are two players):",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                matches.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
+    )
+}
+
+/** The matches a refused merge names, oldest first: "2026-10-12 · Ann, Bob vs Cid, Dee". */
+internal fun playedTogether(matches: List<Match>, people: Map<String, Player>): List<String> =
+    matches.sortedBy { it.playedAt }.map { m ->
+        fun side(team: Team) = m.team(team).map { people[it.playerId]?.name ?: "Unknown player" }
+            .distinct().joinToString()
+        "${Dates.localDate(m.playedAt)} · ${side(Team.RED)} vs ${side(Team.BLUE)}"
+    }

@@ -1,13 +1,11 @@
 package dev.quinton.goa.feature.sync
 
-import dev.quinton.goa.core.data.player.PlayerNames
 import dev.quinton.goa.core.domain.sync.SyncChanges
 import dev.quinton.goa.core.domain.sync.protocol.ClientPhase
 import dev.quinton.goa.core.domain.sync.protocol.PeerProgress
 import dev.quinton.goa.core.domain.sync.protocol.PeerStage
 import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
 import dev.quinton.goa.core.domain.sync.protocol.SyncFailure
-import dev.quinton.goa.core.model.player.Player
 import java.time.Duration
 
 /** Words for group sync (ADR-025). Pure, so the copy is unit-tested. */
@@ -103,23 +101,5 @@ object SyncText {
         val list = different.joinToString { "${it.name} (${it.appVersion})" }
         return "Not every phone has the same app version: $list, this phone $mine. The data is the same, but " +
             "ratings can differ where a phone doesn't know a hero yet. Update every phone to the same version."
-    }
-
-    /** Names more than one (visible) player has: duplicates that "Merge into…" can fix. */
-    fun duplicateNames(players: List<Player>): List<String> = players
-        .groupBy { PlayerNames.key(it.name) }
-        .filterValues { it.size > 1 }
-        .map { (_, same) -> same.minBy { it.createdAt }.name }
-        .sorted()
-
-    fun duplicateHint(names: List<String>): String? = when (names.size) {
-        0 -> null
-
-        1 -> "Two players are called “${names.single()}”. If it's one person, open either and use Merge into…"
-
-        else -> {
-            val listed = names.joinToString { "“$it”" }
-            "Some names appear twice ($listed). Open one of each and use Merge into…"
-        }
     }
 }

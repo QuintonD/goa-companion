@@ -42,13 +42,6 @@ class SyncTextTest {
     }
 
     @Test
-    fun duplicateNamesIgnoreCaseAndSpaces() {
-        val names = SyncText.duplicateNames(listOf(person("a", "Dee"), person("b", " dee "), person("c", "Cid")))
-        assertThat(names).containsExactly("Dee")
-        assertThat(SyncText.duplicateHint(emptyList())).isNull()
-    }
-
-    @Test
     fun nearbyAsksForWhatEachAndroidVersionNeedsAndNothingMore() {
         val coarse = "android.permission.ACCESS_COARSE_LOCATION"
         val fine = "android.permission.ACCESS_FINE_LOCATION"

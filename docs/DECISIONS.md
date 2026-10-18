@@ -578,8 +578,8 @@ INTERNET permission. Options weighed:
    renderer, catalog search and filters, …), so each number is computed in one place. Moving a
    builder there changes no Android behaviour; its tests move with it. The hub ships as
    `installDist` (a `bin/goa-hub` script plus libs) and needs only a Java 21 runtime.
-2. *One group per hub.* `goa-hub join "<invite>"` (or the first-run page, served on `localhost`
-   only) stores the group credentials in the data directory (`GOA_HUB_DATA`, default
+2. *One group per hub.* `goa-hub join "<invite>"` on the hub machine (command line only; there is
+   no web first-run page) stores the group credentials in the data directory (`GOA_HUB_DATA`, default
    `/var/lib/goa-hub`; files `0600`). From then on the hub is a member like a phone: it holds the key.
 3. *Storage.* `group.json` holds the group's `SyncDocument` in `SyncJson`. Every change goes
    through one mutex and is written atomically (temp file, fsync, rename); a dated copy is kept per
@@ -638,13 +638,21 @@ INTERNET permission. Options weighed:
    hub sends a Web Push at each phase end (VAPID keys made at first start and kept in the data
    directory; iOS 16.4+, home-screen app, permission asked from a tap). Pass-and-play: one device
    runs a match's timer.
-10. *Hosting (free, nothing to install for friends).* `deploy/` holds: a systemd unit (dedicated
-    `goa-hub` user); Caddy as the TLS front with automatic Let's Encrypt certificates; a free
-    DuckDNS name kept current by a timer; the router forwarding TCP 443 (and 80 for the HTTP
-    challenge) to the machine. This needs a public IPv4 (no carrier-grade NAT); the runbook shows
-    the check (router WAN address = public address). Behind CGNAT, Tailscale Funnel on the hub
-    machine alone is the fallback (friends still install nothing). Windows: the same build as a
-    scheduled task plus Caddy for Windows, documented.
+10. *Hosting (free, nothing to install for friends).* The hub listens on `127.0.0.1:8080` only.
+    **Primary (the owner already uses Tailscale): Tailscale Funnel on the hub machine alone**
+    publishes it at `https://<machine>.<tailnet>.ts.net` (`tailscale funnel --bg --https=443
+    http://127.0.0.1:8080`; `--bg` persists across restarts). TLS ends on the machine, so the relays
+    can't read traffic; no router change and no inbound port, and it works behind carrier-grade NAT.
+    Funnel is limited to the policy-file `funnel` attribute (a `tag:goa-hub` tag, which also turns
+    off key expiry), listens only on 443/8443/10000, has unpublished bandwidth limits (fine for a
+    group) and is labelled beta. The `ts.net` name lands in public certificate-transparency logs,
+    so the hub's own sign-in (§7) is the protection; it is never exposed without it. Friends
+    install nothing. **Alternative (no Tailscale):** Caddy with automatic Let's Encrypt
+    certificates, a free DuckDNS name kept current by a timer, and the router forwarding TCP 443 and
+    80; it needs a public IPv4 (the runbook shows the CGNAT check). `deploy/` holds both
+    (`install.sh`, `install.sh --with-caddy`), a hardened systemd unit for a dedicated `goa-hub`
+    user, update with rollback, daily backups, and the Windows variant (scheduled task, the same
+    Funnel command; `-WithCaddy` for the alternative); `deploy/README.md` is the runbook.
 11. *APK from the hub.* `/app` (signed-in devices) offers the latest signed release APK, copied in
     by the deploy script, in place of the Drive link of ADR-006's addendum. Still private.
 
@@ -672,9 +680,9 @@ name.
    player, asks "You're <name>?" (Yes / Not me → the list). If this phone already has its own "me"
    from solo use and that is another player, Yes also offers "Merge your old player into <name>?"
    (the normal merge, with its refusal rule).
-2. *"Same people?"* After a sync that brings players this phone has never seen, when it already
-   had players of its own, a screen pairs each new player with likely twins among the old ones and
-   offers "Same person" (merge the new one into the old one) or "Different people". Suggestions
+2. *"Same people?"* Pairs of players that look like one person (worked out from the current data,
+   so after any sync; see the implementation notes) are offered for review from the Players tab:
+   "Same person" (merge the newer one into the older one) or "Different people". Suggestions
    come from a pure `PlayerMatchUp` in `core:domain`: names compared after trimming, lowercasing,
    and stripping accents and non-letters; a pair is suggested when the keys are equal, one is a
    prefix of the other (≥ 3 letters), or they are one edit apart (≥ 4 letters; two edits at ≥ 8).
@@ -685,3 +693,26 @@ name.
 4. The web app (ADR-030) has the same three flows.
 **Consequences:** `PlayerNames` moves to `core:domain` so the hub and `PlayerMatchUp` share it. No
 synced type changes (no `SyncDocument.VERSION` bump): the decisions are local and merges already sync.
+**Implementation notes (2026-10-18, Android):**
+- *"Same people?" is worked out on the fly, not shown after a sync.* With the hub's background
+  auto-sync (ADR-030) there is often no sync screen to follow, and a modal after a sync would
+  interrupt the table. Suggestions are computed from the current data whenever it changes (any
+  pair, not only "new vs old"), so Nearby, sync files and the hub surface them alike: the Players
+  tab shows a quiet card ("2 players might be the same person · Review") and "Find duplicates"
+  under the list opens the review. "Same person" merges the newer player (createdAt, then id) into
+  the older. The old same-name hint in the sync sheet is gone.
+- *Thresholds* apply to the shorter name key: prefix ≥ 3 letters, one edit ≥ 4, two edits ≥ 8
+  (Damerau–Levenshtein, optimal string alignment). So "Rob"/"Bob" and "Jon"/"John" are *not*
+  suggested (three-letter names one letter apart are too often two people); a personal invite
+  covers them. One- and two-letter prefixes ("Q"/"Quinton") never count.
+- *"Different people"* is stored as order-free pair keys in its own DataStore file
+  (`datastore/player_matchup`); keys resolve through later merges. Not synced, not in the backup
+  file (Auto Backup covers `datastore/`). "Ask again" forgets them.
+- *"You're <name>?"* leads "Which player are you?" while the invite's player resolves (through the
+  merges) to an active player other than "me"; one not on the phone yet (the first sync failed)
+  is kept for later and the list shows without a question. Any choice clears it. "Add me" lists
+  look-alikes (an exact name included; then only picking or another name are offered).
+- *Invites* are a sheet (`GroupInviteRoute(playerId?)`, feature:sync) opened from the Group screen
+  (chooser first) and from a player page ("Invite <name>", top bar, only in a group, not for this
+  phone's own or an archived player). The personal share text starts "For <name>: ". The Group
+  screen's invite dialog is gone.

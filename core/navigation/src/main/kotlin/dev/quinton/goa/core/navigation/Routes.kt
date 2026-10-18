@@ -87,6 +87,9 @@ interface Navigator {
 
 @Serializable data object MatchLogRoute : NavKey
 
+/** "Same people?" (ADR-031): pairs of players that might be one person, to merge or tell apart. */
+@Serializable data object SamePeopleRoute : NavKey
+
 /**
  * Match editor. [matchId] null = new match; [prefillDurationMin] / [prefillMode] (a `GameMode`
  * serial name, e.g. "quick") pre-fill a NEW match, e.g. from a finished timer session.
@@ -171,6 +174,13 @@ object NavSheet {
 
 /** "Which player are you?": links this phone to a player (pick one, or add yourself). */
 @Serializable data object WhoAreYouRoute : NavKey
+
+/**
+ * "Invite a friend" as a bottom sheet ([NavSheet], ADR-031): the invite QR code and "Share as
+ * text". [playerId] null = first ask who it is for ("Anyone" or a player); a player = a personal
+ * invite for them right away (from their player page).
+ */
+@Serializable data class GroupInviteRoute(val playerId: String? = null) : NavKey
 
 /** Opens a sync file: [uri] is a content URI from the file picker, the share sheet or a file manager. */
 @Serializable data class SyncFileImportRoute(val uri: String) : NavKey

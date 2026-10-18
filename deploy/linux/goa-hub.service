@@ -1,0 +1,58 @@
+# The Guards of Atlantis group hub (ADR-030). Installed by deploy/linux/install.sh to
+# /etc/systemd/system/goa-hub.service. Caddy is the only thing that talks to it: the hub
+# listens on 127.0.0.1:8080 and must never be reachable from outside the machine.
+[Unit]
+Description=Guards of Atlantis group hub
+Documentation=file:///opt/goa-hub/deploy/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=goa-hub
+Group=goa-hub
+Environment=GOA_HUB_DATA=/var/lib/goa-hub
+# Heap cap: plenty for one group. Raise it here if `journalctl -u goa-hub` shows OutOfMemoryError.
+Environment="JAVA_OPTS=-Xms32m -Xmx384m"
+ExecStart=/opt/goa-hub/current/bin/goa-hub serve --data /var/lib/goa-hub --host 127.0.0.1 --port 8080
+Restart=on-failure
+RestartSec=5
+# The JVM exits with 143 when systemd stops it with SIGTERM: that is a clean stop.
+SuccessExitStatus=143
+TimeoutStopSec=30
+
+# Data: /var/lib/goa-hub, owned by goa-hub, mode 0700; new files 0600.
+StateDirectory=goa-hub
+StateDirectoryMode=0700
+UMask=0077
+
+# Hardening. The hub only needs its data directory, the network (Web Push goes out to
+# Apple's and Google's push servers) and a JVM.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/goa-hub
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RemoveIPC=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+# Not set on purpose: MemoryDenyWriteExecute=yes would break the JVM's JIT compiler.
+
+[Install]
+WantedBy=multi-user.target

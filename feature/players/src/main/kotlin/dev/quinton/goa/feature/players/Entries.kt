@@ -17,6 +17,7 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import dev.quinton.goa.core.data.backup.BackupDocument
 import dev.quinton.goa.core.navigation.BackupRoute
+import dev.quinton.goa.core.navigation.GroupInviteRoute
 import dev.quinton.goa.core.navigation.GroupSyncRoute
 import dev.quinton.goa.core.navigation.MatchEditRoute
 import dev.quinton.goa.core.navigation.MatchLogRoute
@@ -27,6 +28,7 @@ import dev.quinton.goa.core.navigation.PlayerDetailRoute
 import dev.quinton.goa.core.navigation.PlayerEditRoute
 import dev.quinton.goa.core.navigation.PlayersRoute
 import dev.quinton.goa.core.navigation.RatingSettingsRoute
+import dev.quinton.goa.core.navigation.SamePeopleRoute
 import dev.quinton.goa.core.navigation.SettingsRoute
 import dev.quinton.goa.core.navigation.SyncSessionRoute
 import dev.quinton.goa.core.navigation.TopLevelTab
@@ -55,6 +57,10 @@ import dev.quinton.goa.feature.players.players.PlayersViewModel
 import dev.quinton.goa.feature.players.ratings.RatingSettingsActions
 import dev.quinton.goa.feature.players.ratings.RatingSettingsScreen
 import dev.quinton.goa.feature.players.ratings.RatingSettingsViewModel
+import dev.quinton.goa.feature.players.samepeople.SamePeopleActions
+import dev.quinton.goa.feature.players.samepeople.SamePeopleOutcome
+import dev.quinton.goa.feature.players.samepeople.SamePeopleScreen
+import dev.quinton.goa.feature.players.samepeople.SamePeopleViewModel
 import dev.quinton.goa.feature.players.share.StatsPageEvent
 import dev.quinton.goa.feature.players.share.StatsPageViewModel
 import dev.quinton.goa.feature.players.share.shareStatsPage
@@ -84,6 +90,7 @@ fun EntryProviderScope<NavKey>.playersEntries(navigator: Navigator) {
                 onSetArchived = vm::setArchived,
                 onMerge = vm::merge,
                 onMergeOutcomeShown = vm::mergeOutcomeShown,
+                onInvite = { navigator.navigate(GroupInviteRoute(key.playerId)) },
             ),
         )
     }
@@ -131,6 +138,25 @@ fun EntryProviderScope<NavKey>.playersEntries(navigator: Navigator) {
                 onOpenRatingSettings = { navigator.navigate(RatingSettingsRoute) },
                 onView = vm::setView,
                 onSort = vm::setSort,
+            ),
+        )
+    }
+    entry<SamePeopleRoute> {
+        val vm = hiltViewModel<SamePeopleViewModel>()
+        val state by vm.uiState.collectAsStateWithLifecycle()
+        LaunchedEffect(state.outcome) {
+            val merged = state.outcome as? SamePeopleOutcome.Merged ?: return@LaunchedEffect
+            vm.outcomeShown()
+            navigator.showMessage("Merged ${merged.fromName} into ${merged.intoName}. Sync to update the other phones.")
+        }
+        SamePeopleScreen(
+            state = state,
+            actions = SamePeopleActions(
+                onBack = navigator::back,
+                onSamePerson = vm::samePerson,
+                onDifferentPeople = vm::differentPeople,
+                onAskAgain = vm::askAgain,
+                onOutcomeShown = vm::outcomeShown,
             ),
         )
     }
@@ -189,6 +215,7 @@ private fun PlayersHomeEntry(navigator: Navigator) {
             onOpenRatingSettings = { navigator.navigate(RatingSettingsRoute) },
             onShareStats = statsVm::share,
             onOpenSync = { navigator.navigate(if (players.inGroup) SyncSessionRoute() else GroupSyncRoute) },
+            onReviewSamePeople = { navigator.navigate(SamePeopleRoute) },
         ),
         followUps = followUps(matchesVm, navigator),
         metaActions = MetaActions(

@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.PersonOff
+import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -62,6 +63,8 @@ data class PlayerDetailActions(
     val onSetArchived: (Boolean) -> Unit = {},
     val onMerge: (String) -> Unit = {},
     val onMergeOutcomeShown: () -> Unit = {},
+    /** "Invite <name>": a personal invite to the group for this player (ADR-031). */
+    val onInvite: () -> Unit = {},
 )
 
 @Composable
@@ -71,6 +74,11 @@ fun PlayerDetailScreen(state: PlayerDetailUiState, actions: PlayerDetailActions,
         modifier = modifier,
         onBack = actions.onBack,
         actions = {
+            if (state.player != null && state.canInvite) {
+                IconButton(onClick = actions.onInvite) {
+                    Icon(Icons.Outlined.QrCode2, contentDescription = "Invite ${state.player.name} to the group")
+                }
+            }
             if (state.player != null) {
                 IconButton(onClick = actions.onEdit) { Icon(Icons.Outlined.Edit, contentDescription = "Edit player") }
             }

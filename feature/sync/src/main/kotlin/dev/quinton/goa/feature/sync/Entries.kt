@@ -15,7 +15,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
-import dev.quinton.goa.core.domain.sync.GroupInvite
+import dev.quinton.goa.core.navigation.GroupInviteRoute
 import dev.quinton.goa.core.navigation.GroupSyncRoute
 import dev.quinton.goa.core.navigation.NavSheet
 import dev.quinton.goa.core.navigation.Navigator
@@ -29,7 +29,10 @@ import dev.quinton.goa.feature.sync.group.GroupViewModel
 import dev.quinton.goa.feature.sync.importfile.SyncFileImportActions
 import dev.quinton.goa.feature.sync.importfile.SyncFileImportScreen
 import dev.quinton.goa.feature.sync.importfile.SyncFileImportViewModel
+import dev.quinton.goa.feature.sync.invite.GroupInviteViewModel
 import dev.quinton.goa.feature.sync.invite.InviteScanner
+import dev.quinton.goa.feature.sync.invite.InviteSheet
+import dev.quinton.goa.feature.sync.invite.InviteSheetActions
 import dev.quinton.goa.feature.sync.invite.ScanResult
 import dev.quinton.goa.feature.sync.me.WhoAreYouActions
 import dev.quinton.goa.feature.sync.me.WhoAreYouScreen
@@ -78,6 +81,32 @@ fun EntryProviderScope<NavKey>.syncEntries(navigator: Navigator) {
                 onChoose = vm::choose,
                 onNameChange = vm::onNameChange,
                 onCreate = vm::createMe,
+                onConfirmInvited = vm::confirmInvited,
+                onNotMe = vm::notMe,
+                onMergeOld = vm::mergeOld,
+                onKeepBoth = vm::keepBoth,
+                onRefusalShown = vm::refusalShown,
+                onAddAnyway = vm::addAnyway,
+                onDismissAddCheck = vm::dismissAddCheck,
+            ),
+        )
+    }
+    entry<GroupInviteRoute>(metadata = NavSheet.metadata) { key ->
+        val vm = hiltViewModel<GroupInviteViewModel, GroupInviteViewModel.Factory>(
+            creationCallback = { it.create(key.playerId) },
+        )
+        val state by vm.uiState.collectAsStateWithLifecycle()
+        val context = LocalContext.current
+        InviteSheet(
+            state = state,
+            actions = InviteSheetActions(
+                onChoose = vm::choose,
+                // With what to do with it: a bare goa-sync: link means nothing in a chat.
+                onShare = { text ->
+                    val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+                    context.startActivity(Intent.createChooser(send, "Share invite"))
+                },
+                onDone = navigator::back,
             ),
         )
     }
@@ -152,13 +181,7 @@ private fun GroupEntry(navigator: Navigator) {
             onShareFile = vm::shareFile,
             // Some providers report the file as octet-stream or nothing useful, so accept any file.
             onImportFile = { importLauncher.launch(arrayOf("*/*")) },
-            onShareInvite = { invite ->
-                // With what to do with it: a bare goa-sync: link means nothing in a chat.
-                val text = GroupInvite.parseInvite(invite).getOrNull()
-                    ?.let { GroupInvite.shareText(it.group, it.hubUrl, it.playerId) } ?: invite
-                val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
-                context.startActivity(Intent.createChooser(send, "Share invite"))
-            },
+            onInvite = { navigator.navigate(GroupInviteRoute()) },
             onLeave = vm::leave,
         ),
     )

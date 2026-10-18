@@ -1,21 +1,17 @@
 package dev.quinton.goa.feature.sync.group
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,7 +28,6 @@ import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Sync
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -50,15 +45,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.GoaCard
@@ -67,7 +58,6 @@ import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.sync.invite.InviteQr
 
 class GroupActions(
     val onBack: () -> Unit = {},
@@ -79,7 +69,8 @@ class GroupActions(
     val onWhoAreYou: () -> Unit = {},
     val onShareFile: () -> Unit = {},
     val onImportFile: () -> Unit = {},
-    val onShareInvite: (String) -> Unit = {},
+    /** "Invite a friend": who it's for, then the QR code (ADR-031). */
+    val onInvite: () -> Unit = {},
     val onLeave: () -> Unit = {},
 )
 
@@ -88,7 +79,6 @@ fun GroupScreen(
     state: GroupUiState,
     actions: GroupActions,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
-    showInvite: Boolean = false,
 ) {
     GoaScreen(
         title = "Group sync",
@@ -100,7 +90,7 @@ fun GroupScreen(
                 CircularProgressIndicator()
             }
 
-            state.inGroup -> InGroup(state, actions, padding, showInvite)
+            state.inGroup -> InGroup(state, actions, padding)
 
             else -> NoGroup(state, actions, padding)
         }
@@ -218,8 +208,7 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
 }
 
 @Composable
-private fun InGroup(state: GroupUiState, actions: GroupActions, padding: PaddingValues, showInviteInitially: Boolean) {
-    var showInvite by rememberSaveable { mutableStateOf(showInviteInitially) }
+private fun InGroup(state: GroupUiState, actions: GroupActions, padding: PaddingValues) {
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -253,9 +242,7 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                     Text("Sync now")
                 }
                 Spacer(Modifier.size(Spacing.sm))
-                OutlinedButton(onClick = {
-                    showInvite = true
-                }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                OutlinedButton(onClick = actions.onInvite, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                     Icon(Icons.Outlined.QrCode2, null)
                     Spacer(Modifier.width(Spacing.sm))
                     Text("Invite a friend")
@@ -342,9 +329,6 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
             }
         }
     }
-    if (showInvite) {
-        InviteDialog(state, onShare = { state.invite?.let(actions.onShareInvite) }, onDismiss = { showInvite = false })
-    }
     if (confirmLeave) {
         ConfirmDialog(
             title = "Leave “${state.groupName}”?",
@@ -381,45 +365,4 @@ private fun LinkRow(icon: ImageVector, title: String, subtitle: String, enabled:
             )
         }
     }
-}
-
-/** The invite QR code, big and on white (scanners need the contrast), with what to do on the other phone. */
-@Composable
-fun InviteDialog(state: GroupUiState, onShare: () -> Unit, onDismiss: () -> Unit) {
-    val invite = state.invite ?: return
-    val qr = remember(invite) { InviteQr.bitmap(invite) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Invite to “${state.groupName}”") },
-        text = {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
-            ) {
-                Box(
-                    Modifier
-                        .widthIn(max = 280.dp)
-                        .fillMaxWidth()
-                        .background(Color.White, RoundedCornerShape(12.dp))
-                        .padding(Spacing.md)
-                        .semantics { contentDescription = "Invite QR code for ${state.groupName}" },
-                ) {
-                    Image(
-                        bitmap = qr,
-                        contentDescription = null,
-                        filterQuality = FilterQuality.None,
-                        modifier = Modifier.fillMaxWidth().aspectRatio(1f),
-                    )
-                }
-                Text(
-                    "On your friend's phone: install the app, open Settings → Group sync → Scan invite QR code. " +
-                        "Anyone with this code can join, so only show it at the table.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Start,
-                )
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
-        dismissButton = { TextButton(onClick = onShare) { Text("Share as text") } },
-    )
 }

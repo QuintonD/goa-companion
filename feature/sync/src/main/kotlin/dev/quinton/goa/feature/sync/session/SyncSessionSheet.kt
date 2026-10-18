@@ -350,7 +350,6 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
     if (host.phase == HostPhase.WAITING && host.peers.isEmpty()) {
         LinearProgressIndicator(Modifier.fillMaxWidth())
     }
-    state.duplicateHint?.let { Hint(it) }
     state.versionHint?.let { Hint(it) }
     when (host.phase) {
         HostPhase.WAITING -> {
@@ -394,7 +393,6 @@ private fun Joining(client: ClientState, state: SyncSessionUiState, actions: Syn
             ) { Text("Join ${option.name}") }
         }
     }
-    state.duplicateHint?.let { Hint(it) }
     state.versionHint?.let { Hint(it) }
     when (client.phase) {
         ClientPhase.DONE -> Finish(state, actions)

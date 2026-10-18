@@ -1,0 +1,34 @@
+# Keeps <name>.duckdns.org pointing at this line's public IPv4 address. Started by
+# duckdns-update.timer; run it by hand with: sudo systemctl start duckdns-update
+[Unit]
+Description=Update the DuckDNS name for the Guards of Atlantis hub
+Documentation=file:///opt/goa-hub/deploy/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/goa-hub/duckdns-update.sh
+# Runs as root only to read the root-only token file; without any capabilities, on a read-only
+# system, with nothing but network sockets.
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectKernelLogs=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+TimeoutStartSec=90

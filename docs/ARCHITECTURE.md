@@ -42,14 +42,16 @@ core/navigation/         # Navigation 3 keys for every screen + Navigator (ADR-0
 feature/catalog/
 feature/timer/           # timer UI, TimerScheduler (alarms), notification, receivers
 feature/players/         # players, match log, Elo, meta dashboard; shareable HTML stats page
-                         #   (pure StatsPageRenderer + its own StatsPageFileProvider, ADR-027)
+                         #   (pure StatsPageRenderer + its own StatsPageFileProvider, ADR-027);
+                         #   "Same people?" review (core:domain/player PlayerMatchUp, ADR-031)
 feature/draft/
 feature/settings/        # settings, rating constants, export/import entry, About
 feature/rules/           # rules reference: topic list + search, topic pages, Levels & defeats sheet
 feature/trivia/          # card trivia (ADR-028): home (progress + setup), quiz and summary;
                          #   questions from core:domain/trivia, progress in datastore/trivia_progress
 feature/sync/            # group sync (ADR-025): Group screen, sync sheet, Who are you, sync-file import;
-                         #   NearbySyncTransport, invite QR + scanner, FileProvider, permissions
+                         #   NearbySyncTransport, invite sheet (anyone or a player, ADR-031) + QR
+                         #   scanner, FileProvider, permissions
 tools/catalog-import/    # JVM CLI (reuses core:model): sources.lock.json, overrides.json,
                          #   cache/ (gitignored), REPORT.md → writes assets/catalog + assets/official;
                          #   --rules-only: rules-reference drift check vs the pinned rulebook (PDFBox)
@@ -57,8 +59,9 @@ core/presentation/       # JVM: screen-state builders shared by ViewModels and t
                          #   per feature; no Android, no HTML
 server/hub/              # JVM app (Ktor): the group's hub — sync API, device sign-in, the web app
                          #   (kotlinx.html + vendored htmx + small JS), storage in GOA_HUB_DATA (ADR-030)
-deploy/                  # hub hosting: systemd unit, Caddyfile, DuckDNS updater, install/update scripts,
-                         #   runbook (Linux first, Windows notes)
+deploy/                  # hub hosting (ADR-030 §10), runbook in deploy/README.md: install/update scripts,
+                         #   hardened systemd unit, backups; Tailscale Funnel first, alt-caddy/ (Caddy +
+                         #   DuckDNS) as the alternative; Linux first, windows/ PowerShell variant
 ```
 Dependency direction: `feature → core:data/domain/designsystem → core:model`;
 `feature → core:presentation → core:domain`; `server:hub → core:presentation/domain/model` (never
@@ -92,8 +95,10 @@ Features never depend on each other; cross-feature navigation goes through `app`
   (`SyncHost`/`SyncClient` over `SyncTransport`/`SyncLink`). `core:data` owns
   `RoomSyncRepository` (export raw; `apply` = re-read, merge, write the difference in one write
   transaction, then the rating constants) and `DataStoreGroupRepository` (`datastore/group_sync`:
-  group id/key/name, install id, device name, "who am I", phones last synced). `feature:sync`
-  has `NearbySyncTransport` and the UI.
+  group id/key/name, install id, device name, "who am I", phones last synced, hub, invited
+  player). "Same people?" answers live in `datastore/player_matchup`
+  (`DataStorePlayerMatchUpRepository`, ADR-031; local only). `feature:sync` has
+  `NearbySyncTransport` and the UI.
 - **Writes.** Repositories stamp `updatedAt` = `EditStamp.next(now, previous, tombstone)`; a delete
   writes its tombstone in the same transaction; merges are rows, never rewrites. Reads resolve
   merged player ids (`RoomMatchRepository`, `RoomPlayerRepository`), and the replay applies the

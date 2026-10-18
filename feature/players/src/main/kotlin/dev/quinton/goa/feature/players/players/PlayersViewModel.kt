@@ -4,11 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.GroupRepository
+import dev.quinton.goa.core.data.MatchRepository
+import dev.quinton.goa.core.data.PlayerMatchUpRepository
+import dev.quinton.goa.core.data.PlayerMergeRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.rating.RatingsSnapshot
 import dev.quinton.goa.core.data.rating.RatingsSnapshotRepository
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.rating.Rating
+import dev.quinton.goa.feature.players.samepeople.SamePeopleViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -46,8 +50,13 @@ data class PlayersUiState(
     val meId: String? = null,
     /** The phone is in a sync group: the sync action opens the sync sheet directly. */
     val inGroup: Boolean = false,
+    /** Pairs of players that might be one person ("Same people?", ADR-031). */
+    val samePeople: Int = 0,
 ) {
     val isEmpty: Boolean get() = !loading && ranked.isEmpty() && unrated.isEmpty() && archived.isEmpty()
+
+    /** "Find duplicates" needs two active players. */
+    val canFindDuplicates: Boolean get() = ranked.size + unrated.size >= 2
 }
 
 const val TREND_GAMES = 5
@@ -58,6 +67,9 @@ class PlayersViewModel @Inject constructor(
     players: PlayerRepository,
     ratings: RatingsSnapshotRepository,
     groups: GroupRepository,
+    matches: MatchRepository,
+    merges: PlayerMergeRepository,
+    matchUp: PlayerMatchUpRepository,
 ) : ViewModel() {
     private val showArchived = MutableStateFlow(false)
 
@@ -69,13 +81,18 @@ class PlayersViewModel @Inject constructor(
             if (id == null) flowOf(null to inGroup) else players.observePlayer(id).map { it?.id to inGroup }
         }
 
+    /** Worked out from the current data, so any sync (Nearby, file, hub) updates it. */
+    private val samePeople: Flow<Int> =
+        SamePeopleViewModel.suggestions(players, matches, merges, matchUp).map { it.size }.distinctUntilChanged()
+
     val uiState: StateFlow<PlayersUiState> = combine(
         players.observePlayers(includeArchived = true),
         ratings.observeSnapshot(),
         showArchived,
         me,
-    ) { list, snapshot, archivedVisible, (meId, inGroup) ->
-        leaderboard(list, snapshot, archivedVisible, meId).copy(inGroup = inGroup)
+        samePeople,
+    ) { list, snapshot, archivedVisible, (meId, inGroup), same ->
+        leaderboard(list, snapshot, archivedVisible, meId).copy(inGroup = inGroup, samePeople = same)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlayersUiState())
 
     fun toggleArchived() = showArchived.update { !it }

@@ -9,6 +9,7 @@ import dagger.multibindings.Multibinds
 import dev.quinton.goa.core.data.DraftRecordRepository
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.MatchRepository
+import dev.quinton.goa.core.data.PlayerMatchUpRepository
 import dev.quinton.goa.core.data.PlayerMergeRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.RatingsRepository
@@ -17,6 +18,7 @@ import dev.quinton.goa.core.data.backup.BackupRepository
 import dev.quinton.goa.core.data.backup.RoomBackupRepository
 import dev.quinton.goa.core.data.match.RoomDraftRecordRepository
 import dev.quinton.goa.core.data.match.RoomMatchRepository
+import dev.quinton.goa.core.data.player.DataStorePlayerMatchUpRepository
 import dev.quinton.goa.core.data.player.RoomPlayerRepository
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
@@ -31,6 +33,8 @@ internal interface PlayersDataModule {
     @Binds fun players(impl: RoomPlayerRepository): PlayerRepository
 
     @Binds fun playerMerges(impl: RoomPlayerRepository): PlayerMergeRepository
+
+    @Binds fun playerMatchUp(impl: DataStorePlayerMatchUpRepository): PlayerMatchUpRepository
 
     @Binds fun matches(impl: RoomMatchRepository): MatchRepository
 

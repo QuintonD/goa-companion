@@ -1,0 +1,11 @@
+# One backup a day around 04:00; if the machine was off then, soon after it starts.
+[Unit]
+Description=Daily backup of the Guards of Atlantis hub data
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+RandomizedDelaySec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

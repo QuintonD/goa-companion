@@ -120,6 +120,12 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
 - Duplicate players (one friend added on two phones): "Merge into…" on the player page, with a
   confirmation naming both and their match counts; refused, with the matches listed, when the two
   played in the same match.
+- **Same people? (ADR-031):** when two players' names look alike ("Ann"/"Anna", "José"/"Jose",
+  "Jhon"/"John") and they never played in the same match, the Players tab shows a quiet card
+  ("2 players might be the same person · Review"); "Find duplicates" under the list opens the
+  same review. Each pair shows both players with their match count and last game; "Same person"
+  merges the newer into the older (confirmation naming both; a refusal lists the matches),
+  "Different people" is remembered on this phone ("Ask again" forgets those answers).
 - **Done when:** recompute of 1,000 matches <1 s on device; import→export is lossless.
 
 ### 4. Draft
@@ -170,12 +176,17 @@ Each friend has the app on their own phone (APK shared privately, ADR-006 addend
 phones keep the same matches, players, drafts, deletions and rating constants by syncing **face to
 face at the table**, phone to phone over Bluetooth and Wi-Fi Direct (Google Nearby Connections).
 No server, no accounts, no internet; the app still has no INTERNET permission.
-- **Group:** "Start a group" (name) creates the group and its key; "Invite a friend" shows a QR
-  code (and "Share as text", which sends the invite with what to do with it); a friend's phone
-  joins by scanning it (Google's code scanner, no camera permission) or pasting the invite (or the
-  whole message it came in). Leave group keeps all data.
+- **Group:** "Start a group" (name) creates the group and its key; "Invite a friend" asks who it
+  is for ("Anyone" or a player already entered, a *personal invite*, ADR-031; a player's page has
+  the same "Invite <name>" in its top bar) and shows a QR code (and "Share as text", which sends
+  the invite with what to do with it); a friend's phone joins by scanning it (Google's code
+  scanner, no camera permission) or pasting the invite (or the whole message it came in). Leave
+  group keeps all data.
 - **Join flow:** install → Group sync → scan → the first sync starts right away → "Which player
-  are you?" (pick yourself, or add yourself: this is how a friend adds themself as a player).
+  are you?" (pick yourself, or add yourself: this is how a friend adds themself as a player). With
+  a personal invite it leads with "You're <name>?": Yes makes this phone that player (and offers
+  to merge the player this phone used on its own before, if any); Not me shows the list. Adding a
+  name like an existing player's first asks "Is one of these you?".
   Your player shows "You" in the Players list, and the Players tab's top bar opens your page.
 - **Sync session** (a sheet, from Group sync → Sync now or the Players tab's sync icon): one phone
   taps Host, the others Join (a joiner finds the host on its own; with two hosts in range it asks
@@ -187,8 +198,8 @@ No server, no accounts, no internet; the app still has no INTERNET permission.
   being written.
 - **Merge rules:** the later edit of a match, player or draft wins; a deleted match stays deleted
   everywhere unless someone edits it later; duplicates merged on one phone are merged on all;
-  rating constants are the group's (the latest change wins). After a sync, two players with the
-  same name get a "Merge into…" hint.
+  rating constants are the group's (the latest change wins). Look-alike players brought by a sync
+  show up in "Same people?" on the Players tab (§3).
 - **Fallback:** "Share sync file" (encrypted with the group key) through Quick Share, a message or
   Drive; "Import sync file" or opening the file merges it the same way, after showing what would
   change. A file from another group, or one this phone's key can't open, gets a clear error.
@@ -235,8 +246,10 @@ timer view (step by step / whole round), cue sounds and haptics, Elo constants (
 with the sync group), Group sync, export/import, About/credits.
 
 ### 8. The hub and the web app (ADR-030) — linking players (ADR-031)
-The owner runs **the group's hub** on a spare machine at home (Linux or Windows; free: a DuckDNS
-name, Caddy with Let's Encrypt, one router port). It is a member of the group like a phone.
+The owner runs **the group's hub** on a spare machine at home (Linux or Windows; free: Tailscale
+Funnel on that machine publishes it over HTTPS with no router change; Caddy + DuckDNS + a router
+port forward is the documented alternative; runbook in `deploy/README.md`). It is a member of the
+group like a phone.
 - **Auto-sync:** Android phones with a hub address sync with it over HTTPS on their own (app
   start, shortly after any change, hourly, "Sync now"); the Group screen shows "Hub: synced 2 min
   ago" or what went wrong. Nearby sync at the table still works without internet.
@@ -248,9 +261,9 @@ name, Caddy with Let's Encrypt, one router port). It is a member of the group li
 - **Invites are links** (`https://<hub>/join#…`) when the group has a hub; one QR code works for
   Android (in-app scanner, or the link opens the app) and iPhone (opens the web app).
 - **Linking a friend to the player you entered:** "Invite <name>" makes a personal invite; the
-  friend's phone or browser asks "You're <name>?" and becomes that player. After a sync that brings
-  new players, "Same people?" pairs likely twins ("Rob"/"Bob", "Quinton"/"Q") for one-tap merges;
-  "Add me" asks "Is one of these you?" first.
+  friend's phone or browser asks "You're <name>?" and becomes that player. "Same people?" pairs
+  likely twins ("Anna"/"Ann", "Quin"/"Quinton") for one-tap merges, worked out from the current
+  data so it follows every sync; "Add me" asks "Is one of these you?" first.
 - **Parity:** every Android screen has a web page. A feature PR that adds an Android screen adds
   its web page (or a ROADMAP line saying when).
 - **Done when:** the sync API round-trips with the Android client and refuses wrong keys, other
