@@ -43,6 +43,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.EngravedRule
@@ -69,14 +70,25 @@ fun TriviaQuizScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     initialConfirmLeave: Boolean = false,
+    onLeaderboard: () -> Unit = {},
+    /** The screen came into view (true) or left it (false): answer time pauses meanwhile. */
+    onVisibleChange: (Boolean) -> Unit = {},
 ) {
     val playing = state as? TriviaQuizUiState.Playing
     var confirmLeave by rememberSaveable { mutableStateOf(initialConfirmLeave) }
     val askFirst = playing?.started == true
     val back = { if (askFirst) confirmLeave = true else onBack() }
     BackHandler(enabled = askFirst) { confirmLeave = true }
+    LifecycleResumeEffect(Unit) {
+        onVisibleChange(true)
+        onPauseOrDispose { onVisibleChange(false) }
+    }
     GoaScreen(
-        title = if (state is TriviaQuizUiState.Summary) "Round over" else "Card trivia",
+        title = when {
+            state is TriviaQuizUiState.Summary -> "Round over"
+            playing?.challenge == true -> "Challenge"
+            else -> "Card trivia"
+        },
         onBack = back,
         modifier = modifier,
         actions = {
@@ -103,7 +115,14 @@ fun TriviaQuizScreen(
 
                 is TriviaQuizUiState.Playing -> QuizPlaying(state, onAnswer, onNext)
 
-                is TriviaQuizUiState.Summary -> QuizSummary(state, onPractise, onPlayAgain, onDone)
+                is TriviaQuizUiState.Summary -> SummaryContent(
+                    state,
+                    onPractise,
+                    onPlayAgain,
+                    onDone,
+                    Modifier.fillMaxSize(),
+                    onLeaderboard = onLeaderboard,
+                )
             }
         }
     }
@@ -276,14 +295,4 @@ private fun NextBar(state: TriviaQuizUiState.Playing, onNext: () -> Unit) {
             }
         }
     }
-}
-
-@Composable
-private fun QuizSummary(
-    state: TriviaQuizUiState.Summary,
-    onPractise: () -> Unit,
-    onPlayAgain: () -> Unit,
-    onDone: () -> Unit,
-) {
-    SummaryContent(state, onPractise, onPlayAgain, onDone, Modifier.fillMaxSize())
 }

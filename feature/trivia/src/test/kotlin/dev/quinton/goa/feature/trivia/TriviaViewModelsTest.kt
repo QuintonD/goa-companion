@@ -6,6 +6,7 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.TriviaProgressRepository
+import dev.quinton.goa.core.data.TriviaRoundRepository
 import dev.quinton.goa.core.domain.trivia.AnswerStyle
 import dev.quinton.goa.core.domain.trivia.CardGroup
 import dev.quinton.goa.core.domain.trivia.FactProgress
@@ -19,8 +20,11 @@ import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.navigation.TriviaQuizRoute
 import dev.quinton.goa.core.testing.FakeCatalogRepository
+import dev.quinton.goa.core.testing.FakeGroupRepository
+import dev.quinton.goa.core.testing.FakePlayerRepository
 import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.core.testing.FakeTriviaProgressRepository
+import dev.quinton.goa.core.testing.FakeTriviaRoundRepository
 import dev.quinton.goa.core.testing.TestCatalog
 import dev.quinton.goa.feature.trivia.home.TriviaHomeAction
 import dev.quinton.goa.feature.trivia.home.TriviaHomeUiState
@@ -29,6 +33,7 @@ import dev.quinton.goa.feature.trivia.home.startNote
 import dev.quinton.goa.feature.trivia.quiz.QuizQuestionUi
 import dev.quinton.goa.feature.trivia.quiz.TriviaQuizUiState
 import dev.quinton.goa.feature.trivia.quiz.TriviaQuizViewModel
+import kotlin.random.Random
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -58,17 +63,39 @@ class TriviaViewModelsTest {
         }
     }
 
+    private val players = FakePlayerRepository()
+    private val groups = FakeGroupRepository()
+    private val rounds = FakeTriviaRoundRepository()
+
+    /** The quiz's answer-time clock, moved by hand. */
+    private var tick = 0L
+    private var ids = 0
+
     private fun home(heroId: String? = null, data: Catalog = catalog) =
-        TriviaHomeViewModel(heroId, FakeCatalogRepository(data), settings, progress, Dispatchers.Main)
+        TriviaHomeViewModel(heroId, FakeCatalogRepository(data), settings, progress, players, groups, Dispatchers.Main)
 
     private fun quiz(config: TriviaConfig, factKeys: List<String> = emptyList(), data: Catalog = catalog) =
-        TriviaQuizViewModel(
-            TriviaQuizRoute(TriviaText.encode(config), factKeys),
-            FakeCatalogRepository(data),
-            settings,
-            progress,
-            EditClock { NOW },
-        )
+        quizFor(TriviaQuizRoute(TriviaText.encode(config), factKeys), data)
+
+    private fun quizFor(
+        route: TriviaQuizRoute,
+        data: Catalog = catalog,
+        progressRepository: TriviaProgressRepository = progress,
+        roundRepository: TriviaRoundRepository = rounds,
+        seed: Int? = null,
+    ) = TriviaQuizViewModel(
+        route,
+        FakeCatalogRepository(data),
+        settings,
+        progressRepository,
+        players,
+        groups,
+        roundRepository,
+        EditClock { NOW },
+        seed?.let(::Random) ?: Random.Default,
+        ticker = { tick },
+        newId = { "round-${++ids}" },
+    )
 
     private fun facts(heroId: String) = TriviaFacts.of(catalog.hero(heroId)!!)
 
@@ -457,12 +484,9 @@ class TriviaViewModelsTest {
     @Test
     fun `an answer's progress is stored even when the quiz is closed straight after`() = runTest {
         val gated = GatedProgress(progress)
-        val vm = TriviaQuizViewModel(
+        val vm = quizFor(
             TriviaQuizRoute(TriviaText.encode(TriviaConfig(heroIds = listOf("test-hero-1"), duels = false))),
-            FakeCatalogRepository(catalog),
-            settings,
-            gated,
-            EditClock { NOW },
+            progressRepository = gated,
         )
         val q = vm.playing().question as QuizQuestionUi.Number
         vm.answer(TriviaAnswer.Number(q.value))
@@ -559,13 +583,7 @@ class TriviaViewModelsTest {
 
     @Test
     fun `a config from another build still opens`() = runTest {
-        val vm = TriviaQuizViewModel(
-            TriviaQuizRoute("""{"heroIds":["test-hero-1"],"answerStyle":"someday","future":1}"""),
-            FakeCatalogRepository(catalog),
-            settings,
-            progress,
-            EditClock { NOW },
-        )
+        val vm = quizFor(TriviaQuizRoute("""{"heroIds":["test-hero-1"],"answerStyle":"someday","future":1}"""))
         assertThat(vm.uiState.value).isInstanceOf(TriviaQuizUiState.Playing::class.java)
     }
 

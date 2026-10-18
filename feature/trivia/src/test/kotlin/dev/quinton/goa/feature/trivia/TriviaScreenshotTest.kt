@@ -32,11 +32,18 @@ import dev.quinton.goa.core.domain.trivia.TriviaStat
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.navigation.TriviaQuizRoute
+import dev.quinton.goa.core.data.GroupState
 import dev.quinton.goa.core.testing.FakeCatalogRepository
+import dev.quinton.goa.core.testing.FakeGroupRepository
+import dev.quinton.goa.core.testing.FakePlayerRepository
 import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.core.testing.FakeTriviaProgressRepository
+import dev.quinton.goa.core.testing.FakeTriviaRoundRepository
 import dev.quinton.goa.feature.trivia.home.HeroOption
+import dev.quinton.goa.core.data.TriviaProgressRepository
 import dev.quinton.goa.feature.trivia.home.HeroPickerContent
+import dev.quinton.goa.feature.trivia.home.PlayingAsContent
+import dev.quinton.goa.feature.trivia.home.PlayingAsPicker
 import dev.quinton.goa.feature.trivia.home.TriviaHomeScreen
 import dev.quinton.goa.feature.trivia.home.TriviaHomeViewModel
 import dev.quinton.goa.feature.trivia.quiz.QuizQuestionUi
@@ -107,11 +114,18 @@ class TriviaScreenshotTest {
             dodger.take(12).at(2)
     }
 
-    private fun homeViewModel(config: TriviaConfig? = null, heroId: String? = null) = TriviaHomeViewModel(
+    private fun homeViewModel(
+        config: TriviaConfig? = null,
+        heroId: String? = null,
+        playingAs: String? = null,
+        me: String? = null,
+    ) = TriviaHomeViewModel(
         heroId,
         FakeCatalogRepository(catalog),
         FakeSettingsRepository(),
-        FakeTriviaProgressRepository(practised(), config),
+        FakeTriviaProgressRepository(practised(), config, playingAs),
+        FakePlayerRepository(ScreenshotPlayers.all),
+        FakeGroupRepository(GroupState(null, "this-phone", null, me, emptyList(), null)),
         Dispatchers.Main,
     )
 
@@ -156,6 +170,59 @@ class TriviaScreenshotTest {
         Home(homeViewModel(TriviaConfig(stats = setOf(TriviaStat.INITIATIVE), groups = setOf(CardGroup.ULTIMATE))))
     }
 
+    // ---- Playing as and the Challenge (ADR-032) -------------------------------------------
+
+    /** Sam plays on Ann's phone: the note says whose progress this is; Challenge beside Start quiz. */
+    @Test
+    fun homePlayingAsOtherDark() = capture(ThemeMode.DARK) { Home(homeViewModel(playingAs = "sam", me = "ann")) }
+
+    @Test
+    fun homePlayingAsOtherLight() = capture(ThemeMode.LIGHT) { Home(homeViewModel(playingAs = "sam", me = "ann")) }
+
+    /** The largest text at the smallest width: the bar's two buttons stack. */
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun homePlayingAsOtherW384DarkFontScale2() =
+        capture(ThemeMode.DARK, 2f) { Home(homeViewModel(playingAs = "sam", me = "ann")) }
+
+    /** Playing as this phone's own player: the You tag, no note. */
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun homePlayingAsYouLandscapeDark() = capture(ThemeMode.DARK) { Home(homeViewModel(me = "ann")) }
+
+    @Composable
+    private fun Picker(mode: PlayingAsPicker, playingAs: String? = "sam", me: String? = "ann") {
+        val state = PlayingAsState.resolve(playingAs, ScreenshotPlayers.all.firstOrNull { it.id == me }, ScreenshotPlayers.all)
+        Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
+            PlayingAsContent(state, mode, onPick = {}, onAdd = {})
+        }
+    }
+
+    @Test fun playingAsPickerDark() = capture(ThemeMode.DARK) { Picker(PlayingAsPicker.CHOOSE) }
+
+    @Test fun playingAsPickerLight() = capture(ThemeMode.LIGHT) { Picker(PlayingAsPicker.CHOOSE, playingAs = null) }
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun playingAsPickerW384DarkFontScale2() = capture(ThemeMode.DARK, 2f) { Picker(PlayingAsPicker.CHOOSE) }
+
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun playingAsPickerLandscapeDark() = capture(ThemeMode.DARK) { Picker(PlayingAsPicker.CHOOSE) }
+
+    /** Challenge tapped as Guest: pick a named player (no Guest row). */
+    @Test
+    fun playingAsPickerChallengeDark() =
+        capture(ThemeMode.DARK) { Picker(PlayingAsPicker.CHALLENGE, playingAs = TriviaProgressRepository.GUEST) }
+
+    /** A fresh phone: nobody to pick yet, the add field asks for the first name. */
+    @Test
+    fun playingAsPickerNoPlayersDark() = capture(ThemeMode.DARK) {
+        Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
+            PlayingAsContent(PlayingAsState.GUEST_ONLY, PlayingAsPicker.CHOOSE, onPick = {}, onAdd = {})
+        }
+    }
+
     @Test
     fun heroPickerDark() = capture(ThemeMode.DARK) {
         Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
@@ -184,6 +251,9 @@ class TriviaScreenshotTest {
         FakeCatalogRepository(data),
         FakeSettingsRepository(),
         FakeTriviaProgressRepository(practised()),
+        FakePlayerRepository(),
+        FakeGroupRepository(),
+        FakeTriviaRoundRepository(),
         EditClock { 0L },
         Random(seed),
     )

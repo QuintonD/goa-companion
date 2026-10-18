@@ -69,6 +69,21 @@ internal object TriviaText {
     /** "2,150": grouped digits in the phone's locale. */
     fun number(n: Int): String = NumberFormat.getIntegerInstance().format(n)
 
+    /** "1st", "2nd", "3rd", "11th", "22nd". */
+    fun ordinal(n: Int): String {
+        val suffix = when {
+            n % 100 in 11..13 -> "th"
+            n % 10 == 1 -> "st"
+            n % 10 == 2 -> "nd"
+            n % 10 == 3 -> "rd"
+            else -> "th"
+        }
+        return "$n$suffix"
+    }
+
+    /** "2nd", or "Joint 2nd" when another player shares it. */
+    fun place(place: Int, tied: Boolean): String = if (tied) "Joint ${ordinal(place)}" else ordinal(place)
+
     /** Lenient: a config written by an older or newer build still opens (unknown keys, bad values). */
     val json = Json {
         ignoreUnknownKeys = true

@@ -8,11 +8,16 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.CatalogRepository
+import dev.quinton.goa.core.data.GroupRepository
+import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.data.TriviaProgressRepository
+import dev.quinton.goa.core.designsystem.icon.PlayerCrests
+import dev.quinton.goa.core.designsystem.theme.PlayerColors
 import dev.quinton.goa.core.domain.trivia.AnswerStyle
 import dev.quinton.goa.core.domain.trivia.CardGroup
 import dev.quinton.goa.core.domain.trivia.MasterySummary
+import dev.quinton.goa.core.domain.trivia.TriviaChallenge
 import dev.quinton.goa.core.domain.trivia.TriviaConfig
 import dev.quinton.goa.core.domain.trivia.TriviaFact
 import dev.quinton.goa.core.domain.trivia.TriviaFacts
@@ -20,8 +25,12 @@ import dev.quinton.goa.core.domain.trivia.TriviaMastery
 import dev.quinton.goa.core.domain.trivia.TriviaStat
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.catalog.Hero
+import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.navigation.TriviaQuizRoute
+import dev.quinton.goa.feature.trivia.PlayingAsState
 import dev.quinton.goa.feature.trivia.TriviaText
+import dev.quinton.goa.feature.trivia.playingAs
+import java.util.UUID
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -82,6 +91,8 @@ sealed interface TriviaHomeUiState {
         val heroes: List<HeroProgressUi>,
         /** Stored progress on any hero (what Reset forgets). */
         val stored: MasterySummary,
+        /** Who the next round is played as (ADR-032). */
+        val playingAs: PlayingAsState = PlayingAsState.GUEST_ONLY,
     ) : TriviaHomeUiState {
         val canStart: Boolean get() = selection.total > 0
         val initiativeSelected: Boolean get() = TriviaStat.INITIATIVE in setup.stats
@@ -107,6 +118,17 @@ sealed interface TriviaHomeAction {
     data object AllHeroes : TriviaHomeAction
 }
 
+/** What tapping Challenge does. */
+sealed interface ChallengeStart {
+    data class Open(val route: TriviaQuizRoute) : ChallengeStart
+
+    /** Playing as Guest: pick who's playing first (a Challenge needs a name on the board). */
+    data object PickPlayer : ChallengeStart
+
+    /** Nothing loaded yet. */
+    data object NotReady : ChallengeStart
+}
+
 /**
  * Every hero's facts with each fact's card group, built once per catalog: the home's state is
  * rebuilt on every progress or setup change and filters these instead of re-reading the cards.
@@ -124,12 +146,15 @@ private class CatalogFacts(val catalog: Catalog) {
         byHero[hero.id].orEmpty().filter { (fact, group) -> fact.stat in stats && group in groups }.map { it.first }
 }
 
+@Suppress("TooManyFunctions")
 @HiltViewModel(assistedFactory = TriviaHomeViewModel.Factory::class)
 class TriviaHomeViewModel internal constructor(
     heroId: String?,
     catalogRepository: CatalogRepository,
     settingsRepository: SettingsRepository,
     private val progressRepository: TriviaProgressRepository,
+    private val playerRepository: PlayerRepository,
+    groupRepository: GroupRepository,
     /** Builds the state off the main thread; a test dispatcher in tests. */
     computeDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
@@ -138,7 +163,17 @@ class TriviaHomeViewModel internal constructor(
         catalogRepository: CatalogRepository,
         settingsRepository: SettingsRepository,
         progressRepository: TriviaProgressRepository,
-    ) : this(heroId, catalogRepository, settingsRepository, progressRepository, Dispatchers.Default)
+        playerRepository: PlayerRepository,
+        groupRepository: GroupRepository,
+    ) : this(
+        heroId,
+        catalogRepository,
+        settingsRepository,
+        progressRepository,
+        playerRepository,
+        groupRepository,
+        Dispatchers.Default,
+    )
 
     @AssistedFactory
     interface Factory {
@@ -160,12 +195,16 @@ class TriviaHomeViewModel internal constructor(
         .distinctUntilChanged { a, b -> a === b }
         .map(::CatalogFacts)
 
+    private val playing = playingAs(playerRepository, groupRepository, progressRepository)
+        .catch { emit(PlayingAsState.GUEST_ONLY) }
+
     val uiState: StateFlow<TriviaHomeUiState> = combine(
         facts,
         settingsRepository.settings,
         progressRepository.progress,
         setup,
-    ) { facts, settings, progress, config ->
+        playing,
+    ) { facts, settings, progress, config, playingAs ->
         if (config == null) return@combine TriviaHomeUiState.Loading
         val catalog = facts.catalog
         if (catalog.heroes.isEmpty()) return@combine TriviaHomeUiState.Unavailable
@@ -195,6 +234,7 @@ class TriviaHomeViewModel internal constructor(
                 )
             },
             stored = TriviaMastery.summary(catalog.heroes.flatMap(facts::all), progress),
+            playingAs = playingAs,
         )
     }
         .flowOn(computeDispatcher)
@@ -225,6 +265,54 @@ class TriviaHomeViewModel internal constructor(
     fun resetProgress() {
         viewModelScope.launch { progressRepository.reset(null) }
     }
+
+    /**
+     * The Challenge (ADR-032): the fixed quiz over every hero in the catalog, whatever the setup and
+     * the owned products. Needs a named player; Guest is asked to pick one first.
+     */
+    fun startChallenge(): ChallengeStart {
+        val ready = uiState.value as? TriviaHomeUiState.Ready ?: return ChallengeStart.NotReady
+        return if (ready.playingAs.isGuest) ChallengeStart.PickPlayer else ChallengeStart.Open(challengeRoute())
+    }
+
+    /** Plays the next rounds as [playerIdOrGuest] (a player id or [TriviaProgressRepository.GUEST]). */
+    fun playAs(playerIdOrGuest: String, then: (() -> Unit)? = null) {
+        viewModelScope.launch {
+            progressRepository.setPlayingAs(playerIdOrGuest)
+            then?.invoke()
+        }
+    }
+
+    /** Picks [playerId] and then opens the Challenge, once the pick is stored (the quiz reads it). */
+    fun playAsAndChallenge(playerId: String, open: (TriviaQuizRoute) -> Unit) = playAs(playerId) {
+        open(challengeRoute())
+    }
+
+    /**
+     * Adds a player from the picker (a known name, archived included, picks that player instead of
+     * creating a second one) and plays as them; [open] gets the Challenge when it was asked for.
+     */
+    fun addPlayer(name: String, open: ((TriviaQuizRoute) -> Unit)? = null) {
+        val trimmed = name.trim().take(MAX_NAME_LENGTH)
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch {
+            val all = playerRepository.observePlayers(includeArchived = true).first()
+            val used = all.map { it.color }.toSet()
+            val player = playerRepository.ensurePlayer(
+                Player(
+                    id = UUID.randomUUID().toString(),
+                    name = trimmed,
+                    color = (PlayerColors.all.firstOrNull { it.argb !in used } ?: PlayerColors.default(all.size)).argb,
+                    avatarId = all.size % PlayerCrests.count,
+                    createdAt = System.currentTimeMillis(),
+                ),
+            )
+            progressRepository.setPlayingAs(player.id)
+            open?.invoke(challengeRoute())
+        }
+    }
+
+    private fun challengeRoute() = TriviaQuizRoute(TriviaText.encode(TriviaChallenge.CONFIG), challenge = true)
 
     private fun save(config: TriviaConfig) {
         viewModelScope.launch { progressRepository.saveConfig(config) }
@@ -266,3 +354,6 @@ class TriviaHomeViewModel internal constructor(
 }
 
 private const val STOP_TIMEOUT_MS = 5_000L
+
+/** As in the player editor. */
+internal const val MAX_NAME_LENGTH = 24

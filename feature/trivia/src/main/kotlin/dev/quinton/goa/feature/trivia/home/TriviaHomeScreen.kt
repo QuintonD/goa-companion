@@ -25,6 +25,9 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Quiz
@@ -36,6 +39,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -47,8 +51,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -71,13 +77,18 @@ import dev.quinton.goa.core.domain.trivia.AnswerStyle
 import dev.quinton.goa.core.domain.trivia.CardGroup
 import dev.quinton.goa.core.domain.trivia.TriviaConfig
 import dev.quinton.goa.core.domain.trivia.TriviaStat
+import dev.quinton.goa.feature.trivia.PlayingAsState
 import dev.quinton.goa.feature.trivia.TriviaText
 import dev.quinton.goa.feature.trivia.ui.MasteryBar
 import dev.quinton.goa.feature.trivia.ui.MasteryLegend
 import dev.quinton.goa.feature.trivia.ui.SetupLabel
 import dev.quinton.goa.feature.trivia.ui.spokenUnverified
 
-/** Trivia home: overall progress, the quiz setup, and progress per hero. */
+/**
+ * Trivia home: who is playing, overall progress, the quiz setup, and progress per hero; Start quiz
+ * and the Challenge pinned at the bottom, the leaderboard on the top bar (ADR-028, ADR-032).
+ */
+@Suppress("LongParameterList")
 @Composable
 fun TriviaHomeScreen(
     state: TriviaHomeUiState,
@@ -88,17 +99,25 @@ fun TriviaHomeScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     initialHeroPicker: Boolean = false,
+    onChallenge: () -> Unit = {},
+    onLeaderboard: () -> Unit = {},
+    playingAsActions: PlayingAsActions = PlayingAsActions(),
+    initialPlayingAsPicker: PlayingAsPicker? = null,
 ) {
     val ready = state as? TriviaHomeUiState.Ready
     var menu by rememberSaveable { mutableStateOf(false) }
     var confirmReset by rememberSaveable { mutableStateOf(false) }
     var picker by rememberSaveable { mutableStateOf(initialHeroPicker) }
+    var playingAsPicker by rememberSaveable { mutableStateOf(initialPlayingAsPicker) }
     GoaScreen(
         title = "Card trivia",
         onBack = onBack,
         modifier = modifier,
         actions = {
             if (ready != null) {
+                IconButton(onClick = onLeaderboard) {
+                    Icon(Icons.Outlined.EmojiEvents, contentDescription = "Leaderboard")
+                }
                 Box {
                     IconButton(onClick = { menu = true }) {
                         Icon(Icons.Outlined.MoreVert, contentDescription = "More options")
@@ -137,9 +156,23 @@ fun TriviaHomeScreen(
                     onStart = onStart,
                     onStartHero = onStartHero,
                     onChooseHeroes = { picker = true },
+                    onChoosePlayer = { playingAsPicker = PlayingAsPicker.CHOOSE },
+                    onChallenge = {
+                        // A Challenge goes on the board under a name: Guest picks one first.
+                        if (state.playingAs.isGuest) playingAsPicker = PlayingAsPicker.CHALLENGE else onChallenge()
+                    },
                 )
             }
         }
+    }
+    val pickerMode = playingAsPicker
+    if (ready != null && pickerMode != null) {
+        PlayingAsSheet(
+            state = ready.playingAs,
+            mode = pickerMode,
+            actions = playingAsActions,
+            onDismiss = { playingAsPicker = null },
+        )
     }
     if (ready != null && picker) {
         HeroPickerSheet(
@@ -175,6 +208,7 @@ fun TriviaHomeScreen(
     }
 }
 
+@Suppress("LongParameterList")
 @Composable
 private fun HomeContent(
     state: TriviaHomeUiState.Ready,
@@ -182,14 +216,17 @@ private fun HomeContent(
     onStart: () -> Unit,
     onStartHero: (String) -> Unit,
     onChooseHeroes: () -> Unit,
+    onChoosePlayer: () -> Unit,
+    onChallenge: () -> Unit,
 ) {
     val padded = Modifier.padding(horizontal = Spacing.screen)
     Column(Modifier.fillMaxSize()) {
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(top = Spacing.lg, bottom = Spacing.xl),
+            contentPadding = PaddingValues(top = Spacing.md, bottom = Spacing.xl),
         ) {
-            item(key = "overall") { OverallCard(state, padded) }
+            item(key = "playing-as") { PlayingAsRow(state.playingAs, onChoosePlayer, padded) }
+            item(key = "overall") { OverallCard(state, padded.padding(top = Spacing.md)) }
             item(key = "setup-title") { SectionHeader("New quiz", padded) }
             item(key = "setup") { SetupBlock(state, onAction, onChooseHeroes, padded) }
             item(key = "heroes-title") {
@@ -209,8 +246,95 @@ private fun HomeContent(
                 HeroProgressRow(hero, onClick = { onStartHero(hero.heroId) })
             }
         }
-        // Pinned: the live count and Start are always in reach, however far the list is scrolled.
-        StartBar(state, onStart)
+        // Pinned: the live count, Start and the Challenge are always in reach, however far the list is scrolled.
+        StartBar(state, onStart, onChallenge)
+    }
+}
+
+/**
+ * "Playing as Sam ▾" with the player's crest; the line under it says whether the rounds go on the
+ * leaderboard, and a note when the player isn't this phone's "You" (whose learning progress this is).
+ */
+@Composable
+private fun PlayingAsRow(playing: PlayingAsState, onClick: () -> Unit, modifier: Modifier) {
+    val name = playing.player?.name ?: "Guest"
+    val isMe = playing.player != null && playing.player.id == playing.me?.id
+    val subtitle = when {
+        playing.isGuest -> "Not on the leaderboard"
+        else -> "Rounds go on the leaderboard"
+    }
+    val note = playingAsNote(playing)
+    Column(modifier.fillMaxWidth()) {
+        Surface(
+            onClick = onClick,
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = "Playing as $name" + (if (isMe) ", you" else "") + ", $subtitle"
+                    role = Role.Button
+                },
+        ) {
+            Row(
+                Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                PlayingAvatar(playing.player, size = scaledIconSize(40.dp, maxScale = 1.5f))
+                Spacer(Modifier.width(Spacing.md))
+                Column(Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "Playing as $name",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        Icon(
+                            Icons.Outlined.ArrowDropDown,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(scaledIconSize(24.dp)),
+                        )
+                        if (isMe) {
+                            Spacer(Modifier.width(Spacing.xs))
+                            YouTag()
+                        }
+                    }
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        if (note != null) {
+            Text(
+                note,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.sm, start = Spacing.xs, end = Spacing.xs),
+            )
+        }
+    }
+}
+
+/**
+ * When the player isn't this phone's "You": whose learning progress this is and where the rounds
+ * go. Null when they are, or when no "You" is set (then anyone's rounds teach this phone).
+ */
+internal fun playingAsNote(playing: PlayingAsState): String? {
+    val me = playing.me ?: return null
+    val player = playing.player
+    return when {
+        player == null -> "Practice progress here stays ${me.name}'s; Guest rounds aren't recorded."
+        player.id == me.id -> null
+        else -> "Practice progress here stays ${me.name}'s; ${player.name}'s rounds go on the leaderboard."
     }
 }
 
@@ -414,15 +538,17 @@ private fun DuelsRow(state: TriviaHomeUiState.Ready, onAction: (TriviaHomeAction
 
 /**
  * The bar pinned under the home's list: the live "N numbers in this quiz · M learned" line (or why
- * Start is off) and Start quiz. Side by side on a wide window (landscape), so the list keeps room.
+ * Start is off), Start quiz and the Challenge with its one-line explanation. Side by side on a wide
+ * window (landscape), so the list keeps room; the two buttons stack at large text.
  */
 @Composable
-private fun StartBar(state: TriviaHomeUiState.Ready, onStart: () -> Unit) {
+private fun StartBar(state: TriviaHomeUiState.Ready, onStart: () -> Unit, onChallenge: () -> Unit) {
     val selection = state.selection
     val line = "${TriviaText.count(selection.total, "number")} in this quiz · " +
         "${TriviaText.number(selection.mastered)} learned"
     val note = startNote(state)
     val noteColor = MaterialTheme.colorScheme.run { if (state.canStart) onSurfaceVariant else error }
+    val stacked = LocalDensity.current.fontScale > STACK_FONT_SCALE
     Surface(color = MaterialTheme.colorScheme.background) {
         Column {
             EngravedRule()
@@ -439,17 +565,42 @@ private fun StartBar(state: TriviaHomeUiState.Ready, onStart: () -> Unit) {
                         Text(note, style = MaterialTheme.typography.bodyMedium, color = noteColor)
                     }
                 }
+                val explain: @Composable () -> Unit = {
+                    Text(
+                        CHALLENGE_LINE,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 if (wide) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) { texts() }
+                        Column(Modifier.weight(1f)) {
+                            texts()
+                            Spacer(Modifier.height(Spacing.xs))
+                            explain()
+                        }
                         Spacer(Modifier.width(Spacing.lg))
-                        StartButton(state.canStart, onStart, Modifier.widthIn(min = 220.dp))
+                        ChallengeButton(onChallenge, Modifier.widthIn(min = 160.dp))
+                        Spacer(Modifier.width(Spacing.sm))
+                        StartButton(state.canStart, onStart, Modifier.widthIn(min = 200.dp))
                     }
                 } else {
                     Column {
                         texts()
                         Spacer(Modifier.height(Spacing.sm))
-                        StartButton(state.canStart, onStart, Modifier.fillMaxWidth())
+                        if (stacked) {
+                            StartButton(state.canStart, onStart, Modifier.fillMaxWidth())
+                            Spacer(Modifier.height(Spacing.sm))
+                            ChallengeButton(onChallenge, Modifier.fillMaxWidth())
+                        } else {
+                            Row {
+                                ChallengeButton(onChallenge, Modifier.weight(1f))
+                                Spacer(Modifier.width(Spacing.sm))
+                                StartButton(state.canStart, onStart, Modifier.weight(1f))
+                            }
+                        }
+                        Spacer(Modifier.height(Spacing.xs))
+                        explain()
                     }
                 }
             }
@@ -462,9 +613,24 @@ private fun StartButton(enabled: Boolean, onStart: () -> Unit, modifier: Modifie
     Button(onClick = onStart, enabled = enabled, modifier = modifier.heightIn(min = 56.dp)) {
         Icon(Icons.Outlined.PlayArrow, contentDescription = null, modifier = Modifier.size(scaledIconSize(20.dp)))
         Spacer(Modifier.width(Spacing.sm))
-        Text("Start quiz", style = MaterialTheme.typography.titleMedium)
+        Text("Start quiz", style = MaterialTheme.typography.titleMedium, maxLines = 1)
     }
 }
+
+/** The fixed Challenge (ADR-032): never off, whatever the setup above it. */
+@Composable
+private fun ChallengeButton(onChallenge: () -> Unit, modifier: Modifier) {
+    OutlinedButton(onClick = onChallenge, modifier = modifier.heightIn(min = 56.dp)) {
+        Icon(Icons.Outlined.Bolt, contentDescription = null, modifier = Modifier.size(scaledIconSize(20.dp)))
+        Spacer(Modifier.width(Spacing.sm))
+        Text("Challenge", style = MaterialTheme.typography.titleMedium, maxLines = 1)
+    }
+}
+
+internal const val CHALLENGE_LINE = "Challenge: 20 questions on every hero — scores go on the leaderboard."
+
+/** From this font scale the bar's two buttons stack instead of sharing a row. */
+private const val STACK_FONT_SCALE = 1.3f
 
 @Composable
 private fun HeroProgressRow(hero: HeroProgressUi, onClick: () -> Unit) {
