@@ -578,8 +578,8 @@ INTERNET permission. Options weighed:
    renderer, catalog search and filters, …), so each number is computed in one place. Moving a
    builder there changes no Android behaviour; its tests move with it. The hub ships as
    `installDist` (a `bin/goa-hub` script plus libs) and needs only a Java 21 runtime.
-2. *One group per hub.* `goa-hub join "<invite>"` (or the first-run page, served on `localhost`
-   only) stores the group credentials in the data directory (`GOA_HUB_DATA`, default
+2. *One group per hub.* `goa-hub join "<invite>"` on the hub machine (command line only; there is
+   no web first-run page) stores the group credentials in the data directory (`GOA_HUB_DATA`, default
    `/var/lib/goa-hub`; files `0600`). From then on the hub is a member like a phone: it holds the key.
 3. *Storage.* `group.json` holds the group's `SyncDocument` in `SyncJson`. Every change goes
    through one mutex and is written atomically (temp file, fsync, rename); a dated copy is kept per
@@ -638,13 +638,21 @@ INTERNET permission. Options weighed:
    hub sends a Web Push at each phase end (VAPID keys made at first start and kept in the data
    directory; iOS 16.4+, home-screen app, permission asked from a tap). Pass-and-play: one device
    runs a match's timer.
-10. *Hosting (free, nothing to install for friends).* `deploy/` holds: a systemd unit (dedicated
-    `goa-hub` user); Caddy as the TLS front with automatic Let's Encrypt certificates; a free
-    DuckDNS name kept current by a timer; the router forwarding TCP 443 (and 80 for the HTTP
-    challenge) to the machine. This needs a public IPv4 (no carrier-grade NAT); the runbook shows
-    the check (router WAN address = public address). Behind CGNAT, Tailscale Funnel on the hub
-    machine alone is the fallback (friends still install nothing). Windows: the same build as a
-    scheduled task plus Caddy for Windows, documented.
+10. *Hosting (free, nothing to install for friends).* The hub listens on `127.0.0.1:8080` only.
+    **Primary (the owner already uses Tailscale): Tailscale Funnel on the hub machine alone**
+    publishes it at `https://<machine>.<tailnet>.ts.net` (`tailscale funnel --bg --https=443
+    http://127.0.0.1:8080`; `--bg` persists across restarts). TLS ends on the machine, so the relays
+    can't read traffic; no router change and no inbound port, and it works behind carrier-grade NAT.
+    Funnel is limited to the policy-file `funnel` attribute (a `tag:goa-hub` tag, which also turns
+    off key expiry), listens only on 443/8443/10000, has unpublished bandwidth limits (fine for a
+    group) and is labelled beta. The `ts.net` name lands in public certificate-transparency logs,
+    so the hub's own sign-in (§7) is the protection; it is never exposed without it. Friends
+    install nothing. **Alternative (no Tailscale):** Caddy with automatic Let's Encrypt
+    certificates, a free DuckDNS name kept current by a timer, and the router forwarding TCP 443 and
+    80; it needs a public IPv4 (the runbook shows the CGNAT check). `deploy/` holds both
+    (`install.sh`, `install.sh --with-caddy`), a hardened systemd unit for a dedicated `goa-hub`
+    user, update with rollback, daily backups, and the Windows variant (scheduled task, the same
+    Funnel command; `-WithCaddy` for the alternative); `deploy/README.md` is the runbook.
 11. *APK from the hub.* `/app` (signed-in devices) offers the latest signed release APK, copied in
     by the deploy script, in place of the Drive link of ADR-006's addendum. Still private.
 
