@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.sync.share
 
 import android.content.ClipData
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -36,7 +37,12 @@ object SyncFiles {
             clipData = ClipData.newRawUri(fileName, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        return Intent.createChooser(send, title)
+        // The app takes sync files shared to it; sending one to itself would only merge its own data.
+        val self = context.packageManager.queryIntentActivities(Intent(send).setPackage(context.packageName), 0)
+            .map { ComponentName(it.activityInfo.packageName, it.activityInfo.name) }
+        return Intent.createChooser(send, title).apply {
+            if (self.isNotEmpty()) putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, self.toTypedArray())
+        }
     }
 
     /** Reads a picked or received file; throws [IOException] when it can't be read. */
