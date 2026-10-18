@@ -142,6 +142,17 @@ object NavSheet {
     val LocalDismissible = staticCompositionLocalOf<MutableState<Boolean>?> { null }
 }
 
+// Card-number trivia (ADR-028, owner: trivia)
+
+/** Trivia home: progress per hero and the quiz setup. [heroId] preselects that hero (from its page). */
+@Serializable data class TriviaRoute(val heroId: String? = null) : NavKey
+
+/**
+ * A quiz round. [config] is a `TriviaConfig` as JSON (core:domain); [factKeys], when not empty,
+ * limits the round to those facts ("Practice the ones I missed").
+ */
+@Serializable data class TriviaQuizRoute(val config: String, val factKeys: List<String> = emptyList()) : NavKey
+
 // Group sync (ADR-025, owner: sync)
 
 /** The group: start or join one; once joined, invite, sync, share or import a sync file, leave. */

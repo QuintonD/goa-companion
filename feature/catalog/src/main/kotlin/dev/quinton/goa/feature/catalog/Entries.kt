@@ -11,6 +11,7 @@ import dev.quinton.goa.core.navigation.HeroDetailRoute
 import dev.quinton.goa.core.navigation.Navigator
 import dev.quinton.goa.core.navigation.RulesRoute
 import dev.quinton.goa.core.navigation.SettingsRoute
+import dev.quinton.goa.core.navigation.TriviaRoute
 import dev.quinton.goa.feature.catalog.detail.HeroDetailScreen
 import dev.quinton.goa.feature.catalog.detail.HeroDetailViewModel
 import dev.quinton.goa.feature.catalog.list.CatalogScreen
@@ -31,6 +32,7 @@ fun EntryProviderScope<NavKey>.catalogEntries(navigator: Navigator) {
             onSettingsClick = { navigator.navigate(SettingsRoute) },
             onCardClick = { heroId, cardId -> navigator.navigate(CardViewerRoute(heroId, cardId)) },
             onRulesClick = { navigator.navigate(RulesRoute) },
+            onTriviaClick = { navigator.navigate(TriviaRoute()) },
         )
     }
     entry<HeroDetailRoute> { key ->
@@ -42,6 +44,7 @@ fun EntryProviderScope<NavKey>.catalogEntries(navigator: Navigator) {
             state = state,
             onBack = navigator::back,
             onCardClick = { heroId, cardId -> navigator.navigate(CardViewerRoute(heroId, cardId)) },
+            onLearnNumbers = { heroId -> navigator.navigate(TriviaRoute(heroId)) },
         )
     }
     entry<CardViewerRoute> { key ->

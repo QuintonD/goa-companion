@@ -7,8 +7,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performScrollToKey
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -248,6 +250,11 @@ class CatalogScreenshotTest {
 
     @Test fun gridDarkFontScale2() = shot(fontScale = 2f) { Catalog(ShotData.ready()) }
 
+    /** S25 Ultra width at the largest font: the title and all four top-bar actions still fit. */
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun gridW384DarkFontScale2() = shot(fontScale = 2f) { Catalog(ShotData.ready()) }
+
     @Test fun listByEloDark() = shot {
         Catalog(ShotData.ready(sort = CatalogSort.ELO, layout = CatalogLayout.LIST))
     }
@@ -309,16 +316,31 @@ class CatalogScreenshotTest {
 
     @Test
     @Config(qualifiers = "w411dp-h2900dp-xxhdpi")
-    fun detailDark() = shot { HeroDetailScreen(ShotData.detail(), onBack = {}, onCardClick = { _, _ -> }) }
+    fun detailDark() = shot {
+        HeroDetailScreen(ShotData.detail(), onBack = {}, onCardClick = { _, _ -> }, onLearnNumbers = {})
+    }
 
     @Test
     @Config(qualifiers = "w411dp-h2900dp-xxhdpi")
     fun detailLight() = shot(ThemeMode.LIGHT) {
-        HeroDetailScreen(ShotData.detail(), onBack = {}, onCardClick = { _, _ -> })
+        HeroDetailScreen(ShotData.detail(), onBack = {}, onCardClick = { _, _ -> }, onLearnNumbers = {})
     }
 
     @Test fun detailDarkFontScale2() = shot(fontScale = 2f) {
-        HeroDetailScreen(ShotData.detail(), onBack = {}, onCardClick = { _, _ -> })
+        HeroDetailScreen(ShotData.detail(), onBack = {}, onCardClick = { _, _ -> }, onLearnNumbers = {})
+    }
+
+    /** "Learn <hero>'s card numbers" under the deck (opens Card trivia on that hero). */
+    @Test fun detailLearnNumbersDark() {
+        compose.setContent {
+            GoaTheme(themeMode = ThemeMode.DARK) {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    HeroDetailScreen(ShotData.detail(), onBack = {}, onCardClick = { _, _ -> }, onLearnNumbers = {})
+                }
+            }
+        }
+        compose.onNode(hasScrollAction()).performScrollToKey("deck-trivia")
+        compose.onRoot().captureRoboImage()
     }
 
     @Test fun detailNotFoundDark() = shot {

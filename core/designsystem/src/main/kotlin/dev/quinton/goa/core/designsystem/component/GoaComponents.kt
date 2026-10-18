@@ -357,7 +357,11 @@ fun CardColorDot(color: CardColor, modifier: Modifier = Modifier, size: Dp = 12.
     )
 }
 
-/** Two-button confirmation. [destructive] paints the confirm action in the error colour. */
+/**
+ * Two-button confirmation. [destructive] paints the confirm action in the error colour. The
+ * dismiss button runs [onDismissButton] when given (a second action, e.g. "Leave"), otherwise
+ * [onDismiss]; tapping outside or Back always runs [onDismiss].
+ */
 @Composable
 fun ConfirmDialog(
     title: String,
@@ -369,6 +373,7 @@ fun ConfirmDialog(
     dismissLabel: String = "Cancel",
     destructive: Boolean = false,
     icon: ImageVector? = null,
+    onDismissButton: (() -> Unit)? = null,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -385,7 +390,7 @@ fun ConfirmDialog(
                 )
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(dismissLabel) } },
+        dismissButton = { TextButton(onClick = onDismissButton ?: onDismiss) { Text(dismissLabel) } },
         containerColor = MaterialTheme.colorScheme.surface,
         iconContentColor = MaterialTheme.colorScheme.primary,
         shape = MaterialTheme.shapes.extraLarge,

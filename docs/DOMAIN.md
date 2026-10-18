@@ -372,6 +372,39 @@ Validation (unit tests): unknown keys rejected; IDs unique and permanent; asset 
 stat has a value; every `**` in card text is a balanced bold marker. `values.plus` is omitted
 when empty (older JSON without it still loads). Values above are placeholders, not real data.
 
+## Card trivia [APP — ADR-028]
+`core:domain/trivia`, pure and unit-tested; every question comes from the catalog.
+- **Facts** (`TriviaFacts`): one per non-null printed value of `initiative`, `values.attack`,
+  `defense`, `movement`, `range`, `radius` on a hero's deck cards (`hero.cards`: Basic = Gold, Silver
+  and extra basics such as Takahide's, Tier I–III, Ultimate). The Handicap card and `extras`
+  (Gydion's spellbook) are left out. Key `<cardId>/<stat>`; `plus` from `values.plus`. Ultimate
+  cards print no Initiative, so they only appear with the stats they print.
+- **Questions:** *card number* (choices = four neighbouring values from those the stat takes
+  anywhere in the catalog, the answer at a random place among them, so no button position gives
+  it away; *Recall* = every such value, e.g. Initiative 1–13, Attack 1–7, 9, 11, 12);
+  *initiative duel* (about 1 in 5 questions when Initiative is in the quiz and at least two cards
+  print one): two cards, preferably within 2 Initiative of each other; answer first / second /
+  same. Higher number = "higher initiative"; the duel says nothing more about turn order.
+- **Mastery:** Leitner box 0–5 per fact; right +1, wrong → 0; learned at box 3. **Spacing**
+  (`TriviaEngine.MIN_SPACING` = 4): a right answer moves the box only on the fact's first
+  card-number question of the round or when at least 4 other questions (duels count) were answered
+  since it was last asked as one; otherwise it counts towards `seen`/`correct` and the box stays.
+  A wrong answer always resets to 0. Progress keeps the value learned (`FactProgress.value`/
+  `plus`); a different catalog value = a new fact. Duels never change boxes; a wrong one queues
+  both Initiative facts.
+- **Retries:** a miss is asked again once 3 other questions have been answered in the round. Only
+  a card-number question on that fact uses the retry up; a duel on the same card leaves it
+  pending. A due retry waits one question if its card was in the question just answered (only
+  the last question is avoided, not the last 3) and the pool has another card. A retry right on
+  time is 3 questions after the miss, so it is counted but doesn't move the box (spacing).
+- **Drawing:** weights missed 6, new 3, box 1 → 4, 2 → 2, 3 → 1, 4 → 0.5, 5 → 0.25; the previous
+  3 questions' cards are skipped when the pool has others (the window shrinks to 1 for a small
+  pool, so the card just asked never comes straight back if there is another). Ultimates print no
+  Initiative and only five print any number, so an Ultimate-only quiz is small or empty; the
+  setup says so, naming its scope ("No Ultimate card of the heroes you own prints Initiative").
+- **Practice:** "Practise the missed ones" = the round's missed facts, no duels, length
+  2 × missed facts capped by the round's length; never endless (`TriviaConfig.forPractice`).
+
 ## Elo [APP — ADR-011]
 Deterministic replay of COMPLETED matches ordered by `(playedAt, createdAt, id)`. Two rating
 spaces, players and heroes, updated from the same match. Every constant lives in `EloConfig`
