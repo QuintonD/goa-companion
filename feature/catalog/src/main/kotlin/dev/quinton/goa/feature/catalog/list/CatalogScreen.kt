@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material.icons.outlined.Shield
@@ -107,6 +108,7 @@ fun CatalogScreen(
     modifier: Modifier = Modifier,
     onCardClick: (heroId: String, cardId: String) -> Unit = { _, _ -> },
     onRulesClick: () -> Unit = {},
+    onTriviaClick: () -> Unit = {},
 ) {
     var showFilters by rememberSaveable { mutableStateOf(false) }
     val ready = state as? CatalogUiState.Ready
@@ -131,6 +133,9 @@ fun CatalogScreen(
             }
             IconButton(onClick = onRulesClick) {
                 Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = "Rules")
+            }
+            IconButton(onClick = onTriviaClick) {
+                Icon(Icons.Outlined.Quiz, contentDescription = "Card trivia")
             }
             SettingsActionButton(onSettingsClick)
         },
