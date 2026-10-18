@@ -43,6 +43,8 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.presentation.players.formatDelta
+import dev.quinton.goa.core.presentation.players.label
 import kotlin.math.roundToInt
 
 /** Small outlined pill: "Provisional", "Double pilot", "Handicap"… Text, never colour alone. */

@@ -50,10 +50,12 @@ import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.presentation.players.HeroOption
+import dev.quinton.goa.core.presentation.players.MAX_NAME_LENGTH
+import dev.quinton.goa.core.presentation.players.PilotOption
+import dev.quinton.goa.core.presentation.players.formatRating
+import dev.quinton.goa.core.presentation.players.label
 import dev.quinton.goa.feature.players.common.Pill
-import dev.quinton.goa.feature.players.common.formatRating
-import dev.quinton.goa.feature.players.common.label
-import dev.quinton.goa.feature.players.player.MAX_NAME_LENGTH
 
 /** Filters heroes by name or title, case-insensitive. */
 fun List<HeroOption>.search(query: String): List<HeroOption> {

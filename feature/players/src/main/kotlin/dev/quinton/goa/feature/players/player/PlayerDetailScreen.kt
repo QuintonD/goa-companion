@@ -42,16 +42,19 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.presentation.players.HeroRecordRow
+import dev.quinton.goa.core.presentation.players.OpponentRow
+import dev.quinton.goa.core.presentation.players.PlayerDetailUiState
+import dev.quinton.goa.core.presentation.players.formatPercent
+import dev.quinton.goa.core.presentation.players.formatRating
+import dev.quinton.goa.core.presentation.players.spokenRecord
+import dev.quinton.goa.core.presentation.players.winLoss
 import dev.quinton.goa.feature.players.common.EngravedCard
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.Pill
 import dev.quinton.goa.feature.players.common.ProvisionalPill
 import dev.quinton.goa.feature.players.common.SectionHeader
 import dev.quinton.goa.feature.players.common.StatRow
-import dev.quinton.goa.feature.players.common.formatPercent
-import dev.quinton.goa.feature.players.common.formatRating
-import dev.quinton.goa.feature.players.common.spokenRecord
-import dev.quinton.goa.feature.players.common.winLoss
 import dev.quinton.goa.feature.players.match.MatchCard
 import dev.quinton.goa.feature.players.meta.WinConditionBars
 
@@ -74,9 +77,10 @@ fun PlayerDetailScreen(state: PlayerDetailUiState, actions: PlayerDetailActions,
         modifier = modifier,
         onBack = actions.onBack,
         actions = {
-            if (state.player != null && state.canInvite) {
+            val shown = state.player
+            if (shown != null && state.canInvite) {
                 IconButton(onClick = actions.onInvite) {
-                    Icon(Icons.Outlined.QrCode2, contentDescription = "Invite ${state.player.name} to the group")
+                    Icon(Icons.Outlined.QrCode2, contentDescription = "Invite ${shown.name} to the group")
                 }
             }
             if (state.player != null) {

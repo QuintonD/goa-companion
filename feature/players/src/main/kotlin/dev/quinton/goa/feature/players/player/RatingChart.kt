@@ -26,11 +26,7 @@ import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
 import com.patrykandpatrick.vico.compose.common.Fill
 import com.patrykandpatrick.vico.compose.common.ProvideVicoTheme
 import com.patrykandpatrick.vico.compose.m3.common.rememberM3VicoTheme
-import dev.quinton.goa.feature.players.common.Dates
-import dev.quinton.goa.feature.players.common.formatRating
-import dev.quinton.goa.feature.players.common.plural
-import kotlin.math.ceil
-import kotlin.math.floor
+import dev.quinton.goa.core.presentation.players.RatingChartModel
 import kotlin.math.roundToInt
 
 /**
@@ -44,14 +40,10 @@ fun RatingChart(
     modifier: Modifier = Modifier,
     dates: List<Long> = emptyList(),
 ) {
-    val values = remember(history, initial) { listOf(initial) + history }
-    val model = remember(values) { CartesianChartModel(LineCartesianLayerModel.build { series(values) }) }
-    val low = floor((values.min() - CHART_PADDING) / STEP) * STEP
-    val high = ceil((values.max() + CHART_PADDING) / STEP) * STEP
+    // Range, labels and the spoken summary are shared with the web page (core:presentation).
+    val chart = remember(history, initial, dates) { RatingChartModel.of(history, initial, dates) } ?: return
+    val model = remember(chart) { CartesianChartModel(LineCartesianLayerModel.build { series(chart.values) }) }
     val lineColor = MaterialTheme.colorScheme.secondary
-    val summary =
-        "Rating history over ${plural(history.size, "match", "matches")}: started at ${formatRating(initial)}, " +
-            "now ${formatRating(values.last())}, peak ${formatRating(values.max())}, low ${formatRating(values.min())}."
 
     ProvideVicoTheme(rememberM3VicoTheme()) {
         CartesianChartHost(
@@ -65,19 +57,16 @@ fun RatingChart(
                             ),
                         ),
                     ),
-                    rangeProvider = CartesianLayerRangeProvider.fixed(minY = low, maxY = high),
+                    rangeProvider = CartesianLayerRangeProvider.fixed(minY = chart.low, maxY = chart.high),
                 ),
                 startAxis = VerticalAxis.rememberStart(),
                 // Dates under the line: x = 0 is the starting rating, x = i the i-th rated match.
                 bottomAxis = HorizontalAxis.rememberBottom(
-                    valueFormatter = remember(dates) {
-                        CartesianValueFormatter { _, x, _ ->
-                            val i = x.roundToInt()
-                            if (i == 0) "Start" else dates.getOrNull(i - 1)?.let(Dates::short) ?: ""
-                        }
+                    valueFormatter = remember(chart) {
+                        CartesianValueFormatter { _, x, _ -> chart.label(x.roundToInt()) }
                     },
-                    itemPlacer = remember(history.size) {
-                        HorizontalAxis.ItemPlacer.aligned(spacing = { maxOf(1, (history.size + 1) / AXIS_LABELS) })
+                    itemPlacer = remember(chart.labelSpacing) {
+                        HorizontalAxis.ItemPlacer.aligned(spacing = { chart.labelSpacing })
                     },
                 ),
             ),
@@ -86,13 +75,7 @@ fun RatingChart(
             modifier = modifier
                 .fillMaxWidth()
                 .height(200.dp)
-                .clearAndSetSemantics { contentDescription = summary },
+                .clearAndSetSemantics { contentDescription = chart.summary },
         )
     }
 }
-
-private const val CHART_PADDING = 10.0
-private const val STEP = 10.0
-
-/** About this many date labels fit under a phone-width chart. */
-private const val AXIS_LABELS = 4

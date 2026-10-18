@@ -59,14 +59,17 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.match.RematchKind
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.presentation.players.MatchLogUiState
+import dev.quinton.goa.core.presentation.players.MatchRowUi
+import dev.quinton.goa.core.presentation.players.SeatUi
+import dev.quinton.goa.core.presentation.players.formatDelta
+import dev.quinton.goa.core.presentation.players.label
 import dev.quinton.goa.feature.players.common.DeltaIndicator
 import dev.quinton.goa.feature.players.common.EngravedCard
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.Pill
 import dev.quinton.goa.feature.players.common.ResultChip
 import dev.quinton.goa.feature.players.common.SectionHeader
-import dev.quinton.goa.feature.players.common.formatDelta
-import dev.quinton.goa.feature.players.common.label
 import kotlinx.coroutines.delay
 
 /** Per-match follow-ups offered by the log beyond edit and delete. */
@@ -189,13 +192,7 @@ fun MatchCard(
     onLogResult: (() -> Unit)? = null,
 ) {
     var menu by remember { mutableStateOf(false) }
-    val summary = listOfNotNull(
-        match.mode.label(),
-        match.winCondition?.label(),
-        match.durationMin?.let { "$it min" },
-        // Older matches stored "Single lane"/"Double lane" as the map: don't repeat the mode.
-        match.map?.takeIf { it.isNotBlank() && !it.equals(match.mode.label(), ignoreCase = true) },
-    ).joinToString(" · ")
+    val summary = match.summary
     EngravedCard(
         modifier
             .fillMaxWidth()

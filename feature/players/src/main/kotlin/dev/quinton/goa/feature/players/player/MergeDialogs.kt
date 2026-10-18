@@ -36,8 +36,10 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
-import dev.quinton.goa.feature.players.common.Dates
-import dev.quinton.goa.feature.players.common.plural
+import dev.quinton.goa.core.presentation.players.MergeCopy
+import dev.quinton.goa.core.presentation.players.MergeOutcome
+import dev.quinton.goa.core.presentation.players.PlayerDetailUiState
+import dev.quinton.goa.core.presentation.players.plural
 
 /**
  * "Merge into…" (DOMAIN.md *Duplicate players*): one person with two players, usually added on two
@@ -58,8 +60,7 @@ internal fun MergeSection(state: PlayerDetailUiState, actions: PlayerDetailActio
         Text("Merge into…")
     }
     Text(
-        "Added twice (e.g. on two phones)? Merge this player into the other one: their matches and ratings " +
-            "become one, on every phone after the next sync.",
+        MergeCopy.MERGE_HELP,
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(top = Spacing.sm),
@@ -113,10 +114,7 @@ internal fun MergeSection(state: PlayerDetailUiState, actions: PlayerDetailActio
     if (!picking && target != null) {
         ConfirmDialog(
             title = "Merge into ${target.player.name}?",
-            message = "${player.name} (${plural(state.totalMatches, "match", "matches")}) becomes " +
-                "${target.player.name} (${plural(target.matches, "match", "matches")}). Their matches and ratings " +
-                "count as one player from now on, and the other phones follow at the next sync. " +
-                "${player.name} disappears from the lists. This can't be undone.",
+            message = MergeCopy.confirmMessage(player.name, state.totalMatches, target.player.name, target.matches),
             confirmLabel = "Merge",
             destructive = true,
             icon = Icons.Outlined.MergeType,
@@ -137,25 +135,13 @@ internal fun MergeSection(state: PlayerDetailUiState, actions: PlayerDetailActio
 internal fun PlayedTogetherDialog(matches: List<String>, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Can't merge") },
+        title = { Text(MergeCopy.REFUSED_TITLE) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Text(
-                    "They played in the same match, so they are two people (one person can't sit on both " +
-                        "teams, and teammates are two players):",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Text(MergeCopy.REFUSED_MESSAGE, style = MaterialTheme.typography.bodyMedium)
                 matches.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
     )
 }
-
-/** The matches a refused merge names, oldest first: "2026-10-12 · Ann, Bob vs Cid, Dee". */
-internal fun playedTogether(matches: List<Match>, people: Map<String, Player>): List<String> =
-    matches.sortedBy { it.playedAt }.map { m ->
-        fun side(team: Team) = m.team(team).map { people[it.playerId]?.name ?: "Unknown player" }
-            .distinct().joinToString()
-        "${Dates.localDate(m.playedAt)} · ${side(Team.RED)} vs ${side(Team.BLUE)}"
-    }

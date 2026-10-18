@@ -32,6 +32,8 @@ import dev.quinton.goa.core.navigation.SamePeopleRoute
 import dev.quinton.goa.core.navigation.SettingsRoute
 import dev.quinton.goa.core.navigation.SyncSessionRoute
 import dev.quinton.goa.core.navigation.TopLevelTab
+import dev.quinton.goa.core.presentation.players.MergeOutcome
+import dev.quinton.goa.core.presentation.players.SamePeopleOutcome
 import dev.quinton.goa.feature.players.backup.BackupActions
 import dev.quinton.goa.feature.players.backup.BackupScreen
 import dev.quinton.goa.feature.players.backup.BackupViewModel
@@ -43,7 +45,6 @@ import dev.quinton.goa.feature.players.match.MatchLogViewModel
 import dev.quinton.goa.feature.players.match.MatchNav
 import dev.quinton.goa.feature.players.meta.MetaActions
 import dev.quinton.goa.feature.players.meta.MetaViewModel
-import dev.quinton.goa.feature.players.player.MergeOutcome
 import dev.quinton.goa.feature.players.player.PlayerDetailActions
 import dev.quinton.goa.feature.players.player.PlayerDetailScreen
 import dev.quinton.goa.feature.players.player.PlayerDetailViewModel
@@ -58,7 +59,6 @@ import dev.quinton.goa.feature.players.ratings.RatingSettingsActions
 import dev.quinton.goa.feature.players.ratings.RatingSettingsScreen
 import dev.quinton.goa.feature.players.ratings.RatingSettingsViewModel
 import dev.quinton.goa.feature.players.samepeople.SamePeopleActions
-import dev.quinton.goa.feature.players.samepeople.SamePeopleOutcome
 import dev.quinton.goa.feature.players.samepeople.SamePeopleScreen
 import dev.quinton.goa.feature.players.samepeople.SamePeopleViewModel
 import dev.quinton.goa.feature.players.share.StatsPageEvent

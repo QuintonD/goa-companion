@@ -1,12 +1,8 @@
-package dev.quinton.goa.feature.players
+package dev.quinton.goa.core.presentation.players
 
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
-import dev.quinton.goa.feature.players.match.MatchError
-import dev.quinton.goa.feature.players.match.MatchForm
-import dev.quinton.goa.feature.players.match.MatchValidation
-import dev.quinton.goa.feature.players.match.SeatDraft
 import org.junit.Test
 
 class MatchFormTest {

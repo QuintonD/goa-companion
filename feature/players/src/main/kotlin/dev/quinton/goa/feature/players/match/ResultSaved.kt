@@ -48,13 +48,16 @@ import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.match.RematchKind
+import dev.quinton.goa.core.presentation.players.PlayerChangeUi
+import dev.quinton.goa.core.presentation.players.RematchOption
+import dev.quinton.goa.core.presentation.players.SavedResultUi
+import dev.quinton.goa.core.presentation.players.formatDelta
+import dev.quinton.goa.core.presentation.players.formatRating
+import dev.quinton.goa.core.presentation.players.label
 import dev.quinton.goa.feature.players.common.DeltaIndicator
 import dev.quinton.goa.feature.players.common.EngravedCard
 import dev.quinton.goa.feature.players.common.ProvisionalPill
 import dev.quinton.goa.feature.players.common.SectionHeader
-import dev.quinton.goa.feature.players.common.formatDelta
-import dev.quinton.goa.feature.players.common.formatRating
-import dev.quinton.goa.feature.players.common.label
 
 /** After a result is saved: who won, each player's rating change and rank, who leads, and Rematch. */
 @Composable
@@ -108,9 +111,11 @@ fun ResultSavedContent(
                 }
             }
         }
-        if (state.ratingsReady && state.leaderName != null && state.leaderRating != null) {
+        val leaderName = state.leaderName
+        val leaderRating = state.leaderRating
+        if (state.ratingsReady && leaderName != null && leaderRating != null) {
             Text(
-                "On top now: ${state.leaderName} · ${formatRating(state.leaderRating.value)} Elo",
+                "On top now: $leaderName · ${formatRating(leaderRating.value)} Elo",
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = Spacing.md),

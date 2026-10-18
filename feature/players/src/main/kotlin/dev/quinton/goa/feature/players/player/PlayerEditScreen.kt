@@ -50,6 +50,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.PlayerColors
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.designsystem.theme.playerColor
+import dev.quinton.goa.core.presentation.players.MAX_NAME_LENGTH
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.Motion
 import dev.quinton.goa.feature.players.common.SectionHeader

@@ -94,7 +94,13 @@ import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
-import dev.quinton.goa.feature.players.common.Dates
+import dev.quinton.goa.core.presentation.players.Dates
+import dev.quinton.goa.core.presentation.players.MAX_SEATS_PER_TEAM
+import dev.quinton.goa.core.presentation.players.MatchEditor
+import dev.quinton.goa.core.presentation.players.MatchForm
+import dev.quinton.goa.core.presentation.players.SeatDraft
+import dev.quinton.goa.core.presentation.players.heroName
+import dev.quinton.goa.core.presentation.players.label
 import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.Motion
@@ -102,7 +108,6 @@ import dev.quinton.goa.feature.players.common.Pill
 import dev.quinton.goa.feature.players.common.SectionHeader
 import dev.quinton.goa.feature.players.common.goaFilterChipColors
 import dev.quinton.goa.feature.players.common.goaSegmentedColors
-import dev.quinton.goa.feature.players.common.label
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -442,7 +447,7 @@ private fun WinnerAndCondition(state: MatchEditUiState, actions: MatchEditAction
             Team.entries.forEach { team ->
                 WinnerOption(
                     team = team,
-                    pilots = state.pilotNames(team),
+                    pilots = MatchEditor.pilotNames(form, team, state.playersById),
                     selected = form.winner == team,
                     onClick = { actions.onWinner(team) },
                     modifier = Modifier.weight(1f),
@@ -605,8 +610,6 @@ private fun TeamEditor(
 ) {
     val seats = state.form.seats(team)
     val doublePilots = state.form.doublePilots(team)
-    val duplicates = state.form.heroesInUse().groupingBy { it }.eachCount().filterValues { it > 1 }.keys
-    val otherTeam = state.form.seats(team.opponent).mapNotNull { it.playerId }.toSet()
     Column(modifier.animateContentSize(Motion.spec()), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TeamBadge(team)
@@ -639,12 +642,7 @@ private fun TeamEditor(
                 seat = seat,
                 state = state,
                 doublePilot = seat.playerId != null && seat.playerId in doublePilots,
-                problem = when {
-                    state.showErrors && seat.playerId == null -> "Choose a pilot"
-                    seat.heroId != null && seat.heroId in duplicates -> "Hero picked twice"
-                    seat.playerId != null && seat.playerId in otherTeam -> "Also on ${team.opponent.label()}"
-                    else -> null
-                },
+                problem = MatchEditor.seatProblem(state.form, team, seat, state.showErrors),
                 onPickHero = { onPickHero(team, seat.key) },
                 onPickPilot = { onPickPilot(team, seat.key) },
                 onToggleHandicap = { actions.onToggleHandicap(team, seat.key) },
@@ -778,10 +776,6 @@ private fun SeatEditor(
         }
     }
 }
-
-/** The team's pilots in seat order, each once (a double pilot sits twice). */
-private fun MatchEditUiState.pilotNames(team: Team): List<String> =
-    form.seats(team).mapNotNull { seat -> seat.playerId?.let { playersById[it]?.name } }.distinct()
 
 /**
  * "Red won" with the team's pilots under it, so the table confirms who it is crediting at a

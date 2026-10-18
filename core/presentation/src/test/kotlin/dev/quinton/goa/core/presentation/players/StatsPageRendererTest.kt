@@ -1,11 +1,11 @@
-package dev.quinton.goa.feature.players.share
+package dev.quinton.goa.core.presentation.players
 
 import com.google.common.truth.Truth.assertThat
-import dev.quinton.goa.core.data.rating.RatingsSnapshot
 import dev.quinton.goa.core.domain.meta.GroupStats
 import dev.quinton.goa.core.domain.meta.MetaStats
 import dev.quinton.goa.core.domain.rating.EloCalculator
 import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.domain.rating.RatingsSnapshot
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Match
@@ -14,14 +14,12 @@ import dev.quinton.goa.core.model.match.Participant
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.core.model.player.Player
-import dev.quinton.goa.core.testing.TestCatalog
-import dev.quinton.goa.feature.players.Fixtures
-import dev.quinton.goa.feature.players.Fixtures.ann
-import dev.quinton.goa.feature.players.Fixtures.blue
-import dev.quinton.goa.feature.players.Fixtures.bob
-import dev.quinton.goa.feature.players.Fixtures.cid
-import dev.quinton.goa.feature.players.Fixtures.match
-import dev.quinton.goa.feature.players.Fixtures.red
+import dev.quinton.goa.core.presentation.players.Fixtures.ann
+import dev.quinton.goa.core.presentation.players.Fixtures.blue
+import dev.quinton.goa.core.presentation.players.Fixtures.bob
+import dev.quinton.goa.core.presentation.players.Fixtures.cid
+import dev.quinton.goa.core.presentation.players.Fixtures.match
+import dev.quinton.goa.core.presentation.players.Fixtures.red
 import java.io.File
 import org.junit.Test
 
