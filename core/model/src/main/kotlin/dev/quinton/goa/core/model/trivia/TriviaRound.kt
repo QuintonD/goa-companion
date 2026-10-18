@@ -3,7 +3,7 @@ package dev.quinton.goa.core.model.trivia
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** What kind of trivia round was played (ADR-031). */
+/** What kind of trivia round was played (ADR-032). */
 @Serializable
 enum class TriviaRoundKind {
     /** The fixed Challenge quiz whose scores compare across players (Challenge board). */
@@ -16,7 +16,7 @@ enum class TriviaRoundKind {
 }
 
 /**
- * One finished trivia round, played as a player (ADR-031). The leaderboard is derived from these;
+ * One finished trivia round, played as a player (ADR-032). The leaderboard is derived from these;
  * like the match log they are synced with the group and kept in the backup file. Rounds are never
  * edited after they are written; a deleted one leaves a tombstone
  * ([dev.quinton.goa.core.model.sync.DeletionKind.TRIVIA_ROUND]).

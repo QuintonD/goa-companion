@@ -122,7 +122,7 @@ interface TriviaProgressRepository {
     suspend fun reset(heroIds: Set<String>? = null)
 
     /**
-     * Who the next round is played as (ADR-031): a player id, [GUEST], or null before anyone was
+     * Who the next round is played as (ADR-032): a player id, [GUEST], or null before anyone was
      * picked on this phone (the home then defaults to this phone's "You", else Guest).
      */
     val playingAs: Flow<String?>
@@ -137,7 +137,7 @@ interface TriviaProgressRepository {
 
 /**
  * Finished trivia rounds played as a player, the source of the trivia leaderboard (owner: trivia,
- * ADR-031). Synced with the group and kept in the backup file like the match log: writes are stamped,
+ * ADR-032). Synced with the group and kept in the backup file like the match log: writes are stamped,
  * a delete leaves a tombstone.
  */
 interface TriviaRoundRepository {
@@ -151,14 +151,14 @@ interface TriviaRoundRepository {
     suspend fun delete(id: String)
 }
 
-/** Bundled board maps from `assets/catalog/maps/` (owner: board, ADR-032). Read-only. */
+/** Bundled board maps from `assets/catalog/maps/` (owner: board, ADR-033). Read-only. */
 interface BoardMapRepository {
     /** Every bundled map, in catalog order (the core single-lane map first). Emits once loaded. */
     val maps: Flow<List<BoardMap>>
 }
 
 /**
- * Boards set up in the board sandbox (owner: board, ADR-032): on this phone and in the backup file,
+ * Boards set up in the board sandbox (owner: board, ADR-033): on this phone and in the backup file,
  * never synced. Every change is written as it happens.
  */
 interface BoardRepository {

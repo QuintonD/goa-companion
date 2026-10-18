@@ -150,7 +150,7 @@ object NavSheet {
 /**
  * A quiz round. [config] is a `TriviaConfig` as JSON (core:domain); [factKeys], when not empty,
  * limits the round to those facts ("Practice the ones I missed"). [challenge]: the fixed Challenge
- * quiz (ADR-031); [config] is then ignored.
+ * quiz (ADR-032); [config] is then ignored.
  */
 @Serializable data class TriviaQuizRoute(
     val config: String,
@@ -158,10 +158,10 @@ object NavSheet {
     val challenge: Boolean = false,
 ) : NavKey
 
-/** The trivia leaderboard (ADR-031): Challenge and Practice boards from the synced rounds. */
+/** The trivia leaderboard (ADR-032): Challenge and Practice boards from the synced rounds. */
 @Serializable data object TriviaLeaderboardRoute : NavKey
 
-// Board sandbox (ADR-032, owner: board)
+// Board sandbox (ADR-033, owner: board)
 
 /** Saved boards and "New board". */
 @Serializable data object BoardsRoute : NavKey

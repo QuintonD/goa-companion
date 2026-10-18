@@ -12,7 +12,7 @@ enum class DeletionKind {
     @SerialName("draft")
     DRAFT,
 
-    /** A trivia round removed from the leaderboard (ADR-031). */
+    /** A trivia round removed from the leaderboard (ADR-032). */
     @SerialName("trivia_round")
     TRIVIA_ROUND,
 }

@@ -234,7 +234,7 @@ Ultimate), about 2,150 numbers over 32 heroes. Every question is generated from 
   question, answered, duel and summary screens have light/dark, font scale 2, 384 dp and landscape
   screenshots.
 
-- **Leaderboard** (ADR-031): who knows the cards best, across the group.
+- **Leaderboard** (ADR-032): who knows the cards best, across the group.
   - *Playing as:* the Card trivia home shows who the next round is played as ("Playing as Sam ▾"):
     any active player, or Guest (not on the leaderboard). Default: the last pick on this phone, else
     this phone's "You" (Group sync), else Guest. The picker can add a player. Learning progress stays
@@ -265,7 +265,7 @@ Ultimate), about 2,150 numbers over 32 heroes. Every question is generated from 
   recorded exactly once, and the leaderboard, Challenge summary and Playing-as picker have light/dark,
   font scale 2, 384 dp and landscape screenshots.
 
-### 8. Board sandbox (ADR-032)
+### 8. Board sandbox (ADR-033)
 Set up a position on the real map and see what can happen: an opening for a line-up, where a
 hero can get to, who is in range. A sandbox: you move the pieces and the app measures with the
 rulebook's movement and distance rules; it never plays the game (no turns, card resolution, coins or

@@ -588,7 +588,7 @@ this change offers Speed guards again, which is right for that list. At 0:10 per
 phase-over alert fires for most heroes; the Action cues can be trimmed in the preset if it gets
 noisy.
 
-## ADR-031 — Trivia leaderboard: rounds played as a player, synced like matches (2026-10-19)
+## ADR-032 — Trivia leaderboard: rounds played as a player, synced like matches (2026-10-19)
 **Context:** The owner asked for a leaderboard for the card quiz. Trivia progress is this phone's
 own (ADR-028), with no idea who is playing, and rounds of different setups (one easy hero, 4 choices
 vs Recall, 10 vs endless) can't be compared. Friends play on their own phones and at the table.
@@ -610,7 +610,7 @@ time measures from question shown to answer, so a slow card-scan reader isn't pe
 Alternatives rejected: ranking by numbers learned (per-phone, can't sync without merging mastery
 per fact); a per-setup board for every quiz configuration (too many boards to mean anything).
 
-## ADR-032 — Board sandbox: community hex maps checked against the official art; measure, never play (2026-10-19)
+## ADR-033 — Board sandbox: community hex maps checked against the official art; measure, never play (2026-10-19)
 **Context:** The owner asked for a virtual board to try out board states, e.g. the opening for a
 line-up, with set-up "as easy and intuitive as possible". The rulebook shows the board only in
 perspective, so a playable hex grid can't be read from it. Its rules give everything needed to

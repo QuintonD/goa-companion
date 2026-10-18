@@ -9,7 +9,7 @@ import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.board.TokenPiece
 import dev.quinton.goa.core.model.match.Team
 
-/** Setting up and changing a board the way the rulebook does (ADR-032). Pure; ids come from [newId]. */
+/** Setting up and changing a board the way the rulebook does (ADR-033). Pure; ids come from [newId]. */
 object BoardSetup {
     /**
      * The opening position (p.6 steps 9–10, p.20): each lane's starting Battle Zone gets one minion

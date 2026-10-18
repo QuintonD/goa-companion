@@ -32,7 +32,7 @@ class TriviaProgressStore @Inject constructor(@TriviaStore private val store: Da
     /** JSON of the last quiz setup, or null before the first quiz. */
     val configJson: Flow<String?> = store.data.map { it[CONFIG] }
 
-    /** Who the next round is played as: a player id or "guest" (ADR-031); null before the first pick. */
+    /** Who the next round is played as: a player id or "guest" (ADR-032); null before the first pick. */
     val playingAs: Flow<String?> = store.data.map { it[PLAYING_AS] }
 
     suspend fun writePlayingAs(value: String) {

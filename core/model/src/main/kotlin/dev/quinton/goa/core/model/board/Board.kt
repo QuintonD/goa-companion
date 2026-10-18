@@ -6,7 +6,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /*
- * Board sandbox (ADR-032). The map is bundled catalog data (assets/catalog/maps/<id>.json, written
+ * Board sandbox (ADR-033). The map is bundled catalog data (assets/catalog/maps/<id>.json, written
  * by tools/catalog-import, never hand-edited); boards the user sets up are local data.
  */
 

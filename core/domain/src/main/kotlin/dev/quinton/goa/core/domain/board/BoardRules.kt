@@ -8,7 +8,7 @@ import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.match.Team
 
 /**
- * What the board sandbox measures (ADR-032). It never resolves a card: it answers "where can this
+ * What the board sandbox measures (ADR-033). It never resolves a card: it answers "where can this
  * hero get to" and "what is in range", from the rulebook's movement and distance rules. Page
  * references are the rulebook's printed pages (DOMAIN.md *Board sandbox*).
  */
