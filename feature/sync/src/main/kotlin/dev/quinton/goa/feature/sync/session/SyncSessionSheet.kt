@@ -67,6 +67,9 @@ enum class PermissionUi {
     /** Explain, then ask. */
     NEEDED,
 
+    /** Refused once: Android can still ask again. Say so, and offer the sync file. */
+    REFUSED,
+
     /** Denied for good: only system settings can turn it on. */
     DENIED,
 }
@@ -105,7 +108,7 @@ fun SyncSessionEntry(state: SyncSessionUiState, viewModel: SyncSessionViewModel,
             val permanent = activity != null && NearbyPermissions.missing(context).none {
                 activity.shouldShowRequestPermissionRationale(it)
             }
-            permission = if (permanent) PermissionUi.DENIED else PermissionUi.NEEDED
+            permission = if (permanent) PermissionUi.DENIED else PermissionUi.REFUSED
         }
     }
     fun choose(role: SessionRole) {
@@ -284,6 +287,20 @@ private fun PermissionContent(permission: PermissionUi, actions: SyncSessionActi
                 "at the table, locked with your group's key.",
         ) {
             Button(onClick = actions.onAllow, modifier = Modifier.heightIn(min = 48.dp)) { Text("Allow") }
+            TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Not now") }
+        }
+
+        PermissionUi.REFUSED -> Message(
+            icon = Icons.Outlined.ErrorOutline,
+            title = "“$group” wasn't allowed",
+            body = "Sync needs it to find the phones next to you. Ask again, or share a sync file instead: it " +
+                "works through Quick Share, a message or Drive.",
+            error = true,
+        ) {
+            Button(onClick = actions.onAllow, modifier = Modifier.heightIn(min = 48.dp)) { Text("Ask again") }
+            OutlinedButton(onClick = actions.onUseFile, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text("Use a sync file")
+            }
             TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Not now") }
         }
 

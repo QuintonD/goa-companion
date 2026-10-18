@@ -117,6 +117,8 @@ class SyncScreenshotTest {
 
     @Test fun sessionPermissionDark() = shot { Sheet(session, PermissionUi.NEEDED) }
 
+    @Test fun sessionPermissionRefusedDark() = shot { Sheet(session, PermissionUi.REFUSED) }
+
     @Test fun sessionPermissionDeniedLightFontScale2() = shot(ThemeMode.LIGHT, 2f) {
         Sheet(session, PermissionUi.DENIED)
     }
