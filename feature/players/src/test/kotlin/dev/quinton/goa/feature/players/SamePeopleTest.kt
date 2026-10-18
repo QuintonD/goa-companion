@@ -40,7 +40,12 @@ class SamePeopleTest {
     private val merges = FakePlayerMergeRepository(matches, players.merges)
     private val matchUp = FakePlayerMatchUpRepository()
 
-    private fun vm(mergeRepo: PlayerMergeRepository = merges) = SamePeopleViewModel(players, matches, mergeRepo, matchUp)
+    private fun vm(mergeRepo: PlayerMergeRepository = merges) = SamePeopleViewModel(
+        players,
+        matches,
+        mergeRepo,
+        matchUp,
+    )
 
     @Test
     fun thePlayersTabCountsLookAlikesFromTheCurrentData() = runTest {

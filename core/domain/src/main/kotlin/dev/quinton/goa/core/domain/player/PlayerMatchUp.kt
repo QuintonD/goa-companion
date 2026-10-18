@@ -51,18 +51,24 @@ object PlayerMatchUp {
     fun likeness(a: String, b: String): Likeness? = likenessOfKeys(matchKey(a), matchKey(b), a, b)
 
     private fun likenessOfKeys(ka: String, kb: String, a: String, b: String): Likeness? {
-        // A name with no letters at all (digits, emoji) only matches itself.
-        if (ka.isEmpty() || kb.isEmpty()) return Likeness.SAME_NAME.takeIf { PlayerNames.same(a, b) }
-        if (ka == kb) return Likeness.SAME_NAME
         val (short, long) = if (ka.length <= kb.length) ka to kb else kb to ka
-        if (short.length >= MIN_PREFIX && long.startsWith(short)) return Likeness.PREFIX
         val allowed = when {
             short.length >= MIN_TWO_EDITS -> 2
             short.length >= MIN_ONE_EDIT -> 1
             else -> 0
         }
-        if (allowed == 0 || long.length - short.length > allowed) return null
-        return Likeness.SIMILAR.takeIf { editDistance(ka, kb) <= allowed }
+        return when {
+            // A name with no letters at all (digits, emoji) only matches itself.
+            short.isEmpty() -> Likeness.SAME_NAME.takeIf { PlayerNames.same(a, b) }
+
+            ka == kb -> Likeness.SAME_NAME
+
+            short.length >= MIN_PREFIX && long.startsWith(short) -> Likeness.PREFIX
+
+            withinEdits(short, long, allowed) -> Likeness.SIMILAR
+
+            else -> null
+        }
     }
 
     /**
@@ -87,17 +93,17 @@ object PlayerMatchUp {
         val different = dismissed.mapNotNullTo(HashSet()) { key ->
             splitKey(key)?.let { (a, b) -> pairKey(merges.resolve(a), merges.resolve(b)) }
         }
-        val pairs = ArrayList<PlayerPair>()
-        for (i in active.indices) {
-            for (j in i + 1 until active.size) {
+        fun playedTogether(a: String, b: String): Boolean {
+            val mine = playedIn[a].orEmpty()
+            return playedIn[b].orEmpty().any { it in mine }
+        }
+        val pairs = active.indices.flatMap { i ->
+            (i + 1 until active.size).mapNotNull { j ->
                 val keep = active[i]
                 val other = active[j]
-                val likeness = likenessOfKeys(keys.getValue(keep.id), keys.getValue(other.id), keep.name, other.name)
-                    ?: continue
-                if (pairKey(keep.id, other.id) in different) continue
-                val mine = playedIn[keep.id].orEmpty()
-                if (playedIn[other.id].orEmpty().any { it in mine }) continue
-                pairs += PlayerPair(keep, other, likeness)
+                likenessOfKeys(keys.getValue(keep.id), keys.getValue(other.id), keep.name, other.name)
+                    ?.takeIf { pairKey(keep.id, other.id) !in different && !playedTogether(keep.id, other.id) }
+                    ?.let { PlayerPair(keep, other, it) }
             }
         }
         return pairs.sortedWith(
@@ -145,12 +151,17 @@ object PlayerMatchUp {
             for (j in 1 until cols) {
                 val cost = if (a[i - 1] == b[j - 1]) 0 else 1
                 var best = minOf(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost)
-                if (i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1]) {
-                    best = minOf(best, d[i - 2][j - 2] + 1)
-                }
+                if (swapped(a, b, i, j)) best = minOf(best, d[i - 2][j - 2] + 1)
                 d[i][j] = best
             }
         }
         return d[a.length][b.length]
     }
+
+    private fun withinEdits(short: String, long: String, allowed: Int): Boolean =
+        allowed > 0 && long.length - short.length <= allowed && editDistance(short, long) <= allowed
+
+    /** The two letters before [i] in [a] are the two before [j] in [b], swapped. */
+    private fun swapped(a: String, b: String, i: Int, j: Int): Boolean =
+        i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1]
 }

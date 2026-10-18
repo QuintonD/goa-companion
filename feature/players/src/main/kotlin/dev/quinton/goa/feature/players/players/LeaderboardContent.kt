@@ -289,7 +289,10 @@ private fun RankBadge(rank: Int?) {
 /** "Same people?" (ADR-031): a quiet nudge when two players look like one person. */
 @Composable
 private fun SamePeopleCard(count: Int, onReview: () -> Unit) {
-    val text = if (count == 1) "2 players might be the same person" else "$count pairs of players look like the same person"
+    val text = when (count) {
+        1 -> "2 players might be the same person"
+        else -> "$count pairs of players look like the same person"
+    }
     Row(
         Modifier
             .fillMaxWidth()
