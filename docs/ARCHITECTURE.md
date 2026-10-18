@@ -57,8 +57,9 @@ core/presentation/       # JVM: screen-state builders shared by ViewModels and t
                          #   per feature; no Android, no HTML
 server/hub/              # JVM app (Ktor): the group's hub — sync API, device sign-in, the web app
                          #   (kotlinx.html + vendored htmx + small JS), storage in GOA_HUB_DATA (ADR-030)
-deploy/                  # hub hosting: systemd unit, Caddyfile, DuckDNS updater, install/update scripts,
-                         #   runbook (Linux first, Windows notes)
+deploy/                  # hub hosting (ADR-030 §10), runbook in deploy/README.md: install/update scripts,
+                         #   hardened systemd unit, backups; Tailscale Funnel first, alt-caddy/ (Caddy +
+                         #   DuckDNS) as the alternative; Linux first, windows/ PowerShell variant
 ```
 Dependency direction: `feature → core:data/domain/designsystem → core:model`;
 `feature → core:presentation → core:domain`; `server:hub → core:presentation/domain/model` (never

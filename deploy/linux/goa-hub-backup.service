@@ -1,0 +1,35 @@
+# Packs /var/lib/goa-hub into /var/backups/goa-hub/goa-hub-<date>.tar.gz and keeps 14 days.
+# Started by goa-hub-backup.timer; run it by hand with: sudo systemctl start goa-hub-backup
+[Unit]
+Description=Back up the Guards of Atlantis hub data
+Documentation=file:///opt/goa-hub/deploy/README.md
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/goa-hub/goa-hub-backup.sh
+# Root, because the data directory is goa-hub's alone (0700); everything else is read-only.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/backups/goa-hub
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateNetwork=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectKernelLogs=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+# Read goa-hub's files (DAC_READ_SEARCH) and keep their owners in the archive.
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE CAP_CHOWN CAP_FOWNER
+Nice=10
+IOSchedulingClass=idle

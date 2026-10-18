@@ -90,7 +90,7 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] Web: Timer (presets, running timer, round view, Action seats, wake lock, chimes, push)
 - [ ] Web: Draft (setup, methods, board, → match)
 - [ ] Web: Card trivia, Group (join, who am I, invite QR, devices), Settings (constants, backup)
-- [ ] Deploy kit and runbook: systemd, Caddy + Let's Encrypt, DuckDNS, router, CGNAT check, Windows notes
+- [x] Deploy kit and runbook ([deploy/README.md](../deploy/README.md)): Tailscale Funnel first, Caddy + DuckDNS + router as the alternative, hardened systemd unit, update with rollback, daily backups, Windows variant — 2026-10-19, `shellcheck` clean, Caddyfile `caddy validate`/`fmt` (2.11.7) and its log filter checked, `systemd-analyze verify`/`security` (hub 1.5 OK); `install.sh` (both modes), `update.sh` (rollback on a broken build, APK publish) and the restore steps run in systemd containers (Debian 13, Ubuntu 24.04 with ufw, Fedora 44 with Java 25) against a stand-in hub; PowerShell scripts parse-checked, invite quoting through `cmd` tested. **Not yet tried on a real machine, a real tailnet or Windows end to end**
 - [ ] Security review of sign-in, sync API and hosting; adversarial review of web writes vs the sync rules
 - [ ] Hands-on: two emulators + a browser at 390 px converge through a local hub; game night on the web
 - [ ] **Real iPhone over the internet** against the owner's hub (home screen, timer locked, push)

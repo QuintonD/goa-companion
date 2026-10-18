@@ -235,8 +235,10 @@ timer view (step by step / whole round), cue sounds and haptics, Elo constants (
 with the sync group), Group sync, export/import, About/credits.
 
 ### 8. The hub and the web app (ADR-030) — linking players (ADR-031)
-The owner runs **the group's hub** on a spare machine at home (Linux or Windows; free: a DuckDNS
-name, Caddy with Let's Encrypt, one router port). It is a member of the group like a phone.
+The owner runs **the group's hub** on a spare machine at home (Linux or Windows; free: Tailscale
+Funnel on that machine publishes it over HTTPS with no router change; Caddy + DuckDNS + a router
+port forward is the documented alternative; runbook in `deploy/README.md`). It is a member of the
+group like a phone.
 - **Auto-sync:** Android phones with a hub address sync with it over HTTPS on their own (app
   start, shortly after any change, hourly, "Sync now"); the Group screen shows "Hub: synced 2 min
   ago" or what went wrong. Nearby sync at the table still works without internet.

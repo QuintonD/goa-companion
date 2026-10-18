@@ -71,6 +71,12 @@ group key, through Quick Share, a message or Drive; the other phone opens it (or
 The invite QR code is the group's key: show it only at the table. Release and debug builds
 don't see each other (different app ids). Leaving a group keeps all data on the phone.
 
+## The group's hub (ADR-030)
+
+The hub is the group's own server on a spare machine at home: Android phones sync with it by
+themselves and iPhones use the app in Safari. Hosting is free and friends install nothing.
+Setting it up, updating, backups and troubleshooting: [deploy/README.md](deploy/README.md).
+
 ## Release signing key — back it up
 
 Release builds are signed with a private key kept **outside** the repo:
