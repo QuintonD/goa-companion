@@ -14,6 +14,8 @@ import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -95,10 +97,17 @@ fun PlayersHomeScreen(
                 }
             }
             IconButton(onClick = actions.onOpenSync) {
-                Icon(
-                    Icons.Outlined.Sync,
-                    contentDescription = if (players.inGroup) "Sync with the group" else "Group sync",
-                )
+                // A quiet dot when the hub sync needs a person (wrong key, versions, refused data).
+                BadgedBox(badge = { if (players.hubNeedsAttention) Badge() }) {
+                    Icon(
+                        Icons.Outlined.Sync,
+                        contentDescription = when {
+                            players.hubNeedsAttention -> "Group sync: the hub needs attention"
+                            players.inGroup -> "Sync with the group"
+                            else -> "Group sync"
+                        },
+                    )
+                }
             }
             IconButton(onClick = actions.onOpenBackup) {
                 Icon(Icons.Outlined.SettingsBackupRestore, contentDescription = "Backup and restore")

@@ -46,6 +46,8 @@ data class PlayersUiState(
     val meId: String? = null,
     /** The phone is in a sync group: the sync action opens the sync sheet directly. */
     val inGroup: Boolean = false,
+    /** The last sync with the group's hub failed for a reason a person must fix (ADR-030 §5). */
+    val hubNeedsAttention: Boolean = false,
 ) {
     val isEmpty: Boolean get() = !loading && ranked.isEmpty() && unrated.isEmpty() && archived.isEmpty()
 }
@@ -74,8 +76,9 @@ class PlayersViewModel @Inject constructor(
         ratings.observeSnapshot(),
         showArchived,
         me,
-    ) { list, snapshot, archivedVisible, (meId, inGroup) ->
-        leaderboard(list, snapshot, archivedVisible, meId).copy(inGroup = inGroup)
+        groups.state.map { it.hubSyncOn && it.hubError?.problem?.transient == false }.distinctUntilChanged(),
+    ) { list, snapshot, archivedVisible, (meId, inGroup), hubAttention ->
+        leaderboard(list, snapshot, archivedVisible, meId).copy(inGroup = inGroup, hubNeedsAttention = hubAttention)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlayersUiState())
 
     fun toggleArchived() = showArchived.update { !it }

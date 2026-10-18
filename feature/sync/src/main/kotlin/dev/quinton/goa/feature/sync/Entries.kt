@@ -26,6 +26,7 @@ import dev.quinton.goa.feature.sync.group.GroupActions
 import dev.quinton.goa.feature.sync.group.GroupEvent
 import dev.quinton.goa.feature.sync.group.GroupScreen
 import dev.quinton.goa.feature.sync.group.GroupViewModel
+import dev.quinton.goa.feature.sync.hub.HubActions
 import dev.quinton.goa.feature.sync.importfile.SyncFileImportActions
 import dev.quinton.goa.feature.sync.importfile.SyncFileImportScreen
 import dev.quinton.goa.feature.sync.importfile.SyncFileImportViewModel
@@ -160,6 +161,12 @@ private fun GroupEntry(navigator: Navigator) {
                 context.startActivity(Intent.createChooser(send, "Share invite"))
             },
             onLeave = vm::leave,
+            hub = HubActions(
+                onSave = vm::setHub,
+                onClearAddressError = vm::clearHubAddressError,
+                onSyncNow = vm::syncHub,
+                onRemove = vm::removeHub,
+            ),
         ),
     )
 }

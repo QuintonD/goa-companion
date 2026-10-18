@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.withIndex
 import kotlinx.coroutines.launch
@@ -37,6 +38,15 @@ interface HubSyncControl {
     val running: Flow<Boolean>
 
     fun syncNow()
+
+    companion object {
+        /** No hub sync (previews and tests that don't need it). */
+        val Off: HubSyncControl = object : HubSyncControl {
+            override val running: Flow<Boolean> = flowOf(false)
+
+            override fun syncNow() = Unit
+        }
+    }
 }
 
 /**
