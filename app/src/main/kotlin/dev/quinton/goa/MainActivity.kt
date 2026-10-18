@@ -24,14 +24,18 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.navigation.EXTRA_OPEN_TAB
 import dev.quinton.goa.core.navigation.TopLevelTab
+import dev.quinton.goa.feature.sync.hub.HubSyncScheduler
 import dev.quinton.goa.ui.GoaApp
 import dev.quinton.goa.ui.SyncFileRequest
 import dev.quinton.goa.ui.TabRequest
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
+
+    @Inject lateinit var hubSync: HubSyncScheduler
 
     /** Tabs asked for by launch intents (the timer notification asks for the Timer tab). */
     private val tabRequests = MutableStateFlow<TabRequest?>(null)
@@ -45,7 +49,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // A recreated activity (rotation, process restore) keeps its tab; only a real launch obeys the intent.
         val coldStart = savedInstanceState == null
-        if (coldStart) handle(intent)
+        if (coldStart) {
+            handle(intent)
+            // Opening the app syncs with the group's hub, if it has one (ADR-030 §5).
+            hubSync.onAppOpened()
+        }
         splash.setKeepOnScreenCondition { viewModel.uiState.value is MainUiState.Loading }
         enableEdgeToEdge()
         setContent {

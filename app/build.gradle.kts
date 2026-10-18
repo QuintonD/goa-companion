@@ -79,6 +79,9 @@ dependencies {
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.serialization.json)
+    // WorkManager with Hilt workers (the hub sync, ADR-030 §5).
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.hilt.work)
 
     testImplementation(projects.core.testing)
 
