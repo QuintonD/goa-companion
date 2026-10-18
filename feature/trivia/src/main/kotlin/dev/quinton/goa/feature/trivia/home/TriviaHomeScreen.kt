@@ -219,6 +219,27 @@ private fun HomeContent(
     onChoosePlayer: () -> Unit,
     onChallenge: () -> Unit,
 ) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        // Must match the start bar's layout (its content is inset by the screen padding): below its
+        // wide width, large text moves the Challenge line here.
+        val largeText = LocalDensity.current.fontScale > STACK_FONT_SCALE &&
+            maxWidth - Spacing.screen * 2 < WIDE_START_BAR
+        HomeColumn(state, onAction, onStart, onStartHero, onChooseHeroes, onChoosePlayer, onChallenge, largeText)
+    }
+}
+
+@Suppress("LongParameterList")
+@Composable
+private fun HomeColumn(
+    state: TriviaHomeUiState.Ready,
+    onAction: (TriviaHomeAction) -> Unit,
+    onStart: () -> Unit,
+    onStartHero: (String) -> Unit,
+    onChooseHeroes: () -> Unit,
+    onChoosePlayer: () -> Unit,
+    onChallenge: () -> Unit,
+    largeText: Boolean,
+) {
     val padded = Modifier.padding(horizontal = Spacing.screen)
     Column(Modifier.fillMaxSize()) {
         LazyColumn(
@@ -226,6 +247,16 @@ private fun HomeContent(
             contentPadding = PaddingValues(top = Spacing.md, bottom = Spacing.xl),
         ) {
             item(key = "playing-as") { PlayingAsRow(state.playingAs, onChoosePlayer, padded) }
+            if (largeText) {
+                item(key = "challenge-line") {
+                    Text(
+                        CHALLENGE_LINE,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = padded.padding(top = Spacing.sm),
+                    )
+                }
+            }
             item(key = "overall") { OverallCard(state, padded.padding(top = Spacing.md)) }
             item(key = "setup-title") { SectionHeader("New quiz", padded) }
             item(key = "setup") { SetupBlock(state, onAction, onChooseHeroes, padded) }
@@ -589,6 +620,8 @@ private fun StartBar(state: TriviaHomeUiState.Ready, onStart: () -> Unit, onChal
                         texts()
                         Spacer(Modifier.height(Spacing.sm))
                         if (stacked) {
+                            // Large text: the explanation sits in the list (under Playing as) so the
+                            // pinned bar leaves the list room.
                             StartButton(state.canStart, onStart, Modifier.fillMaxWidth())
                             Spacer(Modifier.height(Spacing.sm))
                             ChallengeButton(onChallenge, Modifier.fillMaxWidth())
@@ -598,9 +631,9 @@ private fun StartBar(state: TriviaHomeUiState.Ready, onStart: () -> Unit, onChal
                                 Spacer(Modifier.width(Spacing.sm))
                                 StartButton(state.canStart, onStart, Modifier.weight(1f))
                             }
+                            Spacer(Modifier.height(Spacing.xs))
+                            explain()
                         }
-                        Spacer(Modifier.height(Spacing.xs))
-                        explain()
                     }
                 }
             }

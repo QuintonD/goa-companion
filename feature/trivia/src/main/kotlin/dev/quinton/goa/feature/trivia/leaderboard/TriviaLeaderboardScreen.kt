@@ -46,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -223,6 +224,10 @@ private fun EmptyBoard(state: TriviaLeaderboardUiState.Ready, modifier: Modifier
 
 @Composable
 private fun RankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
+    if (LocalDensity.current.fontScale >= LARGE_FONT_SCALE) {
+        LargeRankedRow(row, onClick)
+        return
+    }
     Row(
         Modifier
             .fillMaxWidth()
@@ -272,6 +277,50 @@ private fun RankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+    }
+}
+
+/**
+ * At large text there is no room for a column on the right: the name (and You) wrap freely and the
+ * ranked figure leads the detail line.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LargeRankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = "See rounds", role = Role.Button, onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = row.spoken }
+            .padding(horizontal = Spacing.screen, vertical = Spacing.sm),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            PlaceBadge(row.place, row.tied)
+            Spacer(Modifier.height(Spacing.xs))
+            PlayerAvatar(row.player, size = 32.dp)
+        }
+        Spacer(Modifier.width(Spacing.md))
+        Column(Modifier.weight(1f)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(row.player.name, style = MaterialTheme.typography.titleMedium)
+                if (row.isMe) YouTag()
+            }
+            Text(
+                listOfNotNull(row.main, row.mainCaption).joinToString(" "),
+                style = GoaTextStyles.numeric.copy(fontSize = MaterialTheme.typography.titleLarge.fontSize),
+                fontWeight = FontWeight.SemiBold,
+                color = if (row.place == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                row.detail,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -450,3 +499,6 @@ internal fun periodLabel(period: LeaderboardPeriod): String = when (period) {
 }
 
 private const val PODIUM = 3
+
+/** From this font scale the rows reflow ([LargeRankedRow]). */
+private const val LARGE_FONT_SCALE = 1.5f

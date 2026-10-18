@@ -9,6 +9,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -53,6 +54,25 @@ data class PlayingAsState(
             return PlayingAsState(player = player, me = me, players = ordered)
         }
     }
+}
+
+/**
+ * [PlayingAsState] right now, read once (a quiz is played as whoever was picked when it opened).
+ * Plain reads in turn, so a store that answers at once (as the fakes do) needs no dispatch.
+ */
+internal suspend fun currentPlayingAs(
+    players: PlayerRepository,
+    groups: GroupRepository,
+    progress: TriviaProgressRepository,
+): PlayingAsState {
+    val stored = progress.playingAs.first()
+    val me = groups.state.first().mePlayerId?.let { players.observePlayer(it).first() }
+    val pick = if (stored == null || stored == TriviaProgressRepository.GUEST) {
+        stored
+    } else {
+        players.observePlayer(stored).first()?.id ?: stored
+    }
+    return PlayingAsState.resolve(pick, me, players.observePlayers().first())
 }
 
 /** [PlayingAsState] as it changes: the stored pick, "You" and the player list. */

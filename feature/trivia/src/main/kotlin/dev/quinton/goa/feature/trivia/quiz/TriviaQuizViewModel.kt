@@ -39,7 +39,7 @@ import dev.quinton.goa.core.navigation.TriviaQuizRoute
 import dev.quinton.goa.feature.trivia.PlayingAsState
 import dev.quinton.goa.feature.trivia.TriviaCardUi
 import dev.quinton.goa.feature.trivia.TriviaText
-import dev.quinton.goa.feature.trivia.playingAs
+import dev.quinton.goa.feature.trivia.currentPlayingAs
 import java.util.UUID
 import kotlin.random.Random
 import kotlinx.coroutines.Job
@@ -254,7 +254,7 @@ class TriviaQuizViewModel internal constructor(
         val catalog = catalogRepository.catalog.catch { emit(Catalog.EMPTY) }.first()
         settings = runCatching { settingsRepository.settings.first() }.getOrDefault(AppSettings())
         val progress = runCatching { progressRepository.progress.first() }.getOrDefault(emptyMap())
-        playing = runCatching { playingAs(playerRepository, groupRepository, progressRepository).first() }
+        playing = runCatching { currentPlayingAs(playerRepository, groupRepository, progressRepository) }
             .getOrDefault(PlayingAsState.GUEST_ONLY)
         catalogVersion = catalog.dataVersion
         cards =
