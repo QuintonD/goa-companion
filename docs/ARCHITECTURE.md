@@ -33,10 +33,11 @@ core/model/              # JVM: data classes (Hero, Card, Player, Match, DraftMe
 core/domain/             # JVM: TimerEngine, EloCalculator, DraftEngine, MetaStats, MatchSetup, TriviaEngine,
                          #   sync/ (SyncMerge, PlayerMerges, crypto, codec, SyncHost/SyncClient protocol);
                          #   testFixtures: in-memory SyncTransport + data port
-core/data/               # repositories; catalog loader; JSON/Room <-> model; export/import
+core/data/               # repositories; catalog and board-map loaders; JSON/Room <-> model; export/import
 core/database/           # Room 3 DB, DAOs, entities, migrations, schemas/
-core/datastore/          # settings + persisted timer state
-core/designsystem/       # theme, tokens, components, icons, sigils
+core/datastore/          # settings, persisted timer state, trivia progress, boards (datastore/boards)
+core/designsystem/       # theme, tokens, components, icons, sigils; cardtext/ (CardTextView, GameIcons:
+                         #   card text with inline game icons, shared by the catalog and the board)
 core/testing/            # fakes, fixtures, test rules
 core/navigation/         # Navigation 3 keys for every screen + Navigator (ADR-010), NavSheet metadata
 feature/catalog/
@@ -48,6 +49,11 @@ feature/settings/        # settings, rating constants, export/import entry, Abou
 feature/rules/           # rules reference: topic list + search, topic pages, Levels & defeats sheet
 feature/trivia/          # card trivia (ADR-028): home (progress + setup), quiz and summary;
                          #   questions from core:domain/trivia, progress in datastore/trivia_progress
+feature/board/           # board sandbox (ADR-033): Boards list, New board, Board. map/ = MapLayout (axial →
+                         #   screen, turned in 30° steps so the Lane runs up the screen in portrait),
+                         #   MapViewport (fit/zoom/pan), BoardMapView (Canvas layers + piece composables +
+                         #   one TalkBack node per space); measuring only through core:domain/board;
+                         #   boards in datastore/boards (DataStoreBoardRepository, one JSON document per board)
 feature/sync/            # group sync (ADR-025): Group screen, sync sheet, Who are you, sync-file import;
                          #   NearbySyncTransport, invite QR + scanner, FileProvider, permissions
 tools/catalog-import/    # JVM CLI (reuses core:model): sources.lock.json, overrides.json,
@@ -170,8 +176,8 @@ Features never depend on each other; cross-feature navigation goes through `app`
 9. **Shell** (`app`, ADR-020): the notification's content intent carries `EXTRA_OPEN_TAB =
    TIMER`, and a cold start with a running or paused session also opens the Timer tab. Other
    tabs show a compact "timer running" bar (phase, round context, clock; tap → timer) that
-   keeps the window awake while the session runs. The bottom bar is hidden on the running
-   timer and on the draft board.
+   keeps the window awake while the session runs. The bottom bar (and the timer bar) is hidden
+   on the running timer, the draft board and a sandbox board (`BoardRoute`).
 
 ## App shell and navigation (ADR-020)
 One `NavBackStack` per tab (`AppNavigator`). Every tab's back stack is decorated with its own
@@ -202,7 +208,7 @@ the draft setup for "Draft again".
 | Group sync | `core:domain`: merge properties (commutative, associative, idempotent, convergence, identical ratings), examples (ties, tombstones, merge chains and cycles, unknown heroes), crypto/codec (RFC 5869 vector, tamper, other group), protocol over the in-memory transport (host + 3, drops mid-upload and mid-download, wrong key, relay, Nearby unavailable). `core:data`: real Room phones syncing (game night, deletions, duplicates), stamping, backup v4. `feature:sync`: VM tests, screenshots. Real Nearby: two physical phones only |
 | ViewModels | Turbine on `uiState` with fakes from `core:testing` |
 | UI | Roborazzi (`recordRoborazziDebug` / `verifyRoborazziDebug`), light/dark × font scale 1.0/2.0 |
-| End to end | `app/src/androidTest` (`connectedDebugAndroidTest`): real Hilt graph and bundled catalog, a scripted game night (`GameNight`: House draft → setup → timer round → "Who won?" → rating changes → ratings/meta), a rematch night (`RematchTimerFlowTest`: logged match → Rematch "Same seats" → setup → timer with the rules sheet, rules screen and a notification tap back to the Timer tab → second result), catalog, players, double pilot, settings, and ATF accessibility checks on every main screen. Runs through the AndroidX Test Orchestrator with `clearPackageData`, so each test starts from a fresh install |
+| End to end | `app/src/androidTest` (`connectedDebugAndroidTest`): real Hilt graph and bundled catalog, a scripted game night (`GameNight`: House draft → setup → timer round → "Who won?" → rating changes → ratings/meta), a rematch night (`RematchTimerFlowTest`: logged match → Rematch "Same seats" → setup → timer with the rules sheet, rules screen and a notification tap back to the Timer tab → second result), catalog, players, double pilot, settings, the board sandbox (`BoardFlowTest`: New board → Set up → move a hero → Boards), and ATF accessibility checks on every main screen. Runs through the AndroidX Test Orchestrator with `clearPackageData`, so each test starts from a fresh install |
 | Device | Manual smoke checklist on S25 Ultra per milestone (timer: lock screen, Doze, reboot) |
 
 ## Data files

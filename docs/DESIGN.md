@@ -85,6 +85,8 @@ grid tile, which draws its own fade, to keep scrolling cheap) · `HeroSigil` (mo
 fallback) · `PlayerAvatar` (crest in player colour, initial fallback) · `TeamBadge` / `TeamMark`
 · `ComplexityStars` (`showLabel` adds Challenging / Complex / Very Complex / Wizard). The
 gallery screenshot test (`GalleryScreenshotTest`) shows them all, dark/light, font scale 1 and 2.
+`cardtext/CardTextView` renders printed card text (inline `GameIcons`, italic reminders, bold
+keywords) for the card viewer and the board.
 
 ## Key screens
 Catalog grid → Hero detail · Timer (full-screen, giant ring countdown, phase chip with
@@ -100,12 +102,34 @@ chips, two team columns with role coverage and ban chips, then a dense pool grid
 role chips and "Hide taken"; taken heroes shrink to chips; landscape moves the banner and teams
 to a side column so the pool keeps the full height; long-press opens the hero peek sheet).
 Bottom nav: Heroes, Timer, Draft, Players (original icons: shield, hourglass, fanned cards,
-companions; solid variant when selected). Settings from top bar. The bottom nav is hidden on the
-running timer (no tab to mis-tap beside Next; back leaves to Heroes) and on the draft board;
+companions; solid variant when selected). Settings from top bar. The Heroes top bar carries
+layout, Rules, Board, Card trivia and Settings; when the five icons and the title don't fit (narrow
+screen or large text) Board and Card trivia move into "More options". The bottom nav is hidden on the
+running timer (no tab to mis-tap beside Next; back leaves to Heroes), on the draft board and on a board;
 while a session runs, every other screen shows the **timer running bar** above the nav (timer
 icon, phase, "Round · Turn" context, tabular clock in tide teal; dim when paused, error red in
 overtime; tap returns to the timer). The Meta tab defaults to a compact sortable hero table
 (48 dp rows, sort chips; Pick/Ban columns drop at large font) with a Table/Cards switch.
+
+### Board (sandbox, ADR-033)
+The map is drawn by the app, never from the map art: pointy-top hexes turned in 30° steps so the
+Lane runs up the screen in portrait (the bottom team's Throne Zone at the bottom; "Flip" swaps) and
+left to right in landscape. Zone fills are muted (`BoardPalette`, derived from the theme for dark
+and light): lane Zones alternate two tones, side Zones a sea-green tone, Throne Zones a team tint,
+the current Battle Zone a teal tint with a teal border; other Zone borders are bronze, spaces are
+separated by a hairline of the canvas colour. Terrain is a dark hex with an original faceted rock.
+Zone labels (Battle Zone, Red/Blue Throne) float at a fixed size outside the zoom, so they stay
+readable. **Original glyphs** (masters `design/board/glyph_*.svg`, path data mirrored in
+`ui/BoardGlyphs.kt`): crown = hero Spawn point, sword = melee, arrow = ranged, shield = heavy.
+Spawn points draw the glyph on the team's shape outline (◆ Red / ● Blue). Pieces: heroes are the
+official portrait in a team-coloured ring, minions a team disc with the glyph, tokens a stone square
+with the label; heroes and minions carry the team's shape at the bottom right, so team is never
+colour alone. **Overlays** each have a pattern as well as a colour, and the switch that turns one on
+shows its swatch (the legend): Movement = teal fill with the number of spaces, Fast Travel = bronze
+hatching, Range = violet inner outline, Radius = three dots; waiting-minion targets = dashed teal
+outline; the selected piece = bright outline on a dark halo; Measure = bronze line (dashed when not
+in a straight line). The selection panel sits at the bottom in portrait (max half the height,
+collapsible) and on the right in landscape; the map pans so it never covers the selected piece.
 
 ## Asset policy
 Private, non-commercial build (ADR-006), so two kinds of asset:

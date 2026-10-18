@@ -93,6 +93,9 @@ class BoardViewModel internal constructor(
     private val undo = ArrayDeque<BoardState>()
     private val redo = ArrayDeque<BoardState>()
     private val overlays = HashMap<String, OverlaySettings>()
+
+    /** Minions sent to the tray by a push in this visit, and the Spawn point each couldn't take. */
+    private val waitingSpawns = HashMap<String, Hex>()
     private var saveJob: Job? = null
     private var unsaved: SavedBoard? = null
 
@@ -431,6 +434,7 @@ class BoardViewModel internal constructor(
 
             is BoardSetup.PushResult.Pushed -> {
                 if (result.state == ready.board.state) return
+                result.waiting.forEach { waitingSpawns[it.piece.id] = it.spawn }
                 commit(result.state)
                 val waiting = result.waiting.firstOrNull()?.piece?.id
                 if (waiting != null) setReady { it.copy(activeWaitingId = waiting) }
@@ -575,21 +579,29 @@ class BoardViewModel internal constructor(
     private fun waitingPieces(ready: BoardUiState.Ready): List<WaitingUi> {
         val geometry = ready.geometry
         val state = ready.board.state
+        val occupied = BoardRules.occupancy(state)
         return state.pieces.filter { it.at == null }.map { piece ->
             val targets = (piece as? MinionPiece)?.let { minion ->
-                val zones = state.battleZones.values.ifEmpty {
-                    ready.map.lanes.map { it.startingBattleZone }
-                }.distinct()
-                zones.firstNotNullOfOrNull { zone ->
-                    val spawn = geometry.minionSpawns(zone).firstOrNull { space ->
+                // The Spawn point it couldn't take: known from this visit's push, else a taken Spawn
+                // point of its team and type in a Battle Zone (the tray doesn't record the lane).
+                waitingSpawns[minion.id]?.let { spawn ->
+                    geometry.zoneOf(spawn)?.let { zone -> BoardSetup.nearestEmpty(geometry, state, zone, spawn) }
+                } ?: battleZones(ready).firstNotNullOfOrNull { zone ->
+                    val spawns = geometry.minionSpawns(zone).filter { space ->
                         space.spawn?.team == minion.team && space.spawn?.kind == spawnKind(minion)
-                    } ?: return@firstNotNullOfOrNull null
+                    }
+                    val spawn = spawns.firstOrNull { it.hex in occupied }
+                        ?: spawns.firstOrNull()
+                        ?: return@firstNotNullOfOrNull null
                     BoardSetup.nearestEmpty(geometry, state, zone, spawn.hex).takeIf { it.isNotEmpty() }
                 }
             }
             WaitingUi(piece, targets.orEmpty())
         }
     }
+
+    private fun battleZones(ready: BoardUiState.Ready): List<String> =
+        ready.board.state.battleZones.values.ifEmpty { ready.map.lanes.map { it.startingBattleZone } }.distinct()
 
     private fun spawnKind(minion: MinionPiece): SpawnKind = SpawnKind.entries.first { it.minion == minion.type }
 

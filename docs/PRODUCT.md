@@ -299,8 +299,8 @@ Life counters).
   backup file, not synced.
 - **Layout:** the board fills the screen with the Lane running top to bottom in portrait (your
   team's Throne at the bottom; "Flip" swaps), left to right in landscape; pinch to zoom, drag to pan,
-  double tap zooms, "Fit" resets. Selection details sit in a bottom panel that never covers the
-  selected piece. Pieces show the hero's portrait ringed in team colour, minions by type, tokens by
+  double tap zooms, "Fit" resets. Selection details sit in a bottom panel (on the right in
+  landscape, where a bottom panel would leave no map) that never covers the selected piece. Pieces show the hero's portrait ringed in team colour, minions by type, tokens by
   label. TalkBack: a "Pieces" list selects any piece; spaces read their Zone and what stands there.
 - **Entry points:** Heroes tab top bar (Board), finished draft, a pending or logged match.
 - **Done when:** hex distance, movement, Fast Travel, opening and push tests match rulebook cases;
