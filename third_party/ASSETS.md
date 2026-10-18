@@ -41,6 +41,7 @@ UI icons from `androidx.compose.material:material-icons-extended` (Apache 2.0, G
 |------|-------|--------|---------|
 | htmx 2.0.11 (Big Sky Software) | `server/hub/src/main/resources/static/htmx.min.js` | npm `htmx.org@2.0.11`, `dist/htmx.min.js` (tarball sha512 `Thx/WtpeOQqS…tamA==` as published; file sha256 `d6fdc75f…f717`), unmodified | 0BSD, [`htmx/LICENSE`](htmx/LICENSE) |
 | Material Symbols (Outlined, 24 px): arrow_back, settings, menu_book, quiz, close, add, chevron_right, download, error, info, check, delete, edit, share, notifications, logout, devices, group, search | `server/hub/src/main/resources/static/material/*.svg` | `github.com/google/material-design-icons` @ `49d4db35df873165d6bd6ba09b063c7dafbac2f4`, `symbols/web/<name>/materialsymbolsoutlined/<name>_24px.svg`, unmodified | Apache 2.0, [`material-symbols/LICENSE`](material-symbols/LICENSE) |
+| Material Symbols (Outlined, 24 px) for the web timer: pause, play_arrow, skip_next, skip_previous, more_vert, flag, view_agenda, view_day, military_tech, replay, remove, timer, tune, notifications_off, volume_up | `server/hub/src/main/resources/static/timer/icons/*.svg` | same repository and commit, same paths, unmodified | Apache 2.0, [`material-symbols/LICENSE`](material-symbols/LICENSE) |
 
 The hub also serves, from the build (no copy in git): the fonts and licences above, our crests,
 sigils, icons and launcher SVGs from `design/`, and the official catalog files (signed-in
@@ -52,4 +53,6 @@ devices only). Its manifest PNG icons are rendered at run time from `design/bran
 |-------|--------|-----------|
 | "Phase over" chime (three rising bell-like notes, ~1.3 s, mono 22.05 kHz WAV) | `design/sounds/make_chime.py` (additive synthesis, no samples) | `feature/timer/src/main/res/raw/phase_chime.wav` |
 
-In-app threshold cues are generated at runtime by `ToneGenerator`; nothing else is bundled.
+In-app threshold cues are generated at runtime by `ToneGenerator`; nothing else is bundled. The
+hub's web timer serves the same chime from the build (`static/timer/phase_chime.wav`, no copy in
+git) for its time's-up cue; its warning beeps are generated in the browser (Web Audio oscillator).

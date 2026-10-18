@@ -52,6 +52,8 @@ val bundleAppFiles by tasks.registering(Sync::class) {
     from(rootProject.file("design/sigils")) { into("static/sigils") }
     from(rootProject.file("design/icons")) { into("static/icons") }
     from(rootProject.file("design/brand")) { into("static/brand") }
+    // The timer's phase-over chime (original, third_party/ASSETS.md "Sounds"), for the web timer.
+    from(rootProject.file("feature/timer/src/main/res/raw/phase_chime.wav")) { into("static/timer") }
 }
 
 tasks.named<Jar>("jar") {
