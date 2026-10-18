@@ -57,7 +57,7 @@ class ShellTest {
                     Regex("<a href=\"$path\" class=\"tab selected\" aria-current=\"page\">").containsMatchIn(html),
                 ).isTrue()
                 assertThat(html).contains("<span class=\"tab-label\">$label</span>")
-                assertThat(html).contains("Coming soon")
+                if (path != "/draft") assertThat(html).contains("Coming soon")
                 assertThat(html).doesNotContain(" style=")
                 assertThat(html).doesNotContain("<style")
                 assertThat(Regex("<script(?![^>]*\\ssrc=)").containsMatchIn(html)).isFalse()

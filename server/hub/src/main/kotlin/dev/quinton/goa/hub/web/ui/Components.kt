@@ -108,9 +108,10 @@ fun FlowContent.hubButton(
     block: kotlinx.html.BUTTON.() -> Unit = {},
 ) {
     button(type = type, classes = style.css) {
+        // Attributes first: kotlinx.html streams, so none can be set once content is written.
+        block()
         icon?.let { icon(it) }
         span { +label }
-        block()
     }
 }
 
