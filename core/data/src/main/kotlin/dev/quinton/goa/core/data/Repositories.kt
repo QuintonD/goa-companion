@@ -2,6 +2,7 @@ package dev.quinton.goa.core.data
 
 import dev.quinton.goa.core.domain.sync.GroupCredentials
 import dev.quinton.goa.core.domain.sync.PlayerMerges
+import dev.quinton.goa.core.domain.sync.SyncChanges
 import dev.quinton.goa.core.domain.sync.protocol.SyncApplyResult
 import dev.quinton.goa.core.domain.sync.protocol.SyncDataPort
 import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
@@ -196,12 +197,77 @@ data class GroupState(
     val hubUrl: String? = null,
     /** The player a personal invite was made for, not yet confirmed (ADR-031). */
     val invitedPlayerId: String? = null,
+    /** When this phone last synced with the hub; null = not yet (or another hub/group since). */
+    val hubSyncedAt: Long? = null,
+    /** Why the last hub sync failed; null when it worked (or none ran yet). */
+    val hubError: HubError? = null,
 ) {
     val inGroup: Boolean get() = group != null
+
+    /** In a group that has a hub: automatic sync runs (ADR-030 §5). */
+    val hubSyncOn: Boolean get() = group != null && hubUrl != null
 }
 
 @kotlinx.serialization.Serializable
 data class SyncedPhone(val deviceId: String, val name: String, val lastSyncedAt: Long)
+
+/**
+ * Automatic sync with the group's hub (ADR-030 §5; owner: sync): this phone's data sealed as a
+ * sync file, posted to `{hub}/api/v1/sync`, and the hub's merged reply applied exactly like an
+ * imported sync file. Never runs two round trips at once.
+ */
+interface HubSyncRepository {
+    /**
+     * One round trip with the hub. The outcome is stored in [GroupState.hubSyncedAt] and
+     * [GroupState.hubError]; [HubSyncResult.NotConfigured] when not in a group with a hub.
+     */
+    suspend fun sync(): HubSyncResult
+
+    /**
+     * Emits after each change to the synced data on this phone (players, matches, drafts,
+     * deletions, merges, rating constants), whoever wrote it. No initial emission.
+     */
+    val localChanges: Flow<Unit>
+}
+
+sealed interface HubSyncResult {
+    data object NotConfigured : HubSyncResult
+
+    data class Synced(val changes: SyncChanges, val at: Long) : HubSyncResult
+
+    data class Failed(val error: HubError) : HubSyncResult
+}
+
+/** Why a hub sync failed. [transient] problems are retried with backoff; the others need a person. */
+enum class HubProblem(val transient: Boolean) {
+    /** No connection, DNS failure, connection refused. */
+    UNREACHABLE(true),
+    TIMEOUT(true),
+
+    /** The hub answered 5xx or something unexpected. */
+    SERVER(true),
+
+    /** 404, a redirect, or a plain-HTTP address this build won't use. */
+    WRONG_ADDRESS(false),
+
+    /** 401: the hub doesn't take this phone's group key. */
+    WRONG_KEY(false),
+
+    /** 409: the hub and the app have different sync data versions. */
+    VERSION(false),
+
+    /** 422: the hub refused this phone's data, or this phone's own checks did (before sending). */
+    INVALID_DATA(false),
+
+    /** 413, or over the size limit before sending. */
+    TOO_BIG(false),
+
+    /** The hub's reply couldn't be opened or used. */
+    BAD_REPLY(false),
+}
+
+/** A failed hub sync: what, in words for the Group screen, and when (epoch ms). */
+data class HubError(val problem: HubProblem, val message: String, val at: Long)
 
 /**
  * This phone's side of group sync (owner: sync): its whole shareable data as a [SyncDocument], and
