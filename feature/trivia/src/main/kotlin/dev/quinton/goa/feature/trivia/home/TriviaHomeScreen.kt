@@ -43,6 +43,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
@@ -206,7 +207,7 @@ private fun OverallCard(state: TriviaHomeUiState.Ready, modifier: Modifier) {
     val overall = state.overall
     GoaCard(modifier.fillMaxWidth()) {
         Text(
-            "${overall.mastered} of ${TriviaText.count(overall.total, "number")} learned",
+            "${TriviaText.number(overall.mastered)} of ${TriviaText.count(overall.total, "number")} learned",
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -330,7 +331,7 @@ private fun HeroScopeRow(state: TriviaHomeUiState.Ready, onChooseHeroes: () -> U
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .semantics { contentDescription = "Heroes: $summary, ${TriviaText.count(count, "hero")}" },
+            .semantics { contentDescription = "Heroes: $summary, ${TriviaText.count(count, "hero", "heroes")}" },
     ) {
         Row(
             Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
@@ -345,7 +346,7 @@ private fun HeroScopeRow(state: TriviaHomeUiState.Ready, onChooseHeroes: () -> U
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    TriviaText.count(count, "hero"),
+                    TriviaText.count(count, "hero", "heroes"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -381,7 +382,7 @@ private fun DuelsRow(state: TriviaHomeUiState.Ready, onAction: (TriviaHomeAction
             Text(
                 "Initiative duels",
                 style = MaterialTheme.typography.titleSmall,
-                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.run { if (enabled) onSurface else onSurfaceVariant },
             )
             Text(
                 if (enabled) {
@@ -403,7 +404,10 @@ private fun StartBlock(state: TriviaHomeUiState.Ready, onStart: () -> Unit, modi
     val selection = state.selection
     Column(modifier.fillMaxWidth().padding(top = Spacing.xl)) {
         Text(
-            "${TriviaText.count(selection.total, "number")} in this quiz · ${selection.mastered} learned",
+            "${TriviaText.count(
+                selection.total,
+                "number",
+            )} in this quiz · ${TriviaText.number(selection.mastered)} learned",
             style = GoaTextStyles.numeric,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -423,7 +427,7 @@ private fun StartBlock(state: TriviaHomeUiState.Ready, onStart: () -> Unit, modi
             Text(
                 note,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (state.canStart) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+                color = MaterialTheme.colorScheme.run { if (state.canStart) onSurfaceVariant else error },
             )
         }
     }
@@ -495,7 +499,7 @@ private fun HeroProgressRow(hero: HeroProgressUi, onClick: () -> Unit) {
             Icon(
                 Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (canQuiz) MaterialTheme.colorScheme.onSurfaceVariant else Color.Transparent,
             )
         }
     }
@@ -512,7 +516,7 @@ internal fun startNote(state: TriviaHomeUiState.Ready): String? {
         total == 0 -> {
             val groups = or(CardGroup.entries.filter { it in setup.groups }.map(TriviaText::group))
             val stats = or(TriviaStat.entries.filter { it in setup.stats }.map(TriviaText::stat))
-            val whose = if (setup.heroIds.isEmpty()) "No $groups card prints" else "No $groups card of these heroes prints"
+            val whose = "No $groups card" + if (setup.heroIds.isEmpty()) " prints" else " of these heroes prints"
             "$whose $stats. Add a number or more cards."
         }
 

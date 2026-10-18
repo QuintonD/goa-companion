@@ -383,16 +383,19 @@ internal fun markColors(mark: Mark): MarkColors = when (mark) {
         MaterialTheme.colorScheme.onSurface,
         MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
     )
+
     Mark.RIGHT -> MarkColors(
         MaterialTheme.colorScheme.secondaryContainer,
         MaterialTheme.colorScheme.onSecondaryContainer,
         MaterialTheme.colorScheme.secondary,
     )
+
     Mark.WRONG -> MarkColors(
         MaterialTheme.colorScheme.errorContainer,
         MaterialTheme.colorScheme.onErrorContainer,
         MaterialTheme.colorScheme.error,
     )
+
     Mark.OTHER -> MarkColors(
         MaterialTheme.colorScheme.surface,
         MaterialTheme.colorScheme.onSurfaceVariant,

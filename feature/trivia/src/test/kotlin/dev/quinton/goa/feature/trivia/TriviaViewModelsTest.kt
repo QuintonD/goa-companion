@@ -145,7 +145,9 @@ class TriviaViewModelsTest {
         vm.uiState.test {
             ready()
             // The test cards print no Radius.
-            TriviaStat.entries.filter { it != TriviaStat.RADIUS }.forEach { vm.onAction(TriviaHomeAction.ToggleStat(it)) }
+            TriviaStat.entries.filter {
+                it != TriviaStat.RADIUS
+            }.forEach { vm.onAction(TriviaHomeAction.ToggleStat(it)) }
             val ready = expectMostRecentItem() as TriviaHomeUiState.Ready
             assertThat(ready.setup.stats).containsExactly(TriviaStat.RADIUS)
             assertThat(ready.selection.total).isEqualTo(0)
@@ -163,7 +165,9 @@ class TriviaViewModelsTest {
         val vm = home("test-hero-1")
         vm.uiState.test {
             ready()
-            TriviaStat.entries.filter { it != TriviaStat.INITIATIVE }.forEach { vm.onAction(TriviaHomeAction.ToggleStat(it)) }
+            TriviaStat.entries.filter {
+                it != TriviaStat.INITIATIVE
+            }.forEach { vm.onAction(TriviaHomeAction.ToggleStat(it)) }
             CardGroup.entries.filter { it != CardGroup.BASIC }.forEach { vm.onAction(TriviaHomeAction.ToggleGroup(it)) }
             val ready = expectMostRecentItem() as TriviaHomeUiState.Ready
             assertThat(ready.selection.total).isEqualTo(2)
@@ -180,7 +184,9 @@ class TriviaViewModelsTest {
         vm.uiState.test {
             ready()
             vm.onAction(TriviaHomeAction.ToggleHero("test-hero-3"))
-            TriviaStat.entries.filter { it != TriviaStat.INITIATIVE }.forEach { vm.onAction(TriviaHomeAction.ToggleStat(it)) }
+            TriviaStat.entries.filter {
+                it != TriviaStat.INITIATIVE
+            }.forEach { vm.onAction(TriviaHomeAction.ToggleStat(it)) }
             val ready = expectMostRecentItem() as TriviaHomeUiState.Ready
             // 18 deck cards, one initiative each.
             assertThat(ready.selection.total).isEqualTo(18)
@@ -247,7 +253,8 @@ class TriviaViewModelsTest {
     }
 
     private fun wrongAnswer(state: TriviaQuizUiState.Playing): TriviaAnswer = when (val q = state.question) {
-        is QuizQuestionUi.Number -> TriviaAnswer.Number(q.choices.first { it != q.value })
+        is QuizQuestionUi.Number -> TriviaAnswer.Number(q.choices.firstOrNull { it != q.value } ?: (q.value + 1))
+
         is QuizQuestionUi.Duel -> TriviaAnswer.Duel(
             dev.quinton.goa.core.domain.trivia.DuelPick.entries.first { it != q.right },
         )
@@ -326,7 +333,8 @@ class TriviaViewModelsTest {
 
     @Test
     fun `a wrong answer names the printed number`() = runTest {
-        val vm = quiz(TriviaConfig(heroIds = listOf("test-hero-1"), stats = setOf(TriviaStat.INITIATIVE), duels = false))
+        val vm =
+            quiz(TriviaConfig(heroIds = listOf("test-hero-1"), stats = setOf(TriviaStat.INITIATIVE), duels = false))
         val q = vm.playing().question as QuizQuestionUi.Number
         vm.answer(wrongAnswer(vm.playing()))
         assertThat(vm.playing().correct).isFalse()

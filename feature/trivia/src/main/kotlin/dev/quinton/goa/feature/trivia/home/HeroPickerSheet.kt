@@ -98,7 +98,12 @@ internal fun HeroPickerContent(
                     modifier = Modifier.semantics { heading() },
                 )
                 Text(
-                    if (selected.isEmpty()) "All heroes" else TriviaText.count(selected.size, "hero") + " chosen",
+                    if (selected.isEmpty()) {
+                        "All heroes"
+                    } else {
+                        TriviaText.count(selected.size, "hero", "heroes") +
+                            " chosen"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

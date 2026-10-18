@@ -29,6 +29,7 @@ import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.navigation.TriviaQuizRoute
 import dev.quinton.goa.feature.trivia.TriviaCardUi
 import dev.quinton.goa.feature.trivia.TriviaText
+import kotlin.random.Random
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -113,13 +114,23 @@ sealed interface TriviaQuizUiState {
 }
 
 @HiltViewModel(assistedFactory = TriviaQuizViewModel.Factory::class)
-class TriviaQuizViewModel @AssistedInject constructor(
-    @Assisted private val route: TriviaQuizRoute,
+class TriviaQuizViewModel internal constructor(
+    private val route: TriviaQuizRoute,
     private val catalogRepository: CatalogRepository,
     private val settingsRepository: SettingsRepository,
     private val progressRepository: TriviaProgressRepository,
     private val clock: EditClock,
+    /** Seeded in tests so a round is reproducible. */
+    private val random: Random,
 ) : ViewModel() {
+    @AssistedInject constructor(
+        @Assisted route: TriviaQuizRoute,
+        catalogRepository: CatalogRepository,
+        settingsRepository: SettingsRepository,
+        progressRepository: TriviaProgressRepository,
+        clock: EditClock,
+    ) : this(route, catalogRepository, settingsRepository, progressRepository, clock, Random.Default)
+
     @AssistedFactory
     interface Factory {
         fun create(route: TriviaQuizRoute): TriviaQuizViewModel
@@ -145,10 +156,11 @@ class TriviaQuizViewModel @AssistedInject constructor(
         val catalog = catalogRepository.catalog.catch { emit(Catalog.EMPTY) }.first()
         settings = runCatching { settingsRepository.settings.first() }.getOrDefault(AppSettings())
         val progress = runCatching { progressRepository.progress.first() }.getOrDefault(emptyMap())
-        cards = catalog.heroes.flatMap { hero -> hero.cards.map { TriviaCardUi.of(hero, it) } }.associateBy { it.cardId }
+        cards =
+            catalog.heroes.flatMap { hero -> hero.cards.map { TriviaCardUi.of(hero, it) } }.associateBy { it.cardId }
         val pool = pool(catalog)
         val ranges = TriviaFacts.valueRange(catalog)
-        begin(TriviaEngine.start(pool, ranges, progress, config))
+        begin(TriviaEngine.start(pool, ranges, progress, config, random))
     }
 
     private fun pool(catalog: Catalog): List<TriviaFact> {
@@ -180,7 +192,7 @@ class TriviaQuizViewModel @AssistedInject constructor(
 
     fun next() {
         val current = session ?: return
-        publish(TriviaEngine.next(current))
+        publish(TriviaEngine.next(current, random))
     }
 
     /** Ends the round now and shows the summary. */
@@ -193,7 +205,7 @@ class TriviaQuizViewModel @AssistedInject constructor(
     /** A new round with the same setup. */
     fun playAgain() {
         val current = session ?: return
-        begin(TriviaEngine.start(current.pool, current.ranges, current.progress, config))
+        begin(TriviaEngine.start(current.pool, current.ranges, current.progress, config, random))
     }
 
     /** The round of only the numbers missed in this one, without duels; null when nothing was missed. */

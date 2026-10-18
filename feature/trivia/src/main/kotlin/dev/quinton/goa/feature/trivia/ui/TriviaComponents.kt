@@ -34,6 +34,7 @@ import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.trivia.MasterySummary
 import dev.quinton.goa.feature.trivia.TriviaCardUi
+import dev.quinton.goa.feature.trivia.TriviaText
 
 /** Learned = tide teal, learning = bronze, new = the empty track. */
 @Composable
@@ -98,7 +99,7 @@ private fun LegendItem(color: Color, label: String, count: Int) {
         Box(Modifier.size(scaledIconSize(10.dp)).clip(CircleShape).background(color))
         Spacer(Modifier.width(Spacing.xs + 2.dp))
         Text(
-            "$label $count",
+            "$label ${TriviaText.number(count)}",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

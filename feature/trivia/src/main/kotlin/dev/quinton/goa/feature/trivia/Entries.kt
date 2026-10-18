@@ -43,8 +43,10 @@ fun EntryProviderScope<NavKey>.triviaEntries(navigator: Navigator) {
                 val route = viewModel.practiseRoute()
                 when {
                     route == null -> Unit
+
                     // The same facts and setup again (practising a practice round): restart in place.
                     viewModel.isSameRound(route) -> viewModel.playAgain()
+
                     else -> {
                         navigator.back()
                         navigator.navigate(route)

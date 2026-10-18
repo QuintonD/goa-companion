@@ -9,6 +9,7 @@ import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.catalog.PrimaryAction
+import java.text.NumberFormat
 import kotlinx.serialization.json.Json
 
 /** Labels for the trivia screens, in the rulebook's words. No game data lives here. */
@@ -63,7 +64,10 @@ internal object TriviaText {
     }
 
     /** "1 number", "3 numbers". */
-    fun count(n: Int, one: String, many: String = "${one}s"): String = "$n ${if (n == 1) one else many}"
+    fun count(n: Int, one: String, many: String = "${one}s"): String = "${number(n)} ${if (n == 1) one else many}"
+
+    /** "2,150": grouped digits in the phone's locale. */
+    fun number(n: Int): String = NumberFormat.getIntegerInstance().format(n)
 
     /** Lenient: a config written by an older or newer build still opens (unknown keys, bad values). */
     val json = Json {

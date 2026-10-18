@@ -27,9 +27,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.stateIn
 
 /** A hero offered in the quiz's hero picker. */
 @Immutable
@@ -187,10 +187,15 @@ class TriviaHomeViewModel @AssistedInject constructor(
         internal fun reduce(config: TriviaConfig, action: TriviaHomeAction): TriviaConfig = when (action) {
             // The last Number or Cards chip can't be turned off: the quiz always asks something.
             is TriviaHomeAction.ToggleStat -> config.copy(stats = toggle(config.stats, action.stat))
+
             is TriviaHomeAction.ToggleGroup -> config.copy(groups = toggle(config.groups, action.group))
+
             is TriviaHomeAction.SetAnswerStyle -> config.copy(answerStyle = action.style)
+
             is TriviaHomeAction.SetLength -> config.copy(length = action.length)
+
             is TriviaHomeAction.SetDuels -> config.copy(duels = action.enabled)
+
             is TriviaHomeAction.ToggleHero -> config.copy(
                 heroIds = if (action.heroId in config.heroIds) {
                     config.heroIds - action.heroId
@@ -198,6 +203,7 @@ class TriviaHomeViewModel @AssistedInject constructor(
                     config.heroIds + action.heroId
                 },
             )
+
             TriviaHomeAction.AllHeroes -> config.copy(heroIds = emptyList())
         }
 

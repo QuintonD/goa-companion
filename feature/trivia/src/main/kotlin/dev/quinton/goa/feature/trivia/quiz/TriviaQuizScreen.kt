@@ -66,7 +66,9 @@ fun TriviaQuizScreen(
         modifier = modifier,
         actions = {
             if (playing != null && playing.length == null) {
-                TextButton(onClick = onStop) { Text("End round") }
+                TextButton(onClick = onStop, modifier = Modifier.semantics { contentDescription = "End round" }) {
+                    Text("End")
+                }
             }
         },
     ) { padding ->
@@ -211,7 +213,10 @@ private fun NextBar(state: TriviaQuizUiState.Playing, onNext: () -> Unit) {
                         .padding(horizontal = Spacing.screen, vertical = Spacing.md)
                         .heightIn(min = 56.dp),
                 ) {
-                    Text(if (state.lastQuestion) "See results" else "Next", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        if (state.lastQuestion) "See results" else "Next",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
                 }
             }
         }
