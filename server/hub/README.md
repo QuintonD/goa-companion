@@ -178,7 +178,15 @@ Slot names: a lower-case letter then letters, digits or `-` (don't declare two t
 in case). A slot that can't be decoded reads as null. Slots in use: `theme` (`ShellSlots.Theme`,
 `ThemeChoice` — written by Settings, read by every page), `invitedPlayerId`
 (`SignInSlots.InvitedPlayerId`, set when a browser joins with a personal invite `p=`; the Group
-pages ask "You're <name>?" and delete it once answered), `push`, `push-schedule` (PushService).
+pages ask "You're <name>?" and delete it once answered), `push`, `push-schedule` (PushService),
+`me` (`SharedSlots.Me`, a raw player id: read it through the merges, e.g. `GroupFeature.me(ctx, id, data)`)
+and `settings` (`SharedSlots.Settings`, `AppSettings`; missing = the app's defaults), written only by
+Group and Settings, `group-pending-merge` (Group), `backup-import` (Settings). A signed-in browser
+without a `theme` is dark (`ThemeChoice.DEFAULT`), as the app is.
+
+`hubButton`'s trailing block runs after the label is written, so it can't set attributes (kotlinx.html
+streams the tag): put `data-*`/`hidden` on a plain `button {}` instead (see `scriptButton` in
+`group/GroupPages.kt`).
 
 ## Pages and components
 

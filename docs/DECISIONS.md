@@ -683,6 +683,19 @@ INTERNET permission. Options weighed:
   the first can be forged by the client), with a shared budget when no proxy names the client and
   an overall cap. Features register in one list (`HubFeatures.kt`) and keep per-browser state in
   typed `DeviceSlot`s.
+- Group and Settings on the web (2026-10-19): a browser that hasn't chosen a theme is **dark**, as
+  the app's `AppSettings` default (also right for the home-screen app on iOS, whose
+  `black-translucent` status bar has light text); `theme-color` and the status-bar style follow an
+  explicit choice. Settings writes `ShellSlots.Theme` and mirrors it in `AppSettings.theme`
+  (`SharedSlots.Settings`, so a backup carries it). The rating constants page uses the app's
+  sliders' ranges and steps (`RatingConstants`) and stores through `updateEloConfig` only on a real
+  change, so a stale form can't override a newer change from a phone. The backup file is pure
+  (`BackupDocument`, `BackupCodec`, `BackupFiles` in `core:domain`; core:data keeps typealiases);
+  the web exports the group's data plus this browser's settings (not yet the web timer presets and
+  draft methods) and imports with the app's **Merge** rule only, after a preview of what would
+  change: Replace isn't offered, since the phones would bring back anything the hub wiped. Deploy
+  scripts hand the invite to `goa-hub join` on standard input (cmd.exe splits an argument at `&`;
+  on Linux it also keeps the key out of the process list).
 
 ## ADR-031 — Linking a phone (or browser) to its player: personal invites and "Same people?" (2026-10-18)
 **Context:** The owner enters friends as players before they install the app. When a friend joins,
@@ -733,3 +746,18 @@ synced type changes (no `SyncDocument.VERSION` bump): the decisions are local an
   (chooser first) and from a player page ("Invite <name>", top bar, only in a group, not for this
   phone's own or an archived player). The personal share text starts "For <name>: ". The Group
   screen's invite dialog is gone.
+
+**Implementation notes (2026-10-19, web, §4):**
+- *The same rules, once.* "Which player are you?", "You're <name>?", the old-me merge offer and its
+  refusal text, the "Is one of these you?" check and the new player's colour and crest are
+  `PlayerLink`, and "Who's the invite for?" is `GroupInvites` (`:core:presentation`, package
+  `group`); the Android ViewModels and the hub's `/group/me` and `/group/invite` both call them.
+- *A browser is a fresh device:* its "me" (`SharedSlots.Me`) is empty after sign-in, so Yes offers
+  a merge only when this browser had already picked another player. The offered pair is kept in
+  the browser's `group-pending-merge` slot, and only that merge can be confirmed.
+- *Steered once:* after signing in, a browser that doesn't know its player (or whose personal invite
+  names someone else) lands on `/group/me?next=/`; no other page sends it there.
+- *The invite QR* is SVG drawn on the server from ZXing's matrix (the app's error correction M and
+  one-module margin), on white in both themes; the page says the code is the group's key and is
+  only for signed-in browsers (the signed-in area refuses everyone else).
+- "Same people?" on the web belongs to the Players area.

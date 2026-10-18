@@ -81,6 +81,8 @@ class GroupPagesTest {
             val page = b.get("/group/me").bodyAsText()
             assertThat(page).contains("You're Bob?")
             assertThat(page).contains("Yes, I'm Bob")
+            // Steered here after signing in: once answered, on to the app.
+            assertThat(b.get("/group/me?next=%2F").bodyAsText()).contains("name=\"next\" value=\"/\"")
             val yes = b.post("/group/me/invited", "answer" to "yes", "next" to "/group")
             assertThat(yes.status).isEqualTo(HttpStatusCode.Found)
             assertThat(yes.headers[HttpHeaders.Location]).isEqualTo("/group")

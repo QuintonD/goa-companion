@@ -130,5 +130,5 @@ private suspend fun ApplicationCall.joinFailed(status: HttpStatusCode, message: 
 internal const val JOIN_PATH = "/join"
 internal const val SIGN_OUT_PATH = "/signout"
 
-/** "Which player are you?" (served by the Group area). */
-internal const val WHO_ARE_YOU_PATH = "/group/me"
+/** "Which player are you?" (served by the Group area); once answered, on to the app. */
+internal const val WHO_ARE_YOU_PATH = "/group/me?next=%2F"
