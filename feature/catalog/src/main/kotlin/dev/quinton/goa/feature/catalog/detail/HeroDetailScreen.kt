@@ -35,8 +35,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.PersonSearch
+import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -66,6 +68,7 @@ import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
@@ -89,6 +92,7 @@ fun HeroDetailScreen(
     onBack: () -> Unit,
     onCardClick: (heroId: String, cardId: String) -> Unit,
     modifier: Modifier = Modifier,
+    onLearnNumbers: ((heroId: String) -> Unit)? = null,
 ) {
     val listState = rememberLazyListState()
     val headerGone by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
@@ -111,7 +115,11 @@ fun HeroDetailScreen(
                     state = listState,
                     contentPadding = PaddingValues(bottom = Spacing.xxl),
                 ) {
-                    heroDetailContent(state, onCardClick = { onCardClick(state.hero.id, it.id) })
+                    heroDetailContent(
+                        state,
+                        onCardClick = { onCardClick(state.hero.id, it.id) },
+                        onLearnNumbers = onLearnNumbers?.let { learn -> { learn(state.hero.id) } },
+                    )
                 }
             }
         }
@@ -132,7 +140,11 @@ internal fun handicapConflict(hero: Hero, handicap: Card): String? {
         "one has a $frame frame$goldCards. Neither the rulebook nor the card says which card it replaces."
 }
 
-private fun LazyListScope.heroDetailContent(state: HeroDetailUiState.Ready, onCardClick: (Card) -> Unit) {
+private fun LazyListScope.heroDetailContent(
+    state: HeroDetailUiState.Ready,
+    onCardClick: (Card) -> Unit,
+    onLearnNumbers: (() -> Unit)?,
+) {
     val hero = state.hero
     val padded = Modifier.padding(horizontal = Spacing.screen)
     item(key = "header") { HeroHeader(hero, state.productName) }
@@ -163,6 +175,9 @@ private fun LazyListScope.heroDetailContent(state: HeroDetailUiState.Ready, onCa
     }
     state.deck.groups.forEach { group ->
         item(key = "deck-${group.kind}") { DeckGroupSection(group, onCardClick, padded) }
+    }
+    if (onLearnNumbers != null) {
+        item(key = "deck-trivia") { LearnNumbersButton(hero.name, onLearnNumbers, padded) }
     }
     state.deck.handicap?.let { handicap ->
         item(key = "handicap") {
@@ -221,6 +236,22 @@ private fun LazyListScope.heroDetailContent(state: HeroDetailUiState.Ready, onCa
             SectionTitle("Sources")
             SourcesBlock(hero)
         }
+    }
+}
+
+/** Opens card trivia on this hero: an unobtrusive tonal action under the deck. */
+@Composable
+private fun LearnNumbersButton(heroName: String, onClick: () -> Unit, modifier: Modifier) {
+    FilledTonalButton(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = Spacing.sm)
+            .heightIn(min = 48.dp),
+    ) {
+        Icon(Icons.Outlined.Quiz, contentDescription = null, modifier = Modifier.size(scaledIconSize(18.dp)))
+        Spacer(Modifier.width(Spacing.sm))
+        Text("Learn $heroName's card numbers")
     }
 }
 

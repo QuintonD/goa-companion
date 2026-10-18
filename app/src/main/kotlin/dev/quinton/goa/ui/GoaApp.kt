@@ -65,6 +65,7 @@ import dev.quinton.goa.feature.rules.rulesEntries
 import dev.quinton.goa.feature.settings.settingsEntries
 import dev.quinton.goa.feature.sync.syncEntries
 import dev.quinton.goa.feature.timer.timerEntries
+import dev.quinton.goa.feature.trivia.triviaEntries
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 
@@ -142,6 +143,7 @@ fun GoaApp(
         settingsEntries(navigator)
         rulesEntries(navigator)
         syncEntries(navigator)
+        triviaEntries(navigator)
     }
     val entriesByTab = TopLevelTab.entries.associateWith { tab ->
         key(tab) {
