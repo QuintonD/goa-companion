@@ -9,6 +9,8 @@ dependencies {
     implementation(libs.play.services.code.scanner)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.zxing.core)
+    // "Which player are you?" and invite rules shared with the hub web app (ADR-030 §1).
+    implementation(projects.core.presentation)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material.icons.extended)

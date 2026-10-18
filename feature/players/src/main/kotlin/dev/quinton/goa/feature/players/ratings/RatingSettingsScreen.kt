@@ -39,11 +39,10 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.presentation.settings.RatingConstants
 import dev.quinton.goa.feature.players.common.EngravedCard
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.SectionHeader
-import dev.quinton.goa.feature.players.common.plural
-import java.util.Locale
 import kotlin.math.roundToInt
 
 data class RatingSettingsActions(
@@ -73,128 +72,27 @@ fun RatingSettingsScreen(state: RatingSettingsUiState, actions: RatingSettingsAc
         ) {
             IntroCard(state)
 
-            SectionHeader("Pilot and hero")
-            SliderSetting(
-                title = "Hero influence",
-                explanation =
-                    "How much a hero's rating shifts its pilot's strength in a match. Winning with a strong " +
-                        "hero earns the player a little less.",
-                value = c.heroInfluence,
-                range = 0.0..1.0,
-                step = 0.05,
-                format = ::decimal2,
-                onChange = { v -> update { it.copy(heroInfluence = v) } },
-            )
-            SliderSetting(
-                title = "Pilot influence",
-                explanation =
-                    "How much the pilot's rating shifts a hero's strength. A great player winning with a hero " +
-                        "earns the hero a little less.",
-                value = c.pilotInfluence,
-                range = 0.0..1.0,
-                step = 0.05,
-                format = ::decimal2,
-                onChange = { v -> update { it.copy(pilotInfluence = v) } },
-            )
-
-            SectionHeader("Uneven teams")
-            SliderSetting(
-                title = "Seat advantage",
-                explanation = "Per hero of difference, the larger team's strength goes up by this much and the " +
-                    "smaller team's goes down by it, so the gap widens by 2× this. 0 trusts the Handicap cards to " +
-                    "balance it. Check the larger-team win rate on the Meta tab before changing it.",
-                value = c.seatAdvantage,
-                range = -100.0..100.0,
-                step = 5.0,
-                format = { "${signed(it.roundToInt())} pts" },
-                onChange = { v -> update { it.copy(seatAdvantage = v) } },
-            )
-            SliderSetting(
-                title = "Double pilot weight",
-                explanation =
-                    "A player controlling two heroes carried more of the result. Their change is multiplied " +
-                        "by 1 + weight for each extra hero (0.5 → ×1.5).",
-                value = c.doublePilotWeight,
-                range = 0.0..2.0,
-                step = 0.1,
-                format = { "×${decimal2(1 + it)}" },
-                onChange = { v -> update { it.copy(doublePilotWeight = v) } },
-            )
-
-            SectionHeader("Speed of change")
-            SliderSetting(
-                title = "K while provisional",
-                explanation = "Maximum points per match while a player or hero is still provisional, so new ratings " +
-                    "settle quickly.",
-                value = c.kProvisional,
-                range = 0.0..100.0,
-                step = 5.0,
-                format = { it.roundToInt().toString() },
-                onChange = { v -> update { it.copy(kProvisional = v) } },
-            )
-            SliderSetting(
-                title = "K when established",
-                explanation = "Maximum points per match afterwards.",
-                value = c.kEstablished,
-                range = 0.0..100.0,
-                step = 5.0,
-                format = { it.roundToInt().toString() },
-                onChange = { v -> update { it.copy(kEstablished = v) } },
-            )
-            SliderSetting(
-                title = "Provisional games",
-                explanation = "Rated games before a rating stops being provisional.",
-                value = c.provisionalGames.toDouble(),
-                range = 0.0..30.0,
-                step = 1.0,
-                format = { plural(it.roundToInt(), "game") },
-                onChange = { v -> update { it.copy(provisionalGames = v.roundToInt()) } },
-            )
-
-            SectionHeader("Game modes")
-            Text(
-                "Scale every rating change by game length. 1.0 treats all modes alike.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            SliderSetting(
-                title = "Quick",
-                explanation = null,
-                value = c.quickMultiplier,
-                range = 0.0..3.0,
-                step = 0.1,
-                format = { "×${decimal2(it)}" },
-                onChange = { v -> update { it.copy(quickMultiplier = v) } },
-            )
-            SliderSetting(
-                title = "Long",
-                explanation = null,
-                value = c.longMultiplier,
-                range = 0.0..3.0,
-                step = 0.1,
-                format = { "×${decimal2(it)}" },
-                onChange = { v -> update { it.copy(longMultiplier = v) } },
-            )
-            SliderSetting(
-                title = "Double lane",
-                explanation = null,
-                value = c.doubleLaneMultiplier,
-                range = 0.0..3.0,
-                step = 0.1,
-                format = { "×${decimal2(it)}" },
-                onChange = { v -> update { it.copy(doubleLaneMultiplier = v) } },
-            )
-
-            SectionHeader("Starting point")
-            SliderSetting(
-                title = "Starting rating",
-                explanation = "Where every player and hero begins. Only shifts the scale; rankings stay the same.",
-                value = c.initialRating,
-                range = 1000.0..2000.0,
-                step = 50.0,
-                format = { it.roundToInt().toString() },
-                onChange = { v -> update { it.copy(initialRating = v) } },
-            )
+            RatingConstants.sections.forEach { section ->
+                SectionHeader(section.title)
+                section.note?.let { note ->
+                    Text(
+                        note,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                section.constants.forEach { constant ->
+                    SliderSetting(
+                        title = constant.title,
+                        explanation = constant.explanation,
+                        value = constant.get(c),
+                        range = constant.range,
+                        step = constant.step,
+                        format = constant.format,
+                        onChange = { v -> update { constant.set(it, v) } },
+                    )
+                }
+            }
 
             Spacer(Modifier.heightIn(min = Spacing.xl))
             OutlinedButton(
@@ -211,10 +109,8 @@ fun RatingSettingsScreen(state: RatingSettingsUiState, actions: RatingSettingsAc
     if (confirmReset) {
         AlertDialog(
             onDismissRequest = { confirmReset = false },
-            title = { Text("Reset rating settings?") },
-            text = {
-                Text("All constants go back to their defaults and every rating is recalculated from the match log.")
-            },
+            title = { Text(RatingConstants.RESET_TITLE) },
+            text = { Text(RatingConstants.RESET_TEXT) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmReset = false
@@ -233,20 +129,11 @@ private fun IntroCard(state: RatingSettingsUiState) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.Calculate, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(Spacing.md))
-                Text("How ratings work", style = MaterialTheme.typography.titleLarge)
+                Text(RatingConstants.INTRO_TITLE, style = MaterialTheme.typography.titleLarge)
             }
+            Text(RatingConstants.INTRO, style = MaterialTheme.typography.bodyMedium)
             Text(
-                "Every hero seat counts. A team's strength is the average of its seats, each blending " +
-                    "its pilot's and " +
-                    "hero's ratings, so double pilots and uneven teams are rated fairly. " +
-                    "Players and heroes each get their own Elo.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Text(
-                "Ratings are never stored: changing a value replays the whole match log " +
-                    "(${state.ratedMatches} rated ${if (state.ratedMatches == 1) "match" else "matches"}" +
-                    (if (state.skippedMatches > 0) ", ${state.skippedMatches} pending or without a result" else "") +
-                    "). Nothing is lost, and you can always reset.",
+                RatingConstants.replayNote(state.ratedMatches, state.skippedMatches),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -304,13 +191,3 @@ private fun SliderSetting(
 
 private fun snap(value: Double, start: Double, step: Double): Double =
     start + ((value - start) / step).roundToInt() * step
-
-private fun decimal2(value: Double): String = String.format(Locale.ROOT, "%.2f", value).trimEnd('0').trimEnd('.').let {
-    if ('.' !in it) "$it.0" else it
-}
-
-private fun signed(value: Int): String = when {
-    value > 0 -> "+$value"
-    value < 0 -> "−${-value}"
-    else -> "0"
-}

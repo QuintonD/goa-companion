@@ -47,6 +47,7 @@ import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.core.presentation.group.InviteFor
 
 class InviteSheetActions(
     val onChoose: (InviteFor) -> Unit = {},

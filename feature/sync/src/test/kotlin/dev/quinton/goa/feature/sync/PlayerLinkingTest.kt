@@ -6,13 +6,13 @@ import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.core.domain.sync.PlayerMerges
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.sync.PlayerMerge
+import dev.quinton.goa.core.presentation.group.InviteFor
+import dev.quinton.goa.core.presentation.group.MergeOffer
 import dev.quinton.goa.core.testing.FakeGroupRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
 import dev.quinton.goa.core.testing.FakePlayerMergeRepository
 import dev.quinton.goa.core.testing.FakePlayerRepository
 import dev.quinton.goa.feature.sync.invite.GroupInviteViewModel
-import dev.quinton.goa.feature.sync.invite.InviteFor
-import dev.quinton.goa.feature.sync.me.MergeOffer
 import dev.quinton.goa.feature.sync.me.WhoAreYouViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
