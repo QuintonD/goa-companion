@@ -10,7 +10,7 @@ device verification on the S25 Ultra pending. See [docs/ROADMAP.md](docs/ROADMAP
 
 ## The product in one breath
 
-Six features, offline-first, pass-and-play on one phone at the table:
+Seven features, offline-first, pass-and-play on one phone at the table:
 
 1. **Hero catalog** — browse/search/filter heroes, their cards, tiers and abilities.
 2. **Phase timer** — configurable countdowns per game phase, built for table use.
@@ -20,6 +20,8 @@ Six features, offline-first, pass-and-play on one phone at the table:
    against the pinned rulebook (`--rules-only`, ADR-019).
 6. **Group sync** — each friend's phone keeps the same match log, synced phone to phone at the
    table over Nearby (Bluetooth / Wi-Fi Direct), joined by QR invite; no server (ADR-025).
+7. **Card trivia** — a quiz on the numbers printed on every hero's cards (Initiative, Attack,
+   Defense, Movement, Range, Radius), generated from the catalog, with per-number mastery (ADR-028).
 
 Details and acceptance criteria: [docs/PRODUCT.md](docs/PRODUCT.md).
 

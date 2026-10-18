@@ -115,7 +115,11 @@ object TriviaFacts {
      * Every printed number on [hero]'s deck cards (not the Handicap card or extras such as Gydion's
      * spellbook) for [stats] on cards in [groups], in deck order.
      */
-    fun of(hero: Hero, stats: Set<TriviaStat> = TriviaStat.entries.toSet(), groups: Set<CardGroup> = CardGroup.entries.toSet()): List<TriviaFact> =
+    fun of(
+        hero: Hero,
+        stats: Set<TriviaStat> = TriviaStat.entries.toSet(),
+        groups: Set<CardGroup> = CardGroup.entries.toSet(),
+    ): List<TriviaFact> =
         hero.cards.flatMap { card ->
             if (CardGroup.of(card) !in groups) return@flatMap emptyList()
             TriviaStat.entries.filter { it in stats }.mapNotNull { stat ->
@@ -136,6 +140,8 @@ object TriviaFacts {
      */
     fun valueRange(catalog: Catalog): Map<TriviaStat, List<Int>> {
         val all = catalog.heroes.flatMap { of(it) }
-        return TriviaStat.entries.associateWith { stat -> all.filter { it.stat == stat }.map { it.value }.distinct().sorted() }
+        return TriviaStat.entries.associateWith { stat ->
+            all.filter { it.stat == stat }.map { it.value }.distinct().sorted()
+        }
     }
 }
