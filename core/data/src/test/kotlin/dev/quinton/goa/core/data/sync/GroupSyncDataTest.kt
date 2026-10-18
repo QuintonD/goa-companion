@@ -8,6 +8,7 @@ import dev.quinton.goa.core.data.PlayerMergeResult
 import dev.quinton.goa.core.data.match.RoomDraftRecordRepository
 import dev.quinton.goa.core.data.match.RoomMatchRepository
 import dev.quinton.goa.core.data.player.RoomPlayerRepository
+import dev.quinton.goa.core.data.trivia.RoomTriviaRoundRepository
 import dev.quinton.goa.core.data.rating.FakeEloConfigRepository
 import dev.quinton.goa.core.database.GoaDatabase
 import dev.quinton.goa.core.domain.rating.EloCalculator
@@ -30,6 +31,8 @@ import dev.quinton.goa.core.model.match.Participant
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.sync.DeletionKind
+import dev.quinton.goa.core.model.trivia.TriviaRound
+import dev.quinton.goa.core.model.trivia.TriviaRoundKind
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -62,6 +65,7 @@ class GroupSyncDataTest {
         val players = RoomPlayerRepository(db, clock)
         val matches = RoomMatchRepository(db, clock)
         val drafts = RoomDraftRecordRepository(db, clock)
+        val rounds = RoomTriviaRoundRepository(db, clock)
         val elo = FakeEloConfigRepository(clock = { now })
         val sync = RoomSyncRepository(db, elo, clock)
         val device = SyncDevice("id-$name", name)
@@ -178,6 +182,67 @@ class GroupSyncDataTest {
             assertThat(phone.ratings().players.keys).doesNotContain("dee-b")
         }
         assertThat(ann.ratings()).isEqualTo(bob.ratings())
+    }
+
+    private fun round(id: String, playerId: String, correct: Int = 15, playedAt: Long = 100) = TriviaRound(
+        id = id,
+        playerId = playerId,
+        kind = TriviaRoundKind.CHALLENGE,
+        playedAt = playedAt,
+        length = 20,
+        questions = 20,
+        correct = correct,
+        bestStreak = 6,
+        answerMillis = 100_000,
+        heroCount = 32,
+        catalogVersion = 7,
+    )
+
+    @Test
+    fun triviaRoundsReachEveryPhoneAndARemovedOneGoesEverywhere() = runTest {
+        val ann = Phone("Ann")
+        val bob = Phone("Bob")
+        val cid = Phone("Cid")
+        listOf(ann, bob, cid).forEach { phone -> listOf("ann", "bob", "cid").forEach { phone.players.upsert(player(it)) } }
+        ann.rounds.add(round("a-r1", "ann", correct = 18))
+        bob.now = 1_100
+        bob.rounds.add(round("b-r1", "bob", correct = 12))
+        bob.rounds.add(round("b-r2", "cid", correct = 9))
+        syncSession(ann, bob, cid)
+
+        val expected = ann.sync.export()
+        assertThat(expected.triviaRounds.map { it.id }).containsExactly("a-r1", "b-r1", "b-r2")
+        listOf(bob, cid).forEach { assertThat(it.sync.export()).isEqualTo(expected) }
+        assertThat(cid.rounds.observeRounds().first().map { it.id }).containsExactly("a-r1", "b-r1", "b-r2")
+
+        // Cid removes Bob's round from the leaderboard; after the next syncs it is gone everywhere.
+        cid.now = 5_000
+        cid.rounds.delete("b-r2")
+        syncSession(cid, ann)
+        syncSession(ann, bob)
+        listOf(ann, bob, cid).forEach { phone ->
+            assertThat(phone.rounds.observeRounds().first().map { it.id }).containsExactly("a-r1", "b-r1")
+            assertThat(phone.db.deletionDao().getAll().map { it.kind to it.id }).containsExactly("trivia_round" to "b-r2")
+        }
+    }
+
+    @Test
+    fun aMergedDuplicatesRoundsCountForOnePlayerOnEveryPhone() = runTest {
+        val ann = Phone("Ann")
+        val bob = Phone("Bob")
+        ann.players.upsert(player("dee-a", "Dee"))
+        ann.rounds.add(round("r1", "dee-a"))
+        bob.players.upsert(player("dee-b", "Dee"))
+        bob.rounds.add(round("r2", "dee-b"))
+        syncSession(ann, bob)
+        bob.now = 9_000
+        assertThat(bob.players.merge("dee-b", "dee-a")).isEqualTo(PlayerMergeResult.Merged)
+        syncSession(bob, ann)
+        listOf(ann, bob).forEach { phone ->
+            assertThat(phone.rounds.observeRounds().first().map { it.playerId }).containsExactly("dee-a", "dee-a")
+        }
+        // Stored as recorded: the merge is applied when reading, so it can still be resolved differently.
+        assertThat(ann.sync.export().triviaRounds.map { it.playerId }).containsExactly("dee-a", "dee-b")
     }
 
     @Test

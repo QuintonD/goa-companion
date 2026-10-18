@@ -20,6 +20,10 @@ class SyncTextTest {
         assertThat(SyncText.summary(SyncChanges(matchesAdded = 1, matchesRemoved = 1, playersMerged = 1)))
             .isEqualTo("+1 match, 1 removed, 1 duplicate merged")
         assertThat(SyncText.summary(SyncChanges(ratingConstantsChanged = true))).isEqualTo("new rating constants")
+        assertThat(SyncText.summary(SyncChanges(matchesAdded = 2, triviaRoundsAdded = 3)))
+            .isEqualTo("+2 matches, +3 trivia rounds")
+        assertThat(SyncText.summary(SyncChanges(triviaRoundsAdded = 1, triviaRoundsRemoved = 2, matchesRemoved = 1)))
+            .isEqualTo("+1 trivia round, 3 removed")
     }
 
     @Test

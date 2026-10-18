@@ -18,6 +18,7 @@ internal class LocalSyncData(private val database: GoaDatabase) {
         players = database.playerDao().getAll().map { it.toModel() },
         matches = database.matchDao().getAll().map { it.toModel() },
         drafts = database.draftRecordDao().getAll().map { it.toModel() },
+        triviaRounds = database.triviaRoundDao().getAll().map { it.toModel() },
         deletions = database.deletionDao().getAll().map { it.toModel() },
         playerMerges = database.playerDao().getMerges().map { it.toModel() },
     )
@@ -43,6 +44,13 @@ internal class LocalSyncData(private val database: GoaDatabase) {
         val oldDrafts = local.drafts.associateBy { it.id }
         target.drafts.filter { oldDrafts[it.id] != it }.forEach { drafts.upsert(it.toEntity(), it.stepEntities()) }
 
+        val rounds = database.triviaRoundDao()
+        val newRoundIds = target.triviaRounds.mapTo(HashSet()) { it.id }
+        local.triviaRounds.filter { it.id !in newRoundIds }.forEach { rounds.delete(it.id) }
+        val oldRounds = local.triviaRounds.associateBy { it.id }
+        target.triviaRounds.filter { oldRounds[it.id] != it }.takeIf { it.isNotEmpty() }
+            ?.let { changed -> rounds.upsertAll(changed.map { it.toEntity() }) }
+
         val oldDeletions = local.deletions.toSet()
         target.deletions.filter { it !in oldDeletions }.takeIf { it.isNotEmpty() }
             ?.let { changed -> database.deletionDao().upsertAll(changed.map { it.toEntity() }) }
@@ -55,6 +63,7 @@ internal class LocalSyncData(private val database: GoaDatabase) {
     suspend fun clear() {
         database.matchDao().deleteAll()
         database.draftRecordDao().deleteAll()
+        database.triviaRoundDao().deleteAll()
         database.playerDao().deleteAll()
         database.playerDao().deleteAllMerges()
         database.deletionDao().deleteAll()

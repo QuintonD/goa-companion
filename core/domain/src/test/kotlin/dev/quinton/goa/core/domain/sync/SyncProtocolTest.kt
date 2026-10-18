@@ -2,12 +2,15 @@ package dev.quinton.goa.core.domain.sync
 
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.domain.sync.protocol.ClientPhase
+import dev.quinton.goa.core.domain.sync.protocol.Hello
 import dev.quinton.goa.core.domain.sync.protocol.HostPhase
 import dev.quinton.goa.core.domain.sync.protocol.PeerStage
 import dev.quinton.goa.core.domain.sync.protocol.SyncClient
 import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
+import dev.quinton.goa.core.domain.sync.protocol.SyncEndpointName
 import dev.quinton.goa.core.domain.sync.protocol.SyncFailure
 import dev.quinton.goa.core.domain.sync.protocol.SyncHost
+import dev.quinton.goa.core.domain.sync.protocol.Wire
 import dev.quinton.goa.core.model.sync.Deletion
 import dev.quinton.goa.core.model.sync.DeletionKind
 import kotlin.random.Random
@@ -156,6 +159,42 @@ class SyncProtocolTest {
         assertThat(eve.client.state.value.failure).isEqualTo(SyncFailure.WRONG_KEY)
         assertThat(eve.data.document).isEqualTo(eveBefore)
         assertThat(host.data.document.matches.map { it.id }).containsNoneIn(eveBefore.matches.map { it.id })
+    }
+
+    /**
+     * A phone still on sync document version 1 (before trivia rounds, ADR-032) greets this host.
+     * Both sides must refuse before any data moves: the host says the other phone is older, and
+     * the host's own greeting carries a newer version, which the old app's check refuses as
+     * "newer version … Update this phone."
+     */
+    @Test
+    fun aPhoneOnAnOlderDocumentVersionIsRefusedBeforeAnyDataMoves() = runTest {
+        val network = InMemorySyncNetwork()
+        val host = Phone("Host", InMemorySyncData(phoneData("Host", 2, 1)), network, group)
+        runAll(host, emptyList())
+        val old = network.transport("Old")
+        val peer = old.discover().first { it.isNotEmpty() }.single()
+        val link = old.connect(SyncEndpointName.format(SyncCrypto.groupTag(group.groupId), "Old"), peer)
+        val hello = Hello(
+            protocol = Wire.PROTOCOL,
+            role = "client",
+            deviceId = "id-old",
+            deviceName = "Old",
+            nonce = java.util.Base64.getEncoder().encodeToString(ByteArray(SyncCrypto.NONCE_BYTES)),
+            documentVersion = 1,
+        )
+        link.send(Wire.frame(Wire.HELLO, SyncJson.encodeToString(Hello.serializer(), hello).toByteArray()))
+
+        val theirs = SyncJson.decodeFromString(Hello.serializer(), Wire.bodyOf(link.incoming.receive()).decodeToString())
+        assertThat(theirs.documentVersion).isEqualTo(SyncDocument.VERSION)
+        assertThat(theirs.documentVersion).isGreaterThan(1)
+        val failed = host.host.state.first { s -> s.peers.singleOrNull()?.stage == PeerStage.FAILED }.peers.single()
+        assertThat(failed.failure).isEqualTo(SyncFailure.VERSION_MISMATCH)
+        assertThat(failed.message).isEqualTo("Old has an older version of the app. Update it.")
+        link.close()
+        host.host.syncNow()
+        host.host.state.first { it.phase == HostPhase.FAILED }
+        assertThat(host.data.writes).isEqualTo(0)
     }
 
     @Test
