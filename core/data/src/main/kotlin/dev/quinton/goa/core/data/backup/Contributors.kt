@@ -1,10 +1,12 @@
 package dev.quinton.goa.core.data.backup
 
 import dagger.Binds
+import dagger.BindsOptionalOf
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
+import dev.quinton.goa.core.data.BoardRepository
 import dev.quinton.goa.core.datastore.draft.DraftStore
 import dev.quinton.goa.core.datastore.settings.SettingsDataSource
 import dev.quinton.goa.core.datastore.timer.TimerStateStore
@@ -168,4 +170,7 @@ internal interface BackupContributorsModule {
     fun draftMethods(impl: DraftMethodsBackup): BackupContributor
 
     @Binds fun appInfo(impl: AndroidAppInfo): AppInfo
+
+    /** The board sandbox binds [BoardRepository] (ADR-033); until it does, backups carry no boards. */
+    @BindsOptionalOf fun boards(): BoardRepository
 }

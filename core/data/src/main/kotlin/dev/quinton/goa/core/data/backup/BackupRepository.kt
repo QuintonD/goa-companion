@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room3.withReadTransaction
 import androidx.room3.withWriteTransaction
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.quinton.goa.core.data.BoardRepository
 import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.rating.EloConfigRepository
 import dev.quinton.goa.core.data.rating.StampedEloConfigStore
@@ -15,6 +16,7 @@ import dev.quinton.goa.core.domain.sync.SyncDocument
 import dev.quinton.goa.core.domain.sync.SyncMerge
 import java.io.InputStream
 import java.io.OutputStream
+import java.util.Optional
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.first
@@ -79,6 +81,11 @@ interface BackupRepository {
         BackupCodec.decode(input.reader(Charsets.UTF_8).use { it.readText() })
 }
 
+/**
+ * [boardRepository]: the board sandbox's boards (ADR-033), optional so the backup works in a build
+ * without the board feature's binding (`@BindsOptionalOf`); absent = no boards in the file and none
+ * imported.
+ */
 @Singleton
 internal class RoomBackupRepository @Inject constructor(
     private val database: GoaDatabase,
@@ -87,8 +94,10 @@ internal class RoomBackupRepository @Inject constructor(
     private val contributors: Set<@JvmSuppressWildcards BackupContributor>,
     private val catalog: CatalogRepository,
     private val appInfo: AppInfo,
+    boardRepository: Optional<BoardRepository>,
 ) : BackupRepository {
     private val local = LocalSyncData(database)
+    private val boards: BoardRepository? = boardRepository.orElse(null)
 
     override suspend fun export(): BackupDocument {
         val extras = contributors.sortedBy { it.key }.mapNotNull { c -> c.export()?.let { c.key to it } }.toMap()
@@ -105,6 +114,8 @@ internal class RoomBackupRepository @Inject constructor(
             eloConfigUpdatedAt = stamp.takeIf { it > 0 },
             deletions = data.deletions,
             playerMerges = data.playerMerges,
+            triviaRounds = data.triviaRounds,
+            boards = boards?.boards?.first().orEmpty().sortedBy { it.id },
             extras = extras,
         )
     }
@@ -119,6 +130,7 @@ internal class RoomBackupRepository @Inject constructor(
                 players = document.players,
                 matches = document.matches,
                 drafts = document.drafts,
+                triviaRounds = document.triviaRounds,
                 deletions = document.deletions,
                 playerMerges = document.playerMerges,
             ),
@@ -131,6 +143,11 @@ internal class RoomBackupRepository @Inject constructor(
                 val before = SyncMerge.normalize(local.read())
                 local.write(before, SyncMerge.merge(before, file))
             }
+        }
+        // Boards live in their own store (not synced). A file from before boards (v1–v4) has no list
+        // at all, so even Replace leaves the phone's boards alone; Merge keeps the later edit of each.
+        if (document.version >= BackupDocument.BOARDS_VERSION || document.boards.isNotEmpty()) {
+            boards?.import(document.boards, replace = mode == ImportMode.REPLACE)
         }
         if (settings) {
             // A file without rating constants was made with the defaults.

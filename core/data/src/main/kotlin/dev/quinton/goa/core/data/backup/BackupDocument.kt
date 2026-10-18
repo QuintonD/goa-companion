@@ -2,12 +2,15 @@ package dev.quinton.goa.core.data.backup
 
 import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.domain.sync.UnknownHeroes
+import dev.quinton.goa.core.domain.trivia.TriviaRoundValidation
+import dev.quinton.goa.core.model.board.SavedBoard
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.sync.Deletion
 import dev.quinton.goa.core.model.sync.PlayerMerge
+import dev.quinton.goa.core.model.trivia.TriviaRound
 import java.time.Instant
 import java.time.ZoneId
 import kotlinx.serialization.Serializable
@@ -31,6 +34,10 @@ import kotlinx.serialization.json.JsonElement
  *   tombstones, `playerMerges` and `eloConfigUpdatedAt`. Older files import with each record
  *   last edited when it was created (matches: created or played, whichever is later), no
  *   tombstones or merges, and rating constants that never win over the group's.
+ * - v5: `triviaRounds` (the trivia leaderboard, ADR-032; their tombstones are `deletions`) and
+ *   `boards` (the board sandbox, ADR-033). Older files have neither: Replace then clears the
+ *   rounds with the rest of the synced data (the group brings its own back at the next sync) but
+ *   keeps the phone's boards, which a file without a `boards` list never knew about.
  */
 @Serializable
 data class BackupDocument(
@@ -48,21 +55,28 @@ data class BackupDocument(
     val deletions: List<Deletion> = emptyList(),
     /** Duplicate players merged into others (v4). */
     val playerMerges: List<PlayerMerge> = emptyList(),
+    /** Finished trivia rounds played as a player (v5). */
+    val triviaRounds: List<TriviaRound> = emptyList(),
+    /** Board sandbox boards (v5; this phone's own, never synced). */
+    val boards: List<SavedBoard> = emptyList(),
     /** Data from [BackupContributor]s (timer presets, custom draft methods, …) keyed by [BackupContributor.key]. */
     val extras: Map<String, JsonElement> = emptyMap(),
 ) {
     companion object {
         const val FORMAT = "goa-companion-backup"
-        const val CURRENT_VERSION = 4
+        const val CURRENT_VERSION = 5
         const val MIME_TYPE = "application/json"
+
+        /** The first version with `triviaRounds` and `boards`. */
+        const val BOARDS_VERSION = 5
     }
 }
 
 /** How an import treats data already on the phone. */
 enum class ImportMode {
     /**
-     * Wipe players, matches, drafts, tombstones, merges and the settings covered by the backup,
-     * then load it as it is (records keep their `updatedAt`, so the group's newer edits win at the
+     * Wipe players, matches, drafts, trivia rounds, tombstones, merges, the boards (when the file
+     * carries them, v5) and the settings covered by the backup, then load it as it is (records keep their `updatedAt`, so the group's newer edits win at the
      * next sync: restoring an old backup never overwrites the group).
      */
     REPLACE,
@@ -88,6 +102,8 @@ data class BackupSummary(
     /** Hero ids this app's catalog doesn't know; they show as "Unknown hero" (DOMAIN.md). */
     val unknownHeroes: Set<String> = emptySet(),
     val appVersion: String? = null,
+    val triviaRounds: Int = 0,
+    val boards: Int = 0,
 ) {
     /** The file carries settings beyond the match log (rating constants, app settings, presets…). */
     val hasSettings: Boolean get() = hasEloConfig || extras.isNotEmpty()
@@ -104,6 +120,8 @@ fun BackupDocument.summary(knownHeroIds: Set<String>? = null) = BackupSummary(
     extras = extras.keys,
     unknownHeroes = knownHeroIds?.let { unknownHeroIds(it) }.orEmpty(),
     appVersion = appVersion,
+    triviaRounds = triviaRounds.size,
+    boards = boards.size,
 )
 
 /**
@@ -121,6 +139,9 @@ object BackupCodec {
         encodeDefaults = true
         ignoreUnknownKeys = true
         explicitNulls = true
+        // Board pieces are polymorphic and a minion has a `type` property, which the default
+        // discriminator ("type") would clash with. Nothing else in the file is polymorphic.
+        classDiscriminator = "piece"
     }
 
     fun encode(document: BackupDocument): String = json.encodeToString(BackupDocument.serializer(), document)
@@ -143,6 +164,8 @@ object BackupCodec {
         val idsOk = document.players.map { it.id }.unique() &&
             document.matches.map { it.id }.unique() &&
             document.drafts.map { it.id }.unique() &&
+            document.triviaRounds.map { it.id }.unique() &&
+            document.boards.map { it.id }.unique() &&
             document.playerMerges.map { it.fromId }.unique()
         val playerIds = document.players.mapTo(HashSet()) { it.id }
         return when {
@@ -159,9 +182,21 @@ object BackupCodec {
             document.playerMerges.any { it.fromId !in playerIds || it.toId !in playerIds } ->
                 "The backup merges a player who isn't in it."
 
-            else -> invalidMatches(document)
+            else -> invalidMatches(document) ?: invalidRounds(document)
         }
     }
+
+    /** Rounds the app would never write, or whose player isn't in the file (SyncValidation's rule). */
+    private fun invalidRounds(document: BackupDocument): String? {
+        val playerIds = document.players.mapTo(HashSet()) { it.id }
+        val lines = TriviaRoundValidation.lines(document.triviaRounds, playerIds) { "player $it isn't in this backup" }
+        if (lines.isEmpty()) return null
+        return (listOf("This backup has trivia rounds the app can't import:") + listed(lines)).joinToString("\n")
+    }
+
+    private fun listed(lines: List<String>): List<String> = lines.take(MAX_LISTED) + listOfNotNull(
+        (lines.size - MAX_LISTED).takeIf { it > 0 }?.let { "…and $it more." },
+    )
 
     /**
      * Matches the match editor would never save: a hero listed twice, a player on both teams, or
@@ -183,10 +218,7 @@ object BackupCodec {
                 missing.map { "• $label: player $it isn't in this backup." }
         }
         if (lines.isEmpty()) return null
-        val shown = lines.take(MAX_LISTED) + listOfNotNull(
-            (lines.size - MAX_LISTED).takeIf { it > 0 }?.let { "…and $it more." },
-        )
-        return (listOf("This backup has matches the app can't import:") + shown).joinToString(separator = "\n")
+        return (listOf("This backup has matches the app can't import:") + listed(lines)).joinToString(separator = "\n")
     }
 
     private const val MAX_LISTED = 5
