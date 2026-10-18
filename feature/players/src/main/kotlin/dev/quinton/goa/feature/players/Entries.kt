@@ -214,7 +214,10 @@ private fun PlayersHomeEntry(navigator: Navigator) {
             onOpenSettings = { navigator.navigate(SettingsRoute) },
             onOpenRatingSettings = { navigator.navigate(RatingSettingsRoute) },
             onShareStats = statsVm::share,
-            onOpenSync = { navigator.navigate(if (players.inGroup) SyncSessionRoute() else GroupSyncRoute) },
+            onOpenSync = {
+                val sheet = players.inGroup && !players.hubNeedsAttention
+                navigator.navigate(if (sheet) SyncSessionRoute() else GroupSyncRoute)
+            },
             onReviewSamePeople = { navigator.navigate(SamePeopleRoute) },
         ),
         followUps = followUps(matchesVm, navigator),

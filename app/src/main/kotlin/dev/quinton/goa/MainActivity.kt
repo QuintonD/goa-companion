@@ -24,20 +24,28 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.navigation.EXTRA_OPEN_TAB
 import dev.quinton.goa.core.navigation.TopLevelTab
+import dev.quinton.goa.feature.sync.hub.HubSyncScheduler
 import dev.quinton.goa.ui.GoaApp
+import dev.quinton.goa.ui.JoinLinkRequest
 import dev.quinton.goa.ui.SyncFileRequest
 import dev.quinton.goa.ui.TabRequest
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
+    @Inject lateinit var hubSync: HubSyncScheduler
+
     /** Tabs asked for by launch intents (the timer notification asks for the Timer tab). */
     private val tabRequests = MutableStateFlow<TabRequest?>(null)
 
     /** Sync files opened from another app or shared to this one (ADR-025). */
     private val syncFileRequests = MutableStateFlow<SyncFileRequest?>(null)
+
+    /** Invite links opened from a browser, a message or the camera (App Links, ADR-030 §6). */
+    private val joinLinkRequests = MutableStateFlow<JoinLinkRequest?>(null)
     private var requestCount = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,7 +53,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // A recreated activity (rotation, process restore) keeps its tab; only a real launch obeys the intent.
         val coldStart = savedInstanceState == null
-        if (coldStart) handle(intent)
+        if (coldStart) {
+            handle(intent)
+            // Opening the app syncs with the group's hub, if it has one (ADR-030 §5).
+            hubSync.onAppOpened()
+        }
         splash.setKeepOnScreenCondition { viewModel.uiState.value is MainUiState.Loading }
         enableEdgeToEdge()
         setContent {
@@ -73,7 +85,12 @@ class MainActivity : ComponentActivity() {
                     window.setBackgroundDrawable(canvas.toDrawable())
                     onDispose {}
                 }
-                GoaApp(tabRequests = tabRequests, syncFileRequests = syncFileRequests, coldStart = coldStart)
+                GoaApp(
+                    tabRequests = tabRequests,
+                    syncFileRequests = syncFileRequests,
+                    coldStart = coldStart,
+                    joinLinkRequests = joinLinkRequests,
+                )
             }
         }
     }
@@ -84,6 +101,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handle(intent: Intent?) {
+        joinLink(intent)?.let { link ->
+            joinLinkRequests.value = JoinLinkRequest(link, requestCount++)
+            return
+        }
         syncFileUri(intent)?.let { uri ->
             syncFileRequests.value = SyncFileRequest(uri.toString(), requestCount++)
             return
@@ -91,6 +112,12 @@ class MainActivity : ComponentActivity() {
         val name = intent?.getStringExtra(EXTRA_OPEN_TAB) ?: return
         val tab = TopLevelTab.entries.firstOrNull { it.name == name } ?: return
         tabRequests.value = TabRequest(tab, requestCount++)
+    }
+
+    /** The invite in a VIEW of `https://<hub>/join#goa-sync:…`; the fragment carries the group key. */
+    private fun joinLink(intent: Intent?): String? {
+        val uri = intent?.takeIf { it.action == Intent.ACTION_VIEW }?.data ?: return null
+        return uri.toString().takeIf { uri.scheme == "https" && uri.path == "/join" }
     }
 
     /** The file in a VIEW or SEND intent, if it is one the sync import may read. */

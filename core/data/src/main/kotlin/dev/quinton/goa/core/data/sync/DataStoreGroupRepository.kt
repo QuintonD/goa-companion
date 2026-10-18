@@ -2,6 +2,8 @@ package dev.quinton.goa.core.data.sync
 
 import dev.quinton.goa.core.data.GroupRepository
 import dev.quinton.goa.core.data.GroupState
+import dev.quinton.goa.core.data.HubError
+import dev.quinton.goa.core.data.HubProblem
 import dev.quinton.goa.core.data.SyncedPhone
 import dev.quinton.goa.core.datastore.sync.GroupSyncPrefs
 import dev.quinton.goa.core.datastore.sync.GroupSyncStore
@@ -46,8 +48,11 @@ internal class DataStoreGroupRepository @Inject constructor(
         invitedPlayerId: String?,
     ) = store.edit { prefs ->
         val same = prefs.groupId == group.groupId
-        prefs.copy(
-            hubUrl = hubUrl?.let(HubAddress::normalize) ?: prefs.hubUrl.takeIf { same },
+        val hub = hubUrl?.let(HubAddress::normalize) ?: prefs.hubUrl.takeIf { same }
+        // The last hub sync's outcome belongs to that group and hub.
+        val status = if (same && hub == prefs.hubUrl) prefs else prefs.withoutHubStatus()
+        status.copy(
+            hubUrl = hub,
             invitedPlayerId = invitedPlayerId ?: prefs.invitedPlayerId.takeIf { same },
             groupId = group.groupId,
             groupKey = Base64.getEncoder().encodeToString(group.key),
@@ -60,7 +65,7 @@ internal class DataStoreGroupRepository @Inject constructor(
     }
 
     override suspend fun leave() = store.edit {
-        it.copy(
+        it.withoutHubStatus().copy(
             groupId = null,
             groupKey = null,
             groupName = null,
@@ -71,7 +76,10 @@ internal class DataStoreGroupRepository @Inject constructor(
         )
     }
 
-    override suspend fun setHubUrl(url: String?) = store.edit { it.copy(hubUrl = url?.let(HubAddress::normalize)) }
+    override suspend fun setHubUrl(url: String?) = store.edit { prefs ->
+        val hub = url?.let(HubAddress::normalize)
+        (if (hub == prefs.hubUrl) prefs else prefs.withoutHubStatus()).copy(hubUrl = hub)
+    }
 
     override suspend fun setInvitedPlayer(playerId: String?) = store.edit { it.copy(invitedPlayerId = playerId) }
 
@@ -107,6 +115,14 @@ internal class DataStoreGroupRepository @Inject constructor(
             lastSyncAt = prefs.lastSyncAt,
             hubUrl = prefs.hubUrl,
             invitedPlayerId = prefs.invitedPlayerId,
+            hubSyncedAt = prefs.hubSyncedAt,
+            hubError = prefs.hubError?.let { message ->
+                HubError(
+                    problem = HubProblem.entries.firstOrNull { it.name == prefs.hubErrorKind } ?: HubProblem.SERVER,
+                    message = message,
+                    at = prefs.hubErrorAt ?: 0,
+                )
+            },
         )
     }
 

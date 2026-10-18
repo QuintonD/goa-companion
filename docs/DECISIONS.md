@@ -684,6 +684,28 @@ INTERNET permission. Options weighed:
   an overall cap. Features register in one list (`HubFeatures.kt`) and keep per-browser state in
   typed `DeviceSlot`s.
 
+**Addendum (2026-10-19, Android client):**
+- *HTTP client:* OkHttp (already pinned for the importer) over `HttpURLConnection`: a whole-call
+  timeout, cancellation that follows the coroutine (WorkManager stopping a worker cancels the
+  call), and MockWebServer for a real-socket fake hub in tests. No logging interceptor, cache or
+  cookie jar; redirects are refused so the bearer token never follows one.
+- *Unique work names:* one-time syncs share `hub-sync`; the hourly one is `hub-sync-hourly` (one
+  name can't hold both a periodic and a REPLACE-able one-time request). A sync asked for while one
+  runs is chained after it (APPEND_OR_REPLACE) rather than cancelling it.
+- *"Sync with hub" has no network constraint*, so the person who tapped sees "Can't reach the hub"
+  at once; automatic syncs wait for a network. Only transient problems (no connection, timeout,
+  5xx) retry with backoff; a wrong key, other versions, refused or oversized data wait for a person
+  and put a dot on the Players tab's sync icon.
+- *App start* means the activity's cold start, not the process start (a background WorkManager
+  wake-up must not add a sync).
+- *Joining by an invite that carries a hub* syncs with the hub instead of opening the Nearby
+  session; without a hub, the first sync is face to face as before.
+- *App Links* need the owner's host at build time: the Gradle property `goa.hubHost` generates a
+  manifest overlay; unset = no filter. An invite link opened while in another group never replaces
+  it ("Leave it first").
+- *Google's datatransport logger* stays off by removing its CCT backend registration (the
+  `INTERNET` removal guard is gone).
+
 ## ADR-031 — Linking a phone (or browser) to its player: personal invites and "Same people?" (2026-10-18)
 **Context:** The owner enters friends as players before they install the app. When a friend joins,
 their phone must become that player, not a new one. Today "Which player are you?" works only if the

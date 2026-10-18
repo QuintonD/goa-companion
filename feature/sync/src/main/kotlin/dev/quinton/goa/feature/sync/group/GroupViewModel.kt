@@ -10,10 +10,14 @@ import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.SyncRepository
 import dev.quinton.goa.core.domain.sync.GroupCredentials
 import dev.quinton.goa.core.domain.sync.GroupInvite
+import dev.quinton.goa.core.domain.sync.HubAddress
 import dev.quinton.goa.core.domain.sync.SyncValidation
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.feature.sync.PhoneName
 import dev.quinton.goa.feature.sync.SyncText
+import dev.quinton.goa.feature.sync.hub.HubSyncControl
+import dev.quinton.goa.feature.sync.hub.HubText
+import dev.quinton.goa.feature.sync.hub.HubUi
 import dev.quinton.goa.feature.sync.share.SyncFiles
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
@@ -46,6 +50,8 @@ data class GroupUiState(
     val joinError: String? = null,
     /** A one-off message for the snackbar. */
     val message: String? = null,
+    /** The group's hub and how its automatic sync went (ADR-030 §5). */
+    val hub: HubUi = HubUi(),
 ) {
     val inGroup: Boolean get() = groupName != null
 }
@@ -58,7 +64,12 @@ sealed interface GroupEvent {
     class Share(val bytes: ByteArray, val fileName: String, val title: String) : GroupEvent
 }
 
-private data class Local(val busy: Boolean = false, val joinError: String? = null, val message: String? = null)
+private data class Local(
+    val busy: Boolean = false,
+    val joinError: String? = null,
+    val message: String? = null,
+    val hubAddressError: String? = null,
+)
 
 /** The Group sync screen (ADR-025): start or join a group; invite, sync, share a file, leave. */
 @HiltViewModel
@@ -69,6 +80,7 @@ class GroupViewModel @Inject constructor(
     private val sync: SyncRepository,
     private val clock: EditClock,
     private val phoneName: PhoneName,
+    private val hubSync: HubSyncControl = HubSyncControl.Off,
 ) : ViewModel() {
     private val local = MutableStateFlow(Local())
     private val events = Channel<GroupEvent>(Channel.BUFFERED)
@@ -79,7 +91,8 @@ class GroupViewModel @Inject constructor(
         players.observePlayers(includeArchived = true),
         matches.observeMatches(),
         local,
-    ) { group, people, log, l ->
+        hubSync.running,
+    ) { group, people, log, l, hubRunning ->
         val now = clock.now()
         val me = people.firstOrNull { it.id == group.mePlayerId }
         GroupUiState(
@@ -95,6 +108,7 @@ class GroupViewModel @Inject constructor(
             busy = l.busy,
             joinError = l.joinError,
             message = l.message,
+            hub = HubText.ui(group, hubRunning, now, l.hubAddressError),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GroupUiState())
 
@@ -118,7 +132,15 @@ class GroupViewModel @Inject constructor(
                 viewModelScope.launch {
                     val current = groups.state.first().group
                     groups.join(group, hubUrl = parsed.hubUrl, invitedPlayerId = parsed.playerId)
-                    if (current?.groupId != group.groupId) {
+                    if (current?.groupId != group.groupId && parsed.hubUrl != null) {
+                        // The hub sync starts on its own (HubSyncScheduler): no Nearby session needed.
+                        local.update {
+                            it.copy(
+                                joinError = null,
+                                message = "Joined “${group.name}”. Getting the group's data from its hub…",
+                            )
+                        }
+                    } else if (current?.groupId != group.groupId) {
                         local.update { it.copy(joinError = null) }
                         events.send(GroupEvent.OpenFirstSync)
                     } else {
@@ -130,6 +152,33 @@ class GroupViewModel @Inject constructor(
             },
             onFailure = { e -> local.update { it.copy(joinError = e.message) } },
         )
+    }
+
+    private var linkOpened = false
+
+    /**
+     * An invite link opened from another app (App Links, ADR-030 §6): joins like a pasted invite.
+     * A phone in another group is told to leave it first; nothing is replaced without asking.
+     */
+    fun openLink(link: String) {
+        if (linkOpened) return
+        linkOpened = true
+        val parsed = GroupInvite.parseInvite(link).getOrElse { e ->
+            local.update { it.copy(message = e.message) }
+            return
+        }
+        viewModelScope.launch {
+            val current = groups.state.first().group
+            if (current != null && current.groupId != parsed.group.groupId) {
+                local.update {
+                    it.copy(
+                        message = "This phone is in “${current.name}”. Leave it first to join “${parsed.group.name}”.",
+                    )
+                }
+            } else {
+                join(link)
+            }
+        }
     }
 
     fun scanFailed(message: String) = local.update { it.copy(joinError = message) }
@@ -165,6 +214,30 @@ class GroupViewModel @Inject constructor(
             }
         }
     }
+
+    /** Saves the group's hub address ([HubAddress]); automatic sync starts right away. */
+    fun setHub(address: String) {
+        val url = HubAddress.normalize(address)
+        if (url == null) {
+            local.update { it.copy(hubAddressError = HubText.NOT_AN_ADDRESS) }
+            return
+        }
+        viewModelScope.launch {
+            groups.setHubUrl(url)
+            local.update { it.copy(hubAddressError = null, message = "Hub saved. Syncing with it now…") }
+        }
+    }
+
+    fun removeHub() {
+        viewModelScope.launch {
+            groups.setHubUrl(null)
+            local.update { it.copy(message = "Hub removed. This phone syncs over Nearby and sync files only.") }
+        }
+    }
+
+    fun syncHub() = hubSync.syncNow()
+
+    fun clearHubAddressError() = local.update { it.copy(hubAddressError = null) }
 
     fun clearJoinError() = local.update { it.copy(joinError = null) }
 
