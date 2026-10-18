@@ -64,6 +64,8 @@ data class PlayersHomeActions(
     val onShareStats: () -> Unit = {},
     /** Group sync: the sync sheet when in a group, else the Group sync screen. */
     val onOpenSync: () -> Unit = {},
+    /** "Same people?" (ADR-031). */
+    val onReviewSamePeople: () -> Unit = {},
 )
 
 /** Top-level "Players" destination: leaderboard, match log and meta as tabs. */
@@ -143,6 +145,7 @@ fun PlayersHomeScreen(
                             onOpenPlayer = actions.onOpenPlayer,
                             onAddPlayer = actions.onAddPlayer,
                             onToggleArchived = actions.onToggleArchived,
+                            onReviewSamePeople = actions.onReviewSamePeople,
                         )
 
                         PlayersTab.MATCHES -> MatchLogContent(

@@ -68,8 +68,6 @@ data class SyncSessionUiState(
     val meChosen: Boolean = true,
     /** Asked for by the route; the sheet starts it once the permissions are granted. */
     val requestedRole: SessionRole? = null,
-    /** Two players share a name after the sync. */
-    val duplicateHint: String? = null,
     /** The phones run different app versions (hero ratings can differ). */
     val versionHint: String? = null,
 ) {
@@ -149,11 +147,6 @@ class SyncSessionViewModel @AssistedInject constructor(
         players.observePlayers(includeArchived = true),
         requested,
     ) { stage, group, people, role ->
-        val finishedOk = when (stage) {
-            is SessionStage.Hosting -> stage.state.phase == HostPhase.DONE
-            is SessionStage.Joining -> stage.state.phase == ClientPhase.DONE
-            else -> false
-        }
         val others = when (stage) {
             is SessionStage.Hosting -> stage.state.peers.mapNotNull { it.device }
             is SessionStage.Joining -> listOfNotNull(stage.state.host)
@@ -166,7 +159,6 @@ class SyncSessionViewModel @AssistedInject constructor(
             firstSync = firstSync,
             meChosen = people.any { it.id == group.mePlayerId },
             requestedRole = role,
-            duplicateHint = if (finishedOk) SyncText.duplicateHint(SyncText.duplicateNames(people)) else null,
             versionHint = SyncText.versionHint(appInfo.versionName(), others),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SyncSessionUiState(firstSync = firstSync))

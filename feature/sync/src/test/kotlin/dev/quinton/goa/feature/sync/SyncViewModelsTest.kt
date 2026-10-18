@@ -145,33 +145,6 @@ class SyncViewModelsTest {
     }
 
     @Test
-    fun twoPeopleWithTheSameNameAfterASyncGetAMergeHint() = runTest {
-        val network = InMemorySyncNetwork()
-        val host = Phone("Host", network, data())
-        // Bob's phone added "Dee" again before it ever synced.
-        val bob = Phone("Bob", network, data().copy(players = people + person("dee-2", "Dee", createdAt = 9)))
-        val hostVm = SyncSessionViewModel(
-            null,
-            false,
-            host.groups,
-            host.sync,
-            FakePlayerRepository(people + person("dee-2", "Dee", createdAt = 9)),
-            host.transports,
-            clock,
-            AppInfo { "1.0" },
-            PhoneName { "Galaxy S25 Ultra" },
-        )
-        backgroundScope.launch { hostVm.uiState.collect {} }
-        watch(bob)
-        bob.vm.start(SessionRole.JOIN)
-        hostVm.start(SessionRole.HOST)
-        hostVm.uiState.first { s -> (s.stage as? SessionStage.Hosting)?.state?.canSync == true }
-        hostVm.syncNow()
-        val done = hostVm.uiState.first { it.finished }
-        assertThat(done.duplicateHint).contains("“Dee”")
-    }
-
-    @Test
     fun phonesOnDifferentAppVersionsAreToldTheirRatingsCanDiffer() = runTest {
         val network = InMemorySyncNetwork()
         val host = Phone("Host", network, data("h1"), version = "0.2.0")

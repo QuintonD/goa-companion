@@ -133,12 +133,7 @@ class SyncScreenshotTest {
             peers = peers.take(2).map { it.copy(stage = PeerStage.DONE, progress = null) },
             changes = SyncChanges(matchesAdded = 5, playersAdded = 1, matchesUpdated = 2),
         )
-        Sheet(
-            session.copy(
-                stage = SessionStage.Hosting(done),
-                duplicateHint = SyncText.duplicateHint(listOf("Dee")),
-            ),
-        )
+        Sheet(session.copy(stage = SessionStage.Hosting(done)))
     }
 
     @Test fun sessionJoinWaitingDark() = shot {

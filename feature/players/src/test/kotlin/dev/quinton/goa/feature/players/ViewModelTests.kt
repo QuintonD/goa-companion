@@ -19,6 +19,7 @@ import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
 import dev.quinton.goa.core.testing.FakeGroupRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
+import dev.quinton.goa.core.testing.FakePlayerMatchUpRepository
 import dev.quinton.goa.core.testing.FakePlayerMergeRepository
 import dev.quinton.goa.core.testing.FakePlayerRepository
 import dev.quinton.goa.feature.players.Fixtures.ann
@@ -67,7 +68,14 @@ class ViewModelTests {
 
     @Test
     fun leaderboardRanksRatedPlayersAndHidesArchivedUntilToggled() = runTest {
-        val vm = PlayersViewModel(players, ratings, FakeGroupRepository())
+        val vm = PlayersViewModel(
+            players,
+            ratings,
+            FakeGroupRepository(),
+            matches,
+            FakePlayerMergeRepository(matches, players.merges),
+            FakePlayerMatchUpRepository(),
+        )
         vm.uiState.test {
             var state = awaitItem()
             while (state.loading) state = awaitItem()

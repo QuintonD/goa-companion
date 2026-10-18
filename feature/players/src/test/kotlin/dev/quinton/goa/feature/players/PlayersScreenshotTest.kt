@@ -67,6 +67,12 @@ import dev.quinton.goa.feature.players.players.PlayersViewModel
 import dev.quinton.goa.feature.players.ratings.RatingSettingsActions
 import dev.quinton.goa.feature.players.ratings.RatingSettingsScreen
 import dev.quinton.goa.feature.players.ratings.RatingSettingsUiState
+import dev.quinton.goa.feature.players.samepeople.PairSide
+import dev.quinton.goa.feature.players.samepeople.SamePeopleActions
+import dev.quinton.goa.feature.players.samepeople.SamePeopleOutcome
+import dev.quinton.goa.feature.players.samepeople.SamePeoplePair
+import dev.quinton.goa.feature.players.samepeople.SamePeopleScreen
+import dev.quinton.goa.feature.players.samepeople.SamePeopleUiState
 import java.time.LocalDate
 import org.junit.Rule
 import org.junit.Test
@@ -95,6 +101,23 @@ private object Shots {
     )
     val meta: MetaUiState = MetaViewModel.build(snapshot, byId, catalog)
     val detail = PlayerDetailViewModel.build(Fixtures.ann.id, Fixtures.players, Fixtures.matches, snapshot, catalog)
+
+    val samePeople = SamePeopleUiState(
+        loading = false,
+        pairs = listOf(
+            SamePeoplePair(
+                "ann",
+                PairSide(Fixtures.ann, 9, Fixtures.at(15)),
+                PairSide(Fixtures.ann.copy(id = "p-anna", name = "Anna", avatarId = 4, color = 0xFFEE9A52), 0, null),
+            ),
+            SamePeoplePair(
+                "bob",
+                PairSide(Fixtures.bob, 7, Fixtures.at(14)),
+                PairSide(Fixtures.bob.copy(id = "p-bobby", name = "Bobby", avatarId = 6), 2, Fixtures.at(3)),
+            ),
+        ),
+        differentCount = 1,
+    )
 
     val heroes = catalog.heroes.map { HeroOption(it.id, it.name, it.title, it.portrait, it.complexity) }
 
@@ -229,6 +252,38 @@ class PlayersScreenshotTest {
     }
 
     @Test fun leaderboardFontScale2() = shot(fontScale = 2f) { Home(PlayersTab.PLAYERS) }
+
+    /** "Same people?" (ADR-031): a quiet card on top when two players look like one person. */
+    @Test fun leaderboardSamePeopleDark() = shot { Home(PlayersTab.PLAYERS, Shots.players.copy(samePeople = 1)) }
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun leaderboardSamePeopleLightW384FontScale2() = shot(ThemeMode.LIGHT, 2f) {
+        Home(PlayersTab.PLAYERS, Shots.players.copy(samePeople = 3))
+    }
+
+    @Test fun samePeopleDark() = shot { SamePeopleScreen(Shots.samePeople, SamePeopleActions()) }
+
+    @Test fun samePeopleLight() = shot(ThemeMode.LIGHT) { SamePeopleScreen(Shots.samePeople, SamePeopleActions()) }
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun samePeopleDarkW384FontScale2() = shot(fontScale = 2f) {
+        SamePeopleScreen(Shots.samePeople, SamePeopleActions())
+    }
+
+    @Test fun samePeopleEmptyLight() = shot(ThemeMode.LIGHT) {
+        SamePeopleScreen(SamePeopleUiState(loading = false, differentCount = 2), SamePeopleActions())
+    }
+
+    @Test fun samePeopleConfirmDark() = screen {
+        SamePeopleScreen(Shots.samePeople, SamePeopleActions(), confirmKey = Shots.samePeople.pairs.first().key)
+    }
+
+    @Test fun samePeopleRefusedDark() = screen {
+        val refused = SamePeopleOutcome.PlayedTogether(listOf("2026-10-12 · Ann, Bob vs Anna, Dee"))
+        SamePeopleScreen(Shots.samePeople.copy(outcome = refused), SamePeopleActions())
+    }
 
     @Test fun leaderboardEmptyDark() = shot { Home(PlayersTab.PLAYERS, PlayersUiState(loading = false)) }
 

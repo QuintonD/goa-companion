@@ -19,10 +19,8 @@ import dev.quinton.goa.core.domain.meta.WinConditionMix
 import dev.quinton.goa.core.domain.rating.WinLoss
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.Match
-import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.rating.Rating
-import dev.quinton.goa.feature.players.common.Dates
 import dev.quinton.goa.feature.players.common.heroName
 import dev.quinton.goa.feature.players.match.MatchLogViewModel.Companion.toRow
 import dev.quinton.goa.feature.players.match.MatchRowUi
@@ -120,13 +118,7 @@ class PlayerDetailViewModel @AssistedInject constructor(
             outcome.value = when (val result = merges.merge(playerId, intoId)) {
                 PlayerMergeResult.Merged -> MergeOutcome.Merged(intoId, people[intoId]?.name.orEmpty())
 
-                is PlayerMergeResult.PlayedTogether -> MergeOutcome.PlayedTogether(
-                    result.matches.sortedBy { it.playedAt }.map { m ->
-                        fun side(team: Team) = m.team(team).map { people[it.playerId]?.name ?: "Unknown player" }
-                            .distinct().joinToString()
-                        "${Dates.localDate(m.playedAt)} · ${side(Team.RED)} vs ${side(Team.BLUE)}"
-                    },
-                )
+                is PlayerMergeResult.PlayedTogether -> MergeOutcome.PlayedTogether(playedTogether(result.matches, people))
 
                 PlayerMergeResult.NotPossible -> null
             }
