@@ -383,7 +383,12 @@
 
   function boot() {
     var el = document.getElementById("timer-root");
-    if (el && el.hasAttribute("data-timer")) attach(el, true);
+    if (el && el.hasAttribute("data-timer")) {
+      attach(el, true);
+      // The page GET changes nothing; this POST stores the catch-up, alerts for a phase end nobody
+      // heard, and re-arms the lock-screen push (e.g. after alerts were turned on in Settings).
+      if (view.status === "running" || view.status === "paused") { lastSync = Date.now(); command("sync"); }
+    }
     describePush();
   }
 
