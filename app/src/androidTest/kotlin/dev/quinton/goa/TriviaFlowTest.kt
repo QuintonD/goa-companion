@@ -31,7 +31,7 @@ class TriviaFlowTest {
     @Test
     fun quizOneHeroThroughToTheSummary() {
         rule.waitForText("32 heroes")
-        rule.tapDescription("Card trivia")
+        rule.tapHeroesAction("Card trivia")
 
         // Home: overall progress and the setup.
         rule.waitForText("numbers learned", substring = true)

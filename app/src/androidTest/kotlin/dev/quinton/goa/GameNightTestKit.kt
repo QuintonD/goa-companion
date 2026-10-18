@@ -163,6 +163,19 @@ fun AppRule.tapLabel(label: String) = tap((hasText(label) or hasContentDescripti
 fun AppRule.tapDescription(text: String, substring: Boolean = false) =
     tap(hasContentDescription(text, substring = substring) and hasClickAction())
 
+/**
+ * A Heroes top-bar action ("Board", "Card trivia"): an icon at normal width and text size, an item
+ * of "More options" on a narrow screen or with large text.
+ */
+fun AppRule.tapHeroesAction(label: String) {
+    if (exists(hasContentDescription(label) and hasClickAction())) {
+        tapDescription(label)
+    } else {
+        tapDescription("More options")
+        tapText(label)
+    }
+}
+
 fun AppRule.typeInto(label: String, value: String) {
     reveal(hasSetTextAction() and hasText(label)).performTextInput(value)
     waitForIdle()

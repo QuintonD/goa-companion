@@ -1,7 +1,6 @@
 package dev.quinton.goa
 
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
@@ -24,13 +23,7 @@ class BoardFlowTest {
     @Test
     fun setUpABoardMoveAHeroAndFindItInBoards() {
         rule.waitForText("32 heroes")
-        // The Heroes top bar shows Board as an icon, or in "More options" on a narrow screen or with large text.
-        if (rule.exists(hasContentDescription("Board") and hasClickAction())) {
-            rule.tapDescription("Board")
-        } else {
-            rule.tapDescription("More options")
-            rule.tapText("Board")
-        }
+        rule.tapHeroesAction("Board")
 
         // Boards: nothing yet.
         rule.waitForText("No boards yet")
