@@ -55,7 +55,13 @@ class BoardViewModelTest {
 
     @After fun tearDown() = Dispatchers.resetMain()
 
-    private fun TestScope.viewModel(route: BoardRoute = BoardRoute(red = red, blue = blue), saved: SavedStateHandle = SavedStateHandle()) =
+    private fun TestScope.viewModel(
+        route: BoardRoute = BoardRoute(
+            red = red,
+            blue = blue,
+        ),
+        saved: SavedStateHandle = SavedStateHandle(),
+    ) =
         BoardViewModel(
             route = route,
             savedState = saved,
@@ -69,11 +75,16 @@ class BoardViewModelTest {
 
     private fun BoardViewModel.ready(): BoardUiState.Ready = uiState.value as BoardUiState.Ready
 
-    private fun BoardUiState.Ready.hero(heroId: String) = pieces.filterIsInstance<HeroPiece>().first { it.heroId == heroId }
+    private fun BoardUiState.Ready.hero(heroId: String) = pieces.filterIsInstance<HeroPiece>().first {
+        it.heroId ==
+            heroId
+    }
 
     private fun BoardUiState.Ready.emptySpace(near: Hex): Hex {
         val occupied = BoardRules.occupancy(board.state)
-        return TestMap.map.spaces.map { it.hex }.filter { it !in occupied }.minBy { dev.quinton.goa.core.domain.board.HexGrid.distance(it, near) }
+        return TestMap.map.spaces.map {
+            it.hex
+        }.filter { it !in occupied }.minBy { dev.quinton.goa.core.domain.board.HexGrid.distance(it, near) }
     }
 
     @Test
@@ -187,7 +198,9 @@ class BoardViewModelTest {
         vm.onAction(BoardAction.RangeBonus(1))
         assertThat(vm.ready().overlay!!.range).isEqualTo(BoardRules.within(geometry, hero.at!!, 3))
         vm.onAction(BoardAction.ToggleIgnoreObstacles)
-        assertThat(vm.ready().overlay!!.movement).isEqualTo(BoardRules.movementReach(geometry, state, hero.at!!, 2, ignoreObstacles = true))
+        assertThat(
+            vm.ready().overlay!!.movement,
+        ).isEqualTo(BoardRules.movementReach(geometry, state, hero.at!!, 2, ignoreObstacles = true))
         vm.onAction(BoardAction.ToggleFastTravel)
         assertThat(vm.ready().overlay!!.fastTravel).isEqualTo(BoardRules.fastTravel(geometry, state, hero))
     }
@@ -255,7 +268,10 @@ class BoardViewModelTest {
         assertThat(waiting.targets.all { geometry.zoneOf(it) == "lane-3" }).isTrue()
 
         // A space that isn't one of the nearest empty ones is refused; a highlighted one places it.
-        val wrong = TestMap.map.spaces.map { it.hex }.first { geometry.zoneOf(it) == "lane-1" && it !in BoardRules.occupancy(ready.board.state) }
+        val wrong = TestMap.map.spaces.map { it.hex }.first {
+            geometry.zoneOf(it) == "lane-1" &&
+                it !in BoardRules.occupancy(ready.board.state)
+        }
         assertThat(vm.tap(MapTap.Space(wrong))).isFalse()
         val target = waiting.targets.first()
         assertThat(vm.tap(MapTap.Space(target))).isTrue()
@@ -287,7 +303,12 @@ class BoardViewModelTest {
         vm.onAction(BoardAction.Select(vm.ready().hero("test-hero-1").id))
         vm.onAction(BoardAction.Remove)
         vm.onAction(BoardAction.ResetToOpening)
-        assertThat(vm.ready().pieces.map { it.at to it::class }).containsExactlyElementsIn(opening.pieces.map { it.at to it::class })
+        assertThat(vm.ready().pieces.map { it.at to it::class }).containsExactlyElementsIn(
+            opening.pieces.map {
+                it.at to
+                    it::class
+            },
+        )
         vm.onAction(BoardAction.Undo)
         assertThat(vm.ready().pieces).hasSize(opening.pieces.size - 1)
     }
@@ -299,7 +320,9 @@ class BoardViewModelTest {
             assertThat((awaitItem() as BoardUiState.Ready).board).isEqualTo(created)
         }
         boards.delete(created.id)
-        assertThat(viewModel(BoardRoute(boardId = created.id)).uiState.value).isInstanceOf(BoardUiState.Missing::class.java)
+        assertThat(
+            viewModel(BoardRoute(boardId = created.id)).uiState.value,
+        ).isInstanceOf(BoardUiState.Missing::class.java)
     }
 
     @Test

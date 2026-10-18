@@ -149,7 +149,14 @@ fun DrawScope.drawTerrain(corners: List<Offset>, center: Offset, u: Float, palet
 /** Movement: a teal fill and the fewest spaces needed, as a number. */
 fun DrawScope.drawMovementCell(corners: List<Offset>, center: Offset, palette: BoardPalette) {
     drawPath(hexPath(corners, 0.9f, center), palette.movement.copy(alpha = 0.34f))
-    drawPath(hexPath(corners, 0.9f, center), palette.movement, style = Stroke(width = (corners[0] - center).getDistance() * 0.06f))
+    drawPath(
+        hexPath(corners, 0.9f, center),
+        palette.movement,
+        style = Stroke(
+            width =
+                (corners[0] - center).getDistance() * 0.06f,
+        ),
+    )
 }
 
 /** Fast Travel: diagonal bronze hatching. */
@@ -183,7 +190,12 @@ fun DrawScope.drawRadiusCell(corners: List<Offset>, center: Offset, u: Float, pa
     val d = u * 0.42f
     listOf(-90f, 30f, 150f).forEach { deg ->
         val a = deg * PI.toFloat() / 180f
-        drawCircle(palette.radius.copy(alpha = 0.8f), radius = u * 0.09f, center = center + Offset(cos(a) * d, sin(a) * d))
+        drawCircle(
+            palette.radius.copy(alpha = 0.8f),
+            radius = u * 0.09f,
+            center =
+                center + Offset(cos(a) * d, sin(a) * d),
+        )
     }
 }
 

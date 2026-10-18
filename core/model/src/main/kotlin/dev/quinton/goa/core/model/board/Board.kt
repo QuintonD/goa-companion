@@ -2,10 +2,8 @@ package dev.quinton.goa.core.model.board
 
 import dev.quinton.goa.core.model.catalog.SourceRef
 import dev.quinton.goa.core.model.match.Team
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonClassDiscriminator
 
 /*
  * Board sandbox (ADR-033). The map is bundled catalog data (assets/catalog/maps/<id>.json, written
@@ -132,12 +130,9 @@ data class BoardMap(
 
 /**
  * A game piece on (or waiting beside) the board. [at] null = waiting in the tray to be placed.
- * JSON names the kind in `"piece"` (`"hero"`, `"minion"`, `"token"`): the default discriminator,
- * `"type"`, is taken by [MinionPiece.type].
+ * JSON names the kind in the default discriminator `"type"` (`"hero"`, `"minion"`, `"token"`).
  */
-@OptIn(ExperimentalSerializationApi::class)
 @Serializable
-@JsonClassDiscriminator("piece")
 sealed interface BoardPiece {
     val id: String
     val at: Hex?
@@ -162,7 +157,8 @@ data class MinionPiece(
     override val id: String,
     override val at: Hex?,
     val team: Team,
-    val type: MinionType,
+    /** Stored as `"minion"`: `"type"` is the JSON discriminator of [BoardPiece]. */
+    @SerialName("minion") val type: MinionType,
 ) : BoardPiece {
     override fun moveTo(hex: Hex?): BoardPiece = copy(at = hex)
 }

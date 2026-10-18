@@ -14,7 +14,8 @@ internal object SpaceText {
         val map = state.map
         val space = state.geometry.spaces[hex]
         val zone = space?.zone
-        val battle = zone != null && (zone in state.board.state.battleZones.values || (state.board.state.battleZones.isEmpty() && map.lanes.any { it.startingBattleZone == zone }))
+        val battleZones = state.board.state.battleZones.values.ifEmpty { map.lanes.map { it.startingBattleZone } }
+        val battle = zone != null && zone in battleZones
         return buildList {
             add(occupant?.let { BoardText.piece(it) { id -> state.heroes.hero(id).name } } ?: "Empty space")
             add(BoardText.zone(map, zone))
@@ -28,7 +29,8 @@ internal object SpaceText {
             if (overlay?.radius?.contains(hex) == true) add("in Radius")
             if (state.activeWaiting?.targets?.contains(hex) == true) add("a nearest empty space")
             state.measure?.takeIf { it.target == hex }?.let {
-                add("${BoardText.spaces(it.distance)}, ${if (it.straight) "in a straight line" else "not in a straight line"}")
+                val line = if (it.straight) "in a straight line" else "not in a straight line"
+                add("${BoardText.spaces(it.distance)}, $line")
             }
         }.joinToString(", ")
     }

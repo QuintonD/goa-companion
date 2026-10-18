@@ -78,7 +78,9 @@ class BoardViewModel internal constructor(
         mapRepository: BoardMapRepository,
         boardRepository: BoardRepository,
         clock: EditClock,
-    ) : this(route, savedState, catalogRepository, mapRepository, boardRepository, clock, { UUID.randomUUID().toString() })
+    ) : this(route, savedState, catalogRepository, mapRepository, boardRepository, clock, {
+        UUID.randomUUID().toString()
+    })
 
     @AssistedFactory
     interface Factory {
@@ -105,7 +107,8 @@ class BoardViewModel internal constructor(
         val catalog = catalogRepository.catalog.catch { emit(Catalog.EMPTY) }.first()
         val maps = mapRepository.maps.catch { emit(emptyList()) }.first()
         val heroes = catalog.boardHeroes()
-        val id = route.boardId ?: savedState.get<String>(KEY_CREATED) ?: newBoardId().also { savedState[KEY_CREATED] = it }
+        val id =
+            route.boardId ?: savedState.get<String>(KEY_CREATED) ?: newBoardId().also { savedState[KEY_CREATED] = it }
         var board = boardRepository.observe(id).first()
         if (board == null && route.boardId == null) {
             val lineup = BoardLineup(route.red.distinct(), route.blue.distinct().filterNot { it in route.red })
@@ -134,14 +137,17 @@ class BoardViewModel internal constructor(
             state.value = BoardUiState.Missing("This board's map isn't in this build.")
             return
         }
-        val bottom = savedState.get<String>(KEY_BOTTOM)?.let { runCatching { Team.valueOf(it) }.getOrNull() } ?: Team.RED
+        val bottom =
+            savedState.get<String>(KEY_BOTTOM)?.let { runCatching { Team.valueOf(it) }.getOrNull() } ?: Team.RED
         state.value = derive(
             BoardUiState.Ready(
                 board = board,
                 map = map,
                 heroes = heroes,
                 bottomTeam = bottom,
-                selectedId = savedState.get<String>(KEY_SELECTED)?.takeIf { sel -> board.state.pieces.any { it.id == sel } },
+                selectedId = savedState.get<String>(KEY_SELECTED)?.takeIf { sel ->
+                    board.state.pieces.any { it.id == sel }
+                },
             ),
         )
     }
@@ -167,7 +173,12 @@ class BoardViewModel internal constructor(
 
             tool is BoardTool.Place -> placeNew(ready, tool.piece, hex, occupied)
 
-            ready.activeWaiting != null && tap is MapTap.Space -> placeWaiting(ready, ready.activeWaiting!!, tap.hex, occupied)
+            ready.activeWaiting != null && tap is MapTap.Space -> placeWaiting(
+                ready,
+                ready.activeWaiting!!,
+                tap.hex,
+                occupied,
+            )
 
             tap is MapTap.Piece -> {
                 select(tap.pieceId)
@@ -204,56 +215,31 @@ class BoardViewModel internal constructor(
 
             is BoardAction.Drop -> drop(ready, action.pieceId, action.hex)
 
-            is BoardAction.ChooseCard -> editOverlay { settings ->
-                val card = ready.selectedHero()?.cards?.firstOrNull { it.id == action.cardId }
-                settings.copy(
-                    cardId = card?.id,
-                    // A newly chosen card shows what it has: its Movement, Range and Radius.
-                    movement = true,
-                    range = card?.values?.range != null,
-                    radius = card?.values?.radius != null,
-                )
-            }
+            is BoardAction.ChooseCard, BoardAction.ToggleMovement, BoardAction.ToggleIgnoreObstacles,
+            BoardAction.ToggleFastTravel, BoardAction.ToggleRange, BoardAction.ToggleRadius,
+            is BoardAction.MovementBonus, is BoardAction.RangeBonus, is BoardAction.RadiusBonus, is BoardAction.Steps,
+            -> editOverlay { settings -> overlaySettings(ready, settings, action) }
 
-            BoardAction.ToggleMovement -> editOverlay { it.copy(movement = !it.movement) }
-
-            BoardAction.ToggleIgnoreObstacles -> editOverlay { it.copy(ignoreObstacles = !it.ignoreObstacles) }
-
-            BoardAction.ToggleFastTravel -> editOverlay { it.copy(fastTravel = !it.fastTravel) }
-
-            BoardAction.ToggleRange -> editOverlay { it.copy(range = !it.range) }
-
-            BoardAction.ToggleRadius -> editOverlay { it.copy(radius = !it.radius) }
-
-            is BoardAction.MovementBonus -> editOverlay { it.copy(movementBonus = (it.movementBonus + action.delta).coerceIn(0, MAX_BONUS)) }
-
-            is BoardAction.RangeBonus -> editOverlay { it.copy(rangeBonus = (it.rangeBonus + action.delta).coerceIn(0, MAX_BONUS)) }
-
-            is BoardAction.RadiusBonus -> editOverlay { it.copy(radiusBonus = (it.radiusBonus + action.delta).coerceIn(0, MAX_BONUS)) }
-
-            is BoardAction.Steps -> editOverlay { it.copy(steps = (it.steps + action.delta).coerceIn(1, MAX_STEPS), movement = true) }
-
-            BoardAction.StartMeasure -> if (ready.selected?.at != null) {
-                setReady { it.copy(tool = BoardTool.Measure, measure = null) }
+            BoardAction.StartMeasure -> setReady {
+                if (it.selected?.at != null) it.copy(tool = BoardTool.Measure, measure = null) else it
             }
 
             is BoardAction.Add -> setReady { it.copy(tool = BoardTool.Place(action.piece), measure = null) }
 
             BoardAction.CancelTool -> setReady { it.copy(tool = BoardTool.Move, measure = null) }
 
-            BoardAction.Remove -> ready.selected?.let { piece ->
-                commit(ready.board.state.copy(pieces = ready.pieces - piece))
-            }
+            BoardAction.Remove -> commit(
+                ready.board.state.copy(
+                    pieces = ready.pieces.filterNot {
+                        it.id ==
+                            ready.selectedId
+                    },
+                ),
+            )
 
-            BoardAction.Undo -> undo.removeLastOrNull()?.let { previous ->
-                redo.addLast(ready.board.state)
-                apply(previous)
-            }
+            BoardAction.Undo -> step(from = undo, to = redo)
 
-            BoardAction.Redo -> redo.removeLastOrNull()?.let { next ->
-                undo.addLast(ready.board.state)
-                apply(next)
-            }
+            BoardAction.Redo -> step(from = redo, to = undo)
 
             BoardAction.ResetToOpening -> {
                 val opening = BoardSetup.opening(ready.geometry, ready.board.lineup, pieceIds(BoardState(ready.map.id)))
@@ -275,6 +261,58 @@ class BoardViewModel internal constructor(
         }
     }
 
+    /** The overlay switches after [action] (one of the overlay actions). */
+    private fun overlaySettings(
+        ready: BoardUiState.Ready,
+        settings: OverlaySettings,
+        action: BoardAction,
+    ): OverlaySettings =
+        when (action) {
+            is BoardAction.ChooseCard -> {
+                val card = ready.selectedHero()?.cards?.firstOrNull { it.id == action.cardId }
+                // A newly chosen card shows what it has: its Movement, Range and Radius.
+                settings.copy(
+                    cardId = card?.id,
+                    movement = true,
+                    range = card?.values?.range != null,
+                    radius = card?.values?.radius != null,
+                )
+            }
+
+            BoardAction.ToggleMovement -> settings.copy(movement = !settings.movement)
+
+            BoardAction.ToggleIgnoreObstacles -> settings.copy(ignoreObstacles = !settings.ignoreObstacles)
+
+            BoardAction.ToggleFastTravel -> settings.copy(fastTravel = !settings.fastTravel)
+
+            BoardAction.ToggleRange -> settings.copy(range = !settings.range)
+
+            BoardAction.ToggleRadius -> settings.copy(radius = !settings.radius)
+
+            is BoardAction.MovementBonus -> settings.copy(movementBonus = bonus(settings.movementBonus, action.delta))
+
+            is BoardAction.RangeBonus -> settings.copy(rangeBonus = bonus(settings.rangeBonus, action.delta))
+
+            is BoardAction.RadiusBonus -> settings.copy(radiusBonus = bonus(settings.radiusBonus, action.delta))
+
+            is BoardAction.Steps -> settings.copy(
+                steps = (settings.steps + action.delta).coerceIn(1, MAX_STEPS),
+                movement = true,
+            )
+
+            else -> settings
+        }
+
+    private fun bonus(current: Int, delta: Int) = (current + delta).coerceIn(0, MAX_BONUS)
+
+    /** Undo or Redo: the board goes back to the last state of [from]; the current one goes to [to]. */
+    private fun step(from: ArrayDeque<BoardState>, to: ArrayDeque<BoardState>) {
+        val ready = state.value as? BoardUiState.Ready ?: return
+        val next = from.removeLastOrNull() ?: return
+        to.addLast(ready.board.state)
+        apply(next)
+    }
+
     /** Writes a pending change now (the screen calls it when it stops or leaves). */
     fun flush() {
         val pending = unsaved ?: return
@@ -292,7 +330,19 @@ class BoardViewModel internal constructor(
 
     private fun select(pieceId: String?) {
         if (pieceId == null) savedState.remove<String>(KEY_SELECTED) else savedState[KEY_SELECTED] = pieceId
-        setReady { it.copy(selectedId = pieceId, tool = if (pieceId == null) BoardTool.Move else it.tool, measure = null) }
+        setReady {
+            it.copy(
+                selectedId = pieceId,
+                tool = if (pieceId ==
+                    null
+                ) {
+                    BoardTool.Move
+                } else {
+                    it.tool
+                },
+                measure = null,
+            )
+        }
     }
 
     private fun drop(ready: BoardUiState.Ready, pieceId: String, hex: Hex) {
@@ -311,9 +361,22 @@ class BoardViewModel internal constructor(
         select(pieceId)
     }
 
-    private fun placeNew(ready: BoardUiState.Ready, spec: NewPiece, hex: Hex?, occupied: Map<Hex, BoardPiece>): Boolean {
+    private fun placeNew(
+        ready: BoardUiState.Ready,
+        spec: NewPiece,
+        hex: Hex?,
+        occupied: Map<Hex, BoardPiece>,
+    ): Boolean {
         if (hex == null || !BoardRules.isEmpty(ready.geometry, occupied, hex)) {
-            hint(if (hex != null && ready.geometry.isSpace(hex)) "That space is taken: one piece per space." else "Tap an empty space.")
+            hint(
+                if (hex != null &&
+                    ready.geometry.isSpace(hex)
+                ) {
+                    "That space is taken: one piece per space."
+                } else {
+                    "Tap an empty space."
+                },
+            )
             return false
         }
         val id = pieceIds(ready.board.state)()
@@ -332,8 +395,18 @@ class BoardViewModel internal constructor(
         return true
     }
 
-    private fun placeWaiting(ready: BoardUiState.Ready, waiting: WaitingUi, hex: Hex, occupied: Map<Hex, BoardPiece>): Boolean {
-        val allowed = if (waiting.targets.isEmpty()) BoardRules.isEmpty(ready.geometry, occupied, hex) else hex in waiting.targets
+    private fun placeWaiting(
+        ready: BoardUiState.Ready,
+        waiting: WaitingUi,
+        hex: Hex,
+        occupied: Map<Hex, BoardPiece>,
+    ): Boolean {
+        val allowed = if (waiting.targets.isEmpty()) {
+            BoardRules.isEmpty(ready.geometry, occupied, hex)
+        } else {
+            hex in
+                waiting.targets
+        }
         if (!allowed) {
             hint("Tap a highlighted space: the nearest empty spaces of the Battle Zone (p.8).")
             return false
@@ -343,8 +416,18 @@ class BoardViewModel internal constructor(
     }
 
     private fun push(ready: BoardUiState.Ready, laneId: String, winner: Team) {
-        when (val result = BoardSetup.pushLane(ready.geometry, ready.board.state, laneId, winner, pieceIds(ready.board.state))) {
-            is BoardSetup.PushResult.ThroneCaptured -> setReady { it.copy(notice = BoardNotice.ThroneCaptured(result.winner)) }
+        when (
+            val result = BoardSetup.pushLane(
+                ready.geometry,
+                ready.board.state,
+                laneId,
+                winner,
+                pieceIds(ready.board.state),
+            )
+        ) {
+            is BoardSetup.PushResult.ThroneCaptured -> setReady {
+                it.copy(notice = BoardNotice.ThroneCaptured(result.winner))
+            }
 
             is BoardSetup.PushResult.Pushed -> {
                 if (result.state == ready.board.state) return
@@ -402,7 +485,9 @@ class BoardViewModel internal constructor(
     /** Recomputes everything that follows from the board, the selection and its overlay switches. */
     private fun derive(ready: BoardUiState.Ready): BoardUiState.Ready {
         val waiting = waitingPieces(ready)
-        val active = ready.activeWaitingId?.takeIf { id -> waiting.any { it.piece.id == id } } ?: waiting.firstOrNull()?.piece?.id
+        val active =
+            ready.activeWaitingId?.takeIf { id -> waiting.any { it.piece.id == id } }
+                ?: waiting.firstOrNull()?.piece?.id
         val selected = ready.selected
         val tool = if (selected?.at == null && ready.tool == BoardTool.Measure) BoardTool.Move else ready.tool
         val measure = ready.measure?.let { measure(ready, it.target) }
@@ -427,7 +512,17 @@ class BoardViewModel internal constructor(
             return OverlayUi(
                 settings = settings,
                 movementValue = steps,
-                movement = if (settings.movement) BoardRules.movementReach(geometry, state, from, steps, settings.ignoreObstacles) else emptyMap(),
+                movement = if (settings.movement) {
+                    BoardRules.movementReach(
+                        geometry,
+                        state,
+                        from,
+                        steps,
+                        settings.ignoreObstacles,
+                    )
+                } else {
+                    emptyMap()
+                },
             )
         }
         val card = ready.heroes.hero(piece.heroId).cards.firstOrNull { it.id == settings.cardId }
@@ -445,9 +540,21 @@ class BoardViewModel internal constructor(
             },
             fastTravel = if (settings.fastTravel) BoardRules.fastTravel(geometry, state, piece) else emptySet(),
             rangeValue = rangeValue,
-            range = if (settings.range && rangeValue != null) BoardRules.within(geometry, from, rangeValue) else emptySet(),
+            range = if (settings.range &&
+                rangeValue != null
+            ) {
+                BoardRules.within(geometry, from, rangeValue)
+            } else {
+                emptySet()
+            },
             radiusValue = radiusValue,
-            radius = if (settings.radius && radiusValue != null) BoardRules.within(geometry, from, radiusValue) else emptySet(),
+            radius = if (settings.radius &&
+                radiusValue != null
+            ) {
+                BoardRules.within(geometry, from, radiusValue)
+            } else {
+                emptySet()
+            },
         )
     }
 
@@ -470,7 +577,9 @@ class BoardViewModel internal constructor(
         val state = ready.board.state
         return state.pieces.filter { it.at == null }.map { piece ->
             val targets = (piece as? MinionPiece)?.let { minion ->
-                val zones = state.battleZones.values.ifEmpty { ready.map.lanes.map { it.startingBattleZone } }.distinct()
+                val zones = state.battleZones.values.ifEmpty {
+                    ready.map.lanes.map { it.startingBattleZone }
+                }.distinct()
                 zones.firstNotNullOfOrNull { zone ->
                     val spawn = geometry.minionSpawns(zone).firstOrNull { space ->
                         space.spawn?.team == minion.team && space.spawn?.kind == spawnKind(minion)

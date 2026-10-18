@@ -84,7 +84,13 @@ class BoardScreenshotTest {
 
     @Before fun images() = BundledImages.install(ApplicationProvider.getApplicationContext())
 
-    private fun capture(mode: ThemeMode, fontScale: Float = 1f, before: () -> Unit = {}, content: @Composable () -> Unit) {
+    private fun capture(
+        mode: ThemeMode,
+        fontScale: Float = 1f,
+        before: () -> Unit = {
+        },
+        content: @Composable () -> Unit,
+    ) {
         compose.setContent {
             val d = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(d.density, fontScale)) {
@@ -125,9 +131,20 @@ class BoardScreenshotTest {
 
     @Composable
     private fun Boards(boards: List<SavedBoard>) {
-        val vm = remember { BoardsViewModel(FakeCatalogRepository(catalog), FakeBoardMapRepository(maps), FakeBoardRepository(boards), EditClock { now }) }
+        val vm =
+            remember {
+                BoardsViewModel(
+                    FakeCatalogRepository(catalog),
+                    FakeBoardMapRepository(maps),
+                    FakeBoardRepository(boards),
+                    EditClock {
+                        now
+                    },
+                )
+            }
         val state by vm.uiState.collectAsState()
-        BoardsScreen(state, onOpen = {}, onNew = {}, onRename = { _, _ -> }, onDuplicate = {}, onDelete = {}, onBack = {})
+        BoardsScreen(state, onOpen = {
+        }, onNew = {}, onRename = { _, _ -> }, onDuplicate = {}, onDelete = {}, onBack = {})
     }
 
     @Test fun boardsEmptyDark() = capture(ThemeMode.DARK) { Boards(emptyList()) }
@@ -277,9 +294,13 @@ class BoardScreenshotTest {
         vm.onAction(BoardAction.ChooseCard("arien-red-2b"))
     }
 
-    @Test fun boardHeroOverlaysDark() = boardViewModel().let { vm -> capture(ThemeMode.DARK, before = { selectedHero(vm) }) { Board(vm) } }
+    @Test fun boardHeroOverlaysDark() = boardViewModel().let { vm ->
+        capture(ThemeMode.DARK, before = { selectedHero(vm) }) { Board(vm) }
+    }
 
-    @Test fun boardHeroOverlaysLight() = boardViewModel().let { vm -> capture(ThemeMode.LIGHT, before = { selectedHero(vm) }) { Board(vm) } }
+    @Test fun boardHeroOverlaysLight() = boardViewModel().let { vm ->
+        capture(ThemeMode.LIGHT, before = { selectedHero(vm) }) { Board(vm) }
+    }
 
     @Config(qualifiers = "w384dp-h832dp-xxhdpi")
     @Test

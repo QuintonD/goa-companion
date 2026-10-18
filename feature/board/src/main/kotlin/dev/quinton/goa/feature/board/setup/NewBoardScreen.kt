@@ -149,7 +149,8 @@ private fun NewBoardContent(
     var query by rememberSaveable { mutableStateOf("") }
     val focus = LocalFocusManager.current
     val shown = state.heroes.filter {
-        query.isBlank() || it.name.contains(query.trim(), ignoreCase = true) || it.title.contains(query.trim(), ignoreCase = true)
+        query.isBlank() || it.name.contains(query.trim(), ignoreCase = true) ||
+            it.title.contains(query.trim(), ignoreCase = true)
     }
     val large = LocalDensity.current.fontScale > LARGE_FONT
     val cells = GridCells.Adaptive(if (large) TILE_LARGE else TILE)
@@ -189,11 +190,15 @@ private fun NewBoardContent(
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                     modifier = Modifier.weight(1f),
                 ) {
-                    item(key = "setup", span = { GridItemSpan(maxLineSpan) }) { Column { Setup(state, onAction, onSources) } }
+                    item(key = "setup", span = {
+                        GridItemSpan(maxLineSpan)
+                    }) { Column { Setup(state, onAction, onSources) } }
                     item(key = "search", span = { GridItemSpan(maxLineSpan) }) {
                         Column {
                             SectionHeader("Heroes")
-                            SearchField(query, { query = it }, onSearch = { focus.clearFocus() }, horizontalPadding = 0.dp)
+                            SearchField(query, {
+                                query = it
+                            }, onSearch = { focus.clearFocus() }, horizontalPadding = 0.dp)
                         }
                     }
                     heroTiles(shown, state, onAction)
@@ -284,12 +289,21 @@ private fun TeamBlock(state: NewBoardUiState.Ready, team: Team, onAction: (NewBo
                     modifier = Modifier.weight(1f),
                 )
                 if (filling) {
-                    Text("Adding here", style = MaterialTheme.typography.labelMedium, color = color, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Adding here",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = color,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 }
             }
             if (heroes.isEmpty()) {
                 Text(
-                    if (filling) "Tap heroes below to add them in pick order." else "Tap here, then tap heroes to add them.",
+                    if (filling) {
+                        "Tap heroes below to add them in pick order."
+                    } else {
+                        "Tap here, then tap heroes to add them."
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = Spacing.xs),
@@ -331,7 +345,10 @@ private fun SlotChip(
                 .heightIn(min = 40.dp)
                 .semantics { contentDescription = "Pick ${index + 1}: ${hero.name}. Change" },
         ) {
-            Row(Modifier.padding(start = 4.dp, end = Spacing.md, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.padding(start = 4.dp, end = Spacing.md, top = 4.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 HeroPortrait(
                     hero.id,
                     hero.portrait,
@@ -341,7 +358,12 @@ private fun SlotChip(
                     framed = false,
                 )
                 Spacer(Modifier.width(Spacing.sm))
-                Text("${index + 1}", style = MaterialTheme.typography.labelLarge, color = color, fontWeight = FontWeight.Bold)
+                Text(
+                    "${index + 1}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = color,
+                    fontWeight = FontWeight.Bold,
+                )
                 Spacer(Modifier.width(Spacing.xs))
                 Text(hero.name, style = MaterialTheme.typography.labelLarge, maxLines = 1)
             }
@@ -394,7 +416,11 @@ private fun SlotChip(
 private fun MapChoice(state: NewBoardUiState.Ready, onAction: (NewBoardAction) -> Unit) {
     SectionHeader("Map")
     if (state.maps.isEmpty()) {
-        Text("No map is bundled with this build.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+        Text(
+            "No map is bundled with this build.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error,
+        )
         return
     }
     FlowRow(
@@ -474,10 +500,18 @@ private fun HeroTile(hero: BoardHero, state: NewBoardUiState.Ready, onAction: (N
                         border = BorderStroke(1.dp, color),
                         modifier = Modifier.align(Alignment.TopStart).padding(4.dp),
                     ) {
-                        Row(Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             TeamMark(team, markSize = 9.dp)
                             Spacer(Modifier.width(3.dp))
-                            Text("$pick", style = MaterialTheme.typography.labelMedium, color = color, fontWeight = FontWeight.Bold)
+                            Text(
+                                "$pick",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = color,
+                                fontWeight = FontWeight.Bold,
+                            )
                         }
                     }
                 }
@@ -489,7 +523,13 @@ private fun HeroTile(hero: BoardHero, state: NewBoardUiState.Ready, onAction: (N
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
-            color = if (action == null && team == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+            color = if (action == null &&
+                team == null
+            ) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
             modifier = Modifier.padding(top = 4.dp),
         )
     }
@@ -534,7 +574,12 @@ private fun SetUpBar(state: NewBoardUiState.Ready, onSetUp: () -> Unit) {
 
 /** Finished drafts, pending and logged matches, newest first: one tap fills both teams. */
 @Composable
-internal fun SourcesContent(sources: List<LineupSource>, onUse: (LineupSource) -> Unit, onDone: () -> Unit, modifier: Modifier = Modifier) {
+internal fun SourcesContent(
+    sources: List<LineupSource>,
+    onUse: (LineupSource) -> Unit,
+    onDone: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
         SheetTitle("Use a draft or match", "Fills both teams in pick order.", onDone)
         LazyColumn(Modifier.weight(1f)) {
@@ -554,7 +599,11 @@ private fun SourceRow(source: LineupSource, onClick: () -> Unit) {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(source.kind.label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                Text(day(source.at), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    day(source.at),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -566,7 +615,9 @@ private fun SourceRow(source: LineupSource, onClick: () -> Unit) {
                 LineupHeroes(Team.BLUE, source.blue)
             }
             Text(
-                listOf(source.red, source.blue).filter { it.isNotEmpty() }.joinToString(" vs ") { team -> team.joinToString(", ") { it.name } },
+                listOf(source.red, source.blue).filter {
+                    it.isNotEmpty()
+                }.joinToString(" vs ") { team -> team.joinToString(", ") { it.name } },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.xs),
@@ -577,7 +628,9 @@ private fun SourceRow(source: LineupSource, onClick: () -> Unit) {
 
 private val dayFormat = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
 
-private fun day(epochMillis: Long): String = Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).format(dayFormat)
+private fun day(epochMillis: Long): String = Instant.ofEpochMilli(
+    epochMillis,
+).atZone(ZoneId.systemDefault()).format(dayFormat)
 
 private val TILE = 84.dp
 private val TILE_LARGE = 120.dp

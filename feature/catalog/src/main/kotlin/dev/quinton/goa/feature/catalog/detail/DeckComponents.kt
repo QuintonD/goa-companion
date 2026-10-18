@@ -47,6 +47,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.cardtext.CardTextView
+import dev.quinton.goa.core.designsystem.cardtext.GameIcon
+import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -61,9 +64,6 @@ import dev.quinton.goa.feature.catalog.model.DeckGroupKind
 import dev.quinton.goa.feature.catalog.model.DeckLayout
 import dev.quinton.goa.feature.catalog.model.TierRow
 import dev.quinton.goa.feature.catalog.model.tierNumeral
-import dev.quinton.goa.core.designsystem.cardtext.CardTextView
-import dev.quinton.goa.core.designsystem.cardtext.GameIcon
-import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
 import dev.quinton.goa.feature.catalog.ui.ValueChip
 import dev.quinton.goa.feature.catalog.ui.blockMarkerLabel

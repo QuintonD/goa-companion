@@ -68,7 +68,9 @@ fun EntryProviderScope<NavKey>.boardEntries(navigator: Navigator) {
         // Every change is saved as it happens; a pending one is written when the board stops showing.
         val lifecycle = LocalLifecycleOwner.current.lifecycle
         DisposableEffect(lifecycle, viewModel) {
-            val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_STOP) viewModel.flush() }
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_STOP) viewModel.flush()
+            }
             lifecycle.addObserver(observer)
             onDispose {
                 lifecycle.removeObserver(observer)

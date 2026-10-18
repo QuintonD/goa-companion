@@ -86,7 +86,12 @@ internal fun BoardSheet(onDismiss: () -> Unit, content: @Composable () -> Unit) 
 /** Add a hero (from the catalog), a minion (team and type) or a token (a short label), then tap where. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun AddContent(state: BoardUiState.Ready, onAdd: (NewPiece) -> Unit, onDone: () -> Unit, modifier: Modifier = Modifier) {
+internal fun AddContent(
+    state: BoardUiState.Ready,
+    onAdd: (NewPiece) -> Unit,
+    onDone: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var team by rememberSaveable { mutableStateOf(Team.RED) }
     Column(modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
@@ -120,7 +125,8 @@ private fun HeroChoices(state: BoardUiState.Ready, onPick: (String) -> Unit) {
     val focus = LocalFocusManager.current
     val onBoard = state.heroIdsOnBoard
     val heroes = state.heroes.values.sortedBy { it.name }.filter {
-        query.isBlank() || it.name.contains(query.trim(), ignoreCase = true) || it.title.contains(query.trim(), ignoreCase = true)
+        query.isBlank() || it.name.contains(query.trim(), ignoreCase = true) ||
+            it.title.contains(query.trim(), ignoreCase = true)
     }
     SearchField(query, onChange = { query = it }, onSearch = { focus.clearFocus() })
     LazyColumn {
@@ -142,11 +148,25 @@ private fun HeroRow(hero: BoardHero, taken: Boolean, onClick: () -> Unit) {
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
     ) {
-        Row(Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-            HeroPortrait(hero.id, hero.portrait, null, Modifier.size(scaledIconSize(40.dp, maxScale = 1.5f)), shape = CircleShape)
+        Row(
+            Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            HeroPortrait(
+                hero.id,
+                hero.portrait,
+                null,
+                Modifier.size(scaledIconSize(40.dp, maxScale = 1.5f)),
+                shape = CircleShape,
+            )
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
-                Text(hero.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    hero.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text(
                     if (taken) "On the board already" else hero.title,
                     style = MaterialTheme.typography.bodySmall,
@@ -210,7 +230,12 @@ private fun TokenChoices(onPick: (String, Boolean) -> Unit) {
 
 /** Every piece by team, for TalkBack and quick selection: tap one to select it. */
 @Composable
-internal fun PiecesContent(state: BoardUiState.Ready, onSelect: (String) -> Unit, onDone: () -> Unit, modifier: Modifier = Modifier) {
+internal fun PiecesContent(
+    state: BoardUiState.Ready,
+    onSelect: (String) -> Unit,
+    onDone: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val palette = boardPalette()
     val groups = listOf(
         "Red" to state.pieces.filter { it.team() == Team.RED && it.at != null },
@@ -248,7 +273,11 @@ internal fun PiecesContent(state: BoardUiState.Ready, onSelect: (String) -> Unit
                             Spacer(Modifier.width(Spacing.md))
                             Column(Modifier.weight(1f)) {
                                 Text(name, style = MaterialTheme.typography.titleSmall)
-                                Text(where, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    where,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
                         }
                     }
@@ -274,7 +303,11 @@ private fun order(piece: BoardPiece): Int = when (piece) {
 
 /** Push the lane (p.8, steps 2–3): pick the team that won the push, per lane. */
 @Composable
-internal fun PushDialog(state: BoardUiState.Ready, onPush: (laneId: String, winner: Team) -> Unit, onDismiss: () -> Unit) {
+internal fun PushDialog(
+    state: BoardUiState.Ready,
+    onPush: (laneId: String, winner: Team) -> Unit,
+    onDismiss: () -> Unit,
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Push the lane", style = MaterialTheme.typography.headlineSmall) },
@@ -287,7 +320,13 @@ internal fun PushDialog(state: BoardUiState.Ready, onPush: (laneId: String, winn
                 )
                 state.map.lanes.forEachIndexed { i, lane ->
                     if (state.map.lanes.size > 1) {
-                        Text("Lane ${i + 1}", style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() })
+                        Text(
+                            "Lane ${i + 1}",
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.semantics {
+                                heading()
+                            },
+                        )
                     }
                     PushButtons(onPush = { onPush(lane.id, it) })
                 }
@@ -303,7 +342,10 @@ internal fun PushDialog(state: BoardUiState.Ready, onPush: (laneId: String, winn
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PushButtons(onPush: (Team) -> Unit) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
         Team.entries.forEach { team ->
             OutlinedButton(
                 onClick = { onPush(team) },
@@ -349,7 +391,11 @@ internal fun SheetTitle(title: String, subtitle: String?, onDone: () -> Unit) {
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
             if (subtitle != null) {
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         TextButton(onClick = onDone) { Text("Done") }
@@ -372,7 +418,9 @@ internal fun SearchField(
         leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
-                IconButton(onClick = { onChange("") }) { Icon(Icons.Outlined.Close, contentDescription = "Clear search") }
+                IconButton(onClick = {
+                    onChange("")
+                }) { Icon(Icons.Outlined.Close, contentDescription = "Clear search") }
             }
         },
         singleLine = true,

@@ -182,7 +182,9 @@ class BoardsAndSetupViewModelTest {
             ).inOrder()
             val draft = ready.sources.first { it.kind == LineupSourceKind.DRAFT }
             // Picks per team in pick order; bans are not heroes on the board.
-            assertThat(draft.lineup).isEqualTo(BoardLineup(listOf("test-hero-2", "test-hero-1"), listOf("test-hero-4", "test-hero-3")))
+            assertThat(
+                draft.lineup,
+            ).isEqualTo(BoardLineup(listOf("test-hero-2", "test-hero-1"), listOf("test-hero-4", "test-hero-3")))
             vm.onAction(NewBoardAction.Use(draft))
             val filled = expectMostRecentItem() as NewBoardUiState.Ready
             assertThat(filled.form.lineup).isEqualTo(draft.lineup)
@@ -192,7 +194,8 @@ class BoardsAndSetupViewModelTest {
     @Test
     fun `route pre-fills and the form survives process death`() = runTest(dispatcher) {
         val saved = SavedStateHandle()
-        val vm = newBoard(NewBoardRoute(red = listOf("test-hero-1"), blue = listOf("test-hero-2", "test-hero-1")), saved)
+        val vm =
+            newBoard(NewBoardRoute(red = listOf("test-hero-1"), blue = listOf("test-hero-2", "test-hero-1")), saved)
         vm.uiState.test {
             val ready = ready(NewBoardUiState.Ready::class.java) as NewBoardUiState.Ready
             assertThat(ready.form.red).containsExactly("test-hero-1")

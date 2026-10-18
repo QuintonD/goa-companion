@@ -68,7 +68,8 @@ data class OverlayUi(
     val radiusValue: Int? = null,
     val radius: Set<Hex> = emptySet(),
 ) {
-    val any: Boolean get() = movement.isNotEmpty() || fastTravel.isNotEmpty() || range.isNotEmpty() || radius.isNotEmpty()
+    val any: Boolean get() = movement.isNotEmpty() || fastTravel.isNotEmpty() || range.isNotEmpty() ||
+        radius.isNotEmpty()
 }
 
 /** A measured space: [distance] in spaces, obstacles counted (p.18); [straight] = in a straight line. */

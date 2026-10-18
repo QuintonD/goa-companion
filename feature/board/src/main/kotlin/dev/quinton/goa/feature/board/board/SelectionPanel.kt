@@ -244,7 +244,12 @@ private fun PanelChip(selected: Boolean, label: String, icon: @Composable () -> 
 }
 
 @Composable
-private fun HeroMeasures(state: BoardUiState.Ready, hero: BoardHero, palette: BoardPalette, onAction: (BoardAction) -> Unit) {
+private fun HeroMeasures(
+    state: BoardUiState.Ready,
+    hero: BoardHero,
+    palette: BoardPalette,
+    onAction: (BoardAction) -> Unit,
+) {
     val overlay = state.overlay ?: OverlayUi(OverlaySettings())
     val card = overlay.card
     Overline("Card")
@@ -269,7 +274,9 @@ private fun HeroMeasures(state: BoardUiState.Ready, hero: BoardHero, palette: Bo
         swatch = { c, m, u -> drawMovementCell(c, m, palette) },
         palette = palette,
         bonus = settings.movementBonus,
-        onBonus = { delta: Int -> onAction(BoardAction.MovementBonus(delta)) }.takeIf { card?.values?.movement != null },
+        onBonus = { delta: Int ->
+            onAction(BoardAction.MovementBonus(delta))
+        }.takeIf { card?.values?.movement != null },
         onToggle = { onAction(BoardAction.ToggleMovement) },
     )
     if (settings.movement && overlay.movementValue != null) {
@@ -295,7 +302,13 @@ private fun HeroMeasures(state: BoardUiState.Ready, hero: BoardHero, palette: Bo
     )
     OverlayRow(
         title = "Range" + (overlay.rangeValue?.let { " $it" } ?: ""),
-        note = if (card != null && card.values.range == null) "This card has no Range value." else "Spaces within range, obstacles counted (p.18).",
+        note = if (card != null &&
+            card.values.range == null
+        ) {
+            "This card has no Range value."
+        } else {
+            "Spaces within range, obstacles counted (p.18)."
+        },
         checked = settings.range && overlay.rangeValue != null,
         enabled = overlay.rangeValue != null,
         swatch = { c, m, u -> drawRangeCell(c, m, u, palette) },
@@ -306,7 +319,13 @@ private fun HeroMeasures(state: BoardUiState.Ready, hero: BoardHero, palette: Bo
     )
     OverlayRow(
         title = "Radius" + (overlay.radiusValue?.let { " $it" } ?: ""),
-        note = if (card != null && card.values.radius == null) "This card has no Radius value." else "Spaces within the radius, obstacles counted (p.18).",
+        note = if (card != null &&
+            card.values.radius == null
+        ) {
+            "This card has no Radius value."
+        } else {
+            "Spaces within the radius, obstacles counted (p.18)."
+        },
         checked = settings.radius && overlay.radiusValue != null,
         enabled = overlay.radiusValue != null,
         swatch = { c, m, u -> drawRadiusCell(c, m, u, palette) },
@@ -323,13 +342,22 @@ private fun HeroMeasures(state: BoardUiState.Ready, hero: BoardHero, palette: Bo
 }
 
 @Composable
-private fun StepsMeasure(state: BoardUiState.Ready, piece: BoardPiece, palette: BoardPalette, onAction: (BoardAction) -> Unit) {
+private fun StepsMeasure(
+    state: BoardUiState.Ready,
+    piece: BoardPiece,
+    palette: BoardPalette,
+    onAction: (BoardAction) -> Unit,
+) {
     val overlay = state.overlay ?: OverlayUi(OverlaySettings(movement = false))
     val settings = overlay.settings
     Overline("On the board")
     OverlayRow(
         title = "Movement ${settings.steps}",
-        note = if (piece is MinionPiece) "Where a card's “move N” could take it (p.11)." else "Where it could be moved N spaces (p.11).",
+        note = if (piece is MinionPiece) {
+            "Where a card's “move N” could take it (p.11)."
+        } else {
+            "Where it could be moved N spaces (p.11)."
+        },
         checked = settings.movement,
         enabled = true,
         swatch = { c, m, _ -> drawMovementCell(c, m, palette) },
@@ -363,7 +391,17 @@ private fun CardStrip(cards: List<Card>, selectedId: String?, onSelect: (String?
         modifier = Modifier.fillMaxWidth(),
     ) {
         items(cards, key = { it.id }) { card ->
-            CardChip(card, selected = card.id == selectedId, onClick = { onSelect(if (card.id == selectedId) null else card.id) })
+            CardChip(card, selected = card.id == selectedId, onClick = {
+                onSelect(
+                    if (card.id ==
+                        selectedId
+                    ) {
+                        null
+                    } else {
+                        card.id
+                    },
+                )
+            })
         }
     }
 }
@@ -405,8 +443,16 @@ private fun CardChip(card: Card, selected: Boolean, onClick: () -> Unit) {
                 )
                 card.initiative?.let {
                     Spacer(Modifier.width(6.dp))
-                    Icon(GameIcons.initiative.vector, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("$it", style = GoaTextStyles.numeric.copy(fontSize = MaterialTheme.typography.labelSmall.fontSize))
+                    Icon(
+                        GameIcons.initiative.vector,
+                        null,
+                        Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        "$it",
+                        style = GoaTextStyles.numeric.copy(fontSize = MaterialTheme.typography.labelSmall.fontSize),
+                    )
                 }
             }
             Text(card.name, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -439,7 +485,12 @@ private fun plus(card: Card, stat: Stat) = if (stat in card.values.plus) "+" els
 @Composable
 private fun ValueLabel(icon: GameIcon, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics(mergeDescendants = true) {}) {
-        Icon(icon.vector, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(scaledIconSize(16.dp)))
+        Icon(
+            icon.vector,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(scaledIconSize(16.dp)),
+        )
         Spacer(Modifier.width(Spacing.xs))
         Text(text, style = MaterialTheme.typography.bodyMedium)
     }
@@ -452,7 +503,12 @@ private fun CardQuote(card: Card) {
     Row(Modifier.fillMaxWidth().padding(vertical = Spacing.xs)) {
         Box(Modifier.width(3.dp).heightIn(min = 24.dp).background(accent.copy(alpha = 0.8f), RoundedCornerShape(2.dp)))
         Spacer(Modifier.width(Spacing.md))
-        CardTextView(card.text, style = MaterialTheme.typography.bodyMedium, iconTint = accent, modifier = Modifier.weight(1f))
+        CardTextView(
+            card.text,
+            style = MaterialTheme.typography.bodyMedium,
+            iconTint = accent,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
@@ -487,9 +543,13 @@ private fun OverlayRow(
                     title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.run { if (enabled) onSurface else onSurfaceVariant },
                 )
-                Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    note,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             Spacer(Modifier.width(Spacing.sm))
             Switch(checked = checked, onCheckedChange = null, enabled = enabled)
@@ -571,8 +631,11 @@ internal fun Note(text: String, modifier: Modifier = Modifier) {
 /** "Basic", "Tier I", "Tier II", "Tier III", "Ultimate". */
 internal fun tierLabel(card: Card): String = when {
     card.color == CardColor.GOLD || card.color == CardColor.SILVER -> "Basic"
+
     card.color == CardColor.PURPLE || card.tier == ULTIMATE_TIER -> "Ultimate"
-    else -> card.tier?.let { tier -> "Tier " + listOf("I", "II", "III").getOrElse(tier - 1) { tier.toString() } } ?: "Other"
+
+    else -> card.tier?.let { tier -> "Tier " + listOf("I", "II", "III").getOrElse(tier - 1) { tier.toString() } }
+        ?: "Other"
 }
 
 private const val ULTIMATE_TIER = 4

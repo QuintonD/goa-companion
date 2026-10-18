@@ -84,7 +84,9 @@ private fun HeroDisc(piece: HeroPiece, hero: BoardHero?, size: Dp, palette: Boar
             .border(ringWidth, ring, CircleShape)
             .padding(ringWidth)
             .clip(CircleShape)
-            .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, GoaTheme.colors.medallion))),
+            .background(
+                Brush.verticalGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, GoaTheme.colors.medallion)),
+            ),
         contentAlignment = Alignment.Center,
     ) {
         PiecePortrait(piece.heroId, hero?.portrait)
@@ -97,7 +99,10 @@ private fun HeroDisc(piece: HeroPiece, hero: BoardHero?, size: Dp, palette: Boar
     }
 }
 
-/** The official portrait, loaded big enough to stay sharp when zoomed in; the hero's sigil until (or unless) it loads. */
+/**
+ * The official portrait, loaded big enough to stay sharp when zoomed in; the hero's sigil until (or
+ * unless) it loads.
+ */
 @Composable
 private fun PiecePortrait(heroId: String, portrait: String?) {
     var loaded by remember(portrait) { mutableStateOf(false) }
@@ -165,7 +170,14 @@ private fun TokenSquare(piece: TokenPiece, size: Dp, palette: BoardPalette) {
 /** A team's shape as a small composable (lists, tray). */
 @Composable
 fun TeamShape(team: Team, size: Dp, palette: BoardPalette, modifier: Modifier = Modifier) {
-    Canvas(modifier.size(size)) { drawTeamMark(team, Offset(this.size.width / 2f, this.size.height / 2f), this.size.minDimension, palette.team(team)) }
+    Canvas(modifier.size(size)) {
+        drawTeamMark(
+            team,
+            Offset(this.size.width / 2f, this.size.height / 2f),
+            this.size.minDimension,
+            palette.team(team),
+        )
+    }
 }
 
 private const val PORTRAIT_PX = 256

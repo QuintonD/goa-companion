@@ -140,7 +140,8 @@ class NewBoardViewModel @AssistedInject constructor(
             red = savedState.get<List<String>>(KEY_RED) ?: route.red.distinct().take(NewBoardUiState.MAX_PER_TEAM),
             blue = savedState.get<List<String>>(KEY_BLUE)
                 ?: route.blue.distinct().filterNot { it in route.red }.take(NewBoardUiState.MAX_PER_TEAM),
-            filling = savedState.get<String>(KEY_FILLING)?.let { runCatching { Team.valueOf(it) }.getOrNull() } ?: Team.RED,
+            filling =
+                savedState.get<String>(KEY_FILLING)?.let { runCatching { Team.valueOf(it) }.getOrNull() } ?: Team.RED,
             mapId = savedState.get<String>(KEY_MAP) ?: route.mapId,
         ),
     )
@@ -164,15 +165,29 @@ class NewBoardViewModel @AssistedInject constructor(
         val draftSources = drafts.filterNot { it.matchId != null && it.matchId in inLog }
             .sortedByDescending { it.createdAt }
             .take(MAX_SOURCES)
-            .map { draft -> source("draft:${draft.id}", LineupSourceKind.DRAFT, draft.createdAt, draft.lineup(), heroes) }
+            .map { draft ->
+                source("draft:${draft.id}", LineupSourceKind.DRAFT, draft.createdAt, draft.lineup(), heroes)
+            }
         val matchSources = matches.filter { it.status != MatchStatus.ABANDONED }
             .sortedByDescending { it.playedAt }
             .take(MAX_SOURCES)
             .map { match ->
-                val kind = if (match.status == MatchStatus.PENDING) LineupSourceKind.PENDING else LineupSourceKind.LOGGED
+                val kind = if (match.status ==
+                    MatchStatus.PENDING
+                ) {
+                    LineupSourceKind.PENDING
+                } else {
+                    LineupSourceKind.LOGGED
+                }
                 val seats = match.lineup()
                 val picks = draftOf[match.id]?.lineup()
-                val lineup = if (picks != null && picks.red.toSet() == seats.red.toSet() && picks.blue.toSet() == seats.blue.toSet()) picks else seats
+                val lineup = if (picks != null && picks.red.toSet() == seats.red.toSet() &&
+                    picks.blue.toSet() == seats.blue.toSet()
+                ) {
+                    picks
+                } else {
+                    seats
+                }
                 source("match:${match.id}", kind, match.playedAt, lineup, heroes)
             }
         val all = (matchSources + draftSources).filter { it.lineup.size > 0 }.sortedByDescending { it.at }
@@ -224,9 +239,12 @@ class NewBoardViewModel @AssistedInject constructor(
         fun reduce(form: NewBoardForm, action: NewBoardAction): NewBoardForm = when (action) {
             is NewBoardAction.Tap -> when {
                 form.contains(action.heroId) -> form.without(action.heroId)
+
                 form.team(form.filling).size < NewBoardUiState.MAX_PER_TEAM -> form.with(form.filling, action.heroId)
+
                 form.team(form.filling.opponent).size < NewBoardUiState.MAX_PER_TEAM ->
                     form.with(form.filling.opponent, action.heroId).copy(filling = form.filling.opponent)
+
                 else -> form
             }
 
@@ -234,40 +252,40 @@ class NewBoardViewModel @AssistedInject constructor(
 
             is NewBoardAction.Remove -> form.without(action.heroId)
 
-            is NewBoardAction.Reorder -> {
-                val team = if (action.heroId in form.red) Team.RED else Team.BLUE
-                val list = form.team(team).toMutableList()
-                val from = list.indexOf(action.heroId)
-                val to = from + action.by
-                if (from < 0 || to !in list.indices) {
-                    form
-                } else {
-                    list.add(to, list.removeAt(from))
-                    form.withTeam(team, list)
-                }
-            }
+            is NewBoardAction.Reorder -> form.reorder(action.heroId, action.by)
 
-            is NewBoardAction.SwitchTeam -> {
-                val team = when (action.heroId) {
-                    in form.red -> Team.RED
-                    in form.blue -> Team.BLUE
-                    else -> null
-                }
-                if (team == null || form.team(team.opponent).size >= NewBoardUiState.MAX_PER_TEAM) {
-                    form
-                } else {
-                    form.without(action.heroId).with(team.opponent, action.heroId)
-                }
-            }
+            is NewBoardAction.SwitchTeam -> form.switchTeam(action.heroId)
 
             is NewBoardAction.Use -> form.copy(
                 red = action.source.lineup.red.take(NewBoardUiState.MAX_PER_TEAM),
-                blue = action.source.lineup.blue.filterNot { it in action.source.lineup.red }.take(NewBoardUiState.MAX_PER_TEAM),
+                blue = action.source.lineup.blue.filterNot {
+                    it in action.source.lineup.red
+                }.take(NewBoardUiState.MAX_PER_TEAM),
             )
 
             is NewBoardAction.ChooseMap -> form.copy(mapId = action.mapId)
 
             NewBoardAction.Clear -> form.copy(red = emptyList(), blue = emptyList(), filling = Team.RED)
+        }
+
+        private fun NewBoardForm.reorder(heroId: String, by: Int): NewBoardForm {
+            val team = if (heroId in red) Team.RED else Team.BLUE
+            val list = team(team).toMutableList()
+            val from = list.indexOf(heroId)
+            val to = from + by
+            if (from < 0 || to !in list.indices) return this
+            list.add(to, list.removeAt(from))
+            return withTeam(team, list)
+        }
+
+        private fun NewBoardForm.switchTeam(heroId: String): NewBoardForm {
+            val team = when (heroId) {
+                in red -> Team.RED
+                in blue -> Team.BLUE
+                else -> return this
+            }
+            if (team(team.opponent).size >= NewBoardUiState.MAX_PER_TEAM) return this
+            return without(heroId).with(team.opponent, heroId)
         }
 
         private fun NewBoardForm.with(team: Team, heroId: String) = withTeam(team, team(team) + heroId)

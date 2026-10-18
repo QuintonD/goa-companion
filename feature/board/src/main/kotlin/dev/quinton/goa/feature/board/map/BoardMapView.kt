@@ -50,8 +50,8 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -90,6 +90,15 @@ import dev.quinton.goa.feature.board.ui.drawTerrain
 import dev.quinton.goa.feature.board.ui.hexPath
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
+
+/** What a touch on the map turned out to be. */
+private enum class Gesture { TAP, PAN, PINCH, DRAG }
+
+/** The last tap; [inert] = it changed nothing on the board, so a second tap right after zooms. */
+private data class LastTap(val time: Long, val at: Offset, val inert: Boolean) {
+    fun isDoubleWith(time: Long, at: Offset, timeout: Long, slop: Float): Boolean =
+        inert && time - this.time < timeout && (this.at - at).getDistance() < slop
+}
 
 /** A piece being dragged: where it is under the finger (content px). */
 private data class Drag(val pieceId: String, val at: Offset)
@@ -132,82 +141,75 @@ fun BoardMapView(
             .background(palette.canvas)
             .onSizeChanged { viewport.setUp(layout, Size(it.width.toFloat(), it.height.toFloat()), maxHexPx) }
             .pointerInput(layout, viewport) {
-                var lastTap: Triple<Long, Offset, Boolean>? = null
+                var lastTap: LastTap? = null
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     val board = current
                     val startPiece = pieceUnder(board, layout, viewport, down.position)
                         ?.takeIf { board.tool == BoardTool.Move }
                     var travelled = 0f
-                    var panning = false
-                    var pinching = false
-                    var dragging = false
+                    var mode = Gesture.TAP
                     var upTime = down.uptimeMillis
-                    while (true) {
+                    var active = true
+                    while (active) {
                         val event = awaitPointerEvent()
                         val pressed = event.changes.filter { it.pressed }
-                        if (pressed.isEmpty()) {
-                            upTime = event.changes.firstOrNull()?.uptimeMillis ?: upTime
-                            break
-                        }
-                        if (pressed.size > 1) {
-                            if (dragging) {
-                                dragging = false
-                                drag = null
-                            }
-                            pinching = true
-                            viewport.transform(event.calculateZoom(), event.calculateCentroid(), event.calculatePan())
-                            event.changes.forEach { it.consume() }
-                            continue
-                        }
-                        val change = pressed.first()
-                        val delta = change.position - change.previousPosition
-                        travelled += delta.getDistance()
-                        if (!panning && !pinching && !dragging && travelled > viewConfiguration.touchSlop) {
-                            if (startPiece != null) {
-                                dragging = true
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            } else {
-                                panning = true
-                            }
-                        }
                         when {
-                            dragging -> {
-                                drag = Drag(startPiece!!.id, viewport.toContent(change.position))
-                                change.consume()
+                            pressed.isEmpty() -> {
+                                upTime = event.changes.firstOrNull()?.uptimeMillis ?: upTime
+                                active = false
                             }
 
-                            panning || pinching -> {
-                                viewport.panBy(delta)
-                                change.consume()
+                            pressed.size > 1 -> {
+                                if (mode == Gesture.DRAG) drag = null
+                                mode = Gesture.PINCH
+                                viewport.transform(
+                                    event.calculateZoom(),
+                                    event.calculateCentroid(),
+                                    event.calculatePan(),
+                                )
+                                event.changes.forEach { it.consume() }
+                            }
+
+                            else -> {
+                                val change = pressed.first()
+                                val delta = change.position - change.previousPosition
+                                travelled += delta.getDistance()
+                                if (mode == Gesture.TAP && travelled > viewConfiguration.touchSlop) {
+                                    mode = if (startPiece != null) Gesture.DRAG else Gesture.PAN
+                                    if (mode ==
+                                        Gesture.DRAG
+                                    ) {
+                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    }
+                                }
+                                when (mode) {
+                                    Gesture.DRAG -> drag = Drag(startPiece!!.id, viewport.toContent(change.position))
+                                    Gesture.PAN, Gesture.PINCH -> viewport.panBy(delta)
+                                    Gesture.TAP -> Unit
+                                }
+                                if (mode != Gesture.TAP) change.consume()
                             }
                         }
                     }
                     val dropped = drag
                     when {
-                        dragging && dropped != null -> {
+                        mode == Gesture.DRAG && dropped != null -> {
                             drag = null
                             drop(dropped.pieceId, layout.hexAt(dropped.at / viewport.unit))
                             lastTap = null
                         }
 
-                        !panning && !pinching -> {
-                            val previous = lastTap
-                            val isDouble = previous != null && previous.third &&
-                                upTime - previous.first < viewConfiguration.doubleTapTimeoutMillis &&
-                                (previous.second - down.position).getDistance() < doubleTapPx
-                            if (isDouble) {
+                        mode == Gesture.TAP -> {
+                            val timeout = viewConfiguration.doubleTapTimeoutMillis
+                            if (lastTap?.isDoubleWith(upTime, down.position, timeout, doubleTapPx) == true) {
                                 lastTap = null
                                 scope.launch { viewport.zoomStep(down.position) }
                             } else {
-                                val changed = when (val resolved = resolveTap(current, layout, viewport, down.position, touchPx)) {
-                                    null -> {
-                                        ambiguous(down.position)
-                                        false
-                                    }
-                                    else -> tap(resolved)
-                                }
-                                lastTap = Triple(upTime, down.position, !changed)
+                                val resolved = resolveTap(current, layout, viewport, down.position, touchPx)
+                                if (resolved == null) ambiguous(down.position)
+                                val changed = resolved != null && tap(resolved)
+                                lastTap = LastTap(upTime, down.position, inert = !changed)
                             }
                         }
 
@@ -244,7 +246,12 @@ fun BoardMapView(
 // ---- Touch resolution --------------------------------------------------------------------
 
 /** The piece whose disc is under [screen], if any (pieces in the tray aren't on the map). */
-private fun pieceUnder(state: BoardUiState.Ready, layout: MapLayout, viewport: MapViewport, screen: Offset): BoardPiece? {
+private fun pieceUnder(
+    state: BoardUiState.Ready,
+    layout: MapLayout,
+    viewport: MapViewport,
+    screen: Offset,
+): BoardPiece? {
     val hex = layout.hexAt(viewport.screenToMap(screen))
     BoardRules.occupancy(state.board.state)[hex]?.let { return it }
     val radius = PIECE_SIZE / 2f * viewport.scale
@@ -288,7 +295,9 @@ internal fun resolveTap(
 @Composable
 private fun MapBase(state: BoardUiState.Ready, layout: MapLayout, unit: Float, palette: BoardPalette) {
     val map = state.map
-    val battleZones = state.board.state.battleZones.values.toSet().ifEmpty { map.lanes.map { it.startingBattleZone }.toSet() }
+    val battleZones = state.board.state.battleZones.values.toSet().ifEmpty {
+        map.lanes.map { it.startingBattleZone }.toSet()
+    }
     Spacer(
         Modifier.fillMaxSize().drawWithCache {
             val geometry = state.geometry
@@ -305,7 +314,18 @@ private fun MapBase(state: BoardUiState.Ready, layout: MapLayout, unit: Float, p
             }.mapValues { (_, spaces) ->
                 Path().apply { spaces.forEach { addPath(hexPath(layout.corners(it.hex).map { c -> c * unit })) } }
             }
-            val outlines = Path().apply { map.spaces.forEach { addPath(hexPath(layout.corners(it.hex).map { c -> c * unit })) } }
+            val outlines = Path().apply {
+                map.spaces.forEach {
+                    addPath(
+                        hexPath(
+                            layout.corners(it.hex).map { c ->
+                                c *
+                                    unit
+                            },
+                        ),
+                    )
+                }
+            }
             // Zone borders: every edge between two Zones or at the edge of the board.
             val borders = Path()
             val battleBorders = Path()
@@ -327,7 +347,13 @@ private fun MapBase(state: BoardUiState.Ready, layout: MapLayout, unit: Float, p
                 fills.forEach { (color, path) -> drawPath(path, color) }
                 drawPath(outlines, palette.gap, style = gap)
                 map.terrain.forEachIndexed { i, hex ->
-                    drawTerrain(layout.corners(hex).map { it * unit }, layout.center(hex) * unit, unit, palette, hex.q * 7 + hex.r * 13 + i)
+                    drawTerrain(
+                        layout.corners(hex).map { it * unit },
+                        layout.center(hex) * unit,
+                        unit,
+                        palette,
+                        hex.q * 7 + hex.r * 13 + i,
+                    )
                 }
                 drawPath(borders, palette.zoneBorder, style = border)
                 drawPath(battleBorders, palette.battleBorder, style = battle)
@@ -354,14 +380,18 @@ private fun MapOverlays(state: BoardUiState.Ready, layout: MapLayout, unit: Floa
                 fun cell(hex: Hex) = layout.corners(hex).map { it * unit } to layout.center(hex) * unit
                 overlay?.radius?.forEach { hex -> cell(hex).let { (c, m) -> drawRadiusCell(c, m, unit, palette) } }
                 overlay?.range?.forEach { hex -> cell(hex).let { (c, m) -> drawRangeCell(c, m, unit, palette) } }
-                overlay?.fastTravel?.forEach { hex -> cell(hex).let { (c, m) -> drawFastTravelCell(c, m, unit, palette) } }
+                overlay?.fastTravel?.forEach { hex ->
+                    cell(hex).let { (c, m) -> drawFastTravelCell(c, m, unit, palette) }
+                }
                 overlay?.movement?.forEach { (hex, steps) ->
                     val (c, m) = cell(hex)
                     drawMovementCell(c, m, palette)
                     val text = number(steps)
                     drawText(text, topLeft = m - Offset(text.size.width / 2f, text.size.height / 2f))
                 }
-                state.activeWaiting?.targets?.forEach { hex -> cell(hex).let { (c, m) -> drawTargetCell(c, m, unit, palette) } }
+                state.activeWaiting?.targets?.forEach { hex ->
+                    cell(hex).let { (c, m) -> drawTargetCell(c, m, unit, palette) }
+                }
                 state.selected?.at?.let { hex -> cell(hex).let { (c, m) -> drawSelectionCell(c, m, unit, palette) } }
                 state.measure?.let { measure ->
                     val from = state.selected?.at ?: return@let
@@ -380,7 +410,16 @@ private fun MapOverlays(state: BoardUiState.Ready, layout: MapLayout, unit: Floa
                         b,
                         strokeWidth = unit * 0.12f,
                         cap = StrokeCap.Round,
-                        pathEffect = if (measure.straight) null else PathEffect.dashPathEffect(floatArrayOf(unit * 0.3f, unit * 0.2f)),
+                        pathEffect = if (measure.straight) {
+                            null
+                        } else {
+                            PathEffect.dashPathEffect(
+                                floatArrayOf(
+                                    unit * 0.3f,
+                                    unit * 0.2f,
+                                ),
+                            )
+                        },
                     )
                     val (c, _) = cell(measure.target)
                     drawPath(hexPath(c), palette.measure, style = Stroke(width = unit * 0.16f, join = StrokeJoin.Round))
@@ -404,11 +443,18 @@ private fun Pieces(state: BoardUiState.Ready, layout: MapLayout, unit: Float, pa
     val sizePx = PIECE_SIZE * unit
     val sizeDp = with(density) { sizePx.toDp() }
     // Draw the selected and the dragged piece last, above their neighbours.
-    val ordered = state.pieces.filter { it.at != null }.sortedBy { (it.id == state.selectedId) || (it.id == drag?.pieceId) }
+    val ordered = state.pieces.filter { it.at != null }.sortedBy {
+        (it.id == state.selectedId) ||
+            (it.id == drag?.pieceId)
+    }
     ordered.forEach { piece ->
         key(piece.id) {
             val target = layout.center(piece.at!!) * unit - Offset(sizePx / 2f, sizePx / 2f)
-            val animated by animateOffsetAsState(target, tween(Motion.MEDIUM_MS, easing = Motion.Emphasized), label = "piece")
+            val animated by animateOffsetAsState(
+                target,
+                tween(Motion.MEDIUM_MS, easing = Motion.Emphasized),
+                label = "piece",
+            )
             val dragging = drag?.pieceId == piece.id
             PieceToken(
                 piece = piece,
@@ -438,7 +484,11 @@ private fun SpaceNodes(state: BoardUiState.Ready, layout: MapLayout, unit: Float
     val sideDp: Dp = with(density) { side.toDp() }
     val occupied = remember(state.board.state) { BoardRules.occupancy(state.board.state) }
     val ordered = remember(layout, state.map) {
-        state.map.spaces.sortedWith(compareBy({ (layout.center(it.hex).y / 1.2f).roundToInt() }, { layout.center(it.hex).x }))
+        state.map.spaces.sortedWith(
+            compareBy({
+                (layout.center(it.hex).y / 1.2f).roundToInt()
+            }, { layout.center(it.hex).x }),
+        )
     }
     ordered.forEach { space ->
         key(space.hex) {
@@ -472,7 +522,9 @@ private fun SpaceNodes(state: BoardUiState.Ready, layout: MapLayout, unit: Float
 @Composable
 private fun ZoneLabels(state: BoardUiState.Ready, layout: MapLayout, viewport: MapViewport, palette: BoardPalette) {
     val map = state.map
-    val battle = state.board.state.battleZones.values.toSet().ifEmpty { map.lanes.map { it.startingBattleZone }.toSet() }
+    val battle = state.board.state.battleZones.values.toSet().ifEmpty {
+        map.lanes.map { it.startingBattleZone }.toSet()
+    }
     val labels = remember(map, layout, battle) {
         val geometry = state.geometry
         buildList {
@@ -481,10 +533,29 @@ private fun ZoneLabels(state: BoardUiState.Ready, layout: MapLayout, viewport: M
                 // At the Throne Zone's outer edge: the bottom (left) team's lowest (leftmost) space.
                 val bottom = zone.team == state.bottomTeam
                 val anchor = when (layout.orientation) {
-                    MapOrientation.PORTRAIT -> if (bottom) hexes.maxBy { layout.center(it).y } else hexes.minBy { layout.center(it).y }
-                    MapOrientation.LANDSCAPE -> if (bottom) hexes.minBy { layout.center(it).x } else hexes.maxBy { layout.center(it).x }
+                    MapOrientation.PORTRAIT -> if (bottom) {
+                        hexes.maxBy {
+                            layout.center(it).y
+                        }
+                    } else {
+                        hexes.minBy { layout.center(it).y }
+                    }
+
+                    MapOrientation.LANDSCAPE -> if (bottom) {
+                        hexes.minBy {
+                            layout.center(it).x
+                        }
+                    } else {
+                        hexes.maxBy { layout.center(it).x }
+                    }
                 }
-                add(ZoneLabel("${if (zone.team == Team.RED) "RED" else "BLUE"} THRONE", zone.team, layout.center(anchor)))
+                add(
+                    ZoneLabel(
+                        "${if (zone.team == Team.RED) "RED" else "BLUE"} THRONE",
+                        zone.team,
+                        layout.center(anchor),
+                    ),
+                )
             }
             battle.forEach { zoneId ->
                 val hexes = geometry.zoneSpaces[zoneId].orEmpty().ifEmpty { return@forEach }
@@ -510,8 +581,14 @@ private fun ZoneLabels(state: BoardUiState.Ready, layout: MapLayout, viewport: M
                         // A label whose Zone is out of view goes, rather than crowding the edge.
                         val inView = at.x in 0f..viewport.viewport.width && at.y in 0f..viewport.viewport.height
                         if (inView) {
-                            val x = (at.x - placeable.width / 2f).coerceIn(margin, viewport.viewport.width - placeable.width - margin)
-                            val y = (at.y - placeable.height / 2f).coerceIn(margin, viewport.viewport.height - placeable.height - margin)
+                            val x = (at.x - placeable.width / 2f).coerceIn(
+                                margin,
+                                viewport.viewport.width - placeable.width - margin,
+                            )
+                            val y = (at.y - placeable.height / 2f).coerceIn(
+                                margin,
+                                viewport.viewport.height - placeable.height - margin,
+                            )
                             placeable.place(x.roundToInt(), y.roundToInt())
                         }
                     }

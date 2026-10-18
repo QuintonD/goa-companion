@@ -20,6 +20,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -103,7 +104,9 @@ class DataStoreBoardRepositoryTest {
             pieces = listOf(
                 HeroPiece("p1", Hex(0, 0), "arien", Team.RED),
                 MinionPiece("p2", Hex(1, -1), Team.BLUE, MinionType.HEAVY),
-                TokenPiece("p3", null, "Mine"),
+                TokenPiece("p3", Hex(2, -1), "Mine", Team.RED),
+                // Waiting in the tray.
+                MinionPiece("p4", null, Team.RED, MinionType.MELEE),
             ),
             battleZones = mapOf("lane" to "mid"),
         ),
@@ -124,6 +127,17 @@ class DataStoreBoardRepositoryTest {
         repo.delete("a")
         assertThat(repo.observe("a").first()).isNull()
         assertThat(repo.boards.first().map { it.id }).containsExactly("b", "c").inOrder()
+    }
+
+    @Test
+    fun `a board with a hero, a minion, a token and a tray piece round-trips through plain JSON`() {
+        val board = board("a", 10)
+        // The default discriminator "type" names the piece; a minion's type is stored as "minion".
+        val json = Json.encodeToString(SavedBoard.serializer(), board)
+        assertThat(json).contains(""""type":"minion"""")
+        assertThat(json).contains(""""minion":"heavy"""")
+        assertThat(Json.decodeFromString(SavedBoard.serializer(), json)).isEqualTo(board)
+        assertThat(BoardJson.decode(BoardJson.encode(board))).isEqualTo(board)
     }
 
     @Test

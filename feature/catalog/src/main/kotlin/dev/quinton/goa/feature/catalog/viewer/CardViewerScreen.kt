@@ -63,6 +63,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
+import dev.quinton.goa.core.designsystem.cardtext.CardTextView
+import dev.quinton.goa.core.designsystem.cardtext.GameIcon
+import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.assetUrl
@@ -72,9 +75,6 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.feature.catalog.detail.printedValues
-import dev.quinton.goa.core.designsystem.cardtext.CardTextView
-import dev.quinton.goa.core.designsystem.cardtext.GameIcon
-import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.feature.catalog.ui.blockMarkerLabel
 import dev.quinton.goa.feature.catalog.ui.handicapBasis
 import dev.quinton.goa.feature.catalog.ui.kindLabel

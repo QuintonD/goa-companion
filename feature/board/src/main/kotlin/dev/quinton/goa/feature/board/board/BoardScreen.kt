@@ -261,7 +261,8 @@ private fun BoardContent(
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight
         val orientation = if (landscape) MapOrientation.LANDSCAPE else MapOrientation.PORTRAIT
-        val layout = remember(state.map, orientation, state.bottomTeam) { MapLayout(state.map, orientation, state.bottomTeam) }
+        val layout =
+            remember(state.map, orientation, state.bottomTeam) { MapLayout(state.map, orientation, state.bottomTeam) }
         var collapsed by rememberSaveable { mutableStateOf(false) }
         val scope = rememberCoroutineScope()
         var panelSize by remember { mutableIntStateOf(0) }
@@ -277,7 +278,9 @@ private fun BoardContent(
             val margin = with(density) { 56.dp.toPx() }
             val visibleRight = viewport.viewport.width - if (landscape) panelSize.toFloat() else 0f
             val visibleBottom = viewport.viewport.height - if (landscape) 0f else panelSize.toFloat()
-            val outside = screen.x < margin || screen.x > visibleRight - margin || screen.y < margin || screen.y > visibleBottom - margin
+            val outside =
+                screen.x < margin || screen.x > visibleRight - margin || screen.y < margin ||
+                    screen.y > visibleBottom - margin
             if (outside) viewport.bringTo(layout.center(at), Offset(visibleRight / 2f, visibleBottom / 2f))
         }
 
@@ -333,7 +336,14 @@ private fun BoardContent(
         if (selected != null) {
             Surface(
                 modifier = panelModifier.onSizeChanged { panelSize = if (landscape) it.width else it.height },
-                shape = if (landscape) RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp) else RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                shape = if (landscape) {
+                    RoundedCornerShape(
+                        topStart = 28.dp,
+                        bottomStart = 28.dp,
+                    )
+                } else {
+                    RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                },
                 color = MaterialTheme.colorScheme.surface,
                 border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
                 shadowElevation = 6.dp,
@@ -400,9 +410,13 @@ private fun ToolBanner(state: BoardUiState.Ready, onAction: (BoardAction) -> Uni
     val tool = state.tool
     val text = when (tool) {
         BoardTool.Measure -> state.measure?.let { measure ->
-            "${BoardText.spaces(measure.distance)} · ${if (measure.straight) "in a straight line" else "not in a straight line"}"
+            "${BoardText.spaces(
+                measure.distance,
+            )} · ${if (measure.straight) "in a straight line" else "not in a straight line"}"
         } ?: "Measure: tap any space"
+
         is BoardTool.Place -> "Tap an empty space for ${placeLabel(state, tool.piece)}"
+
         BoardTool.Move -> null
     }
     AnimatedVisibility(visible = text != null, enter = fadeIn(), exit = fadeOut()) {
@@ -418,7 +432,11 @@ private fun ToolBanner(state: BoardUiState.Ready, onAction: (BoardAction) -> Uni
             ) {
                 Column(Modifier.weight(1f, fill = false).padding(vertical = Spacing.sm)) {
                     if (tool == BoardTool.Measure && state.measure != null) {
-                        Text("MEASURED · p.18", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                        Text(
+                            "MEASURED · p.18",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.secondary,
+                        )
                     }
                     Text(
                         text.orEmpty(),
@@ -469,9 +487,15 @@ private fun Toolbar(onOpen: (BoardOverlay) -> Unit, compact: Boolean) {
         modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth(),
     ) {
         Row(Modifier.padding(Spacing.xs)) {
-            ToolButton(Icons.Outlined.AddCircleOutline, "Add", compact, Modifier.weight(1f)) { onOpen(BoardOverlay.ADD) }
-            ToolButton(Icons.Outlined.KeyboardDoubleArrowUp, "Push the lane", compact, Modifier.weight(1f)) { onOpen(BoardOverlay.PUSH) }
-            ToolButton(Icons.AutoMirrored.Outlined.FormatListBulleted, "Pieces", compact, Modifier.weight(1f)) { onOpen(BoardOverlay.PIECES) }
+            ToolButton(Icons.Outlined.AddCircleOutline, "Add", compact, Modifier.weight(1f)) {
+                onOpen(BoardOverlay.ADD)
+            }
+            ToolButton(Icons.Outlined.KeyboardDoubleArrowUp, "Push the lane", compact, Modifier.weight(1f)) {
+                onOpen(BoardOverlay.PUSH)
+            }
+            ToolButton(Icons.AutoMirrored.Outlined.FormatListBulleted, "Pieces", compact, Modifier.weight(1f)) {
+                onOpen(BoardOverlay.PIECES)
+            }
         }
     }
 }
@@ -485,7 +509,12 @@ private fun ToolButton(icon: ImageVector, label: String, compact: Boolean, modif
         modifier = modifier.heightIn(min = if (compact) 48.dp else 56.dp),
     ) {
         val iconContent = @Composable {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(scaledIconSize(24.dp, 1.4f)))
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(scaledIconSize(24.dp, 1.4f)),
+            )
         }
         if (compact) {
             Row(
@@ -546,14 +575,33 @@ private fun WaitingTray(state: BoardUiState.Ready, onAction: (BoardAction) -> Un
                     val name = BoardText.piece(piece) { state.heroes.hero(it).name }
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = if (active) MaterialTheme.colorScheme.secondary.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(if (active) 2.dp else 1.dp, if (active) MaterialTheme.colorScheme.secondary else GoaTheme.colors.engravedBorder),
+                        color = if (active) {
+                            MaterialTheme.colorScheme.secondary.copy(
+                                alpha = 0.16f,
+                            )
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        },
+                        border = BorderStroke(
+                            if (active) 2.dp else 1.dp,
+                            if (active) MaterialTheme.colorScheme.secondary else GoaTheme.colors.engravedBorder,
+                        ),
                         modifier = Modifier.selectable(selected = active, role = Role.RadioButton) {
                             onAction(BoardAction.ActivateWaiting(piece.id))
                         },
                     ) {
-                        Row(Modifier.padding(horizontal = Spacing.sm, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            PieceToken(piece, (piece as? HeroPiece)?.let { state.heroes.hero(it.heroId) }, 28.dp, palette)
+                        Row(
+                            Modifier.padding(horizontal = Spacing.sm, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            PieceToken(
+                                piece,
+                                (piece as? HeroPiece)?.let {
+                                    state.heroes.hero(it.heroId)
+                                },
+                                28.dp,
+                                palette,
+                            )
                             Spacer(Modifier.width(Spacing.sm))
                             Text(name, style = MaterialTheme.typography.labelLarge)
                         }

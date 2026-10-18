@@ -116,7 +116,12 @@ fun BoardsScreen(
                 )
 
                 else -> LazyColumn(
-                    contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, top = Spacing.lg, bottom = 96.dp),
+                    contentPadding = PaddingValues(
+                        start = Spacing.screen,
+                        end = Spacing.screen,
+                        top = Spacing.lg,
+                        bottom = 96.dp,
+                    ),
                     verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     modifier = Modifier.fillMaxSize(),
                 ) {
@@ -170,7 +175,12 @@ private fun BoardRow(
                     .weight(1f)
                     .semantics(mergeDescendants = true) {},
             ) {
-                Text(board.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(
+                    board.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 FlowRow(
                     verticalArrangement = Arrangement.Center,
                     itemVerticalAlignment = Alignment.CenterVertically,
@@ -194,7 +204,11 @@ private fun BoardRow(
                 ) {
                     LineupHeroes(Team.RED, board.red)
                     if (board.red.isNotEmpty() && board.blue.isNotEmpty()) {
-                        Text("vs", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "vs",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                     LineupHeroes(Team.BLUE, board.blue)
                 }
@@ -228,7 +242,13 @@ private fun BoardRow(
                     )
                     DropdownMenuItem(
                         text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                        leadingIcon = { Icon(Icons.Outlined.DeleteOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Outlined.DeleteOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        },
                         onClick = {
                             menu = false
                             onDelete()
