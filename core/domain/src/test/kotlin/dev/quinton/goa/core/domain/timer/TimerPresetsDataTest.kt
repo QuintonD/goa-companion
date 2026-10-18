@@ -31,9 +31,13 @@ class TimerPresetsDataTest {
         assertThat(kind(PhaseKind.UPGRADE).seconds).isEqualTo(120)
         assertThat(kind(PhaseKind.UPGRADE).scope).isEqualTo(PhaseScope.ROUND_END)
         assertThat(kind(PhaseKind.UPGRADE).endStepId).isEqualTo("level_up")
-        assertThat(kind(PhaseKind.ACTION).enabled).isFalse()
+        // Owner's table rules (2026-10-18): every hero resolving gets 0:30, each turn.
+        assertThat(kind(PhaseKind.ACTION).enabled).isTrue()
+        assertThat(kind(PhaseKind.ACTION).seconds).isEqualTo(30)
+        assertThat(kind(PhaseKind.ACTION).scope).isEqualTo(PhaseScope.TURN)
         assertThat(table.autoAdvance).isFalse()
-        // Rulebook p.7: cards are revealed, then resolved one by one in initiative order (untimed).
+        // Rulebook p.7: cards are revealed, then resolved one by one in initiative order. The
+        // untimed Resolve step stays in the preset for when the Action timer is switched off.
         assertThat(kind(PhaseKind.TURN).name).isEqualTo("Play a card")
         assertThat(kind(PhaseKind.RESOLVE).scope).isEqualTo(PhaseScope.TURN)
         assertThat(kind(PhaseKind.RESOLVE).seconds).isNull()
@@ -47,7 +51,27 @@ class TimerPresetsDataTest {
 
     @Test
     fun `every bundled preset carries the current data revision`() {
-        assertThat(bundledPresets.presets.map { it.revision }.distinct()).containsExactly(1)
+        assertThat(bundledPresets.presets.map { it.revision }.distinct()).containsExactly(2)
+    }
+
+    @Test
+    fun `table rules resolve every hero on their own clock each turn`() {
+        val table = bundledPresets.presets.single { it.id == bundledPresets.defaultPresetId }
+        val plan = TimerPlan(table, endOfRound, actionSlots = 6)
+        val turn = plan.steps.filter { it.turn == 1 }
+
+        assertThat(turn.map { it.phase?.kind }).containsExactly(
+            PhaseKind.TURN,
+            PhaseKind.ACTION,
+            PhaseKind.ACTION,
+            PhaseKind.ACTION,
+            PhaseKind.ACTION,
+            PhaseKind.ACTION,
+            PhaseKind.ACTION,
+        ).inOrder()
+        assertThat(turn.drop(1).map { it.seconds }.toSet()).containsExactly(30)
+        assertThat(plan.steps.count { it.isAction }).isEqualTo(6 * TimerPreset.RULEBOOK_TURNS_PER_ROUND)
+        assertThat(plan.steps.none { it.phase?.kind == PhaseKind.RESOLVE }).isTrue()
     }
 
     @Test

@@ -56,14 +56,14 @@ object TimerPreviewData {
         PresetOption(
             "table-rules",
             "Table rules",
-            "Pre-round strategy 1:30 · Play a card 0:30 ×4 · Resolve · Upgrade 2:00",
-            false,
+            "Pre-round strategy 1:30 · Play a card 0:30 ×4 · Action 0:30 per hero · Upgrade 2:00",
+            true,
         ),
         PresetOption(
             "relaxed",
             "Relaxed",
-            "Pre-round strategy 3:00 · Play a card 1:00 ×4 · Resolve · Upgrade 3:00",
-            false,
+            "Pre-round strategy 3:00 · Play a card 1:00 ×4 · Action 0:45 per hero · Upgrade 3:00",
+            true,
         ),
         PresetOption("untimed", "Untimed (counters only)", "Untimed · round and turn counters", false),
     )
@@ -211,7 +211,8 @@ object TimerPreviewData {
         title = "Test Hero 3 · Cleo",
         context = "Turn 3 of 4 · resolution 3 of 6",
         kind = PhaseKind.ACTION,
-        hint = null,
+        hint = "The highest initiative not yet resolved goes next. No strategy talk: only state preferences, " +
+            "no reasons.",
         clock = "0:21",
         fraction = 0.7f,
         actionSlot = 2,
@@ -428,7 +429,6 @@ object TimerPreviewData {
                     PhaseKind.ACTION,
                     PhaseScope.TURN,
                     30,
-                    enabled = false,
                     cues = listOf(5, 0),
                 ),
                 PhaseSpec("upgrade", "Upgrade", PhaseKind.UPGRADE, PhaseScope.ROUND_END, 120, endStepId = "level_up"),

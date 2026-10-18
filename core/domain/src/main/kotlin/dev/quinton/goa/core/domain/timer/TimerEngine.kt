@@ -267,12 +267,21 @@ class TimerEngine(
 
     /**
      * Records the hero [seat] resolving now during an Action phase. If the current slot already
-     * has a hero, moves to the next Action slot of the same turn first.
+     * has a hero, moves to the next Action slot of the same turn first. Naming the first hero of
+     * a slot starts that slot's countdown over, so every hero gets the full time from the moment
+     * they start resolving (working out who acts first doesn't eat into their time).
      */
     fun heroResolves(s: TimerSnapshot, seat: Int): TimerSnapshot {
         val slot = s.step.actionSlot
         if (s.status == TimerStatus.ENDED || !s.step.isAction || slot == null) return s
-        if (s.actors.none { it.slot == slot }) return s.copy(actors = s.actors + ActionActor(slot, seat))
+        if (s.actors.none { it.slot == slot }) {
+            val now = elapsed.elapsedMillis()
+            return s.stamp(now).copy(
+                actors = s.actors + ActionActor(slot, seat),
+                accumulatedMillis = 0,
+                runningSince = if (s.status == TimerStatus.RUNNING) now else null,
+            )
+        }
         val moved = next(s)
         if (moved === s) return s
         val nextSlot = moved.step.actionSlot

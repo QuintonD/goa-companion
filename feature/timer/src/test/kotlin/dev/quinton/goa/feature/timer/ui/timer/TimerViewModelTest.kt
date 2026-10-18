@@ -65,7 +65,8 @@ class TimerViewModelTest {
             },
         ).containsExactly("Table rules", "Relaxed", "Untimed (counters only)").inOrder()
         assertThat(start.selectedPresetId).isEqualTo("table-rules")
-        assertThat(start.selected!!.usesActionTimer).isFalse()
+        // Every hero resolving gets their own 0:30, so the start card asks how many heroes play.
+        assertThat(start.selected!!.usesActionTimer).isTrue()
         assertThat(start.pendingMatches).isEmpty()
     }
 
@@ -192,13 +193,13 @@ class TimerViewModelTest {
         vm.setTimerLayout(TimerLayout.ROUND)
         assertThat(settings.state.value.timerLayout).isEqualTo(TimerLayout.ROUND)
         val round = vm.uiState.first { it.active?.layout == TimerLayout.ROUND }.active!!
-        // Table rules: strategy, 4 turns of play + resolve, the 6 end-of-round steps.
-        assertThat(round.rows).hasSize(15)
+        // Table rules: strategy, 4 turns of play + one resolve per hero (4), the 6 end-of-round steps.
+        assertThat(round.rows).hasSize(27)
         assertThat(round.rows.map { it.group }.distinct())
             .containsExactly("Round start", "Turn 1", "Turn 2", "Turn 3", "Turn 4", "End of round").inOrder()
         assertThat(round.rows.first().state).isEqualTo(RoundRowState.CURRENT)
         assertThat(round.rows.drop(1).map { it.state }.toSet()).containsExactly(RoundRowState.UPCOMING)
-        assertThat(round.rows.map { it.length }.take(3)).containsExactly("1:30", "0:30", "Untimed").inOrder()
+        assertThat(round.rows.map { it.length }.take(3)).containsExactly("1:30", "0:30", "0:30").inOrder()
     }
 
     @Test
@@ -208,12 +209,12 @@ class TimerViewModelTest {
         vm.start()
         vm.awaitActive()
         h.clocks.advance(20_000)
-        vm.jumpTo(round = 1, stepIndex = 13) // Upgrade on Level Up
-        val upgrade = vm.uiState.first { it.active?.stepIndex == 13 }.active!!
+        vm.jumpTo(round = 1, stepIndex = 25) // Upgrade on Level Up
+        val upgrade = vm.uiState.first { it.active?.stepIndex == 25 }.active!!
         assertThat(upgrade.kind).isEqualTo(PhaseKind.UPGRADE)
         assertThat(upgrade.clock).isEqualTo("2:00")
-        assertThat(upgrade.rows.take(13).map { it.state }.toSet()).containsExactly(RoundRowState.DONE)
-        assertThat(upgrade.rows[13].state).isEqualTo(RoundRowState.CURRENT)
+        assertThat(upgrade.rows.take(25).map { it.state }.toSet()).containsExactly(RoundRowState.DONE)
+        assertThat(upgrade.rows[25].state).isEqualTo(RoundRowState.CURRENT)
 
         h.clocks.advance(2_000)
         vm.back()
@@ -247,7 +248,7 @@ class TimerViewModelTest {
     }
 
     @Test
-    fun `each turn is play a card, then resolve after the reveal`() = runTest {
+    fun `each turn is play a card, then every hero resolves on their own clock`() = runTest {
         val vm = vm()
         vm.start()
         vm.awaitActive()
@@ -258,11 +259,18 @@ class TimerViewModelTest {
         assertThat(turn.nextLabel).isEqualTo("Cards revealed")
 
         next()
-        val resolve = vm.uiState.first { it.active?.kind == PhaseKind.RESOLVE }.active!!
-        assertThat(resolve.timed).isFalse()
-        assertThat(resolve.overtime).isFalse()
-        assertThat(resolve.context).isEqualTo("Turn 1 of 4")
-        assertThat(resolve.nextLabel).isEqualTo("Next: Turn 2")
+        val first = vm.uiState.first { it.active?.kind == PhaseKind.ACTION }.active!!
+        assertThat(first.timed).isTrue()
+        assertThat(first.clock).isEqualTo("0:30")
+        assertThat(first.context).isEqualTo("Turn 1 of 4 · resolution 1 of 4")
+        assertThat(first.hint).startsWith("The highest initiative not yet resolved goes next.")
+        assertThat(first.nextLabel).isEqualTo("Next hero")
+
+        repeat(3) { next() }
+        val last = vm.uiState.first { it.active?.actionSlot == 3 }.active!!
+        assertThat(last.clock).isEqualTo("0:30")
+        assertThat(last.context).isEqualTo("Turn 1 of 4 · resolution 4 of 4")
+        assertThat(last.nextLabel).isEqualTo("Next: Turn 2")
     }
 
     @Test

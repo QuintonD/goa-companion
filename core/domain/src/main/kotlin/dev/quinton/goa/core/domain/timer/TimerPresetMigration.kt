@@ -11,10 +11,16 @@ package dev.quinton.goa.core.domain.timer
  *   one (or a per-turn phase the user named "Resolve");
  * - renames the Turn phase from the old default "Turn" to the bundled name ("Play a card"),
  *   only when the user had not renamed it.
+ *
+ * Revision 2 (2026-10-18, owner's table rules): every hero gets its own resolve timer each turn.
+ * Where the bundled Action phase is on, the stored copy's Action phase is switched on too (it
+ * shipped switched off, so an off Action is the old default), or added after the Resolve step
+ * when the copy has none. Its length and cues are left as the user set them.
  */
 object TimerPresetMigration {
     private const val OLD_TURN_NAME = "Turn"
     private const val RESOLVE_NAME = "resolve"
+    private const val ACTION_ON_REVISION = 2
 
     fun upgrade(stored: List<TimerPreset>, bundled: List<TimerPreset>): List<TimerPreset> = stored.map { preset ->
         val target = bundled.firstOrNull { it.id == preset.id }
@@ -39,6 +45,20 @@ object TimerPresetMigration {
                 if (it.kind == PhaseKind.TURN && it.name == OLD_TURN_NAME) it.copy(name = bundledTurnName) else it
             }
         }
+        if (preset.revision < ACTION_ON_REVISION && target.revision >= ACTION_ON_REVISION) {
+            phases = actionOn(phases, target)
+        }
         return preset.copy(phases = phases, revision = target.revision)
+    }
+
+    private fun actionOn(phases: List<PhaseSpec>, target: TimerPreset): List<PhaseSpec> {
+        val bundledAction = target.phases.firstOrNull { it.kind == PhaseKind.ACTION && it.scope == PhaseScope.TURN }
+        if (bundledAction == null || !bundledAction.enabled) return phases
+        if (phases.any { it.kind == PhaseKind.ACTION }) {
+            return phases.map { if (it.kind == PhaseKind.ACTION) it.copy(enabled = true) else it }
+        }
+        if (phases.any { it.id == bundledAction.id }) return phases
+        val after = phases.indexOfLast { it.scope == PhaseScope.TURN } + 1
+        return phases.toMutableList().apply { add(after.coerceIn(0, size), bundledAction) }
     }
 }

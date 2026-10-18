@@ -14,6 +14,8 @@ import kotlin.math.abs
 object TimerText {
     private const val RESOLVE_HINT =
         "Cards revealed: resolve one by one in initiative order. No strategy talk: only state preferences, no reasons."
+    private const val ACTION_HINT =
+        "The highest initiative not yet resolved goes next. No strategy talk: only state preferences, no reasons."
 
     fun stepTitle(step: TimerStep): String = when {
         step.endStep != null && step.phase != null -> "${step.phase!!.name} · ${step.endStep!!.title}"
@@ -83,6 +85,7 @@ object TimerText {
         PhaseKind.STRATEGY -> "Talk strategy out loud. No notes, no showing cards."
         PhaseKind.TURN -> "Strategy talk out loud until the reveal."
         PhaseKind.RESOLVE -> RESOLVE_HINT
+        PhaseKind.ACTION -> ACTION_HINT
         else -> null
     }
 

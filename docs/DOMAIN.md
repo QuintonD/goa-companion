@@ -82,7 +82,8 @@ free text.
      actor is the highest *unresolved* initiative (re-checked every time). Cross-team ties:
      the team shown on the **Tie Breaker coin** acts first, then that player flips the coin.
      Same-team ties: the team decides (without discussing why), coin not flipped. A hero off
-     the board may respawn before acting. *Untimed Resolve step; optional per-action timer.*
+     the board may respawn before acting. *Timed per hero (Action timer, 0:30 each); untimed
+  Resolve step when the Action timer is off.*
   4. **Turn ends** — "this turn" effects end.
 - **End of round** (in order) [RB p.8]: 1 Minion Battle · 2 Remove Tokens, Return Markers ·
   3 Push the Lane (if applicable; flip a Wave counter) · 4 Retrieve Cards · 5 Level Up
@@ -144,7 +145,7 @@ Zones they occupied before the push and play continues until only one team wins 
 the push is undone). The rulebook has no draw outcome (and is silent on
 a tied double-lane Zone count), so the app has no draws.
 
-### Timer phases [APP — owner's table rules, 2026-10-17]
+### Timer phases [APP — owner's table rules, 2026-10-17; per-hero resolve 2026-10-18]
 The rulebook sets no timers. The group plays with **rule timers per phase**, all editable per
 preset (enable/disable, duration, cues, auto-advance):
 
@@ -152,8 +153,8 @@ preset (enable/disable, duration, cues, auto-advance):
 |-------|-------|---------|-------|
 | **Pre-round strategy** | once per round, before turn 1 | **1:30** | Team talk before cards are played |
 | **Play a card** (`turn`) | each of the 4 turns | **0:30** | Simultaneous card selection; strategy talk until the reveal (p.4) |
-| **Resolve** (`resolve`) | each turn, after the reveal | untimed | Cards resolve one by one in initiative order (p.7); counts up, never overtime |
-| Action (optional, off) | per hero during resolution | 0:30 | Tap "next" as each hero resolves; when on, it *is* the resolve step (Resolve is skipped) |
+| **Action** (`action`) | each turn, once per hero as they resolve | **0:30** | On by default (Relaxed: 0:45). Cards resolve one by one in initiative order (p.7); "Next hero" as each finishes. Naming the hero who resolves starts their full time. When on, it *is* the resolve step (Resolve is skipped) |
+| Resolve (`resolve`) | each turn, after the reveal | untimed | Only when the Action timer is off: one step for the whole resolution; counts up, never overtime |
 | **Upgrade** | end of round, Level Up step | **2:00** | Spend coins / choose upgrades |
 
 The end of round is still shown as the six-step checklist (see above); the Upgrade timer runs
@@ -163,7 +164,12 @@ auto-enforced. The Next button at the end of "Play a card" reads "Cards revealed
 
 Preset data carries a `revision`: stored copies of a bundled preset with an older revision are
 upgraded on read (`TimerPresetMigration`; revision 1 adds Resolve and renames "Turn" to "Play a
-card" only if unchanged). User-made presets are never touched.
+card" only if unchanged; revision 2 switches the Action timer on where the bundled preset has it
+on, keeping its stored length). User-made presets are never touched.
+
+The Action timer counts **heroes**, not players: a double pilot's two heroes each resolve their own
+card, so each gets a slot. Seats come from the linked match, or the "Heroes at the table" stepper
+on the Timer tab.
 
 **Table rules in presets [APP — house rules, not in the rulebook]** (research: designer-endorsed
 "hurry up" clock, playtester time-outs):

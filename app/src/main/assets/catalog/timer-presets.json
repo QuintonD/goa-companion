@@ -5,35 +5,35 @@
     {
       "id": "table-rules",
       "name": "Table rules",
-      "revision": 1,
+      "revision": 2,
       "turnsPerRound": 4,
       "autoAdvance": false,
       "phases": [
         { "id": "strategy", "name": "Pre-round strategy", "kind": "strategy", "scope": "round_start", "seconds": 90, "enabled": true, "cues": [10, 5, 0] },
         { "id": "turn", "name": "Play a card", "kind": "turn", "scope": "turn", "seconds": 30, "enabled": true, "cues": [10, 5, 0] },
         { "id": "resolve", "name": "Resolve", "kind": "resolve", "scope": "turn", "seconds": null, "enabled": true, "cues": [] },
-        { "id": "action", "name": "Action", "kind": "action", "scope": "turn", "seconds": 30, "enabled": false, "cues": [5, 0] },
+        { "id": "action", "name": "Action", "kind": "action", "scope": "turn", "seconds": 30, "enabled": true, "cues": [5, 0] },
         { "id": "upgrade", "name": "Upgrade", "kind": "upgrade", "scope": "round_end", "seconds": 120, "enabled": true, "cues": [10, 5, 0], "endStepId": "level_up" }
       ]
     },
     {
       "id": "relaxed",
       "name": "Relaxed",
-      "revision": 1,
+      "revision": 2,
       "turnsPerRound": 4,
       "autoAdvance": false,
       "phases": [
         { "id": "strategy", "name": "Pre-round strategy", "kind": "strategy", "scope": "round_start", "seconds": 180, "enabled": true, "cues": [30, 10, 0] },
         { "id": "turn", "name": "Play a card", "kind": "turn", "scope": "turn", "seconds": 60, "enabled": true, "cues": [10, 0] },
         { "id": "resolve", "name": "Resolve", "kind": "resolve", "scope": "turn", "seconds": null, "enabled": true, "cues": [] },
-        { "id": "action", "name": "Action", "kind": "action", "scope": "turn", "seconds": 45, "enabled": false, "cues": [10, 0] },
+        { "id": "action", "name": "Action", "kind": "action", "scope": "turn", "seconds": 45, "enabled": true, "cues": [10, 0] },
         { "id": "upgrade", "name": "Upgrade", "kind": "upgrade", "scope": "round_end", "seconds": 180, "enabled": true, "cues": [30, 10, 0], "endStepId": "level_up" }
       ]
     },
     {
       "id": "untimed",
       "name": "Untimed (counters only)",
-      "revision": 1,
+      "revision": 2,
       "turnsPerRound": 4,
       "autoAdvance": false,
       "phases": [

@@ -22,16 +22,17 @@ class TimerUiMapperTest {
 
     @Test
     fun `round rows show where the round is and read out for TalkBack`() = runTest {
-        val s = engine.jumpTo(tableRules(), 3) // turn 2, play a card
+        val s = engine.jumpTo(tableRules(), 6) // turn 2, play a card
         clocks.advance(4_000)
         val active = TimerUiMapper.active(s, engine.readout(s), seats = null, layout = TimerLayout.ROUND)
         val rows = active.rows
 
-        assertThat(active.stepIndex).isEqualTo(3)
-        assertThat(rows[2].description(active.spokenClock)).isEqualTo("Turn 1, Resolve, done")
-        assertThat(rows[3].description(active.spokenClock))
+        assertThat(active.stepIndex).isEqualTo(6)
+        assertThat(rows[5].description(active.spokenClock)).isEqualTo("Turn 1, Action, Hero 4 of 4, done")
+        assertThat(rows[6].description(active.spokenClock))
             .isEqualTo("Turn 2, Play a card, current, 26 seconds left")
-        assertThat(rows[3].jumpName).isEqualTo("Turn 2 · Play a card")
+        assertThat(rows[6].jumpName).isEqualTo("Turn 2 · Play a card")
+        assertThat(rows[7].description("")).isEqualTo("Turn 2, Action, Hero 1 of 4, upcoming, 30 seconds")
 
         // The checklist step that carries the Upgrade timer says so, with its length.
         val levelUp = rows.single { it.title == "Level Up" }

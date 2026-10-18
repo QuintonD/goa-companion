@@ -49,13 +49,14 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
   Tie Breaker coin. After a draft the coin is the draft's (leave it as it is; "Correct the coin"
   fixes a mistake); without a draft the app flips it. The coin is saved to the match and the
   timer starts with it.
-- **Rule timers per phase** (owner's table rules): Pre-round strategy 1:30 → 4 × Turn 0:30 →
-  Upgrade 2:00 during the end-of-round Level Up step; optional per-hero Action timer. Every
+- **Rule timers per phase** (owner's table rules): Pre-round strategy 1:30 → 4 × (Turn 0:30 →
+  0:30 for each hero as they resolve) → Upgrade 2:00 during the end-of-round Level Up step. Every
   phase is configurable (on/off, duration, cues, auto-advance) and presets are saved/editable.
   Defaults in DOMAIN.md.
 - Big, glanceable countdown; tap to pause; next/back; round and turn pips; overtime counts up.
-  Each turn is "Play a card" (timed) then an untimed "Resolve" step after the reveal, so
-  resolution never shows as overtime. Back right after an accidental Next restores the phase
+  Each turn is "Play a card" (timed), then after the reveal every hero resolving gets their own
+  countdown (Action timer, on by default); with the Action timer off, an untimed "Resolve" step
+  takes its place, so resolution never shows as overtime. Back right after an accidental Next restores the phase
   with its time; double taps don't skip phases. Side-by-side layout in landscape.
 - **Two views of the running timer** (device preference, Settings → Running timer, and a switch
   in the timer's top bar that applies and saves at once; default Step by step):
@@ -71,7 +72,9 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
     landscape puts the list beside the current step's clock and controls.
 - Table rules (house rules, per preset): on-demand "Hurry up" countdown, optional team
   time-outs, opt-in volume-key control; "turn length tonight" adjustable from the start card.
-- Action timer: tap "next" as each player resolves; shows whose turn it is if heroes known.
+- Action timer: one countdown per hero each turn; tap "Next hero" as each one finishes. With the
+  match's heroes known, tap the hero who resolves now: their full time starts at that tap, the
+  title names them, and the last hero left is named automatically.
 - **End of round:** tap-through checklist of the six official steps (each with a short
   rulebook summary, p.8 and p.15), then next round.
 - Haptic + audio cues at configurable thresholds (e.g. 10 s, 5 s, 0).

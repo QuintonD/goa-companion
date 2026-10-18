@@ -27,7 +27,8 @@ class TimerPresetMigrationTest {
         assertThat(upgraded.phases.single { it.id == "turn" }.seconds).isEqualTo(45)
         assertThat(upgraded.phases.single { it.id == "turn" }.name).isEqualTo("Play a card")
         assertThat(upgraded.phases.single { it.id == "resolve" }.seconds).isNull()
-        assertThat(upgraded.revision).isEqualTo(1)
+        assertThat(upgraded.phases.single { it.id == "action" }.enabled).isTrue()
+        assertThat(upgraded.revision).isEqualTo(2)
         assertThat(upgraded.shotClockSeconds).isEqualTo(TimerPreset.DEFAULT_SHOT_CLOCK_SECONDS)
     }
 
@@ -58,6 +59,39 @@ class TimerPresetMigrationTest {
 
         assertThat(upgraded.phases.count { it.name == "Resolve" }).isEqualTo(1)
         assertThat(upgraded.phases.none { it.kind == PhaseKind.RESOLVE }).isTrue()
+    }
+
+    /** Table rules as version 0.3.0 stored it: revision 1, per-hero Action timer off. */
+    private val storedV1 = bundled.single { it.id == "table-rules" }.let { table ->
+        table.copy(
+            revision = 1,
+            phases = table.phases.map {
+                if (it.kind == PhaseKind.ACTION) it.copy(enabled = false, seconds = 40) else it
+            },
+        )
+    }
+
+    @Test
+    fun `revision 2 switches the per-hero action timer on and keeps its length`() {
+        val upgraded = TimerPresetMigration.upgrade(listOf(storedV1), bundled).single()
+
+        val action = upgraded.phases.single { it.kind == PhaseKind.ACTION }
+        assertThat(action.enabled).isTrue()
+        assertThat(action.seconds).isEqualTo(40)
+        assertThat(upgraded.phases.map { it.id }).isEqualTo(storedV1.phases.map { it.id })
+        assertThat(upgraded.revision).isEqualTo(2)
+        assertThat(TimerPresetMigration.upgrade(listOf(upgraded), bundled)).containsExactly(upgraded)
+    }
+
+    @Test
+    fun `revision 2 adds the action timer after the turn phases when the copy has none`() {
+        val noAction = storedV1.copy(phases = storedV1.phases.filterNot { it.kind == PhaseKind.ACTION })
+
+        val upgraded = TimerPresetMigration.upgrade(listOf(noAction), bundled).single()
+
+        assertThat(upgraded.phases.map { it.id }).containsExactly("strategy", "turn", "resolve", "action", "upgrade")
+            .inOrder()
+        assertThat(upgraded.phases.single { it.id == "action" }.enabled).isTrue()
     }
 
     @Test

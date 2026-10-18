@@ -324,14 +324,17 @@ private fun seatColumns(count: Int): Int = when {
     else -> 5
 }
 
-/** Action timer: tap the hero who resolves now (highest unresolved initiative acts first). */
+/**
+ * Action timer: tap the hero who resolves now (highest unresolved initiative acts first). Naming
+ * the slot's hero starts their full time; tapping another hero then moves on to them.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun ResolvingHeroes(seats: List<SeatUi>, onResolve: (Int) -> Unit) {
     val columns = seatColumns(seats.size)
     Column(Modifier.fillMaxWidth()) {
         Text(
-            "Who resolves now? Highest initiative acts first.",
+            "Tap the hero who resolves now to start their time.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = Spacing.sm),

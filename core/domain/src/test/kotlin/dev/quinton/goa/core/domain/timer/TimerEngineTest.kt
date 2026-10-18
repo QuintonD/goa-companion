@@ -470,6 +470,38 @@ class TimerEngineTest {
     }
 
     @Test
+    fun `naming the hero who resolves starts their full time`() {
+        var s = start(tableRules(actionEnabled = true), slots = 3).nextTimes(2) // turn 1, slot 0
+        clocks.advanceSeconds(8.0) // the table works out who has the highest initiative
+        s = engine.heroResolves(s, seat = 2)
+        assertThat(engine.readout(s).remainingMillis).isEqualTo(30_000)
+        assertThat(engine.back(s).step.phase?.kind).isEqualTo(PhaseKind.TURN) // the reveal can still be undone
+
+        clocks.advanceSeconds(12.0)
+        s = engine.heroResolves(s, seat = 0) // next hero: next slot, fresh 30 s
+        assertThat(s.step.actionSlot).isEqualTo(1)
+        assertThat(engine.readout(s).remainingMillis).isEqualTo(30_000)
+
+        clocks.advanceSeconds(4.0)
+        s = engine.next(s) // last slot: the hero left is named for them, the clock starts at the Next
+        assertThat(s.actors).contains(ActionActor(2, 1))
+        assertThat(engine.readout(s).remainingMillis).isEqualTo(30_000)
+    }
+
+    @Test
+    fun `a hero named while paused starts their time when play resumes`() {
+        var s = start(tableRules(actionEnabled = true), slots = 3).nextTimes(2)
+        clocks.advanceSeconds(5.0)
+        s = engine.heroResolves(engine.pause(s), seat = 1)
+        assertThat(s.status).isEqualTo(TimerStatus.PAUSED)
+        clocks.advanceSeconds(60.0)
+        assertThat(engine.readout(s).remainingMillis).isEqualTo(30_000)
+        s = engine.resume(s)
+        clocks.advanceSeconds(10.0)
+        assertThat(engine.readout(s).remainingMillis).isEqualTo(20_000)
+    }
+
+    @Test
     fun `last hero is not guessed when an earlier slot was not recorded`() {
         var s = start(tableRules(actionEnabled = true), slots = 3).nextTimes(2)
         s = engine.heroResolves(s, seat = 2)

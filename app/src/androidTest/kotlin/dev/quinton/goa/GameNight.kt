@@ -127,10 +127,26 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         rule.waitFor(hasStateDescription("Running"))
         rule.waitUntil(5_000) { clock() != frozen }
 
-        // Each turn: play a card (timed), then the untimed Resolve step after the reveal.
+        // Each turn: play a card (timed), then every hero resolving gets their own 0:30 (Action).
         settle()
         rule.tapText("Cards revealed")
-        assertPhase("Resolve", "TURN 1 OF 4")
+        assertPhase("Action", "TURN 1 OF 4 · RESOLUTION 1 OF 4")
+        // Tapping the hero who resolves starts their full time; tapping the next one moves on.
+        picked.take(3).forEachIndexed { i, hero ->
+            settle()
+            rule.tap(heroTile(hero, "not resolved yet"))
+            rule.waitFor(heroTile(hero, "resolving now"))
+            assertPhase("$hero ·", "TURN 1 OF 4 · RESOLUTION ${i + 1} OF 4")
+            if (i == 0) {
+                checkpoint("Timer · Hero resolving")
+                pauseAndAssertClock(30)
+            }
+        }
+        settle()
+        rule.tapText("Next hero")
+        // The last hero is the one left: named automatically.
+        rule.waitFor(heroTile(picked[3], "resolving now"))
+        assertPhase("${picked[3]} ·", "TURN 1 OF 4 · RESOLUTION 4 OF 4")
         for (turn in 2..4) {
             settle()
             rule.tapText("Next: Turn $turn")
@@ -138,7 +154,13 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
             pauseAndAssertClock(30)
             settle()
             rule.tapText("Cards revealed")
-            assertPhase("Resolve", "TURN $turn OF 4")
+            for (slot in 1..3) {
+                assertPhase("Action", "TURN $turn OF 4 · RESOLUTION $slot OF 4")
+                settle()
+                rule.tapText("Next hero")
+            }
+            assertPhase("Action", "TURN $turn OF 4 · RESOLUTION 4 OF 4")
+            pauseAndAssertClock(30)
         }
 
         // ---- End of round: the six official steps in order, Upgrade timer on Level Up.
@@ -266,8 +288,12 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         rule.waitForIdle()
     }
 
+    /** A hero tile on the Action timer ("Arien, Red team, Ana") in the given resolve state. */
+    private fun heroTile(hero: String, state: String) =
+        hasContentDescription("$hero, ", substring = true) and hasStateDescription(state) and hasClickAction()
+
     private fun assertPhase(title: String, context: String) {
-        rule.waitFor(hasText(title), unmerged = true)
+        rule.waitFor(hasText(title, substring = title.endsWith("·")), unmerged = true)
         rule.waitFor(hasText(context), unmerged = true)
     }
 

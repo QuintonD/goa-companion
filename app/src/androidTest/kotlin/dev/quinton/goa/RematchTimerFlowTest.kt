@@ -80,12 +80,12 @@ class RematchTimerFlowTest {
         rule.tapDescription("Back")
         rule.waitForText("Round 1")
 
-        // ---- Play on into turn 1's Resolve step, so the notification has a later step to return to.
+        // ---- Play on into turn 1's first resolution, so the notification has a later step to return to.
         settle()
         rule.tapText("Next: Turn 1")
         settle()
         rule.tapText("Cards revealed")
-        rule.waitForText("Resolve")
+        rule.waitFor(hasText(FIRST_RESOLUTION), unmerged = true)
 
         // ---- Away from the timer, its bar shows on other tabs; the notification brings the Timer back.
         // The running timer has no tab bar (no mis-taps next to Next): system Back leaves it.
@@ -96,7 +96,7 @@ class RematchTimerFlowTest {
         tapTimerNotification()
         // Straight onto the running timer, same step (full screen: no tab bar, no timer bar).
         rule.waitForText("Round 1")
-        rule.waitForText("Resolve")
+        rule.waitFor(hasText(FIRST_RESOLUTION), unmerged = true)
         rule.waitGone(hasText("32 heroes"))
         rule.waitGone(hasClickLabel("Open the timer"))
 
@@ -149,5 +149,10 @@ class RematchTimerFlowTest {
         }
         requireNotNull(intent).send()
         rule.waitForIdle()
+    }
+
+    private companion object {
+        /** The step chip on turn 1's first Action (per-hero resolve) step. */
+        const val FIRST_RESOLUTION = "TURN 1 OF 4 · RESOLUTION 1 OF 4"
     }
 }

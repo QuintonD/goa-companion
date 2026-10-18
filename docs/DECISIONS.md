@@ -548,3 +548,24 @@ is not saved: every answer's progress is stored as it is given (a write that sur
 the screen), but after process death the quiz restarts from question 1 from its saved route.
 Every round can be ended (End → summary); Back once a question is answered asks "Leave this
 round?" (See results / Leave), since leaving drops the round's results.
+
+## ADR-029 — Timer: every hero resolving gets their own countdown, on by default (2026-10-18)
+**Context:** The owner reported the timer "not interacting correctly": each turn of each round
+needs a 30 s timer per player resolving their card. The bundled presets shipped the per-hero
+Action timer switched off, so every turn ended in one untimed, count-up Resolve step (ADR-018).
+Where the Action timer was on, its clock started at the reveal, so the time spent working out who
+had the highest initiative came out of the first hero's 30 s.
+**Decision:** (1) Table rules (0:30) and Relaxed (0:45) ship with the Action phase on; the bundled
+presets move to `revision` 2 and `TimerPresetMigration` switches the Action phase on in stored
+copies (adding it if missing), keeping a stored length. An off Action in a stored copy is the old
+default and can't be told from a deliberate choice; the owner asked for it on. Untimed is
+unchanged. Resolve stays in the presets for whoever turns the Action timer off. (2)
+`TimerEngine.heroResolves` restarts the slot's countdown when it names the slot's first hero, so
+each hero's full time starts when they start resolving; a paused timer stays paused. Next, Back
+(undo), the auto-picked last hero and the per-turn actor list are unchanged. (3) Action steps show
+a rules hint (highest unresolved initiative next; no strategy talk, p.4 and p.7), and the tile
+prompt says a tap starts that hero's time.
+**Consequences:** A round has 1 + 4 × (1 + heroes) + 6 steps (27 at 4 heroes), so the round view is
+longer and the Timer tab shows the "Heroes at the table" stepper by default. Every hero's countdown
+ends with the phase-over alert, so a full round can fire up to 4 × heroes extra alerts (the cues are
+0:05 and 0:00). No snapshot change: running sessions keep the preset they started with.

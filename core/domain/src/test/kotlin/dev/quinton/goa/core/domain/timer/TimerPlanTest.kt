@@ -124,12 +124,13 @@ class TimerPlanTest {
     }
 
     @Test
-    fun `bundled table rules and relaxed resolve after every turn, untimed does not`() {
+    fun `bundled table rules and relaxed time every hero resolving each turn, untimed does not`() {
         fun kinds(id: String) = TimerPlan(bundledPresets.presets.single { it.id == id }, endOfRound, 4)
             .steps.filter { it.turn == 1 }.map { it.phase!!.kind }
+        val perHero = listOf(PhaseKind.TURN) + List(4) { PhaseKind.ACTION }
 
-        assertThat(kinds("table-rules")).containsExactly(PhaseKind.TURN, PhaseKind.RESOLVE).inOrder()
-        assertThat(kinds("relaxed")).containsExactly(PhaseKind.TURN, PhaseKind.RESOLVE).inOrder()
+        assertThat(kinds("table-rules")).containsExactlyElementsIn(perHero).inOrder()
+        assertThat(kinds("relaxed")).containsExactlyElementsIn(perHero).inOrder()
         assertThat(kinds("untimed")).containsExactly(PhaseKind.TURN)
     }
 }
