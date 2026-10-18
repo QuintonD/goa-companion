@@ -91,6 +91,15 @@ class PlayersBuildersTest {
     }
 
     @Test
+    fun resultChipsReadLikeThePhone() {
+        assertThat(resultLabel(MatchStatus.COMPLETED, Team.RED)).isEqualTo("◆ Red won")
+        assertThat(resultLabel(MatchStatus.COMPLETED, Team.BLUE)).isEqualTo("● Blue won")
+        assertThat(resultLabel(MatchStatus.COMPLETED, null)).isEqualTo("No winner")
+        assertThat(resultLabel(MatchStatus.PENDING, null)).isEqualTo("Pending")
+        assertThat(resultLabel(MatchStatus.ABANDONED, Team.RED)).isEqualTo("Abandoned")
+    }
+
+    @Test
     fun matchSummaryDoesNotRepeatTheModeStoredAsMap() {
         val row = with(MatchLog) { Fixtures.matches.first().copy(map = "quick").toRow(byId, catalog, null) }
         assertThat(row.summary).isEqualTo("Quick · Throne · 55 min")
@@ -143,6 +152,9 @@ class PlayersBuildersTest {
         assertThat(chart.label(0)).isEqualTo("Start")
         assertThat(chart.summary)
             .isEqualTo("Rating history over 3 matches: started at 1200, now 1231, peak 1231, low 1200.")
+        val rows = chart.rows(java.time.ZoneId.of("UTC"))
+        assertThat(rows.map { it.label }.first()).isEqualTo("Start")
+        assertThat(rows.map { it.change }).containsExactly(null, 15.0, -12.0, 28.0).inOrder()
     }
 
     @Test

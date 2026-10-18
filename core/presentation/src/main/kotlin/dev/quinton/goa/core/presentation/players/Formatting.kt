@@ -58,6 +58,14 @@ fun MatchStatus.label(): String = when (this) {
     MatchStatus.ABANDONED -> "Abandoned"
 }
 
+/** A match's result as its chip reads: "◆ Red won", "● Blue won", "Abandoned", "No winner", "Pending". */
+fun resultLabel(status: MatchStatus, winner: Team?): String = when {
+    status == MatchStatus.COMPLETED && winner != null -> "${if (winner == Team.RED) "◆" else "●"} ${winner.label()} won"
+    status == MatchStatus.ABANDONED -> "Abandoned"
+    status == MatchStatus.COMPLETED -> "No winner"
+    else -> "Pending"
+}
+
 /** Hero name for UI; ids missing from the catalog (e.g. from an old backup) read "Unknown hero". */
 fun Catalog.heroName(heroId: String?): String = when (heroId) {
     null -> "Unknown hero"

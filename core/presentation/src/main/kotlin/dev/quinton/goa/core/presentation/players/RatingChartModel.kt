@@ -24,6 +24,18 @@ data class RatingChartModel(
     fun label(x: Int, zone: ZoneId = ZoneId.systemDefault()): String =
         if (x == 0) "Start" else dates.getOrNull(x - 1)?.let { Dates.short(it, zone) } ?: ""
 
+    /** One row of the chart's table alternative: when, the rating after it, and the change. */
+    data class Row(val label: String, val rating: Double, val change: Double?)
+
+    /** The chart as a table (web accessibility): "Start", then each match's day ("Sat 3 Oct 2026"). */
+    fun rows(zone: ZoneId = ZoneId.systemDefault()): List<Row> = values.mapIndexed { x, value ->
+        Row(
+            label = if (x == 0) "Start" else dates.getOrNull(x - 1)?.let { Dates.day(it, zone) } ?: "Match $x",
+            rating = value,
+            change = if (x == 0) null else value - values[x - 1],
+        )
+    }
+
     /** The x positions that carry a label. */
     val labelled: List<Int> get() = values.indices.filter { it % labelSpacing == 0 }
 

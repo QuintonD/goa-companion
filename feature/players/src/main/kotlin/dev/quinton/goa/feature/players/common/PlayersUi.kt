@@ -45,6 +45,7 @@ import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.presentation.players.formatDelta
 import dev.quinton.goa.core.presentation.players.label
+import dev.quinton.goa.core.presentation.players.resultLabel
 import kotlin.math.roundToInt
 
 /** Small outlined pill: "Provisional", "Double pilot", "Handicap"… Text, never colour alone. */
@@ -120,20 +121,24 @@ fun DeltaIndicator(
 fun ResultChip(status: MatchStatus, winner: Team?, modifier: Modifier = Modifier) {
     val (text, color, icon) = when {
         status == MatchStatus.COMPLETED && winner != null -> Triple(
-            "${if (winner == Team.RED) "◆" else "●"} ${winner.label()} won",
+            resultLabel(status, winner),
             teamColor(winner),
             Icons.Filled.EmojiEvents,
         )
 
         status == MatchStatus.ABANDONED -> Triple(
-            "Abandoned",
+            resultLabel(status, winner),
             MaterialTheme.colorScheme.onSurfaceVariant,
             Icons.Outlined.Block,
         )
 
-        status == MatchStatus.COMPLETED -> Triple("No winner", MaterialTheme.colorScheme.error, Icons.Outlined.Block)
+        status == MatchStatus.COMPLETED -> Triple(
+            resultLabel(status, winner),
+            MaterialTheme.colorScheme.error,
+            Icons.Outlined.Block,
+        )
 
-        else -> Triple("Pending", MaterialTheme.colorScheme.primary, Icons.Outlined.HourglassEmpty)
+        else -> Triple(resultLabel(status, winner), MaterialTheme.colorScheme.primary, Icons.Outlined.HourglassEmpty)
     }
     Surface(
         modifier = modifier,
