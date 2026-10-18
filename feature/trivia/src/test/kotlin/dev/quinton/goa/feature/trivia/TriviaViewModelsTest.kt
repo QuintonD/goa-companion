@@ -23,6 +23,7 @@ import dev.quinton.goa.core.testing.TestCatalog
 import dev.quinton.goa.feature.trivia.home.TriviaHomeAction
 import dev.quinton.goa.feature.trivia.home.TriviaHomeUiState
 import dev.quinton.goa.feature.trivia.home.TriviaHomeViewModel
+import dev.quinton.goa.feature.trivia.home.startNote
 import dev.quinton.goa.feature.trivia.quiz.QuizQuestionUi
 import dev.quinton.goa.feature.trivia.quiz.TriviaQuizUiState
 import dev.quinton.goa.feature.trivia.quiz.TriviaQuizViewModel
@@ -151,6 +152,25 @@ class TriviaViewModelsTest {
             assertThat(ready.canStart).isFalse()
             assertThat(vm.start()).isNull()
             assertThat(progress.configState.value).isNull()
+            assertThat(startNote(ready)).isEqualTo(
+                "No Basic, Tier I, Tier II, Tier III or Ultimate card prints Radius. Add a number or more cards.",
+            )
+        }
+    }
+
+    @Test
+    fun `a pool smaller than the round says numbers will repeat`() = runTest {
+        val vm = home("test-hero-1")
+        vm.uiState.test {
+            ready()
+            TriviaStat.entries.filter { it != TriviaStat.INITIATIVE }.forEach { vm.onAction(TriviaHomeAction.ToggleStat(it)) }
+            CardGroup.entries.filter { it != CardGroup.BASIC }.forEach { vm.onAction(TriviaHomeAction.ToggleGroup(it)) }
+            val ready = expectMostRecentItem() as TriviaHomeUiState.Ready
+            assertThat(ready.selection.total).isEqualTo(2)
+            assertThat(ready.canStart).isTrue()
+            assertThat(startNote(ready)).isEqualTo("Only 2 numbers for 10 questions, so some come up more than once.")
+            vm.onAction(TriviaHomeAction.SetLength(TriviaConfig.ENDLESS))
+            assertThat(startNote(expectMostRecentItem() as TriviaHomeUiState.Ready)).isNull()
         }
     }
 

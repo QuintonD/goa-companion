@@ -417,12 +417,13 @@ private fun StartBlock(state: TriviaHomeUiState.Ready, onStart: () -> Unit, modi
             Spacer(Modifier.width(Spacing.sm))
             Text("Start quiz", style = MaterialTheme.typography.titleMedium)
         }
-        if (!state.canStart) {
+        val note = startNote(state)
+        if (note != null) {
             Spacer(Modifier.height(Spacing.sm))
             Text(
-                "None of these cards print the chosen numbers. Add a number or more cards.",
+                note,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
+                color = if (state.canStart) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
             )
         }
     }
@@ -498,4 +499,33 @@ private fun HeroProgressRow(hero: HeroProgressUi, onClick: () -> Unit) {
             )
         }
     }
+}
+
+/**
+ * Why Start is off ("No Ultimate card prints Initiative."), or a warning for a pool smaller than
+ * the round (questions repeat). Built from the setup and the catalog counts, never assumed.
+ */
+internal fun startNote(state: TriviaHomeUiState.Ready): String? {
+    val setup = state.setup
+    val total = state.selection.total
+    return when {
+        total == 0 -> {
+            val groups = or(CardGroup.entries.filter { it in setup.groups }.map(TriviaText::group))
+            val stats = or(TriviaStat.entries.filter { it in setup.stats }.map(TriviaText::stat))
+            val whose = if (setup.heroIds.isEmpty()) "No $groups card prints" else "No $groups card of these heroes prints"
+            "$whose $stats. Add a number or more cards."
+        }
+
+        setup.length != TriviaConfig.ENDLESS && total < setup.length ->
+            "Only ${TriviaText.count(total, "number")} for ${setup.length} questions, so some come up more than once."
+
+        else -> null
+    }
+}
+
+/** "Tier I, Tier II or Ultimate". */
+private fun or(items: List<String>): String = when (items.size) {
+    0 -> ""
+    1 -> items.single()
+    else -> items.dropLast(1).joinToString(", ") + " or " + items.last()
 }
