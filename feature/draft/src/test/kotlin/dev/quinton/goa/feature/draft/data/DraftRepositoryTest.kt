@@ -24,10 +24,11 @@ import dev.quinton.goa.core.domain.teams.PlayerDraft
 import dev.quinton.goa.core.domain.teams.PlayerDraftSession
 import dev.quinton.goa.core.domain.teams.SeatLayouts
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.presentation.draft.DraftProgress
+import dev.quinton.goa.core.presentation.draft.SetupForm
+import dev.quinton.goa.core.presentation.draft.SetupStage
+import dev.quinton.goa.core.presentation.draft.TeamMode
 import dev.quinton.goa.feature.draft.bundledMethods
-import dev.quinton.goa.feature.draft.setup.SetupForm
-import dev.quinton.goa.feature.draft.setup.SetupStage
-import dev.quinton.goa.feature.draft.setup.TeamMode
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher

@@ -48,6 +48,11 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.draft.MethodOrigin
 import dev.quinton.goa.core.domain.draft.PoolRule
+import dev.quinton.goa.core.presentation.draft.MethodRow
+import dev.quinton.goa.core.presentation.draft.MethodsUiState
+import dev.quinton.goa.core.presentation.draft.PreviewLayout
+import dev.quinton.goa.core.presentation.draft.heroesText
+import dev.quinton.goa.core.presentation.draft.poolText
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
 import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
 
@@ -217,9 +222,10 @@ private fun MethodCard(row: MethodRow, actions: MethodsActions, onDelete: (() ->
             Spacer(Modifier.height(Spacing.sm))
             Text(poolText(method.pool) + heroesText(row.preview), style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(Spacing.sm))
+            val error = row.preview.error
             when {
-                row.preview.error != null -> Text(
-                    row.preview.error,
+                error != null -> Text(
+                    error,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -287,19 +293,3 @@ private fun Badge(text: String) {
         )
     }
 }
-
-internal fun poolText(pool: PoolRule): String = when (pool) {
-    PoolRule.All -> "Pool: every eligible hero"
-
-    is PoolRule.Random -> "Pool: ${pool.size} at random"
-
-    is PoolRule.SeatsPlus -> when (pool.extra) {
-        0 -> "Pool: one per hero seat"
-        else -> "Pool: heroes in play + ${pool.extra} revealed"
-    }
-
-    is PoolRule.DealPerSeat -> "Pool: ${pool.perSeat} dealt to each seat"
-}
-
-private fun heroesText(preview: SequencePreview): String =
-    if (preview.error == null && preview.heroesNeeded > 0) " · needs ${preview.heroesNeeded}" else ""

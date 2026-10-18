@@ -112,21 +112,25 @@ import dev.quinton.goa.core.domain.draft.DraftSession
 import dev.quinton.goa.core.model.catalog.Role
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.presentation.draft.BoardUiState
+import dev.quinton.goa.core.presentation.draft.DraftBoard
+import dev.quinton.goa.core.presentation.draft.HeroInfo
+import dev.quinton.goa.core.presentation.draft.PoolTile
+import dev.quinton.goa.core.presentation.draft.PoolView
+import dev.quinton.goa.core.presentation.draft.StepToken
+import dev.quinton.goa.core.presentation.draft.TileState
+import dev.quinton.goa.core.presentation.draft.actionName
+import dev.quinton.goa.core.presentation.draft.info
+import dev.quinton.goa.core.presentation.draft.label
+import dev.quinton.goa.core.presentation.draft.teamGlyph
+import dev.quinton.goa.core.presentation.draft.teamLabel
+import dev.quinton.goa.core.presentation.draft.teamName
 import dev.quinton.goa.feature.draft.ui.ConcealedTile
-import dev.quinton.goa.feature.draft.ui.HeroInfo
 import dev.quinton.goa.feature.draft.ui.HeroPeekSheet
 import dev.quinton.goa.feature.draft.ui.HeroTile
 import dev.quinton.goa.feature.draft.ui.RoleChips
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
-import dev.quinton.goa.feature.draft.ui.StepToken
-import dev.quinton.goa.feature.draft.ui.TileState
-import dev.quinton.goa.feature.draft.ui.actionName
-import dev.quinton.goa.feature.draft.ui.info
-import dev.quinton.goa.feature.draft.ui.label
 import dev.quinton.goa.feature.draft.ui.rememberReducedMotion
-import dev.quinton.goa.feature.draft.ui.teamGlyph
-import dev.quinton.goa.feature.draft.ui.teamLabel
-import dev.quinton.goa.feature.draft.ui.teamName
 import kotlin.math.abs
 
 interface BoardActions {
@@ -299,8 +303,9 @@ fun DraftBoardScreen(state: BoardUiState, actions: BoardActions) {
             SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
         }
     }
-    if (board != null && !board.isComplete && state.local.confirm != null) {
-        ConfirmDialog(state, board, state.local.confirm, actions, onPeek = { peek = it })
+    val confirming = state.local.confirm
+    if (board != null && !board.isComplete && confirming != null) {
+        ConfirmDialog(state, board, confirming, actions, onPeek = { peek = it })
     }
     peek?.let { id ->
         HeroPeekSheet(
@@ -335,57 +340,6 @@ fun DraftBoardScreen(state: BoardUiState, actions: BoardActions) {
  */
 internal fun DraftSession.poolEditable(): Boolean = canEditPool
 
-/** One pool tile and how it is drawn. */
-internal data class PoolTile(val heroId: String, val state: TileState)
-
-/**
- * The pool as the board shows it. A hero chosen in the current hidden run is drawn exactly as
- * if it were still free (never "taken"), so neither the tile nor the counts give it away.
- */
-internal data class PoolView(
-    /** Dealt-hands drafts: the pilot whose hand is on the clock. */
-    val handOwner: String?,
-    /** Not (visibly) taken; in a dealt-hands draft the current hand comes first. */
-    val open: List<PoolTile>,
-    /** In a dealt-hands draft: the other hands' heroes (dimmed). */
-    val otherHands: List<PoolTile>,
-    /** Revealed bans and picks, shown compactly. */
-    val taken: List<PoolTile>,
-) {
-    val left: Int get() = open.size + otherHands.size
-
-    companion object {
-        fun of(session: DraftSession): PoolView {
-            val concealed = session.concealedIds()
-            val step = session.currentStep
-            val seatId = step?.seatId?.takeIf { step.action == DraftAction.PICK }
-            val hand = seatId?.let { session.handOf(it) }
-            fun stateOf(id: String): TileState {
-                if (id !in concealed) {
-                    session.history.lastOrNull { it.heroId == id }?.let { event ->
-                        return if (event.action == DraftAction.BAN) {
-                            TileState.Banned(event.team)
-                        } else {
-                            TileState.Picked(event.team)
-                        }
-                    }
-                }
-                return if (hand == null || id in hand) TileState.Available else TileState.Inactive
-            }
-            val tiles = session.pool.map { PoolTile(it, stateOf(it)) }
-            val taken = tiles.filter { it.state is TileState.Banned || it.state is TileState.Picked }
-            val free = tiles.filter { it !in taken }
-            val (mine, others) = if (hand != null) free.partition { it.heroId in hand } else free to emptyList()
-            return PoolView(
-                handOwner = seatId?.takeIf { hand != null }?.let { session.seat(it)?.pilotId },
-                open = mine,
-                otherHands = others,
-                taken = taken,
-            )
-        }
-    }
-}
-
 /** Search, role filter and "hide taken" for the pool (screen state only). */
 private class PoolFilters(
     val query: String,
@@ -402,9 +356,7 @@ private class PoolFilters(
 
 @Composable
 private fun HeroBoard(state: BoardUiState, session: DraftSession, actions: BoardActions, onPeek: (String) -> Unit) {
-    val tokens = remember(session) {
-        session.plan.map { StepToken("${actionName(it.action)} ${teamGlyph(it.team)}", it.action, it.team, it.hidden) }
-    }
+    val tokens = remember(session) { DraftBoard.sequenceTokens(session) }
     val pool = remember(session) { PoolView.of(session) }
     var query by rememberSaveable { mutableStateOf("") }
     var roleKeys by rememberSaveable { mutableStateOf("") }
@@ -706,9 +658,8 @@ private fun StepBanner(
     modifier: Modifier = Modifier,
 ) {
     val step = session.currentStep ?: return
-    val run = session.currentRun()
+    val text = DraftBoard.stepBanner(session, playerName) ?: return
     val color = teamColor(step.team)
-    val verb = actionName(step.action) + if (run != null && run.length > 1) " ${run.length}" else ""
     val reduced = rememberReducedMotion()
     Surface(
         shape = MaterialTheme.shapes.large,
@@ -724,7 +675,7 @@ private fun StepBanner(
         ) {
             Column(Modifier.weight(1f)) {
                 AnimatedContent(
-                    targetState = "${teamLabel(step.team)} — $verb",
+                    targetState = text.title,
                     transitionSpec = {
                         val d = if (reduced) 0 else 250
                         (fadeIn(tween(d)) + slideInVertically(tween(d)) { it / 3 }) togetherWith fadeOut(tween(d))
@@ -739,13 +690,8 @@ private fun StepBanner(
                         fontWeight = FontWeight.Bold,
                     )
                 }
-                val teamRole = if (step.team == session.teamA) "Team A" else "Team B"
-                val runText = if (run != null && run.length > 1) " · ${run.position} of ${run.length}" else ""
-                val seat = step.seatId?.let { id -> session.seat(id) }
-                val pilot = seat?.pilotId?.let { " · for ${playerName(it)}" } ?: ""
                 Text(
-                    "$teamRole · Step ${(session.currentStepIndex ?: 0) + 1} of ${session.plan.size}$runText$pilot" +
-                        if (step.hidden) " · hidden" else "",
+                    text.detail,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1019,7 +965,6 @@ private fun ConfirmDialog(
     val hero = state.heroes.info(heroId)
     val color = teamColor(step.team)
     val ban = step.action == DraftAction.BAN
-    val pilot = step.seatId?.let { session.seat(it) }?.pilotId?.let { state.playerName(it) }
     AlertDialog(
         onDismissRequest = actions::cancelConfirm,
         icon = {
@@ -1042,11 +987,7 @@ private fun ConfirmDialog(
                 ComplexityStars(hero.complexity, showLabel = true)
                 RoleChips(hero.roles)
                 Text(
-                    when {
-                        ban -> "${teamLabel(step.team)} removes this hero from the draft."
-                        pilot != null -> "${teamLabel(step.team)} takes this hero for $pilot."
-                        else -> "${teamLabel(step.team)} takes this hero."
-                    },
+                    DraftBoard.confirmText(session, state::playerName).orEmpty(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -1082,6 +1023,7 @@ private fun ConfirmDialog(
 @Composable
 private fun PrivacyGate(session: DraftSession, actions: BoardActions) {
     val step = session.currentStep ?: return
+    val text = DraftBoard.privacyText(session) ?: return
     val color = teamColor(step.team)
     Column(
         Modifier
@@ -1103,7 +1045,7 @@ private fun PrivacyGate(session: DraftSession, actions: BoardActions) {
         }
         Spacer(Modifier.height(Spacing.xl))
         Text(
-            "Pass the phone to ${teamLabel(step.team)}",
+            text.title,
             style = MaterialTheme.typography.headlineSmall,
             color = color,
             textAlign = TextAlign.Center,
@@ -1111,9 +1053,7 @@ private fun PrivacyGate(session: DraftSession, actions: BoardActions) {
         )
         Spacer(Modifier.height(Spacing.sm))
         Text(
-            "Hidden ${actionName(
-                step.action,
-            ).lowercase()}: only ${teamName(step.team)} should look. Earlier hidden choices stay covered.",
+            text.detail,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -1129,8 +1069,6 @@ private fun PrivacyGate(session: DraftSession, actions: BoardActions) {
         ) { Text("I'm ${teamName(step.team)} — show the board") }
     }
 }
-
-internal fun heroLabel(heroes: Map<String, HeroInfo>, id: String?) = id?.let { heroes.info(it).name } ?: "No hero"
 
 private const val LARGE_FONT = 1.5f
 private const val DISABLED_ALPHA = 0.3f

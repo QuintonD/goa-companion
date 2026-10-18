@@ -20,6 +20,7 @@ import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.core.presentation.draft.DraftProgress
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
@@ -27,7 +28,6 @@ import dev.quinton.goa.core.testing.FakePlayerRepository
 import dev.quinton.goa.core.testing.TestCatalog
 import dev.quinton.goa.feature.draft.board.BoardEvent
 import dev.quinton.goa.feature.draft.board.DraftBoardViewModel
-import dev.quinton.goa.feature.draft.data.DraftProgress
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
