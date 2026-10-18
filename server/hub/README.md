@@ -184,9 +184,8 @@ and `settings` (`SharedSlots.Settings`, `AppSettings`; missing = the app's defau
 Group and Settings, `group-pending-merge` (Group), `backup-import` (Settings). A signed-in browser
 without a `theme` is dark (`ThemeChoice.DEFAULT`), as the app is.
 
-`hubButton`'s trailing block runs after the label is written, so it can't set attributes (kotlinx.html
-streams the tag): put `data-*`/`hidden` on a plain `button {}` instead (see `scriptButton` in
-`group/GroupPages.kt`).
+`hubButton`'s / `primaryButton`'s trailing block runs before the icon and label are written, so it
+is the place for attributes (`attributes["hx-post"] = "/x"`, `data-*`, `hidden`); don't add content there.
 
 ## Pages and components
 
