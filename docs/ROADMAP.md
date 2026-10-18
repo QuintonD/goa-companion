@@ -74,10 +74,11 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] Three or more phones in one session; a 300-match log over Bluetooth only (Wi-Fi off)
 
 ## M7 — Card trivia (ADR-028)
-- [ ] Trivia engine (facts from the catalog, card-number and initiative-duel questions, Leitner mastery, retries) with tests against the bundled catalog
-- [ ] Progress in `datastore/trivia_progress` (not synced, not in the backup file; Auto Backup)
-- [ ] `:feature:trivia`: home with progress and setup, quiz, summary; entry points on the Heroes tab and hero page; screenshots
-- [ ] Trivia round hands-on on an S25-sized emulator; then on the S25 Ultra
+- [x] Trivia engine (facts from the catalog, card-number and initiative-duel questions, Leitner mastery with a spacing rule, retries) — 2026-10-18, `TriviaFactsTest` checks all 2,150 facts against the raw hero JSON (no null value, no Handicap or spellbook card), `TriviaEngineTest` incl. a 300-run seeded sweep over real heroes
+- [x] Progress in `datastore/trivia_progress` (not synced, not in the backup file; Auto Backup covers `datastore/`) — 2026-10-18, `DataStoreTriviaProgressRepositoryTest` (merge, reset by hero via the catalog, corrupt data, write off the main thread)
+- [x] `:feature:trivia`: home with progress, setup and a pinned Start bar; quiz with the official card scan after each answer; summary with "Practise the missed ones"; entry points on the Heroes tab top bar and the hero page — 2026-10-18, 30 VM tests, 32 screenshots (light/dark, font scale 2, 384 dp, landscape), adversarial review fixed, E2E `TriviaFlowTest` + the other 10 E2E tests green on `goa_s25a`
+- [x] Hands-on with the release build on an S25-sized emulator — 2026-10-18: in-place upgrade over 0.2.0 with real data, owned-products scope (27 heroes, 1,793 numbers), answers checked against the JSON and the shown card scans, progress kept across a force-stop mid-round. Fixed from it: the card scan sat below the fold after an answer; Start was two screens down. Emulator only
+- [ ] Trivia round on the S25 Ultra (TalkBack announcements, haptics, card scans)
 
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)

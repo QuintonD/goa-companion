@@ -67,10 +67,12 @@ class TriviaFlowTest {
         rule.tapText("Done")
 
         // Back on the home (where it was scrolled to), the setup still quizzes Arien and the
-        // round's answers count: no number is "New" any more for all ten.
+        // round's card-number answers were saved: some numbers are now being learned.
         rule.reveal(hasText("NEW QUIZ"))
         rule.reveal(hasContentDescription("Heroes: Arien", substring = true))
-        rule.reveal(hasContentDescription("Learning: 0").not() and hasContentDescription("Learning: ", substring = true))
+        val learningSome =
+            !hasContentDescription("Learning: 0") and hasContentDescription("Learning: ", substring = true)
+        rule.reveal(learningSome)
     }
 
     private companion object {
