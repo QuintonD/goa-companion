@@ -11,6 +11,7 @@ import dev.quinton.goa.core.database.dao.DeletionDao
 import dev.quinton.goa.core.database.dao.DraftRecordDao
 import dev.quinton.goa.core.database.dao.MatchDao
 import dev.quinton.goa.core.database.dao.PlayerDao
+import dev.quinton.goa.core.database.dao.TriviaRoundDao
 import javax.inject.Singleton
 
 @Module
@@ -27,4 +28,6 @@ object DatabaseModule {
     @Provides fun draftRecordDao(db: GoaDatabase): DraftRecordDao = db.draftRecordDao()
 
     @Provides fun deletionDao(db: GoaDatabase): DeletionDao = db.deletionDao()
+
+    @Provides fun triviaRoundDao(db: GoaDatabase): TriviaRoundDao = db.triviaRoundDao()
 }

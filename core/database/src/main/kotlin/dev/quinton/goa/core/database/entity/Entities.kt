@@ -9,7 +9,8 @@ import androidx.room3.PrimaryKey
 import androidx.room3.Relation
 
 /*
- * Room schema (exported to core/database/schemas; v3 adds `updated_at` and the sync tables).
+ * Room schema (exported to core/database/schemas; v3 adds `updated_at` and the sync tables, v4 the
+ * trivia rounds).
  * Enums are stored as their stable serial names ("red", "completed", …) so the database and the JSON backup agree.
  * Players are referenced by id without a foreign key: players are archived, never deleted, and
  * an imported match may name a player that is missing (shown as "Unknown player").
@@ -119,12 +120,12 @@ data class DraftWithSteps(
 )
 
 /**
- * A tombstone (schema v3): the match or draft [id] was deleted at [deletedAt]. Written in the same
+ * A tombstone (schema v3): the match, draft or trivia round [id] was deleted at [deletedAt]. Written in the same
  * transaction as the delete, so group sync can carry the deletion to the other phones.
  */
 @Entity(tableName = "deletions", primaryKeys = ["kind", "id"])
 data class DeletionEntity(
-    /** "match" or "draft". */
+    /** "match", "draft" or "trivia_round". */
     val kind: String,
     val id: String,
     @ColumnInfo(name = "deleted_at") val deletedAt: Long,
@@ -136,4 +137,32 @@ data class PlayerMergeEntity(
     @PrimaryKey @ColumnInfo(name = "from_id") val fromId: String,
     @ColumnInfo(name = "to_id") val toId: String,
     @ColumnInfo(name = "merged_at") val mergedAt: Long,
+)
+
+/**
+ * A finished trivia round played as a player (schema v4, ADR-032), the source of the trivia
+ * leaderboard. [playerId] is stored as recorded, without a foreign key (like match pilots), and
+ * resolved through player merges when read. Rounds are never edited; a deleted one leaves a
+ * tombstone (`deletions.kind = 'trivia_round'`).
+ */
+@Entity(
+    tableName = "trivia_rounds",
+    indices = [Index(value = ["player_id"]), Index(value = ["played_at"])],
+)
+data class TriviaRoundEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "player_id") val playerId: String,
+    /** "challenge" or "practice". */
+    val kind: String,
+    @ColumnInfo(name = "played_at") val playedAt: Long,
+    /** Questions the round was set up with; 0 = endless. */
+    val length: Int,
+    val questions: Int,
+    val correct: Int,
+    @ColumnInfo(name = "best_streak") val bestStreak: Int,
+    @ColumnInfo(name = "answer_millis") val answerMillis: Long,
+    val recall: Boolean,
+    @ColumnInfo(name = "hero_count") val heroCount: Int,
+    @ColumnInfo(name = "catalog_version") val catalogVersion: Int,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long,
 )
