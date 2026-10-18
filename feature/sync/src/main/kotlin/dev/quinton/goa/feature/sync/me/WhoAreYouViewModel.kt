@@ -11,12 +11,10 @@ import dev.quinton.goa.core.data.PlayerMergeResult
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.designsystem.icon.PlayerCrests
 import dev.quinton.goa.core.designsystem.theme.PlayerColors
-import dev.quinton.goa.core.domain.player.PlayerMatchUp
-import dev.quinton.goa.core.domain.player.PlayerNames
-import dev.quinton.goa.core.model.match.Match
-import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
-import java.time.Instant
+import dev.quinton.goa.core.presentation.group.AddCheck
+import dev.quinton.goa.core.presentation.group.MergeOffer
+import dev.quinton.goa.core.presentation.group.PlayerLink
 import java.time.ZoneId
 import java.util.UUID
 import javax.inject.Inject
@@ -28,17 +26,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-/** After "Yes, I'm …": this phone already was [old] (solo use before joining); merge it into [into]? */
-data class MergeOffer(val old: Player, val oldMatches: Int, val into: Player)
-
-/** "Add me" checks first (ADR-031): players whose names are like [name]. */
-data class AddCheck(
-    val name: String,
-    val candidates: List<Player>,
-    /** One of them has exactly this name, so a new player needs another one. */
-    val nameTaken: Boolean,
-)
 
 data class WhoAreYouUiState(
     val loading: Boolean = true,
@@ -89,15 +76,12 @@ class WhoAreYouViewModel @Inject constructor(
         merges.observeMerges(),
         form,
     ) { people, group, merged, f ->
-        val me = group.mePlayerId?.let(merged::resolve)
-        // Not on this phone (the first sync failed): no question, just the list.
-        val invited = group.invitedPlayerId?.let(merged::resolve)?.takeIf { it != me }
-            ?.let { id -> people.firstOrNull { it.id == id } }
         WhoAreYouUiState(
             loading = false,
-            players = people.sortedBy { it.name.lowercase() },
-            meId = me,
-            invited = invited,
+            players = PlayerLink.choices(people),
+            meId = PlayerLink.me(group.mePlayerId, merged),
+            // Not on this phone (the first sync failed): no question, just the list.
+            invited = PlayerLink.invited(group.invitedPlayerId, group.mePlayerId, merged, people),
             newName = f.newName,
             nameError = f.nameError,
             mergeOffer = f.mergeOffer,
@@ -125,15 +109,19 @@ class WhoAreYouViewModel @Inject constructor(
             val group = groups.state.first()
             val merged = merges.observeMerges().first()
             val people = players.observePlayers().first()
-            val old = group.mePlayerId?.let(merged::resolve)?.takeIf { it != invited.id }
-                ?.let { id -> people.firstOrNull { it.id == id } }
+            val offer = PlayerLink.mergeOffer(
+                invited,
+                group.mePlayerId,
+                merged,
+                people,
+                matches.observeMatches().first(),
+            )
             groups.setMe(invited.id)
             groups.setInvitedPlayer(null)
-            if (old == null) {
+            if (offer == null) {
                 form.update { it.copy(done = true) }
             } else {
-                val log = matches.observeMatches().first()
-                form.update { it.copy(mergeOffer = MergeOffer(old, log.count { m -> old.id in m.playerIds }, invited)) }
+                form.update { it.copy(mergeOffer = offer) }
             }
         }
     }
@@ -150,7 +138,8 @@ class WhoAreYouViewModel @Inject constructor(
             when (val result = merges.merge(offer.old.id, offer.into.id)) {
                 is PlayerMergeResult.PlayedTogether -> {
                     val people = players.observePlayers(includeArchived = true).first().associateBy { it.id }
-                    form.update { it.copy(mergeOffer = null, mergeRefused = lines(result.matches, people)) }
+                    val lines = PlayerLink.refusalLines(result.matches, people, ZoneId.systemDefault())
+                    form.update { it.copy(mergeOffer = null, mergeRefused = lines) }
                 }
 
                 PlayerMergeResult.Merged, PlayerMergeResult.NotPossible ->
@@ -164,7 +153,7 @@ class WhoAreYouViewModel @Inject constructor(
 
     fun refusalShown() = form.update { it.copy(mergeRefused = null, done = true) }
 
-    fun onNameChange(name: String) = form.update { it.copy(newName = name.take(MAX_NAME), nameError = null) }
+    fun onNameChange(name: String) = form.update { it.copy(newName = name.take(PlayerLink.MAX_NAME), nameError = null) }
 
     /**
      * "Add me to the group": first lists players with a similar name ("Is one of these you?"),
@@ -173,17 +162,12 @@ class WhoAreYouViewModel @Inject constructor(
     fun createMe() {
         val name = form.value.newName.trim()
         if (name.isEmpty()) {
-            form.update { it.copy(nameError = "Enter your name") }
+            form.update { it.copy(nameError = PlayerLink.NAME_MISSING) }
             return
         }
         viewModelScope.launch {
-            val similar = PlayerMatchUp.similar(name, players.observePlayers().first())
-            if (similar.isNotEmpty()) {
-                val taken = similar.any { PlayerNames.same(it.name, name) }
-                form.update { it.copy(addCheck = AddCheck(name, similar, taken)) }
-            } else {
-                add(name)
-            }
+            val check = PlayerLink.addCheck(name, players.observePlayers().first())
+            if (check != null) form.update { it.copy(addCheck = check) } else add(name)
         }
     }
 
@@ -201,36 +185,20 @@ class WhoAreYouViewModel @Inject constructor(
         // Archived players aren't offered above, but their names stay taken.
         val existing = players.findByName(name)
         if (existing != null) {
-            form.update {
-                it.copy(nameError = "“${existing.name}” is already in the group. If that's you, pick it above.")
-            }
+            form.update { it.copy(nameError = PlayerLink.nameTaken(existing)) }
             return
         }
-        val all = players.observePlayers(includeArchived = true).first()
-        val used = all.map { it.color }.toSet()
-        val player = Player(
+        val player = PlayerLink.newPlayer(
             id = UUID.randomUUID().toString(),
             name = name,
-            color = (PlayerColors.all.firstOrNull { it.argb !in used } ?: PlayerColors.default(all.size)).argb,
-            avatarId = all.size % PlayerCrests.count,
-            createdAt = clock.now(),
+            everyone = players.observePlayers(includeArchived = true).first(),
+            palette = PlayerColors.all.map { it.argb },
+            crests = PlayerCrests.count,
+            now = clock.now(),
         )
         players.upsert(player)
         groups.setMe(player.id)
         groups.setInvitedPlayer(null)
         form.update { it.copy(done = true) }
-    }
-
-    private companion object {
-        const val MAX_NAME = 24
-
-        /** "2026-10-12 · Ann, Bob vs Cid, Dee", oldest first. */
-        fun lines(matches: List<Match>, people: Map<String, Player>): List<String> =
-            matches.sortedBy { it.playedAt }.map { m ->
-                fun side(team: Team) = m.team(team).map { people[it.playerId]?.name ?: "Unknown player" }
-                    .distinct().joinToString()
-                val day = Instant.ofEpochMilli(m.playedAt).atZone(ZoneId.systemDefault()).toLocalDate()
-                "$day · ${side(Team.RED)} vs ${side(Team.BLUE)}"
-            }
     }
 }

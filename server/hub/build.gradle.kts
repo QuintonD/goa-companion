@@ -34,6 +34,8 @@ dependencies {
     implementation(libs.ktor.server.html.builder)
     implementation(libs.ktor.server.status.pages)
     implementation(libs.kotlinx.html)
+    // The invite QR code on /group/invite, drawn as SVG on the server (pure Java, no AWT).
+    implementation(libs.zxing.core)
     runtimeOnly(libs.slf4j.simple)
 
     testImplementation(libs.ktor.server.test.host)
@@ -52,6 +54,9 @@ val bundleAppFiles by tasks.registering(Sync::class) {
     from(rootProject.file("design/sigils")) { into("static/sigils") }
     from(rootProject.file("design/icons")) { into("static/icons") }
     from(rootProject.file("design/brand")) { into("static/brand") }
+    // Licence texts the About page links to (Settings → About).
+    from(rootProject.file("third_party/htmx")) { into("static/licenses/htmx") }
+    from(rootProject.file("third_party/material-symbols")) { into("static/licenses/material-symbols") }
 }
 
 tasks.named<Jar>("jar") {

@@ -64,9 +64,22 @@ object TopActions {
     }
 }
 
-/** The browser's theme choice (Settings); [SYSTEM] follows the phone's light/dark setting. */
+/**
+ * The browser's theme choice (Settings); [SYSTEM] follows the phone's light/dark setting. A
+ * signed-in browser that hasn't chosen gets [DEFAULT], dark, as the app does ("easiest on the eyes
+ * at the table"; it also keeps the home-screen app's light status-bar text readable on iOS).
+ */
 @Serializable
-enum class ThemeChoice { SYSTEM, DARK, LIGHT }
+enum class ThemeChoice {
+    SYSTEM,
+    DARK,
+    LIGHT,
+    ;
+
+    companion object {
+        val DEFAULT = DARK
+    }
+}
 
 /** Core per-device slots the shell itself reads. */
 object ShellSlots {
@@ -98,7 +111,8 @@ suspend fun ApplicationCall.respondPage(
     content: MAIN.() -> Unit,
 ) {
     val device = deviceOrNull
-    val theme = device?.let { hub.deviceStore.read(it.id, ShellSlots.Theme) } ?: ThemeChoice.SYSTEM
+    val theme =
+        device?.let { hub.deviceStore.read(it.id, ShellSlots.Theme) ?: ThemeChoice.DEFAULT } ?: ThemeChoice.SYSTEM
     val ctx = HubContext(hub)
     val bars = if (device != null && page.showTabs) HubFeatures.mapNotNull { it.shellBar(ctx, this) } else emptyList()
     response.header(HttpHeaders.CacheControl, "no-store")
@@ -128,7 +142,7 @@ fun HTML.hubDocument(
 ) {
     lang = "en"
     if (theme != ThemeChoice.SYSTEM) attributes["data-theme"] = theme.name.lowercase()
-    head { hubHead(page) }
+    head { hubHead(page, theme) }
     val tabs = signedIn && page.showTabs
     val bodyClasses = listOfNotNull("has-tabs".takeIf { tabs }, "has-bars".takeIf { tabs && bars.isNotEmpty() })
     body(bodyClasses.joinToString(" ").ifEmpty { null }) {
@@ -146,17 +160,27 @@ fun HTML.hubDocument(
     }
 }
 
-private fun HEAD.hubHead(page: HubPage) {
+private fun HEAD.hubHead(page: HubPage, theme: ThemeChoice) {
     meta(charset = "utf-8")
     meta(name = "viewport", content = "width=device-width, initial-scale=1, viewport-fit=cover")
     title("${page.title} · Guards of Atlantis")
     meta(name = "robots", content = "noindex, nofollow")
     meta(name = "color-scheme", content = "dark light")
-    meta(name = "theme-color", content = "#0B1622") { attributes["media"] = "(prefers-color-scheme: dark)" }
-    meta(name = "theme-color", content = "#F4EFE6") { attributes["media"] = "(prefers-color-scheme: light)" }
+    when (theme) {
+        ThemeChoice.DARK -> meta(name = "theme-color", content = DARK_BAR)
+
+        ThemeChoice.LIGHT -> meta(name = "theme-color", content = LIGHT_BAR)
+
+        ThemeChoice.SYSTEM -> {
+            meta(name = "theme-color", content = DARK_BAR) { attributes["media"] = "(prefers-color-scheme: dark)" }
+            meta(name = "theme-color", content = LIGHT_BAR) { attributes["media"] = "(prefers-color-scheme: light)" }
+        }
+    }
     meta(name = "apple-mobile-web-app-capable", content = "yes")
     meta(name = "mobile-web-app-capable", content = "yes")
-    meta(name = "apple-mobile-web-app-status-bar-style", content = "black-translucent")
+    // Light status-bar text over the page suits dark pages; a light page gets iOS's dark text on its own bar.
+    val statusBar = if (theme == ThemeChoice.LIGHT) "default" else "black-translucent"
+    meta(name = "apple-mobile-web-app-status-bar-style", content = statusBar)
     meta(name = "apple-mobile-web-app-title", content = "GoA")
     // CSP-safe htmx: no injected <style>, no eval, no scripts from swapped content.
     meta(name = "htmx-config", content = HTMX_CONFIG)
@@ -211,6 +235,9 @@ private fun FlowContent.tabBar(current: Tab?) {
 private fun A.tabIcon(tab: Tab, selected: Boolean) {
     span("tab-indicator") { icon(if (selected) "${tab.icon}-filled" else tab.icon) }
 }
+
+private const val DARK_BAR = "#0B1622"
+private const val LIGHT_BAR = "#F4EFE6"
 
 private const val HTMX_CONFIG =
     """{"includeIndicatorStyles":false,"allowEval":false,"allowScriptTags":false,"selfRequestsOnly":true,""" +

@@ -162,12 +162,20 @@ function Test-Healthy {
     return $false
 }
 
-# Runs the hub's command line. Every argument is quoted for cmd.exe: invites contain '&'.
+# Runs the hub's command line. Every argument is quoted for cmd.exe. Never pass an invite here:
+# cmd.exe splits it at '&' whatever the quoting (goa-hub.bat re-expands its arguments); use Join-Hub.
 function Invoke-Hub([string[]]$arguments) {
     $quoted = ($arguments | ForEach-Object { '"' + ($_ -replace '"', '') + '"' }) -join ' '
     $p = Start-Process -FilePath 'cmd.exe' -ArgumentList "/d /c `"`"$Current\bin\goa-hub.bat`" $quoted`"" `
         -NoNewWindow -Wait -PassThru
     if ($p.ExitCode -ne 0) { throw "goa-hub $($arguments[0]) failed (exit $($p.ExitCode))." }
+}
+
+# Joins the group: the invite goes in on standard input (goa-hub join reads it there when no text
+# is given), so cmd.exe never sees its '&' and it never shows in a process list.
+function Join-Hub([string]$invite) {
+    $invite | & "$Current\bin\goa-hub.bat" join --data $Data
+    if ($LASTEXITCODE -ne 0) { throw "goa-hub join failed (exit $LASTEXITCODE)." }
 }
 
 function Get-TailscaleStatus { (& $ts status --json) -join "`n" | ConvertFrom-Json }
@@ -204,7 +212,7 @@ Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 Get-CimInstance Win32_Process -Filter "Name = 'java.exe'" | Where-Object { $_.CommandLine -like "*$Root*" } |
     ForEach-Object { Invoke-CimMethod -InputObject $_ -MethodName Terminate | Out-Null }
 if ($Invite) {
-    try { Invoke-Hub @('join', $Invite.Trim(), '--data', $Data); Note 'Joined the group.' }
+    try { Join-Hub $Invite.Trim(); Note 'Joined the group.' }
     catch { Write-Warning "Joining failed: $($_.Exception.Message). Run this again with a fresh invite." }
 }
 $configArgs = @('config', '--public-url', $PublicUrl, '--data', $Data)

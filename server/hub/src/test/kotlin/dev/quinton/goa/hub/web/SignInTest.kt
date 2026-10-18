@@ -12,6 +12,7 @@ import dev.quinton.goa.hub.hubTest
 import dev.quinton.goa.hub.plainClient
 import dev.quinton.goa.hub.signIn
 import dev.quinton.goa.hub.store.Devices
+import dev.quinton.goa.hub.store.SharedSlots
 import dev.quinton.goa.hub.testHub
 import io.ktor.client.HttpClient
 import io.ktor.client.request.forms.submitForm
@@ -49,13 +50,14 @@ class SignInTest {
     private val wrongKey = GroupInvite.format(GroupCredentials(TestGroup.groupId, ByteArray(32) { 9 }, TestGroup.name))
 
     @Test
-    fun `joining with the group's invite sets the device cookie and opens the app`() {
+    fun `joining with the group's invite sets the device cookie and asks which player you are`() {
         val hub = testHub(tmp.root.toPath(), clock)
         hubTest(hub) {
             val client = plainClient()
             val response = client.join(goodInvite)
             assertThat(response.status).isEqualTo(HttpStatusCode.Found)
-            assertThat(response.headers[HttpHeaders.Location]).isEqualTo("/")
+            // A new browser doesn't know its player yet: "Which player are you?" once (ADR-031).
+            assertThat(response.headers[HttpHeaders.Location]).isEqualTo(WHO_ARE_YOU_PATH)
             val setCookie = response.headers.getAll(HttpHeaders.SetCookie)!!.single()
             assertThat(
                 setCookie,
@@ -81,9 +83,27 @@ class SignInTest {
         hubTest(hub) {
             val response = plainClient().join(GroupInvite.format(TestGroup, HUB_URL, playerId = "ann"), json = true)
             assertThat(response.status).isEqualTo(HttpStatusCode.OK)
-            assertThat(response.bodyAsText()).isEqualTo("""{"redirect":"/"}""")
+            assertThat(response.bodyAsText()).isEqualTo("""{"redirect":"$WHO_ARE_YOU_PATH"}""")
             val device = hub.devices.list().single()
             assertThat(hub.deviceStore.read(device.id, SignInSlots.InvitedPlayerId)).isEqualTo("ann")
+        }
+    }
+
+    @Test
+    fun `a browser that knows its player lands on the app, unless a personal invite names someone else`() {
+        val hub = testHub(tmp.root.toPath(), clock)
+        hubTest(hub) {
+            val client = plainClient()
+            val token = client.signIn()
+            val device = hub.devices.list().single()
+            hub.deviceStore.write(device.id, SharedSlots.Me, "ann")
+            suspend fun again(invite: String) = client.submitForm("/join", parameters { append("invite", invite) }) {
+                header(HttpHeaders.Origin, HUB_URL)
+                header(HttpHeaders.Cookie, cookie(token))
+            }.headers[HttpHeaders.Location]
+            assertThat(again(goodInvite)).isEqualTo("/")
+            assertThat(again(GroupInvite.format(TestGroup, HUB_URL, playerId = "ann"))).isEqualTo("/")
+            assertThat(again(GroupInvite.format(TestGroup, HUB_URL, playerId = "bob"))).isEqualTo(WHO_ARE_YOU_PATH)
         }
     }
 

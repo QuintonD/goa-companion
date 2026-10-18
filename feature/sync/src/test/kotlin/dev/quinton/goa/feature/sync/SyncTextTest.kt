@@ -1,7 +1,6 @@
 package dev.quinton.goa.feature.sync
 
 import com.google.common.truth.Truth.assertThat
-import dev.quinton.goa.core.domain.sync.SyncChanges
 import dev.quinton.goa.core.domain.sync.protocol.PeerProgress
 import dev.quinton.goa.core.domain.sync.protocol.PeerStage
 import dev.quinton.goa.core.domain.sync.protocol.SyncFailure
@@ -12,17 +11,6 @@ import org.junit.Test
 
 class SyncTextTest {
     @Test
-    fun theResultSummaryReadsLikeTheTableWouldSayIt() {
-        assertThat(SyncText.summary(SyncChanges.NONE)).isEqualTo("Already up to date")
-        assertThat(
-            SyncText.summary(SyncChanges(matchesAdded = 5, playersAdded = 1, matchesUpdated = 1, playersUpdated = 1)),
-        ).isEqualTo("+5 matches, +1 player, 2 updated")
-        assertThat(SyncText.summary(SyncChanges(matchesAdded = 1, matchesRemoved = 1, playersMerged = 1)))
-            .isEqualTo("+1 match, 1 removed, 1 duplicate merged")
-        assertThat(SyncText.summary(SyncChanges(ratingConstantsChanged = true))).isEqualTo("new rating constants")
-    }
-
-    @Test
     fun theHostSaysWhetherADroppedPhonesDataMadeIt() {
         fun dropped(at: PeerStage) = SyncText.peerStage(
             PeerProgress("1", "Bob", stage = PeerStage.FAILED, failure = SyncFailure.DISCONNECTED, failedAt = at),
@@ -30,15 +18,6 @@ class SyncTextTest {
         assertThat(dropped(PeerStage.RECEIVING)).contains("before its data arrived")
         assertThat(dropped(PeerStage.READY)).contains("Its data is in")
         assertThat(dropped(PeerStage.CONFIRMING)).contains("may be up to date")
-    }
-
-    @Test
-    fun lastSyncedIsShortAndHuman() {
-        val now = 10_000_000_000L
-        assertThat(SyncText.ago(now - 10_000, now)).isEqualTo("just now")
-        assertThat(SyncText.ago(now - 5 * 60_000, now)).isEqualTo("5 min ago")
-        assertThat(SyncText.ago(now - 3 * 3_600_000, now)).isEqualTo("3 h ago")
-        assertThat(SyncText.ago(now - 2 * 86_400_000, now)).isEqualTo("2 days ago")
     }
 
     @Test

@@ -1,0 +1,64 @@
+/* Group pages (/group, /group/me, /group/invite). Tokens from app.css; no inline styles (CSP). */
+
+.icon-qr_code_2 { --icon: url(/static/material/qr_code_2.svg); }
+.icon-content_copy { --icon: url(/static/material/content_copy.svg); }
+.icon-person { --icon: url(/static/material/person.svg); }
+
+.muted { color: var(--on-surface-variant); }
+
+/* `hidden` wins over the button's display (Copy and Share stay hidden until the script shows them) */
+.btn[hidden] { display: none; }
+.card h2 { overflow-wrap: anywhere; }
+.row-icon { display: inline-flex; flex: none; color: var(--primary); }
+.plain-list { display: flex; flex-direction: column; gap: calc(var(--space) * 2); margin: 0; padding: 0; list-style: none; }
+.actions.end { justify-content: flex-end; }
+
+/* Signed-in browsers */
+.device-row { padding-right: calc(var(--space) * 2); }
+.device-row[aria-current="true"] { border: 1px solid var(--secondary); }
+.this-device { color: var(--secondary); font-weight: 600; }
+
+/* Pick lists: one big button per player (Which player are you?, Who's the invite for?) */
+.pick-list { display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
+.row + .row.pick { margin-top: 0; }
+
+.row.pick {
+  width: 100%;
+  border: 1px solid transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row.pick:hover { background: var(--surface-high); }
+.row.pick.selected { border-color: var(--secondary); background: var(--secondary-container); color: var(--on-secondary-container); }
+
+.pick-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space);
+  font-weight: 600;
+}
+
+.avatar.anyone { --pc: var(--secondary); }
+.avatar.anyone .icon { width: 18px; height: 18px; }
+
+/* You're <name>? and Is one of these you? */
+.invited-head { display: flex; align-items: center; gap: var(--pad); }
+.invited-card, .check-card { border-color: var(--secondary); }
+.invited-for { display: flex; align-items: center; gap: calc(var(--space) * 3); }
+
+/* The invite QR code: always black on white (scanners need the contrast), in both themes */
+.qr-box {
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+  padding: var(--pad);
+  border-radius: var(--radius-card);
+  background: #FFFFFF;
+}
+
+.qr-code { display: block; width: 100%; height: auto; }
+
+.invite-link { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+.copy-status { flex-basis: 100%; color: var(--secondary); min-height: 1.45em; }

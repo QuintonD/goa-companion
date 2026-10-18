@@ -31,6 +31,9 @@ import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.core.presentation.group.AddCheck
+import dev.quinton.goa.core.presentation.group.MergeOffer
+import dev.quinton.goa.core.presentation.group.PlayerLink
 
 /** "You're <name>?" (ADR-031): a personal invite's player, to confirm before anything else. */
 @Composable
@@ -75,20 +78,10 @@ internal fun LinkDialogs(state: WhoAreYouUiState, actions: WhoAreYouActions) {
 
 @Composable
 private fun MergeOfferDialog(offer: MergeOffer, actions: WhoAreYouActions) {
-    val old = offer.old.name
-    val into = offer.into.name
-    val matches = if (offer.oldMatches == 1) "1 match" else "${offer.oldMatches} matches"
     AlertDialog(
         onDismissRequest = actions.onKeepBoth,
-        title = { Text("Merge your old player into $into?") },
-        text = {
-            Text(
-                "Before, this phone was “$old” ($matches). If that was you too, merge $old into $into: those " +
-                    "matches count for $into, on every phone after the next sync, and $old disappears from the " +
-                    "lists. This can't be undone. If $old is someone else, keep both.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        },
+        title = { Text("Merge your old player into ${offer.into.name}?") },
+        text = { Text(PlayerLink.mergeOfferText(offer), style = MaterialTheme.typography.bodyMedium) },
         confirmButton = { TextButton(onClick = actions.onMergeOld) { Text("Merge") } },
         dismissButton = { TextButton(onClick = actions.onKeepBoth) { Text("Keep both") } },
     )
@@ -105,12 +98,7 @@ private fun RefusedDialog(meId: String?, players: List<Player>, lines: List<Stri
                 Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                Text(
-                    "The two played in the same match, so they are two people (one person can't sit on both " +
-                        "teams, and teammates are two players). Both stay" +
-                        (me?.let { "; this phone is $it now." } ?: "."),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Text(PlayerLink.refusalText(me), style = MaterialTheme.typography.bodyMedium)
                 lines.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
             }
         },
@@ -126,13 +114,7 @@ private fun AddCheckDialog(check: AddCheck, actions: WhoAreYouActions) {
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 Text(
-                    if (check.nameTaken) {
-                        "“${check.name}” is already in the group. If that's you, pick it. If not, add yourself " +
-                            "with another name, like a last initial."
-                    } else {
-                        "These players have a name like “${check.name}”. If one is you, pick it: your matches and " +
-                            "rating are already there."
-                    },
+                    PlayerLink.addCheckText(check),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(bottom = Spacing.sm),
                 )

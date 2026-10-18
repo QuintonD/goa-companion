@@ -89,7 +89,8 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] Web: Heroes (catalog, hero page, cards, FAQ) and Rules
 - [ ] Web: Timer (presets, running timer, round view, Action seats, wake lock, chimes, push)
 - [ ] Web: Draft (setup, methods, board, → match)
-- [ ] Web: Card trivia, Group (join, who am I, invite QR, devices), Settings (constants, backup)
+- [ ] Web: Card trivia
+- [x] Web: Group (`/group`, who am I `/group/me` with "You're <name>?" and the old-me merge, invite QR `/group/invite`, signed-in browsers, phones' last sync) and Settings (`/settings`: theme, products, sounds, haptics, running timer, lock-screen alerts; `/settings/ratings` group Elo constants; `/settings/backup` export + Merge import with a preview; `/settings/about`); group/settings builders and the backup file moved to `:core:presentation` / `:core:domain` — 2026-10-19, `GroupPagesTest` (11: yes/no/missing/merged invited player, old-me merge + refusal, add-me look-alike check, sign-out of this and another browser, the QR decoded with ZXing equals `GroupInvite.format` incl. `p=`, signed-out refusal, Origin), `SettingsPagesTest` (8: slots round-trip, Elo stamped like the app, export byte-equal to `BackupFiles`, Merge import after a preview, bad files), `PlayerLinkTest`, `SettingsSectionsTest`, `SyncWordsTest`, `BackupCodecTest`; Android `testDebugUnitTest` + `verifyRoborazziDebug` unchanged (sync, settings, players); pages looked at in headless Edge (500 px window, its narrowest that renders true to width), light and dark, after a real sign-in through a personal invite. **Not yet on an iPhone (push, Web Share, home screen)**
 - [x] Deploy kit and runbook ([deploy/README.md](../deploy/README.md)): Tailscale Funnel first, Caddy + DuckDNS + router as the alternative, hardened systemd unit, update with rollback, daily backups, Windows variant — 2026-10-19, `shellcheck` clean, Caddyfile `caddy validate`/`fmt` (2.11.7) and its log filter checked, `systemd-analyze verify`/`security` (hub 1.5 OK); `install.sh` (both modes), `update.sh` (rollback on a broken build, APK publish) and the restore steps run in systemd containers (Debian 13, Ubuntu 24.04 with ufw, Fedora 44 with Java 25) against a stand-in hub; PowerShell scripts parse-checked, invite quoting through `cmd` tested. **Not yet tried on a real machine, a real tailnet or Windows end to end**
 - [ ] Security review of sign-in, sync API and hosting; adversarial review of web writes vs the sync rules
 - [ ] Hands-on: two emulators + a browser at 390 px converge through a local hub; game night on the web
@@ -100,6 +101,7 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] `PlayerMatchUp` + "Same people?" on the Players tab (on the fly, any sync) and "Find duplicates"; "Add me" checks similar names — 2026-10-18, `PlayerMatchUpTest` (rules + order/same-match properties), `SamePeopleTest`, `PlayerMatchUpStoreTest`. JVM + screenshots only
 - [ ] Android linking flows on two phones (personal invite → "You're <name>?", look-alike merge after a sync)
 - [ ] Web: the same three flows on the hub (ADR-031 §4)
+  - [x] "You're <name>?" (with the old-me merge) and the "Add me" look-alike check on `/group/me` — 2026-10-19, `GroupPagesTest`; "Same people?" belongs to the web Players area
 
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)

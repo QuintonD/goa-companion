@@ -55,17 +55,10 @@ import dev.quinton.goa.core.designsystem.theme.GoaFontLicenses
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.presentation.settings.AboutCredits
 
 /** App identity shown on the About screen. */
 data class AppInfo(val name: String, val versionName: String, val versionCode: Long)
-
-/** Community projects whose published data informed the catalog import (credit only, no code reused). */
-internal val DataSourceCredits = listOf(
-    "Stats-of-Atlantis (QuasiStellar)" to "Card data, hero details and artwork",
-    "goa2-faq (yvo-niedrich)" to "Card text cross-check and FAQ rulings",
-    "goa2 (dmrediger)" to "Full card images",
-    "guards-of-atlantis-ii-data (colefin8)" to "Card values cross-check",
-)
 
 @Composable
 fun AboutRoute(onBack: () -> Unit) {
@@ -130,13 +123,10 @@ fun AboutScreen(info: AppInfo, onBack: () -> Unit, modifier: Modifier = Modifier
             item { SectionHeader("Game content") }
             item {
                 GoaCard(Modifier.fillMaxWidth()) {
-                    Body(
-                        "Guards of Atlantis II, its heroes, card text, card images and artwork are by " +
-                            "Wolff Designa. They appear here for private, non-commercial play.",
-                    )
+                    Body(AboutCredits.GAME_CONTENT)
                     Spacer(Modifier.size(Spacing.sm))
                     Text(
-                        "Not affiliated with or endorsed by Wolff Designa.",
+                        AboutCredits.NOT_AFFILIATED,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
@@ -145,8 +135,8 @@ fun AboutScreen(info: AppInfo, onBack: () -> Unit, modifier: Modifier = Modifier
             item { SectionHeader("Data sources") }
             item {
                 GoaCard(Modifier.fillMaxWidth()) {
-                    Body("Thanks to these community projects, whose published data helped build and check the catalog:")
-                    DataSourceCredits.forEach { (name, what) ->
+                    Body(AboutCredits.DATA_SOURCES_INTRO)
+                    AboutCredits.dataSources.forEach { (name, what) ->
                         Spacer(Modifier.size(Spacing.sm))
                         Text(name, style = MaterialTheme.typography.titleSmall)
                         Body(what)
@@ -156,7 +146,7 @@ fun AboutScreen(info: AppInfo, onBack: () -> Unit, modifier: Modifier = Modifier
             item { SectionHeader("Original artwork") }
             item {
                 GoaCard(Modifier.fillMaxWidth()) {
-                    Body("Hero sigils, player crests, icons and the app icon were drawn for this app.")
+                    Body(AboutCredits.ORIGINAL_ARTWORK)
                 }
             }
             item { SectionHeader("Fonts") }
