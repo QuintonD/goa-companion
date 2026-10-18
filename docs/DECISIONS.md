@@ -517,24 +517,34 @@ characters cards". Knowing a card's Initiative, Attack, Defense, Movement, Range
 without looking speeds up play and helps read the table (who acts first, who can reach whom).
 The 32 heroes' deck cards print about 2,150 such numbers, too many for a fixed question list.
 **Decision:** (1) Questions are generated, never written: `TriviaFacts` (pure, `core:domain`)
-turns every non-null printed value on a hero's 18 deck cards (Basic, Tier I–III, Ultimate; not the
+turns every non-null printed value on a hero's deck cards (Basic, Tier I–III, Ultimate; not the
 Handicap card or Gydion's spellbook) into a fact `<cardId>/<stat>` = value (with the printed `+`).
 Two kinds of question: *card number* ("Mad Dash — Initiative?") answered from four nearby values
 or, in **Recall**, from every value that stat takes anywhere in the catalog; and an optional
 *initiative duel* ("Which has the higher initiative?" — first, second or the same). A duel only
 asks which number is higher; it makes no claim about turn order. (2) Learning is a Leitner box per
 fact: a right card-number answer moves it up one box (max 5), a wrong one back to 0, three right
-in a row = **learned**. Duels don't move boxes (a rough sense of order can answer them), but a
-missed duel queues both cards' Initiative as card-number questions. A missed fact comes back after
-three other questions in the same round; the next question is drawn weighted towards missed,
-new and still-learning facts, never the same card twice in a row when the pool has others.
+in a row = **learned**. A right answer only moves the box on the fact's first card-number
+question of the round or once at least 4 other questions were answered since it was last asked
+(`MIN_SPACING`); sooner, it still counts as seen and right but the box stays, so a small pool
+can't pump a number to learned from short-term memory. Duels don't move boxes (a rough sense of
+order can answer them), but a missed duel queues both cards' Initiative as card-number
+questions. A missed fact comes back after three other questions in the same round, and only a
+card-number question on it uses that retry up (a duel touching the card doesn't); the next
+question is drawn weighted towards missed, new and still-learning facts, never the same card
+twice in a row when the pool has others. "Practise the missed ones" asks each missed number about
+twice: 2 × missed numbers, capped by the round's length, never endless.
 (3) Progress is stored per fact with the value that was learned; if a catalog fix changes that
 value the fact counts as new again. It lives in its own DataStore file (`trivia_progress`) with
 the last quiz setup: personal practice, so it is **not** synced (ADR-025) and **not** in the
 backup file; Android Auto Backup covers it. (4) `:feature:trivia` (Card trivia: progress per
 hero and the setup; the quiz with its summary) is reached from the Heroes tab's top bar and from
-a hero's page ("Learn <hero>'s card numbers", that hero preselected).
+a hero's page ("Learn <hero>'s card numbers", that hero preselected). A quizzed hero whose data
+is `verified: false` carries the design system's Unverified badge on the question card, duel
+tiles, hero picker and progress list (AGENTS.md: unverified → the UI marks it).
 **Consequences:** New heroes, a corrected card or the 3rd printing need no trivia work: the
 questions follow the catalog. "All heroes" means the owned products (Settings). The round itself
-is not saved: process death or leaving the quiz ends it, but every answer's progress is already
-stored.
+is not saved: every answer's progress is stored as it is given (a write that survives leaving
+the screen), but after process death the quiz restarts from question 1 from its saved route.
+Every round can be ended (End → summary); Back once a question is answered asks "Leave this
+round?" (See results / Leave), since leaving drops the round's results.
