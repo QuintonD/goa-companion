@@ -6,6 +6,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -44,7 +45,7 @@ class TriviaFlowTest {
         rule.waitForText("1 hero chosen")
         rule.tapText("Done")
         rule.waitForDescription("Heroes: Arien", substring = true)
-        rule.waitForText("in this quiz", substring = true)
+        rule.reveal(hasText("in this quiz", substring = true))
 
         rule.tapText("Start quiz")
         for (question in 1..ROUND) {
@@ -65,9 +66,11 @@ class TriviaFlowTest {
         rule.waitForDescription("Best streak", substring = true)
         rule.tapText("Done")
 
-        // Back on the home, the round's answers count as practice.
-        rule.waitForText("NEW QUIZ")
-        rule.waitForDescription("Heroes: Arien", substring = true)
+        // Back on the home (where it was scrolled to), the setup still quizzes Arien and the
+        // round's answers count: no number is "New" any more for all ten.
+        rule.reveal(hasText("NEW QUIZ"))
+        rule.reveal(hasContentDescription("Heroes: Arien", substring = true))
+        rule.reveal(hasContentDescription("Learning: 0").not() and hasContentDescription("Learning: ", substring = true))
     }
 
     private companion object {
