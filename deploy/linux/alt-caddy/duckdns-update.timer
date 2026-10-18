@@ -1,0 +1,11 @@
+# Runs duckdns-update.service a minute after boot, then every 5 minutes.
+[Unit]
+Description=Update the DuckDNS name every 5 minutes
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30s
+
+[Install]
+WantedBy=timers.target

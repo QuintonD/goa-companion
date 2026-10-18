@@ -1,0 +1,36 @@
+# Caddy in front of the Guards of Atlantis hub (ADR-030 §10).
+# Template: install.sh / install.ps1 replace {$GOA_HUB_DOMAIN} (e.g. ourgroup.duckdns.org) and
+# {$GOA_HUB_ACCESS_LOG} with real values. Caddy gets and renews the Let's Encrypt certificate by
+# itself and redirects http:// to https://.
+
+{$GOA_HUB_DOMAIN} {
+	# Phones send at most 8 MB per sync (the hub refuses more); a little headroom here.
+	request_body {
+		max_size 10MB
+	}
+
+	# The hub sets its own security headers (CSP, noindex, ...). Caddy adds HSTS:
+	# browsers then never try plain http:// for this name again.
+	header Strict-Transport-Security "max-age=31536000"
+
+	# The hub listens on this machine only. Caddy passes the visitor's address on in
+	# X-Forwarded-For / X-Forwarded-Proto / X-Forwarded-Host.
+	reverse_proxy 127.0.0.1:8080
+
+	# Access log without query strings. Caddy already hides Cookie and Authorization
+	# headers; the lines below make that explicit.
+	log {
+		output file {$GOA_HUB_ACCESS_LOG} {
+			roll_size 10MiB
+			roll_keep 5
+			roll_keep_for 336h
+		}
+		format filter {
+			request>uri regexp \?.*$ ""
+			request>headers>Cookie delete
+			request>headers>Authorization delete
+			request>headers>Referer delete
+			resp_headers>Set-Cookie delete
+		}
+	}
+}
