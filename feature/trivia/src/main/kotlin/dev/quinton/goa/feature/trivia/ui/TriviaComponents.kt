@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.CardColorDot
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.trivia.MasterySummary
@@ -120,34 +121,48 @@ internal fun CardKindLine(card: TriviaCardUi, modifier: Modifier = Modifier, sho
     }
 }
 
-/** The hero a card belongs to: small portrait (or sigil) and name. */
+/** The hero a card belongs to: small portrait (or sigil) and name, and Unverified when it is. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun HeroLine(card: TriviaCardUi, modifier: Modifier = Modifier, portraitSize: Dp = 32.dp) {
-    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        HeroPortrait(
-            heroId = card.heroId,
-            portrait = card.portrait,
-            contentDescription = null,
-            modifier = Modifier.size(scaledIconSize(portraitSize, maxScale = 1.5f)),
-            shape = CircleShape,
-        )
-        Spacer(Modifier.width(Spacing.sm))
-        Text(
-            card.heroName,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
+    FlowRow(
+        modifier,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            HeroPortrait(
+                heroId = card.heroId,
+                portrait = card.portrait,
+                contentDescription = null,
+                modifier = Modifier.size(scaledIconSize(portraitSize, maxScale = 1.5f)),
+                shape = CircleShape,
+            )
+            Spacer(Modifier.width(Spacing.sm))
+            Text(
+                card.heroName,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (!card.heroVerified) UnverifiedBadge()
     }
 }
+
+/** ", unverified data" after a card or hero TalkBack names, when its data isn't verified. */
+internal fun spokenUnverified(verified: Boolean): String = if (verified) "" else ", $UNVERIFIED_SPOKEN"
+
+internal const val UNVERIFIED_SPOKEN = "unverified data"
 
 /** "Mad Dash, Arien's Red · Tier II Attack card": how TalkBack names a card. */
 internal fun spokenCard(card: TriviaCardUi): String =
     "${card.name}, ${card.heroName}'s ${
         listOfNotNull(card.label.replace(" · ", " ").ifEmpty { null }, card.primary ?: "card").joinToString(" ")
-    }"
+    }${spokenUnverified(card.heroVerified)}"
 
 @Composable
 internal fun SetupLabel(text: String, modifier: Modifier = Modifier) {

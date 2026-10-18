@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.trivia.quiz
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -29,15 +31,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.EngravedRule
 import dev.quinton.goa.core.designsystem.component.GoaScreen
@@ -46,7 +52,11 @@ import dev.quinton.goa.core.designsystem.theme.Motion
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.trivia.TriviaAnswer
 
-/** A quiz round: one question at a time, then the round's summary. */
+/**
+ * A quiz round: one question at a time, then the round's summary. End (top bar) shows the summary
+ * at any point. Leaving with Back once a question is answered asks first: the answers are already
+ * saved, but the round's results would go.
+ */
 @Composable
 fun TriviaQuizScreen(
     state: TriviaQuizUiState,
@@ -58,14 +68,19 @@ fun TriviaQuizScreen(
     onDone: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    initialConfirmLeave: Boolean = false,
 ) {
     val playing = state as? TriviaQuizUiState.Playing
+    var confirmLeave by rememberSaveable { mutableStateOf(initialConfirmLeave) }
+    val askFirst = playing?.started == true
+    val back = { if (askFirst) confirmLeave = true else onBack() }
+    BackHandler(enabled = askFirst) { confirmLeave = true }
     GoaScreen(
         title = if (state is TriviaQuizUiState.Summary) "Round over" else "Card trivia",
-        onBack = onBack,
+        onBack = back,
         modifier = modifier,
         actions = {
-            if (playing != null && playing.length == null) {
+            if (playing != null) {
                 TextButton(onClick = onStop, modifier = Modifier.semantics { contentDescription = "End round" }) {
                     Text("End")
                 }
@@ -92,6 +107,24 @@ fun TriviaQuizScreen(
             }
         }
     }
+    if (confirmLeave && askFirst) {
+        ConfirmDialog(
+            title = "Leave this round?",
+            message = "Your answers are saved. The round's results won't be.",
+            confirmLabel = "See results",
+            onConfirm = {
+                confirmLeave = false
+                onStop()
+            },
+            dismissLabel = "Leave",
+            onDismissButton = {
+                confirmLeave = false
+                onBack()
+            },
+            onDismiss = { confirmLeave = false },
+            icon = Icons.AutoMirrored.Outlined.ExitToApp,
+        )
+    }
 }
 
 @Composable
@@ -112,38 +145,60 @@ private fun QuizPlaying(state: TriviaQuizUiState.Playing, onAnswer: (TriviaAnswe
                     QuestionPanel(state.question)
                 }
                 Column(Modifier.weight(1f).fillMaxSize()) {
-                    Column(
-                        Modifier
-                            .weight(1f)
-                            .verticalScroll(rememberScrollState())
-                            .padding(Spacing.screen),
-                    ) {
-                        AnswerArea(state, onAnswer)
-                        Reveal(state)
+                    val scroll = rememberScrollState()
+                    BoxWithConstraints(Modifier.weight(1f)) {
+                        val imageMax = imageRoom(maxHeight, padding = Spacing.screen * 2)
+                        Column(
+                            Modifier
+                                .fillMaxSize()
+                                .verticalScroll(scroll)
+                                .padding(Spacing.screen),
+                        ) {
+                            AnswerArea(state, onAnswer)
+                            Reveal(state, userScrolling = { scroll.isScrollInProgress }, imageMaxHeight = imageMax)
+                        }
                     }
                     NextBar(state, onNext)
                 }
             }
         } else {
             Column(Modifier.fillMaxSize()) {
-                Column(
-                    Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = Spacing.screen, vertical = Spacing.lg),
-                ) {
-                    QuizHeader(state)
-                    Spacer(Modifier.height(Spacing.lg))
-                    QuestionPanel(state.question)
-                    Spacer(Modifier.height(Spacing.lg))
-                    AnswerArea(state, onAnswer)
-                    Reveal(state)
+                val scroll = rememberScrollState()
+                BoxWithConstraints(Modifier.weight(1f)) {
+                    val imageMax = imageRoom(maxHeight, padding = Spacing.lg * 2)
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .verticalScroll(scroll)
+                            .padding(horizontal = Spacing.screen, vertical = Spacing.lg),
+                    ) {
+                        QuizHeader(state)
+                        Spacer(Modifier.height(Spacing.lg))
+                        QuestionPanel(state.question)
+                        Spacer(Modifier.height(Spacing.lg))
+                        AnswerArea(state, onAnswer)
+                        Reveal(state, userScrolling = { scroll.isScrollInProgress }, imageMaxHeight = imageMax)
+                    }
                 }
                 NextBar(state, onNext)
             }
         }
     }
 }
+
+/**
+ * The tallest a card scan may be so the feedback line and the whole scan fit the visible list
+ * ([viewport] high, less its [padding]) once scrolled into view; never below a legible minimum.
+ */
+@Composable
+private fun imageRoom(viewport: Dp, padding: Dp): Dp {
+    val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 2f)
+    return (viewport - padding - FEEDBACK_ROOM * fontScale).coerceAtLeast(MIN_IMAGE_HEIGHT)
+}
+
+/** Room for the feedback line (up to two lines) and its spacing above the scan. */
+private val FEEDBACK_ROOM = 96.dp
+private val MIN_IMAGE_HEIGHT = 160.dp
 
 /** A confirm tick for a right answer, a reject buzz for a wrong one; once per answer. */
 @Composable
