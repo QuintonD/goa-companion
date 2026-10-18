@@ -160,6 +160,12 @@ class SyncScreenshotTest {
         Sheet(session.copy(firstSync = true, stage = SessionStage.Joining(done)))
     }
 
+    /** A later sync on a phone that never picked its player (its first sync failed). */
+    @Test fun sessionDoneWithoutMeDark() = shot {
+        val done = ClientState(phase = ClientPhase.DONE, hostName = "Bob", changes = SyncChanges(matchesAdded = 4))
+        Sheet(session.copy(meChosen = false, stage = SessionStage.Joining(done)))
+    }
+
     private val whoAreYou = WhoAreYouUiState(
         loading = false,
         players = listOf(person("ann", "Ann"), person("bob", "Bob"), person("cid", "Cid")),

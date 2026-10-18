@@ -64,6 +64,8 @@ data class SyncSessionUiState(
     val deviceName: String = "",
     /** Right after joining: "Which player are you?" comes next. */
     val firstSync: Boolean = false,
+    /** This phone has picked its player ("Who are you?"); if not, a finished sync offers it. */
+    val meChosen: Boolean = true,
     /** Asked for by the route; the sheet starts it once the permissions are granted. */
     val requestedRole: SessionRole? = null,
     /** Two players share a name after the sync. */
@@ -162,6 +164,7 @@ class SyncSessionViewModel @AssistedInject constructor(
             groupName = group.group?.name,
             deviceName = deviceName(group, people),
             firstSync = firstSync,
+            meChosen = people.any { it.id == group.mePlayerId },
             requestedRole = role,
             duplicateHint = if (finishedOk) SyncText.duplicateHint(SyncText.duplicateNames(people)) else null,
             versionHint = SyncText.versionHint(appInfo.versionName(), others),

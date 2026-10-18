@@ -101,6 +101,8 @@ class SyncViewModelsTest {
         listOf(host, bob, cid).forEach { p -> p.vm.uiState.first { it.finished } }
 
         listOf(host, bob, cid).forEach { assertThat(it.vm.uiState.value.succeeded).isTrue() }
+        // Nobody picked their player yet: the finished sheet offers "Which player are you?".
+        assertThat(bob.vm.uiState.value.meChosen).isFalse()
         val expected = host.sync.export()
         assertThat(expected.matches.map { it.id }).containsExactly("b1", "b2", "c1", "h1")
         assertThat(bob.sync.export()).isEqualTo(expected)

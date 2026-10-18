@@ -413,6 +413,12 @@ private fun Finish(state: SyncSessionUiState, actions: SyncSessionActions) {
         }
     } else {
         Button(onClick = actions.onClose, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text("Done") }
+        // The first sync after joining may have failed (phones apart, Nearby off): ask here instead.
+        if (!state.meChosen) {
+            TextButton(onClick = actions.onWhoAreYou, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text("Which player are you?")
+            }
+        }
     }
 }
 
