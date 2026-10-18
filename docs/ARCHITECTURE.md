@@ -13,6 +13,7 @@
 | Charts | Vico 3.x (`compose`, `compose-m3`) |
 | Images | Coil 3 — `AsyncImage(model = "file:///android_asset/official/…")` |
 | Group sync | Google Nearby Connections 19.5.1 (`P2P_STAR`), Google code scanner 16.1.0 (invite QR, no CAMERA permission), ZXing core 3.5.4 (draws the QR), `javax.crypto` only (ADR-025) |
+| Hub sync | OkHttp 5.5.0 (one HTTPS endpoint), WorkManager 2.12.0 + `androidx.hilt:hilt-work` 1.4.0 (background sync), MockWebServer 3 and `work-testing` in tests (ADR-030) |
 | Quality | Android Lint, ktlint (`org.jlleitschuh.gradle.ktlint`), detekt 2.0 (`dev.detekt`, alpha — see ADR-008), Roborazzi, JUnit + Turbine + Truth |
 
 Pin versions in `gradle/libs.versions.toml`; never inline a version in a module build file.
@@ -84,7 +85,7 @@ Features never depend on each other; cross-feature navigation goes through `app`
 - **Web layer = presentation only.** Hub pages render what `core:presentation` builders and
   `core:domain` engines return; HTML/JS never computes a rule or statistic.
 
-## Group sync (ADR-025)
+## Group sync (ADR-025, the hub: ADR-030)
 - **Layers.** `core:domain/sync` is pure Kotlin: `SyncDocument` (players, matches, drafts,
   `deletions`, `playerMerges`, stamped `EloConfig`), `SyncMerge`, `PlayerMerges`, `UnknownHeroes`,
   `SyncValidation` (the backup import's rules), `SyncCrypto` (HKDF, HMAC-SHA256, AES-256-GCM),
@@ -105,6 +106,29 @@ Features never depend on each other; cross-feature navigation goes through `app`
   ABORT carries a readable reason. Timeouts per stage (`SyncTimeouts`); a link-send returns only
   once Nearby reports the payload delivered. The host closes after the ACK; a client waits for the
   hang-up before closing, so the last message isn't cut off.
+- **Hub sync (ADR-030 §5).** `HubSyncRepository` (core:data, OkHttp: no cache, cookies, logging or
+  redirects; 15 s connect, 30 s read/write, 90 s per call) validates this phone's data
+  (`SyncValidation`), seals it with `SyncCodec.encodeFile`, posts it to `{hub}/api/v1/sync` with
+  `Authorization: Bearer HubToken.derive(group)` (≤ 8 MB), and applies the sealed 200 reply (≤ 16 MB)
+  through `SyncRepository.apply`, the sync-file path; one round trip at a time (mutex). Status codes,
+  timeouts, TLS and cleartext refusals map to a `HubProblem` (transient or needs a person) and a
+  readable message; the outcome is stored in `group_sync` (`hub_synced_at`, `hub_error*`) and cleared
+  for another hub or group. `localChanges` = Room invalidations of the synced tables + rating
+  constants. `feature:sync/hub`: `HubSyncWorker` (Hilt worker; retry with exponential backoff from
+  30 s for transient problems, 8 attempts) and `HubSyncScheduler` — unique work `hub-sync`
+  (one-time: app open from `MainActivity`, 15 s after the last change with REPLACE as the debounce,
+  right after a new hub or group, "Sync with hub" without a network constraint; chained with
+  APPEND_OR_REPLACE when one is running) and `hub-sync-hourly` (periodic, network); nothing without
+  a group and a hub. `GoaApplication` is the WorkManager `Configuration.Provider` (the startup
+  initializer is removed). A background apply is the same write transaction as any sync, so open
+  editors (they load once) and the running timer (DataStore, not synced) are untouched.
+- **Network.** `INTERNET` is declared for the hub only. `res/xml/network_security_config.xml`:
+  release = HTTPS with system CAs, no cleartext; `src/debug` overrides it to allow plain HTTP to
+  `10.0.2.2`, `localhost` and `127.0.0.1` (the hosts `HubAddress` accepts over http). The code
+  scanner's datatransport CCT backend registration is removed in the app manifest.
+- **Invite links.** With the Gradle property `goa.hubHost`, `app/build.gradle.kts` generates a
+  manifest overlay with an `autoVerify` filter for `https://<host>/join`; `MainActivity` turns the VIEW
+  into `JoinGroupLinkRoute`, which joins through the paste path.
 - **Shell.** Sync files reach `MainActivity` as VIEW/SEND intents and open `SyncFileImportRoute` on
   the Players tab. A sheet entry can hold itself open (`NavSheet.LocalDismissible`) while merged
   data is written. The sync sheet keeps the screen on.

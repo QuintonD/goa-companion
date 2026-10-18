@@ -39,7 +39,8 @@ and keep their data.
 ## Group sync: every friend's phone, the same data (ADR-025)
 
 Phones sync face to face at the table, over Bluetooth and Wi-Fi Direct (Google Nearby
-Connections). No internet, no accounts, no server; the app still has no internet permission.
+Connections): no internet, no accounts. A group can also run its own hub for automatic sync over
+the internet (below); the hub is the only server the app ever talks to.
 
 **Start the group (once, on one phone):** Settings → Group sync → Start a group → name it.
 
@@ -71,6 +72,44 @@ group key, through Quick Share, a message or Drive; the other phone opens it (or
 The invite QR code is the group's key: show it only at the table. Release and debug builds
 don't see each other (different app ids). Leaving a group keeps all data on the phone.
 
+## The group's hub: automatic sync (ADR-030)
+
+With a hub (the group's own server, see `deploy/`), every phone syncs on its own: when the app
+opens, 15 s after a change, every hour, and from **Sync with hub**.
+
+**Set the hub on a phone:** Group sync → **Hub** → type the address (`goa-friday.duckdns.org`; it
+must be HTTPS) → **Save hub**. Invites made on a phone with a hub carry it, so friends who join
+with that invite get it automatically. The Hub card shows "Synced 2 min ago" or what went wrong;
+**Remove hub** goes back to Nearby and sync files only (nothing is deleted).
+
+**Testing against a hub on this PC:** the debug build may use plain HTTP to `10.0.2.2` (the
+emulator's view of the PC), `localhost` and `127.0.0.1`, e.g. `http://10.0.2.2:8080`. Release builds
+speak HTTPS only.
+
+**Invite links that open the app (App Links):** build with your hub's host name so
+`https://<hub>/join#…` opens the app instead of the browser. Put it in `local.properties` (not
+committed) or pass it on the command line:
+
+```
+goa.hubHost=goa-friday.duckdns.org
+.\gradlew.bat :app:assembleRelease -Pgoa.hubHost=goa-friday.duckdns.org
+```
+
+Without `goa.hubHost` the app has no link filter (invites still work by scanning or pasting).
+Android only opens the link in the app once it has verified it with the hub's
+`/.well-known/assetlinks.json`, which lists the release signing certificate's SHA-256. Get it from
+the release keystore and give it to the hub:
+
+```powershell
+keytool -list -v -keystore D:\.goa-signing\goa-release.jks -alias <keyAlias from keystore.properties>
+# copy the "SHA256:" line (AA:BB:…), then on the hub machine:
+goa-hub config --android-cert-sha256 AA:BB:…
+```
+
+(`.\gradlew.bat :app:signingReport` prints the same fingerprint for the `release` variant.) The
+debug build (`dev.quinton.goa.debug`, debug key) isn't verified; Android may ask which app opens
+the link.
+
 ## Release signing key — back it up
 
 Release builds are signed with a private key kept **outside** the repo:
@@ -85,8 +124,8 @@ deletes the match history on the phone (export a backup from Players → Backup 
 
 ## Your data
 
-Everything is stored on the phone; the app has no internet permission. Group sync (above)
-keeps the group's phones in step. Use Players → Backup to export a JSON file (and to move data
+Everything is stored on the phone. Group sync (above) keeps the group's phones in step; the
+only server the app talks to is your group's own hub, if you set one. Use Players → Backup to export a JSON file (and to move data
 to a new phone; a sync with the group afterwards brings it up to date). Android Auto Backup
 also covers the database and settings.
 

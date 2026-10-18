@@ -169,7 +169,8 @@ research, 2026-10-17). A reference, not a card cheat sheet: hidden information s
 Each friend has the app on their own phone (APK shared privately, ADR-006 addendum); the group's
 phones keep the same matches, players, drafts, deletions and rating constants by syncing **face to
 face at the table**, phone to phone over Bluetooth and Wi-Fi Direct (Google Nearby Connections).
-No server, no accounts, no internet; the app still has no INTERNET permission.
+No accounts and no third party; Nearby needs no internet. (A group can add its own hub for
+automatic sync over the internet, §8.)
 - **Group:** "Start a group" (name) creates the group and its key; "Invite a friend" shows a QR
   code (and "Share as text", which sends the invite with what to do with it); a friend's phone
   joins by scanning it (Google's code scanner, no camera permission) or pasting the invite (or the
@@ -194,7 +195,7 @@ No server, no accounts, no internet; the app still has no INTERNET permission.
   change. A file from another group, or one this phone's key can't open, gets a clear error.
 - **Done when:** merge properties (commutative, associative, idempotent, convergence, identical
   ratings) and the protocol over a fake transport (host + 3 phones, a dropped phone, a wrong key)
-  pass on the JVM; the merged release manifest has no INTERNET permission; **two physical phones
+  pass on the JVM; the merged release manifest's only network use is the group's hub (§8); **two physical phones
   sync at the table** (emulators prove Nearby only over virtual Bluetooth).
 
 ### 7. Card trivia (ADR-028)
@@ -238,8 +239,11 @@ with the sync group), Group sync, export/import, About/credits.
 The owner runs **the group's hub** on a spare machine at home (Linux or Windows; free: a DuckDNS
 name, Caddy with Let's Encrypt, one router port). It is a member of the group like a phone.
 - **Auto-sync:** Android phones with a hub address sync with it over HTTPS on their own (app
-  start, shortly after any change, hourly, "Sync now"); the Group screen shows "Hub: synced 2 min
-  ago" or what went wrong. Nearby sync at the table still works without internet.
+  start, 15 s after the last change, hourly, "Sync with hub"); the Group screen's Hub section sets
+  the address and shows "Synced 2 min ago" or what went wrong (with Retry, and whether it retries on
+  its own); a problem that needs a person also puts a dot on the Players tab's sync icon. Joining by
+  an invite that carries a hub syncs with the hub instead of opening a Nearby session. Nearby sync
+  at the table still works without internet.
 - **Web app for iPhones (and any browser):** the same features as the app — Heroes and Card
   trivia, Timer, Draft, Players (log, editor, meta), Rules, Group, Settings — computed by the same
   Kotlin code on the hub. Installable to the home screen; the running timer keeps the screen on,
