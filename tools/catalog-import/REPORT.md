@@ -424,3 +424,155 @@ Low-confidence matches (second-best / best distance < 1.3) — check visually:
 
 ## Not representable in the schema
 None.
+
+## Maps
+Source: `PedroVIOliv/goa2-backend` @ `a18c66e005ce` (`src/goa2/data/maps`), corrected in `overrides.json`
+(`maps`). `verified` = every required rulebook check passes **and** the overlay on official art
+was compared space by space (`mapChecks`). Overlays: `tools/catalog-import/cache/maps/`.
+
+| Map | Lanes | Spaces | Terrain | Rulebook checks | Verified |
+|---|---|---|---|---|---|
+| Forgotten Island (`forgotten-island`) | 1 | 210 | 14 | 10/10 | yes |
+| Across the River (`across-the-river`) | 2 | 334 | 38 | 18/18 | yes |
+| Narrow Passages (`narrow-passages`) | 1 | 186 | 10 | 10/10 | **no** |
+| Magma and Ice (`magma-and-ice`) | 2 | 284 | 28 | 16/16 | **no** |
+
+### Forgotten Island (`forgotten-island`)
+- Official: Core box single-lane map (rulebook p.5-6 setup images). Name: Wolff Designa neoprene mat "Forgotten Island" / "Magma and Ice" - "Forgotten Island side of the mat is the same as one of the maps included in the base game" (wolffdesigna.com/products.json (store, read 2026-10-19)).
+- Zones: `red-throne`, `lane-1-1`, `lane-1-2`, `lane-1-3`, `blue-throne`, `blue-side`, `red-side`.
+- Lanes: `lane-1` (Battle Zone starts in `lane-1-2`).
+- pass — Every space's Zone exists and every Zone has spaces: 7 Zones, 210 spaces
+- pass — p.6 / p.20: 3 hero spawn points for Red in its Throne Zone: 3 in [red-throne]
+- pass — p.6 / p.20: 3 hero spawn points for Blue in its Throne Zone: 3 in [blue-throne]
+- pass — p.3: lane-1 runs from Red's Throne Zone to Blue's through adjacent Zones: red-throne → lane-1-1 → lane-1-2 → lane-1-3 → blue-throne
+- pass — p.3 / p.20: lane-1 starts its Battle Zone in the Lane, in the middle: lane-1-2
+- pass — Zone lane-1-1 has minion spawn points for both teams: Red 4M/1R/1H; Blue 3M/1R/1H
+- pass — p.6 step 10: starting Battle Zone lane-1-2 has 4 Melee, 1 Ranged, 1 Heavy spawn points per team: Red 4M/1R/1H; Blue 4M/1R/1H
+- pass — Zone lane-1-3 has minion spawn points for both teams: Red 3M/1R/1H; Blue 4M/1R/1H
+- pass — p.8 (said of the core single-lane map, "the defending team has more minion spawn points in their Pre-Throne Zone"): Red defends lane-1-1: Red 6 vs Blue 5
+- pass — p.8 (said of the core single-lane map, "the defending team has more minion spawn points in their Pre-Throne Zone"): Blue defends lane-1-3: Blue 6 vs Red 5
+- pass — Every Zone can be reached from the Red Throne Zone: 7/7
+- pass — Terrain holes and spaces are disjoint: 14 enclosed terrain spaces
+- Overrides: none.
+- Overlay: `tools/catalog-import/cache/maps/forgotten-island-0-overlay.png` on Forgotten Island top-down art (CasperCB/Guards_Replay assets/maps/forbidden_island.webp, 1400 px) (worst anchor 13.9 px)
+- Space-by-space check (2026-10-19, overlay cache/maps/forgotten-island-0-overlay.png): Overlay on the official top-down art compared space by space: all 210 spaces sit on the printed grid, the 14 enclosed terrain spaces are the rocks inside the island, Zone borders follow the printed cracks and terrain edges, all 40 spawn icons (3 gears, 3 stars, 34 minion icons) are on the tagged spaces with the right team and type and no icon is untagged. Rulebook p.5-6 setup images show the same board.
+
+### Across the River (`across-the-river`)
+- Official: Core box double-lane map of the 2nd printing (rulebook p.20 image). Name: Wolff Designa neoprene mat "Narrow passages" / "Across the River" - "Across the river side of the mat is the same as one of the maps included in the base game" (wolffdesigna.com/products.json (store, read 2026-10-19)).
+- Zones: `red-throne`, `lane-1-1`, `lane-1-2`, `lane-1-3`, `lane-1-4`, `lane-2-1`, `lane-2-2`, `lane-2-3`, `lane-2-4`, `blue-throne`, `blue-side`, `middle-side`, `red-side`.
+- Lanes: `lane-1` (Battle Zone starts in `lane-1-2`), `lane-2` (Battle Zone starts in `lane-2-3`).
+- pass — Every space's Zone exists and every Zone has spaces: 13 Zones, 334 spaces
+- pass — p.6 / p.20: 3 hero spawn points for Red in its Throne Zone: 3 in [red-throne]
+- pass — p.6 / p.20: 3 hero spawn points for Blue in its Throne Zone: 3 in [blue-throne]
+- pass — p.3: lane-1 runs from Red's Throne Zone to Blue's through adjacent Zones: red-throne → lane-1-1 → lane-1-2 → lane-1-3 → lane-1-4 → blue-throne
+- pass — p.3 / p.20: lane-1 starts its Battle Zone in the Lane: lane-1-2
+- pass — Zone lane-1-1 has minion spawn points for both teams: Red 2M/1R/1H; Blue 2M/1R/1H
+- pass — Starting Battle Zone lane-1-2 has minion spawn points for both teams: Red 2M/1R/1H; Blue 2M/1R/1H
+- pass — Zone lane-1-3 has minion spawn points for both teams: Red 2M/1R/1H; Blue 2M/1R/1H
+- pass — Zone lane-1-4 has minion spawn points for both teams: Red 2M/1R/1H; Blue 2M/1R/1H
+- note — p.8 (said of the core single-lane map, "the defending team has more minion spawn points in their Pre-Throne Zone"): Red defends lane-1-1: Red 4 vs Blue 4
+- note — p.8 (said of the core single-lane map, "the defending team has more minion spawn points in their Pre-Throne Zone"): Blue defends lane-1-4: Blue 4 vs Red 4
+- pass — p.3: lane-2 runs from Red's Throne Zone to Blue's through adjacent Zones: red-throne → lane-2-1 → lane-2-2 → lane-2-3 → lane-2-4 → blue-throne
+- pass — p.3 / p.20: lane-2 starts its Battle Zone in the Lane: lane-2-3
+- pass — Zone lane-2-1 has minion spawn points for both teams: Red 2M/1R/1H; Blue 2M/1R/1H
+- pass — Zone lane-2-2 has minion spawn points for both teams: Red 2M/1R/1H; Blue 2M/1R/1H
+- pass — Starting Battle Zone lane-2-3 has minion spawn points for both teams: Red 2M/1R/1H; Blue 2M/1R/1H
+- pass — Zone lane-2-4 has minion spawn points for both teams: Red 2M/1R/1H; Blue 2M/1R/1H
+- note — p.8 (said of the core single-lane map, "the defending team has more minion spawn points in their Pre-Throne Zone"): Red defends lane-2-1: Red 4 vs Blue 4
+- note — p.8 (said of the core single-lane map, "the defending team has more minion spawn points in their Pre-Throne Zone"): Blue defends lane-2-4: Blue 4 vs Red 4
+- pass — p.20: the double-lane map has two Lanes, each with its own starting Battle Zone: lane-1: lane-1-2, lane-2: lane-2-3
+- pass — Every Zone can be reached from the Red Throne Zone: 13/13
+- pass — Terrain holes and spaces are disjoint: 38 enclosed terrain spaces
+- Overrides: none.
+- Overlay: `tools/catalog-import/cache/maps/across-the-river-0-overlay.png` on Photo of the official Across the River neoprene mat (BGG image 9704865) (worst anchor 3.2 px)
+- Space-by-space check (2026-10-19, overlay cache/maps/across-the-river-0-overlay.png): Overlay on a photo of the official mat compared space by space: spaces on the printed grid, rocks as terrain, Zone borders on the printed edges, every visible spawn icon (team and type) on its tagged space with none untagged (the tower icons are decoration, ignored per the designer, BGG 3527919/3741412). The corner of lane-2-2 (lane 2's Red-side middle Zone) outside the photo was checked against the rulebook p.20 image (icon positions) and the map's point symmetry (types). Rulebook p.20 labels this map's starting Battle Zones 1 and 2 (lane-1, lane-2).
+
+### Narrow Passages (`narrow-passages`)
+- Official: Official single-lane map on the Wolff Designa neoprene mat "Narrow passages" / "Across the River" (wolffdesigna.com/products.json (store, read 2026-10-19)); not in the core box.
+- Zones: `red-throne`, `lane-1-1`, `lane-1-2`, `lane-1-3`, `blue-throne`, `blue-side`, `red-side`.
+- Lanes: `lane-1` (Battle Zone starts in `lane-1-2`).
+- pass — Every space's Zone exists and every Zone has spaces: 7 Zones, 186 spaces
+- pass — p.6 / p.20: 3 hero spawn points for Red in its Throne Zone: 3 in [red-throne]
+- pass — p.6 / p.20: 3 hero spawn points for Blue in its Throne Zone: 3 in [blue-throne]
+- pass — p.3: lane-1 runs from Red's Throne Zone to Blue's through adjacent Zones: red-throne → lane-1-1 → lane-1-2 → lane-1-3 → blue-throne
+- pass — p.3 / p.20: lane-1 starts its Battle Zone in the Lane, in the middle: lane-1-2
+- pass — Zone lane-1-1 has minion spawn points for both teams: Red 4M/0R/1H; Blue 3M/1R/1H
+- pass — p.6 step 10: starting Battle Zone lane-1-2 has 4 Melee, 1 Ranged, 1 Heavy spawn points per team: Red 4M/1R/1H; Blue 4M/1R/1H
+- pass — Zone lane-1-3 has minion spawn points for both teams: Red 3M/1R/1H; Blue 4M/0R/1H
+- note — p.8 (said of the core single-lane map, "the defending team has more minion spawn points in their Pre-Throne Zone"): Red defends lane-1-1: Red 5 vs Blue 5
+- note — p.8 (said of the core single-lane map, "the defending team has more minion spawn points in their Pre-Throne Zone"): Blue defends lane-1-3: Blue 5 vs Red 5
+- pass — Every Zone can be reached from the Red Throne Zone: 7/7
+- pass — Terrain holes and spaces are disjoint: 10 enclosed terrain spaces
+- Override: (-2,5) RedBeach: spawn RedMeleeSpawn → none
+- Override: (-2,4) RedBeach: spawn RedMeleeSpawn → none
+- Override: (-1,4) RedBeach: spawn none → RedMeleeSpawn
+- Override: (-1,3) RedBeach: spawn BlueHeavySpawn → RedMeleeSpawn
+- Override: (-5,2) RedBeach: spawn none → RedMeleeSpawn
+- Override: (-4,2) RedBeach: spawn RedMeleeSpawn → none
+- Override: (0,2) RedBeach: spawn none → BlueHeavySpawn
+- Override: (-3,1) RedBeach: spawn BlueMeleeSpawn → BlueRangedSpawn
+- Override: (-3,0) RedBeach: spawn BlueRangedSpawn → none
+- Override: (-3,-1) RedBeach: spawn none → BlueMeleeSpawn
+- Override: (8,-4) BlueBeach: spawn RedRangedSpawn → none
+- Override: (8,-5) BlueBeach: spawn RedMeleeSpawn → RedRangedSpawn
+- Override: (5,-6) BlueBeach: spawn none → RedHeavySpawn
+- Override: (9,-6) BlueBeach: spawn BlueMeleeSpawn → none
+- Override: (10,-6) BlueBeach: spawn none → BlueMeleeSpawn
+- Override: (6,-7) BlueBeach: spawn RedHeavySpawn → BlueMeleeSpawn
+- Override: (6,-8) BlueBeach: spawn none → BlueMeleeSpawn
+- Override: (7,-8) BlueBeach: spawn BlueMeleeSpawn → none
+- Override: (7,-9) BlueBeach: spawn BlueMeleeSpawn → none
+- Override: (8,-3) BlueBeach: spawn none → RedMeleeSpawn
+- Overlay: `tools/catalog-import/cache/maps/narrow-passages-0-overlay.png` on Photo of the official Narrow Passages neoprene mat (BGG image 9704864) (worst anchor 5.9 px)
+- **Not verified**: the community data disagreed with the art and was corrected from the art alone (overrides above), so the corrected spaces rest on one source. The map ships badged Unverified.
+
+### Magma and Ice (`magma-and-ice`)
+- Official: Official double-lane map on the Wolff Designa neoprene mat "Forgotten Island" / "Magma and Ice" (wolffdesigna.com/products.json (store, read 2026-10-19)); the 1st printing's core-box double-lane map (BGG thread 3541070).
+- Zones: `red-throne`, `lane-1-1`, `lane-1-2`, `lane-1-3`, `lane-2-1`, `lane-2-2`, `lane-2-3`, `blue-throne`, `middle-side`.
+- Lanes: `lane-1` (Battle Zone starts in `lane-1-2`), `lane-2` (Battle Zone starts in `lane-2-2`).
+- pass — Every space's Zone exists and every Zone has spaces: 9 Zones, 284 spaces
+- pass — p.6 / p.20: 3 hero spawn points for Red in its Throne Zone: 3 in [red-throne]
+- pass — p.6 / p.20: 3 hero spawn points for Blue in its Throne Zone: 3 in [blue-throne]
+- pass — p.3: lane-1 runs from Red's Throne Zone to Blue's through adjacent Zones: red-throne → lane-1-1 → lane-1-2 → lane-1-3 → blue-throne
+- pass — p.3 / p.20: lane-1 starts its Battle Zone in the Lane: lane-1-2
+- pass — Zone lane-1-1 has minion spawn points for both teams: Red 2M/1R/1H; Blue 2M/1R/1H
+- pass — Starting Battle Zone lane-1-2 has minion spawn points for both teams: Red 2M/1R/1H; Blue 2M/1R/1H
+- pass — Zone lane-1-3 has minion spawn points for both teams: Red 2M/1R/1H; Blue 2M/1R/1H
+- note — p.8 (said of the core single-lane map, "the defending team has more minion spawn points in their Pre-Throne Zone"): Red defends lane-1-1: Red 4 vs Blue 4
+- note — p.8 (said of the core single-lane map, "the defending team has more minion spawn points in their Pre-Throne Zone"): Blue defends lane-1-3: Blue 4 vs Red 4
+- pass — p.3: lane-2 runs from Red's Throne Zone to Blue's through adjacent Zones: red-throne → lane-2-1 → lane-2-2 → lane-2-3 → blue-throne
+- pass — p.3 / p.20: lane-2 starts its Battle Zone in the Lane: lane-2-2
+- pass — Zone lane-2-1 has minion spawn points for both teams: Red 2M/1R/1H; Blue 2M/1R/1H
+- pass — Starting Battle Zone lane-2-2 has minion spawn points for both teams: Red 2M/1R/1H; Blue 2M/1R/1H
+- pass — Zone lane-2-3 has minion spawn points for both teams: Red 2M/1R/1H; Blue 2M/1R/1H
+- note — p.8 (said of the core single-lane map, "the defending team has more minion spawn points in their Pre-Throne Zone"): Red defends lane-2-1: Red 4 vs Blue 4
+- note — p.8 (said of the core single-lane map, "the defending team has more minion spawn points in their Pre-Throne Zone"): Blue defends lane-2-3: Blue 4 vs Red 4
+- pass — p.20: the double-lane map has two Lanes, each with its own starting Battle Zone: lane-1: lane-1-2, lane-2: lane-2-2
+- pass — Every Zone can be reached from the Red Throne Zone: 9/9
+- pass — Terrain holes and spaces are disjoint: 28 enclosed terrain spaces
+- Override: (8,1) BlueABeach: space removed (printed terrain); had BlueMeleeSpawn
+- Override: (-8,-2) RedBBeach: space removed (printed terrain); had RedMeleeSpawn
+- Override: (11,-3) MidA: space removed (printed terrain)
+- Override: (-11,2) MidB: space removed (printed terrain)
+- Override: (2,3) BlueABeach: spawn RedMeleeSpawn → RedRangedSpawn
+- Override: (4,3) BlueABeach: spawn BlueHeavySpawn → none
+- Override: (5,3) BlueABeach: spawn none → RedMeleeSpawn
+- Override: (6,2) BlueABeach: spawn none → BlueHeavySpawn
+- Override: (4,2) BlueABeach: spawn none → RedHeavySpawn
+- Override: (5,1) BlueABeach: spawn RedRangedSpawn → none
+- Override: (6,1) BlueABeach: spawn RedHeavySpawn → RedMeleeSpawn
+- Override: (8,0) BlueABeach: spawn RedMeleeSpawn → BlueMeleeSpawn
+- Override: (-8,-1) RedBBeach: spawn BlueMeleeSpawn → RedMeleeSpawn
+- Override: (-5,-2) RedBBeach: spawn BlueRangedSpawn → none
+- Override: (-6,-2) RedBBeach: spawn BlueHeavySpawn → BlueMeleeSpawn
+- Override: (-6,-3) RedBBeach: spawn none → RedHeavySpawn
+- Override: (-4,-3) RedBBeach: spawn none → BlueHeavySpawn
+- Override: (-2,-4) RedBBeach: spawn BlueMeleeSpawn → BlueRangedSpawn
+- Override: (-4,-4) RedBBeach: spawn RedHeavySpawn → none
+- Override: (-5,-4) RedBBeach: spawn none → BlueMeleeSpawn
+- Overlay: `tools/catalog-import/cache/maps/magma-and-ice-0-overlay.png` on Photo of the official Magma and Ice neoprene mat (BGG image 9704867) (worst anchor 8.2 px)
+- **Not verified**: the community data disagreed with the art and was corrected from the art alone (overrides above), so the corrected spaces rest on one source. The map ships badged Unverified.
+
+### Not shipped
+- `vexing_cliffs.json`: Not an official map: Wolff Designa sells exactly four maps (Forgotten Island, Magma and Ice, Narrow Passages, Across the River); added to goa2-backend on 2026-07-28 as "Desert Cliffs"; 2 hero spawn points per team and 3 Melee / 2 Ranged starting minions contradict p.6.
+- `vexing_cliffs_v2.json`: A variant of vexing_cliffs.json (same reasons).

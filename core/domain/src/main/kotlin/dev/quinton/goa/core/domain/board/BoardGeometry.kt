@@ -24,9 +24,9 @@ class BoardGeometry private constructor(val map: BoardMap) {
     val zoneSpaces: Map<String, List<Hex>> = map.spaces.groupBy({ it.zone }, { it.hex })
 
     /**
-     * Zone adjacency (p.18 "Adjacent"): "Two Zones are adjacent if they have at least two nonterrain
+     * Zone adjacency (p.17 "Adjacent"): "Two Zones are adjacent if they have at least two nonterrain
      * spaces that are adjacent to each other", i.e. a nonterrain space of one borders a nonterrain
-     * space of the other. Static: tokens and units have no effect on Zone adjacency (p.11).
+     * space of the other. Static: "Tokens and units have no effect on Zone adjacency" (p.11).
      */
     val adjacentZones: Map<String, Set<String>> = buildMap<String, MutableSet<String>> {
         map.zones.forEach { put(it.id, mutableSetOf()) }

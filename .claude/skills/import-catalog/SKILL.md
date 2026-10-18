@@ -22,6 +22,7 @@ always matches the app's schema. Code map: `Sources.kt` (pinning, cache), `Sourc
    ./gradlew :tools:catalog-import:run                       # full import
    ./gradlew :tools:catalog-import:run --args="--offline"    # cache only, no network
    ./gradlew :tools:catalog-import:run --args="--no-images"  # data only (fast)
+   ./gradlew :tools:catalog-import:run --args="--maps-only"  # board maps only
    ```
    It:
    - maps source 1 (`new_heroes.json`, `spells.json`, `states.ts`) to
@@ -50,6 +51,11 @@ always matches the app's schema. Code map: `Sources.kt` (pinning, cache), `Sourc
      → ≤ 512 px portraits (`official/heroes/<id>/portrait.webp`). Unchanged images are not
      re-encoded (`cache/assets-manifest.tsv`); stale ones are deleted;
    - applies `tools/catalog-import/overrides.json` last;
+   - maps stage (`MapSources.kt`, `MapImport.kt`, `MapOverlay.kt`, `MapStage.kt`; DOMAIN.md *Board
+     map JSON*): goa2-backend maps → `catalog/maps/<id>.json` + `index.json`, `overrides.json`
+     `maps` applied, overlays on `mapArt` written to `cache/maps/<id>-<n>-overlay.png` — **look at
+     them** space by space (outline, terrain holes, Zone borders, spawn icons' team and type)
+     before adding a `mapChecks` entry (that entry plus the rulebook checks makes `verified`);
    - writes `official/SOURCES.md` (file → raw URL @ SHA), bumps `dataVersion` in
      `catalog/index.json` only when generated JSON changed, and writes
      `tools/catalog-import/REPORT.md` (counts per product, every disagreement, resolved ones
@@ -68,8 +74,8 @@ always matches the app's schema. Code map: `Sources.kt` (pinning, cache), `Sourc
      card's numbers were compared with the images: add it to `imageChecks`.
    Review every new image assignment visually (a contact sheet with card ID + name under each
    output WebP); the art matcher has been right on all 632 cards but read the low-confidence list.
-4. Run `./gradlew :tools:catalog-import:test :core:data:testDebugUnitTest` (importer mapping +
-   catalog validation) and `verifyRoborazziDebug`; re-record catalog baselines if they changed
+4. Run `./gradlew :tools:catalog-import:test :core:data:testDebugUnitTest :core:domain:test` (importer
+   mapping, catalog and map validation, board rules on the bundled maps) and `verifyRoborazziDebug`; re-record catalog baselines if they changed
    on purpose.
 5. Spot-check 3 random heroes in the app against their card images; say which ones.
 

@@ -36,6 +36,15 @@
       "sha": "008adfaad415406aab6afcc782b54a6ad45896ba",
       "pinned": "2026-10-17",
       "use": "Number cross-check (server/<Hero>.csv; no Ignatia or Whisper)"
+    },
+    {
+      "id": "goa2-backend",
+      "name": "goa2-backend",
+      "repo": "PedroVIOliv/goa2-backend",
+      "branch": "main",
+      "sha": "a18c66e005ce30dd29a800702d888e8f275209b8",
+      "pinned": "2026-10-19",
+      "use": "Board maps (src/goa2/data/maps/<map>.json: axial hexes, zones, spawn tags, lanes); corrected in overrides.json (maps) against the official map art"
     }
   ],
   "documents": [

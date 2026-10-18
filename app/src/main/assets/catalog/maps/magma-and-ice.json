@@ -1,0 +1,1833 @@
+{
+ "id": "magma-and-ice",
+ "name": "Magma and Ice",
+ "lanes": [
+  {
+   "id": "lane-1",
+   "zones": [
+    "red-throne",
+    "lane-1-1",
+    "lane-1-2",
+    "lane-1-3",
+    "blue-throne"
+   ],
+   "startingBattleZone": "lane-1-2"
+  },
+  {
+   "id": "lane-2",
+   "zones": [
+    "red-throne",
+    "lane-2-1",
+    "lane-2-2",
+    "lane-2-3",
+    "blue-throne"
+   ],
+   "startingBattleZone": "lane-2-2"
+  }
+ ],
+ "zones": [
+  {
+   "id": "red-throne",
+   "kind": "throne",
+   "team": "red"
+  },
+  {
+   "id": "lane-1-1",
+   "kind": "lane"
+  },
+  {
+   "id": "lane-1-2",
+   "kind": "lane"
+  },
+  {
+   "id": "lane-1-3",
+   "kind": "lane"
+  },
+  {
+   "id": "lane-2-1",
+   "kind": "lane"
+  },
+  {
+   "id": "lane-2-2",
+   "kind": "lane"
+  },
+  {
+   "id": "lane-2-3",
+   "kind": "lane"
+  },
+  {
+   "id": "blue-throne",
+   "kind": "throne",
+   "team": "blue"
+  },
+  {
+   "id": "middle-side",
+   "kind": "side"
+  }
+ ],
+ "spaces": [
+  {
+   "q": 2,
+   "r": -10,
+   "zone": "red-throne",
+   "spawn": {
+    "team": "red",
+    "kind": "hero"
+   }
+  },
+  {
+   "q": 3,
+   "r": -10,
+   "zone": "red-throne"
+  },
+  {
+   "q": 4,
+   "r": -10,
+   "zone": "lane-1-1",
+   "spawn": {
+    "team": "red",
+    "kind": "ranged"
+   }
+  },
+  {
+   "q": 5,
+   "r": -10,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 6,
+   "r": -10,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 7,
+   "r": -10,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 8,
+   "r": -10,
+   "zone": "lane-1-1",
+   "spawn": {
+    "team": "red",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": 1,
+   "r": -9,
+   "zone": "red-throne"
+  },
+  {
+   "q": 2,
+   "r": -9,
+   "zone": "red-throne"
+  },
+  {
+   "q": 3,
+   "r": -9,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 4,
+   "r": -9,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 5,
+   "r": -9,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 6,
+   "r": -9,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 7,
+   "r": -9,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 8,
+   "r": -9,
+   "zone": "lane-1-1",
+   "spawn": {
+    "team": "blue",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": 9,
+   "r": -9,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 10,
+   "r": -9,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": -3,
+   "r": -8,
+   "zone": "red-throne"
+  },
+  {
+   "q": -2,
+   "r": -8,
+   "zone": "red-throne",
+   "spawn": {
+    "team": "red",
+    "kind": "hero"
+   }
+  },
+  {
+   "q": -1,
+   "r": -8,
+   "zone": "red-throne"
+  },
+  {
+   "q": 0,
+   "r": -8,
+   "zone": "red-throne",
+   "spawn": {
+    "team": "red",
+    "kind": "hero"
+   }
+  },
+  {
+   "q": 1,
+   "r": -8,
+   "zone": "red-throne"
+  },
+  {
+   "q": 2,
+   "r": -8,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 3,
+   "r": -8,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 4,
+   "r": -8,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 5,
+   "r": -8,
+   "zone": "lane-1-1",
+   "spawn": {
+    "team": "red",
+    "kind": "heavy"
+   }
+  },
+  {
+   "q": 6,
+   "r": -8,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 7,
+   "r": -8,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 8,
+   "r": -8,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 9,
+   "r": -8,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 10,
+   "r": -8,
+   "zone": "lane-1-2",
+   "spawn": {
+    "team": "red",
+    "kind": "ranged"
+   }
+  },
+  {
+   "q": 11,
+   "r": -8,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 12,
+   "r": -8,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": -3,
+   "r": -7,
+   "zone": "red-throne"
+  },
+  {
+   "q": -2,
+   "r": -7,
+   "zone": "red-throne"
+  },
+  {
+   "q": -1,
+   "r": -7,
+   "zone": "red-throne"
+  },
+  {
+   "q": 0,
+   "r": -7,
+   "zone": "red-throne"
+  },
+  {
+   "q": 1,
+   "r": -7,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 2,
+   "r": -7,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 3,
+   "r": -7,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 4,
+   "r": -7,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 5,
+   "r": -7,
+   "zone": "lane-1-1",
+   "spawn": {
+    "team": "blue",
+    "kind": "heavy"
+   }
+  },
+  {
+   "q": 6,
+   "r": -7,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 7,
+   "r": -7,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 8,
+   "r": -7,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 9,
+   "r": -7,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 10,
+   "r": -7,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 11,
+   "r": -7,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 12,
+   "r": -7,
+   "zone": "lane-1-2",
+   "spawn": {
+    "team": "red",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": -4,
+   "r": -6,
+   "zone": "lane-2-1",
+   "spawn": {
+    "team": "red",
+    "kind": "ranged"
+   }
+  },
+  {
+   "q": -3,
+   "r": -6,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -2,
+   "r": -6,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -1,
+   "r": -6,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": 1,
+   "r": -6,
+   "zone": "lane-1-1",
+   "spawn": {
+    "team": "red",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": 2,
+   "r": -6,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 3,
+   "r": -6,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 4,
+   "r": -6,
+   "zone": "lane-1-1",
+   "spawn": {
+    "team": "blue",
+    "kind": "ranged"
+   }
+  },
+  {
+   "q": 5,
+   "r": -6,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 6,
+   "r": -6,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 7,
+   "r": -6,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 8,
+   "r": -6,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 9,
+   "r": -6,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 10,
+   "r": -6,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 11,
+   "r": -6,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 12,
+   "r": -6,
+   "zone": "lane-1-2",
+   "spawn": {
+    "team": "blue",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": -5,
+   "r": -5,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -4,
+   "r": -5,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -3,
+   "r": -5,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -2,
+   "r": -5,
+   "zone": "lane-2-1",
+   "spawn": {
+    "team": "red",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": -1,
+   "r": -5,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": 0,
+   "r": -5,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 1,
+   "r": -5,
+   "zone": "lane-1-1",
+   "spawn": {
+    "team": "blue",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": 2,
+   "r": -5,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 3,
+   "r": -5,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 4,
+   "r": -5,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 5,
+   "r": -5,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 6,
+   "r": -5,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 7,
+   "r": -5,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 8,
+   "r": -5,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 9,
+   "r": -5,
+   "zone": "lane-1-2",
+   "spawn": {
+    "team": "red",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": 10,
+   "r": -5,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 11,
+   "r": -5,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 12,
+   "r": -5,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": -6,
+   "r": -4,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -5,
+   "r": -4,
+   "zone": "lane-2-1",
+   "spawn": {
+    "team": "blue",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": -4,
+   "r": -4,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -3,
+   "r": -4,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -2,
+   "r": -4,
+   "zone": "lane-2-1",
+   "spawn": {
+    "team": "blue",
+    "kind": "ranged"
+   }
+  },
+  {
+   "q": -1,
+   "r": -4,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": 0,
+   "r": -4,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 1,
+   "r": -4,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 2,
+   "r": -4,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 3,
+   "r": -4,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 4,
+   "r": -4,
+   "zone": "lane-1-1"
+  },
+  {
+   "q": 5,
+   "r": -4,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 6,
+   "r": -4,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 7,
+   "r": -4,
+   "zone": "lane-1-2",
+   "spawn": {
+    "team": "red",
+    "kind": "heavy"
+   }
+  },
+  {
+   "q": 8,
+   "r": -4,
+   "zone": "lane-1-2",
+   "spawn": {
+    "team": "blue",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": 9,
+   "r": -4,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 10,
+   "r": -4,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 11,
+   "r": -4,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": -7,
+   "r": -3,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -6,
+   "r": -3,
+   "zone": "lane-2-1",
+   "spawn": {
+    "team": "red",
+    "kind": "heavy"
+   }
+  },
+  {
+   "q": -5,
+   "r": -3,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -4,
+   "r": -3,
+   "zone": "lane-2-1",
+   "spawn": {
+    "team": "blue",
+    "kind": "heavy"
+   }
+  },
+  {
+   "q": -3,
+   "r": -3,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -2,
+   "r": -3,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": 5,
+   "r": -3,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 6,
+   "r": -3,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 7,
+   "r": -3,
+   "zone": "lane-1-2",
+   "spawn": {
+    "team": "blue",
+    "kind": "heavy"
+   }
+  },
+  {
+   "q": 8,
+   "r": -3,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 9,
+   "r": -3,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 10,
+   "r": -3,
+   "zone": "lane-1-2",
+   "spawn": {
+    "team": "blue",
+    "kind": "ranged"
+   }
+  },
+  {
+   "q": -7,
+   "r": -2,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -6,
+   "r": -2,
+   "zone": "lane-2-1",
+   "spawn": {
+    "team": "blue",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": -5,
+   "r": -2,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -4,
+   "r": -2,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -3,
+   "r": -2,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -2,
+   "r": -2,
+   "zone": "middle-side"
+  },
+  {
+   "q": 4,
+   "r": -2,
+   "zone": "middle-side"
+  },
+  {
+   "q": 5,
+   "r": -2,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 6,
+   "r": -2,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 7,
+   "r": -2,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 8,
+   "r": -2,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 9,
+   "r": -2,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 10,
+   "r": -2,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": -8,
+   "r": -1,
+   "zone": "lane-2-1",
+   "spawn": {
+    "team": "red",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": -7,
+   "r": -1,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -6,
+   "r": -1,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -5,
+   "r": -1,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -3,
+   "r": -1,
+   "zone": "middle-side"
+  },
+  {
+   "q": -2,
+   "r": -1,
+   "zone": "middle-side"
+  },
+  {
+   "q": -1,
+   "r": -1,
+   "zone": "middle-side"
+  },
+  {
+   "q": 0,
+   "r": -1,
+   "zone": "middle-side"
+  },
+  {
+   "q": 1,
+   "r": -1,
+   "zone": "middle-side"
+  },
+  {
+   "q": 2,
+   "r": -1,
+   "zone": "middle-side"
+  },
+  {
+   "q": 3,
+   "r": -1,
+   "zone": "middle-side"
+  },
+  {
+   "q": 4,
+   "r": -1,
+   "zone": "middle-side"
+  },
+  {
+   "q": 5,
+   "r": -1,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 6,
+   "r": -1,
+   "zone": "lane-1-2"
+  },
+  {
+   "q": 8,
+   "r": -1,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 9,
+   "r": -1,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": -9,
+   "r": 0,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -8,
+   "r": 0,
+   "zone": "lane-2-1"
+  },
+  {
+   "q": -6,
+   "r": 0,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -5,
+   "r": 0,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -4,
+   "r": 0,
+   "zone": "middle-side"
+  },
+  {
+   "q": -3,
+   "r": 0,
+   "zone": "middle-side"
+  },
+  {
+   "q": -2,
+   "r": 0,
+   "zone": "middle-side"
+  },
+  {
+   "q": -1,
+   "r": 0,
+   "zone": "middle-side"
+  },
+  {
+   "q": 0,
+   "r": 0,
+   "zone": "middle-side"
+  },
+  {
+   "q": 1,
+   "r": 0,
+   "zone": "middle-side"
+  },
+  {
+   "q": 2,
+   "r": 0,
+   "zone": "middle-side"
+  },
+  {
+   "q": 3,
+   "r": 0,
+   "zone": "middle-side"
+  },
+  {
+   "q": 5,
+   "r": 0,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 6,
+   "r": 0,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 7,
+   "r": 0,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 8,
+   "r": 0,
+   "zone": "lane-1-3",
+   "spawn": {
+    "team": "blue",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": -10,
+   "r": 1,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -9,
+   "r": 1,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -8,
+   "r": 1,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -7,
+   "r": 1,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -6,
+   "r": 1,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -5,
+   "r": 1,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -4,
+   "r": 1,
+   "zone": "middle-side"
+  },
+  {
+   "q": 2,
+   "r": 1,
+   "zone": "middle-side"
+  },
+  {
+   "q": 3,
+   "r": 1,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 4,
+   "r": 1,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 5,
+   "r": 1,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 6,
+   "r": 1,
+   "zone": "lane-1-3",
+   "spawn": {
+    "team": "red",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": 7,
+   "r": 1,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": -10,
+   "r": 2,
+   "zone": "lane-2-2",
+   "spawn": {
+    "team": "red",
+    "kind": "ranged"
+   }
+  },
+  {
+   "q": -9,
+   "r": 2,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -8,
+   "r": 2,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -7,
+   "r": 2,
+   "zone": "lane-2-2",
+   "spawn": {
+    "team": "red",
+    "kind": "heavy"
+   }
+  },
+  {
+   "q": -6,
+   "r": 2,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -5,
+   "r": 2,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": 2,
+   "r": 2,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 3,
+   "r": 2,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 4,
+   "r": 2,
+   "zone": "lane-1-3",
+   "spawn": {
+    "team": "red",
+    "kind": "heavy"
+   }
+  },
+  {
+   "q": 5,
+   "r": 2,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 6,
+   "r": 2,
+   "zone": "lane-1-3",
+   "spawn": {
+    "team": "blue",
+    "kind": "heavy"
+   }
+  },
+  {
+   "q": 7,
+   "r": 2,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": -11,
+   "r": 3,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -10,
+   "r": 3,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -9,
+   "r": 3,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -8,
+   "r": 3,
+   "zone": "lane-2-2",
+   "spawn": {
+    "team": "red",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": -7,
+   "r": 3,
+   "zone": "lane-2-2",
+   "spawn": {
+    "team": "blue",
+    "kind": "heavy"
+   }
+  },
+  {
+   "q": -6,
+   "r": 3,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -5,
+   "r": 3,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -4,
+   "r": 3,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -3,
+   "r": 3,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -2,
+   "r": 3,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -1,
+   "r": 3,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": 0,
+   "r": 3,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": 1,
+   "r": 3,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 2,
+   "r": 3,
+   "zone": "lane-1-3",
+   "spawn": {
+    "team": "red",
+    "kind": "ranged"
+   }
+  },
+  {
+   "q": 3,
+   "r": 3,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 4,
+   "r": 3,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 5,
+   "r": 3,
+   "zone": "lane-1-3",
+   "spawn": {
+    "team": "red",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": 6,
+   "r": 3,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": -12,
+   "r": 4,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -11,
+   "r": 4,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -10,
+   "r": 4,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -9,
+   "r": 4,
+   "zone": "lane-2-2",
+   "spawn": {
+    "team": "blue",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": -8,
+   "r": 4,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -7,
+   "r": 4,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -6,
+   "r": 4,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -5,
+   "r": 4,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -4,
+   "r": 4,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -3,
+   "r": 4,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -2,
+   "r": 4,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -1,
+   "r": 4,
+   "zone": "lane-2-3",
+   "spawn": {
+    "team": "red",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": 0,
+   "r": 4,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": 1,
+   "r": 4,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 2,
+   "r": 4,
+   "zone": "lane-1-3",
+   "spawn": {
+    "team": "blue",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": 3,
+   "r": 4,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 4,
+   "r": 4,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 5,
+   "r": 4,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": -12,
+   "r": 5,
+   "zone": "lane-2-2",
+   "spawn": {
+    "team": "red",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": -11,
+   "r": 5,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -10,
+   "r": 5,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -9,
+   "r": 5,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -8,
+   "r": 5,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -7,
+   "r": 5,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -6,
+   "r": 5,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -5,
+   "r": 5,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -4,
+   "r": 5,
+   "zone": "lane-2-3",
+   "spawn": {
+    "team": "red",
+    "kind": "ranged"
+   }
+  },
+  {
+   "q": -3,
+   "r": 5,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -2,
+   "r": 5,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -1,
+   "r": 5,
+   "zone": "lane-2-3",
+   "spawn": {
+    "team": "blue",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": 1,
+   "r": 5,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 2,
+   "r": 5,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 3,
+   "r": 5,
+   "zone": "lane-1-3"
+  },
+  {
+   "q": 4,
+   "r": 5,
+   "zone": "lane-1-3",
+   "spawn": {
+    "team": "blue",
+    "kind": "ranged"
+   }
+  },
+  {
+   "q": -12,
+   "r": 6,
+   "zone": "lane-2-2",
+   "spawn": {
+    "team": "blue",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": -11,
+   "r": 6,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -10,
+   "r": 6,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -9,
+   "r": 6,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -8,
+   "r": 6,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -7,
+   "r": 6,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -6,
+   "r": 6,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -5,
+   "r": 6,
+   "zone": "lane-2-3",
+   "spawn": {
+    "team": "red",
+    "kind": "heavy"
+   }
+  },
+  {
+   "q": -4,
+   "r": 6,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -3,
+   "r": 6,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -2,
+   "r": 6,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -1,
+   "r": 6,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": 0,
+   "r": 6,
+   "zone": "blue-throne"
+  },
+  {
+   "q": 1,
+   "r": 6,
+   "zone": "blue-throne"
+  },
+  {
+   "q": 2,
+   "r": 6,
+   "zone": "blue-throne"
+  },
+  {
+   "q": 3,
+   "r": 6,
+   "zone": "blue-throne"
+  },
+  {
+   "q": -12,
+   "r": 7,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -11,
+   "r": 7,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -10,
+   "r": 7,
+   "zone": "lane-2-2",
+   "spawn": {
+    "team": "blue",
+    "kind": "ranged"
+   }
+  },
+  {
+   "q": -9,
+   "r": 7,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -8,
+   "r": 7,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -7,
+   "r": 7,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -6,
+   "r": 7,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -5,
+   "r": 7,
+   "zone": "lane-2-3",
+   "spawn": {
+    "team": "blue",
+    "kind": "heavy"
+   }
+  },
+  {
+   "q": -4,
+   "r": 7,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -3,
+   "r": 7,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -2,
+   "r": 7,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -1,
+   "r": 7,
+   "zone": "blue-throne"
+  },
+  {
+   "q": 0,
+   "r": 7,
+   "zone": "blue-throne",
+   "spawn": {
+    "team": "blue",
+    "kind": "hero"
+   }
+  },
+  {
+   "q": 1,
+   "r": 7,
+   "zone": "blue-throne"
+  },
+  {
+   "q": 2,
+   "r": 7,
+   "zone": "blue-throne",
+   "spawn": {
+    "team": "blue",
+    "kind": "hero"
+   }
+  },
+  {
+   "q": 3,
+   "r": 7,
+   "zone": "blue-throne"
+  },
+  {
+   "q": -10,
+   "r": 8,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -9,
+   "r": 8,
+   "zone": "lane-2-2"
+  },
+  {
+   "q": -8,
+   "r": 8,
+   "zone": "lane-2-3",
+   "spawn": {
+    "team": "red",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": -7,
+   "r": 8,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -6,
+   "r": 8,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -5,
+   "r": 8,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -4,
+   "r": 8,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -3,
+   "r": 8,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -2,
+   "r": 8,
+   "zone": "blue-throne"
+  },
+  {
+   "q": -1,
+   "r": 8,
+   "zone": "blue-throne"
+  },
+  {
+   "q": -8,
+   "r": 9,
+   "zone": "lane-2-3",
+   "spawn": {
+    "team": "blue",
+    "kind": "melee"
+   }
+  },
+  {
+   "q": -7,
+   "r": 9,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -6,
+   "r": 9,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -5,
+   "r": 9,
+   "zone": "lane-2-3"
+  },
+  {
+   "q": -4,
+   "r": 9,
+   "zone": "lane-2-3",
+   "spawn": {
+    "team": "blue",
+    "kind": "ranged"
+   }
+  },
+  {
+   "q": -3,
+   "r": 9,
+   "zone": "blue-throne"
+  },
+  {
+   "q": -2,
+   "r": 9,
+   "zone": "blue-throne",
+   "spawn": {
+    "team": "blue",
+    "kind": "hero"
+   }
+  }
+ ],
+ "terrain": [
+  {
+   "q": 0,
+   "r": -6
+  },
+  {
+   "q": -1,
+   "r": -3
+  },
+  {
+   "q": 0,
+   "r": -3
+  },
+  {
+   "q": 1,
+   "r": -3
+  },
+  {
+   "q": 2,
+   "r": -3
+  },
+  {
+   "q": 3,
+   "r": -3
+  },
+  {
+   "q": 4,
+   "r": -3
+  },
+  {
+   "q": -1,
+   "r": -2
+  },
+  {
+   "q": 0,
+   "r": -2
+  },
+  {
+   "q": 1,
+   "r": -2
+  },
+  {
+   "q": 2,
+   "r": -2
+  },
+  {
+   "q": 3,
+   "r": -2
+  },
+  {
+   "q": -4,
+   "r": -1
+  },
+  {
+   "q": 7,
+   "r": -1
+  },
+  {
+   "q": -7,
+   "r": 0
+  },
+  {
+   "q": 4,
+   "r": 0
+  },
+  {
+   "q": -3,
+   "r": 1
+  },
+  {
+   "q": -2,
+   "r": 1
+  },
+  {
+   "q": -1,
+   "r": 1
+  },
+  {
+   "q": 0,
+   "r": 1
+  },
+  {
+   "q": 1,
+   "r": 1
+  },
+  {
+   "q": -4,
+   "r": 2
+  },
+  {
+   "q": -3,
+   "r": 2
+  },
+  {
+   "q": -2,
+   "r": 2
+  },
+  {
+   "q": -1,
+   "r": 2
+  },
+  {
+   "q": 0,
+   "r": 2
+  },
+  {
+   "q": 1,
+   "r": 2
+  },
+  {
+   "q": 0,
+   "r": 5
+  }
+ ],
+ "printing": 2,
+ "verified": false,
+ "sources": [
+  {
+   "name": "goa2-backend magma_and_ice.json",
+   "url": "https://github.com/PedroVIOliv/goa2-backend/blob/a18c66e005ce30dd29a800702d888e8f275209b8/src/goa2/data/maps/magma_and_ice.json",
+   "retrieved": "2026-10-19"
+  },
+  {
+   "name": "Checked against: Photo of the official Magma and Ice neoprene mat (BGG image 9704867)",
+   "url": "https://cf.geekdo-images.com/HgZeX9Czel4vAHjTVNn1Pw__original/img/_bmxWfLzFGsIe0E4ysw9Rm_DA1U=/0x0/filters:format(jpeg)/pic9704867.jpg"
+  }
+ ]
+}
