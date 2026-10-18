@@ -35,9 +35,11 @@ import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.feature.trivia.TriviaCardUi
 import dev.quinton.goa.feature.trivia.TriviaText
 import dev.quinton.goa.feature.trivia.ui.CardKindLine
 import dev.quinton.goa.feature.trivia.ui.HeroLine
+import dev.quinton.goa.feature.trivia.ui.spokenUnverified
 
 /** The end of a round: score, best streak, newly learned numbers, the misses and what next. */
 @Composable
@@ -127,42 +129,65 @@ private fun Metric(value: String, label: String, spoken: String = "$label $value
     }
 }
 
+/** "Arien's Mad Dash", and ", unverified data" when the hero's data isn't verified. */
+private fun spokenOwned(card: TriviaCardUi): String =
+    "${card.heroName}'s ${card.name}${spokenUnverified(card.heroVerified)}"
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MissRow(miss: MissUi) {
-    val names = listOfNotNull(miss.card.name, miss.other?.name).joinToString(" vs ")
+    val other = miss.other
+    val names = listOfNotNull(spokenOwned(miss.card), other?.let(::spokenOwned)).joinToString(" vs ")
     val spoken = "$names, ${miss.title}: you answered ${miss.yours}, the answer is ${miss.right}"
     GoaCard(
         Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = spoken },
         contentPadding = PaddingValues(Spacing.md),
     ) {
-        HeroLine(miss.card, portraitSize = 24.dp)
-        Spacer(Modifier.height(Spacing.xs))
-        Text(names, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-        if (miss.other == null) CardKindLine(miss.card, showPrimary = false)
+        // Each card with its own hero: a duel's two cards are often from different heroes.
+        MissCard(miss.card, showKind = other == null)
+        if (other != null) {
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                "vs",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(Spacing.xs))
+            MissCard(other, showKind = false)
+        }
         Spacer(Modifier.height(Spacing.sm))
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
                 "${miss.title}:",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.width(Spacing.sm))
-            MarkIcon(Mark.WRONG)
-            Text(miss.yours, style = GoaTextStyles.numeric, color = MaterialTheme.colorScheme.onSurface)
-            Spacer(Modifier.width(Spacing.sm))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                MarkIcon(Mark.WRONG)
+                Text(miss.yours, style = GoaTextStyles.numeric, color = MaterialTheme.colorScheme.onSurface)
+            }
             Icon(
                 Icons.AutoMirrored.Outlined.ArrowForward,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(end = Spacing.sm).width(scaledIconSize(16.dp)),
+                modifier = Modifier.width(scaledIconSize(16.dp)),
             )
-            MarkIcon(Mark.RIGHT)
-            Text(
-                miss.right,
-                style = GoaTextStyles.numeric,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f, fill = false),
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                MarkIcon(Mark.RIGHT)
+                Text(miss.right, style = GoaTextStyles.numeric, color = MaterialTheme.colorScheme.onSurface)
+            }
         }
     }
+}
+
+@Composable
+private fun MissCard(card: TriviaCardUi, showKind: Boolean) {
+    HeroLine(card, portraitSize = 24.dp)
+    Spacer(Modifier.height(Spacing.xs))
+    Text(card.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+    if (showKind) CardKindLine(card, showPrimary = false)
 }

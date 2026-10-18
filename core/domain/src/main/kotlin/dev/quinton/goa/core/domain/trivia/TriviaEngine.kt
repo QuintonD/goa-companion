@@ -30,10 +30,20 @@ data class TriviaConfig(
     /** Mix in "which card has the higher initiative?" questions (needs Initiative in [stats]). */
     val duels: Boolean = true,
 ) {
+    /**
+     * The setup of a "Practise the missed ones" round on [missedFacts] numbers: no duels, and two
+     * questions per number, capped by this round's length; never endless.
+     */
+    fun forPractice(missedFacts: Int): TriviaConfig {
+        val twice = PRACTICE_QUESTIONS_PER_FACT * missedFacts.coerceAtLeast(1)
+        return copy(duels = false, length = if (length == ENDLESS) twice else minOf(twice, length))
+    }
+
     companion object {
         const val ENDLESS = 0
         const val DEFAULT_LENGTH = 10
         val LENGTHS = listOf(10, 20, ENDLESS)
+        const val PRACTICE_QUESTIONS_PER_FACT = 2
     }
 }
 
@@ -55,7 +65,9 @@ data class MasterySummary(val total: Int, val mastered: Int, val learning: Int) 
 /**
  * Leitner boxes: a right answer moves a fact up one box (max [MAX_BOX]), a wrong one back to 0.
  * A fact is mastered from [MASTERED_BOX] (three right in a row). Progress recorded for a different
- * printed value (the catalog was corrected) no longer counts: the fact is new again.
+ * printed value (the catalog was corrected) no longer counts: the fact is new again. A right
+ * answer recorded with `promote = false` (asked again too soon, [TriviaEngine.MIN_SPACING]) counts
+ * as seen and correct but leaves the box where it is.
  */
 object TriviaMastery {
     const val MASTERED_BOX = 3
@@ -68,10 +80,20 @@ object TriviaMastery {
 
     fun isMastered(fact: TriviaFact, progress: FactProgress?): Boolean = box(fact, progress) >= MASTERED_BOX
 
-    fun record(fact: TriviaFact, previous: FactProgress?, correct: Boolean, now: Long): FactProgress {
+    fun record(
+        fact: TriviaFact,
+        previous: FactProgress?,
+        correct: Boolean,
+        now: Long,
+        promote: Boolean = true,
+    ): FactProgress {
         val base = current(fact, previous) ?: FactProgress(value = fact.value, plus = fact.plus)
         return base.copy(
-            box = if (correct) (base.box + 1).coerceAtMost(MAX_BOX) else 0,
+            box = when {
+                !correct -> 0
+                promote -> (base.box + 1).coerceAtMost(MAX_BOX)
+                else -> base.box
+            },
             seen = base.seen + 1,
             correct = base.correct + if (correct) 1 else 0,
             lastSeenAt = now,
@@ -167,6 +189,13 @@ object TriviaEngine {
     /** Cards not asked again within this many questions (when the pool allows). */
     const val RECENT_CARDS = 3
 
+    /**
+     * A right answer moves a fact up a box only on its first card-number question of the round, or
+     * once at least this many other questions were answered since it was last asked that way: an
+     * answer still in short-term memory doesn't show it is learned.
+     */
+    const val MIN_SPACING = 4
+
     /** Duel partners are looked for within this initiative distance first (ties included). */
     const val DUEL_CLOSE = 2
 
@@ -191,8 +220,13 @@ object TriviaEngine {
         // Only a card-number question tests a number exactly; a duel can be right by a rough sense of order.
         val updates = when (question) {
             is TriviaQuestion.CardNumber -> mapOf(
-                question.fact.key to
-                    TriviaMastery.record(question.fact, session.progress[question.fact.key], correct, now),
+                question.fact.key to TriviaMastery.record(
+                    question.fact,
+                    session.progress[question.fact.key],
+                    correct,
+                    now,
+                    promote = spacedOut(session, question.fact),
+                ),
             )
 
             is TriviaQuestion.HigherInitiative -> emptyMap()
@@ -224,10 +258,22 @@ object TriviaEngine {
         }
     }
 
-    /** Shows [question]; a pending retry of any fact it asks is used up. */
+    /**
+     * True when [fact] hasn't been asked as a card-number question yet this round, or at least
+     * [MIN_SPACING] other questions were answered since it last was.
+     */
+    fun spacedOut(session: TriviaSession, fact: TriviaFact): Boolean {
+        val last = session.results.indexOfLast { (it.question as? TriviaQuestion.CardNumber)?.fact?.key == fact.key }
+        return last < 0 || session.results.size - 1 - last >= MIN_SPACING
+    }
+
+    /**
+     * Shows [question]. Only a card-number question uses up a pending retry of its fact: a duel
+     * touching the same card tests a rough sense of order, not the number.
+     */
     private fun TriviaSession.ask(question: TriviaQuestion): TriviaSession {
-        val keys = question.facts.map { it.key }.toSet()
-        return copy(current = question, answer = null, retries = retries.filterNot { it.fact.key in keys })
+        val key = (question as? TriviaQuestion.CardNumber)?.fact?.key
+        return copy(current = question, answer = null, retries = retries.filterNot { it.fact.key == key })
     }
 
     /** Ends the round now (an endless round, or stopping early). */

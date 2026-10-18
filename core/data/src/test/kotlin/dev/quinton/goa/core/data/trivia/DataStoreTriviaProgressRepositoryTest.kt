@@ -15,7 +15,11 @@ import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.testing.FakeCatalogRepository
+import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -53,14 +57,40 @@ class DataStoreTriviaProgressRepositoryTest {
 
     private lateinit var store: TriviaProgressStore
 
+    /** Counts the work handed to it: shows the JSON work left the caller's dispatcher. */
+    private class CountingDispatcher(private val inner: CoroutineDispatcher) : CoroutineDispatcher() {
+        var dispatched = 0
+
+        override fun dispatch(context: CoroutineContext, block: Runnable) {
+            dispatched++
+            inner.dispatch(context, block)
+        }
+    }
+
+    private lateinit var compute: CountingDispatcher
+
     private fun repository(scope: TestScope): DataStoreTriviaProgressRepository {
         store = TriviaProgressStore(
             PreferenceDataStoreFactory.create(scope = scope.backgroundScope) {
                 folder.root.resolve("trivia_progress.preferences_pb")
             },
         )
-        return DataStoreTriviaProgressRepository(store, FakeCatalogRepository(catalog))
+        compute = CountingDispatcher(StandardTestDispatcher(scope.testScheduler))
+        return DataStoreTriviaProgressRepository(store, FakeCatalogRepository(catalog), compute)
     }
+
+    @Test
+    fun `decoding, merging and encoding run on the compute dispatcher, not the caller's`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val repo = repository(this)
+            repo.record(mapOf(key("fox-gold") to learned))
+            val afterRecord = compute.dispatched
+            assertThat(afterRecord).isGreaterThan(0)
+            assertThat(repo.progress.first()).containsExactly(key("fox-gold"), learned)
+            assertThat(compute.dispatched).isGreaterThan(afterRecord)
+            repo.reset(setOf("fox"))
+            assertThat(repo.progress.first()).isEmpty()
+        }
 
     private fun key(card: String, stat: TriviaStat = TriviaStat.INITIATIVE) = TriviaFact.keyOf(card, stat)
 

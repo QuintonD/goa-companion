@@ -1,8 +1,10 @@
 package dev.quinton.goa.feature.trivia.home
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.toggleable
@@ -46,7 +49,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -54,11 +56,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.EngravedRule
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -71,6 +75,7 @@ import dev.quinton.goa.feature.trivia.TriviaText
 import dev.quinton.goa.feature.trivia.ui.MasteryBar
 import dev.quinton.goa.feature.trivia.ui.MasteryLegend
 import dev.quinton.goa.feature.trivia.ui.SetupLabel
+import dev.quinton.goa.feature.trivia.ui.spokenUnverified
 
 /** Trivia home: overall progress, the quiz setup, and progress per hero. */
 @Composable
@@ -141,6 +146,7 @@ fun TriviaHomeScreen(
             options = ready.heroOptions,
             selected = ready.setup.heroIds,
             ownedOnly = ready.ownedOnly,
+            ownedCount = ready.ownedHeroCount,
             onToggle = { onAction(TriviaHomeAction.ToggleHero(it)) },
             onAll = { onAction(TriviaHomeAction.AllHeroes) },
             onDismiss = { picker = false },
@@ -178,27 +184,33 @@ private fun HomeContent(
     onChooseHeroes: () -> Unit,
 ) {
     val padded = Modifier.padding(horizontal = Spacing.screen)
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(top = Spacing.lg, bottom = Spacing.xxl)) {
-        item(key = "overall") { OverallCard(state, padded) }
-        item(key = "setup-title") { SectionHeader("New quiz", padded) }
-        item(key = "setup") { SetupBlock(state, onAction, onChooseHeroes, padded) }
-        item(key = "start") { StartBlock(state, onStart, padded) }
-        item(key = "heroes-title") {
-            SectionHeader(
-                "By hero",
-                padded,
-                trailing = {
-                    Text(
-                        "Tap one to quiz it",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-            )
+    Column(Modifier.fillMaxSize()) {
+        LazyColumn(
+            Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = PaddingValues(top = Spacing.lg, bottom = Spacing.xl),
+        ) {
+            item(key = "overall") { OverallCard(state, padded) }
+            item(key = "setup-title") { SectionHeader("New quiz", padded) }
+            item(key = "setup") { SetupBlock(state, onAction, onChooseHeroes, padded) }
+            item(key = "heroes-title") {
+                SectionHeader(
+                    "By hero",
+                    padded,
+                    trailing = {
+                        Text(
+                            "Tap one to quiz it",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                )
+            }
+            items(state.heroes, key = { "hero-${it.heroId}" }) { hero ->
+                HeroProgressRow(hero, onClick = { onStartHero(hero.heroId) })
+            }
         }
-        items(state.heroes, key = { "hero-${it.heroId}" }) { hero ->
-            HeroProgressRow(hero, onClick = { onStartHero(hero.heroId) })
-        }
+        // Pinned: the live count and Start are always in reach, however far the list is scrolled.
+        StartBar(state, onStart)
     }
 }
 
@@ -322,7 +334,8 @@ private fun HeroScopeRow(state: TriviaHomeUiState.Ready, onChooseHeroes: () -> U
         names.size <= 2 -> names.joinToString(", ")
         else -> "${names.take(2).joinToString(", ")} +${names.size - 2}"
     }
-    val count = if (names.isEmpty()) state.heroOptions.size else names.size
+    // All heroes = the owned ones; the options also list a chosen hero outside them.
+    val count = if (names.isEmpty()) state.ownedHeroCount else names.size
     Surface(
         onClick = onChooseHeroes,
         shape = MaterialTheme.shapes.medium,
@@ -399,37 +412,57 @@ private fun DuelsRow(state: TriviaHomeUiState.Ready, onAction: (TriviaHomeAction
     }
 }
 
+/**
+ * The bar pinned under the home's list: the live "N numbers in this quiz · M learned" line (or why
+ * Start is off) and Start quiz. Side by side on a wide window (landscape), so the list keeps room.
+ */
 @Composable
-private fun StartBlock(state: TriviaHomeUiState.Ready, onStart: () -> Unit, modifier: Modifier) {
+private fun StartBar(state: TriviaHomeUiState.Ready, onStart: () -> Unit) {
     val selection = state.selection
-    Column(modifier.fillMaxWidth().padding(top = Spacing.xl)) {
-        Text(
-            "${TriviaText.count(
-                selection.total,
-                "number",
-            )} in this quiz · ${TriviaText.number(selection.mastered)} learned",
-            style = GoaTextStyles.numeric,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(Spacing.sm))
-        Button(
-            onClick = onStart,
-            enabled = state.canStart,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-        ) {
-            Icon(Icons.Outlined.PlayArrow, contentDescription = null, modifier = Modifier.size(scaledIconSize(20.dp)))
-            Spacer(Modifier.width(Spacing.sm))
-            Text("Start quiz", style = MaterialTheme.typography.titleMedium)
+    val line = "${TriviaText.count(selection.total, "number")} in this quiz · " +
+        "${TriviaText.number(selection.mastered)} learned"
+    val note = startNote(state)
+    val noteColor = MaterialTheme.colorScheme.run { if (state.canStart) onSurfaceVariant else error }
+    Surface(color = MaterialTheme.colorScheme.background) {
+        Column {
+            EngravedRule()
+            BoxWithConstraints(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.screen, vertical = Spacing.md),
+            ) {
+                val wide = maxWidth >= WIDE_START_BAR
+                val texts: @Composable () -> Unit = {
+                    Text(line, style = GoaTextStyles.numeric, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (note != null) {
+                        Spacer(Modifier.height(Spacing.xs))
+                        Text(note, style = MaterialTheme.typography.bodyMedium, color = noteColor)
+                    }
+                }
+                if (wide) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) { texts() }
+                        Spacer(Modifier.width(Spacing.lg))
+                        StartButton(state.canStart, onStart, Modifier.widthIn(min = 220.dp))
+                    }
+                } else {
+                    Column {
+                        texts()
+                        Spacer(Modifier.height(Spacing.sm))
+                        StartButton(state.canStart, onStart, Modifier.fillMaxWidth())
+                    }
+                }
+            }
         }
-        val note = startNote(state)
-        if (note != null) {
-            Spacer(Modifier.height(Spacing.sm))
-            Text(
-                note,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.run { if (state.canStart) onSurfaceVariant else error },
-            )
-        }
+    }
+}
+
+@Composable
+private fun StartButton(enabled: Boolean, onStart: () -> Unit, modifier: Modifier) {
+    Button(onClick = onStart, enabled = enabled, modifier = modifier.heightIn(min = 56.dp)) {
+        Icon(Icons.Outlined.PlayArrow, contentDescription = null, modifier = Modifier.size(scaledIconSize(20.dp)))
+        Spacer(Modifier.width(Spacing.sm))
+        Text("Start quiz", style = MaterialTheme.typography.titleMedium)
     }
 }
 
@@ -438,21 +471,19 @@ private fun HeroProgressRow(hero: HeroProgressUi, onClick: () -> Unit) {
     val p = hero.progress
     val canQuiz = hero.quizNumbers > 0
     val spoken = buildString {
-        append("${hero.name}, ${p.mastered} of ${TriviaText.count(p.total, "number")} learned")
+        append(hero.name)
+        append(spokenUnverified(hero.verified))
+        append(", ${p.mastered} of ${TriviaText.count(p.total, "number")} learned")
         if (p.learning > 0) append(", ${p.learning} learning")
     }
     Surface(
-        onClick = onClick,
-        enabled = canQuiz,
         color = MaterialTheme.colorScheme.background,
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(enabled = canQuiz, onClickLabel = "Quiz ${hero.name}", onClick = onClick)
             .semantics(mergeDescendants = true) {
                 contentDescription = spoken
-                if (!canQuiz) {
-                    stateDescription = "No numbers with these settings"
-                    disabled()
-                }
+                if (!canQuiz) stateDescription = "No numbers with these settings"
             },
     ) {
         Row(
@@ -469,14 +500,20 @@ private fun HeroProgressRow(hero: HeroProgressUi, onClick: () -> Unit) {
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        hero.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            hero.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f, fill = false),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (!hero.verified) {
+                            Spacer(Modifier.width(Spacing.sm))
+                            UnverifiedBadge()
+                        }
+                    }
                     Spacer(Modifier.width(Spacing.sm))
                     Text(
                         "${p.mastered}/${p.total}",
@@ -506,8 +543,10 @@ private fun HeroProgressRow(hero: HeroProgressUi, onClick: () -> Unit) {
 }
 
 /**
- * Why Start is off ("No Ultimate card prints Initiative."), or a warning for a pool smaller than
- * the round (questions repeat). Built from the setup and the catalog counts, never assumed.
+ * Why Start is off ("No Ultimate card of the heroes you own prints Initiative."), or a warning for
+ * a pool smaller than the round (questions repeat). The claim comes from the counted facts of the
+ * quiz's own scope (chosen heroes, owned heroes or every hero) and names that scope, so it is true
+ * as written.
  */
 internal fun startNote(state: TriviaHomeUiState.Ready): String? {
     val setup = state.setup
@@ -516,8 +555,13 @@ internal fun startNote(state: TriviaHomeUiState.Ready): String? {
         total == 0 -> {
             val groups = or(CardGroup.entries.filter { it in setup.groups }.map(TriviaText::group))
             val stats = or(TriviaStat.entries.filter { it in setup.stats }.map(TriviaText::stat))
-            val whose = "No $groups card" + if (setup.heroIds.isEmpty()) " prints" else " of these heroes prints"
-            "$whose $stats. Add a number or more cards."
+            val scope = when {
+                setup.heroIds.size == 1 -> " of the chosen hero"
+                setup.heroIds.isNotEmpty() -> " of the chosen heroes"
+                state.ownedOnly -> " of the heroes you own"
+                else -> ""
+            }
+            "No $groups card$scope prints $stats. Add a number or more cards."
         }
 
         setup.length != TriviaConfig.ENDLESS && total < setup.length ->
@@ -526,6 +570,9 @@ internal fun startNote(state: TriviaHomeUiState.Ready): String? {
         else -> null
     }
 }
+
+/** From this width the start bar puts its text and button side by side. */
+private val WIDE_START_BAR = 560.dp
 
 /** "Tier I, Tier II or Ultimate". */
 private fun or(items: List<String>): String = when (items.size) {

@@ -45,6 +45,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.trivia.TriviaText
@@ -56,6 +57,7 @@ internal fun HeroPickerSheet(
     options: List<HeroOption>,
     selected: List<String>,
     ownedOnly: Boolean,
+    ownedCount: Int,
     onToggle: (String) -> Unit,
     onAll: () -> Unit,
     onDismiss: () -> Unit,
@@ -65,15 +67,20 @@ internal fun HeroPickerSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
-        HeroPickerContent(options, selected, ownedOnly, onToggle, onAll, onDone = onDismiss)
+        HeroPickerContent(options, selected, ownedOnly, ownedCount, onToggle, onAll, onDone = onDismiss)
     }
 }
 
+/**
+ * [options] are the owned heroes plus any chosen hero outside them, so "All heroes" counts
+ * [ownedCount] (the owned heroes), not the options.
+ */
 @Composable
 internal fun HeroPickerContent(
     options: List<HeroOption>,
     selected: List<String>,
     ownedOnly: Boolean,
+    ownedCount: Int,
     onToggle: (String) -> Unit,
     onAll: () -> Unit,
     onDone: () -> Unit,
@@ -142,9 +149,9 @@ internal fun HeroPickerContent(
                         onCheckedChange = { if (it) onAll() },
                         title = "All heroes",
                         subtitle = if (ownedOnly) {
-                            "The ${options.size} heroes you own (Settings)"
+                            "The ${TriviaText.count(ownedCount, "hero", "heroes")} you own (Settings)"
                         } else {
-                            "Every hero, ${options.size} in all"
+                            "Every hero, $ownedCount in all"
                         },
                         leading = {
                             Icon(
@@ -163,6 +170,7 @@ internal fun HeroPickerContent(
                     onCheckedChange = { onToggle(option.heroId) },
                     title = option.name,
                     subtitle = option.title,
+                    verified = option.verified,
                     leading = {
                         HeroPortrait(
                             heroId = option.heroId,
@@ -195,6 +203,7 @@ private fun PickerRow(
     title: String,
     subtitle: String?,
     leading: @Composable () -> Unit,
+    verified: Boolean = true,
 ) {
     Row(
         Modifier
@@ -207,7 +216,19 @@ private fun PickerRow(
         leading()
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (!verified) {
+                    Spacer(Modifier.width(Spacing.sm))
+                    UnverifiedBadge()
+                }
+            }
             if (subtitle != null) {
                 Text(
                     subtitle,

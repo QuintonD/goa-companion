@@ -30,12 +30,14 @@ import dev.quinton.goa.core.navigation.TriviaQuizRoute
 import dev.quinton.goa.feature.trivia.TriviaCardUi
 import dev.quinton.goa.feature.trivia.TriviaText
 import kotlin.random.Random
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** The question on screen, with what the answer reveals. */
 @Immutable
@@ -91,13 +93,16 @@ sealed interface TriviaQuizUiState {
         /** The answer given, or null while the question is open. */
         val answer: TriviaAnswer?,
         val correct: Boolean?,
-        /** "Right!" / "Mad Dash is initiative 7", once answered. */
+        /** "Right! …" / "Not quite. Mad Dash is initiative 7.", once answered. */
         val feedback: String?,
         /** Next ends the round (shows "See results"). */
         val lastQuestion: Boolean,
         val hapticsEnabled: Boolean,
     ) : TriviaQuizUiState {
         val answered: Boolean get() = answer != null
+
+        /** At least one answer given this round: leaving asks first (the round's results would go). */
+        val started: Boolean get() = answered || number > 1
     }
 
     @Immutable
@@ -185,8 +190,11 @@ class TriviaQuizViewModel internal constructor(
         val current = session ?: return
         val outcome = TriviaEngine.answer(current, answer, clock.now())
         if (outcome.session === current) return
-        // Stored right away: leaving mid-round keeps what was learned.
-        if (outcome.updates.isNotEmpty()) viewModelScope.launch { progressRepository.record(outcome.updates) }
+        // Stored right away: leaving mid-round keeps what was learned. NonCancellable, so clearing the
+        // view model straight after an answer (Back, End → Done) can't drop the write.
+        if (outcome.updates.isNotEmpty()) {
+            viewModelScope.launch { withContext(NonCancellable) { progressRepository.record(outcome.updates) } }
+        }
         publish(outcome.session)
     }
 
@@ -208,11 +216,14 @@ class TriviaQuizViewModel internal constructor(
         begin(TriviaEngine.start(current.pool, current.ranges, current.progress, config, random))
     }
 
-    /** The round of only the numbers missed in this one, without duels; null when nothing was missed. */
+    /**
+     * The round of only the numbers missed in this one: no duels, each number about twice
+     * ([TriviaConfig.forPractice]); null when nothing was missed.
+     */
     fun practiseRoute(): TriviaQuizRoute? {
         val missed = session?.missedFacts.orEmpty()
         if (missed.isEmpty()) return null
-        return TriviaQuizRoute(TriviaText.encode(config.copy(duels = false)), missed.map { it.key })
+        return TriviaQuizRoute(TriviaText.encode(config.forPractice(missed.size)), missed.map { it.key })
     }
 
     /** True when [other] would replay this very round (same setup and facts). */
@@ -270,6 +281,7 @@ class TriviaQuizViewModel internal constructor(
         label = "",
         primary = null,
         image = null,
+        heroVerified = false,
     )
 
     private fun questionUi(question: TriviaQuestion): QuizQuestionUi = when (question) {
@@ -295,7 +307,7 @@ class TriviaQuizViewModel internal constructor(
             is TriviaQuestion.CardNumber -> statement(q.fact)
             is TriviaQuestion.HigherInitiative -> duelStatement(q)
         }
-        return if (result.correct) "Right! $fact" else fact
+        return if (result.correct) "Right! $fact" else "Not quite. $fact"
     }
 
     /** "Mad Dash is initiative 7." / "Mad Dash has Attack 4+." */

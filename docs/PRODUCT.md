@@ -206,16 +206,24 @@ Ultimate), about 2,150 numbers over 32 heroes. Every question is generated from 
   New counts; the setup (heroes: all owned or chosen; numbers; card tiers; answer with 4 choices or
   Recall from every possible number; 10 / 20 / endless questions; initiative duels on or off) with
   a live count of the numbers in that quiz; progress per hero (tap = quiz that hero); Reset progress.
+  The live count (or why Start is off, naming the quiz's scope) and Start quiz sit in a bar pinned
+  under the list, always in reach.
 - **Quiz:** the hero and card (name, colour, Tier, primary action) and the number asked; or a duel:
   "Which has the higher initiative?" (first, second, same). After an answer the right one is
   marked (and a wrong pick), never by colour alone, and the official card image shows the real
-  numbers. Printed `+` values read "4+". Score, question count and streak at the top; haptics follow
-  Settings.
-- **Learning:** a number is *learned* after three right answers in a row; a wrong answer resets it
-  and asks it again a few questions later; questions favour missed, new and still-learning numbers.
+  numbers, scrolled into view above Next. Printed `+` values read "4+". Score, question count and
+  streak at the top; haptics follow Settings. An unverified hero is marked Unverified.
+- **Ending a round:** End (top bar) shows the summary at any point, for every round length. Back
+  once a question is answered asks "Leave this round?" — "Your answers are saved. The round's
+  results won't be." (See results / Leave; dismiss = stay); before the first answer, or on the
+  summary, Back leaves directly.
+- **Learning:** a number is *learned* after three right answers in a row, spaced out (an answer
+  repeated within 4 questions counts but doesn't move it on); a wrong answer resets it and asks it
+  again a few questions later; questions favour missed, new and still-learning numbers.
   Progress is saved with every answer, on this phone only (not synced, not in the backup file).
-- **Summary:** score, best streak, numbers newly learned, each miss with the right answer;
-  "Practise the missed ones", "Play again", "Done".
+- **Summary:** score, best streak, numbers newly learned, each miss with the right answer (a missed
+  duel shows each card with its own hero); "Practise the missed ones" (each missed number about
+  twice: 2 × missed, at most the round's length, never endless), "Play again", "Done".
 - **Done when:** a test checks every fact against the bundled hero JSON (no null value asked, no
   Handicap or spellbook card), engine invariants hold over seeded random rounds, and the home,
   question, answered, duel and summary screens have light/dark, font scale 2, 384 dp and landscape

@@ -10,10 +10,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollToKey
 import androidx.compose.ui.unit.Density
+import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -27,6 +29,7 @@ import dev.quinton.goa.core.domain.trivia.TriviaFact
 import dev.quinton.goa.core.domain.trivia.TriviaFacts
 import dev.quinton.goa.core.domain.trivia.TriviaMastery
 import dev.quinton.goa.core.domain.trivia.TriviaStat
+import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.navigation.TriviaQuizRoute
 import dev.quinton.goa.core.testing.FakeCatalogRepository
@@ -41,6 +44,8 @@ import dev.quinton.goa.feature.trivia.quiz.TriviaQuizScreen
 import dev.quinton.goa.feature.trivia.quiz.TriviaQuizUiState
 import dev.quinton.goa.feature.trivia.quiz.TriviaQuizViewModel
 import kotlin.random.Random
+import kotlinx.coroutines.Dispatchers
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,8 +54,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Real bundled heroes and card numbers. The quiz runs on the real engine with a fixed seed, so
- * every capture shows the same question.
+ * Real bundled heroes, card numbers and card scans. The quiz runs on the real engine with a fixed
+ * seed, so every capture shows the same question.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -59,6 +64,8 @@ class TriviaScreenshotTest {
     @get:Rule val compose = createComposeRule()
 
     private val catalog = bundledCatalog
+
+    @Before fun images() = BundledImages.install(ApplicationProvider.getApplicationContext())
 
     private fun capture(
         mode: ThemeMode,
@@ -75,8 +82,15 @@ class TriviaScreenshotTest {
         }
         compose.waitForIdle()
         before()
-        compose.waitForIdle()
+        settle()
         compose.onRoot().captureRoboImage()
+    }
+
+    /** Idle, with every card scan loaded and the answer scrolled into view after it. */
+    private fun settle() {
+        compose.waitForIdle()
+        compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledImages.idle }
+        compose.waitForIdle()
     }
 
     // ---- Home -----------------------------------------------------------------------------
@@ -98,6 +112,7 @@ class TriviaScreenshotTest {
         FakeCatalogRepository(catalog),
         FakeSettingsRepository(),
         FakeTriviaProgressRepository(practised(), config),
+        Dispatchers.Main,
     )
 
     @Composable
@@ -112,6 +127,16 @@ class TriviaScreenshotTest {
 
     @Test fun homeDarkFontScale2() = capture(ThemeMode.DARK, 2f) { Home(homeViewModel()) }
 
+    /** The pinned Start bar at the smallest width and largest text still leaves room for the list. */
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun homeW384DarkFontScale2() = capture(ThemeMode.DARK, 2f) { Home(homeViewModel()) }
+
+    /** Landscape: the Start bar lays its line and button side by side. */
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun homeLandscapeDark() = capture(ThemeMode.DARK) { Home(homeViewModel()) }
+
     @Config(qualifiers = "w384dp-h832dp-xxhdpi")
     @Test
     fun homeFromHeroPageW384Dark() = capture(ThemeMode.DARK) {
@@ -125,12 +150,9 @@ class TriviaScreenshotTest {
         before = { compose.onNode(hasScrollAction()).performScrollToKey("heroes-title") },
     ) { Home(homeViewModel()) }
 
-    /** No Ultimate prints Initiative: Start is off and says why. */
+    /** No Ultimate prints Initiative: Start is off and the pinned bar says why. */
     @Test
-    fun homeNothingToAskDark() = capture(
-        ThemeMode.DARK,
-        before = { compose.onNode(hasScrollAction()).performScrollToKey("start") },
-    ) {
+    fun homeNothingToAskDark() = capture(ThemeMode.DARK) {
         Home(homeViewModel(TriviaConfig(stats = setOf(TriviaStat.INITIATIVE), groups = setOf(CardGroup.ULTIMATE))))
     }
 
@@ -138,9 +160,11 @@ class TriviaScreenshotTest {
     fun heroPickerDark() = capture(ThemeMode.DARK) {
         Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
             HeroPickerContent(
-                options = catalog.heroes.sortedBy { it.name }.map { HeroOption(it.id, it.name, it.title, it.portrait) },
+                options = catalog.heroes.sortedBy { it.name }
+                    .map { HeroOption(it.id, it.name, it.title, it.portrait, it.verified) },
                 selected = listOf("arien", "brogan"),
                 ownedOnly = false,
+                ownedCount = catalog.heroes.size,
                 onToggle = {},
                 onAll = {},
                 onDone = {},
@@ -150,18 +174,22 @@ class TriviaScreenshotTest {
 
     // ---- Quiz -----------------------------------------------------------------------------
 
-    private fun quizViewModel(config: TriviaConfig, seed: Int = 7, factKeys: List<String> = emptyList()) =
-        TriviaQuizViewModel(
-            TriviaQuizRoute(TriviaText.encode(config), factKeys),
-            FakeCatalogRepository(catalog),
-            FakeSettingsRepository(),
-            FakeTriviaProgressRepository(practised()),
-            EditClock { 0L },
-            Random(seed),
-        )
+    private fun quizViewModel(
+        config: TriviaConfig,
+        seed: Int = 7,
+        factKeys: List<String> = emptyList(),
+        data: Catalog = catalog,
+    ) = TriviaQuizViewModel(
+        TriviaQuizRoute(TriviaText.encode(config), factKeys),
+        FakeCatalogRepository(data),
+        FakeSettingsRepository(),
+        FakeTriviaProgressRepository(practised()),
+        EditClock { 0L },
+        Random(seed),
+    )
 
     @Composable
-    private fun Quiz(vm: TriviaQuizViewModel) {
+    private fun Quiz(vm: TriviaQuizViewModel, confirmLeave: Boolean = false) {
         val state by vm.uiState.collectAsState()
         TriviaQuizScreen(
             state,
@@ -172,6 +200,7 @@ class TriviaScreenshotTest {
             onPlayAgain = vm::playAgain,
             onDone = {},
             onBack = {},
+            initialConfirmLeave = confirmLeave,
         )
     }
 
@@ -202,18 +231,31 @@ class TriviaScreenshotTest {
     }
 
     private val choices = TriviaConfig(heroIds = listOf("arien"), duels = false)
+    private val duels = TriviaConfig(stats = setOf(TriviaStat.INITIATIVE), length = TriviaConfig.ENDLESS)
+    private val recallAttack =
+        TriviaConfig(stats = setOf(TriviaStat.ATTACK), answerStyle = AnswerStyle.RECALL, duels = false)
+    private val recallInitiative =
+        TriviaConfig(stats = setOf(TriviaStat.INITIATIVE), answerStyle = AnswerStyle.RECALL, duels = false)
 
     @Test fun quizChoicesDark() = capture(ThemeMode.DARK) { Quiz(quizViewModel(choices)) }
 
     @Test fun quizChoicesLight() = capture(ThemeMode.LIGHT) { Quiz(quizViewModel(choices)) }
 
+    @Test fun quizRecallLight() = capture(ThemeMode.LIGHT) { Quiz(quizViewModel(recallAttack)) }
+
+    /** Recall at the largest text: every label on one line, fewer columns. */
+    @Test fun quizRecallDarkFontScale2() = capture(ThemeMode.DARK, 2f) { Quiz(quizViewModel(recallInitiative)) }
+
     @Test
-    fun quizRecallLight() = capture(ThemeMode.LIGHT) {
-        Quiz(
-            quizViewModel(
-                TriviaConfig(stats = setOf(TriviaStat.ATTACK), answerStyle = AnswerStyle.RECALL, duels = false),
-            ),
-        )
+    fun quizRecallAnsweredDarkFontScale2() {
+        val vm = quizViewModel(recallInitiative)
+        capture(ThemeMode.DARK, 2f, before = { vm.answerWrong() }) { Quiz(vm) }
+    }
+
+    @Test
+    fun quizRecallAnsweredDark() {
+        val vm = quizViewModel(recallInitiative)
+        capture(ThemeMode.DARK, before = { vm.answerWrong() }) { Quiz(vm) }
     }
 
     @Test
@@ -228,40 +270,73 @@ class TriviaScreenshotTest {
         capture(ThemeMode.LIGHT, before = { vm.answerRight() }) { Quiz(vm) }
     }
 
+    /** Back after an answer asks first. */
+    @Test
+    fun quizLeaveDialogDark() {
+        val vm = quizViewModel(choices)
+        vm.answerRight()
+        capture(ThemeMode.DARK) { Quiz(vm, confirmLeave = true) }
+        compose.onNode(isDialog()).assertExists()
+    }
+
+    /** A hero whose data isn't verified yet is marked on the question (synthetic: all shipped heroes are verified). */
+    @Test
+    fun quizUnverifiedHeroDark() {
+        val data = catalog.copy(heroes = catalog.heroes.map { if (it.id == "arien") it.copy(verified = false) else it })
+        capture(ThemeMode.DARK) { Quiz(quizViewModel(choices, data = data)) }
+    }
+
     @Test
     fun quizDuelDark() {
-        val vm = quizViewModel(TriviaConfig(stats = setOf(TriviaStat.INITIATIVE), length = TriviaConfig.ENDLESS))
+        val vm = quizViewModel(duels)
         vm.untilDuel()
         capture(ThemeMode.DARK) { Quiz(vm) }
     }
 
     @Test
     fun quizDuelAnsweredWrongDark() {
-        val vm = quizViewModel(TriviaConfig(stats = setOf(TriviaStat.INITIATIVE), length = TriviaConfig.ENDLESS))
+        val vm = quizViewModel(duels)
         vm.untilDuel()
         capture(ThemeMode.DARK, before = { vm.answerWrong() }) { Quiz(vm) }
     }
 
     @Test
     fun quizDuelDarkFontScale2() {
-        val vm = quizViewModel(TriviaConfig(stats = setOf(TriviaStat.INITIATIVE), length = TriviaConfig.ENDLESS))
+        val vm = quizViewModel(duels)
         vm.untilDuel()
         capture(ThemeMode.DARK, 2f) { Quiz(vm) }
     }
 
     @Config(qualifiers = "w384dp-h832dp-xxhdpi")
     @Test
+    fun quizDuelW384Dark() {
+        val vm = quizViewModel(duels)
+        vm.untilDuel()
+        capture(ThemeMode.DARK) { Quiz(vm) }
+    }
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
     fun quizW384DarkFontScale2() = capture(ThemeMode.DARK, 2f) { Quiz(quizViewModel(choices)) }
+
+    /** The answered state at the smallest width: the scan scrolls into view above Next. */
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun quizAnsweredW384Dark() {
+        val vm = quizViewModel(choices)
+        capture(ThemeMode.DARK, before = { vm.answerWrong() }) { Quiz(vm) }
+    }
 
     @Config(qualifiers = "w384dp-h832dp-xxhdpi")
     @Test
     fun quizRecallAnsweredW384Dark() {
-        val vm =
-            quizViewModel(
-                TriviaConfig(stats = setOf(TriviaStat.INITIATIVE), answerStyle = AnswerStyle.RECALL, duels = false),
-            )
+        val vm = quizViewModel(recallInitiative)
         capture(ThemeMode.DARK, before = { vm.answerWrong() }) { Quiz(vm) }
     }
+
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun quizLandscapeDark() = capture(ThemeMode.DARK) { Quiz(quizViewModel(choices)) }
 
     @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
     @Test
@@ -270,24 +345,30 @@ class TriviaScreenshotTest {
         capture(ThemeMode.DARK, before = { vm.answerWrong() }) { Quiz(vm) }
     }
 
-    @Test
-    fun quizSummaryDark() {
+    private fun summaryRound(): TriviaQuizViewModel {
         val vm = quizViewModel(TriviaConfig(heroIds = listOf("brogan"), length = 10), seed = 11)
         repeat(10) { i ->
             if (i % 4 == 1) vm.answerWrong() else vm.answerRight()
             vm.next()
         }
-        capture(ThemeMode.DARK) { Quiz(vm) }
+        return vm
     }
 
+    @Test fun quizSummaryDark() = capture(ThemeMode.DARK) { Quiz(summaryRound()) }
+
+    @Test fun quizSummaryLightFontScale2() = capture(ThemeMode.LIGHT, 2f) { Quiz(summaryRound()) }
+
+    /** A missed duel lists each card with its own hero. */
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
     @Test
-    fun quizSummaryLightFontScale2() {
-        val vm = quizViewModel(TriviaConfig(heroIds = listOf("brogan"), length = 10), seed = 11)
-        repeat(10) { i ->
-            if (i % 4 == 1) vm.answerWrong() else vm.answerRight()
-            vm.next()
-        }
-        capture(ThemeMode.LIGHT, 2f) { Quiz(vm) }
+    fun quizSummaryMissedDuelW384Dark() {
+        val vm = quizViewModel(duels)
+        vm.untilDuel()
+        vm.answerWrong()
+        vm.next()
+        vm.answerWrong()
+        vm.stop()
+        capture(ThemeMode.DARK) { Quiz(vm) }
     }
 
     @Test
@@ -297,5 +378,6 @@ class TriviaScreenshotTest {
 
     private companion object {
         const val MAX_STEPS = 200
+        const val IMAGE_TIMEOUT_MS = 10_000L
     }
 }

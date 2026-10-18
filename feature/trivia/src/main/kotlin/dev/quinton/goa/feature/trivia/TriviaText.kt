@@ -97,6 +97,8 @@ data class TriviaCardUi(
     val primary: String?,
     /** Bundled asset path of the official card image, or null. */
     val image: String?,
+    /** False when the hero's data isn't verified yet: the quiz marks it (AGENTS.md). */
+    val heroVerified: Boolean = true,
 ) {
     companion object {
         fun of(hero: Hero, card: Card) = TriviaCardUi(
@@ -109,6 +111,7 @@ data class TriviaCardUi(
             label = TriviaText.cardLabel(card),
             primary = TriviaText.primary(card.primary),
             image = card.image,
+            heroVerified = hero.verified,
         )
     }
 }

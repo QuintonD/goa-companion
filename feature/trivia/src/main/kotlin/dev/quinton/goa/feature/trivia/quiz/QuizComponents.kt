@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -28,11 +30,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,8 +50,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -132,17 +137,19 @@ internal fun AnswerArea(state: TriviaQuizUiState.Playing, onAnswer: (TriviaAnswe
 @Composable
 private fun NumberChoices(q: QuizQuestionUi.Number, answer: TriviaAnswer.Number?, onAnswer: (TriviaAnswer) -> Unit) {
     val recall = q.choices.size > CHOICE_GRID
-    val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 2f)
+    val style = GoaTextStyles.timerDigitsSmall
+    val labels = q.choices.map { TriviaText.value(it, q.plus) }
+    val widest = widestLabel(labels, style)
+    val badge = scaledIconSize(BADGE_SIZE)
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val columns = if (recall) {
-            (maxWidth / (RECALL_CELL * fontScale + Spacing.sm)).toInt().coerceIn(2, MAX_COLUMNS)
-        } else {
-            2
-        }
+        // The room the widest label needs: itself, centred, clear of the corner mark on both sides.
+        val cell = maxOf(widest + (badge + BADGE_INSET) * 2, MIN_CELL)
+        val fit = ((maxWidth + Spacing.sm) / (cell + Spacing.sm)).toInt()
+        val columns = fit.coerceIn(1, if (recall) MAX_COLUMNS else 2)
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            q.choices.chunked(columns).forEach { row ->
+            q.choices.zip(labels).chunked(columns).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    row.forEach { value ->
+                    row.forEach { (value, label) ->
                         val mark = when {
                             answer == null -> Mark.OPEN
                             value == q.value -> Mark.RIGHT
@@ -150,12 +157,14 @@ private fun NumberChoices(q: QuizQuestionUi.Number, answer: TriviaAnswer.Number?
                             else -> Mark.OTHER
                         }
                         ChoiceButton(
-                            text = TriviaText.value(value, q.plus),
+                            text = label,
                             spoken = TriviaText.spokenValue(value, q.plus),
                             mark = mark,
                             minHeight = if (recall) 64.dp else 76.dp,
                             onClick = { onAnswer(TriviaAnswer.Number(value)) },
                             modifier = Modifier.weight(1f),
+                            style = style,
+                            cornerMark = true,
                         )
                     }
                     repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
@@ -165,6 +174,22 @@ private fun NumberChoices(q: QuizQuestionUi.Number, answer: TriviaAnswer.Number?
     }
 }
 
+/** Width of the widest of [labels] on one line in [style] at the current font scale. */
+@Composable
+private fun widestLabel(labels: List<String>, style: TextStyle): Dp {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    return remember(labels, style, density) {
+        val px = labels.maxOfOrNull { measurer.measure(it, style, maxLines = 1, softWrap = false).size.width } ?: 0
+        with(density) { px.toDp() }
+    }
+}
+
+/**
+ * An answer button. Its label never wraps; once answered, the right/wrong mark sits as a small
+ * badge in the top corner ([cornerMark]) or before the label. TalkBack hears "6, right answer" or
+ * "3, your answer, wrong".
+ */
 @Composable
 private fun ChoiceButton(
     text: String,
@@ -174,6 +199,7 @@ private fun ChoiceButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     style: TextStyle = GoaTextStyles.timerDigitsSmall,
+    cornerMark: Boolean = false,
 ) {
     val colors = markColors(mark)
     Surface(
@@ -185,19 +211,42 @@ private fun ChoiceButton(
         border = BorderStroke(if (mark == Mark.RIGHT || mark == Mark.WRONG) 2.dp else 1.dp, colors.border),
         modifier = modifier
             .heightIn(min = minHeight)
-            .semantics {
-                contentDescription = spoken
-                markState(mark)?.let { stateDescription = it }
-            },
+            .semantics { contentDescription = withMark(spoken, mark) },
     ) {
-        Row(
-            Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.sm),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            MarkIcon(mark)
-            Text(text, style = style, maxLines = 2, textAlign = TextAlign.Center)
+        Box(contentAlignment = Alignment.Center) {
+            Row(
+                Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.sm),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (!cornerMark) MarkIcon(mark)
+                Text(text, style = style, maxLines = 1, softWrap = false, textAlign = TextAlign.Center)
+            }
+            if (cornerMark) {
+                MarkBadge(mark, Modifier.align(Alignment.TopEnd).padding(top = BADGE_INSET, end = BADGE_INSET))
+            }
         }
+    }
+}
+
+/** The right/wrong mark as a small filled disc for a button's corner; nothing while open. */
+@Composable
+private fun MarkBadge(mark: Mark, modifier: Modifier = Modifier) {
+    val (icon, tone) = when (mark) {
+        Mark.RIGHT -> Icons.Filled.Check to MaterialTheme.colorScheme.secondary
+        Mark.WRONG -> Icons.Filled.Close to MaterialTheme.colorScheme.error
+        else -> return
+    }
+    Box(
+        modifier.size(scaledIconSize(BADGE_SIZE)).clip(CircleShape).background(tone),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.size(scaledIconSize(BADGE_ICON)),
+        )
     }
 }
 
@@ -265,10 +314,7 @@ private fun DuelTile(
         border = BorderStroke(if (mark == Mark.RIGHT || mark == Mark.WRONG) 2.dp else 1.dp, colors.border),
         modifier = modifier
             .heightIn(min = 140.dp)
-            .semantics {
-                contentDescription = spoken
-                markState(mark)?.let { stateDescription = it }
-            },
+            .semantics { contentDescription = withMark(spoken, mark) },
     ) {
         Column(Modifier.padding(Spacing.md).clearAndSetSemantics {}) {
             HeroLine(card, portraitSize = 28.dp)
@@ -290,6 +336,8 @@ private fun DuelTile(
                         "Initiative $value",
                         style = GoaTextStyles.numeric.copy(fontSize = MaterialTheme.typography.titleMedium.fontSize),
                         color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        softWrap = false,
                     )
                 }
             }
@@ -299,57 +347,95 @@ private fun DuelTile(
 
 // ---- Reveal ---------------------------------------------------------------------------------
 
-/** After an answer: the feedback line and the official card image(s). */
+/**
+ * The feedback line and, once answered, the official card image(s). The feedback is one polite
+ * live region that is there before the answer, so TalkBack announces it when it fills in. After an
+ * answer the block scrolls into view (the scan is the proof of the answer), unless the player is
+ * touching the list ([userScrolling]).
+ */
 @Composable
-internal fun Reveal(state: TriviaQuizUiState.Playing) {
-    val feedback = state.feedback ?: return
-    val correct = state.correct == true
-    Spacer(Modifier.height(Spacing.lg))
+internal fun Reveal(
+    state: TriviaQuizUiState.Playing,
+    userScrolling: () -> Boolean,
+    /** The scans are kept this short at most, so they fit the visible list with the feedback. */
+    imageMaxHeight: Dp = Dp.Infinity,
+) {
+    val requester = remember { BringIntoViewRequester() }
+    var loaded by remember(state.number) { mutableIntStateOf(0) }
+    LaunchedEffect(state.number, state.answered, loaded) {
+        if (!state.answered) return@LaunchedEffect
+        withFrameNanos {}
+        if (!userScrolling()) requester.bringIntoView()
+    }
+    Column(Modifier.fillMaxWidth().bringIntoViewRequester(requester)) {
+        if (state.answered) Spacer(Modifier.height(Spacing.lg))
+        FeedbackLine(state.feedback, state.correct)
+        if (!state.answered) return@Column
+        val onLoaded: () -> Unit = { loaded += 1 }
+        // Width- or height-bound, whichever is tighter: the scan keeps its own ratio.
+        val bounds = Modifier.widthIn(max = 300.dp).heightIn(max = imageMaxHeight)
+        when (val q = state.question) {
+            is QuizQuestionUi.Number -> q.card.image?.let {
+                Spacer(Modifier.height(Spacing.lg))
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CardImage(q.card, bounds, onLoaded)
+                }
+            }
+
+            is QuizQuestionUi.Duel -> if (q.first.image != null || q.second.image != null) {
+                Spacer(Modifier.height(Spacing.lg))
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    listOf(q.first, q.second).forEach { card ->
+                        Box(Modifier.weight(1f), contentAlignment = Alignment.TopCenter) {
+                            CardImage(card, bounds, onLoaded)
+                        }
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(Spacing.sm))
+    }
+}
+
+/** "Right! …" / "Not quite. …" with a tick or cross; an empty live region before the answer. */
+@Composable
+private fun FeedbackLine(feedback: String?, correct: Boolean?) {
     Row(
         Modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val tone = if (correct) GoaTheme.colors.verified else MaterialTheme.colorScheme.error
-        Box(
-            Modifier
-                .size(scaledIconSize(28.dp))
-                .clip(CircleShape)
-                .background(tone.copy(alpha = 0.16f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                if (correct) Icons.Filled.Check else Icons.Filled.Close,
-                contentDescription = null,
-                tint = tone,
-                modifier = Modifier.size(scaledIconSize(18.dp)),
-            )
-        }
-        Spacer(Modifier.width(Spacing.md))
-        Text(feedback, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-    }
-    when (val q = state.question) {
-        is QuizQuestionUi.Number -> q.card.image?.let {
-            Spacer(Modifier.height(Spacing.lg))
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CardImage(q.card, Modifier.widthIn(max = 300.dp).fillMaxWidth())
+        if (feedback != null) {
+            val tone = if (correct == true) GoaTheme.colors.verified else MaterialTheme.colorScheme.error
+            Box(
+                Modifier
+                    .size(scaledIconSize(28.dp))
+                    .clip(CircleShape)
+                    .background(tone.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                // The text says it in words ("Right!" / "Not quite."): the icon adds nothing to hear.
+                Icon(
+                    if (correct == true) Icons.Filled.Check else Icons.Filled.Close,
+                    contentDescription = null,
+                    tint = tone,
+                    modifier = Modifier.size(scaledIconSize(18.dp)),
+                )
             }
+            Spacer(Modifier.width(Spacing.md))
         }
-
-        is QuizQuestionUi.Duel -> if (q.first.image != null || q.second.image != null) {
-            Spacer(Modifier.height(Spacing.lg))
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                CardImage(q.first, Modifier.weight(1f))
-                CardImage(q.second, Modifier.weight(1f))
-            }
-        }
+        Text(
+            feedback.orEmpty(),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
 /** The official card scan at its own aspect ratio; nothing when there is none or it fails to load. */
 @Composable
-private fun CardImage(card: TriviaCardUi, modifier: Modifier = Modifier) {
+private fun CardImage(card: TriviaCardUi, modifier: Modifier = Modifier, onLoaded: () -> Unit = {}) {
     val path = card.image
     var failed by remember(card.cardId) { mutableStateOf(false) }
     if (path == null || failed) {
@@ -368,6 +454,7 @@ private fun CardImage(card: TriviaCardUi, modifier: Modifier = Modifier) {
         onSuccess = { success ->
             val size = success.painter.intrinsicSize
             if (size.width > 0f && size.height > 0f) aspect = size.width / size.height
+            onLoaded()
         },
     )
 }
@@ -403,12 +490,14 @@ internal fun markColors(mark: Mark): MarkColors = when (mark) {
     )
 }
 
-private fun markState(mark: Mark): String? = when (mark) {
-    Mark.OPEN, Mark.OTHER -> null
-    Mark.RIGHT -> "Right answer"
-    Mark.WRONG -> "Your answer, wrong"
+/** "6, right answer" / "3, your answer, wrong": the mark is part of what TalkBack reads. */
+internal fun withMark(spoken: String, mark: Mark): String = when (mark) {
+    Mark.OPEN, Mark.OTHER -> spoken
+    Mark.RIGHT -> "$spoken, right answer"
+    Mark.WRONG -> "$spoken, your answer, wrong"
 }
 
+/** The tick or cross before a label. Silent: every caller says it in its own description ([withMark]). */
 @Composable
 internal fun MarkIcon(mark: Mark) {
     val (icon, tint) = when (mark) {
@@ -422,7 +511,14 @@ internal fun MarkIcon(mark: Mark) {
 
 private const val CHOICE_GRID = 4
 private const val MAX_COLUMNS = 5
-private val RECALL_CELL = 64.dp
+
+/** The narrowest an answer button gets, whatever its label. */
+private val MIN_CELL = 64.dp
+
+/** The corner mark: a disc this size, this far in from the button's corner. */
+private val BADGE_SIZE = 16.dp
+private val BADGE_ICON = 12.dp
+private val BADGE_INSET = 4.dp
 
 /** Deck cards are portrait; the real ratio replaces this once the scan loads. */
 private const val CARD_ASPECT = 729f / 1026f
