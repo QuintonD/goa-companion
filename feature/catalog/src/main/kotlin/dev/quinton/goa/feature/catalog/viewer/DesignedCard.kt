@@ -33,8 +33,8 @@ import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.feature.catalog.detail.printedValues
-import dev.quinton.goa.feature.catalog.ui.CardTextView
-import dev.quinton.goa.feature.catalog.ui.GameIcons
+import dev.quinton.goa.core.designsystem.cardtext.CardTextView
+import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
 import dev.quinton.goa.feature.catalog.ui.kindLabel
 

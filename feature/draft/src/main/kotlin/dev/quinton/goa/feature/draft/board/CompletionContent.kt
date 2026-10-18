@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.EventNote
 import androidx.compose.material.icons.outlined.Casino
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
@@ -122,6 +123,21 @@ internal fun CompletionContent(state: BoardUiState, session: DraftSession, actio
                     Icon(Icons.AutoMirrored.Outlined.EventNote, contentDescription = null)
                     Spacer(Modifier.width(Spacing.sm))
                     Text("Log result later")
+                }
+                OutlinedButton(
+                    onClick = {
+                        // Pick order per team: the board's opening places heroes in that order (p.20).
+                        val picks = session.picks
+                        actions.tryOnBoard(
+                            red = picks.filter { it.team == Team.RED }.map { it.heroId },
+                            blue = picks.filter { it.team == Team.BLUE }.map { it.heroId },
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                ) {
+                    Icon(Icons.Outlined.Hexagon, contentDescription = null)
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text("Try on the board")
                 }
                 if (session.poolEditable()) {
                     OutlinedButton(

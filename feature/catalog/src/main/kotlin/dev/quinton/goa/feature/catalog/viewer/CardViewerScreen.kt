@@ -72,9 +72,9 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.feature.catalog.detail.printedValues
-import dev.quinton.goa.feature.catalog.ui.CardTextView
-import dev.quinton.goa.feature.catalog.ui.GameIcon
-import dev.quinton.goa.feature.catalog.ui.GameIcons
+import dev.quinton.goa.core.designsystem.cardtext.CardTextView
+import dev.quinton.goa.core.designsystem.cardtext.GameIcon
+import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.feature.catalog.ui.blockMarkerLabel
 import dev.quinton.goa.feature.catalog.ui.handicapBasis
 import dev.quinton.goa.feature.catalog.ui.kindLabel

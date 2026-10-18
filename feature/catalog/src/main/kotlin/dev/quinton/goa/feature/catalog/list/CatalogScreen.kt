@@ -40,6 +40,8 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Hexagon
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SearchOff
@@ -73,6 +75,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -109,8 +112,14 @@ fun CatalogScreen(
     onCardClick: (heroId: String, cardId: String) -> Unit = { _, _ -> },
     onRulesClick: () -> Unit = {},
     onTriviaClick: () -> Unit = {},
+    onBoardClick: () -> Unit = {},
 ) {
     var showFilters by rememberSaveable { mutableStateOf(false) }
+    var more by remember { mutableStateOf(false) }
+    // Five actions and the title fit side by side on a phone at normal text size; when they
+    // don't (narrow screen, large text), Board and Card trivia move into "More options".
+    val widthDp = LocalConfiguration.current.screenWidthDp
+    val compact = TOP_BAR_ICONS_DP + TITLE_DP * LocalDensity.current.fontScale > widthDp
     val ready = state as? CatalogUiState.Ready
     // Back with a search typed clears the search instead of leaving the app.
     BackHandler(enabled = query.isNotEmpty()) { onAction(CatalogAction.Search("")) }
@@ -134,8 +143,37 @@ fun CatalogScreen(
             IconButton(onClick = onRulesClick) {
                 Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = "Rules")
             }
-            IconButton(onClick = onTriviaClick) {
-                Icon(Icons.Outlined.Quiz, contentDescription = "Card trivia")
+            if (compact) {
+                Box {
+                    IconButton(onClick = { more = true }) {
+                        Icon(Icons.Outlined.MoreVert, contentDescription = "More options")
+                    }
+                    DropdownMenu(expanded = more, onDismissRequest = { more = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Board") },
+                            leadingIcon = { Icon(Icons.Outlined.Hexagon, contentDescription = null) },
+                            onClick = {
+                                more = false
+                                onBoardClick()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Card trivia") },
+                            leadingIcon = { Icon(Icons.Outlined.Quiz, contentDescription = null) },
+                            onClick = {
+                                more = false
+                                onTriviaClick()
+                            },
+                        )
+                    }
+                }
+            } else {
+                IconButton(onClick = onBoardClick) {
+                    Icon(Icons.Outlined.Hexagon, contentDescription = "Board")
+                }
+                IconButton(onClick = onTriviaClick) {
+                    Icon(Icons.Outlined.Quiz, contentDescription = "Card trivia")
+                }
             }
             SettingsActionButton(onSettingsClick)
         },
@@ -521,6 +559,12 @@ private val GRID_MIN_CELL_LARGE_FONT = 150.dp
 
 /** Font scales above Android's 1.3 step (the next steps are 1.5, 1.8 and 2.0). */
 private const val LARGE_FONT_SCALE = 1.4f
+
+/** Width (dp) of the top bar's five action icons plus its padding. */
+private const val TOP_BAR_ICONS_DP = 5 * 48 + 24
+
+/** Width (dp) the "Heroes" title needs at font scale 1. */
+private const val TITLE_DP = 100
 private const val SEARCH_HINT = "Search heroes & cards"
 private const val MOTION_MS = 250
 private const val HEADER = "header"

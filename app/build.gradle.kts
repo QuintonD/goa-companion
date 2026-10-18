@@ -68,6 +68,7 @@ dependencies {
     implementation(projects.feature.rules)
     implementation(projects.feature.sync)
     implementation(projects.feature.trivia)
+    implementation(projects.feature.board)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)

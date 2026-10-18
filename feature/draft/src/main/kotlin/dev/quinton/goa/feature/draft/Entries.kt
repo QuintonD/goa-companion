@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.draft
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import dev.quinton.goa.core.navigation.BoardRoute
 import dev.quinton.goa.core.navigation.DraftBoardRoute
 import dev.quinton.goa.core.navigation.DraftMethodEditRoute
 import dev.quinton.goa.core.navigation.DraftMethodsRoute
@@ -35,6 +36,7 @@ fun EntryProviderScope<NavKey>.draftEntries(navigator: Navigator) {
             viewModel = hiltViewModel(),
             onBack = navigator::back,
             onOpenHero = { navigator.navigate(HeroDetailRoute(it)) },
+            onTryOnBoard = { red, blue -> navigator.navigate(BoardRoute(red = red, blue = blue)) },
             onFinished = { matchId, openMatchSetup ->
                 navigator.back()
                 if (openMatchSetup) {

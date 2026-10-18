@@ -1,4 +1,4 @@
-package dev.quinton.goa.feature.catalog.ui
+package dev.quinton.goa.core.designsystem.cardtext
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun

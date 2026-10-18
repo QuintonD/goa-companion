@@ -53,11 +53,13 @@ import dev.quinton.goa.ShellViewModel
 import dev.quinton.goa.core.designsystem.component.EngravedRule
 import dev.quinton.goa.core.designsystem.icon.GoaIcons
 import dev.quinton.goa.core.designsystem.theme.Motion
+import dev.quinton.goa.core.navigation.BoardRoute
 import dev.quinton.goa.core.navigation.DraftBoardRoute
 import dev.quinton.goa.core.navigation.NavSheet
 import dev.quinton.goa.core.navigation.SyncFileImportRoute
 import dev.quinton.goa.core.navigation.TimerRoute
 import dev.quinton.goa.core.navigation.TopLevelTab
+import dev.quinton.goa.feature.board.boardEntries
 import dev.quinton.goa.feature.catalog.catalogEntries
 import dev.quinton.goa.feature.draft.draftEntries
 import dev.quinton.goa.feature.players.playersEntries
@@ -144,6 +146,7 @@ fun GoaApp(
         rulesEntries(navigator)
         syncEntries(navigator)
         triviaEntries(navigator)
+        boardEntries(navigator)
     }
     val entriesByTab = TopLevelTab.entries.associateWith { tab ->
         key(tab) {
@@ -164,10 +167,12 @@ fun GoaApp(
     val top = entries.indexOfLast { it.metadata[NavSheet.KEY] != true }
         .let { navigator.currentStack.getOrNull(it) ?: navigator.currentStack.lastOrNull() }
     val onRunningTimer = navigator.currentTab == TopLevelTab.TIMER && top == TimerRoute
-    // The running timer and the draft board are full-screen table tools: no tab bar to mis-tap
-    // next to Next or a pick. System back leaves them (timer → Heroes, board → draft setup).
-    val showBottomBar = !(onRunningTimer && session.active) && top != DraftBoardRoute
-    val showTimerBar = session.active && !onRunningTimer && top != DraftBoardRoute
+    // The running timer, the draft board and a sandbox board are full-screen table tools: no tab
+    // bar to mis-tap next to Next, a pick or the map. System back leaves them (timer → Heroes,
+    // draft board → draft setup, board → where it was opened from).
+    val fullScreenTool = top == DraftBoardRoute || top is BoardRoute
+    val showBottomBar = !(onRunningTimer && session.active) && !fullScreenTool
+    val showTimerBar = session.active && !onRunningTimer && !fullScreenTool
     KeepScreenOnWhile(session == SessionState.RUNNING && showTimerBar)
 
     // Back on another tab's root returns to Heroes (NavDisplay only handles back within a stack).

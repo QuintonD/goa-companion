@@ -1,4 +1,4 @@
-package dev.quinton.goa.feature.catalog.ui
+package dev.quinton.goa.core.designsystem.cardtext
 
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent

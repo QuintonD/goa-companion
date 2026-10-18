@@ -155,6 +155,9 @@ interface BoardActions {
 
     fun finish(openMatchSetup: Boolean) {}
 
+    /** Opens the finished line-up on a new board (hero ids per team in pick order). */
+    fun tryOnBoard(red: List<String>, blue: List<String>) {}
+
     fun discard() {}
 
     fun back() {}
@@ -184,6 +187,7 @@ fun DraftBoardDestination(
     onBack: () -> Unit,
     onOpenHero: (String) -> Unit,
     onFinished: (matchId: String, openMatchSetup: Boolean) -> Unit,
+    onTryOnBoard: (red: List<String>, blue: List<String>) -> Unit = { _, _ -> },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(viewModel) {
@@ -208,6 +212,7 @@ fun DraftBoardDestination(
             override fun selectSeat(seatId: String) = viewModel.selectSeat(seatId)
             override fun toggleHandicap(seatId: String) = viewModel.toggleHandicap(seatId)
             override fun finish(openMatchSetup: Boolean) = viewModel.finish(openMatchSetup)
+            override fun tryOnBoard(red: List<String>, blue: List<String>) = onTryOnBoard(red, blue)
             override fun discard() = viewModel.discard()
             override fun back() = onBack()
             override fun dismissMessage() = viewModel.dismissMessage()

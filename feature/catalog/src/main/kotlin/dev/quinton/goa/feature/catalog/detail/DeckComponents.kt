@@ -61,9 +61,9 @@ import dev.quinton.goa.feature.catalog.model.DeckGroupKind
 import dev.quinton.goa.feature.catalog.model.DeckLayout
 import dev.quinton.goa.feature.catalog.model.TierRow
 import dev.quinton.goa.feature.catalog.model.tierNumeral
-import dev.quinton.goa.feature.catalog.ui.CardTextView
-import dev.quinton.goa.feature.catalog.ui.GameIcon
-import dev.quinton.goa.feature.catalog.ui.GameIcons
+import dev.quinton.goa.core.designsystem.cardtext.CardTextView
+import dev.quinton.goa.core.designsystem.cardtext.GameIcon
+import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
 import dev.quinton.goa.feature.catalog.ui.ValueChip
 import dev.quinton.goa.feature.catalog.ui.blockMarkerLabel

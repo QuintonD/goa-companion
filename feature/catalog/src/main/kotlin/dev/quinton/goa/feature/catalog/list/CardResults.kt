@@ -28,7 +28,7 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.feature.catalog.model.CardResult
 import dev.quinton.goa.feature.catalog.model.CatalogSearchIndex
-import dev.quinton.goa.feature.catalog.ui.CardTextView
+import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
 import dev.quinton.goa.feature.catalog.ui.kindLabel
 

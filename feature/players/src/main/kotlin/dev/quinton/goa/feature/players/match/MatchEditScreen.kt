@@ -37,6 +37,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.EventBusy
+import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.SwapVert
@@ -51,6 +52,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -131,6 +133,8 @@ data class MatchEditActions(
     val onAddPilot: (Team, Long, String) -> Unit = { _, _, _ -> },
     /** null = draft again. */
     val onRematch: (RematchKind?) -> Unit = {},
+    /** Opens these heroes (per team, seat order) on a new board. */
+    val onOpenBoard: (red: List<String>, blue: List<String>) -> Unit = { _, _ -> },
 )
 
 /** Which picker sheet is open. */
@@ -332,6 +336,18 @@ private fun MatchFormContent(
                 WinnerAndCondition(state, actions, showHeader = true)
             }
             DetailsSection(form, actions)
+        }
+        val boardRed = form.seats(Team.RED).mapNotNull { it.heroId }
+        val boardBlue = form.seats(Team.BLUE).mapNotNull { it.heroId }
+        if (!state.isNew && (boardRed.isNotEmpty() || boardBlue.isNotEmpty())) {
+            OutlinedButton(
+                onClick = { actions.onOpenBoard(boardRed, boardBlue) },
+                modifier = Modifier.fillMaxWidth().padding(top = Spacing.lg).heightIn(min = 52.dp),
+            ) {
+                Icon(Icons.Outlined.Hexagon, contentDescription = null)
+                Spacer(Modifier.width(Spacing.sm))
+                Text("Open on the board")
+            }
         }
         Spacer(Modifier.size(Spacing.xl))
         Button(

@@ -3,6 +3,8 @@ package dev.quinton.goa.feature.catalog.ui
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.designsystem.cardtext.GameIcons
+import dev.quinton.goa.core.designsystem.cardtext.cardTextAnnotated
 import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.core.model.catalog.CardValues
 import dev.quinton.goa.core.model.catalog.Stat

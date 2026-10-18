@@ -17,6 +17,7 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import dev.quinton.goa.core.data.backup.BackupDocument
 import dev.quinton.goa.core.navigation.BackupRoute
+import dev.quinton.goa.core.navigation.BoardRoute
 import dev.quinton.goa.core.navigation.GroupSyncRoute
 import dev.quinton.goa.core.navigation.MatchEditRoute
 import dev.quinton.goa.core.navigation.MatchLogRoute
@@ -250,6 +251,7 @@ private fun MatchEditEntry(key: MatchEditRoute, navigator: Navigator) {
             onDelete = vm::delete,
             onAddPilot = vm::addPilot,
             onRematch = vm::rematch,
+            onOpenBoard = { red, blue -> navigator.navigate(BoardRoute(red = red, blue = blue)) },
         ),
     )
 }

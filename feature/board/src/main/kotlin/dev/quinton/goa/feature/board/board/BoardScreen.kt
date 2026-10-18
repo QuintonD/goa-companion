@@ -1,0 +1,525 @@
+package dev.quinton.goa.feature.board.board
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
+import androidx.compose.material.icons.automirrored.outlined.Redo
+import androidx.compose.material.icons.automirrored.outlined.Undo
+import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.CenterFocusStrong
+import androidx.compose.material.icons.outlined.HourglassTop
+import androidx.compose.material.icons.outlined.KeyboardDoubleArrowUp
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.RestartAlt
+import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.ConfirmDialog
+import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
+import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.model.board.HeroPiece
+import dev.quinton.goa.feature.board.BoardText
+import dev.quinton.goa.feature.board.hero
+import dev.quinton.goa.feature.board.map.BoardMapView
+import dev.quinton.goa.feature.board.map.MapLayout
+import dev.quinton.goa.feature.board.map.MapOrientation
+import dev.quinton.goa.feature.board.map.MapViewport
+import dev.quinton.goa.feature.board.ui.PieceToken
+import dev.quinton.goa.feature.board.ui.boardPalette
+import kotlinx.coroutines.launch
+
+/** Sheets and dialogs of the board, hoisted so screenshots can open one. */
+enum class BoardOverlay { ADD, PIECES, PUSH, RESET }
+
+/**
+ * The board: the map full screen with the Lane top to bottom in portrait (left to right in
+ * landscape), a bottom panel for the selected piece (a side panel in landscape) that never covers
+ * it, and Add / Push the lane / Pieces. [onTap] resolves a tap on the map and reports whether it
+ * changed the board.
+ */
+@Composable
+fun BoardScreen(
+    state: BoardUiState,
+    onAction: (BoardAction) -> Unit,
+    onTap: (MapTap) -> Boolean,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    initialOverlay: BoardOverlay? = null,
+) {
+    val ready = state as? BoardUiState.Ready
+    var overlay by rememberSaveable { mutableStateOf(initialOverlay) }
+    var menu by remember { mutableStateOf(false) }
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val viewport = remember { MapViewport() }
+    // Back leaves a tool, then the selection, then the board.
+    BackHandler(enabled = ready != null && (ready.tool != BoardTool.Move || ready.selectedId != null)) {
+        if (ready?.tool != BoardTool.Move) onAction(BoardAction.CancelTool) else onAction(BoardAction.Deselect)
+    }
+    val hint = (ready?.notice as? BoardNotice.Hint)?.text
+    LaunchedEffect(hint) {
+        if (hint != null) {
+            onAction(BoardAction.DismissNotice)
+            snackbar.showSnackbar(hint, withDismissAction = true, duration = SnackbarDuration.Short)
+        }
+    }
+    GoaScreen(
+        title = ready?.board?.name ?: "Board",
+        onBack = onBack,
+        modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbar) },
+        actions = {
+            if (ready != null) {
+                IconButton(onClick = { onAction(BoardAction.Undo) }, enabled = ready.canUndo) {
+                    Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = "Undo")
+                }
+                IconButton(onClick = { onAction(BoardAction.Redo) }, enabled = ready.canRedo) {
+                    Icon(Icons.AutoMirrored.Outlined.Redo, contentDescription = "Redo")
+                }
+                Box {
+                    IconButton(onClick = { menu = true }) {
+                        Icon(Icons.Outlined.MoreVert, contentDescription = "More options")
+                    }
+                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Flip the board") },
+                            leadingIcon = { Icon(Icons.Outlined.SwapVert, contentDescription = null) },
+                            onClick = {
+                                menu = false
+                                onAction(BoardAction.Flip)
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Reset to opening") },
+                            leadingIcon = { Icon(Icons.Outlined.RestartAlt, contentDescription = null) },
+                            onClick = {
+                                menu = false
+                                overlay = BoardOverlay.RESET
+                            },
+                        )
+                    }
+                }
+            }
+        },
+    ) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            when (state) {
+                BoardUiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+
+                is BoardUiState.Missing -> EmptyState(
+                    icon = Icons.Outlined.HourglassTop,
+                    title = "Board not available",
+                    message = state.message,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+
+                is BoardUiState.Ready -> BoardContent(
+                    state = state,
+                    viewport = viewport,
+                    onAction = onAction,
+                    onTap = onTap,
+                    onOpen = { overlay = it },
+                    onAmbiguous = { at ->
+                        scope.launch {
+                            val result = snackbar.showSnackbar(
+                                "Two pieces are close together. Zoom in, or pick one from Pieces.",
+                                actionLabel = "Zoom in",
+                                withDismissAction = true,
+                                duration = SnackbarDuration.Short,
+                            )
+                            if (result == SnackbarResult.ActionPerformed) viewport.zoomStep(at)
+                        }
+                    },
+                )
+            }
+        }
+    }
+    if (ready != null) {
+        when (overlay) {
+            BoardOverlay.ADD -> BoardSheet(onDismiss = { overlay = null }) {
+                AddContent(
+                    ready,
+                    onAdd = {
+                        overlay = null
+                        onAction(BoardAction.Add(it))
+                    },
+                    onDone = { overlay = null },
+                )
+            }
+
+            BoardOverlay.PIECES -> BoardSheet(onDismiss = { overlay = null }) {
+                PiecesContent(
+                    ready,
+                    onSelect = {
+                        overlay = null
+                        onAction(BoardAction.Select(it))
+                    },
+                    onDone = { overlay = null },
+                )
+            }
+
+            BoardOverlay.PUSH -> PushDialog(
+                ready,
+                onPush = { lane, winner ->
+                    overlay = null
+                    onAction(BoardAction.Push(lane, winner))
+                },
+                onDismiss = { overlay = null },
+            )
+
+            BoardOverlay.RESET -> ConfirmDialog(
+                title = "Reset to opening?",
+                message = "Every piece goes back to the opening position for this line-up (p.6). You can undo it.",
+                confirmLabel = "Reset",
+                icon = Icons.Outlined.RestartAlt,
+                onConfirm = {
+                    overlay = null
+                    onAction(BoardAction.ResetToOpening)
+                },
+                onDismiss = { overlay = null },
+            )
+
+            null -> Unit
+        }
+        (ready.notice as? BoardNotice.ThroneCaptured)?.let { notice ->
+            ThroneDialog(notice.winner, onDismiss = { onAction(BoardAction.DismissNotice) })
+        }
+    }
+}
+
+@Composable
+private fun BoardContent(
+    state: BoardUiState.Ready,
+    viewport: MapViewport,
+    onAction: (BoardAction) -> Unit,
+    onTap: (MapTap) -> Boolean,
+    onOpen: (BoardOverlay) -> Unit,
+    onAmbiguous: (Offset) -> Unit,
+) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val landscape = maxWidth > maxHeight
+        val orientation = if (landscape) MapOrientation.LANDSCAPE else MapOrientation.PORTRAIT
+        val layout = remember(state.map, orientation, state.bottomTeam) { MapLayout(state.map, orientation, state.bottomTeam) }
+        var collapsed by rememberSaveable { mutableStateOf(false) }
+        var panelSize by remember { mutableIntStateOf(0) }
+        val selected = state.selected
+        val density = LocalDensity.current
+        val sidePanelWidth = if (landscape) minOf(maxWidth * 0.46f, SIDE_PANEL) else 0.dp
+
+        // Keep the selected piece in view: above the bottom panel, or left of the side panel.
+        LaunchedEffect(state.selectedId, selected?.at, panelSize, collapsed, landscape, viewport.unit) {
+            val at = selected?.at ?: return@LaunchedEffect
+            if (viewport.unit == 0f) return@LaunchedEffect
+            val screen = viewport.mapToScreen(layout.center(at))
+            val margin = with(density) { 56.dp.toPx() }
+            val visibleRight = viewport.viewport.width - if (landscape) panelSize.toFloat() else 0f
+            val visibleBottom = viewport.viewport.height - if (landscape) 0f else panelSize.toFloat()
+            val outside = screen.x < margin || screen.x > visibleRight - margin || screen.y < margin || screen.y > visibleBottom - margin
+            if (outside) viewport.bringTo(layout.center(at), Offset(visibleRight / 2f, visibleBottom / 2f))
+        }
+
+        BoardMapView(
+            state = state,
+            layout = layout,
+            viewport = viewport,
+            onTap = onTap,
+            onDrop = { id, hex -> onAction(BoardAction.Drop(id, hex)) },
+            onAmbiguous = onAmbiguous,
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        // Top: the map's status on the left, view controls on the right, the active tool between.
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(end = sidePanelWidth.takeIf { selected != null } ?: 0.dp)
+                .padding(Spacing.sm),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                if (!state.map.verified) UnverifiedMap(state.map.name)
+                ToolBanner(state, onAction)
+            }
+            Spacer(Modifier.width(Spacing.sm))
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                MapButton(Icons.Outlined.CenterFocusStrong, "Fit the board") {
+                    // Fit is instant from the button too: the animation would fight a pinch.
+                    viewport.fit()
+                }
+                MapButton(Icons.Outlined.SwapVert, "Flip: ${BoardText.team(state.bottomTeam.opponent)} at the bottom") {
+                    onAction(BoardAction.Flip)
+                }
+            }
+        }
+
+        // Bottom (portrait) or right (landscape): the tray, then the panel or the tools.
+        val panelModifier = if (landscape) {
+            Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(sidePanelWidth)
+        } else {
+            Modifier.align(Alignment.BottomCenter).fillMaxWidth().heightIn(max = maxHeight * PANEL_MAX)
+        }
+        if (selected != null) {
+            Surface(
+                modifier = panelModifier.onSizeChanged { panelSize = if (landscape) it.width else it.height },
+                shape = if (landscape) RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp) else RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+                shadowElevation = 6.dp,
+            ) {
+                Column {
+                    if (state.waiting.isNotEmpty()) WaitingTray(state, onAction, Modifier.padding(Spacing.sm))
+                    SelectionPanel(
+                        state = state,
+                        piece = selected,
+                        collapsed = collapsed && !landscape,
+                        onCollapse = { collapsed = it },
+                        onAction = onAction,
+                    )
+                }
+            }
+        } else {
+            Column(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(Spacing.sm)
+                    .onSizeChanged { panelSize = 0 },
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                if (state.waiting.isNotEmpty()) WaitingTray(state, onAction)
+                if (state.tool == BoardTool.Move) Toolbar(onOpen)
+            }
+        }
+    }
+}
+
+@Composable
+private fun UnverifiedMap(name: String) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+        modifier = Modifier.semantics(mergeDescendants = true) {},
+    ) {
+        Row(Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+            Text(name, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+            Spacer(Modifier.width(Spacing.sm))
+            UnverifiedBadge()
+        }
+    }
+}
+
+/** What a tap does right now, when it isn't the usual select-and-move. */
+@Composable
+private fun ToolBanner(state: BoardUiState.Ready, onAction: (BoardAction) -> Unit) {
+    val tool = state.tool
+    val text = when (tool) {
+        BoardTool.Measure -> state.measure?.let { measure ->
+            "${BoardText.spaces(measure.distance)} · ${if (measure.straight) "in a straight line" else "not in a straight line"}"
+        } ?: "Measure: tap any space"
+        is BoardTool.Place -> "Tap an empty space for ${placeLabel(state, tool.piece)}"
+        BoardTool.Move -> null
+    }
+    AnimatedVisibility(visible = text != null, enter = fadeIn(), exit = fadeOut()) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)),
+            shadowElevation = 3.dp,
+        ) {
+            Row(
+                Modifier.padding(start = Spacing.md, end = Spacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f, fill = false).padding(vertical = Spacing.sm)) {
+                    if (tool == BoardTool.Measure && state.measure != null) {
+                        Text("MEASURED · p.18", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                    }
+                    Text(
+                        text.orEmpty(),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                }
+                TextButton(onClick = { onAction(BoardAction.CancelTool) }) {
+                    Text(if (tool == BoardTool.Measure) "Done" else "Cancel")
+                }
+            }
+        }
+    }
+}
+
+private fun placeLabel(state: BoardUiState.Ready, piece: NewPiece): String = when (piece) {
+    is NewPiece.Hero -> "${state.heroes.hero(piece.heroId).name} (${BoardText.team(piece.team)})"
+    is NewPiece.Minion -> "the ${BoardText.team(piece.team)} ${BoardText.minion(piece.type).lowercase()}"
+    is NewPiece.Token -> "the token “${piece.label}”"
+}
+
+@Composable
+private fun MapButton(icon: ImageVector, description: String, onClick: () -> Unit) {
+    FilledTonalIconButton(
+        onClick = onClick,
+        colors = IconButtonDefaults.filledTonalIconButtonColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
+        modifier = Modifier.size(48.dp),
+    ) {
+        Icon(icon, contentDescription = description)
+    }
+}
+
+/** Add, Push the lane, Pieces: the board's tools when nothing is selected. */
+@Composable
+private fun Toolbar(onOpen: (BoardOverlay) -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+        shadowElevation = 6.dp,
+        modifier = Modifier.fillMaxWidth().widthIn(max = 560.dp),
+    ) {
+        Row(Modifier.padding(Spacing.xs)) {
+            ToolButton(Icons.Outlined.AddCircleOutline, "Add", Modifier.weight(1f)) { onOpen(BoardOverlay.ADD) }
+            ToolButton(Icons.Outlined.KeyboardDoubleArrowUp, "Push the lane", Modifier.weight(1f)) { onOpen(BoardOverlay.PUSH) }
+            ToolButton(Icons.AutoMirrored.Outlined.FormatListBulleted, "Pieces", Modifier.weight(1f)) { onOpen(BoardOverlay.PIECES) }
+        }
+    }
+}
+
+@Composable
+private fun ToolButton(icon: ImageVector, label: String, modifier: Modifier, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+        modifier = modifier.heightIn(min = 56.dp),
+    ) {
+        Column(
+            Modifier.padding(vertical = Spacing.sm, horizontal = Spacing.xs),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(scaledIconSize(24.dp, 1.4f)))
+            Text(label, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, maxLines = 2)
+        }
+    }
+}
+
+/** Minions that could not respawn on a taken Spawn point (p.8), placed by tapping a highlighted space. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun WaitingTray(state: BoardUiState.Ready, onAction: (BoardAction) -> Unit, modifier: Modifier = Modifier) {
+    val palette = boardPalette()
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)),
+        shadowElevation = 4.dp,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(Spacing.md)) {
+            Text(
+                "Waiting to respawn · p.8",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.secondary,
+            )
+            Text(
+                if (state.activeWaiting?.targets?.isNotEmpty() == true) {
+                    "Its Spawn point is taken. Tap a highlighted space: the nearest empty spaces of the Battle Zone."
+                } else {
+                    "Tap an empty space to put it on the board."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                modifier = Modifier.padding(top = Spacing.sm),
+            ) {
+                state.waiting.forEach { waiting ->
+                    val piece = waiting.piece
+                    val active = piece.id == state.activeWaitingId
+                    val name = BoardText.piece(piece) { state.heroes.hero(it).name }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (active) MaterialTheme.colorScheme.secondary.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(if (active) 2.dp else 1.dp, if (active) MaterialTheme.colorScheme.secondary else GoaTheme.colors.engravedBorder),
+                        modifier = Modifier.selectable(selected = active, role = Role.RadioButton) {
+                            onAction(BoardAction.ActivateWaiting(piece.id))
+                        },
+                    ) {
+                        Row(Modifier.padding(horizontal = Spacing.sm, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            PieceToken(piece, (piece as? HeroPiece)?.let { state.heroes.hero(it.heroId) }, 28.dp, palette)
+                            Spacer(Modifier.width(Spacing.sm))
+                            Text(name, style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private val SIDE_PANEL = 380.dp
+private const val PANEL_MAX = 0.5f
