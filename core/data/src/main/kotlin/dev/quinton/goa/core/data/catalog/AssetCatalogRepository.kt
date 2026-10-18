@@ -1,5 +1,7 @@
 package dev.quinton.goa.core.data.catalog
 
+import dev.quinton.goa.core.domain.catalog.CatalogLoader
+import dev.quinton.goa.core.domain.catalog.CatalogAssets
 import android.content.Context
 import android.util.Log
 import dagger.Binds

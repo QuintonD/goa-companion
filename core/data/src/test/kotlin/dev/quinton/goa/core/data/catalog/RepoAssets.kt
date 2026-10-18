@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.data.catalog
 
+import dev.quinton.goa.core.domain.catalog.CatalogAssets
 import java.io.File
 
 /** The real bundled assets, read straight from the repository (`app/src/main/assets`). */

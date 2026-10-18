@@ -1,4 +1,4 @@
-package dev.quinton.goa.core.data.catalog
+package dev.quinton.goa.core.domain.catalog
 
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.catalog.CatalogIndex
