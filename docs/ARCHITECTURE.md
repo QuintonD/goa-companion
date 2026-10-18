@@ -30,7 +30,7 @@ app/                     # Application, MainActivity, Navigation 3 back stack + 
                          #   BottomSheetSceneStrategy (entries tagged NavSheet.metadata open as a sheet)
 build-logic/             # convention plugins (android-library, compose, feature, hilt, jvm-library)
 core/model/              # JVM: data classes (Hero, Card, Player, Match, DraftMethod…)
-core/domain/             # JVM: TimerEngine, EloCalculator, DraftEngine, MetaStats, MatchSetup,
+core/domain/             # JVM: TimerEngine, EloCalculator, DraftEngine, MetaStats, MatchSetup, TriviaEngine,
                          #   sync/ (SyncMerge, PlayerMerges, crypto, codec, SyncHost/SyncClient protocol);
                          #   testFixtures: in-memory SyncTransport + data port
 core/data/               # repositories; catalog loader; JSON/Room <-> model; export/import
@@ -46,6 +46,8 @@ feature/players/         # players, match log, Elo, meta dashboard; shareable HT
 feature/draft/
 feature/settings/        # settings, rating constants, export/import entry, About
 feature/rules/           # rules reference: topic list + search, topic pages, Levels & defeats sheet
+feature/trivia/          # card trivia (ADR-028): home (progress + setup), quiz and summary;
+                         #   questions from core:domain/trivia, progress in datastore/trivia_progress
 feature/sync/            # group sync (ADR-025): Group screen, sync sheet, Who are you, sync-file import;
                          #   NearbySyncTransport, invite QR + scanner, FileProvider, permissions
 tools/catalog-import/    # JVM CLI (reuses core:model): sources.lock.json, overrides.json,

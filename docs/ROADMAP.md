@@ -73,6 +73,12 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] **Two physical phones sync at the table** (emulators prove Nearby only over virtual Bluetooth): host + join, permissions on Android 12+ and 16, a phone walking away mid-sync, Wi-Fi Direct upgrade and range, the first-scan scanner download (unavailable on the emulators), a sync file over Quick Share
 - [ ] Three or more phones in one session; a 300-match log over Bluetooth only (Wi-Fi off)
 
+## M7 — Card trivia (ADR-028)
+- [ ] Trivia engine (facts from the catalog, card-number and initiative-duel questions, Leitner mastery, retries) with tests against the bundled catalog
+- [ ] Progress in `datastore/trivia_progress` (not synced, not in the backup file; Auto Backup)
+- [ ] `:feature:trivia`: home with progress and setup, quiz, summary; entry points on the Heroes tab and hero page; screenshots
+- [ ] Trivia round hands-on on an S25-sized emulator; then on the S25 Ultra
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check
