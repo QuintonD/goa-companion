@@ -1067,5 +1067,265 @@
       "evidence": "colefin8 server/Min.csv contains another hero's cards (Bullrush, Bulwark), so every Min card's initiative, values, block, range/radius and item icon plus the hero card's stat bars were compared with the scans in dmrediger/goa2 instead.",
       "checked": "2026-10-17"
     }
+  },
+  "maps": {
+    "narrow-passages": {
+      "spawns": {
+        "6,-7": "blue-melee",
+        "7,-8": null,
+        "7,-9": null,
+        "8,-4": null,
+        "8,-5": "red-ranged",
+        "9,-6": null,
+        "5,-6": "red-heavy",
+        "6,-8": "blue-melee",
+        "8,-3": "red-melee",
+        "10,-6": "blue-melee",
+        "-1,3": "red-melee",
+        "-2,4": null,
+        "-2,5": null,
+        "-3,0": null,
+        "-3,1": "blue-ranged",
+        "-4,2": null,
+        "0,2": "blue-heavy",
+        "-1,4": "red-melee",
+        "-3,-1": "blue-melee",
+        "-5,2": "red-melee"
+      },
+      "reason": "In both Pre-Throne Zones the source has 6 of the 10 minion spawn points on the wrong space or with the wrong type (the counts per team and type are right: the attacker's 3 Melee/1 Ranged/1 Heavy, the defender's 4 Melee/1 Heavy). The middle Zone and both Throne Zones match the mat.",
+      "evidence": "Overlay of the source grid on a photo of the official Narrow Passages neoprene mat (BGG image 9704864, thread 3741412), fitted on the six hero spawn points and Mid's two Heavy spawn points (worst anchor 6 px, hex 183 px): icon shape read space by space (scarab Melee, horned beetle Ranged, round shield Heavy for Red; claw Melee, crest Ranged, spiked star Heavy for Blue). The mat is point-symmetric with teams swapped, and every reading in one Pre-Throne Zone matches its mirror in the other. Designer (BGG 3527919): both sides have 5 minions in those Zones, the turret icon is ignored."
+    },
+    "magma-and-ice": {
+      "spawns": {
+        "2,3": "red-ranged",
+        "4,3": null,
+        "5,1": null,
+        "6,1": "red-melee",
+        "8,0": "blue-melee",
+        "4,2": "red-heavy",
+        "5,3": "red-melee",
+        "6,2": "blue-heavy",
+        "-2,-4": "blue-ranged",
+        "-4,-4": null,
+        "-5,-2": null,
+        "-6,-2": "blue-melee",
+        "-8,-1": "red-melee",
+        "-4,-3": "blue-heavy",
+        "-5,-4": "blue-melee",
+        "-6,-3": "red-heavy"
+      },
+      "removeSpaces": [
+        "8,1",
+        "-8,-2",
+        "11,-3",
+        "-11,2"
+      ],
+      "reason": "In the two 33-space Pre-Throne Zones (lane 1 Blue, lane 2 Red) the source puts most spawn points on the wrong spaces and lists a black rock on the board's edge as a space (with a spawn point on it); two more edge rocks in the middle Zones are listed as spaces. Counts per team and type stay 2 Melee/1 Ranged/1 Heavy. The other Zones match the mat.",
+      "evidence": "Overlay of the source grid on a photo of the official Magma and Ice neoprene mat (BGG image 9704867, thread 3741412), fitted on the six hero spawn points (worst anchor 8 px, hex 200 px), read space by space; the mat is point-symmetric with teams swapped and each correction matches its mirror. 11,-3 is a black rock on the lava edge (its mirror -11,2 is outside the photo; removed by the symmetry)."
+    }
+  },
+  "mapArt": {
+    "forgotten-island": [
+      {
+        "name": "Forgotten Island top-down art (CasperCB/Guards_Replay assets/maps/forbidden_island.webp, 1400 px)",
+        "url": "https://raw.githubusercontent.com/CasperCB/Guards_Replay/210ff0cae374cdeda2f60680aea5990e85841332/assets/maps/forbidden_island.webp",
+        "anchors": [
+          [
+            -5,
+            -5,
+            395,
+            265
+          ],
+          [
+            -6,
+            -3,
+            305,
+            350
+          ],
+          [
+            -8,
+            -1,
+            175,
+            385
+          ],
+          [
+            11,
+            -6,
+            1220,
+            1035
+          ],
+          [
+            9,
+            -4,
+            1085,
+            1050
+          ],
+          [
+            8,
+            -2,
+            990,
+            1135
+          ]
+        ],
+        "model": "similarity"
+      }
+    ],
+    "across-the-river": [
+      {
+        "name": "Photo of the official Across the River neoprene mat (BGG image 9704865)",
+        "url": "https://cf.geekdo-images.com/duuFQRU-fSOiUNQpoNsLBA__original/img/nueSTgAtszvojc1HUpIdwcE5zco=/0x0/filters:format(jpeg)/pic9704865.jpg",
+        "anchors": [
+          [
+            7,
+            3,
+            2075,
+            4350
+          ],
+          [
+            8,
+            1,
+            2500,
+            4233
+          ],
+          [
+            10,
+            -1,
+            2992,
+            4367
+          ],
+          [
+            -6,
+            -5,
+            2520,
+            974
+          ],
+          [
+            -7,
+            -3,
+            2227,
+            1029
+          ],
+          [
+            -9,
+            -1,
+            1891,
+            969
+          ]
+        ],
+        "model": "homography"
+      }
+    ],
+    "narrow-passages": [
+      {
+        "name": "Photo of the official Narrow Passages neoprene mat (BGG image 9704864)",
+        "url": "https://cf.geekdo-images.com/pRUryaVDshPV8JMEGJa0tQ__original/img/VOkpixXYrr4RjCpCsrxRJkUuHcI=/0x0/filters:format(jpeg)/pic9704864.jpg",
+        "anchors": [
+          [
+            -5,
+            8,
+            1800,
+            1136
+          ],
+          [
+            -6,
+            7,
+            2082,
+            1136
+          ],
+          [
+            -7,
+            6,
+            2382,
+            1136
+          ],
+          [
+            12,
+            -10,
+            1810,
+            4230
+          ],
+          [
+            11,
+            -11,
+            2220,
+            4230
+          ],
+          [
+            10,
+            -12,
+            2640,
+            4230
+          ],
+          [
+            4,
+            -1,
+            1719,
+            2452
+          ],
+          [
+            1,
+            -3,
+            2564,
+            2369
+          ]
+        ],
+        "model": "homography"
+      }
+    ],
+    "magma-and-ice": [
+      {
+        "name": "Photo of the official Magma and Ice neoprene mat (BGG image 9704867)",
+        "url": "https://cf.geekdo-images.com/HgZeX9Czel4vAHjTVNn1Pw__original/img/_bmxWfLzFGsIe0E4ysw9Rm_DA1U=/0x0/filters:format(jpeg)/pic9704867.jpg",
+        "anchors": [
+          [
+            0,
+            -8,
+            2150,
+            1590
+          ],
+          [
+            -2,
+            -8,
+            1720,
+            1310
+          ],
+          [
+            2,
+            -10,
+            2580,
+            1360
+          ],
+          [
+            -2,
+            9,
+            1700,
+            4540
+          ],
+          [
+            0,
+            7,
+            2010,
+            4420
+          ],
+          [
+            2,
+            7,
+            2320,
+            4580
+          ]
+        ],
+        "model": "homography"
+      }
+    ]
+  },
+  "mapChecks": {
+    "forgotten-island": {
+      "evidence": "Overlay on the official top-down art compared space by space: all 210 spaces sit on the printed grid, the 14 enclosed terrain spaces are the rocks inside the island, Zone borders follow the printed cracks and terrain edges, all 40 spawn icons (3 gears, 3 stars, 34 minion icons) are on the tagged spaces with the right team and type and no icon is untagged. Rulebook p.5-6 setup images show the same board.",
+      "checked": "2026-10-19, overlay cache/maps/forgotten-island-0-overlay.png"
+    },
+    "across-the-river": {
+      "evidence": "Overlay on a photo of the official mat compared space by space: spaces on the printed grid, rocks as terrain, Zone borders on the printed edges, every visible spawn icon (team and type) on its tagged space with none untagged (the tower icons are decoration, ignored per the designer, BGG 3527919/3741412). The corner of lane-2-2 (lane 2's Red-side middle Zone) outside the photo was checked against the rulebook p.20 image (icon positions) and the map's point symmetry (types). Rulebook p.20 labels this map's starting Battle Zones 1 and 2 (lane-1, lane-2).",
+      "checked": "2026-10-19, overlay cache/maps/across-the-river-0-overlay.png"
+    }
   }
 }
