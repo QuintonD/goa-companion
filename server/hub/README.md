@@ -36,6 +36,7 @@ Make a test invite with `GroupInvite.format(GroupCredentials.create("Dev"), "htt
 goa-hub serve  [--data DIR] [--host 127.0.0.1] [--port 8080]
 goa-hub join   [--data DIR] "<invite text>"      (or the invite on stdin)
 goa-hub config [--data DIR] [--public-url https://x.ts.net] [--android-cert-sha256 AA:BB:…]
+               [--time-zone Europe/Amsterdam]
 goa-hub status [--data DIR]                      (read-only)
 goa-hub version
 ```
@@ -62,7 +63,7 @@ same machine publishes it over HTTPS. So *every public request arrives from loop
 ## Data directory
 
 ```
-hub.json                        config (public URL, Android cert fingerprints) — goa-hub config
+hub.json                        config (public URL, Android cert fingerprints, time zone) — goa-hub config
 group.json                      group id, key, name (0600) — goa-hub join
 data.json                       the group's SyncDocument (SyncJson) — GroupStore only
 backups/data-YYYY-MM-DD.json    last state of each day, 30 days
@@ -131,9 +132,9 @@ writes a joined data directory (46 matches) plus `invite.txt` (public URL `GOA_P
 | `deviceStore: DeviceStore` | this browser's own state, in typed slots (below) |
 | `devices: Devices` | signed-in browsers: `list()`, `get(id)`, `rename(id, name)`, `signOut(id)` |
 | `catalog: HubCatalog` | `catalog` (the hero `Catalog`, strict loader), `readText("catalog/draft-methods.json")`, `open(path)`, `exists(path)`; `HubCatalog.url(path)` → `/assets/<path>` for images |
-| `clock: HubClock` | `nowMillis()` (stamps), `elapsedMillis()`, `zone`, `today()` — the core:domain `WallClock`/`ElapsedClock` |
+| `clock: HubClock` | `nowMillis()` (stamps), `elapsedMillis()`, `zone`, `today()` — the core:domain `WallClock`/`ElapsedClock`; `zone` is the configured time zone (`goa-hub config --time-zone`), else the machine's: use it for every date shown |
 | `push: PushService` | Web Push (below) |
-| `config: HubConfig` | `publicUrl`, `androidCertSha256` |
+| `config: HubConfig` | `publicUrl`, `androidCertSha256`, `timeZone` |
 | `group: GroupCredentials?` | the group (id, name; the key — never render it) |
 | `syncState: SyncStateStore` | when phones last synced (`read().clients`) |
 | `device(call)` / `deviceOrNull(call)` | the browser of a call |

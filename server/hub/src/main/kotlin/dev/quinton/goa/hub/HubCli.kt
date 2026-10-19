@@ -30,6 +30,7 @@ import java.util.Locale
  * goa-hub serve  [--data DIR] [--host 127.0.0.1] [--port 8080]
  * goa-hub join   [--data DIR] "<invite text>"
  * goa-hub config [--data DIR] [--public-url https://x.duckdns.org] [--android-cert-sha256 AA:BB:…]
+ *                [--time-zone Europe/Amsterdam]
  * goa-hub status [--data DIR]
  * ```
  */
@@ -87,6 +88,7 @@ class HubCli(
                 "goa-hub: group '${group.name}'"
             },
         )
+        out.println("goa-hub: dates in ${hub.clock.zone.id}")
         if (hub.config.get().publicUrl == null) {
             out.println(
                 "goa-hub: no public URL — set one with `goa-hub config --public-url https://…` before publishing",
@@ -157,11 +159,16 @@ class HubCli(
         val certs = options.values("android-cert-sha256").flatMap { it.split(',') }.filter { it.isNotBlank() }.map {
             HubConfig.normalizeFingerprint(it) ?: return usageError("Not a SHA-256 fingerprint: $it")
         }
-        val config = if (url != null || certs.isNotEmpty()) {
+        val zone = options.value("time-zone")?.let {
+            HubConfig.normalizeZone(it)
+                ?: return usageError("Not an IANA time zone (like Europe/Amsterdam): $it")
+        }
+        val config = if (url != null || certs.isNotEmpty() || zone != null) {
             store.update { current ->
                 current.copy(
                     publicUrl = url ?: current.publicUrl,
                     androidCertSha256 = certs.ifEmpty { current.androidCertSha256 },
+                    timeZone = zone ?: current.timeZone,
                 )
             }
         } else {
@@ -173,8 +180,12 @@ class HubCli(
                 "(not set)"
             }}",
         )
+        out.println("Time zone: ${zoneLine(config)}")
         return OK
     }
+
+    private fun zoneLine(config: HubConfig): String =
+        config.zone?.id ?: "${ZoneId.systemDefault().id} (this machine's; set one with --time-zone)"
 
     private fun status(options: Options): Int {
         val paths = paths(options)
@@ -194,7 +205,10 @@ class HubCli(
         val devices = Devices(paths.devices).list()
         out.println("Data:      ${paths.root}")
         out.println("Group:     ${group?.let { "${it.name} (${it.groupId})" } ?: "not joined"}")
-        out.println("Public URL: ${HubConfigStore(paths.config).get().publicUrl ?: "(not set)"}")
+        val config = HubConfigStore(paths.config).get()
+        zone = config.zone ?: ZoneId.systemDefault()
+        out.println("Public URL: ${config.publicUrl ?: "(not set)"}")
+        out.println("Time zone: ${zoneLine(config)}")
         out.println(
             "Players:   ${data.players().size} active, ${data.players(includeArchived = true).size} in all",
         )
@@ -222,9 +236,10 @@ class HubCli(
         return OK
     }
 
-    private fun format(millis: Long): String = TIME.withZone(
-        ZoneId.systemDefault(),
-    ).format(Instant.ofEpochMilli(millis))
+    /** The zone [status] prints times in: the configured one, else the machine's. */
+    private var zone: ZoneId = ZoneId.systemDefault()
+
+    private fun format(millis: Long): String = TIME.withZone(zone).format(Instant.ofEpochMilli(millis))
 
     private fun usageError(message: String): Int {
         err.println(message)
@@ -238,7 +253,8 @@ class HubCli(
             |
             |  serve  [--data DIR] [--host 127.0.0.1] [--port 8080]   run the hub
             |  join   [--data DIR] "<invite text>"                   join the group (once; no text: read stdin)
-            |  config [--data DIR] [--public-url URL] [--android-cert-sha256 FP]
+            |  config [--data DIR] [--public-url URL] [--android-cert-sha256 FP] [--time-zone ZONE]
+            |                                                        only the options given change
             |  status [--data DIR]                                   group, data, devices, last sync
             |  version                                               the hub's version
             |
@@ -254,7 +270,7 @@ class HubCli(
         fun values(name: String): List<String> = named[name].orEmpty()
 
         companion object {
-            private val KNOWN = setOf("data", "host", "port", "public-url", "android-cert-sha256")
+            private val KNOWN = setOf("data", "host", "port", "public-url", "android-cert-sha256", "time-zone")
 
             fun parse(args: List<String>): Options {
                 val named = LinkedHashMap<String, MutableList<String>>()

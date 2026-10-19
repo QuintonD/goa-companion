@@ -24,4 +24,13 @@ interface HubClock : WallClock, ElapsedClock {
 
         private const val NANOS_PER_MILLI = 1_000_000L
     }
+
+    companion object {
+        /** [base] with its [zone] replaced by [zone]'s answer when that isn't null (`goa-hub config --time-zone`). */
+        fun withZone(base: HubClock, zone: () -> ZoneId?): HubClock = object : HubClock by base {
+            override val zone: ZoneId get() = zone() ?: base.zone
+
+            override fun today(): LocalDate = Instant.ofEpochMilli(nowMillis()).atZone(this.zone).toLocalDate()
+        }
+    }
 }

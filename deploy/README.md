@@ -191,8 +191,10 @@ The hub has **no web page for joining**: joining is only done here, on the machi
 sudo bash ~/deploy/linux/install.sh ~/goa-hub-1.0.0.zip
 ```
 
-It asks for the invite: paste the line from 5.4 and press Enter. With the fingerprint from step
-4, start it like this instead:
+It asks for the invite: paste the line from 5.4 and press Enter. It also asks which **time
+zone** the hub shows dates in (match days, "today", backup names), offering the machine's own: press
+Enter to keep it, or type an IANA name such as `Europe/Amsterdam` (`timedatectl list-timezones`
+lists them). With the fingerprint from step 4, start it like this instead:
 
 ```bash
 sudo GOA_ANDROID_CERT_SHA256=AA:BB:…:FF bash ~/deploy/linux/install.sh ~/goa-hub-1.0.0.zip
@@ -206,8 +208,8 @@ What it does, in order (it is safe to run again; it only fills in what is missin
 3. Installs the `goa-hub` systemd service and the daily backup timer, and keeps a copy of this
    kit in `/opt/goa-hub/deploy`.
 4. Unpacks the hub, starts it on `127.0.0.1:8080` and checks it answers.
-5. Joins the group with your invite (`goa-hub join`) and sets the public address
-   (`goa-hub config --public-url https://goa.<tailnet>.ts.net`).
+5. Joins the group with your invite (`goa-hub join`) and sets the public address and time zone
+   (`goa-hub config --public-url https://goa.<tailnet>.ts.net --time-zone Europe/Amsterdam`).
 6. Publishes the hub: `tailscale funnel --bg --https=443 http://127.0.0.1:8080`. `--bg` means
    Tailscale keeps this setting and restores it after every restart and reboot.
 7. Turns on automatic security updates (`unattended-upgrades`; *Fedora*: `dnf5-automatic`) and
@@ -294,6 +296,17 @@ installer without a zip. `GOA_HUB_INVITE=` (empty) skips the invite question:
 ```bash
 sudo GOA_HUB_INVITE= bash ~/deploy/linux/install.sh
 ```
+
+**Another time zone** (the group moved, or the machine's clock zone is UTC): `goa-hub config`
+changes only the options you give it, and the running hub picks the new zone up at once.
+
+```bash
+sudo -u goa-hub /opt/goa-hub/current/bin/goa-hub config --data /var/lib/goa-hub --time-zone Europe/Amsterdam
+```
+
+`goa-hub status` shows the zone in use; without one set, it is the machine's
+(`timedatectl`). Only IANA names are accepted (`Europe/Amsterdam`, not `CET` or `+02:00`, which
+would miss the clock change).
 
 ## 8. Backups
 
@@ -477,6 +490,9 @@ startup, so nobody needs to be signed in.
    ```
 
    Add `-AndroidCertSha256 AA:BB:…` for the app links (step 4). It asks for the invite (step 5.4).
+   The hub shows dates in the PC's time zone; to pick another, run
+   `C:\goa-hub\current\bin\goa-hub.bat config --data C:\ProgramData\goa-hub --time-zone Europe/Amsterdam`
+   in PowerShell as Administrator (the running hub picks it up at once).
    It installs Java 21 with winget (Microsoft Build of OpenJDK) if needed, sets up the folders,
    the "GoA Hub" and "GoA Hub backup" scheduled tasks, joins, sets the address, turns on
    Tailscale's unattended mode (keeps running when nobody is signed in) and runs
