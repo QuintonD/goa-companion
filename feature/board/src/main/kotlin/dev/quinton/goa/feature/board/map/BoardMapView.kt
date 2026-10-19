@@ -752,5 +752,9 @@ private val TOUCH_RADIUS = 24.dp
 /** The nearer of two pieces must be this much nearer to win a tap. */
 private const val AMBIGUITY = 1.4f
 
-/** Side of a space's TalkBack node, in map units (a hex is √3 wide). */
-private const val SPACE_NODE = 1.6f
+/**
+ * Side of a space's TalkBack node, in map units (a hex is √3 wide). Under 1.5 the squares of
+ * neighbouring spaces never overlap in any rotation, so Android keeps each node whole (it cuts
+ * overlapped parts away) and TalkBack outlines and touches the space itself.
+ */
+private const val SPACE_NODE = 1.46f

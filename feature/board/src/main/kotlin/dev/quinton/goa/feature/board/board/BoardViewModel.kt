@@ -306,9 +306,9 @@ class BoardViewModel internal constructor(
 
             BoardAction.Remove -> remove(ready)
 
-            BoardAction.Undo -> step(from = undo, to = redo)
+            BoardAction.Undo -> step(from = undo, to = redo, said = "Undone.")
 
-            BoardAction.Redo -> step(from = redo, to = undo)
+            BoardAction.Redo -> step(from = redo, to = undo, said = "Redone.")
 
             BoardAction.ResetToOpening -> {
                 select(null)
@@ -378,12 +378,16 @@ class BoardViewModel internal constructor(
 
     private fun bonus(current: Int, delta: Int) = (current + delta).coerceIn(0, MAX_BONUS)
 
-    /** Undo or Redo: the board goes back to the last state of [from]; the current one goes to [to]. */
-    private fun step(from: ArrayDeque<BoardState>, to: ArrayDeque<BoardState>) {
+    /**
+     * Undo or Redo: the board goes back to the last state of [from]; the current one goes to [to].
+     * TalkBack hears it ([said]), as it hears each move.
+     */
+    private fun step(from: ArrayDeque<BoardState>, to: ArrayDeque<BoardState>, said: String) {
         val ready = state.value as? BoardUiState.Ready ?: return
         val next = from.removeLastOrNull() ?: return
         to.addLast(ready.board.state)
         apply(next)
+        announce(said)
     }
 
     /** Writes a pending change now (the screen calls it when it stops or leaves). */

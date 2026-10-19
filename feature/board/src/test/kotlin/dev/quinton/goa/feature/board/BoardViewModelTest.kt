@@ -218,12 +218,15 @@ class BoardViewModelTest {
         vm.onAction(BoardAction.Undo)
         assertThat(vm.ready().hero("test-hero-1").at).isEqualTo(target)
         assertThat(vm.ready().hero("test-hero-2").at).isEqualTo(other.at)
+        // TalkBack hears the undo, not the last move again.
+        assertThat(vm.ready().announcement?.text).isEqualTo("Undone.")
         vm.onAction(BoardAction.Undo)
         assertThat(vm.ready().hero("test-hero-1").at).isEqualTo(arien.at)
         assertThat(vm.ready().canUndo).isFalse()
         vm.onAction(BoardAction.Redo)
         assertThat(vm.ready().hero("test-hero-1").at).isEqualTo(target)
         assertThat(vm.ready().canRedo).isTrue()
+        assertThat(vm.ready().announcement?.text).isEqualTo("Redone.")
     }
 
     @Test
