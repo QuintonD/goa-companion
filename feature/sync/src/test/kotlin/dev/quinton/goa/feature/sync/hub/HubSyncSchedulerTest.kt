@@ -127,6 +127,39 @@ class HubSyncSchedulerTest {
     }
 
     @Test
+    fun onScreenTheAppSyncsAtOnceThenEveryMinuteUntilItLeaves() = runTest {
+        started()
+
+        scheduler.onForeground()
+        runCurrent()
+        val first = pending().single()
+        assertThat(first.initialDelayMillis).isEqualTo(0)
+
+        // A phone left open at the table hears about the others' matches within a minute.
+        advanceTimeBy(HubSyncScheduler.FOREGROUND_POLL_MS + 1)
+        val second = pending().single()
+        assertThat(second.id).isNotEqualTo(first.id)
+
+        scheduler.onBackground()
+        advanceTimeBy(5 * HubSyncScheduler.FOREGROUND_POLL_MS)
+        assertThat(pending().single().id).isEqualTo(second.id)
+    }
+
+    @Test
+    fun thePollLeavesAProblemThatNeedsAPersonAlone() = runTest {
+        started()
+        groups.current.value = groups.current.value.copy(hubError = HubError(HubProblem.WRONG_KEY, "key", 1))
+
+        scheduler.onForeground()
+        runCurrent()
+        // Coming on screen still tries once, so a fixed hub shows at once.
+        val first = pending().single()
+        advanceTimeBy(3 * HubSyncScheduler.FOREGROUND_POLL_MS)
+        assertThat(pending().single().id).isEqualTo(first.id)
+        scheduler.onBackground()
+    }
+
+    @Test
     fun aChangeSyncs15sLaterAndEachNewChangeRestartsTheWait() = runTest {
         started()
 
