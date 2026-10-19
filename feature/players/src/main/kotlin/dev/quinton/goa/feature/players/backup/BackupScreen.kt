@@ -88,8 +88,8 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions, modifier: Modifie
                     icon = Icons.Outlined.FileUpload,
                     title = "Export",
                     body =
-                        "Save every player, match and draft, your settings, timer presets and custom draft methods " +
-                            "to one JSON file. " +
+                        "Save every player, match and draft, the card trivia leaderboard, your boards, your " +
+                            "settings, timer presets and custom draft methods to one JSON file. " +
                             "Keep it somewhere safe, or open it on a new phone.",
                     detail = "${plural(state.players, "player")} · ${plural(state.matches, "match", "matches")}",
                 ) {
@@ -294,22 +294,29 @@ fun ImportDialog(
  * settings, timer presets and draft methods alone; only the rating settings go back to the
  * defaults the file was made with (`BackupRepository.import`).
  */
-internal fun replaceBody(summary: BackupSummary, phoneIsEmpty: Boolean): String = when {
-    phoneIsEmpty && summary.hasSettings ->
-        "This phone has no players or matches yet. Load the file as it is, settings included."
+internal fun replaceBody(summary: BackupSummary, phoneIsEmpty: Boolean): String {
+    // Trivia rounds go with the match log; boards only when the file has a boards list (an older
+    // file says nothing about them, so the phone's boards stay).
+    val deleted = if (summary.boards != null) {
+        "Delete this phone's players, matches, drafts, trivia rounds and boards first"
+    } else {
+        "Delete this phone's players, matches, drafts and trivia rounds first (its boards stay)"
+    }
+    return when {
+        phoneIsEmpty && summary.hasSettings ->
+            "This phone has no players or matches yet. Load the file as it is, settings included."
 
-    phoneIsEmpty -> "This phone has no players or matches yet. Load the file as it is."
+        phoneIsEmpty -> "This phone has no players or matches yet. Load the file as it is."
 
-    summary.extras.isNotEmpty() ->
-        "Delete this phone's players, matches and drafts first and use the file's settings. This can't be undone."
+        summary.extras.isNotEmpty() -> "$deleted and use the file's settings. This can't be undone."
 
-    summary.hasEloConfig ->
-        "Delete this phone's players, matches and drafts first and use the file's rating " +
-            "settings; the phone keeps its other settings. This can't be undone."
+        summary.hasEloConfig ->
+            "$deleted and use the file's rating settings; the phone keeps its other settings. This can't be undone."
 
-    else ->
-        "Delete this phone's players, matches and drafts first. This file has no settings: rating " +
-            "settings go back to the defaults and the phone keeps its other settings. This can't be undone."
+        else ->
+            "$deleted. This file has no settings: rating settings go back to the defaults and the phone " +
+                "keeps its other settings. This can't be undone."
+    }
 }
 
 @Composable
