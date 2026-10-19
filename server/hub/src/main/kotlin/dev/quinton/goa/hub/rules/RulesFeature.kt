@@ -97,7 +97,10 @@ object RulesFeature : HubFeature {
     private suspend fun ApplicationCall.rulesPage(ctx: HubContext) {
         val query = request.queryParameters["q"].orEmpty().take(MAX_QUERY)
         val searching = isHtmx && request.headers["HX-Target"] == "rules-results"
-        val canonical = if (query.isBlank()) PATH else "$PATH?${Parameters.build { append("q", query) }.formUrlEncode()}"
+        val canonical = when {
+            query.isBlank() -> PATH
+            else -> "$PATH?" + Parameters.build { append("q", query) }.formUrlEncode()
+        }
         if ((searching || !isHtmx) && tidyUrl(canonical)) return
         val state = RulesUiState.of(reference(ctx.catalog), query)
         if (searching) {

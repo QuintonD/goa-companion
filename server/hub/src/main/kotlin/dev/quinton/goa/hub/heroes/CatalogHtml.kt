@@ -186,11 +186,22 @@ fun FlowContent.heroPortrait(
     classes: String,
     alt: String = "",
     eager: Boolean = false,
+    size: PortraitSize = PortraitSize.SMALL,
 ) {
     span("portrait $classes") {
         span("sigil ${sigilClass(heroId)}") { attributes["aria-hidden"] = "true" }
         if (portrait != null) {
-            img(src = HubCatalog.url(portrait), alt = alt) {
+            val src = when (size) {
+                PortraitSize.SMALL -> HubCatalog.thumbUrl(portrait, HubCatalog.THUMB_SMALL)
+                PortraitSize.GRID -> HubCatalog.thumbUrl(portrait, HubCatalog.THUMB_GRID)
+                PortraitSize.FULL -> HubCatalog.url(portrait)
+            }
+            img(src = src, alt = alt) {
+                if (size == PortraitSize.GRID) {
+                    // A phone at 3× picks the full image; 2× and smaller screens the lighter copy.
+                    attributes["srcset"] = "$src ${HubCatalog.THUMB_GRID}w, ${HubCatalog.url(portrait)} 512w"
+                    attributes["sizes"] = "(min-width: 720px) 220px, 48vw"
+                }
                 attributes["width"] = PORTRAIT_WIDTH
                 attributes["height"] = PORTRAIT_HEIGHT
                 attributes["loading"] = if (eager) "eager" else "lazy"
@@ -202,6 +213,9 @@ fun FlowContent.heroPortrait(
 
 /** The class that draws [heroId]'s sigil (one line per hero in `heroes.css`, checked by a test). */
 fun sigilClass(heroId: String): String = "sigil-" + heroId.filter { it.isLetterOrDigit() || it == '-' }
+
+/** Which copy of a portrait a place needs: avatars and rows, the hero grid, or the hero page. */
+enum class PortraitSize { SMALL, GRID, FULL }
 
 /** Bundled portraits are 512 × 468. */
 private const val PORTRAIT_WIDTH = "512"

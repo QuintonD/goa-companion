@@ -32,11 +32,14 @@ import kotlinx.serialization.json.putJsonObject
 internal fun Route.openStaticRoutes(hub: Hub) {
     get("${StaticFiles.PREFIX}/{path...}") {
         val path = HubCatalog.clean(call.parameters.getAll("path").orEmpty().joinToString("/"))
-        val bytes = path?.let { resource("${StaticFiles.RESOURCE_ROOT}/$it") }
-            ?: return@get call.respond(HttpStatusCode.NotFound)
-        // Versioned URLs (?v=) change with the content; unversioned ones (fonts, icons) revalidate daily.
-        val maxAge = if (call.request.queryParameters["v"] != null) IMMUTABLE else DAY
-        call.response.header(HttpHeaders.CacheControl, "public, max-age=$maxAge")
+        val bytes = path?.let { StaticFiles.bytes(it) } ?: return@get call.respond(HttpStatusCode.NotFound)
+        // Versioned URLs (?v=, from StaticFiles.url and the stylesheets) change with the content: kept
+        // for good. A request for another version than the current one gets today's file, revalidated.
+        val current = call.request.queryParameters["v"] == StaticFiles.versionOf(path)
+        call.response.header(
+            HttpHeaders.CacheControl,
+            if (current) "public, max-age=$IMMUTABLE, immutable" else "public, max-age=$HOUR",
+        )
         call.respondBytes(bytes, contentTypeOf(path))
     }
     get("/sw.js") {
@@ -50,8 +53,13 @@ internal fun Route.openStaticRoutes(hub: Hub) {
         call.respondText(manifest(), ContentType("application", "manifest+json"))
     }
     get("/icons/{name}") {
-        val icon = IconRenderer.Icon.byFileName(call.parameters["name"].orEmpty())
-            ?: return@get call.respond(HttpStatusCode.NotFound)
+        val name = call.parameters["name"].orEmpty()
+        IconRenderer.Splash.byFileName(name)?.let { splash ->
+            val png = IconRenderer.png(splash) ?: return@get call.respond(HttpStatusCode.NotFound)
+            call.response.header(HttpHeaders.CacheControl, "public, max-age=$WEEK")
+            return@get call.respondBytes(png, ContentType.Image.PNG)
+        }
+        val icon = IconRenderer.Icon.byFileName(name) ?: return@get call.respond(HttpStatusCode.NotFound)
         call.respondIcon(icon)
     }
     get("/apple-touch-icon.png") { call.respondIcon(IconRenderer.Icon.APPLE_TOUCH) }
@@ -119,7 +127,7 @@ internal fun manifest(): String = buildJsonObject {
             }
         }
         addJsonObject {
-            put("src", "/static/icons/brand_mark.svg")
+            put("src", StaticFiles.url("icons/brand_mark.svg"))
             put("sizes", "any")
             put("type", "image/svg+xml")
             put("purpose", "any")
@@ -143,6 +151,7 @@ internal fun assetLinks(config: HubConfig): String {
     }.toString()
 }
 
+private const val HOUR = 3_600
 private const val DAY = 86_400
 private const val WEEK = 7 * DAY
 private const val IMMUTABLE = 365 * DAY

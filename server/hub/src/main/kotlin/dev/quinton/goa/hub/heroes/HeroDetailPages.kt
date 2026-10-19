@@ -141,7 +141,14 @@ private fun FlowContent.sectionTitle(title: String, trailing: String? = null) {
 
 private fun FlowContent.heroHeader(hero: Hero, productName: String) {
     div("hero-header") {
-        heroPortrait(hero.id, hero.portrait, "hero-art", alt = "${hero.name} artwork", eager = true)
+        heroPortrait(
+            hero.id,
+            hero.portrait,
+            "hero-art",
+            alt = "${hero.name} artwork",
+            eager = true,
+            size = PortraitSize.FULL,
+        )
         div("hero-heading") {
             h1("hero-name") { +hero.name }
             p("hero-title") { +hero.title }

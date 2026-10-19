@@ -129,7 +129,7 @@ internal object TimerRunPage {
             if (a.layout == TimerLayout.ROUND) roundBody(a) else stepBody(a)
             a.shotClock?.let { shotPanel(a) }
             controls(a)
-            runDialogs(m, a)
+            runDialogs(a)
         }
     }
 
@@ -467,7 +467,10 @@ internal object TimerRunPage {
                         attributes["name"] = "cmd"
                         attributes["value"] = "hero:${seat.seat}"
                         attributes["aria-pressed"] = seat.acting.toString()
-                        seat.portrait?.let { img(src = HubCatalog.url(it), alt = "", classes = "tr-seat-portrait") }
+                        seat.portrait?.let {
+                            val src = HubCatalog.thumbUrl(it, HubCatalog.THUMB_SMALL)
+                            img(src = src, alt = "", classes = "tr-seat-portrait")
+                        }
                         span("tr-seat-text") {
                             span("tr-seat-hero") { +seat.heroName }
                             seat.playerName?.let { span("tr-seat-player") { +it } }

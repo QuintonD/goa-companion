@@ -68,7 +68,12 @@ internal fun FlowContent.defaultApply() {
 internal fun FlowContent.portrait(hero: HeroInfo?, classes: String = "hero-art") {
     val path = hero?.portrait
     if (path != null) {
-        img(src = HubCatalog.url(path), alt = "", classes = classes) {
+        img(src = HubCatalog.thumbUrl(path, HubCatalog.THUMB_SMALL), alt = "", classes = classes) {
+            // Pool tiles are up to ~100 pt wide: the grid copy on 3× phones.
+            attributes["srcset"] =
+                "${HubCatalog.thumbUrl(path, HubCatalog.THUMB_SMALL)} ${HubCatalog.THUMB_SMALL}w, " +
+                "${HubCatalog.thumbUrl(path, HubCatalog.THUMB_GRID)} ${HubCatalog.THUMB_GRID}w"
+            attributes["sizes"] = "96px"
             attributes["loading"] = "lazy"
             attributes["decoding"] = "async"
         }

@@ -30,11 +30,11 @@ import kotlinx.html.p
 import kotlinx.html.span
 
 /*
- * The running timer's dialogs (end match, Tie Breaker coin, jump, levels), its summary once the
+ * The running timer's dialogs (end match, Tie Breaker coin, jump), its summary once the
  * match is over, and the "timer running" bar for the other pages.
  */
 
-internal fun HtmlBlockTag.runDialogs(m: RunModel, a: ActiveUiState) {
+internal fun HtmlBlockTag.runDialogs(a: ActiveUiState) {
     hubDialog("end-dialog", "End the match?") {
         p {
             +(

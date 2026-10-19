@@ -5,6 +5,7 @@ import dev.quinton.goa.core.domain.catalog.CatalogLoader
 import dev.quinton.goa.core.model.catalog.Catalog
 import java.io.FileNotFoundException
 import java.io.InputStream
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * The app's bundled files on the hub: the same `catalog/` JSON and `official/` images as the APK's
@@ -33,6 +34,28 @@ class HubCatalog(private val classLoader: ClassLoader = HubCatalog::class.java.c
     companion object {
         const val ROOT = "goa-assets"
         const val URL_PREFIX = "/assets"
+        const val THUMBS = "thumbs"
+
+        /** Avatars, rows and pickers (up to 64 pt wide at 3×). */
+        const val THUMB_SMALL = 192
+
+        /** The hero grid's tiles (about 180 pt at 2×). */
+        const val THUMB_GRID = 384
+
+        /**
+         * The URL of a smaller copy of the image at [path], [width] px wide, made at build time
+         * (`generateThumbnails`: hero portraits at [THUMB_SMALL] and [THUMB_GRID]); the full image's URL
+         * when there is none.
+         */
+        fun thumbUrl(path: String, width: Int): String {
+            val thumb = "$THUMBS/w$width/$path"
+            val exists = thumbs.getOrPut(thumb) {
+                HubCatalog::class.java.classLoader.getResource("$ROOT/$thumb") != null
+            }
+            return url(if (exists) thumb else path)
+        }
+
+        private val thumbs = ConcurrentHashMap<String, Boolean>()
 
         /** The hub URL of the asset at [path] (served to signed-in devices only). */
         fun url(path: String): String = "$URL_PREFIX/$path"

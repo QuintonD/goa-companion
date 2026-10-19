@@ -212,6 +212,33 @@ fun FlowContent.emptyState(
     }
 }
 
+/**
+ * A whole-page status (not found, something went wrong): the brand mark, [title], [message], the
+ * way on ([actionLabel] → [actionHref]), "Try again" ([retryHref], the same address) and "Go back"
+ * (the browser's history when there is one, else the app's start).
+ */
+fun FlowContent.statusState(
+    title: String,
+    message: String,
+    actionLabel: String,
+    actionHref: String,
+    retryHref: String? = null,
+) {
+    section("empty-state status-state") {
+        span("empty-mark") { attributes["aria-hidden"] = "true" }
+        h2 { +title }
+        p { +message }
+        div("actions") {
+            retryHref?.let { linkButton("Try again", it, ButtonStyle.PRIMARY) }
+            linkButton(actionLabel, actionHref, if (retryHref == null) ButtonStyle.PRIMARY else ButtonStyle.TONAL)
+            a("/", classes = ButtonStyle.TEXT.css) {
+                attributes["data-history-back"] = ""
+                span { +"Go back" }
+            }
+        }
+    }
+}
+
 /** An error message (role=alert), with an optional retry link. */
 fun FlowContent.errorState(message: String, retryHref: String? = null) {
     div("error-state") {

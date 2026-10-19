@@ -58,7 +58,7 @@ internal suspend fun ApplicationCall.respondAboutPage(ctx: HubContext) {
     }
     respondPage(settingsPage("About")) {
         section("about-header") {
-            img(src = "/static/icons/brand_mark.svg", alt = "", classes = "brand-mark")
+            img(src = StaticFiles.url("icons/brand_mark.svg"), alt = "", classes = "brand-mark")
             h2 { +"Guards of Atlantis Companion" }
             p("muted") { +"Web app · hub ${Hub::class.java.`package`?.implementationVersion ?: "dev"}" }
         }
