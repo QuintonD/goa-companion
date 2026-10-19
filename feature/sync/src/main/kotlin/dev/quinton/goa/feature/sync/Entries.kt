@@ -180,7 +180,7 @@ private fun GroupEntry(navigator: Navigator, link: String? = null) {
             },
             onPaste = vm::join,
             onClearJoinError = vm::clearJoinError,
-            onSyncNow = { navigator.navigate(SyncSessionRoute(fromGroup = true)) },
+            onSyncAtTable = { navigator.navigate(SyncSessionRoute(fromGroup = true)) },
             onWhoAreYou = { navigator.navigate(WhoAreYouRoute) },
             onShareFile = vm::shareFile,
             // Some providers report the file as octet-stream or nothing useful, so accept any file.

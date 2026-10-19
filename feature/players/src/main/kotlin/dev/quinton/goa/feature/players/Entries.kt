@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.players
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -192,6 +193,13 @@ private fun PlayersHomeEntry(navigator: Navigator) {
             }
         }
     }
+    val hubTap by playersVm.hubSyncTap.collectAsStateWithLifecycle()
+    LaunchedEffect(hubTap.message) {
+        val message = hubTap.message ?: return@LaunchedEffect
+        val result = snackbar.showSnackbar(message, actionLabel = if (hubTap.details) "Details" else null)
+        playersVm.hubSyncMessageShown()
+        if (result == SnackbarResult.ActionPerformed) navigator.navigate(GroupSyncRoute)
+    }
     // A match saved from this screen's editor: show it in the Matches tab when coming back.
     LaunchedEffect(matches.highlightId) { if (matches.highlightId != null) tab = PlayersTab.MATCHES }
     PlayersHomeScreen(
@@ -200,6 +208,7 @@ private fun PlayersHomeEntry(navigator: Navigator) {
         matches = matches,
         meta = meta,
         snackbarHostState = snackbar,
+        syncingWithHub = hubTap.syncing,
         actions = PlayersHomeActions(
             onSelectTab = { tab = it },
             onOpenPlayer = { navigator.navigate(PlayerDetailRoute(it)) },
@@ -215,9 +224,15 @@ private fun PlayersHomeEntry(navigator: Navigator) {
             onOpenRatingSettings = { navigator.navigate(RatingSettingsRoute) },
             onShareStats = statsVm::share,
             onOpenSync = {
-                // With a hub the phones sync on their own: the Group screen shows how that went.
-                val sheet = players.inGroup && !players.hasHub && !players.hubNeedsAttention
-                navigator.navigate(if (sheet) SyncSessionRoute() else GroupSyncRoute)
+                when {
+                    // With a hub the icon syncs with it now, as the Group screen's "Sync now" does;
+                    // a problem that needs a person opens the Group screen, where it is explained.
+                    players.hasHub && !players.hubNeedsAttention -> playersVm.syncWithHub()
+
+                    players.inGroup && !players.hasHub -> navigator.navigate(SyncSessionRoute())
+
+                    else -> navigator.navigate(GroupSyncRoute)
+                }
             },
             onReviewSamePeople = { navigator.navigate(SamePeopleRoute) },
         ),

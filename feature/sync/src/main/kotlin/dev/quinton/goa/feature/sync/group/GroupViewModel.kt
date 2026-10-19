@@ -9,6 +9,7 @@ import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.PlayerMergeRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.SyncRepository
+import dev.quinton.goa.core.data.sync.HubSyncControl
 import dev.quinton.goa.core.domain.sync.GroupCredentials
 import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.core.domain.sync.HubAddress
@@ -18,7 +19,6 @@ import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.presentation.group.PlayerLink
 import dev.quinton.goa.feature.sync.PhoneName
 import dev.quinton.goa.feature.sync.SyncText
-import dev.quinton.goa.feature.sync.hub.HubSyncControl
 import dev.quinton.goa.feature.sync.hub.HubText
 import dev.quinton.goa.feature.sync.hub.HubUi
 import dev.quinton.goa.feature.sync.share.SyncFiles
