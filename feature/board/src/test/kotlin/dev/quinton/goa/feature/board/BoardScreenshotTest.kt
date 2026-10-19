@@ -258,6 +258,14 @@ class BoardScreenshotTest {
     /** The latest draft on top: "Set up" is one tap. */
     @Test fun newBoardEmptyDark() = capture(ThemeMode.DARK) { NewBoard(remember { newBoardViewModel() }) }
 
+    /**
+     * A 384 dp phone in the space the app leaves New board (under the status and top bars, above
+     * the tabs): the latest draft on top and all 32 heroes without scrolling.
+     */
+    @Config(qualifiers = "w384dp-h692dp-xxhdpi")
+    @Test
+    fun newBoardPhoneDark() = capture(ThemeMode.DARK) { NewBoard(remember { newBoardViewModel() }) }
+
     /** Nothing drafted yet, the group owns the core box only: its heroes, "Show all" below. */
     @Test
     fun newBoardOwnedLight() = capture(ThemeMode.LIGHT) {

@@ -2,6 +2,7 @@ package dev.quinton.goa.feature.board.setup
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -22,18 +23,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -58,12 +59,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
@@ -77,6 +81,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.EngravedRule
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
@@ -164,7 +169,6 @@ private fun NewBoardContent(
             it.title.contains(query.trim(), ignoreCase = true)
     }
     val large = LocalDensity.current.fontScale > LARGE_FONT
-    val cells = GridCells.Adaptive(if (large) TILE_LARGE else TILE)
     // The latest line-up is offered until the teams are being picked by hand.
     val latest = state.latest?.takeIf { state.form.red.isEmpty() && state.form.blue.isEmpty() }
     // Search with the team switch beside it; with large text, the switch goes under it.
@@ -212,43 +216,103 @@ private fun NewBoardContent(
                 }
                 Column(Modifier.weight(0.58f).fillMaxHeight()) {
                     search(Modifier.padding(start = Spacing.sm, end = Spacing.screen))
-                    HeroGrid(cells, shown, state, onAction, start = Spacing.sm, end = Spacing.screen)
+                    HeroGrid(shown, state, onAction, large, start = Spacing.sm, end = Spacing.screen)
                 }
             }
         } else {
             Column(Modifier.fillMaxSize()) {
-                Column(
-                    Modifier.padding(horizontal = Spacing.screen).padding(top = Spacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    latest?.let { LatestCard(it, { onSetUpLatest(it) }, onEdit = { onAction(NewBoardAction.Use(it)) }) }
-                    Teams(state, onAction)
-                }
+                // The latest line-up and the teams take turns in one slot as tall as the taller of
+                // the two, so the first pick never moves the hero grid under the next tap.
+                OneOf(
+                    first = latest != null,
+                    modifier = Modifier.padding(horizontal = Spacing.screen).padding(top = Spacing.sm),
+                    one = {
+                        state.latest?.let {
+                            LatestCard(it, { onSetUpLatest(it) }, onEdit = { onAction(NewBoardAction.Use(it)) })
+                        }
+                    },
+                    other = { Teams(state, onAction) },
+                )
                 search(Modifier.padding(horizontal = Spacing.screen))
-                HeroGrid(cells, shown, state, onAction, start = Spacing.screen, end = Spacing.screen)
+                HeroGrid(shown, state, onAction, large, start = Spacing.screen, end = Spacing.screen)
                 SetUpBar(state, onAction, onSetUp)
             }
         }
     }
 }
 
+/**
+ * Shows [one] when [first], else [other], in a slot as tall as the taller of the two (both are
+ * measured; only the shown one is placed, so only it draws, takes touches and is heard).
+ */
+@Composable
+private fun OneOf(
+    first: Boolean,
+    one: @Composable () -> Unit,
+    other: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SubcomposeLayout(modifier) { constraints ->
+        val loose = constraints.copy(minHeight = 0)
+        val a = subcompose(OneOfSlot.ONE, one).map { it.measure(loose) }
+        val b = subcompose(OneOfSlot.OTHER, other).map { it.measure(loose) }
+        val height = maxOf(a.maxOfOrNull { it.height } ?: 0, b.maxOfOrNull { it.height } ?: 0)
+            .coerceIn(constraints.minHeight, constraints.maxHeight)
+        layout(constraints.maxWidth, height) { (if (first) a else b).forEach { it.place(0, 0) } }
+    }
+}
+
+private enum class OneOfSlot { ONE, OTHER }
+
+/**
+ * The heroes to pick from. In portrait the columns are chosen so every hero fits without
+ * scrolling ([heroGridColumns]); with large text, fewer and bigger tiles that scroll.
+ */
 @Composable
 private fun ColumnScope.HeroGrid(
-    cells: GridCells,
     shown: List<BoardHero>,
     state: NewBoardUiState.Ready,
     onAction: (NewBoardAction) -> Unit,
+    large: Boolean,
     start: Dp,
     end: Dp,
 ) {
-    LazyVerticalGrid(
-        columns = cells,
-        contentPadding = PaddingValues(start = start, end = end, bottom = Spacing.md),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        modifier = Modifier.weight(1f),
-    ) {
-        heroTiles(shown, state, onAction)
+    val density = LocalDensity.current
+    val label = with(density) { MaterialTheme.typography.labelSmall.lineHeight.toDp() } + LABEL_GAP
+    BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+        if (large) {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(TILE_LARGE),
+                contentPadding = PaddingValues(start = start, end = end, bottom = Spacing.md),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                heroTiles(shown, state, onAction, pad = 0.dp)
+            }
+        } else {
+            // Each cell is its tile plus half the gap on every side, all of it the tap target: a
+            // 42 dp portrait still takes a 48 dp tap.
+            val half = TILE_GAP / 2
+            val extra = if (state.ownedOnly) OWNED_ROW + Spacing.sm else 0.dp
+            val columns = heroGridColumns(
+                count = shown.size.coerceAtLeast(1),
+                width = (maxWidth - start - end + TILE_GAP).value,
+                height = (maxHeight - Spacing.md).value,
+                label = label.value,
+                spacing = 0f,
+                extra = extra.value,
+                minTile = (TILE_MIN + TILE_GAP).value,
+                maxTile = (TILE_MAX + TILE_GAP).value,
+            )
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(columns),
+                contentPadding = PaddingValues(start = start - half, end = end - half, bottom = Spacing.md),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                heroTiles(shown, state, onAction, pad = half)
+            }
+        }
     }
 }
 
@@ -256,8 +320,9 @@ private fun LazyGridScope.heroTiles(
     heroes: List<BoardHero>,
     state: NewBoardUiState.Ready,
     onAction: (NewBoardAction) -> Unit,
+    pad: Dp,
 ) {
-    items(heroes, key = { it.id }) { hero -> HeroTile(hero, state, onAction) }
+    items(heroes, key = { it.id }) { hero -> HeroTile(hero, state, onAction, pad) }
     if (heroes.isEmpty()) {
         item(key = "none", span = { GridItemSpan(maxLineSpan) }) {
             Text(
@@ -356,18 +421,22 @@ private fun TeamRow(state: NewBoardUiState.Ready, team: Team, onAction: (NewBoar
                     modifier = Modifier.weight(1f),
                 )
             } else {
-                LazyRow(
+                // Every pick stays in sight: the chips share the row, a long name gives way first.
+                Row(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    contentPadding = PaddingValues(vertical = Spacing.xs),
-                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f).padding(vertical = Spacing.xs),
                 ) {
-                    itemsIndexed(heroes, key = { _, hero -> hero.id }) { index, hero ->
-                        SlotChip(hero, team, index, heroes.size, state, onAction)
+                    heroes.forEachIndexed { index, hero ->
+                        key(hero.id) {
+                            SlotChip(hero, team, index, heroes.size, state, onAction, Modifier.weight(1f, fill = false))
+                        }
                     }
                 }
             }
-            // With large text the border alone marks it; the words would push the heroes out.
-            if (filling && LocalDensity.current.fontScale <= LARGE_FONT) {
+            // Spelled out while the team is empty; once it has heroes the border marks it (and the
+            // "Adding to" switch), so the words never push a pick out of the row.
+            if (filling && heroes.isEmpty() && LocalDensity.current.fontScale <= LARGE_FONT) {
                 Text(
                     "Next pick",
                     style = MaterialTheme.typography.labelMedium,
@@ -390,10 +459,11 @@ private fun SlotChip(
     count: Int,
     state: NewBoardUiState.Ready,
     onAction: (NewBoardAction) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var menu by remember { mutableStateOf(false) }
     val color = teamColor(team)
-    Box {
+    Box(modifier) {
         Surface(
             onClick = { menu = true },
             shape = RoundedCornerShape(50),
@@ -423,7 +493,12 @@ private fun SlotChip(
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(Modifier.width(Spacing.xs))
-                Text(hero.name, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                Text(
+                    hero.name,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
@@ -470,7 +545,7 @@ private fun SlotChip(
 }
 
 @Composable
-private fun HeroTile(hero: BoardHero, state: NewBoardUiState.Ready, onAction: (NewBoardAction) -> Unit) {
+private fun HeroTile(hero: BoardHero, state: NewBoardUiState.Ready, onAction: (NewBoardAction) -> Unit, pad: Dp) {
     val team = when (hero.id) {
         in state.form.red -> Team.RED
         in state.form.blue -> Team.BLUE
@@ -490,21 +565,24 @@ private fun HeroTile(hero: BoardHero, state: NewBoardUiState.Ready, onAction: (N
         else -> "Add to ${BoardText.team(filling.opponent)}"
     }
     val color = team?.let { teamColor(it) }
+    // The whole cell, name and [pad] included, takes the tap: small tiles stay easy to hit.
     Column(
-        Modifier.clearAndSetSemantics {
-            contentDescription = description
-            if (action != null) {
-                onClick(label = action) {
-                    onAction(NewBoardAction.Tap(hero.id))
-                    true
+        Modifier
+            .clip(MaterialTheme.shapes.medium)
+            .clickable(enabled = action != null) { onAction(NewBoardAction.Tap(hero.id)) }
+            .padding(pad)
+            .clearAndSetSemantics {
+                contentDescription = description
+                if (action != null) {
+                    onClick(label = action) {
+                        onAction(NewBoardAction.Tap(hero.id))
+                        true
+                    }
                 }
-            }
-        },
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Surface(
-            onClick = { onAction(NewBoardAction.Tap(hero.id)) },
-            enabled = action != null,
             shape = MaterialTheme.shapes.medium,
             color = MaterialTheme.colorScheme.surface,
             border = color?.let { BorderStroke(2.dp, it) },
@@ -536,18 +614,25 @@ private fun HeroTile(hero: BoardHero, state: NewBoardUiState.Ready, onAction: (N
                 }
             }
         }
-        Text(
+        // Shrinks to fit a small tile rather than cutting the name ("Silverarrow", not "Silvera…").
+        val style = MaterialTheme.typography.labelSmall
+        BasicText(
             hero.name,
-            style = MaterialTheme.typography.labelSmall,
+            style = style.copy(
+                textAlign = TextAlign.Center,
+                letterSpacing = 0.sp,
+                color = if (action == null && team == null) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+            ),
+            // One line that may wrap, and Clip: a name too wide then overflows the line and the size
+            // steps down until it fits (an ellipsis or no wrapping would count as fitting).
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            color = if (action == null && team == null) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
-            modifier = Modifier.padding(top = 2.dp),
+            overflow = TextOverflow.Clip,
+            autoSize = TextAutoSize.StepBased(minFontSize = LABEL_MIN, maxFontSize = style.fontSize),
+            modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
         )
     }
 }
@@ -698,7 +783,13 @@ private fun SourceRow(source: LineupSource, onClick: () -> Unit) {
     }
 }
 
-private val TILE = 58.dp
+/** Portrait tiles: as big as fits, between these; with the gap around it a tile is at least a 48 dp tap. */
+private val TILE_MIN = 42.dp
+private val TILE_MAX = 64.dp
+private val TILE_GAP = 6.dp
+private val LABEL_GAP = 2.dp
+private val LABEL_MIN = 7.sp
+private val OWNED_ROW = 48.dp
 private val TILE_LARGE = 104.dp
 private const val LARGE_FONT = 1.3f
 private const val SHEET_HEIGHT = 0.9f
