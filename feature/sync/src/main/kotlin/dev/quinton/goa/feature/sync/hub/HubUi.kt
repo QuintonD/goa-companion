@@ -45,9 +45,12 @@ object HubText {
             status = url?.let {
                 when {
                     syncing -> "Syncing…"
+
                     // Under an error, "Synced just now" read as if all was well.
                     syncedAt != null && error != null -> "Last synced ${SyncText.ago(syncedAt, now)}"
+
                     syncedAt != null -> "Synced ${SyncText.ago(syncedAt, now)}"
+
                     else -> "Not synced yet"
                 }
             },

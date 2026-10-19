@@ -190,13 +190,9 @@ private suspend fun ApplicationCall.handleEditorPost(
     resultFirst: Boolean,
 ) {
     val view = PlayersData.of(ctx)
-    val original = existingId?.let { view.match(it) }
-    if (existingId != null && original == null) {
-        // Deleted on another phone or browser while this form was open: say so, store nothing.
-        respondChangedMeanwhile(ctx, view, existingId, deleted = true)
-        return
-    }
     val base = params["base"]?.toLongOrNull()
+    if (answeredStale(ctx, view, existingId, base)) return
+    val original = existingId?.let { view.match(it) }
     val now = ctx.clock.nowMillis()
     val op = params["op"].orEmpty()
     var form = EditorForms.edit(EditorForms.parse(params, ctx.clock.zone, now, original), op)
@@ -223,13 +219,6 @@ private suspend fun ApplicationCall.handleEditorPost(
         return
     }
     val fresh = PlayersData.of(ctx)
-    val stored = existingId?.let { fresh.match(it) }
-    if (existingId != null && (stored == null || (base != null && stored.updatedAt != base))) {
-        // Changed (or deleted) on another phone or browser since this form opened: the stale form would
-        // overwrite that change field by field without anyone noticing. Store nothing and say so.
-        respondChangedMeanwhile(ctx, fresh, existingId, deleted = stored == null)
-        return
-    }
     val everyone = fresh.data.document.players.associateBy { it.id } + fresh.byId
     if (MatchEditor.errors(form, fresh.catalog, everyone, now).isNotEmpty()) {
         respondEditor(ctx, fresh, state.copy(showErrors = true), original, refusedStatus())
@@ -273,6 +262,24 @@ private suspend fun addPilot(ctx: HubContext, view: PlayersData, name: String): 
 )
 
 private fun teamOf(name: String?): Team? = Team.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
+
+/**
+ * True, and answered, when the match was changed (its `updatedAt` isn't [base] any more) or deleted
+ * on another phone or browser since this form opened: the stale form would overwrite that change
+ * without anyone noticing, so nothing is stored.
+ */
+private suspend fun ApplicationCall.answeredStale(
+    ctx: HubContext,
+    view: PlayersData,
+    existingId: String?,
+    base: Long?,
+): Boolean {
+    if (existingId == null) return false
+    val stored = view.match(existingId)
+    val stale = stored == null || (base != null && stored.updatedAt != base)
+    if (stale) respondChangedMeanwhile(ctx, view, existingId, deleted = stored == null)
+    return stale
+}
 
 /**
  * The match changed or was deleted elsewhere while this form was open. Without JS a 409 page; the
