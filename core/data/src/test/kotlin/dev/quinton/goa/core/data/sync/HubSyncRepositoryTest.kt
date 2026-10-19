@@ -174,6 +174,26 @@ class HubSyncRepositoryTest {
     }
 
     @Test
+    fun thePhoneNamesItselfSoTheHubTellsPhonesApart() = runTest {
+        server.dispatcher = FakeHub()
+        joined()
+        players.upsert(Player("zoe", "Zoë Ann", 1, 0, createdAt = 1))
+        syncNow()
+        val anonymous = server.takeRequest()
+        val id = groups.state.first().deviceId
+        assertThat(anonymous.headers[OkHttpHubSyncRepository.DEVICE_ID_HEADER]).isEqualTo(id)
+        // No player chosen and no name: no name header (the hub says "A phone").
+        assertThat(anonymous.headers[OkHttpHubSyncRepository.DEVICE_NAME_HEADER]).isNull()
+
+        groups.setMe("zoe")
+        syncNow()
+        val named = server.takeRequest()
+        // Header values are ASCII: the name travels percent-encoded as UTF-8.
+        assertThat(named.headers[OkHttpHubSyncRepository.DEVICE_NAME_HEADER]).isEqualTo("Zo%C3%AB%20Ann")
+        assertThat(OkHttpHubSyncRepository.deviceNameHeader("A+B & C")).isEqualTo("A%2BB%20%26%20C")
+    }
+
+    @Test
     fun aSecondRoundTripChangesNothingAndTheGroupsRatingConstantsArrive() = runTest {
         val hub = FakeHub()
         server.dispatcher = hub

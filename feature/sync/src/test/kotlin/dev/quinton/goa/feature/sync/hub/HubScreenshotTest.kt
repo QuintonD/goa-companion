@@ -52,12 +52,13 @@ class HubScreenshotTest {
     private val hub = "https://goa.tail4f2a9c.ts.net"
     private val synced = HubUi(url = hub, status = "Synced 2 min ago")
     private val offline = synced.copy(
+        status = "Last synced 2 min ago",
         error = "Can't reach the hub. Check the internet connection and the hub address.",
         errorAgo = "5 min ago",
         retrying = true,
     )
     private val wrongKey = synced.copy(
-        status = "Synced 3 days ago",
+        status = "Last synced 3 days ago",
         error = "This phone's group key isn't accepted by the hub. Check the hub address, or scan a new invite.",
         errorAgo = "just now",
     )

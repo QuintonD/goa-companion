@@ -58,6 +58,7 @@ import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.feature.sync.hub.HubActions
 import dev.quinton.goa.feature.sync.hub.HubCard
 
@@ -130,7 +131,7 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
         }
         Text(
             "Each friend's phone keeps the same matches, players and ratings. Phones sync face to face at the " +
-                "table over Bluetooth and Wi-Fi: no internet, no accounts, no server.",
+                "table over Bluetooth and Wi-Fi, or on their own through the group's hub if it has one. No accounts.",
             style = MaterialTheme.typography.bodyMedium,
         )
         GoaCard(Modifier.fillMaxWidth()) {
@@ -252,6 +253,10 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                 }
             }
         }
+        state.invited?.let { invited ->
+            // A personal invite still to confirm (ADR-031): after a hub join there is no sync sheet to ask.
+            item { InvitedCard(invited, actions.onWhoAreYou) }
+        }
         item { SectionHeader("Hub") }
         item { HubCard(state.hub, actions.hub) }
         item { SectionHeader("This phone") }
@@ -368,6 +373,25 @@ private fun LinkRow(icon: ImageVector, title: String, subtitle: String, enabled:
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+@Composable
+private fun InvitedCard(invited: Player, onAnswer: () -> Unit) {
+    GoaCard(Modifier.fillMaxWidth(), onClick = onAnswer) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            PlayerAvatar(invited)
+            Spacer(Modifier.width(Spacing.md))
+            Column(Modifier.weight(1f)) {
+                Text("You're ${invited.name}?", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Your invite was made for ${invited.name}. Tap to answer, so this phone becomes " +
+                        "${invited.name}, matches and rating included.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

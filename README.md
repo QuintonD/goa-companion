@@ -79,7 +79,8 @@ themselves and iPhones use the app in Safari. Hosting is free and friends instal
 Setting it up, updating, backups and troubleshooting: [deploy/README.md](deploy/README.md).
 
 With a hub (the group's own server, published with Tailscale Funnel, see `deploy/`), every phone syncs on its own: when the app
-opens, 15 s after a change, every hour, and from **Sync with hub**.
+comes on screen, every minute while it stays there, 15 s after a change, every hour, and from
+**Sync with hub**.
 
 **Set the hub on a phone:** Settings → Group sync → **Hub** → type the address
 (`goa.<tailnet>.ts.net`; it must be HTTPS) → **Save hub**. Invites made on a phone with a hub
@@ -88,7 +89,10 @@ carry it, so friends who join with that invite get it automatically. The Hub car
 
 **Testing against a hub on this PC:** the debug build may use plain HTTP to `10.0.2.2` (the
 emulator's view of the PC), `localhost` and `127.0.0.1`, e.g. `http://10.0.2.2:8080`. Release builds
-speak HTTPS only.
+speak HTTPS only. To test the phones and a browser together, give everyone one origin:
+`goa-hub config --public-url http://localhost:8080` and `adb -s <emulator> reverse tcp:8080 tcp:8080`
+on each emulator, then set the hub to `http://localhost:8080` on the phones (see
+`server/hub/README.md`).
 
 **Invite links that open the app (App Links):** build with your hub's host name so
 `https://<hub>/join#…` opens the app instead of the browser. Put it in `local.properties` (not

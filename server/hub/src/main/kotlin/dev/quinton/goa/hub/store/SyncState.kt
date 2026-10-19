@@ -25,7 +25,7 @@ class SyncStateStore(private val file: Path) {
         val state = read()
         val id = clientId?.take(MAX_ID)?.takeIf { it.isNotBlank() } ?: ANONYMOUS
         val name =
-            clientName?.trim()?.take(MAX_NAME)?.takeIf { it.isNotBlank() } ?: if (id == ANONYMOUS) "A phone" else id
+            clientName?.trim()?.take(MAX_NAME)?.takeIf { it.isNotBlank() } ?: UNNAMED
         val old = state.clients.firstOrNull { it.id == id }
         val client = SyncClient(id, name, now, (old?.syncs ?: 0) + 1)
         val clients = (listOf(client) + state.clients.filterNot { it.id == id }).take(MAX_CLIENTS)
@@ -37,6 +37,9 @@ class SyncStateStore(private val file: Path) {
 
     private companion object {
         const val ANONYMOUS = "unnamed"
+
+        /** A phone that didn't give a name (its id is a random install id, meaningless to people). */
+        const val UNNAMED = "A phone"
         const val MAX_ID = 64
         const val MAX_NAME = 60
         const val MAX_CLIENTS = 50

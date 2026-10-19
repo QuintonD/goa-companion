@@ -23,6 +23,8 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
@@ -31,6 +33,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.withIndex
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /** Hub sync for the UI: whether one runs right now, and "Sync now". */
@@ -51,10 +54,11 @@ interface HubSyncControl {
 
 /**
  * When this phone syncs with the group's hub (ADR-030 §5), all through WorkManager so a sync
- * survives the app closing: at app start ([onAppOpened]), 15 s after the last change to synced
- * data (each change replaces the pending sync), every hour, after a new hub address or group,
- * and from "Sync now". Every run needs a network; failures back off exponentially. Nothing is
- * scheduled unless the phone is in a group with a hub; leaving or removing the hub cancels all.
+ * survives the app closing: when the app comes on screen and every minute while it stays there
+ * ([onForeground]), 15 s after the last change to synced data (each change replaces the pending
+ * sync), every hour, after a new hub address or group, and from "Sync now". Every run needs a
+ * network; failures back off exponentially. Nothing is scheduled unless the phone is in a group
+ * with a hub; leaving or removing the hub cancels all.
  *
  * One-time syncs share the unique work [NOW]; the hourly one is [HOURLY]. A sync asked for while
  * one is running is chained after it rather than cancelling it.
@@ -98,6 +102,34 @@ class HubSyncScheduler @Inject constructor(
         scope?.launch(logged) { if (groups.state.first().hubSyncOn) enqueue(delaySeconds = 0) }
     }
 
+    private var foreground: Job? = null
+
+    /**
+     * The app is on screen (the activity started: opened, or back from another app). Syncs now,
+     * then every [FOREGROUND_POLL_MS] while it stays on screen, so a phone left open at the table
+     * shows what the others (and the web) log within a minute rather than at the hourly sync. A
+     * problem that needs a person (wrong key, versions) isn't retried by the poll.
+     */
+    fun onForeground() {
+        foreground?.cancel()
+        foreground = scope?.launch(logged) {
+            var first = true
+            while (isActive) {
+                val state = groups.state.first()
+                val waitsForAPerson = state.hubError?.problem?.transient == false
+                if (state.hubSyncOn && (first || !waitsForAPerson)) enqueue(delaySeconds = 0)
+                first = false
+                delay(FOREGROUND_POLL_MS)
+            }
+        }
+    }
+
+    /** The app left the screen: the hourly sync and the sync after each change carry on. */
+    fun onBackground() {
+        foreground?.cancel()
+        foreground = null
+    }
+
     /** Runs at once, even without a network, so the person who tapped sees the outcome. */
     override fun syncNow() {
         scope?.launch(logged) { enqueue(delaySeconds = 0, needsNetwork = false) }
@@ -127,6 +159,9 @@ class HubSyncScheduler @Inject constructor(
         const val NOW = "hub-sync"
         const val HOURLY = "hub-sync-hourly"
         const val AFTER_CHANGE_SECONDS = 15L
+
+        /** While the app is on screen it also asks the hub for news this often. */
+        const val FOREGROUND_POLL_MS = 60_000L
         const val BACKOFF_SECONDS = 30L
         private const val COALESCE_MS = 1_000L
 

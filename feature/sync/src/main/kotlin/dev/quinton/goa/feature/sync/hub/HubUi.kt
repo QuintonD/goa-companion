@@ -8,7 +8,7 @@ data class HubUi(
     /** The hub's origin; null = this group has no hub on this phone. */
     val url: String? = null,
     val syncing: Boolean = false,
-    /** "Synced 2 min ago", "Not synced yet". */
+    /** "Synced 2 min ago", "Last synced 2 min ago" (under an error), "Not synced yet". */
     val status: String? = null,
     /** What went wrong at the last sync, in words. */
     val error: String? = null,
@@ -28,7 +28,9 @@ data class HubUi(
 /** Words for hub sync. Pure, so the copy is unit-tested. */
 object HubText {
     const val EXPLAINER = "Your group's server for automatic sync and the iPhone web app."
-    const val AUTOMATIC = "Syncs on its own when the app opens, shortly after every change, and every hour."
+    const val AUTOMATIC =
+        "Syncs on its own: when the app opens, every minute while it's open, shortly after every change, " +
+            "and every hour."
     const val NOT_AN_ADDRESS = "That isn't a hub address. Type the address your group's hub runs at, " +
         "like goa.your-tailnet.ts.net (it must use https)."
     const val RETRYING = "Trying again on its own."
@@ -43,7 +45,12 @@ object HubText {
             status = url?.let {
                 when {
                     syncing -> "Syncing…"
+
+                    // Under an error, "Synced just now" read as if all was well.
+                    syncedAt != null && error != null -> "Last synced ${SyncText.ago(syncedAt, now)}"
+
                     syncedAt != null -> "Synced ${SyncText.ago(syncedAt, now)}"
+
                     else -> "Not synced yet"
                 }
             },

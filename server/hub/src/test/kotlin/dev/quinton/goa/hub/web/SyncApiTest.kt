@@ -115,6 +115,22 @@ class SyncApiTest {
                 setBody(SyncCodec.encodeFile(phoneA, TestGroup, createdAt = 1))
             }
             assertThat(hub.syncState.read().clients.single().name).isEqualTo("Galaxy S25 Ultra")
+            // The app sends the name percent-encoded (header values are ASCII); each phone is its own row.
+            client.post("/api/v1/sync") {
+                header(HttpHeaders.Authorization, "Bearer ${HubToken.derive(TestGroup)}")
+                header("X-Goa-Device-Id", "install-2")
+                header("X-Goa-Device-Name", "Zo%C3%AB%20Ann")
+                setBody(SyncCodec.encodeFile(phoneA, TestGroup, createdAt = 1))
+            }
+            // Without a name a phone is "A phone", never its install id.
+            client.post("/api/v1/sync") {
+                header(HttpHeaders.Authorization, "Bearer ${HubToken.derive(TestGroup)}")
+                header("X-Goa-Device-Id", "install-3")
+                setBody(SyncCodec.encodeFile(phoneA, TestGroup, createdAt = 1))
+            }
+            assertThat(hub.syncState.read().clients.map { it.name })
+                .containsExactly("A phone", "Zoë Ann", "Galaxy S25 Ultra").inOrder()
+            assertThat(deviceName("100%")).isEqualTo("100%")
         }
     }
 

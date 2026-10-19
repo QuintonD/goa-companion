@@ -114,7 +114,7 @@ object GroupInvite {
 
     private val INVITE = Regex("$SCHEME:\\S+")
 
-    private const val BROKEN = "This invite is incomplete. Scan the QR code again."
+    private const val BROKEN = "This invite is incomplete. Scan the QR code again, or paste the whole message."
 
     private fun isUuid(text: String) = runCatching { UUID.fromString(text).toString() == text }.getOrDefault(false)
 

@@ -2,6 +2,7 @@ package dev.quinton.goa.core.data.sync
 
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.GroupRepository
+import dev.quinton.goa.core.data.GroupState
 import dev.quinton.goa.core.data.HubError
 import dev.quinton.goa.core.data.HubProblem
 import dev.quinton.goa.core.data.HubSyncRepository
@@ -18,6 +19,7 @@ import dev.quinton.goa.core.domain.sync.SyncFileProblem
 import dev.quinton.goa.core.domain.sync.SyncValidation
 import java.io.IOException
 import java.io.InterruptedIOException
+import java.net.URLEncoder
 import java.net.UnknownServiceException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -68,7 +70,7 @@ internal class OkHttpHubSyncRepository @Inject constructor(
         val hub = state.hubUrl
         if (group == null || hub == null) return HubSyncResult.NotConfigured
         val outcome = try {
-            roundTrip(group, hub) ?: return HubSyncResult.NotConfigured
+            roundTrip(group, hub, state) ?: return HubSyncResult.NotConfigured
         } catch (e: HubFailure) {
             HubSyncResult.Failed(HubError(e.problem, e.message, clock.now()))
         }
@@ -78,13 +80,15 @@ internal class OkHttpHubSyncRepository @Inject constructor(
 
     /** Null when the group or hub changed while the request ran: the reply is no longer ours to apply. */
     @Suppress("TooGenericExceptionCaught", "ThrowsCount")
-    private suspend fun roundTrip(group: GroupCredentials, hub: String): HubSyncResult.Synced? {
+    private suspend fun roundTrip(group: GroupCredentials, hub: String, state: GroupState): HubSyncResult.Synced? {
         val local = sync.export()
         // Never send what this phone's own checks would refuse from another phone (as Nearby sync).
         SyncValidation.problem(local)?.let { throw HubFailure(HubProblem.INVALID_DATA, "$LOCAL_FIX\n$it") }
         val body = SyncCodec.encodeFile(local, group, createdAt = clock.now())
         if (body.size > MAX_UPLOAD_BYTES) throw HubFailure(HubProblem.TOO_BIG, TOO_BIG)
-        val reply = post(hub, group, body)
+        // The phone names itself so the hub's "last synced" tells phones apart: its player, else its name.
+        val name = local.players.firstOrNull { it.id == state.mePlayerId }?.name ?: state.deviceName
+        val reply = post(hub, group, body, Caller(state.deviceId, name))
         val merged = try {
             SyncCodec.decodeFile(reply, group)
         } catch (e: SyncFileException) {
@@ -107,10 +111,14 @@ internal class OkHttpHubSyncRepository @Inject constructor(
         return HubSyncResult.Synced(applied.changes, clock.now())
     }
 
-    private suspend fun post(hub: String, group: GroupCredentials, body: ByteArray): ByteArray {
+    private class Caller(val deviceId: String, val name: String?)
+
+    private suspend fun post(hub: String, group: GroupCredentials, body: ByteArray, caller: Caller): ByteArray {
         val request = Request.Builder()
             .url("$hub$SYNC_PATH")
             .header("Authorization", "Bearer ${HubToken.derive(group)}")
+            .header(DEVICE_ID_HEADER, caller.deviceId)
+            .apply { caller.name?.let { header(DEVICE_NAME_HEADER, deviceNameHeader(it)) } }
             .post(body.toRequestBody(SyncCodec.FILE_MIME_TYPE.toMediaType()))
             .build()
         val response = try {
@@ -234,6 +242,14 @@ internal class OkHttpHubSyncRepository @Inject constructor(
     companion object {
         const val SYNC_PATH = "/api/v1/sync"
 
+        /** This phone's install id and name for the hub's "last synced" list (ADR-030 §4). */
+        const val DEVICE_ID_HEADER = "X-Goa-Device-Id"
+        const val DEVICE_NAME_HEADER = "X-Goa-Device-Name"
+
+        /** Header values must be ASCII: the name goes percent-encoded as UTF-8 (`Zoë` → `Zo%C3%AB`). */
+        fun deviceNameHeader(name: String): String =
+            URLEncoder.encode(name.trim().take(MAX_NAME_CHARS), "UTF-8").replace("+", "%20")
+
         /** The hub refuses more than 8 MB (ADR-030 §4); don't send what it would refuse. */
         const val MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 
@@ -253,6 +269,7 @@ internal class OkHttpHubSyncRepository @Inject constructor(
 
         private const val MAX_TEXT_BYTES = 4L * 1024
         private const val MAX_TEXT_CHARS = 300
+        private const val MAX_NAME_CHARS = 60
         private const val READ_CHUNK = 64L * 1024
         private const val HTTP_OK = 200
         private const val HTTP_UNAUTHORIZED = 401

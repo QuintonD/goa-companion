@@ -55,8 +55,6 @@ class MainActivity : ComponentActivity() {
         val coldStart = savedInstanceState == null
         if (coldStart) {
             handle(intent)
-            // Opening the app syncs with the group's hub, if it has one (ADR-030 §5).
-            hubSync.onAppOpened()
         }
         splash.setKeepOnScreenCondition { viewModel.uiState.value is MainUiState.Loading }
         enableEdgeToEdge()
@@ -93,6 +91,18 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // On screen (opened, or back from another app): sync with the group's hub now and every
+        // minute while it stays here, if the group has one (ADR-030 §5).
+        hubSync.onForeground()
+    }
+
+    override fun onStop() {
+        hubSync.onBackground()
+        super.onStop()
     }
 
     override fun onNewIntent(intent: Intent) {
