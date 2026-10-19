@@ -79,6 +79,11 @@ internal data class EditorState(
     val newId: String? = null,
     val notice: String? = null,
     val problem: String? = null,
+    /**
+     * The stored match's `updatedAt` when this form opened: a save is refused if the match changed on
+     * another phone or browser since, rather than silently overwriting that change with the stale form.
+     */
+    val base: Long? = null,
 )
 
 /** Logging, editing and "Who won?" (the phone's MatchEditScreen, rules from `MatchEditor`). */
@@ -100,7 +105,7 @@ internal fun Route.matchEditorRoutes(ctx: HubContext) {
         val id = call.parameters["id"].orEmpty()
         val view = PlayersData.of(ctx)
         val match = view.match(id) ?: return@get call.respondMatchGone(view, id)
-        call.respondEditor(ctx, view, EditorState(formOf(match), resultFirst = false), match)
+        call.respondEditor(ctx, view, EditorState(formOf(match), resultFirst = false, base = match.updatedAt), match)
     }
     post("/players/matches/{id}/edit") {
         call.handleEditorPost(
@@ -137,7 +142,12 @@ internal fun Route.matchEditorRoutes(ctx: HubContext) {
         } else {
             "This match already has a result (${resultLabel(match.status, match.winner)}). Saving here changes it."
         }
-        call.respondEditor(ctx, view, EditorState(form, resultFirst = true, notice = notice), match)
+        call.respondEditor(
+            ctx,
+            view,
+            EditorState(form, resultFirst = true, notice = notice, base = match.updatedAt),
+            match,
+        )
     }
     post("/players/matches/{id}/result") {
         call.handleEditorPost(
@@ -183,9 +193,10 @@ private suspend fun ApplicationCall.handleEditorPost(
     val original = existingId?.let { view.match(it) }
     if (existingId != null && original == null) {
         // Deleted on another phone or browser while this form was open: say so, store nothing.
-        respondDeletedMeanwhile(view, existingId)
+        respondChangedMeanwhile(ctx, view, existingId, deleted = true)
         return
     }
+    val base = params["base"]?.toLongOrNull()
     val now = ctx.clock.nowMillis()
     val op = params["op"].orEmpty()
     var form = EditorForms.edit(EditorForms.parse(params, ctx.clock.zone, now, original), op)
@@ -205,12 +216,20 @@ private suspend fun ApplicationCall.handleEditorPost(
         showErrors = params["showErrors"] == "1",
         newId = newId,
         notice = notice,
+        base = base,
     )
     if (op != "save") {
         respondEditor(ctx, PlayersData.of(ctx), state, original)
         return
     }
     val fresh = PlayersData.of(ctx)
+    val stored = existingId?.let { fresh.match(it) }
+    if (existingId != null && (stored == null || (base != null && stored.updatedAt != base))) {
+        // Changed (or deleted) on another phone or browser since this form opened: the stale form would
+        // overwrite that change field by field without anyone noticing. Store nothing and say so.
+        respondChangedMeanwhile(ctx, fresh, existingId, deleted = stored == null)
+        return
+    }
     val everyone = fresh.data.document.players.associateBy { it.id } + fresh.byId
     if (MatchEditor.errors(form, fresh.catalog, everyone, now).isNotEmpty()) {
         respondEditor(ctx, fresh, state.copy(showErrors = true), original, refusedStatus())
@@ -255,21 +274,44 @@ private suspend fun addPilot(ctx: HubContext, view: PlayersData, name: String): 
 
 private fun teamOf(name: String?): Team? = Team.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
 
-private suspend fun ApplicationCall.respondDeletedMeanwhile(view: PlayersData, id: String) {
+/**
+ * The match changed or was deleted elsewhere while this form was open. Without JS a 409 page; the
+ * editor posts with htmx, which doesn't swap a 4xx answer, so there the message is flashed and the
+ * browser goes to the match as it is now (or the log, if it is gone).
+ */
+private suspend fun ApplicationCall.respondChangedMeanwhile(
+    ctx: HubContext,
+    view: PlayersData,
+    id: String,
+    deleted: Boolean,
+) {
+    val message = when {
+        !deleted ->
+            "This match was changed on another phone or browser while you were editing it, so your " +
+                "changes weren't saved. Here it is now: edit it again if your change is still needed."
+
+        view.wasDeleted(id) ->
+            "This match was deleted on another phone or browser while you were editing it. Your changes weren't saved."
+
+        else -> "This match doesn't exist any more. Your changes weren't saved."
+    }
+    val target = if (deleted) PlayersPaths.LOG else PlayersPaths.match(id)
+    if (isHtmx) {
+        ctx.flash(this, message)
+        response.header("HX-Redirect", target)
+        respondText("")
+        return
+    }
     respondPage(playersPage("Match", back = PlayersPaths.LOG), HttpStatusCode.Conflict) {
         div("error-state") {
             attributes["role"] = "alert"
-            p {
-                +(
-                    if (view.wasDeleted(id)) {
-                        "This match was deleted on another phone or browser while you were editing it. Your changes weren't saved."
-                    } else {
-                        "This match doesn't exist any more. Your changes weren't saved."
-                    }
-                    )
-            }
+            p { +message }
         }
-        a(PlayersPaths.LOG, classes = "btn btn-tonal") { +"Match log" }
+        if (deleted) {
+            a(PlayersPaths.LOG, classes = "btn btn-tonal") { +"Match log" }
+        } else {
+            a(PlayersPaths.match(id), classes = "btn btn-tonal") { +"Open the match" }
+        }
     }
 }
 
@@ -463,6 +505,7 @@ private class EditorView(
         if (state.showErrors || errors.isNotEmpty()) hidden("showErrors", "1")
         state.newId?.let { hidden("id", it) }
         if (state.resultFirst && isNew) hidden("result", "1")
+        state.base?.let { hidden("base", it.toString()) }
         // Enter in a text field saves (the first submit button decides).
         button(type = ButtonType.submit, classes = "visually-hidden") {
             name = "op"
