@@ -211,7 +211,7 @@ class MatchEditViewModel @AssistedInject constructor(
     fun setStatus(status: MatchStatus) = updateForm { it.copy(status = status) }
 
     /** Picking a winner implies the match is completed. */
-    fun setWinner(team: Team) = updateForm { it.copy(winner = team, status = MatchStatus.COMPLETED) }
+    fun setWinner(team: Team) = updateForm { it.withWinner(team) }
 
     fun setWinCondition(condition: WinCondition?) = updateForm { it.copy(winCondition = condition) }
 
@@ -313,8 +313,8 @@ class MatchEditViewModel @AssistedInject constructor(
     fun delete() {
         val original = edit.value?.original ?: return
         viewModelScope.launch {
-            matches.delete(original.id)
-            recentlyDeleted.put(original)
+            // The copy as stored now (a duration the timer added meanwhile included), for undo.
+            matches.delete(original.id)?.let { recentlyDeleted.put(it) }
             edit.update { it?.copy(finished = true) }
         }
     }

@@ -117,6 +117,17 @@ class ViewModelTests {
     }
 
     @Test
+    fun savingAPlayerKeepsAnArchiveSyncedInWhileTheEditorWasOpen() = runTest {
+        val vm = PlayerEditViewModel(bob.id, players)
+        players.archive(bob.id, true) // another phone archived Bob; the sync lands now
+        vm.onNameChange("Bobby")
+        vm.save()
+        val saved = players.state.value.single { it.id == bob.id }
+        assertThat(saved.name).isEqualTo("Bobby")
+        assertThat(saved.archived).isTrue()
+    }
+
+    @Test
     fun playerNamesStayUniqueIncludingArchivedPlayers() = runTest {
         // Fay is archived: reusing her name would split her rating across two ids.
         val vm = PlayerEditViewModel(null, players)
@@ -460,6 +471,24 @@ class ViewModelTests {
         assertThat(log.uiState.first { it.undo != null }.undo!!.id).isEqualTo("m01")
         log.dismissUndo()
         assertThat(log.uiState.first { it.undo == null }.total).isEqualTo(9)
+    }
+
+    @Test
+    fun undoRestoresTheDeletedMatchUnlessItCameBackMeanwhile() = runTest {
+        val log = MatchLogViewModel(matches, players, catalog, ratings, deleted, saved, rematches)
+        log.uiState.first { !it.loading }
+        val stored = matches.state.value.single { it.id == "m01" }
+        log.delete("m01")
+        log.uiState.first { it.undo != null }
+        // Another phone edited m01 after the delete; the sync brings it back before Undo is tapped.
+        matches.upsert(stored.copy(notes = "edited elsewhere"))
+        log.undoDelete()
+        assertThat(matches.state.value.single { it.id == "m01" }.notes).isEqualTo("edited elsewhere")
+        // Without that, Undo writes back the copy as it was stored.
+        log.delete("m01")
+        log.uiState.first { it.undo != null }
+        log.undoDelete()
+        assertThat(matches.state.value.single { it.id == "m01" }.notes).isEqualTo("edited elsewhere")
     }
 
     @Test

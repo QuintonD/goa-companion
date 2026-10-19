@@ -103,4 +103,22 @@ class SettingsSectionsTest {
         assertThat(config.longMultiplier).isEqualTo(EloConfig.DEFAULT.longMultiplier)
         assertThat(RatingConstants.apply(EloConfig.DEFAULT, emptyMap())).isEqualTo(EloConfig.DEFAULT)
     }
+
+    @Test
+    fun aStaleFormWritesOnlyTheConstantThatWasMoved() {
+        // The form was shown with the defaults; another phone then set K to 40.
+        val shown = RatingConstants.all.associate { it.key to it.get(EloConfig.DEFAULT).toString() }
+        val current = EloConfig.DEFAULT.copy(kEstablished = 40.0)
+        val submitted = shown + ("heroInfluence" to "0.25")
+        val next = RatingConstants.applyChanged(current, shown, submitted)
+        assertThat(next).isEqualTo(current.copy(heroInfluence = 0.25))
+        // Nothing moved: nothing changes, even for a stored value off the sliders' grid.
+        val offGrid = EloConfig.DEFAULT.copy(heroInfluence = 0.333)
+        val shownOffGrid = RatingConstants.all.associate { it.key to it.get(offGrid).toString() }
+        val browser = shownOffGrid + ("heroInfluence" to "0.35") // a range input snaps what it shows
+        assertThat(RatingConstants.applyChanged(offGrid, shownOffGrid, browser)).isEqualTo(offGrid)
+        // Without the shown values (an old form), every submitted value counts.
+        assertThat(RatingConstants.applyChanged(current, emptyMap(), submitted).kEstablished)
+            .isEqualTo(EloConfig.DEFAULT.kEstablished)
+    }
 }

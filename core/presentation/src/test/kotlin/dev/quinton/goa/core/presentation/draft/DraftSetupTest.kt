@@ -239,4 +239,12 @@ class DraftSetupTest {
         winner = Team.RED,
         participants = red.map { Participant(it, null, Team.RED) } + blue.map { Participant(it, null, Team.BLUE) },
     )
+
+    @Test
+    fun `quick add keeps names to the player editor's limit on the phone and the web`() {
+        val long = "  " + "A".repeat(40) + "  "
+        val player = QuickAddPlayer.create("id", long, existingCount = 0, now = 1, colors = listOf(1L))!!
+        assertThat(player.name).isEqualTo("A".repeat(dev.quinton.goa.core.presentation.players.MAX_NAME_LENGTH))
+        assertThat(QuickAddPlayer.create("id", "   ", 0, 1, listOf(1L))).isNull()
+    }
 }

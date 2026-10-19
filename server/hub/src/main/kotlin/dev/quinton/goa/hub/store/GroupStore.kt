@@ -1,6 +1,9 @@
 package dev.quinton.goa.hub.store
 
 import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.domain.sync.NamedPlayer
+import dev.quinton.goa.core.domain.sync.PlayerMergeOutcome
+import dev.quinton.goa.core.domain.sync.SharedWrites
 import dev.quinton.goa.core.domain.sync.SyncDocument
 import dev.quinton.goa.core.domain.sync.SyncJson
 import dev.quinton.goa.core.domain.sync.SyncMerge
@@ -70,6 +73,10 @@ class GroupStore(
 
     suspend fun upsertPlayer(player: Player): Player = edit { SharedWrites.upsertPlayer(it, player, clock.nowMillis()) }
 
+    /** [upsertPlayer], unless another player has the name (checked and written under the lock). */
+    suspend fun upsertPlayerIfNameFree(player: Player): NamedPlayer =
+        edit { SharedWrites.upsertPlayerIfNameFree(it, player, clock.nowMillis()) }
+
     suspend fun archivePlayer(id: String, archived: Boolean) {
         update { SharedWrites.archivePlayer(it, id, archived, clock.nowMillis()) }
     }
@@ -82,9 +89,17 @@ class GroupStore(
 
     suspend fun upsertMatch(match: Match): Match = edit { SharedWrites.upsertMatch(it, match, clock.nowMillis()) }
 
-    suspend fun deleteMatch(id: String) {
-        update { SharedWrites.deleteMatch(it, id, clock.nowMillis()) }
-    }
+    /** Changes a few fields of the stored match [id] in one locked step ([SharedWrites.editMatch]). */
+    suspend fun editMatch(id: String, transform: (Match) -> Match?): Match? =
+        edit { SharedWrites.editMatch(it, id, clock.nowMillis(), transform) }
+
+    /** Deletes [id] with a tombstone; returns the copy deleted, as stored (for undo), or null. */
+    suspend fun deleteMatch(id: String): Match? =
+        edit { doc -> SharedWrites.deleteMatch(doc, id, clock.nowMillis()) to doc.matches.firstOrNull { it.id == id } }
+
+    /** Undo of a delete ([SharedWrites.restoreMatch]): false if the match exists again. */
+    suspend fun restoreMatch(match: Match): Boolean =
+        edit { SharedWrites.restoreMatch(it, match, clock.nowMillis()) }
 
     suspend fun saveDraft(record: DraftRecord): DraftRecord = edit {
         SharedWrites.saveDraft(it, record, clock.nowMillis())
@@ -120,12 +135,21 @@ class GroupStore(
         return SyncMerge.normalize(SyncJson.decodeFromString(SyncDocument.serializer(), bytes.decodeToString()))
     }
 
+    /**
+     * Writes `data.json` (atomically: if this throws, nothing changed), then the day's copy. A
+     * failing copy is logged, not thrown: the change is already stored, and an error now would
+     * leave the data on disk ahead of the data in memory (a change half-applied).
+     */
     private fun store(doc: SyncDocument) {
         val bytes = SyncJson.encodeToString(SyncDocument.serializer(), doc).toByteArray()
         AtomicFiles.write(file, bytes)
-        val today = clock.today()
-        AtomicFiles.write(backups.resolve("$BACKUP_PREFIX$today$BACKUP_SUFFIX"), bytes)
-        pruneBackups(today)
+        try {
+            val today = clock.today()
+            AtomicFiles.write(backups.resolve("$BACKUP_PREFIX$today$BACKUP_SUFFIX"), bytes)
+            pruneBackups(today)
+        } catch (e: java.io.IOException) {
+            log.warn("Couldn't write the daily copy in {}: {}", backups, e.toString())
+        }
     }
 
     /** Deletes daily copies older than [KEEP_DAYS] days before [today]; returns how many. */

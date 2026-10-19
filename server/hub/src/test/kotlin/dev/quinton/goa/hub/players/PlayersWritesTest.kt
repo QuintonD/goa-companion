@@ -2,6 +2,7 @@ package dev.quinton.goa.hub.players
 
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.domain.sync.EditStamp
+import dev.quinton.goa.core.domain.sync.SharedWrites
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.MatchStatus
@@ -10,6 +11,7 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.core.model.sync.DeletionKind
 import dev.quinton.goa.core.model.sync.PlayerMerge
+import dev.quinton.goa.hub.BrowserForm
 import dev.quinton.goa.hub.FakeClock
 import dev.quinton.goa.hub.Hub
 import dev.quinton.goa.hub.hubTest
@@ -20,7 +22,6 @@ import dev.quinton.goa.hub.players.PlayersTestGroup.cid
 import dev.quinton.goa.hub.players.PlayersTestGroup.dee
 import dev.quinton.goa.hub.players.PlayersTestGroup.fay
 import dev.quinton.goa.hub.signIn
-import dev.quinton.goa.hub.store.SharedWrites
 import dev.quinton.goa.hub.testHub
 import dev.quinton.goa.hub.web.ui.PlayerPalette
 import io.ktor.client.statement.bodyAsText
@@ -132,6 +133,113 @@ class PlayersWritesTest {
             assertThat(hub.groupStore.read().players.single { it.id == bob.id }.updatedAt).isEqualTo(clock.nowMillis())
             plainClient().send("/players/${bob.id}/archive", token) { append("archived", "false") }
             assertThat(hub.groupStore.read().players.single { it.id == bob.id }.archived).isFalse()
+        }
+    }
+
+    /** Posts [path]'s form back as a browser would, with [changes] applied and `op=save` (or [op]). */
+    private suspend fun io.ktor.client.HttpClient.postBack(
+        path: String,
+        token: String,
+        formId: String? = null,
+        op: String? = "save",
+        changes: Map<String, String> = emptyMap(),
+    ): io.ktor.client.statement.HttpResponse {
+        val html = page(path, token).bodyAsText()
+        val fields = BrowserForm.fields(html, formId)
+        val action = BrowserForm.action(html, formId) ?: path
+        return send(action, token) {
+            val names = fields.map { it.first }.toSet()
+            fields.forEach { (k, v) -> append(k, changes[k] ?: v) }
+            changes.filterKeys { it !in names }.forEach { (k, v) -> append(k, v) }
+            op?.let { append("op", it) }
+        }
+    }
+
+    @Test
+    fun `an untouched web edit saves the stored match back as it was, as the phone's editor does`() {
+        val hub = seeded()
+        val h = heroes(hub)
+        // From a backup or an older app: times to the millisecond, texts longer than the fields
+        // allow, six seats a team (double pilots), an Unknown hero, an abandoned game.
+        val odd = Match(
+            id = "m-odd",
+            createdAt = PlayersTestGroup.at(21),
+            playedAt = PlayersTestGroup.at(21) + 12_345,
+            status = MatchStatus.ABANDONED,
+            mode = GameMode.LONG,
+            map = "M".repeat(80),
+            durationMin = 50,
+            notes = "N".repeat(1_500) + "\nend",
+            participants = List(6) { i -> Participant(if (i < 3) ann.id else bob.id, h[i], Team.RED) } +
+                List(6) { i ->
+                    val hero = if (i == 0) PlayersTestGroup.STRANGER else h[6 + i]
+                    Participant(if (i < 3) cid.id else dee.id, hero, Team.BLUE)
+                },
+            updatedAt = PlayersTestGroup.at(21),
+        )
+        runBlocking { hub.groupStore.upsertMatch(odd) }
+        val stored = hub.groupStore.read().matches.single { it.id == odd.id }
+        clock.set(1_800_000_000_000)
+        hubTest(hub) {
+            val token = plainClient().signIn()
+            val saved = client.postBack("/players/matches/${odd.id}/edit", token, "match-editor")
+            assertThat(saved.status).isEqualTo(HttpStatusCode.Found)
+            val after = hub.groupStore.read().matches.single { it.id == odd.id }
+            assertThat(after).isEqualTo(stored.copy(updatedAt = clock.nowMillis()))
+        }
+    }
+
+    @Test
+    fun `picking a winner on the web completes the match, as the phone's winner choice does`() {
+        val hub = seeded()
+        val h = heroes(hub)
+        val abandoned = PlayersTestGroup.match(
+            "m-abandoned",
+            22,
+            winner = null,
+            PlayersTestGroup.red(ann, h[0]),
+            PlayersTestGroup.blue(cid, h[1]),
+            status = MatchStatus.ABANDONED,
+        )
+        runBlocking { hub.groupStore.upsertMatch(abandoned) }
+        hubTest(hub) {
+            val token = plainClient().signIn()
+            for (path in listOf("/players/matches/${abandoned.id}/result", "/players/matches/${abandoned.id}/edit")) {
+                runBlocking { hub.groupStore.upsertMatch(abandoned) }
+                client.postBack(path, token, "match-editor", changes = mapOf("winner" to "BLUE"))
+                val after = hub.groupStore.read().matches.single { it.id == abandoned.id }
+                assertThat(after.status).isEqualTo(MatchStatus.COMPLETED)
+                assertThat(after.winner).isEqualTo(Team.BLUE)
+            }
+            // Choosing Abandoned on purpose still wins over a winner left selected.
+            client.postBack(
+                "/players/matches/${abandoned.id}/edit",
+                token,
+                "match-editor",
+                changes = mapOf("status" to "ABANDONED", "winner" to "RED"),
+            )
+            assertThat(hub.groupStore.read().matches.single { it.id == abandoned.id }.status)
+                .isEqualTo(MatchStatus.ABANDONED)
+        }
+    }
+
+    @Test
+    fun `a player saved untouched keeps the stored colour tone, and a merged-away id edits who it became`() {
+        val hub = seeded()
+        val light = PlayerPalette.swatches[3].second
+        runBlocking { hub.groupStore.upsertPlayer(bob.copy(color = light)) }
+        clock.set(1_800_000_000_000)
+        hubTest(hub) {
+            val token = plainClient().signIn()
+            client.postBack("/players/${bob.id}/edit", token, op = null, changes = mapOf("name" to "Bobby"))
+            val bobby = hub.groupStore.read().players.single { it.id == bob.id }
+            assertThat(bobby.name).isEqualTo("Bobby")
+            assertThat(bobby.color).isEqualTo(light)
+            // Ann B was merged into Ann: a form posted for Ann B edits Ann, as the phone resolves the id.
+            plainClient().send("/players/${PlayersTestGroup.annB.id}/edit", token) { append("name", "Annie") }
+            val players = hub.groupStore.read().players
+            assertThat(players.single { it.id == ann.id }.name).isEqualTo("Annie")
+            assertThat(players.single { it.id == PlayersTestGroup.annB.id }.name).isEqualTo("Ann B")
         }
     }
 

@@ -305,8 +305,8 @@ sudo -u goa-hub /opt/goa-hub/current/bin/goa-hub config --data /var/lib/goa-hub 
 ```
 
 `goa-hub status` shows the zone in use; without one set, it is the machine's
-(`timedatectl`). Only IANA names are accepted (`Europe/Amsterdam`, not `CET` or `+02:00`, which
-would miss the clock change).
+(`timedatectl`). Use an IANA name (`Europe/Amsterdam`): a fixed offset such as `+02:00` would miss
+the clock change. `--time-zone system` goes back to the machine's zone.
 
 ## 8. Backups
 

@@ -6,9 +6,11 @@ import dev.quinton.goa.core.domain.backup.BackupDocument
 import dev.quinton.goa.core.domain.backup.BackupFiles
 import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.domain.sync.StampedEloConfig
+import dev.quinton.goa.core.domain.sync.SyncDocument
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.model.settings.TimerLayout
+import dev.quinton.goa.core.presentation.settings.RatingConstants
 import dev.quinton.goa.hub.FakeClock
 import dev.quinton.goa.hub.HUB_URL
 import dev.quinton.goa.hub.Hub
@@ -187,6 +189,32 @@ class SettingsPagesTest {
     }
 
     @Test
+    fun `a ratings form opened before a phone's change writes back only the constant moved on it`() {
+        val hub = hub()
+        hubTest(hub) {
+            val b = browser()
+            assertThat(b.get("/settings/ratings").bodyAsText()).contains("name=\"shown-kEstablished\"")
+            // The form as the page showed it: every slider at the defaults.
+            val form = RatingConstants.all.flatMap {
+                val shown = it.get(EloConfig.DEFAULT).toString()
+                listOf(it.key to shown, "shown-${it.key}" to shown)
+            }.toMap()
+            // Meanwhile a phone sets K and syncs.
+            val phone = StampedEloConfig(EloConfig.DEFAULT.copy(kEstablished = 40.0), clock.nowMillis() + 10)
+            runBlocking { hub.groupStore.mergeIn(SyncDocument(eloConfig = phone)) }
+            clock.advance(1_000)
+            b.post("/settings/ratings", *(form + ("heroInfluence" to "0.25")).toList().toTypedArray())
+            val after = hub.groupStore.read().eloConfig
+            assertThat(after.config).isEqualTo(phone.config.copy(heroInfluence = 0.25))
+            assertThat(after.updatedAt).isGreaterThan(phone.updatedAt)
+            // Saving the stale form untouched stores nothing.
+            clock.advance(1_000)
+            b.post("/settings/ratings", *form.toList().toTypedArray())
+            assertThat(hub.groupStore.read().eloConfig).isEqualTo(after)
+        }
+    }
+
+    @Test
     fun `the backup export is the app's file for the same data`() {
         val hub = hub()
         runBlocking { hub.groupStore.updateEloConfig { it.copy(kProvisional = 50.0) } }
@@ -243,6 +271,7 @@ class SettingsPagesTest {
             val previewText = preview.bodyAsText()
             assertThat(previewText).contains("+1 match, +1 player, 1 updated")
             assertThat(previewText).contains("custom rating settings")
+            assertThat(previewText).contains("name=\"useSettings\"")
             // Nothing changes before Merge.
             assertThat(hub.groupStore.read().players.map { it.name }).containsExactly("Ann", "Bob")
 
@@ -264,6 +293,24 @@ class SettingsPagesTest {
             assertThat(elo.config.kEstablished).isEqualTo(25.0)
             assertThat(elo.updatedAt).isEqualTo(clock.nowMillis())
             assertThat(hub.deviceStore.read(b.id, ShellSlots.Theme)).isEqualTo(ThemeChoice.LIGHT)
+        }
+    }
+
+    @Test
+    fun `a file without settings never offers or applies them, so the group's constants stay`() {
+        val hub = hub()
+        runBlocking { hub.groupStore.updateEloConfig { it.copy(kEstablished = 40.0) } }
+        hubTest(hub) {
+            val b = browser()
+            // An old backup: matches and players only (no constants, no app settings).
+            val old = BackupDocument(exportedAt = 5, players = listOf(player("cid", "Cid")))
+            val preview = b.upload(BackupCodec.encode(old)).bodyAsText()
+            assertThat(preview).doesNotContain("name=\"useSettings\"")
+            val before = hub.groupStore.read().eloConfig
+            clock.advance(1_000)
+            b.post("/settings/backup/import/confirm", "useSettings" to "true")
+            assertThat(hub.groupStore.read().eloConfig).isEqualTo(before)
+            assertThat(hub.groupStore.read().players.map { it.id }).contains("cid")
         }
     }
 

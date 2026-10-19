@@ -36,13 +36,21 @@ Make a test invite with `GroupInvite.format(GroupCredentials.create("Dev"), "htt
 goa-hub serve  [--data DIR] [--host 127.0.0.1] [--port 8080]
 goa-hub join   [--data DIR] "<invite text>"      (or the invite on stdin)
 goa-hub config [--data DIR] [--public-url https://x.ts.net] [--android-cert-sha256 AA:BB:…]
-               [--time-zone Europe/Amsterdam]
+               [--time-zone Europe/London|system]
 goa-hub status [--data DIR]                      (read-only)
 goa-hub version
 ```
 
 Data directory: `--data`, else `$GOA_HUB_DATA`, else `/var/lib/goa-hub`. Exit code 0 on success,
 1 on failure, 2 on a usage error. `config` changes only the options given.
+
+**Time zone.** Every date the web shows or reads (match times, "today", game nights grouped by
+gap, group stats, backup file names) uses `HubClock.zone`: `hub.json`'s `timeZone`, else the
+machine's zone. A phone uses its own zone, so the two agree only when they are the same: on a
+server that runs in UTC (most VPSs and containers), set the group's zone with
+`goa-hub config --time-zone Europe/London`; `serve` and `status` print the zone in use. Stored
+times are always epoch milliseconds, so the zone never changes data or ratings, only how dates are
+shown and how a typed date-time is read.
 `GET /api/v1/health` → `200 {"status":"ok"}` always (also before a group is joined).
 
 ## How the hub is exposed — and what that means for your code
@@ -348,7 +356,7 @@ fun `players page lists the group`() {
 Main.kt, HubCli.kt          the goa-hub command
 Hub.kt, HubClock.kt         composition root, clocks
 config/                     HubPaths (data dir), HubConfig(Store) (hub.json), MembershipStore (group.json)
-store/                      AtomicFiles, GroupStore + SharedWrites + GroupData, DeviceStore + DeviceSlot, Devices, SyncStateStore
+store/                      AtomicFiles, GroupStore (runs core:domain SharedWrites) + GroupData + GroupRatings, DeviceStore + DeviceSlot, Devices, SyncStateStore
 catalog/HubCatalog.kt       the bundled catalog and images (built from app/src/main/assets)
 push/                       WebPushCrypto (RFC 8291), Vapid (RFC 8292), PushService
 web/HubServer.kt            hubModule: headers, origin check, status pages, auth, routes

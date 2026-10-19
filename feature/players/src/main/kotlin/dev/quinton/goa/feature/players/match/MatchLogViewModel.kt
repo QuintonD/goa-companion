@@ -113,16 +113,17 @@ class MatchLogViewModel @Inject constructor(
 
     fun delete(id: String) {
         viewModelScope.launch {
-            val match = matches.observeMatch(id).first() ?: return@launch
-            matches.delete(id)
+            // The copy as stored (logged pilots, not merge-resolved), for undo.
+            val match = matches.delete(id) ?: return@launch
             recentlyDeleted.put(match)
         }
     }
 
     fun undoDelete() {
-        val match = recentlyDeleted.match.value ?: return
+        val match = recentlyDeleted.match.value?.takeIf { recentlyDeleted.isFresh() } ?: return
         recentlyDeleted.clear()
-        viewModelScope.launch { matches.upsert(match) }
+        // Not if the match exists again (an edit synced in since wins), as on the web.
+        viewModelScope.launch { matches.restore(match) }
     }
 
     fun dismissUndo() = recentlyDeleted.clear()

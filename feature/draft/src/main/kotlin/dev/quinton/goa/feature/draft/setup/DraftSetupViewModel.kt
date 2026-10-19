@@ -8,10 +8,12 @@ import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.RatingsRepository
 import dev.quinton.goa.core.data.SettingsRepository
+import dev.quinton.goa.core.data.rating.EloConfigRepository
 import dev.quinton.goa.core.designsystem.theme.PlayerColors
 import dev.quinton.goa.core.domain.draft.PoolSource
 import dev.quinton.goa.core.domain.teams.OddSeatMode
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.presentation.draft.DraftEnvironment
 import dev.quinton.goa.core.presentation.draft.DraftSetupPresenter
 import dev.quinton.goa.core.presentation.draft.QuickAddPlayer
@@ -51,6 +53,7 @@ sealed interface SetupEvent {
 class DraftSetupViewModel @Inject constructor(
     private val players: PlayerRepository,
     ratings: RatingsRepository,
+    eloConfig: EloConfigRepository,
     catalogRepository: CatalogRepository,
     settings: SettingsRepository,
     private val drafts: DraftRepository,
@@ -66,13 +69,19 @@ class DraftSetupViewModel @Inject constructor(
     private val events = Channel<SetupEvent>(Channel.BUFFERED)
     val setupEvents: Flow<SetupEvent> = events.receiveAsFlow()
 
+    /** Player ratings and the group's starting rating (what an unrated player counts as). */
+    private val rated: Flow<Pair<Map<String, Rating>, Double>> = combine(
+        ratings.observePlayerRatings().onStart { emit(emptyMap()) },
+        eloConfig.config,
+    ) { r, config -> r to config.initialRating }
+
     private val inputs: Flow<SetupInputs> = combine(
         players.observePlayers(),
-        ratings.observePlayerRatings().onStart { emit(emptyMap()) },
+        rated,
         catalogRepository.catalog,
         settings.settings,
         drafts.methods,
-    ) { p, r, c, s, m -> SetupInputs(p, r, c, s, m) }
+    ) { p, (r, start), c, s, m -> SetupInputs(p, r, c, s, m, initialRating = start) }
 
     val uiState: StateFlow<SetupUiState> =
         combine(

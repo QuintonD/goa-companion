@@ -2,6 +2,8 @@ package dev.quinton.goa.hub.store
 
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.domain.sync.NamedPlayer
+import dev.quinton.goa.core.domain.sync.PlayerMergeOutcome
 import dev.quinton.goa.core.domain.sync.SyncDocument
 import dev.quinton.goa.core.domain.sync.SyncMerge
 import dev.quinton.goa.core.model.sync.Deletion
@@ -9,6 +11,8 @@ import dev.quinton.goa.core.model.sync.DeletionKind
 import dev.quinton.goa.hub.FakeClock
 import dev.quinton.goa.hub.match
 import dev.quinton.goa.hub.player
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertThrows
 import org.junit.Rule
@@ -176,6 +180,48 @@ class SharedWritesTest {
         store.resetEloConfig()
         assertThat(store.read().eloConfig.config).isEqualTo(EloConfig.DEFAULT)
         assertThat(store.read().eloConfig.updatedAt).isEqualTo(1_001)
+    }
+
+    @Test
+    fun `two browsers adding one name at the same moment make one player`() = runTest {
+        store.upsertPlayer(ann.copy(archived = true))
+        val adds = (1..8).map { i ->
+            async(kotlinx.coroutines.Dispatchers.Default) {
+                store.upsertPlayerIfNameFree(player("sam-$i", if (i % 2 == 0) " sam " else "Sam", createdAt = 10L + i))
+            }
+        }.awaitAll()
+        assertThat(adds.count { it is NamedPlayer.Saved }).isEqualTo(1)
+        assertThat(store.read().players.count { it.name.equals("sam", ignoreCase = true) }).isEqualTo(1)
+        // An archived player's name stays taken; renaming yourself to your own name is fine.
+        assertThat(store.upsertPlayerIfNameFree(player("ann-2", "ANN"))).isInstanceOf(NamedPlayer.Taken::class.java)
+        assertThat(store.upsertPlayerIfNameFree(ann.copy(name = "Ann "))).isInstanceOf(NamedPlayer.Saved::class.java)
+    }
+
+    @Test
+    fun `a timer-style edit changes the stored match as logged, and undo never beats a newer copy`() = runTest {
+        store.mergeIn(
+            SyncDocument(
+                players = listOf(ann, bob, player("ann-2", "Ann 2")),
+                matches = listOf(match("m1", listOf("ann-2"), listOf("bob"), updatedAt = 5)),
+                playerMerges = listOf(dev.quinton.goa.core.model.sync.PlayerMerge("ann-2", "ann", 6)),
+            ),
+        )
+        val edited = store.editMatch("m1") { it.copy(durationMin = 47) }!!
+        // The pilot it was logged with is kept (reads resolve it to Ann; the log isn't rewritten).
+        assertThat(edited.participants.map { it.playerId }).containsExactly("ann-2", "bob").inOrder()
+        assertThat(edited.updatedAt).isEqualTo(1_000)
+        assertThat(store.editMatch("m1") { it.copy(durationMin = 47) }).isNull() // nothing changed
+        assertThat(store.editMatch("nope") { it }).isNull()
+
+        val deleted = store.deleteMatch("m1")!!
+        assertThat(deleted).isEqualTo(edited)
+        clock.set(2_000)
+        assertThat(store.restoreMatch(deleted)).isTrue()
+        val restored = store.read().matches.single()
+        assertThat(restored.updatedAt).isGreaterThan(store.read().deletions.single().deletedAt)
+        // Restoring again while it exists (say an edit synced in) writes nothing.
+        assertThat(store.restoreMatch(deleted)).isFalse()
+        assertThat(store.read().matches.single()).isEqualTo(restored)
     }
 
     @Test

@@ -77,7 +77,7 @@ object HeroesFeature : HubFeature {
         val controls = CatalogControls(layout, request.filter, request.sort)
         // Elo and Win rate sorts need the derived hero stats; the others don't replay the log.
         val needsStats = request.sort == CatalogSort.ELO || request.sort == CatalogSort.WIN_RATE
-        val records = if (needsStats) HeroRecords.current(ctx.groupStore, catalog) else null
+        val records = if (needsStats) HeroRecords.current(ctx) else null
         val state = CatalogUiState.build(
             catalog = catalog,
             index = index(catalog),
@@ -124,7 +124,7 @@ object HeroesFeature : HubFeature {
         val stats = if (catalog.hero(heroId) !=
             null
         ) {
-            HeroRecords.current(ctx.groupStore, catalog).stats(heroId)
+            HeroRecords.current(ctx).stats(heroId)
         } else {
             null
         }

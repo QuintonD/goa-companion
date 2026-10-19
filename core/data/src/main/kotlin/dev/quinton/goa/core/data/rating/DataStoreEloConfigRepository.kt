@@ -38,15 +38,18 @@ internal class DataStoreEloConfigRepository @Inject constructor(
         StampedEloConfig(decode(json), at ?: if (json != null) 1 else 0)
     }
 
+    /**
+     * A change that leaves the constants as they are stores nothing: a new stamp on old values
+     * would beat a newer change another phone hasn't synced yet. (The hub's `SharedWrites` does the same.)
+     */
     override suspend fun update(transform: (EloConfig) -> EloConfig) {
         val current = stampedFlow.first()
         val next = transform(current.config).sanitized()
+        if (next == current.config) return
         write(next, EditStamp.next(clock.now(), current.updatedAt))
     }
 
-    override suspend fun reset() {
-        write(EloConfig.DEFAULT, EditStamp.next(clock.now(), stampedFlow.first().updatedAt))
-    }
+    override suspend fun reset() = update { EloConfig.DEFAULT }
 
     override suspend fun stamped(): StampedEloConfig = stampedFlow.first()
 

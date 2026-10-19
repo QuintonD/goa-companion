@@ -10,8 +10,6 @@ import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermissions
-import java.time.LocalDate
-import java.time.ZoneId
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -99,40 +97,20 @@ class HubCliTest {
     }
 
     @Test
-    fun `config sets an IANA time zone, keeps it when other options change, and refuses anything else`() {
-        val config = HubConfigStore(data.resolve("hub.json"))
-        assertThat(run("config", "--data", data.toString())).isEqualTo(HubCli.OK)
-        assertThat(out.toString()).contains("(this machine's; set one with --time-zone)")
-        assertThat(config.get().timeZone).isNull()
-
-        assertThat(run("config", "--data", data.toString(), "--time-zone", "europe/amsterdam")).isEqualTo(HubCli.OK)
-        assertThat(config.get().timeZone).isEqualTo("Europe/Amsterdam")
-        assertThat(out.toString()).contains("Time zone: Europe/Amsterdam")
-        // Only options given change, both ways.
-        assertThat(run("config", "--data", data.toString(), "--public-url", "https://goa.example.org"))
-            .isEqualTo(HubCli.OK)
-        assertThat(config.get().timeZone).isEqualTo("Europe/Amsterdam")
-        assertThat(run("config", "--data", data.toString(), "--time-zone", "America/New_York")).isEqualTo(HubCli.OK)
-        assertThat(config.get().publicUrl).isEqualTo("https://goa.example.org")
-        assertThat(config.get().timeZone).isEqualTo("America/New_York")
-
-        listOf("Mars/Olympus", "+02:00", "UTC+2", "CET", "").forEach { bad ->
-            assertThat(run("config", "--data", data.toString(), "--time-zone", bad)).isEqualTo(HubCli.USAGE_ERROR)
-        }
-        assertThat(config.get().timeZone).isEqualTo("America/New_York")
-        assertThat(err.toString()).contains("Not an IANA time zone")
-    }
-
-    @Test
-    fun `the hub shows dates in the configured zone, else the clock's`() {
-        val hub = Hub(HubPaths(data), FakeClock(start = 1_760_011_200_000L, zone = ZoneId.of("UTC")))
-        assertThat(hub.clock.zone.id).isEqualTo("UTC")
-        hub.config.update { it.copy(timeZone = "Pacific/Kiritimati") } // UTC+14: already tomorrow
-        assertThat(hub.clock.zone.id).isEqualTo("Pacific/Kiritimati")
-        assertThat(hub.clock.today()).isEqualTo(LocalDate.of(2025, 10, 10))
-        // A hand-edited file with a bad zone falls back instead of breaking every page.
-        hub.config.update { it.copy(timeZone = "Nowhere/Land") }
-        assertThat(hub.clock.zone.id).isEqualTo("UTC")
+    fun `the group's time zone is set with config, cleared with system, and every hub date follows it`() {
+        assertThat(run("config", "--data", data.toString(), "--time-zone", "Europe/Berlin")).isEqualTo(HubCli.OK)
+        assertThat(HubConfigStore(data.resolve("hub.json")).get().timeZone).isEqualTo("Europe/Berlin")
+        assertThat(out.toString()).contains("Time zone: Europe/Berlin")
+        // The hub's clock reads it (a UTC machine clock, a group in Berlin).
+        val hub = Hub(HubPaths(data), FakeClock(start = 1_760_000_000_000L, zone = java.time.ZoneId.of("UTC")))
+        assertThat(hub.clock.zone).isEqualTo(java.time.ZoneId.of("Europe/Berlin"))
+        assertThat(
+            run("config", "--data", data.toString(), "--time-zone", "Mars/Olympus"),
+        ).isEqualTo(HubCli.USAGE_ERROR)
+        assertThat(run("config", "--data", data.toString(), "--time-zone", "system")).isEqualTo(HubCli.OK)
+        assertThat(HubConfigStore(data.resolve("hub.json")).get().timeZone).isNull()
+        val machine = Hub(HubPaths(data), FakeClock(start = 1_760_000_000_000L, zone = java.time.ZoneId.of("UTC")))
+        assertThat(machine.clock.zone).isEqualTo(java.time.ZoneId.of("UTC"))
     }
 
     @Test
@@ -144,7 +122,6 @@ class HubCliTest {
         assertThat(text).contains("Group:     Table Night")
         assertThat(text).contains("Last sync: never")
         assertThat(text).contains("Devices:   0 signed in")
-        assertThat(text).contains("Time zone: ")
         assertThat(Files.walk(data).use { it.count() }).isEqualTo(before)
     }
 

@@ -4,6 +4,7 @@ import dev.quinton.goa.core.domain.sync.HubAddress
 import dev.quinton.goa.hub.store.AtomicFiles
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.DateTimeException
 import java.time.ZoneId
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -12,16 +13,20 @@ import kotlinx.serialization.json.Json
  * `hub.json`, set with `goa-hub config` (ADR-030 §6). [publicUrl] is the hub's origin as phones
  * and browsers reach it (`https://goa.example.duckdns.org`); [androidCertSha256] are the release
  * certificate fingerprints served in `/.well-known/assetlinks.json`, so invite links open the app.
- * [timeZone] is the IANA zone the hub's dates are shown in (`Europe/Amsterdam`); null = the machine's.
  */
 @Serializable
 data class HubConfig(
     val publicUrl: String? = null,
     val androidCertSha256: List<String> = emptyList(),
+    /**
+     * The group's time zone (an IANA id such as `Europe/London`) for every date on the web; null =
+     * the machine's. Set it when the hub runs in another zone than the group plays in (a UTC server),
+     * or the web would show and read match times, "today" and game nights differently from the phones.
+     */
     val timeZone: String? = null,
 ) {
-    /** [timeZone] as a zone, or null when unset (or not a zone any more, e.g. a hand-edited file). */
-    val zone: ZoneId? get() = timeZone?.let(::normalizeZone)?.let(ZoneId::of)
+    /** [timeZone] as a zone, or null when unset or unreadable (then the machine's zone applies). */
+    fun zone(): ZoneId? = timeZone?.let { normalizeZone(it) }?.let(ZoneId::of)
 
     companion object {
         const val ANDROID_PACKAGE = "dev.quinton.goa"
@@ -33,18 +38,15 @@ data class HubConfig(
             return hex.chunked(2).joinToString(":")
         }
 
+        /** The zone id for [text] (`Europe/London`, `UTC`), or null if Java doesn't know it. */
+        fun normalizeZone(text: String): String? = try {
+            ZoneId.of(text.trim()).id
+        } catch (_: DateTimeException) {
+            null
+        }
+
         /** The canonical origin for [text] ([HubAddress]), or null. */
         fun normalizeUrl(text: String): String? = HubAddress.normalize(text)
-
-        /**
-         * The canonical IANA region id for [text] (`europe/amsterdam` → `Europe/Amsterdam`), or null if it
-         * isn't one. Fixed offsets (`+02:00`, `UTC+2`) are refused: they would miss the clock change.
-         */
-        fun normalizeZone(text: String): String? {
-            val wanted = text.trim()
-            return ZoneId.getAvailableZoneIds().firstOrNull { it.equals(wanted, ignoreCase = true) && '/' in it }
-                ?: wanted.takeIf { it.equals("UTC", ignoreCase = true) }?.let { "UTC" }
-        }
 
         private const val SHA256_HEX = 64
     }

@@ -9,6 +9,10 @@ import java.time.ZoneId
 /**
  * The hub's clocks: wall time for `updatedAt` stamps and dates, monotonic time for the timer
  * engine (the same interfaces the phones inject). Tests pass a fake.
+ *
+ * [zone] is the group's zone: every date the web shows or reads (match dates, "today", game nights
+ * grouped by gap, the group stats) uses it, as each phone uses its own. The hub's [Hub.clock] takes
+ * it from `hub.json` (`goa-hub config --time-zone`), else the machine's zone.
  */
 interface HubClock : WallClock, ElapsedClock {
     val zone: ZoneId
@@ -26,11 +30,16 @@ interface HubClock : WallClock, ElapsedClock {
     }
 
     companion object {
-        /** [base] with its [zone] replaced by [zone]'s answer when that isn't null (`goa-hub config --time-zone`). */
-        fun withZone(base: HubClock, zone: () -> ZoneId?): HubClock = object : HubClock by base {
+        /**
+         * [base]'s clocks in the zone [zone] gives (read on every use, so a config change applies
+         * at once), or [base]'s own zone when it gives null.
+         */
+        fun zoned(base: HubClock, zone: () -> ZoneId?): HubClock = object : HubClock {
             override val zone: ZoneId get() = zone() ?: base.zone
 
-            override fun today(): LocalDate = Instant.ofEpochMilli(nowMillis()).atZone(this.zone).toLocalDate()
+            override fun nowMillis(): Long = base.nowMillis()
+
+            override fun elapsedMillis(): Long = base.elapsedMillis()
         }
     }
 }

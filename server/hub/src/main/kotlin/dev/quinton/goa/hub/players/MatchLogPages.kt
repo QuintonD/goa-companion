@@ -142,11 +142,10 @@ internal fun Route.matchRoutes(ctx: HubContext) {
     }
     post("/players/matches/{id}/delete") {
         val id = call.parameters["id"].orEmpty()
-        val stored = ctx.groupStore.read().matches.firstOrNull { it.id == id }
+        val stored = ctx.groupStore.deleteMatch(id)
         if (stored == null) {
             ctx.flash(call, "That match was already deleted (on another phone or browser).")
         } else {
-            ctx.groupStore.deleteMatch(id)
             ctx.deviceStore.write(ctx.device(call).id, PlayersSlots.Undo, DeletedMatch(stored, ctx.clock.nowMillis()))
         }
         call.respondRedirect(PlayersPaths.LOG)
@@ -159,12 +158,11 @@ internal fun Route.matchRoutes(ctx: HubContext) {
             null
         }
         val match = undo?.takeIf { ctx.clock.nowMillis() - it.deletedAt <= PlayersSlots.UNDO_WINDOW_MS }?.match
-        if (match == null || ctx.groupStore.read().matches.any { it.id == match.id }) {
+        // As the phone's undo: written again, stamped after its tombstone, unless it exists again.
+        if (match == null || !ctx.groupStore.restoreMatch(match)) {
             call.respondRedirect(PlayersPaths.LOG)
             return@post
         }
-        // As the phone's undo: the match is written again, stamped after its tombstone.
-        ctx.groupStore.upsertMatch(match)
         call.respondRedirect(PlayersPaths.logAt(match.id))
     }
     get("/players/matches/{id}/rematch") {

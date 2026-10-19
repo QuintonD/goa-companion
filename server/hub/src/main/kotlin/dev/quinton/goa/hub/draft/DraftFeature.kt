@@ -553,7 +553,7 @@ internal class DraftActions(
     companion object {
         const val NEW = "new"
         const val MAX_STARS = 3
-        const val MAX_NAME = 40
+        const val MAX_NAME = dev.quinton.goa.core.presentation.players.MAX_NAME_LENGTH
         val STEP_SECONDS = listOf(15, 30, 45, 60, 90)
 
         /**

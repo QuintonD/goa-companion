@@ -9,6 +9,7 @@ import dev.quinton.goa.hub.push.PushTransport
 import dev.quinton.goa.hub.push.Vapid
 import dev.quinton.goa.hub.store.DeviceStore
 import dev.quinton.goa.hub.store.Devices
+import dev.quinton.goa.hub.store.GroupRatings
 import dev.quinton.goa.hub.store.GroupStore
 import dev.quinton.goa.hub.store.SyncStateStore
 import dev.quinton.goa.hub.web.JoinThrottle
@@ -19,7 +20,7 @@ import dev.quinton.goa.hub.web.JoinThrottle
  */
 class Hub(
     val paths: HubPaths,
-    clock: HubClock = HubClock.System,
+    machineClock: HubClock = HubClock.System,
     val catalog: HubCatalog = HubCatalog(),
     pushTransport: PushTransport = PushTransport.jdk(),
 ) {
@@ -29,18 +30,21 @@ class Hub(
 
     val config = HubConfigStore(paths.config)
 
-    /** [clock], showing dates in the configured time zone (`goa-hub config --time-zone`), else its own. */
-    val clock: HubClock = HubClock.withZone(clock) { config.get().zone }
+    /** The machine's clocks in the group's zone (`hub.json`'s `timeZone`, else the machine's). */
+    val clock: HubClock = HubClock.zoned(machineClock) { config.get().zone() }
     val membership = MembershipStore(paths.group)
-    val groupStore = GroupStore(paths.data, paths.backups, this.clock)
+    val groupStore = GroupStore(paths.data, paths.backups, clock)
+
+    /** Ratings, meta and group stats of the group's data: the one replay every page reads. */
+    val ratings = GroupRatings(groupStore, catalog, clock)
     val devices = Devices(paths.devices)
     val deviceStore = DeviceStore(paths.devices)
     val syncState = SyncStateStore(paths.syncState)
     val vapid: Vapid = Vapid.loadOrCreate(paths.vapid) { pushSubject() }
-    val push = PushService(deviceStore, vapid, this.clock, pushTransport)
+    val push = PushService(deviceStore, vapid, clock, pushTransport)
 
     /** Failed sign-in attempts, throttled per client and overall. */
-    val joinThrottle = JoinThrottle(this.clock)
+    val joinThrottle = JoinThrottle(clock)
 
     /** VAPID `sub`: the hub's public URL (Apple requires an https URL or a mailto). */
     private fun pushSubject(): String = config.get().publicUrl ?: "mailto:goa-hub@localhost"

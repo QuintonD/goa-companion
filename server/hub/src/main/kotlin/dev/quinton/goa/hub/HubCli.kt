@@ -30,7 +30,7 @@ import java.util.Locale
  * goa-hub serve  [--data DIR] [--host 127.0.0.1] [--port 8080]
  * goa-hub join   [--data DIR] "<invite text>"
  * goa-hub config [--data DIR] [--public-url https://x.duckdns.org] [--android-cert-sha256 AA:BB:…]
- *                [--time-zone Europe/Amsterdam]
+ *                [--time-zone Europe/London|system]
  * goa-hub status [--data DIR]
  * ```
  */
@@ -88,7 +88,7 @@ class HubCli(
                 "goa-hub: group '${group.name}'"
             },
         )
-        out.println("goa-hub: dates in ${hub.clock.zone.id}")
+        out.println("goa-hub: dates in ${zoneLine(hub.config.get())}")
         if (hub.config.get().publicUrl == null) {
             out.println(
                 "goa-hub: no public URL — set one with `goa-hub config --public-url https://…` before publishing",
@@ -160,15 +160,18 @@ class HubCli(
             HubConfig.normalizeFingerprint(it) ?: return usageError("Not a SHA-256 fingerprint: $it")
         }
         val zone = options.value("time-zone")?.let {
-            HubConfig.normalizeZone(it)
-                ?: return usageError("Not an IANA time zone (like Europe/Amsterdam): $it")
+            if (it.trim().equals(SYSTEM_ZONE, ignoreCase = true)) {
+                ""
+            } else {
+                HubConfig.normalizeZone(it) ?: return usageError("Not a time zone: $it (try Europe/London or UTC)")
+            }
         }
         val config = if (url != null || certs.isNotEmpty() || zone != null) {
             store.update { current ->
                 current.copy(
                     publicUrl = url ?: current.publicUrl,
                     androidCertSha256 = certs.ifEmpty { current.androidCertSha256 },
-                    timeZone = zone ?: current.timeZone,
+                    timeZone = if (zone == null) current.timeZone else zone.ifEmpty { null },
                 )
             }
         } else {
@@ -181,11 +184,13 @@ class HubCli(
             }}",
         )
         out.println("Time zone: ${zoneLine(config)}")
+        if (zone != null) out.println("Restart the hub service if it is running.")
         return OK
     }
 
+    /** "Europe/London" or "Europe/Berlin (this machine's; set the group's with --time-zone)". */
     private fun zoneLine(config: HubConfig): String =
-        config.zone?.id ?: "${ZoneId.systemDefault().id} (this machine's; set one with --time-zone)"
+        config.zone()?.id ?: "${ZoneId.systemDefault().id} (this machine's; set the group's with --time-zone)"
 
     private fun status(options: Options): Int {
         val paths = paths(options)
@@ -206,7 +211,7 @@ class HubCli(
         out.println("Data:      ${paths.root}")
         out.println("Group:     ${group?.let { "${it.name} (${it.groupId})" } ?: "not joined"}")
         val config = HubConfigStore(paths.config).get()
-        zone = config.zone ?: ZoneId.systemDefault()
+        zone = config.zone() ?: ZoneId.systemDefault()
         out.println("Public URL: ${config.publicUrl ?: "(not set)"}")
         out.println("Time zone: ${zoneLine(config)}")
         out.println(
@@ -236,7 +241,6 @@ class HubCli(
         return OK
     }
 
-    /** The zone [status] prints times in: the configured one, else the machine's. */
     private var zone: ZoneId = ZoneId.systemDefault()
 
     private fun format(millis: Long): String = TIME.withZone(zone).format(Instant.ofEpochMilli(millis))
@@ -253,8 +257,7 @@ class HubCli(
             |
             |  serve  [--data DIR] [--host 127.0.0.1] [--port 8080]   run the hub
             |  join   [--data DIR] "<invite text>"                   join the group (once; no text: read stdin)
-            |  config [--data DIR] [--public-url URL] [--android-cert-sha256 FP] [--time-zone ZONE]
-            |                                                        only the options given change
+            |  config [--data DIR] [--public-url URL] [--android-cert-sha256 FP] [--time-zone ZONE|system]
             |  status [--data DIR]                                   group, data, devices, last sync
             |  version                                               the hub's version
             |
@@ -306,6 +309,7 @@ class HubCli(
         const val DEFAULT_PORT = 8080
         private const val MAX_PORT = 65_535
         private const val STATUS_LIST = 10
+        private const val SYSTEM_ZONE = "system"
 
         /** The jar's Implementation-Version (null when run from the IDE or tests). */
         val VERSION: String? = HubCli::class.java.`package`?.implementationVersion
