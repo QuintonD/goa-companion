@@ -24,6 +24,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.utils.io.jvm.javaio.toInputStream
 import java.io.InputStream
+import java.net.URLDecoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.intOrNull
@@ -104,7 +105,11 @@ private suspend fun ApplicationCall.sync(hub: Hub, group: GroupCredentials, body
         respondText(e.message.orEmpty(), ContentType.Text.Plain, HttpStatusCode.UnprocessableEntity)
         return
     }
-    hub.syncState.record(request.header(DEVICE_ID_HEADER), request.header(DEVICE_NAME_HEADER), hub.clock.nowMillis())
+    hub.syncState.record(
+        request.header(DEVICE_ID_HEADER),
+        request.header(DEVICE_NAME_HEADER)?.let(::deviceName),
+        hub.clock.nowMillis(),
+    )
     respondBytes(SyncCodec.encodeFile(merged, group, createdAt = hub.clock.nowMillis()), SyncFileType)
 }
 
@@ -132,6 +137,13 @@ private fun envelopeProblem(body: ByteArray, group: GroupCredentials): Pair<Http
         else -> null
     }
 }
+
+/**
+ * The phone's name from [DEVICE_NAME_HEADER]: percent-encoded UTF-8, since header values are ASCII
+ * (the app sends `Zo%C3%AB`); a value that isn't valid percent-encoding is taken as it is.
+ */
+internal fun deviceName(header: String): String =
+    runCatching { URLDecoder.decode(header.replace("+", "%2B"), Charsets.UTF_8) }.getOrDefault(header)
 
 /** The stream's bytes, or null if there are more than [limit]. */
 internal fun readLimited(input: InputStream, limit: Int): ByteArray? = input.use { stream ->
