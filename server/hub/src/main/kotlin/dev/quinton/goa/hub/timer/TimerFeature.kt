@@ -243,8 +243,13 @@ object TimerFeature : HubFeature {
             }
             if (linked != null) {
                 // The coin as placed at setup is part of the match record (draft coin, or corrected here).
-                val updated = linked.copy(mode = state.selectedMode, tieBreaker = state.tieBreaker ?: linked.tieBreaker)
-                if (updated != linked || query.match == null) ctx.groupStore.upsertMatch(updated)
+                val setUp = { m: Match -> m.copy(mode = state.selectedMode, tieBreaker = state.tieBreaker ?: m.tieBreaker) }
+                // A pending match changes as stored (its logged pilots kept); a rematch is new.
+                if (query.match != null) {
+                    ctx.groupStore.editMatch(linked.id, setUp)
+                } else {
+                    ctx.groupStore.upsertMatch(setUp(linked))
+                }
             }
             val heroes = state.counters?.let { it.largerTeamHeroes + it.smallerTeamHeroes } ?: state.players
             timer.start(

@@ -12,7 +12,7 @@ import dev.quinton.goa.core.presentation.players.plural
 import dev.quinton.goa.core.presentation.players.winLoss
 import dev.quinton.goa.hub.feature.HubContext
 import dev.quinton.goa.hub.store.InvalidGroupDataException
-import dev.quinton.goa.hub.store.NamedPlayer
+import dev.quinton.goa.core.domain.sync.NamedPlayer
 import dev.quinton.goa.hub.web.ui.ButtonStyle
 import dev.quinton.goa.hub.web.ui.Icons
 import dev.quinton.goa.hub.web.ui.PlayerPalette

@@ -12,7 +12,7 @@ import dev.quinton.goa.hub.group.GroupFeature.ME_PATH
 import dev.quinton.goa.hub.group.GroupFeature.PATH
 import dev.quinton.goa.hub.group.GroupFeature.inviteChoice
 import dev.quinton.goa.hub.store.Device
-import dev.quinton.goa.hub.store.PlayerMergeOutcome
+import dev.quinton.goa.core.domain.sync.PlayerMergeOutcome
 import dev.quinton.goa.hub.web.device
 import dev.quinton.goa.hub.web.ui.ButtonStyle
 import dev.quinton.goa.hub.web.ui.HubPage

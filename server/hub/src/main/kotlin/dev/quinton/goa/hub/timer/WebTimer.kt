@@ -234,11 +234,13 @@ internal class WebTimer(private val ctx: HubContext) {
     private suspend fun recordDuration(s: TimerSnapshot, onlyIfMissing: Boolean) {
         if (s.status != TimerStatus.ENDED) return
         val id = s.matchId ?: return
-        // The stored record as is (not the merge-resolved view), so only these two fields change.
-        val match = ctx.groupStore.read().matches.firstOrNull { it.id == id } ?: return
-        if (onlyIfMissing && match.durationMin != null) return
+        // The stored record as is (not the merge-resolved view), read and written in one step, so
+        // only these two fields change.
         val minutes = MatchDuration.minutes(engine.readout(s).matchElapsedMillis)
-        ctx.groupStore.upsertMatch(match.copy(durationMin = minutes, mode = s.mode ?: match.mode))
+        ctx.groupStore.editMatch(id) { match ->
+            match.takeUnless { onlyIfMissing && it.durationMin != null }
+                ?.copy(durationMin = minutes, mode = s.mode ?: match.mode)
+        }
     }
 
     /**

@@ -61,7 +61,23 @@ interface MatchRepository {
 
     suspend fun upsert(match: Match)
 
-    suspend fun delete(id: String)
+    /**
+     * Changes a few fields of the stored match [id] (the timer's duration and mode, the setup's
+     * coin): read as stored (the player ids it was logged with, not merge-resolved) and written in
+     * one transaction, so an edit synced in meanwhile isn't lost and merged pilots are never
+     * rewritten. [transform] returns the changed match, or null to leave it. Returns the saved
+     * match; null when there is no such match or nothing changed. (The hub's `SharedWrites.editMatch`.)
+     */
+    suspend fun edit(id: String, transform: (Match) -> Match?): Match?
+
+    /** Deletes [id] (leaving a tombstone); returns the copy deleted, as stored (for undo), or null. */
+    suspend fun delete(id: String): Match?
+
+    /**
+     * Undo of a delete: writes [match] (a copy [delete] returned) back, stamped after its tombstone,
+     * unless the match exists again (an edit synced in meanwhile wins). True when it was written.
+     */
+    suspend fun restore(match: Match): Boolean
 }
 
 /** Finished drafts, for ban stats and draft history (owner: players/database; used by draft). */

@@ -1,6 +1,9 @@
 package dev.quinton.goa.hub.store
 
 import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.domain.sync.NamedPlayer
+import dev.quinton.goa.core.domain.sync.PlayerMergeOutcome
+import dev.quinton.goa.core.domain.sync.SharedWrites
 import dev.quinton.goa.core.domain.sync.SyncDocument
 import dev.quinton.goa.core.domain.sync.SyncJson
 import dev.quinton.goa.core.domain.sync.SyncMerge
@@ -86,9 +89,17 @@ class GroupStore(
 
     suspend fun upsertMatch(match: Match): Match = edit { SharedWrites.upsertMatch(it, match, clock.nowMillis()) }
 
-    suspend fun deleteMatch(id: String) {
-        update { SharedWrites.deleteMatch(it, id, clock.nowMillis()) }
-    }
+    /** Changes a few fields of the stored match [id] in one locked step ([SharedWrites.editMatch]). */
+    suspend fun editMatch(id: String, transform: (Match) -> Match?): Match? =
+        edit { SharedWrites.editMatch(it, id, clock.nowMillis(), transform) }
+
+    /** Deletes [id] with a tombstone; returns the copy deleted, as stored (for undo), or null. */
+    suspend fun deleteMatch(id: String): Match? =
+        edit { doc -> SharedWrites.deleteMatch(doc, id, clock.nowMillis()) to doc.matches.firstOrNull { it.id == id } }
+
+    /** Undo of a delete ([SharedWrites.restoreMatch]): false if the match exists again. */
+    suspend fun restoreMatch(match: Match): Boolean =
+        edit { SharedWrites.restoreMatch(it, match, clock.nowMillis()) }
 
     suspend fun saveDraft(record: DraftRecord): DraftRecord = edit {
         SharedWrites.saveDraft(it, record, clock.nowMillis())

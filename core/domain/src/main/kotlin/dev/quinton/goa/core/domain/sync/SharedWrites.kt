@@ -1,11 +1,7 @@
-package dev.quinton.goa.hub.store
+package dev.quinton.goa.core.domain.sync
 
 import dev.quinton.goa.core.domain.player.PlayerNames
 import dev.quinton.goa.core.domain.rating.EloConfig
-import dev.quinton.goa.core.domain.sync.EditStamp
-import dev.quinton.goa.core.domain.sync.PlayerMerges
-import dev.quinton.goa.core.domain.sync.StampedEloConfig
-import dev.quinton.goa.core.domain.sync.SyncDocument
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.player.Player
@@ -14,8 +10,8 @@ import dev.quinton.goa.core.model.sync.DeletionKind
 import dev.quinton.goa.core.model.sync.PlayerMerge
 
 /**
- * Web writes to the group's shared data, with exactly the rules of the phones' Room repositories
- * (ADR-025, ADR-030 §3), as pure functions over a [SyncDocument]:
+ * Writes to the group's shared data, with exactly the rules of the phones' Room repositories
+ * (ADR-025, ADR-030 §3), as pure functions over a [SyncDocument]: the hub's web writes run these.
  *
  * - every write stamps `updatedAt = EditStamp.next(now, previous copy, tombstone)`, so an edit
  *   always beats the copy it edited and a later edit brings a deleted record back;
@@ -25,8 +21,9 @@ import dev.quinton.goa.core.model.sync.PlayerMerge
  * - the rating constants are one [StampedEloConfig].
  *
  * Mirrors `RoomPlayerRepository`, `RoomMatchRepository`, `RoomDraftRecordRepository` and
- * `DataStoreEloConfigRepository` (core:data); keep them in step. [GroupStore] runs these under
- * its lock and validates the result before storing it.
+ * `DataStoreEloConfigRepository` (core:data); keep them in step (core:data's
+ * `SharedWritesParityTest` runs both on the same edits and compares the stored data). The hub's
+ * `GroupStore` runs these under its lock and validates the result before storing it.
  */
 object SharedWrites {
     /** `RoomPlayerRepository.upsert`: trimmed name, stamped after the stored copy. */
@@ -98,6 +95,17 @@ object SharedWrites {
         return doc.copy(matches = doc.matches.filterNot { it.id == match.id } + stamped) to stamped
     }
 
+    /**
+     * `RoomMatchRepository.edit`: a few fields of the stored match [id] changed, read as stored
+     * (raw player ids) under the same lock as the write. [transform] returns null to leave it; the
+     * result is null when there is no such match or nothing changed (nothing is written then).
+     */
+    fun editMatch(doc: SyncDocument, id: String, now: Long, transform: (Match) -> Match?): Pair<SyncDocument, Match?> {
+        val stored = doc.matches.firstOrNull { it.id == id } ?: return doc to null
+        val changed = transform(stored)?.copy(id = id)?.takeIf { it != stored } ?: return doc to null
+        return upsertMatch(doc, changed, now)
+    }
+
     /** `RoomMatchRepository.delete`: a missing match is ignored; otherwise removed and tombstoned. */
     fun deleteMatch(doc: SyncDocument, id: String, now: Long): SyncDocument {
         val previous = doc.matches.firstOrNull { it.id == id } ?: return doc
@@ -121,6 +129,12 @@ object SharedWrites {
         )
         val stamped = record.copy(updatedAt = stamp)
         return doc.copy(drafts = doc.drafts.filterNot { it.id == record.id } + stamped) to stamped
+    }
+
+    /** `RoomMatchRepository.restore`: [match] written back unless it exists again; stamped after its tombstone. */
+    fun restoreMatch(doc: SyncDocument, match: Match, now: Long): Pair<SyncDocument, Boolean> {
+        if (doc.matches.any { it.id == match.id }) return doc to false
+        return upsertMatch(doc, match, now).first to true
     }
 
     /**

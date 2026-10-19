@@ -7,7 +7,7 @@ import dev.quinton.goa.core.presentation.players.SamePeople
 import dev.quinton.goa.core.presentation.players.SamePeoplePair
 import dev.quinton.goa.core.presentation.players.SamePeopleUiState
 import dev.quinton.goa.hub.feature.HubContext
-import dev.quinton.goa.hub.store.PlayerMergeOutcome
+import dev.quinton.goa.core.domain.sync.PlayerMergeOutcome
 import dev.quinton.goa.hub.web.ui.ButtonStyle
 import dev.quinton.goa.hub.web.ui.card
 import dev.quinton.goa.hub.web.ui.emptyState

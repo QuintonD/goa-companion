@@ -58,14 +58,38 @@ internal class RoomMatchRepository @Inject constructor(
         }
     }
 
-    override suspend fun delete(id: String) {
-        database.withWriteTransaction {
-            val previous = dao.updatedAt(id) ?: return@withWriteTransaction
-            val tombstone = database.deletionDao().deletedAt(DeletionKind.MATCH.column(), id)
-            dao.delete(id)
-            val deletion = Deletion(DeletionKind.MATCH, id, EditStamp.next(clock.now(), previous, tombstone))
-            database.deletionDao().upsertAll(listOf(deletion.toEntity()))
-        }
+    override suspend fun edit(id: String, transform: (Match) -> Match?): Match? = database.withWriteTransaction {
+        val stored = dao.get(id)?.toModel() ?: return@withWriteTransaction null
+        val changed = transform(stored)?.copy(id = id)?.takeIf { it != stored } ?: return@withWriteTransaction null
+        val stamp = EditStamp.next(
+            clock.now(),
+            stored.updatedAt,
+            database.deletionDao().deletedAt(DeletionKind.MATCH.column(), id),
+        )
+        val stamped = changed.copy(updatedAt = stamp)
+        dao.upsert(stamped.toEntity(), stamped.participantEntities())
+        stamped
+    }
+
+    override suspend fun delete(id: String): Match? = database.withWriteTransaction {
+        val stored = dao.get(id)?.toModel() ?: return@withWriteTransaction null
+        val tombstone = database.deletionDao().deletedAt(DeletionKind.MATCH.column(), id)
+        dao.delete(id)
+        val deletion = Deletion(DeletionKind.MATCH, id, EditStamp.next(clock.now(), stored.updatedAt, tombstone))
+        database.deletionDao().upsertAll(listOf(deletion.toEntity()))
+        stored
+    }
+
+    override suspend fun restore(match: Match): Boolean = database.withWriteTransaction {
+        if (dao.updatedAt(match.id) != null) return@withWriteTransaction false
+        val stamp = EditStamp.next(
+            clock.now(),
+            match.updatedAt,
+            database.deletionDao().deletedAt(DeletionKind.MATCH.column(), match.id),
+        )
+        val stamped = match.copy(updatedAt = stamp)
+        dao.upsert(stamped.toEntity(), stamped.participantEntities())
+        true
     }
 }
 

@@ -313,8 +313,8 @@ class MatchEditViewModel @AssistedInject constructor(
     fun delete() {
         val original = edit.value?.original ?: return
         viewModelScope.launch {
-            matches.delete(original.id)
-            recentlyDeleted.put(original)
+            // The copy as stored now (a duration the timer added meanwhile included), for undo.
+            matches.delete(original.id)?.let { recentlyDeleted.put(it) }
             edit.update { it?.copy(finished = true) }
         }
     }

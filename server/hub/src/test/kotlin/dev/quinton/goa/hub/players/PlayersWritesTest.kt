@@ -21,7 +21,7 @@ import dev.quinton.goa.hub.players.PlayersTestGroup.cid
 import dev.quinton.goa.hub.players.PlayersTestGroup.dee
 import dev.quinton.goa.hub.players.PlayersTestGroup.fay
 import dev.quinton.goa.hub.signIn
-import dev.quinton.goa.hub.store.SharedWrites
+import dev.quinton.goa.core.domain.sync.SharedWrites
 import dev.quinton.goa.hub.testHub
 import dev.quinton.goa.hub.web.ui.PlayerPalette
 import io.ktor.client.statement.bodyAsText
