@@ -13,15 +13,15 @@ val HubFeatures: List<HubFeature> = listOf(
     // Rules reference
     ComingSoon.Rules,
     // Timer
-    ComingSoon.Timer,
+    dev.quinton.goa.hub.timer.TimerFeature,
     // Draft
-    ComingSoon.Draft,
+    dev.quinton.goa.hub.draft.DraftFeature(),
     // Players: leaderboard, player page, match log, editor, meta
     dev.quinton.goa.hub.players.PlayersFeature,
     // Group: who am I, invite, devices
-    ComingSoon.Group,
+    dev.quinton.goa.hub.group.GroupFeature,
     // Settings
-    ComingSoon.Settings,
+    dev.quinton.goa.hub.settings.SettingsFeature,
     // Core pages: Get the app (APK)
     AppDownloadFeature,
 )

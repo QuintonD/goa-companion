@@ -67,7 +67,11 @@ import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
-import dev.quinton.goa.feature.timer.TimerText
+import dev.quinton.goa.core.presentation.timer.ActiveUiState
+import dev.quinton.goa.core.presentation.timer.SeatUi
+import dev.quinton.goa.core.presentation.timer.ShotClockUi
+import dev.quinton.goa.core.presentation.timer.TimeOutsUi
+import dev.quinton.goa.core.presentation.timer.TimerText
 import dev.quinton.goa.feature.timer.ui.components.teamName
 import dev.quinton.goa.feature.timer.ui.components.timerDigits
 import kotlinx.coroutines.delay

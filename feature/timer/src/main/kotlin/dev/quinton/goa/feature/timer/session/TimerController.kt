@@ -12,7 +12,9 @@ import dev.quinton.goa.core.domain.timer.TimerSnapshot
 import dev.quinton.goa.core.domain.timer.TimerStatus
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Team
-import dev.quinton.goa.feature.timer.TimerText
+import dev.quinton.goa.core.presentation.timer.TimerCommand
+import dev.quinton.goa.core.presentation.timer.TimerCommands
+import dev.quinton.goa.core.presentation.timer.TimerText
 import dev.quinton.goa.feature.timer.data.TimerRepository
 import dev.quinton.goa.feature.timer.di.TimerClock
 import dev.quinton.goa.feature.timer.system.AlertStyle
@@ -27,43 +29,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-
-/** User and system commands on the running session. */
-sealed interface TimerCommand {
-    data object TogglePause : TimerCommand
-
-    data object Pause : TimerCommand
-
-    data object Resume : TimerCommand
-
-    data object Next : TimerCommand
-
-    data object Back : TimerCommand
-
-    data object Restart : TimerCommand
-
-    data object SkipToEndOfRound : TimerCommand
-
-    data object EndMatch : TimerCommand
-
-    data object AdvanceDue : TimerCommand
-
-    data object FlipTieBreaker : TimerCommand
-
-    /** Which team's symbol shows on the coin (null = stop tracking). */
-    data class SetTieBreaker(val team: Team?) : TimerCommand
-
-    data class HeroResolves(val seat: Int) : TimerCommand
-
-    data object StartShotClock : TimerCommand
-
-    data object CancelShotClock : TimerCommand
-
-    data class TimeOut(val team: Team) : TimerCommand
-
-    /** Round view: jump to step [stepIndex] of [round]; ignored once the session is in another round. */
-    data class JumpTo(val round: Int, val stepIndex: Int) : TimerCommand
-}
 
 /**
  * Single entry point for every timer change, from the UI, notification actions, alarms and
@@ -220,8 +185,7 @@ class TimerController @Inject constructor(
         sync(updated)
     }
 
-    private fun advanced(from: TimerSnapshot, to: TimerSnapshot): Boolean =
-        from.sessionId == to.sessionId && (from.round != to.round || from.stepIndex != to.stepIndex)
+    private fun advanced(from: TimerSnapshot, to: TimerSnapshot): Boolean = TimerCommands.advanced(from, to)
 
     private suspend fun alertOnce(phaseEndKey: String, endedTitle: String, updated: TimerSnapshot) {
         if (uiVisible || phaseEndKey == lastAlertKey) return
@@ -245,24 +209,7 @@ class TimerController @Inject constructor(
     private fun rebase(s: TimerSnapshot): TimerSnapshot =
         s.rebased(elapsed.elapsedMillis(), wall.nowMillis(), boot.bootCount())
 
-    private fun apply(s: TimerSnapshot, command: TimerCommand): TimerSnapshot = when (command) {
-        TimerCommand.TogglePause -> engine.togglePause(s)
-        TimerCommand.Pause -> engine.pause(s)
-        TimerCommand.Resume -> engine.resume(s)
-        TimerCommand.Next -> engine.next(s, TimerEngine.NEXT_DEBOUNCE_MS)
-        TimerCommand.Back -> engine.back(s)
-        TimerCommand.Restart -> engine.restartStep(s)
-        TimerCommand.SkipToEndOfRound -> engine.skipToEndOfRound(s)
-        TimerCommand.EndMatch -> engine.endMatch(s)
-        TimerCommand.AdvanceDue -> engine.advanceDue(s)
-        TimerCommand.FlipTieBreaker -> engine.flipTieBreaker(s)
-        is TimerCommand.HeroResolves -> engine.heroResolves(s, command.seat)
-        is TimerCommand.SetTieBreaker -> engine.setTieBreaker(s, command.team)
-        TimerCommand.StartShotClock -> engine.startShotClock(s)
-        TimerCommand.CancelShotClock -> engine.cancelShotClock(s)
-        is TimerCommand.TimeOut -> engine.timeOut(s, command.team)
-        is TimerCommand.JumpTo -> if (s.round == command.round) engine.jumpTo(s, command.stepIndex) else s
-    }
+    private fun apply(s: TimerSnapshot, command: TimerCommand): TimerSnapshot = TimerCommands.apply(engine, s, command)
 
     fun timeOutsLeft(s: TimerSnapshot, team: Team): Int = engine.timeOutsLeft(s, team)
 
@@ -283,6 +230,6 @@ class TimerController @Inject constructor(
     }
 
     companion object {
-        fun stepKey(s: TimerSnapshot, phaseEnd: Long?): String = "${s.sessionId}:${s.round}:${s.stepIndex}:$phaseEnd"
+        fun stepKey(s: TimerSnapshot, phaseEnd: Long?): String = TimerCommands.stepKey(s, phaseEnd)
     }
 }

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.presentation.timer.RunningTimerUi
 import dev.quinton.goa.ui.RunningTimerBar
 import org.junit.Rule
 import org.junit.Test

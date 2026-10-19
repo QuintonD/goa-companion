@@ -2,7 +2,8 @@
 <!--
   Group sync (ADR-025): phone to phone over Google Nearby Connections. Permissions as
   developers.google.com/nearby/connections/android/get-started lists them (checked 2026-10-17), with
-  the changes noted below; the app asks for the runtime ones only when a sync starts. Still no INTERNET permission.
+  the changes noted below; the app asks for the runtime ones only when a sync starts. INTERNET (for the group's hub,
+  ADR-030) is declared by the app's manifest.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
@@ -36,9 +37,6 @@
         android:usesPermissionFlags="neverForLocation"
         tools:targetApi="32" />
     <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" tools:targetApi="37" />
-
-    <!-- Guard: the app is offline (AGENTS.md). Drop it if a Play services library merges it in. -->
-    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
 
     <application>
         <!-- Hands "Share sync file" to the share sheet; files live in cache/sync/ only. -->

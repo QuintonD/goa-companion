@@ -24,6 +24,8 @@ import dev.quinton.goa.core.domain.sync.protocol.PeerStage
 import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
 import dev.quinton.goa.core.domain.sync.protocol.SyncFailure
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.presentation.group.AddCheck
+import dev.quinton.goa.core.presentation.group.MergeOffer
 import dev.quinton.goa.feature.sync.group.GroupActions
 import dev.quinton.goa.feature.sync.group.GroupScreen
 import dev.quinton.goa.feature.sync.group.GroupUiState
@@ -35,8 +37,6 @@ import dev.quinton.goa.feature.sync.importfile.SyncFileImportUiState
 import dev.quinton.goa.feature.sync.invite.GroupInviteUiState
 import dev.quinton.goa.feature.sync.invite.InviteSheet
 import dev.quinton.goa.feature.sync.invite.InviteSheetActions
-import dev.quinton.goa.feature.sync.me.AddCheck
-import dev.quinton.goa.feature.sync.me.MergeOffer
 import dev.quinton.goa.feature.sync.me.WhoAreYouActions
 import dev.quinton.goa.feature.sync.me.WhoAreYouScreen
 import dev.quinton.goa.feature.sync.me.WhoAreYouUiState

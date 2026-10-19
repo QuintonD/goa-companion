@@ -54,6 +54,7 @@ import dev.quinton.goa.core.designsystem.component.EngravedRule
 import dev.quinton.goa.core.designsystem.icon.GoaIcons
 import dev.quinton.goa.core.designsystem.theme.Motion
 import dev.quinton.goa.core.navigation.DraftBoardRoute
+import dev.quinton.goa.core.navigation.JoinGroupLinkRoute
 import dev.quinton.goa.core.navigation.NavSheet
 import dev.quinton.goa.core.navigation.SyncFileImportRoute
 import dev.quinton.goa.core.navigation.TimerRoute
@@ -99,6 +100,9 @@ data class TabRequest(val tab: TopLevelTab, val id: Long)
 /** A sync file another app handed to this one ([uri], content scheme); opens the import on the Players tab. */
 data class SyncFileRequest(val uri: String, val id: Long)
 
+/** An invite link (`https://<hub>/join#…`) opened from another app; opens the Group screen to join. */
+data class JoinLinkRequest(val link: String, val id: Long)
+
 /**
  * App shell: bottom navigation over one Navigation 3 back stack per top-level tab.
  *
@@ -113,6 +117,7 @@ fun GoaApp(
     tabRequests: StateFlow<TabRequest?>? = null,
     syncFileRequests: StateFlow<SyncFileRequest?>? = null,
     coldStart: Boolean = false,
+    joinLinkRequests: StateFlow<JoinLinkRequest?>? = null,
 ) {
     val navigator = rememberAppNavigator()
     val shell = hiltViewModel<ShellViewModel>()
@@ -128,8 +133,13 @@ fun GoaApp(
         val file = syncFile ?: return@LaunchedEffect
         navigator.navigateToTab(TopLevelTab.PLAYERS, SyncFileImportRoute(file.uri))
     }
+    val joinLink = joinLinkRequests?.collectAsStateWithLifecycle()?.value
+    LaunchedEffect(joinLink?.id) {
+        val link = joinLink ?: return@LaunchedEffect
+        navigator.navigateToTab(TopLevelTab.PLAYERS, JoinGroupLinkRoute(link.link))
+    }
     LaunchedEffect(Unit) {
-        val asked = request != null || syncFile != null
+        val asked = request != null || syncFile != null || joinLink != null
         if (coldStart && !asked && shell.session.first { it != SessionState.LOADING }.active) {
             navigator.openTimer()
         }

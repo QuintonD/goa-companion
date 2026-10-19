@@ -192,6 +192,29 @@ in case). A slot that can't be decoded reads as null. Slots in use: `theme` (`Sh
 pages ask "You're <name>?" and delete it once answered), `push`, `push-schedule` (PushService),
 `players-different`, `players-undo`, `players-flash` (`PlayersSlots`).
 
+`me` (`SharedSlots.Me`, a raw player id: read it through the merges, e.g. `GroupFeature.me(ctx, id, data)`)
+and `settings` (`SharedSlots.Settings`, `AppSettings`; missing = the app's defaults), written only by
+Group and Settings, `group-pending-merge` (Group), `backup-import` (Settings). A signed-in browser
+without a `theme` is dark (`ThemeChoice.DEFAULT`), as the app is.
+
+`timer` and `timer-presets` (`TimerSlots`, the Timer area: the running session and this browser's
+presets; the Timer's push schedules use the keys `timer`, `timer-2`, …). The running timer's view
+switch also writes `settings.timerLayout` (only that field, under the device lock), as the phone's
+top-bar switch saves to AppSettings.
+
+**Timer links** (keep them): `/timer`, `/timer/setup?match=<id>` (a pending match, e.g. after a
+draft; `&rematch=<id>&kind=SAME_SEATS|SWAP_HEROES|SWAP_TEAMS` for a rematch), `/timer/run`. Log
+result sends a linked match to `/players/matches/<id>/result`; without one it reserves an id and
+sends `/players/matches/<new id>/result?new=1&durationMin=<n>&playedAt=<epoch ms>[&mode=quick|long|double_lane]`
+— the timer's summary stays until a match with that id is saved.
+
+`hubButton`'s / `primaryButton`'s trailing block runs before the icon and label are written, so it
+is the place for attributes (`attributes["hx-post"] = "/x"`, `data-*`, `hidden`); don't add content there.
+
+Draft (`DraftSlots`, owner `draft/`): `draft-setup` (the setup form, the next game's default),
+`draft-methods` (custom methods, never synced), `draft-active` (the draft in progress),
+`draft-board` (the board's screen state and step clock), `draft-notes`, `draft-method-edit`.
+
 ## Pages and components
 
 `call.respondPage(HubPage(title, tab, back = "/x", actions = …, showTabs = true, scripts = listOf("timer.js"))) { … }`

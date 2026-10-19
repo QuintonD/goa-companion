@@ -29,6 +29,8 @@ data class PlayersUiState(
     val inGroup: Boolean = false,
     /** Pairs of players that might be one person ("Same people?", ADR-031). */
     val samePeople: Int = 0,
+    /** The last sync with the group's hub failed for a reason a person must fix (ADR-030 §5). */
+    val hubNeedsAttention: Boolean = false,
 ) {
     val isEmpty: Boolean get() = !loading && ranked.isEmpty() && unrated.isEmpty() && archived.isEmpty()
 

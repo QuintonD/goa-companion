@@ -13,9 +13,11 @@ import dev.quinton.goa.core.domain.timer.PhaseSpec
 import dev.quinton.goa.core.domain.timer.PresetIssue
 import dev.quinton.goa.core.domain.timer.TimerPreset
 import dev.quinton.goa.core.domain.timer.TimerPresetValidator
-import dev.quinton.goa.feature.timer.TimerText
+import dev.quinton.goa.core.presentation.timer.PresetEdits
+import dev.quinton.goa.core.presentation.timer.PresetOption
+import dev.quinton.goa.core.presentation.timer.TimerPresets
+import dev.quinton.goa.core.presentation.timer.TimerUiMapper
 import dev.quinton.goa.feature.timer.data.TimerRepository
-import dev.quinton.goa.feature.timer.ui.timer.PresetOption
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
@@ -46,17 +48,7 @@ class PresetsViewModel @Inject constructor(private val repository: TimerReposito
         ->
         PresetsUiState(
             loading = false,
-            presets = list.map {
-                PresetOption(
-                    it.id,
-                    it.name,
-                    TimerText.presetSummary(it),
-                    it.phases.any { p ->
-                        p.enabled &&
-                            p.kind == PhaseKind.ACTION
-                    },
-                )
-            },
+            presets = list.map(TimerUiMapper::presetOption),
             selectedId = selected,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), PresetsUiState())
@@ -65,7 +57,7 @@ class PresetsViewModel @Inject constructor(private val repository: TimerReposito
 
     fun duplicate(id: String) = launch {
         val source = repository.preset(id) ?: return@launch
-        repository.save(source.copy(id = UUID.randomUUID().toString(), name = "${source.name} copy"))
+        repository.save(TimerPresets.duplicate(source, UUID.randomUUID().toString()))
     }
 
     fun delete(id: String) = launch { repository.delete(id) }
@@ -129,12 +121,7 @@ class PresetEditViewModel @AssistedInject constructor(
     private suspend fun newPreset(): TimerPreset {
         val template = repository.presets.first().firstOrNull { it.id == repository.selectedPresetId.first() }
         // Blank name: the field shows a placeholder instead of text the user has to delete.
-        return (template ?: TimerPreset(id = "", name = "", phases = emptyList())).copy(
-            id = UUID.randomUUID().toString(),
-            name = "",
-            autoAdvance = false,
-            revision = 0,
-        )
+        return PresetEdits.newPreset(template, UUID.randomUUID().toString())
     }
 
     fun rename(name: String) = edit { it.copy(name = name) }
@@ -144,8 +131,7 @@ class PresetEditViewModel @AssistedInject constructor(
     /** "Hurry up" shot clock length; null = no shot clock. */
     fun setShotClock(seconds: Int?) = edit { it.copy(shotClockSeconds = seconds) }
 
-    fun setTimeOutsPerRound(count: Int) =
-        edit { it.copy(timeOutsPerRound = count.coerceIn(TimerPresetValidator.TIME_OUTS_RANGE)) }
+    fun setTimeOutsPerRound(count: Int) = edit { PresetEdits.setTimeOutsPerRound(it, count) }
 
     fun setTimeOutSeconds(seconds: Int?) = edit { it.copy(timeOutSeconds = seconds ?: it.timeOutSeconds) }
 
@@ -156,52 +142,18 @@ class PresetEditViewModel @AssistedInject constructor(
     fun renamePhase(phaseId: String, name: String) = editPhase(phaseId) { it.copy(name = name) }
 
     /** Sets the duration; null = untimed. Cues that no longer fit are dropped. */
-    fun setSeconds(phaseId: String, seconds: Int?) = editPhase(phaseId) { phase ->
-        phase.copy(
-            seconds = seconds,
-            cues = if (seconds == null) emptyList() else phase.cues.filter { it < seconds }.ifEmpty { listOf(0) },
-        )
-    }
+    fun setSeconds(phaseId: String, seconds: Int?) = editPhase(phaseId) { PresetEdits.setSeconds(it, seconds) }
 
-    fun toggleCue(phaseId: String, cue: Int) = editPhase(phaseId) { phase ->
-        val cues = if (cue in phase.cues) phase.cues - cue else (phase.cues + cue).sortedDescending()
-        phase.copy(cues = cues)
-    }
+    fun toggleCue(phaseId: String, cue: Int) = editPhase(phaseId) { PresetEdits.toggleCue(it, cue) }
 
     fun setEndStep(phaseId: String, endStepId: String?) = editPhase(phaseId) { it.copy(endStepId = endStepId) }
 
     /** Moves a phase up (-1) or down (+1) among the phases of the same scope. */
-    fun move(phaseId: String, direction: Int) = edit { preset ->
-        val phases = preset.phases.toMutableList()
-        val index = phases.indexOfFirst { it.id == phaseId }
-        if (index < 0) return@edit preset
-        val scope = phases[index].scope
-        val sameScope = phases.indices.filter { phases[it].scope == scope }
-        val pos = sameScope.indexOf(index)
-        val target = sameScope.getOrNull(pos + direction) ?: return@edit preset
-        phases[index] = phases[target].also { phases[target] = phases[index] }
-        preset.copy(phases = phases)
-    }
+    fun move(phaseId: String, direction: Int) = edit { PresetEdits.move(it, phaseId, direction) }
 
-    fun addPhase(scope: PhaseScope) = edit { preset ->
-        val phase = PhaseSpec(
-            id = UUID.randomUUID().toString(),
-            name = when (scope) {
-                PhaseScope.ROUND_START -> "Round start timer"
-                PhaseScope.TURN -> "Turn timer"
-                PhaseScope.ROUND_END -> "End of round timer"
-            },
-            kind = PhaseKind.CUSTOM,
-            scope = scope,
-            seconds = DEFAULT_NEW_SECONDS,
-            cues = listOf(10, 0),
-        )
-        preset.copy(phases = preset.phases + phase)
-    }
+    fun addPhase(scope: PhaseScope) = edit { PresetEdits.addPhase(it, scope, UUID.randomUUID().toString()) }
 
-    fun removePhase(phaseId: String) = edit { preset ->
-        preset.copy(phases = preset.phases.filterNot { it.id == phaseId && it.kind == PhaseKind.CUSTOM })
-    }
+    fun removePhase(phaseId: String) = edit { PresetEdits.removePhase(it, phaseId) }
 
     fun save() {
         val current = state.value
@@ -217,7 +169,7 @@ class PresetEditViewModel @AssistedInject constructor(
     }
 
     private fun editPhase(phaseId: String, transform: (PhaseSpec) -> PhaseSpec) = edit { preset ->
-        preset.copy(phases = preset.phases.map { if (it.id == phaseId) transform(it) else it })
+        PresetEdits.editPhase(preset, phaseId, transform)
     }
 
     private fun edit(transform: (TimerPreset) -> TimerPreset) {
@@ -229,9 +181,9 @@ class PresetEditViewModel @AssistedInject constructor(
     }
 
     companion object {
-        const val DEFAULT_NEW_SECONDS = 60
+        const val DEFAULT_NEW_SECONDS = PresetEdits.DEFAULT_NEW_SECONDS
 
         /** Cue thresholds offered in the editor (seconds remaining). */
-        val CUE_OPTIONS = listOf(60, 30, 10, 5, 3, 0)
+        val CUE_OPTIONS = PresetEdits.CUE_OPTIONS
     }
 }

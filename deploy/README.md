@@ -388,8 +388,12 @@ sudo timedatectl set-ntp true   # turn on time sync
 **Phones say "Hub: 409" / "update the app".** Hub and app are on different sync versions: update
 both (section 7). **"401"**: the hub is in another group (or none): join it again with a fresh
 invite: `sudo systemctl stop goa-hub`, then
-`sudo -u goa-hub /opt/goa-hub/current/bin/goa-hub join '<invite>' --data /var/lib/goa-hub`,
-then `sudo systemctl start goa-hub` (single quotes around the invite; it contains `&`).
+`sudo -u goa-hub /opt/goa-hub/current/bin/goa-hub join --data /var/lib/goa-hub` and paste the invite
+when it asks (on standard input: no quoting, and the key stays out of the shell history and the
+process list), then `sudo systemctl start goa-hub`. On Windows (PowerShell as Administrator):
+`Stop-ScheduledTask 'GoA Hub'`, then `C:\goa-hub\current\bin\goa-hub.bat join --data C:\ProgramData\goa-hub`
+and paste the invite, then `Start-ScheduledTask 'GoA Hub'` (never as an argument there: `cmd.exe`
+splits it at every `&`).
 **"413"**: a sync over 8 MB, which shouldn't happen; tell the developer.
 
 **The hub crashes with `OutOfMemoryError`.** Raise `-Xmx384m` in

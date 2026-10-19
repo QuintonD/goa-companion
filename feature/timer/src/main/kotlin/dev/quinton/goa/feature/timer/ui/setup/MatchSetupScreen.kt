@@ -63,6 +63,13 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.presentation.timer.CoinSource
+import dev.quinton.goa.core.presentation.timer.CountersUi
+import dev.quinton.goa.core.presentation.timer.LayoutOptionUi
+import dev.quinton.goa.core.presentation.timer.LinkedMatchUi
+import dev.quinton.goa.core.presentation.timer.MatchSetupText
+import dev.quinton.goa.core.presentation.timer.MatchSetupUiState
+import dev.quinton.goa.core.presentation.timer.ModeOptionUi
 import dev.quinton.goa.feature.timer.ui.components.CoinFace
 import dev.quinton.goa.feature.timer.ui.components.goaChipBorder
 import dev.quinton.goa.feature.timer.ui.components.goaChipColors
@@ -259,7 +266,7 @@ private fun PlayersCard(state: MatchSetupUiState, onPlayers: (Int) -> Unit) {
                     Text("${state.players} players", style = MaterialTheme.typography.titleMedium)
                     Text(
                         when {
-                            state.seatsSource != null -> state.seatsSource
+                            state.seatsSource != null -> state.seatsSource!!
                             state.recommended -> "Recommended count"
                             else -> "Supported: ${state.playerRange.first} to ${state.playerRange.last}"
                         },
@@ -377,7 +384,7 @@ private fun ModeCard(mode: ModeOptionUi, selected: Boolean, onClick: () -> Unit)
                     }
                 }
                 if (mode.reason != null) {
-                    Text(mode.reason, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                    Text(mode.reason!!, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
                 } else {
                     Text(
                         "${mode.waves} · ${mode.life}",
@@ -411,10 +418,7 @@ private fun CountersBoard(counters: CountersUi) {
             Text("Life counters per team", style = MaterialTheme.typography.titleSmall)
             val life = counters.lifePerTeam
             if (life == null) {
-                Note(
-                    "Not specified by the rulebook for ${counters.largerTeamHeroes + counters.smallerTeamHeroes} " +
-                        "heroes in a single lane. Consider Double lane or check the rulebook.",
-                )
+                Note(MatchSetupText.lifeNotSpecified(counters))
             } else {
                 Team.entries.forEach { team ->
                     TokenRow(
@@ -428,35 +432,8 @@ private fun CountersBoard(counters: CountersUi) {
                 }
             }
             counters.houseRuleNote?.let { HouseRuleNote(it) }
-            val seatsLine = buildList {
-                if (counters.redHeroes != null && counters.blueHeroes != null) {
-                    add("Red ${counters.redHeroes} · Blue ${counters.blueHeroes} heroes")
-                } else {
-                    add("${counters.largerTeamHeroes} vs ${counters.smallerTeamHeroes} heroes")
-                }
-                if (counters.handicapHeroes > 0) {
-                    add(
-                        if (counters.handicapHeroes ==
-                            1
-                        ) {
-                            "1 Handicap card"
-                        } else {
-                            "${counters.handicapHeroes} Handicap cards"
-                        },
-                    )
-                }
-                if (counters.doublePilots > 0) {
-                    add(
-                        if (counters.doublePilots == 1) {
-                            "1 player controls 2 heroes"
-                        } else {
-                            "${counters.doublePilots} players control 2 heroes each"
-                        },
-                    )
-                }
-            }
             Text(
-                seatsLine.joinToString(" · "),
+                MatchSetupText.seatsLine(counters),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -603,14 +580,14 @@ private fun TieBreakerCard(state: MatchSetupUiState, actions: SetupActions) {
             )
             Spacer(Modifier.height(Spacing.md))
             Text(
-                coinMessage(state),
+                MatchSetupText.coinMessage(state),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
             if (coin != null) {
                 Text(
-                    "Team ${teamName(coin)} acts first on the next cross-team initiative tie.",
+                    MatchSetupText.coinAdvantage(coin),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -637,19 +614,6 @@ private fun TieBreakerCard(state: MatchSetupUiState, actions: SetupActions) {
             Spacer(Modifier.height(Spacing.md))
             RulesNoteBlock("How the coin is used", state.tieBreakerRule)
         }
-    }
-}
-
-private fun coinMessage(state: MatchSetupUiState): String {
-    val coin = state.tieBreaker ?: return "Flip the coin and place it, result side up, by the board."
-    val side = teamName(coin)
-    return when (state.coinSource) {
-        CoinSource.DRAFT -> "$side is already showing from the draft. Leave the coin as it is."
-
-        CoinSource.MATCH -> "$side is showing, as recorded for this match. Leave the coin as it is."
-
-        CoinSource.HERE, CoinSource.NONE ->
-            if (state.coinPlaced) "$side is showing (corrected)." else "$side is showing. Place the coin by the board."
     }
 }
 

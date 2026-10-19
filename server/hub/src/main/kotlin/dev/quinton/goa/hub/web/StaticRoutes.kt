@@ -105,7 +105,8 @@ internal fun manifest(): String = buildJsonObject {
     put("start_url", "/")
     put("scope", "/")
     put("display", "standalone")
-    put("orientation", "portrait")
+    // "any": the running timer has a landscape layout, as on the phone.
+    put("orientation", "any")
     put("background_color", "#0B1622")
     put("theme_color", "#0B1622")
     putJsonArray("icons") {

@@ -6,6 +6,8 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.presentation.timer.CoinSource
+import dev.quinton.goa.core.presentation.timer.MatchSetupUiState
 import dev.quinton.goa.feature.timer.ui.preview.TimerPreviewData
 import org.junit.Rule
 import org.junit.Test

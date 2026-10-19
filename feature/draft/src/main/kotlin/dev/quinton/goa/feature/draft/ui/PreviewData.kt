@@ -17,6 +17,7 @@ import dev.quinton.goa.core.model.draft.DraftMethodKind
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.rating.Rating
+import dev.quinton.goa.core.presentation.draft.HeroInfo
 
 /**
  * Synthetic data for @Preview only ("Hero N", invented players). Never real game data; the

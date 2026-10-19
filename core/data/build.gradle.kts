@@ -11,6 +11,9 @@ dependencies {
     implementation(projects.core.datastore)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
+    // The group's hub (ADR-030 §5): one HTTPS endpoint, no logging interceptor.
+    implementation(libs.okhttp)
+    testImplementation(libs.okhttp.mockwebserver)
     testImplementation(projects.core.testing)
     testImplementation(testFixtures(projects.core.domain))
     testImplementation(libs.robolectric)

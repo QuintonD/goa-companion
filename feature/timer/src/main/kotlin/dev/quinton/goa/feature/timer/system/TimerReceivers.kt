@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import dagger.hilt.android.AndroidEntryPoint
-import dev.quinton.goa.feature.timer.session.TimerCommand
+import dev.quinton.goa.core.presentation.timer.TimerCommand
 import dev.quinton.goa.feature.timer.session.TimerController
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope

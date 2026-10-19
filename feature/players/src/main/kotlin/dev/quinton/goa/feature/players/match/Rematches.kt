@@ -4,7 +4,7 @@ import dev.quinton.goa.core.data.DraftSetupPrefill
 import dev.quinton.goa.core.domain.match.Rematch
 import dev.quinton.goa.core.domain.match.RematchKind
 import dev.quinton.goa.core.model.match.Match
-import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.presentation.draft.DraftAgain
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,16 +37,13 @@ class RematchLauncher @Inject constructor(private val draftSetup: DraftSetupPref
         MatchNav.OpenRematch(source.id, kind).takeIf { Rematch.unavailable(source, kind) == null }
 
     suspend fun redraft(source: Match) {
-        val red = source.team(Team.RED)
-        val blue = source.team(Team.BLUE)
-        val doublePilot = source.participants.groupingBy {
-            it.playerId
-        }.eachCount().filterValues { it > 1 }.keys.firstOrNull()
+        // The same group extraction the hub's "Draft again" uses (core:presentation).
+        val group = DraftAgain.of(source)
         draftSetup.prefill(
-            red = red.map { it.playerId }.distinct(),
-            blue = blue.map { it.playerId }.distinct(),
-            doublePilot = doublePilot,
-            handicap = red.size != blue.size,
+            red = group.red,
+            blue = group.blue,
+            doublePilot = group.doublePilot,
+            handicap = group.handicap,
         )
     }
 }

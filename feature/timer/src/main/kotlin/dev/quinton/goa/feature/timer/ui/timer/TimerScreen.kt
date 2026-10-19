@@ -10,6 +10,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.TimerLayout
+import dev.quinton.goa.core.presentation.timer.TimerUiState
 import dev.quinton.goa.feature.timer.ui.components.notificationSettingsIntent
 import dev.quinton.goa.feature.timer.ui.components.rememberStartWithNotificationPermission
 
@@ -117,9 +118,9 @@ fun TimerRoute(
 @Composable
 fun TimerScreen(state: TimerUiState, actions: TimerActions) {
     when {
-        state.active != null -> ActiveTimer(state.active, actions)
-        state.summary != null -> MatchSummary(state.summary, actions)
-        state.start != null -> TimerStart(state.start, actions)
+        state.active != null -> ActiveTimer(state.active!!, actions)
+        state.summary != null -> MatchSummary(state.summary!!, actions)
+        state.start != null -> TimerStart(state.start!!, actions)
         else -> GoaScreen(title = "Timer") { }
     }
 }

@@ -17,9 +17,13 @@ import dev.quinton.goa.core.domain.draft.ban
 import dev.quinton.goa.core.domain.draft.pick
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.draft.DraftMethodKind
-import dev.quinton.goa.feature.draft.data.DraftEnvironment
+import dev.quinton.goa.core.presentation.draft.DraftEnvironment
+import dev.quinton.goa.core.presentation.draft.MethodEditUiState
+import dev.quinton.goa.core.presentation.draft.PoolKind
+import dev.quinton.goa.core.presentation.draft.PreviewLayout
+import dev.quinton.goa.core.presentation.draft.StepSection
+import dev.quinton.goa.core.presentation.draft.plural
 import dev.quinton.goa.feature.draft.data.DraftRepository
-import dev.quinton.goa.feature.draft.ui.plural
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,92 +33,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-enum class PoolKind(val label: String) {
-    ALL("All"),
-    RANDOM("Random N"),
-    SEATS_PLUS("Heroes + N"),
-    DEAL("Deal N each"),
-}
-
-enum class StepSection { OPENING, REPEAT }
-
-data class MethodEditUiState(
-    val loading: Boolean = true,
-    val isNew: Boolean = true,
-    /** Editing a built-in creates a copy; built-ins are never changed in place. */
-    val copyOf: String? = null,
-    val id: String = "",
-    val name: String = "",
-    val poolKind: PoolKind = PoolKind.RANDOM,
-    val poolValue: Int = 15,
-    val opening: List<StepSpec> = emptyList(),
-    val repeat: List<StepSpec> = emptyList(),
-    /** Non-pattern sequences (per-count tables, lineups) keep their sequence; only pool/timer edit. */
-    val fixedSequence: SequenceRule? = null,
-    val stepSeconds: Int? = null,
-    val layout: PreviewLayout = PreviewLayout.OPTIONS.first(),
-    val saving: Boolean = false,
-) {
-    val sequence: SequenceRule get() = fixedSequence ?: SequenceRule.Pattern(opening, repeat)
-
-    val pool: PoolRule
-        get() = when (poolKind) {
-            PoolKind.ALL -> PoolRule.All
-            PoolKind.RANDOM -> PoolRule.Random(poolValue)
-            PoolKind.SEATS_PLUS -> PoolRule.SeatsPlus(poolValue)
-            PoolKind.DEAL -> PoolRule.DealPerSeat(poolValue)
-        }
-
-    fun toMethod(): DraftMethod = DraftMethod(
-        id = id,
-        name = name.trim(),
-        kind = DraftMethodKind.CUSTOM,
-        origin = MethodOrigin.CUSTOM,
-        summary = describe(),
-        pool = pool,
-        sequence = sequence,
-        stepSeconds = stepSeconds,
-        notes = copyOf?.let { listOf("Based on $it.") }.orEmpty(),
-    )
-
-    val preview: SequencePreview get() = previewOf(toMethod(), layout)
-
-    val error: String?
-        get() = when {
-            name.isBlank() -> "Give the method a name"
-
-            fixedSequence == null && repeat.none { it.action == DraftAction.PICK } &&
-                opening.none { it.action == DraftAction.PICK } ->
-                "Add at least one pick"
-
-            // Checked for fixed sequences too (e.g. a Pick and Ban copy with dealt hands).
-            DraftPlanner.problem(toMethod()) != null -> DraftPlanner.problem(toMethod())?.message
-
-            fixedSequence != null -> null
-
-            else -> PreviewLayout.OPTIONS.firstNotNullOfOrNull {
-                previewOf(toMethod(), it).error?.let { e -> "${it.label}: $e" }
-            }
-        }
-
-    private fun describe(): String {
-        val poolText = when (poolKind) {
-            PoolKind.ALL -> "All eligible heroes"
-            PoolKind.RANDOM -> "Pool of $poolValue"
-            PoolKind.SEATS_PLUS -> "Heroes + $poolValue revealed"
-            PoolKind.DEAL -> "Deal $poolValue to each seat"
-        }
-        val bans = (opening + repeat).count { it.action == DraftAction.BAN }
-        return if (fixedSequence !=
-            null
-        ) {
-            "$poolText."
-        } else {
-            "$poolText. ${bans.takeIf { it > 0 }?.let { "${plural(it, "ban")}. " } ?: ""}Custom order."
-        }
-    }
-}
 
 sealed interface MethodEditEvent {
     data object Saved : MethodEditEvent
@@ -139,93 +57,33 @@ class DraftMethodEditViewModel @AssistedInject constructor(
     init {
         viewModelScope.launch {
             val library = drafts.methods.first()
-            val source = library.find(methodId)
-            state.value = when {
-                source == null -> MethodEditUiState(
-                    loading = false,
-                    id = "custom-${env.newId()}",
-                    name = "",
-                    opening = listOf(ban(TeamSlot.A), ban(TeamSlot.B)),
-                    repeat = listOf(pick(TeamSlot.A), pick(TeamSlot.B)),
-                )
-
-                source.isBuiltIn -> fromMethod(source).copy(
-                    isNew = true,
-                    copyOf = source.name,
-                    id = "custom-${env.newId()}",
-                    name = "${source.name} (copy)",
-                )
-
-                else -> fromMethod(source).copy(isNew = false)
-            }
+            // A new method or a copy gets a fresh id; a custom method keeps its own.
+            val newId = if (library.find(methodId)?.isBuiltIn == false) "" else env.newId()
+            state.value = MethodEditUiState.forEditing(library, methodId, newId)
         }
     }
 
-    private fun fromMethod(m: DraftMethod): MethodEditUiState {
-        val (kind, value) = when (val p = m.pool) {
-            PoolRule.All -> PoolKind.ALL to 15
-            is PoolRule.Random -> PoolKind.RANDOM to p.size
-            is PoolRule.SeatsPlus -> PoolKind.SEATS_PLUS to p.extra
-            is PoolRule.DealPerSeat -> PoolKind.DEAL to p.perSeat
-        }
-        val pattern = m.sequence as? SequenceRule.Pattern
-        return MethodEditUiState(
-            loading = false,
-            id = m.id,
-            name = m.name,
-            poolKind = kind,
-            poolValue = value,
-            opening = pattern?.opening.orEmpty(),
-            repeat = pattern?.repeat.orEmpty(),
-            fixedSequence = if (pattern == null) m.sequence else null,
-            stepSeconds = m.stepSeconds,
-        )
-    }
+    fun setName(name: String) = state.update { it.withName(name) }
 
-    fun setName(name: String) = state.update { it.copy(name = name.take(MAX_NAME)) }
+    fun setPoolKind(kind: PoolKind) = state.update { it.withPoolKind(kind) }
 
-    fun setPoolKind(kind: PoolKind) = state.update {
-        it.copy(
-            poolKind = kind,
-            poolValue = when (kind) {
-                PoolKind.ALL -> it.poolValue
-                PoolKind.RANDOM -> 15
-                PoolKind.SEATS_PLUS -> 2
-                PoolKind.DEAL -> 3
-            },
-        )
-    }
+    fun setPoolValue(value: Int) = state.update { it.withPoolValue(value) }
 
-    fun setPoolValue(value: Int) = state.update { it.copy(poolValue = value.coerceIn(minPool(it.poolKind), MAX_POOL)) }
+    fun addStep(section: StepSection, step: StepSpec) = state.update { it.addStep(section, step) }
 
-    private fun minPool(kind: PoolKind) = if (kind == PoolKind.SEATS_PLUS) 0 else 1
+    fun removeStep(section: StepSection, index: Int) = state.update { it.removeStep(section, index) }
 
-    fun addStep(section: StepSection, step: StepSpec) = edit(section) { it + step }
+    fun toggleTeam(section: StepSection, index: Int) = state.update { it.toggleTeam(section, index) }
 
-    fun removeStep(section: StepSection, index: Int) = edit(section) { list ->
-        list.filterIndexed { i, _ -> i != index }
-    }
+    fun toggleAction(section: StepSection, index: Int) = state.update { it.toggleAction(section, index) }
 
-    fun toggleTeam(section: StepSection, index: Int) = updateStep(section, index) { it.copy(team = it.team.other) }
+    fun toggleHidden(section: StepSection, index: Int) = state.update { it.toggleHidden(section, index) }
 
-    fun toggleAction(section: StepSection, index: Int) = updateStep(section, index) {
-        it.copy(action = if (it.action == DraftAction.BAN) DraftAction.PICK else DraftAction.BAN)
-    }
+    fun moveStep(section: StepSection, index: Int, delta: Int) = state.update { it.moveStep(section, index, delta) }
 
-    fun toggleHidden(section: StepSection, index: Int) = updateStep(section, index) { it.copy(hidden = !it.hidden) }
+    fun setStepSeconds(seconds: Int?) = state.update { it.withStepSeconds(seconds) }
 
-    fun moveStep(section: StepSection, index: Int, delta: Int) = edit(section) { list ->
-        val target = index + delta
-        if (target !in list.indices) {
-            list
-        } else {
-            list.toMutableList().apply { add(target, removeAt(index)) }
-        }
-    }
-
-    fun setStepSeconds(seconds: Int?) = state.update { it.copy(stepSeconds = seconds) }
-
-    fun setLayout(layout: PreviewLayout) = state.update { it.copy(layout = layout) }
+    fun setLayout(layout: PreviewLayout) = state.update { it.withLayout(layout) }
 
     fun save() {
         val current = state.value
@@ -235,28 +93,5 @@ class DraftMethodEditViewModel @AssistedInject constructor(
             drafts.saveCustomMethod(current.toMethod())
             events.send(MethodEditEvent.Saved)
         }
-    }
-
-    private fun updateStep(section: StepSection, index: Int, transform: (StepSpec) -> StepSpec) = edit(
-        section,
-    ) { list ->
-        list.mapIndexed { i, s -> if (i == index) transform(s) else s }
-    }
-
-    private fun edit(section: StepSection, transform: (List<StepSpec>) -> List<StepSpec>) = state.update {
-        if (it.fixedSequence != null) {
-            it
-        } else {
-            when (section) {
-                StepSection.OPENING -> it.copy(opening = transform(it.opening).take(MAX_STEPS))
-                StepSection.REPEAT -> it.copy(repeat = transform(it.repeat).take(MAX_STEPS))
-            }
-        }
-    }
-
-    private companion object {
-        const val MAX_NAME = 40
-        const val MAX_POOL = 60
-        const val MAX_STEPS = 30
     }
 }

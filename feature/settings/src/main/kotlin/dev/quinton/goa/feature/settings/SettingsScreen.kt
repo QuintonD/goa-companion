@@ -66,6 +66,8 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.model.settings.TimerLayout
+import dev.quinton.goa.core.presentation.settings.OwnedProducts
+import dev.quinton.goa.core.presentation.settings.ProductOption
 
 /** Where each settings link goes; the route maps these to Navigation 3 keys. */
 enum class SettingsLink { TIMER_PRESETS, DRAFT_METHODS, RATINGS, GROUP_SYNC, BACKUP, ABOUT }
@@ -131,11 +133,7 @@ private fun SettingsList(
                 SwitchRow(
                     icon = Icons.Outlined.Inventory2,
                     title = "I own every product",
-                    subtitle = if (state.ownsEverything) {
-                        "All heroes are available in drafts and filters"
-                    } else {
-                        "${state.ownedCount} of ${state.products.size} products owned"
-                    },
+                    subtitle = OwnedProducts.summary(state.products, state.ownsEverything),
                     checked = state.ownsEverything,
                     onCheckedChange = { onAction(SettingsAction.SetOwnsEverything(it)) },
                 )
@@ -330,10 +328,7 @@ private fun SwitchRow(
 
 @Composable
 private fun ProductRow(product: ProductOption, enabled: Boolean, onToggle: () -> Unit) {
-    val detail = listOfNotNull(
-        product.released?.toString(),
-        if (product.heroCount > 0) "${product.heroCount} heroes" else null,
-    ).joinToString(" · ").ifEmpty { null }
+    val detail = OwnedProducts.detail(product)
     Row(
         Modifier
             .fillMaxWidth()

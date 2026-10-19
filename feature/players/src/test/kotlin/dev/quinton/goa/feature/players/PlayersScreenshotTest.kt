@@ -241,6 +241,11 @@ class PlayersScreenshotTest {
 
     @Test fun leaderboardLight() = shot(ThemeMode.LIGHT) { Home(PlayersTab.PLAYERS) }
 
+    /** The hub sync needs a person (ADR-030 §5): a quiet dot on the sync icon. */
+    @Test fun leaderboardHubAttentionLight() = shot(ThemeMode.LIGHT) {
+        Home(PlayersTab.PLAYERS, Shots.players.copy(inGroup = true, hubNeedsAttention = true))
+    }
+
     /** Group sync: this phone's player wears "You" and the top bar opens their page. */
     @Test fun leaderboardWithYouLight() = shot(ThemeMode.LIGHT) {
         val players = Shots.players

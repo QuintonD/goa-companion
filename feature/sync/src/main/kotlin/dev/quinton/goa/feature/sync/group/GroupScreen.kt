@@ -58,6 +58,8 @@ import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.feature.sync.hub.HubActions
+import dev.quinton.goa.feature.sync.hub.HubCard
 
 class GroupActions(
     val onBack: () -> Unit = {},
@@ -72,6 +74,7 @@ class GroupActions(
     /** "Invite a friend": who it's for, then the QR code (ADR-031). */
     val onInvite: () -> Unit = {},
     val onLeave: () -> Unit = {},
+    val hub: HubActions = HubActions(),
 )
 
 @Composable
@@ -249,6 +252,8 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                 }
             }
         }
+        item { SectionHeader("Hub") }
+        item { HubCard(state.hub, actions.hub) }
         item { SectionHeader("This phone") }
         item {
             GoaCard(Modifier.fillMaxWidth(), onClick = actions.onWhoAreYou) {

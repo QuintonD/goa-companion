@@ -8,13 +8,13 @@ import dev.quinton.goa.core.domain.draft.SequenceRule
 import dev.quinton.goa.core.domain.draft.TeamSlot
 import dev.quinton.goa.core.domain.draft.pick
 import dev.quinton.goa.core.model.draft.DraftMethodKind
+import dev.quinton.goa.core.presentation.draft.PoolKind
+import dev.quinton.goa.core.presentation.draft.PreviewLayout
+import dev.quinton.goa.core.presentation.draft.StepSection
 import dev.quinton.goa.feature.draft.methods.DraftMethodEditViewModel
 import dev.quinton.goa.feature.draft.methods.DraftMethodsViewModel
 import dev.quinton.goa.feature.draft.methods.MethodEditEvent
 import dev.quinton.goa.feature.draft.methods.MethodsEvent
-import dev.quinton.goa.feature.draft.methods.PoolKind
-import dev.quinton.goa.feature.draft.methods.PreviewLayout
-import dev.quinton.goa.feature.draft.methods.StepSection
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest

@@ -64,7 +64,8 @@ import dev.quinton.goa.core.domain.timer.PhaseScope
 import dev.quinton.goa.core.domain.timer.PhaseSpec
 import dev.quinton.goa.core.domain.timer.PresetIssue
 import dev.quinton.goa.core.domain.timer.TimerPresetValidator
-import dev.quinton.goa.feature.timer.TimerText
+import dev.quinton.goa.core.presentation.timer.PresetEdits
+import dev.quinton.goa.core.presentation.timer.TimerText
 import dev.quinton.goa.feature.timer.ui.components.goaChipBorder
 import dev.quinton.goa.feature.timer.ui.components.goaChipColors
 import dev.quinton.goa.feature.timer.ui.timer.SectionHeader
@@ -498,26 +499,7 @@ private fun EndStepPicker(phase: PhaseSpec, endSteps: List<EndOfRoundStep>, onPi
 @Composable
 private fun IssueText(issues: List<PresetIssue>) {
     issues.forEach { issue ->
-        val text = when (issue.kind) {
-            PresetIssue.Kind.DURATION_OUT_OF_RANGE ->
-                "Duration must be between ${TimerPresetValidator.MIN_SECONDS} s and ${TimerPresetValidator.MAX_SECONDS / 60} min."
-
-            PresetIssue.Kind.CUE_OUT_OF_RANGE -> "Cues must be shorter than the phase."
-
-            PresetIssue.Kind.BLANK_PHASE_NAME -> "Give this timer a name."
-
-            PresetIssue.Kind.DUPLICATE_PHASE_ID -> "Duplicate timer."
-
-            PresetIssue.Kind.ACTION_NOT_PER_TURN -> "The Action timer runs during turns only."
-
-            PresetIssue.Kind.UNKNOWN_END_STEP -> "Pick an end-of-round step."
-
-            PresetIssue.Kind.BLANK_NAME,
-            PresetIssue.Kind.TURNS_OUT_OF_RANGE,
-            PresetIssue.Kind.SHOT_CLOCK_OUT_OF_RANGE,
-            PresetIssue.Kind.TIME_OUTS_OUT_OF_RANGE,
-            -> null
-        } ?: return@forEach
+        val text = PresetEdits.issueText(issue) ?: return@forEach
         Text(
             text,
             color = MaterialTheme.colorScheme.error,
