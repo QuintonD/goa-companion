@@ -3,7 +3,6 @@ package dev.quinton.goa.hub.timer
 import dev.quinton.goa.core.domain.timer.TimerEngine
 import dev.quinton.goa.core.domain.timer.TimerStatus
 import dev.quinton.goa.core.model.match.Team
-import dev.quinton.goa.core.model.rules.LevelLadder
 import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.core.presentation.timer.ActiveUiState
 import dev.quinton.goa.core.presentation.timer.MatchSetupText
@@ -29,12 +28,6 @@ import kotlinx.html.h3
 import kotlinx.html.id
 import kotlinx.html.p
 import kotlinx.html.span
-import kotlinx.html.table
-import kotlinx.html.tbody
-import kotlinx.html.td
-import kotlinx.html.th
-import kotlinx.html.thead
-import kotlinx.html.tr
 
 /*
  * The running timer's dialogs (end match, Tie Breaker coin, jump, levels), its summary once the
@@ -85,7 +78,6 @@ internal fun HtmlBlockTag.runDialogs(m: RunModel, a: ActiveUiState) {
         }
     }
     if (a.layout == TimerLayout.ROUND) jumpDialog(a)
-    levelsDialog(m.ladder)
 }
 
 /** "Jump to Turn 2 · Play a card?": a mis-tap is cheap to undo, but never silent (timer.js fills in the target). */
@@ -111,54 +103,6 @@ private fun HtmlBlockTag.jumpDialog(a: ActiveUiState) {
             }
         }
     }
-}
-
-/** The p.15 table (Level Up cost, max card Tier) and the verbatim Level Up rules. */
-private fun HtmlBlockTag.levelsDialog(ladder: LevelLadder?) {
-    hubDialog("levels-dialog", "Levels & defeats") {
-        if (ladder == null) {
-            p { +"The level ladder isn't available." }
-            return@hubDialog
-        }
-        table("tr-ladder") {
-            thead {
-                tr {
-                    th { +"Level" }
-                    th { +"Level Up cost" }
-                    th { +"Max card Tier" }
-                    th { +"Defeat coins" }
-                    th { +"Assist coins" }
-                }
-            }
-            tbody {
-                ladder.levels.forEach { row ->
-                    tr {
-                        th { +row.level.toString() }
-                        td { +(row.levelUpCost?.toString() ?: "–") }
-                        td { +(row.maxTier?.let(::tier) ?: "–") }
-                        td { +row.defeatCoins.toString() }
-                        td { +row.assistCoins.toString() }
-                    }
-                }
-            }
-        }
-        ladder.levelUp.forEach { excerpt ->
-            div("tr-excerpt") {
-                excerpt.heading?.let { h3 { +it } }
-                excerpt.text.split("\n").forEach { p { +it } }
-                p("tr-excerpt-page") { +"Rulebook p.${excerpt.page}" }
-            }
-        }
-        p { a("/rules", classes = "btn btn-text") { +"Full rules reference" } }
-    }
-}
-
-private fun tier(t: Int): String = when (t) {
-    1 -> "I"
-    2 -> "II"
-    3 -> "III"
-    4 -> "IV"
-    else -> t.toString()
 }
 
 // ---- summary ---------------------------------------------------------------------------------

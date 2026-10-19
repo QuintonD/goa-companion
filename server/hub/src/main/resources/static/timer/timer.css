@@ -390,14 +390,6 @@
 .tr-summary-card h2 { font-size: 28px; }
 .tr-log { min-height: 64px; font-size: 19px; }
 
-/* Levels dialog */
-.tr-ladder { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-.tr-ladder th, .tr-ladder td { padding: 6px 8px; border-bottom: 1px solid var(--engraved); text-align: center; }
-.tr-ladder thead th { color: var(--on-surface-variant); font-size: 13px; font-weight: 600; }
-.tr-excerpt { margin-top: 12px; }
-.tr-excerpt p + p { margin-top: 6px; }
-.tr-excerpt-page { color: var(--on-surface-variant); font-size: 13px; }
-
 /* ---- The running-timer bar on other pages ---- */
 .timer-bar {
   display: flex;

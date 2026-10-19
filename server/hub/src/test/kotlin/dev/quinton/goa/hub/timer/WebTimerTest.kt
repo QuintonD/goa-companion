@@ -321,6 +321,19 @@ class WebTimerTest {
         assertThat(s.actionSlots).isEqualTo(4)
         assertThat(s.tieBreaker).isEqualTo(Team.BLUE)
 
+        // Levels opens the rules' Levels & defeats for the heroes at this table, as the phone's sheet;
+        // Back there returns to the timer.
+        val levels = Regex("href=\"(/rules/levels\\?heroes=[^\"]*)\"").find(page("/timer/run").bodyAsText())
+        assertThat(levels).isNotNull()
+        assertThat(levels!!.groupValues[1].substringAfter("heroes=").split(','))
+            .containsExactly("arien", "brogan", "xargatha", "wasp")
+        val ladder = client.get(levels.groupValues[1]) {
+            header(HttpHeaders.Cookie, cookie(token))
+            header(HttpHeaders.Referrer, "$HUB_URL/timer/run")
+        }.bodyAsText()
+        assertThat(ladder).contains("href=\"/timer/run\" class=\"icon-button\"")
+        assertThat(page("/rules/levels").bodyAsText()).contains("href=\"/rules\" class=\"icon-button\"")
+
         // The Action chooser names the match's heroes and pilots.
         clock.advance(47 * 60_000L)
         cmd("end")

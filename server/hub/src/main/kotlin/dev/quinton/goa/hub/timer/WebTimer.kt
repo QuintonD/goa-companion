@@ -12,8 +12,6 @@ import dev.quinton.goa.core.domain.timer.TimerSnapshot
 import dev.quinton.goa.core.domain.timer.TimerStatus
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Team
-import dev.quinton.goa.core.model.rules.LevelLadder
-import dev.quinton.goa.core.model.rules.RulesReference
 import dev.quinton.goa.core.presentation.timer.TimerCommand
 import dev.quinton.goa.core.presentation.timer.TimerCommands
 import dev.quinton.goa.core.presentation.timer.TimerPresets
@@ -60,7 +58,7 @@ object TimerSlots {
 }
 
 /** The bundled rules and presets (`catalog/match-setup.json`, `catalog/timer-presets.json`), parsed once. */
-internal class TimerData(val rules: MatchRules, val presets: TimerPresetCatalog, val ladder: LevelLadder?) {
+internal class TimerData(val rules: MatchRules, val presets: TimerPresetCatalog) {
     companion object {
         private val cache = ConcurrentHashMap<HubCatalog, TimerData>()
 
@@ -68,7 +66,6 @@ internal class TimerData(val rules: MatchRules, val presets: TimerPresetCatalog,
             TimerData(
                 MatchRules.parse(catalog.readText("catalog/match-setup.json")),
                 TimerJson.parseCatalog(catalog.readText("catalog/timer-presets.json")),
-                runCatching { RulesReference.parse(catalog.readText(RulesReference.PATH)).ladder }.getOrNull(),
             )
         }
     }

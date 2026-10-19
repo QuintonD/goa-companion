@@ -17,6 +17,7 @@ import dev.quinton.goa.hub.feature.HubFeature
 import dev.quinton.goa.hub.store.SharedSlots
 import dev.quinton.goa.hub.web.device
 import dev.quinton.goa.hub.web.isHtmx
+import dev.quinton.goa.hub.web.tidyUrl
 import dev.quinton.goa.hub.web.ui.HubPage
 import dev.quinton.goa.hub.web.ui.Tab
 import dev.quinton.goa.hub.web.ui.TopActions
@@ -68,6 +69,9 @@ object HeroesFeature : HubFeature {
     private suspend fun ApplicationCall.catalogPage(ctx: HubContext) {
         val settings = settings(ctx)
         val request = CatalogRequest.parse(request.queryParameters)
+        val searching = isHtmx && this.request.headers["HX-Target"] == "results"
+        // `?q=&a=&sort=name` from the form reads `/heroes` in the address bar (and in a shared link).
+        if ((searching || !isHtmx) && tidyUrl(request.href())) return
         val catalog = ctx.catalog.catalog
         val layout = if (settings.catalogListView) CatalogLayout.LIST else CatalogLayout.GRID
         val controls = CatalogControls(layout, request.filter, request.sort)
@@ -83,7 +87,7 @@ object HeroesFeature : HubFeature {
             ratings = records?.heroRatings.orEmpty(),
             usage = records?.heroUsage.orEmpty(),
         )
-        if (isHtmx && this.request.headers["HX-Target"] == "results") {
+        if (searching) {
             respondFragment {
                 catalogResults(state, request)
                 oobCounts(state)

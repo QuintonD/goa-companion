@@ -5,7 +5,6 @@ import dev.quinton.goa.core.domain.timer.TimerEngine
 import dev.quinton.goa.core.domain.timer.TimerSnapshot
 import dev.quinton.goa.core.domain.timer.TimerStatus
 import dev.quinton.goa.core.model.match.Team
-import dev.quinton.goa.core.model.rules.LevelLadder
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.core.presentation.timer.ActiveUiState
@@ -17,6 +16,7 @@ import dev.quinton.goa.core.presentation.timer.SeatUi
 import dev.quinton.goa.core.presentation.timer.SummaryUiState
 import dev.quinton.goa.core.presentation.timer.TimerText
 import dev.quinton.goa.hub.catalog.HubCatalog
+import dev.quinton.goa.hub.rules.RulesFeature
 import dev.quinton.goa.hub.web.ui.ButtonStyle
 import dev.quinton.goa.hub.web.ui.Icons
 import dev.quinton.goa.hub.web.ui.card
@@ -67,7 +67,6 @@ internal class RunModel(
     val pushOn: Boolean,
     val alert: String?,
     val live: LiveClock,
-    val ladder: LevelLadder?,
 )
 
 /** Wall-clock instants (epoch ms, the hub's clock) for the page's countdown. */
@@ -171,7 +170,11 @@ internal object TimerRunPage {
                     if (round) "Show one step at a time" else "Show the whole round",
                     if (round) "t-view_day" else "t-view_agenda",
                 )
-                iconDialogButton("levels-dialog", "Levels and defeats", "t-military_tech")
+                a(levelsHref(a), classes = "icon-button") {
+                    attributes["aria-label"] = "Levels and defeats"
+                    attributes["title"] = "Levels and defeats"
+                    icon("t-military_tech")
+                }
                 iconDialogButton("end-dialog", "End match", "t-flag")
                 details("tr-menu") {
                     summary("icon-button") {
@@ -196,7 +199,7 @@ internal object TimerRunPage {
                             if (a.layout == TimerLayout.ROUND) "layout:steps" else "layout:round",
                             if (a.layout == TimerLayout.ROUND) "Step-by-step view" else "Whole-round view",
                         )
-                        menuDialog("levels-dialog", "Levels & defeats")
+                        a(levelsHref(a), classes = "tr-menu-item") { +"Levels & defeats" }
                         a("/rules", classes = "tr-menu-item") { +"Rules" }
                         a("/settings", classes = "tr-menu-item") { +"Settings" }
                         menuDialog("end-dialog", "End match…")
@@ -485,7 +488,7 @@ internal object TimerRunPage {
     private fun HtmlBlockTag.checklist(a: ActiveUiState) {
         val items = a.checklist ?: return
         val current = items.firstOrNull { it.state == ChecklistState.CURRENT }
-        if (current?.id == LEVEL_UP && a.timed) levelsButton("Level costs & card Tiers")
+        if (current?.id == LEVEL_UP && a.timed) levelsButton(a, "Level costs & card Tiers")
         div("tr-checklist") {
             h3("tr-checklist-title") { +"End of round" }
             ol {
@@ -498,7 +501,7 @@ internal object TimerRunPage {
                             item.timerName?.let { span("tr-check-timer") { +it } }
                             if (item.state == ChecklistState.CURRENT) item.detail?.let { p("tr-check-detail") { +it } }
                             if (item.state == ChecklistState.CURRENT && item.id == LEVEL_UP && !a.timed) {
-                                levelsButton("Levels")
+                                levelsButton(a, "Levels")
                             }
                         }
                         if (item.state == ChecklistState.DONE) icon(Icons.CHECK, "tr-check-done")
@@ -508,12 +511,18 @@ internal object TimerRunPage {
         }
     }
 
-    private fun HtmlBlockTag.levelsButton(label: String) {
-        button(type = ButtonType.button, classes = "btn btn-tonal tr-levels") {
-            attributes["data-dialog-open"] = "levels-dialog"
+    /** Levels & defeats for the heroes at the table (the rules page), as the phone's Levels action. */
+    private fun HtmlBlockTag.levelsButton(a: ActiveUiState, label: String) {
+        a(levelsHref(a), classes = "btn btn-tonal tr-levels") {
             icon("t-military_tech")
             span { +label }
         }
+    }
+
+    /** `/rules/levels?heroes=a,b`: the ladder plus the cards at this table that change a defeat. */
+    private fun levelsHref(a: ActiveUiState): String = when {
+        a.heroIds.isEmpty() -> RulesFeature.LEVELS_PATH
+        else -> "${RulesFeature.LEVELS_PATH}?heroes=${a.heroIds.joinToString(",")}"
     }
 
     // ---- round view ----------------------------------------------------------------------------
@@ -557,7 +566,7 @@ internal object TimerRunPage {
             tableRules(a)
             a.currentDetail?.let { p("tr-check-detail") { +it } }
             if (a.checklist?.any { it.state == ChecklistState.CURRENT && it.id == LEVEL_UP } == true) {
-                levelsButton("Level costs & card Tiers")
+                levelsButton(a, "Level costs & card Tiers")
             }
             a.seats?.let { seats(it, a) }
         }
