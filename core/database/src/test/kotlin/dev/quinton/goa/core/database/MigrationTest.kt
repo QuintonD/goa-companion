@@ -8,6 +8,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.database.dao.MatchDao
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.model.trivia.TriviaRound
+import dev.quinton.goa.core.model.trivia.TriviaRoundKind
 import java.io.File
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -126,6 +128,67 @@ class MigrationTest {
         }
     }
 
+    private suspend fun seedV3() {
+        helper.createDatabase(3).apply {
+            execSQL(
+                "INSERT INTO players (id, name, color, avatar_id, created_at, archived, updated_at) " +
+                    "VALUES ('p1', 'Ann', 1, 0, 500, 0, 600)",
+            )
+            execSQL(
+                "INSERT INTO matches (id, created_at, played_at, status, mode, map, winner, win_condition, " +
+                    "duration_min, notes, draft_id, tie_breaker, updated_at) " +
+                    "VALUES ('m1', 100, 200, 'completed', 'quick', NULL, 'red', NULL, NULL, '', NULL, NULL, 700)",
+            )
+            execSQL(
+                "INSERT INTO participants (match_id, seat_index, player_id, hero_id, team, handicap) " +
+                    "VALUES ('m1', 0, 'p1', 'arien', 'red', 0)",
+            )
+            execSQL("INSERT INTO deletions (kind, id, deleted_at) VALUES ('match', 'gone', 800)")
+            close()
+        }
+    }
+
+    @Test
+    fun migrate3To4AddsAnEmptyTriviaRoundsTableAndKeepsEverything() = runTest {
+        seedV3()
+        helper.runMigrationsAndValidate(4, listOf(GoaDatabase.MIGRATION_3_4)).use { connection ->
+            fun long(sql: String): Long = connection.prepare(sql).use {
+                assertThat(it.step()).isTrue()
+                it.getLong(0)
+            }
+            assertThat(long("SELECT COUNT(*) FROM trivia_rounds")).isEqualTo(0)
+            assertThat(long("SELECT updated_at FROM players WHERE id = 'p1'")).isEqualTo(600)
+            assertThat(long("SELECT updated_at FROM matches WHERE id = 'm1'")).isEqualTo(700)
+            assertThat(long("SELECT COUNT(*) FROM participants")).isEqualTo(1)
+            assertThat(long("SELECT deleted_at FROM deletions WHERE id = 'gone'")).isEqualTo(800)
+        }
+    }
+
+    @Test
+    fun v3DatabaseOpensAtTheCurrentVersionAndStoresATriviaRound() = runTest {
+        seedV3()
+        val db = openCurrent()
+        assertThat(db.matchDao().getAll().single().toModel().participants.single().heroId).isEqualTo("arien")
+        assertThat(db.triviaRoundDao().getAll()).isEmpty()
+
+        val round = TriviaRound(
+            id = "r1",
+            playerId = "p1",
+            kind = TriviaRoundKind.CHALLENGE,
+            playedAt = 900,
+            length = 20,
+            questions = 20,
+            correct = 18,
+            bestStreak = 9,
+            answerMillis = 102_000,
+            heroCount = 32,
+            catalogVersion = 7,
+            updatedAt = 901,
+        )
+        db.triviaRoundDao().upsert(round.toEntity())
+        assertThat(db.triviaRoundDao().getAll().single().toModel()).isEqualTo(round)
+    }
+
     @Test
     fun v1DatabaseOpensAtTheCurrentVersionWithEveryRowKept() = runTest {
         seedV1()
@@ -136,6 +199,7 @@ class MigrationTest {
         assertThat(match.updatedAt).isEqualTo(2) // max(created 1, played 2)
         assertThat(db.deletionDao().getAll()).isEmpty()
         assertThat(db.playerDao().getMerges()).isEmpty()
-        assertThat(GoaDatabase.VERSION).isEqualTo(3)
+        assertThat(db.triviaRoundDao().getAll()).isEmpty()
+        assertThat(GoaDatabase.VERSION).isEqualTo(4)
     }
 }

@@ -9,12 +9,21 @@ import dev.quinton.goa.core.data.match.RoomDraftRecordRepository
 import dev.quinton.goa.core.data.match.RoomMatchRepository
 import dev.quinton.goa.core.data.player.RoomPlayerRepository
 import dev.quinton.goa.core.data.rating.FakeEloConfigRepository
+import dev.quinton.goa.core.data.trivia.RoomTriviaRoundRepository
 import dev.quinton.goa.core.database.GoaDatabase
 import dev.quinton.goa.core.datastore.draft.DraftStore
 import dev.quinton.goa.core.datastore.settings.SettingsDataSource
 import dev.quinton.goa.core.datastore.timer.DataStoreTimerStateStore
 import dev.quinton.goa.core.datastore.timer.TimerStateStore
 import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.model.board.BoardLineup
+import dev.quinton.goa.core.model.board.BoardState
+import dev.quinton.goa.core.model.board.HeroPiece
+import dev.quinton.goa.core.model.board.Hex
+import dev.quinton.goa.core.model.board.MinionPiece
+import dev.quinton.goa.core.model.board.MinionType
+import dev.quinton.goa.core.model.board.SavedBoard
+import dev.quinton.goa.core.model.board.TokenPiece
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.draft.DraftMethodKind
@@ -30,11 +39,15 @@ import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.model.settings.TimerLayout
+import dev.quinton.goa.core.model.trivia.TriviaRound
+import dev.quinton.goa.core.model.trivia.TriviaRoundKind
+import dev.quinton.goa.core.testing.FakeBoardRepository
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.TestCatalog
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.Optional
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
@@ -76,6 +89,8 @@ class BackupRoundTripTest {
         contributor: FakeContributor? = null,
         realContributors: Boolean = contributor == null,
         catalog: Catalog = TestCatalog.catalog,
+        /** False: a build without the board sandbox's `BoardRepository` binding. */
+        boardSandbox: Boolean = true,
     ) {
         val db = GoaDatabase.inMemory(ApplicationProvider.getApplicationContext(), AndroidSQLiteDriver()).also {
             databases +=
@@ -92,6 +107,8 @@ class BackupRoundTripTest {
             tmp.newFile().also { it.delete() }.let { File(it.path + ".preferences_pb") }
         }
         val draftStore = DraftStore(newStore())
+        val rounds = RoomTriviaRoundRepository(db, clock)
+        val boards = FakeBoardRepository()
         val backup = RoomBackupRepository(
             db,
             this.config,
@@ -103,6 +120,7 @@ class BackupRoundTripTest {
             },
             FakeCatalogRepository(catalog),
             AppInfo { "9.9.9" },
+            if (boardSandbox) Optional.of(boards) else Optional.empty(),
         )
     }
 
@@ -157,11 +175,58 @@ class BackupRoundTripTest {
         matchId = "m-a",
     )
 
+    private val challenge = TriviaRound(
+        id = "t-1",
+        playerId = ann.id,
+        kind = TriviaRoundKind.CHALLENGE,
+        playedAt = 1_700_000_300_000,
+        length = 20,
+        questions = 20,
+        correct = 18,
+        bestStreak = 11,
+        answerMillis = 102_345,
+        heroCount = 32,
+        catalogVersion = 7,
+    )
+    private val practice = TriviaRound(
+        id = "t-2",
+        playerId = cid.id,
+        kind = TriviaRoundKind.PRACTICE,
+        playedAt = 1_700_000_400_000,
+        length = 0,
+        questions = 37,
+        correct = 30,
+        bestStreak = 12,
+        answerMillis = 300_001,
+        recall = true,
+        heroCount = 1,
+        catalogVersion = 7,
+    )
+    private val board = SavedBoard(
+        id = "b-1",
+        name = "Arien vs Brogan",
+        lineup = BoardLineup(red = listOf("test-hero-1"), blue = listOf("test-hero-2")),
+        state = BoardState(
+            mapId = "core",
+            pieces = listOf(
+                HeroPiece("p1", Hex(0, 1), "test-hero-1", Team.RED),
+                MinionPiece("p2", Hex(1, -1), Team.BLUE, MinionType.HEAVY),
+                TokenPiece("p3", null, "Mine"),
+            ),
+            battleZones = mapOf("lane" to "zone-3"),
+        ),
+        createdAt = 1_700_000_500_000,
+        updatedAt = 1_700_000_600_000,
+    )
+
     private suspend fun Device.seed() {
         listOf(ann, bob, cid).forEach { players.upsert(it) }
         matches.upsert(matchA)
         matches.upsert(matchB)
         drafts.save(draft)
+        rounds.add(challenge)
+        rounds.add(practice)
+        boards.upsert(board)
     }
 
     @Test
@@ -186,6 +251,9 @@ class BackupRoundTripTest {
         assertThat(target.matches.observeMatch("m-a").first()).isEqualTo(matchA.copy(updatedAt = NOW))
         assertThat(target.players.observePlayers(includeArchived = true).first())
             .containsExactly(ann.copy(updatedAt = NOW), bob.copy(updatedAt = NOW), cid.copy(updatedAt = NOW))
+        assertThat(target.rounds.observeRounds().first())
+            .containsExactly(challenge.copy(updatedAt = NOW), practice.copy(updatedAt = NOW)).inOrder()
+        assertThat(target.boards.state.value).containsExactly(board)
         assertThat(document.summary()).isEqualTo(
             BackupSummary(
                 BackupDocument.CURRENT_VERSION,
@@ -196,8 +264,104 @@ class BackupRoundTripTest {
                 hasEloConfig = true,
                 extras = setOf("timer-presets"),
                 appVersion = "9.9.9",
+                triviaRounds = 2,
+                boards = 1,
             ),
         )
+    }
+
+    @Test
+    fun version5MergesRoundsLikeMatchesAndBoardsByTheLaterEdit() = runTest {
+        val source = Device()
+        source.seed()
+        source.now = NOW + 10
+        source.rounds.delete(challenge.id) // removed from the leaderboard on the other phone
+        source.boards.upsert(board.copy(name = "Renamed", updatedAt = board.updatedAt + 5))
+        source.boards.upsert(board.copy(id = "b-2", updatedAt = 1))
+        val document = BackupCodec.decode(BackupCodec.encode(source.backup.export()))
+        assertThat(document.version).isEqualTo(5)
+        assertThat(document.triviaRounds.map { it.id }).containsExactly(practice.id)
+
+        val phone = Device()
+        phone.seed()
+        phone.boards.upsert(board.copy(id = "b-3", name = "Only here", updatedAt = 3))
+        phone.backup.import(document, ImportMode.MERGE)
+        // The file's tombstone removes the round here too; boards keep the later edit of each id.
+        assertThat(phone.rounds.observeRounds().first().map { it.id }).containsExactly(practice.id)
+        assertThat(phone.boards.state.value.associate { it.id to it.name })
+            .containsExactly("b-1", "Renamed", "b-2", board.name, "b-3", "Only here")
+
+        val fresh = Device()
+        fresh.boards.upsert(board.copy(id = "b-9"))
+        fresh.backup.import(document, ImportMode.REPLACE)
+        assertThat(fresh.boards.state.value.map { it.id }).containsExactly("b-1", "b-2")
+        assertThat(BackupCodec.encode(fresh.backup.export().copy(exportedAt = 0)))
+            .isEqualTo(BackupCodec.encode(source.backup.export().copy(exportedAt = 0)))
+    }
+
+    @Test
+    fun withoutTheBoardSandboxBoardsAreNeitherExportedNorImportedNorCounted() = runTest {
+        val bare = Device(boardSandbox = false)
+        bare.seed() // its fake store holds a board, but nothing binds it
+        val exported = bare.backup.export()
+        assertThat(exported.boards).isNull()
+        assertThat(BackupCodec.encode(exported)).contains("\"boards\": null")
+        // A phone with the sandbox keeps its boards when that file is restored over them.
+        val full = Device()
+        full.boards.upsert(board)
+        full.backup.import(BackupCodec.decode(BackupCodec.encode(exported)), ImportMode.REPLACE)
+        assertThat(full.boards.state.value).containsExactly(board)
+
+        // A file with boards, opened on a phone without the sandbox: not imported, not counted.
+        val withBoards = Device().apply { seed() }.backup.export()
+        assertThat(withBoards.summary().boards).isEqualTo(1)
+        val other = Device(boardSandbox = false)
+        assertThat(other.backup.summarize(withBoards).boards).isNull()
+        other.backup.import(withBoards, ImportMode.REPLACE)
+        assertThat(other.boards.state.value).isEmpty()
+        assertThat(other.rounds.observeRounds().first()).hasSize(2)
+    }
+
+    @Test
+    fun aVersion4FileImportsWithoutRoundsAndLeavesThePhonesBoardsAlone() = runTest {
+        val source = Device()
+        source.seed()
+        val v4 = source.backup.export().copy(version = 4, triviaRounds = emptyList(), boards = null)
+        val text = BackupCodec.encode(v4).replace(Regex(""",\s*"triviaRounds": \[\s*]"""), "")
+            .replace(Regex(""",\s*"boards": \[\s*]"""), "")
+        assertThat(text).doesNotContain("triviaRounds")
+        val document = BackupCodec.decode(text)
+
+        val phone = Device()
+        phone.seed()
+        phone.backup.import(document, ImportMode.REPLACE)
+        // Replace clears the synced data (the rounds come back from the group) but a v4 file
+        // never knew about boards, so they stay.
+        assertThat(phone.rounds.observeRounds().first()).isEmpty()
+        assertThat(phone.boards.state.value).containsExactly(board)
+        assertThat(phone.matches.observeMatches().first().map { it.id }).containsExactly(matchA.id, matchB.id)
+        assertThat(phone.backup.export().version).isEqualTo(BackupDocument.CURRENT_VERSION)
+    }
+
+    @Test
+    fun aBrokenTriviaRoundIsRejectedByDateAndId() {
+        val players = listOf(ann, bob, cid)
+        fun decode(vararg rounds: TriviaRound) = BackupCodec.decode(
+            BackupCodec.encode(BackupDocument(exportedAt = 1, players = players, triviaRounds = rounds.toList())),
+        )
+        assertThat(decode(challenge, practice).triviaRounds).containsExactly(challenge, practice)
+        val inflated = assertThrows(InvalidBackupException::class.java) { decode(challenge.copy(correct = 21)) }
+        assertThat(inflated.message).contains("This backup has trivia rounds the app can't import:")
+        assertThat(inflated.message).contains("(id t-1)")
+        assertThat(inflated.message).contains("more right answers than questions")
+        val ghost = assertThrows(InvalidBackupException::class.java) { decode(practice.copy(playerId = "ghost")) }
+        assertThat(ghost.message).contains("player ghost isn't in this backup")
+        val twice = assertThrows(InvalidBackupException::class.java) { decode(challenge, challenge) }
+        assertThat(twice.message).contains("duplicate or empty ids")
+        val boardsTwice = assertThrows(InvalidBackupException::class.java) {
+            BackupCodec.decode(BackupCodec.encode(BackupDocument(exportedAt = 1, boards = listOf(board, board))))
+        }
+        assertThat(boardsTwice.message).contains("duplicate or empty ids")
     }
 
     @Test
@@ -248,7 +412,7 @@ class BackupRoundTripTest {
         source.now = NOW + 1
         source.matches.delete(matchB.id)
         val document = BackupCodec.decode(BackupCodec.encode(source.backup.export()))
-        assertThat(document.version).isEqualTo(4)
+        assertThat(document.version).isAtLeast(4)
         assertThat(document.deletions.map { it.id }).containsExactly(matchB.id)
         assertThat(document.playerMerges.map { it.fromId to it.toId }).containsExactly("ann-2" to ann.id)
 

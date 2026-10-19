@@ -77,6 +77,34 @@ class SyncCodecTest {
         assertThat(problemOf("a backup? no".toByteArray(), group)).isEqualTo(SyncFileProblem.NOT_A_SYNC_FILE)
     }
 
+    /** Version 2 added trivia rounds (ADR-032): files of another document version are refused both ways. */
+    @Test
+    fun aSyncFileFromAnotherDocumentVersionSaysWhichPhoneToUpdate() {
+        val older = SyncCodec.encodeFile(valid.copy(version = SyncDocument.VERSION - 1), group, createdAt = 5)
+        assertThat(problemOf(older, group)).isEqualTo(SyncFileProblem.INVALID)
+        assertThat(message(older, group)).contains("older version of the app. Update the phone that made it")
+        val newer = SyncCodec.encodeFile(valid.copy(version = SyncDocument.VERSION + 1), group, createdAt = 5)
+        assertThat(message(newer, group)).contains("newer version of the app. Update the app first")
+        // The same refusal for data received over Nearby.
+        val v1 = SyncCodec.encode(valid.copy(version = 1))
+        assertThat(assertThrows(SyncFormatException::class.java) { SyncCodec.decode(v1) }.message)
+            .contains("older version")
+    }
+
+    @Test
+    fun triviaRoundsTravelAndABrokenOneIsRefused() {
+        val round = round("r1", playerId = "ann")
+        val doc = valid.copy(triviaRounds = listOf(round))
+        assertThat(SyncCodec.decode(SyncCodec.encode(doc)).triviaRounds).containsExactly(round)
+        val inflated = valid.copy(triviaRounds = listOf(round.copy(correct = 21)))
+        assertThat(
+            assertThrows(SyncFormatException::class.java) {
+                SyncCodec.decode(SyncCodec.encode(inflated))
+            }.message,
+        )
+            .contains("more right answers than questions")
+    }
+
     @Test
     fun aTamperedSyncFileIsRefused() {
         val text = String(SyncCodec.encodeFile(valid, group, createdAt = 5))

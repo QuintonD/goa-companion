@@ -3,6 +3,7 @@ package dev.quinton.goa.core.domain.sync
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.domain.rating.EloCalculator
 import dev.quinton.goa.core.domain.sync.RandomSync.doc
+import dev.quinton.goa.core.model.sync.DeletionKind
 import kotlin.random.Random
 import org.junit.Test
 
@@ -91,7 +92,23 @@ class SyncMergePropertiesTest {
                 assertThat(m.updatedAt).isGreaterThan(it)
             }
         }
+        merged.triviaRounds.forEach { r ->
+            deleted[dev.quinton.goa.core.model.sync.DeletionKind.TRIVIA_ROUND to r.id]?.let {
+                assertThat(r.updatedAt).isGreaterThan(it)
+            }
+        }
         assertThat(merged.matches.map { it.id }).isInStrictOrder()
         assertThat(merged.players.map { it.id }).isInStrictOrder()
+        assertThat(merged.triviaRounds.map { it.id }).isInStrictOrder()
+    }
+
+    @Test
+    fun `the generators exercise trivia rounds, their tombstones and their ties`() {
+        val docs = List(runs) { Random(it).doc() }
+        assertThat(docs.sumOf { it.triviaRounds.size }).isGreaterThan(runs)
+        assertThat(docs.flatMap { it.deletions }.count { it.kind == DeletionKind.TRIVIA_ROUND }).isGreaterThan(runs / 2)
+        // Merged results keep some rounds and drop some to tombstones.
+        val merged = List(runs) { seed -> Random(seed).let { r -> SyncMerge.merge(r.doc(), r.doc()) } }
+        assertThat(merged.sumOf { it.triviaRounds.size }).isGreaterThan(0)
     }
 }

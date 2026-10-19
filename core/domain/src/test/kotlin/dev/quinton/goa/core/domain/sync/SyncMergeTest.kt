@@ -6,6 +6,8 @@ import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.model.sync.Deletion
 import dev.quinton.goa.core.model.sync.DeletionKind
 import dev.quinton.goa.core.model.sync.PlayerMerge
+import dev.quinton.goa.core.model.trivia.TriviaRound
+import dev.quinton.goa.core.model.trivia.TriviaRoundKind
 import org.junit.Test
 
 class SyncMergeTest {
@@ -16,6 +18,7 @@ class SyncMergeTest {
     private fun doc(vararg parts: Any) = SyncDocument(
         players = parts.filterIsInstance<dev.quinton.goa.core.model.player.Player>(),
         matches = parts.filterIsInstance<dev.quinton.goa.core.model.match.Match>(),
+        triviaRounds = parts.filterIsInstance<TriviaRound>(),
         deletions = parts.filterIsInstance<Deletion>(),
         playerMerges = parts.filterIsInstance<PlayerMerge>(),
     )
@@ -70,6 +73,73 @@ class SyncMergeTest {
         // The tombstone stays, so a phone still holding the old copy can't bring that one back.
         assertThat(SyncMerge.merge(merged, doc(m1)).matches).containsExactly(later)
         assertThat(merged.deletions).containsExactly(deleted)
+    }
+
+    @Test
+    fun triviaRoundsMergeLikeMatchesAndARemovedRoundStaysRemoved() {
+        val r1 = round("r1", "ann", updatedAt = 10)
+        val r2 = round("r2", "bob", updatedAt = 11)
+        val both = SyncMerge.merge(doc(ann, bob, r1), doc(ann, bob, r2))
+        assertThat(both.triviaRounds).containsExactly(r1, r2).inOrder()
+        assertThat(SyncMerge.changes(SyncMerge.normalize(doc(ann, bob, r1)), both).triviaRoundsAdded).isEqualTo(1)
+
+        // Same id: the later write wins, and an exact tie picks the same copy on every phone.
+        val rewritten = r1.copy(correct = 16, updatedAt = 12)
+        assertThat(SyncMerge.merge(doc(r1), doc(rewritten)).triviaRounds).containsExactly(rewritten)
+        val tieA = r1.copy(answerMillis = 1)
+        val tieB = r1.copy(answerMillis = 2)
+        assertThat(SyncMerge.merge(doc(tieA), doc(tieB))).isEqualTo(SyncMerge.merge(doc(tieB), doc(tieA)))
+
+        // "Remove from leaderboard": the tombstone beats the round on every phone that still has it.
+        val removed = Deletion(DeletionKind.TRIVIA_ROUND, "r1", deletedAt = 10)
+        val merged = SyncMerge.merge(both, doc(removed))
+        assertThat(merged.triviaRounds).containsExactly(r2)
+        assertThat(SyncMerge.merge(merged, doc(r1)).triviaRounds).containsExactly(r2)
+        assertThat(SyncMerge.changes(both, merged).triviaRoundsRemoved).isEqualTo(1)
+        // A match tombstone with the same id doesn't touch the round.
+        assertThat(SyncMerge.merge(doc(r1), doc(Deletion(DeletionKind.MATCH, "r1", 99))).triviaRounds)
+            .containsExactly(r1)
+    }
+
+    @Test
+    fun validationRefusesTriviaRoundsTheAppWouldNeverWrite() {
+        fun problem(vararg rounds: TriviaRound) =
+            SyncValidation.problem(SyncDocument(players = listOf(ann, bob), triviaRounds = rounds.toList()))
+        val good = round("good", "ann")
+        assertThat(problem(good, round("practice", "bob", kind = TriviaRoundKind.PRACTICE, questions = 7, correct = 3)))
+            .isNull()
+        assertThat(problem(good, good)).contains("duplicate or empty ids")
+        assertThat(problem(round(" ", "ann"))).contains("duplicate or empty ids")
+        assertThat(problem(round("ghost", "nobody"))).contains("player nobody is missing")
+        assertThat(problem(round("blank", ""))).contains("it has no player")
+        assertThat(problem(round("over", "ann", correct = 21))).contains("more right answers than questions")
+        assertThat(problem(good.copy(id = "neg", answerMillis = -1))).contains("negative number")
+        assertThat(problem(good.copy(id = "neg2", bestStreak = -1))).contains("negative number")
+        assertThat(problem(good.copy(id = "streak", bestStreak = 16))).contains("best streak")
+        assertThat(problem(round("unfinished", "ann", questions = 12, correct = 4))).contains("unfinished Challenge")
+        assertThat(
+            problem(round("long", "ann", kind = TriviaRoundKind.PRACTICE, questions = 21, correct = 4)),
+        ).contains("more answers than questions in the round")
+        assertThat(problem(round("none", "ann", kind = TriviaRoundKind.PRACTICE, questions = 0, correct = 0)))
+            .contains("no answers")
+        assertThat(problem(round("x", "nobody"))).startsWith("The other phone has trivia rounds this app can't take:")
+    }
+
+    @Test
+    fun aStoredVersion1DocumentMergedWithAVersion2OneIsAValidVersion2Document() {
+        // As a build from before trivia rounds stored it: version 1, no rounds.
+        val stored = SyncDocument(version = 1, players = listOf(ann, bob), matches = listOf(m1))
+        val current = doc(ann, bob, round("r1", "ann", updatedAt = 3))
+        listOf(SyncMerge.merge(stored, current), SyncMerge.merge(current, stored)).forEach { merged ->
+            assertThat(merged.version).isEqualTo(SyncDocument.VERSION)
+            assertThat(merged.version).isEqualTo(2)
+            assertThat(merged.format).isEqualTo(SyncDocument.FORMAT)
+            assertThat(merged.matches).containsExactly(m1)
+            assertThat(merged.triviaRounds.map { it.id }).containsExactly("r1")
+            assertThat(SyncValidation.problem(merged)).isNull()
+        }
+        // Even two old documents merge into the current version.
+        assertThat(SyncMerge.merge(stored, stored).version).isEqualTo(SyncDocument.VERSION)
     }
 
     @Test

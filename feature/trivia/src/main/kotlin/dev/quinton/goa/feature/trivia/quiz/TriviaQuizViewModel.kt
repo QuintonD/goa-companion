@@ -9,33 +9,53 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.EditClock
+import dev.quinton.goa.core.data.GroupRepository
+import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.data.TriviaProgressRepository
+import dev.quinton.goa.core.data.TriviaRoundRepository
+import dev.quinton.goa.core.domain.trivia.ChallengeStanding
 import dev.quinton.goa.core.domain.trivia.DuelPick
 import dev.quinton.goa.core.domain.trivia.FactProgress
+import dev.quinton.goa.core.domain.trivia.LeaderboardPeriod
 import dev.quinton.goa.core.domain.trivia.TriviaAnswer
+import dev.quinton.goa.core.domain.trivia.TriviaChallenge
 import dev.quinton.goa.core.domain.trivia.TriviaConfig
 import dev.quinton.goa.core.domain.trivia.TriviaEngine
 import dev.quinton.goa.core.domain.trivia.TriviaFact
 import dev.quinton.goa.core.domain.trivia.TriviaFacts
+import dev.quinton.goa.core.domain.trivia.TriviaLeaderboard
 import dev.quinton.goa.core.domain.trivia.TriviaMastery
 import dev.quinton.goa.core.domain.trivia.TriviaQuestion
 import dev.quinton.goa.core.domain.trivia.TriviaResult
+import dev.quinton.goa.core.domain.trivia.TriviaRounds
 import dev.quinton.goa.core.domain.trivia.TriviaSession
 import dev.quinton.goa.core.domain.trivia.TriviaStat
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.model.trivia.TriviaRound
 import dev.quinton.goa.core.navigation.TriviaQuizRoute
+import dev.quinton.goa.feature.trivia.PlayingAsState
 import dev.quinton.goa.feature.trivia.TriviaCardUi
 import dev.quinton.goa.feature.trivia.TriviaText
+import dev.quinton.goa.feature.trivia.currentPlayingAs
+import java.util.UUID
 import kotlin.random.Random
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -98,6 +118,10 @@ sealed interface TriviaQuizUiState {
         /** Next ends the round (shows "See results"). */
         val lastQuestion: Boolean,
         val hapticsEnabled: Boolean,
+        /** The fixed Challenge (ADR-032). */
+        val challenge: Boolean = false,
+        /** Who is playing; null = Guest (not on the leaderboard). */
+        val playerName: String? = null,
     ) : TriviaQuizUiState {
         val answered: Boolean get() = answer != null
 
@@ -113,35 +137,95 @@ sealed interface TriviaQuizUiState {
         /** Numbers that reached "learned" this round. */
         val learned: Int,
         val misses: List<MissUi>,
+        /** The round's learning progress was saved (played as this phone's "You", or no "You" set). */
+        val progressSaved: Boolean = true,
+        /** Who played; null = Guest (not recorded). */
+        val playerName: String? = null,
+        /** Set for a Challenge; null for a practice round. */
+        val challenge: ChallengeResultUi? = null,
+        /** The round couldn't be saved to the leaderboard (a storage error). */
+        val saveFailed: Boolean = false,
     ) : TriviaQuizUiState {
         val canPractise: Boolean get() = misses.isNotEmpty()
     }
 }
 
+/** How a Challenge went, for its summary (ADR-032). */
+@Immutable
+data class ChallengeResultUi(
+    /** Every question answered: on the board (when played as a player). */
+    val finished: Boolean,
+    /** Summed time from each question appearing to its answer. */
+    val answerMillis: Long,
+    /** This round's id, to tell "New best!" from an older best. */
+    val roundId: String,
+    /** The player's place once the round is stored; null before that, for Guest or unfinished. */
+    val standing: ChallengeStanding? = null,
+) {
+    val newBest: Boolean get() = standing?.best?.id == roundId
+}
+
+/** Monotonic milliseconds for answer times (not the wall clock: it can jump). */
+fun interface QuizTicker {
+    fun millis(): Long
+
+    companion object {
+        val System = QuizTicker { java.lang.System.nanoTime() / NANOS_PER_MILLI }
+        private const val NANOS_PER_MILLI = 1_000_000L
+    }
+}
+
+/**
+ * A quiz round (ADR-028) or the Challenge (ADR-032). The round is played as the home's "Playing as"
+ * pick; when its summary appears it is recorded once as a [dev.quinton.goa.core.model.trivia.TriviaRound]
+ * (not for Guest, not for an unfinished Challenge, never on Leave). Answer time runs from a question
+ * appearing to its answer and pauses while the screen isn't visible ([onVisible]).
+ */
+@Suppress("TooManyFunctions", "LongParameterList")
 @HiltViewModel(assistedFactory = TriviaQuizViewModel.Factory::class)
 class TriviaQuizViewModel internal constructor(
     private val route: TriviaQuizRoute,
     private val catalogRepository: CatalogRepository,
     private val settingsRepository: SettingsRepository,
     private val progressRepository: TriviaProgressRepository,
+    private val playerRepository: PlayerRepository,
+    private val groupRepository: GroupRepository,
+    private val roundRepository: TriviaRoundRepository,
     private val clock: EditClock,
     /** Seeded in tests so a round is reproducible. */
     private val random: Random,
+    private val ticker: QuizTicker = QuizTicker.System,
+    private val newId: () -> String = { UUID.randomUUID().toString() },
+    /** Works out the summary's place off the main thread; a test dispatcher in tests. */
+    private val computeDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
     @AssistedInject constructor(
         @Assisted route: TriviaQuizRoute,
         catalogRepository: CatalogRepository,
         settingsRepository: SettingsRepository,
         progressRepository: TriviaProgressRepository,
+        playerRepository: PlayerRepository,
+        groupRepository: GroupRepository,
+        roundRepository: TriviaRoundRepository,
         clock: EditClock,
-    ) : this(route, catalogRepository, settingsRepository, progressRepository, clock, Random.Default)
+    ) : this(
+        route,
+        catalogRepository,
+        settingsRepository,
+        progressRepository,
+        playerRepository,
+        groupRepository,
+        roundRepository,
+        clock,
+        Random.Default,
+    )
 
     @AssistedFactory
     interface Factory {
         fun create(route: TriviaQuizRoute): TriviaQuizViewModel
     }
 
-    private val config: TriviaConfig = TriviaText.decode(route.config)
+    private val config: TriviaConfig = if (route.challenge) TriviaChallenge.CONFIG else TriviaText.decode(route.config)
 
     private val state = MutableStateFlow<TriviaQuizUiState>(TriviaQuizUiState.Loading)
     val uiState: StateFlow<TriviaQuizUiState> = state.asStateFlow()
@@ -149,9 +233,27 @@ class TriviaQuizViewModel internal constructor(
     private var session: TriviaSession? = null
     private var cards: Map<String, TriviaCardUi> = emptyMap()
     private var settings = AppSettings()
+    private var catalogVersion = 0
+
+    /** Who this round is played as, read once when the quiz opens. */
+    private var playing = PlayingAsState.GUEST_ONLY
 
     /** Progress when the round began: what "learned this round" is measured against. */
     private var startProgress: Map<String, FactProgress> = emptyMap()
+
+    // The round being played: its id and start, and the summed answer time.
+    private var roundId = ""
+    private var startedAt = 0L
+    private var answerMillis = 0L
+
+    /** Time spent on the open question while visible so far, and when the visible stretch began. */
+    private var questionMillis = 0L
+    private var shownAt: Long? = null
+    private var visible = true
+
+    /** Rounds already recorded: each at most once, whatever calls [publish] again. */
+    private val recorded = HashSet<String>()
+    private var standingJob: Job? = null
 
     init {
         viewModelScope.launch { load() }
@@ -161,11 +263,18 @@ class TriviaQuizViewModel internal constructor(
         val catalog = catalogRepository.catalog.catch { emit(Catalog.EMPTY) }.first()
         settings = runCatching { settingsRepository.settings.first() }.getOrDefault(AppSettings())
         val progress = runCatching { progressRepository.progress.first() }.getOrDefault(emptyMap())
+        playing = runCatching { currentPlayingAs(playerRepository, groupRepository, progressRepository) }
+            .getOrDefault(PlayingAsState.GUEST_ONLY)
+        catalogVersion = catalog.dataVersion
         cards =
             catalog.heroes.flatMap { hero -> hero.cards.map { TriviaCardUi.of(hero, it) } }.associateBy { it.cardId }
-        val pool = pool(catalog)
-        val ranges = TriviaFacts.valueRange(catalog)
-        begin(TriviaEngine.start(pool, ranges, progress, config, random))
+        begin(
+            if (route.challenge) {
+                TriviaChallenge.start(catalog, progress, random)
+            } else {
+                TriviaEngine.start(pool(catalog), TriviaFacts.valueRange(catalog), progress, config, random)
+            },
+        )
     }
 
     private fun pool(catalog: Catalog): List<TriviaFact> {
@@ -183,16 +292,24 @@ class TriviaQuizViewModel internal constructor(
 
     private fun begin(next: TriviaSession) {
         startProgress = next.progress
+        roundId = newId()
+        startedAt = clock.now()
+        answerMillis = 0
+        standingJob?.cancel()
         publish(next)
+        startTiming(next)
     }
 
     fun answer(answer: TriviaAnswer) {
         val current = session ?: return
         val outcome = TriviaEngine.answer(current, answer, clock.now())
         if (outcome.session === current) return
+        answerMillis += stopTiming()
         // Stored right away: leaving mid-round keeps what was learned. NonCancellable, so clearing the
-        // view model straight after an answer (Back, End → Done) can't drop the write.
-        if (outcome.updates.isNotEmpty()) {
+        // view model straight after an answer (Back, End → Done) can't drop the write. Only for this
+        // phone's "You" (or anyone while no "You" is set): passing the phone round keeps the owner's
+        // mastery theirs (ADR-032).
+        if (outcome.updates.isNotEmpty() && playing.movesProgress) {
             viewModelScope.launch { withContext(NonCancellable) { progressRepository.record(outcome.updates) } }
         }
         publish(outcome.session)
@@ -200,20 +317,112 @@ class TriviaQuizViewModel internal constructor(
 
     fun next() {
         val current = session ?: return
-        publish(TriviaEngine.next(current, random))
+        val next = TriviaEngine.next(current, random)
+        publish(next)
+        startTiming(next)
     }
 
     /** Ends the round now and shows the summary. */
     fun stop() {
         val current = session ?: return
         if (current.finished) return
+        stopTiming()
         publish(TriviaEngine.stop(current))
     }
 
-    /** A new round with the same setup. */
+    /** A new round with the same setup (a Challenge: a new draw). */
     fun playAgain() {
         val current = session ?: return
-        begin(TriviaEngine.start(current.pool, current.ranges, current.progress, config, random))
+        begin(TriviaEngine.start(current.pool, current.ranges, current.progress, config, random, current.draw))
+    }
+
+    /**
+     * The quiz screen is in view ([visible] true) or not (the app went to the background, the screen
+     * was left): answer time only runs while a question is in view and unanswered.
+     */
+    fun onVisible(visible: Boolean) {
+        if (this.visible == visible) return
+        this.visible = visible
+        val open = session?.let { !it.finished && !it.answered } == true
+        if (!visible) {
+            shownAt?.let { questionMillis += ticker.millis() - it }
+            shownAt = null
+        } else if (open) {
+            shownAt = ticker.millis()
+        }
+    }
+
+    /** A new question is on screen: its time starts now (if the screen is in view). */
+    private fun startTiming(session: TriviaSession) {
+        questionMillis = 0
+        shownAt = if (visible && !session.finished && !session.answered) ticker.millis() else null
+    }
+
+    /** The open question was answered (or the round ended): its time, and the clock stops. */
+    private fun stopTiming(): Long {
+        val total = questionMillis + (shownAt?.let { ticker.millis() - it } ?: 0)
+        questionMillis = 0
+        shownAt = null
+        return total.coerceAtLeast(0)
+    }
+
+    /**
+     * Records the round once, when its summary first appears: played as a player, with at least one
+     * answer, and for a Challenge only with every question answered. A finished Challenge then
+     * follows the player's place on the board.
+     */
+    @Suppress("SwallowedException") // a failed write becomes the summary's "couldn't be saved"
+    private fun record(finished: TriviaSession) {
+        val id = roundId
+        if (!recorded.add(id)) return
+        val player = playing.player ?: return
+        val round = TriviaRounds.of(
+            finished,
+            id = id,
+            playerId = player.id,
+            challenge = route.challenge,
+            playedAt = startedAt,
+            answerMillis = answerMillis,
+            catalogVersion = catalogVersion,
+        ) ?: return
+        standingJob = viewModelScope.launch {
+            val saved = withContext(NonCancellable) {
+                try {
+                    roundRepository.add(round)
+                    true
+                } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+                    // A full disk or a database error: the round is lost, the summary says so.
+                    false
+                }
+            }
+            if (!saved) {
+                state.update { current ->
+                    if (current is TriviaQuizUiState.Summary) current.copy(saveFailed = true) else current
+                }
+            } else if (route.challenge) {
+                follow(round)
+            }
+        }
+    }
+
+    private suspend fun follow(round: TriviaRound) {
+        combine(roundRepository.observeRounds(), playerRepository.observePlayers(includeArchived = true)) {
+                rounds,
+                all,
+            ->
+            if (rounds.none { it.id == round.id }) {
+                null
+            } else {
+                val board = TriviaLeaderboard.build(rounds, all, null, clock.now(), LeaderboardPeriod.ALL_TIME)
+                TriviaLeaderboard.standing(board, round.playerId)
+            }
+        }.filterNotNull().distinctUntilChanged().flowOn(computeDispatcher).collect { standing ->
+            state.update { current ->
+                val summary = current as? TriviaQuizUiState.Summary
+                val result = summary?.challenge?.takeIf { it.roundId == round.id }
+                if (result == null) current else summary.copy(challenge = result.copy(standing = standing))
+            }
+        }
     }
 
     /**
@@ -236,6 +445,7 @@ class TriviaQuizViewModel internal constructor(
             next.finished -> summary(next)
             else -> playing(next)
         }
+        if (next.pool.isNotEmpty() && next.finished) record(next)
     }
 
     private fun playing(session: TriviaSession): TriviaQuizUiState.Playing {
@@ -252,22 +462,39 @@ class TriviaQuizViewModel internal constructor(
             feedback = result?.let { feedback(it) },
             lastQuestion = session.length?.let { session.results.size >= it } ?: false,
             hapticsEnabled = settings.hapticsEnabled,
+            challenge = route.challenge,
+            playerName = playing.player?.name,
         )
     }
 
     private fun summary(session: TriviaSession): TriviaQuizUiState.Summary {
-        val learned = session.results.mapNotNull { (it.question as? TriviaQuestion.CardNumber)?.fact }
-            .distinctBy { it.key }
-            .count { fact ->
-                TriviaMastery.isMastered(fact, session.progress[fact.key]) &&
-                    !TriviaMastery.isMastered(fact, startProgress[fact.key])
-            }
+        val learned = if (!playing.movesProgress) {
+            0
+        } else {
+            session.results.mapNotNull { (it.question as? TriviaQuestion.CardNumber)?.fact }
+                .distinctBy { it.key }
+                .count { fact ->
+                    TriviaMastery.isMastered(fact, session.progress[fact.key]) &&
+                        !TriviaMastery.isMastered(fact, startProgress[fact.key])
+                }
+        }
         return TriviaQuizUiState.Summary(
             correct = session.correctCount,
             asked = session.results.size,
-            bestStreak = bestStreak(session.results),
+            bestStreak = session.bestStreak,
             learned = learned,
             misses = session.results.filterNot { it.correct }.map(::miss),
+            progressSaved = playing.movesProgress,
+            playerName = playing.player?.name,
+            challenge = if (route.challenge) {
+                ChallengeResultUi(
+                    finished = TriviaChallenge.isFinished(session),
+                    answerMillis = answerMillis,
+                    roundId = roundId,
+                )
+            } else {
+                null
+            },
         )
     }
 
@@ -356,15 +583,5 @@ class TriviaQuizViewModel internal constructor(
                 right = "${pick(TriviaEngine.duelAnswer(q))} (${q.first.value} vs ${q.second.value})",
             )
         }
-    }
-
-    private fun bestStreak(results: List<TriviaResult>): Int {
-        var best = 0
-        var run = 0
-        results.forEach { r ->
-            run = if (r.correct) run + 1 else 0
-            best = maxOf(best, run)
-        }
-        return best
     }
 }

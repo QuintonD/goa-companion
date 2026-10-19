@@ -9,6 +9,7 @@ import dev.quinton.goa.core.database.entity.MatchWithParticipants
 import dev.quinton.goa.core.database.entity.ParticipantEntity
 import dev.quinton.goa.core.database.entity.PlayerEntity
 import dev.quinton.goa.core.database.entity.PlayerMergeEntity
+import dev.quinton.goa.core.database.entity.TriviaRoundEntity
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.draft.DraftMethodKind
 import dev.quinton.goa.core.model.draft.DraftRecord
@@ -23,6 +24,8 @@ import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.sync.Deletion
 import dev.quinton.goa.core.model.sync.DeletionKind
 import dev.quinton.goa.core.model.sync.PlayerMerge
+import dev.quinton.goa.core.model.trivia.TriviaRound
+import dev.quinton.goa.core.model.trivia.TriviaRoundKind
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -148,6 +151,38 @@ fun Deletion.toEntity() = DeletionEntity(kind = kind.dbName(), id = id, deletedA
 fun PlayerMergeEntity.toModel() = PlayerMerge(fromId = fromId, toId = toId, mergedAt = mergedAt)
 
 fun PlayerMerge.toEntity() = PlayerMergeEntity(fromId = fromId, toId = toId, mergedAt = mergedAt)
+
+fun TriviaRoundEntity.toModel() = TriviaRound(
+    id = id,
+    playerId = playerId,
+    kind = parse<TriviaRoundKind>(kind),
+    playedAt = playedAt,
+    length = length,
+    questions = questions,
+    correct = correct,
+    bestStreak = bestStreak,
+    answerMillis = answerMillis,
+    recall = recall,
+    heroCount = heroCount,
+    catalogVersion = catalogVersion,
+    updatedAt = updatedAt,
+)
+
+fun TriviaRound.toEntity() = TriviaRoundEntity(
+    id = id,
+    playerId = playerId,
+    kind = kind.dbName(),
+    playedAt = playedAt,
+    length = length,
+    questions = questions,
+    correct = correct,
+    bestStreak = bestStreak,
+    answerMillis = answerMillis,
+    recall = recall,
+    heroCount = heroCount,
+    catalogVersion = catalogVersion,
+    updatedAt = updatedAt,
+)
 
 /** The `deletions.kind` value for this kind. */
 fun DeletionKind.column(): String = dbName()

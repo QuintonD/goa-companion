@@ -6,6 +6,7 @@ import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.sync.Deletion
 import dev.quinton.goa.core.model.sync.DeletionKind
 import dev.quinton.goa.core.model.sync.PlayerMerge
+import dev.quinton.goa.core.model.trivia.TriviaRound
 import kotlinx.serialization.KSerializer
 
 /**
@@ -13,11 +14,11 @@ import kotlinx.serialization.KSerializer
  * last-writer-wins register per id, so [merge] is commutative, associative and idempotent: any
  * order of pairwise syncs leaves every phone with the same data.
  *
- * - Players, matches, drafts: union by id; the higher `updatedAt` wins. An exact tie keeps the
- *   match with more known heroes, then the copy whose [SyncJson] encoding sorts last, which every
- *   phone computes alike.
- * - Deletions: the latest per (kind, id). A tombstone beats a match or draft last edited at or
- *   before it; a later edit brings the record back. Tombstones are kept for good (they are tiny),
+ * - Players, matches, drafts, trivia rounds: union by id; the higher `updatedAt` wins. An exact
+ *   tie keeps the match with more known heroes, then the copy whose [SyncJson] encoding sorts last,
+ *   which every phone computes alike.
+ * - Deletions: the latest per (kind, id). A tombstone beats a match, draft or trivia round last
+ *   edited at or before it; a later edit brings the record back. Tombstones are kept for good (they are tiny),
  *   so a phone that syncs months later still learns of the deletion.
  * - Player merges: one per merged id; the later merge wins, then the larger target id.
  * - Rating constants: the later change wins.
@@ -26,13 +27,19 @@ import kotlinx.serialization.KSerializer
  * always encodes to equal bytes.
  */
 object SyncMerge {
+    /**
+     * Phones only merge same-version documents; a document stored by an older build (a lower
+     * `version`, its newer lists empty) is upgraded by merging, so the result is always the current
+     * [SyncDocument.VERSION] and passes [SyncValidation].
+     */
     fun merge(a: SyncDocument, b: SyncDocument): SyncDocument = normalize(
         SyncDocument(
-            format = a.format,
-            version = a.version,
+            format = SyncDocument.FORMAT,
+            version = SyncDocument.VERSION,
             players = a.players + b.players,
             matches = a.matches + b.matches,
             drafts = a.drafts + b.drafts,
+            triviaRounds = a.triviaRounds + b.triviaRounds,
             deletions = a.deletions + b.deletions,
             playerMerges = a.playerMerges + b.playerMerges,
             eloConfig = newer(a.eloConfig, b.eloConfig, { it.updatedAt }, StampedEloConfig.serializer()),
@@ -57,6 +64,8 @@ object SyncMerge {
                 .filter { alive(DeletionKind.MATCH, it.id, it.updatedAt) },
             drafts = latest(doc.drafts, DraftRecord::id, DraftRecord::updatedAt, DraftRecord.serializer())
                 .filter { alive(DeletionKind.DRAFT, it.id, it.updatedAt) },
+            triviaRounds = latest(doc.triviaRounds, TriviaRound::id, TriviaRound::updatedAt, TriviaRound.serializer())
+                .filter { alive(DeletionKind.TRIVIA_ROUND, it.id, it.updatedAt) },
             deletions = deletions,
             playerMerges = doc.playerMerges
                 .filter { it.fromId != it.toId }
@@ -77,6 +86,7 @@ object SyncMerge {
         val players = diff(before.players, after.players, Player::id)
         val matches = diff(before.matches, after.matches, Match::id)
         val drafts = diff(before.drafts, after.drafts, DraftRecord::id)
+        val rounds = diff(before.triviaRounds, after.triviaRounds, TriviaRound::id)
         val merges = after.playerMerges.toSet() - before.playerMerges.toSet()
         return SyncChanges(
             playersAdded = players.added,
@@ -87,6 +97,9 @@ object SyncMerge {
             draftsAdded = drafts.added,
             draftsUpdated = drafts.updated,
             draftsRemoved = drafts.removed,
+            triviaRoundsAdded = rounds.added,
+            triviaRoundsUpdated = rounds.updated,
+            triviaRoundsRemoved = rounds.removed,
             playersMerged = merges.size,
             ratingConstantsChanged = before.eloConfig.config != after.eloConfig.config,
         )
@@ -136,7 +149,10 @@ object SyncMerge {
     }
 }
 
-/** What a sync changed on this phone, for the result summary ("+5 matches, +1 player, 2 updated"). */
+/**
+ * What a sync changed on this phone, for the result summary ("+5 matches, +1 player, +3 trivia
+ * rounds, 2 updated").
+ */
 data class SyncChanges(
     val playersAdded: Int = 0,
     val playersUpdated: Int = 0,
@@ -146,6 +162,9 @@ data class SyncChanges(
     val draftsAdded: Int = 0,
     val draftsUpdated: Int = 0,
     val draftsRemoved: Int = 0,
+    val triviaRoundsAdded: Int = 0,
+    val triviaRoundsUpdated: Int = 0,
+    val triviaRoundsRemoved: Int = 0,
     val playersMerged: Int = 0,
     val ratingConstantsChanged: Boolean = false,
 ) {

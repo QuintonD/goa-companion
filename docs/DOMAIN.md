@@ -315,8 +315,11 @@ Match(id, createdAt, playedAt, status: PENDING|COMPLETED|ABANDONED, mode: QUICK|
 Participant(playerId, heroId?, team: RED|BLUE, handicap)   // one per hero seat
 DraftRecord(id, createdAt, methodId, methodKind, pool, teamA, steps: (team, PICK|BAN, heroId), matchId?,
             updatedAt)
-Deletion(kind: MATCH|DRAFT, id, deletedAt)   // tombstone (DB v3)
+Deletion(kind: MATCH|DRAFT|TRIVIA_ROUND, id, deletedAt)   // tombstone (DB v3; trivia rounds DB v4)
 PlayerMerge(fromId, toId, mergedAt)          // duplicate player (DB v3)
+TriviaRound(id, playerId, kind: CHALLENGE|PRACTICE, playedAt, length (0 = endless), questions,
+            correct, bestStreak, answerMillis, recall, heroCount, catalogVersion, updatedAt)
+                                             // a finished trivia round (DB v4, backup v5, sync v2)
 ```
 Engine-specific types (timer presets, draft methods/sessions, Elo config) live with their
 engines in `core:domain`.
@@ -394,7 +397,7 @@ Validation (unit tests): unknown keys rejected; IDs unique and permanent; asset 
 stat has a value; every `**` in card text is a balanced bold marker. `values.plus` is omitted
 when empty (older JSON without it still loads). Values above are placeholders, not real data.
 
-## Card trivia [APP — ADR-028]
+## Card trivia [APP — ADR-028, leaderboard ADR-032]
 `core:domain/trivia`, pure and unit-tested; every question comes from the catalog.
 - **Facts** (`TriviaFacts`): one per non-null printed value of `initiative`, `values.attack`,
   `defense`, `movement`, `range`, `radius` on a hero's deck cards (`hero.cards`: Basic = Gold, Silver
@@ -426,6 +429,43 @@ when empty (older JSON without it still loads). Values above are placeholders, n
   setup says so, naming its scope ("No Ultimate card of the heroes you own prints Initiative").
 - **Practice:** "Practise the missed ones" = the round's missed facts, no duels, length
   2 × missed facts capped by the round's length; never endless (`TriviaConfig.forPractice`).
+- **Playing as** (ADR-032): a round is played as an active player or Guest. Default = the last
+  pick on this phone (`trivia_progress` store; a merged-away id reads as the player it was merged
+  into), if that player is still active, or Guest if Guest was picked; else this phone's "You"
+  (Group sync, if active); else Guest. The quiz reads the pick once when it opens and shows it on
+  the progress line and the summary ("as Sam", or "as Guest · not on the leaderboard"). **Learning
+  progress moves only when the round is played as this phone's "You", or by anyone (Guest
+  included) while no "You" is set** (an archived "You" counts as none); otherwise answers still
+  score but no box moves, the home notes "Learning progress on this phone stays Ann's.", and the
+  summary says so instead of counting newly learned numbers.
+- **Challenge** (`TriviaChallenge`): `TriviaConfig(all heroes in the catalog whatever the owned
+  products, all six stats, all card groups, 4 choices, 20 questions, duels on)` drawn with
+  `TriviaDraw.UNIFORM`: every not-yet-asked fact equally likely (progress plays no part), a duel's
+  two facts count as asked, no retries, never the card just asked (when another is left); duels
+  stay ~1 in 5 and still prefer partners within 2 Initiative. Answer time = the sum over questions
+  of the time from the question appearing to its answer, paused while the quiz isn't in view
+  (app in the background); reading the card scan afterwards doesn't count.
+- **Rounds** (`TriviaRounds.of`): when a round's summary first appears it is recorded once (a fresh
+  id per round, so Play again is a new round; Leave records nothing) as a `TriviaRound` — only when
+  played as a player, with at least one answer, and for a Challenge only with all 20 answered.
+  Practice rounds ended early with End count with the questions answered.
+- **Leaderboard** (`TriviaLeaderboard`, derived, never stored): rounds count for the player their
+  id resolves to through player merges; rounds of archived players, unknown ids and merged-away ids
+  are left out (archived players aren't ranked, as on the Players tab). Period: All time or the
+  last 30 days (`playedAt` ≥ now − 30 days). *Challenge board*: each player's best finished
+  Challenge (questions = length): more right answers, then less answer time in tenths of a second
+  (rounded, as shown: "1:42.3"), then the earlier round. *Practice board*: every round, Challenges included, summed per player: more right
+  answers, then the higher accuracy (compared exactly), then fewer questions; also best streak and
+  rounds. Players tied on all three criteria share a place ("1, 2, 2, 4", shown "=2", read "joint
+  2nd"); among them rows are ordered by name. A finished Challenge's summary shows the player's
+  all-time place ("2nd of 5 · your best 18/20", or "New best! · …" when this round is their best).
+  "Last 30 days" counts from the moment the screen was last opened or resumed. A player's sheet
+  lists every round of theirs in the period (their best Challenge first), so every counted score
+  can be removed (a tombstone).
+- **Validity** (`TriviaRoundValidation`, sync and backup): a round with a blank player, a negative
+  number, no answers, more right answers than questions, a best streak longer than its right
+  answers, more answers than its length, an unfinished Challenge, or a player missing from the
+  data is refused like a broken match.
 
 ## Board sandbox [RB + APP — ADR-033]
 `core:domain/board` (`HexGrid`, `BoardGeometry`, `BoardRules`, `BoardSetup`), pure and
@@ -628,11 +668,20 @@ a double pilot's seats always stay together. The result is checked like the matc
 (each hero once, nobody on both teams).
 
 ## Backup import [APP]
-Format v4 (`BackupDocument`): v3 plus `updatedAt` on players, matches and drafts, `deletions`,
-`playerMerges` and `eloConfigUpdatedAt` (group sync, ADR-025). v3 added `appVersion` and `extras`
+Format v5 (`BackupDocument`): v4 plus `triviaRounds` (ADR-032; their tombstones are in
+`deletions`) and `boards` (the board sandbox's `SavedBoard`s, ADR-033, read and written through
+`BoardRepository`; polymorphic pieces use the class discriminator `"piece"`). Rounds merge like
+matches; boards by the later `updatedAt` of each id (Replace = exactly the file's boards).
+`boards` is null when the file was written by a build without the board sandbox; a null or
+missing list (every file before v5) says nothing about boards, so even Replace leaves the phone's
+boards alone (its rounds go with the rest of the synced data; the group brings them back at the
+next sync). A build without the board sandbox doesn't import or count a file's boards. v4 added
+`updatedAt` on players, matches and drafts, `deletions`, `playerMerges` and `eloConfigUpdatedAt`
+(group sync, ADR-025). v3 added `appVersion` and `extras`
 from contributors — `settings` (AppSettings: theme, owned products, sounds, haptics, list view…),
 `timer-presets` (the stored preset list and selected preset) and `draft-methods` (custom methods);
-each store's own JSON is carried as-is. v1–v3 files still import: each record counts as last edited
+each store's own JSON is carried as-is. v1–v4 files still import (no rounds, no boards); v1–v3
+files: each record counts as last edited
 when it was created (a match: created or played, whichever is later), with no tombstones or merges.
 Replace = the file's data and settings as they are (records keep their `updatedAt`, so the group's
 newer edits win at the next sync and restoring an old backup never overwrites the group). Merge
@@ -647,21 +696,27 @@ reading, so it never appears in ratings or ban stats; the import summary lists s
 not cleared: a phone with an older catalog must not erase a newer hero by winning a sync tie.)
 
 ## Group sync [APP — ADR-025]
-Phone to phone at the table (Nearby Connections), no server. What travels (`SyncDocument`, raw as
-stored): players, matches, drafts, tombstones, player merges and the group's rating constants with
-their change time. What stays on each phone: app settings, timer presets, draft methods, the
-in-progress draft, the group key and "who am I" (`mePlayerId`). Ratings never travel: each phone
-replays the same log (ADR-003).
+Phone to phone at the table (Nearby Connections), no server. What travels (`SyncDocument`
+version 2, raw as stored): players, matches, drafts, trivia rounds (ADR-032), tombstones, player
+merges and the group's rating constants with their change time. What stays on each phone: app
+settings, timer presets, draft methods, the in-progress draft, trivia learning progress and the
+Playing-as pick, boards, the group key and "who am I" (`mePlayerId`). Ratings and the trivia
+leaderboard never travel: each phone derives them from the same data (ADR-003). Version 1 (before
+trivia rounds) and version 2 phones refuse each other in the greeting and in sync files ("… has an
+older/newer version of the app. Update …"): an old phone would drop the rounds.
 - **Stamps:** every local write sets `updatedAt` = max(now, previous `updatedAt` + 1, the record's
   tombstone + 1), so an edit always beats the copy it edited, even with the clock moved back.
   Archiving is an edit. Received records keep their stamps.
-- **Merge** (`SyncMerge`, commutative, associative, idempotent): same id → the higher `updatedAt`
+- **Merge** (`SyncMerge`, commutative, associative, idempotent; the result is always the current
+  `SyncDocument.VERSION`, so a stored document from an older build is upgraded by merging): same
+  id → the higher `updatedAt`
   wins; an exact tie keeps the match with more known heroes (a pre-sync backup import on an older
   catalog stored a newer hero as null, and the migration gave both copies the same stamp), then the
   copy whose canonical JSON (`SyncJson`) sorts last, the same on every phone. Other pre-sync
-  differences between copies with equal backfilled stamps are settled by that order, not by intent. A tombstone beats a match or draft whose `updatedAt` ≤ `deletedAt`; a later edit
-  resurrects it (the tombstone stays). Deleting a match or discarding a pending match writes a
-  tombstone in the same transaction; players are never deleted. Rating constants: the later change
+  differences between copies with equal backfilled stamps are settled by that order, not by intent. A tombstone beats a match, draft or trivia round whose `updatedAt` ≤ `deletedAt`; a later edit
+  resurrects it (the tombstone stays). Deleting a match or discarding a pending match, or removing
+  a trivia round from the leaderboard, writes a tombstone in the same transaction; players are
+  never deleted. Trivia rounds are never edited after they are written. Rating constants: the later change
   wins (never changed = 0; constants edited before sync existed count as 1, so they beat untouched
   defaults). Last writer wins per record: two phones editing one match before syncing keep only the
   later edit.
@@ -683,8 +738,9 @@ replays the same log (ADR-003).
 ## Duplicate players [APP]
 One friend added on two phones before they synced has two ids. "Merge into…" on a player page
 records `PlayerMerge(fromId, toId, mergedAt)`; nothing in the log is rewritten. Every read
-resolves ids through the merges (`PlayerMerges`): match pilots, player lists (the merged-away
-player disappears), "who am I", so ratings, records and stats count one player on every phone that
+resolves ids through the merges (`PlayerMerges`): match pilots, trivia rounds, player lists (the
+merged-away player disappears), "who am I", the trivia Playing-as pick, so ratings, the trivia
+leaderboard, records and stats count one player on every phone that
 holds the same merges, and ratings stay derivable from the match log. Chains resolve to the last
 player. A merge is refused when the two played in the same match (opposite teams would put one
 player on both sides; teammates are two people), and the dialog lists those matches. Two phones can

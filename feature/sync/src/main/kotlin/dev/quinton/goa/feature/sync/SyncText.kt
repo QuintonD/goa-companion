@@ -14,15 +14,17 @@ import java.time.Duration
 object SyncText {
     private fun count(n: Int, one: String, many: String = "${one}s") = "$n ${if (n == 1) one else many}"
 
-    /** "+5 matches, +1 player, 2 updated, 1 removed", or "Already up to date". */
+    /** "+5 matches, +1 player, +3 trivia rounds, 2 updated, 1 removed", or "Already up to date". */
     fun summary(changes: SyncChanges): String {
         val parts = buildList {
             if (changes.matchesAdded > 0) add("+${count(changes.matchesAdded, "match", "matches")}")
             if (changes.playersAdded > 0) add("+${count(changes.playersAdded, "player")}")
             if (changes.draftsAdded > 0) add("+${count(changes.draftsAdded, "draft")}")
-            val updated = changes.matchesUpdated + changes.playersUpdated + changes.draftsUpdated
+            if (changes.triviaRoundsAdded > 0) add("+${count(changes.triviaRoundsAdded, "trivia round")}")
+            val updated = changes.matchesUpdated + changes.playersUpdated + changes.draftsUpdated +
+                changes.triviaRoundsUpdated
             if (updated > 0) add("$updated updated")
-            val removed = changes.matchesRemoved + changes.draftsRemoved
+            val removed = changes.matchesRemoved + changes.draftsRemoved + changes.triviaRoundsRemoved
             if (removed > 0) add("$removed removed")
             if (changes.playersMerged > 0) add("${count(changes.playersMerged, "duplicate")} merged")
             if (changes.ratingConstantsChanged) add("new rating constants")

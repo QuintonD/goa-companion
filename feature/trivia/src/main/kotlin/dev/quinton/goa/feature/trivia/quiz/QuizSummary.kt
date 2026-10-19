@@ -11,11 +11,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,9 +27,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaCard
@@ -41,7 +45,10 @@ import dev.quinton.goa.feature.trivia.ui.CardKindLine
 import dev.quinton.goa.feature.trivia.ui.HeroLine
 import dev.quinton.goa.feature.trivia.ui.spokenUnverified
 
-/** The end of a round: score, best streak, newly learned numbers, the misses and what next. */
+/**
+ * The end of a round: score, best streak, newly learned numbers, the misses and what next. A
+ * Challenge adds its answer time and the player's place on the board (ADR-032).
+ */
 @Composable
 internal fun SummaryContent(
     state: TriviaQuizUiState.Summary,
@@ -49,7 +56,9 @@ internal fun SummaryContent(
     onPlayAgain: () -> Unit,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
+    onLeaderboard: () -> Unit = {},
 ) {
+    val onBoard = state.challenge?.finished == true && state.playerName != null
     Column(
         modifier
             .verticalScroll(rememberScrollState())
@@ -65,10 +74,31 @@ internal fun SummaryContent(
         Spacer(Modifier.height(Spacing.xl))
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             val big = Modifier.fillMaxWidth().heightIn(min = 56.dp)
-            if (state.canPractise) {
-                Button(onClick = onPractise, modifier = big) {
-                    Text("Practise the missed ones", style = MaterialTheme.typography.titleMedium)
+            if (onBoard) {
+                Button(onClick = onLeaderboard, modifier = big) {
+                    Icon(
+                        Icons.Outlined.EmojiEvents,
+                        contentDescription = null,
+                        modifier = Modifier.size(scaledIconSize(20.dp)),
+                    )
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text("Leaderboard", style = MaterialTheme.typography.titleMedium)
                 }
+            }
+            if (state.canPractise) {
+                if (onBoard) {
+                    OutlinedButton(onClick = onPractise, modifier = big) {
+                        Text("Practise the missed ones", style = MaterialTheme.typography.titleMedium)
+                    }
+                } else {
+                    Button(onClick = onPractise, modifier = big) {
+                        Text("Practise the missed ones", style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+                OutlinedButton(onClick = onPlayAgain, modifier = big) {
+                    Text("Play again", style = MaterialTheme.typography.titleMedium)
+                }
+            } else if (onBoard) {
                 OutlinedButton(onClick = onPlayAgain, modifier = big) {
                     Text("Play again", style = MaterialTheme.typography.titleMedium)
                 }
@@ -84,10 +114,44 @@ internal fun SummaryContent(
     }
 }
 
+/** Who is playing, on the quiz and its summary: "as Sam", or "as Guest · not on the leaderboard". */
+internal fun playingAsLine(playerName: String?): String =
+    if (playerName == null) "as Guest · not on the leaderboard" else "as $playerName"
+
+/**
+ * What a Challenge's summary says about the board: "2nd of 5 · your best 18/20", "New best! · 1st
+ * of 3", why it isn't on it, or null while the place is still being worked out.
+ */
+internal fun challengeLine(state: TriviaQuizUiState.Summary): String? {
+    val challenge = state.challenge ?: return null
+    return when {
+        !challenge.finished -> "Unfinished challenges don't go on the leaderboard."
+
+        // Guest: the "as Guest · not on the leaderboard" line above says it.
+        state.playerName == null -> null
+
+        else -> challenge.standing?.let { standing ->
+            val place = TriviaText.place(standing.place, standing.tied) + " of ${standing.of}"
+            if (challenge.newBest) {
+                "New best! · $place"
+            } else {
+                "$place · your best ${standing.best.correct}/${standing.best.questions}"
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ScoreCard(state: TriviaQuizUiState.Summary) {
+    val challenge = state.challenge
     GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.xl)) {
+        Text(
+            (if (challenge != null) "Challenge · " else "") + playingAsLine(state.playerName),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(Modifier.height(Spacing.xs))
         Text(
             if (state.asked == 0) "No questions answered" else "${state.correct} of ${state.asked} right",
             style = MaterialTheme.typography.headlineMedium,
@@ -95,15 +159,39 @@ private fun ScoreCard(state: TriviaQuizUiState.Summary) {
             modifier = Modifier.semantics { heading() },
         )
         Spacer(Modifier.height(Spacing.xs))
+        val line = challengeLine(state)
+        if (line != null) {
+            Text(
+                line,
+                style = MaterialTheme.typography.titleMedium,
+                color = if (challenge?.finished == true) {
+                    MaterialTheme.colorScheme.secondary
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+            Spacer(Modifier.height(Spacing.xs))
+        }
         Text(
             when {
                 state.asked == 0 -> "End a round after answering to see how it went."
                 state.misses.isEmpty() -> "Every answer right."
-                else -> "Missed numbers come back sooner next time."
+                state.progressSaved -> "Missed numbers come back sooner next time."
+                else -> "This phone's learning progress stays as it was."
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (state.saveFailed) {
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                "This round couldn't be saved to the leaderboard.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
         if (state.asked > 0) {
             Spacer(Modifier.height(Spacing.lg))
             FlowRow(
@@ -111,11 +199,20 @@ private fun ScoreCard(state: TriviaQuizUiState.Summary) {
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
                 Metric(value = "${state.bestStreak}", label = "Best streak")
-                Metric(
-                    value = "+${state.learned}",
-                    label = if (state.learned == 1) "number learned" else "numbers learned",
-                    spoken = "${TriviaText.count(state.learned, "number")} learned this round",
-                )
+                if (challenge != null) {
+                    Metric(
+                        value = TriviaText.answerTime(challenge.answerMillis),
+                        label = "Answer time",
+                        spoken = "Answer time ${TriviaText.spokenAnswerTime(challenge.answerMillis)}",
+                    )
+                }
+                if (state.progressSaved) {
+                    Metric(
+                        value = "+${state.learned}",
+                        label = if (state.learned == 1) "number learned" else "numbers learned",
+                        spoken = "${TriviaText.count(state.learned, "number")} learned this round",
+                    )
+                }
             }
         }
     }

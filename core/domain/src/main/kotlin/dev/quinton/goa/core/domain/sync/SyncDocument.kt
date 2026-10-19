@@ -6,17 +6,21 @@ import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.sync.Deletion
 import dev.quinton.goa.core.model.sync.PlayerMerge
+import dev.quinton.goa.core.model.trivia.TriviaRound
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 /**
- * Everything a phone shares with its group (ADR-025): the match log, players, drafts, tombstones,
- * player merges and the group's rating constants. Ratings are not included (ADR-003). App
- * settings, timer presets, draft methods and "who am I" stay on each phone.
+ * Everything a phone shares with its group (ADR-025): the match log, players, drafts, trivia
+ * rounds (ADR-032), tombstones, player merges and the group's rating constants. Ratings and the
+ * trivia leaderboard are not included (both are derived). App settings, timer presets, draft
+ * methods, trivia progress, boards and "who am I" stay on each phone.
  *
  * **Versioning:** phones sync only with the same [VERSION]. Bump it whenever a synced type gains
  * a field: an older app would drop the field on decode, and its copy could then win a tie and
  * erase the field on every phone. Different versions are refused with "update the app".
+ * - v1: players, matches, drafts, deletions, player merges, rating constants (ADR-025).
+ * - v2: [triviaRounds] (ADR-032). A v1 phone would drop them, so the versions don't sync.
  */
 @Serializable
 data class SyncDocument(
@@ -25,13 +29,14 @@ data class SyncDocument(
     val players: List<Player> = emptyList(),
     val matches: List<Match> = emptyList(),
     val drafts: List<DraftRecord> = emptyList(),
+    val triviaRounds: List<TriviaRound> = emptyList(),
     val deletions: List<Deletion> = emptyList(),
     val playerMerges: List<PlayerMerge> = emptyList(),
     val eloConfig: StampedEloConfig = StampedEloConfig.UNSET,
 ) {
     companion object {
         const val FORMAT = "goa-sync"
-        const val VERSION = 1
+        const val VERSION = 2
         val EMPTY = SyncDocument()
     }
 }

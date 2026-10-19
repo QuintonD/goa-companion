@@ -20,6 +20,7 @@ import coil3.request.allowHardware
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.catalog.CatalogIndex
 import dev.quinton.goa.core.model.catalog.Hero
+import dev.quinton.goa.core.model.player.Player
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.serialization.json.Json
@@ -38,6 +39,17 @@ fun bundledAssetFile(path: String): File {
 
 /** A file under the app's bundled `assets/catalog/`. */
 fun bundledCatalogFile(path: String): File = bundledAssetFile("catalog/$path")
+
+/** A play group for the Playing-as and leaderboard screenshots (palette colours, crests). */
+object ScreenshotPlayers {
+    val ann = Player("ann", "Ann", 0xFF3FC1B0, avatarId = 1, createdAt = 1)
+    val sam = Player("sam", "Sam", 0xFFD9B44A, avatarId = 5, createdAt = 2)
+    val zoe = Player("zoe", "Zoe", 0xFFEE7F6F, avatarId = 9, createdAt = 3)
+    val ravi = Player("ravi", "Ravi", 0xFF62A8F2, avatarId = 13, createdAt = 4)
+    val mo = Player("mo", "Mo", 0xFFB892E6, avatarId = 17, createdAt = 5)
+    val kit = Player("kit", "Kit Featherstonehaugh-Llewellyn", 0xFF6CC27A, avatarId = 21, createdAt = 6)
+    val all = listOf(ann, sam, zoe, ravi, mo, kit)
+}
 
 private val json = Json { ignoreUnknownKeys = false }
 

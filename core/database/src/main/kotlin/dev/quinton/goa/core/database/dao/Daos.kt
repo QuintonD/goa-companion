@@ -13,6 +13,7 @@ import dev.quinton.goa.core.database.entity.MatchWithParticipants
 import dev.quinton.goa.core.database.entity.ParticipantEntity
 import dev.quinton.goa.core.database.entity.PlayerEntity
 import dev.quinton.goa.core.database.entity.PlayerMergeEntity
+import dev.quinton.goa.core.database.entity.TriviaRoundEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -138,7 +139,32 @@ interface DraftRecordDao {
     }
 }
 
-/** Tombstones of deleted matches and drafts (group sync, ADR-025). */
+/** Finished trivia rounds (schema v4, ADR-032), oldest first. */
+@Dao
+interface TriviaRoundDao {
+    @Query("SELECT * FROM trivia_rounds ORDER BY played_at, id")
+    fun observeAll(): Flow<List<TriviaRoundEntity>>
+
+    @Query("SELECT * FROM trivia_rounds ORDER BY played_at, id")
+    suspend fun getAll(): List<TriviaRoundEntity>
+
+    @Upsert
+    suspend fun upsert(round: TriviaRoundEntity)
+
+    @Upsert
+    suspend fun upsertAll(rounds: List<TriviaRoundEntity>)
+
+    @Query("SELECT updated_at FROM trivia_rounds WHERE id = :id")
+    suspend fun updatedAt(id: String): Long?
+
+    @Query("DELETE FROM trivia_rounds WHERE id = :id")
+    suspend fun delete(id: String)
+
+    @Query("DELETE FROM trivia_rounds")
+    suspend fun deleteAll()
+}
+
+/** Tombstones of deleted matches, drafts and trivia rounds (group sync, ADR-025). */
 @Dao
 interface DeletionDao {
     @Query("SELECT * FROM deletions ORDER BY kind, id")
