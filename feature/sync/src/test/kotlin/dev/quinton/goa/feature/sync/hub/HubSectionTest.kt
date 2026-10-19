@@ -154,7 +154,11 @@ class HubSectionTest {
     fun anInviteWithThisGroupsIdButAnotherKeyNeverReplacesTheKeyOrTheHub() = runTest {
         // Someone who knows the group id (a sync file's envelope, a past member) makes their own key
         // and hub: joining would send this phone's whole match log there, sealed with their key.
-        val forged = dev.quinton.goa.core.domain.sync.GroupCredentials(TestGroup.groupId, ByteArray(32) { 7 }, TestGroup.name)
+        val forged = dev.quinton.goa.core.domain.sync.GroupCredentials(
+            TestGroup.groupId,
+            ByteArray(32) { 7 },
+            TestGroup.name,
+        )
         val groups = FakeGroupRepository(groupState().copy(hubUrl = "https://goa.example"))
         val before = groups.current.value
         val vm = vm(groups)

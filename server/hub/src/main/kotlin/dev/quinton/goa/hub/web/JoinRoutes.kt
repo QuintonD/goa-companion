@@ -36,9 +36,9 @@ object SignInSlots {
  * Web sign-in (ADR-030 §7). `/join` reads the invite from the link's fragment in the page
  * (`static/join.js`; the key never reaches a server log) and posts it; the hub checks the group
  * id and key in constant time, creates a device and sets the `goa_device` cookie. Failed tries
- * are throttled ([JoinThrottle]); the right invite always gets in. There is no first-run page on the web: until the hub has joined
- * a group (`goa-hub join` on the server), every page says so, from any address (the hub is
- * published from loopback, so an address proves nothing).
+ * are throttled ([JoinThrottle]); the right invite always gets in. There is no first-run page on
+ * the web: until the hub has joined a group (`goa-hub join` on the server), every page says so,
+ * from any address (the hub is published from loopback, so an address proves nothing).
  */
 internal fun Route.joinRoutes(hub: Hub) {
     get(JOIN_PATH) {

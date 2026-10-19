@@ -132,7 +132,8 @@ class GroupViewModel @Inject constructor(
                 val group = parsed.group
                 viewModelScope.launch {
                     val current = groups.state.first().group
-                    if (current != null && current.groupId == group.groupId && !SyncCrypto.same(current.key, group.key)) {
+                    val sameId = current != null && current.groupId == group.groupId
+                    if (current != null && sameId && !SyncCrypto.same(current.key, group.key)) {
                         // A group's key never changes, so this invite is forged or broken. Joining would
                         // swap the key (and the hub): this phone's data would go to whoever made it.
                         local.update { it.copy(message = keyMismatch(current.name)) }

@@ -25,7 +25,8 @@ class DataPermissionsTest {
     fun `the data directory is 0700 and every file the hub writes is 0600`() {
         assumeTrue(AtomicFiles.supportsPosix)
         val root = tmp.root.toPath().resolve("hub")
-        Files.createDirectories(root, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwxr-xr-x")))
+        val open = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwxr-xr-x"))
+        Files.createDirectories(root, open)
         val clock = FakeClock()
         val hub = testHub(root, clock)
         runBlocking { hub.groupStore.upsertPlayer(player("ann", "Ann")) }

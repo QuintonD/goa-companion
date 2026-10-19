@@ -199,7 +199,8 @@ object GroupFeature : HubFeature {
      * into `//evil.example`, another site.
      */
     internal fun safeNext(next: String?): String = next?.takeIf {
-        it.startsWith("/") && !it.startsWith("//") && it.length <= MAX_NEXT && it.all { c -> c in '!'..'~' && c != '\\' }
+        it.startsWith("/") && !it.startsWith("//") && it.length <= MAX_NEXT &&
+            it.all { c -> c in '!'..'~' && c != '\\' }
     } ?: PATH
 
     internal fun meUrl(next: String): String = if (next == PATH) ME_PATH else "$ME_PATH?next=${encode(next)}"
