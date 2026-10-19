@@ -57,4 +57,18 @@ class DataStoreEloConfigRepositoryTest {
         val merged = SyncMerge.merge(SyncDocument(eloConfig = repo.stamped()), SyncDocument())
         assertThat(merged.eloConfig.config).isEqualTo(EloConfig(kEstablished = 15.0))
     }
+
+    @Test
+    fun releasingASliderAtTheSameValueStoresNothing() = runTest {
+        val (_, repo) = repository()
+        now = 1_000
+        repo.applySynced(StampedEloConfig(EloConfig(kEstablished = 25.0), updatedAt = 3_000))
+        repo.update { it.copy(kEstablished = 25.0) }
+        assertThat(repo.stamped().updatedAt).isEqualTo(3_000)
+        repo.update { it.copy(kEstablished = 30.0) }
+        repo.reset()
+        assertThat(repo.stamped()).isEqualTo(StampedEloConfig(EloConfig.DEFAULT, 3_002))
+        repo.reset() // already the defaults: no new change that could beat another phone's
+        assertThat(repo.stamped().updatedAt).isEqualTo(3_002)
+    }
 }

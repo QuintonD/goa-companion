@@ -6,7 +6,9 @@ import dev.quinton.goa.core.domain.backup.BackupDocument
 import dev.quinton.goa.core.domain.backup.BackupFiles
 import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.domain.sync.StampedEloConfig
+import dev.quinton.goa.core.domain.sync.SyncDocument
 import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.presentation.settings.RatingConstants
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.hub.FakeClock
@@ -183,6 +185,32 @@ class SettingsPagesTest {
             b.post("/settings/ratings/reset")
             val reset = hub.groupStore.read().eloConfig
             assertThat(reset).isEqualTo(StampedEloConfig(EloConfig.DEFAULT, clock.nowMillis()))
+        }
+    }
+
+    @Test
+    fun `a ratings form opened before a phone's change writes back only the constant moved on it`() {
+        val hub = hub()
+        hubTest(hub) {
+            val b = browser()
+            assertThat(b.get("/settings/ratings").bodyAsText()).contains("name=\"shown-kEstablished\"")
+            // The form as the page showed it: every slider at the defaults.
+            val form = RatingConstants.all.flatMap {
+                val shown = it.get(EloConfig.DEFAULT).toString()
+                listOf(it.key to shown, "shown-${it.key}" to shown)
+            }.toMap()
+            // Meanwhile a phone sets K and syncs.
+            val phone = StampedEloConfig(EloConfig.DEFAULT.copy(kEstablished = 40.0), clock.nowMillis() + 10)
+            runBlocking { hub.groupStore.mergeIn(SyncDocument(eloConfig = phone)) }
+            clock.advance(1_000)
+            b.post("/settings/ratings", *(form + ("heroInfluence" to "0.25")).toList().toTypedArray())
+            val after = hub.groupStore.read().eloConfig
+            assertThat(after.config).isEqualTo(phone.config.copy(heroInfluence = 0.25))
+            assertThat(after.updatedAt).isGreaterThan(phone.updatedAt)
+            // Saving the stale form untouched stores nothing.
+            clock.advance(1_000)
+            b.post("/settings/ratings", *form.toList().toTypedArray())
+            assertThat(hub.groupStore.read().eloConfig).isEqualTo(after)
         }
     }
 

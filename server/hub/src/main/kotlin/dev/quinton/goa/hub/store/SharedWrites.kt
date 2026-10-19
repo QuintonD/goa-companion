@@ -148,15 +148,20 @@ object SharedWrites {
             PlayerMergeOutcome.Merged
     }
 
-    /** `DataStoreEloConfigRepository.update`: sanitized, stamped after the current change. */
+    /**
+     * `DataStoreEloConfigRepository.update`: sanitized, stamped after the current change. A change
+     * that leaves the constants as they are stores nothing (a new stamp on old values would beat a
+     * newer change another phone hasn't synced yet).
+     */
     fun updateEloConfig(doc: SyncDocument, now: Long, transform: (EloConfig) -> EloConfig): SyncDocument {
-        val next = transform(doc.eloConfig.config).sanitized()
+        val current = doc.eloConfig.config.sanitized()
+        val next = transform(current).sanitized()
+        if (next == current) return doc
         return doc.copy(eloConfig = StampedEloConfig(next, EditStamp.next(now, doc.eloConfig.updatedAt)))
     }
 
-    /** `DataStoreEloConfigRepository.reset`: the defaults, as a new change. */
-    fun resetEloConfig(doc: SyncDocument, now: Long): SyncDocument =
-        doc.copy(eloConfig = StampedEloConfig(EloConfig.DEFAULT, EditStamp.next(now, doc.eloConfig.updatedAt)))
+    /** `DataStoreEloConfigRepository.reset`: the defaults, as a new change (nothing if already the defaults). */
+    fun resetEloConfig(doc: SyncDocument, now: Long): SyncDocument = updateEloConfig(doc, now) { EloConfig.DEFAULT }
 
     private fun tombstone(doc: SyncDocument, kind: DeletionKind, id: String): Deletion? =
         doc.deletions.filter { it.kind == kind && it.id == id }.maxByOrNull { it.deletedAt }
