@@ -72,19 +72,27 @@ import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
-import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.catalog.Ruling
-import dev.quinton.goa.feature.catalog.model.HeroPilotStat
-import dev.quinton.goa.feature.catalog.model.attackProfile
+import dev.quinton.goa.core.presentation.catalog.HANDICAP_NOTE
+import dev.quinton.goa.core.presentation.catalog.HeroDetailUiState
+import dev.quinton.goa.core.presentation.catalog.HeroPersonalStats
+import dev.quinton.goa.core.presentation.catalog.HeroPilotStat
+import dev.quinton.goa.core.presentation.catalog.NO_RULINGS
+import dev.quinton.goa.core.presentation.catalog.SOURCES_FOOTER
+import dev.quinton.goa.core.presentation.catalog.aliasLine
+import dev.quinton.goa.core.presentation.catalog.attackProfile
+import dev.quinton.goa.core.presentation.catalog.complexityName
+import dev.quinton.goa.core.presentation.catalog.handicapConflict
+import dev.quinton.goa.core.presentation.catalog.label
+import dev.quinton.goa.core.presentation.catalog.learnNumbersLabel
+import dev.quinton.goa.core.presentation.catalog.percent
+import dev.quinton.goa.core.presentation.catalog.plural
+import dev.quinton.goa.core.presentation.catalog.recordLine
+import dev.quinton.goa.core.presentation.catalog.sourceMeta
 import dev.quinton.goa.feature.catalog.ui.MetaPill
 import dev.quinton.goa.feature.catalog.ui.SectionTitle
 import dev.quinton.goa.feature.catalog.ui.UnverifiedBadge
-import dev.quinton.goa.feature.catalog.ui.complexityName
-import dev.quinton.goa.feature.catalog.ui.elo
-import dev.quinton.goa.feature.catalog.ui.label
-import dev.quinton.goa.feature.catalog.ui.percent
-import dev.quinton.goa.feature.catalog.ui.plural
 
 @Composable
 fun HeroDetailScreen(
@@ -124,20 +132,6 @@ fun HeroDetailScreen(
             }
         }
     }
-}
-
-/**
- * Rulebook p.20 has the 3-player Handicap card replace "a gold card of one of those heroes", but a
- * Handicap card without a gold frame (Takahide's is silver, and he has three gold cards) leaves
- * open which card it replaces. Shown as unresolved; the app never picks an answer.
- */
-internal fun handicapConflict(hero: Hero, handicap: Card): String? {
-    if (handicap.color == CardColor.GOLD) return null
-    val golds = hero.cards.count { it.color == CardColor.GOLD }
-    val frame = handicap.color.label.lowercase()
-    val goldCards = if (golds > 1) " and ${hero.name} has $golds gold cards" else ""
-    return "Unresolved: rulebook p.20 says that with 3 players the Handicap card replaces a gold card, but this " +
-        "one has a $frame frame$goldCards. Neither the rulebook nor the card says which card it replaces."
 }
 
 private fun LazyListScope.heroDetailContent(
@@ -185,10 +179,7 @@ private fun LazyListScope.heroDetailContent(
                 SectionTitle("Handicap")
                 Text(
                     // Rulebook p.20.
-                    "A weaker version of a basic card (usually Gold). With 5, 7 or 9 players, every hero on the " +
-                        "larger team replaces one of its basic cards with it. With 3 players, the player controlling " +
-                        "two heroes replaces a gold card of one of them with it. In even-count games, the most " +
-                        "experienced players may use it to even out skill.",
+                    HANDICAP_NOTE,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = Spacing.sm),
@@ -212,7 +203,7 @@ private fun LazyListScope.heroDetailContent(
     if (hero.faq.isEmpty()) {
         item(key = "faq-empty") {
             Text(
-                "No official rulings recorded for this hero.",
+                NO_RULINGS,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = padded,
@@ -251,7 +242,7 @@ private fun LearnNumbersButton(heroName: String, onClick: () -> Unit, modifier: 
     ) {
         Icon(Icons.Outlined.Quiz, contentDescription = null, modifier = Modifier.size(scaledIconSize(18.dp)))
         Spacer(Modifier.width(Spacing.sm))
-        Text("Learn $heroName's card numbers")
+        Text(learnNumbersLabel(heroName))
     }
 }
 
@@ -282,9 +273,9 @@ private fun HeroHeader(hero: Hero, productName: String) {
                 fontStyle = FontStyle.Italic,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (hero.aliases.isNotEmpty()) {
+            hero.aliasLine?.let { aliases ->
                 Text(
-                    "Also known as ${hero.aliases.joinToString()}",
+                    aliases,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp),
@@ -373,37 +364,22 @@ private fun PersonalStatsCard(stats: HeroPersonalStats) {
             .padding(Spacing.lg),
     ) {
         if (!stats.hasGames) {
-            Text("No games logged with this hero yet", style = MaterialTheme.typography.titleSmall)
+            Text(HeroPersonalStats.NO_GAMES_TITLE, style = MaterialTheme.typography.titleSmall)
             Text(
-                "Log a match in the Players tab to see Elo, win rate and who plays this hero best.",
+                HeroPersonalStats.NO_GAMES_MESSAGE,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.xs),
             )
             return@Column
         }
-        val rating = stats.rating
-        val usage = stats.usage
-        val games = usage?.matches ?: rating?.games ?: stats.log.games
-        val wins = usage?.wins ?: rating?.wins ?: stats.log.wins
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             maxItemsInEachRow = 3,
         ) {
             val metricModifier = Modifier.weight(1f)
-            Metric(
-                "Elo",
-                rating?.takeIf { it.games > 0 }?.let { elo(it.value) } ?: "—",
-                rating?.takeIf { it.provisional && it.games > 0 }?.let { "provisional" },
-                metricModifier,
-            )
-            Metric("Games", games.toString(), "${wins}W · ${games - wins}L", metricModifier)
-            Metric("Win rate", if (games > 0) percent(wins.toDouble() / games) else "—", null, metricModifier)
-            usage?.let {
-                Metric("Pick rate", percent(it.pickRate), null, metricModifier)
-                Metric("Ban rate", percent(it.banRate), plural(it.bans, "ban"), metricModifier)
-            }
+            stats.metrics.forEach { Metric(it.label, it.value, it.note, metricModifier) }
         }
         PilotsBlock(stats)
     }
@@ -422,22 +398,19 @@ private fun Metric(label: String, value: String, note: String?, modifier: Modifi
 
 @Composable
 private fun PilotsBlock(stats: HeroPersonalStats) {
-    val best = stats.log.bestPilots
-    val pilots = best.ifEmpty { stats.log.allPilots }
+    val pilots = stats.pilots
     if (pilots.isEmpty()) return
+    val ranked = stats.log.bestPilots.isNotEmpty()
     Spacer(Modifier.height(Spacing.lg))
-    Text(
-        if (best.isNotEmpty()) "Best with this hero" else "Played by",
-        style = MaterialTheme.typography.titleSmall,
-    )
-    if (best.isEmpty()) {
+    Text(stats.pilotsTitle, style = MaterialTheme.typography.titleSmall)
+    stats.pilotsNote?.let { note ->
         Text(
-            "Rankings start at ${stats.log.minGames} games per player.",
+            note,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-    pilots.take(MAX_PILOTS).forEachIndexed { index, pilot -> PilotRow(index + 1, pilot, ranked = best.isNotEmpty()) }
+    pilots.forEachIndexed { index, pilot -> PilotRow(index + 1, pilot, ranked = ranked) }
 }
 
 @Composable
@@ -465,7 +438,7 @@ private fun PilotRow(rank: Int, pilot: HeroPilotStat, ranked: Boolean) {
         Column(horizontalAlignment = Alignment.End) {
             Text(percent(pilot.winRate), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             Text(
-                "${pilot.wins}–${pilot.games - pilot.wins}",
+                pilot.recordLine,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.semantics {
@@ -565,7 +538,7 @@ private fun SourcesBlock(hero: Hero) {
     hero.sources.forEach { source ->
         Column(Modifier.padding(bottom = Spacing.sm).semantics(mergeDescendants = true) {}) {
             Text(source.name, style = MaterialTheme.typography.bodyMedium)
-            val meta = listOfNotNull(source.url, source.retrieved?.let { "retrieved $it" }).joinToString(" · ")
+            val meta = sourceMeta(source.url, source.retrieved)
             if (meta.isNotEmpty()) {
                 Text(
                     meta,
@@ -576,7 +549,7 @@ private fun SourcesBlock(hero: Hero) {
         }
     }
     Text(
-        "Game content and art © Wolff Designa. Private, non-commercial build.",
+        SOURCES_FOOTER,
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(top = Spacing.sm),
@@ -585,4 +558,3 @@ private fun SourcesBlock(hero: Hero) {
 
 private val HEADER_ART_HEIGHT = 280.dp
 private const val MOTION_MS = 250
-private const val MAX_PILOTS = 3

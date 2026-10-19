@@ -3,6 +3,9 @@ package dev.quinton.goa.feature.rules
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.presentation.rules.LadderUiState
+import dev.quinton.goa.core.presentation.rules.RulesTopicUiState
+import dev.quinton.goa.core.presentation.rules.RulesUiState
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.feature.rules.data.RulesReferenceSource
 import kotlinx.coroutines.Dispatchers

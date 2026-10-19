@@ -54,9 +54,15 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.rules.LadderLookup
 import dev.quinton.goa.core.model.rules.LevelLadder
 import dev.quinton.goa.core.model.rules.LevelRow
-import dev.quinton.goa.feature.rules.ExceptionCardUi
-import dev.quinton.goa.feature.rules.LadderUiState
-import dev.quinton.goa.feature.rules.RulesText
+import dev.quinton.goa.core.presentation.rules.ExceptionCardUi
+import dev.quinton.goa.core.presentation.rules.LADDER_HEADERS
+import dev.quinton.goa.core.presentation.rules.LadderUiState
+import dev.quinton.goa.core.presentation.rules.RulesText
+import dev.quinton.goa.core.presentation.rules.defeatNumbers
+import dev.quinton.goa.core.presentation.rules.defeatTitle
+import dev.quinton.goa.core.presentation.rules.ladderCells
+import dev.quinton.goa.core.presentation.rules.spokenDefeat
+import dev.quinton.goa.core.presentation.rules.spokenRow
 
 /**
  * "Levels & defeats": pick the defeated hero's level for the three numbers that matter, the full
@@ -92,7 +98,7 @@ private fun LazyListScope.ladderContent(
     item(key = "title") {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "Levels & defeats",
+                RulesText.LADDER_TITLE,
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.weight(1f).semantics { heading() },
             )
@@ -100,7 +106,7 @@ private fun LazyListScope.ladderContent(
         }
     }
     item(key = "picker") { LevelPicker(ladder.levels, state.selectedLevel, onSelectLevel) }
-    val selected = state.selectedLevel?.let { LadderLookup.row(ladder, it) }
+    val selected = state.selected
     if (selected != null) {
         item(key = "result") { DefeatResult(selected) }
     }
@@ -113,18 +119,12 @@ private fun LazyListScope.ladderContent(
     items(ladder.levelUp, key = {
         "level-${it.page}-${it.text.hashCode()}"
     }) { ExcerptBlock(it, style = compactReading()) }
-    item(key = "cards-header") {
-        SectionHeader(if (state.matchHeroesOnly) "Cards in this match that change this" else "Cards that change this")
-    }
+    item(key = "cards-header") { SectionHeader(state.cardsHeader) }
     item(key = "cards-rule") { ExcerptBlock(ladder.cardText, style = compactReading()) }
     if (state.exceptions.isEmpty()) {
         item(key = "cards-none") {
             Text(
-                if (state.matchHeroesOnly) {
-                    "No card of the heroes in this match changes Life counters or assist coins."
-                } else {
-                    "No card in the catalog changes Life counters or assist coins."
-                },
+                state.noCardsText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -204,15 +204,8 @@ private fun DefeatResult(row: LevelRow) {
             .padding(Spacing.lg)
             .clearAndSetSemantics { contentDescription = spokenDefeat(row) },
     ) {
-        Text(
-            "Level ${row.level} hero defeated · lowest card Tier ${RulesText.roman(row.lowestTier)}",
-            style = MaterialTheme.typography.titleMedium,
-        )
-        val numbers = listOf(
-            Triple(row.lifeCounters, "Life counters", "their team spends"),
-            Triple(row.defeatCoins, "Coins (Defeat)", "the hero who defeated them collects"),
-            Triple(row.assistCoins, "Assist Coins", "that hero's friendly heroes collect"),
-        )
+        Text(defeatTitle(row), style = MaterialTheme.typography.titleMedium)
+        val numbers = defeatNumbers(row).map { Triple(it.value, it.label, it.detail) }
         if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) {
             // Large text: one number per line, label beside it.
             Column(Modifier.padding(top = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -261,16 +254,7 @@ private fun NumberLabels(label: String, detail: String, align: TextAlign) {
     )
 }
 
-private val headers =
-    listOf(
-        "Level",
-        "Lowest\nTier",
-        "Coins\n(Defeat)",
-        "Assist\nCoins",
-        "Life\ncounters",
-        "Next\nlevel\ncost",
-        "Max\nTier",
-    )
+private val headers = LADDER_HEADERS
 
 private val MIN_CELL = 50.dp
 
@@ -310,13 +294,7 @@ private fun LadderTable(ladder: LevelLadder, selected: Int?, onSelect: (Int) -> 
                         .clearAndSetSemantics { contentDescription = spokenRow(row, next) },
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Cell("${row.level}", cell, bold = true)
-                    Cell(RulesText.roman(row.lowestTier), cell)
-                    Cell("${row.defeatCoins}", cell)
-                    Cell("${row.assistCoins}", cell)
-                    Cell("${row.lifeCounters}", cell)
-                    Cell(next?.toString() ?: "–", cell)
-                    Cell(RulesText.roman(row.maxTier), cell)
+                    ladderCells(ladder, row).forEachIndexed { i, text -> Cell(text, cell, bold = i == 0) }
                 }
             }
         }
@@ -334,22 +312,6 @@ private fun Cell(text: String, width: Dp, bold: Boolean = false) {
         modifier = Modifier.width(width),
     )
 }
-
-internal fun spokenRow(row: LevelRow, next: Int?): String = buildString {
-    append("Level ${row.level}. Lowest card Tier ${row.lowestTier}. ")
-    append("Defeat: ${RulesText.count(row.defeatCoins, "coin")}, ")
-    append("${RulesText.count(row.assistCoins, "assist coin")}, ")
-    append("team spends ${RulesText.count(row.lifeCounters, "Life counter")}. ")
-    append(if (next != null) "Next level costs ${RulesText.count(next, "coin")}. " else "Top level. ")
-    append(row.maxTier?.let { "Max card Tier $it." } ?: "")
-}
-
-/** The defeat result for TalkBack, with singular and plural counts. */
-internal fun spokenDefeat(row: LevelRow): String =
-    "Level ${row.level} hero defeated, lowest card Tier ${row.lowestTier}. " +
-        "Their team spends ${RulesText.count(row.lifeCounters, "Life counter")}. " +
-        "The hero who defeated them collects ${RulesText.count(row.defeatCoins, "coin")}. " +
-        "That hero's friendly heroes collect ${RulesText.count(row.assistCoins, "assist coin")}."
 
 @Composable
 private fun ExceptionCard(card: ExceptionCardUi) {

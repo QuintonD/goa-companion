@@ -51,6 +51,8 @@ import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Motion
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.trivia.TriviaAnswer
+import dev.quinton.goa.core.presentation.trivia.LeaveRound
+import dev.quinton.goa.core.presentation.trivia.TriviaQuizUiState
 
 /**
  * A quiz round: one question at a time, then the round's summary. End (top bar) shows the summary
@@ -109,14 +111,14 @@ fun TriviaQuizScreen(
     }
     if (confirmLeave && askFirst) {
         ConfirmDialog(
-            title = "Leave this round?",
-            message = "Your answers are saved. The round's results won't be.",
-            confirmLabel = "See results",
+            title = LeaveRound.TITLE,
+            message = LeaveRound.MESSAGE,
+            confirmLabel = LeaveRound.SEE_RESULTS,
             onConfirm = {
                 confirmLeave = false
                 onStop()
             },
-            dismissLabel = "Leave",
+            dismissLabel = LeaveRound.LEAVE,
             onDismissButton = {
                 confirmLeave = false
                 onBack()
@@ -221,23 +223,20 @@ private fun QuizHeader(state: TriviaQuizUiState.Playing) {
     Column(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                if (length != null) "Question ${state.number} of $length" else "Question ${state.number}",
+                state.title,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
             )
             Text(
-                buildString {
-                    append("${state.correctCount} right")
-                    if (state.streak >= 2) append(" · ${state.streak} in a row")
-                },
+                state.scoreLine,
                 style = GoaTextStyles.numeric,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         if (length != null) {
             Spacer(Modifier.height(Spacing.sm))
-            val done = state.number - if (state.answered) 0 else 1
+            val done = state.done
             LinearProgressIndicator(
                 progress = { done.toFloat() / length },
                 modifier = Modifier.fillMaxWidth().semantics {
@@ -269,7 +268,7 @@ private fun NextBar(state: TriviaQuizUiState.Playing, onNext: () -> Unit) {
                         .heightIn(min = 56.dp),
                 ) {
                     Text(
-                        if (state.lastQuestion) "See results" else "Next",
+                        state.nextLabel,
                         style = MaterialTheme.typography.titleMedium,
                     )
                 }

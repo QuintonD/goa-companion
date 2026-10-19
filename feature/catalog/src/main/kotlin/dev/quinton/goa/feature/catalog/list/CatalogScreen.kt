@@ -87,14 +87,15 @@ import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.catalog.model.CatalogFilter
-import dev.quinton.goa.feature.catalog.model.CatalogSearchIndex
-import dev.quinton.goa.feature.catalog.model.CatalogSort
-import dev.quinton.goa.feature.catalog.ui.complexityLabel
+import dev.quinton.goa.core.presentation.catalog.CATALOG_SEARCH_HINT
+import dev.quinton.goa.core.presentation.catalog.CatalogControls
+import dev.quinton.goa.core.presentation.catalog.CatalogLayout
+import dev.quinton.goa.core.presentation.catalog.CatalogSearchIndex
+import dev.quinton.goa.core.presentation.catalog.CatalogSort
+import dev.quinton.goa.core.presentation.catalog.CatalogUiState
+import dev.quinton.goa.core.presentation.catalog.activeFilters
 import dev.quinton.goa.feature.catalog.ui.goaFilterChipColors
 import dev.quinton.goa.feature.catalog.ui.goaInputChipColors
-import dev.quinton.goa.feature.catalog.ui.label
-import dev.quinton.goa.feature.catalog.ui.plural
 
 /** Heroes tab: searchable, filterable grid/list of every hero in the catalog. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -213,35 +214,23 @@ private fun ReadyContent(
 
 @Composable
 private fun NoResults(state: CatalogUiState.Ready, query: String, onAction: (CatalogAction) -> Unit) {
-    val hidden = state.hiddenByCollection
-    val filtered = state.controls.filter.activeCount > 0
-    if (hidden > 0) {
-        // The collection (Settings → owned products) hides heroes that would match.
-        EmptyState(
-            icon = Icons.Outlined.SearchOff,
-            title = "Not in your collection",
-            message = "${plural(hidden, "hero", "heroes")} from products you don't own " +
-                (if (hidden == 1) "matches" else "match") + ". Your collection is set in Settings.",
-            action = {
-                OutlinedButton(
-                    onClick = { onAction(CatalogAction.SetFilter(state.controls.filter.copy(includeUnowned = true))) },
-                ) { Text("Show all products") }
-            },
-        )
-        return
-    }
+    val empty = state.noResults(query)
     EmptyState(
         icon = Icons.Outlined.SearchOff,
-        title = "No heroes match",
-        message = when {
-            query.isBlank() -> "No hero fits all of these filters. Remove one to widen the search."
-            filtered -> "Nothing matches “${query.trim()}” with these filters. Try another word or clear them."
-            else -> "Nothing matches “${query.trim()}”. Try another word, or fewer words."
-        },
+        title = empty.title,
+        message = empty.message,
         action = {
-            OutlinedButton(onClick = { onAction(CatalogAction.ClearAll) }) {
-                Text(if (filtered) "Clear search and filters" else "Clear search")
-            }
+            OutlinedButton(
+                onClick = {
+                    // The collection (Settings → owned products) hides heroes that would match.
+                    val action = if (empty.showAllProducts) {
+                        CatalogAction.SetFilter(state.controls.filter.copy(includeUnowned = true))
+                    } else {
+                        CatalogAction.ClearAll
+                    }
+                    onAction(action)
+                },
+            ) { Text(empty.action) }
         },
     )
 }
@@ -256,7 +245,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = Spacing.screen)
             .padding(bottom = Spacing.sm),
-        placeholder = { Text(SEARCH_HINT, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        placeholder = { Text(CATALOG_SEARCH_HINT, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
@@ -297,7 +286,7 @@ private fun ControlsRow(state: CatalogUiState.Ready, onAction: (CatalogAction) -
             )
         }
         item(key = "sort") { SortChip(state.controls.sort) { onAction(CatalogAction.SetSort(it)) } }
-        items(activeFilterChips(filter, state.options), key = { it.key }) { chip ->
+        items(activeFilters(filter, state.options), key = { it.key }) { chip ->
             InputChip(
                 colors = goaInputChipColors(),
                 selected = true,
@@ -344,28 +333,9 @@ private fun SortChip(sort: CatalogSort, onSort: (CatalogSort) -> Unit) {
     }
 }
 
-private data class ActiveChip(val key: String, val label: String, val remove: (CatalogFilter) -> CatalogFilter)
-
-private fun activeFilterChips(filter: CatalogFilter, options: FilterOptions): List<ActiveChip> = buildList {
-    filter.complexities.sorted().forEach { level ->
-        add(ActiveChip("c$level", complexityLabel(level)) { it.copy(complexities = it.complexities - level) })
-    }
-    filter.roles.sortedBy { it.ordinal }.forEach { role ->
-        add(ActiveChip("r${role.name}", role.label) { it.copy(roles = it.roles - role) })
-    }
-    filter.attackStyle?.let { style -> add(ActiveChip("a", style.label) { it.copy(attackStyle = null) }) }
-    filter.products.forEach { id ->
-        val name = options.products.firstOrNull { it.id == id }?.name ?: id
-        add(ActiveChip("p$id", name) { it.copy(products = it.products - id) })
-    }
-}
-
 @Composable
 private fun ResultSummary(state: CatalogUiState.Ready, query: String) {
-    val text = when {
-        query.isBlank() && !state.isFiltered -> plural(state.totalInScope, "hero", "heroes")
-        else -> "${state.heroes.size} of ${plural(state.totalInScope, "hero", "heroes")}"
-    }
+    val text = state.resultSummary(query)
     Text(
         text,
         style = MaterialTheme.typography.labelMedium,
@@ -521,7 +491,6 @@ private val GRID_MIN_CELL_LARGE_FONT = 150.dp
 
 /** Font scales above Android's 1.3 step (the next steps are 1.5, 1.8 and 2.0). */
 private const val LARGE_FONT_SCALE = 1.4f
-private const val SEARCH_HINT = "Search heroes & cards"
 private const val MOTION_MS = 250
 private const val HEADER = "header"
 private const val HERO = "hero"

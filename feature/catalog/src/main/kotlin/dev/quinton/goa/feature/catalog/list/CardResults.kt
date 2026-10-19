@@ -25,39 +25,11 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.core.model.catalog.CardText
-import dev.quinton.goa.feature.catalog.model.CardResult
-import dev.quinton.goa.feature.catalog.model.CatalogSearchIndex
+import dev.quinton.goa.core.presentation.catalog.CardResult
+import dev.quinton.goa.core.presentation.catalog.kindLabel
+import dev.quinton.goa.core.presentation.catalog.matchingParagraph
 import dev.quinton.goa.feature.catalog.ui.CardTextView
 import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
-import dev.quinton.goa.feature.catalog.ui.kindLabel
-
-/**
- * The paragraph of card [text] (markup) that contains the query, so the result shows the
- * words that matched; the first paragraph when the match is in the card's name. A lead-in such
- * as "Choose one —" says nothing on its own, so it comes with the paragraphs after it (the
- * options; the row shows as many lines as fit).
- */
-internal fun matchingParagraph(text: String, query: String): String {
-    val paragraphs = text.split('\n').filter { it.isNotBlank() }
-    if (paragraphs.isEmpty()) return ""
-    val tokens = CatalogSearchIndex.tokenize(query)
-    val plain = paragraphs.map { CatalogSearchIndex.normalize(CardText.plain(it)).trim() }
-    val phrase = tokens.joinToString(" ")
-    val index = if (tokens.isEmpty()) {
-        0
-    } else {
-        plain.indexOfFirst { phrase in it }.takeIf { it >= 0 }
-            ?: plain.indexOfFirst { p -> tokens.any { it in p } }.takeIf { it >= 0 }
-            ?: 0
-    }
-    val leadIn = plain[index].endsWith('—') || plain[index].endsWith(':') || plain[index].endsWith("--")
-    return if (leadIn && index < paragraphs.lastIndex) {
-        paragraphs.subList(index, paragraphs.size).joinToString("\n")
-    } else {
-        paragraphs[index]
-    }
-}
 
 /** One card in the search results: name, hero and kind, and the paragraph that matched. */
 @Composable

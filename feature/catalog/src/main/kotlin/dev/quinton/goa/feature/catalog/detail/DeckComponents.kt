@@ -56,26 +56,30 @@ import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.HeroStats
 import dev.quinton.goa.core.model.catalog.Stat
-import dev.quinton.goa.feature.catalog.model.DeckGroup
-import dev.quinton.goa.feature.catalog.model.DeckGroupKind
-import dev.quinton.goa.feature.catalog.model.DeckLayout
-import dev.quinton.goa.feature.catalog.model.TierRow
-import dev.quinton.goa.feature.catalog.model.tierNumeral
+import dev.quinton.goa.core.presentation.catalog.DeckGroup
+import dev.quinton.goa.core.presentation.catalog.DeckGroupKind
+import dev.quinton.goa.core.presentation.catalog.DeckLayout
+import dev.quinton.goa.core.presentation.catalog.SPELLBOOK_NOTE
+import dev.quinton.goa.core.presentation.catalog.StatBar
+import dev.quinton.goa.core.presentation.catalog.StatSegment
+import dev.quinton.goa.core.presentation.catalog.TierRow
+import dev.quinton.goa.core.presentation.catalog.bars
+import dev.quinton.goa.core.presentation.catalog.blockMarkerLabel
+import dev.quinton.goa.core.presentation.catalog.extraRowTitle
+import dev.quinton.goa.core.presentation.catalog.handicapBasis
+import dev.quinton.goa.core.presentation.catalog.kindLabel
+import dev.quinton.goa.core.presentation.catalog.label
+import dev.quinton.goa.core.presentation.catalog.multipleGoldNote
+import dev.quinton.goa.core.presentation.catalog.printedValues
+import dev.quinton.goa.core.presentation.catalog.spokenHandicapBasis
+import dev.quinton.goa.core.presentation.catalog.spokenSummary
+import dev.quinton.goa.core.presentation.catalog.startsIn
+import dev.quinton.goa.core.presentation.catalog.tierNumeral
 import dev.quinton.goa.feature.catalog.ui.CardTextView
 import dev.quinton.goa.feature.catalog.ui.GameIcon
 import dev.quinton.goa.feature.catalog.ui.GameIcons
 import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
 import dev.quinton.goa.feature.catalog.ui.ValueChip
-import dev.quinton.goa.feature.catalog.ui.blockMarkerLabel
-import dev.quinton.goa.feature.catalog.ui.handicapBasis
-import dev.quinton.goa.feature.catalog.ui.kindLabel
-import dev.quinton.goa.feature.catalog.ui.label
-import dev.quinton.goa.feature.catalog.ui.spokenHandicapBasis
-
-private const val STAT_SCALE = 8
-
-/** Order printed on the official Hero Profile card (rulebook p.21). */
-private val PROFILE_STATS = listOf(Stat.ATTACK, Stat.INITIATIVE, Stat.DEFENSE, Stat.MOVEMENT)
 
 /**
  * Hero Profile bars from 1 ("Very poor") to 8 ("Exceptional"): solid up to the base value,
@@ -84,7 +88,7 @@ private val PROFILE_STATS = listOf(Stat.ATTACK, Stat.INITIATIVE, Stat.DEFENSE, S
 @Composable
 internal fun StatBars(stats: HeroStats, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        PROFILE_STATS.forEach { stat -> StatBar(stat, stats) }
+        stats.bars().forEach { bar -> StatBarRow(bar) }
         Row(Modifier.fillMaxWidth().clearAndSetSemantics {}) {
             Text(
                 "1 · Very poor",
@@ -128,21 +132,9 @@ private fun LegendSwatch(color: Color, outlined: Boolean = false) {
 }
 
 @Composable
-private fun StatBar(stat: Stat, stats: HeroStats) {
-    val range = stats.get(stat)
-    val icon = GameIcons.forStat(stat)
-    val description = if (range == null) {
-        "${stat.label}: unknown"
-    } else {
-        "${stat.label}: ${range.base} of $STAT_SCALE" +
-            if (range.max > range.base) ", up to ${range.max} conditionally" else ""
-    }
-    val rangeText = when {
-        range == null -> "—"
-        range.base == range.max -> "${range.base}"
-        else -> "${range.base} → ${range.max}"
-    }
-    Column(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = description }) {
+private fun StatBarRow(bar: StatBar) {
+    val icon = GameIcons.forStat(bar.stat)
+    Column(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = bar.spoken }) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 icon.vector,
@@ -151,23 +143,21 @@ private fun StatBar(stat: Stat, stats: HeroStats) {
                 modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.width(Spacing.sm))
-            Text(stat.label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            Text(bar.stat.label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
             Text(
-                rangeText,
+                bar.rangeText,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
             )
         }
         Spacer(Modifier.height(6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            repeat(STAT_SCALE) { i ->
-                val level = i + 1
-                val conditional = range != null && level > range.base && level <= range.max
-                val color = when {
-                    range == null -> MaterialTheme.colorScheme.surfaceVariant
-                    level <= range.base -> MaterialTheme.colorScheme.primary
-                    conditional -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                    else -> MaterialTheme.colorScheme.surfaceVariant
+            bar.segments.forEach { segment ->
+                val conditional = segment == StatSegment.CONDITIONAL
+                val color = when (segment) {
+                    StatSegment.BASE -> MaterialTheme.colorScheme.primary
+                    StatSegment.CONDITIONAL -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                    StatSegment.EMPTY -> MaterialTheme.colorScheme.surfaceVariant
                 }
                 val segmentShape = RoundedCornerShape(3.dp)
                 val conditionalBorder = if (conditional) {
@@ -220,13 +210,9 @@ internal fun DeckGroupSection(group: DeckGroup, onCardClick: (Card) -> Unit, mod
  */
 @Composable
 private fun MultipleGoldNote(cards: List<Card>) {
-    val golds = cards.filter { it.color == CardColor.GOLD }
-    val hand = golds.count { it.startsIn() == STARTS_IN_HAND }
-    val deck = golds.count { it.startsIn() == STARTS_IN_DECK }
-    if (golds.size < 2 || hand + deck == 0) return
+    val note = multipleGoldNote(cards) ?: return
     Text(
-        "${golds.size} gold cards: $hand ${if (hand == 1) "starts" else "start"} in your hand, $deck in your " +
-            "deck, as their card text says. Tap a card for how it swaps.",
+        note,
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(bottom = Spacing.sm),
@@ -253,7 +239,7 @@ internal fun ExtrasSection(layout: DeckLayout, onCardClick: (Card) -> Unit, modi
         }
         if (spellbook) {
             Text(
-                "Spells by tier. Deck cards name the spells they cast; tap a spell for its full card.",
+                SPELLBOOK_NOTE,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -268,18 +254,6 @@ internal fun ExtrasSection(layout: DeckLayout, onCardClick: (Card) -> Unit, modi
             CardTileGrid(row.cards, columns = 2, onCardClick = onCardClick, showText = spellbook)
         }
     }
-}
-
-/** "Gold cantrips · 3", "Tier II · 9", "Ultimate · 1". */
-private fun extraRowTitle(row: TierRow): String {
-    val tier = row.tier
-    val name = when {
-        tier == null && row.cards.all { it.color == CardColor.GOLD } -> "Gold (no tier)"
-        tier == null -> "No tier"
-        tier == 4 -> "Ultimate"
-        else -> "Tier ${tierNumeral(tier)}"
-    }
-    return "$name · ${row.cards.size}"
 }
 
 @Composable
@@ -336,52 +310,6 @@ private fun groupAccent(kind: DeckGroupKind): Color = when (kind) {
     DeckGroupKind.ULTIMATE -> cardColor(CardColor.PURPLE)
     DeckGroupKind.OTHER -> cardColor(CardColor.OTHER)
 }
-
-/** Spoken summary of a card for TalkBack. */
-internal fun Card.spokenSummary(isHandicap: Boolean = false): String = buildList {
-    add(name)
-    add(kindLabel(isHandicap))
-    initiative?.let { add("Initiative $it") }
-    primary?.let { add("Primary action ${GameIcons.forPrimary(it).label}") }
-    printedValues().forEach { add(it.spoken) }
-    if (ranged) add("Ranged")
-    blockMarkerLabel()?.let { add(it) }
-    item?.let { add("Item: plus 1 ${it.label}") }
-    startsIn()?.let { add(it) }
-    if (isHandicap) spokenHandicapBasis()?.let { add(it) }
-}.joinToString(". ")
-
-/** One printed value; [plus] when the card prints it with a `+` (it grows per the card text). */
-internal data class PrintedValue(val icon: GameIcon, val value: Int, val plus: Boolean) {
-    /** As printed: "4" or "4+". */
-    val printed: String get() = if (plus) "$value+" else "$value"
-
-    /** For TalkBack: "Attack 4" or "Attack 4 plus". */
-    val spoken: String get() = "${icon.label} " + if (plus) "$value plus" else "$value"
-}
-
-private val VALUE_ORDER = listOf(
-    Stat.ATTACK to GameIcons.attack,
-    Stat.DEFENSE to GameIcons.defense,
-    Stat.MOVEMENT to GameIcons.movement,
-    Stat.RANGE to GameIcons.range,
-    Stat.RADIUS to GameIcons.radius,
-)
-
-/** Non-null printed values in a stable order. */
-internal fun Card.printedValues(): List<PrintedValue> = VALUE_ORDER.mapNotNull { (stat, icon) ->
-    values.get(stat)?.let { PrintedValue(icon, it, stat in values.plus) }
-}
-
-/** Where a basic card starts, from its printed reminder "(This card starts the game in your hand.)". */
-internal fun Card.startsIn(): String? = when (StartingCards.startZone(this)) {
-    StartZone.HAND -> STARTS_IN_HAND
-    StartZone.DECK -> STARTS_IN_DECK
-    null -> null
-}
-
-private const val STARTS_IN_HAND = "Starts in hand"
-private const val STARTS_IN_DECK = "Starts in deck"
 
 /**
  * Compact deck tile: colour accent, name, initiative, primary action, values, markers.
@@ -464,7 +392,9 @@ internal fun CardTile(
             }
             Spacer(Modifier.weight(1f).heightIn(min = 6.dp))
             WrapRow(horizontalGap = 10.dp, verticalGap = 2.dp) {
-                card.printedValues().forEach { ValueChip(it.icon, it.printed, iconSize = 14.dp, spoken = it.spoken) }
+                card.printedValues().forEach {
+                    ValueChip(GameIcons.forStat(it.stat), it.printed, iconSize = 14.dp, spoken = it.spoken)
+                }
                 if (card.ranged) Marker(GameIcons.ranged, "Ranged")
                 card.blockMarkerLabel()?.let { Marker(GameIcons.block, it) }
                 card.item?.let { Marker(GameIcons.item, "+1 ${it.label}") }

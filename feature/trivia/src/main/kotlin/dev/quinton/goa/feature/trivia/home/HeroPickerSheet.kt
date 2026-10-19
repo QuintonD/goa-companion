@@ -48,7 +48,8 @@ import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.trivia.TriviaText
+import dev.quinton.goa.core.presentation.trivia.HeroOption
+import dev.quinton.goa.core.presentation.trivia.TriviaText
 
 /** Pick the heroes to quiz: all of them, or any you choose. Changes apply as you tap. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -88,11 +89,7 @@ internal fun HeroPickerContent(
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val focus = LocalFocusManager.current
-    val shown = options.filter { option ->
-        query.isBlank() ||
-            option.name.contains(query.trim(), ignoreCase = true) ||
-            option.title?.contains(query.trim(), ignoreCase = true) == true
-    }
+    val shown = options.filter { it.matches(query) }
     Column(modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
         Row(
             Modifier.fillMaxWidth().padding(start = Spacing.screen, end = Spacing.sm),

@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.trivia.home
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
@@ -10,18 +9,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.data.TriviaProgressRepository
-import dev.quinton.goa.core.domain.trivia.AnswerStyle
-import dev.quinton.goa.core.domain.trivia.CardGroup
-import dev.quinton.goa.core.domain.trivia.MasterySummary
 import dev.quinton.goa.core.domain.trivia.TriviaConfig
-import dev.quinton.goa.core.domain.trivia.TriviaFact
-import dev.quinton.goa.core.domain.trivia.TriviaFacts
-import dev.quinton.goa.core.domain.trivia.TriviaMastery
-import dev.quinton.goa.core.domain.trivia.TriviaStat
 import dev.quinton.goa.core.model.catalog.Catalog
-import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.navigation.TriviaQuizRoute
-import dev.quinton.goa.feature.trivia.TriviaText
+import dev.quinton.goa.core.presentation.trivia.TriviaCatalogFacts
+import dev.quinton.goa.core.presentation.trivia.TriviaHomeAction
+import dev.quinton.goa.core.presentation.trivia.TriviaHomeUiState
+import dev.quinton.goa.core.presentation.trivia.TriviaText
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,93 +30,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-/** A hero offered in the quiz's hero picker; [verified] false = the picker marks it. */
-@Immutable
-data class HeroOption(
-    val heroId: String,
-    val name: String,
-    val title: String?,
-    val portrait: String?,
-    val verified: Boolean = true,
-)
-
-/** One hero's row in the progress list: every printed number on its deck cards. */
-@Immutable
-data class HeroProgressUi(
-    val heroId: String,
-    val name: String,
-    val portrait: String?,
-    val progress: MasterySummary,
-    /** Numbers a quiz on this hero alone would ask with the current Numbers and Cards. */
-    val quizNumbers: Int,
-    /** False when the hero's data isn't verified yet: the row marks it. */
-    val verified: Boolean = true,
-)
-
-sealed interface TriviaHomeUiState {
-    data object Loading : TriviaHomeUiState
-
-    /** No hero data bundled (or it couldn't be read). */
-    data object Unavailable : TriviaHomeUiState
-
-    @Immutable
-    data class Ready(
-        /** Every number on the owned heroes' cards. */
-        val overall: MasterySummary,
-        val setup: TriviaConfig,
-        /** Owned heroes (and any chosen hero outside them), by name. */
-        val heroOptions: List<HeroOption>,
-        /** True when Settings limits the heroes to owned products. */
-        val ownedOnly: Boolean,
-        /** Heroes in the owned products (every hero when Settings doesn't limit them). */
-        val ownedHeroCount: Int,
-        /** The numbers the quiz as set up would ask. */
-        val selection: MasterySummary,
-        val heroes: List<HeroProgressUi>,
-        /** Stored progress on any hero (what Reset forgets). */
-        val stored: MasterySummary,
-    ) : TriviaHomeUiState {
-        val canStart: Boolean get() = selection.total > 0
-        val initiativeSelected: Boolean get() = TriviaStat.INITIATIVE in setup.stats
-        val selectedHeroNames: List<String>
-            get() = setup.heroIds.mapNotNull { id -> heroOptions.firstOrNull { it.heroId == id }?.name }
-    }
-}
-
-sealed interface TriviaHomeAction {
-    data class ToggleStat(val stat: TriviaStat) : TriviaHomeAction
-
-    data class ToggleGroup(val group: CardGroup) : TriviaHomeAction
-
-    data class SetAnswerStyle(val style: AnswerStyle) : TriviaHomeAction
-
-    data class SetLength(val length: Int) : TriviaHomeAction
-
-    data class SetDuels(val enabled: Boolean) : TriviaHomeAction
-
-    /** Picks or unpicks one hero; unpicking the last one goes back to all heroes. */
-    data class ToggleHero(val heroId: String) : TriviaHomeAction
-
-    data object AllHeroes : TriviaHomeAction
-}
-
-/**
- * Every hero's facts with each fact's card group, built once per catalog: the home's state is
- * rebuilt on every progress or setup change and filters these instead of re-reading the cards.
- */
-private class CatalogFacts(val catalog: Catalog) {
-    private val byHero: Map<String, List<Pair<TriviaFact, CardGroup?>>> = catalog.heroes.associate { hero ->
-        val groups = hero.cards.associate { it.id to CardGroup.of(it) }
-        hero.id to TriviaFacts.of(hero).map { it to groups[it.cardId] }
-    }
-
-    fun all(hero: Hero): List<TriviaFact> = byHero[hero.id].orEmpty().map { it.first }
-
-    /** The same facts as [TriviaFacts.of] with these stats and groups, in the same order. */
-    fun of(hero: Hero, stats: Set<TriviaStat>, groups: Set<CardGroup>): List<TriviaFact> =
-        byHero[hero.id].orEmpty().filter { (fact, group) -> fact.stat in stats && group in groups }.map { it.first }
-}
 
 @HiltViewModel(assistedFactory = TriviaHomeViewModel.Factory::class)
 class TriviaHomeViewModel internal constructor(
@@ -158,7 +65,7 @@ class TriviaHomeViewModel internal constructor(
     /** The facts, rebuilt only when the catalog itself changes (it is loaded once per process). */
     private val facts = catalogRepository.catalog.catch { emit(Catalog.EMPTY) }
         .distinctUntilChanged { a, b -> a === b }
-        .map(::CatalogFacts)
+        .map(::TriviaCatalogFacts)
 
     val uiState: StateFlow<TriviaHomeUiState> = combine(
         facts,
@@ -167,58 +74,29 @@ class TriviaHomeViewModel internal constructor(
         setup,
     ) { facts, settings, progress, config ->
         if (config == null) return@combine TriviaHomeUiState.Loading
-        val catalog = facts.catalog
-        if (catalog.heroes.isEmpty()) return@combine TriviaHomeUiState.Unavailable
-        val owned = ownedHeroes(catalog, settings.ownedProducts)
-        val chosen = config.heroIds.mapNotNull(catalog::hero)
-        val scope = chosen.ifEmpty { owned }
-        val options = (owned + chosen).distinctBy { it.id }.sortedBy { it.name }
-            .map { HeroOption(it.id, it.name, it.title, it.portrait, it.verified) }
-        TriviaHomeUiState.Ready(
-            overall = TriviaMastery.summary(owned.flatMap(facts::all), progress),
-            setup = config.copy(heroIds = chosen.map { it.id }),
-            heroOptions = options,
-            ownedOnly = settings.ownedProducts.isNotEmpty(),
-            ownedHeroCount = owned.size,
-            selection = TriviaMastery.summary(
-                scope.flatMap { facts.of(it, config.stats, config.groups) },
-                progress,
-            ),
-            heroes = owned.sortedBy { it.name }.map { hero ->
-                HeroProgressUi(
-                    heroId = hero.id,
-                    name = hero.name,
-                    portrait = hero.portrait,
-                    progress = TriviaMastery.summary(facts.all(hero), progress),
-                    quizNumbers = facts.of(hero, config.stats, config.groups).size,
-                    verified = hero.verified,
-                )
-            },
-            stored = TriviaMastery.summary(catalog.heroes.flatMap(facts::all), progress),
-        )
+        TriviaHomeUiState.of(facts, settings.ownedProducts, progress, config)
     }
         .flowOn(computeDispatcher)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TriviaHomeUiState.Loading)
 
     fun onAction(action: TriviaHomeAction) {
-        setup.update { current -> current?.let { reduce(it, action) } }
+        setup.update { current -> current?.let { TriviaHomeAction.reduce(it, action) } }
     }
 
     /** Saves the setup and returns the quiz to open, or null when it would ask nothing. */
     fun start(): TriviaQuizRoute? {
         val ready = uiState.value as? TriviaHomeUiState.Ready ?: return null
-        if (!ready.canStart) return null
-        save(ready.setup)
-        return TriviaQuizRoute(TriviaText.encode(ready.setup))
+        val config = ready.startConfig() ?: return null
+        save(config)
+        return TriviaQuizRoute(TriviaText.encode(config))
     }
 
     /** A quiz on [heroId] alone with the current Numbers, Cards and answer settings. */
     fun startHero(heroId: String): TriviaQuizRoute? {
         val ready = uiState.value as? TriviaHomeUiState.Ready ?: return null
-        val row = ready.heroes.firstOrNull { it.heroId == heroId } ?: return null
-        if (row.quizNumbers == 0) return null
+        val config = ready.heroConfig(heroId) ?: return null
         save(ready.setup)
-        return TriviaQuizRoute(TriviaText.encode(ready.setup.copy(heroIds = listOf(heroId))))
+        return TriviaQuizRoute(TriviaText.encode(config))
     }
 
     /** Forgets every learned and learning number. */
@@ -228,40 +106,6 @@ class TriviaHomeViewModel internal constructor(
 
     private fun save(config: TriviaConfig) {
         viewModelScope.launch { progressRepository.saveConfig(config) }
-    }
-
-    private fun ownedHeroes(catalog: Catalog, ownedProducts: Set<String>): List<Hero> =
-        if (ownedProducts.isEmpty()) catalog.heroes else catalog.heroes.filter { it.product in ownedProducts }
-
-    companion object {
-        internal fun reduce(config: TriviaConfig, action: TriviaHomeAction): TriviaConfig = when (action) {
-            // The last Number or Cards chip can't be turned off: the quiz always asks something.
-            is TriviaHomeAction.ToggleStat -> config.copy(stats = toggle(config.stats, action.stat))
-
-            is TriviaHomeAction.ToggleGroup -> config.copy(groups = toggle(config.groups, action.group))
-
-            is TriviaHomeAction.SetAnswerStyle -> config.copy(answerStyle = action.style)
-
-            is TriviaHomeAction.SetLength -> config.copy(length = action.length)
-
-            is TriviaHomeAction.SetDuels -> config.copy(duels = action.enabled)
-
-            is TriviaHomeAction.ToggleHero -> config.copy(
-                heroIds = if (action.heroId in config.heroIds) {
-                    config.heroIds - action.heroId
-                } else {
-                    config.heroIds + action.heroId
-                },
-            )
-
-            TriviaHomeAction.AllHeroes -> config.copy(heroIds = emptyList())
-        }
-
-        private fun <T> toggle(set: Set<T>, item: T): Set<T> = when {
-            item !in set -> set + item
-            set.size > 1 -> set - item
-            else -> set
-        }
     }
 }
 

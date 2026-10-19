@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.em
 import dev.quinton.goa.core.model.catalog.CardText
+import dev.quinton.goa.core.presentation.catalog.spokenIconLabel
 
 private const val ICON_PREFIX = "icon:"
 
@@ -60,16 +61,6 @@ private fun AnnotatedString.Builder.appendSegments(segments: List<CardText.Segme
             CardText.Segment.Break -> append("\n")
         }
     }
-}
-
-/**
- * What TalkBack reads for an inline icon: its label, or a blank when the printed text right after
- * it already names it ("{life} Life counter" reads "Life counter" once, not twice). A blank, not an
- * empty string: inline content needs non-empty alternate text.
- */
-internal fun spokenIconLabel(label: String, next: CardText.Segment?): String {
-    val following = (next as? CardText.Segment.Text)?.value?.trimStart().orEmpty()
-    return if (following.startsWith(label, ignoreCase = true)) " " else label
 }
 
 /** Inline content for every known icon, sized relative to the text (scales with font size). */

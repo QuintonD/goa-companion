@@ -35,11 +35,15 @@ import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.trivia.TriviaCardUi
-import dev.quinton.goa.feature.trivia.TriviaText
+import dev.quinton.goa.core.presentation.trivia.Mark
+import dev.quinton.goa.core.presentation.trivia.MissUi
+import dev.quinton.goa.core.presentation.trivia.TriviaCardUi
+import dev.quinton.goa.core.presentation.trivia.TriviaQuizUiState
+import dev.quinton.goa.core.presentation.trivia.TriviaText
+import dev.quinton.goa.core.presentation.trivia.spokenOwned
+import dev.quinton.goa.core.presentation.trivia.spokenUnverified
 import dev.quinton.goa.feature.trivia.ui.CardKindLine
 import dev.quinton.goa.feature.trivia.ui.HeroLine
-import dev.quinton.goa.feature.trivia.ui.spokenUnverified
 
 /** The end of a round: score, best streak, newly learned numbers, the misses and what next. */
 @Composable
@@ -89,18 +93,14 @@ internal fun SummaryContent(
 private fun ScoreCard(state: TriviaQuizUiState.Summary) {
     GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.xl)) {
         Text(
-            if (state.asked == 0) "No questions answered" else "${state.correct} of ${state.asked} right",
+            state.title,
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.semantics { heading() },
         )
         Spacer(Modifier.height(Spacing.xs))
         Text(
-            when {
-                state.asked == 0 -> "End a round after answering to see how it went."
-                state.misses.isEmpty() -> "Every answer right."
-                else -> "Missed numbers come back sooner next time."
-            },
+            state.subtitle,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -113,7 +113,7 @@ private fun ScoreCard(state: TriviaQuizUiState.Summary) {
                 Metric(value = "${state.bestStreak}", label = "Best streak")
                 Metric(
                     value = "+${state.learned}",
-                    label = if (state.learned == 1) "number learned" else "numbers learned",
+                    label = state.learnedLabel,
                     spoken = "${TriviaText.count(state.learned, "number")} learned this round",
                 )
             }
@@ -128,10 +128,6 @@ private fun Metric(value: String, label: String, spoken: String = "$label $value
         Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
-
-/** "Arien's Mad Dash", and ", unverified data" when the hero's data isn't verified. */
-private fun spokenOwned(card: TriviaCardUi): String =
-    "${card.heroName}'s ${card.name}${spokenUnverified(card.heroVerified)}"
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

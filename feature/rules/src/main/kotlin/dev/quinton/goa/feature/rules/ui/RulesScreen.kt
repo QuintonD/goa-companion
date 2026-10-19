@@ -40,13 +40,9 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.rules.RulesText
-import dev.quinton.goa.feature.rules.RulesUiState
-import dev.quinton.goa.feature.rules.TopicItem
-
-/** Words that find the level & defeat ladder from the search box. */
-private val ladderWords =
-    listOf("level", "defeat", "coin", "assist", "life", "counter", "spend", "tier", "cost", "upgrade", "ladder")
+import dev.quinton.goa.core.presentation.rules.RulesText
+import dev.quinton.goa.core.presentation.rules.RulesUiState
+import dev.quinton.goa.core.presentation.rules.TopicItem
 
 /** Rules tab: the level & defeat ladder first, then searchable quick-reference topics. */
 @Composable
@@ -65,7 +61,7 @@ fun RulesScreen(
                 RulesUiState.Unavailable -> EmptyState(
                     icon = Icons.AutoMirrored.Outlined.MenuBook,
                     title = "Rules unavailable",
-                    message = "The bundled rules reference could not be read.",
+                    message = RulesText.UNAVAILABLE,
                     modifier = Modifier.align(Alignment.Center),
                 )
 
@@ -82,9 +78,7 @@ private fun RulesList(
     onOpenLadder: () -> Unit,
     onOpenTopic: (String) -> Unit,
 ) {
-    val words = state.query.lowercase().split(' ').filter { it.isNotBlank() }
-    val showLadder =
-        words.isEmpty() || words.all { word -> ladderWords.any { it.startsWith(word) || word.startsWith(it) } }
+    val showLadder = state.showLadder
     LazyColumn(
         contentPadding = PaddingValues(horizontal = Spacing.screen, vertical = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -94,16 +88,14 @@ private fun RulesList(
             item(key = "ladder") { LadderCard(onOpenLadder) }
         }
         item(key = "topics-header") {
-            SectionHeader(
-                if (state.query.isBlank()) "Quick reference" else "${state.topics.size} of ${state.totalTopics} topics",
-            )
+            SectionHeader(state.topicsHeader)
         }
-        if (state.topics.isEmpty() && !showLadder) {
+        if (state.isEmpty) {
             item(key = "empty") {
                 EmptyState(
                     icon = Icons.Outlined.SearchOff,
-                    title = "No rules match",
-                    message = "Try another word, such as “respawn”, “tie” or “push”.",
+                    title = RulesText.EMPTY_TITLE,
+                    message = RulesText.EMPTY_MESSAGE,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -111,8 +103,7 @@ private fun RulesList(
         items(state.topics, key = { it.id }) { topic -> TopicRow(topic) { onOpenTopic(topic.id) } }
         item(key = "source") {
             Text(
-                "Quoted word for word from the official Guards of Atlantis II rulebook (2nd printing). " +
-                    "Page numbers are the rulebook's printed pages.",
+                RulesText.LIST_SOURCE,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = Spacing.lg),
@@ -154,17 +145,17 @@ private fun LadderCard(onClick: () -> Unit) {
             )
             Column(Modifier.weight(1f).padding(horizontal = Spacing.md)) {
                 Text(
-                    "Levels & defeats",
+                    RulesText.LADDER_TITLE,
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    "Life counters, coins and assist coins per level, level costs and card Tiers",
+                    RulesText.LADDER_SUBTITLE,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            PageTag(listOf(13, 15, 23))
+            PageTag(RulesText.LADDER_PAGES)
         }
     }
 }

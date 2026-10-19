@@ -32,11 +32,11 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
-import dev.quinton.goa.feature.catalog.detail.printedValues
+import dev.quinton.goa.core.presentation.catalog.kindLabel
+import dev.quinton.goa.core.presentation.catalog.printedValues
 import dev.quinton.goa.feature.catalog.ui.CardTextView
 import dev.quinton.goa.feature.catalog.ui.GameIcons
 import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
-import dev.quinton.goa.feature.catalog.ui.kindLabel
 
 /**
  * Our own rendering of a card for when no official image is bundled: card-coloured frame,
@@ -94,7 +94,11 @@ internal fun DesignedCard(card: Card, isHandicap: Boolean, modifier: Modifier = 
                         Modifier.clearAndSetSemantics { contentDescription = value.spoken },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(value.icon.vector, contentDescription = null, modifier = Modifier.size(22.dp))
+                        Icon(
+                            GameIcons.forStat(value.stat).vector,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp),
+                        )
                         Spacer(Modifier.width(4.dp))
                         Text(value.printed, style = MaterialTheme.typography.headlineSmall)
                     }

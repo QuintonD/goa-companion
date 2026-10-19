@@ -21,8 +21,8 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.rules.RulesTopic
-import dev.quinton.goa.feature.rules.RulesText
-import dev.quinton.goa.feature.rules.RulesTopicUiState
+import dev.quinton.goa.core.presentation.rules.RulesText
+import dev.quinton.goa.core.presentation.rules.RulesTopicUiState
 
 /** One quick-reference topic: an optional labelled summary, then the verbatim rulebook passages. */
 @Composable
@@ -54,7 +54,7 @@ internal fun TopicContent(topic: RulesTopic) {
     ) {
         item(key = "pages") {
             Text(
-                "Rulebook ${RulesText.pages(topic.pages)} · quoted word for word",
+                RulesText.topicPagesLine(topic.pages),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -68,7 +68,7 @@ internal fun TopicContent(topic: RulesTopic) {
         }
         item(key = "source") {
             Text(
-                "Source: the official Guards of Atlantis II rulebook, 2nd printing (printed page numbers).",
+                RulesText.TOPIC_SOURCE,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.sm, bottom = Spacing.xl),

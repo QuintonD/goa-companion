@@ -215,6 +215,17 @@ Draft (`DraftSlots`, owner `draft/`): `draft-setup` (the setup form, the next ga
 `draft-methods` (custom methods, never synced), `draft-active` (the draft in progress),
 `draft-board` (the board's screen state and step clock), `draft-notes`, `draft-method-edit`.
 
+`trivia` (Card trivia: the phone's two `trivia_progress` documents, progress and last setup, in the
+phone's JSON via `TriviaJson`) and `trivia-round` (the round on screen, restarted from question 1
+after a hub restart). Heroes changes only `catalogListView` in `SharedSlots.Settings`, atomically with
+`update`, as the phone's Heroes tab does.
+
+Shared catalog pieces for any page (card text with game icons, card tiles, portraits, the
+Unverified badge): `dev.quinton.goa.hub.heroes.CatalogHtml` with `static/heroes/heroes.css`
+(`HeroesFeature.styles`). Links other areas may use: `/heroes/{heroId}`,
+`/heroes/{heroId}/cards/{cardId}`, `/rules/levels?heroes=a,b` (Levels & defeats for a match's heroes),
+`/rules/{topicId}`, `/trivia?hero={heroId}`.
+
 ## Pages and components
 
 `call.respondPage(HubPage(title, tab, back = "/x", actions = …, showTabs = true, scripts = listOf("timer.js"))) { … }`
