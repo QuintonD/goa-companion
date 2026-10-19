@@ -131,7 +131,8 @@ with the label; heroes and minions carry the team's shape at the bottom right, s
 colour alone. **Overlays** each have a pattern as well as a colour, and the switch that turns one on
 shows its swatch (the legend): Movement = green fill and outline with the number of spaces (its
 own colour, apart from the Battle Zone's teal: dark `#7BD88F`, light `#2A7037`, the player palette's
-Kelp; green on the lane fills ≥ 4.5:1, the numbers are onSurface), Fast Travel = bronze hatching,
+Kelp; on the Zone fills 6.7–7.9:1 dark, 3.9–4.5:1 light, above the 3:1 a graphic needs; the numbers
+are onSurface), Fast Travel = bronze hatching,
 Range = violet inner outline, Radius = three dots; where a piece should go (a waiting minion's
 targets, a minion's way back to its Battle Zone) = dashed teal outline; the selected piece = bright
 outline on a dark halo; Measure = bronze line (dashed when not in a straight line). The selection
