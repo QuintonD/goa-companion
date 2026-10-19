@@ -725,7 +725,11 @@ INTERNET permission. Options weighed:
   `ReplayRatingsRepository` and the hub call it. The Players builders live in
   `core:presentation/players`; texts the phone computed in Compose (biggest movers, match summary,
   merge copy, chart range/labels, result chip) moved there too, so both render the same strings.
-  `Dates` take an optional zone (the hub passes `HubClock.zone`; dates follow the hub machine's zone).
+  `Dates` take an optional zone (the hub passes `HubClock.zone`). *Zone (2026-10-19, data-rules
+  review):* the hub's zone stands for the group's. It is `hub.json`'s `timeZone`
+  (`goa-hub config --time-zone`), else the machine's; a phone uses its own. Stored times are epoch
+  ms, so ratings never depend on a zone; only shown dates, typed date-times, "today" and group
+  stats grouped by day/gap do, and they agree with a phone in the same zone.
 - Dialogs became pages (merge picker → confirmation, delete/discard confirmation, Rematch), so every
   flow works without JS. A match has its own page (`/players/matches/{id}`); the log shows 60 matches
   and "Show older matches". "Undo" after a delete is kept per browser for 30 s, as on the phone.

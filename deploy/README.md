@@ -208,6 +208,10 @@ What it does, in order (it is safe to run again; it only fills in what is missin
 4. Unpacks the hub, starts it on `127.0.0.1:8080` and checks it answers.
 5. Joins the group with your invite (`goa-hub join`) and sets the public address
    (`goa-hub config --public-url https://goa.<tailnet>.ts.net`).
+   The hub shows dates in the machine's time zone. If the machine isn't set to the group's zone
+   (a server left on UTC), set it for the hub:
+   `sudo -u goa-hub /opt/goa-hub/current/bin/goa-hub config --data /var/lib/goa-hub --time-zone Europe/London`,
+   then `sudo systemctl restart goa-hub`.
 6. Publishes the hub: `tailscale funnel --bg --https=443 http://127.0.0.1:8080`. `--bg` means
    Tailscale keeps this setting and restores it after every restart and reboot.
 7. Turns on automatic security updates (`unattended-upgrades`; *Fedora*: `dnf5-automatic`) and

@@ -21,7 +21,7 @@ import java.nio.file.Files
  */
 class Hub(
     val paths: HubPaths,
-    val clock: HubClock = HubClock.System,
+    machineClock: HubClock = HubClock.System,
     val catalog: HubCatalog = HubCatalog(),
     pushTransport: PushTransport = PushTransport.jdk(),
 ) {
@@ -30,6 +30,9 @@ class Hub(
     }
 
     val config = HubConfigStore(paths.config)
+
+    /** The machine's clocks in the group's zone (`hub.json`'s `timeZone`, else the machine's). */
+    val clock: HubClock = HubClock.zoned(machineClock) { config.get().zone() }
     val membership = MembershipStore(paths.group)
     val groupStore = GroupStore(paths.data, paths.backups, clock)
 
