@@ -30,6 +30,16 @@ pipe it in instead — `Get-Content invite.txt | goa-hub.bat join --data …` (`
 Make a test invite with `GroupInvite.format(GroupCredentials.create("Dev"), "http://localhost:8080")`
 (a phone's "Share as text" works too).
 
+**Emulators and a browser together.** The origin check and every invite link use the configured
+public URL, so all clients need the same one. Use `http://localhost:8080` (`goa-hub config
+--public-url http://localhost:8080`) and make it reachable from each emulator with
+`adb -s emulator-5554 reverse tcp:8080 tcp:8080` (again after an emulator restarts); set the hub on
+the phones to `http://localhost:8080` (debug builds allow plain HTTP to localhost). With
+`http://10.0.2.2:8080` instead, the phones sync but their invite links (`h=`) don't open on the PC
+and the browser's POSTs fail the origin check. A real hub has one public HTTPS address that every
+phone and browser reaches, so this doesn't arise there. `adb shell input text` stops after ~95
+characters: type a long invite in chunks.
+
 ### Commands (the deploy kit relies on these exactly)
 
 ```

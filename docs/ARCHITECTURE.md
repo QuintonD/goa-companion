@@ -157,7 +157,7 @@ Feature authors start with [server/hub/README.md](../server/hub/README.md).
   for another hub or group. `localChanges` = Room invalidations of the synced tables + rating
   constants. `feature:sync/hub`: `HubSyncWorker` (Hilt worker; retry with exponential backoff from
   30 s for transient problems, 8 attempts) and `HubSyncScheduler` — unique work `hub-sync`
-  (one-time: app open from `MainActivity`, 15 s after the last change with REPLACE as the debounce,
+  (one-time: when `MainActivity` starts and every 60 s until it stops, 15 s after the last change with REPLACE as the debounce,
   right after a new hub or group, "Sync with hub" without a network constraint; chained with
   APPEND_OR_REPLACE when one is running) and `hub-sync-hourly` (periodic, network); nothing without
   a group and a hub. `GoaApplication` is the WorkManager `Configuration.Provider` (the startup

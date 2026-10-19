@@ -710,7 +710,8 @@ INTERNET permission. Options weighed:
   5xx) retry with backoff; a wrong key, other versions, refused or oversized data wait for a person
   and put a dot on the Players tab's sync icon.
 - *App start* means the activity's cold start, not the process start (a background WorkManager
-  wake-up must not add a sync).
+  wake-up must not add a sync). *Superseded by the hands-on notes below:* the app syncs whenever the
+  activity comes on screen and every minute while it stays there.
 - *Joining by an invite that carries a hub* syncs with the hub instead of opening the Nearby
   session; without a hub, the first sync is face to face as before.
 - *App Links* need the owner's host at build time: the Gradle property `goa.hubHost` generates a
@@ -852,6 +853,33 @@ Inherent or accepted (also in `deploy/README.md` §10):
   after a search keeps the search and scroll), and from Rules, Card trivia and Settings to whatever
   page opened them (`HubPage.backToPrevious`), as the phone's back does; otherwise it is a link.
   From the running timer, Levels opens `/rules/levels?heroes=…` and Back there returns to the timer.
+
+**Implementation notes (2026-10-19, hands-on game night: two emulators + a browser through a local hub):**
+- *A phone left open stayed stale for up to an hour.* Results logged on the web or another phone
+  reached an open phone only at the hourly sync (the app synced at cold start only). The app now
+  syncs when its activity starts (opened, or back from another app) and every 60 s while it stays on
+  screen (`HubSyncScheduler.onForeground`/`onBackground`); a problem that needs a person isn't
+  retried by the poll. A web result showed on an open phone within seconds; a phone's change reached
+  the hub after the 15 s debounce. Syncs are whole-document but small (KB for a group).
+- *Phones name themselves:* the app sends `X-Goa-Device-Id` (its install id) and `X-Goa-Device-Name`
+  (its player's name, else its device name; percent-encoded UTF-8, since header values are ASCII);
+  before, every phone counted as one "A phone" in the hub's list. A phone without a name is still
+  "A phone", never its id.
+- *"You're <name>?" after a hub join:* a personal invite joined through a hub has no Nearby sync
+  sheet to ask, and a phone that already had a player from solo use showed "You: <old>" with no hint.
+  The Group screen now leads with "You're <name>?" (`PlayerLink.invited`) until it is answered.
+- *The web editor doesn't overwrite a newer version.* A form opened before a phone's edit silently
+  replaced it (the phone's map was wiped by a save that only changed the win condition). The form
+  carries the stored `updatedAt`; a save over a newer version stores nothing and says so — the same
+  intentional difference as for a match deleted meanwhile (the phone's open editor still follows
+  last-writer-wins). The editor posts with htmx, which doesn't swap a 4xx answer, so for htmx the
+  message is flashed and the browser goes to the match (the deleted-meanwhile 409 page was never
+  shown in a browser before).
+- *With a hub, the Players tab's sync icon opens the Group screen* (the hub's state, Nearby still one
+  tap away), not the Nearby Host/Join sheet.
+- *Local testing with emulators and a browser:* one origin for everyone, `http://localhost:8080` as
+  the public URL plus `adb reverse tcp:8080 tcp:8080` per emulator (`server/hub/README.md`). A real
+  hub has one public HTTPS address, so the question doesn't arise there.
 
 ## ADR-031 — Linking a phone (or browser) to its player: personal invites and "Same people?" (2026-10-18)
 **Context:** The owner enters friends as players before they install the app. When a friend joins,

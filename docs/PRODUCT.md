@@ -256,7 +256,8 @@ Funnel on that machine publishes it over HTTPS with no router change; Caddy + Du
 port forward is the documented alternative; runbook in `deploy/README.md`). It is a member of the
 group like a phone.
 - **Auto-sync:** Android phones with a hub address sync with it over HTTPS on their own (app
-  start, 15 s after the last change, hourly, "Sync with hub"); the Group screen's Hub section sets
+  start and whenever it comes back on screen, every minute while it's open, 15 s after the last
+  change, hourly, "Sync with hub"); the Group screen's Hub section sets
   the address and shows "Synced 2 min ago" or what went wrong (with Retry, and whether it retries on
   its own); a problem that needs a person also puts a dot on the Players tab's sync icon. Joining by
   an invite that carries a hub syncs with the hub instead of opening a Nearby session. Nearby sync
