@@ -280,6 +280,10 @@ Every POST/PUT/PATCH/DELETE (except `POST /api/v1/sync`, which uses a bearer tok
 `403`. There are no CSRF tokens to add. In tests, send `header(HttpHeaders.Origin, HUB_URL)`.
 Never change state on GET.
 
+Request bodies are capped at 256 KB (`web/BodyLimit.kt`, `413` above it, chunked or not) before any
+handler reads them; only `POST /api/v1/sync` and the backup upload read up to 8 MB themselves. A
+feature that needs a bigger upload adds its path there with its own limit.
+
 ## Web Push
 
 ```kotlin
