@@ -188,7 +188,7 @@ private suspend fun ApplicationCall.handleEditorPost(
     }
     val now = ctx.clock.nowMillis()
     val op = params["op"].orEmpty()
-    var form = EditorForms.edit(EditorForms.parse(params, ctx.clock.zone, now), op)
+    var form = EditorForms.edit(EditorForms.parse(params, ctx.clock.zone, now, original), op)
     var notice: String? = null
     if (op == "add-player") {
         val name = PlayerLook.nameInput(params["newPlayer"].orEmpty()).trim()
@@ -275,42 +275,60 @@ private suspend fun ApplicationCall.respondDeletedMeanwhile(view: PlayersData, i
 
 /** Reading the posted editor and turning it back into fields. */
 internal object EditorForms {
+    /** Seats read per team: more than the editor adds, so a stored match with more (an import) keeps them all. */
+    private const val MAX_POSTED_SEATS = 20
+
     private val LOCAL = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
 
-    fun parse(params: Parameters, zone: java.time.ZoneId, now: Long): MatchForm {
+    /**
+     * The posted editor as a [MatchForm]. What the person didn't touch keeps the stored value, as
+     * the phone's editor does: the exact `playedAt` (the field shows minutes), a map or notes longer
+     * than the fields allow (from a backup or an older app), every seat of [original]. Picking
+     * another winner without touching the status completes the match ([MatchForm.withWinner]).
+     */
+    fun parse(params: Parameters, zone: java.time.ZoneId, now: Long, original: Match? = null): MatchForm {
         fun seats(team: Team): List<SeatDraft> {
             val prefix = team.name.lowercase()
-            return (0 until MAX_SEATS_PER_TEAM).mapNotNull { i ->
+            return (0 until MAX_POSTED_SEATS).mapNotNull { i ->
                 if (params["$prefix-$i"] == null) return@mapNotNull null
                 SeatDraft(
-                    key = (team.ordinal * MAX_SEATS_PER_TEAM + i).toLong(),
+                    key = (team.ordinal * MAX_POSTED_SEATS + i).toLong(),
                     playerId = params["$prefix-$i-pilot"]?.takeIf { it.isNotEmpty() },
                     heroId = params["$prefix-$i-hero"]?.takeIf { it.isNotEmpty() },
                     handicap = params["$prefix-$i-handicap"] == "true",
                 )
             }
         }
-        val fallback = params["playedAtMs"]?.toLongOrNull() ?: MatchEditor.toMinute(now)
-        val picked = params["playedAt"]?.let { text ->
+        val shownAt = params["playedAtMs"]?.toLongOrNull()
+        val fallback = shownAt ?: MatchEditor.toMinute(now)
+        val text = params["playedAt"]
+        val picked = text?.takeUnless { shownAt != null && it == local(shownAt, zone) }?.let {
             try {
-                LocalDateTime.parse(text, LOCAL).atZone(zone).toInstant().toEpochMilli()
+                LocalDateTime.parse(it, LOCAL).atZone(zone).toInstant().toEpochMilli()
             } catch (_: DateTimeParseException) {
                 null
             }
         }
-        return MatchForm(
+        val map = params["map"].orEmpty()
+        val notes = params["notes"].orEmpty().replace("\r\n", "\n")
+        val status = MatchStatus.entries.firstOrNull { it.name == params["status"] } ?: MatchStatus.COMPLETED
+        val winner = Team.entries.firstOrNull { it.name == params["winner"] }
+        val form = MatchForm(
             // A time later than now is taken as "just now", as the phone's pickers do.
             playedAt = picked?.let { minOf(it, now) } ?: fallback,
             mode = GameMode.entries.firstOrNull { it.name == params["mode"] } ?: GameMode.QUICK,
-            map = params["map"].orEmpty().take(MatchEditor.MAX_TEXT),
-            status = MatchStatus.entries.firstOrNull { it.name == params["status"] } ?: MatchStatus.COMPLETED,
-            winner = Team.entries.firstOrNull { it.name == params["winner"] },
+            map = if (original != null && map == original.map.orEmpty()) map else map.take(MatchEditor.MAX_TEXT),
+            status = status,
+            winner = winner,
             winCondition = WinCondition.entries.firstOrNull { it.name == params["condition"] },
             duration = MatchEditor.durationInput(params["duration"].orEmpty()),
-            notes = params["notes"].orEmpty().replace("\r\n", "\n").take(MatchEditor.MAX_NOTES),
+            notes = if (original != null && notes == original.notes) notes else notes.take(MatchEditor.MAX_NOTES),
             red = seats(Team.RED),
             blue = seats(Team.BLUE),
         )
+        val winnerPicked = winner != null && winner.name != params["shownWinner"] &&
+            status.name == params["shownStatus"]
+        return if (winnerPicked) form.withWinner(winner) else form
     }
 
     /** The seat buttons: "add-red", "remove-blue-1", "swap" (the phone's addSeat, removeSeat, swapTeams). */
@@ -439,6 +457,9 @@ private class EditorView(
 
     fun render(out: FORM, action: String) = with(out) {
         hidden("playedAtMs", edited.playedAt.toString())
+        // What the result showed, so picking a winner can complete the match ([MatchForm.withWinner]).
+        hidden("shownWinner", edited.winner?.name.orEmpty())
+        hidden("shownStatus", edited.status.name)
         if (state.showErrors || errors.isNotEmpty()) hidden("showErrors", "1")
         state.newId?.let { hidden("id", it) }
         if (state.resultFirst && isNew) hidden("result", "1")

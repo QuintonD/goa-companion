@@ -211,7 +211,7 @@ class MatchEditViewModel @AssistedInject constructor(
     fun setStatus(status: MatchStatus) = updateForm { it.copy(status = status) }
 
     /** Picking a winner implies the match is completed. */
-    fun setWinner(team: Team) = updateForm { it.copy(winner = team, status = MatchStatus.COMPLETED) }
+    fun setWinner(team: Team) = updateForm { it.withWinner(team) }
 
     fun setWinCondition(condition: WinCondition?) = updateForm { it.copy(winCondition = condition) }
 

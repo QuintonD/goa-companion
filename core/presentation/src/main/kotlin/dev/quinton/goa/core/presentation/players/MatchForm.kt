@@ -36,6 +36,9 @@ data class MatchForm(
         copy(blue = seats)
     }
 
+    /** Picking a winner implies the match is completed (the phone's and the web's winner choice). */
+    fun withWinner(team: Team): MatchForm = copy(winner = team, status = MatchStatus.COMPLETED)
+
     /** Players piloting two or more seats on [team]. */
     fun doublePilots(team: Team): Set<String> =
         seats(team).mapNotNull { it.playerId }.groupingBy { it }.eachCount().filterValues { it > 1 }.keys

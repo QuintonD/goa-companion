@@ -74,7 +74,7 @@ internal fun Route.leaderboardRoutes(ctx: HubContext) {
         )
         call.respondPlayerForm(look, playerId = null)
     }
-    post(PlayersPaths.NEW_PLAYER) { call.savePlayer(ctx, playerId = null) }
+    post(PlayersPaths.NEW_PLAYER) { call.savePlayer(ctx, postedId = null) }
 }
 
 private fun FlowContent.leaderboard(state: PlayersUiState) {
@@ -235,18 +235,25 @@ internal suspend fun ApplicationCall.respondPlayerForm(
 }
 
 /** POST of the player editor: the phone's rules (trimmed, unique name incl. archived players). */
-internal suspend fun ApplicationCall.savePlayer(ctx: HubContext, playerId: String?) {
+internal suspend fun ApplicationCall.savePlayer(ctx: HubContext, postedId: String?) {
     val params = receiveParameters()
     val view = PlayersData.of(ctx)
-    val original = playerId?.let { id -> view.data.document.players.firstOrNull { it.id == id } }
-    if (playerId != null && original == null) {
+    // Read now, through the merges (as the phone's observePlayer): an archive or a merge made
+    // elsewhere while the form was open is kept, and a merged-away id edits the player it became.
+    val original = postedId?.let { view.data.player(it) }
+    if (postedId != null && original == null) {
         respondPlayerMissing()
         return
     }
+    val playerId = original?.id
     val name = PlayerLook.nameInput(params["name"].orEmpty()).trim()
-    val color = params["color"]?.toIntOrNull()?.let { PlayerPalette.swatches.getOrNull(it)?.first }
-        ?: original?.color
-        ?: PlayerLook.newColor(view.players, PlayerPalette.swatches.map { it.first })
+    val swatch = params["color"]?.toIntOrNull()?.takeIf { it in PlayerPalette.swatches.indices }
+    val color = when {
+        swatch == null -> original?.color ?: PlayerLook.newColor(view.players, PlayerPalette.swatches.map { it.first })
+        // The swatch it already had: keep the stored tone (a light tone or another app's value), as the phone does.
+        original != null && PlayerPalette.indexOf(original.color) == swatch -> original.color
+        else -> PlayerPalette.swatches[swatch].first
+    }
     val crest = params["crest"]?.toIntOrNull()?.takeIf { it in 0 until PlayerPalette.CRESTS }
         ?: original?.avatarId
         ?: PlayerLook.newCrest(view.players, PlayerPalette.CRESTS)
