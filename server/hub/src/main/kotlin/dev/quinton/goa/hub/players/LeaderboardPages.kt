@@ -197,6 +197,7 @@ internal suspend fun ApplicationCall.respondPlayerForm(
         postForm(action, "stack pl-player-form") {
             div("pl-preview") { playerAvatar(preview, "lg") }
             textField("name", "Name", form.name, required = true, error = nameError) {
+                attributes["enterkeyhint"] = "done"
                 maxLength = MAX_NAME_LENGTH.toString()
                 attributes["autocapitalize"] = "words"
                 attributes["autocomplete"] = "off"

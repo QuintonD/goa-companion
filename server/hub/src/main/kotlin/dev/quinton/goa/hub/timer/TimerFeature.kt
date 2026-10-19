@@ -469,7 +469,6 @@ object TimerFeature : HubFeature {
             pushOn = ctx.push.subscriptions(deviceId).isNotEmpty(),
             alert = alert,
             live = live,
-            ladder = timer.data.ladder,
         )
     }
 

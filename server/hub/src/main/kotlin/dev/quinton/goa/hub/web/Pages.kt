@@ -1,6 +1,7 @@
 package dev.quinton.goa.hub.web
 
 import dev.quinton.goa.hub.web.ui.HubPage
+import dev.quinton.goa.hub.web.ui.StaticFiles
 import dev.quinton.goa.hub.web.ui.errorState
 import dev.quinton.goa.hub.web.ui.hubDocument
 import dev.quinton.goa.hub.web.ui.linkButton
@@ -41,7 +42,7 @@ private suspend fun ApplicationCall.respondBare(
 
 private fun FlowContent.brandHeader(title: String) {
     section("brand-header") {
-        img(src = "/static/icons/brand_mark.svg", alt = "", classes = "brand-mark")
+        img(src = StaticFiles.url("icons/brand_mark.svg"), alt = "", classes = "brand-mark")
         h2 { +title }
     }
 }
@@ -98,9 +99,13 @@ internal suspend fun ApplicationCall.respondNotJoinedPage() {
 }
 
 /** A page for errors outside the signed-in shell (404 for an unknown path, 403 for a cross-site POST). */
-internal suspend fun ApplicationCall.respondPlainError(status: HttpStatusCode, message: String) {
-    respondBare(status.description, status) {
-        brandHeader(status.description)
+internal suspend fun ApplicationCall.respondPlainError(
+    status: HttpStatusCode,
+    message: String,
+    title: String = status.description,
+) {
+    respondBare(title, status) {
+        brandHeader(title)
         p("lead") { +message }
         div("actions") { linkButton("Go to the app", "/") }
     }

@@ -41,7 +41,38 @@ object IconRenderer {
         }
     }
 
+    /**
+     * iOS launch screens for the home-screen app (`apple-touch-startup-image`): the app's dark
+     * background with the brand mark, one per iPhone screen ([cssWidth] × [cssHeight] points at [ratio]).
+     */
+    enum class Splash(val cssWidth: Int, val cssHeight: Int, val ratio: Int) {
+        IPHONE_SE(375, 667, 2),
+        IPHONE_XR(414, 896, 2),
+        IPHONE_X(375, 812, 3),
+        IPHONE_XS_MAX(414, 896, 3),
+        IPHONE_12(390, 844, 3),
+        IPHONE_12_PRO_MAX(428, 926, 3),
+        IPHONE_14_PRO(393, 852, 3),
+        IPHONE_14_PRO_MAX(430, 932, 3),
+        IPHONE_16_PRO(402, 874, 3),
+        IPHONE_AIR(420, 912, 3),
+        IPHONE_16_PRO_MAX(440, 956, 3),
+        ;
+
+        val width get() = cssWidth * ratio
+        val height get() = cssHeight * ratio
+        val fileName get() = "splash-${width}x$height.png"
+        val media get() =
+            "(device-width: ${cssWidth}px) and (device-height: ${cssHeight}px) and " +
+                "(-webkit-device-pixel-ratio: $ratio) and (orientation: portrait)"
+
+        companion object {
+            fun byFileName(name: String) = entries.firstOrNull { it.fileName == name }
+        }
+    }
+
     private val cache = ConcurrentHashMap<Icon, ByteArray>()
+    private val splashCache = ConcurrentHashMap<Splash, ByteArray>()
     private val log = LoggerFactory.getLogger(IconRenderer::class.java)
     private const val VIEWPORT = 108.0
 
@@ -52,6 +83,34 @@ object IconRenderer {
     fun png(icon: Icon): ByteArray? = cache[icon] ?: runCatching { render(icon) }
         .onFailure { log.warn("Can't render {}: {}", icon.fileName, it.toString()) }
         .getOrNull()?.also { cache[icon] = it }
+
+    /** The launch screen as PNG bytes, or null if Java2D isn't available. */
+    fun png(splash: Splash): ByteArray? = splashCache[splash] ?: runCatching { render(splash) }
+        .onFailure { log.warn("Can't render {}: {}", splash.fileName, it.toString()) }
+        .getOrNull()?.also { splashCache[splash] = it }
+
+    private fun render(splash: Splash): ByteArray {
+        val image = BufferedImage(splash.width, splash.height, BufferedImage.TYPE_INT_RGB)
+        val g = image.createGraphics()
+        try {
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+            g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
+            g.color = SPLASH_BACKGROUND
+            g.fillRect(0, 0, splash.width, splash.height)
+            // The launcher foreground (108-unit canvas, art in its middle two thirds) at half the width.
+            val box = splash.width * SPLASH_MARK
+            g.translate((splash.width - box) / 2, (splash.height - box) / 2)
+            g.scale(box / VIEWPORT, box / VIEWPORT)
+            draw(g, "static/brand/ic_launcher_foreground.svg")
+        } finally {
+            g.dispose()
+        }
+        ImageIO.setUseCache(false)
+        return ByteArrayOutputStream().also { ImageIO.write(image, "png", it) }.toByteArray()
+    }
+
+    private val SPLASH_BACKGROUND = Color(0x0B1622)
+    private const val SPLASH_MARK = 0.5
 
     private fun render(icon: Icon): ByteArray {
         val image = BufferedImage(icon.size, icon.size, BufferedImage.TYPE_INT_ARGB)

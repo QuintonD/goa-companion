@@ -22,7 +22,9 @@ import dev.quinton.goa.hub.feature.HubContext
 import dev.quinton.goa.hub.feature.HubFeature
 import dev.quinton.goa.hub.heroes.CATALOG_CSS
 import dev.quinton.goa.hub.heroes.cardText
+import dev.quinton.goa.hub.timer.TimerRoutes
 import dev.quinton.goa.hub.web.isHtmx
+import dev.quinton.goa.hub.web.tidyUrl
 import dev.quinton.goa.hub.web.ui.HubPage
 import dev.quinton.goa.hub.web.ui.Icons
 import dev.quinton.goa.hub.web.ui.emptyState
@@ -30,12 +32,14 @@ import dev.quinton.goa.hub.web.ui.icon
 import dev.quinton.goa.hub.web.ui.respondFragment
 import dev.quinton.goa.hub.web.ui.respondPage
 import dev.quinton.goa.hub.web.ui.sectionHeader
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Parameters
 import io.ktor.http.formUrlEncode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import java.net.URI
 import kotlinx.html.FlowContent
 import kotlinx.html.FormMethod
 import kotlinx.html.InputType
@@ -92,12 +96,18 @@ object RulesFeature : HubFeature {
 
     private suspend fun ApplicationCall.rulesPage(ctx: HubContext) {
         val query = request.queryParameters["q"].orEmpty().take(MAX_QUERY)
+        val searching = isHtmx && request.headers["HX-Target"] == "rules-results"
+        val canonical = when {
+            query.isBlank() -> PATH
+            else -> "$PATH?" + Parameters.build { append("q", query) }.formUrlEncode()
+        }
+        if ((searching || !isHtmx) && tidyUrl(canonical)) return
         val state = RulesUiState.of(reference(ctx.catalog), query)
-        if (isHtmx && request.headers["HX-Target"] == "rules-results") {
+        if (searching) {
             respondFragment { rulesResults(state) }
             return
         }
-        respondPage(HubPage("Rules", back = "/heroes", styles = styles)) {
+        respondPage(HubPage("Rules", back = "/heroes", styles = styles, backToPrevious = true)) {
             if (state !is RulesUiState.Ready) {
                 emptyState("Rules unavailable", RulesText.UNAVAILABLE)
                 return@respondPage
@@ -166,7 +176,11 @@ object RulesFeature : HubFeature {
             respondFragment { ladder(state, heroes) }
             return
         }
-        respondPage(HubPage(RulesText.LADDER_TITLE, back = PATH, styles = styles)) { ladder(state, heroes) }
+        // From the running timer (its Levels action), Back returns there, as on the phone.
+        val fromTimer = request.headers[HttpHeaders.Referrer]
+            ?.let { runCatching { URI(it).path }.getOrNull() } == TimerRoutes.RUN
+        val back = if (fromTimer) TimerRoutes.RUN else PATH
+        respondPage(HubPage(RulesText.LADDER_TITLE, back = back, styles = styles)) { ladder(state, heroes) }
     }
 
     private const val MAX_QUERY = 200

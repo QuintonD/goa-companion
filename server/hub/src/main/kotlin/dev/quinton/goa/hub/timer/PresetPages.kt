@@ -201,6 +201,9 @@ internal object PresetPages {
                     +"Preset name"
                 }
                 input(type = InputType.text, name = "name") {
+                    attributes["autocomplete"] = "off"
+                    attributes["autocapitalize"] = "sentences"
+                    attributes["enterkeyhint"] = "done"
                     id = "f-name"
                     value = preset.name
                     placeholder = "e.g. Table rules, fast"
@@ -326,6 +329,9 @@ internal object PresetPages {
                     +"Name"
                 }
                 input(type = InputType.text, name = "$p.name") {
+                    attributes["autocomplete"] = "off"
+                    attributes["autocapitalize"] = "sentences"
+                    attributes["enterkeyhint"] = "done"
                     id = "f-$p-name"
                     value = phase.name
                 }
@@ -470,6 +476,7 @@ internal object PresetPages {
                 +label
             }
             input(type = InputType.number, name = name) {
+                attributes["enterkeyhint"] = "done"
                 id = fieldId
                 this.value = value.toString()
                 attributes["min"] = min.toString()

@@ -167,7 +167,8 @@ fun FlowContent.provisionalPill() = pill("Provisional", "pl-pill-teal")
 /** A hero's portrait from the bundled catalog, or a "?" for an unknown hero. Decorative. */
 fun FlowContent.heroPortrait(portrait: String?, size: String = "md") {
     if (portrait != null) {
-        img(src = HubCatalog.url(portrait), alt = "", classes = "pl-portrait pl-portrait-$size") {
+        val src = HubCatalog.thumbUrl(portrait, HubCatalog.THUMB_SMALL)
+        img(src = src, alt = "", classes = "pl-portrait pl-portrait-$size") {
             attributes["loading"] = "lazy"
             attributes["decoding"] = "async"
         }

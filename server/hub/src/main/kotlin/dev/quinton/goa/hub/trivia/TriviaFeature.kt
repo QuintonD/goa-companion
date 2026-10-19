@@ -104,7 +104,9 @@ object TriviaFeature : HubFeature {
             respondFragment { triviaHome(state) }
             return
         }
-        respondPage(HubPage("Card trivia", back = "/heroes", styles = styles, scripts = listOf(SCRIPT))) {
+        respondPage(
+            HubPage("Card trivia", back = "/heroes", styles = styles, scripts = listOf(SCRIPT), backToPrevious = true),
+        ) {
             when (state) {
                 is TriviaHomeUiState.Ready -> {
                     triviaHome(state)

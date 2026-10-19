@@ -139,6 +139,32 @@ class HeroesWebTest {
     }
 
     @Test
+    fun `search addresses drop the form's empty and default fields`() = withHub { _ ->
+        suspend fun get(path: String, htmx: Boolean = false) = client.get(path) {
+            header(HttpHeaders.Cookie, cookie(token))
+            if (htmx) {
+                header("HX-Request", "true")
+                header("HX-Target", "results")
+            }
+        }
+        // What the form sends without JS: a plain request is sent to the tidy address.
+        val plain = get("/heroes?q=&a=&sort=name")
+        assertThat(plain.status).isEqualTo(HttpStatusCode.Found)
+        assertThat(plain.headers[HttpHeaders.Location]).isEqualTo("/heroes")
+        val typed = get("/heroes?q=block&a=&sort=name&c=2&c=1")
+        assertThat(typed.headers[HttpHeaders.Location]).isEqualTo("/heroes?q=block&c=1&c=2")
+        // htmx (search as you type) answers at once and pushes the tidy address instead.
+        val swap = get("/heroes?q=block&a=&sort=elo", htmx = true)
+        assertThat(swap.status).isEqualTo(HttpStatusCode.OK)
+        assertThat(swap.headers["HX-Push-Url"]).isEqualTo("/heroes?q=block&sort=elo")
+        // An address that is already tidy is left alone.
+        assertThat(get("/heroes?q=block&sort=elo").status).isEqualTo(HttpStatusCode.OK)
+        assertThat(get("/heroes?q=block", htmx = true).headers["HX-Push-Url"]).isNull()
+        val rules = client.get("/rules?q=") { header(HttpHeaders.Cookie, cookie(token)) }
+        assertThat(rules.headers[HttpHeaders.Location]).isEqualTo("/rules")
+    }
+
+    @Test
     fun `a search is escaped wherever it is shown`() = withHub { _ ->
         val html = page("/heroes?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E")
         assertThat(html).doesNotContain("<script>alert")

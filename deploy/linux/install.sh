@@ -13,7 +13,7 @@
 # copying a newer deploy/ folder). Without a zip it keeps the installed hub version.
 # Questions can be answered in advance:
 #   sudo GOA_HUB_INVITE='https://…/join#goa-sync:1?…' GOA_ANDROID_CERT_SHA256=AA:BB:… \
-#        GOA_TS_HOSTNAME=goa ./install.sh goa-hub-1.0.0.zip
+#        GOA_TS_HOSTNAME=goa GOA_TIME_ZONE=Europe/Amsterdam ./install.sh goa-hub-1.0.0.zip
 #   (--with-caddy also reads GOA_HUB_DOMAIN=ourgroup and DUCKDNS_TOKEN=…)
 #   GOA_HUB_INVITE= with nothing after it means: don't ask, the hub has joined already.
 # Debian 13 and Ubuntu 24.04 / 26.04 first; Fedora 43+ works too (dnf, firewalld, SELinux).
@@ -115,6 +115,28 @@ if [[ -z "$invite" && -z "${GOA_HUB_INVITE+set}" ]] && interactive; then
 	read -r -p "Invite: " invite
 fi
 cert_sha256="${GOA_ANDROID_CERT_SHA256:-}"
+
+# The time zone the hub shows dates in (match days, "today", backup names): the one set before,
+# else this machine's, unless GOA_TIME_ZONE says otherwise or you type another one.
+machine_zone() {
+	local z
+	z="$(timedatectl show -p Timezone --value 2>/dev/null || true)"
+	[[ -z "$z" && -L /etc/localtime ]] && z="$(readlink /etc/localtime | sed -n 's#.*/zoneinfo/##p')"
+	printf '%s' "${z:-UTC}"
+}
+configured_zone="$(sed -n 's/^ *"timeZone": *"\([^"]*\)".*/\1/p' "$data_dir/hub.json" 2>/dev/null | head -n 1 || true)"
+time_zone="${GOA_TIME_ZONE:-}"
+if [[ -z "$time_zone" ]]; then
+	time_zone="${configured_zone:-$(machine_zone)}"
+	if [[ -z "$configured_zone" ]] && interactive; then
+		echo
+		echo "Which time zone should the hub show dates in? An IANA name like Europe/Amsterdam."
+		read -r -p "Time zone [$time_zone]: " answer
+		time_zone="${answer:-$time_zone}"
+	fi
+fi
+time_zone="${time_zone//[[:space:]]/}"
+[[ "$time_zone" =~ ^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)*$ ]] || die "\"$time_zone\" is not a time zone name (like Europe/Amsterdam)."
 ts_hostname="${GOA_TS_HOSTNAME:-goa}"
 [[ "$ts_hostname" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]] || die "GOA_TS_HOSTNAME must be letters, digits and dashes."
 
@@ -278,7 +300,7 @@ if [[ -n "$invite" ]]; then
 		warn "Joining failed (see above). Run this script again with a fresh invite, or see deploy/README.md."
 	fi
 fi
-config_args=(config --public-url "$public_url" --data "$data_dir")
+config_args=(config --public-url "$public_url" --time-zone "$time_zone" --data "$data_dir")
 if [[ -n "$cert_sha256" ]]; then config_args+=(--android-cert-sha256 "$cert_sha256"); fi
 hub "${config_args[@]}"
 systemctl start goa-hub

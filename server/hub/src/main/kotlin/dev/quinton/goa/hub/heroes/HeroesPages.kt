@@ -324,7 +324,7 @@ private fun FlowContent.heroTile(item: HeroListItem, sort: CatalogSort) {
     a("${HeroesFeature.PATH}/${hero.id}", classes = "hero-tile") {
         attributes["aria-label"] = item.spokenLabel(sort)
         div("tile-art") {
-            heroPortrait(hero.id, hero.portrait, "tile-portrait")
+            heroPortrait(hero.id, hero.portrait, "tile-portrait", size = PortraitSize.GRID)
             hero.complexity?.let { complexityStars(it, "stars on-art") }
             if (!hero.verified) span("art-badge") { unverifiedBadge(compact = true) }
         }

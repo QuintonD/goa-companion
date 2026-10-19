@@ -218,6 +218,8 @@ private fun FlowContent.heroPicker(state: TriviaHomeUiState.Ready) {
                 +"Search heroes"
             }
             input(InputType.search, classes = "picker-filter") {
+                attributes["enterkeyhint"] = "search"
+                attributes["spellcheck"] = "false"
                 id = "hero-filter"
                 placeholder = "Search heroes"
                 attributes["data-hero-filter"] = ""

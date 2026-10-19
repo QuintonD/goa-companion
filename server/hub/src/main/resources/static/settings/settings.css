@@ -6,10 +6,10 @@
 
 /* `hidden` wins over the button's display (script-driven buttons stay hidden until shown) */
 .btn[hidden] { display: none; }
-.small { font-size: 14px; }
+.small { font-size: 0.875rem; }
 .row-icon { display: inline-flex; flex: none; color: var(--primary); }
 .actions.end { justify-content: flex-end; }
-.card h3 { font-size: 17px; }
+.card h3 { font-size: 1.0625rem; }
 .card-title-row { display: flex; align-items: center; gap: calc(var(--space) * 3); color: var(--primary); }
 .card-title-row h3 { color: var(--on-surface); }
 
@@ -31,7 +31,7 @@
 
 .check-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
 .check-title { font-weight: 500; }
-.check-subtitle { color: var(--on-surface-variant); font-size: 14px; }
+.check-subtitle { color: var(--on-surface-variant); font-size: 0.875rem; }
 
 .switch-input {
   appearance: none;
@@ -91,7 +91,7 @@
   border: 0;
   background: var(--surface);
   color: var(--on-surface-variant);
-  font: 500 15px/1.2 var(--font-body);
+  font: 500 0.9375rem/1.2 var(--font-body);
   cursor: pointer;
 }
 
@@ -99,8 +99,10 @@
 .segment .icon { width: 18px; height: 18px; }
 .segment.selected { background: color-mix(in srgb, var(--primary) 18%, var(--surface)); color: var(--on-surface); font-weight: 600; }
 
-/* Narrow screens or large text: the segments stack, as the app's radio list does at large font scales */
-@media (max-width: 359px) {
+/* Narrow screens or large text: the segments stack, as the app's radio list does at large font
+   scales. The query is on the segments' own box, in em, so the iPhone's Text Size counts too. */
+:has(> .segmented) { container-type: inline-size; }
+@container (max-width: 18em) {
   .segmented { flex-direction: column; border-radius: var(--radius-card); }
   .segment + .segment { border-left: 0; border-top: 1px solid var(--engraved); }
 }
@@ -120,7 +122,7 @@
 .credits dt { font-weight: 600; }
 .credits dd { margin: 0 0 calc(var(--space) * 2); color: var(--on-surface-variant); }
 .source-list { margin: 0; padding-left: 20px; color: var(--on-surface-variant); overflow-wrap: anywhere; }
-.source-list code { font-size: 13px; }
+.source-list code { font-size: 0.8125rem; }
 
 /* Backup */
 .field input[type="file"] { padding: calc(var(--space) * 2); }

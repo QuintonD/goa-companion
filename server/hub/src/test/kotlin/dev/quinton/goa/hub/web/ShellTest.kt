@@ -10,6 +10,7 @@ import dev.quinton.goa.hub.signIn
 import dev.quinton.goa.hub.store.DeviceSlot
 import dev.quinton.goa.hub.testHub
 import dev.quinton.goa.hub.web.ui.ShellSlots
+import dev.quinton.goa.hub.web.ui.StaticFiles
 import dev.quinton.goa.hub.web.ui.ThemeChoice
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -70,6 +71,13 @@ class ShellTest {
                 assertThat(response.status).isEqualTo(HttpStatusCode.OK)
                 assertThat(response.bodyAsText()).doesNotContain("class=\"tab selected\"")
             }
+            // Rules, Card trivia and Settings open from any tab: Back returns to the page that opened them.
+            for (path in listOf("/rules", "/trivia", "/settings")) {
+                val html = client.get(path) { header(HttpHeaders.Cookie, cookie(token)) }.bodyAsText()
+                assertThat(html).contains("aria-label=\"Back\" data-back=\"previous\"")
+            }
+            val hero = client.get("/heroes/arien") { header(HttpHeaders.Cookie, cookie(token)) }.bodyAsText()
+            assertThat(hero).contains("<a href=\"/heroes\" class=\"icon-button\" aria-label=\"Back\" data-back=\"\">")
             val missing = client.get("/players/nope") { header(HttpHeaders.Cookie, cookie(token)) }
             assertThat(missing.status).isEqualTo(HttpStatusCode.NotFound)
             assertThat(missing.bodyAsText()).contains("tab-bar")
@@ -102,10 +110,10 @@ class ShellTest {
     fun `static files, fonts, crests and htmx are open and cacheable`() {
         val hub = testHub(tmp.root.toPath(), clock)
         hubTest(hub) {
-            val css = client.get("/static/app.css?v=1")
+            val css = client.get(StaticFiles.url("app.css"))
             assertThat(css.status).isEqualTo(HttpStatusCode.OK)
             assertThat(css.headers[HttpHeaders.ContentType]).startsWith("text/css")
-            assertThat(css.headers[HttpHeaders.CacheControl]).isEqualTo("public, max-age=31536000")
+            assertThat(css.headers[HttpHeaders.CacheControl]).isEqualTo("public, max-age=31536000, immutable")
             for (path in listOf(
                 "/static/htmx.min.js", "/static/hub.js", "/static/join.js", "/static/push.js",
                 "/static/fonts/cinzel_semibold.ttf", "/static/fonts/inter_regular.ttf", "/static/fonts/OFL-Inter.txt",

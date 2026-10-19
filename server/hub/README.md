@@ -141,9 +141,9 @@ writes a joined data directory (46 matches) plus `invite.txt` (public URL `GOA_P
 | `deviceStore: DeviceStore` | this browser's own state, in typed slots (below) |
 | `devices: Devices` | signed-in browsers: `list()`, `get(id)`, `rename(id, name)`, `signOut(id)` |
 | `catalog: HubCatalog` | `catalog` (the hero `Catalog`, strict loader), `readText("catalog/draft-methods.json")`, `open(path)`, `exists(path)`; `HubCatalog.url(path)` → `/assets/<path>` for images |
-| `clock: HubClock` | `nowMillis()` (stamps), `elapsedMillis()`, `zone`, `today()` — the core:domain `WallClock`/`ElapsedClock` |
+| `clock: HubClock` | `nowMillis()` (stamps), `elapsedMillis()`, `zone`, `today()` — the core:domain `WallClock`/`ElapsedClock`; `zone` is the configured time zone (`goa-hub config --time-zone`), else the machine's: use it for every date shown |
 | `push: PushService` | Web Push (below) |
-| `config: HubConfig` | `publicUrl`, `androidCertSha256` |
+| `config: HubConfig` | `publicUrl`, `androidCertSha256`, `timeZone` |
 | `group: GroupCredentials?` | the group (id, name; the key — never render it) |
 | `syncState: SyncStateStore` | when phones last synced (`read().clients`) |
 | `device(call)` / `deviceOrNull(call)` | the browser of a call |
@@ -240,13 +240,16 @@ Unverified badge): `dev.quinton.goa.hub.heroes.CatalogHtml` with `static/heroes/
 
 `call.respondPage(HubPage(title, tab, back = "/x", actions = …, showTabs = true, scripts = listOf("timer.js"))) { … }`
 renders the whole document (top bar, `<main>`, the bottom tabs) with `Cache-Control: no-store`.
+`backToPrevious = true` makes Back return to whichever page opened this one (Rules, Card trivia and
+Settings do). A GET form whose fields reach the URL calls `call.tidyUrl(canonical)` first, so the
+address bar never shows `?q=&a=&sort=name` (redirect without JS, `HX-Push-Url` with htmx).
 `call.respondFragment { … }` sends a piece of HTML for htmx.
 
 Components (`web/ui/Components.kt`, styled in `static/app.css`): `card {}`, `sectionHeader`,
 `listRow(title, subtitle, href, trailing) { leading }`, `hubButton` / `primaryButton` /
 `linkButton(label, href, ButtonStyle.X, icon)`, `chip` / `chipRow`, `playerAvatar(player, "sm|md|lg")`,
 `playerName(player)`, `teamBadge(team)` (◆ Red / ● Blue, never colour only), `emptyState`,
-`errorState`, `notice`, `textField` / `textAreaField` / `selectField` / `checkboxField`, `postForm`,
+`errorState`, `statusState` (a whole-page status, e.g. the 404/500 pages), `notice`, `textField` / `textAreaField` / `selectField` / `checkboxField`, `postForm`,
 `hubDialog(id, title) {}` + `dialogButton(label, id)`, `icon(Icons.X)`.
 
 Rules that keep the CSP happy (`default-src 'self'`, no inline script or style):
@@ -259,6 +262,15 @@ Rules that keep the CSP happy (`default-src 'self'`, no inline script or style):
 - Dialogs: `data-dialog-open="<id>"` / `data-dialog-close` (handled by `hub.js`); an htmx response
   with `HX-Trigger: closeDialogs` closes open dialogs.
 - Mobile first at 390 px; tap targets ≥ 48 px; `font-size` ≥ 16 px in inputs (iOS zoom).
+- **Type in rem, spacing in px.** 1 rem follows the iPhone's Text Size; check your pages with the
+  browser's font size at 200%. Boxes that hold text get `min-height`, never `height`; a row of
+  label + figures must wrap (`flex-wrap`, `flex: 1 1 <n>rem` on the text) instead of squeezing the
+  label; fixed shapes (avatars, badges) may stay px. Sticky bottom actions use
+  `bottom: var(--dock)` (the measured tabs + timer bar), so nothing hides under them.
+- Static files referenced from CSS are written `url(/static/…)` (unquoted, no query): the hub
+  versions them when it serves the stylesheet. Images from the catalog: `HubCatalog.thumbUrl(path,
+  HubCatalog.THUMB_SMALL | THUMB_GRID)` for portraits shown small (built copies), `HubCatalog.url`
+  for full size.
 
 ## htmx patterns
 
@@ -360,13 +372,14 @@ store/                      AtomicFiles, GroupStore (runs core:domain SharedWrit
 catalog/HubCatalog.kt       the bundled catalog and images (built from app/src/main/assets)
 push/                       WebPushCrypto (RFC 8291), Vapid (RFC 8292), PushService
 web/HubServer.kt            hubModule: headers, origin check, status pages, auth, routes
-web/                        SyncRoutes, JoinRoutes, DeviceAuth (cookie), Requests (client, origin), StaticRoutes, PushRoutes, Pages, RateLimiter/JoinThrottle
+web/                        SyncRoutes, JoinRoutes, DeviceAuth (cookie), Requests (client, origin), StaticRoutes, PushRoutes, Pages, RateLimiter/JoinThrottle, HubCompression (gzip), CanonicalUrls (tidyUrl)
 web/ui/                     HubPage (layout, Tab, TopActions, ThemeChoice), Components, PlayerPalette, StaticFiles, IconRenderer
 feature/                    HubFeature + HubContext, HubFeatures (the list), ComingSoon, AppDownloadFeature (/app)
 resources/static/           app.css, htmx.min.js (vendored), hub.js, join.js, push.js, sw.js, material/ (Material Symbols)
 ```
 
-The build (`bundleAppFiles`) adds to the resources: `goa-assets/catalog` and `goa-assets/official`
+The build (`bundleAppFiles`, `generateThumbnails` for `goa-assets/thumbs/w192|w384/…` portrait
+copies) adds to the resources: `goa-assets/catalog` and `goa-assets/official`
 from the app's assets, `static/fonts` (the app's OFL fonts + licences), `static/crests`,
 `static/sigils`, `static/icons`, `static/brand` from `design/`. When adding Material icons, put the
 pinned SVG in `static/material/`, add an `Icons` constant and its `.icon-<name>` line in `app.css`

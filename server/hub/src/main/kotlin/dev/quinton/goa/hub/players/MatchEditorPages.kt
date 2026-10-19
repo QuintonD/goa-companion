@@ -558,6 +558,8 @@ private class EditorView(
                 +"Map or table (optional)"
             }
             input(type = InputType.text, name = "map") {
+                attributes["autocomplete"] = "off"
+                attributes["enterkeyhint"] = "done"
                 id = "f-map"
                 value = edited.map
                 maxLength = MatchEditor.MAX_TEXT.toString()
@@ -640,6 +642,7 @@ private class EditorView(
                 +"Duration (minutes, optional)"
             }
             input(type = InputType.text, name = "duration") {
+                attributes["enterkeyhint"] = "done"
                 id = "f-duration"
                 value = edited.duration
                 attributes["inputmode"] = "numeric"
@@ -676,6 +679,7 @@ private class EditorView(
                     +"Someone missing? Add them"
                 }
                 input(type = InputType.text, name = "newPlayer") {
+                    attributes["enterkeyhint"] = "done"
                     id = "f-newPlayer"
                     maxLength = MAX_NAME_LENGTH.toString()
                     placeholder = if (pilots.isEmpty()) "Name of the first player" else "Name"

@@ -281,6 +281,9 @@ private fun FlowContent.pool(state: BoardUiState, session: DraftSession) {
                 attributes["data-pool-filters"] = ""
                 attributes["hidden"] = ""
                 input(type = InputType.search, classes = "pool-search") {
+                    attributes["autocomplete"] = "off"
+                    attributes["enterkeyhint"] = "search"
+                    attributes["spellcheck"] = "false"
                     attributes["data-pool-search"] = ""
                     attributes["aria-label"] = "Search heroes"
                     placeholder = "Search"

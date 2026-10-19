@@ -75,6 +75,8 @@ Contrast checks added 2026-10-17 (WCAG ratio vs background / surface / surfaceHi
   `scaledIconSize` (capped 1.8×). Fixed label and table columns (StatBar labels, Meta table
   cells) grow with the font scale; the hero grid drops to two columns and a printed rules
   table becomes one block per row when a word would otherwise break mid-word.
+  The web app (hub) follows the same rules with the iPhone's Text Size: type in rem
+  (`-apple-system-body`), spacing in px, layouts that switch on the text size (ADR-030 notes).
 
 ## Components (`core:designsystem/component`)
 `GoaScreen` (title bar + engraved rule, optional snackbar host) · `GoaCard` · `SectionHeader` ·

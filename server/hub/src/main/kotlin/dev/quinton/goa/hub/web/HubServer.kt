@@ -6,10 +6,10 @@ import dev.quinton.goa.hub.feature.HubFeature
 import dev.quinton.goa.hub.feature.HubFeatures
 import dev.quinton.goa.hub.web.ui.HubPage
 import dev.quinton.goa.hub.web.ui.Tab
-import dev.quinton.goa.hub.web.ui.emptyState
-import dev.quinton.goa.hub.web.ui.errorState
 import dev.quinton.goa.hub.web.ui.respondPage
+import dev.quinton.goa.hub.web.ui.statusState
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -23,6 +23,7 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.plugins.PayloadTooLargeException
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.path
+import io.ktor.server.request.uri
 import io.ktor.server.response.header
 import io.ktor.server.response.respondRedirect
 import io.ktor.server.response.respondText
@@ -57,6 +58,7 @@ fun Application.hubModule(hub: Hub, features: List<HubFeature> = HubFeatures) {
             call.respondServerError()
         }
     }
+    hubCompression()
     install(Authentication) { device(hub) }
     routing {
         syncRoutes(hub)
@@ -94,11 +96,11 @@ private suspend fun ApplicationCall.respondNotFound() {
     when {
         request.path().startsWith("/api/") -> respondText("Not found.", status = HttpStatusCode.NotFound)
 
-        deviceOrNull != null -> respondPage(HubPage("Not found", back = "/"), HttpStatusCode.NotFound) {
-            emptyState("Nothing here", "This page doesn't exist (any more).", "Go to Heroes", Tab.HEROES.path)
+        deviceOrNull != null -> respondPage(HubPage(NOT_FOUND_TITLE), HttpStatusCode.NotFound) {
+            statusState(NOT_FOUND_TITLE, NOT_FOUND_TEXT, "Go to Heroes", Tab.HEROES.path)
         }
 
-        else -> respondPlainError(HttpStatusCode.NotFound, "This page doesn't exist.")
+        else -> respondPlainError(HttpStatusCode.NotFound, NOT_FOUND_TEXT, NOT_FOUND_TITLE)
     }
 }
 
@@ -106,15 +108,41 @@ private suspend fun ApplicationCall.respondTooLarge() {
     respondText("The request is too large.", status = HttpStatusCode.PayloadTooLarge)
 }
 
+/**
+ * A failure while handling a page: the app's own "Something went wrong" page (with Try again for a
+ * GET), never a stack trace; the API, htmx swaps and a page that fails again get plain text.
+ */
 private suspend fun ApplicationCall.respondServerError() {
-    if (deviceOrNull != null && !request.path().startsWith("/api/")) {
-        respondPage(HubPage("Something went wrong", back = "/"), HttpStatusCode.InternalServerError) {
-            errorState("Something went wrong on the hub. Try again; if it keeps happening, tell whoever runs the hub.")
+    val status = HttpStatusCode.InternalServerError
+    val retry = request.uri.takeIf { request.local.method == HttpMethod.Get }
+    val page = runCatching {
+        when {
+            request.path().startsWith("/api/") || isHtmx -> false
+
+            deviceOrNull != null -> {
+                respondPage(HubPage(ERROR_TITLE), status) {
+                    statusState(ERROR_TITLE, ERROR_TEXT, "Go to Heroes", Tab.HEROES.path, retryHref = retry)
+                }
+                true
+            }
+
+            else -> {
+                respondPlainError(status, ERROR_TEXT, ERROR_TITLE)
+                true
+            }
         }
-    } else {
-        respondText("Something went wrong on the hub.", status = HttpStatusCode.InternalServerError)
+    }.getOrElse { e ->
+        log.error("The error page failed too", e)
+        false
     }
+    if (!page && !response.isCommitted) respondText(ERROR_TEXT, status = status)
 }
+
+private const val NOT_FOUND_TITLE = "Page not found"
+private const val NOT_FOUND_TEXT = "There's nothing at this address. It may have moved, or the link is incomplete."
+private const val ERROR_TITLE = "Something went wrong"
+private const val ERROR_TEXT =
+    "The hub couldn't finish this. Try again; if it keeps happening, tell whoever runs the hub."
 
 internal const val CSP =
     "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; " +

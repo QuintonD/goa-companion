@@ -131,6 +131,8 @@ internal fun FlowContent.methodEditor(key: String, state: MethodEditUiState) {
                     +"Name"
                 }
                 input(type = InputType.text, name = "name") {
+                    attributes["autocapitalize"] = "sentences"
+                    attributes["enterkeyhint"] = "done"
                     id = "f-name"
                     value = state.name
                     maxLength = MethodEditUiState.MAX_NAME.toString()

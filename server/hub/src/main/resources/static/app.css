@@ -1,6 +1,9 @@
 /*
  * Guards of Atlantis — the hub's web app (ADR-030 §8). Design tokens from docs/DESIGN.md
  * ("Sunken bronze"), light and dark. Mobile-first (390 px), safe-area aware.
+ * Text follows the reader's text size: type is in rem (1 rem = the system's body size: the iPhone's
+ * Text Size through -apple-system-body, the browser's font size elsewhere); spacing stays in px
+ * like the app's dp, and boxes that hold text grow (min-height, never a fixed height).
  * The CSP forbids inline styles: everything is a class here. Colours per player: .pc-0 … .pc-9.
  */
 
@@ -135,7 +138,9 @@
   --radius-dialog: 28px;
   --space: 4px;
   --pad: 16px;
-  --tab-bar: 72px;
+  /* The bars grow with the text: 72 px and 56 px at the default size. */
+  --tab-bar: calc(54px + 1.125rem);
+  --shell-bar: calc(28px + 2.75rem);
   --top-bar: 56px;
   --motion: 200ms cubic-bezier(0.2, 0, 0, 1);
 }
@@ -143,7 +148,21 @@
 /* ---- Base ---- */
 *, *::before, *::after { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html {
+  font-size: 100%;
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* An app, not a document: no double-tap zoom delay, no rubber band pulling the bars away. */
+  touch-action: manipulation;
+  overscroll-behavior-y: none;
+}
+
+/* iPhone and iPad (Safari and the home-screen app): 1 rem = the system's body text at the chosen
+   Text Size (17 px by default, as in iOS's own apps). Desktop Safari keeps the browser's size. */
+@supports (font: -apple-system-body) and (-webkit-touch-callout: none) {
+  html { font: -apple-system-body; }
+}
 
 body {
   margin: 0;
@@ -152,20 +171,28 @@ body {
   background: var(--bg);
   color: var(--on-surface);
   font-family: var(--font-body);
-  font-size: 16px;
+  font-size: 1rem;
+  font-weight: 400;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: var(--bronze-glow);
 }
 
+/* Fields never below 16 px: iOS zooms into anything smaller on focus. */
+input, select, textarea, button { font-family: inherit; }
+input, select, textarea { font-size: max(16px, 1rem); }
+
 h1, h2, h3 { margin: 0; font-family: var(--font-display); font-weight: 600; line-height: 1.2; }
-h2 { font-size: 20px; }
-h3 { font-size: 17px; }
-p { margin: 0; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.0625rem; }
+p { margin: 0; overflow-wrap: break-word; }
 a { color: var(--secondary); }
 img { max-width: 100%; }
 .numeric, .tabular { font-variant-numeric: tabular-nums lining-nums; }
 :focus-visible { outline: 2px solid var(--secondary); outline-offset: 2px; }
+:focus:not(:focus-visible) { outline: none; }
+.btn:focus-visible, .chip:focus-visible, .icon-button:focus-visible, .tab:focus-visible { outline-offset: 3px; }
+.row:focus-visible, .card:focus-visible { outline-offset: -2px; }
 
 .visually-hidden {
   position: absolute;
@@ -204,7 +231,7 @@ img { max-width: 100%; }
   flex: 1;
   min-width: 0;
   padding: 0 calc(var(--space) * 3);
-  font-size: 22px;
+  font-size: min(1.375rem, 30px);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -228,6 +255,7 @@ img { max-width: 100%; }
 }
 
 .icon-button:hover { background: var(--surface-high); color: var(--on-surface); }
+.icon-button:active { background: var(--surface-high); }
 
 /* ---- Shell: content ---- */
 .content {
@@ -240,8 +268,13 @@ img { max-width: 100%; }
   padding: var(--pad) calc(var(--pad) + env(safe-area-inset-right)) calc(var(--pad) * 2 + env(safe-area-inset-bottom)) calc(var(--pad) + env(safe-area-inset-left));
 }
 
-.has-tabs .content { padding-bottom: calc(var(--tab-bar) + var(--pad) * 2 + env(safe-area-inset-bottom)); }
-.has-tabs.has-bars .content { padding-bottom: calc(var(--tab-bar) + 72px + var(--pad) * 2 + env(safe-area-inset-bottom)); }
+/* --dock: the height of the fixed bottom bars (hub.js measures it; this is the estimate before).
+   Sticky bottom actions sit on it, so neither the tabs nor the home indicator cover them. */
+body { --dock: 0px; }
+.has-tabs { --dock: calc(var(--tab-bar) + env(safe-area-inset-bottom)); }
+.has-tabs.has-bars { --dock: calc(var(--tab-bar) + var(--shell-bar) + env(safe-area-inset-bottom)); }
+:root[data-dock] .has-tabs { --dock: var(--dock-measured); }
+.has-tabs .content { padding-bottom: calc(var(--dock) + var(--pad) * 2); }
 
 /* ---- Shell: bottom dock (feature bars such as "timer running", then the tab bar) ---- */
 .bottom-dock {
@@ -250,6 +283,9 @@ img { max-width: 100%; }
   right: 0;
   bottom: 0;
   z-index: 10;
+  /* A drag that starts on the bars doesn't scroll the page behind them. */
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 
 .shell-bars:empty { display: none; }
@@ -271,7 +307,7 @@ img { max-width: 100%; }
   gap: var(--space);
   min-height: var(--tab-bar);
   color: var(--on-surface-variant);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   text-decoration: none;
 }
@@ -288,6 +324,28 @@ img { max-width: 100%; }
 
 .tab.selected { color: var(--on-surface); font-weight: 600; }
 .tab.selected .tab-indicator { background: var(--secondary-container); color: var(--on-secondary-container); }
+
+/* ---- The running-timer bar above the tabs (the Timer's shell bar, on every other page) ---- */
+.timer-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px calc(16px + env(safe-area-inset-right)) 8px calc(16px + env(safe-area-inset-left));
+  border-top: 1px solid var(--engraved);
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  text-decoration: none;
+}
+/* The bar's two icons (the Timer's own symbols) */
+.timer-bar .icon-t-timer { --icon: url(/static/timer/icons/timer.svg); }
+.timer-bar .icon-t-pause { --icon: url(/static/timer/icons/pause.svg); }
+.timer-bar-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.timer-bar-phase { font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.timer-bar-context { font-size: 0.8125rem; opacity: 0.85; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.timer-bar-clock { font: 700 24px/1 var(--font-body); }
+.timer-bar.is-overtime .timer-bar-clock { color: var(--error); }
+.timer-bar.is-paused { background: var(--surface-high); color: var(--on-surface); }
 
 /* ---- Icons: CSS masks tinted with the text colour ---- */
 .icon {
@@ -314,7 +372,7 @@ img { max-width: 100%; }
 .section-header {
   margin-top: calc(var(--space) * 2);
   color: var(--primary);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -332,12 +390,14 @@ img { max-width: 100%; }
   text-decoration: none;
 }
 
-a.row:hover { background: var(--surface-high); }
+a.row:hover, a.row:active { background: var(--surface-high); }
 .row + .row { margin-top: calc(var(--space) * -3); }
 .row-leading { display: flex; flex: none; }
-.row-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.row { flex-wrap: wrap; }
+.row-text { display: flex; flex: 1 1 7rem; flex-direction: column; min-width: 0; }
+.row-trailing { margin-left: auto; }
 .row-title { font-weight: 500; overflow-wrap: anywhere; }
-.row-subtitle { color: var(--on-surface-variant); font-size: 14px; }
+.row-subtitle { color: var(--on-surface-variant); font-size: 0.875rem; }
 .row-trailing { color: var(--on-surface-variant); font-variant-numeric: tabular-nums; }
 .row-chevron { color: var(--on-surface-variant); }
 
@@ -361,13 +421,14 @@ a.row:hover { background: var(--surface-high); }
   padding: 0 calc(var(--space) * 6);
   border: 1px solid transparent;
   border-radius: 24px;
-  font: 600 15px/1 var(--font-body);
+  font: 600 0.9375rem/1 var(--font-body);
   text-decoration: none;
   cursor: pointer;
   transition: background var(--motion), filter var(--motion);
 }
 
-.btn .icon { width: 20px; height: 20px; }
+.btn .icon { width: clamp(20px, 1.25em, 32px); height: clamp(20px, 1.25em, 32px); }
+.btn:active:not(:disabled) { filter: brightness(1.12); }
 .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.5; cursor: default; }
 .btn-primary { background: var(--primary); color: var(--on-primary); }
 .btn-primary:hover { filter: brightness(1.08); }
@@ -390,12 +451,12 @@ a.row:hover { background: var(--surface-high); }
   border-radius: var(--radius-chip);
   background: transparent;
   color: var(--on-surface);
-  font: 500 14px/1 var(--font-body);
+  font: 500 0.875rem/1 var(--font-body);
   text-decoration: none;
   cursor: pointer;
 }
 
-.chip .icon { width: 18px; height: 18px; }
+.chip .icon { width: clamp(18px, 1.25em, 30px); height: clamp(18px, 1.25em, 30px); }
 .chip.selected { border-color: transparent; background: var(--secondary-container); color: var(--on-secondary-container); }
 
 /* ---- Player avatar, names, teams ---- */
@@ -441,6 +502,12 @@ a.row:hover { background: var(--surface-high); }
 }
 
 .empty-state h2 { color: var(--on-surface); }
+.empty-state .actions { justify-content: center; }
+
+/* A whole-page status (not found, something went wrong): centred in the space between the bars. */
+.status-state { justify-content: center; min-height: calc(100dvh - var(--top-bar) - var(--dock) - var(--pad) * 4); }
+.status-state h2 { font-size: 1.5rem; }
+.status-state p { max-width: 34ch; }
 
 .empty-mark {
   width: 64px;
@@ -459,14 +526,15 @@ a.row:hover { background: var(--surface-high); }
 
 .error-state { background: var(--error-container); color: var(--on-error-container); }
 .notice { background: var(--surface-high); color: var(--on-surface); }
-.error-state p, .notice p { flex: 1; }
+.error-state, .notice { flex-wrap: wrap; }
+.error-state p, .notice p { flex: 1 1 12rem; }
 .badge-verified { color: var(--verified); }
 .badge-unverified { color: var(--unverified); }
 
 /* ---- Forms ---- */
 .stack { display: flex; flex-direction: column; gap: var(--pad); }
 .field { display: flex; flex-direction: column; gap: 6px; }
-.field label { color: var(--on-surface-variant); font-size: 14px; font-weight: 500; }
+.field label { color: var(--on-surface-variant); font-size: 0.875rem; font-weight: 500; }
 
 .field input,
 .field select,
@@ -479,13 +547,13 @@ a.row:hover { background: var(--surface-high); }
   background: var(--surface-high);
   color: var(--on-surface);
   /* 16 px keeps iOS Safari from zooming into the field */
-  font: 400 16px/1.4 var(--font-body);
+  font: 400 max(16px, 1rem)/1.4 var(--font-body);
 }
 
 .field textarea { resize: vertical; }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--secondary); outline: none; }
 .field.invalid input, .field.invalid textarea { border-color: var(--error); }
-.field-error { color: var(--error); font-size: 14px; }
+.field-error { color: var(--error); font-size: 0.875rem; }
 
 .check {
   display: flex;
@@ -535,7 +603,7 @@ a.row:hover { background: var(--surface-high); }
 }
 
 .brand-mark { width: 72px; height: 72px; }
-.lead { font-size: 18px; font-weight: 500; }
+.lead { font-size: 1.125rem; font-weight: 500; }
 
 /* htmx: .htmx-indicator shows only while a request runs (htmx is told not to inject this style) */
 .htmx-indicator { opacity: 0; transition: opacity var(--motion); }
@@ -546,7 +614,7 @@ a.row:hover { background: var(--surface-high); }
 }
 
 @media (min-width: 600px) {
-  .top-title { font-size: 24px; }
+  .top-title { font-size: min(1.5rem, 32px); }
 }
 
 /* ---- Icon, crest and player-colour classes (one line each; regenerate when adding icons) ---- */

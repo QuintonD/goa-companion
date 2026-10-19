@@ -34,6 +34,7 @@ dependencies {
     implementation(libs.ktor.server.auth)
     implementation(libs.ktor.server.html.builder)
     implementation(libs.ktor.server.status.pages)
+    implementation(libs.ktor.server.compression)
     implementation(libs.kotlinx.html)
     // The invite QR code on /group/invite, drawn as SVG on the server (pure Java, no AWT).
     implementation(libs.zxing.core)
@@ -62,6 +63,28 @@ val bundleAppFiles by tasks.registering(Sync::class) {
     from(rootProject.file("feature/timer/src/main/res/raw/phase_chime.wav")) { into("static/timer") }
 }
 
+// Smaller hero portraits for lists, avatars and the grid (ADR-030 §8: pages on a phone's data
+// plan). A build-only source set: the hub itself never decodes or encodes an image.
+val thumbs: SourceSet by sourceSets.creating
+dependencies {
+    "thumbsImplementation"(libs.scrimage.core)
+    "thumbsImplementation"(libs.scrimage.webp)
+}
+
+val generateThumbnails by tasks.registering(JavaExec::class) {
+    val source = rootProject.file("app/src/main/assets/official/heroes")
+    val out = layout.buildDirectory.dir("generated/hub-thumbs")
+    classpath = thumbs.runtimeClasspath
+    mainClass.set("dev.quinton.goa.hub.thumbs.ThumbnailsKt")
+    inputs.dir(source).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(thumbs.runtimeClasspath)
+    outputs.dir(out)
+    // Widths: 192 for avatars and rows (64 pt at 3×), 384 for the hero grid; the full image is 512.
+    argumentProviders += CommandLineArgumentProvider {
+        listOf(source.absolutePath, out.get().asFile.absolutePath, "192", "384")
+    }
+}
+
 tasks.named<Jar>("jar") {
     manifest { attributes("Implementation-Title" to "goa-hub", "Implementation-Version" to project.version) }
 }
@@ -69,6 +92,7 @@ tasks.named<Jar>("jar") {
 sourceSets {
     main {
         resources.srcDir(bundleAppFiles)
+        resources.srcDir(generateThumbnails)
     }
 }
 
