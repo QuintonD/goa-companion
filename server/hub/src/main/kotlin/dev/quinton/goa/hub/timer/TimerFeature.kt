@@ -363,7 +363,8 @@ object TimerFeature : HubFeature {
         val linked = s.matchId
         if (linked != null) {
             timer.clear(id)
-            return redirectTo(TimerRoutes.result(linked))
+            // As the phone's OpenMatch: the pending match becomes a result dated from the game's start.
+            return redirectTo("${TimerRoutes.result(linked)}?playedAt=${s.matchStartWall}")
         }
         val reserved = timer.reserveLoggingMatchId(id) ?: return redirectTo(TimerRoutes.HOME)
         val minutes = TimerUiMapper.durationMinutes(timer.engine.readout(s).matchElapsedMillis)

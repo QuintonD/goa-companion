@@ -327,7 +327,11 @@ class WebTimerTest {
         assertThat(hub.groupStore.read().matches.single { it.id == "m1" }.durationMin).isEqualTo(47)
         val log = cmd("log", htmx = false)
         assertThat(log.status).isEqualTo(HttpStatusCode.Found)
-        assertThat(log.headers[HttpHeaders.Location]).isEqualTo("/players/matches/m1/result")
+        // As the phone: the result is dated from the game's start, not from the draft.
+        val result = "/players/matches/m1/result?playedAt=${s.matchStartWall}"
+        assertThat(log.headers[HttpHeaders.Location]).isEqualTo(result)
+        val minute = dev.quinton.goa.core.presentation.players.MatchEditor.toMinute(s.matchStartWall)
+        assertThat(page(result).bodyAsText()).contains("name=\"playedAtMs\" value=\"$minute\"")
         assertThat(hub.session()).isNull()
     }
 
