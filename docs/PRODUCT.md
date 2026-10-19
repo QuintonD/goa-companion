@@ -193,7 +193,8 @@ automatic sync over the internet, §8.)
   to merge the player this phone used on its own before, if any); Not me shows the list. Adding a
   name like an existing player's first asks "Is one of these you?".
   Your player shows "You" in the Players list, and the Players tab's top bar opens your page.
-- **Sync session** (a sheet, from Group sync → Sync now or the Players tab's sync icon): one phone
+- **Sync session** (a sheet, from Group sync → Sync now or the Players tab's sync icon; with a hub,
+  from Group sync → Sync at the table): one phone
   taps Host, the others Join (a joiner finds the host on its own; with two hosts in range it asks
   which). The host lists each phone with its progress and taps Sync when everyone is in; result
   summary per phone ("+5 matches, +1 player, 2 updated"). Permissions are asked when a sync starts,
@@ -257,9 +258,12 @@ port forward is the documented alternative; runbook in `deploy/README.md`). It i
 group like a phone.
 - **Auto-sync:** Android phones with a hub address sync with it over HTTPS on their own (app
   start and whenever it comes back on screen, every minute while it's open, 15 s after the last
-  change, hourly, "Sync with hub"); the Group screen's Hub section sets
-  the address and shows "Synced 2 min ago" or what went wrong (with Retry, and whether it retries on
-  its own); a problem that needs a person also puts a dot on the Players tab's sync icon. Joining by
+  change, hourly, "Sync now"). With a hub, the Group screen's primary **Sync now** syncs with the
+  hub and shows how the last sync went right above it ("Hub: synced 2 min ago", or what went wrong
+  and whether it retries on its own); Nearby becomes a secondary **Sync at the table** ("Phone to
+  phone, no internet needed"); the Hub section sets the address and removes it. The Players tab's
+  sync icon syncs with the hub too and says how it went in a snackbar ("Details" opens the Group
+  screen); a problem that needs a person puts a dot on it, and the icon then opens the Group screen. Joining by
   an invite that carries a hub syncs with the hub instead of opening a Nearby session. Nearby sync
   at the table still works without internet.
 - **Web app for iPhones (and any browser):** the same features as the app — Heroes and Card

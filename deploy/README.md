@@ -245,7 +245,8 @@ Signed-in browsers can then download it at `https://goa.<tailnet>.ts.net/app`.
 ## 6. Invite the group
 
 1. **Your Android phone first:** **Settings → Group sync → Hub**, enter
-   `https://goa.<tailnet>.ts.net`, then **Sync now**. The Group screen shows "Hub: synced just now".
+   `https://goa.<tailnet>.ts.net`, then **Sync now** at the top of the screen (with a hub it syncs
+   with the hub; Nearby is "Sync at the table" further down). It shows "Hub: synced just now".
    Phones that join with a hub invite get the address by themselves.
 2. **At the table**, on that phone: **Group sync → Invite a friend**. With a hub set, the QR code
    is a link to the hub.

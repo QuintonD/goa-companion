@@ -705,7 +705,7 @@ INTERNET permission. Options weighed:
 - *Unique work names:* one-time syncs share `hub-sync`; the hourly one is `hub-sync-hourly` (one
   name can't hold both a periodic and a REPLACE-able one-time request). A sync asked for while one
   runs is chained after it (APPEND_OR_REPLACE) rather than cancelling it.
-- *"Sync with hub" has no network constraint*, so the person who tapped sees "Can't reach the hub"
+- *"Sync with hub" (now "Sync now" with a hub, and the Players tab's icon) has no network constraint*, so the person who tapped sees "Can't reach the hub"
   at once; automatic syncs wait for a network. Only transient problems (no connection, timeout,
   5xx) retry with backoff; a wrong key, other versions, refused or oversized data wait for a person
   and put a dot on the Players tab's sync icon.
@@ -876,10 +876,42 @@ Inherent or accepted (also in `deploy/README.md` §10):
   message is flashed and the browser goes to the match (the deleted-meanwhile 409 page was never
   shown in a browser before).
 - *With a hub, the Players tab's sync icon opens the Group screen* (the hub's state, Nearby still one
-  tap away), not the Nearby Host/Join sheet.
+  tap away), not the Nearby Host/Join sheet. *Superseded by the leftovers notes below:* it syncs with
+  the hub.
 - *Local testing with emulators and a browser:* one origin for everyone, `http://localhost:8080` as
   the public URL plus `adb reverse tcp:8080 tcp:8080` per emulator (`server/hub/README.md`). A real
   hub has one public HTTPS address, so the question doesn't arise there.
+
+**Implementation notes (2026-10-19, hands-on leftovers):**
+- *One "Sync now".* The Group screen had two sync buttons with a hub ("Sync now" = Nearby, primary,
+  and "Sync with hub" in the Hub card); which one to tap was a guess. With a hub, the top card's
+  primary **Sync now** is the hub, with "Hub: synced 2 min ago" (or the error, and whether it retries
+  on its own) right above it; Nearby is a secondary **Sync at the table** ("Phone to phone, no
+  internet needed") with the phones met that way; the Hub section keeps the address, how it syncs on
+  its own, and Remove hub. Without a hub the screen is as before ("Sync now" = Nearby).
+- *The Players tab's sync icon syncs with the hub* (chosen over opening the Group screen: the icon
+  means "sync", the hub syncs in seconds, and a second screen to reach the same button was a detour).
+  It shows a spinner, then a snackbar: "Synced with the hub", or the error with **Details** (the
+  Group screen). A problem that needs a person (the dot) still opens the Group screen, since syncing
+  again would fail the same way. `HubSyncControl` moved to core:data so feature:players can reach the
+  scheduler; `syncAndWait` waits (60 s at most) for the first outcome stamped at or after the tap.
+- *Counts as the app shows them.* "5 matches and 10 players in the file" counted two merged-away
+  duplicates (the Group screen said 8). `PlayerMerges.shownCount` (active, merged-away left out) is
+  used by the sync-file import, the backup summary (app and the web's import preview) and the web's
+  export card.
+- *Look-alikes.* Players added on two phones before a sync could share colour and crest. Synced data
+  is never rewritten for it: new players (every path, phone and web) take a colour and crest that no
+  known player has together (`PlayerLook.newLook`; the colour rule is unchanged while a colour is
+  free), and a player page whose player shares both with another active one says "Looks like
+  <name>: pick a different colour or crest?" and leads to Edit.
+- *`goa-hub` on a Windows console* printed "iPhone · Safari" as mojibake: the console's code page,
+  the JVM's pipe encoding and PowerShell's decoding rarely agree. The CLI writes ASCII only on
+  Windows (`CliOutput`: typographic marks to ASCII look-alikes, accents dropped) and UTF-8
+  elsewhere; its own text uses ASCII marks.
+- *Stale phones on the hub.* Before phones sent their names, all of them were one anonymous
+  "A phone" row with no id, so it can't be matched to a named row; instead a phone not seen for
+  90 days isn't shown (status and the Group page) and leaves `sync-state.json` at the next sync,
+  and the web Group page has **Forget** next to each phone (it comes back if it syncs again).
 
 ## ADR-031 — Linking a phone (or browser) to its player: personal invites and "Same people?" (2026-10-18)
 **Context:** The owner enters friends as players before they install the app. When a friend joins,

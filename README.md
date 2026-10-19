@@ -57,7 +57,8 @@ the internet (below); the hub is the only server the app ever talks to.
    by itself.
 5. **Which player are you?** Pick yourself from the list, or type your name to add yourself.
 
-**At game night:** one phone taps Sync now → Host, everyone else Sync now → Join. The host shows
+**At game night:** one phone taps Sync now → Host, everyone else Sync now → Join (with a hub,
+these are **Sync at the table**: "Sync now" is the hub then). The host shows
 each phone; tap **Sync** when they're all in. Every phone ends with the same matches, players,
 deletions and rating constants. The later edit of a match or player wins; a deleted match is
 deleted everywhere.
@@ -80,12 +81,15 @@ Setting it up, updating, backups and troubleshooting: [deploy/README.md](deploy/
 
 With a hub (the group's own server, published with Tailscale Funnel, see `deploy/`), every phone syncs on its own: when the app
 comes on screen, every minute while it stays there, 15 s after a change, every hour, and from
-**Sync with hub**.
+**Sync now**: with a hub, the Group screen's "Sync now" and the Players tab's sync icon sync with
+the hub (the icon says how it went in a snackbar; "Details" opens the Group screen). Nearby is
+then **Sync at the table** ("Phone to phone, no internet needed"), one section lower.
 
 **Set the hub on a phone:** Settings → Group sync → **Hub** → type the address
 (`goa.<tailnet>.ts.net`; it must be HTTPS) → **Save hub**. Invites made on a phone with a hub
-carry it, so friends who join with that invite get it automatically. The Hub card shows "Synced 2 min ago" or what went wrong;
-**Remove hub** goes back to Nearby and sync files only (nothing is deleted).
+carry it, so friends who join with that invite get it automatically. The Group screen's top card
+shows "Hub: synced 2 min ago" or what went wrong, above **Sync now**; the Hub section below has the
+address and **Remove hub**, which goes back to Nearby and sync files only (nothing is deleted).
 
 **Testing against a hub on this PC:** the debug build may use plain HTTP to `10.0.2.2` (the
 emulator's view of the PC), `localhost` and `127.0.0.1`, e.g. `http://10.0.2.2:8080`. Release builds
