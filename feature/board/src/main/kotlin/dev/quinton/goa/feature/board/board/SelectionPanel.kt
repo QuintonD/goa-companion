@@ -413,9 +413,11 @@ private fun MovementRules(settings: OverlaySettings, onAction: (BoardAction) -> 
         Text(
             when (settings.path) {
                 MovePath.NORMAL -> "Only through empty spaces (p.11)."
+
                 MovePath.THROUGH_TOKENS ->
                     "Also through tokens, never units or terrain: tokens a card lets units move through, " +
                         "and p.18 Immune."
+
                 MovePath.IGNORE_OBSTACLES ->
                     "Through units, tokens and terrain, never ending on one (p.18 Ignoring Obstacles)."
             },

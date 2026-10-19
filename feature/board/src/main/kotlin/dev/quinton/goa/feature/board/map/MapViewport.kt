@@ -19,10 +19,11 @@ import kotlin.math.sqrt
  * the viewport) and shown at [zoom] × that, shifted by [pan] (px). Screen = pan + zoom × content,
  * content = map units × [unit].
  *
- * The visible part of the map leaves out what floats over it: [bottomInset] (the tools or the
- * selection panel) and [endInset] (the side panel in landscape). The board opens on the Lane
- * ([lane], hexes at least `minHexPx` across); "Fit" shows the whole map; the user's pinch and pan
- * win until one of those is asked for again.
+ * The visible part of the map leaves out what floats over it: [topInset] (the Unverified badge),
+ * [bottomInset] (the tools or the selection panel) and [endInset] (the side panel in landscape).
+ * The board opens on the Lane ([lane]: hexes at least `minHexPx` across, the map's sides cropped
+ * if need be; on a map with several Lanes the whole region, so no Lane's Battle Zone is cut off);
+ * "Fit" shows the whole map; the user's pinch and pan win until one of those is asked for again.
  */
 @Stable
 class MapViewport {
@@ -48,6 +49,9 @@ class MapViewport {
     var endInset by mutableFloatStateOf(0f)
         private set
 
+    var topInset by mutableFloatStateOf(0f)
+        private set
+
     /** What the view shows now: decides what an inset change or rotation re-frames. */
     var mode by mutableStateOf(ViewMode.LANE)
         private set
@@ -59,17 +63,19 @@ class MapViewport {
 
     /** The Lane between the hero spawn areas, in map units: what the board opens on. */
     private var lane: Rect? = null
+    private var laneMayCrop = true
 
     /**
      * Lays [layout] out in a viewport of [size] (px) and frames the [lane] region, the first time
      * and again when the layout or the viewport changes (rotation, flip). [minHexPx]: the smallest
      * comfortable hex (across its flats) when framing; [maxHexPx]: the largest at full zoom.
      */
-    fun setUp(layout: MapLayout, size: Size, lane: Rect?, minHexPx: Float, maxHexPx: Float) {
+    fun setUp(layout: MapLayout, size: Size, lane: Rect?, laneMayCrop: Boolean, minHexPx: Float, maxHexPx: Float) {
         if (size.width <= 0f || size.height <= 0f) return
         if (layout === this.layout && size == viewport) return
         this.layout = layout
         this.lane = lane
+        this.laneMayCrop = laneMayCrop
         this.minHexPx = minHexPx
         this.maxHexPx = maxHexPx
         viewport = size
@@ -80,10 +86,11 @@ class MapViewport {
     }
 
     /** What floats over the map changed; the Lane or Fit view follows unless the user moved it. */
-    fun updateInsets(bottom: Float, end: Float) {
-        if (bottom == bottomInset && end == endInset) return
+    fun updateInsets(bottom: Float, end: Float, top: Float = topInset) {
+        if (bottom == bottomInset && end == endInset && top == topInset) return
         bottomInset = bottom
         endInset = end
+        topInset = top
         if (layout != null) reframe()
     }
 
@@ -96,7 +103,7 @@ class MapViewport {
     }
 
     /** The part of the screen the map is seen through (px), insets left out. */
-    val visible: Rect get() = Rect(0f, 0f, viewport.width - endInset, viewport.height - bottomInset)
+    val visible: Rect get() = Rect(0f, topInset, viewport.width - endInset, viewport.height - bottomInset)
 
     /** Zoom at which a hex is [minHexPx] across its flats. */
     private val comfortableZoom: Float get() = if (unit == 0f) 1f else minHexPx / (SQRT3 * unit)
@@ -113,8 +120,14 @@ class MapViewport {
         return minOf(w / (region.width * unit).coerceAtLeast(1f), h / (region.height * unit).coerceAtLeast(1f))
     }
 
+    /** The Lane view's zoom: comfortable hexes when cropping the sides is allowed, else the region fits. */
+    private fun laneZoom(region: Rect): Float {
+        val fit = fitZoom(region)
+        return (if (laneMayCrop) maxOf(fit, comfortableZoom) else fit).coerceIn(minZoom, maxZoom)
+    }
+
     private fun applyLane(region: Rect) {
-        val z = maxOf(fitZoom(region), comfortableZoom).coerceIn(minZoom, maxZoom)
+        val z = laneZoom(region)
         zoom = z
         pan = clampPan(centerOn(region.center, z), z)
         mode = ViewMode.LANE
@@ -144,7 +157,7 @@ class MapViewport {
     /** Animated: the Lane between the hero spawn areas, hexes comfortably large. */
     suspend fun animateLane() {
         val region = lane ?: return animateFit()
-        val z = maxOf(fitZoom(region), comfortableZoom).coerceIn(minZoom, maxZoom)
+        val z = laneZoom(region)
         animateTo(z, clampPan(centerOn(region.center, z), z))
         mode = ViewMode.LANE
     }
@@ -207,7 +220,8 @@ class MapViewport {
 
     private fun fits(region: Rect, z: Float): Boolean {
         val v = visible
-        return region.width * unit * z <= v.width - 2 * MARGIN_PX && region.height * unit * z <= v.height - 2 * MARGIN_PX
+        return region.width * unit * z <= v.width - 2 * MARGIN_PX &&
+            region.height * unit * z <= v.height - 2 * MARGIN_PX
     }
 
     /** The smallest pan from the current one that brings [region] inside the visible part at [z]. */

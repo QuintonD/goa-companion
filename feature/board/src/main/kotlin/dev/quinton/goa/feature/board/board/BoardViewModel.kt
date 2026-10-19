@@ -37,6 +37,7 @@ import dev.quinton.goa.feature.board.defaultMap
 import dev.quinton.goa.feature.board.hero
 import dev.quinton.goa.feature.board.inOrderOf
 import dev.quinton.goa.feature.board.lineup
+import dev.quinton.goa.feature.board.newPieceId as freshPieceId
 import dev.quinton.goa.feature.board.sameLayoutAs
 import dev.quinton.goa.feature.board.size
 import java.util.UUID
@@ -55,7 +56,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import dev.quinton.goa.feature.board.newPieceId as freshPieceId
 
 /**
  * A board in the sandbox (ADR-033): moves pieces freely (one per space), measures with
@@ -617,7 +617,9 @@ class BoardViewModel internal constructor(
                 settings = settings,
                 movementValue = settings.steps,
                 movement = reach(settings.steps),
-                returnTo = (piece as? MinionPiece)?.let { BoardRules.returnToBattleZone(geometry, state, it) }.orEmpty(),
+                returnTo = (piece as? MinionPiece)?.let {
+                    BoardRules.returnToBattleZone(geometry, state, it)
+                }.orEmpty(),
             )
         }
         val card = ready.heroes.hero(piece.heroId).cards.firstOrNull { it.id == settings.cardId }

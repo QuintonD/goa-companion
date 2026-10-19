@@ -60,7 +60,9 @@ class BoardRulesTest {
         assertThat(HexGrid.distance(from, target)).isEqualTo(2)
         assertThat(BoardRules.movementReach(g, state(map), from, 6)).doesNotContainKey(target)
         assertThat(BoardRules.movementReach(g, state(map), from, 7)[target]).isEqualTo(7)
-        assertThat(BoardRules.movementReach(g, state(map), from, 2, path = BoardRules.MovePath.IGNORE_OBSTACLES)[target]).isEqualTo(2)
+        assertThat(
+            BoardRules.movementReach(g, state(map), from, 2, path = BoardRules.MovePath.IGNORE_OBSTACLES)[target],
+        ).isEqualTo(2)
     }
 
     @Test
@@ -97,7 +99,14 @@ class BoardRulesTest {
         val s = state(map, token(Hex(5, 2)), minion(Team.BLUE, Hex(7, 2)))
         val normal = BoardRules.movementReach(g, s, Hex(4, 2), 2, straightLine = true)
         assertThat(normal).doesNotContainKey(Hex(6, 2))
-        val tokens = BoardRules.movementReach(g, s, Hex(4, 2), 4, BoardRules.MovePath.THROUGH_TOKENS, straightLine = true)
+        val tokens = BoardRules.movementReach(
+            g,
+            s,
+            Hex(4, 2),
+            4,
+            BoardRules.MovePath.THROUGH_TOKENS,
+            straightLine = true,
+        )
         assertThat(tokens[Hex(6, 2)]).isEqualTo(2)
         assertThat(tokens).doesNotContainKey(Hex(5, 2))
         // The minion at (7,2) stops it: (8,2) is out of reach along that line.

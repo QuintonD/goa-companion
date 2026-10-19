@@ -29,7 +29,7 @@ import androidx.compose.material.icons.automirrored.outlined.Redo
 import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.CenterFocusStrong
-import androidx.compose.material.icons.outlined.HourglassTop
+import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.KeyboardDoubleArrowUp
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.RestartAlt
@@ -63,6 +63,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -176,7 +178,7 @@ fun BoardScreen(
                 BoardUiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
 
                 is BoardUiState.Missing -> EmptyState(
-                    icon = Icons.Outlined.HourglassTop,
+                    icon = Icons.Outlined.Hexagon,
                     title = "Board not available",
                     message = state.message,
                     modifier = Modifier.align(Alignment.Center),
@@ -288,19 +290,24 @@ private fun BoardContent(
         val scope = rememberCoroutineScope()
         var panelSize by remember { mutableIntStateOf(0) }
         var toolsHeight by remember { mutableIntStateOf(0) }
+        var badgeBottom by remember { mutableIntStateOf(0) }
         val selected = state.selected
         val panelShown = selected != null
         val sidePanelWidth = if (landscape) minOf(maxWidth * 0.46f, SIDE_PANEL) else 0.dp
         val sidePanelPx = with(LocalDensity.current) { sidePanelWidth.toPx() }
+        val sidePadPx = with(LocalDensity.current) { Spacing.sm.toPx() }
 
         // What floats over the map: the panel (bottom, or right in landscape) or the tools.
-        LaunchedEffect(panelShown, panelSize, toolsHeight, landscape, sidePanelPx) {
+        LaunchedEffect(panelShown, panelSize, toolsHeight, landscape, sidePanelPx, badgeBottom) {
             val bottom = when {
-                panelShown && !landscape -> panelSize.toFloat()
-                else -> toolsHeight.toFloat()
+                !panelShown -> toolsHeight.toFloat()
+                landscape -> 0f
+                else -> panelSize.toFloat()
             }
             val end = if (panelShown && landscape) sidePanelPx else 0f
-            viewport.updateInsets(if (panelShown && landscape) 0f else bottom, end)
+            // The badge sits in a row padded by Spacing.sm.
+            val top = if (badgeBottom > 0) badgeBottom + sidePadPx else 0f
+            viewport.updateInsets(bottom, end, top)
         }
 
         // Keep the selected piece and what its overlays reach comfortably in view (big enough to tap).
@@ -334,10 +341,12 @@ private fun BoardContent(
 
         // TalkBack hears each move ("Brogan moved 2 spaces, to …").
         state.announcement?.let { said ->
-            Box(Modifier.size(1.dp).semantics {
-                contentDescription = said.text
-                liveRegion = LiveRegionMode.Polite
-            })
+            Box(
+                Modifier.size(1.dp).semantics {
+                    contentDescription = said.text
+                    liveRegion = LiveRegionMode.Polite
+                },
+            )
         }
 
         // Top: the map's status on the left, view controls on the right, the active tool between.
@@ -349,7 +358,13 @@ private fun BoardContent(
             verticalAlignment = Alignment.Top,
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                if (!state.map.verified) UnverifiedMap(state.map.name)
+                if (!state.map.verified) {
+                    // The badge stays put: the map is framed below it.
+                    UnverifiedMap(
+                        state.map.name,
+                        Modifier.onGloballyPositioned { badgeBottom = it.boundsInParent().bottom.toInt() },
+                    )
+                }
                 ToolBanner(state, onAction)
             }
             Spacer(Modifier.width(Spacing.sm))
@@ -416,11 +431,11 @@ private fun BoardContent(
 /** The map isn't checked against the official art and rulebook yet (ADR-033). */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun UnverifiedMap(name: String) {
+private fun UnverifiedMap(name: String, modifier: Modifier = Modifier) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-        modifier = Modifier.semantics(mergeDescendants = true) {},
+        modifier = modifier.semantics(mergeDescendants = true) {},
     ) {
         FlowRow(
             Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
@@ -591,8 +606,10 @@ private fun WaitingTray(state: BoardUiState.Ready, onAction: (BoardAction) -> Un
             Text(
                 when {
                     !state.trayActive -> "Deselect the piece, then tap a waiting minion to place it."
+
                     state.activeWaiting?.targets?.isNotEmpty() == true ->
                         "Its Spawn point is taken. Tap a highlighted space: the nearest empty spaces of its Battle Zone."
+
                     else -> "Tap an empty space to put it on the board."
                 },
                 style = MaterialTheme.typography.bodyMedium,
@@ -629,7 +646,14 @@ private fun WaitingTray(state: BoardUiState.Ready, onAction: (BoardAction) -> Un
                             Modifier.padding(horizontal = Spacing.sm, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            PieceToken(piece, (piece as? HeroPiece)?.let { state.heroes.hero(it.heroId) }, 28.dp, palette)
+                            PieceToken(
+                                piece,
+                                (piece as? HeroPiece)?.let {
+                                    state.heroes.hero(it.heroId)
+                                },
+                                28.dp,
+                                palette,
+                            )
                             Spacer(Modifier.width(Spacing.sm))
                             Text(name, style = MaterialTheme.typography.labelLarge)
                         }

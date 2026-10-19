@@ -143,19 +143,19 @@ object BoardSetup {
      * has no Lane or its Battle Zone has no such Spawn point: then any empty space will do.
      */
     fun waitingTargets(geometry: BoardGeometry, state: BoardState, minion: MinionPiece): Set<Hex>? {
-        if (minion.at != null) return null
-        val lane = geometry.laneOf(minion) ?: return null
+        val lane = geometry.laneOf(minion)?.takeIf { minion.at == null } ?: return null
         val zone = BoardRules.battleZoneOf(geometry, state, minion) ?: return null
         val kind = SpawnKind.entries.first { it.minion == minion.type }
         val spawns = geometry.minionSpawns(zone)
             .filter { it.spawn == SpawnPoint(minion.team, kind) }
             .map { it.hex }
-        if (spawns.isEmpty()) return null
+            .ifEmpty { return null }
         val occupied = BoardRules.occupancy(state)
         // Taken = held by anything but a minion of this kind (those respawned there).
         val taken = spawns.filter { hex ->
             val occupant = occupied[hex]
-            occupant != null && !(occupant is MinionPiece && occupant.team == minion.team && occupant.type == minion.type)
+            occupant != null &&
+                !(occupant is MinionPiece && occupant.team == minion.team && occupant.type == minion.type)
         }.ifEmpty { spawns }
         val queue = state.pieces.filter {
             it is MinionPiece && it.at == null && it.team == minion.team && it.type == minion.type &&

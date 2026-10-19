@@ -229,7 +229,11 @@ class BoardSetupTest {
         val l1 = map.lanes.first()
         val pushed = pushed(BoardSetup.pushLane(g, BoardSetup.opening(g, three, newId), l1.id, Team.RED, newId)).state
         val next = pushed.battleZones.getValue(l1.id)
-        assertThat(pushed.minions().filter { g.zoneOf(it.at!!) == next }.map { it.lane }.distinct()).containsExactly(l1.id)
+        assertThat(
+            pushed.minions().filter {
+                g.zoneOf(it.at!!) == next
+            }.map { it.lane }.distinct(),
+        ).containsExactly(l1.id)
     }
 
     @Test
@@ -258,7 +262,8 @@ class BoardSetupTest {
         val blocked = g.minionSpawns(next).first()
         val opening = BoardSetup.opening(g, three, newId)
         val blocker = hero(Team.RED, blocked.hex, "wasp-2")
-        val first = pushed(BoardSetup.pushLane(g, opening.copy(pieces = opening.pieces + blocker), lane.id, Team.RED, newId))
+        val first =
+            pushed(BoardSetup.pushLane(g, opening.copy(pieces = opening.pieces + blocker), lane.id, Team.RED, newId))
         val waiting = first.waiting.single().piece
         assertThat(waiting.lane).isEqualTo(lane.id)
         assertThat(first.state.pieces).contains(waiting)

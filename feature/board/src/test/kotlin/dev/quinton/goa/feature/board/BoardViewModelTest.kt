@@ -356,7 +356,9 @@ class BoardViewModelTest {
             vm.onAction(BoardAction.Steps(2))
             val state = vm.ready().board.state
             assertThat(vm.ready().overlay!!.movementValue).isEqualTo(3)
-            assertThat(vm.ready().overlay!!.movement).isEqualTo(BoardRules.movementReach(geometry, state, minion.at!!, 3))
+            assertThat(
+                vm.ready().overlay!!.movement,
+            ).isEqualTo(BoardRules.movementReach(geometry, state, minion.at!!, 3))
             assertThat(vm.ready().overlay!!.returnTo).isEmpty()
             // Moved out of the Battle Zone ("mid", q 6..8): the overlay shows where it goes back to (p.18).
             vm.tap(MapTap.Space(vm.ready().emptySpace(Hex(4, 1))))

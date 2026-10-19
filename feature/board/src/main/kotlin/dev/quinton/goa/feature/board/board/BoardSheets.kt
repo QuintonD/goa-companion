@@ -335,7 +335,18 @@ internal fun PushDialog(
     val lanes = state.map.lanes
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (lanes.size > 1) "Push a lane" else "Push the lane", style = MaterialTheme.typography.headlineSmall) },
+        title = {
+            Text(
+                if (lanes.size >
+                    1
+                ) {
+                    "Push a lane"
+                } else {
+                    "Push the lane"
+                },
+                style = MaterialTheme.typography.headlineSmall,
+            )
+        },
         text = {
             Column(
                 Modifier.verticalScroll(rememberScrollState()),
@@ -393,7 +404,8 @@ private fun PushButtons(lane: String?, onPush: (Team) -> Unit) {
                     "${BoardText.team(team)} won",
                     color = teamColor(team),
                     modifier = Modifier.semantics {
-                        contentDescription = listOfNotNull(lane, "${BoardText.team(team)} won the push").joinToString(": ")
+                        contentDescription =
+                            listOfNotNull(lane, "${BoardText.team(team)} won the push").joinToString(": ")
                     },
                 )
             }
@@ -450,12 +462,13 @@ internal fun SearchField(
     onSearch: () -> Unit,
     modifier: Modifier = Modifier,
     horizontalPadding: Dp = Spacing.screen,
+    placeholder: String = "Search heroes",
 ) {
     OutlinedTextField(
         value = query,
         onValueChange = onChange,
         modifier = modifier.fillMaxWidth().padding(horizontal = horizontalPadding, vertical = Spacing.sm),
-        placeholder = { Text("Search heroes", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        placeholder = { Text(placeholder, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
         trailingIcon = {
             if (query.isNotEmpty()) {

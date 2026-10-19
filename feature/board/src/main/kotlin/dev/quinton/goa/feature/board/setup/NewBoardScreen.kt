@@ -167,17 +167,29 @@ private fun NewBoardContent(
     val cells = GridCells.Adaptive(if (large) TILE_LARGE else TILE)
     // The latest line-up is offered until the teams are being picked by hand.
     val latest = state.latest?.takeIf { state.form.red.isEmpty() && state.form.blue.isEmpty() }
+    // Search with the team switch beside it; with large text, the switch goes under it.
     val search = @Composable { mod: Modifier ->
-        Row(mod, verticalAlignment = Alignment.CenterVertically) {
+        val field = @Composable { fieldModifier: Modifier ->
             SearchField(
                 query,
                 { query = it },
                 onSearch = { focus.clearFocus() },
-                modifier = Modifier.weight(1f),
+                modifier = fieldModifier,
                 horizontalPadding = 0.dp,
+                placeholder = "Search",
             )
-            Spacer(Modifier.width(Spacing.sm))
-            TeamSwitch(state.form.filling, onPick = { onAction(NewBoardAction.Fill(it)) })
+        }
+        if (large) {
+            Column(mod) {
+                field(Modifier)
+                TeamSwitch(state.form.filling, onPick = { onAction(NewBoardAction.Fill(it)) })
+            }
+        } else {
+            Row(mod, verticalAlignment = Alignment.CenterVertically) {
+                field(Modifier.weight(1f))
+                Spacer(Modifier.width(Spacing.sm))
+                TeamSwitch(state.form.filling, onPick = { onAction(NewBoardAction.Fill(it)) })
+            }
         }
     }
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -191,7 +203,9 @@ private fun NewBoardContent(
                             .padding(horizontal = Spacing.screen, vertical = Spacing.sm),
                         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
-                        latest?.let { LatestCard(it, { onSetUpLatest(it) }, onEdit = { onAction(NewBoardAction.Use(it)) }) }
+                        latest?.let {
+                            LatestCard(it, { onSetUpLatest(it) }, onEdit = { onAction(NewBoardAction.Use(it)) })
+                        }
                         Teams(state, onAction)
                     }
                     SetUpBar(state, onAction, onSetUp)
@@ -352,7 +366,8 @@ private fun TeamRow(state: NewBoardUiState.Ready, team: Team, onAction: (NewBoar
                     }
                 }
             }
-            if (filling) {
+            // With large text the border alone marks it; the words would push the heroes out.
+            if (filling && LocalDensity.current.fontScale <= LARGE_FONT) {
                 Text(
                     "Next pick",
                     style = MaterialTheme.typography.labelMedium,
@@ -401,7 +416,12 @@ private fun SlotChip(
                     framed = false,
                 )
                 Spacer(Modifier.width(6.dp))
-                Text("${index + 1}", style = MaterialTheme.typography.labelLarge, color = color, fontWeight = FontWeight.Bold)
+                Text(
+                    "${index + 1}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = color,
+                    fontWeight = FontWeight.Bold,
+                )
                 Spacer(Modifier.width(Spacing.xs))
                 Text(hero.name, style = MaterialTheme.typography.labelLarge, maxLines = 1)
             }
@@ -505,7 +525,12 @@ private fun HeroTile(hero: BoardHero, state: NewBoardUiState.Ready, onAction: (N
                         ) {
                             TeamMark(team, markSize = 8.dp)
                             Spacer(Modifier.width(2.dp))
-                            Text("$pick", style = MaterialTheme.typography.labelSmall, color = color, fontWeight = FontWeight.Bold)
+                            Text(
+                                "$pick",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = color,
+                                fontWeight = FontWeight.Bold,
+                            )
                         }
                     }
                 }

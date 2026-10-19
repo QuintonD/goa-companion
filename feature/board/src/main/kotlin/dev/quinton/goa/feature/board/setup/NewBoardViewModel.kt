@@ -158,7 +158,11 @@ class NewBoardViewModel @AssistedInject constructor(
         settingsRepository.settings.catch { emit(AppSettings()) },
     ) { catalog, maps, settings -> Triple(catalog.boardHeroes(), maps, settings.ownedProducts) }
 
-    val uiState: StateFlow<NewBoardUiState> = combine(inputs, sources, form) { (heroes, maps, owned), (drafts, matches), form ->
+    val uiState: StateFlow<NewBoardUiState> = combine(inputs, sources, form) {
+            (heroes, maps, owned),
+            (drafts, matches),
+            form,
+        ->
         val all = heroes.values.sortedBy { it.name }
         // Heroes already picked always show, owned or not (a draft may have used a friend's copy).
         val shown = if (form.showAll) all else all.filter { it.ownedIn(owned) || form.contains(it.id) }

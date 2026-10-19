@@ -173,7 +173,8 @@ fun BoardMapView(
             .clipToBounds()
             .background(palette.canvas)
             .onSizeChanged {
-                viewport.setUp(layout, Size(it.width.toFloat(), it.height.toFloat()), lane, minHexPx, maxHexPx)
+                val size = Size(it.width.toFloat(), it.height.toFloat())
+                viewport.setUp(layout, size, lane, state.map.lanes.size < 2, minHexPx, maxHexPx)
             }
             .pointerInput(layout, viewport) {
                 var lastTap: LastTap? = null
@@ -380,7 +381,13 @@ private fun MapBase(map: BoardMap, battleZones: Set<String>, layout: MapLayout, 
                     }
                 }
             }
-            val terrain = map.terrain.mapIndexed { i, hex -> Triple(corners(hex), layout.center(hex) * unit, hex.q * 7 + hex.r * 13 + i) }
+            val terrain = map.terrain.mapIndexed { i, hex ->
+                Triple(
+                    corners(hex),
+                    layout.center(hex) * unit,
+                    hex.q * 7 + hex.r * 13 + i,
+                )
+            }
             val spawns = map.spaces.mapNotNull { space -> space.spawn?.let { it to layout.center(space.hex) * unit } }
             val gap = Stroke(width = unit * 0.1f, join = StrokeJoin.Round)
             val border = Stroke(width = unit * 0.16f, cap = StrokeCap.Round)
@@ -460,7 +467,13 @@ private fun MapOverlays(state: BoardUiState.Ready, layout: MapLayout, unit: Floa
 
 /** The space under a dragged piece: read in the draw phase, so a drag only redraws this. */
 @Composable
-private fun DropTarget(geometry: BoardGeometry, layout: MapLayout, unit: Float, palette: BoardPalette, drag: DragState) {
+private fun DropTarget(
+    geometry: BoardGeometry,
+    layout: MapLayout,
+    unit: Float,
+    palette: BoardPalette,
+    drag: DragState,
+) {
     Spacer(
         Modifier.fillMaxSize().drawBehind {
             if (drag.pieceId == null) return@drawBehind
@@ -566,20 +579,43 @@ private fun SpaceNodes(state: BoardUiState.Ready, layout: MapLayout, viewport: M
 /** Which side of its anchor a Zone label sits on, outside the Zone's edge. */
 private enum class LabelSide { ABOVE, BELOW, LEFT, RIGHT }
 
-private data class ZoneLabel(val text: String, val team: Team?, val anchor: Offset, val side: LabelSide)
+/** A label and the places it may go, best first: each an anchor (map units) and a side. */
+private data class ZoneLabel(val text: String, val team: Team?, val places: List<Pair<Offset, LabelSide>>)
 
 /**
  * Labels that stay readable at any zoom: each Lane's Battle Zone ("Lane 1 · Battle Zone" on a
- * double-lane map) and the two Throne Zones, set just outside their Zone's edge and drawn under
- * every piece and overlay, so they never hide what stands on the board.
+ * double-lane map) and the two Throne Zones, set just outside their Zone's edge. A label takes the
+ * first of its places that is fully in view, clear of the map buttons and of every piece and
+ * highlighted space; with none free it stays hidden rather than cover what is on the board.
  */
 @Composable
 private fun ZoneLabels(state: BoardUiState.Ready, layout: MapLayout, viewport: MapViewport, palette: BoardPalette) {
     val map = state.map
     val battle = state.battleZones
     val labels = remember(map, layout, battle, state.bottomTeam) { zoneLabels(state, layout) }
-    val margin = with(LocalDensity.current) { 6.dp.toPx() }
-    val fontScale = LocalDensity.current.fontScale
+    val overlay = state.overlay
+    val targets = state.trayTargets
+    val measure = state.measure
+    val from = state.selected?.at
+    val busy = remember(state.board.state, overlay, targets, measure, from, layout) {
+        val hexes =
+            state.pieces.mapNotNull { it.at } + targets + overlay?.reach.orEmpty() + overlay?.fastTravel.orEmpty()
+        // The Measure line too, sampled every half space.
+        val line = if (measure != null && from != null) {
+            val a = layout.center(from)
+            val b = layout.center(measure.target)
+            val n = ((b - a).getDistance() * 2f).roundToInt().coerceAtLeast(1)
+            (0..n).map { i -> a + (b - a) * (i / n.toFloat()) }
+        } else {
+            emptyList()
+        }
+        hexes.distinct().map(layout::center) + line
+    }
+    val density = LocalDensity.current
+    val margin = with(density) { 6.dp.toPx() }
+    // The Fit and Flip buttons in the top right corner.
+    val buttons = with(density) { Size(64.dp.toPx(), 124.dp.toPx()) }
+    val fontScale = density.fontScale
     val labelScale = minOf(fontScale, MAX_LABEL_SCALE) / fontScale
     labels.forEach { label ->
         Row(
@@ -587,23 +623,31 @@ private fun ZoneLabels(state: BoardUiState.Ready, layout: MapLayout, viewport: M
                 .layout { measurable, constraints ->
                     val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
                     layout(constraints.maxWidth, constraints.maxHeight) {
-                        val at = viewport.mapToScreen(label.anchor)
                         val view = viewport.visible
-                        // A label whose Zone is out of view goes, rather than crowding the edge.
-                        if (at.x in view.left..view.right && at.y in view.top..view.bottom) {
-                            val w = placeable.width.toFloat()
-                            val h = placeable.height.toFloat()
-                            val (x, y) = when (label.side) {
+                        val reserved =
+                            Rect(viewport.viewport.width - buttons.width, 0f, viewport.viewport.width, buttons.height)
+                        val w = placeable.width.toFloat()
+                        val h = placeable.height.toFloat()
+                        val spot = label.places.firstNotNullOfOrNull { (anchor, side) ->
+                            val at = viewport.mapToScreen(anchor)
+                            val (x, y) = when (side) {
                                 LabelSide.ABOVE -> at.x - w / 2f to at.y - h
                                 LabelSide.BELOW -> at.x - w / 2f to at.y
                                 LabelSide.LEFT -> at.x - w to at.y - h / 2f
                                 LabelSide.RIGHT -> at.x to at.y - h / 2f
                             }
-                            placeable.place(
-                                x.coerceIn(margin, (view.right - w - margin).coerceAtLeast(margin)).roundToInt(),
-                                y.coerceIn(margin, (view.bottom - h - margin).coerceAtLeast(margin)).roundToInt(),
-                            )
+                            val rect = Rect(x, y, x + w, y + h)
+                            val inView = rect.left >= view.left + margin && rect.top >= view.top + margin &&
+                                rect.right <= view.right - margin && rect.bottom <= view.bottom - margin
+                            val hexPx = viewport.scale * 0.8f
+                            val clear = inView && !rect.overlaps(reserved) && busy.none { point ->
+                                val p = viewport.mapToScreen(point)
+                                p.x > rect.left - hexPx && p.x < rect.right + hexPx &&
+                                    p.y > rect.top - hexPx && p.y < rect.bottom + hexPx
+                            }
+                            rect.takeIf { clear }
                         }
+                        spot?.let { placeable.place(it.left.roundToInt(), it.top.roundToInt()) }
                     }
                 }
                 .background(palette.labelBackground, RoundedCornerShape(50))
@@ -632,9 +676,9 @@ private fun ZoneLabels(state: BoardUiState.Ready, layout: MapLayout, viewport: M
 }
 
 /**
- * Where the labels go: a Throne Zone's label beyond its outer edge (below the bottom team's, above
- * the top team's in portrait; left and right in landscape); a Battle Zone's beside it, on the side
- * of the map it lies towards.
+ * Where the labels may go. A Throne Zone's label: beyond its outer edge first (below the bottom
+ * team's, above the top team's in portrait; left and right in landscape), then beside it. A Battle
+ * Zone's: beside it on the side of the map it lies towards, then the other sides.
  */
 private fun zoneLabels(state: BoardUiState.Ready, layout: MapLayout): List<ZoneLabel> {
     val map = state.map
@@ -642,39 +686,51 @@ private fun zoneLabels(state: BoardUiState.Ready, layout: MapLayout): List<ZoneL
     val portrait = layout.orientation == MapOrientation.PORTRAIT
     val all = geometry.spaces.keys.map(layout::center)
     val middle = Offset(all.map { it.x }.average().toFloat(), all.map { it.y }.average().toFloat())
+    fun sides(hexes: List<Offset>): Map<LabelSide, Pair<Offset, LabelSide>> {
+        val mid = Offset(hexes.map { it.x }.average().toFloat(), hexes.map { it.y }.average().toFloat())
+        return mapOf(
+            LabelSide.ABOVE to (hexes.minBy { it.y }.let { Offset(it.x, it.y - EDGE) } to LabelSide.ABOVE),
+            LabelSide.BELOW to (hexes.maxBy { it.y }.let { Offset(it.x, it.y + EDGE) } to LabelSide.BELOW),
+            LabelSide.LEFT to (hexes.minBy { it.x }.let { Offset(it.x - EDGE, mid.y) } to LabelSide.LEFT),
+            LabelSide.RIGHT to (hexes.maxBy { it.x }.let { Offset(it.x + EDGE, mid.y) } to LabelSide.RIGHT),
+        )
+    }
     return buildList {
         map.zones.filter { it.kind == ZoneKind.THRONE && it.team != null }.forEach { zone ->
             val hexes = geometry.zoneSpaces[zone.id].orEmpty().map(layout::center).ifEmpty { return@forEach }
             val bottom = zone.team == state.bottomTeam
-            val (anchor, side) = if (portrait) {
-                if (bottom) {
-                    hexes.maxBy { it.y }.let { Offset(it.x, it.y + EDGE) } to LabelSide.BELOW
-                } else {
-                    hexes.minBy { it.y }.let { Offset(it.x, it.y - EDGE) } to LabelSide.ABOVE
-                }
-            } else if (bottom) {
-                hexes.minBy { it.x }.let { Offset(it.x - EDGE, it.y) } to LabelSide.LEFT
-            } else {
-                hexes.maxBy { it.x }.let { Offset(it.x + EDGE, it.y) } to LabelSide.RIGHT
+            val order = when {
+                portrait && bottom -> listOf(LabelSide.BELOW, LabelSide.LEFT, LabelSide.RIGHT)
+                portrait -> listOf(LabelSide.ABOVE, LabelSide.LEFT, LabelSide.RIGHT)
+                bottom -> listOf(LabelSide.LEFT, LabelSide.BELOW, LabelSide.ABOVE)
+                else -> listOf(LabelSide.RIGHT, LabelSide.ABOVE, LabelSide.BELOW)
             }
-            add(ZoneLabel("${if (zone.team == Team.RED) "RED" else "BLUE"} THRONE", zone.team, anchor, side))
+            val places = sides(hexes)
+            add(
+                ZoneLabel(
+                    "${if (zone.team == Team.RED) "RED" else "BLUE"} THRONE",
+                    zone.team,
+                    order.map(places::getValue),
+                ),
+            )
         }
         map.lanes.forEach { lane ->
             val zoneId = state.board.state.battleZones[lane.id] ?: lane.startingBattleZone
             val hexes = geometry.zoneSpaces[zoneId].orEmpty().map(layout::center).ifEmpty { return@forEach }
             val mid = Offset(hexes.map { it.x }.average().toFloat(), hexes.map { it.y }.average().toFloat())
-            val (anchor, side) = if (portrait) {
+            val order = if (portrait) {
                 if (mid.x <= middle.x) {
-                    hexes.minBy { it.x }.let { Offset(it.x - EDGE, mid.y) } to LabelSide.LEFT
+                    listOf(LabelSide.LEFT, LabelSide.ABOVE, LabelSide.BELOW, LabelSide.RIGHT)
                 } else {
-                    hexes.maxBy { it.x }.let { Offset(it.x + EDGE, mid.y) } to LabelSide.RIGHT
+                    listOf(LabelSide.RIGHT, LabelSide.ABOVE, LabelSide.BELOW, LabelSide.LEFT)
                 }
             } else if (mid.y <= middle.y) {
-                hexes.minBy { it.y }.let { Offset(mid.x, it.y - EDGE) } to LabelSide.ABOVE
+                listOf(LabelSide.ABOVE, LabelSide.LEFT, LabelSide.RIGHT, LabelSide.BELOW)
             } else {
-                hexes.maxBy { it.y }.let { Offset(mid.x, it.y + EDGE) } to LabelSide.BELOW
+                listOf(LabelSide.BELOW, LabelSide.LEFT, LabelSide.RIGHT, LabelSide.ABOVE)
             }
-            add(ZoneLabel(BoardText.battleZone(map, lane.id).uppercase(), null, anchor, side))
+            val places = sides(hexes)
+            add(ZoneLabel(BoardText.battleZone(map, lane.id).uppercase(), null, order.map(places::getValue)))
         }
     }
 }

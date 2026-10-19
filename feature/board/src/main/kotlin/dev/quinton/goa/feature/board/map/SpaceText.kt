@@ -16,7 +16,9 @@ internal object SpaceText {
         val map = state.map
         val space = state.geometry.spaces[hex]
         val zone = space?.zone
-        val battleLane = map.lanes.firstOrNull { (state.board.state.battleZones[it.id] ?: it.startingBattleZone) == zone }
+        val battleLane = map.lanes.firstOrNull {
+            (state.board.state.battleZones[it.id] ?: it.startingBattleZone) == zone
+        }
         val selected = state.selected
         return buildList {
             add(occupant?.let { BoardText.piece(it) { id -> state.heroes.hero(id).name } } ?: "Empty space")
@@ -50,14 +52,19 @@ internal object SpaceText {
         val empty = BoardRules.isEmpty(state.geometry, BoardRules.occupancy(state.board.state), hex)
         return when {
             state.tool == BoardTool.Measure -> "Measure"
+
             state.tool is BoardTool.Place -> if (empty) "Place here" else null
+
             occupant != null -> if (occupant.id == state.selectedId) null else "Select"
+
             state.selected?.at != null -> if (empty) "Move here" else null
+
             state.trayActive -> when {
                 state.trayTargets.isNotEmpty() -> if (hex in state.trayTargets) "Place here" else null
                 empty -> "Place here"
                 else -> null
             }
+
             else -> null
         }
     }

@@ -252,7 +252,9 @@ private fun MatchEditEntry(key: MatchEditRoute, navigator: Navigator) {
             onAddPilot = vm::addPilot,
             onRematch = vm::rematch,
             // From a drafted match the board places the heroes in the draft's pick order.
-            onOpenBoard = { red, blue -> navigator.navigate(BoardRoute(red = red, blue = blue, matchId = key.matchId)) },
+            onOpenBoard = { red, blue ->
+                navigator.navigate(BoardRoute(red = red, blue = blue, matchId = key.matchId))
+            },
         ),
     )
 }

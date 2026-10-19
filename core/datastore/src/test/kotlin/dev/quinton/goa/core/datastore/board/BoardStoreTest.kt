@@ -42,7 +42,7 @@ class BoardStoreTest {
     }
 
     @Test
-    fun `update keeps exactly what the transform returns`()= runTest(UnconfinedTestDispatcher()) {
+    fun `update keeps exactly what the transform returns`() = runTest(UnconfinedTestDispatcher()) {
         val store = store(this)
         store.write("a", "{a}")
         store.write("b", "{b}")
