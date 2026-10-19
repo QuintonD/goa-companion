@@ -1,5 +1,7 @@
 package dev.quinton.goa.hub.group
 
+import dev.quinton.goa.core.domain.sync.NamedPlayer
+import dev.quinton.goa.core.domain.sync.PlayerMergeOutcome
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.presentation.group.GroupInvites
 import dev.quinton.goa.core.presentation.group.InviteFor
@@ -8,7 +10,6 @@ import dev.quinton.goa.hub.feature.HubContext
 import dev.quinton.goa.hub.feature.HubFeature
 import dev.quinton.goa.hub.store.DeviceSlot
 import dev.quinton.goa.hub.store.GroupData
-import dev.quinton.goa.hub.store.PlayerMergeOutcome
 import dev.quinton.goa.hub.store.SharedSlots
 import dev.quinton.goa.hub.web.DeviceCookie
 import dev.quinton.goa.hub.web.SignInSlots
@@ -160,7 +161,7 @@ object GroupFeature : HubFeature {
         ctx.groupStore.findPlayerByName(name)?.let { existing ->
             return call.respondWhoAreYou(ctx, base.copy(nameError = PlayerLink.nameTaken(existing)))
         }
-        val player = ctx.groupStore.upsertPlayer(
+        val added = ctx.groupStore.upsertPlayerIfNameFree(
             PlayerLink.newPlayer(
                 id = UUID.randomUUID().toString(),
                 name = name,
@@ -170,7 +171,13 @@ object GroupFeature : HubFeature {
                 now = ctx.clock.nowMillis(),
             ),
         )
-        setMe(ctx, call, player.id)
+        when (added) {
+            // Someone else added the name a moment ago.
+            is NamedPlayer.Taken ->
+                return call.respondWhoAreYou(ctx, base.copy(nameError = PlayerLink.nameTaken(added.existing)))
+
+            is NamedPlayer.Saved -> setMe(ctx, call, added.player.id)
+        }
         call.respondRedirect(next)
     }
 

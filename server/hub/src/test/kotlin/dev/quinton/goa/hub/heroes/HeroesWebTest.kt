@@ -233,7 +233,7 @@ class HeroesWebTest {
                 },
             )
         }
-        val stats = HeroRecords.current(hub.groupStore, hub.catalog.catalog).stats(hero.id)
+        val stats = HeroRecords.current(dev.quinton.goa.hub.feature.HubContext(hub)).stats(hero.id)
         val html = page("/heroes/${hero.id}")
         assertThat(stats.hasGames).isTrue()
         stats.metrics.forEach { assertThat(text(html)).contains(it.value) }

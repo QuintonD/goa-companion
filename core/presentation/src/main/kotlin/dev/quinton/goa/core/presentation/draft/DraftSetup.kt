@@ -24,6 +24,7 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.presentation.players.PlayerLook
 import kotlin.random.Random
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -43,7 +44,14 @@ enum class TeamMode(val label: String) {
     PLAYER_DRAFT("Player Draft"),
 }
 
-data class PlayerOption(val player: Player, val rating: Rating?)
+/**
+ * A player to draft, with their rating; [start] is what an unrated player counts as when balancing
+ * (the group's starting rating, `EloConfig.initialRating`, as the replay starts a new player).
+ */
+data class PlayerOption(val player: Player, val rating: Rating?, val start: Double = Rating.START) {
+    /** The rating used to balance teams and suggest captains. */
+    val balanceValue: Double get() = rating?.value ?: start
+}
 
 data class MethodOption(
     val method: DraftMethod,
@@ -202,7 +210,7 @@ data class SetupForm(
     /** "The two most experienced players" as captains [RB p.22] ([PlayerDraft.suggestCaptains]). */
     fun withSuggestedCaptains(players: List<PlayerOption>): SetupForm {
         val games = players.associate { it.player.id to (it.rating?.games ?: 0) }
-        val values = players.associate { it.player.id to (it.rating?.value ?: Rating.START) }
+        val values = players.associate { it.player.id to it.balanceValue }
         val captains = PlayerDraft.suggestCaptains(selected, games, values)
         return copy(redCaptain = captains.getOrNull(0), blueCaptain = captains.getOrNull(1))
     }
@@ -268,9 +276,9 @@ data class SetupForm(
     )
 
     companion object {
-        /** Ratings for balancing: an unrated player counts as a new player ([Rating.START]). */
+        /** Ratings for balancing: an unrated player counts as a new player ([PlayerOption.start]). */
         fun balanceRatings(players: List<PlayerOption>): Map<String, Double> =
-            players.associate { it.player.id to (it.rating?.value ?: Rating.START) }
+            players.associate { it.player.id to it.balanceValue }
     }
 }
 
@@ -303,6 +311,8 @@ data class SetupInputs(
     val catalog: Catalog,
     val settings: AppSettings,
     val methods: MethodLibrary,
+    /** The group's starting rating (`EloConfig.initialRating`): what an unrated player counts as. */
+    val initialRating: Double = Rating.START,
 )
 
 data class SetupUiState(
@@ -378,7 +388,7 @@ data class SetupUiState(
  */
 object DraftSetupPresenter {
     fun derive(inputs: SetupInputs, form: SetupForm, active: DraftProgress?, message: String? = null): SetupUiState {
-        val options = inputs.players.map { PlayerOption(it, inputs.ratings[it.id]) }
+        val options = inputs.players.map { PlayerOption(it, inputs.ratings[it.id], inputs.initialRating) }
         val seats = seatsFor(form)
         val candidates = candidates(inputs, form)
         val methods = inputs.methods.all.map { methodOption(it, form, seats) }
@@ -556,8 +566,9 @@ object DraftSetupPresenter {
 object QuickAddPlayer {
     const val AVATAR_COUNT = 24
 
+    /** A new player called [name], trimmed and cut to the player editor's limit ([PlayerLook.nameInput]). */
     fun create(id: String, name: String, existingCount: Int, now: Long, colors: List<Long>): Player? {
-        val trimmed = name.trim()
+        val trimmed = PlayerLook.nameInput(name.trim()).trim()
         if (trimmed.isEmpty() || colors.isEmpty()) return null
         return Player(
             id = id,

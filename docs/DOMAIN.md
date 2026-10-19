@@ -530,9 +530,15 @@ replays the same log (ADR-003).
 - **App versions:** phones on different app versions sync the same data, but a phone whose catalog
   lacks a hero reads it as Unknown hero, so hero-influenced ratings differ until every phone has the
   same version; the sync sheet says so (each phone sends its app version in the greeting).
-- **Edits read resolved ids:** editing a match (or the timer adding its duration) saves the pilots
-  as resolved through this phone's merges. Ratings stay identical on every phone; only if two phones
-  merged the same duplicate into different players can such a match keep the overruled target.
+- **Edits read resolved ids:** editing a match in the match editor (phone or web) saves the pilots
+  as resolved through this phone's merges (the editor checks the result, e.g. no player on both
+  teams). Ratings stay identical on every phone; only if two phones merged the same duplicate into
+  different players can such a match keep the overruled target. Writes that change only a few
+  fields — the timer adding its duration and mode, Match setup's coin, Undo of a delete — change
+  the match **as stored** (the pilots it was logged with) in one transaction
+  (`MatchRepository.edit`/`restore`, the hub's `SharedWrites.editMatch`/`restoreMatch`), so they
+  never rewrite merged pilots unchecked or overwrite an edit synced in meanwhile; Undo writes
+  nothing if the match exists again.
 - **Session:** one host; every joiner sends its whole document; the host merges all of them into
   its data in one transaction and sends the result to every joiner, who merges it in one
   transaction. A joiner that drops keeps its data as it was; its upload, if it had arrived, is

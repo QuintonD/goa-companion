@@ -103,7 +103,7 @@ Feature authors start with [server/hub/README.md](../server/hub/README.md).
   `HubContext` (group store, device store, devices, catalog, clock, push, config).
 - **Storage** (`GOA_HUB_DATA`): `data.json` = the group's canonical `SyncDocument`, written only by
   `GroupStore` (one mutex, `SyncValidation` before every store, atomic temp+fsync+rename, a copy
-  per day kept 30 days). Web writes go through `SharedWrites`, which mirrors the Room repositories'
+  per day kept 30 days). Web writes go through `SharedWrites` (core:domain; `SharedWritesParityTest` checks it against Room), which mirrors the Room repositories'
   stamping (`EditStamp.next`, tombstones, `PlayerMerge` rows with the same refusal). `GroupData`
   reads like the repositories (merges resolved, same orderings). Per-browser state lives in typed
   `DeviceSlot`s (`devices/<deviceId>/<slot>.json`); the device id is a hash of the cookie token.

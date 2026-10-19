@@ -725,7 +725,11 @@ INTERNET permission. Options weighed:
   `ReplayRatingsRepository` and the hub call it. The Players builders live in
   `core:presentation/players`; texts the phone computed in Compose (biggest movers, match summary,
   merge copy, chart range/labels, result chip) moved there too, so both render the same strings.
-  `Dates` take an optional zone (the hub passes `HubClock.zone`; dates follow the hub machine's zone).
+  `Dates` take an optional zone (the hub passes `HubClock.zone`). *Zone (2026-10-19, data-rules
+  review):* the hub's zone stands for the group's. It is `hub.json`'s `timeZone`
+  (`goa-hub config --time-zone`), else the machine's; a phone uses its own. Stored times are epoch
+  ms, so ratings never depend on a zone; only shown dates, typed date-times, "today" and group
+  stats grouped by day/gap do, and they agree with a phone in the same zone.
 - Dialogs became pages (merge picker → confirmation, delete/discard confirmation, Rematch), so every
   flow works without JS. A match has its own page (`/players/matches/{id}`); the log shows 60 matches
   and "Show older matches". "Undo" after a delete is kept per browser for 30 s, as on the phone.
@@ -797,6 +801,34 @@ Inherent or accepted (also in `deploy/README.md` §10):
   installed attacker app and exposes only that phone's own solo data.
 - An unknown path answers `404` and a signed-in one `401` to strangers, so routes can be listed;
   no data is.
+
+**Implementation notes (2026-10-19, data-rules review: web writes = phone writes):**
+- *One implementation of every write.* `SharedWrites` (the hub's writes over a `SyncDocument`) moved
+  to `core:domain`; core:data's `SharedWritesParityTest` runs random edits through the Room
+  repositories and `SharedWrites` at the same clock (going back included) and compares the stored
+  data after every step, and runs phones, web edits, Nearby and hub syncs, web backup imports,
+  simultaneous edits and deletes and clock skew in random order to one document and identical
+  ratings everywhere. Every hub page reads one `GroupRatings` snapshot (`RatingsSnapshot.compute`
+  over the phones' inputs, constants sanitized as the phones read them); no page replays the log.
+- *Writes that change a few fields* (timer duration and mode, setup coin, Undo of a delete) change
+  the match as stored, read and written in one step: `MatchRepository.edit`/`restore`,
+  `SharedWrites.editMatch`/`restoreMatch` (DOMAIN.md *Edits read resolved ids*). Undo writes
+  nothing if the match exists again. No-op changes of the rating constants store nothing, on both.
+- *Many writers:* the hub checks a new player's name and writes it under one lock
+  (`upsertPlayerIfNameFree`); the Ratings form applies only the constants moved on it
+  (`RatingConstants.applyChanged`); a form posted back untouched keeps the stored values (exact
+  `playedAt`, long notes/map, every seat, a light-tone colour).
+- *Zone:* the hub's zone stands for the group's (`goa-hub config --time-zone`, else the machine's).
+- *Intentional differences, kept:* (1) a web editor posted for a match deleted meanwhile answers 409
+  and stores nothing, while the phone's open editor saves and its later stamp brings the match back
+  (the documented last-writer-wins rule): a stale browser tab is likelier than a phone screen left
+  open, and the web says so instead. (2) The web backup export/import carries this browser's app
+  settings but not its timer presets and draft methods (per-device; the phone merges them). (3) The
+  Players list sorts names with Java's case-insensitive order, Room with SQLite's `NOCASE` (ASCII
+  only): non-ASCII names may list in another order; no number depends on it. (4) A player merged
+  away during a draft shows under the merged name on the web board and as "Unknown player" on the
+  phone's (display only). (5) The web timer's ended summary for a match logged under a reserved id
+  stays until "Done" (the phone clears it once that match is saved).
 
 ## ADR-031 — Linking a phone (or browser) to its player: personal invites and "Same people?" (2026-10-18)
 **Context:** The owner enters friends as players before they install the app. When a friend joins,

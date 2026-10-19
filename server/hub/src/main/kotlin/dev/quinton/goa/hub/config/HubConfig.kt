@@ -4,6 +4,8 @@ import dev.quinton.goa.core.domain.sync.HubAddress
 import dev.quinton.goa.hub.store.AtomicFiles
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.DateTimeException
+import java.time.ZoneId
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -16,7 +18,16 @@ import kotlinx.serialization.json.Json
 data class HubConfig(
     val publicUrl: String? = null,
     val androidCertSha256: List<String> = emptyList(),
+    /**
+     * The group's time zone (an IANA id such as `Europe/London`) for every date on the web; null =
+     * the machine's. Set it when the hub runs in another zone than the group plays in (a UTC server),
+     * or the web would show and read match times, "today" and game nights differently from the phones.
+     */
+    val timeZone: String? = null,
 ) {
+    /** [timeZone] as a zone, or null when unset or unreadable (then the machine's zone applies). */
+    fun zone(): ZoneId? = timeZone?.let { normalizeZone(it) }?.let(ZoneId::of)
+
     companion object {
         const val ANDROID_PACKAGE = "dev.quinton.goa"
 
@@ -25,6 +36,13 @@ data class HubConfig(
             val hex = text.trim().replace(":", "").replace(" ", "").uppercase()
             if (hex.length != SHA256_HEX || hex.any { it !in '0'..'9' && it !in 'A'..'F' }) return null
             return hex.chunked(2).joinToString(":")
+        }
+
+        /** The zone id for [text] (`Europe/London`, `UTC`), or null if Java doesn't know it. */
+        fun normalizeZone(text: String): String? = try {
+            ZoneId.of(text.trim()).id
+        } catch (_: DateTimeException) {
+            null
         }
 
         /** The canonical origin for [text] ([HubAddress]), or null. */

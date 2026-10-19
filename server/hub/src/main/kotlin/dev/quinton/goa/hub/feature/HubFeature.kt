@@ -9,6 +9,7 @@ import dev.quinton.goa.hub.push.PushService
 import dev.quinton.goa.hub.store.Device
 import dev.quinton.goa.hub.store.DeviceStore
 import dev.quinton.goa.hub.store.Devices
+import dev.quinton.goa.hub.store.GroupRatings
 import dev.quinton.goa.hub.store.GroupStore
 import dev.quinton.goa.hub.store.SyncStateStore
 import dev.quinton.goa.hub.web.device
@@ -36,6 +37,9 @@ interface HubFeature {
 class HubContext(private val hub: Hub) {
     /** The group's shared data; write only through its stamping helpers. */
     val groupStore: GroupStore get() = hub.groupStore
+
+    /** Ratings, meta and group stats of the group's data (the phones' replay), one snapshot per document. */
+    val ratings: GroupRatings get() = hub.ratings
 
     /** Each browser's own state, in typed slots. */
     val deviceStore: DeviceStore get() = hub.deviceStore

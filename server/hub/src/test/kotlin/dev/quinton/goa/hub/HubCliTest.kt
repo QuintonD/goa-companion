@@ -97,6 +97,23 @@ class HubCliTest {
     }
 
     @Test
+    fun `the group's time zone is set with config, cleared with system, and every hub date follows it`() {
+        assertThat(run("config", "--data", data.toString(), "--time-zone", "Europe/Berlin")).isEqualTo(HubCli.OK)
+        assertThat(HubConfigStore(data.resolve("hub.json")).get().timeZone).isEqualTo("Europe/Berlin")
+        assertThat(out.toString()).contains("Time zone: Europe/Berlin")
+        // The hub's clock reads it (a UTC machine clock, a group in Berlin).
+        val hub = Hub(HubPaths(data), FakeClock(start = 1_760_000_000_000L, zone = java.time.ZoneId.of("UTC")))
+        assertThat(hub.clock.zone).isEqualTo(java.time.ZoneId.of("Europe/Berlin"))
+        assertThat(
+            run("config", "--data", data.toString(), "--time-zone", "Mars/Olympus"),
+        ).isEqualTo(HubCli.USAGE_ERROR)
+        assertThat(run("config", "--data", data.toString(), "--time-zone", "system")).isEqualTo(HubCli.OK)
+        assertThat(HubConfigStore(data.resolve("hub.json")).get().timeZone).isNull()
+        val machine = Hub(HubPaths(data), FakeClock(start = 1_760_000_000_000L, zone = java.time.ZoneId.of("UTC")))
+        assertThat(machine.clock.zone).isEqualTo(java.time.ZoneId.of("UTC"))
+    }
+
+    @Test
     fun `status reports the group, data, devices and last sync without writing anything`() {
         run("join", "--data", data.toString(), GroupInvite.format(TestGroup))
         val before = Files.walk(data).use { it.count() }

@@ -93,7 +93,24 @@ class FakeMatchRepository(initial: List<Match> = emptyList()) : MatchRepository 
 
     override suspend fun upsert(match: Match) = state.update { list -> list.filterNot { it.id == match.id } + match }
 
-    override suspend fun delete(id: String) = state.update { list -> list.filterNot { it.id == id } }
+    override suspend fun edit(id: String, transform: (Match) -> Match?): Match? {
+        val stored = state.value.firstOrNull { it.id == id } ?: return null
+        val changed = transform(stored)?.copy(id = id)?.takeIf { it != stored } ?: return null
+        upsert(changed)
+        return changed
+    }
+
+    override suspend fun delete(id: String): Match? {
+        val stored = state.value.firstOrNull { it.id == id } ?: return null
+        state.update { list -> list.filterNot { it.id == id } }
+        return stored
+    }
+
+    override suspend fun restore(match: Match): Boolean {
+        if (state.value.any { it.id == match.id }) return false
+        upsert(match)
+        return true
+    }
 }
 
 class FakeDraftRecordRepository(initial: List<DraftRecord> = emptyList()) : DraftRecordRepository {

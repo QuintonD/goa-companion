@@ -1,7 +1,6 @@
 package dev.quinton.goa.hub.players
 
 import dev.quinton.goa.core.domain.rating.RatingsSnapshot
-import dev.quinton.goa.core.domain.sync.SyncDocument
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.player.Player
@@ -20,7 +19,7 @@ import kotlinx.serialization.builtins.serializer
 /**
  * What every Players page reads (ADR-030): the group's data as the phones' screens see it (merged
  * players resolved, merged-away ones hidden), the catalog, and one ratings snapshot of the whole
- * log ([RatingsSnapshot.compute], the phones' replay). Nothing here computes a statistic.
+ * log (`GroupRatings`: [RatingsSnapshot.compute], the phones' replay). Nothing here computes a statistic.
  */
 class PlayersData(
     val data: GroupData,
@@ -44,32 +43,10 @@ class PlayersData(
         data.document.deletions.any { it.kind == DeletionKind.MATCH && it.id == id }
 
     companion object {
-        /** The snapshot of the last document seen, so a page view doesn't replay the log again. */
-        private class Cached(
-            val doc: SyncDocument,
-            val known: Set<String>,
-            val zone: ZoneId,
-            val snapshot: RatingsSnapshot,
-        )
-
-        @Volatile
-        private var cache: Cached? = null
-
         fun of(ctx: HubContext): PlayersData {
             val doc = ctx.groupStore.document.value
-            val catalog = ctx.catalog.catalog
-            val known = catalog.heroes.mapTo(HashSet()) { it.id }
-            val zone = ctx.clock.zone
-            val data = GroupData(doc)
-            val hit = cache?.takeIf { it.doc === doc && it.known == known && it.zone == zone }
-            val snapshot = hit?.snapshot ?: RatingsSnapshot.compute(
-                data.matches,
-                data.drafts,
-                data.eloConfig,
-                known,
-                zone,
-            ).also { cache = Cached(doc, known, zone, it) }
-            return PlayersData(data, catalog, snapshot, zone, ctx.clock.today())
+            val snapshot = ctx.ratings.of(doc)
+            return PlayersData(GroupData(doc), ctx.catalog.catalog, snapshot, ctx.clock.zone, ctx.clock.today())
         }
     }
 }

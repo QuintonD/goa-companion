@@ -74,6 +74,10 @@ interface MatchDao {
     @Query("SELECT * FROM matches ORDER BY played_at, created_at, id")
     suspend fun getAll(): List<MatchWithParticipants>
 
+    @Transaction
+    @Query("SELECT * FROM matches WHERE id = :id")
+    suspend fun get(id: String): MatchWithParticipants?
+
     @Upsert
     suspend fun upsertMatch(match: MatchEntity)
 

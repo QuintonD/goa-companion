@@ -182,6 +182,22 @@ object RatingConstants {
         c.set(config, c.snap(value))
     }
 
+    /**
+     * Like [apply], but only for the constants the person moved: a value in [submitted] counts as
+     * changed when it snaps to another value than the one the form was shown with ([shown], same
+     * keys). Every other constant keeps [current]'s, so a form opened before another device changed
+     * a constant never writes that constant back (the app's sliders change one constant at a time).
+     * A missing or unreadable shown value counts as changed.
+     */
+    fun applyChanged(current: EloConfig, shown: Map<String, String?>, submitted: Map<String, String?>): EloConfig =
+        all.fold(current) { config, c ->
+            val value = number(submitted[c.key]) ?: return@fold config
+            val before = number(shown[c.key])
+            if (before != null && c.snap(before) == c.snap(value)) config else c.set(config, c.snap(value))
+        }
+
+    private fun number(text: String?): Double? = text?.trim()?.toDoubleOrNull()?.takeIf { it.isFinite() }
+
     /** "0.5", "1.0", "0.05": at most two decimals, at least one. */
     fun decimal2(value: Double): String =
         String.format(Locale.ROOT, "%.2f", value).trimEnd('0').trimEnd('.').let { if ('.' !in it) "$it.0" else it }

@@ -4,7 +4,6 @@ import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.domain.sync.StampedEloConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
 
 class FakeEloConfigRepository(initial: EloConfig = EloConfig.DEFAULT, var clock: () -> Long = { 1 }) :
     EloConfigRepository,
@@ -14,15 +13,15 @@ class FakeEloConfigRepository(initial: EloConfig = EloConfig.DEFAULT, var clock:
 
     var updatedAt: Long = if (initial == EloConfig.DEFAULT) 0 else 1
 
+    /** As the real repository: a change that leaves the constants as they are stores nothing. */
     override suspend fun update(transform: (EloConfig) -> EloConfig) {
-        state.update { transform(it).sanitized() }
+        val next = transform(state.value).sanitized()
+        if (next == state.value) return
+        state.value = next
         updatedAt = maxOf(clock(), updatedAt + 1)
     }
 
-    override suspend fun reset() {
-        state.value = EloConfig.DEFAULT
-        updatedAt = maxOf(clock(), updatedAt + 1)
-    }
+    override suspend fun reset() = update { EloConfig.DEFAULT }
 
     override suspend fun stamped(): StampedEloConfig = StampedEloConfig(state.value, updatedAt)
 

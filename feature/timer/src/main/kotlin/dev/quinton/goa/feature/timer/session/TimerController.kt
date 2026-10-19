@@ -199,11 +199,12 @@ class TimerController @Inject constructor(
     private suspend fun recordDuration(s: TimerSnapshot, onlyIfMissing: Boolean) {
         if (s.status != TimerStatus.ENDED) return
         val id = s.matchId ?: return
-        val repo = matches.get()
-        val match = repo.observeMatch(id).first() ?: return
-        if (onlyIfMissing && match.durationMin != null) return
         val minutes = MatchDuration.minutes(engine.readout(s).matchElapsedMillis)
-        repo.upsert(match.copy(durationMin = minutes, mode = s.mode ?: match.mode))
+        // The stored record (not the merge-resolved view), read and written in one transaction.
+        matches.get().edit(id) { match ->
+            match.takeUnless { onlyIfMissing && it.durationMin != null }
+                ?.copy(durationMin = minutes, mode = s.mode ?: match.mode)
+        }
     }
 
     private fun rebase(s: TimerSnapshot): TimerSnapshot =

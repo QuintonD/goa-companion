@@ -93,7 +93,7 @@ object WebBackup {
      */
     suspend fun merge(ctx: HubContext, deviceId: String, document: BackupDocument, useSettings: Boolean) {
         ctx.groupStore.mergeIn(BackupFiles.records(document))
-        if (!useSettings) return
+        if (!useSettings || !document.summary().hasSettings) return
         val config = BackupFiles.eloConfig(document)
         if (config != ctx.groupStore.data().eloConfig) ctx.groupStore.updateEloConfig { config }
         document.extras[BackupFiles.SETTINGS_KEY]?.let(BackupFiles::settings)?.let { settings ->
@@ -263,14 +263,18 @@ private suspend fun ApplicationCall.respondImportPreview(ctx: HubContext, docume
                 +"next sync."
             }
             postForm("$BACKUP_PATH/import/confirm", classes = "stack") {
-                checkboxField(
-                    "useSettings",
-                    "Use the file's settings: rating settings" +
-                        (if (summary.hasEloConfig) " (custom in this file)" else "") +
-                        " for the group, and theme, owned products and sounds for this browser. " +
-                        "Off keeps the current ones.",
-                    checked = false,
-                )
+                // As the app: offered only when the file has settings (an old file without any
+                // would otherwise reset the group's rating constants to the defaults).
+                if (summary.hasSettings) {
+                    checkboxField(
+                        "useSettings",
+                        "Use the file's settings: rating settings" +
+                            (if (summary.hasEloConfig) " (custom in this file)" else "") +
+                            " for the group, and theme, owned products and sounds for this browser. " +
+                            "Off keeps the current ones.",
+                        checked = false,
+                    )
+                }
                 div("actions end") {
                     hubButton("Merge", ButtonStyle.PRIMARY)
                 }

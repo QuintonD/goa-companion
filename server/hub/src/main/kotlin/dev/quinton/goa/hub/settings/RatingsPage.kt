@@ -1,8 +1,6 @@
 package dev.quinton.goa.hub.settings
 
-import dev.quinton.goa.core.domain.rating.EloCalculator
 import dev.quinton.goa.core.domain.rating.EloConfig
-import dev.quinton.goa.core.domain.sync.UnknownHeroes
 import dev.quinton.goa.core.presentation.settings.RatingConstant
 import dev.quinton.goa.core.presentation.settings.RatingConstants
 import dev.quinton.goa.hub.feature.HubContext
@@ -44,17 +42,19 @@ import kotlinx.html.span
  * ranges, steps and readings are the app's ([RatingConstants]); a change is stored through
  * `GroupStore.updateEloConfig` (sanitized, stamped after the current change, as the app's
  * repository does), so it reaches the phones at their next sync. Saving unchanged values stores
- * nothing, so a stale form can't override a newer change from a phone.
+ * nothing, and only the constants moved on the form are written ([RatingConstants.applyChanged]),
+ * so a stale form can't override a newer change from a phone.
  */
 internal fun Route.ratingsRoutes(ctx: HubContext) {
     get(RATINGS_PATH) { call.respondRatings(ctx) }
     post(RATINGS_PATH) {
         val form = call.receiveParameters()
         val values = RatingConstants.all.associate { it.key to form[it.key] }
-        val current = ctx.groupStore.data().eloConfig
-        val next = RatingConstants.apply(current, values)
+        val shown = RatingConstants.all.associate { it.key to form[SHOWN_PREFIX + it.key] }
         val error = try {
-            if (next.sanitized() != current) ctx.groupStore.updateEloConfig { next }
+            // Only the constants moved on this form, applied to the stored ones under the lock: a
+            // form opened before a phone changed another constant never writes that one back.
+            ctx.groupStore.updateEloConfig { current -> RatingConstants.applyChanged(current, shown, values) }
             null
         } catch (e: InvalidGroupDataException) {
             e.message
@@ -90,9 +90,7 @@ internal fun Route.ratingsRoutes(ctx: HubContext) {
 private suspend fun ApplicationCall.respondRatings(ctx: HubContext, error: String? = null) {
     val status = if (error == null) HttpStatusCode.OK else HttpStatusCode.UnprocessableEntity
     respondPage(settingsPage("Ratings"), status) {
-        val data = ctx.groupStore.data()
-        val known = ctx.catalog.catalog.heroes.mapTo(HashSet()) { it.id }
-        val replay = EloCalculator.replay(UnknownHeroes.clearMatches(data.matches, known), data.eloConfig)
+        val replay = ctx.ratings.current().ratings
         card("intro-card") {
             h2 { +RatingConstants.INTRO_TITLE }
             p { +RatingConstants.INTRO }
@@ -148,6 +146,7 @@ private fun FlowContent.slider(constant: RatingConstant, value: Double) {
             }
         }
         constant.explanation?.let { p("muted small") { +it } }
+        input(type = InputType.hidden, name = SHOWN_PREFIX + constant.key) { this.value = number(value) }
         input(type = InputType.range, name = constant.key) {
             id = fieldId
             min = number(constant.range.start)
@@ -158,6 +157,9 @@ private fun FlowContent.slider(constant: RatingConstant, value: Double) {
         }
     }
 }
+
+/** The hidden field carrying the value a constant was shown with. */
+private const val SHOWN_PREFIX = "shown-"
 
 /** A plain decimal for HTML attributes ("0.05", "100"), never "1.0E-4". */
 private fun number(value: Double): String = java.math.BigDecimal.valueOf(value).stripTrailingZeros().toPlainString()

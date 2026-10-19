@@ -1,11 +1,7 @@
-package dev.quinton.goa.hub.store
+package dev.quinton.goa.core.domain.sync
 
 import dev.quinton.goa.core.domain.player.PlayerNames
 import dev.quinton.goa.core.domain.rating.EloConfig
-import dev.quinton.goa.core.domain.sync.EditStamp
-import dev.quinton.goa.core.domain.sync.PlayerMerges
-import dev.quinton.goa.core.domain.sync.StampedEloConfig
-import dev.quinton.goa.core.domain.sync.SyncDocument
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.player.Player
@@ -14,8 +10,8 @@ import dev.quinton.goa.core.model.sync.DeletionKind
 import dev.quinton.goa.core.model.sync.PlayerMerge
 
 /**
- * Web writes to the group's shared data, with exactly the rules of the phones' Room repositories
- * (ADR-025, ADR-030 §3), as pure functions over a [SyncDocument]:
+ * Writes to the group's shared data, with exactly the rules of the phones' Room repositories
+ * (ADR-025, ADR-030 §3), as pure functions over a [SyncDocument]: the hub's web writes run these.
  *
  * - every write stamps `updatedAt = EditStamp.next(now, previous copy, tombstone)`, so an edit
  *   always beats the copy it edited and a later edit brings a deleted record back;
@@ -25,8 +21,9 @@ import dev.quinton.goa.core.model.sync.PlayerMerge
  * - the rating constants are one [StampedEloConfig].
  *
  * Mirrors `RoomPlayerRepository`, `RoomMatchRepository`, `RoomDraftRecordRepository` and
- * `DataStoreEloConfigRepository` (core:data); keep them in step. [GroupStore] runs these under
- * its lock and validates the result before storing it.
+ * `DataStoreEloConfigRepository` (core:data); keep them in step (core:data's
+ * `SharedWritesParityTest` runs both on the same edits and compares the stored data). The hub's
+ * `GroupStore` runs these under its lock and validates the result before storing it.
  */
 object SharedWrites {
     /** `RoomPlayerRepository.upsert`: trimmed name, stamped after the stored copy. */
@@ -35,6 +32,19 @@ object SharedWrites {
         val previous = doc.players.firstOrNull { it.id == player.id }
         val stamped = player.copy(name = player.name.trim(), updatedAt = EditStamp.next(now, previous?.updatedAt))
         return doc.copy(players = doc.players.filterNot { it.id == player.id } + stamped) to stamped
+    }
+
+    /**
+     * [upsertPlayer] unless another player (archived included, merged-away ones not) already has
+     * this name: then nothing is written and that player is returned as the clash. The name check
+     * and the write are one step, so two browsers adding "Sam" at once can't make two Sams (the
+     * phones check and write in two steps, but each phone has one person typing).
+     */
+    fun upsertPlayerIfNameFree(doc: SyncDocument, player: Player, now: Long): Pair<SyncDocument, NamedPlayer> {
+        val clash = findByName(doc, player.name)?.takeIf { it.id != player.id }
+        if (clash != null) return doc to NamedPlayer.Taken(clash)
+        val (next, saved) = upsertPlayer(doc, player, now)
+        return next to NamedPlayer.Saved(saved)
     }
 
     /** `RoomPlayerRepository.archive`: a missing player is ignored. */
@@ -85,6 +95,17 @@ object SharedWrites {
         return doc.copy(matches = doc.matches.filterNot { it.id == match.id } + stamped) to stamped
     }
 
+    /**
+     * `RoomMatchRepository.edit`: a few fields of the stored match [id] changed, read as stored
+     * (raw player ids) under the same lock as the write. [transform] returns null to leave it; the
+     * result is null when there is no such match or nothing changed (nothing is written then).
+     */
+    fun editMatch(doc: SyncDocument, id: String, now: Long, transform: (Match) -> Match?): Pair<SyncDocument, Match?> {
+        val stored = doc.matches.firstOrNull { it.id == id } ?: return doc to null
+        val changed = transform(stored)?.copy(id = id)?.takeIf { it != stored } ?: return doc to null
+        return upsertMatch(doc, changed, now)
+    }
+
     /** `RoomMatchRepository.delete`: a missing match is ignored; otherwise removed and tombstoned. */
     fun deleteMatch(doc: SyncDocument, id: String, now: Long): SyncDocument {
         val previous = doc.matches.firstOrNull { it.id == id } ?: return doc
@@ -108,6 +129,12 @@ object SharedWrites {
         )
         val stamped = record.copy(updatedAt = stamp)
         return doc.copy(drafts = doc.drafts.filterNot { it.id == record.id } + stamped) to stamped
+    }
+
+    /** `RoomMatchRepository.restore`: [match] written back unless it exists again; stamped after its tombstone. */
+    fun restoreMatch(doc: SyncDocument, match: Match, now: Long): Pair<SyncDocument, Boolean> {
+        if (doc.matches.any { it.id == match.id }) return doc to false
+        return upsertMatch(doc, match, now).first to true
     }
 
     /**
@@ -148,18 +175,31 @@ object SharedWrites {
             PlayerMergeOutcome.Merged
     }
 
-    /** `DataStoreEloConfigRepository.update`: sanitized, stamped after the current change. */
+    /**
+     * `DataStoreEloConfigRepository.update`: sanitized, stamped after the current change. A change
+     * that leaves the constants as they are stores nothing (a new stamp on old values would beat a
+     * newer change another phone hasn't synced yet).
+     */
     fun updateEloConfig(doc: SyncDocument, now: Long, transform: (EloConfig) -> EloConfig): SyncDocument {
-        val next = transform(doc.eloConfig.config).sanitized()
+        val current = doc.eloConfig.config.sanitized()
+        val next = transform(current).sanitized()
+        if (next == current) return doc
         return doc.copy(eloConfig = StampedEloConfig(next, EditStamp.next(now, doc.eloConfig.updatedAt)))
     }
 
-    /** `DataStoreEloConfigRepository.reset`: the defaults, as a new change. */
-    fun resetEloConfig(doc: SyncDocument, now: Long): SyncDocument =
-        doc.copy(eloConfig = StampedEloConfig(EloConfig.DEFAULT, EditStamp.next(now, doc.eloConfig.updatedAt)))
+    /** `DataStoreEloConfigRepository.reset`: the defaults, as a new change (nothing if already the defaults). */
+    fun resetEloConfig(doc: SyncDocument, now: Long): SyncDocument = updateEloConfig(doc, now) { EloConfig.DEFAULT }
 
     private fun tombstone(doc: SyncDocument, kind: DeletionKind, id: String): Deletion? =
         doc.deletions.filter { it.kind == kind && it.id == id }.maxByOrNull { it.deletedAt }
+}
+
+/** The outcome of [SharedWrites.upsertPlayerIfNameFree]. */
+sealed interface NamedPlayer {
+    data class Saved(val player: Player) : NamedPlayer
+
+    /** [existing] already has the name; nothing was written. */
+    data class Taken(val existing: Player) : NamedPlayer
 }
 
 /** The outcome of a player merge (as `PlayerMergeResult` on the phones). */

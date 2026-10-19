@@ -80,6 +80,31 @@ class SyncApiTest {
     }
 
     @Test
+    fun `a hero this hub's catalog doesn't know is stored and sent back as the phone logged it`() {
+        val hub = testHub(tmp.root.toPath())
+        val newer = phoneA.copy(
+            matches = phoneA.matches.map { m ->
+                m.copy(
+                    participants = m.participants.mapIndexed { i, p ->
+                        if (i ==
+                            0
+                        ) {
+                            p.copy(heroId = "hero-from-2027")
+                        } else {
+                            p
+                        }
+                    },
+                )
+            },
+        )
+        hubTest(hub) {
+            val reply = SyncCodec.decodeFile(client.sync(newer).readRawBytes(), TestGroup)
+            assertThat(reply.matches.first().participants.first().heroId).isEqualTo("hero-from-2027")
+            assertThat(hub.groupStore.read().matches.first().participants.first().heroId).isEqualTo("hero-from-2027")
+        }
+    }
+
+    @Test
     fun `the phone's name is recorded when it gives one`() {
         val hub = testHub(tmp.root.toPath())
         hubTest(hub) {

@@ -106,7 +106,9 @@ class PlayerEditViewModel @AssistedInject constructor(
                 state.update { it.copy(saving = false, nameError = error) }
                 return@launch
             }
-            val player = original?.copy(name = name, color = current.color, avatarId = current.avatarId) ?: Player(
+            // Re-read: an archive, restore or merge synced in while the screen was open is kept.
+            val stored = playerId?.let { players.observePlayer(it).first() } ?: original
+            val player = stored?.copy(name = name, color = current.color, avatarId = current.avatarId) ?: Player(
                 id = UUID.randomUUID().toString(),
                 name = name,
                 color = current.color,
