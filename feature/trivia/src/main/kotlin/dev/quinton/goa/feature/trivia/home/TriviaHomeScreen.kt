@@ -71,11 +71,14 @@ import dev.quinton.goa.core.domain.trivia.AnswerStyle
 import dev.quinton.goa.core.domain.trivia.CardGroup
 import dev.quinton.goa.core.domain.trivia.TriviaConfig
 import dev.quinton.goa.core.domain.trivia.TriviaStat
-import dev.quinton.goa.feature.trivia.TriviaText
+import dev.quinton.goa.core.presentation.trivia.HeroProgressUi
+import dev.quinton.goa.core.presentation.trivia.TriviaHomeAction
+import dev.quinton.goa.core.presentation.trivia.TriviaHomeUiState
+import dev.quinton.goa.core.presentation.trivia.TriviaText
+import dev.quinton.goa.core.presentation.trivia.spokenUnverified
 import dev.quinton.goa.feature.trivia.ui.MasteryBar
 import dev.quinton.goa.feature.trivia.ui.MasteryLegend
 import dev.quinton.goa.feature.trivia.ui.SetupLabel
-import dev.quinton.goa.feature.trivia.ui.spokenUnverified
 
 /** Trivia home: overall progress, the quiz setup, and progress per hero. */
 @Composable
@@ -107,7 +110,7 @@ fun TriviaHomeScreen(
                         DropdownMenuItem(
                             text = { Text("Reset progress") },
                             leadingIcon = { Icon(Icons.Outlined.RestartAlt, contentDescription = null) },
-                            enabled = ready.stored.mastered + ready.stored.learning > 0,
+                            enabled = ready.canReset,
                             onClick = {
                                 menu = false
                                 confirmReset = true
@@ -153,16 +156,9 @@ fun TriviaHomeScreen(
         )
     }
     if (ready != null && confirmReset) {
-        val learned = ready.stored.mastered
-        val learning = ready.stored.learning
         ConfirmDialog(
             title = "Reset progress?",
-            message = buildString {
-                append("This forgets ")
-                append(TriviaText.count(learned, "learned number"))
-                if (learning > 0) append(" and ${TriviaText.count(learning, "number")} you're still learning")
-                append(". Every card number starts again as new. This can't be undone.")
-            },
+            message = ready.resetMessage,
             confirmLabel = "Reset",
             destructive = true,
             icon = Icons.Outlined.RestartAlt,
@@ -219,17 +215,13 @@ private fun OverallCard(state: TriviaHomeUiState.Ready, modifier: Modifier) {
     val overall = state.overall
     GoaCard(modifier.fillMaxWidth()) {
         Text(
-            "${TriviaText.number(overall.mastered)} of ${TriviaText.count(overall.total, "number")} learned",
+            state.overallTitle,
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(Modifier.height(Spacing.xs))
         Text(
-            if (state.ownedOnly) {
-                "Every number on the Action cards of the heroes you own."
-            } else {
-                "Every number on every hero's Action cards."
-            },
+            state.overallSubtitle,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -301,11 +293,7 @@ private fun SetupBlock(
                 )
             }
             Text(
-                if (setup.answerStyle == AnswerStyle.CHOICES) {
-                    "Pick the number from four close ones."
-                } else {
-                    "Pick from every number the stat has on any card: no hints."
-                },
+                state.answerStyleHint,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -328,14 +316,9 @@ private fun SetupBlock(
 
 @Composable
 private fun HeroScopeRow(state: TriviaHomeUiState.Ready, onChooseHeroes: () -> Unit) {
-    val names = state.selectedHeroNames
-    val summary = when {
-        names.isEmpty() -> if (state.ownedOnly) "All heroes you own" else "All heroes"
-        names.size <= 2 -> names.joinToString(", ")
-        else -> "${names.take(2).joinToString(", ")} +${names.size - 2}"
-    }
+    val summary = state.heroScopeSummary
     // All heroes = the owned ones; the options also list a chosen hero outside them.
-    val count = if (names.isEmpty()) state.ownedHeroCount else names.size
+    val count = state.heroScopeCount
     Surface(
         onClick = onChooseHeroes,
         shape = MaterialTheme.shapes.medium,
@@ -398,11 +381,7 @@ private fun DuelsRow(state: TriviaHomeUiState.Ready, onAction: (TriviaHomeAction
                 color = MaterialTheme.colorScheme.run { if (enabled) onSurface else onSurfaceVariant },
             )
             Text(
-                if (enabled) {
-                    "Now and then: which of two cards has the higher initiative?"
-                } else {
-                    "Needs Initiative under Numbers."
-                },
+                state.duelsHint,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -419,9 +398,8 @@ private fun DuelsRow(state: TriviaHomeUiState.Ready, onAction: (TriviaHomeAction
 @Composable
 private fun StartBar(state: TriviaHomeUiState.Ready, onStart: () -> Unit) {
     val selection = state.selection
-    val line = "${TriviaText.count(selection.total, "number")} in this quiz · " +
-        "${TriviaText.number(selection.mastered)} learned"
-    val note = startNote(state)
+    val line = state.startLine
+    val note = state.startNote
     val noteColor = MaterialTheme.colorScheme.run { if (state.canStart) onSurfaceVariant else error }
     Surface(color = MaterialTheme.colorScheme.background) {
         Column {
@@ -542,41 +520,5 @@ private fun HeroProgressRow(hero: HeroProgressUi, onClick: () -> Unit) {
     }
 }
 
-/**
- * Why Start is off ("No Ultimate card of the heroes you own prints Initiative."), or a warning for
- * a pool smaller than the round (questions repeat). The claim comes from the counted facts of the
- * quiz's own scope (chosen heroes, owned heroes or every hero) and names that scope, so it is true
- * as written.
- */
-internal fun startNote(state: TriviaHomeUiState.Ready): String? {
-    val setup = state.setup
-    val total = state.selection.total
-    return when {
-        total == 0 -> {
-            val groups = or(CardGroup.entries.filter { it in setup.groups }.map(TriviaText::group))
-            val stats = or(TriviaStat.entries.filter { it in setup.stats }.map(TriviaText::stat))
-            val scope = when {
-                setup.heroIds.size == 1 -> " of the chosen hero"
-                setup.heroIds.isNotEmpty() -> " of the chosen heroes"
-                state.ownedOnly -> " of the heroes you own"
-                else -> ""
-            }
-            "No $groups card$scope prints $stats. Add a number or more cards."
-        }
-
-        setup.length != TriviaConfig.ENDLESS && total < setup.length ->
-            "Only ${TriviaText.count(total, "number")} for ${setup.length} questions, so some come up more than once."
-
-        else -> null
-    }
-}
-
 /** From this width the start bar puts its text and button side by side. */
 private val WIDE_START_BAR = 560.dp
-
-/** "Tier I, Tier II or Ultimate". */
-private fun or(items: List<String>): String = when (items.size) {
-    0 -> ""
-    1 -> items.single()
-    else -> items.dropLast(1).joinToString(", ") + " or " + items.last()
-}

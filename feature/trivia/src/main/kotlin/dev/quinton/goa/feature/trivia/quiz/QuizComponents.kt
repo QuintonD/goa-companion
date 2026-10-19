@@ -66,14 +66,15 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.trivia.DuelPick
 import dev.quinton.goa.core.domain.trivia.TriviaAnswer
-import dev.quinton.goa.feature.trivia.TriviaCardUi
-import dev.quinton.goa.feature.trivia.TriviaText
+import dev.quinton.goa.core.presentation.trivia.Mark
+import dev.quinton.goa.core.presentation.trivia.QuizQuestionUi
+import dev.quinton.goa.core.presentation.trivia.TriviaCardUi
+import dev.quinton.goa.core.presentation.trivia.TriviaQuizUiState
+import dev.quinton.goa.core.presentation.trivia.TriviaText
+import dev.quinton.goa.core.presentation.trivia.markFor
+import dev.quinton.goa.core.presentation.trivia.spokenCard
 import dev.quinton.goa.feature.trivia.ui.CardKindLine
 import dev.quinton.goa.feature.trivia.ui.HeroLine
-import dev.quinton.goa.feature.trivia.ui.spokenCard
-
-/** How an answer button looks once the question is answered. Never colour alone: icons too. */
-internal enum class Mark { OPEN, RIGHT, WRONG, OTHER }
 
 // ---- Question -------------------------------------------------------------------------------
 
@@ -150,12 +151,7 @@ private fun NumberChoices(q: QuizQuestionUi.Number, answer: TriviaAnswer.Number?
             q.choices.zip(labels).chunked(columns).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     row.forEach { (value, label) ->
-                        val mark = when {
-                            answer == null -> Mark.OPEN
-                            value == q.value -> Mark.RIGHT
-                            value == answer.value -> Mark.WRONG
-                            else -> Mark.OTHER
-                        }
+                        val mark = markFor(q, answer, value)
                         ChoiceButton(
                             text = label,
                             spoken = TriviaText.spokenValue(value, q.plus),
@@ -252,12 +248,7 @@ private fun MarkBadge(mark: Mark, modifier: Modifier = Modifier) {
 
 @Composable
 private fun DuelChoices(q: QuizQuestionUi.Duel, answer: TriviaAnswer.Duel?, onAnswer: (TriviaAnswer) -> Unit) {
-    fun mark(pick: DuelPick) = when {
-        answer == null -> Mark.OPEN
-        pick == q.right -> Mark.RIGHT
-        pick == answer.pick -> Mark.WRONG
-        else -> Mark.OTHER
-    }
+    fun mark(pick: DuelPick) = markFor(q, answer, pick)
     val stacked = LocalDensity.current.fontScale > LARGE_FONT_SCALE
     val first: @Composable (Modifier) -> Unit = { m ->
         DuelTile(q.first, q.firstValue, revealed = answer != null, mark(DuelPick.FIRST), m) {

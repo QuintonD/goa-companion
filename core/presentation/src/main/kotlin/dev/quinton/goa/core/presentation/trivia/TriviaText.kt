@@ -1,7 +1,5 @@
-package dev.quinton.goa.feature.trivia
+package dev.quinton.goa.core.presentation.trivia
 
-import androidx.compose.runtime.Immutable
-import dev.quinton.goa.core.designsystem.component.cardColorName
 import dev.quinton.goa.core.domain.trivia.CardGroup
 import dev.quinton.goa.core.domain.trivia.TriviaConfig
 import dev.quinton.goa.core.domain.trivia.TriviaStat
@@ -9,11 +7,12 @@ import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.catalog.PrimaryAction
+import dev.quinton.goa.core.presentation.catalog.label
 import java.text.NumberFormat
 import kotlinx.serialization.json.Json
 
 /** Labels for the trivia screens, in the rulebook's words. No game data lives here. */
-internal object TriviaText {
+object TriviaText {
     fun stat(stat: TriviaStat): String = when (stat) {
         TriviaStat.INITIATIVE -> "Initiative"
         TriviaStat.ATTACK -> "Attack"
@@ -41,7 +40,7 @@ internal object TriviaText {
 
     /** "Gold · Basic", "Red · Tier II", "Purple · Ultimate". */
     fun cardLabel(card: Card): String {
-        val color = if (card.color == CardColor.OTHER) "Special" else cardColorName(card.color)
+        val color = card.color.label
         val tier = when (card.tier) {
             null -> "Basic"
             1 -> "Tier I"
@@ -83,7 +82,6 @@ internal object TriviaText {
 }
 
 /** A card as the quiz shows it: whose it is, its name, colour and tier, and its official image. */
-@Immutable
 data class TriviaCardUi(
     val heroId: String,
     val heroName: String,
