@@ -12,6 +12,7 @@ import dev.quinton.goa.hub.feature.HubContext
 import dev.quinton.goa.hub.settings.SettingsFeature.BACKUP_PATH
 import dev.quinton.goa.hub.store.DeviceSlot
 import dev.quinton.goa.hub.store.InvalidGroupDataException
+import dev.quinton.goa.hub.web.BACKUP_IMPORT_PATH
 import dev.quinton.goa.hub.web.MAX_BODY_BYTES
 import dev.quinton.goa.hub.web.device
 import dev.quinton.goa.hub.web.readLimited
@@ -120,7 +121,7 @@ internal fun Route.backupRoutes(ctx: HubContext) {
         call.response.header(HttpHeaders.CacheControl, "no-store")
         call.respondText(BackupCodec.encode(document), ContentType.Application.Json.withParameter("charset", "utf-8"))
     }
-    post("$BACKUP_PATH/import") {
+    post(BACKUP_IMPORT_PATH) {
         val text = call.receiveBackupText()
             ?: return@post call.respondBackupPage(ctx, "Choose a backup file (up to 8 MB).", HttpStatusCode.BadRequest)
         val document = try {
@@ -209,7 +210,7 @@ private suspend fun ApplicationCall.respondBackupPage(
                 +"Merge a backup file (from the app or from here) into the group. You'll see what would change "
                 +"first. Items in both are kept from whichever copy was edited last, like a sync."
             }
-            postForm("$BACKUP_PATH/import", classes = "stack") {
+            postForm(BACKUP_IMPORT_PATH, classes = "stack") {
                 encType = FormEncType.multipartFormData
                 div("field") {
                     label {

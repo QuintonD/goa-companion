@@ -216,6 +216,23 @@ class GroupPagesTest {
         assertThat(GroupFeature.safeNext("https://evil.example")).isEqualTo("/group")
         assertThat(GroupFeature.safeNext("/\\evil.example")).isEqualTo("/group")
         assertThat(GroupFeature.safeNext(null)).isEqualTo("/group")
+        // Browsers drop tabs and newlines from a Location: "/<tab>/evil.example" is "//evil.example".
+        listOf("/\t/evil.example", "/\n/evil.example", "/\r\n/evil.example", "/ /evil.example", "/ /x").forEach {
+            assertThat(GroupFeature.safeNext(it)).isEqualTo("/group")
+        }
+        assertThat(GroupFeature.safeNext("/players?x=1&y=%2F#top")).isEqualTo("/players?x=1&y=%2F#top")
+    }
+
+    @Test
+    fun `a next with a tab in it never redirects off the hub`() {
+        val hub = hubWithPlayers()
+        hubTest(hub) {
+            val b = browser()
+            val chosen = b.post("/group/me/choose", "player" to "ann", "next" to "/\t/evil.example")
+            assertThat(chosen.headers[HttpHeaders.Location]).isEqualTo("/group")
+            val page = b.get("/group/me?next=%2F%09%2Fevil.example").bodyAsText()
+            assertThat(page).doesNotContain("evil.example")
+        }
     }
 
     @Test

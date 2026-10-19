@@ -174,6 +174,22 @@ class SignInTest {
     }
 
     @Test
+    fun `a request still running when its device is signed out can't bring it back`() {
+        val hub = testHub(tmp.root.toPath(), clock)
+        val (device, token) = hub.devices.create("Lost phone", clock.nowMillis())
+        // The lost phone's request authenticated just before another browser signed it out…
+        hub.devices.signOut(device.id)
+        // …and then records "last seen", renames, or writes one of its slots.
+        hub.devices.touch(device, clock.nowMillis() + 3_600_000)
+        hub.devices.rename(device.id, "Still here")
+        val slotWrite = runCatching { hub.deviceStore.write(device.id, SharedSlots.Me, "ann") }
+        assertThat(slotWrite.isFailure).isTrue()
+        assertThat(hub.devices.find(token)).isNull()
+        assertThat(hub.devices.list()).isEmpty()
+        assertThat(tmp.root.resolve("devices").listFiles().orEmpty()).isEmpty()
+    }
+
+    @Test
     fun `state-changing requests must come from the hub's own origin`() {
         val hub = testHub(tmp.root.toPath(), clock)
         hubTest(hub) {
@@ -272,10 +288,9 @@ class SignInTest {
                 assertThat(client.join(wrongKey).status).isEqualTo(HttpStatusCode.Forbidden)
             }
             assertThat(client.join(wrongKey).status).isEqualTo(HttpStatusCode.TooManyRequests)
-            // Locked out: even the right invite waits.
-            assertThat(client.join(goodInvite).status).isEqualTo(HttpStatusCode.TooManyRequests)
+            assertThat(client.join("garbage").status).isEqualTo(HttpStatusCode.TooManyRequests)
             clock.advance(JoinThrottle.LOCKOUT_MS + 1)
-            assertThat(client.join(goodInvite).status).isEqualTo(HttpStatusCode.Found)
+            assertThat(client.join(wrongKey).status).isEqualTo(HttpStatusCode.Forbidden)
         }
     }
 
@@ -308,8 +323,26 @@ class SignInTest {
 
             repeat(JoinThrottle.OVERALL) { i -> client.join(wrongKey, forwardedFor = "192.0.2.$i") }
             assertThat(
-                client.join(goodInvite, forwardedFor = "198.51.100.3").status,
+                client.join(wrongKey, forwardedFor = "198.51.100.3").status,
             ).isEqualTo(HttpStatusCode.TooManyRequests)
+        }
+    }
+
+    @Test
+    fun `nobody can lock the group out, the right invite gets in while the throttle is closed`() {
+        val hub = testHub(tmp.root.toPath(), clock)
+        hubTest(hub) {
+            val client = plainClient()
+            // A stranger floods /join with junk from rotating addresses and without any.
+            repeat(JoinThrottle.OVERALL) { i -> client.join(wrongKey, forwardedFor = "192.0.2.$i") }
+            repeat(JoinThrottle.UNKNOWN_CLIENTS) { client.join(wrongKey) }
+            assertThat(client.join(wrongKey).status).isEqualTo(HttpStatusCode.TooManyRequests)
+            assertThat(client.join(wrongKey, forwardedFor = "198.51.100.9").status)
+                .isEqualTo(HttpStatusCode.TooManyRequests)
+
+            assertThat(client.join(goodInvite).status).isEqualTo(HttpStatusCode.Found)
+            assertThat(client.join(goodInvite, forwardedFor = "198.51.100.9").status).isEqualTo(HttpStatusCode.Found)
+            assertThat(hub.devices.list()).hasSize(2)
         }
     }
 

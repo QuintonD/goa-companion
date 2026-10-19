@@ -20,6 +20,7 @@ import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.authenticate
+import io.ktor.server.plugins.PayloadTooLargeException
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.path
 import io.ktor.server.response.header
@@ -42,10 +43,15 @@ fun Application.hubModule(hub: Hub, features: List<HubFeature> = HubFeatures) {
         if (call.isStateChanging && !exempt && !call.isSameOrigin(hub.config.get().publicUrl)) {
             call.respondPlainError(HttpStatusCode.Forbidden, "This request didn't come from the hub's own pages.")
             finish()
+        } else if (declaresTooLarge(call)) {
+            call.respondTooLarge()
+            finish()
         }
     }
+    limitRequestBodies()
     install(StatusPages) {
         status(HttpStatusCode.NotFound) { call, _ -> call.respondNotFound() }
+        exception<PayloadTooLargeException> { call, _ -> call.respondTooLarge() }
         exception<Throwable> { call, cause ->
             log.error("{} {} failed", call.request.local.method.value, call.request.path(), cause)
             call.respondServerError()
@@ -94,6 +100,10 @@ private suspend fun ApplicationCall.respondNotFound() {
 
         else -> respondPlainError(HttpStatusCode.NotFound, "This page doesn't exist.")
     }
+}
+
+private suspend fun ApplicationCall.respondTooLarge() {
+    respondText("The request is too large.", status = HttpStatusCode.PayloadTooLarge)
 }
 
 private suspend fun ApplicationCall.respondServerError() {
