@@ -143,14 +143,13 @@ a.pl-row:hover { background: var(--surface-high); }
 .pl-fab {
   position: fixed;
   right: calc(var(--pad) + env(safe-area-inset-right));
-  bottom: calc(var(--tab-bar) + var(--pad) + env(safe-area-inset-bottom));
+  bottom: calc(var(--dock) + var(--pad));
   z-index: 9;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
 }
 
 /* Room under the floating button for the last row. */
-.content:has(.pl-fab) { padding-bottom: calc(var(--tab-bar) + 6rem + env(safe-area-inset-bottom)); }
-.has-bars .pl-fab { bottom: calc(var(--tab-bar) + 72px + var(--pad) + env(safe-area-inset-bottom)); }
+.content:has(.pl-fab) { padding-bottom: calc(var(--dock) + 6rem); }
 .pl-list:last-of-type { margin-bottom: 0; }
 
 /* ---- Portraits ---- */

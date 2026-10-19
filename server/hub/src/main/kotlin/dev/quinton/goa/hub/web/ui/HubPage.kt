@@ -185,8 +185,14 @@ private fun HEAD.hubHead(page: HubPage, theme: ThemeChoice) {
     // CSP-safe htmx: no injected <style>, no eval, no scripts from swapped content.
     meta(name = "htmx-config", content = HTMX_CONFIG)
     link(rel = "manifest", href = "/manifest.webmanifest")
-    link(rel = "icon", href = "/static/icons/brand_mark.svg", type = "image/svg+xml")
-    link(rel = "apple-touch-icon", href = "/apple-touch-icon.png")
+    link(rel = "icon", href = StaticFiles.url("icons/brand_mark.svg"), type = "image/svg+xml")
+    link(rel = "apple-touch-icon", href = "/apple-touch-icon.png") { attributes["sizes"] = "180x180" }
+    // The home-screen app's launch screen: the brand mark on the app's dark background, per iPhone size.
+    IconRenderer.Splash.entries.forEach { splash ->
+        link(rel = "apple-touch-startup-image", href = "/icons/${splash.fileName}") {
+            attributes["media"] = splash.media
+        }
+    }
     link(rel = "stylesheet", href = StaticFiles.url("app.css"))
     page.styles.forEach { link(rel = "stylesheet", href = StaticFiles.url(it)) }
     script(src = StaticFiles.url("htmx.min.js")) { defer = true }
@@ -199,6 +205,7 @@ private fun BODY.topBar(page: HubPage) {
         page.back?.let { href ->
             a(href, classes = "icon-button") {
                 attributes["aria-label"] = "Back"
+                attributes["data-back"] = ""
                 icon(Icons.BACK)
             }
         }
