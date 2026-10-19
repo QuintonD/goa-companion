@@ -9,6 +9,8 @@ import dev.quinton.goa.core.model.sync.DeletionKind
 import dev.quinton.goa.hub.FakeClock
 import dev.quinton.goa.hub.match
 import dev.quinton.goa.hub.player
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertThrows
 import org.junit.Rule
@@ -176,6 +178,21 @@ class SharedWritesTest {
         store.resetEloConfig()
         assertThat(store.read().eloConfig.config).isEqualTo(EloConfig.DEFAULT)
         assertThat(store.read().eloConfig.updatedAt).isEqualTo(1_001)
+    }
+
+    @Test
+    fun `two browsers adding one name at the same moment make one player`() = runTest {
+        store.upsertPlayer(ann.copy(archived = true))
+        val adds = (1..8).map { i ->
+            async(kotlinx.coroutines.Dispatchers.Default) {
+                store.upsertPlayerIfNameFree(player("sam-$i", if (i % 2 == 0) " sam " else "Sam", createdAt = 10L + i))
+            }
+        }.awaitAll()
+        assertThat(adds.count { it is NamedPlayer.Saved }).isEqualTo(1)
+        assertThat(store.read().players.count { it.name.equals("sam", ignoreCase = true) }).isEqualTo(1)
+        // An archived player's name stays taken; renaming yourself to your own name is fine.
+        assertThat(store.upsertPlayerIfNameFree(player("ann-2", "ANN"))).isInstanceOf(NamedPlayer.Taken::class.java)
+        assertThat(store.upsertPlayerIfNameFree(ann.copy(name = "Ann "))).isInstanceOf(NamedPlayer.Saved::class.java)
     }
 
     @Test

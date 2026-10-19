@@ -12,6 +12,7 @@ import dev.quinton.goa.core.presentation.players.plural
 import dev.quinton.goa.core.presentation.players.winLoss
 import dev.quinton.goa.hub.feature.HubContext
 import dev.quinton.goa.hub.store.InvalidGroupDataException
+import dev.quinton.goa.hub.store.NamedPlayer
 import dev.quinton.goa.hub.web.ui.ButtonStyle
 import dev.quinton.goa.hub.web.ui.Icons
 import dev.quinton.goa.hub.web.ui.PlayerPalette
@@ -270,10 +271,15 @@ internal suspend fun ApplicationCall.savePlayer(ctx: HubContext, postedId: Strin
         avatarId = crest,
         createdAt = ctx.clock.nowMillis(),
     )
-    try {
-        ctx.groupStore.upsertPlayer(player)
+    val saved = try {
+        ctx.groupStore.upsertPlayerIfNameFree(player)
     } catch (e: InvalidGroupDataException) {
         respondPlayerForm(form, playerId, problem = e.message)
+        return
+    }
+    if (saved is NamedPlayer.Taken) {
+        // Taken a moment ago by another phone or browser.
+        respondPlayerForm(form, playerId, nameError = PlayerLook.nameError(name, saved.existing, playerId))
         return
     }
     respondRedirect(if (playerId == null) PlayersPaths.HOME else PlayersPaths.player(playerId))

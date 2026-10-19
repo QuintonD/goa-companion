@@ -37,6 +37,19 @@ object SharedWrites {
         return doc.copy(players = doc.players.filterNot { it.id == player.id } + stamped) to stamped
     }
 
+    /**
+     * [upsertPlayer] unless another player (archived included, merged-away ones not) already has
+     * this name: then nothing is written and that player is returned as the clash. The name check
+     * and the write are one step, so two browsers adding "Sam" at once can't make two Sams (the
+     * phones check and write in two steps, but each phone has one person typing).
+     */
+    fun upsertPlayerIfNameFree(doc: SyncDocument, player: Player, now: Long): Pair<SyncDocument, NamedPlayer> {
+        val clash = findByName(doc, player.name)?.takeIf { it.id != player.id }
+        if (clash != null) return doc to NamedPlayer.Taken(clash)
+        val (next, saved) = upsertPlayer(doc, player, now)
+        return next to NamedPlayer.Saved(saved)
+    }
+
     /** `RoomPlayerRepository.archive`: a missing player is ignored. */
     fun archivePlayer(doc: SyncDocument, id: String, archived: Boolean, now: Long): SyncDocument {
         val previous = doc.players.firstOrNull { it.id == id } ?: return doc
@@ -165,6 +178,14 @@ object SharedWrites {
 
     private fun tombstone(doc: SyncDocument, kind: DeletionKind, id: String): Deletion? =
         doc.deletions.filter { it.kind == kind && it.id == id }.maxByOrNull { it.deletedAt }
+}
+
+/** The outcome of [SharedWrites.upsertPlayerIfNameFree]. */
+sealed interface NamedPlayer {
+    data class Saved(val player: Player) : NamedPlayer
+
+    /** [existing] already has the name; nothing was written. */
+    data class Taken(val existing: Player) : NamedPlayer
 }
 
 /** The outcome of a player merge (as `PlayerMergeResult` on the phones). */

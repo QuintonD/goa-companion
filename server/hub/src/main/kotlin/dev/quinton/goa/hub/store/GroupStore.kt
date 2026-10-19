@@ -70,6 +70,10 @@ class GroupStore(
 
     suspend fun upsertPlayer(player: Player): Player = edit { SharedWrites.upsertPlayer(it, player, clock.nowMillis()) }
 
+    /** [upsertPlayer], unless another player has the name (checked and written under the lock). */
+    suspend fun upsertPlayerIfNameFree(player: Player): NamedPlayer =
+        edit { SharedWrites.upsertPlayerIfNameFree(it, player, clock.nowMillis()) }
+
     suspend fun archivePlayer(id: String, archived: Boolean) {
         update { SharedWrites.archivePlayer(it, id, archived, clock.nowMillis()) }
     }
