@@ -830,6 +830,29 @@ Inherent or accepted (also in `deploy/README.md` §10):
   phone's (display only). (5) The web timer's ended summary for a match logged under a reserved id
   stays until "Done" (the phone clears it once that match is saved).
 
+**Implementation notes (2026-10-19, polish pass: the web app on an iPhone):**
+- *Text size.* Type is in rem everywhere; on iOS `html { font: -apple-system-body }` (behind
+  `@supports (-webkit-touch-callout: none)`, so desktop Safari keeps the browser size) makes 1 rem
+  the system body size at the chosen Text Size (17 px by default, as iOS's own apps). Spacing
+  stays px like the app's dp; boxes that hold text only have min-heights; fixed shapes (avatars,
+  coins, initiative, the timer's digits) stay px, and the timer's controls and round label grow to
+  a cap. Layouts switch on the text size, not the screen width: grids use `minmax(… rem)`, the
+  theme segments a container query in em. Checked at 390 px with Chrome's font size 32 px (200%).
+- *The dock.* `--dock` is the measured height of the fixed bottom bars (hub.js, ResizeObserver;
+  CSSOM, which the CSP allows), with a CSS estimate before; sticky bottom actions sit on it.
+- *Delivery.* gzip/deflate for text and fonts (Ktor Compression; no brotli encoder on the JVM),
+  never for `/group/invite*` and `/join`, whose pages carry the group key (BREACH). Stylesheets are
+  served with their `url(/static/…)` references versioned, so every static file is
+  `immutable`; an old `?v=` gets today's file for an hour. The service worker caches versioned
+  static files only and drops older versions. Hero portraits get 192/384 px WebP copies at build
+  time (`generateThumbnails`, a build-only source set with scrimage, as the catalog importer
+  uses); the hub itself never decodes an image. Fonts stay TTF (365 KB gzipped, once): WOFF2 or
+  Latin subsets would need a font tool in the build.
+- *Back.* The top bar's Back returns through history when it leads to the previous page (a hero
+  after a search keeps the search and scroll), and from Rules, Card trivia and Settings to whatever
+  page opened them (`HubPage.backToPrevious`), as the phone's back does; otherwise it is a link.
+  From the running timer, Levels opens `/rules/levels?heroes=…` and Back there returns to the timer.
+
 ## ADR-031 — Linking a phone (or browser) to its player: personal invites and "Same people?" (2026-10-18)
 **Context:** The owner enters friends as players before they install the app. When a friend joins,
 their phone must become that player, not a new one. Today "Which player are you?" works only if the
