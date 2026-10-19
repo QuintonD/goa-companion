@@ -79,6 +79,7 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] `:feature:trivia`: home with progress, setup and a pinned Start bar; quiz with the official card scan after each answer; summary with "Practise the missed ones"; entry points on the Heroes tab top bar and the hero page — 2026-10-18, 30 VM tests, 32 screenshots (light/dark, font scale 2, 384 dp, landscape), adversarial review fixed, E2E `TriviaFlowTest` + the other 10 E2E tests green on `goa_s25a`
 - [x] Hands-on with the release build on an S25-sized emulator — 2026-10-18: in-place upgrade over 0.2.0 with real data, owned-products scope (27 heroes, 1,793 numbers), answers checked against the JSON and the shown card scans, progress kept across a force-stop mid-round. Fixed from it: the card scan sat below the fold after an answer; Start was two screens down. Emulator only
 - [ ] Trivia round on the S25 Ultra (TalkBack announcements, haptics, card scans)
+- [ ] Flaky: the "answered" trivia screenshots (`quizRecallAnswered*`, `quizAnswered*W384*`) sometimes land 1–2 px off (the card scan's load callback starts the scroll-into-view after the test settles); seen on `main` too. Waiting longer in the test didn't fix it (2026-10-19); needs a deterministic scroll in the test or the screen
 
 ## M8 — The hub and the web app (ADR-030)
 - [x] Contracts: invite links with hub and player (`GroupInvite.parseInvite`, `HubAddress`), `HubToken`; ADR-030/031; `:core:presentation` module — 2026-10-18, `HubInviteTest`
