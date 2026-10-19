@@ -17,6 +17,7 @@
 .device-row { padding-right: calc(var(--space) * 2); }
 .device-row[aria-current="true"] { border: 1px solid var(--secondary); }
 .this-device { color: var(--secondary); font-weight: 600; }
+.device-row form { flex: none; margin: 0; }
 
 /* Pick lists: one big button per player (Which player are you?, Who's the invite for?) */
 .pick-list { display: flex; flex-direction: column; gap: calc(var(--space) * 2); }

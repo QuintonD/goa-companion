@@ -75,7 +75,7 @@ class SyncApiTest {
             assertThat(hub.groupStore.read()).isEqualTo(merged)
             // Idempotent: the same file again changes nothing.
             assertThat(SyncCodec.decodeFile(client.sync(phoneB).readRawBytes(), TestGroup)).isEqualTo(merged)
-            assertThat(hub.syncState.read().lastSyncAt).isNotNull()
+            assertThat(hub.syncState.readAll().lastSyncAt).isNotNull()
         }
     }
 
@@ -114,7 +114,7 @@ class SyncApiTest {
                 header("X-Goa-Device-Name", "Galaxy S25 Ultra")
                 setBody(SyncCodec.encodeFile(phoneA, TestGroup, createdAt = 1))
             }
-            assertThat(hub.syncState.read().clients.single().name).isEqualTo("Galaxy S25 Ultra")
+            assertThat(hub.syncState.readAll().clients.single().name).isEqualTo("Galaxy S25 Ultra")
             // The app sends the name percent-encoded (header values are ASCII); each phone is its own row.
             client.post("/api/v1/sync") {
                 header(HttpHeaders.Authorization, "Bearer ${HubToken.derive(TestGroup)}")
@@ -128,7 +128,7 @@ class SyncApiTest {
                 header("X-Goa-Device-Id", "install-3")
                 setBody(SyncCodec.encodeFile(phoneA, TestGroup, createdAt = 1))
             }
-            assertThat(hub.syncState.read().clients.map { it.name })
+            assertThat(hub.syncState.readAll().clients.map { it.name })
                 .containsExactly("A phone", "Zoë Ann", "Galaxy S25 Ultra").inOrder()
             assertThat(deviceName("100%")).isEqualTo("100%")
         }

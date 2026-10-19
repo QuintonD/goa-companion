@@ -268,6 +268,31 @@ class GroupPagesTest {
     }
 
     @Test
+    fun `a phone can be forgotten, and one not seen for 90 days isn't listed`() {
+        val hub = hubWithPlayers()
+        hub.syncState.record("p1", "Quinton", clock.nowMillis() - 60_000)
+        hub.syncState.record("p2", "Sam", clock.nowMillis() - 120_000)
+        // The anonymous row from before phones sent their names, recorded last so it is still on file.
+        hub.syncState.record(null, null, clock.nowMillis() - 91L * 24 * 60 * 60 * 1000)
+        hubTest(hub) {
+            val b = browser()
+            val page = b.get("/group").bodyAsText()
+            assertThat(page).doesNotContain("Forget A phone")
+            assertThat(page).contains("aria-label=\"Forget Sam\"")
+            assertThat(page).contains("synced 1 min ago")
+
+            val forged = b.post("/group/phones/forget", "id" to "p2", origin = "https://evil.example")
+            assertThat(forged.status).isEqualTo(HttpStatusCode.Forbidden)
+            val forget = b.post("/group/phones/forget", "id" to "p2")
+            assertThat(forget.headers[HttpHeaders.Location]).isEqualTo("/group")
+            assertThat(b.get("/group").bodyAsText()).doesNotContain("Forget Sam")
+            assertThat(hub.syncState.readAll().clients.map { it.id }).containsExactly("p1", "unnamed")
+            // Twice (another browser was quicker): still fine.
+            assertThat(b.post("/group/phones/forget", "id" to "p2").headers[HttpHeaders.Location]).isEqualTo("/group")
+        }
+    }
+
+    @Test
     fun `the invite QR decodes to exactly the invite link, personal one included`() {
         val hub = hubWithPlayers()
         hubTest(hub) {

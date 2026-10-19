@@ -77,13 +77,13 @@ class HubCli(
         val paths = paths(options)
         val host = options.value("host") ?: DEFAULT_HOST
         val port = options.value("port")?.toIntOrNull()?.takeIf { it in 1..MAX_PORT }
-            ?: if (options.value("port") == null) DEFAULT_PORT else return usageError("--port must be 1–65535")
+            ?: if (options.value("port") == null) DEFAULT_PORT else return usageError("--port must be 1-65535")
         val hub = Hub(paths, clock)
         val group = hub.membership.group()
         out.println("goa-hub: data in ${paths.root}")
         out.println(
             if (group == null) {
-                "goa-hub: no group yet — run `goa-hub join \"<invite>\"` (every page says so until then)"
+                "goa-hub: no group yet - run `goa-hub join \"<invite>\"` (every page says so until then)"
             } else {
                 "goa-hub: group '${group.name}'"
             },
@@ -91,7 +91,7 @@ class HubCli(
         out.println("goa-hub: dates in ${zoneLine(hub.config.get())}")
         if (hub.config.get().publicUrl == null) {
             out.println(
-                "goa-hub: no public URL — set one with `goa-hub config --public-url https://…` before publishing",
+                "goa-hub: no public URL - set one with `goa-hub config --public-url https://...` before publishing",
             )
         }
         embeddedServer(CIO, port = port, host = host) { hubModule(hub) }.start(wait = true)
@@ -206,7 +206,7 @@ class HubCli(
                 ?: SyncDocument.EMPTY,
         )
         val doc = data.document
-        val sync = SyncStateStore(paths.syncState).read()
+        val sync = SyncStateStore(paths.syncState).read(clock.nowMillis())
         val devices = Devices(paths.devices).list()
         out.println("Data:      ${paths.root}")
         out.println("Group:     ${group?.let { "${it.name} (${it.groupId})" } ?: "not joined"}")

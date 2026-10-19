@@ -52,7 +52,11 @@ goa-hub version
 ```
 
 Data directory: `--data`, else `$GOA_HUB_DATA`, else `/var/lib/goa-hub`. Exit code 0 on success,
-1 on failure, 2 on a usage error. `config` changes only the options given.
+1 on failure, 2 on a usage error. `config` changes only the options given. The command line writes
+UTF-8, except on Windows, where it writes ASCII only (`CliOutput`: "iPhone · Safari" prints as
+"iPhone - Safari", "Zoë" as "Zoe"), because a console's code page, the JVM's pipe encoding and
+PowerShell's decoding rarely agree there. `status` lists the phones seen in the last 90 days (the
+Group page shows the same list; rows older than that leave `sync-state.json` at the next sync).
 
 **Time zone.** Every date the web shows or reads (match times, "today", game nights grouped by
 gap, group stats, backup file names) uses `HubClock.zone`: `hub.json`'s `timeZone`, else the

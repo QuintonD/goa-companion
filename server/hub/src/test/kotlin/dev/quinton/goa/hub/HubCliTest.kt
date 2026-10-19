@@ -6,6 +6,7 @@ import dev.quinton.goa.hub.config.HubConfigStore
 import dev.quinton.goa.hub.config.HubPaths
 import dev.quinton.goa.hub.config.MembershipStore
 import dev.quinton.goa.hub.store.AtomicFiles
+import dev.quinton.goa.hub.store.SyncStateStore
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import java.nio.file.Files
@@ -123,6 +124,45 @@ class HubCliTest {
         assertThat(text).contains("Last sync: never")
         assertThat(text).contains("Devices:   0 signed in")
         assertThat(Files.walk(data).use { it.count() }).isEqualTo(before)
+    }
+
+    @Test
+    fun `status lists phones seen within 90 days, and a Windows console gets ASCII only`() {
+        run("join", "--data", data.toString(), GroupInvite.format(TestGroup))
+        val now = FakeClock().nowMillis()
+        val state = SyncStateStore(data.resolve("sync-state.json"))
+        state.record("p1", "Zoë · Pixel 9", now - 60_000)
+        // Recorded last, so nothing has pruned it from the file yet.
+        state.record(null, null, now - 91L * 24 * 60 * 60 * 1000)
+        val ascii = ByteArrayOutputStream()
+        val code = HubCli(
+            CliOutput.stream(ascii, asciiOnly = true),
+            PrintStream(err, true),
+            emptyMap(),
+            FakeClock(),
+        ).run(listOf("status", "--data", data.toString()))
+        assertThat(code).isEqualTo(HubCli.OK)
+        val bytes = ascii.toByteArray()
+        assertThat(bytes.all { it in 0..0x7F }).isTrue()
+        val text = bytes.decodeToString()
+        assertThat(text).contains("  Zoe - Pixel 9: ")
+        assertThat(text).doesNotContain("A phone")
+        // The 90-day rule is applied when shown; status itself writes nothing.
+        assertThat(state.readAll().clients).hasSize(2)
+    }
+
+    @Test
+    fun `CLI output folds to ASCII where asked and is UTF-8 elsewhere`() {
+        val ascii = ByteArrayOutputStream()
+        CliOutput.stream(ascii, asciiOnly = true).apply {
+            println("iPhone · Safari — “Zoë’s” 1–2…")
+            print(StringBuilder("Åsa → 日本"))
+        }
+        assertThat(ascii.toString(Charsets.US_ASCII).lines())
+            .containsExactly("iPhone - Safari - \"Zoe's\" 1-2...", "Asa -> ??").inOrder()
+        val utf8 = ByteArrayOutputStream()
+        CliOutput.stream(utf8, asciiOnly = false).print("iPhone · Safari")
+        assertThat(utf8.toString(Charsets.UTF_8)).isEqualTo("iPhone · Safari")
     }
 
     @Test
