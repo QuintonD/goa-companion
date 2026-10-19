@@ -85,4 +85,15 @@ class GroupStoreTest {
         s.update { it }
         assertThat(Files.exists(dir.resolve("data.json"))).isFalse()
     }
+
+    @Test
+    fun `a change is stored whole even when the daily copy can't be written`() = runBlocking<Unit> {
+        val dir = tmp.root.toPath()
+        Files.writeString(dir.resolve("not-a-dir"), "x") // the backups "directory" is a file
+        val store = GroupStore(dir.resolve("data.json"), dir.resolve("not-a-dir"), FakeClock())
+        store.upsertPlayer(player("ann", "Ann"))
+        assertThat(store.read().players.map { it.id }).containsExactly("ann")
+        val reopened = GroupStore(dir.resolve("data.json"), dir.resolve("not-a-dir"), FakeClock())
+        assertThat(reopened.read()).isEqualTo(store.read())
+    }
 }

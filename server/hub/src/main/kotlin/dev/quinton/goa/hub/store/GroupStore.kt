@@ -135,12 +135,21 @@ class GroupStore(
         return SyncMerge.normalize(SyncJson.decodeFromString(SyncDocument.serializer(), bytes.decodeToString()))
     }
 
+    /**
+     * Writes `data.json` (atomically: if this throws, nothing changed), then the day's copy. A
+     * failing copy is logged, not thrown: the change is already stored, and an error now would
+     * leave the data on disk ahead of the data in memory (a change half-applied).
+     */
     private fun store(doc: SyncDocument) {
         val bytes = SyncJson.encodeToString(SyncDocument.serializer(), doc).toByteArray()
         AtomicFiles.write(file, bytes)
-        val today = clock.today()
-        AtomicFiles.write(backups.resolve("$BACKUP_PREFIX$today$BACKUP_SUFFIX"), bytes)
-        pruneBackups(today)
+        try {
+            val today = clock.today()
+            AtomicFiles.write(backups.resolve("$BACKUP_PREFIX$today$BACKUP_SUFFIX"), bytes)
+            pruneBackups(today)
+        } catch (e: java.io.IOException) {
+            log.warn("Couldn't write the daily copy in {}: {}", backups, e.toString())
+        }
     }
 
     /** Deletes daily copies older than [KEEP_DAYS] days before [today]; returns how many. */
