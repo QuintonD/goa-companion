@@ -107,7 +107,7 @@ object RulesFeature : HubFeature {
             respondFragment { rulesResults(state) }
             return
         }
-        respondPage(HubPage("Rules", back = "/heroes", styles = styles)) {
+        respondPage(HubPage("Rules", back = "/heroes", styles = styles, backToPrevious = true)) {
             if (state !is RulesUiState.Ready) {
                 emptyState("Rules unavailable", RulesText.UNAVAILABLE)
                 return@respondPage

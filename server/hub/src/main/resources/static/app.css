@@ -185,7 +185,7 @@ input, select, textarea { font-size: max(16px, 1rem); }
 h1, h2, h3 { margin: 0; font-family: var(--font-display); font-weight: 600; line-height: 1.2; }
 h2 { font-size: 1.25rem; }
 h3 { font-size: 1.0625rem; }
-p { margin: 0; }
+p { margin: 0; overflow-wrap: break-word; }
 a { color: var(--secondary); }
 img { max-width: 100%; }
 .numeric, .tabular { font-variant-numeric: tabular-nums lining-nums; }
@@ -325,6 +325,28 @@ body { --dock: 0px; }
 .tab.selected { color: var(--on-surface); font-weight: 600; }
 .tab.selected .tab-indicator { background: var(--secondary-container); color: var(--on-secondary-container); }
 
+/* ---- The running-timer bar above the tabs (the Timer's shell bar, on every other page) ---- */
+.timer-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px calc(16px + env(safe-area-inset-right)) 8px calc(16px + env(safe-area-inset-left));
+  border-top: 1px solid var(--engraved);
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  text-decoration: none;
+}
+/* The bar's two icons (the Timer's own symbols) */
+.timer-bar .icon-t-timer { --icon: url(/static/timer/icons/timer.svg); }
+.timer-bar .icon-t-pause { --icon: url(/static/timer/icons/pause.svg); }
+.timer-bar-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.timer-bar-phase { font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.timer-bar-context { font-size: 0.8125rem; opacity: 0.85; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.timer-bar-clock { font: 700 24px/1 var(--font-body); }
+.timer-bar.is-overtime .timer-bar-clock { color: var(--error); }
+.timer-bar.is-paused { background: var(--surface-high); color: var(--on-surface); }
+
 /* ---- Icons: CSS masks tinted with the text colour ---- */
 .icon {
   display: inline-block;
@@ -371,7 +393,9 @@ body { --dock: 0px; }
 a.row:hover, a.row:active { background: var(--surface-high); }
 .row + .row { margin-top: calc(var(--space) * -3); }
 .row-leading { display: flex; flex: none; }
-.row-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.row { flex-wrap: wrap; }
+.row-text { display: flex; flex: 1 1 7rem; flex-direction: column; min-width: 0; }
+.row-trailing { margin-left: auto; }
 .row-title { font-weight: 500; overflow-wrap: anywhere; }
 .row-subtitle { color: var(--on-surface-variant); font-size: 0.875rem; }
 .row-trailing { color: var(--on-surface-variant); font-variant-numeric: tabular-nums; }
@@ -502,7 +526,8 @@ a.row:hover, a.row:active { background: var(--surface-high); }
 
 .error-state { background: var(--error-container); color: var(--on-error-container); }
 .notice { background: var(--surface-high); color: var(--on-surface); }
-.error-state p, .notice p { flex: 1; }
+.error-state, .notice { flex-wrap: wrap; }
+.error-state p, .notice p { flex: 1 1 12rem; }
 .badge-verified { color: var(--verified); }
 .badge-unverified { color: var(--unverified); }
 

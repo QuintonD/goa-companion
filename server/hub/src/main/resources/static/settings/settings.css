@@ -99,8 +99,10 @@
 .segment .icon { width: 18px; height: 18px; }
 .segment.selected { background: color-mix(in srgb, var(--primary) 18%, var(--surface)); color: var(--on-surface); font-weight: 600; }
 
-/* Narrow screens or large text: the segments stack, as the app's radio list does at large font scales */
-@media (max-width: 359px) {
+/* Narrow screens or large text: the segments stack, as the app's radio list does at large font
+   scales. The query is on the segments' own box, in em, so the iPhone's Text Size counts too. */
+:has(> .segmented) { container-type: inline-size; }
+@container (max-width: 18em) {
   .segmented { flex-direction: column; border-radius: var(--radius-card); }
   .segment + .segment { border-left: 0; border-top: 1px solid var(--engraved); }
 }

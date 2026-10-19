@@ -24,14 +24,16 @@
 .topic-row .row-title { font-size: 1.125rem; }
 
 .page-tag {
-  flex: none;
+  /* Shrinks and wraps at large text rather than pushing its row off the screen. */
+  flex: 0 1 auto;
+  min-width: 0;
   padding: 2px 8px;
   border: 1px solid var(--engraved);
   border-radius: 10px;
   color: var(--primary);
   font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  text-align: center;
 }
 
 .rules-pages { font-size: 0.875rem; font-weight: 500; }

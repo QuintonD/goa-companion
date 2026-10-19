@@ -51,7 +51,11 @@
     try {
       var from = new URL(document.referrer);
       var to = new URL(back.href);
-      if (window.history.length > 1 && from.origin === location.origin && from.pathname === to.pathname) {
+      // data-back="previous" (Rules, Card trivia, Settings): back to any page of the app that opened
+      // this one, except this page's own sub-pages (a back from those already went through history).
+      var previous = back.getAttribute("data-back") === "previous" && from.pathname !== location.pathname &&
+        from.pathname.indexOf(location.pathname + "/") !== 0;
+      if (window.history.length > 1 && from.origin === location.origin && (from.pathname === to.pathname || previous)) {
         event.preventDefault();
         window.history.back();
       }

@@ -48,7 +48,7 @@ internal suspend fun ApplicationCall.respondSettingsPage(ctx: HubContext) {
     val settings = SettingsFeature.settings(ctx, id)
     val theme = SettingsFeature.theme(ctx, id)
     val subscribed = ctx.push.subscriptions(id).isNotEmpty()
-    respondPage(settingsPage("Settings", back = "/heroes")) {
+    respondPage(settingsPage("Settings", back = "/heroes").copy(backToPrevious = true)) {
         sectionHeader("Appearance")
         themeCard(theme)
         sectionHeader("Collection")

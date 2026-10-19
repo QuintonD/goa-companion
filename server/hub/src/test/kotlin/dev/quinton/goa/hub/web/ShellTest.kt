@@ -71,6 +71,13 @@ class ShellTest {
                 assertThat(response.status).isEqualTo(HttpStatusCode.OK)
                 assertThat(response.bodyAsText()).doesNotContain("class=\"tab selected\"")
             }
+            // Rules, Card trivia and Settings open from any tab: Back returns to the page that opened them.
+            for (path in listOf("/rules", "/trivia", "/settings")) {
+                val html = client.get(path) { header(HttpHeaders.Cookie, cookie(token)) }.bodyAsText()
+                assertThat(html).contains("aria-label=\"Back\" data-back=\"previous\"")
+            }
+            val hero = client.get("/heroes/arien") { header(HttpHeaders.Cookie, cookie(token)) }.bodyAsText()
+            assertThat(hero).contains("<a href=\"/heroes\" class=\"icon-button\" aria-label=\"Back\" data-back=\"\">")
             val missing = client.get("/players/nope") { header(HttpHeaders.Cookie, cookie(token)) }
             assertThat(missing.status).isEqualTo(HttpStatusCode.NotFound)
             assertThat(missing.bodyAsText()).contains("tab-bar")

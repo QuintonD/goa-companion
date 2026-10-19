@@ -143,7 +143,7 @@
 .tr { display: flex; flex-direction: column; gap: 12px; margin: 0; }
 .tr-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tr-round { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.tr-round-label { font: 700 1.75rem/1.1 var(--font-display); }
+.tr-round-label { font: 700 min(1.75rem, 36px)/1.1 var(--font-display); white-space: nowrap; }
 .tr-preset { color: var(--on-surface-variant); font-size: 0.875rem; }
 .tr-head-actions { display: flex; align-items: center; }
 .tr-coin {
@@ -197,7 +197,8 @@
 }
 .tr-alert { background: var(--error-container); color: var(--on-error-container); font-weight: 600; }
 .tr-push-banner { padding: 4px 4px 4px 16px; background: var(--surface-high); font-size: 0.9375rem; }
-.tr-push-banner p, .tr-alert p { flex: 1; }
+.tr-push-banner p, .tr-alert p { flex: 1 1 12rem; }
+.tr-push-banner, .tr-alert { flex-wrap: wrap; }
 .tr-push-banner[hidden], .tr-sound-hint[hidden] { display: none; }
 .tr-sound-hint { align-self: center; }
 
@@ -341,7 +342,8 @@
   padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
   background: linear-gradient(transparent, var(--bg) 24%);
 }
-.tr-controls .btn { min-width: 0; min-height: 72px; padding: 0 16px; border-radius: 36px; font-size: 1.1875rem; }
+/* The table's big controls grow with the text, but only so far: they must stay side by side. */
+.tr-controls .btn { min-width: 0; min-height: 72px; padding: 0 12px; border-radius: 36px; font-size: min(1.1875rem, 21px); }
 .tr-controls .btn .icon { width: 30px; height: 30px; }
 .tr-pause { border-color: var(--engraved); background: var(--surface-high); color: var(--on-surface); }
 .tr-next { font-size: 1.0625rem; line-height: 1.15; }
@@ -389,25 +391,6 @@
 /* Summary */
 .tr-summary-card h2 { font-size: 1.75rem; }
 .tr-log { min-height: 64px; font-size: 1.1875rem; }
-
-/* ---- The running-timer bar on other pages ---- */
-.timer-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 56px;
-  padding: 8px calc(16px + env(safe-area-inset-right)) 8px calc(16px + env(safe-area-inset-left));
-  border-top: 1px solid var(--engraved);
-  background: var(--primary-container);
-  color: var(--on-primary-container);
-  text-decoration: none;
-}
-.timer-bar-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
-.timer-bar-phase { font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.timer-bar-context { font-size: 0.8125rem; opacity: 0.85; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.timer-bar-clock { font: 700 24px/1 var(--font-body); }
-.timer-bar.is-overtime .timer-bar-clock { color: var(--error); }
-.timer-bar.is-paused { background: var(--surface-high); color: var(--on-surface); }
 
 /* ---- Landscape: the dial on the left, everything else on the right ---- */
 @media (orientation: landscape) and (max-height: 600px) {

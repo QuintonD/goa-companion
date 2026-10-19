@@ -309,7 +309,7 @@
 .results-header .count, .hero-section-title .count, .deck-group-title .count { color: var(--on-surface-variant); font-family: var(--font-body); font-size: 0.8125rem; font-weight: 500; }
 
 /* Three heroes across a 390 px phone; fewer when the text (or zoom) is large. */
-.hero-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.4rem, 1fr)); gap: calc(var(--space) * 2); }
+.hero-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(6.4rem, calc(50% - var(--space))), 1fr)); gap: calc(var(--space) * 2); }
 
 .hero-tile {
   display: flex;
@@ -415,7 +415,7 @@
 .swatch.base { background: var(--primary); }
 .swatch.conditional { margin-left: 8px; border: 1px solid var(--primary); background: color-mix(in srgb, var(--primary) 30%, transparent); }
 
-.metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: calc(var(--space) * 3) var(--pad); }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 4.75rem), 1fr)); gap: calc(var(--space) * 3) var(--pad); }
 .metric { display: flex; flex-direction: column; }
 .metric-label { color: var(--on-surface-variant); font-size: 0.8125rem; font-weight: 500; }
 .metric-value { color: var(--primary); font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; }
@@ -491,6 +491,7 @@
 .faq-source { color: var(--on-surface-variant); font-size: 0.75rem; }
 
 .lore { margin: 0; padding-left: calc(var(--space) * 3); border-left: 2px solid color-mix(in srgb, var(--primary) 50%, transparent); color: var(--on-surface-variant); font-size: 1.0625rem; font-style: italic; }
+.source { overflow-wrap: anywhere; }
 .source p:first-child { font-size: 0.9375rem; }
 
 /* ---- Card viewer: one card per screen, swipe with scroll snap ---- */

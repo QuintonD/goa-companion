@@ -102,6 +102,11 @@ data class HubPage(
     val scripts: List<String> = emptyList(),
     /** Extra stylesheets after app.css, relative to `static/` (e.g. `timer/timer.css`). */
     val styles: List<String> = emptyList(),
+    /**
+     * Back returns to whichever page opened this one (the phone's back from Rules, Card trivia and
+     * Settings, which open from any tab); [back] is only the fallback without one.
+     */
+    val backToPrevious: Boolean = false,
 )
 
 /** Renders [page] around [content] (the `<main>` element) and sends it. */
@@ -205,7 +210,7 @@ private fun BODY.topBar(page: HubPage) {
         page.back?.let { href ->
             a(href, classes = "icon-button") {
                 attributes["aria-label"] = "Back"
-                attributes["data-back"] = ""
+                attributes["data-back"] = if (page.backToPrevious) "previous" else ""
                 icon(Icons.BACK)
             }
         }
