@@ -684,6 +684,28 @@ INTERNET permission. Options weighed:
   an overall cap. Features register in one list (`HubFeatures.kt`) and keep per-browser state in
   typed `DeviceSlot`s.
 
+**Implementation notes (2026-10-19, web Heroes, Rules and Card trivia):**
+- *Moved to `:core:presentation`* (`catalog`, `rules`, `trivia` packages; Android ViewModels call them,
+  tests moved): the catalog search index, browse and card search, filters, `CatalogUiState.build`,
+  active-filter chips, empty-state texts, hero list lines, `DeckLayout`, `HeroDetailUiState`,
+  `HeroPersonalStats` (its metrics and pilots), Hero Profile bars, card labels, printed values, Handicap
+  and gold notes, `CardViewerUiState`, the game-icon labels; the rules states, ladder cells and texts,
+  excerpt lines; the trivia home state, setup reducer, start note, and `TriviaRound` (the quiz
+  ViewModel's round logic over `TriviaEngine`). `TriviaJson` (the stored trivia documents) moved from
+  `core:data` to `core:domain`. Compose `@Immutable` on the moved rules/trivia states is replaced by a
+  stability configuration file in those feature modules.
+- *Heroes on the web:* filters and sort live in the URL (`/heroes?q=&c=&r=&p=&a=&all=1&sort=`),
+  search as you type is htmx with a 250 ms debounce (a plain GET form without JS); grid/list is the
+  phone's `catalogListView`. Card text is rendered from the catalog markup (bold keywords, italic
+  reminders, game icons as Material Symbols named for screen readers). The card viewer lists the
+  whole deck on one page in a CSS scroll-snap track (swipe without JS; arrows and ← → keys with
+  `viewer.js`); each scan opens full size for pinch zoom.
+- *Card trivia on the web:* progress and the last setup are the phone's two JSON documents in the
+  browser's `trivia` slot (not synced); the round is kept in memory per browser with its setup in
+  `trivia-round`, so a hub restart restarts it from question 1, as the phone does after process
+  death. Every setup chip is a submit button carrying an action applied with the phone's reducer.
+  Haptics have no web equivalent on iPhone and are left out.
+
 ## ADR-031 — Linking a phone (or browser) to its player: personal invites and "Same people?" (2026-10-18)
 **Context:** The owner enters friends as players before they install the app. When a friend joins,
 their phone must become that player, not a new one. Today "Which player are you?" works only if the
