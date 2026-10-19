@@ -272,10 +272,9 @@ class SignInTest {
                 assertThat(client.join(wrongKey).status).isEqualTo(HttpStatusCode.Forbidden)
             }
             assertThat(client.join(wrongKey).status).isEqualTo(HttpStatusCode.TooManyRequests)
-            // Locked out: even the right invite waits.
-            assertThat(client.join(goodInvite).status).isEqualTo(HttpStatusCode.TooManyRequests)
+            assertThat(client.join("garbage").status).isEqualTo(HttpStatusCode.TooManyRequests)
             clock.advance(JoinThrottle.LOCKOUT_MS + 1)
-            assertThat(client.join(goodInvite).status).isEqualTo(HttpStatusCode.Found)
+            assertThat(client.join(wrongKey).status).isEqualTo(HttpStatusCode.Forbidden)
         }
     }
 
@@ -308,8 +307,26 @@ class SignInTest {
 
             repeat(JoinThrottle.OVERALL) { i -> client.join(wrongKey, forwardedFor = "192.0.2.$i") }
             assertThat(
-                client.join(goodInvite, forwardedFor = "198.51.100.3").status,
+                client.join(wrongKey, forwardedFor = "198.51.100.3").status,
             ).isEqualTo(HttpStatusCode.TooManyRequests)
+        }
+    }
+
+    @Test
+    fun `nobody can lock the group out, the right invite gets in while the throttle is closed`() {
+        val hub = testHub(tmp.root.toPath(), clock)
+        hubTest(hub) {
+            val client = plainClient()
+            // A stranger floods /join with junk from rotating addresses and without any.
+            repeat(JoinThrottle.OVERALL) { i -> client.join(wrongKey, forwardedFor = "192.0.2.$i") }
+            repeat(JoinThrottle.UNKNOWN_CLIENTS) { client.join(wrongKey) }
+            assertThat(client.join(wrongKey).status).isEqualTo(HttpStatusCode.TooManyRequests)
+            assertThat(client.join(wrongKey, forwardedFor = "198.51.100.9").status)
+                .isEqualTo(HttpStatusCode.TooManyRequests)
+
+            assertThat(client.join(goodInvite).status).isEqualTo(HttpStatusCode.Found)
+            assertThat(client.join(goodInvite, forwardedFor = "198.51.100.9").status).isEqualTo(HttpStatusCode.Found)
+            assertThat(hub.devices.list()).hasSize(2)
         }
     }
 
