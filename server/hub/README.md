@@ -74,7 +74,8 @@ app/goa.apk                     the latest APK (deploy/linux/update.sh copies it
 ```
 
 Atomic writes go through `AtomicFiles.write` (temp `*.tmp` in the same directory, fsync, rename);
-the backup script skips `*.tmp`. The hub writes nothing outside this directory.
+the backup script skips `*.tmp`. The hub writes nothing outside this directory. On Linux the
+directory is `0700` and every file the hub writes `0600`, whatever the umask.
 
 ## Adding your area: `HubFeature`
 

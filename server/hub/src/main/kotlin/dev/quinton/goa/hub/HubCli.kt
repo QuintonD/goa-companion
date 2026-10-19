@@ -104,7 +104,7 @@ class HubCli(
             return FAILED
         }
         val paths = paths(options)
-        Files.createDirectories(paths.root)
+        paths.ensureRoot()
         val membership = MembershipStore(paths.group)
         when (val result = membership.join(invite.group, clock.nowMillis())) {
             is MembershipStore.JoinResult.OtherGroup -> {
@@ -148,7 +148,7 @@ class HubCli(
 
     private fun config(options: Options): Int {
         val paths = paths(options)
-        Files.createDirectories(paths.root)
+        paths.ensureRoot()
         val store = HubConfigStore(paths.config)
         val url = options.value("public-url")?.let {
             HubConfig.normalizeUrl(it)
