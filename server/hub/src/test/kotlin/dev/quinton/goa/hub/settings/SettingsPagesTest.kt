@@ -271,6 +271,7 @@ class SettingsPagesTest {
             val previewText = preview.bodyAsText()
             assertThat(previewText).contains("+1 match, +1 player, 1 updated")
             assertThat(previewText).contains("custom rating settings")
+            assertThat(previewText).contains("name=\"useSettings\"")
             // Nothing changes before Merge.
             assertThat(hub.groupStore.read().players.map { it.name }).containsExactly("Ann", "Bob")
 
@@ -292,6 +293,24 @@ class SettingsPagesTest {
             assertThat(elo.config.kEstablished).isEqualTo(25.0)
             assertThat(elo.updatedAt).isEqualTo(clock.nowMillis())
             assertThat(hub.deviceStore.read(b.id, ShellSlots.Theme)).isEqualTo(ThemeChoice.LIGHT)
+        }
+    }
+
+    @Test
+    fun `a file without settings never offers or applies them, so the group's constants stay`() {
+        val hub = hub()
+        runBlocking { hub.groupStore.updateEloConfig { it.copy(kEstablished = 40.0) } }
+        hubTest(hub) {
+            val b = browser()
+            // An old backup: matches and players only (no constants, no app settings).
+            val old = BackupDocument(exportedAt = 5, players = listOf(player("cid", "Cid")))
+            val preview = b.upload(BackupCodec.encode(old)).bodyAsText()
+            assertThat(preview).doesNotContain("name=\"useSettings\"")
+            val before = hub.groupStore.read().eloConfig
+            clock.advance(1_000)
+            b.post("/settings/backup/import/confirm", "useSettings" to "true")
+            assertThat(hub.groupStore.read().eloConfig).isEqualTo(before)
+            assertThat(hub.groupStore.read().players.map { it.id }).contains("cid")
         }
     }
 
