@@ -274,39 +274,60 @@ Life counters).
   vector style): spaces by Zone, Throne Zones in team colours, Zone borders, printed terrain, hero
   and minion Spawn points by team and type, each Lane's current Battle Zone. The core single-lane
   map first; any map not verified against the official art and rulebook is badged Unverified.
-- **New board in two taps:** "New board" → pick each team's heroes (search, tap to add in order;
-  "Use a draft or match" fills both teams from the latest finished draft, a pending match or a logged
-  match) → **Set up**: the board opens on the opening position (p.6): minions on their Spawn points in
-  each starting Battle Zone, heroes on their team's hero Spawn points in pick order (more than three
-  per team: next to them, p.20). Default map: single lane; the double-lane map when chosen or with
-  8+ heroes (if bundled). From a finished draft ("Try on the board") or a match ("Open on the board")
-  it is one tap.
+- **Set-up in one tap:** Boards and New board show the latest finished draft or match ("Latest
+  pending match · Snorri vs Gydion · **Set up**"); a finished draft ("Try on the board") and a match
+  ("Open on the board", in the draft's pick order when it came from a draft) open their board in one
+  tap. A line-up whose board is still untouched (on its opening) reopens that board instead of a
+  duplicate, and a double tap never opens two. With no boards yet, Board opens straight on New board.
+- **New board without scrolling:** both teams in pick order at the top, search with an "Adding to
+  Red | Blue" switch beside it, a compact grid of the heroes the group owns (Settings; "Show all
+  heroes" lists the rest), and "Map: Forgotten Island ▾" (Unverified noted) beside **Set up** at the
+  bottom. Picks alternate like a draft: the next pick goes to the team with fewer heroes (a tie to
+  the other team), so tapping Brogan, Tigerclaw, Arien, Wasp gives Brogan + Arien vs Tigerclaw + Wasp
+  (5 taps with Set up); tapping Red or Blue picks for that team. "Use a draft or match" (top bar)
+  fills both teams from any recent draft or match. **Set up** opens the opening position (p.6):
+  minions on their Spawn points in each starting Battle Zone, heroes on their team's hero Spawn
+  points in pick order (more than three per team: next to them, p.20). Default map: single lane; the
+  double-lane map when chosen or with 8+ heroes (if bundled).
 - **Moving pieces:** tap a piece to select it; tap an empty space to move it there; tap another piece
-  to select that one; drag a piece to move it, dropping on another piece swaps them. One piece per
-  space, always. "Add" puts in a hero (catalog picker), a minion (team and type) or a token (short
-  label, an obstacle) — then tap where. Remove. Undo/redo every change; "Reset to opening".
+  to select that one; drag the selected piece to move it (a long press lifts any other piece), dropping
+  on another piece swaps them; any other drag pans. One piece per space, always. "Add" puts in a hero
+  (owned heroes first), a minion (team and type) or a token (short label, an obstacle) — then tap
+  where. Remove. Undo/redo every change; "Reset to opening" (added pieces go too). TalkBack hears
+  every move ("Brogan moved 2 spaces, to Lane Zone 2, Battle Zone").
 - **Measuring** (a hero selected): pick one of its cards (by colour, Basic → Tier III → Ultimate)
-  and switch on overlays: Movement (the card's movement value: spaces it can end on, moving only
-  through empty spaces, p.11; "Ignore obstacles" switch), Fast Travel (p.11: own or adjacent Zone,
-  no enemy hero or minion in either), Range and Radius (from the card's values, ± for items), and
-  the card's text quoted. A minion or token selected: Movement N with a stepper. "Measure": tap any
-  space to read its distance in spaces and whether it lies in a straight line.
-- **Battle Zone:** "Push the lane" (pick the team that won the push; per lane on a double-lane map)
-  applies p.8 steps 2–3; a minion whose Spawn point is taken waits in a tray, with the nearest empty
-  spaces of the Battle Zone highlighted. Pushing into a Throne Zone says that team wins.
+  and switch on overlays: Movement (the card's movement value: spaces it can end on, p.11; "Path:
+  Normal · Tokens · Ignore all" for cards that move through tokens or ignore obstacles, p.18, and "In
+  a straight line", p.19), Fast Travel (p.11: own or adjacent Zone, no enemy hero or minion in
+  either), Range and Radius (from the card's values, ± for items; the water around the board counts,
+  p.19), and the card's text quoted. A minion or token selected: Movement N with a stepper; a minion
+  outside its Battle Zone shows where it goes back to (p.18, bound to its Lane, p.20). "Measure": tap
+  any space of the board to read its distance in spaces and whether it lies in a straight line. The
+  view zooms and pans so the selection and what it reaches stay in sight, hexes big enough to tap.
+- **Battle Zone:** "Push the lane" (pick the team that won the push; per Lane on a double-lane map,
+  named like the map's labels, "Lane 1 · Battle Zone") applies p.8 steps 2–3; a minion whose Spawn
+  point is taken waits in a tray, with the nearest empty spaces of its Battle Zone highlighted; taps
+  place it while no board piece is selected. Pushing into a Throne Zone says that team wins.
 - **Boards:** every change is saved as it happens; the Boards list (name, map, line-up, last change)
-  opens, renames, duplicates and deletes them (delete can be undone). On this phone and in the
-  backup file, not synced.
+  opens, renames, duplicates and deletes them (delete can be undone, even after leaving Boards). On
+  this phone and in the backup file, not synced. A board left open follows its stored copy: a backup
+  import replaces it on screen, a deletion closes it; it never writes over either.
 - **Layout:** the board fills the screen with the Lane running top to bottom in portrait (your
-  team's Throne at the bottom; "Flip" swaps), left to right in landscape; pinch to zoom, drag to pan,
-  double tap zooms, "Fit" resets. Selection details sit in a bottom panel (on the right in
-  landscape, where a bottom panel would leave no map) that never covers the selected piece. Pieces show the hero's portrait ringed in team colour, minions by type, tokens by
-  label. TalkBack: a "Pieces" list selects any piece; spaces read their Zone and what stands there.
+  team's Throne at the bottom; "Flip" swaps), left to right in landscape. It opens on the Lane
+  between the hero spawn areas with hexes at least ~38 dp across (a double-lane map on its whole
+  region, so neither Battle Zone is cut off); "Fit" shows the whole map (beside the side panel in
+  landscape) and toggles back to the Lane; pinch to zoom, drag to pan, double tap on a space where
+  the tap did nothing zooms in. Selection details sit in a bottom panel (on the right in
+  landscape, where a bottom panel would leave no map) that never covers the selected piece. Pieces
+  show the hero's portrait ringed in team colour, minions by type, tokens by label. TalkBack: a
+  "Pieces" list selects any piece; spaces in view read their Zone, what stands there and how far
+  they are from the selected piece.
 - **Entry points:** Heroes tab top bar (Board), finished draft, a pending or logged match.
 - **Done when:** hex distance, movement, Fast Travel, opening and push tests match rulebook cases;
   every bundled map passes validation (spawn counts per p.6, Lanes, Zones, no overlaps); the board,
-  new-board and boards screens have light/dark, font scale 2, 384 dp and landscape screenshots; an
-  end-to-end test sets up a board from a draft and moves a hero.
+  new-board and boards screens have light/dark, font scale 2, 384 dp and landscape screenshots (and
+  a two-lane board); an end-to-end test sets up a board from a finished draft's "Try on the board"
+  and moves a hero to a named space next to it.
 
 ### Settings
 Theme (dark default / light / system), owned products (default: all), timer defaults, running

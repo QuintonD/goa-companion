@@ -485,9 +485,13 @@ the pinned 2nd-printing rulebook.
   3475112). Adjacent = 1: "If your card has a Range/Radius value of 1, your primary action can only
   affect adjacent targets. With a Range/Radius value of 3, your primary action can affect targets
   up to 3 spaces away" (p.9).
-- **Range / Radius** (`BoardRules.within`): the spaces (and enclosed terrain) 1..N away; "There are
-  no 'line of sight' rules" (p.9). The centre is left out: it holds the acting hero, whom a card
-  never affects unless it says so (goa2-faq common ruling).
+- **Range / Radius** (`BoardRules.within`): the board spaces 1..N away: spaces, enclosed terrain and
+  the water around the map, which is terrain on the printed grid ("Any board space without a full
+  grid outline counts as terrain and is an obstacle, including the water spaces surrounding the
+  board", p.19); "There are no 'line of sight' rules" (p.9). [APP] The water is taken one ring deep
+  (`BoardGeometry.edge`: hexes next to a space that are neither spaces nor holes); how far the
+  printed water reaches differs per mat, and the app draws that ring. The centre is left out: it
+  holds the acting hero, whom a card never affects unless it says so (goa2-faq common ruling).
 - **Adjacent** (`HexGrid.adjacent`): "Adjacent spaces are any two spaces that share a border"
   (p.17). **Zone adjacency** (`BoardGeometry.adjacentZones`): "Two Zones are adjacent if they have
   at least two nonterrain spaces that are adjacent to each other" (p.17); static, "Tokens and units
@@ -500,19 +504,27 @@ the pinned 2nd-printing rulebook.
   movement icon" and "Units cannot move through or into spaces with obstacles (Units -- heroes and
   minions, terrain, and tokens all count as obstacles)" (p.11); friendly units block too. Returns
   each reachable empty space with the fewest steps.
-- **Ignoring obstacles** (`movementReach(ignoreObstacles = true)`): "allowed to enter a space with
-  an obstacle and leave that space in any direction, while moving. However, a unit can never end
-  its movement on the same space as an obstacle" (p.18). Water around the map is terrain, so such a
-  move may cut across it.
+- **Movement paths** (`movementReach(path = MovePath.…)`): `NORMAL` as above. `IGNORE_OBSTACLES`:
+  "allowed to enter a space with an obstacle and leave that space in any direction, while moving.
+  However, a unit can never end its movement on the same space as an obstacle" (p.18 "Ignoring
+  Obstacles"); water around the map is terrain, so such a move may cut across it.
+  `THROUGH_TOKENS`: tokens may be passed, units and terrain may not — card tokens "units may move
+  through" (mines) and p.18 "Immune": "Units that ignore obstacles can move through an Immune unit,
+  or a token". Every path ends on an empty space.
+- **Straight-line moves** (`movementReach(straightLine = true)`): "Move up to N spaces in a straight
+  line" (many cards, often "ignoring obstacles"): along one of the six directions (p.17
+  "Direction"; p.19 "A straight line is a sequence of spaces arranged in a file"), stopping before
+  the first space its path may not pass; it ends on an empty space.
 - **Fast Travel** (`fastTravel`): "you may move to any space in the same Zone, or an adjacent Zone,
   as long as all of the below are true: The destination space is either in the same Zone, or in an
   adjacent Zone. There are no enemy heroes or minions in the Zone you are Fast Traveling from.
   There are no enemy heroes or minions in the Zone you are Fast Traveling to" (p.11); "You do not
   need to have a path of empty spaces to the destination space". The Arien example allows the own
   Zone ("Arien may Fast Travel to any space in Zone B, because there are no enemies in Zone B and
-  Arien is in Zone B"). The destination must be empty: Fast Travel places the hero ("Fast Travel is
-  a placement, not movement", goa2-faq) and "A game piece can only be placed into an empty space"
-  (p.18 "Place"). Tokens and friendly units never block a Zone.
+  Arien is in Zone B"). The destination must be empty: "There can never be more than one obstacle in
+  any one space. Ever. No exceptions." (p.18 "Obstacle"); the goa2-faq adds that Fast Travel is a
+  placement ("Fast Travel is a placement, not movement") and "A game piece can only be placed into an
+  empty space" (p.18 "Place"). Tokens and friendly units never block a Zone.
 - **Straight line** (`HexGrid.straightLine`, `inStraightLine`): "A straight line is a sequence of
   spaces arranged in a file. A single space counts as a straight line. Two units are in a straight
   line if they are adjacent, or if you can draw a straight line of spaces through spaces occupied
@@ -520,7 +532,9 @@ the pinned 2nd-printing rulebook.
 - **Push** (`push`): "move it in a straight line directly away from the pushing unit the number of
   spaces equal to the push distance. If the push is 'ignoring obstacles' ... the pushed target is
   moved through obstacles as long as it can reach an empty space. If the target cannot be moved the
-  full distance, move it as far as possible; this can result in pushing it 0 spaces" (p.18).
+  full distance, move it as far as possible; this can result in pushing it 0 spaces" (p.18). Null
+  when pusher and target are not in a straight line: no direction is "directly away". Not modelled:
+  pushing several targets "at the same time" (p.18); the table applies those by hand.
 - **Opening** (`BoardSetup.opening`): "Place the hero miniatures on the marked spaces in their
   corresponding Throne Zone ... These spaces are called hero spawn points" (p.6 step 9); "Place the
   minions on the board in the starting Battle Zone ... on spaces marked with a minion icon that
@@ -529,6 +543,11 @@ the pinned 2nd-printing rulebook.
   and "When playing with more than 3 heroes per team, place the remaining heroes into any empty
   spaces adjacent to their team's occupied hero spawn points" (p.20). [APP] Heroes take the spawn
   points in pick order (map order); extras the first free neighbour; any left over wait in the tray.
+  [APP] p.20's rule for more than three heroes sits under the double-lane map; the app applies it on
+  single-lane maps too (the rulebook's single-lane games have at most three per team). Each minion
+  records its Lane (`MinionPiece.lane`, p.20: "Minions are bound to the Battle Zone they were
+  originally spawned in for the purpose of respawning and when applying the 'Minions Outside of the
+  Battle Zone' rules").
 - **Push the Lane** (`pushLane`, p.8 steps 2–3): "The next Zone towards the losing team's Throne
   becomes the new Battle Zone. If the enemy Throne Zone itself becomes the new Battle Zone, the team
   who won the push wins the game" (`ThroneCaptured`). "Remove all minions in the previous Battle
@@ -537,9 +556,16 @@ the pinned 2nd-printing rulebook.
   Spawn point is occupied by a non-token obstacle, the owning team must place that minion in the
   nearest empty space of their choice in the Battle Zone" (`waiting` + `nearestEmpty`, distance
   counting obstacles). Wave counters are the table's. Double lane: each Lane is pushed on its own
-  (p.20). [APP] Minions already waiting in the tray stay there (the tray has no lane).
-- **Minions outside of the Battle Zone** (`returnToBattleZone`): "move it by the shortest path of
-  empty spaces to an empty space in the same Battle Zone. If there are multiple valid shortest
+  (p.20); the removal takes the previous Battle Zone's minions except those bound to the other Lane,
+  and this Lane's minions still waiting in the tray (they belong to the previous Battle Zone, p.8
+  step 3); new minions are bound to the pushed Lane. [APP] "Nearest" is measured from the Spawn point
+  the minion could not take (`waitingTargets`); the tray doesn't store it, so a Lane's waiting
+  minions of one team and type take that Zone's Spawn points of their type held by something else,
+  in order.
+- **Minions outside of the Battle Zone** (`returnToBattleZone`; with a minion, its own Lane's Battle
+  Zone, p.20; a hand-added minion on a double-lane map gets its Lane from its Zone when only one
+  Lane runs through it): "move it by the shortest path of empty spaces to an empty space in the same
+  Battle Zone. If there are multiple valid shortest
   paths, the minion's team decides. If there is no path to the Battle Zone, or the minion cannot
   move, place that minion in the nearest empty space of the Battle Zone" (p.18).
 - **Hero respawn** (`heroRespawn`): "you may respawn on any empty Spawn point in your Throne Zone

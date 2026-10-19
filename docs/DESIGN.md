@@ -118,18 +118,32 @@ left to right in landscape. Zone fills are muted (`BoardPalette`, derived from t
 and light): lane Zones alternate two tones, side Zones a sea-green tone, Throne Zones a team tint,
 the current Battle Zone a teal tint with a teal border; other Zone borders are bronze, spaces are
 separated by a hairline of the canvas colour. Terrain is a dark hex with an original faceted rock.
-Zone labels (Battle Zone, Red/Blue Throne) float at a fixed size outside the zoom, so they stay
-readable. **Original glyphs** (masters `design/board/glyph_*.svg`, path data mirrored in
+One ring of water hexes (the terrain around the board, p.19) is drawn faintly around the map
+(`water`/`waterLine`). Zone labels (Battle Zone, "Lane 1 · Battle Zone" on a double-lane map,
+Red/Blue Throne) float at a fixed size outside the zoom, so they stay readable; they sit just
+outside their Zone's edge, under every piece and overlay, and take the first of their places that
+is in view and covers no piece, highlighted space, Measure line or map button; with none free they
+hide. **Original glyphs** (masters `design/board/glyph_*.svg`, path data mirrored in
 `ui/BoardGlyphs.kt`): crown = hero Spawn point, sword = melee, arrow = ranged, shield = heavy.
 Spawn points draw the glyph on the team's shape outline (◆ Red / ● Blue). Pieces: heroes are the
 official portrait in a team-coloured ring, minions a team disc with the glyph, tokens a stone square
 with the label; heroes and minions carry the team's shape at the bottom right, so team is never
 colour alone. **Overlays** each have a pattern as well as a colour, and the switch that turns one on
-shows its swatch (the legend): Movement = teal fill with the number of spaces, Fast Travel = bronze
-hatching, Range = violet inner outline, Radius = three dots; waiting-minion targets = dashed teal
-outline; the selected piece = bright outline on a dark halo; Measure = bronze line (dashed when not
-in a straight line). The selection panel sits at the bottom in portrait (max half the height,
-collapsible) and on the right in landscape; the map pans so it never covers the selected piece.
+shows its swatch (the legend): Movement = green fill and outline with the number of spaces (its
+own colour, apart from the Battle Zone's teal: dark `#7BD88F`, light `#2A7037`, the player palette's
+Kelp; green on the lane fills ≥ 4.5:1, the numbers are onSurface), Fast Travel = bronze hatching,
+Range = violet inner outline, Radius = three dots; where a piece should go (a waiting minion's
+targets, a minion's way back to its Battle Zone) = dashed teal outline; the selected piece = bright
+outline on a dark halo; Measure = bronze line (dashed when not in a straight line). The selection
+panel sits at the bottom in portrait (max half the height, collapsible) and on the right in
+landscape. The board opens on the Lane between the hero spawn areas, hexes at least 38 dp across
+(a double-lane map on its whole region); the view zooms and pans so the selected piece and what its
+overlays reach stay in sight and tappable, clear of the panel, the tools and the Unverified badge;
+"Fit" shows the whole map and turns into "Zoom to the lane". The card strip starts one card before
+the chosen card and fades at an edge with more cards beyond. **New board** fits a phone without
+scrolling: teams (pick chips, "Next pick" on the team that picks next), search with a segmented
+Red | Blue switch beside it (under it at large text), a 58 dp portrait grid, and the Map menu beside
+Set up in the bottom bar; the latest draft's or match's line-up sits on top as a card with Set up.
 
 ## Asset policy
 Private, non-commercial build (ADR-006), so two kinds of asset:
