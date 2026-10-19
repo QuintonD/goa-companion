@@ -31,6 +31,11 @@ data class PlayersUiState(
     val samePeople: Int = 0,
     /** The last sync with the group's hub failed for a reason a person must fix (ADR-030 §5). */
     val hubNeedsAttention: Boolean = false,
+    /**
+     * The group has a hub (ADR-030): phones sync on their own, so the sync action opens the Group
+     * screen (the hub's state, and Nearby for a table without internet), not the Nearby sheet.
+     */
+    val hasHub: Boolean = false,
 ) {
     val isEmpty: Boolean get() = !loading && ranked.isEmpty() && unrated.isEmpty() && archived.isEmpty()
 

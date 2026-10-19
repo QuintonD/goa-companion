@@ -48,6 +48,8 @@ class HubAttentionTest {
         )
         backgroundScope.launch { vm.uiState.collect {} }
         assertThat(vm.uiState.first { !it.loading }.hubNeedsAttention).isFalse()
+        // With a hub the sync action opens the Group screen (how the automatic sync went).
+        assertThat(vm.uiState.first { !it.loading }.hasHub).isTrue()
 
         groups.current.value = groups.current.value.copy(hubError = HubError(HubProblem.UNREACHABLE, "Offline", 1))
         assertThat(vm.uiState.first { !it.loading }.hubNeedsAttention).isFalse()
@@ -57,5 +59,6 @@ class HubAttentionTest {
 
         groups.setHubUrl(null)
         assertThat(vm.uiState.first { !it.hubNeedsAttention }.hubNeedsAttention).isFalse()
+        assertThat(vm.uiState.first { !it.hasHub }.inGroup).isTrue()
     }
 }

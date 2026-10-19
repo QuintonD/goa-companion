@@ -50,12 +50,13 @@ class PlayersViewModel @Inject constructor(
     private val samePeople: Flow<Int> =
         SamePeopleViewModel.suggestions(players, matches, merges, matchUp).map { it.size }.distinctUntilChanged()
 
-    private val hubAttention: Flow<Boolean> = groups.state
-        .map { it.hubSyncOn && it.hubError?.problem?.transient == false }
+    /** The group has a hub, and whether its last sync needs a person. */
+    private val hub: Flow<Pair<Boolean, Boolean>> = groups.state
+        .map { it.hubSyncOn to (it.hubSyncOn && it.hubError?.problem?.transient == false) }
         .distinctUntilChanged()
 
-    /** "Same people?" count and the hub badge, together (combine takes five typed flows). */
-    private val hints: Flow<Pair<Int, Boolean>> = combine(samePeople, hubAttention) { same, hub -> same to hub }
+    /** "Same people?" count and the hub flags, together (combine takes five typed flows). */
+    private val hints: Flow<Pair<Int, Pair<Boolean, Boolean>>> = combine(samePeople, hub) { same, h -> same to h }
 
     val uiState: StateFlow<PlayersUiState> = combine(
         players.observePlayers(includeArchived = true),
@@ -63,9 +64,10 @@ class PlayersViewModel @Inject constructor(
         showArchived,
         me,
         hints,
-    ) { list, snapshot, archivedVisible, (meId, inGroup), (same, hubAttention) ->
+    ) { list, snapshot, archivedVisible, (meId, inGroup), (same, hubFlags) ->
+        val (hasHub, hubAttention) = hubFlags
         Leaderboard.build(list, snapshot, archivedVisible, meId)
-            .copy(inGroup = inGroup, samePeople = same, hubNeedsAttention = hubAttention)
+            .copy(inGroup = inGroup, samePeople = same, hubNeedsAttention = hubAttention, hasHub = hasHub)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlayersUiState())
 
     fun toggleArchived() = showArchived.update { !it }

@@ -106,7 +106,7 @@ fun PlayersHomeScreen(
                         Icons.Outlined.Sync,
                         contentDescription = when {
                             players.hubNeedsAttention -> "Group sync: the hub needs attention"
-                            players.inGroup -> "Sync with the group"
+                            players.inGroup && !players.hasHub -> "Sync with the group"
                             else -> "Group sync"
                         },
                     )

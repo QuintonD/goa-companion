@@ -215,7 +215,8 @@ private fun PlayersHomeEntry(navigator: Navigator) {
             onOpenRatingSettings = { navigator.navigate(RatingSettingsRoute) },
             onShareStats = statsVm::share,
             onOpenSync = {
-                val sheet = players.inGroup && !players.hubNeedsAttention
+                // With a hub the phones sync on their own: the Group screen shows how that went.
+                val sheet = players.inGroup && !players.hasHub && !players.hubNeedsAttention
                 navigator.navigate(if (sheet) SyncSessionRoute() else GroupSyncRoute)
             },
             onReviewSamePeople = { navigator.navigate(SamePeopleRoute) },
