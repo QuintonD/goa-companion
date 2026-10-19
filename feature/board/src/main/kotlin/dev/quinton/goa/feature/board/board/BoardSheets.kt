@@ -15,9 +15,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
@@ -46,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -68,6 +71,7 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardHero
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.hero
+import dev.quinton.goa.feature.board.ownedIn
 import dev.quinton.goa.feature.board.ui.PieceToken
 import dev.quinton.goa.feature.board.ui.boardPalette
 
@@ -119,12 +123,17 @@ internal fun AddContent(
     }
 }
 
+/** Catalog heroes, the owned products' first (Settings), like Draft; "Show all heroes" lists the rest. */
 @Composable
 private fun HeroChoices(state: BoardUiState.Ready, onPick: (String) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
+    var all by rememberSaveable { mutableStateOf(false) }
     val focus = LocalFocusManager.current
     val onBoard = state.heroIdsOnBoard
-    val heroes = state.heroes.values.sortedBy { it.name }.filter {
+    val everyone = state.heroes.values.sortedBy { it.name }
+    val owned = everyone.filter { it.ownedIn(state.ownedProducts) }
+    val hidden = everyone.size - owned.size
+    val heroes = (if (all) everyone else owned).filter {
         query.isBlank() || it.name.contains(query.trim(), ignoreCase = true) ||
             it.title.contains(query.trim(), ignoreCase = true)
     }
@@ -136,6 +145,14 @@ private fun HeroChoices(state: BoardUiState.Ready, onPick: (String) -> Unit) {
         }
         if (heroes.isEmpty()) {
             item { Text("No hero matches “${query.trim()}”.", Modifier.padding(Spacing.screen)) }
+        }
+        if (hidden > 0) {
+            item {
+                TextButton(
+                    onClick = { all = !all },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = Spacing.screen),
+                ) { Text(if (all) "Only heroes you own" else "Show all heroes ($hidden you don't own)") }
+            }
         }
     }
 }
@@ -209,7 +226,7 @@ private fun TokenChoices(onPick: (String, Boolean) -> Unit) {
             value = label,
             onValueChange = { label = it.take(TOKEN_LABEL) },
             label = { Text("Label") },
-            supportingText = { Text("A token is an obstacle (p.19). Name it after the card that places it.") },
+            supportingText = { Text("A token is an obstacle (p.18). Name it after the card that places it.") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { if (trimmed.isNotEmpty()) onPick(trimmed, withTeam) }),
@@ -250,7 +267,11 @@ internal fun PiecesContent(
                 item(key = "header-$title") { SectionHeader(title, Modifier.padding(horizontal = Spacing.screen)) }
                 items(pieces.sortedBy { order(it) }, key = { it.id }) { piece ->
                     val name = BoardText.piece(piece) { state.heroes.hero(it).name }
-                    val where = piece.at?.let { BoardText.zone(state.map, state.geometry.zoneOf(it)) } ?: "In the tray"
+                    val lane = (piece as? MinionPiece)?.let { BoardText.lane(state.map, state.geometry.laneOf(it)) }
+                    val where = listOfNotNull(
+                        lane,
+                        piece.at?.let { BoardText.zone(state.map, state.geometry.zoneOf(it)) } ?: "In the tray",
+                    ).joinToString(" · ")
                     Surface(
                         onClick = { onSelect(piece.id) },
                         color = if (piece.id == state.selectedId) {
@@ -301,34 +322,48 @@ private fun order(piece: BoardPiece): Int = when (piece) {
 
 // ---- Push the lane -----------------------------------------------------------------------
 
-/** Push the lane (p.8, steps 2–3): pick the team that won the push, per lane. */
+/**
+ * Push the lane (p.8, steps 2–3): pick the team that won the push; per Lane on a double-lane map,
+ * named like the map's labels ("Lane 1 · Battle Zone").
+ */
 @Composable
 internal fun PushDialog(
     state: BoardUiState.Ready,
     onPush: (laneId: String, winner: Team) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val lanes = state.map.lanes
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Push the lane", style = MaterialTheme.typography.headlineSmall) },
+        title = { Text(if (lanes.size > 1) "Push a lane" else "Push the lane", style = MaterialTheme.typography.headlineSmall) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Column(
+                Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
                 Text(
-                    "Which team won the push? The next Zone toward the losing team's Throne becomes the Battle Zone; " +
-                        "the minions there are removed and new ones spawn (p.8). Flip the Wave counter at the table.",
+                    "Which team won the push? The next Zone toward the losing team's Throne becomes the Battle " +
+                        "Zone. The minions of the previous Battle Zone are removed, and one minion spawns on each " +
+                        "Spawn point of the new one (p.8). Flip the Wave counter at the table.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                state.map.lanes.forEachIndexed { i, lane ->
-                    if (state.map.lanes.size > 1) {
-                        Text(
-                            "Lane ${i + 1}",
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.semantics {
-                                heading()
-                            },
-                        )
+                lanes.forEach { lane ->
+                    if (lanes.size > 1) {
+                        val now = state.board.state.battleZones[lane.id] ?: lane.startingBattleZone
+                        Column {
+                            Text(
+                                BoardText.battleZone(state.map, lane.id),
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.semantics { heading() },
+                            )
+                            Text(
+                                "Now ${BoardText.zone(state.map, now)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
-                    PushButtons(onPush = { onPush(lane.id, it) })
+                    PushButtons(lane = BoardText.lane(state.map, lane.id), onPush = { onPush(lane.id, it) })
                 }
             }
         },
@@ -341,7 +376,7 @@ internal fun PushDialog(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PushButtons(onPush: (Team) -> Unit) {
+private fun PushButtons(lane: String?, onPush: (Team) -> Unit) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -354,7 +389,13 @@ private fun PushButtons(onPush: (Team) -> Unit) {
             ) {
                 TeamMark(team, markSize = 12.dp)
                 Spacer(Modifier.width(Spacing.sm))
-                Text("${BoardText.team(team)} won", color = teamColor(team))
+                Text(
+                    "${BoardText.team(team)} won",
+                    color = teamColor(team),
+                    modifier = Modifier.semantics {
+                        contentDescription = listOfNotNull(lane, "${BoardText.team(team)} won the push").joinToString(": ")
+                    },
+                )
             }
         }
     }

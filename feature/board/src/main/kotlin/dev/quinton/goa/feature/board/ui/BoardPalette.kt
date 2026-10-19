@@ -28,12 +28,16 @@ data class BoardPalette(
     val zoneBorder: Color,
     val battleBorder: Color,
     val terrain: Color,
+    /** The water around the map: terrain too (p.19), drawn faintly so the map's edge still reads. */
+    val water: Color,
+    val waterLine: Color,
     val terrainFacet: Color,
     val terrainEdge: Color,
     val teamRed: Color,
     val teamBlue: Color,
     /** Glyphs drawn on a team-coloured disc. */
     val onTeam: Color,
+    /** Movement has its own green, apart from the Battle Zone's and the targets' teal. */
     val movement: Color,
     val onMovement: Color,
     val fastTravel: Color,
@@ -70,12 +74,14 @@ fun boardPalette(): BoardPalette {
             zoneBorder = scheme.primary.copy(alpha = 0.75f),
             battleBorder = scheme.secondary,
             terrain = Color(0xFF0A1118),
+            water = Color(0xFF0E1D2B),
+            waterLine = Color(0xFF1A2F44),
             terrainFacet = Color(0xFF2B3743),
             terrainEdge = Color(0xFF3B4957),
             teamRed = goa.teamRed,
             teamBlue = goa.teamBlue,
             onTeam = scheme.background,
-            movement = scheme.secondary,
+            movement = MOVEMENT_DARK,
             onMovement = scheme.onSurface,
             fastTravel = scheme.primary,
             range = goa.cardPurple,
@@ -102,12 +108,14 @@ fun boardPalette(): BoardPalette {
             zoneBorder = scheme.primary,
             battleBorder = scheme.secondary,
             terrain = Color(0xFF6E655A),
+            water = Color(0xFFE5E6E0),
+            waterLine = Color(0xFFCFD3CA),
             terrainFacet = Color(0xFF8C8275),
             terrainEdge = Color(0xFF4E473F),
             teamRed = goa.teamRed,
             teamBlue = goa.teamBlue,
             onTeam = Color.White,
-            movement = scheme.secondary,
+            movement = MOVEMENT_LIGHT,
             onMovement = scheme.onSurface,
             fastTravel = scheme.primary,
             range = goa.cardPurple,
@@ -122,3 +130,7 @@ fun boardPalette(): BoardPalette {
         )
     }
 }
+
+/** Movement green (the player palette's Kelp): dark #7BD88F, light #2A7037 (DESIGN.md *Board*). */
+private val MOVEMENT_DARK = Color(0xFF7BD88F)
+private val MOVEMENT_LIGHT = Color(0xFF2A7037)

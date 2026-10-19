@@ -178,8 +178,10 @@ object NavSheet {
 
 /**
  * A board. [boardId] opens a saved board; null creates a new board with the opening position for the
- * line-up [red]/[blue] on [mapId] (null = the default map for that many heroes) and opens it. [name]
- * names the new board (null = named after the line-up).
+ * line-up [red]/[blue] on [mapId] (null = the default map for that many heroes) and opens it (or
+ * reopens an untouched board of the same line-up and map). [name] names the new board (null = named
+ * after the line-up). [matchId]: the line-up is that logged match's; when it came from a draft, the
+ * heroes go in the draft's pick order.
  */
 @Serializable data class BoardRoute(
     val boardId: String? = null,
@@ -187,6 +189,7 @@ object NavSheet {
     val blue: List<String> = emptyList(),
     val mapId: String? = null,
     val name: String? = null,
+    val matchId: String? = null,
 ) : NavKey
 
 // Group sync (ADR-025, owner: sync)

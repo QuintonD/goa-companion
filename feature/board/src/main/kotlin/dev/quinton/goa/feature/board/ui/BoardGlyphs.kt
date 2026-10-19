@@ -146,7 +146,7 @@ fun DrawScope.drawTerrain(corners: List<Offset>, center: Offset, u: Float, palet
 
 // ---- Overlay cues (each with a pattern, never colour alone) ------------------------------
 
-/** Movement: a teal fill and the fewest spaces needed, as a number. */
+/** Movement: a green fill and outline, and the fewest spaces needed as a number. */
 fun DrawScope.drawMovementCell(corners: List<Offset>, center: Offset, palette: BoardPalette) {
     drawPath(hexPath(corners, 0.9f, center), palette.movement.copy(alpha = 0.34f))
     drawPath(
@@ -199,7 +199,7 @@ fun DrawScope.drawRadiusCell(corners: List<Offset>, center: Offset, u: Float, pa
     }
 }
 
-/** A space to place a waiting piece on: a dashed teal outline. */
+/** A space a piece should go to (a waiting minion, a minion back to its Battle Zone): a dashed teal outline. */
 fun DrawScope.drawTargetCell(corners: List<Offset>, center: Offset, u: Float, palette: BoardPalette) {
     drawPath(hexPath(corners, 0.92f, center), palette.selection.copy(alpha = 0.22f))
     drawPath(
@@ -217,6 +217,13 @@ fun DrawScope.drawTargetCell(corners: List<Offset>, center: Offset, u: Float, pa
 fun DrawScope.drawSelectionCell(corners: List<Offset>, center: Offset, u: Float, palette: BoardPalette) {
     drawPath(hexPath(corners, 1.0f, center), palette.halo, style = Stroke(width = u * 0.3f, join = StrokeJoin.Round))
     drawPath(hexPath(corners, 1.0f, center), palette.label, style = Stroke(width = u * 0.14f, join = StrokeJoin.Round))
+}
+
+/** The water around the map (p.19 terrain): a faint hex of the printed grid, drawn below everything. */
+fun DrawScope.drawWaterCell(corners: List<Offset>, palette: BoardPalette) {
+    val path = hexPath(corners)
+    drawPath(path, palette.water)
+    drawPath(path, palette.waterLine, style = Stroke(width = (corners[0] - corners[3]).getDistance() * 0.02f))
 }
 
 /** A legend swatch: one space of [fill] with [cue] drawn on it, filling the draw area. */

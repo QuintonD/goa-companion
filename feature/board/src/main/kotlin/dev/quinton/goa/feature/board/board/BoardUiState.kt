@@ -2,6 +2,7 @@ package dev.quinton.goa.feature.board.board
 
 import androidx.compose.runtime.Immutable
 import dev.quinton.goa.core.domain.board.BoardGeometry
+import dev.quinton.goa.core.domain.board.BoardRules.MovePath
 import dev.quinton.goa.core.model.board.BoardMap
 import dev.quinton.goa.core.model.board.BoardPiece
 import dev.quinton.goa.core.model.board.HeroPiece
@@ -39,8 +40,10 @@ data class OverlaySettings(
     /** The hero's card being measured; null = none chosen yet. */
     val cardId: String? = null,
     val movement: Boolean = true,
-    /** p.19 "Ignoring Obstacles": move through obstacle spaces (never ending on one). */
-    val ignoreObstacles: Boolean = false,
+    /** Which obstacles a move may pass (p.11, p.18 "Ignoring Obstacles", p.18 "Immune": tokens). */
+    val path: MovePath = MovePath.NORMAL,
+    /** The card says "in a straight line" (p.19 "Straight Line"). */
+    val straightLine: Boolean = false,
     val fastTravel: Boolean = false,
     val range: Boolean = true,
     val radius: Boolean = true,
@@ -67,9 +70,14 @@ data class OverlayUi(
     val range: Set<Hex> = emptySet(),
     val radiusValue: Int? = null,
     val radius: Set<Hex> = emptySet(),
+    /** A minion outside its own Lane's Battle Zone: where it goes back to (p.18, p.20). */
+    val returnTo: Set<Hex> = emptySet(),
 ) {
     val any: Boolean get() = movement.isNotEmpty() || fastTravel.isNotEmpty() || range.isNotEmpty() ||
         radius.isNotEmpty()
+
+    /** Every space the overlays mark except Fast Travel (whole Zones): what the view keeps in sight. */
+    val reach: Set<Hex> get() = movement.keys + range + radius + returnTo
 }
 
 /** A measured space: [distance] in spaces, obstacles counted (p.18); [straight] = in a straight line. */
@@ -80,18 +88,22 @@ data class MeasureUi(val target: Hex, val distance: Int, val straight: Boolean)
 @Immutable
 data class WaitingUi(val piece: BoardPiece, val targets: Set<Hex>)
 
-/** One-off messages the board shows. */
-sealed interface BoardNotice {
-    /** Pushing made the losing team's Throne Zone the Battle Zone: [winner] wins (p.8). */
-    data class ThroneCaptured(val winner: Team) : BoardNotice
+/** Pushing made the losing team's Throne Zone the Battle Zone: [winner] wins (p.8). */
+@Immutable
+data class ThroneCaptured(val winner: Team)
 
-    data class Hint(val text: String) : BoardNotice
-}
+/** A short message for the snackbar; [id] tells two equal messages apart. */
+@Immutable
+data class BoardHint(val text: String, val id: Long)
+
+/** What TalkBack reads after a change ("Brogan moved 2 spaces, to …"); [id] makes each one new. */
+@Immutable
+data class Announcement(val text: String, val id: Long)
 
 sealed interface BoardUiState {
     data object Loading : BoardUiState
 
-    /** The board was deleted, or its map isn't bundled in this build. */
+    /** The board was deleted, can't be read, or its map isn't bundled in this build. */
     data class Missing(val message: String) : BoardUiState
 
     @Immutable
@@ -99,6 +111,8 @@ sealed interface BoardUiState {
         val board: SavedBoard,
         val map: BoardMap,
         val heroes: Map<String, BoardHero>,
+        /** Products the group owns (Settings); empty = all. The Add sheet lists these heroes first. */
+        val ownedProducts: Set<String> = emptySet(),
         val selectedId: String? = null,
         val tool: BoardTool = BoardTool.Move,
         /** Whose Throne Zone is at the bottom (portrait) or left (landscape); "Flip" swaps. */
@@ -109,7 +123,9 @@ sealed interface BoardUiState {
         val activeWaitingId: String? = null,
         val canUndo: Boolean = false,
         val canRedo: Boolean = false,
-        val notice: BoardNotice? = null,
+        val throneCaptured: ThroneCaptured? = null,
+        val hint: BoardHint? = null,
+        val announcement: Announcement? = null,
     ) : BoardUiState {
         val geometry: BoardGeometry get() = BoardGeometry.of(map)
 
@@ -118,6 +134,20 @@ sealed interface BoardUiState {
         val selected: BoardPiece? get() = selectedId?.let { id -> pieces.firstOrNull { it.id == id } }
 
         val activeWaiting: WaitingUi? get() = waiting.firstOrNull { it.piece.id == activeWaitingId }
+
+        /**
+         * Taps on empty spaces place the active tray piece: nothing on the board is selected (a
+         * selected board piece moves instead), and nothing is being added or measured.
+         */
+        val trayActive: Boolean
+            get() = tool == BoardTool.Move && activeWaiting != null && selected?.at == null
+
+        /** The spaces the active tray piece may go to, when taps place it. */
+        val trayTargets: Set<Hex> get() = if (trayActive) activeWaiting?.targets.orEmpty() else emptySet()
+
+        /** The current Battle Zone of each lane, in map lane order. */
+        val battleZones: List<String>
+            get() = map.lanes.map { lane -> board.state.battleZones[lane.id] ?: lane.startingBattleZone }
 
         /** Heroes already on this board (a hero is on a board at most once). */
         val heroIdsOnBoard: Set<String>
@@ -137,14 +167,19 @@ sealed interface BoardAction {
 
     data object Deselect : BoardAction
 
-    /** A piece dragged onto [hex]: moves there, or swaps with the piece standing there. */
+    /**
+     * A piece dragged onto [hex]: moves there, or swaps with the piece standing there. Dropped where
+     * it started, it is just selected.
+     */
     data class Drop(val pieceId: String, val hex: Hex) : BoardAction
 
     data class ChooseCard(val cardId: String?) : BoardAction
 
     data object ToggleMovement : BoardAction
 
-    data object ToggleIgnoreObstacles : BoardAction
+    data class SetPath(val path: MovePath) : BoardAction
+
+    data object ToggleStraightLine : BoardAction
 
     data object ToggleFastTravel : BoardAction
 
@@ -177,9 +212,13 @@ sealed interface BoardAction {
 
     data class Push(val laneId: String, val winner: Team) : BoardAction
 
+    /** A tray piece tapped in the tray: taps on the board place it next. */
     data class ActivateWaiting(val pieceId: String) : BoardAction
 
     data object Flip : BoardAction
 
-    data object DismissNotice : BoardAction
+    data object DismissThrone : BoardAction
+
+    /** The snackbar showed hint [id]. */
+    data class HintShown(val id: Long) : BoardAction
 }

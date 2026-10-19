@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,17 +16,20 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
@@ -34,6 +38,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.SwapHoriz
@@ -42,8 +48,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -60,23 +69,22 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EngravedRule
-import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
-import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
@@ -86,21 +94,19 @@ import dev.quinton.goa.feature.board.board.BoardSheet
 import dev.quinton.goa.feature.board.board.SearchField
 import dev.quinton.goa.feature.board.board.SheetTitle
 import dev.quinton.goa.feature.board.list.LineupHeroes
-import dev.quinton.goa.feature.board.size
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /**
- * New board: tap heroes into the team being filled (pick order), or fill both teams from a draft or a
- * match in one tap, choose the map, then Set up.
+ * New board, built to need no scrolling: the latest draft's line-up (Set up in one tap), both teams
+ * in pick order, search with the "Adding to Red | Blue" switch beside it, the hero grid, and the
+ * map and Set up at the bottom. Picks alternate like a draft (the team with fewer heroes picks
+ * next); tapping Red or Blue picks for that team.
  */
 @Composable
 fun NewBoardScreen(
     state: NewBoardUiState,
     onAction: (NewBoardAction) -> Unit,
     onSetUp: () -> Unit,
+    onSetUpLatest: (LineupSource) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     initialSources: Boolean = false,
@@ -112,8 +118,13 @@ fun NewBoardScreen(
         onBack = onBack,
         modifier = modifier,
         actions = {
-            if (ready != null && ready.form.lineup.size > 0) {
-                TextButton(onClick = { onAction(NewBoardAction.Clear) }) { Text("Clear") }
+            if (ready != null) {
+                if (ready.form.lineup.red.isNotEmpty() || ready.form.lineup.blue.isNotEmpty()) {
+                    TextButton(onClick = { onAction(NewBoardAction.Clear) }) { Text("Clear") }
+                }
+                IconButton(onClick = { sources = true }, enabled = ready.sources.isNotEmpty()) {
+                    Icon(Icons.Outlined.History, contentDescription = "Use a draft or match")
+                }
             }
         },
     ) { padding ->
@@ -121,7 +132,7 @@ fun NewBoardScreen(
             if (ready == null) {
                 CircularProgressIndicator(Modifier.align(Alignment.Center))
             } else {
-                NewBoardContent(ready, onAction, onSetUp, onSources = { sources = true })
+                NewBoardContent(ready, onAction, onSetUp, onSetUpLatest)
             }
         }
     }
@@ -144,7 +155,7 @@ private fun NewBoardContent(
     state: NewBoardUiState.Ready,
     onAction: (NewBoardAction) -> Unit,
     onSetUp: () -> Unit,
-    onSources: () -> Unit,
+    onSetUpLatest: (LineupSource) -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val focus = LocalFocusManager.current
@@ -154,62 +165,80 @@ private fun NewBoardContent(
     }
     val large = LocalDensity.current.fontScale > LARGE_FONT
     val cells = GridCells.Adaptive(if (large) TILE_LARGE else TILE)
+    // The latest line-up is offered until the teams are being picked by hand.
+    val latest = state.latest?.takeIf { state.form.red.isEmpty() && state.form.blue.isEmpty() }
+    val search = @Composable { mod: Modifier ->
+        Row(mod, verticalAlignment = Alignment.CenterVertically) {
+            SearchField(
+                query,
+                { query = it },
+                onSearch = { focus.clearFocus() },
+                modifier = Modifier.weight(1f),
+                horizontalPadding = 0.dp,
+            )
+            Spacer(Modifier.width(Spacing.sm))
+            TeamSwitch(state.form.filling, onPick = { onAction(NewBoardAction.Fill(it)) })
+        }
+    }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         if (maxWidth > maxHeight) {
             Row(Modifier.fillMaxSize()) {
-                Column(Modifier.weight(0.45f).fillMaxHeight()) {
+                Column(Modifier.weight(0.42f).fillMaxHeight()) {
                     Column(
                         Modifier
                             .weight(1f)
                             .verticalScroll(rememberScrollState())
-                            .padding(horizontal = Spacing.screen),
-                    ) {
-                        Setup(state, onAction, onSources)
-                    }
-                    SetUpBar(state, onSetUp)
-                }
-                Column(Modifier.weight(0.55f).fillMaxHeight()) {
-                    SearchField(query, { query = it }, onSearch = { focus.clearFocus() })
-                    LazyVerticalGrid(
-                        columns = cells,
-                        contentPadding = PaddingValues(start = Spacing.sm, end = Spacing.screen, bottom = Spacing.lg),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            .padding(horizontal = Spacing.screen, vertical = Spacing.sm),
                         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                        modifier = Modifier.weight(1f),
                     ) {
-                        heroTiles(shown, state, onAction)
+                        latest?.let { LatestCard(it, { onSetUpLatest(it) }, onEdit = { onAction(NewBoardAction.Use(it)) }) }
+                        Teams(state, onAction)
                     }
+                    SetUpBar(state, onAction, onSetUp)
+                }
+                Column(Modifier.weight(0.58f).fillMaxHeight()) {
+                    search(Modifier.padding(start = Spacing.sm, end = Spacing.screen))
+                    HeroGrid(cells, shown, state, onAction, start = Spacing.sm, end = Spacing.screen)
                 }
             }
         } else {
             Column(Modifier.fillMaxSize()) {
-                LazyVerticalGrid(
-                    columns = cells,
-                    contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = Spacing.lg),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                Column(
+                    Modifier.padding(horizontal = Spacing.screen).padding(top = Spacing.sm),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    modifier = Modifier.weight(1f),
                 ) {
-                    item(key = "setup", span = {
-                        GridItemSpan(maxLineSpan)
-                    }) { Column { Setup(state, onAction, onSources) } }
-                    item(key = "search", span = { GridItemSpan(maxLineSpan) }) {
-                        Column {
-                            SectionHeader("Heroes")
-                            SearchField(query, {
-                                query = it
-                            }, onSearch = { focus.clearFocus() }, horizontalPadding = 0.dp)
-                        }
-                    }
-                    heroTiles(shown, state, onAction)
+                    latest?.let { LatestCard(it, { onSetUpLatest(it) }, onEdit = { onAction(NewBoardAction.Use(it)) }) }
+                    Teams(state, onAction)
                 }
-                SetUpBar(state, onSetUp)
+                search(Modifier.padding(horizontal = Spacing.screen))
+                HeroGrid(cells, shown, state, onAction, start = Spacing.screen, end = Spacing.screen)
+                SetUpBar(state, onAction, onSetUp)
             }
         }
     }
 }
 
-private fun androidx.compose.foundation.lazy.grid.LazyGridScope.heroTiles(
+@Composable
+private fun ColumnScope.HeroGrid(
+    cells: GridCells,
+    shown: List<BoardHero>,
+    state: NewBoardUiState.Ready,
+    onAction: (NewBoardAction) -> Unit,
+    start: Dp,
+    end: Dp,
+) {
+    LazyVerticalGrid(
+        columns = cells,
+        contentPadding = PaddingValues(start = start, end = end, bottom = Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        modifier = Modifier.weight(1f),
+    ) {
+        heroTiles(shown, state, onAction)
+    }
+}
+
+private fun LazyGridScope.heroTiles(
     heroes: List<BoardHero>,
     state: NewBoardUiState.Ready,
     onAction: (NewBoardAction) -> Unit,
@@ -225,99 +254,113 @@ private fun androidx.compose.foundation.lazy.grid.LazyGridScope.heroTiles(
             )
         }
     }
+    if (state.ownedOnly) {
+        item(key = "owned", span = { GridItemSpan(maxLineSpan) }) {
+            val all = state.form.showAll
+            TextButton(
+                onClick = { onAction(NewBoardAction.ShowAll(!all)) },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            ) {
+                Text(
+                    if (all) "Only heroes you own" else "Show all heroes (${state.hiddenHeroes} you don't own)",
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    }
+}
+
+/** "Adding to": the team the next tapped hero joins. */
+@Composable
+private fun TeamSwitch(filling: Team, onPick: (Team) -> Unit) {
+    SingleChoiceSegmentedButtonRow(Modifier.semantics { contentDescription = "Adding to" }) {
+        Team.entries.forEachIndexed { i, team ->
+            val color = teamColor(team)
+            SegmentedButton(
+                selected = filling == team,
+                onClick = { onPick(team) },
+                shape = SegmentedButtonDefaults.itemShape(i, Team.entries.size),
+                icon = { TeamMark(team, markSize = 10.dp) },
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = color.copy(alpha = 0.18f),
+                    activeBorderColor = color,
+                    activeContentColor = MaterialTheme.colorScheme.onSurface,
+                    inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                    inactiveBorderColor = GoaTheme.colors.engravedBorder,
+                ),
+                modifier = Modifier
+                    .heightIn(min = 48.dp)
+                    .semantics { stateDescription = if (filling == team) "Next pick" else "" },
+            ) {
+                Text(BoardText.team(team), maxLines = 1)
+            }
+        }
+    }
 }
 
 @Composable
-private fun Setup(state: NewBoardUiState.Ready, onAction: (NewBoardAction) -> Unit, onSources: () -> Unit) {
-    Spacer(Modifier.height(Spacing.md))
-    Team.entries.forEach { team ->
-        TeamBlock(state, team, onAction)
-        Spacer(Modifier.height(Spacing.sm))
+private fun Teams(state: NewBoardUiState.Ready, onAction: (NewBoardAction) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Team.entries.forEach { team -> TeamRow(state, team, onAction) }
     }
-    OutlinedButton(
-        onClick = onSources,
-        enabled = state.sources.isNotEmpty(),
-        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-    ) {
-        Icon(Icons.Outlined.History, contentDescription = null)
-        Spacer(Modifier.width(Spacing.sm))
-        Text("Use a draft or match")
-    }
-    if (state.sources.isEmpty()) {
-        Text(
-            "Finished drafts and logged matches appear here.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = Spacing.xs),
-        )
-    }
-    MapChoice(state, onAction)
 }
 
-/** One team's heroes in pick order; tap the block to add heroes to this team. */
-@OptIn(ExperimentalLayoutApi::class)
+/** One team's heroes in pick order; tap the row to pick for this team next. */
 @Composable
-private fun TeamBlock(state: NewBoardUiState.Ready, team: Team, onAction: (NewBoardAction) -> Unit) {
+private fun TeamRow(state: NewBoardUiState.Ready, team: Team, onAction: (NewBoardAction) -> Unit) {
     val color = teamColor(team)
     val filling = state.form.filling == team
     val heroes = state.team(team)
     Surface(
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.medium,
         color = if (filling) color.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface,
         border = BorderStroke(if (filling) 2.dp else 1.dp, if (filling) color else GoaTheme.colors.engravedBorder),
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 52.dp)
             .selectable(selected = filling, role = Role.RadioButton) { onAction(NewBoardAction.Fill(team)) }
-            .semantics { stateDescription = if (filling) "Adding heroes here" else "" },
+            .semantics { stateDescription = if (filling) "Next pick" else "" },
     ) {
-        Column(Modifier.padding(Spacing.md)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                TeamMark(team, markSize = scaledIconSize(12.dp))
-                Spacer(Modifier.width(Spacing.sm))
-                Text(
-                    BoardText.team(team),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = color,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Spacer(Modifier.width(Spacing.sm))
-                Text(
-                    "${heroes.size} of ${NewBoardUiState.MAX_PER_TEAM}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-                if (filling) {
-                    Text(
-                        "Adding here",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = color,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            }
+        Row(Modifier.padding(start = Spacing.md, end = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+            TeamMark(team, markSize = scaledIconSize(11.dp))
+            Spacer(Modifier.width(Spacing.xs))
+            Text(
+                BoardText.team(team),
+                style = MaterialTheme.typography.titleSmall,
+                color = color,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.widthIn(min = 40.dp),
+            )
+            Spacer(Modifier.width(Spacing.xs))
             if (heroes.isEmpty()) {
                 Text(
-                    if (filling) {
-                        "Tap heroes below to add them in pick order."
-                    } else {
-                        "Tap here, then tap heroes to add them."
-                    },
+                    if (filling) "Tap heroes below" else "Tap here to pick for ${BoardText.team(team)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = Spacing.xs),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
             } else {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    modifier = Modifier.padding(top = Spacing.sm),
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    contentPadding = PaddingValues(vertical = Spacing.xs),
+                    modifier = Modifier.weight(1f),
                 ) {
-                    heroes.forEachIndexed { index, hero ->
+                    itemsIndexed(heroes, key = { _, hero -> hero.id }) { index, hero ->
                         SlotChip(hero, team, index, heroes.size, state, onAction)
                     }
                 }
+            }
+            if (filling) {
+                Text(
+                    "Next pick",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = color,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    modifier = Modifier.padding(start = Spacing.xs),
+                )
             }
         }
     }
@@ -346,24 +389,19 @@ private fun SlotChip(
                 .semantics { contentDescription = "Pick ${index + 1}: ${hero.name}. Change" },
         ) {
             Row(
-                Modifier.padding(start = 4.dp, end = Spacing.md, top = 4.dp, bottom = 4.dp),
+                Modifier.padding(start = 4.dp, end = Spacing.sm, top = 3.dp, bottom = 3.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 HeroPortrait(
                     hero.id,
                     hero.portrait,
                     null,
-                    Modifier.size(scaledIconSize(32.dp, maxScale = 1.4f)).border(1.5.dp, color, CircleShape),
+                    Modifier.size(scaledIconSize(30.dp, maxScale = 1.4f)).border(1.5.dp, color, CircleShape),
                     shape = CircleShape,
                     framed = false,
                 )
-                Spacer(Modifier.width(Spacing.sm))
-                Text(
-                    "${index + 1}",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = color,
-                    fontWeight = FontWeight.Bold,
-                )
+                Spacer(Modifier.width(6.dp))
+                Text("${index + 1}", style = MaterialTheme.typography.labelLarge, color = color, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.width(Spacing.xs))
                 Text(hero.name, style = MaterialTheme.typography.labelLarge, maxLines = 1)
             }
@@ -411,48 +449,6 @@ private fun SlotChip(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun MapChoice(state: NewBoardUiState.Ready, onAction: (NewBoardAction) -> Unit) {
-    SectionHeader("Map")
-    if (state.maps.isEmpty()) {
-        Text(
-            "No map is bundled with this build.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
-        )
-        return
-    }
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        itemVerticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (state.maps.size == 1) {
-            Text(state.maps.first().name, style = MaterialTheme.typography.titleSmall)
-        } else {
-            state.maps.forEach { map ->
-                GoaFilterChip(
-                    selected = map.id == state.map?.id,
-                    onClick = { onAction(NewBoardAction.ChooseMap(map.id)) },
-                    label = buildString {
-                        append(map.name)
-                        if (map.lanes > 1) append(" · ${map.lanes} lanes")
-                        if (!map.verified) append(" · Unverified")
-                    },
-                )
-            }
-        }
-        if (state.map?.verified == false) UnverifiedBadge()
-    }
-    Text(
-        "Set up places every piece on its Spawn point for the opening (p.6); heroes go in pick order.",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.md),
-    )
-}
-
 @Composable
 private fun HeroTile(hero: BoardHero, state: NewBoardUiState.Ready, onAction: (NewBoardAction) -> Unit) {
     val team = when (hero.id) {
@@ -475,16 +471,15 @@ private fun HeroTile(hero: BoardHero, state: NewBoardUiState.Ready, onAction: (N
     }
     val color = team?.let { teamColor(it) }
     Column(
-        Modifier
-            .clearAndSetSemantics {
-                contentDescription = description
-                if (action != null) {
-                    onClick(label = action) {
-                        onAction(NewBoardAction.Tap(hero.id))
-                        true
-                    }
+        Modifier.clearAndSetSemantics {
+            contentDescription = description
+            if (action != null) {
+                onClick(label = action) {
+                    onAction(NewBoardAction.Tap(hero.id))
+                    true
                 }
-            },
+            }
+        },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Surface(
@@ -502,20 +497,15 @@ private fun HeroTile(hero: BoardHero, state: NewBoardUiState.Ready, onAction: (N
                         shape = RoundedCornerShape(50),
                         color = MaterialTheme.colorScheme.background.copy(alpha = 0.9f),
                         border = BorderStroke(1.dp, color),
-                        modifier = Modifier.align(Alignment.TopStart).padding(4.dp),
+                        modifier = Modifier.align(Alignment.TopStart).padding(3.dp),
                     ) {
                         Row(
-                            Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            TeamMark(team, markSize = 9.dp)
-                            Spacer(Modifier.width(3.dp))
-                            Text(
-                                "$pick",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = color,
-                                fontWeight = FontWeight.Bold,
-                            )
+                            TeamMark(team, markSize = 8.dp)
+                            Spacer(Modifier.width(2.dp))
+                            Text("$pick", style = MaterialTheme.typography.labelSmall, color = color, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -523,54 +513,104 @@ private fun HeroTile(hero: BoardHero, state: NewBoardUiState.Ready, onAction: (N
         }
         Text(
             hero.name,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelSmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
-            color = if (action == null &&
-                team == null
-            ) {
+            color = if (action == null && team == null) {
                 MaterialTheme.colorScheme.onSurfaceVariant
             } else {
                 MaterialTheme.colorScheme.onSurface
             },
-            modifier = Modifier.padding(top = 4.dp),
+            modifier = Modifier.padding(top = 2.dp),
         )
     }
 }
 
+/** The map ("Map: Forgotten Island ▾", a menu of the bundled maps) and Set up. */
 @Composable
-private fun SetUpBar(state: NewBoardUiState.Ready, onSetUp: () -> Unit) {
+private fun SetUpBar(state: NewBoardUiState.Ready, onAction: (NewBoardAction) -> Unit, onSetUp: () -> Unit) {
+    var menu by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth()) {
         EngravedRule()
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.screen, vertical = Spacing.md),
+                .padding(start = Spacing.sm, end = Spacing.screen, top = Spacing.sm, bottom = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    "${state.form.red.size} vs ${state.form.blue.size}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    state.map?.name ?: "No map",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            Box(Modifier.weight(1f)) {
+                val map = state.map
+                TextButton(
+                    onClick = { menu = true },
+                    enabled = state.maps.size > 1,
+                    modifier = Modifier.heightIn(min = 48.dp).semantics {
+                        contentDescription = "Map: ${map?.name ?: "none"}" +
+                            (if (map?.verified == false) ", unverified" else "") + ". Change map"
+                    },
+                ) {
+                    Column(horizontalAlignment = Alignment.Start) {
+                        Text("MAP", style = GoaTextStyles.overline, color = MaterialTheme.colorScheme.primary)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                map?.name ?: "No map in this build",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                            if (state.maps.size > 1) Icon(Icons.Outlined.ArrowDropDown, contentDescription = null)
+                        }
+                        if (map?.verified == false) UnverifiedBadge(Modifier.padding(top = 2.dp))
+                    }
+                }
+                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    state.maps.forEach { option ->
+                        DropdownMenuItem(
+                            text = {
+                                Column {
+                                    Text(option.name)
+                                    Text(
+                                        listOfNotNull(
+                                            if (option.lanes > 1) "${option.lanes} lanes" else "Single lane",
+                                            "Unverified".takeIf { !option.verified },
+                                        ).joinToString(" · "),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (option.verified) {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        } else {
+                                            GoaTheme.colors.unverified
+                                        },
+                                    )
+                                }
+                            },
+                            leadingIcon = {
+                                if (option.id == state.map?.id) {
+                                    Icon(Icons.Outlined.Check, contentDescription = "Chosen")
+                                } else {
+                                    Spacer(Modifier.size(24.dp))
+                                }
+                            },
+                            onClick = {
+                                menu = false
+                                onAction(NewBoardAction.ChooseMap(option.id))
+                            },
+                        )
+                    }
+                }
             }
-            Spacer(Modifier.width(Spacing.md))
+            Spacer(Modifier.width(Spacing.sm))
             Button(
                 onClick = onSetUp,
                 enabled = state.canSetUp,
                 modifier = Modifier.heightIn(min = 56.dp),
                 contentPadding = PaddingValues(horizontal = Spacing.xl),
             ) {
-                Text("Set up", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Set up ${state.form.red.size} v ${state.form.blue.size}",
+                    style = MaterialTheme.typography.titleMedium,
+                )
             }
         }
     }
@@ -588,6 +628,9 @@ internal fun SourcesContent(
         SheetTitle("Use a draft or match", "Fills both teams in pick order.", onDone)
         LazyColumn(Modifier.weight(1f)) {
             items(sources, key = { it.key }) { source -> SourceRow(source, onClick = { onUse(source) }) }
+            if (sources.isEmpty()) {
+                item { Text("Finished drafts and logged matches appear here.", Modifier.padding(Spacing.screen)) }
+            }
         }
     }
 }
@@ -630,13 +673,7 @@ private fun SourceRow(source: LineupSource, onClick: () -> Unit) {
     }
 }
 
-private val dayFormat = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
-
-private fun day(epochMillis: Long): String = Instant.ofEpochMilli(
-    epochMillis,
-).atZone(ZoneId.systemDefault()).format(dayFormat)
-
-private val TILE = 84.dp
-private val TILE_LARGE = 120.dp
+private val TILE = 58.dp
+private val TILE_LARGE = 104.dp
 private const val LARGE_FONT = 1.3f
 private const val SHEET_HEIGHT = 0.9f

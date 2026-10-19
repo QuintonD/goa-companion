@@ -34,6 +34,7 @@ import androidx.compose.material.icons.outlined.KeyboardDoubleArrowUp
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material.icons.outlined.ZoomIn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -66,6 +67,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -80,6 +82,8 @@ import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.board.HeroPiece
+import dev.quinton.goa.core.model.board.MinionPiece
+import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.hero
 import dev.quinton.goa.feature.board.map.BoardMapView
@@ -95,9 +99,9 @@ enum class BoardOverlay { ADD, PIECES, PUSH, RESET }
 
 /**
  * The board: the map full screen with the Lane top to bottom in portrait (left to right in
- * landscape), a bottom panel for the selected piece (a side panel in landscape) that never covers
- * it, and Add / Push the lane / Pieces. [onTap] resolves a tap on the map and reports whether it
- * changed the board.
+ * landscape), opening on the Lane between the hero spawn areas; a bottom panel for the selected
+ * piece (a side panel in landscape) that never covers it, and Add / Push the lane / Pieces.
+ * [onTap] resolves a tap on the map and reports whether it did anything.
  */
 @Composable
 fun BoardScreen(
@@ -107,6 +111,7 @@ fun BoardScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     initialOverlay: BoardOverlay? = null,
+    initialCollapsed: Boolean = false,
 ) {
     val ready = state as? BoardUiState.Ready
     var overlay by rememberSaveable { mutableStateOf(initialOverlay) }
@@ -118,11 +123,13 @@ fun BoardScreen(
     BackHandler(enabled = ready != null && (ready.tool != BoardTool.Move || ready.selectedId != null)) {
         if (ready?.tool != BoardTool.Move) onAction(BoardAction.CancelTool) else onAction(BoardAction.Deselect)
     }
-    val hint = (ready?.notice as? BoardNotice.Hint)?.text
-    LaunchedEffect(hint) {
+    // Each hint shows once; a newer one replaces it.
+    val hint = ready?.hint
+    LaunchedEffect(hint?.id) {
         if (hint != null) {
-            onAction(BoardAction.DismissNotice)
-            snackbar.showSnackbar(hint, withDismissAction = true, duration = SnackbarDuration.Short)
+            snackbar.currentSnackbarData?.dismiss()
+            snackbar.showSnackbar(hint.text, withDismissAction = true, duration = SnackbarDuration.Short)
+            onAction(BoardAction.HintShown(hint.id))
         }
     }
     GoaScreen(
@@ -173,11 +180,15 @@ fun BoardScreen(
                     title = "Board not available",
                     message = state.message,
                     modifier = Modifier.align(Alignment.Center),
+                    action = {
+                        TextButton(onClick = onBack, modifier = Modifier.heightIn(min = 48.dp)) { Text("Back") }
+                    },
                 )
 
                 is BoardUiState.Ready -> BoardContent(
                     state = state,
                     viewport = viewport,
+                    initialCollapsed = initialCollapsed,
                     onAction = onAction,
                     onTap = onTap,
                     onOpen = { overlay = it },
@@ -231,7 +242,9 @@ fun BoardScreen(
 
             BoardOverlay.RESET -> ConfirmDialog(
                 title = "Reset to opening?",
-                message = "Every piece goes back to the opening position for this line-up (p.6). You can undo it.",
+                message = "The board goes back to the opening for this line-up (p.6): every hero and minion on " +
+                    "its Spawn point, each Lane's Battle Zone where it starts. Heroes, minions and tokens you " +
+                    "added are removed. You can undo it.",
                 confirmLabel = "Reset",
                 icon = Icons.Outlined.RestartAlt,
                 onConfirm = {
@@ -243,8 +256,8 @@ fun BoardScreen(
 
             null -> Unit
         }
-        (ready.notice as? BoardNotice.ThroneCaptured)?.let { notice ->
-            ThroneDialog(notice.winner, onDismiss = { onAction(BoardAction.DismissNotice) })
+        ready.throneCaptured?.let { notice ->
+            ThroneDialog(notice.winner, onDismiss = { onAction(BoardAction.DismissThrone) })
         }
     }
 }
@@ -253,6 +266,7 @@ fun BoardScreen(
 private fun BoardContent(
     state: BoardUiState.Ready,
     viewport: MapViewport,
+    initialCollapsed: Boolean,
     onAction: (BoardAction) -> Unit,
     onTap: (MapTap) -> Boolean,
     onOpen: (BoardOverlay) -> Unit,
@@ -263,35 +277,48 @@ private fun BoardContent(
         val orientation = if (landscape) MapOrientation.LANDSCAPE else MapOrientation.PORTRAIT
         val layout =
             remember(state.map, orientation, state.bottomTeam) { MapLayout(state.map, orientation, state.bottomTeam) }
-        var collapsed by rememberSaveable { mutableStateOf(false) }
+        // What the board opens on: the Lane between both teams' hero spawn areas, Battle Zones included.
+        val lane = remember(layout, state.map) {
+            val geometry = state.geometry
+            val hexes = Team.entries.flatMap(geometry::heroSpawns) +
+                state.map.lanes.flatMap { geometry.zoneSpaces[it.startingBattleZone].orEmpty() }
+            layout.bounds(hexes, pad = 1.2f)
+        }
+        var collapsed by rememberSaveable { mutableStateOf(initialCollapsed) }
         val scope = rememberCoroutineScope()
         var panelSize by remember { mutableIntStateOf(0) }
+        var toolsHeight by remember { mutableIntStateOf(0) }
         val selected = state.selected
-        val density = LocalDensity.current
+        val panelShown = selected != null
         val sidePanelWidth = if (landscape) minOf(maxWidth * 0.46f, SIDE_PANEL) else 0.dp
+        val sidePanelPx = with(LocalDensity.current) { sidePanelWidth.toPx() }
 
-        // Keep the selected piece in view: above the bottom panel, or left of the side panel.
-        LaunchedEffect(state.selectedId, selected?.at, panelSize, collapsed, landscape, viewport.unit) {
-            val at = selected?.at ?: return@LaunchedEffect
-            if (viewport.unit == 0f) return@LaunchedEffect
-            val screen = viewport.mapToScreen(layout.center(at))
-            val margin = with(density) { 56.dp.toPx() }
-            val visibleRight = viewport.viewport.width - if (landscape) panelSize.toFloat() else 0f
-            val visibleBottom = viewport.viewport.height - if (landscape) 0f else panelSize.toFloat()
-            val outside =
-                screen.x < margin || screen.x > visibleRight - margin || screen.y < margin ||
-                    screen.y > visibleBottom - margin
-            if (outside) viewport.bringTo(layout.center(at), Offset(visibleRight / 2f, visibleBottom / 2f))
+        // What floats over the map: the panel (bottom, or right in landscape) or the tools.
+        LaunchedEffect(panelShown, panelSize, toolsHeight, landscape, sidePanelPx) {
+            val bottom = when {
+                panelShown && !landscape -> panelSize.toFloat()
+                else -> toolsHeight.toFloat()
+            }
+            val end = if (panelShown && landscape) sidePanelPx else 0f
+            viewport.updateInsets(if (panelShown && landscape) 0f else bottom, end)
         }
 
-        // A minion waits in the tray: bring the spaces it can go to into view, above the tray.
-        val targets = state.activeWaiting?.targets.orEmpty()
-        LaunchedEffect(state.activeWaitingId, targets.size, viewport.unit, viewport.bottomInset) {
-            if (targets.isEmpty() || viewport.unit == 0f || selected != null) return@LaunchedEffect
-            val centers = targets.map(layout::center)
-            val middle = Offset(centers.map { it.x }.average().toFloat(), centers.map { it.y }.average().toFloat())
-            val visibleBottom = viewport.viewport.height - viewport.bottomInset
-            viewport.bringTo(middle, Offset(viewport.viewport.width / 2f, visibleBottom / 2f))
+        // Keep the selected piece and what its overlays reach comfortably in view (big enough to tap).
+        val at = selected?.at
+        val reach = state.overlay?.reach.orEmpty()
+        val measureTarget = state.measure?.target
+        LaunchedEffect(at, reach, measureTarget, viewport.unit, viewport.bottomInset, viewport.endInset) {
+            if (at == null || viewport.unit == 0f) return@LaunchedEffect
+            val region = layout.bounds(reach + listOfNotNull(at, measureTarget), pad = 1.1f) ?: return@LaunchedEffect
+            viewport.reveal(region, layout.center(at))
+        }
+
+        // A minion waits in the tray and taps place it: bring the spaces it can go to into view.
+        val targets = state.trayTargets
+        LaunchedEffect(state.activeWaitingId, targets, viewport.unit, viewport.bottomInset) {
+            if (targets.isEmpty() || viewport.unit == 0f) return@LaunchedEffect
+            val region = layout.bounds(targets, pad = 1.1f) ?: return@LaunchedEffect
+            viewport.reveal(region, region.center)
         }
 
         BoardMapView(
@@ -301,14 +328,23 @@ private fun BoardContent(
             onTap = onTap,
             onDrop = { id, hex -> onAction(BoardAction.Drop(id, hex)) },
             onAmbiguous = onAmbiguous,
+            lane = lane,
             modifier = Modifier.fillMaxSize(),
         )
+
+        // TalkBack hears each move ("Brogan moved 2 spaces, to …").
+        state.announcement?.let { said ->
+            Box(Modifier.size(1.dp).semantics {
+                contentDescription = said.text
+                liveRegion = LiveRegionMode.Polite
+            })
+        }
 
         // Top: the map's status on the left, view controls on the right, the active tool between.
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(end = sidePanelWidth.takeIf { selected != null } ?: 0.dp)
+                .padding(end = if (panelShown) sidePanelWidth else 0.dp)
                 .padding(Spacing.sm),
             verticalAlignment = Alignment.Top,
         ) {
@@ -318,8 +354,12 @@ private fun BoardContent(
             }
             Spacer(Modifier.width(Spacing.sm))
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                MapButton(Icons.Outlined.CenterFocusStrong, "Fit the board") {
-                    scope.launch { viewport.animateFit() }
+                if (viewport.isFit) {
+                    MapButton(Icons.Outlined.ZoomIn, "Zoom to the lane") { scope.launch { viewport.animateLane() } }
+                } else {
+                    MapButton(Icons.Outlined.CenterFocusStrong, "Fit the whole board") {
+                        scope.launch { viewport.animateFit() }
+                    }
                 }
                 MapButton(Icons.Outlined.SwapVert, "Flip: ${BoardText.team(state.bottomTeam.opponent)} at the bottom") {
                     onAction(BoardAction.Flip)
@@ -337,10 +377,7 @@ private fun BoardContent(
             Surface(
                 modifier = panelModifier.onSizeChanged { panelSize = if (landscape) it.width else it.height },
                 shape = if (landscape) {
-                    RoundedCornerShape(
-                        topStart = 28.dp,
-                        bottomStart = 28.dp,
-                    )
+                    RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
                 } else {
                     RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
                 },
@@ -364,11 +401,7 @@ private fun BoardContent(
                 Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .onSizeChanged {
-                        panelSize = 0
-                        // Fit keeps the map clear of the floating tools (and the tray).
-                        if (it.height > 0) viewport.updateBottomInset(it.height.toFloat())
-                    }
+                    .onSizeChanged { toolsHeight = it.height }
                     .padding(Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -410,9 +443,8 @@ private fun ToolBanner(state: BoardUiState.Ready, onAction: (BoardAction) -> Uni
     val tool = state.tool
     val text = when (tool) {
         BoardTool.Measure -> state.measure?.let { measure ->
-            "${BoardText.spaces(
-                measure.distance,
-            )} · ${if (measure.straight) "in a straight line" else "not in a straight line"}"
+            val line = if (measure.straight) "in a straight line" else "not in a straight line"
+            "${BoardText.spaces(measure.distance)} · $line"
         } ?: "Measure: tap any space"
 
         is BoardTool.Place -> "Tap an empty space for ${placeLabel(state, tool.piece)}"
@@ -557,10 +589,11 @@ private fun WaitingTray(state: BoardUiState.Ready, onAction: (BoardAction) -> Un
                 color = MaterialTheme.colorScheme.secondary,
             )
             Text(
-                if (state.activeWaiting?.targets?.isNotEmpty() == true) {
-                    "Its Spawn point is taken. Tap a highlighted space: the nearest empty spaces of the Battle Zone."
-                } else {
-                    "Tap an empty space to put it on the board."
+                when {
+                    !state.trayActive -> "Deselect the piece, then tap a waiting minion to place it."
+                    state.activeWaiting?.targets?.isNotEmpty() == true ->
+                        "Its Spawn point is taken. Tap a highlighted space: the nearest empty spaces of its Battle Zone."
+                    else -> "Tap an empty space to put it on the board."
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
@@ -571,14 +604,14 @@ private fun WaitingTray(state: BoardUiState.Ready, onAction: (BoardAction) -> Un
             ) {
                 state.waiting.forEach { waiting ->
                     val piece = waiting.piece
-                    val active = piece.id == state.activeWaitingId
-                    val name = BoardText.piece(piece) { state.heroes.hero(it).name }
+                    val active = piece.id == state.activeWaitingId && state.trayActive
+                    val lane = (piece as? MinionPiece)?.let { BoardText.lane(state.map, state.geometry.laneOf(it)) }
+                    val name = listOfNotNull(lane, BoardText.piece(piece) { state.heroes.hero(it).name })
+                        .joinToString(" · ")
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = if (active) {
-                            MaterialTheme.colorScheme.secondary.copy(
-                                alpha = 0.16f,
-                            )
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.16f)
                         } else {
                             MaterialTheme.colorScheme.surface
                         },
@@ -586,22 +619,17 @@ private fun WaitingTray(state: BoardUiState.Ready, onAction: (BoardAction) -> Un
                             if (active) 2.dp else 1.dp,
                             if (active) MaterialTheme.colorScheme.secondary else GoaTheme.colors.engravedBorder,
                         ),
-                        modifier = Modifier.selectable(selected = active, role = Role.RadioButton) {
-                            onAction(BoardAction.ActivateWaiting(piece.id))
-                        },
+                        modifier = Modifier
+                            .heightIn(min = 48.dp)
+                            .selectable(selected = active, role = Role.RadioButton) {
+                                onAction(BoardAction.ActivateWaiting(piece.id))
+                            },
                     ) {
                         Row(
                             Modifier.padding(horizontal = Spacing.sm, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            PieceToken(
-                                piece,
-                                (piece as? HeroPiece)?.let {
-                                    state.heroes.hero(it.heroId)
-                                },
-                                28.dp,
-                                palette,
-                            )
+                            PieceToken(piece, (piece as? HeroPiece)?.let { state.heroes.hero(it.heroId) }, 28.dp, palette)
                             Spacer(Modifier.width(Spacing.sm))
                             Text(name, style = MaterialTheme.typography.labelLarge)
                         }

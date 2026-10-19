@@ -51,7 +51,9 @@ class AppNavigator(
         switchTo(TopLevelTab.TIMER)
     }
 
+    /** Pushes [key]; a second tap that would push the same screen again (a double tap) is ignored. */
     override fun navigate(key: NavKey) {
+        if (currentStack.lastOrNull() == key) return
         currentStack.add(key)
     }
 

@@ -23,7 +23,6 @@ import dev.quinton.goa.core.domain.board.BoardRules
 import dev.quinton.goa.core.domain.board.BoardSetup
 import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.model.board.BoardLineup
-import dev.quinton.goa.core.model.board.BoardState
 import dev.quinton.goa.core.model.board.HeroPiece
 import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.board.SavedBoard
@@ -44,7 +43,13 @@ import dev.quinton.goa.core.testing.FakeBoardRepository
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
+import dev.quinton.goa.core.model.board.MinionType
+import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.testing.FakeSettingsRepository
+import dev.quinton.goa.feature.board.board.AddContent
 import dev.quinton.goa.feature.board.board.BoardAction
+import dev.quinton.goa.feature.board.board.BoardOverlay
+import dev.quinton.goa.feature.board.board.NewPiece
 import dev.quinton.goa.feature.board.board.BoardScreen
 import dev.quinton.goa.feature.board.board.BoardUiState
 import dev.quinton.goa.feature.board.board.BoardViewModel
@@ -113,7 +118,7 @@ class BoardScreenshotTest {
             id = id,
             name = name,
             lineup = lineup,
-            state = BoardSetup.opening(geometry, lineup, pieceIds(BoardState(geometry.map.id))),
+            state = BoardSetup.opening(geometry, lineup, ids()),
             createdAt = now - hoursAgo * HOUR,
             updatedAt = now - hoursAgo * HOUR,
         )
@@ -129,26 +134,42 @@ class BoardScreenshotTest {
         )
     }
 
+    /** Deterministic piece ids for the screenshots (the app uses UUIDs). */
+    private fun ids(): () -> String {
+        var n = 0
+        return { "p${++n}" }
+    }
+
     @Composable
-    private fun Boards(boards: List<SavedBoard>) {
+    private fun Boards(boards: List<SavedBoard>, withDraft: Boolean = true) {
         val vm =
             remember {
                 BoardsViewModel(
                     FakeCatalogRepository(catalog),
                     FakeBoardMapRepository(maps),
                     FakeBoardRepository(boards),
-                    EditClock {
-                        now
-                    },
+                    if (withDraft) drafts else FakeDraftRecordRepository(),
+                    if (withDraft) matches else FakeMatchRepository(),
+                    EditClock { now },
                 )
             }
         val state by vm.uiState.collectAsState()
-        BoardsScreen(state, onOpen = {
-        }, onNew = {}, onRename = { _, _ -> }, onDuplicate = {}, onDelete = {}, onBack = {})
+        BoardsScreen(
+            state,
+            onOpen = {},
+            onNew = {},
+            onSetUp = {},
+            onRename = { _, _ -> },
+            onDuplicate = {},
+            onDelete = {},
+            onBack = {},
+        )
     }
 
-    @Test fun boardsEmptyDark() = capture(ThemeMode.DARK) { Boards(emptyList()) }
+    /** No boards and no draft yet (the list opens on New board when empty; this shows after deleting all). */
+    @Test fun boardsEmptyDark() = capture(ThemeMode.DARK) { Boards(emptyList(), withDraft = false) }
 
+    /** No boards, but a finished draft: its line-up is one tap away. */
     @Test fun boardsEmptyLight() = capture(ThemeMode.LIGHT) { Boards(emptyList()) }
 
     @Test fun boardsDark() = capture(ThemeMode.DARK) { Boards(savedBoards()) }
@@ -209,26 +230,44 @@ class BoardScreenshotTest {
         ),
     )
 
-    private fun newBoardViewModel(route: NewBoardRoute = NewBoardRoute()) = NewBoardViewModel(
+    private fun newBoardViewModel(
+        route: NewBoardRoute = NewBoardRoute(),
+        settings: AppSettings = AppSettings(),
+        withDraft: Boolean = true,
+    ) = NewBoardViewModel(
         route,
         SavedStateHandle(),
         FakeCatalogRepository(catalog),
         FakeBoardMapRepository(maps),
-        drafts,
-        matches,
+        if (withDraft) drafts else FakeDraftRecordRepository(),
+        if (withDraft) matches else FakeMatchRepository(),
+        FakeSettingsRepository(settings),
     )
 
     @Composable
     private fun NewBoard(vm: NewBoardViewModel) {
         val state by vm.uiState.collectAsState()
-        NewBoardScreen(state, onAction = vm::onAction, onSetUp = {}, onBack = {})
+        NewBoardScreen(state, onAction = vm::onAction, onSetUp = {}, onSetUpLatest = {}, onBack = {})
     }
 
-    private fun filled() = newBoardViewModel(NewBoardRoute(red = lineup.red, blue = lineup.blue)).also {
-        it.onAction(NewBoardAction.Fill(Team.BLUE))
+    /** Brogan, Tigerclaw, Arien: the next pick is Blue's (picks alternate like a draft). */
+    private fun filled() = newBoardViewModel().also { vm ->
+        listOf("brogan", "tigerclaw", "arien").forEach { vm.onAction(NewBoardAction.Tap(it)) }
     }
 
+    /** The latest draft on top: "Set up" is one tap. */
     @Test fun newBoardEmptyDark() = capture(ThemeMode.DARK) { NewBoard(remember { newBoardViewModel() }) }
+
+    /** Nothing drafted yet, the group owns the core box only: its heroes, "Show all" below. */
+    @Test
+    fun newBoardOwnedLight() = capture(ThemeMode.LIGHT) {
+        NewBoard(
+            remember {
+                val core = catalog.products.first().id
+                newBoardViewModel(settings = AppSettings(ownedProducts = setOf(core)), withDraft = false)
+            },
+        )
+    }
 
     @Test fun newBoardDark() = capture(ThemeMode.DARK) { NewBoard(remember { filled() }) }
 
@@ -254,13 +293,20 @@ class BoardScreenshotTest {
 
     // ---- Board ---------------------------------------------------------------------------
 
-    private fun boardViewModel(): BoardViewModel = BoardViewModel(
-        route = BoardRoute(red = lineup.red, blue = lineup.blue),
+    private fun boardViewModel(
+        mapId: String? = null,
+        board: BoardLineup = lineup,
+        route: BoardRoute = BoardRoute(red = board.red, blue = board.blue, mapId = mapId),
+    ): BoardViewModel = BoardViewModel(
+        route = route,
         savedState = SavedStateHandle(),
         catalogRepository = FakeCatalogRepository(catalog),
         mapRepository = FakeBoardMapRepository(maps),
         boardRepository = FakeBoardRepository(),
+        draftRepository = FakeDraftRecordRepository(),
+        settingsRepository = FakeSettingsRepository(),
         clock = EditClock { now },
+        newPieceId = ids(),
     )
 
     private fun BoardViewModel.ready(): BoardUiState.Ready {
@@ -271,9 +317,16 @@ class BoardScreenshotTest {
     private fun BoardViewModel.hero(id: String) = ready().pieces.filterIsInstance<HeroPiece>().first { it.heroId == id }
 
     @Composable
-    private fun Board(vm: BoardViewModel) {
+    private fun Board(vm: BoardViewModel, overlay: BoardOverlay? = null, collapsed: Boolean = false) {
         val state by vm.uiState.collectAsState()
-        BoardScreen(state, onAction = vm::onAction, onTap = vm::tap, onBack = {})
+        BoardScreen(
+            state,
+            onAction = vm::onAction,
+            onTap = vm::tap,
+            onBack = {},
+            initialOverlay = overlay,
+            initialCollapsed = collapsed,
+        )
     }
 
     @Test fun boardOpeningDark() = capture(ThemeMode.DARK) { Board(remember { boardViewModel() }) }
@@ -350,6 +403,89 @@ class BoardScreenshotTest {
     fun boardPushTrayW384LightFontScale2() = boardViewModel().let { vm ->
         capture(ThemeMode.LIGHT, 2f, before = { pushWithWaiting(vm) }) { Board(vm) }
     }
+
+    // ---- Two lanes, unverified maps, tools and dialogs ------------------------------------
+
+    /** Across the River (two Lanes): each Battle Zone labelled with its Lane. */
+    @Test
+    fun boardTwoLanesDark() = boardViewModel(mapId = "across-the-river", board = sixHeroes).let { vm ->
+        capture(ThemeMode.DARK) { Board(vm) }
+    }
+
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun boardTwoLanesLandscapeLight() = boardViewModel(mapId = "across-the-river", board = sixHeroes).let { vm ->
+        capture(ThemeMode.LIGHT) { Board(vm) }
+    }
+
+    /** Push on a double-lane map: each Lane asked by the name its label shows. */
+    @Test
+    fun boardTwoLanesPushDark() = boardViewModel(mapId = "across-the-river", board = sixHeroes).let { vm ->
+        capture(ThemeMode.DARK) { Board(vm, overlay = BoardOverlay.PUSH) }
+    }
+
+    /** A map not checked against the official art: badged Unverified on the board. */
+    @Test
+    fun boardUnverifiedDark() = boardViewModel(mapId = "narrow-passages").let { vm ->
+        capture(ThemeMode.DARK) { Board(vm) }
+    }
+
+    @Test
+    fun boardAddSheetDark() = boardViewModel().let { vm ->
+        capture(ThemeMode.DARK) {
+            val state by vm.uiState.collectAsState()
+            Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+                (state as? BoardUiState.Ready)?.let { AddContent(it, onAdd = {}, onDone = {}) }
+            }
+        }
+    }
+
+    /** A Red melee minion selected, Movement 2 from its stepper. */
+    @Test
+    fun boardMinionStepperDark() = boardViewModel().let { vm ->
+        capture(ThemeMode.DARK, before = {
+            val minion = vm.ready().pieces.filterIsInstance<MinionPiece>().first {
+                it.team == Team.RED && it.type == MinionType.MELEE
+            }
+            vm.onAction(BoardAction.Select(minion.id))
+            vm.onAction(BoardAction.Steps(1))
+        }) { Board(vm) }
+    }
+
+    /** Add → a token: the banner says what a tap on the board does now. */
+    @Test
+    fun boardPlaceBannerLight() = boardViewModel().let { vm ->
+        capture(ThemeMode.LIGHT, before = { vm.onAction(BoardAction.Add(NewPiece.Token("Mine", Team.BLUE))) }) {
+            Board(vm)
+        }
+    }
+
+    /** The selection panel folded to its header: the map gets the room. */
+    @Test
+    fun boardCollapsedPanelDark() = boardViewModel().let { vm ->
+        capture(ThemeMode.DARK, before = { selectedHero(vm) }) { Board(vm, collapsed = true) }
+    }
+
+    /** Pushing into a Throne Zone: that team wins (p.8). */
+    @Test
+    fun boardThroneCapturedDark() = boardViewModel().let { vm ->
+        capture(ThemeMode.DARK, before = {
+            val lane = vm.ready().map.lanes.single().id
+            vm.onAction(BoardAction.Push(lane, Team.BLUE))
+            vm.onAction(BoardAction.Push(lane, Team.BLUE))
+        }) { Board(vm) }
+    }
+
+    /** A board deleted (or unreadable) since it was opened. */
+    @Test
+    fun boardMissingLight() = boardViewModel(route = BoardRoute(boardId = "gone")).let { vm ->
+        capture(ThemeMode.LIGHT) { Board(vm) }
+    }
+
+    private val sixHeroes = BoardLineup(
+        red = listOf("arien", "brogan", "xargatha"),
+        blue = listOf("wasp", "tigerclaw", "sabina"),
+    )
 
     private fun pushWithWaiting(vm: BoardViewModel) {
         val ready = vm.ready()

@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.board.map
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import dev.quinton.goa.core.domain.board.BoardGeometry
 import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.model.board.BoardMap
@@ -36,8 +37,8 @@ class MapLayout(map: BoardMap, val orientation: MapOrientation, val bottomTeam: 
     val width: Float
     val height: Float
 
-    /** Every hex drawn: the spaces and the printed terrain. */
-    val hexes: List<Hex> = map.spaces.map { it.hex } + map.terrain
+    /** Every hex drawn: the spaces, the printed terrain and the ring of water around the map (p.19). */
+    val hexes: List<Hex> = map.spaces.map { it.hex } + map.terrain + BoardGeometry.of(map).edge
 
     init {
         rotationDegrees = rotationFor(map, orientation, bottomTeam)
@@ -99,6 +100,18 @@ class MapLayout(map: BoardMap, val orientation: MapOrientation, val bottomTeam: 
         val q = (SQRT3 / 3f * x - y / 3f)
         val r = (2f / 3f * y)
         return roundHex(q, r)
+    }
+
+    /** The rectangle (map units) around the centres of [hexes], [pad] units wider on every side. */
+    fun bounds(hexes: Collection<Hex>, pad: Float = 1f): Rect? {
+        if (hexes.isEmpty()) return null
+        val centres = hexes.map(::center)
+        return Rect(
+            centres.minOf { it.x } - pad,
+            centres.minOf { it.y } - pad,
+            centres.maxOf { it.x } + pad,
+            centres.maxOf { it.y } + pad,
+        )
     }
 
     /** Distance from [point] to the centre of [hex], in map units. */

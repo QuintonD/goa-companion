@@ -1,9 +1,11 @@
 package dev.quinton.goa.feature.board
 
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.data.BoardRepository
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.model.board.BoardLineup
 import dev.quinton.goa.core.model.board.BoardState
@@ -17,12 +19,14 @@ import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Participant
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.navigation.NewBoardRoute
 import dev.quinton.goa.core.testing.FakeBoardMapRepository
 import dev.quinton.goa.core.testing.FakeBoardRepository
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
+import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.core.testing.TestCatalog
 import dev.quinton.goa.feature.board.list.BoardsUiState
 import dev.quinton.goa.feature.board.list.BoardsViewModel
@@ -30,8 +34,13 @@ import dev.quinton.goa.feature.board.setup.LineupSourceKind
 import dev.quinton.goa.feature.board.setup.NewBoardAction
 import dev.quinton.goa.feature.board.setup.NewBoardUiState
 import dev.quinton.goa.feature.board.setup.NewBoardViewModel
+import java.io.IOException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -45,6 +54,7 @@ class BoardsAndSetupViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private val maps = FakeBoardMapRepository(listOf(TestMap.map))
     private val catalog = FakeCatalogRepository(TestCatalog.catalog)
+    private val settings = FakeSettingsRepository()
 
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
 
@@ -56,50 +66,6 @@ class BoardsAndSetupViewModelTest {
             if (type.isInstance(item)) return item
         }
     }
-
-    // ---- Boards --------------------------------------------------------------------------
-
-    private fun board(id: String, updatedAt: Long) = SavedBoard(
-        id = id,
-        name = "Board $id",
-        lineup = BoardLineup(red = listOf("test-hero-1"), blue = listOf("test-hero-2", "unknown-hero")),
-        state = BoardState(TestMap.map.id),
-        createdAt = 1L,
-        updatedAt = updatedAt,
-    )
-
-    @Test
-    fun `boards list newest first with map and line-up, rename, duplicate, delete and undo`() = runTest(dispatcher) {
-        val repo = FakeBoardRepository(listOf(board("a", 10), board("b", 20)))
-        val vm = BoardsViewModel(catalog, maps, repo, EditClock { 99L })
-        vm.uiState.test {
-            var ready = ready(BoardsUiState.Ready::class.java) as BoardsUiState.Ready
-            assertThat(ready.boards.map { it.id }).containsExactly("b", "a").inOrder()
-            val row = ready.boards.first()
-            assertThat(row.mapName).isEqualTo("Test map")
-            assertThat(row.mapVerified).isFalse()
-            assertThat(row.blue.map { it.name }).containsExactly("Test Hero 2", "Unknown hero").inOrder()
-
-            vm.rename("a", "  Opening study  ")
-            ready = awaitItem() as BoardsUiState.Ready
-            assertThat(ready.boards.first().name).isEqualTo("Opening study")
-            assertThat(ready.boards.first().updatedAt).isEqualTo(99L)
-
-            vm.duplicate("b")
-            ready = awaitItem() as BoardsUiState.Ready
-            assertThat(ready.boards.map { it.name }).contains("Board b (copy)")
-            assertThat(ready.boards).hasSize(3)
-
-            val deleted = vm.delete("b")!!
-            ready = awaitItem() as BoardsUiState.Ready
-            assertThat(ready.boards.map { it.id }).doesNotContain("b")
-            vm.restore(deleted)
-            ready = awaitItem() as BoardsUiState.Ready
-            assertThat(ready.boards.map { it.id }).contains("b")
-        }
-    }
-
-    // ---- New board -----------------------------------------------------------------------
 
     private val drafts = FakeDraftRecordRepository(
         listOf(
@@ -138,29 +104,119 @@ class BoardsAndSetupViewModelTest {
         ),
     )
 
-    private fun newBoard(route: NewBoardRoute = NewBoardRoute(), saved: SavedStateHandle = SavedStateHandle()) =
-        NewBoardViewModel(route, saved, catalog, maps, drafts, matches)
+    // ---- Boards --------------------------------------------------------------------------
+
+    private fun board(id: String, updatedAt: Long) = SavedBoard(
+        id = id,
+        name = "Board $id",
+        lineup = BoardLineup(red = listOf("test-hero-1"), blue = listOf("test-hero-2", "unknown-hero")),
+        state = BoardState(TestMap.map.id),
+        createdAt = 1L,
+        updatedAt = updatedAt,
+    )
+
+    private fun boardsViewModel(repo: BoardRepository, restoreScope: CoroutineScope = CoroutineScope(dispatcher)) =
+        BoardsViewModel(catalog, maps, repo, drafts, matches, EditClock { 99L }, restoreScope)
 
     @Test
-    fun `heroes join the team being filled in pick order, once per board, five a side`() = runTest(dispatcher) {
+    fun `boards list newest first with map and line-up, rename, duplicate, delete and undo`() = runTest(dispatcher) {
+        val repo = FakeBoardRepository(listOf(board("a", 10), board("b", 20)))
+        val vm = boardsViewModel(repo)
+        vm.uiState.test {
+            var ready = ready(BoardsUiState.Ready::class.java) as BoardsUiState.Ready
+            assertThat(ready.boards.map { it.id }).containsExactly("b", "a").inOrder()
+            val row = ready.boards.first()
+            assertThat(row.mapName).isEqualTo("Test map")
+            assertThat(row.mapVerified).isFalse()
+            assertThat(row.blue.map { it.name }).containsExactly("Test Hero 2", "Unknown hero").inOrder()
+
+            vm.rename("a", "  Opening study  ")
+            ready = awaitItem() as BoardsUiState.Ready
+            assertThat(ready.boards.first().name).isEqualTo("Opening study")
+            assertThat(ready.boards.first().updatedAt).isEqualTo(99L)
+
+            vm.duplicate("b")
+            ready = awaitItem() as BoardsUiState.Ready
+            assertThat(ready.boards.map { it.name }).contains("Board b (copy)")
+            assertThat(ready.boards).hasSize(3)
+
+            val deleted = vm.delete("b")!!
+            ready = awaitItem() as BoardsUiState.Ready
+            assertThat(ready.boards.map { it.id }).doesNotContain("b")
+            vm.restore(deleted)
+            ready = awaitItem() as BoardsUiState.Ready
+            assertThat(ready.boards.map { it.id }).contains("b")
+        }
+    }
+
+    @Test
+    fun `undo of a delete still restores the board after Boards has closed`() = runTest(dispatcher) {
+        val repo = FakeBoardRepository(listOf(board("a", 10)))
+        val vm = boardsViewModel(repo)
+        val deleted = vm.delete("a")!!
+        // The app-wide snackbar's Undo comes after the screen (and its ViewModel scope) went away.
+        vm.viewModelScope.cancel()
+        vm.restore(deleted)
+        assertThat(repo.state.value.map { it.id }).containsExactly("a")
+    }
+
+    @Test
+    fun `boards show the latest draft or match to set up in one tap`() = runTest(dispatcher) {
+        val vm = boardsViewModel(FakeBoardRepository())
+        vm.uiState.test {
+            val ready = ready(BoardsUiState.Ready::class.java) as BoardsUiState.Ready
+            // The pending match (200) is newer than the draft (100); the abandoned one (300) is left out.
+            assertThat(ready.latest?.kind).isEqualTo(LineupSourceKind.PENDING)
+            assertThat(ready.latest?.lineup).isEqualTo(BoardLineup(listOf("test-hero-7"), listOf("test-hero-8")))
+        }
+    }
+
+    @Test
+    fun `a boards file that can't be read shows an empty list instead of crashing`() = runTest(dispatcher) {
+        val broken = object : BoardRepository by FakeBoardRepository() {
+            override val boards: Flow<List<SavedBoard>> = flow { throw IOException("corrupt") }
+        }
+        boardsViewModel(broken).uiState.test {
+            val ready = ready(BoardsUiState.Ready::class.java) as BoardsUiState.Ready
+            assertThat(ready.boards).isEmpty()
+            assertThat(ready.unreadable).isTrue()
+        }
+    }
+
+    // ---- New board -----------------------------------------------------------------------
+
+    private fun newBoard(route: NewBoardRoute = NewBoardRoute(), saved: SavedStateHandle = SavedStateHandle()) =
+        NewBoardViewModel(route, saved, catalog, maps, drafts, matches, settings)
+
+    @Test
+    fun `picks alternate like a draft, a team can be picked for, five a side`() = runTest(dispatcher) {
         val vm = newBoard()
         vm.uiState.test {
-            ready(NewBoardUiState.Ready::class.java)
-            vm.onAction(NewBoardAction.Tap("test-hero-1"))
-            vm.onAction(NewBoardAction.Tap("test-hero-2"))
-            vm.onAction(NewBoardAction.Fill(Team.BLUE))
-            vm.onAction(NewBoardAction.Tap("test-hero-3"))
-            var ready = expectMostRecentItem() as NewBoardUiState.Ready
+            var ready = ready(NewBoardUiState.Ready::class.java) as NewBoardUiState.Ready
+            assertThat(ready.form.filling).isEqualTo(Team.RED)
+            // "Brogan, Tigerclaw, Arien, Wasp": Red, Blue, Red, Blue.
+            listOf("test-hero-1", "test-hero-3", "test-hero-2", "test-hero-4").forEach {
+                vm.onAction(NewBoardAction.Tap(it))
+            }
+            ready = expectMostRecentItem() as NewBoardUiState.Ready
             assertThat(ready.form.red).containsExactly("test-hero-1", "test-hero-2").inOrder()
-            assertThat(ready.form.blue).containsExactly("test-hero-3")
+            assertThat(ready.form.blue).containsExactly("test-hero-3", "test-hero-4").inOrder()
+            assertThat(ready.form.filling).isEqualTo(Team.RED)
+            // Two in a row for one team: choose it, then the next pick goes back to the smaller team.
+            vm.onAction(NewBoardAction.Tap("test-hero-5"))
+            vm.onAction(NewBoardAction.Fill(Team.RED))
+            vm.onAction(NewBoardAction.Tap("test-hero-6"))
+            ready = expectMostRecentItem() as NewBoardUiState.Ready
+            assertThat(ready.form.red).containsExactly("test-hero-1", "test-hero-2", "test-hero-5", "test-hero-6")
+            assertThat(ready.form.filling).isEqualTo(Team.BLUE)
             // Tapping a hero already on the board takes it off.
             vm.onAction(NewBoardAction.Tap("test-hero-1"))
-            vm.onAction(NewBoardAction.Reorder("test-hero-3", -1))
+            vm.onAction(NewBoardAction.Reorder("test-hero-4", -1))
             vm.onAction(NewBoardAction.SwitchTeam("test-hero-2"))
             ready = expectMostRecentItem() as NewBoardUiState.Ready
-            assertThat(ready.form.red).isEmpty()
-            assertThat(ready.form.blue).containsExactly("test-hero-3", "test-hero-2").inOrder()
-            (4..12).forEach { vm.onAction(NewBoardAction.Tap("test-hero-$it")) }
+            assertThat(ready.form.red).containsExactly("test-hero-5", "test-hero-6").inOrder()
+            assertThat(ready.form.blue).containsExactly("test-hero-4", "test-hero-3", "test-hero-2").inOrder()
+            (7..12).forEach { vm.onAction(NewBoardAction.Tap("test-hero-$it")) }
             ready = expectMostRecentItem() as NewBoardUiState.Ready
             assertThat(ready.form.blue).hasSize(NewBoardUiState.MAX_PER_TEAM)
             assertThat(ready.form.red).hasSize(NewBoardUiState.MAX_PER_TEAM)
@@ -170,26 +226,47 @@ class BoardsAndSetupViewModelTest {
     }
 
     @Test
-    fun `a draft or a match fills both teams in one tap, newest first`() = runTest(dispatcher) {
+    fun `the picker shows owned products' heroes first, all on request`() = runTest(dispatcher) {
+        settings.state.value = AppSettings(ownedProducts = setOf("test-core"))
         val vm = newBoard()
         vm.uiState.test {
-            val ready = ready(NewBoardUiState.Ready::class.java) as NewBoardUiState.Ready
-            // Abandoned matches are left out.
-            assertThat(ready.sources.map { it.kind }).containsExactly(
-                LineupSourceKind.PENDING,
-                LineupSourceKind.DRAFT,
-                LineupSourceKind.LOGGED,
-            ).inOrder()
-            val draft = ready.sources.first { it.kind == LineupSourceKind.DRAFT }
-            // Picks per team in pick order; bans are not heroes on the board.
-            assertThat(
-                draft.lineup,
-            ).isEqualTo(BoardLineup(listOf("test-hero-2", "test-hero-1"), listOf("test-hero-4", "test-hero-3")))
-            vm.onAction(NewBoardAction.Use(draft))
-            val filled = expectMostRecentItem() as NewBoardUiState.Ready
-            assertThat(filled.form.lineup).isEqualTo(draft.lineup)
+            var ready = ready(NewBoardUiState.Ready::class.java) as NewBoardUiState.Ready
+            // Even-numbered test heroes are in "test-core".
+            assertThat(ready.ownedOnly).isTrue()
+            assertThat(ready.heroes.map { it.id }.all { it.removePrefix("test-hero-").toInt() % 2 == 0 }).isTrue()
+            assertThat(ready.hiddenHeroes).isEqualTo(6)
+            vm.onAction(NewBoardAction.ShowAll(true))
+            ready = expectMostRecentItem() as NewBoardUiState.Ready
+            assertThat(ready.heroes).hasSize(12)
+            assertThat(ready.hiddenHeroes).isEqualTo(0)
         }
     }
+
+    @Test
+    fun `a draft or a match fills both teams in one tap, newest first, the latest sets up directly`() =
+        runTest(dispatcher) {
+            val vm = newBoard()
+            vm.uiState.test {
+                val ready = ready(NewBoardUiState.Ready::class.java) as NewBoardUiState.Ready
+                // Abandoned matches are left out.
+                assertThat(ready.sources.map { it.kind }).containsExactly(
+                    LineupSourceKind.PENDING,
+                    LineupSourceKind.DRAFT,
+                    LineupSourceKind.LOGGED,
+                ).inOrder()
+                assertThat(ready.latest).isEqualTo(ready.sources.first())
+                val draft = ready.sources.first { it.kind == LineupSourceKind.DRAFT }
+                // Picks per team in pick order; bans are not heroes on the board.
+                assertThat(draft.lineup)
+                    .isEqualTo(BoardLineup(listOf("test-hero-2", "test-hero-1"), listOf("test-hero-4", "test-hero-3")))
+                val route = vm.setUp(draft)
+                assertThat(route.red).isEqualTo(draft.lineup.red)
+                assertThat(route.blue).isEqualTo(draft.lineup.blue)
+                vm.onAction(NewBoardAction.Use(draft))
+                val filled = expectMostRecentItem() as NewBoardUiState.Ready
+                assertThat(filled.form.lineup).isEqualTo(draft.lineup)
+            }
+        }
 
     @Test
     fun `route pre-fills and the form survives process death`() = runTest(dispatcher) {
@@ -201,11 +278,13 @@ class BoardsAndSetupViewModelTest {
             assertThat(ready.form.red).containsExactly("test-hero-1")
             assertThat(ready.form.blue).containsExactly("test-hero-2")
         }
+        vm.onAction(NewBoardAction.Fill(Team.RED))
         vm.onAction(NewBoardAction.Tap("test-hero-5"))
         val restored = newBoard(NewBoardRoute(), SavedStateHandle(saved.keys().associateWith { saved.get<Any>(it) }))
         restored.uiState.test {
             val ready = ready(NewBoardUiState.Ready::class.java) as NewBoardUiState.Ready
             assertThat(ready.form.red).containsExactly("test-hero-1", "test-hero-5").inOrder()
+            assertThat(ready.form.filling).isEqualTo(Team.BLUE)
         }
     }
 }
