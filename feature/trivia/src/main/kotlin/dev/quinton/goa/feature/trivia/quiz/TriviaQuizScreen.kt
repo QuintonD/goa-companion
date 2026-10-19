@@ -174,7 +174,7 @@ private fun QuizPlaying(state: TriviaQuizUiState.Playing, onAnswer: (TriviaAnswe
                                 .padding(Spacing.screen),
                         ) {
                             AnswerArea(state, onAnswer)
-                            Reveal(state, userScrolling = { scroll.isScrollInProgress }, imageMaxHeight = imageMax)
+                            Reveal(state, scroll = scroll, imageMaxHeight = imageMax)
                         }
                     }
                     NextBar(state, onNext)
@@ -196,7 +196,7 @@ private fun QuizPlaying(state: TriviaQuizUiState.Playing, onAnswer: (TriviaAnswe
                         QuestionPanel(state.question)
                         Spacer(Modifier.height(Spacing.lg))
                         AnswerArea(state, onAnswer)
-                        Reveal(state, userScrolling = { scroll.isScrollInProgress }, imageMaxHeight = imageMax)
+                        Reveal(state, scroll = scroll, imageMaxHeight = imageMax)
                     }
                 }
                 NextBar(state, onNext)

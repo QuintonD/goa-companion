@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.trivia.quiz
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,8 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -350,24 +349,30 @@ private fun DuelTile(
 /**
  * The feedback line and, once answered, the official card image(s). The feedback is one polite
  * live region that is there before the answer, so TalkBack announces it when it fills in. After an
- * answer the block scrolls into view (the scan is the proof of the answer), unless the player is
- * touching the list ([userScrolling]).
+ * answer the list scrolls to its end, where this block sits (the scan is the proof of the answer),
+ * unless the player is touching the list ([scroll]).
  */
 @Composable
 internal fun Reveal(
     state: TriviaQuizUiState.Playing,
-    userScrolling: () -> Boolean,
+    scroll: ScrollState,
     /** The scans are kept this short at most, so they fit the visible list with the feedback. */
     imageMaxHeight: Dp = Dp.Infinity,
 ) {
-    val requester = remember { BringIntoViewRequester() }
     var loaded by remember(state.number) { mutableIntStateOf(0) }
-    LaunchedEffect(state.number, state.answered, loaded) {
+    val scans = when (val q = state.question) {
+        is QuizQuestionUi.Number -> listOfNotNull(q.card.image).size
+        is QuizQuestionUi.Duel -> listOfNotNull(q.first.image, q.second.image).size
+    }
+    // On the answer and again once every scan has loaded (the list grows), always to the list's end:
+    // an absolute target, so where it lands never depends on which scan loaded first or when.
+    val allLoaded = loaded >= scans
+    LaunchedEffect(state.number, state.answered, allLoaded) {
         if (!state.answered) return@LaunchedEffect
         withFrameNanos {}
-        if (!userScrolling()) requester.bringIntoView()
+        if (!scroll.isScrollInProgress) scroll.animateScrollTo(scroll.maxValue)
     }
-    Column(Modifier.fillMaxWidth().bringIntoViewRequester(requester)) {
+    Column(Modifier.fillMaxWidth()) {
         if (state.answered) Spacer(Modifier.height(Spacing.lg))
         FeedbackLine(state.feedback, state.correct)
         if (!state.answered) return@Column

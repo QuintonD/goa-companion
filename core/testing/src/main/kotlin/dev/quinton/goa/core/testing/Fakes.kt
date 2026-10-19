@@ -219,9 +219,14 @@ class FakeTriviaProgressRepository(
 class FakeTriviaRoundRepository(initial: List<TriviaRound> = emptyList()) : TriviaRoundRepository {
     val state = MutableStateFlow(initial)
 
-    override fun observeRounds(): Flow<List<TriviaRound>> = state.map { rounds -> rounds.sortedBy { it.playedAt } }
+    override fun observeRounds(): Flow<List<TriviaRound>> = state.map { rounds ->
+        rounds.sortedBy { it.playedAt }
+    }
 
-    override suspend fun add(round: TriviaRound) = state.update { rounds -> rounds.filterNot { it.id == round.id } + round }
+    override suspend fun add(round: TriviaRound) = state.update { rounds ->
+        rounds.filterNot { it.id == round.id } +
+            round
+    }
 
     override suspend fun delete(id: String) = state.update { rounds -> rounds.filterNot { it.id == id } }
 }
@@ -237,7 +242,10 @@ class FakeBoardRepository(initial: List<SavedBoard> = emptyList()) : BoardReposi
 
     override fun observe(id: String): Flow<SavedBoard?> = state.map { boards -> boards.firstOrNull { it.id == id } }
 
-    override suspend fun upsert(board: SavedBoard) = state.update { boards -> boards.filterNot { it.id == board.id } + board }
+    override suspend fun upsert(board: SavedBoard) = state.update { boards ->
+        boards.filterNot { it.id == board.id } +
+            board
+    }
 
     override suspend fun delete(id: String) = state.update { boards -> boards.filterNot { it.id == id } }
 
