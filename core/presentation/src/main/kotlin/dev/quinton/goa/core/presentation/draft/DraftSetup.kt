@@ -24,6 +24,7 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.presentation.players.PlayerLook
 import kotlin.random.Random
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -565,8 +566,9 @@ object DraftSetupPresenter {
 object QuickAddPlayer {
     const val AVATAR_COUNT = 24
 
+    /** A new player called [name], trimmed and cut to the player editor's limit ([PlayerLook.nameInput]). */
     fun create(id: String, name: String, existingCount: Int, now: Long, colors: List<Long>): Player? {
-        val trimmed = name.trim()
+        val trimmed = PlayerLook.nameInput(name.trim()).trim()
         if (trimmed.isEmpty() || colors.isEmpty()) return null
         return Player(
             id = id,
