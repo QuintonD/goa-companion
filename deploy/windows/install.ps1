@@ -130,7 +130,7 @@ $runHub = @"
 rem Started at boot by the "GoA Hub" scheduled task (install.ps1). The hub listens on this PC only.
 set "JAVA_HOME=$javaHome"
 set "GOA_HUB_DATA=$Data"
-set "JAVA_OPTS=-Xms32m -Xmx384m"
+set "JAVA_OPTS=-Xms32m -Xmx384m -XX:+ExitOnOutOfMemoryError"
 if exist "$Logs\hub.log" for %%F in ("$Logs\hub.log") do if %%~zF GTR 10485760 move /y "$Logs\hub.log" "$Logs\hub.log.1" >nul
 call "$Current\bin\goa-hub.bat" serve --data "$Data" --host 127.0.0.1 --port 8080 >> "$Logs\hub.log" 2>&1
 "@

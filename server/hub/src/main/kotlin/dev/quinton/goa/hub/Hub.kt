@@ -12,7 +12,6 @@ import dev.quinton.goa.hub.store.Devices
 import dev.quinton.goa.hub.store.GroupStore
 import dev.quinton.goa.hub.store.SyncStateStore
 import dev.quinton.goa.hub.web.JoinThrottle
-import java.nio.file.Files
 
 /**
  * Everything one hub process holds, wired once (the composition root). Pages reach it through
@@ -25,7 +24,7 @@ class Hub(
     pushTransport: PushTransport = PushTransport.jdk(),
 ) {
     init {
-        Files.createDirectories(paths.root)
+        paths.ensureRoot()
     }
 
     val config = HubConfigStore(paths.config)

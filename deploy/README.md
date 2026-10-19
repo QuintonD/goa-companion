@@ -470,6 +470,19 @@ fixes labels.
   Funnel keeps working with all inbound ports closed.
 - **Whoever has the machine has the data.** The hub holds the group key (ADR-030). Keep the
   machine at home, and consider full-disk encryption when you install the OS.
+- **Everyone with the invite is a member.** A member can read everything and change the group's
+  data (the hub only refuses data that breaks the sync rules). Signing a browser out in Settings
+  stops that browser, not the person: the invite still works. There is no way to change a group's
+  key, so if someone must lose access for good, start a new group on a phone, move the hub's data
+  directory aside (as in *Restore*, section 8) and `goa-hub join` the new group's invite. The old
+  group's matches stay on every phone.
+- **The invite QR code is the key.** Never post it, the invite text or a screenshot of it. The
+  hub's address alone is harmless.
+- **On Windows the hub runs as SYSTEM** (a scheduled task), without the Linux unit's sandbox. Prefer
+  Linux for a hub on the internet; on Windows keep the PC up to date and use it for little else.
+- **Out of memory means a restart.** The hub runs with `-XX:+ExitOnOutOfMemoryError`, so it exits
+  instead of hanging, and systemd starts it again. Request bodies are capped (256 KB for forms, 8 MB
+  for syncs and backups), so a stranger can't fill its memory.
 
 ## 11. Windows instead of Linux
 

@@ -75,7 +75,8 @@ app/goa.apk                     the latest APK (deploy/linux/update.sh copies it
 ```
 
 Atomic writes go through `AtomicFiles.write` (temp `*.tmp` in the same directory, fsync, rename);
-the backup script skips `*.tmp`. The hub writes nothing outside this directory.
+the backup script skips `*.tmp`. The hub writes nothing outside this directory. On Linux the
+directory is `0700` and every file the hub writes `0600`, whatever the umask.
 
 ## Adding your area: `HubFeature`
 
@@ -280,6 +281,10 @@ Every POST/PUT/PATCH/DELETE (except `POST /api/v1/sync`, which uses a bearer tok
 `Origin` = the configured public URL (browsers do this for forms, htmx and `fetch`); otherwise
 `403`. There are no CSRF tokens to add. In tests, send `header(HttpHeaders.Origin, HUB_URL)`.
 Never change state on GET.
+
+Request bodies are capped at 256 KB (`web/BodyLimit.kt`, `413` above it, chunked or not) before any
+handler reads them; only `POST /api/v1/sync` and the backup upload read up to 8 MB themselves. A
+feature that needs a bigger upload adds its path there with its own limit.
 
 ## Web Push
 

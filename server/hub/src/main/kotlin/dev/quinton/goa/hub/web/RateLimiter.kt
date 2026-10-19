@@ -52,7 +52,8 @@ class RateLimiter(
  *   budget: [UNKNOWN_CLIENTS] per minute, then a [LOCKOUT_MS] lockout;
  * - every failure counts against [OVERALL] per minute (then the lockout), so rotating forged
  *   addresses doesn't help either.
- * The group key is 256 bits, so this is about noise and abuse, not about guessing.
+ * The group key is 256 bits, so this is about noise and abuse, not about guessing; and the right
+ * invite is never throttled (`/join` checks it first), so nobody can lock the group out.
  */
 class JoinThrottle(clock: WallClock) {
     private val perClient = RateLimiter(PER_CLIENT, TEN_MINUTES, clock)
