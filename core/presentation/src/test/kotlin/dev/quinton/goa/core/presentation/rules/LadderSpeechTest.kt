@@ -1,11 +1,9 @@
-package dev.quinton.goa.feature.rules
+package dev.quinton.goa.core.presentation.rules
 
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.core.model.rules.LevelRow
-import dev.quinton.goa.feature.rules.ui.spokenDefeat
-import dev.quinton.goa.feature.rules.ui.spokenIconLabel
-import dev.quinton.goa.feature.rules.ui.spokenRow
+import dev.quinton.goa.core.presentation.catalog.spokenIconLabel
 import org.junit.Test
 
 /** What TalkBack reads on the level ladder: counts agree with their nouns (QA: "1 coins"). */

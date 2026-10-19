@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.rules
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
@@ -8,12 +7,12 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.CatalogRepository
-import dev.quinton.goa.core.domain.rules.DefeatExceptions
-import dev.quinton.goa.core.domain.rules.RulesSearch
 import dev.quinton.goa.core.model.catalog.Catalog
-import dev.quinton.goa.core.model.rules.LevelLadder
 import dev.quinton.goa.core.model.rules.RulesReference
-import dev.quinton.goa.core.model.rules.RulesTopic
+import dev.quinton.goa.core.presentation.rules.LadderSelection
+import dev.quinton.goa.core.presentation.rules.LadderUiState
+import dev.quinton.goa.core.presentation.rules.RulesTopicUiState
+import dev.quinton.goa.core.presentation.rules.RulesUiState
 import dev.quinton.goa.feature.rules.data.RulesReferenceSource
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
@@ -32,51 +31,20 @@ private fun RulesReferenceSource.flow(): Flow<RulesReference?> = flow<RulesRefer
 
 // ---- Topic list -------------------------------------------------------------------------------
 
-@Immutable
-data class TopicItem(val id: String, val title: String, val pages: List<Int>, val summary: String?)
-
-sealed interface RulesUiState {
-    data object Loading : RulesUiState
-
-    data object Unavailable : RulesUiState
-
-    @Immutable
-    data class Ready(val query: String, val topics: List<TopicItem>, val totalTopics: Int) : RulesUiState
-}
-
 @HiltViewModel
 class RulesViewModel @Inject constructor(source: RulesReferenceSource) : ViewModel() {
     private val query = MutableStateFlow("")
 
     val uiState: StateFlow<RulesUiState> = combine(source.flow(), query) { reference, q ->
-        if (reference == null) {
-            RulesUiState.Unavailable
-        } else {
-            RulesUiState.Ready(
-                query = q,
-                topics = RulesSearch.filter(reference.topics, q).map(::item),
-                totalTopics = reference.topics.size,
-            )
-        }
+        RulesUiState.of(reference, q)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), RulesUiState.Loading)
 
     fun setQuery(value: String) {
         query.value = value
     }
-
-    private fun item(topic: RulesTopic) = TopicItem(topic.id, topic.title, topic.pages.sorted(), topic.summary)
 }
 
 // ---- Topic detail -----------------------------------------------------------------------------
-
-sealed interface RulesTopicUiState {
-    data object Loading : RulesTopicUiState
-
-    data object NotFound : RulesTopicUiState
-
-    @Immutable
-    data class Ready(val topic: RulesTopic) : RulesTopicUiState
-}
 
 @HiltViewModel(assistedFactory = RulesTopicViewModel.Factory::class)
 class RulesTopicViewModel @AssistedInject constructor(
@@ -89,38 +57,11 @@ class RulesTopicViewModel @AssistedInject constructor(
     }
 
     val uiState: StateFlow<RulesTopicUiState> = source.flow().map { reference ->
-        reference?.topics?.firstOrNull { it.id == topicId }?.let { RulesTopicUiState.Ready(it) }
-            ?: RulesTopicUiState.NotFound
+        RulesTopicUiState.of(reference, topicId)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), RulesTopicUiState.Loading)
 }
 
 // ---- Level & defeat ladder --------------------------------------------------------------------
-
-/** A catalog card whose printed text changes a defeat's cost or reward. [text] is the card's markup. */
-@Immutable
-data class ExceptionCardUi(
-    val heroName: String,
-    val cardName: String,
-    /** "Tier III · Red", "Handicap", "Spellbook" … */
-    val label: String,
-    val text: String,
-)
-
-sealed interface LadderUiState {
-    data object Loading : LadderUiState
-
-    data object Unavailable : LadderUiState
-
-    @Immutable
-    data class Ready(
-        val ladder: LevelLadder,
-        /** Level picked under "Hero defeated", or null. */
-        val selectedLevel: Int?,
-        val exceptions: List<ExceptionCardUi>,
-        /** True when [exceptions] cover the heroes of the current match, false = every hero. */
-        val matchHeroesOnly: Boolean,
-    ) : LadderUiState
-}
 
 @HiltViewModel(assistedFactory = LevelLadderViewModel.Factory::class)
 class LevelLadderViewModel @AssistedInject constructor(
@@ -138,22 +79,12 @@ class LevelLadderViewModel @AssistedInject constructor(
     private val catalog: Flow<Catalog> = catalogRepository.catalog.catch { emit(Catalog.EMPTY) }
 
     val uiState: StateFlow<LadderUiState> = combine(source.flow(), catalog, selected) { reference, catalog, level ->
-        if (reference == null) return@combine LadderUiState.Unavailable
-        val matchHeroes = heroIds.distinct().mapNotNull(catalog::hero)
-        val heroes = matchHeroes.ifEmpty { catalog.heroes }
-        LadderUiState.Ready(
-            ladder = reference.ladder,
-            selectedLevel = level,
-            exceptions = DefeatExceptions.find(heroes).map { (hero, card) ->
-                ExceptionCardUi(hero.name, card.name, RulesText.cardLabel(hero, card), card.text)
-            },
-            matchHeroesOnly = matchHeroes.isNotEmpty(),
-        )
+        LadderUiState.of(reference, catalog, heroIds, level)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), LadderUiState.Loading)
 
     /** Picks the defeated hero's level; picking it again clears the selection. */
     fun selectLevel(level: Int) {
-        selected.value = if (selected.value == level) null else level
+        selected.value = LadderSelection.afterPicking(selected.value, level)
     }
 }
 
