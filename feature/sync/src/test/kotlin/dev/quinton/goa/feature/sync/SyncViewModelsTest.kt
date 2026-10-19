@@ -10,6 +10,7 @@ import dev.quinton.goa.core.domain.sync.SyncCodec
 import dev.quinton.goa.core.domain.sync.SyncDocument
 import dev.quinton.goa.core.domain.sync.SyncFileProblem
 import dev.quinton.goa.core.domain.sync.protocol.PeerStage
+import dev.quinton.goa.core.model.sync.PlayerMerge
 import dev.quinton.goa.core.testing.FakeGroupRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
 import dev.quinton.goa.core.testing.FakePlayerMergeRepository
@@ -322,6 +323,19 @@ class SyncViewModelsTest {
         vm.confirm()
         assertThat(vm.uiState.first { it.stage is ImportStage.Done }.stage).isEqualTo(ImportStage.Done(ready.changes))
         assertThat(sync.export().matches.map { it.id }).containsExactly("m1", "m2")
+    }
+
+    @Test
+    fun aSyncFileCountsPlayersAsTheAppShowsThem() = runTest {
+        // Two duplicates merged into Ann and Bob: the file stores 6 players, the app shows 4.
+        val doc = data("m1").copy(
+            players = people + person("ann2") + person("bob2"),
+            playerMerges = listOf(PlayerMerge("ann2", "ann", 1), PlayerMerge("bob2", "bob", 2)),
+        )
+        val file = SyncCodec.encodeFile(doc, TestGroup, createdAt = 5)
+        val ready = importVm({ file }).uiState.first { it.stage is ImportStage.Ready }.stage as ImportStage.Ready
+        assertThat(ready.players).isEqualTo(4)
+        assertThat(ready.matches).isEqualTo(1)
     }
 
     @Test

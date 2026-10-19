@@ -126,8 +126,8 @@ class DraftSetupViewModel @Inject constructor(
     fun quickAddPlayer(name: String) {
         if (name.isBlank()) return
         viewModelScope.launch {
-            val count = players.observePlayers(includeArchived = true).first().size
-            val candidate = QuickAddPlayer.create(env.newId(), name, count, env.nowMillis(), QUICK_ADD_COLORS)
+            val everyone = players.observePlayers(includeArchived = true).first()
+            val candidate = QuickAddPlayer.create(env.newId(), name, everyone, env.nowMillis(), QUICK_ADD_COLORS)
                 ?: return@launch
             // A known name (archived players included) selects that player rather than
             // creating a second one whose games would split the rating.

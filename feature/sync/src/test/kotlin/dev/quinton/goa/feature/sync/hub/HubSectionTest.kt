@@ -5,6 +5,7 @@ import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.HubError
 import dev.quinton.goa.core.data.HubProblem
+import dev.quinton.goa.core.data.sync.HubSyncControl
 import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.core.testing.FakeGroupRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository

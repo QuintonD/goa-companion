@@ -39,7 +39,8 @@ object GroupSlots {
 /**
  * Group (ADR-025, ADR-030 §8, ADR-031): the group, "Which player are you?" for this browser
  * (`SharedSlots.Me`, written only here), the invite QR code for anyone or for one player, the
- * signed-in browsers (any of them can be signed out) and when the phones last synced with the hub.
+ * signed-in browsers (any of them can be signed out) and when the phones last synced with the hub
+ * (any of them can be forgotten).
  * Every rule comes from core:presentation's `PlayerLink` and `GroupInvites`, as on the phone.
  */
 object GroupFeature : HubFeature {
@@ -65,6 +66,11 @@ object GroupFeature : HubFeature {
         get(INVITE_PATH) { call.respondInvite(ctx) }
         get("$PATH/devices/{id}/sign-out") { call.respondSignOutConfirm(ctx, call.parameters["id"].orEmpty()) }
         post("$PATH/devices/{id}/sign-out") { signOut(ctx, call, call.parameters["id"].orEmpty()) }
+        post("$PATH/phones/forget") {
+            // Gone already (forgotten in another browser, or dropped after 90 days): nothing to do.
+            call.receiveParameters()["id"]?.let(ctx.syncState::forget)
+            call.respondRedirect(PATH)
+        }
     }
 
     /** This browser's player, read through the merges; null when none is chosen (or it is gone). */

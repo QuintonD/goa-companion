@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.sync.hub
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
 import com.github.takahirom.roborazzi.captureRoboImage
+import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.sync.GroupInvite
@@ -46,8 +48,15 @@ class HubScreenshotTest {
         compose.onRoot().captureRoboImage()
     }
 
+    /** No hub: the Hub section's card (add one). With a hub: the top card's status and "Sync now". */
     @Composable
-    private fun Card(hub: HubUi) = Box(Modifier.padding(Spacing.screen)) { HubCard(hub, HubActions()) }
+    private fun Card(hub: HubUi) = Box(Modifier.padding(Spacing.screen)) {
+        if (hub.url == null) {
+            HubCard(hub, HubActions())
+        } else {
+            GoaCard(Modifier.fillMaxWidth()) { HubSyncPanel(hub) {} }
+        }
+    }
 
     private val hub = "https://goa.tail4f2a9c.ts.net"
     private val synced = HubUi(url = hub, status = "Synced 2 min ago")
@@ -98,7 +107,16 @@ class HubScreenshotTest {
     @Test
     fun hubWrongKeyDark384FontScale2() = shot(fontScale = 2f) { Card(wrongKey) }
 
+    /** The Hub section once there is one: the address, that it syncs on its own, Remove. */
+    @Test fun hubSettingsDark() = shot { Box(Modifier.padding(Spacing.screen)) { HubCard(synced, HubActions()) } }
+
+    @Test fun hubSettingsLightFontScale2() = shot(ThemeMode.LIGHT, 2f) {
+        Box(Modifier.padding(Spacing.screen)) { HubCard(synced, HubActions()) }
+    }
+
     @Test fun groupWithHubDark() = shot { GroupScreen(joined, GroupActions()) }
+
+    @Test fun groupWithHubDarkFontScale2() = shot(fontScale = 2f) { GroupScreen(joined, GroupActions()) }
 
     @Test fun groupWithHubLight() = shot(ThemeMode.LIGHT) { GroupScreen(joined.copy(hub = offline), GroupActions()) }
 }

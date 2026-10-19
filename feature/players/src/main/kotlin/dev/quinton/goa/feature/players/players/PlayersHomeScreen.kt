@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.PersonAdd
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,6 +33,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -65,7 +68,10 @@ data class PlayersHomeActions(
     val onOpenRatingSettings: () -> Unit = {},
     /** Meta tab: share the stats page (ADR-027). */
     val onShareStats: () -> Unit = {},
-    /** Group sync: the sync sheet when in a group, else the Group sync screen. */
+    /**
+     * The sync icon: with a hub, sync with it now (the Group screen when it needs a person); in a
+     * group without one, the Nearby sheet; otherwise the Group sync screen.
+     */
     val onOpenSync: () -> Unit = {},
     /** "Same people?" (ADR-031). */
     val onReviewSamePeople: () -> Unit = {},
@@ -80,6 +86,8 @@ fun PlayersHomeScreen(
     meta: MetaUiState,
     actions: PlayersHomeActions,
     snackbarHostState: SnackbarHostState,
+    /** The sync icon's hub sync is running: a spinner in its place. */
+    syncingWithHub: Boolean = false,
     followUps: MatchFollowUps = MatchFollowUps(),
     metaActions: MetaActions = MetaActions(onOpenRatingSettings = actions.onOpenRatingSettings),
     modifier: Modifier = Modifier,
@@ -99,17 +107,25 @@ fun PlayersHomeScreen(
                     Icon(Icons.Outlined.AccountCircle, contentDescription = "Your player page")
                 }
             }
-            IconButton(onClick = actions.onOpenSync) {
-                // A quiet dot when the hub sync needs a person (wrong key, versions, refused data).
-                BadgedBox(badge = { if (players.hubNeedsAttention) Badge() }) {
-                    Icon(
-                        Icons.Outlined.Sync,
-                        contentDescription = when {
-                            players.hubNeedsAttention -> "Group sync: the hub needs attention"
-                            players.inGroup && !players.hasHub -> "Sync with the group"
-                            else -> "Group sync"
-                        },
+            IconButton(onClick = actions.onOpenSync, enabled = !syncingWithHub) {
+                if (syncingWithHub) {
+                    CircularProgressIndicator(
+                        Modifier.size(20.dp).semantics { contentDescription = "Syncing with the hub" },
+                        strokeWidth = 2.dp,
                     )
+                } else {
+                    // A quiet dot when the hub sync needs a person (wrong key, versions, refused data).
+                    BadgedBox(badge = { if (players.hubNeedsAttention) Badge() }) {
+                        Icon(
+                            Icons.Outlined.Sync,
+                            contentDescription = when {
+                                players.hubNeedsAttention -> "Group sync: the hub needs attention"
+                                players.hasHub -> "Sync with the hub"
+                                players.inGroup -> "Sync with the group"
+                                else -> "Group sync"
+                            },
+                        )
+                    }
                 }
             }
             IconButton(onClick = actions.onOpenBackup) {

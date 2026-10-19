@@ -68,12 +68,8 @@ internal fun Route.leaderboardRoutes(ctx: HubContext) {
     }
     get(PlayersPaths.NEW_PLAYER) {
         val view = PlayersData.of(ctx)
-        val look = PlayerForm(
-            name = "",
-            color = PlayerLook.newColor(view.players, PlayerPalette.swatches.map { it.first }),
-            avatarId = PlayerLook.newCrest(view.players, PlayerPalette.CRESTS),
-        )
-        call.respondPlayerForm(look, playerId = null)
+        val look = PlayerPalette.newLook(view.players)
+        call.respondPlayerForm(PlayerForm(name = "", color = look.color, avatarId = look.crest), playerId = null)
     }
     post(PlayersPaths.NEW_PLAYER) { call.savePlayer(ctx, postedId = null) }
 }
@@ -251,7 +247,7 @@ internal suspend fun ApplicationCall.savePlayer(ctx: HubContext, postedId: Strin
     val name = PlayerLook.nameInput(params["name"].orEmpty()).trim()
     val swatch = params["color"]?.toIntOrNull()?.takeIf { it in PlayerPalette.swatches.indices }
     val color = when {
-        swatch == null -> original?.color ?: PlayerLook.newColor(view.players, PlayerPalette.swatches.map { it.first })
+        swatch == null -> original?.color ?: PlayerPalette.newLook(view.players).color
 
         // The swatch it already had: keep the stored tone (a light tone or another app's value), as the phone does.
         original != null && PlayerPalette.indexOf(original.color) == swatch -> original.color
@@ -260,7 +256,7 @@ internal suspend fun ApplicationCall.savePlayer(ctx: HubContext, postedId: Strin
     }
     val crest = params["crest"]?.toIntOrNull()?.takeIf { it in 0 until PlayerPalette.CRESTS }
         ?: original?.avatarId
-        ?: PlayerLook.newCrest(view.players, PlayerPalette.CRESTS)
+        ?: PlayerPalette.newLook(view.players).crest
     val form = PlayerForm(name, color, crest)
     val error = PlayerLook.nameError(name, ctx.groupStore.findPlayerByName(name), playerId)
     if (error != null) {

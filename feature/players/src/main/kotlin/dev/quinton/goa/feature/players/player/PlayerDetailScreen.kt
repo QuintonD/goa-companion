@@ -41,10 +41,12 @@ import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.presentation.players.HeroRecordRow
 import dev.quinton.goa.core.presentation.players.OpponentRow
 import dev.quinton.goa.core.presentation.players.PlayerDetailUiState
+import dev.quinton.goa.core.presentation.players.PlayerLook
 import dev.quinton.goa.core.presentation.players.formatPercent
 import dev.quinton.goa.core.presentation.players.formatRating
 import dev.quinton.goa.core.presentation.players.spokenRecord
@@ -57,6 +59,7 @@ import dev.quinton.goa.feature.players.common.SectionHeader
 import dev.quinton.goa.feature.players.common.StatRow
 import dev.quinton.goa.feature.players.match.MatchCard
 import dev.quinton.goa.feature.players.meta.WinConditionBars
+import dev.quinton.goa.feature.players.players.HintCard
 
 data class PlayerDetailActions(
     val onBack: () -> Unit = {},
@@ -101,6 +104,17 @@ fun PlayerDetailScreen(state: PlayerDetailUiState, actions: PlayerDetailActions,
                 contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = Spacing.xxl),
             ) {
                 item(key = "header") { Header(state) }
+                state.lookAlike?.let { twin ->
+                    // Two people who look identical in every list (added on two phones): a gentle nudge,
+                    // never a change to synced data.
+                    item(key = "look-alike") {
+                        Box(Modifier.padding(bottom = Spacing.md)) {
+                            HintCard(PlayerLook.lookAlikeHint(twin), "Edit", actions.onEdit) {
+                                PlayerAvatar(twin, size = scaledIconSize(32.dp))
+                            }
+                        }
+                    }
+                }
                 item(key = "stats") { Stats(state) }
                 item(key = "h-chart") { SectionHeader("Rating history") }
                 item(key = "chart") {

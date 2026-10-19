@@ -5,6 +5,7 @@ import dev.quinton.goa.core.presentation.players.MergeCopy
 import dev.quinton.goa.core.presentation.players.OpponentRow
 import dev.quinton.goa.core.presentation.players.PlayerDetail
 import dev.quinton.goa.core.presentation.players.PlayerDetailUiState
+import dev.quinton.goa.core.presentation.players.PlayerLook
 import dev.quinton.goa.core.presentation.players.RatingChartModel
 import dev.quinton.goa.core.presentation.players.formatPercent
 import dev.quinton.goa.core.presentation.players.formatRating
@@ -191,6 +192,14 @@ private fun FlowContent.mergePicker(state: PlayerDetailUiState) {
 private fun FlowContent.playerDetail(state: PlayerDetailUiState, view: PlayersData, canInvite: Boolean) {
     val player = state.player ?: return
     profileHead(state)
+    state.lookAlike?.let { twin ->
+        // Two people who look identical in every list (added on two phones): a nudge, never a change.
+        a(PlayersPaths.editPlayer(player.id), classes = "pl-nudge") {
+            playerAvatar(twin, "sm")
+            span("pl-nudge-text") { +PlayerLook.lookAlikeHint(twin) }
+            span("pl-nudge-action") { +"Edit" }
+        }
+    }
     sectionHeader("Rating history")
     card {
         val chart = RatingChartModel.of(state.history, state.initialRating, state.historyDates)

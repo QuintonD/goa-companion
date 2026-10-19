@@ -190,7 +190,7 @@ class BackupRoundTripTest {
             BackupSummary(
                 BackupDocument.CURRENT_VERSION,
                 document.exportedAt,
-                players = 3,
+                players = 2, // Bob is archived: counted as the app lists players
                 matches = 2,
                 drafts = 1,
                 hasEloConfig = true,

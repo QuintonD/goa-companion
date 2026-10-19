@@ -16,6 +16,7 @@ import androidx.work.WorkManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.quinton.goa.core.data.GroupRepository
 import dev.quinton.goa.core.data.HubSyncRepository
+import dev.quinton.goa.core.data.sync.HubSyncControl
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -30,27 +31,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.withIndex
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-
-/** Hub sync for the UI: whether one runs right now, and "Sync now". */
-interface HubSyncControl {
-    val running: Flow<Boolean>
-
-    fun syncNow()
-
-    companion object {
-        /** No hub sync (previews and tests that don't need it). */
-        val Off: HubSyncControl = object : HubSyncControl {
-            override val running: Flow<Boolean> = flowOf(false)
-
-            override fun syncNow() = Unit
-        }
-    }
-}
 
 /**
  * When this phone syncs with the group's hub (ADR-030 §5), all through WorkManager so a sync

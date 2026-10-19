@@ -243,12 +243,13 @@ class MatchEditViewModel @AssistedInject constructor(
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
             val all = players.observePlayers(includeArchived = true).first()
+            val look = PlayerLook.newLook(all, PlayerColors.all.map { it.argb }, PlayerCrests.count)
             val player = players.ensurePlayer(
                 Player(
                     id = UUID.randomUUID().toString(),
                     name = trimmed,
-                    color = PlayerLook.newColor(all, PlayerColors.all.map { it.argb }),
-                    avatarId = PlayerLook.newCrest(all, PlayerCrests.count),
+                    color = look.color,
+                    avatarId = look.crest,
                     createdAt = System.currentTimeMillis(),
                 ),
             )

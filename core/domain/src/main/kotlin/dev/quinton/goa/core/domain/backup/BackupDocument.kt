@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.domain.backup
 
 import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.domain.sync.PlayerMerges
 import dev.quinton.goa.core.domain.sync.StampedEloConfig
 import dev.quinton.goa.core.domain.sync.SyncDocument
 import dev.quinton.goa.core.domain.sync.SyncMerge
@@ -102,7 +103,7 @@ data class BackupSummary(
 fun BackupDocument.summary(knownHeroIds: Set<String>? = null) = BackupSummary(
     version = version,
     exportedAt = exportedAt,
-    players = players.size,
+    players = PlayerMerges.shownCount(players, playerMerges),
     matches = matches.size,
     drafts = drafts.size,
     hasEloConfig = eloConfig != null,

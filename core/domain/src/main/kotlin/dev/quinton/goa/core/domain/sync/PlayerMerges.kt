@@ -60,6 +60,13 @@ class PlayerMerges(merges: Collection<PlayerMerge>) {
         val NONE = PlayerMerges(emptyList())
 
         /**
+         * Players as the app counts them ("8 players" on the Group screen): active ones, merged-away
+         * duplicates left out. A file's summary uses this, not its raw player list.
+         */
+        fun shownCount(players: List<Player>, merges: Collection<PlayerMerge>): Int =
+            PlayerMerges(merges).visible(players.filterNot { it.archived }).size
+
+        /**
          * Why [from] can't be merged into [to]: the matches both played in. On opposite teams the
          * merge would put one player on both sides (no rating can count that); on one team they
          * were clearly two people. Empty = the merge is allowed.

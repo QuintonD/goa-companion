@@ -10,6 +10,7 @@ import dev.quinton.goa.core.data.backup.BackupRepository
 import dev.quinton.goa.core.data.backup.BackupSummary
 import dev.quinton.goa.core.data.backup.ImportMode
 import dev.quinton.goa.core.data.backup.InvalidBackupException
+import dev.quinton.goa.core.domain.sync.PlayerMerges
 import dev.quinton.goa.core.presentation.players.Dates
 import dev.quinton.goa.core.presentation.players.plural
 import java.io.IOException
@@ -95,7 +96,7 @@ class BackupViewModel @Inject constructor(
         run {
             withContext(io) { backup.import(document, mode, useBackupSettings || mode == ImportMode.REPLACE) }
             val verb = if (mode == ImportMode.REPLACE) "Restored" else "Merged"
-            val players = plural(document.players.size, "player")
+            val players = plural(PlayerMerges.shownCount(document.players, document.playerMerges), "player")
             val matches = plural(document.matches.size, "match", "matches")
             "$verb $players and $matches. Ratings recalculated."
         }

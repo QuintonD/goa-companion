@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -20,6 +21,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.IosShare
@@ -61,6 +63,7 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.feature.sync.hub.HubActions
 import dev.quinton.goa.feature.sync.hub.HubCard
+import dev.quinton.goa.feature.sync.hub.HubSyncPanel
 
 class GroupActions(
     val onBack: () -> Unit = {},
@@ -68,7 +71,11 @@ class GroupActions(
     val onScan: () -> Unit = {},
     val onPaste: (String) -> Unit = {},
     val onClearJoinError: () -> Unit = {},
-    val onSyncNow: () -> Unit = {},
+    /**
+     * Nearby, phone to phone: "Sync now" without a hub, "Sync at the table" with one (whose "Sync now"
+     * is [HubActions.onSyncNow]).
+     */
+    val onSyncAtTable: () -> Unit = {},
     val onWhoAreYou: () -> Unit = {},
     val onShareFile: () -> Unit = {},
     val onImportFile: () -> Unit = {},
@@ -214,6 +221,7 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
 @Composable
 private fun InGroup(state: GroupUiState, actions: GroupActions, padding: PaddingValues) {
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
+    val hasHub = state.hub.url != null
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
@@ -235,15 +243,23 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                 )
                 Text(
                     "${state.players} players · ${state.matches} matches on this phone" +
-                        (state.lastSync?.let { " · last synced $it" } ?: ""),
+                        (state.lastSync?.takeIf { !hasHub }?.let { " · last synced $it" } ?: ""),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.size(Spacing.md))
-                Button(onClick = actions.onSyncNow, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                    Icon(Icons.Outlined.Sync, null)
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text("Sync now")
+                if (hasHub) {
+                    // With a hub, "Sync now" is the hub, with how its last sync went right here (ADR-030 §5).
+                    HubSyncPanel(state.hub, actions.hub.onSyncNow)
+                } else {
+                    Button(
+                        onClick = actions.onSyncAtTable,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                    ) {
+                        Icon(Icons.Outlined.Sync, null)
+                        Spacer(Modifier.width(Spacing.sm))
+                        Text("Sync now")
+                    }
                 }
                 Spacer(Modifier.size(Spacing.sm))
                 OutlinedButton(onClick = actions.onInvite, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
@@ -256,6 +272,22 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
         state.invited?.let { invited ->
             // A personal invite still to confirm (ADR-031): after a hub join there is no sync sheet to ask.
             item { InvitedCard(invited, actions.onWhoAreYou) }
+        }
+        if (hasHub) {
+            // Nearby stays one tap away for a table without internet, below the hub's "Sync now".
+            item { SectionHeader("At the table") }
+            item {
+                GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
+                    LinkRow(
+                        Icons.Outlined.Bluetooth,
+                        "Sync at the table",
+                        "Phone to phone, no internet needed" +
+                            (state.lastSync?.let { ". Last time $it." } ?: ""),
+                        onClick = actions.onSyncAtTable,
+                    )
+                }
+            }
+            phoneRows(state, empty = null)
         }
         item { SectionHeader("Hub") }
         item { HubCard(state.hub, actions.hub) }
@@ -288,32 +320,11 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                 }
             }
         }
-        item { SectionHeader("Phones synced with") }
-        if (state.phones.isEmpty()) {
-            item {
-                Text(
-                    "None yet. Tap Sync now with a friend's phone next to this one.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else {
-            state.phones.forEach { phone ->
-                item {
-                    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.PhoneAndroid, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.width(Spacing.md))
-                        Text(phone.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                        Text(
-                            phone.lastSynced,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
+        if (!hasHub) {
+            item { SectionHeader("Phones synced with") }
+            phoneRows(state, empty = "None yet. Tap Sync now with a friend's phone next to this one.")
         }
-        item { SectionHeader("Without Nearby") }
+        item { SectionHeader(if (hasHub) "Sync files" else "Without Nearby") }
         item {
             GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
                 LinkRow(
@@ -352,6 +363,29 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
             },
             onDismiss = { confirmLeave = false },
         )
+    }
+}
+
+/** The phones this one synced with face to face, or [empty] (nothing when null). */
+private fun LazyListScope.phoneRows(state: GroupUiState, empty: String?) {
+    if (state.phones.isEmpty() && empty != null) {
+        item {
+            Text(empty, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+    state.phones.forEach { phone ->
+        item {
+            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.PhoneAndroid, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.width(Spacing.md))
+                Text(phone.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Text(
+                    phone.lastSynced,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 

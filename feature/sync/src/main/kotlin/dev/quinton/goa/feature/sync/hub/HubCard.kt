@@ -18,8 +18,10 @@ import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -52,18 +54,20 @@ private const val LARGE_FONT_SCALE = 1.3f
 class HubActions(
     val onSave: (String) -> Unit = {},
     val onClearAddressError: () -> Unit = {},
+    /** "Sync now" with a hub: the primary action on the Group screen ([HubSyncPanel]). */
     val onSyncNow: () -> Unit = {},
     val onRemove: () -> Unit = {},
 )
 
 /**
- * The group's hub on the Group screen (ADR-030 §5): add its address, or see how the last
- * automatic sync went, sync now, retry, or remove it. Sits under a "Hub" section header.
+ * The group's hub on the Group screen (ADR-030 §5), under a "Hub" section header: add its address,
+ * or, once there is one, where it is, that it syncs on its own, and "Remove hub". How the last sync
+ * went and "Sync now" sit at the top of the screen ([HubSyncPanel]).
  */
 @Composable
 fun HubCard(hub: HubUi, actions: HubActions, modifier: Modifier = Modifier) {
     GoaCard(modifier.fillMaxWidth()) {
-        if (hub.url == null) AddHub(hub, actions) else HubStatus(hub, actions)
+        if (hub.url == null) AddHub(hub, actions) else HubSettings(hub, actions)
     }
 }
 
@@ -113,39 +117,31 @@ private fun AddHub(hub: HubUi, actions: HubActions) {
     ) { Text("Save hub") }
 }
 
+/**
+ * With a hub, the Group screen's first card leads with this (ADR-030 §5): how the last sync with
+ * the hub went ("Hub: synced 2 min ago", or what went wrong) and the primary "Sync now".
+ */
 @Composable
-private fun HubStatus(hub: HubUi, actions: HubActions) {
-    var confirmRemove by rememberSaveable { mutableStateOf(false) }
+fun HubSyncPanel(hub: HubUi, onSyncNow: () -> Unit) {
     val (icon, tint) = when {
         hub.syncing -> Icons.Outlined.CloudSync to MaterialTheme.colorScheme.secondary
         hub.hasProblem -> Icons.Outlined.CloudOff to MaterialTheme.colorScheme.error
         else -> Icons.Outlined.CloudDone to MaterialTheme.colorScheme.secondary
     }
-    val title: @Composable (Modifier) -> Unit = { modifier ->
-        Column(modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
-            // Long addresses wrap after a dot, never mid-label.
-            Text(hub.host.orEmpty().replace(".", ".\u200B"), style = MaterialTheme.typography.titleMedium)
-            Text(
-                hub.status.orEmpty(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-    // Large text: the address needs the full width, so the icon goes above it.
-    if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) {
-        StatusIcon(icon, tint)
-        Spacer(Modifier.size(Spacing.sm))
-        title(Modifier.fillMaxWidth())
-    } else {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            StatusIcon(icon, tint)
-            Spacer(Modifier.width(Spacing.md))
-            title(Modifier.weight(1f))
-        }
+    Row(
+        Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, null, tint = tint, modifier = Modifier.size(scaledIconSize(24.dp)))
+        Spacer(Modifier.width(Spacing.sm))
+        Text(
+            "Hub: ${hub.status.orEmpty().replaceFirstChar(Char::lowercase)}",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f),
+        )
     }
     hub.error?.let { error ->
-        Spacer(Modifier.size(Spacing.md))
+        Spacer(Modifier.size(Spacing.sm))
         Row(verticalAlignment = Alignment.Top) {
             Icon(
                 Icons.Outlined.ErrorOutline,
@@ -171,33 +167,57 @@ private fun HubStatus(hub: HubUi, actions: HubActions) {
         }
     }
     Spacer(Modifier.size(Spacing.md))
-    OutlinedButton(
-        onClick = actions.onSyncNow,
+    Button(
+        onClick = onSyncNow,
         enabled = !hub.syncing,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
     ) {
         if (hub.syncing) {
-            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = LocalContentColor.current)
         } else {
             Icon(Icons.Outlined.Sync, null)
         }
         Spacer(Modifier.width(Spacing.sm))
-        Text(if (hub.hasProblem) "Retry" else "Sync with hub")
+        Text(if (hub.syncing) "Syncing…" else "Sync now")
     }
-    Spacer(Modifier.size(Spacing.sm))
-    Text(
-        HubText.AUTOMATIC,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+}
+
+@Composable
+private fun HubSettings(hub: HubUi, actions: HubActions) {
+    var confirmRemove by rememberSaveable { mutableStateOf(false) }
+    val title: @Composable (Modifier) -> Unit = { modifier ->
+        Column(modifier) {
+            // Long addresses wrap after a dot, never mid-label.
+            Text(hub.host.orEmpty().replace(".", ".​"), style = MaterialTheme.typography.titleMedium)
+            Text(
+                HubText.AUTOMATIC,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    val icon = Icons.Outlined.Cloud
+    val tint = MaterialTheme.colorScheme.primary
+    // Large text: the address needs the full width, so the icon goes above it.
+    if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) {
+        StatusIcon(icon, tint)
+        Spacer(Modifier.size(Spacing.sm))
+        title(Modifier.fillMaxWidth())
+    } else {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            StatusIcon(icon, tint)
+            Spacer(Modifier.width(Spacing.md))
+            title(Modifier.weight(1f))
+        }
+    }
     TextButton(onClick = { confirmRemove = true }, modifier = Modifier.heightIn(min = 48.dp)) {
         Text("Remove hub")
     }
     if (confirmRemove) {
         ConfirmDialog(
             title = "Remove the hub?",
-            message = "This phone stops syncing with ${hub.host} on its own. Nothing is deleted, and Nearby " +
-                "sync and sync files still work. You can add the hub again any time.",
+            message = "This phone stops syncing with ${hub.host} on its own. Nothing is deleted, and syncing " +
+                "at the table and sync files still work. You can add the hub again any time.",
             confirmLabel = "Remove",
             destructive = true,
             onConfirm = {

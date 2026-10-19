@@ -13,6 +13,7 @@ import dev.quinton.goa.hub.group.GroupFeature.ME_PATH
 import dev.quinton.goa.hub.group.GroupFeature.PATH
 import dev.quinton.goa.hub.group.GroupFeature.inviteChoice
 import dev.quinton.goa.hub.store.Device
+import dev.quinton.goa.hub.store.SyncClient
 import dev.quinton.goa.hub.web.device
 import dev.quinton.goa.hub.web.ui.ButtonStyle
 import dev.quinton.goa.hub.web.ui.HubPage
@@ -91,15 +92,15 @@ internal suspend fun ApplicationCall.respondGroupPage(ctx: HubContext) {
             ctx.devices.list().forEach { d -> li { deviceRow(d, isThis = d.id == device.id, now) } }
         }
         sectionHeader("Phones synced with the hub")
-        val phones = ctx.syncState.read().clients
+        val phones = ctx.syncState.read(now).clients
         if (phones.isEmpty()) {
             p("muted") { +"None yet. Android phones with the hub's address sync on their own." }
         } else {
-            phones.forEach { phone ->
-                listRow(phone.name, trailing = SyncWords.ago(phone.lastSyncAt, now)) {
-                    span("row-icon") { icon(Icons.DEVICES) }
-                }
+            p("muted") {
+                +"A phone not seen for 90 days drops off the list. Forget removes one now; it comes back if it "
+                +"syncs again."
             }
+            ul("plain-list") { phones.forEach { phone -> li { phoneRow(phone, now) } } }
         }
         sectionHeader("Android")
         listRow("Get the Android app", "For friends with an Android phone", href = AppDownloadFeature.PATH) {
@@ -125,6 +126,24 @@ private fun FlowContent.deviceRow(device: Device, isThis: Boolean, now: Long) {
         a("$PATH/devices/${device.id}/sign-out", classes = "btn btn-text") {
             attributes["aria-label"] = if (isThis) "Sign out this browser" else "Sign out ${device.name}"
             +"Sign out"
+        }
+    }
+}
+
+/** A phone that synced with the hub: its name, when, and "Forget" (a plain form post, no script). */
+private fun FlowContent.phoneRow(phone: SyncClient, now: Long) {
+    div("row device-row") {
+        span("row-icon") { icon(Icons.DEVICES) }
+        div("row-text") {
+            span("row-title") { +phone.name }
+            span("row-subtitle") { +"synced ${SyncWords.ago(phone.lastSyncAt, now)}" }
+        }
+        postForm("$PATH/phones/forget") {
+            input(type = InputType.hidden, name = "id") { value = phone.id }
+            button(type = ButtonType.submit, classes = ButtonStyle.TEXT.css) {
+                attributes["aria-label"] = "Forget ${phone.name}"
+                +"Forget"
+            }
         }
     }
 }

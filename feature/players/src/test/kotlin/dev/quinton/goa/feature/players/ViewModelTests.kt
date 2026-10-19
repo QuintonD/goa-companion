@@ -632,7 +632,8 @@ class ViewModelTests {
         assertThat(backup.imports).isEmpty()
         vm.confirmImport(ImportMode.REPLACE)
         assertThat(vm.uiState.first { it.message != null }.message)
-            .startsWith("Restored ${Fixtures.players.size} players and 10 matches")
+            // Players as the app shows them: the archived one isn't counted.
+            .startsWith("Restored ${Fixtures.players.count { !it.archived }} players and 10 matches")
         assertThat(backup.imports.single().second).isEqualTo(ImportMode.REPLACE)
         assertThat(vm.suggestedFileName(Fixtures.at(17))).isEqualTo("goa-backup-2026-10-17.json")
     }
