@@ -147,7 +147,13 @@ class MatchSetupViewModel @AssistedInject constructor(
             }
             if (linked != null) {
                 // The coin as placed at setup is part of the match record (draft coin, or corrected here).
-                val setUp = { m: Match -> m.copy(mode = state.selectedMode, tieBreaker = state.tieBreaker ?: m.tieBreaker) }
+                val setUp = { m: Match ->
+                    m.copy(
+                        mode = state.selectedMode,
+                        tieBreaker =
+                            state.tieBreaker ?: m.tieBreaker,
+                    )
+                }
                 // A pending match changes as stored (its logged pilots kept); a rematch is new.
                 if (matchId != null) matches.edit(matchId, setUp) else matches.upsert(setUp(linked))
             }

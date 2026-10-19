@@ -1,5 +1,7 @@
 package dev.quinton.goa.hub.group
 
+import dev.quinton.goa.core.domain.sync.NamedPlayer
+import dev.quinton.goa.core.domain.sync.PlayerMergeOutcome
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.presentation.group.GroupInvites
 import dev.quinton.goa.core.presentation.group.InviteFor
@@ -8,8 +10,6 @@ import dev.quinton.goa.hub.feature.HubContext
 import dev.quinton.goa.hub.feature.HubFeature
 import dev.quinton.goa.hub.store.DeviceSlot
 import dev.quinton.goa.hub.store.GroupData
-import dev.quinton.goa.core.domain.sync.NamedPlayer
-import dev.quinton.goa.core.domain.sync.PlayerMergeOutcome
 import dev.quinton.goa.hub.store.SharedSlots
 import dev.quinton.goa.hub.web.DeviceCookie
 import dev.quinton.goa.hub.web.SignInSlots

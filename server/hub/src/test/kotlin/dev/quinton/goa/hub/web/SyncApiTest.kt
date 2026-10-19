@@ -84,7 +84,17 @@ class SyncApiTest {
         val hub = testHub(tmp.root.toPath())
         val newer = phoneA.copy(
             matches = phoneA.matches.map { m ->
-                m.copy(participants = m.participants.mapIndexed { i, p -> if (i == 0) p.copy(heroId = "hero-from-2027") else p })
+                m.copy(
+                    participants = m.participants.mapIndexed { i, p ->
+                        if (i ==
+                            0
+                        ) {
+                            p.copy(heroId = "hero-from-2027")
+                        } else {
+                            p
+                        }
+                    },
+                )
             },
         )
         hubTest(hub) {

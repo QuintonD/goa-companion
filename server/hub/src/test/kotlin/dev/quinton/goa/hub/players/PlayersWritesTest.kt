@@ -2,6 +2,7 @@ package dev.quinton.goa.hub.players
 
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.domain.sync.EditStamp
+import dev.quinton.goa.core.domain.sync.SharedWrites
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.MatchStatus
@@ -10,8 +11,8 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.core.model.sync.DeletionKind
 import dev.quinton.goa.core.model.sync.PlayerMerge
-import dev.quinton.goa.hub.FakeClock
 import dev.quinton.goa.hub.BrowserForm
+import dev.quinton.goa.hub.FakeClock
 import dev.quinton.goa.hub.Hub
 import dev.quinton.goa.hub.hubTest
 import dev.quinton.goa.hub.plainClient
@@ -21,7 +22,6 @@ import dev.quinton.goa.hub.players.PlayersTestGroup.cid
 import dev.quinton.goa.hub.players.PlayersTestGroup.dee
 import dev.quinton.goa.hub.players.PlayersTestGroup.fay
 import dev.quinton.goa.hub.signIn
-import dev.quinton.goa.core.domain.sync.SharedWrites
 import dev.quinton.goa.hub.testHub
 import dev.quinton.goa.hub.web.ui.PlayerPalette
 import io.ktor.client.statement.bodyAsText

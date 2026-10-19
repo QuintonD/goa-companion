@@ -3,9 +3,9 @@ package dev.quinton.goa.hub.config
 import dev.quinton.goa.core.domain.sync.HubAddress
 import dev.quinton.goa.hub.store.AtomicFiles
 import java.nio.file.Files
+import java.nio.file.Path
 import java.time.DateTimeException
 import java.time.ZoneId
-import java.nio.file.Path
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 

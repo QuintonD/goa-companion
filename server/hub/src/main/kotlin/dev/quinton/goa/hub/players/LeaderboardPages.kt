@@ -1,5 +1,6 @@
 package dev.quinton.goa.hub.players
 
+import dev.quinton.goa.core.domain.sync.NamedPlayer
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.presentation.players.Leaderboard
 import dev.quinton.goa.core.presentation.players.LeaderboardRow
@@ -12,7 +13,6 @@ import dev.quinton.goa.core.presentation.players.plural
 import dev.quinton.goa.core.presentation.players.winLoss
 import dev.quinton.goa.hub.feature.HubContext
 import dev.quinton.goa.hub.store.InvalidGroupDataException
-import dev.quinton.goa.core.domain.sync.NamedPlayer
 import dev.quinton.goa.hub.web.ui.ButtonStyle
 import dev.quinton.goa.hub.web.ui.Icons
 import dev.quinton.goa.hub.web.ui.PlayerPalette
@@ -251,8 +251,10 @@ internal suspend fun ApplicationCall.savePlayer(ctx: HubContext, postedId: Strin
     val swatch = params["color"]?.toIntOrNull()?.takeIf { it in PlayerPalette.swatches.indices }
     val color = when {
         swatch == null -> original?.color ?: PlayerLook.newColor(view.players, PlayerPalette.swatches.map { it.first })
+
         // The swatch it already had: keep the stored tone (a light tone or another app's value), as the phone does.
         original != null && PlayerPalette.indexOf(original.color) == swatch -> original.color
+
         else -> PlayerPalette.swatches[swatch].first
     }
     val crest = params["crest"]?.toIntOrNull()?.takeIf { it in 0 until PlayerPalette.CRESTS }

@@ -236,7 +236,11 @@ class SharedWritesParityTest {
 
             7 -> {
                 val previous = doc.drafts.randomOrNull(random)?.takeIf { random.nextBoolean() }
-                val record = random.draft(previous?.id ?: "d$step", previous?.createdAt ?: now, doc.matches.randomOrNull(random)?.id)
+                val record = random.draft(
+                    previous?.id ?: "d$step",
+                    previous?.createdAt ?: now,
+                    doc.matches.randomOrNull(random)?.id,
+                )
                 phone.drafts.save(record)
                 hub.write { SharedWrites.saveDraft(it, record, now) }
                 "draft ${record.id}"
@@ -306,14 +310,18 @@ class SharedWritesParityTest {
         val ids = doc.players.map { it.id }
         when (random.nextInt(7)) {
             0 -> phone.players.ensurePlayer(random.player("${phone.name}-p$step", phone.now))
+
             1, 2 -> {
                 val previous = doc.matches.randomOrNull(random)?.takeIf { random.nextBoolean() }
                 random.match(previous?.id ?: "${phone.name}-m$step", ids, phone.now, previous)?.let {
                     phone.matches.upsert(it)
                 }
             }
+
             3 -> doc.matches.randomOrNull(random)?.let { phone.matches.delete(it.id) }
+
             4 -> doc.matches.randomOrNull(random)?.let { m -> phone.matches.edit(m.id) { it.copy(durationMin = 42) } }
+
             5 -> {
                 val live = PlayerMerges(doc.playerMerges).visible(doc.players)
                 if (live.size >= 2) {
@@ -321,6 +329,7 @@ class SharedWritesParityTest {
                     phone.players.merge(a.id, b.id)
                 }
             }
+
             else -> phone.elo.update { it.copy(heroInfluence = listOf(0.25, 0.5, 0.75).random(random)) }
         }
     }
@@ -331,13 +340,21 @@ class SharedWritesParityTest {
         val ids = hub.doc.players.map { it.id }
         when (random.nextInt(6)) {
             0 -> hub.write { SharedWrites.ensurePlayer(it, random.player("hub-p$step", now), now) }
+
             1, 2 -> {
                 val previous = hub.doc.matches.randomOrNull(random)?.takeIf { random.nextBoolean() }
                 random.match(previous?.id ?: "hub-m$step", ids, now, previous)?.let { m ->
                     hub.write { SharedWrites.upsertMatch(it, m, now) }
                 }
             }
-            3 -> hub.doc.matches.randomOrNull(random)?.let { m -> hub.write { SharedWrites.deleteMatch(it, m.id, now) to Unit } }
+
+            3 -> hub.doc.matches.randomOrNull(random)?.let { m ->
+                hub.write {
+                    SharedWrites.deleteMatch(it, m.id, now) to
+                        Unit
+                }
+            }
+
             4 -> {
                 val live = PlayerMerges(hub.doc.playerMerges).visible(hub.doc.players)
                 if (live.size >= 2) {
@@ -345,7 +362,11 @@ class SharedWritesParityTest {
                     hub.write { SharedWrites.mergePlayers(it, a.id, b.id, now) }
                 }
             }
-            else -> hub.write { SharedWrites.updateEloConfig(it, now) { c -> c.copy(kEstablished = 24.0 + step % 3) } to Unit }
+
+            else -> hub.write {
+                SharedWrites.updateEloConfig(it, now) { c -> c.copy(kEstablished = 24.0 + step % 3) } to
+                    Unit
+            }
         }
     }
 
@@ -379,14 +400,19 @@ class SharedWritesParityTest {
                 val phone = phones.random(random)
                 when (random.nextInt(9)) {
                     0, 1, 2 -> phoneEdit(random, phone, step)
+
                     3, 4 -> hubEdit(random, hub, step)
+
                     5 -> hubSync(phone, hub) { if (random.nextBoolean()) phoneEdit(random, phone, step + 1_000) }
+
                     6 -> nearby(phone, (phones - phone).random(random))
+
                     7 -> {
                         // A backup exported on a phone, merged on the web.
                         val file = BackupFiles.export(phone.sync.export(), exportedAt = wall, appVersion = "test")
                         hub.write { BackupFiles.merge(it, file) to Unit }
                     }
+
                     else -> {
                         // Two devices edit the same match at once (or one deletes it): the later wins everywhere.
                         val shared = hub.doc.matches.randomOrNull(random) ?: return@repeat
@@ -396,7 +422,9 @@ class SharedWritesParityTest {
                         } else {
                             phone.matches.delete(shared.id)
                         }
-                        hub.write<Match?> { SharedWrites.editMatch(it, shared.id, hub.now) { m -> m.copy(notes = "web") } }
+                        hub.write<Match?> {
+                            SharedWrites.editMatch(it, shared.id, hub.now) { m -> m.copy(notes = "web") }
+                        }
                     }
                 }
             }

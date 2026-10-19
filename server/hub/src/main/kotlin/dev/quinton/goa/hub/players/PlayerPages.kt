@@ -1,5 +1,6 @@
 package dev.quinton.goa.hub.players
 
+import dev.quinton.goa.core.domain.sync.PlayerMergeOutcome
 import dev.quinton.goa.core.presentation.players.MergeCopy
 import dev.quinton.goa.core.presentation.players.OpponentRow
 import dev.quinton.goa.core.presentation.players.PlayerDetail
@@ -11,7 +12,6 @@ import dev.quinton.goa.core.presentation.players.plural
 import dev.quinton.goa.core.presentation.players.spokenRecord
 import dev.quinton.goa.core.presentation.players.winLoss
 import dev.quinton.goa.hub.feature.HubContext
-import dev.quinton.goa.core.domain.sync.PlayerMergeOutcome
 import dev.quinton.goa.hub.web.ui.ButtonStyle
 import dev.quinton.goa.hub.web.ui.Icons
 import dev.quinton.goa.hub.web.ui.TopAction

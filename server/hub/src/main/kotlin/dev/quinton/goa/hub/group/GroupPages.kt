@@ -1,5 +1,6 @@
 package dev.quinton.goa.hub.group
 
+import dev.quinton.goa.core.domain.sync.PlayerMergeOutcome
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.presentation.group.AddCheck
 import dev.quinton.goa.core.presentation.group.MergeOffer
@@ -12,7 +13,6 @@ import dev.quinton.goa.hub.group.GroupFeature.ME_PATH
 import dev.quinton.goa.hub.group.GroupFeature.PATH
 import dev.quinton.goa.hub.group.GroupFeature.inviteChoice
 import dev.quinton.goa.hub.store.Device
-import dev.quinton.goa.core.domain.sync.PlayerMergeOutcome
 import dev.quinton.goa.hub.web.device
 import dev.quinton.goa.hub.web.ui.ButtonStyle
 import dev.quinton.goa.hub.web.ui.HubPage

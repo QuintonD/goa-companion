@@ -8,9 +8,9 @@ import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.domain.sync.StampedEloConfig
 import dev.quinton.goa.core.domain.sync.SyncDocument
 import dev.quinton.goa.core.model.settings.AppSettings
-import dev.quinton.goa.core.presentation.settings.RatingConstants
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.model.settings.TimerLayout
+import dev.quinton.goa.core.presentation.settings.RatingConstants
 import dev.quinton.goa.hub.FakeClock
 import dev.quinton.goa.hub.HUB_URL
 import dev.quinton.goa.hub.Hub

@@ -4,9 +4,9 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.rating.EloConfigRepository
 import dev.quinton.goa.core.domain.draft.MethodOrigin
-import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.domain.draft.PoolRule
 import dev.quinton.goa.core.domain.draft.PoolSource
+import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.domain.teams.OddSeatMode
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Match
