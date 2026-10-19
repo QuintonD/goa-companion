@@ -435,7 +435,11 @@ private fun MapChoice(state: NewBoardUiState.Ready, onAction: (NewBoardAction) -
                 GoaFilterChip(
                     selected = map.id == state.map?.id,
                     onClick = { onAction(NewBoardAction.ChooseMap(map.id)) },
-                    label = map.name + if (map.lanes > 1) " · ${map.lanes} lanes" else "",
+                    label = buildString {
+                        append(map.name)
+                        if (map.lanes > 1) append(" · ${map.lanes} lanes")
+                        if (!map.verified) append(" · Unverified")
+                    },
                 )
             }
         }
