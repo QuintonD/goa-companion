@@ -59,57 +59,78 @@ internal fun SummaryContent(
     onLeaderboard: () -> Unit = {},
 ) {
     val onBoard = state.challenge?.finished == true && state.playerName != null
+    // After a Challenge the phone goes round the table: Leaderboard, Play again and Done sit right
+    // under the score, not below up to 20 missed cards. A practice round keeps them after its misses.
+    val actionsFirst = state.challenge != null
     Column(
         modifier
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Spacing.screen, vertical = Spacing.lg),
     ) {
         ScoreCard(state)
+        if (actionsFirst) {
+            Spacer(Modifier.height(Spacing.lg))
+            SummaryActions(state, onBoard, onPractise, onPlayAgain, onDone, onLeaderboard)
+        }
         if (state.misses.isNotEmpty()) {
             SectionHeader("Missed")
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 state.misses.forEach { MissRow(it) }
             }
         }
-        Spacer(Modifier.height(Spacing.xl))
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            val big = Modifier.fillMaxWidth().heightIn(min = 56.dp)
-            if (onBoard) {
-                Button(onClick = onLeaderboard, modifier = big) {
-                    Icon(
-                        Icons.Outlined.EmojiEvents,
-                        contentDescription = null,
-                        modifier = Modifier.size(scaledIconSize(20.dp)),
-                    )
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text("Leaderboard", style = MaterialTheme.typography.titleMedium)
-                }
+        if (!actionsFirst) {
+            Spacer(Modifier.height(Spacing.xl))
+            SummaryActions(state, onBoard, onPractise, onPlayAgain, onDone, onLeaderboard)
+        }
+    }
+}
+
+@Composable
+private fun SummaryActions(
+    state: TriviaQuizUiState.Summary,
+    onBoard: Boolean,
+    onPractise: () -> Unit,
+    onPlayAgain: () -> Unit,
+    onDone: () -> Unit,
+    onLeaderboard: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        val big = Modifier.fillMaxWidth().heightIn(min = 56.dp)
+        if (onBoard) {
+            Button(onClick = onLeaderboard, modifier = big) {
+                Icon(
+                    Icons.Outlined.EmojiEvents,
+                    contentDescription = null,
+                    modifier = Modifier.size(scaledIconSize(20.dp)),
+                )
+                Spacer(Modifier.width(Spacing.sm))
+                Text("Leaderboard", style = MaterialTheme.typography.titleMedium)
             }
-            if (state.canPractise) {
-                if (onBoard) {
-                    OutlinedButton(onClick = onPractise, modifier = big) {
-                        Text("Practise the missed ones", style = MaterialTheme.typography.titleMedium)
-                    }
-                } else {
-                    Button(onClick = onPractise, modifier = big) {
-                        Text("Practise the missed ones", style = MaterialTheme.typography.titleMedium)
-                    }
-                }
-                OutlinedButton(onClick = onPlayAgain, modifier = big) {
-                    Text("Play again", style = MaterialTheme.typography.titleMedium)
-                }
-            } else if (onBoard) {
-                OutlinedButton(onClick = onPlayAgain, modifier = big) {
-                    Text("Play again", style = MaterialTheme.typography.titleMedium)
+        }
+        if (state.canPractise) {
+            if (onBoard) {
+                OutlinedButton(onClick = onPractise, modifier = big) {
+                    Text("Practise the missed ones", style = MaterialTheme.typography.titleMedium)
                 }
             } else {
-                Button(onClick = onPlayAgain, modifier = big) {
-                    Text("Play again", style = MaterialTheme.typography.titleMedium)
+                Button(onClick = onPractise, modifier = big) {
+                    Text("Practise the missed ones", style = MaterialTheme.typography.titleMedium)
                 }
             }
-            TextButton(onClick = onDone, modifier = big) {
-                Text("Done", style = MaterialTheme.typography.titleMedium)
+            OutlinedButton(onClick = onPlayAgain, modifier = big) {
+                Text("Play again", style = MaterialTheme.typography.titleMedium)
             }
+        } else if (onBoard) {
+            OutlinedButton(onClick = onPlayAgain, modifier = big) {
+                Text("Play again", style = MaterialTheme.typography.titleMedium)
+            }
+        } else {
+            Button(onClick = onPlayAgain, modifier = big) {
+                Text("Play again", style = MaterialTheme.typography.titleMedium)
+            }
+        }
+        TextButton(onClick = onDone, modifier = big) {
+            Text("Done", style = MaterialTheme.typography.titleMedium)
         }
     }
 }
