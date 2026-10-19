@@ -1,11 +1,10 @@
-package dev.quinton.goa.feature.catalog.ui
+package dev.quinton.goa.core.presentation.catalog
 
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.core.model.catalog.Role
 import dev.quinton.goa.core.model.catalog.Stat
-import dev.quinton.goa.feature.catalog.model.tierNumeral
 import java.util.Locale
 import kotlin.math.roundToInt
 

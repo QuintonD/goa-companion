@@ -1,4 +1,4 @@
-package dev.quinton.goa.feature.catalog.ui
+package dev.quinton.goa.core.presentation.catalog
 
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.model.catalog.Card

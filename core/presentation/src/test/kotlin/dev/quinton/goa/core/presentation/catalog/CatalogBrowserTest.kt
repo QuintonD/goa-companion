@@ -1,4 +1,4 @@
-package dev.quinton.goa.feature.catalog.model
+package dev.quinton.goa.core.presentation.catalog
 
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.model.catalog.CardColor
@@ -7,7 +7,7 @@ import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.core.model.catalog.Role
 import dev.quinton.goa.core.model.rating.HeroUsage
 import dev.quinton.goa.core.model.rating.Rating
-import dev.quinton.goa.core.testing.TestCatalog
+import dev.quinton.goa.core.presentation.TestCatalog
 import org.junit.Test
 
 class CatalogBrowserTest {

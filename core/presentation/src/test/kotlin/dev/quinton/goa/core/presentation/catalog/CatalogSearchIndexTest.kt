@@ -1,8 +1,8 @@
-package dev.quinton.goa.feature.catalog.model
+package dev.quinton.goa.core.presentation.catalog
 
 import com.google.common.truth.Truth.assertThat
-import dev.quinton.goa.core.testing.TestCatalog
-import dev.quinton.goa.feature.catalog.Fixtures
+import dev.quinton.goa.core.presentation.Fixtures
+import dev.quinton.goa.core.presentation.TestCatalog
 import org.junit.Test
 
 class CatalogSearchIndexTest {

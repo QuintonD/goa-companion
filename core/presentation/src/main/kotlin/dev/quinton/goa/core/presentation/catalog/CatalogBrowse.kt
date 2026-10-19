@@ -1,4 +1,4 @@
-package dev.quinton.goa.feature.catalog.model
+package dev.quinton.goa.core.presentation.catalog
 
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.Catalog

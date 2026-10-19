@@ -34,11 +34,13 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.catalog.model.CatalogFilter
-import dev.quinton.goa.feature.catalog.ui.complexityName
+import dev.quinton.goa.core.presentation.catalog.ATTACK_STYLE_NOTE
+import dev.quinton.goa.core.presentation.catalog.CatalogFilter
+import dev.quinton.goa.core.presentation.catalog.FilterOptions
+import dev.quinton.goa.core.presentation.catalog.complexityName
+import dev.quinton.goa.core.presentation.catalog.label
+import dev.quinton.goa.core.presentation.catalog.showHeroesLabel
 import dev.quinton.goa.feature.catalog.ui.goaFilterChipColors
-import dev.quinton.goa.feature.catalog.ui.label
-import dev.quinton.goa.feature.catalog.ui.plural
 
 /**
  * Body of the filter sheet. Stateless: every change is applied immediately (the result count on
@@ -107,7 +109,7 @@ internal fun CatalogFilterContent(
                     }
                 }
             }
-            FilterGroup("Attack cards", note = ATTACK_NOTE) {
+            FilterGroup("Attack cards", note = ATTACK_STYLE_NOTE) {
                 options.attackStyles.forEach { style ->
                     val selected = filter.attackStyle == style
                     FilterChip(
@@ -166,7 +168,7 @@ internal fun CatalogFilterContent(
                 .padding(horizontal = Spacing.screen, vertical = Spacing.md)
                 .heightIn(min = 52.dp),
         ) {
-            Text(if (resultCount == 0) "No heroes match" else "Show ${plural(resultCount, "hero", "heroes")}")
+            Text(showHeroesLabel(resultCount))
         }
     }
 }
@@ -212,8 +214,3 @@ private fun selectedIcon(selected: Boolean): (@Composable () -> Unit)? = if (sel
 }
 
 private fun <T> Set<T>.toggle(value: T): Set<T> = if (value in this) this - value else this + value
-
-/** How the app derives the attack style (docs/DOMAIN.md); "Non-ranged" is the rulebook term (p.13). */
-private const val ATTACK_NOTE =
-    "Derived from the Ranged subtype on the hero's Attack cards: Ranged = more than half ranged, Mixed = some " +
-        "but at most half ranged, Non-ranged = none ranged."

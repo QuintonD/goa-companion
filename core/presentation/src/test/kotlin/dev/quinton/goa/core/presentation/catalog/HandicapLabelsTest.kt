@@ -1,10 +1,9 @@
-package dev.quinton.goa.feature.catalog.detail
+package dev.quinton.goa.core.presentation.catalog
 
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
-import dev.quinton.goa.core.testing.TestCatalog
-import dev.quinton.goa.feature.catalog.ui.handicapBasis
+import dev.quinton.goa.core.presentation.TestCatalog
 import org.junit.Test
 
 /**

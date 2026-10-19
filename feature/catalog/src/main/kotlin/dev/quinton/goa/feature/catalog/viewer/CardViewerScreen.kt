@@ -71,14 +71,15 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
-import dev.quinton.goa.feature.catalog.detail.printedValues
+import dev.quinton.goa.core.presentation.catalog.CardViewerUiState
+import dev.quinton.goa.core.presentation.catalog.blockMarkerLabel
+import dev.quinton.goa.core.presentation.catalog.handicapBasis
+import dev.quinton.goa.core.presentation.catalog.kindLabel
+import dev.quinton.goa.core.presentation.catalog.label
+import dev.quinton.goa.core.presentation.catalog.printedValues
 import dev.quinton.goa.feature.catalog.ui.CardTextView
 import dev.quinton.goa.feature.catalog.ui.GameIcon
 import dev.quinton.goa.feature.catalog.ui.GameIcons
-import dev.quinton.goa.feature.catalog.ui.blockMarkerLabel
-import dev.quinton.goa.feature.catalog.ui.handicapBasis
-import dev.quinton.goa.feature.catalog.ui.kindLabel
-import dev.quinton.goa.feature.catalog.ui.label
 import kotlinx.coroutines.launch
 
 /** Official card image (or our designed card) per page; swipe between the hero's cards. */
@@ -325,10 +326,11 @@ private fun CardDetails(card: Card, isHandicap: Boolean, includeText: Boolean, m
             DetailRow("Values") {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     values.forEach {
+                        val icon = GameIcons.forStat(it.stat)
                         IconLabel(
-                            it.icon,
+                            icon,
                             accent,
-                            "${it.icon.label} ${it.printed}",
+                            "${icon.label} ${it.printed}",
                             Modifier.clearAndSetSemantics { contentDescription = it.spoken },
                         )
                     }

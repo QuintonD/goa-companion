@@ -1,4 +1,4 @@
-package dev.quinton.goa.feature.catalog.list
+package dev.quinton.goa.core.presentation.catalog
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test

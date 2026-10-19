@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.core.model.catalog.SecondaryAction
 import dev.quinton.goa.core.model.catalog.Stat
+import dev.quinton.goa.core.presentation.catalog.GameIconLabels
 
 /** A game icon: glyph plus the word TalkBack reads for it. */
 data class GameIcon(val vector: ImageVector, val label: String)
@@ -102,20 +103,20 @@ object GameIcons {
             .build()
     }
 
-    val attack get() = GameIcon(Sword, "Attack")
-    val defense get() = GameIcon(Icons.Filled.Shield, "Defense")
-    val initiative get() = GameIcon(Icons.Filled.Bolt, "Initiative")
-    val movement get() = GameIcon(Icons.AutoMirrored.Filled.DirectionsRun, "Movement")
-    val range get() = GameIcon(Icons.Filled.GpsFixed, "Range")
-    val radius get() = GameIcon(Icons.Filled.TripOrigin, "Radius")
-    val skill get() = GameIcon(Icons.Filled.AutoAwesome, "Skill")
-    val ranged get() = GameIcon(Icons.Filled.NorthEast, "Ranged")
-    val block get() = GameIcon(Icons.Filled.PriorityHigh, "Block")
-    val item get() = GameIcon(Icons.Filled.Backpack, "Item")
-    val ultimate get() = GameIcon(Icons.Filled.WorkspacePremium, "Ultimate")
-    val hold get() = GameIcon(Icons.Filled.PanTool, "Hold")
-    val fastTravel get() = GameIcon(Icons.Filled.FastForward, "Fast Travel")
-    val clear get() = GameIcon(Icons.Filled.CleaningServices, "Clear")
+    val attack get() = GameIcon(Sword, GameIconLabels.ATTACK)
+    val defense get() = GameIcon(Icons.Filled.Shield, GameIconLabels.DEFENSE)
+    val initiative get() = GameIcon(Icons.Filled.Bolt, GameIconLabels.INITIATIVE)
+    val movement get() = GameIcon(Icons.AutoMirrored.Filled.DirectionsRun, GameIconLabels.MOVEMENT)
+    val range get() = GameIcon(Icons.Filled.GpsFixed, GameIconLabels.RANGE)
+    val radius get() = GameIcon(Icons.Filled.TripOrigin, GameIconLabels.RADIUS)
+    val skill get() = GameIcon(Icons.Filled.AutoAwesome, GameIconLabels.SKILL)
+    val ranged get() = GameIcon(Icons.Filled.NorthEast, GameIconLabels.RANGED)
+    val block get() = GameIcon(Icons.Filled.PriorityHigh, GameIconLabels.BLOCK)
+    val item get() = GameIcon(Icons.Filled.Backpack, GameIconLabels.ITEM)
+    val ultimate get() = GameIcon(Icons.Filled.WorkspacePremium, GameIconLabels.ULTIMATE)
+    val hold get() = GameIcon(Icons.Filled.PanTool, GameIconLabels.HOLD)
+    val fastTravel get() = GameIcon(Icons.Filled.FastForward, GameIconLabels.FAST_TRAVEL)
+    val clear get() = GameIcon(Icons.Filled.CleaningServices, GameIconLabels.CLEAR)
 
     private val byToken: Map<String, GameIcon> by lazy {
         mapOf(
@@ -126,7 +127,7 @@ object GameIcons {
             "range" to range,
             "radius" to radius,
             "skill" to skill,
-            "coin" to GameIcon(Icons.Filled.MonetizationOn, "Coin"),
+            "coin" to GameIcon(Icons.Filled.MonetizationOn, label("coin")),
             "hold" to hold,
             "fast_travel" to fastTravel,
             "clear" to clear,
@@ -134,40 +135,42 @@ object GameIcons {
             "block" to block,
             "item" to item,
             "ultimate" to ultimate,
-            "minion" to GameIcon(Icons.Outlined.Person, "Minion"),
-            "heavy_minion" to GameIcon(Icons.Filled.Person, "Heavy minion"),
-            "spawn" to GameIcon(Icons.Filled.AddLocationAlt, "Spawn point"),
-            "life" to GameIcon(Icons.Filled.Favorite, "Life counter"),
-            "wave" to GameIcon(Icons.Filled.Waves, "Wave counter"),
+            "minion" to GameIcon(Icons.Outlined.Person, label("minion")),
+            "heavy_minion" to GameIcon(Icons.Filled.Person, label("heavy_minion")),
+            "spawn" to GameIcon(Icons.Filled.AddLocationAlt, label("spawn")),
+            "life" to GameIcon(Icons.Filled.Favorite, label("life")),
+            "wave" to GameIcon(Icons.Filled.Waves, label("wave")),
             // Hero-specific symbols printed in card text (tokens, markers, runes, tie breaker sides).
-            "tiebreaker_blue" to GameIcon(Icons.Filled.Toll, "Tie Breaker, blue side"),
-            "tiebreaker_orange" to GameIcon(Icons.Outlined.OutlinedToll, "Tie Breaker, orange side"),
-            "marker_bounty" to GameIcon(Icons.Filled.Paid, "Bounty marker"),
-            "marker_poison" to GameIcon(Icons.Filled.Science, "Poison marker"),
-            "rune_anvil" to GameIcon(Icons.Filled.Hardware, "Anvil rune"),
-            "rune_axe" to GameIcon(Icons.Filled.Carpenter, "Axe rune"),
-            "rune_bird" to GameIcon(Icons.Filled.FlutterDash, "Bird rune"),
-            "rune_horn" to GameIcon(Icons.Filled.Campaign, "Horn rune"),
-            "rune_anvil_marker" to GameIcon(Icons.Outlined.OutlinedHardware, "Anvil rune marker"),
-            "rune_axe_marker" to GameIcon(Icons.Outlined.OutlinedCarpenter, "Axe rune marker"),
-            "rune_bird_marker" to GameIcon(Icons.Outlined.OutlinedFlutterDash, "Bird rune marker"),
-            "rune_horn_marker" to GameIcon(Icons.Outlined.OutlinedCampaign, "Horn rune marker"),
-            "token_barrier" to GameIcon(Icons.Filled.Fence, "Barrier token"),
-            "token_blast" to GameIcon(Icons.Filled.LocalFireDepartment, "Blast token"),
-            "token_dud" to GameIcon(Icons.Filled.DoNotDisturbOn, "Dud token"),
-            "token_familiar" to GameIcon(Icons.Filled.Pets, "Familiar token"),
-            "token_glitch" to GameIcon(Icons.Filled.BrokenImage, "Glitch token"),
-            "token_grenade" to GameIcon(Icons.Filled.Adjust, "Grenade token"),
-            "token_ice" to GameIcon(Icons.Filled.AcUnit, "Ice token"),
-            "token_illusion" to GameIcon(Icons.Filled.AutoFixHigh, "Illusion token"),
-            "token_magma" to GameIcon(Icons.Filled.Volcano, "Magma token"),
-            "token_rock" to GameIcon(Icons.Filled.Landscape, "Rock token"),
-            "token_smoke_bomb" to GameIcon(Icons.Filled.Cloud, "Smoke bomb token"),
-            "token_totem" to GameIcon(Icons.Filled.Foundation, "Totem token"),
-            "token_tree" to GameIcon(Icons.Filled.Park, "Tree token"),
-            "token_zombie" to GameIcon(Icons.Filled.SentimentVeryDissatisfied, "Zombie token"),
+            "tiebreaker_blue" to GameIcon(Icons.Filled.Toll, label("tiebreaker_blue")),
+            "tiebreaker_orange" to GameIcon(Icons.Outlined.OutlinedToll, label("tiebreaker_orange")),
+            "marker_bounty" to GameIcon(Icons.Filled.Paid, label("marker_bounty")),
+            "marker_poison" to GameIcon(Icons.Filled.Science, label("marker_poison")),
+            "rune_anvil" to GameIcon(Icons.Filled.Hardware, label("rune_anvil")),
+            "rune_axe" to GameIcon(Icons.Filled.Carpenter, label("rune_axe")),
+            "rune_bird" to GameIcon(Icons.Filled.FlutterDash, label("rune_bird")),
+            "rune_horn" to GameIcon(Icons.Filled.Campaign, label("rune_horn")),
+            "rune_anvil_marker" to GameIcon(Icons.Outlined.OutlinedHardware, label("rune_anvil_marker")),
+            "rune_axe_marker" to GameIcon(Icons.Outlined.OutlinedCarpenter, label("rune_axe_marker")),
+            "rune_bird_marker" to GameIcon(Icons.Outlined.OutlinedFlutterDash, label("rune_bird_marker")),
+            "rune_horn_marker" to GameIcon(Icons.Outlined.OutlinedCampaign, label("rune_horn_marker")),
+            "token_barrier" to GameIcon(Icons.Filled.Fence, label("token_barrier")),
+            "token_blast" to GameIcon(Icons.Filled.LocalFireDepartment, label("token_blast")),
+            "token_dud" to GameIcon(Icons.Filled.DoNotDisturbOn, label("token_dud")),
+            "token_familiar" to GameIcon(Icons.Filled.Pets, label("token_familiar")),
+            "token_glitch" to GameIcon(Icons.Filled.BrokenImage, label("token_glitch")),
+            "token_grenade" to GameIcon(Icons.Filled.Adjust, label("token_grenade")),
+            "token_ice" to GameIcon(Icons.Filled.AcUnit, label("token_ice")),
+            "token_illusion" to GameIcon(Icons.Filled.AutoFixHigh, label("token_illusion")),
+            "token_magma" to GameIcon(Icons.Filled.Volcano, label("token_magma")),
+            "token_rock" to GameIcon(Icons.Filled.Landscape, label("token_rock")),
+            "token_smoke_bomb" to GameIcon(Icons.Filled.Cloud, label("token_smoke_bomb")),
+            "token_totem" to GameIcon(Icons.Filled.Foundation, label("token_totem")),
+            "token_tree" to GameIcon(Icons.Filled.Park, label("token_tree")),
+            "token_zombie" to GameIcon(Icons.Filled.SentimentVeryDissatisfied, label("token_zombie")),
         )
     }
+
+    private fun label(token: String): String = checkNotNull(GameIconLabels.forToken(token)) { token }
 
     /** Icon for a markup token such as `attack`; null for unknown names (rendered as text). */
     fun forToken(name: String): GameIcon? = byToken[name]
@@ -186,7 +189,7 @@ object GameIcons {
         PrimaryAction.SKILL -> skill
         PrimaryAction.DEFENSE -> defense
         PrimaryAction.MOVEMENT -> movement
-        PrimaryAction.DEFENSE_SKILL -> GameIcon(Icons.Filled.Shield, "Defense / Skill")
+        PrimaryAction.DEFENSE_SKILL -> GameIcon(Icons.Filled.Shield, GameIconLabels.DEFENSE_SKILL)
     }
 
     fun forSecondary(action: SecondaryAction): GameIcon = when (action) {
