@@ -142,10 +142,11 @@
 .content:has(> .tr) { max-width: 1100px; }
 .tr { display: flex; flex-direction: column; gap: 12px; margin: 0; }
 .tr-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.tr-round { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+/* The label keeps its width (it is nowrap): on a narrow phone the head wraps instead of overlapping the coin. */
+.tr-round { display: flex; flex-direction: column; flex: 1 0 auto; }
 .tr-round-label { font: 700 min(1.75rem, 36px)/1.1 var(--font-display); white-space: nowrap; }
 .tr-preset { color: var(--on-surface-variant); font-size: 0.875rem; }
-.tr-head-actions { display: flex; align-items: center; }
+.tr-head-actions { display: flex; align-items: center; margin-left: auto; }
 .tr-coin {
   display: inline-flex;
   align-items: center;
