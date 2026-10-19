@@ -174,6 +174,22 @@ class SignInTest {
     }
 
     @Test
+    fun `a request still running when its device is signed out can't bring it back`() {
+        val hub = testHub(tmp.root.toPath(), clock)
+        val (device, token) = hub.devices.create("Lost phone", clock.nowMillis())
+        // The lost phone's request authenticated just before another browser signed it out…
+        hub.devices.signOut(device.id)
+        // …and then records "last seen", renames, or writes one of its slots.
+        hub.devices.touch(device, clock.nowMillis() + 3_600_000)
+        hub.devices.rename(device.id, "Still here")
+        val slotWrite = runCatching { hub.deviceStore.write(device.id, SharedSlots.Me, "ann") }
+        assertThat(slotWrite.isFailure).isTrue()
+        assertThat(hub.devices.find(token)).isNull()
+        assertThat(hub.devices.list()).isEmpty()
+        assertThat(tmp.root.resolve("devices").listFiles().orEmpty()).isEmpty()
+    }
+
+    @Test
     fun `state-changing requests must come from the hub's own origin`() {
         val hub = testHub(tmp.root.toPath(), clock)
         hubTest(hub) {

@@ -1,6 +1,7 @@
 package dev.quinton.goa.hub.store
 
 import java.nio.file.Files
+import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.sync.Mutex
@@ -47,11 +48,17 @@ class DeviceStore(private val root: Path) {
 
     fun <T> write(deviceId: String, slot: String, serializer: KSerializer<T>, value: T) {
         requireDevice(deviceId)
-        AtomicFiles.write(
-            file(deviceId, slot),
-            SlotJson.encodeToString(serializer, value).toByteArray(),
-            private = true,
-        )
+        try {
+            // Never recreates the directory of a device signed out meanwhile.
+            AtomicFiles.write(
+                file(deviceId, slot),
+                SlotJson.encodeToString(serializer, value).toByteArray(),
+                private = true,
+                createDirectories = false,
+            )
+        } catch (_: NoSuchFileException) {
+            error("Unknown device")
+        }
     }
 
     fun delete(deviceId: String, slot: DeviceSlot<*>) = delete(deviceId, slot.name)
