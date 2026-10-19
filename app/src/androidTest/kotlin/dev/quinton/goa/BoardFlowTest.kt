@@ -47,7 +47,10 @@ class BoardFlowTest {
         rule.waitFor(hasContentDescription("$hero moved 1 space", substring = true))
         rule.waitFor(hasContentDescription("Undo") and isEnabled())
 
-        // Back to the draft, then Heroes › Board: the board is saved under its line-up.
+        // Back returns to the finished draft (the draft board hides the tabs); Back again leaves it,
+        // then Heroes › Board: the board is saved under its line-up.
+        rule.tapDescription("Back")
+        rule.waitForText("Try on the board")
         rule.tapDescription("Back")
         rule.openTab("catalog")
         rule.waitForText("32 heroes")
