@@ -422,9 +422,11 @@ when empty (older JSON without it still loads). Values above are placeholders, n
 - **Playing as** (ADR-032): a round is played as an active player or Guest. Default = the last
   pick on this phone (`trivia_progress` store; a merged-away id reads as the player it was merged
   into), if that player is still active, or Guest if Guest was picked; else this phone's "You"
-  (Group sync, if active); else Guest. The quiz reads the pick once when it opens. **Learning
+  (Group sync, if active); else Guest. The quiz reads the pick once when it opens and shows it on
+  the progress line and the summary ("as Sam", or "as Guest · not on the leaderboard"). **Learning
   progress moves only when the round is played as this phone's "You", or by anyone (Guest
-  included) while no "You" is set**; otherwise answers still score but no box moves, and the
+  included) while no "You" is set** (an archived "You" counts as none); otherwise answers still
+  score but no box moves, the home notes "Learning progress on this phone stays Ann's.", and the
   summary says so instead of counting newly learned numbers.
 - **Challenge** (`TriviaChallenge`): `TriviaConfig(all heroes in the catalog whatever the owned
   products, all six stats, all card groups, 4 choices, 20 questions, duels on)` drawn with
@@ -441,12 +443,15 @@ when empty (older JSON without it still loads). Values above are placeholders, n
   id resolves to through player merges; rounds of archived players, unknown ids and merged-away ids
   are left out (archived players aren't ranked, as on the Players tab). Period: All time or the
   last 30 days (`playedAt` ≥ now − 30 days). *Challenge board*: each player's best finished
-  Challenge (questions = length): more right answers, then less answer time, then the earlier
-  round. *Practice board*: every round, Challenges included, summed per player: more right
+  Challenge (questions = length): more right answers, then less answer time in tenths of a second
+  (rounded, as shown: "1:42.3"), then the earlier round. *Practice board*: every round, Challenges included, summed per player: more right
   answers, then the higher accuracy (compared exactly), then fewer questions; also best streak and
   rounds. Players tied on all three criteria share a place ("1, 2, 2, 4", shown "=2", read "joint
   2nd"); among them rows are ordered by name. A finished Challenge's summary shows the player's
   all-time place ("2nd of 5 · your best 18/20", or "New best! · …" when this round is their best).
+  "Last 30 days" counts from the moment the screen was last opened or resumed. A player's sheet
+  lists every round of theirs in the period (their best Challenge first), so every counted score
+  can be removed (a tombstone).
 - **Validity** (`TriviaRoundValidation`, sync and backup): a round with a blank player, a negative
   number, no answers, more right answers than questions, a best streak longer than its right
   answers, more answers than its length, an unfinished Challenge, or a player missing from the
@@ -536,9 +541,11 @@ a double pilot's seats always stay together. The result is checked like the matc
 Format v5 (`BackupDocument`): v4 plus `triviaRounds` (ADR-032; their tombstones are in
 `deletions`) and `boards` (the board sandbox's `SavedBoard`s, ADR-033, read and written through
 `BoardRepository`; polymorphic pieces use the class discriminator `"piece"`). Rounds merge like
-matches; boards by the later `updatedAt` of each id (Replace = exactly the file's boards). A file
-from before v5 has no boards list, so even Replace leaves the phone's boards alone (its rounds go
-with the rest of the synced data; the group brings them back at the next sync). v4 added
+matches; boards by the later `updatedAt` of each id (Replace = exactly the file's boards).
+`boards` is null when the file was written by a build without the board sandbox; a null or
+missing list (every file before v5) says nothing about boards, so even Replace leaves the phone's
+boards alone (its rounds go with the rest of the synced data; the group brings them back at the
+next sync). A build without the board sandbox doesn't import or count a file's boards. v4 added
 `updatedAt` on players, matches and drafts, `deletions`, `playerMerges` and `eloConfigUpdatedAt`
 (group sync, ADR-025). v3 added `appVersion` and `extras`
 from contributors — `settings` (AppSettings: theme, owned products, sounds, haptics, list view…),
@@ -570,7 +577,9 @@ older/newer version of the app. Update …"): an old phone would drop the rounds
 - **Stamps:** every local write sets `updatedAt` = max(now, previous `updatedAt` + 1, the record's
   tombstone + 1), so an edit always beats the copy it edited, even with the clock moved back.
   Archiving is an edit. Received records keep their stamps.
-- **Merge** (`SyncMerge`, commutative, associative, idempotent): same id → the higher `updatedAt`
+- **Merge** (`SyncMerge`, commutative, associative, idempotent; the result is always the current
+  `SyncDocument.VERSION`, so a stored document from an older build is upgraded by merging): same
+  id → the higher `updatedAt`
   wins; an exact tie keeps the match with more known heroes (a pre-sync backup import on an older
   catalog stored a newer hero as null, and the migration gave both copies the same stamp), then the
   copy whose canonical JSON (`SyncJson`) sorts last, the same on every phone. Other pre-sync

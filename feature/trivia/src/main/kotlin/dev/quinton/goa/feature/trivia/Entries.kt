@@ -93,6 +93,8 @@ fun EntryProviderScope<NavKey>.triviaEntries(navigator: Navigator) {
                 onOpenPlayer = viewModel::openPlayer,
                 onClosePlayer = viewModel::closePlayer,
                 onRemoveRound = viewModel::removeRound,
+                onResume = viewModel::onResume,
+                onMessageShown = viewModel::messageShown,
             ),
             onBack = navigator::back,
         )

@@ -51,6 +51,7 @@ import dev.quinton.goa.feature.trivia.quiz.TriviaQuizScreen
 import dev.quinton.goa.feature.trivia.quiz.TriviaQuizUiState
 import dev.quinton.goa.feature.trivia.quiz.TriviaQuizViewModel
 import kotlin.random.Random
+import kotlinx.coroutines.Dispatchers
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -158,6 +159,7 @@ class TriviaLeaderboardScreenshotTest {
         FakeGroupRepository(GroupState(null, "this-phone", null, "ann", emptyList(), null)),
         EditClock { NOW },
         SavedStateHandle(),
+        Dispatchers.Main,
     ).apply {
         selectTab(tab)
         selectPeriod(period)
@@ -272,6 +274,7 @@ class TriviaLeaderboardScreenshotTest {
         Random(21),
         ticker = { tick },
         newId = { "new-${next++}" },
+        computeDispatcher = Dispatchers.Main,
     )
 
     private fun TriviaQuizViewModel.play(count: Int, wrong: Set<Int>) {

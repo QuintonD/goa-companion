@@ -89,6 +89,8 @@ class BackupRoundTripTest {
         contributor: FakeContributor? = null,
         realContributors: Boolean = contributor == null,
         catalog: Catalog = TestCatalog.catalog,
+        /** False: a build without the board sandbox's `BoardRepository` binding. */
+        boardSandbox: Boolean = true,
     ) {
         val db = GoaDatabase.inMemory(ApplicationProvider.getApplicationContext(), AndroidSQLiteDriver()).also {
             databases +=
@@ -118,7 +120,7 @@ class BackupRoundTripTest {
             },
             FakeCatalogRepository(catalog),
             AppInfo { "9.9.9" },
-            Optional.of(boards),
+            if (boardSandbox) Optional.of(boards) else Optional.empty(),
         )
     }
 
@@ -298,10 +300,33 @@ class BackupRoundTripTest {
     }
 
     @Test
+    fun withoutTheBoardSandboxBoardsAreNeitherExportedNorImportedNorCounted() = runTest {
+        val bare = Device(boardSandbox = false)
+        bare.seed() // its fake store holds a board, but nothing binds it
+        val exported = bare.backup.export()
+        assertThat(exported.boards).isNull()
+        assertThat(BackupCodec.encode(exported)).contains("\"boards\": null")
+        // A phone with the sandbox keeps its boards when that file is restored over them.
+        val full = Device()
+        full.boards.upsert(board)
+        full.backup.import(BackupCodec.decode(BackupCodec.encode(exported)), ImportMode.REPLACE)
+        assertThat(full.boards.state.value).containsExactly(board)
+
+        // A file with boards, opened on a phone without the sandbox: not imported, not counted.
+        val withBoards = Device().apply { seed() }.backup.export()
+        assertThat(withBoards.summary().boards).isEqualTo(1)
+        val other = Device(boardSandbox = false)
+        assertThat(other.backup.summarize(withBoards).boards).isNull()
+        other.backup.import(withBoards, ImportMode.REPLACE)
+        assertThat(other.boards.state.value).isEmpty()
+        assertThat(other.rounds.observeRounds().first()).hasSize(2)
+    }
+
+    @Test
     fun aVersion4FileImportsWithoutRoundsAndLeavesThePhonesBoardsAlone() = runTest {
         val source = Device()
         source.seed()
-        val v4 = source.backup.export().copy(version = 4, triviaRounds = emptyList(), boards = emptyList())
+        val v4 = source.backup.export().copy(version = 4, triviaRounds = emptyList(), boards = null)
         val text = BackupCodec.encode(v4).replace(Regex(""",\s*"triviaRounds": \[\s*]"""), "")
             .replace(Regex(""",\s*"boards": \[\s*]"""), "")
         assertThat(text).doesNotContain("triviaRounds")

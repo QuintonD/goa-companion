@@ -177,7 +177,8 @@ internal fun PlayingAsContent(
                 OutlinedTextField(
                     value = newName,
                     onValueChange = { newName = it.take(MAX_NAME_LENGTH) },
-                    placeholder = {
+                    // A label (read by TalkBack as the field's name, and kept above the text once typing).
+                    label = {
                         Text(if (state.players.isEmpty()) "Name of the first player" else "Someone missing? Add them")
                     },
                     leadingIcon = { Icon(Icons.Outlined.PersonAdd, contentDescription = null) },
@@ -187,7 +188,7 @@ internal fun PlayingAsContent(
                         imeAction = ImeAction.Done,
                     ),
                     keyboardActions = KeyboardActions(onDone = { add() }),
-                    modifier = Modifier.weight(1f).semantics { contentDescription = "Add a player" },
+                    modifier = Modifier.weight(1f),
                 )
                 Spacer(Modifier.width(Spacing.sm))
                 TextButton(onClick = add, enabled = newName.isNotBlank()) { Text("Add") }

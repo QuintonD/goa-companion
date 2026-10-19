@@ -254,6 +254,11 @@ private fun QuizHeader(state: TriviaQuizUiState.Playing) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        Text(
+            playingAsLine(state.playerName),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         if (length != null) {
             Spacer(Modifier.height(Spacing.sm))
             val done = state.number - if (state.answered) 0 else 1

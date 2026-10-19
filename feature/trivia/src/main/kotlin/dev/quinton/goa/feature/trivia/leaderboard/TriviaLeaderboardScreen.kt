@@ -33,14 +33,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -55,6 +59,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
@@ -74,6 +79,9 @@ data class LeaderboardActions(
     val onOpenPlayer: (String) -> Unit = {},
     val onClosePlayer: () -> Unit = {},
     val onRemoveRound: (String) -> Unit = {},
+    /** The screen came back into view: "Last 30 days" counts from now. */
+    val onResume: () -> Unit = {},
+    val onMessageShown: () -> Unit = {},
 )
 
 /**
@@ -90,7 +98,24 @@ fun TriviaLeaderboardScreen(
     initialConfirm: String? = null,
 ) {
     var confirm by rememberSaveable { mutableStateOf(initialConfirm) }
-    GoaScreen(title = "Leaderboard", onBack = onBack, modifier = modifier) { padding ->
+    LifecycleResumeEffect(Unit) {
+        actions.onResume()
+        onPauseOrDispose {}
+    }
+    val snackbar = remember { SnackbarHostState() }
+    val message = (state as? TriviaLeaderboardUiState.Ready)?.message
+    LaunchedEffect(message) {
+        if (message != null) {
+            snackbar.showSnackbar(message)
+            actions.onMessageShown()
+        }
+    }
+    GoaScreen(
+        title = "Leaderboard",
+        onBack = onBack,
+        modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbar) },
+    ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (state) {
                 TriviaLeaderboardUiState.Loading -> CircularProgressIndicator(
@@ -195,9 +220,8 @@ private fun BoardContent(state: TriviaLeaderboardUiState.Ready, actions: Leaderb
 @Composable
 private fun EmptyBoard(state: TriviaLeaderboardUiState.Ready, modifier: Modifier) {
     val challenge = state.tab == LeaderboardTab.CHALLENGE
-    val recentOnly = state.period == LeaderboardPeriod.LAST_30_DAYS && state.anyRounds
     when {
-        recentOnly -> EmptyState(
+        state.olderScores -> EmptyState(
             icon = Icons.Outlined.EventBusy,
             title = if (challenge) "No Challenges in the last 30 days" else "No rounds in the last 30 days",
             message = "Older scores are under All time. Play a round to get back on the board.",
@@ -377,7 +401,10 @@ private fun PlayerRoundsSheet(
     }
 }
 
-/** A player's recent rounds, newest first, each with "Remove from leaderboard". */
+/**
+ * A player's rounds in the period: their best Challenge (the one on the board) first, then the
+ * rest newest first, each with "Remove from leaderboard".
+ */
 @Composable
 internal fun PlayerRoundsContent(
     rounds: PlayerRoundsUi,
@@ -411,7 +438,7 @@ internal fun PlayerRoundsContent(
                         }
                     }
                     Text(
-                        "Recent rounds · ${periodLabel(period)}",
+                        "Rounds · ${periodLabel(period)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -448,7 +475,7 @@ private fun RoundRow(round: RoundUi, onRemove: () -> Unit) {
                     Text(
                         round.kind.uppercase(),
                         style = MaterialTheme.typography.labelMedium,
-                        color = if (round.kind == "Challenge") {
+                        color = if (round.kind != "Practice") {
                             MaterialTheme.colorScheme.primary
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant

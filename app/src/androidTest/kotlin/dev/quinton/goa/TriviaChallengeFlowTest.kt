@@ -43,6 +43,7 @@ class TriviaChallengeFlowTest {
         rule.waitForDescription("Playing as Sam", substring = true)
 
         rule.tapText("Challenge")
+        rule.waitForText("as Sam")
         for (question in 1..ROUND) {
             rule.waitForText("Question $question of $ROUND")
             if (rule.exists(hasText("Same initiative") and hasClickAction())) {
@@ -55,7 +56,7 @@ class TriviaChallengeFlowTest {
 
         // The summary: Sam's score, answer time and place (the only player on the board: 1st of 1).
         rule.waitForText("Round over")
-        rule.waitForText("CHALLENGE · SAM")
+        rule.waitForText("Challenge · as Sam")
         rule.waitForText("of $ROUND right", substring = true)
         rule.waitForDescription("Answer time", substring = true)
         rule.waitForText("1st of 1", substring = true)

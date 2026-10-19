@@ -126,6 +126,23 @@ class SyncMergeTest {
     }
 
     @Test
+    fun aStoredVersion1DocumentMergedWithAVersion2OneIsAValidVersion2Document() {
+        // As a build from before trivia rounds stored it: version 1, no rounds.
+        val stored = SyncDocument(version = 1, players = listOf(ann, bob), matches = listOf(m1))
+        val current = doc(ann, bob, round("r1", "ann", updatedAt = 3))
+        listOf(SyncMerge.merge(stored, current), SyncMerge.merge(current, stored)).forEach { merged ->
+            assertThat(merged.version).isEqualTo(SyncDocument.VERSION)
+            assertThat(merged.version).isEqualTo(2)
+            assertThat(merged.format).isEqualTo(SyncDocument.FORMAT)
+            assertThat(merged.matches).containsExactly(m1)
+            assertThat(merged.triviaRounds.map { it.id }).containsExactly("r1")
+            assertThat(SyncValidation.problem(merged)).isNull()
+        }
+        // Even two old documents merge into the current version.
+        assertThat(SyncMerge.merge(stored, stored).version).isEqualTo(SyncDocument.VERSION)
+    }
+
+    @Test
     fun nothingNotDeletedIsLost() {
         val a = doc(ann, m1)
         val b = doc(bob, match("m2", listOf("bob"), listOf("ann"), updatedAt = 3))

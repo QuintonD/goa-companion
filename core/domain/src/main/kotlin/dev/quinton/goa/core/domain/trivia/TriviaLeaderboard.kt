@@ -66,7 +66,8 @@ data class ChallengeStanding(
  *   rounds are one player's). Rounds of a player who isn't known, is merged away or is archived are
  *   left out, as archived players are left out of the Players tab's ranking.
  * - **Challenge:** each player's best finished Challenge: more right answers, then less answer
- *   time, then the earlier round. Players tied on all three share a place ("1, 2, 2, 4").
+ *   time in tenths of a second ([tenths]), then the earlier round. Players tied on all three share
+ *   a place ("1, 2, 2, 4").
  * - **Practice:** all rounds, Challenges included, summed per player: more right answers, then a
  *   higher accuracy, then fewer questions; tied on all three = shared place.
  * - Among players sharing a place, rows are listed by name.
@@ -99,21 +100,19 @@ object TriviaLeaderboard {
             ChallengeStanding(row.place, row.tied, board.challenge.size, row.best)
         }
 
-    /** [playerId]'s rounds (after merges) in [period], newest first. */
-    @Suppress("LongParameterList")
-    fun recentRounds(
+    /**
+     * [playerId]'s rounds (after merges) in [period], newest first: every round that counts on
+     * either board for them, so each counted score can be removed.
+     */
+    fun playerRounds(
         rounds: List<TriviaRound>,
         playerId: String,
         now: Long,
         period: LeaderboardPeriod,
         merges: PlayerMerges = PlayerMerges.NONE,
-        limit: Int = RECENT_LIMIT,
     ): List<TriviaRound> = rounds
         .filter { merges.resolve(it.playerId) == playerId && inPeriod(it, now, period) }
         .sortedWith(compareByDescending<TriviaRound> { it.playedAt }.thenByDescending { it.id })
-        .take(limit)
-
-    const val RECENT_LIMIT = 30
 
     fun inPeriod(round: TriviaRound, now: Long, period: LeaderboardPeriod): Boolean = when (period) {
         LeaderboardPeriod.ALL_TIME -> true
@@ -124,9 +123,17 @@ object TriviaLeaderboard {
     fun isFinishedChallenge(round: TriviaRound): Boolean =
         round.kind == TriviaRoundKind.CHALLENGE && round.length > 0 && round.questions == round.length
 
-    /** The better Challenge first: more right, then faster, then earlier (then id, for a fixed order). */
+    /**
+     * Answer time as the board shows and compares it: tenths of a second, rounded ("1:42.3"), so two
+     * times that read the same rank the same.
+     */
+    fun tenths(answerMillis: Long): Long = (answerMillis + TENTH / 2) / TENTH
+
+    private const val TENTH = 100L
+
+    /** The better Challenge first: more right, then faster (in tenths), then earlier (then id, for a fixed order). */
     val challengeOrder: Comparator<TriviaRound> = compareByDescending<TriviaRound> { it.correct }
-        .thenBy { it.answerMillis }
+        .thenBy { tenths(it.answerMillis) }
         .thenBy { it.playedAt }
         .thenBy { it.id }
 
@@ -151,10 +158,10 @@ object TriviaLeaderboard {
     private fun challengeRows(rounds: List<TriviaRound>, names: Map<String, String>, me: String?): List<ChallengeRow> {
         val byPlayer = rounds.filter(::isFinishedChallenge).groupBy { it.playerId }
         val bests = byPlayer.mapValues { (_, list) -> list.minWith(challengeOrder) }
-        fun key(r: TriviaRound) = Triple(r.correct, r.answerMillis, r.playedAt)
+        fun key(r: TriviaRound) = Triple(r.correct, tenths(r.answerMillis), r.playedAt)
         val sorted = bests.values.sortedWith(
             compareByDescending<TriviaRound> { it.correct }
-                .thenBy { it.answerMillis }
+                .thenBy { tenths(it.answerMillis) }
                 .thenBy { it.playedAt }
                 .thenBy { names[it.playerId] ?: it.playerId }
                 .thenBy { it.playerId },

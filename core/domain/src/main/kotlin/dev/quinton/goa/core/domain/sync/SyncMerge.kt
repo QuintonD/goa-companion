@@ -27,10 +27,15 @@ import kotlinx.serialization.KSerializer
  * always encodes to equal bytes.
  */
 object SyncMerge {
+    /**
+     * Phones only merge same-version documents; a document stored by an older build (a lower
+     * `version`, its newer lists empty) is upgraded by merging, so the result is always the current
+     * [SyncDocument.VERSION] and passes [SyncValidation].
+     */
     fun merge(a: SyncDocument, b: SyncDocument): SyncDocument = normalize(
         SyncDocument(
-            format = a.format,
-            version = a.version,
+            format = SyncDocument.FORMAT,
+            version = SyncDocument.VERSION,
             players = a.players + b.players,
             matches = a.matches + b.matches,
             drafts = a.drafts + b.drafts,

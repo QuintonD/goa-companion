@@ -4,12 +4,14 @@ import androidx.compose.runtime.Immutable
 import dev.quinton.goa.core.designsystem.component.cardColorName
 import dev.quinton.goa.core.domain.trivia.CardGroup
 import dev.quinton.goa.core.domain.trivia.TriviaConfig
+import dev.quinton.goa.core.domain.trivia.TriviaLeaderboard
 import dev.quinton.goa.core.domain.trivia.TriviaStat
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.catalog.PrimaryAction
 import java.text.NumberFormat
+import java.util.Locale
 import kotlinx.serialization.json.Json
 
 /** Labels for the trivia screens, in the rulebook's words. No game data lives here. */
@@ -80,6 +82,25 @@ internal object TriviaText {
         }
         return "$n$suffix"
     }
+
+    /** A Challenge answer time as the board ranks it, in tenths: "1:42.3". */
+    fun answerTime(millis: Long): String {
+        val tenths = TriviaLeaderboard.tenths(millis.coerceAtLeast(0))
+        return String.format(Locale.ROOT, "%d:%02d.%d", tenths / TENTHS_PER_MINUTE, tenths / 10 % 60, tenths % 10)
+    }
+
+    /** How TalkBack reads [answerTime]: "1 minute 42.3 seconds". */
+    fun spokenAnswerTime(millis: Long): String {
+        val tenths = TriviaLeaderboard.tenths(millis.coerceAtLeast(0))
+        val minutes = tenths / TENTHS_PER_MINUTE
+        val seconds = String.format(Locale.ROOT, "%d.%d", tenths / 10 % 60, tenths % 10)
+        return listOfNotNull(
+            minutes.takeIf { it > 0 }?.let { if (it == 1L) "1 minute" else "$it minutes" },
+            "$seconds seconds",
+        ).joinToString(" ")
+    }
+
+    private const val TENTHS_PER_MINUTE = 600
 
     /** "2nd", or "Joint 2nd" when another player shares it. */
     fun place(place: Int, tied: Boolean): String = if (tied) "Joint ${ordinal(place)}" else ordinal(place)

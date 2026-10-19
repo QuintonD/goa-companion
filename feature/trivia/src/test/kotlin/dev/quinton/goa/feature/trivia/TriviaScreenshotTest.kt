@@ -185,6 +185,15 @@ class TriviaScreenshotTest {
     fun homePlayingAsOtherW384DarkFontScale2() =
         capture(ThemeMode.DARK, 2f) { Home(homeViewModel(playingAs = "sam", me = "ann")) }
 
+    /** Font scale 1.3 at 384 dp: the button labels are measured, so they stack rather than clip. */
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun homeW384DarkFontScale13() = capture(ThemeMode.DARK, 1.3f) { Home(homeViewModel(playingAs = "sam", me = "ann")) }
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun homeW384LightFontScale115() = capture(ThemeMode.LIGHT, 1.15f) { Home(homeViewModel(me = "ann")) }
+
     /** Playing as this phone's own player: the You tag, no note. */
     @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
     @Test

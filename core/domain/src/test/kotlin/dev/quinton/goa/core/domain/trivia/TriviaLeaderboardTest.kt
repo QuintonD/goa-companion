@@ -85,6 +85,25 @@ class TriviaLeaderboardTest {
     }
 
     @Test
+    fun `answer times compare in tenths of a second, as the board shows them`() {
+        assertThat(TriviaLeaderboard.tenths(102_349)).isEqualTo(1_023)
+        assertThat(TriviaLeaderboard.tenths(102_350)).isEqualTo(1_024)
+        val rows = board(
+            listOf(
+                // 1:42.3 both (102 260 and 102 340 ms): the earlier round wins, no shared place.
+                challenge("bob", 18, millis = 102_340, at = 5),
+                challenge("ann", 18, millis = 102_260, at = 9),
+                // 1:42.4: slower in tenths, even though it is only 0.07 s behind Bob.
+                challenge("cid", 18, millis = 102_410, at = 1),
+                // Same tenths and the same moment as Ann: a full tie.
+                challenge("dee", 18, millis = 102_290, at = 9),
+            ),
+        ).challenge
+        assertThat(rows.map { it.playerId }).containsExactly("bob", "ann", "dee", "cid").inOrder()
+        assertThat(rows.map { it.place }).containsExactly(1, 2, 2, 4).inOrder()
+    }
+
+    @Test
     fun `players tied on score, time and date share a place and the next place is skipped`() {
         val rows = board(
             listOf(
@@ -158,9 +177,9 @@ class TriviaLeaderboardTest {
             },
         ).containsExactly("bob" to edge, "ann" to recent).inOrder()
         assertThat(month.practice.map { it.playerId }).doesNotContain("cid")
-        assertThat(TriviaLeaderboard.recentRounds(rounds, "ann", now, LeaderboardPeriod.LAST_30_DAYS))
+        assertThat(TriviaLeaderboard.playerRounds(rounds, "ann", now, LeaderboardPeriod.LAST_30_DAYS))
             .containsExactly(recent)
-        assertThat(TriviaLeaderboard.recentRounds(rounds, "ann", now, LeaderboardPeriod.ALL_TIME))
+        assertThat(TriviaLeaderboard.playerRounds(rounds, "ann", now, LeaderboardPeriod.ALL_TIME))
             .containsExactly(recent, old).inOrder()
     }
 
@@ -184,7 +203,7 @@ class TriviaLeaderboardTest {
         // "You" set to the merged-away id still marks the player it was merged into.
         assertThat(ann.isMe).isTrue()
         assertThat(result.practice.single().rounds).isEqualTo(3)
-        assertThat(TriviaLeaderboard.recentRounds(rounds, "ann", now, LeaderboardPeriod.ALL_TIME, merges)).hasSize(3)
+        assertThat(TriviaLeaderboard.playerRounds(rounds, "ann", now, LeaderboardPeriod.ALL_TIME, merges)).hasSize(3)
         assertThat(board(emptyList())).isEqualTo(TriviaBoard.EMPTY)
     }
 

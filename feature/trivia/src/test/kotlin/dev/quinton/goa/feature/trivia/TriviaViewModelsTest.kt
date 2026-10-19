@@ -95,6 +95,7 @@ class TriviaViewModelsTest {
         seed?.let(::Random) ?: Random.Default,
         ticker = { tick },
         newId = { "round-${++ids}" },
+        computeDispatcher = Dispatchers.Main,
     )
 
     private fun facts(heroId: String) = TriviaFacts.of(catalog.hero(heroId)!!)

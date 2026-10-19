@@ -214,7 +214,7 @@ fun ImportDialog(
                     "Exported ${Dates.day(summary.exportedAt)} · ${plural(summary.players, "player")} · " +
                         "${plural(summary.matches, "match", "matches")} · ${plural(summary.drafts, "draft")}" +
                         (if (summary.triviaRounds > 0) " · ${plural(summary.triviaRounds, "trivia round")}" else "") +
-                        (if (summary.boards > 0) " · ${plural(summary.boards, "board")}" else "") +
+                        (summary.boards?.takeIf { it > 0 }?.let { " · ${plural(it, "board")}" } ?: "") +
                         if (summary.hasEloConfig) " · custom rating settings" else "",
                     style = MaterialTheme.typography.bodyMedium,
                 )

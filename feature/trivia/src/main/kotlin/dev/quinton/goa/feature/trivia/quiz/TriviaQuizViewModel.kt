@@ -42,6 +42,8 @@ import dev.quinton.goa.feature.trivia.TriviaText
 import dev.quinton.goa.feature.trivia.currentPlayingAs
 import java.util.UUID
 import kotlin.random.Random
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,6 +54,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -117,6 +120,8 @@ sealed interface TriviaQuizUiState {
         val hapticsEnabled: Boolean,
         /** The fixed Challenge (ADR-032). */
         val challenge: Boolean = false,
+        /** Who is playing; null = Guest (not on the leaderboard). */
+        val playerName: String? = null,
     ) : TriviaQuizUiState {
         val answered: Boolean get() = answer != null
 
@@ -138,6 +143,8 @@ sealed interface TriviaQuizUiState {
         val playerName: String? = null,
         /** Set for a Challenge; null for a practice round. */
         val challenge: ChallengeResultUi? = null,
+        /** The round couldn't be saved to the leaderboard (a storage error). */
+        val saveFailed: Boolean = false,
     ) : TriviaQuizUiState {
         val canPractise: Boolean get() = misses.isNotEmpty()
     }
@@ -189,6 +196,8 @@ class TriviaQuizViewModel internal constructor(
     private val random: Random,
     private val ticker: QuizTicker = QuizTicker.System,
     private val newId: () -> String = { UUID.randomUUID().toString() },
+    /** Works out the summary's place off the main thread; a test dispatcher in tests. */
+    private val computeDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
     @AssistedInject constructor(
         @Assisted route: TriviaQuizRoute,
@@ -362,6 +371,7 @@ class TriviaQuizViewModel internal constructor(
      * answer, and for a Challenge only with every question answered. A finished Challenge then
      * follows the player's place on the board.
      */
+    @Suppress("SwallowedException") // a failed write becomes the summary's "couldn't be saved"
     private fun record(finished: TriviaSession) {
         val id = roundId
         if (!recorded.add(id)) return
@@ -376,8 +386,22 @@ class TriviaQuizViewModel internal constructor(
             catalogVersion = catalogVersion,
         ) ?: return
         standingJob = viewModelScope.launch {
-            withContext(NonCancellable) { roundRepository.add(round) }
-            if (route.challenge) follow(round)
+            val saved = withContext(NonCancellable) {
+                try {
+                    roundRepository.add(round)
+                    true
+                } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+                    // A full disk or a database error: the round is lost, the summary says so.
+                    false
+                }
+            }
+            if (!saved) {
+                state.update { current ->
+                    if (current is TriviaQuizUiState.Summary) current.copy(saveFailed = true) else current
+                }
+            } else if (route.challenge) {
+                follow(round)
+            }
         }
     }
 
@@ -392,7 +416,7 @@ class TriviaQuizViewModel internal constructor(
                 val board = TriviaLeaderboard.build(rounds, all, null, clock.now(), LeaderboardPeriod.ALL_TIME)
                 TriviaLeaderboard.standing(board, round.playerId)
             }
-        }.filterNotNull().distinctUntilChanged().collect { standing ->
+        }.filterNotNull().distinctUntilChanged().flowOn(computeDispatcher).collect { standing ->
             state.update { current ->
                 val summary = current as? TriviaQuizUiState.Summary
                 val result = summary?.challenge?.takeIf { it.roundId == round.id }
@@ -439,6 +463,7 @@ class TriviaQuizViewModel internal constructor(
             lastQuestion = session.length?.let { session.results.size >= it } ?: false,
             hapticsEnabled = settings.hapticsEnabled,
             challenge = route.challenge,
+            playerName = playing.player?.name,
         )
     }
 

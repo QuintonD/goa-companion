@@ -8,6 +8,7 @@ import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.GroupState
 import dev.quinton.goa.core.data.TriviaProgressRepository
+import dev.quinton.goa.core.data.TriviaRoundRepository
 import dev.quinton.goa.core.domain.trivia.DuelPick
 import dev.quinton.goa.core.domain.trivia.LeaderboardPeriod
 import dev.quinton.goa.core.domain.trivia.TriviaAnswer
@@ -65,6 +66,9 @@ class TriviaLeaderboardViewModelsTest {
     private var tick = 0L
     private var ids = 0
 
+    /** The leaderboard's wall clock, moved by hand. */
+    private var clockNow = NOW
+
     @Before fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
 
     @After fun tearDown() = Dispatchers.resetMain()
@@ -88,6 +92,7 @@ class TriviaLeaderboardViewModelsTest {
         Random(seed),
         ticker = { tick },
         newId = { "round-${++ids}" },
+        computeDispatcher = Dispatchers.Main,
     )
 
     private val challenge = TriviaQuizRoute(TriviaText.encode(TriviaChallenge.CONFIG), challenge = true)
@@ -162,14 +167,11 @@ class TriviaLeaderboardViewModelsTest {
         setMe("ann")
         progress.playingAsState.value = "sam"
         home().uiState.test {
-            assertThat(playingAsNote(ready().playingAs))
-                .isEqualTo("Practice progress here stays Ann's; Sam's rounds go on the leaderboard.")
+            assertThat(playingAsNote(ready().playingAs)).isEqualTo("Learning progress on this phone stays Ann's.")
         }
         progress.playingAsState.value = TriviaProgressRepository.GUEST
         home().uiState.test {
-            assertThat(
-                playingAsNote(ready().playingAs),
-            ).isEqualTo("Practice progress here stays Ann's; Guest rounds aren't recorded.")
+            assertThat(playingAsNote(ready().playingAs)).isEqualTo("Learning progress on this phone stays Ann's.")
         }
         progress.playingAsState.value = "ann"
         home().uiState.test { assertThat(playingAsNote(ready().playingAs)).isNull() }
@@ -177,6 +179,20 @@ class TriviaLeaderboardViewModelsTest {
         setMe(null)
         progress.playingAsState.value = "sam"
         home().uiState.test { assertThat(playingAsNote(ready().playingAs)).isNull() }
+    }
+
+    @Test
+    fun `an archived You counts as no You, for the note and for learning progress`() = runTest {
+        setMe("old") // "old" is archived
+        progress.playingAsState.value = "sam"
+        home().uiState.test {
+            val playing = ready().playingAs
+            assertThat(playing.me).isNull()
+            assertThat(playing.movesProgress).isTrue()
+            assertThat(playingAsNote(playing)).isNull()
+        }
+        quiz(practice).play(3)
+        assertThat(progress.state.value).isNotEmpty()
     }
 
     @Test
@@ -366,7 +382,16 @@ class TriviaLeaderboardViewModelsTest {
     // ---- Leaderboard screen ---------------------------------------------------------------
 
     private fun leaderboard() =
-        TriviaLeaderboardViewModel(rounds, players, groups, EditClock { NOW }, SavedStateHandle())
+        TriviaLeaderboardViewModel(
+            rounds,
+            players,
+            groups,
+            EditClock {
+                clockNow
+            },
+            SavedStateHandle(),
+            Dispatchers.Main,
+        )
 
     private suspend fun ReceiveTurbine<TriviaLeaderboardUiState>.board(): TriviaLeaderboardUiState.Ready {
         while (true) {
@@ -393,8 +418,8 @@ class TriviaLeaderboardViewModelsTest {
             assertThat(samRow.place).isEqualTo(2)
             assertThat(samRow.isMe).isTrue()
             assertThat(samRow.main).isEqualTo("17/20")
-            assertThat(samRow.detail).startsWith("1:42 · ")
-            assertThat(samRow.spoken).startsWith("2nd place, Sam, you, best 17 of 20 right in 1 minute 42 seconds")
+            assertThat(samRow.detail).startsWith("1:42.0 · ")
+            assertThat(samRow.spoken).startsWith("2nd place, Sam, you, best 17 of 20 right in 1 minute 42.0 seconds")
 
             vm.selectPeriod(LeaderboardPeriod.LAST_30_DAYS)
             assertThat(board().rows.map { it.player.id }).containsExactly("sam")
@@ -421,9 +446,12 @@ class TriviaLeaderboardViewModelsTest {
             vm.openPlayer("sam")
             val open = board().selected!!
             assertThat(open.player).isEqualTo(sam)
-            assertThat(open.rounds.map { it.id }).containsExactly("s2", "s1").inOrder()
-            assertThat(open.rounds.last().label).startsWith("Sam's Challenge on ")
-            assertThat(open.rounds.last().label).endsWith("(17/20)")
+            // The best Challenge (the one on the board) first, then the rest newest first.
+            assertThat(open.rounds.map { it.id }).containsExactly("s1", "s2").inOrder()
+            assertThat(open.rounds.first().best).isTrue()
+            assertThat(open.rounds.first().kind).isEqualTo("Best Challenge")
+            assertThat(open.rounds.first().label).startsWith("Sam's Challenge on ")
+            assertThat(open.rounds.first().label).endsWith("(17/20)")
 
             vm.removeRound("s1")
             val after = board()
@@ -439,12 +467,134 @@ class TriviaLeaderboardViewModelsTest {
     }
 
     @Test
+    fun `the quiz and its summary say who is playing`() = runTest {
+        progress.playingAsState.value = "sam"
+        val sams = quiz(practice)
+        assertThat(sams.playing().playerName).isEqualTo("Sam")
+        sams.play(10)
+        assertThat(sams.summary().playerName).isEqualTo("Sam")
+        assertThat(dev.quinton.goa.feature.trivia.quiz.playingAsLine("Sam")).isEqualTo("as Sam")
+
+        progress.playingAsState.value = TriviaProgressRepository.GUEST
+        val guest = quiz(practice)
+        assertThat(guest.playing().playerName).isNull()
+        assertThat(dev.quinton.goa.feature.trivia.quiz.playingAsLine(null))
+            .isEqualTo("as Guest · not on the leaderboard")
+    }
+
+    @Test
+    fun `every counted round is in the sheet, however many newer ones there are`() = runTest {
+        val old = round("best", "sam", correct = 19, at = NOON - 20 * DAY)
+        rounds.state.value = listOf(old) + (1..40).map { practiceRound("p$it", "sam", correct = 5, questions = 10) }
+        val vm = leaderboard()
+        vm.uiState.test {
+            board()
+            vm.openPlayer("sam")
+            val open = board().selected!!
+            assertThat(open.rounds).hasSize(41)
+            assertThat(open.rounds.first().id).isEqualTo("best")
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a failed removal says so instead of crashing`() = runTest {
+        rounds.state.value = listOf(round("s1", "sam", correct = 17))
+        val broken = object : TriviaRoundRepository by rounds {
+            override suspend fun delete(id: String) = throw java.io.IOException("disk full")
+        }
+        val vm =
+            TriviaLeaderboardViewModel(
+                broken,
+                players,
+                groups,
+                EditClock {
+                    clockNow
+                },
+                SavedStateHandle(),
+                Dispatchers.Main,
+            )
+        vm.uiState.test {
+            board()
+            vm.removeRound("s1")
+            assertThat(board().message).isEqualTo("Couldn't remove the round. Try again.")
+            vm.messageShown()
+            assertThat(board().message).isNull()
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertThat(rounds.state.value).hasSize(1)
+    }
+
+    @Test
+    fun `a round that can't be saved shows a message on the summary`() = runTest {
+        progress.playingAsState.value = "sam"
+        val broken = object : TriviaRoundRepository by rounds {
+            override suspend fun add(round: TriviaRound) = throw java.io.IOException("disk full")
+        }
+        val vm = TriviaQuizViewModel(
+            practice,
+            FakeCatalogRepository(catalog),
+            settings,
+            progress,
+            players,
+            groups,
+            broken,
+            EditClock { NOW },
+            Random(4),
+            ticker = { tick },
+            newId = { "round-${++ids}" },
+            computeDispatcher = Dispatchers.Main,
+        )
+        vm.play(10)
+        assertThat(vm.summary().saveFailed).isTrue()
+        assertThat(rounds.state.value).isEmpty()
+    }
+
+    @Test
+    fun `last 30 days counts from now, read again when the screen comes back`() = runTest {
+        rounds.state.value = listOf(round("s1", "sam", correct = 17, at = NOON))
+        val vm = leaderboard()
+        vm.selectPeriod(LeaderboardPeriod.LAST_30_DAYS)
+        vm.uiState.test {
+            assertThat(board().rows.map { it.player.id }).containsExactly("sam")
+            // A month passes with the app open in the background, no data changes.
+            clockNow = NOON + 31 * DAY
+            vm.onResume()
+            val later = board()
+            assertThat(later.rows).isEmpty()
+            assertThat(later.olderScores).isTrue()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `empty states are per tab and period`() = runTest {
+        // Only practice, long ago.
+        rounds.state.value =
+            listOf(practiceRound("p1", "ann", correct = 4, questions = 5).copy(playedAt = NOON - 60 * DAY))
+        val vm = leaderboard()
+        vm.selectPeriod(LeaderboardPeriod.LAST_30_DAYS)
+        vm.uiState.test {
+            var state = board()
+            // Challenge tab: nothing ever, so not "older scores are under All time".
+            assertThat(state.challengeEver).isFalse()
+            assertThat(state.olderScores).isFalse()
+            vm.selectTab(LeaderboardTab.PRACTICE)
+            state = board()
+            assertThat(state.rows).isEmpty()
+            assertThat(state.olderScores).isTrue()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `an empty leaderboard knows whether anything was ever played`() = runTest {
         val vm = leaderboard()
         vm.uiState.test {
             val empty = board()
             assertThat(empty.rows).isEmpty()
-            assertThat(empty.anyRounds).isFalse()
+            assertThat(empty.challengeEver).isFalse()
+            assertThat(empty.olderScores).isFalse()
             cancelAndIgnoreRemainingEvents()
         }
     }

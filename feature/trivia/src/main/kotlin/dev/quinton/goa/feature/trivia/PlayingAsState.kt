@@ -21,7 +21,10 @@ import kotlinx.coroutines.flow.map
 @Immutable
 data class PlayingAsState(
     val player: Player?,
-    /** This phone's player ("Which player are you?", Group sync), resolved through merges. */
+    /**
+     * This phone's player ("Which player are you?", Group sync), resolved through merges; null when
+     * none is set or that player is archived.
+     */
     val me: Player?,
     /** Active players to pick from, this phone's "You" first, then by name. */
     val players: List<Player>,
@@ -52,7 +55,8 @@ data class PlayingAsState(
             }
             val ordered =
                 listOfNotNull(activeMe) + active.filter { it.id != activeMe?.id }.sortedBy { it.name.lowercase() }
-            return PlayingAsState(player = player, me = me, players = ordered)
+            // An archived "You" counts as no "You": for the mastery rule and the home's note.
+            return PlayingAsState(player = player, me = activeMe, players = ordered)
         }
     }
 }

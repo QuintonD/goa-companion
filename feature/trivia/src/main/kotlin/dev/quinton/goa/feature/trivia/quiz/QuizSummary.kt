@@ -36,9 +36,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.SectionHeader
-import dev.quinton.goa.core.designsystem.component.formatDuration
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
-import dev.quinton.goa.core.designsystem.component.spokenDuration
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.trivia.TriviaCardUi
@@ -116,6 +114,10 @@ internal fun SummaryContent(
     }
 }
 
+/** Who is playing, on the quiz and its summary: "as Sam", or "as Guest · not on the leaderboard". */
+internal fun playingAsLine(playerName: String?): String =
+    if (playerName == null) "as Guest · not on the leaderboard" else "as $playerName"
+
 /**
  * What a Challenge's summary says about the board: "2nd of 5 · your best 18/20", "New best! · 1st
  * of 3", why it isn't on it, or null while the place is still being worked out.
@@ -125,7 +127,8 @@ internal fun challengeLine(state: TriviaQuizUiState.Summary): String? {
     return when {
         !challenge.finished -> "Unfinished challenges don't go on the leaderboard."
 
-        state.playerName == null -> "Played as Guest: not on the leaderboard."
+        // Guest: the "as Guest · not on the leaderboard" line above says it.
+        state.playerName == null -> null
 
         else -> challenge.standing?.let { standing ->
             val place = TriviaText.place(standing.place, standing.tied) + " of ${standing.of}"
@@ -143,14 +146,12 @@ internal fun challengeLine(state: TriviaQuizUiState.Summary): String? {
 private fun ScoreCard(state: TriviaQuizUiState.Summary) {
     val challenge = state.challenge
     GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.xl)) {
-        if (challenge != null) {
-            Text(
-                "CHALLENGE" + (state.playerName?.let { " · ${it.uppercase()}" } ?: ""),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(Modifier.height(Spacing.xs))
-        }
+        Text(
+            (if (challenge != null) "Challenge · " else "") + playingAsLine(state.playerName),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(Modifier.height(Spacing.xs))
         Text(
             if (state.asked == 0) "No questions answered" else "${state.correct} of ${state.asked} right",
             style = MaterialTheme.typography.headlineMedium,
@@ -177,11 +178,20 @@ private fun ScoreCard(state: TriviaQuizUiState.Summary) {
                 state.asked == 0 -> "End a round after answering to see how it went."
                 state.misses.isEmpty() -> "Every answer right."
                 state.progressSaved -> "Missed numbers come back sooner next time."
-                else -> "Played as ${state.playerName ?: "Guest"}: this phone's learning progress stays as it was."
+                else -> "This phone's learning progress stays as it was."
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (state.saveFailed) {
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                "This round couldn't be saved to the leaderboard.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
         if (state.asked > 0) {
             Spacer(Modifier.height(Spacing.lg))
             FlowRow(
@@ -191,9 +201,9 @@ private fun ScoreCard(state: TriviaQuizUiState.Summary) {
                 Metric(value = "${state.bestStreak}", label = "Best streak")
                 if (challenge != null) {
                     Metric(
-                        value = formatDuration(challenge.answerMillis),
+                        value = TriviaText.answerTime(challenge.answerMillis),
                         label = "Answer time",
-                        spoken = "Answer time ${spokenDuration(challenge.answerMillis)}",
+                        spoken = "Answer time ${TriviaText.spokenAnswerTime(challenge.answerMillis)}",
                     )
                 }
                 if (state.progressSaved) {

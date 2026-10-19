@@ -35,9 +35,10 @@ import kotlinx.serialization.json.JsonElement
  *   last edited when it was created (matches: created or played, whichever is later), no
  *   tombstones or merges, and rating constants that never win over the group's.
  * - v5: `triviaRounds` (the trivia leaderboard, ADR-032; their tombstones are `deletions`) and
- *   `boards` (the board sandbox, ADR-033). Older files have neither: Replace then clears the
- *   rounds with the rest of the synced data (the group brings its own back at the next sync) but
- *   keeps the phone's boards, which a file without a `boards` list never knew about.
+ *   `boards` (the board sandbox, ADR-033; null when written without it). Older files have
+ *   neither: Replace then clears the rounds with the rest of the synced data (the group brings its
+ *   own back at the next sync) but keeps the phone's boards, which a file without a `boards` list
+ *   says nothing about.
  */
 @Serializable
 data class BackupDocument(
@@ -57,8 +58,12 @@ data class BackupDocument(
     val playerMerges: List<PlayerMerge> = emptyList(),
     /** Finished trivia rounds played as a player (v5). */
     val triviaRounds: List<TriviaRound> = emptyList(),
-    /** Board sandbox boards (v5; this phone's own, never synced). */
-    val boards: List<SavedBoard> = emptyList(),
+    /**
+     * Board sandbox boards (v5; this phone's own, never synced). Null when the file has none to
+     * say anything about: written by a build without the board sandbox, or older than v5. Then
+     * the phone's boards are left alone.
+     */
+    val boards: List<SavedBoard>? = null,
     /** Data from [BackupContributor]s (timer presets, custom draft methods, …) keyed by [BackupContributor.key]. */
     val extras: Map<String, JsonElement> = emptyMap(),
 ) {
@@ -66,9 +71,6 @@ data class BackupDocument(
         const val FORMAT = "goa-companion-backup"
         const val CURRENT_VERSION = 5
         const val MIME_TYPE = "application/json"
-
-        /** The first version with `triviaRounds` and `boards`. */
-        const val BOARDS_VERSION = 5
     }
 }
 
@@ -104,7 +106,8 @@ data class BackupSummary(
     val unknownHeroes: Set<String> = emptySet(),
     val appVersion: String? = null,
     val triviaRounds: Int = 0,
-    val boards: Int = 0,
+    /** Boards in the file; null when the file has no boards list or this build has no board sandbox. */
+    val boards: Int? = null,
 ) {
     /** The file carries settings beyond the match log (rating constants, app settings, presets…). */
     val hasSettings: Boolean get() = hasEloConfig || extras.isNotEmpty()
@@ -122,7 +125,7 @@ fun BackupDocument.summary(knownHeroIds: Set<String>? = null) = BackupSummary(
     unknownHeroes = knownHeroIds?.let { unknownHeroIds(it) }.orEmpty(),
     appVersion = appVersion,
     triviaRounds = triviaRounds.size,
-    boards = boards.size,
+    boards = boards?.size,
 )
 
 /**
@@ -166,7 +169,7 @@ object BackupCodec {
             document.matches.map { it.id }.unique() &&
             document.drafts.map { it.id }.unique() &&
             document.triviaRounds.map { it.id }.unique() &&
-            document.boards.map { it.id }.unique() &&
+            document.boards.orEmpty().map { it.id }.unique() &&
             document.playerMerges.map { it.fromId }.unique()
         val playerIds = document.players.mapTo(HashSet()) { it.id }
         return when {

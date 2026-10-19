@@ -83,8 +83,8 @@ interface BackupRepository {
 
 /**
  * [boardRepository]: the board sandbox's boards (ADR-033), optional so the backup works in a build
- * without the board feature's binding (`@BindsOptionalOf`); absent = no boards in the file and none
- * imported.
+ * without the board feature's binding (`@BindsOptionalOf`); absent = `boards` is null in the file,
+ * a file's boards are not imported and the preview doesn't count them.
  */
 @Singleton
 internal class RoomBackupRepository @Inject constructor(
@@ -115,12 +115,15 @@ internal class RoomBackupRepository @Inject constructor(
             deletions = data.deletions,
             playerMerges = data.playerMerges,
             triviaRounds = data.triviaRounds,
-            boards = boards?.boards?.first().orEmpty().sortedBy { it.id },
+            // Null without the board sandbox: the file then says nothing about boards.
+            boards = boards?.boards?.first()?.sortedBy { it.id },
             extras = extras,
         )
     }
 
-    override suspend fun summarize(document: BackupDocument): BackupSummary = document.summary(knownHeroIds())
+    /** Without the board sandbox the file's boards can't be imported, so the preview doesn't count them. */
+    override suspend fun summarize(document: BackupDocument): BackupSummary =
+        document.summary(knownHeroIds()).let { if (boards == null) it.copy(boards = null) else it }
 
     override suspend fun import(document: BackupDocument, mode: ImportMode, useBackupSettings: Boolean) {
         val settings = useBackupSettings || mode == ImportMode.REPLACE
@@ -144,11 +147,10 @@ internal class RoomBackupRepository @Inject constructor(
                 local.write(before, SyncMerge.merge(before, file))
             }
         }
-        // Boards live in their own store (not synced). A file from before boards (v1–v4) has no list
-        // at all, so even Replace leaves the phone's boards alone; Merge keeps the later edit of each.
-        if (document.version >= BackupDocument.BOARDS_VERSION || document.boards.isNotEmpty()) {
-            boards?.import(document.boards, replace = mode == ImportMode.REPLACE)
-        }
+        // Boards live in their own store (not synced). A file without a boards list (v1–v4, or made
+        // without the board sandbox) says nothing about them, so even Replace leaves the phone's
+        // boards alone; Merge keeps the later edit of each.
+        document.boards?.let { list -> boards?.import(list, replace = mode == ImportMode.REPLACE) }
         if (settings) {
             // A file without rating constants was made with the defaults.
             val config = (document.eloConfig ?: EloConfig.DEFAULT).sanitized()
