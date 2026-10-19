@@ -1,6 +1,7 @@
 package dev.quinton.goa.hub.store
 
 import java.nio.file.Files
+import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -31,7 +32,7 @@ class Devices(private val root: Path, private val random: SecureRandom = SecureR
         val dir = root.resolve(device.id)
         Files.createDirectories(dir)
         AtomicFiles.restrict(dir)
-        save(device)
+        save(device, creating = true)
         return device to token
     }
 
@@ -66,6 +67,7 @@ class Devices(private val root: Path, private val random: SecureRandom = SecureR
     }
 
     /** Signs [id] out: its cookie stops working and its own state is deleted. */
+    @Synchronized
     fun signOut(id: String): Boolean {
         if (!DeviceStore.isDeviceId(id)) return false
         val dir = root.resolve(id)
@@ -74,12 +76,24 @@ class Devices(private val root: Path, private val random: SecureRandom = SecureR
         return true
     }
 
-    private fun save(device: Device) {
-        AtomicFiles.write(
-            root.resolve(device.id).resolve("$RECORD_SLOT.json"),
-            SlotJson.encodeToString(Device.serializer(), device).toByteArray(),
-            private = true,
-        )
+    /**
+     * Writes [device]'s record. Only [create] makes a device: a `touch` or `rename` racing a sign-out
+     * must not bring the signed-out browser back (its cookie would work again). Under the same lock
+     * as [signOut].
+     */
+    @Synchronized
+    private fun save(device: Device, creating: Boolean = false) {
+        if (!creating && !Files.isDirectory(root.resolve(device.id))) return
+        try {
+            AtomicFiles.write(
+                root.resolve(device.id).resolve("$RECORD_SLOT.json"),
+                SlotJson.encodeToString(Device.serializer(), device).toByteArray(),
+                private = true,
+                createDirectories = creating,
+            )
+        } catch (_: NoSuchFileException) {
+            // Signed out meanwhile: stays signed out.
+        }
     }
 
     companion object {

@@ -65,8 +65,9 @@ data class PushResult(val sent: Int, val removed: Int, val failed: Int)
  * persistent [schedule] (the timer's "phase over" while the iPhone is locked). Messages are
  * encrypted per RFC 8291 and signed per RFC 8292 with the hub's [Vapid] key.
  *
- * Endpoints are accepted only on the browsers' own push services ([isPushService]), so a signed-in
- * device can't make the hub call arbitrary URLs.
+ * Endpoints are accepted only on the browsers' own push services ([isPushService]: https, port 443,
+ * no user info), so a signed-in device can't make the hub call arbitrary URLs; redirects aren't
+ * followed (the JDK client's default).
  */
 class PushService(
     private val deviceStore: DeviceStore,
@@ -193,6 +194,7 @@ class PushService(
         private const val MILLIS = 1000L
         private const val HTTP_NOT_FOUND = 404
         private const val HTTP_GONE = 410
+        private const val HTTPS_PORT = 443
         private val HTTP_OK_RANGE = 200..299
         private val log = LoggerFactory.getLogger(PushService::class.java)
         private val PayloadJson = Json { encodeDefaults = true }
@@ -212,7 +214,7 @@ class PushService(
         fun isPushService(endpoint: String): Boolean {
             val uri = runCatching { URI(endpoint) }.getOrNull() ?: return false
             val host = uri.host?.lowercase() ?: return false
-            return uri.scheme == "https" && uri.rawUserInfo == null &&
+            return uri.scheme == "https" && uri.rawUserInfo == null && (uri.port == -1 || uri.port == HTTPS_PORT) &&
                 PUSH_HOSTS.any { host == it || host.endsWith(".$it") }
         }
 

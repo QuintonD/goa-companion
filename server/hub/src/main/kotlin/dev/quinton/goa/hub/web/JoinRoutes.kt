@@ -36,9 +36,9 @@ object SignInSlots {
  * Web sign-in (ADR-030 §7). `/join` reads the invite from the link's fragment in the page
  * (`static/join.js`; the key never reaches a server log) and posts it; the hub checks the group
  * id and key in constant time, creates a device and sets the `goa_device` cookie. Failed tries
- * are throttled ([JoinThrottle]). There is no first-run page on the web: until the hub has joined
- * a group (`goa-hub join` on the server), every page says so, from any address (the hub is
- * published from loopback, so an address proves nothing).
+ * are throttled ([JoinThrottle]); the right invite always gets in. There is no first-run page on
+ * the web: until the hub has joined a group (`goa-hub join` on the server), every page says so,
+ * from any address (the hub is published from loopback, so an address proves nothing).
  */
 internal fun Route.joinRoutes(hub: Hub) {
     get(JOIN_PATH) {
@@ -48,25 +48,25 @@ internal fun Route.joinRoutes(hub: Hub) {
     post(JOIN_PATH) {
         val group = hub.membership.group() ?: return@post call.respondNotJoinedPage()
         val client = call.clientKey
+        val parsed = GroupInvite.parseInvite(call.receiveParameters()["invite"].orEmpty())
+        val invite = parsed.getOrNull()?.takeIf { sameGroup(it.group, group) }
+        if (invite != null) {
+            // The right key always gets in, even while the throttle is closed: the key is 256 bits, so
+            // the throttle never guards it, and a stranger's junk must not keep the table from joining.
+            val device = call.signIn(hub, invite)
+            return@post call.joined(landing(hub, device, invite))
+        }
         if (hub.joinThrottle.isBlocked(client)) {
             return@post call.joinFailed(
                 HttpStatusCode.TooManyRequests,
                 "Too many tries. Wait a few minutes and scan the invite again.",
             )
         }
-        val invite = GroupInvite.parseInvite(call.receiveParameters()["invite"].orEmpty()).getOrElse {
-            hub.joinThrottle.recordFailure(client)
+        hub.joinThrottle.recordFailure(client)
+        parsed.exceptionOrNull()?.let {
             return@post call.joinFailed(HttpStatusCode.BadRequest, it.message ?: "This isn't a group invite.")
         }
-        if (!sameGroup(invite.group, group)) {
-            hub.joinThrottle.recordFailure(client)
-            return@post call.joinFailed(
-                HttpStatusCode.Forbidden,
-                "This invite is for another group, not “${group.name}”.",
-            )
-        }
-        val device = call.signIn(hub, invite)
-        call.joined(landing(hub, device, invite))
+        call.joinFailed(HttpStatusCode.Forbidden, "This invite is for another group, not “${group.name}”.")
     }
 }
 

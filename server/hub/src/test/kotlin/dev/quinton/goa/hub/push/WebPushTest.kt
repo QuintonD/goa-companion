@@ -166,6 +166,9 @@ class WebPushTest {
             "https://evil.example/x",
             "https://push.apple.com.evil.example/x",
             "https://u@fcm.googleapis.com/x",
+            // A push service's own name on another port: the hub would knock on whatever listens there.
+            "https://web.push.apple.com:22/x",
+            "https://fcm.googleapis.com:8080/x",
         )) {
             assertThrows(IllegalArgumentException::class.java) {
                 runBlocking { push.subscribe(device, subscription.copy(endpoint = endpoint)) }
@@ -175,6 +178,7 @@ class WebPushTest {
             runBlocking { push.subscribe(device, subscription.copy(auth = "AAAA")) }
         }
         assertThat(push.subscriptions(device)).isEmpty()
+        assertThat(PushService.isPushService("https://web.push.apple.com:443/x")).isTrue()
     }
 
     @Test

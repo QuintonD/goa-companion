@@ -13,7 +13,8 @@ User=goa-hub
 Group=goa-hub
 Environment=GOA_HUB_DATA=/var/lib/goa-hub
 # Heap cap: plenty for one group. Raise it here if `journalctl -u goa-hub` shows OutOfMemoryError.
-Environment="JAVA_OPTS=-Xms32m -Xmx384m"
+# ExitOnOutOfMemoryError: a JVM out of memory can hang without exiting; exiting lets systemd restart it.
+Environment="JAVA_OPTS=-Xms32m -Xmx384m -XX:+ExitOnOutOfMemoryError"
 ExecStart=/opt/goa-hub/current/bin/goa-hub serve --data /var/lib/goa-hub --host 127.0.0.1 --port 8080
 Restart=on-failure
 RestartSec=5

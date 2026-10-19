@@ -27,10 +27,14 @@ object AtomicFiles {
     private val ownerOnly: Set<PosixFilePermission> = PosixFilePermissions.fromString("rw-------")
     private val ownerOnlyDir: Set<PosixFilePermission> = PosixFilePermissions.fromString("rwx------")
 
-    /** Writes [bytes] to [target] atomically; [private] = owner read/write only where POSIX allows. */
-    fun write(target: Path, bytes: ByteArray, private: Boolean = false) {
+    /**
+     * Writes [bytes] to [target] atomically; [private] (the default: everything the hub keeps is the
+     * group's) = owner read/write only where POSIX allows, whatever the process umask. Without
+     * [createDirectories] a missing directory is a [java.nio.file.NoSuchFileException].
+     */
+    fun write(target: Path, bytes: ByteArray, private: Boolean = true, createDirectories: Boolean = true) {
         val dir = target.toAbsolutePath().parent
-        Files.createDirectories(dir)
+        if (createDirectories) Files.createDirectories(dir)
         val temp = dir.resolve(".${target.fileName}$TEMP_MARK${UUID.randomUUID()}$TEMP_SUFFIX")
         try {
             FileChannel.open(temp, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE).use { channel ->

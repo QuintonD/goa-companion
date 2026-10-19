@@ -1,5 +1,7 @@
 package dev.quinton.goa.hub.config
 
+import dev.quinton.goa.hub.store.AtomicFiles
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -28,6 +30,12 @@ class HubPaths(val root: Path) {
     val vapid: Path get() = root.resolve("vapid.json")
     val devices: Path get() = root.resolve("devices")
     val apk: Path get() = root.resolve("app").resolve("goa.apk")
+
+    /** Creates the data directory if needed and makes it owner-only (`0700` where POSIX allows). */
+    fun ensureRoot() {
+        Files.createDirectories(root)
+        AtomicFiles.restrict(root)
+    }
 
     companion object {
         const val ENV = "GOA_HUB_DATA"
