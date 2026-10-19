@@ -164,6 +164,40 @@ class PlayersPagesTest {
     }
 
     @Test
+    fun `two players who look the same are pointed out, and a new player gets a free colour and crest pair`() {
+        val hub = seeded()
+        // Added on another phone before a sync: Rob got Bob's colour and crest.
+        val rob = bob.copy(id = "p-rob", name = "Rob", createdAt = 20)
+        runBlocking { hub.groupStore.upsertPlayer(rob) }
+        hubTest(hub) {
+            val token = plainClient().signIn()
+            val bobPage = client.page("/players/${bob.id}", token).bodyAsText()
+            assertThat(bobPage).contains("Looks like Rob: pick a different colour or crest?")
+            assertThat(bobPage).contains("href=\"/players/${bob.id}/edit\" class=\"pl-nudge\"")
+            assertThat(client.page("/players/p-rob", token).bodyAsText()).contains("Looks like Bob")
+            assertThat(client.page("/players/${ann.id}", token).bodyAsText()).doesNotContain("Looks like")
+
+            // Twelve players and every colour used: in turn the next would be Coral with crest 12, which
+            // Xan has, so Coral with crest 13.
+            runBlocking {
+                listOf(
+                    Triple("Vic", 0xFFD9B44A, 8),
+                    Triple("Yan", 0xFF6CC27A, 9),
+                    Triple("Wes", 0xFFEE85B8, 10),
+                    Triple("Zed", 0xFFAECF55, 11),
+                    Triple("Xan", 0xFFEE7F6F, 12),
+                ).forEach { (name, color, crest) ->
+                    hub.groupStore.upsertPlayer(ann.copy(id = "p-$name", name = name, color = color, avatarId = crest))
+                }
+            }
+            val form = client.page("/players/new", token).bodyAsText()
+            val checked = Regex("name=\"(color|crest)\" value=\"([0-9]+)\" checked").findAll(form)
+                .associate { it.groupValues[1] to it.groupValues[2] }
+            assertThat(checked).isEqualTo(mapOf("color" to "2", "crest" to "13"))
+        }
+    }
+
+    @Test
     fun `the log shows double pilots, handicaps, unknown heroes, notes and pending follow-ups`() {
         val hub = seeded()
         hubTest(hub) {

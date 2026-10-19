@@ -247,9 +247,9 @@ internal class DraftActions(
     /** "Quick add a player": the group's player of that name, or a new one; null for a blank name. */
     private suspend fun quickAdd(name: String): String? {
         if (name.isBlank()) return null
-        val count = ctx.groupStore.data().players(includeArchived = true).size
+        val everyone = ctx.groupStore.data().players(includeArchived = true)
         val candidate =
-            QuickAddPlayer.create(env.newId(), name.take(MAX_NAME), count, env.nowMillis(), QUICK_ADD_COLORS)
+            QuickAddPlayer.create(env.newId(), name.take(MAX_NAME), everyone, env.nowMillis(), QUICK_ADD_COLORS)
                 ?: return null
         return try {
             ctx.groupStore.ensurePlayer(candidate).id

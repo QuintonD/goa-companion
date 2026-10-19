@@ -74,11 +74,9 @@ class PlayerEditViewModel @AssistedInject constructor(
 
                 playerId != null -> PlayerEditUiState(loading = false, isNew = false, notFound = true)
 
-                else -> PlayerEditUiState(
-                    loading = false,
-                    color = PlayerLook.newColor(all, PlayerColors.all.map { it.argb }),
-                    avatarId = PlayerLook.newCrest(all, PlayerCrests.count),
-                )
+                else -> PlayerLook.newLook(all, PlayerColors.all.map { it.argb }, PlayerCrests.count).let { look ->
+                    PlayerEditUiState(loading = false, color = look.color, avatarId = look.crest)
+                }
             }
         }
     }

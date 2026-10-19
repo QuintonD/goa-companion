@@ -48,6 +48,11 @@ data class PlayerDetailUiState(
     val mergeOutcome: MergeOutcome? = null,
     /** This phone is in a group and this isn't its own player: "Invite <name>" (ADR-031). */
     val canInvite: Boolean = false,
+    /**
+     * Another active player with the same colour and crest (added on two phones before a sync):
+     * "Looks like <name>: pick a different colour or crest?" ([PlayerLook.lookAlike]).
+     */
+    val lookAlike: Player? = null,
 ) {
     /** "Best heroes" or, when no hero qualifies, "Most played". */
     val heroesTitle: String get() = if (heroesAreBest) "Best heroes" else "Most played"
@@ -147,6 +152,7 @@ object PlayerDetail {
             mergeCandidates = players.filter { it.id != playerId && !it.archived }
                 .sortedBy { it.name.lowercase() }
                 .map { other -> MergeCandidate(other, matches.count { other.id in it.playerIds }) },
+            lookAlike = PlayerLook.lookAlike(player, players),
         )
     }
 }

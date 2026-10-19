@@ -94,8 +94,18 @@ fun LeaderboardContent(
             modifier = modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = FAB_CLEARANCE),
         ) {
+            // "Same people?" (ADR-031): a quiet nudge when two players look like one person.
             state.samePeopleText?.let { text ->
-                item(key = "same-people") { SamePeopleCard(text, onReviewSamePeople) }
+                item(key = "same-people") {
+                    HintCard(text, "Review", onReviewSamePeople) {
+                        Icon(
+                            Icons.Outlined.People,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(scaledIconSize(24.dp)),
+                        )
+                    }
+                }
             }
             if (state.ranked.isNotEmpty()) {
                 item(key = "h-ranked") {
@@ -276,26 +286,24 @@ private fun RankBadge(rank: Int?) {
     }
 }
 
-/** "Same people?" (ADR-031): a quiet nudge when two players look like one person. */
+/**
+ * A quiet, tappable hint above a list ("2 players might be the same person · Review", "Looks like
+ * Bob: pick a different colour or crest? · Edit"): the whole row is one button labelled [action].
+ */
 @Composable
-private fun SamePeopleCard(text: String, onReview: () -> Unit) {
+internal fun HintCard(text: String, action: String, onClick: () -> Unit, leading: @Composable () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
             .padding(top = Spacing.sm)
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f))
-            .clickable(onClickLabel = "Review", role = Role.Button, onClick = onReview)
+            .clickable(onClickLabel = action, role = Role.Button, onClick = onClick)
             .heightIn(min = 56.dp)
             .padding(start = Spacing.md, end = Spacing.xs, top = Spacing.xs, bottom = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            Icons.Outlined.People,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(scaledIconSize(24.dp)),
-        )
+        leading()
         Spacer(Modifier.width(Spacing.md))
         Text(
             text,
@@ -305,7 +313,7 @@ private fun SamePeopleCard(text: String, onReview: () -> Unit) {
         )
         // The whole row is the button; this is its label, not a second target.
         Text(
-            "Review",
+            action,
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = Spacing.md),

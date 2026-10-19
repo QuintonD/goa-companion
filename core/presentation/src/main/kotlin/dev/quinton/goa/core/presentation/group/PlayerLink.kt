@@ -6,6 +6,7 @@ import dev.quinton.goa.core.domain.sync.PlayerMerges
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.core.presentation.players.PlayerLook
 import java.time.Instant
 import java.time.ZoneId
 
@@ -95,14 +96,8 @@ object PlayerLink {
         crests: Int,
         now: Long,
     ): Player {
-        val used = everyone.map { it.color }.toSet()
-        return Player(
-            id = id,
-            name = name,
-            color = palette.firstOrNull { it !in used } ?: palette[Math.floorMod(everyone.size, palette.size)],
-            avatarId = everyone.size % crests,
-            createdAt = now,
-        )
+        val look = PlayerLook.newLook(everyone, palette, crests)
+        return Player(id = id, name = name, color = look.color, avatarId = look.crest, createdAt = now)
     }
 
     /** "The two played in the same match…": one line per match, "2026-10-12 · Ann, Bob vs Cid, Dee", oldest first. */

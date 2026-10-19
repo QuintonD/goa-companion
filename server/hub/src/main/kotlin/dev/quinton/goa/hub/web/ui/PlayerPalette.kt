@@ -1,5 +1,8 @@
 package dev.quinton.goa.hub.web.ui
 
+import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.core.presentation.players.PlayerLook
+
 /**
  * The player palette (DESIGN.md, `PlayerColors` in core:designsystem): `Player.color` stores the
  * dark tone; each swatch has a theme tone for light pages. The CSP forbids inline styles, so a
@@ -23,6 +26,9 @@ object PlayerPalette {
 
     const val CRESTS = 24
     const val UNKNOWN = "pc-unknown"
+
+    /** A new player's colour and crest, a pair none of [players] has ([PlayerLook.newLook]). */
+    fun newLook(players: List<Player>): PlayerLook.Look = PlayerLook.newLook(players, swatches.map { it.first }, CRESTS)
 
     /** The swatch index of a stored colour (either tone), or null for a custom value. */
     fun indexOf(argb: Long): Int? {

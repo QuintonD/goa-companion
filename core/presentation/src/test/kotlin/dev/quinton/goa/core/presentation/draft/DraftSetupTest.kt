@@ -211,12 +211,17 @@ class DraftSetupTest {
     }
 
     @Test
-    fun `quick add takes the next colour and crest, and ignores blank names`() {
-        val created = QuickAddPlayer.create("p", "  Fay ", existingCount = 25, now = 7L, colors = listOf(1L, 2L, 3L))!!
+    fun `quick add takes a colour and crest nobody has together, and ignores blank names`() {
+        val colors = listOf(1L, 2L, 3L)
+        val existing = List(25) { i ->
+            dev.quinton.goa.core.model.player.Player("p$i", "P$i", colors[i % 3], avatarId = i % 24, createdAt = 0)
+        }
+        val created = QuickAddPlayer.create("p", "  Fay ", existing, now = 7L, colors = colors)!!
         assertThat(created.name).isEqualTo("Fay")
+        // In turn it would be colour 2 with crest 1, which P1 has: the next crest instead.
         assertThat(created.color).isEqualTo(2L)
-        assertThat(created.avatarId).isEqualTo(1)
-        assertThat(QuickAddPlayer.create("p", " ", 0, 0L, listOf(1L))).isNull()
+        assertThat(created.avatarId).isEqualTo(2)
+        assertThat(QuickAddPlayer.create("p", " ", emptyList(), 0L, listOf(1L))).isNull()
         assertThat(SetupForm().withAddedPlayer("ann").withAddedPlayer("ann").selected).containsExactly("ann")
     }
 
@@ -243,8 +248,8 @@ class DraftSetupTest {
     @Test
     fun `quick add keeps names to the player editor's limit on the phone and the web`() {
         val long = "  " + "A".repeat(40) + "  "
-        val player = QuickAddPlayer.create("id", long, existingCount = 0, now = 1, colors = listOf(1L))!!
+        val player = QuickAddPlayer.create("id", long, existing = emptyList(), now = 1, colors = listOf(1L))!!
         assertThat(player.name).isEqualTo("A".repeat(dev.quinton.goa.core.presentation.players.MAX_NAME_LENGTH))
-        assertThat(QuickAddPlayer.create("id", "   ", 0, 1, listOf(1L))).isNull()
+        assertThat(QuickAddPlayer.create("id", "   ", emptyList(), 1, listOf(1L))).isNull()
     }
 }

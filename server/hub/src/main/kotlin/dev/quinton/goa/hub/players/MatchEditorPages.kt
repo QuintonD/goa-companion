@@ -251,15 +251,18 @@ private suspend fun ApplicationCall.handleEditorPost(
 private fun ApplicationCall.refusedStatus() = if (isHtmx) HttpStatusCode.OK else HttpStatusCode.UnprocessableEntity
 
 /** The pilot picker's quick add: a known name (archived included) picks that player, as on the phone. */
-private suspend fun addPilot(ctx: HubContext, view: PlayersData, name: String): Player = ctx.groupStore.ensurePlayer(
-    Player(
-        id = UUID.randomUUID().toString(),
-        name = name,
-        color = PlayerLook.newColor(view.players, PlayerPalette.swatches.map { it.first }),
-        avatarId = PlayerLook.newCrest(view.players, PlayerPalette.CRESTS),
-        createdAt = ctx.clock.nowMillis(),
-    ),
-)
+private suspend fun addPilot(ctx: HubContext, view: PlayersData, name: String): Player {
+    val look = PlayerPalette.newLook(view.players)
+    return ctx.groupStore.ensurePlayer(
+        Player(
+            id = UUID.randomUUID().toString(),
+            name = name,
+            color = look.color,
+            avatarId = look.crest,
+            createdAt = ctx.clock.nowMillis(),
+        ),
+    )
+}
 
 private fun teamOf(name: String?): Team? = Team.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
 

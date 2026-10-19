@@ -558,24 +558,19 @@ object DraftSetupPresenter {
 }
 
 /**
- * A player added from the draft setup ("Quick add a player"): the next colour from [colors] and
- * the next crest, by how many players exist (archived included). The caller passes the palette
- * without the team-like colours (DESIGN.md) and saves the player through `ensurePlayer`, so a known
- * name selects that player instead of creating a second one.
+ * A player added from the draft setup ("Quick add a player"): a colour from [colors] and a crest
+ * that no existing player (archived included) has together ([PlayerLook.newLook]). The caller passes
+ * the palette without the team-like colours (DESIGN.md) and saves the player through `ensurePlayer`,
+ * so a known name selects that player instead of creating a second one.
  */
 object QuickAddPlayer {
     const val AVATAR_COUNT = 24
 
     /** A new player called [name], trimmed and cut to the player editor's limit ([PlayerLook.nameInput]). */
-    fun create(id: String, name: String, existingCount: Int, now: Long, colors: List<Long>): Player? {
+    fun create(id: String, name: String, existing: List<Player>, now: Long, colors: List<Long>): Player? {
         val trimmed = PlayerLook.nameInput(name.trim()).trim()
         if (trimmed.isEmpty() || colors.isEmpty()) return null
-        return Player(
-            id = id,
-            name = trimmed,
-            color = colors[existingCount % colors.size],
-            avatarId = existingCount % AVATAR_COUNT,
-            createdAt = now,
-        )
+        val look = PlayerLook.newLook(existing, colors, AVATAR_COUNT)
+        return Player(id = id, name = trimmed, color = look.color, avatarId = look.crest, createdAt = now)
     }
 }

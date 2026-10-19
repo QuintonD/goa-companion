@@ -314,6 +314,17 @@ class PlayersScreenshotTest {
         PlayerDetailScreen(Shots.detail.copy(canInvite = true), PlayerDetailActions())
     }
 
+    /** Two people added on two phones with the same colour and crest: the gentle hint under the header. */
+    @Test fun playerDetailLookAlikeDark() = shot {
+        val twin = Fixtures.bob.copy(color = Fixtures.ann.color, avatarId = Fixtures.ann.avatarId)
+        PlayerDetailScreen(Shots.detail.copy(lookAlike = twin), PlayerDetailActions())
+    }
+
+    @Test fun playerDetailLookAlikeLightFontScale2() = shot(ThemeMode.LIGHT, fontScale = 2f) {
+        val twin = Fixtures.bob.copy(color = Fixtures.ann.color, avatarId = Fixtures.ann.avatarId)
+        PlayerDetailScreen(Shots.detail.copy(lookAlike = twin), PlayerDetailActions())
+    }
+
     @Test fun playerDetailFontScale2() = shot(fontScale = 2f) {
         PlayerDetailScreen(Shots.detail, PlayerDetailActions())
     }

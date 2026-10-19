@@ -126,6 +126,27 @@ class PlayersBuildersTest {
     }
 
     @Test
+    fun aPlayerWhoLooksExactlyLikeAnotherActiveOneIsPointedOut() {
+        assertThat(PlayerDetail.build(ann.id, Fixtures.players, Fixtures.matches, snapshot, catalog).lookAlike).isNull()
+        // Added on two phones before a sync: Bob got Ann's colour and crest.
+        val twin = bob.copy(color = ann.color, avatarId = ann.avatarId)
+        val people = Fixtures.players.map { if (it.id == bob.id) twin else it }
+        val state = PlayerDetail.build(ann.id, people, Fixtures.matches, snapshot, catalog)
+        assertThat(state.lookAlike).isEqualTo(twin)
+        assertThat(PlayerLook.lookAlikeHint(state.lookAlike!!)).isEqualTo(
+            "Looks like Bob: pick a different colour or crest?",
+        )
+        assertThat(PlayerDetail.build(bob.id, people, Fixtures.matches, snapshot, catalog).lookAlike).isEqualTo(ann)
+        // Same colour only, or an archived twin: nothing to say.
+        val sameColour = Fixtures.players.map { if (it.id == bob.id) bob.copy(color = ann.color) else it }
+        assertThat(PlayerDetail.build(ann.id, sameColour, Fixtures.matches, snapshot, catalog).lookAlike).isNull()
+        val archived = Fixtures.players.map {
+            if (it.id == Fixtures.fay.id) it.copy(color = ann.color, avatarId = ann.avatarId) else it
+        }
+        assertThat(PlayerDetail.build(ann.id, archived, Fixtures.matches, snapshot, catalog).lookAlike).isNull()
+    }
+
+    @Test
     fun aLosingHeroIsNeverCalledBest() {
         val log = listOf(
             Fixtures.match("x1", 1, Team.BLUE, red(cid, 7), blue(dee, 8)),
@@ -269,10 +290,17 @@ class PlayersBuildersTest {
     @Test
     fun newPlayersGetAnUnusedColourAndTheNextCrest() {
         val palette = listOf(1L, 2L, 3L)
-        val people = listOf(ann.copy(color = 1L), bob.copy(color = 3L))
-        assertThat(PlayerLook.newColor(people, palette)).isEqualTo(2L)
-        assertThat(PlayerLook.newColor(people + cid.copy(color = 2L), palette)).isEqualTo(1L)
-        assertThat(PlayerLook.newCrest(people, 24)).isEqualTo(2)
+        val people = listOf(ann.copy(color = 1L, avatarId = 0), bob.copy(color = 3L, avatarId = 1))
+        assertThat(PlayerLook.newLook(people, palette, 24)).isEqualTo(PlayerLook.Look(2L, 2))
+        // Every colour used: the next one in turn, with a crest nobody has in that colour.
+        val three = people + cid.copy(color = 2L, avatarId = 3)
+        assertThat(PlayerLook.newLook(three, palette, 24)).isEqualTo(PlayerLook.Look(1L, 3))
+        // In turn: colour 2 with crest 4, which Dee has, so crest 5.
+        assertThat(PlayerLook.newLook(three + dee.copy(color = 2L, avatarId = 4), palette, 24))
+            .isEqualTo(PlayerLook.Look(2L, 5))
+        // Only when every pair is taken can two look the same.
+        val full = palette.flatMap { c -> List(2) { k -> ann.copy(id = "$c-$k", color = c, avatarId = k) } }
+        assertThat(PlayerLook.newLook(full, palette, 2)).isEqualTo(PlayerLook.Look(1L, 0))
         assertThat(PlayerLook.nameError("", null, null)).isEqualTo("Enter a name")
         assertThat(PlayerLook.nameError("ann", ann, null)).isEqualTo("“ann” is already in your group")
         assertThat(PlayerLook.nameError("Ann", ann, ann.id)).isNull()
