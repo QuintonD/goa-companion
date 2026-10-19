@@ -11,6 +11,7 @@ import dev.quinton.goa.core.data.SyncRepository
 import dev.quinton.goa.core.domain.sync.GroupCredentials
 import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.core.domain.sync.HubAddress
+import dev.quinton.goa.core.domain.sync.SyncCrypto
 import dev.quinton.goa.core.domain.sync.SyncValidation
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.feature.sync.PhoneName
@@ -131,6 +132,12 @@ class GroupViewModel @Inject constructor(
                 val group = parsed.group
                 viewModelScope.launch {
                     val current = groups.state.first().group
+                    if (current != null && current.groupId == group.groupId && !SyncCrypto.same(current.key, group.key)) {
+                        // A group's key never changes, so this invite is forged or broken. Joining would
+                        // swap the key (and the hub): this phone's data would go to whoever made it.
+                        local.update { it.copy(message = keyMismatch(current.name)) }
+                        return@launch
+                    }
                     groups.join(group, hubUrl = parsed.hubUrl, invitedPlayerId = parsed.playerId)
                     if (current?.groupId != group.groupId && parsed.hubUrl != null) {
                         // The hub sync starts on its own (HubSyncScheduler): no Nearby session needed.
@@ -167,6 +174,12 @@ class GroupViewModel @Inject constructor(
             local.update { it.copy(message = e.message) }
             return
         }
+        if (parsed.hubUrl != null && parsed.hubUrl != linkOrigin(link)) {
+            // A hub's invite link names that hub (ADR-030 §6). One naming another would send this
+            // phone's data to a server the link didn't come from.
+            local.update { it.copy(message = LINK_MISMATCH) }
+            return
+        }
         viewModelScope.launch {
             val current = groups.state.first().group
             if (current != null && current.groupId != parsed.group.groupId) {
@@ -182,6 +195,16 @@ class GroupViewModel @Inject constructor(
     }
 
     fun scanFailed(message: String) = local.update { it.copy(joinError = message) }
+
+    private fun keyMismatch(name: String) =
+        "This invite has a different key for “$name” than this phone. Ask someone in the group to show " +
+            "the invite again, from the app."
+
+    /** The link's own origin (`https://host[:port]`), as [HubAddress] writes it; null if it has none. */
+    private fun linkOrigin(link: String): String? = runCatching {
+        val uri = java.net.URI(link.substringBefore('#'))
+        HubAddress.normalize("${uri.scheme}://${uri.rawAuthority}")
+    }.getOrNull()
 
     fun leave() {
         viewModelScope.launch {
@@ -243,3 +266,7 @@ class GroupViewModel @Inject constructor(
 
     fun messageShown() = local.update { it.copy(message = null) }
 }
+
+private const val LINK_MISMATCH =
+    "This invite link doesn't add up: it names another hub than the one it came from. Scan the invite QR code " +
+        "in the app instead."

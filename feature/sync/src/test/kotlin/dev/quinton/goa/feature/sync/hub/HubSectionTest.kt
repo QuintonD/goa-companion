@@ -151,6 +151,53 @@ class HubSectionTest {
     }
 
     @Test
+    fun anInviteWithThisGroupsIdButAnotherKeyNeverReplacesTheKeyOrTheHub() = runTest {
+        // Someone who knows the group id (a sync file's envelope, a past member) makes their own key
+        // and hub: joining would send this phone's whole match log there, sealed with their key.
+        val forged = dev.quinton.goa.core.domain.sync.GroupCredentials(TestGroup.groupId, ByteArray(32) { 7 }, TestGroup.name)
+        val groups = FakeGroupRepository(groupState().copy(hubUrl = "https://goa.example"))
+        val before = groups.current.value
+        val vm = vm(groups)
+        backgroundScope.launch { vm.uiState.collect {} }
+
+        vm.join(GroupInvite.format(forged, hubUrl = "https://evil.example"))
+        assertThat(vm.uiState.first { it.message != null }.message).contains("different key")
+        assertThat(groups.current.value).isEqualTo(before)
+        vm.messageShown()
+
+        val link = "https://goa.example/join#" + GroupInvite.format(forged, hubUrl = "https://goa.example")
+        vm(groups).apply {
+            backgroundScope.launch { uiState.collect {} }
+            openLink(link)
+            assertThat(uiState.first { it.message != null }.message).contains("different key")
+        }
+        assertThat(groups.current.value).isEqualTo(before)
+
+        // The group's real invite is still "already in".
+        vm.join(GroupInvite.format(TestGroup, hubUrl = "https://goa.example"))
+        assertThat(vm.uiState.first { it.message != null }.message).contains("already in")
+    }
+
+    @Test
+    fun anInviteLinkNamingAnotherHubThanItsOwnIsRefused() = runTest {
+        val groups = FakeGroupRepository(groupState(group = null))
+        val vm = vm(groups)
+        backgroundScope.launch { vm.uiState.collect {} }
+        val link = "https://goa.example/join#" + GroupInvite.format(TestGroup, hubUrl = "https://evil.example")
+        vm.openLink(link)
+        assertThat(vm.uiState.first { it.message != null }.message).contains("names another hub")
+        assertThat(groups.current.value.group).isNull()
+
+        // Its own hub, any spelling of it, joins.
+        val fresh = FakeGroupRepository(groupState(group = null))
+        val ok = vm(fresh)
+        backgroundScope.launch { ok.uiState.collect {} }
+        ok.openLink("https://Goa.Example:443/join#" + GroupInvite.format(TestGroup, hubUrl = "https://goa.example"))
+        ok.uiState.first { it.inGroup }
+        assertThat(fresh.current.value.hubUrl).isEqualTo("https://goa.example")
+    }
+
+    @Test
     fun anInviteWithAHubJoinsWithoutANearbySessionTheHubSyncsInstead() = runTest {
         val groups = FakeGroupRepository(groupState(group = null))
         val vm = vm(groups)
