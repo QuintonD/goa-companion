@@ -1,4 +1,4 @@
-package dev.quinton.goa.feature.players.common
+package dev.quinton.goa.core.presentation.players
 
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.GameMode
@@ -58,6 +58,14 @@ fun MatchStatus.label(): String = when (this) {
     MatchStatus.ABANDONED -> "Abandoned"
 }
 
+/** A match's result as its chip reads: "◆ Red won", "● Blue won", "Abandoned", "No winner", "Pending". */
+fun resultLabel(status: MatchStatus, winner: Team?): String = when {
+    status == MatchStatus.COMPLETED && winner != null -> "${if (winner == Team.RED) "◆" else "●"} ${winner.label()} won"
+    status == MatchStatus.ABANDONED -> "Abandoned"
+    status == MatchStatus.COMPLETED -> "No winner"
+    else -> "Pending"
+}
+
 /** Hero name for UI; ids missing from the catalog (e.g. from an old backup) read "Unknown hero". */
 fun Catalog.heroName(heroId: String?): String = when (heroId) {
     null -> "Unknown hero"
@@ -66,18 +74,27 @@ fun Catalog.heroName(heroId: String?): String = when (heroId) {
 
 fun Map<String, Player>.playerName(id: String): String = this[id]?.name ?: "Unknown player"
 
+/**
+ * Dates as the Players screens show them. [ZoneId] defaults to the device's (the phone); the hub
+ * passes its own zone (`HubClock.zone`).
+ */
 object Dates {
-    private val zone: ZoneId get() = ZoneId.systemDefault()
     private val dayFormat = DateTimeFormatter.ofPattern("EEE d MMM yyyy", Locale.getDefault())
     private val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
     private val shortDate = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
+    private val nightDate = DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault())
     private val fileDate = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ROOT)
 
-    fun localDate(epochMillis: Long): LocalDate = Instant.ofEpochMilli(epochMillis).atZone(zone).toLocalDate()
+    fun localDate(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault()): LocalDate =
+        Instant.ofEpochMilli(epochMillis).atZone(zone).toLocalDate()
 
     /** "Today", "Yesterday" or "Sat 12 Oct 2026". */
-    fun dayHeader(epochMillis: Long, today: LocalDate = LocalDate.now(zone)): String {
-        val date = localDate(epochMillis)
+    fun dayHeader(
+        epochMillis: Long,
+        today: LocalDate = LocalDate.now(ZoneId.systemDefault()),
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): String {
+        val date = localDate(epochMillis, zone)
         return when (date) {
             today -> "Today"
             today.minusDays(1) -> "Yesterday"
@@ -85,11 +102,20 @@ object Dates {
         }
     }
 
-    fun day(epochMillis: Long): String = localDate(epochMillis).format(dayFormat)
+    fun day(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault()): String = localDate(
+        epochMillis,
+        zone,
+    ).format(dayFormat)
 
-    fun time(epochMillis: Long): String = Instant.ofEpochMilli(epochMillis).atZone(zone).format(timeFormat)
+    fun time(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault()): String =
+        Instant.ofEpochMilli(epochMillis).atZone(zone).format(timeFormat)
 
-    fun short(epochMillis: Long): String = localDate(epochMillis).format(shortDate)
+    fun short(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault()): String =
+        localDate(epochMillis, zone).format(shortDate)
 
-    fun forFileName(epochMillis: Long): String = localDate(epochMillis).format(fileDate)
+    /** "Sat 17 Oct", the Meta tab's game-night header. */
+    fun night(date: LocalDate): String = date.format(nightDate)
+
+    fun forFileName(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault()): String =
+        localDate(epochMillis, zone).format(fileDate)
 }

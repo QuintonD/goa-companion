@@ -4,12 +4,9 @@ import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.DraftRecordRepository
 import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.RatingsRepository
-import dev.quinton.goa.core.domain.meta.GroupStats
 import dev.quinton.goa.core.domain.meta.HeroPilots
-import dev.quinton.goa.core.domain.meta.MetaStats
-import dev.quinton.goa.core.domain.rating.EloCalculator
 import dev.quinton.goa.core.domain.rating.EloConfig
-import dev.quinton.goa.core.domain.sync.UnknownHeroes
+import dev.quinton.goa.core.domain.rating.RatingsSnapshot
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.rating.HeroUsage
@@ -69,11 +66,7 @@ internal class ReplayRatingsRepository @Inject constructor(
     ) { m, d, c, known -> Inputs(m, d, c, known) }
         .mapLatest { inputs ->
             // The Unknown-hero rule applies when reading: stored ids stay intact (ADR-025).
-            val matches = UnknownHeroes.clearMatches(inputs.matches, inputs.knownHeroes)
-            val drafts = UnknownHeroes.clearDrafts(inputs.drafts, inputs.knownHeroes)
-            val config = inputs.config
-            val ratings = EloCalculator.replay(matches, config)
-            RatingsSnapshot(ratings, MetaStats.compute(matches, drafts), config, GroupStats.compute(matches, ratings))
+            RatingsSnapshot.compute(inputs.matches, inputs.drafts, inputs.config, inputs.knownHeroes)
         }
         .flowOn(dispatcher)
         .shareIn(scope, SharingStarted.Lazily, replay = 1)

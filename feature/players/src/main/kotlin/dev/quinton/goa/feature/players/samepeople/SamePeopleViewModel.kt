@@ -8,11 +8,11 @@ import dev.quinton.goa.core.data.PlayerMatchUpRepository
 import dev.quinton.goa.core.data.PlayerMergeRepository
 import dev.quinton.goa.core.data.PlayerMergeResult
 import dev.quinton.goa.core.data.PlayerRepository
-import dev.quinton.goa.core.domain.player.PlayerMatchUp
-import dev.quinton.goa.core.model.match.Match
-import dev.quinton.goa.core.model.player.Player
-import dev.quinton.goa.feature.players.common.Dates
-import dev.quinton.goa.feature.players.player.playedTogether
+import dev.quinton.goa.core.presentation.players.MergeCopy
+import dev.quinton.goa.core.presentation.players.SamePeople
+import dev.quinton.goa.core.presentation.players.SamePeopleOutcome
+import dev.quinton.goa.core.presentation.players.SamePeoplePair
+import dev.quinton.goa.core.presentation.players.SamePeopleUiState
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,27 +22,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-
-/** One side of a pair: who, how many matches, when last. */
-data class PairSide(val player: Player, val games: Int, val lastPlayed: Long?)
-
-data class SamePeoplePair(val key: String, val keep: PairSide, val other: PairSide)
-
-sealed interface SamePeopleOutcome {
-    data class Merged(val fromName: String, val intoName: String) : SamePeopleOutcome
-
-    /** Refused: the two played in these matches (one line each). */
-    data class PlayedTogether(val matches: List<String>) : SamePeopleOutcome
-}
-
-data class SamePeopleUiState(
-    val loading: Boolean = true,
-    /** Closest first; "Same person" merges [SamePeoplePair.other] into [SamePeoplePair.keep]. */
-    val pairs: List<SamePeoplePair> = emptyList(),
-    /** Pairs this phone was told are different people ("Ask again" forgets them). */
-    val differentCount: Int = 0,
-    val outcome: SamePeopleOutcome? = null,
-)
 
 /**
  * "Same people?" (ADR-031): players whose names suggest one person entered twice, computed from
@@ -78,7 +57,7 @@ class SamePeopleViewModel @Inject constructor(
 
                 is PlayerMergeResult.PlayedTogether -> {
                     val people = players.observePlayers(includeArchived = true).first().associateBy { it.id }
-                    SamePeopleOutcome.PlayedTogether(playedTogether(result.matches, people))
+                    SamePeopleOutcome.PlayedTogether(MergeCopy.playedTogether(result.matches, people))
                 }
 
                 // Gone already (merged on another phone and synced meanwhile): the list updates itself.
@@ -113,23 +92,6 @@ class SamePeopleViewModel @Inject constructor(
             matches.observeMatches(),
             merges.observeMerges(),
             matchUp.differentPeople,
-        ) { people, log, merged, different ->
-            val resolved = merged.resolve(log)
-            PlayerMatchUp.suggest(people, resolved, merged, different).map { pair ->
-                SamePeoplePair(pair.key, side(pair.keep, resolved), side(pair.other, resolved))
-            }
-        }
-
-        private fun side(player: Player, matches: List<Match>): PairSide {
-            val mine = matches.filter { player.id in it.playerIds }
-            return PairSide(player, mine.size, mine.maxOfOrNull { it.playedAt })
-        }
-
-        /** "12 matches · last played Sat 3 Oct 2026", or "No matches yet". */
-        fun summary(side: PairSide): String = when (side.games) {
-            0 -> "No matches yet"
-            1 -> "1 match · ${Dates.day(side.lastPlayed ?: 0)}"
-            else -> "${side.games} matches · last ${Dates.day(side.lastPlayed ?: 0)}"
-        }
+        ) { people, log, merged, different -> SamePeople.pairs(people, log, merged, different) }
     }
 }

@@ -41,8 +41,14 @@ import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.presentation.players.MergeCopy
+import dev.quinton.goa.core.presentation.players.PairSide
+import dev.quinton.goa.core.presentation.players.SamePeople
+import dev.quinton.goa.core.presentation.players.SamePeopleOutcome
+import dev.quinton.goa.core.presentation.players.SamePeoplePair
+import dev.quinton.goa.core.presentation.players.SamePeopleUiState
+import dev.quinton.goa.core.presentation.players.plural
 import dev.quinton.goa.feature.players.common.LoadingState
-import dev.quinton.goa.feature.players.common.plural
 import dev.quinton.goa.feature.players.player.PlayedTogetherDialog
 
 class SamePeopleActions(
@@ -64,9 +70,8 @@ fun SamePeopleScreen(state: SamePeopleUiState, actions: SamePeopleActions, confi
             state.pairs.isEmpty() -> Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
                 EmptyState(
                     icon = Icons.Outlined.People,
-                    title = "No look-alikes",
-                    message = "No two players have names this alike. To merge any two players, open one and " +
-                        "use Merge into…",
+                    title = SamePeople.EMPTY_TITLE,
+                    message = SamePeople.EMPTY_MESSAGE,
                     action = if (state.differentCount > 0) {
                         { AskAgain(state.differentCount, actions.onAskAgain) }
                     } else {
@@ -87,9 +92,7 @@ fun SamePeopleScreen(state: SamePeopleUiState, actions: SamePeopleActions, confi
             ) {
                 item(key = "intro") {
                     Text(
-                        "These names look alike and the two never played in the same match. If it's one person " +
-                            "(say, a friend you added who then joined from their own phone), merge them: their " +
-                            "matches and ratings become one, on every phone after the next sync.",
+                        SamePeople.INTRO,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -112,10 +115,7 @@ fun SamePeopleScreen(state: SamePeopleUiState, actions: SamePeopleActions, confi
         val into = pair.keep
         ConfirmDialog(
             title = "Merge ${from.player.name} into ${into.player.name}?",
-            message = "${from.player.name} (${plural(from.games, "match", "matches")}) becomes " +
-                "${into.player.name} (${plural(into.games, "match", "matches")}). Their matches and ratings count " +
-                "as one player from now on, and the other phones follow at the next sync. ${from.player.name} " +
-                "disappears from the lists. This can't be undone.",
+            message = MergeCopy.confirmMessage(from.player.name, from.games, into.player.name, into.games),
             confirmLabel = "Merge",
             destructive = true,
             icon = Icons.Outlined.MergeType,
@@ -160,7 +160,7 @@ private fun PairCard(pair: SamePeoplePair, onSame: () -> Unit, onDifferent: () -
 
 @Composable
 private fun Side(side: PairSide) {
-    val summary = SamePeopleViewModel.summary(side)
+    val summary = SamePeople.summary(side)
     Row(
         Modifier
             .fillMaxWidth()
@@ -189,12 +189,6 @@ private fun Side(side: PairSide) {
 @Composable
 private fun AskAgain(count: Int, onAskAgain: () -> Unit) {
     TextButton(onClick = onAskAgain, modifier = Modifier.heightIn(min = 48.dp)) {
-        Text(
-            if (count == 1) {
-                "Ask again about the pair you said were different"
-            } else {
-                "Ask again about the $count pairs you said were different"
-            },
-        )
+        Text(SamePeopleUiState(differentCount = count).askAgainText.orEmpty())
     }
 }

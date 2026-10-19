@@ -8,15 +8,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.presentation.players.MatchLogUiState
+import dev.quinton.goa.core.presentation.players.MetaUiState
 import dev.quinton.goa.feature.players.common.LogMatchFab
 import dev.quinton.goa.feature.players.common.rememberFabExpansion
 import dev.quinton.goa.feature.players.match.MatchFollowUps
 import dev.quinton.goa.feature.players.match.MatchLogContent
-import dev.quinton.goa.feature.players.match.MatchLogUiState
 import dev.quinton.goa.feature.players.match.UndoSnackbarHost
 import dev.quinton.goa.feature.players.meta.MetaActions
 import dev.quinton.goa.feature.players.meta.MetaContent
-import dev.quinton.goa.feature.players.meta.MetaUiState
 
 /** [dev.quinton.goa.core.navigation.MatchLogRoute]: the match log on its own (e.g. from a player profile). */
 @Composable

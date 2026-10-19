@@ -17,7 +17,7 @@ val HubFeatures: List<HubFeature> = listOf(
     // Draft
     dev.quinton.goa.hub.draft.DraftFeature(),
     // Players: leaderboard, player page, match log, editor, meta
-    ComingSoon.Players,
+    dev.quinton.goa.hub.players.PlayersFeature,
     // Group: who am I, invite, devices
     dev.quinton.goa.hub.group.GroupFeature,
     // Settings

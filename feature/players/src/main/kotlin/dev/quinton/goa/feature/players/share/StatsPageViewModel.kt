@@ -8,6 +8,8 @@ import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.backup.AppInfo
 import dev.quinton.goa.core.data.rating.RatingsSnapshotRepository
+import dev.quinton.goa.core.presentation.players.StatsPage
+import dev.quinton.goa.core.presentation.players.StatsPageRenderer
 import java.io.File
 import java.io.IOException
 import javax.inject.Inject

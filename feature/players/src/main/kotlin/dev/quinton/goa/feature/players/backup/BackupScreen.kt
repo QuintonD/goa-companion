@@ -49,9 +49,9 @@ import dev.quinton.goa.core.data.backup.BackupSummary
 import dev.quinton.goa.core.data.backup.ImportMode
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.players.common.Dates
+import dev.quinton.goa.core.presentation.players.Dates
+import dev.quinton.goa.core.presentation.players.plural
 import dev.quinton.goa.feature.players.common.EngravedCard
-import dev.quinton.goa.feature.players.common.plural
 
 data class BackupActions(
     val onBack: () -> Unit = {},

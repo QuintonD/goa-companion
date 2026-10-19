@@ -1,24 +1,9 @@
 package dev.quinton.goa.core.data.rating
 
-import dev.quinton.goa.core.domain.meta.GroupReport
 import dev.quinton.goa.core.domain.meta.HeroPilots
-import dev.quinton.goa.core.domain.meta.MetaReport
 import dev.quinton.goa.core.domain.rating.EloConfig
-import dev.quinton.goa.core.domain.rating.RatingsResult
+import dev.quinton.goa.core.domain.rating.RatingsSnapshot
 import kotlinx.coroutines.flow.Flow
-
-/** Everything derived from the match log in one consistent snapshot. */
-data class RatingsSnapshot(
-    val ratings: RatingsResult,
-    val meta: MetaReport,
-    val config: EloConfig,
-    /** Group stats (win conditions, sides, player pairs, streaks, last game night) from the same log. */
-    val group: GroupReport = GroupReport.EMPTY,
-) {
-    companion object {
-        val EMPTY = RatingsSnapshot(RatingsResult.EMPTY, MetaReport.EMPTY, EloConfig.DEFAULT)
-    }
-}
 
 /**
  * The full replay output (histories, player × hero records, per-match deltas, meta), for the
@@ -30,8 +15,8 @@ interface RatingsSnapshotRepository {
 }
 
 /**
- * "Best with this hero" for the catalog: [MetaReport.pilots] from the same snapshot the Meta tab
- * shows, so the two never disagree.
+ * "Best with this hero" for the catalog: [dev.quinton.goa.core.domain.meta.MetaReport.pilots] from the
+ * same snapshot the Meta tab shows, so the two never disagree.
  */
 interface HeroPilotsRepository {
     fun observeHeroPilots(heroId: String): Flow<HeroPilots>

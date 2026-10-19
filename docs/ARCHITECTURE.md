@@ -116,6 +116,11 @@ Feature authors start with [server/hub/README.md](../server/hub/README.md).
   push, notification click). The build copies the app's catalog, official images, OFL fonts and
   our SVG crests, sigils and icons into the hub's resources (`bundleAppFiles`), so nothing is
   duplicated in git; official images are served under `/assets/` to signed-in devices only.
+- **Players area** (`hub/players`). Every page reads one `PlayersData` (the group data as the
+  phones' screens see it, plus `RatingsSnapshot.compute` cached per stored document) and renders
+  `core:presentation/players` builders; writes go through the `GroupStore` helpers only. Forms work
+  without JS (the editor's seat buttons post the whole form); htmx swaps the editor in place.
+  Per-browser state: `players-different` ("Different people"), `players-undo`, `players-flash`.
 - **Web Push.** VAPID P-256 keys made at first start (`vapid.json`), RFC 8291 encryption,
   per-device subscriptions and a persistent per-device schedule (`PushService`).
 

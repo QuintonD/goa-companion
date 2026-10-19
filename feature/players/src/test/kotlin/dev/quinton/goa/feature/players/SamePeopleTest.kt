@@ -6,6 +6,9 @@ import dev.quinton.goa.core.data.PlayerMergeResult
 import dev.quinton.goa.core.domain.sync.PlayerMerges
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.core.presentation.players.PlayersUiState
+import dev.quinton.goa.core.presentation.players.SamePeople
+import dev.quinton.goa.core.presentation.players.SamePeopleOutcome
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
 import dev.quinton.goa.core.testing.FakeGroupRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
@@ -13,9 +16,7 @@ import dev.quinton.goa.core.testing.FakePlayerMatchUpRepository
 import dev.quinton.goa.core.testing.FakePlayerMergeRepository
 import dev.quinton.goa.core.testing.FakePlayerRepository
 import dev.quinton.goa.feature.players.Fixtures.ann
-import dev.quinton.goa.feature.players.players.PlayersUiState
 import dev.quinton.goa.feature.players.players.PlayersViewModel
-import dev.quinton.goa.feature.players.samepeople.SamePeopleOutcome
 import dev.quinton.goa.feature.players.samepeople.SamePeopleViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -68,7 +69,7 @@ class SamePeopleTest {
         assertThat(pair.keep.lastPlayed).isEqualTo(annsLast)
         assertThat(pair.other.player).isEqualTo(anna)
         assertThat(pair.other.games).isEqualTo(0)
-        assertThat(SamePeopleViewModel.summary(pair.other)).isEqualTo("No matches yet")
+        assertThat(SamePeople.summary(pair.other)).isEqualTo("No matches yet")
 
         vm.samePerson(pair.key)
         val done = vm.uiState.first { it.outcome != null }

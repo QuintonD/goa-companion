@@ -1,4 +1,4 @@
-package dev.quinton.goa.feature.players.match
+package dev.quinton.goa.core.presentation.players
 
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Match

@@ -34,17 +34,18 @@ import androidx.compose.ui.semantics.semantics
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.presentation.players.MatchLogUiState
+import dev.quinton.goa.core.presentation.players.MetaUiState
+import dev.quinton.goa.core.presentation.players.PlayersUiState
 import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
 import dev.quinton.goa.feature.players.common.LogMatchFab
 import dev.quinton.goa.feature.players.common.Motion
 import dev.quinton.goa.feature.players.common.rememberFabExpansion
 import dev.quinton.goa.feature.players.match.MatchFollowUps
 import dev.quinton.goa.feature.players.match.MatchLogContent
-import dev.quinton.goa.feature.players.match.MatchLogUiState
 import dev.quinton.goa.feature.players.match.UndoSnackbarHost
 import dev.quinton.goa.feature.players.meta.MetaActions
 import dev.quinton.goa.feature.players.meta.MetaContent
-import dev.quinton.goa.feature.players.meta.MetaUiState
 
 enum class PlayersTab(val label: String) { PLAYERS("Players"), MATCHES("Matches"), META("Meta") }
 

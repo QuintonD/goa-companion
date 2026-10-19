@@ -112,6 +112,17 @@ Settings; **Get the app** `/app` (built). Keep your area's pages under its prefi
 `HubFeature.shellBar(ctx, call)` may return a bar shown above the tabs on every page for this
 browser (the phone's "timer running" bar); null = nothing.
 
+### The Players area's links (`players/PlayersPaths`)
+
+Other areas may link to: `/players`, `/players/{id}`, `/players/log`, `/players/meta`,
+`/players/same-people`, `/players/matches/new` (optional `?result=1&playedAt=<ms>&durationMin=<m>&mode=quick`),
+`/players/matches/{id}` and `/players/matches/{id}/result` ("Who won?" for a pending match, optional
+`?playedAt=<ms>`; with `?new=1&…` for an id that doesn't exist yet it opens a new result that saves
+under that id). It links out to `/draft?rematch={id}`, `/timer/setup?rematch={id}&kind=SAME_SEATS|SWAP_HEROES|SWAP_TEAMS`,
+`/timer/setup?match={id}`, `/group/invite?player={id}` and `/settings/ratings`.
+For a realistic local data set: `GOA_PLAYERS_EXPORT=D:\some\dir ./gradlew.bat :server:hub:test --tests "*DevDataExport*"`
+writes a joined data directory (46 matches) plus `invite.txt` (public URL `GOA_PLAYERS_URL`, default port 8093).
+
 ## `HubContext`
 
 | Member | What |
@@ -179,6 +190,8 @@ in case). A slot that can't be decoded reads as null. Slots in use: `theme` (`Sh
 `ThemeChoice` — written by Settings, read by every page), `invitedPlayerId`
 (`SignInSlots.InvitedPlayerId`, set when a browser joins with a personal invite `p=`; the Group
 pages ask "You're <name>?" and delete it once answered), `push`, `push-schedule` (PushService),
+`players-different`, `players-undo`, `players-flash` (`PlayersSlots`).
+
 `me` (`SharedSlots.Me`, a raw player id: read it through the merges, e.g. `GroupFeature.me(ctx, id, data)`)
 and `settings` (`SharedSlots.Settings`, `AppSettings`; missing = the app's defaults), written only by
 Group and Settings, `group-pending-merge` (Group), `backup-import` (Settings). A signed-in browser

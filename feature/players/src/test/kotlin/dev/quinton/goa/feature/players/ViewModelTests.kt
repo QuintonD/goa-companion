@@ -15,6 +15,9 @@ import dev.quinton.goa.core.model.match.Participant
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.core.navigation.MatchEditRoute
+import dev.quinton.goa.core.presentation.players.HeroSort
+import dev.quinton.goa.core.presentation.players.MatchError
+import dev.quinton.goa.core.presentation.players.MetaView
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
 import dev.quinton.goa.core.testing.FakeGroupRepository
@@ -29,14 +32,11 @@ import dev.quinton.goa.feature.players.Fixtures.dee
 import dev.quinton.goa.feature.players.Fixtures.hero
 import dev.quinton.goa.feature.players.backup.BackupViewModel
 import dev.quinton.goa.feature.players.match.MatchEditViewModel
-import dev.quinton.goa.feature.players.match.MatchError
 import dev.quinton.goa.feature.players.match.MatchLogViewModel
 import dev.quinton.goa.feature.players.match.MatchNav
 import dev.quinton.goa.feature.players.match.RecentlyDeletedMatch
 import dev.quinton.goa.feature.players.match.RecentlySavedMatch
 import dev.quinton.goa.feature.players.match.RematchLauncher
-import dev.quinton.goa.feature.players.meta.HeroSort
-import dev.quinton.goa.feature.players.meta.MetaView
 import dev.quinton.goa.feature.players.meta.MetaViewModel
 import dev.quinton.goa.feature.players.player.PlayerDetailViewModel
 import dev.quinton.goa.feature.players.player.PlayerEditViewModel
@@ -433,7 +433,7 @@ class ViewModelTests {
         log.uiState.test {
             var state = awaitItem()
             while (state.loading || state.undo == null) state = awaitItem()
-            assertThat(state.undo.id).isEqualTo("m05")
+            assertThat(state.undo?.id).isEqualTo("m05")
             log.undoDelete()
             state = awaitItem()
             while (state.undo != null || state.total != Fixtures.matches.size) state = awaitItem()

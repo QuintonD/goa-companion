@@ -10,6 +10,7 @@ import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.designsystem.icon.PlayerCrests
 import dev.quinton.goa.core.designsystem.theme.PlayerColors
 import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.core.presentation.players.PlayerLook
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,8 +44,6 @@ data class PlayerEditUiState(
     )
 }
 
-const val MAX_NAME_LENGTH = 24
-
 @HiltViewModel(assistedFactory = PlayerEditViewModel.Factory::class)
 class PlayerEditViewModel @AssistedInject constructor(
     @Assisted private val playerId: String?,
@@ -75,23 +74,16 @@ class PlayerEditViewModel @AssistedInject constructor(
 
                 playerId != null -> PlayerEditUiState(loading = false, isNew = false, notFound = true)
 
-                else -> {
-                    val used = all.map { it.color }.toSet()
-                    PlayerEditUiState(
-                        loading = false,
-                        color = (
-                            PlayerColors.all.firstOrNull {
-                                it.argb !in used
-                            } ?: PlayerColors.default(all.size)
-                            ).argb,
-                        avatarId = all.size % PlayerCrests.count,
-                    )
-                }
+                else -> PlayerEditUiState(
+                    loading = false,
+                    color = PlayerLook.newColor(all, PlayerColors.all.map { it.argb }),
+                    avatarId = PlayerLook.newCrest(all, PlayerCrests.count),
+                )
             }
         }
     }
 
-    fun onNameChange(name: String) = state.update { it.copy(name = name.take(MAX_NAME_LENGTH), nameError = null) }
+    fun onNameChange(name: String) = state.update { it.copy(name = PlayerLook.nameInput(name), nameError = null) }
 
     fun onColorChange(color: Long) = state.update { it.copy(color = color) }
 
@@ -103,16 +95,15 @@ class PlayerEditViewModel @AssistedInject constructor(
         val current = state.value
         if (current.saving || current.loading || current.notFound) return
         val name = current.name.trim()
-        if (name.isEmpty()) {
-            state.update { it.copy(nameError = "Enter a name") }
+        PlayerLook.nameError(name, clash = null, editingId = playerId)?.let { error ->
+            state.update { it.copy(nameError = error) }
             return
         }
         state.update { it.copy(saving = true) }
         viewModelScope.launch {
             // Same rule as quick add in draft setup: one player per name, archived included.
-            val clash = players.findByName(name)?.let { it.id != playerId } == true
-            if (clash) {
-                state.update { it.copy(saving = false, nameError = "“$name” is already in your group") }
+            PlayerLook.nameError(name, players.findByName(name), playerId)?.let { error ->
+                state.update { it.copy(saving = false, nameError = error) }
                 return@launch
             }
             val player = original?.copy(name = name, color = current.color, avatarId = current.avatarId) ?: Player(

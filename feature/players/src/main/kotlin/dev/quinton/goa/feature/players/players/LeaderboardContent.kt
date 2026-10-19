@@ -47,16 +47,19 @@ import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.presentation.players.Leaderboard
+import dev.quinton.goa.core.presentation.players.LeaderboardRow
+import dev.quinton.goa.core.presentation.players.PlayersUiState
+import dev.quinton.goa.core.presentation.players.formatDelta
+import dev.quinton.goa.core.presentation.players.formatRating
+import dev.quinton.goa.core.presentation.players.plural
+import dev.quinton.goa.core.presentation.players.spokenRecord
+import dev.quinton.goa.core.presentation.players.winLoss
 import dev.quinton.goa.feature.players.common.DeltaIndicator
 import dev.quinton.goa.feature.players.common.EngravedCard
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.ProvisionalPill
 import dev.quinton.goa.feature.players.common.SectionHeader
-import dev.quinton.goa.feature.players.common.formatDelta
-import dev.quinton.goa.feature.players.common.formatRating
-import dev.quinton.goa.feature.players.common.plural
-import dev.quinton.goa.feature.players.common.spokenRecord
-import dev.quinton.goa.feature.players.common.winLoss
 import dev.quinton.goa.feature.players.match.FAB_CLEARANCE
 
 /** The "Players" tab: Elo leaderboard, then unrated and (optionally) archived players. */
@@ -91,8 +94,8 @@ fun LeaderboardContent(
             modifier = modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = FAB_CLEARANCE),
         ) {
-            if (state.samePeople > 0) {
-                item(key = "same-people") { SamePeopleCard(state.samePeople, onReviewSamePeople) }
+            state.samePeopleText?.let { text ->
+                item(key = "same-people") { SamePeopleCard(text, onReviewSamePeople) }
             }
             if (state.ranked.isNotEmpty()) {
                 item(key = "h-ranked") {
@@ -158,20 +161,7 @@ fun LeaderboardContent(
 @Composable
 private fun LeaderboardRowItem(row: LeaderboardRow, onClick: () -> Unit, archived: Boolean = false) {
     val rating = row.rating
-    val description = buildString {
-        row.rank?.let { append("Rank $it, ") }
-        append(row.player.name)
-        if (row.isMe) append(", you")
-        if (rating.games > 0) {
-            append(", rating ${formatRating(rating.value)}")
-            if (rating.provisional) append(", provisional")
-            append(", ${spokenRecord(rating.wins, rating.losses)}")
-            row.trend?.let { append(", ${formatDelta(it)} over the last ${plural(row.trendGames, "game")}") }
-        } else {
-            append(", no games yet")
-        }
-        if (archived) append(", archived")
-    }
+    val description = Leaderboard.spoken(row, archived)
     Row(
         Modifier
             .fillMaxWidth()
@@ -288,11 +278,7 @@ private fun RankBadge(rank: Int?) {
 
 /** "Same people?" (ADR-031): a quiet nudge when two players look like one person. */
 @Composable
-private fun SamePeopleCard(count: Int, onReview: () -> Unit) {
-    val text = when (count) {
-        1 -> "2 players might be the same person"
-        else -> "$count pairs of players look like the same person"
-    }
+private fun SamePeopleCard(text: String, onReview: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()

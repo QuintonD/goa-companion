@@ -53,20 +53,28 @@ import dev.quinton.goa.core.domain.meta.WinConditionMix
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
+import dev.quinton.goa.core.presentation.players.Dates
+import dev.quinton.goa.core.presentation.players.GameNightUi
+import dev.quinton.goa.core.presentation.players.HeroMetaRow
+import dev.quinton.goa.core.presentation.players.HeroSort
+import dev.quinton.goa.core.presentation.players.MetaUiState
+import dev.quinton.goa.core.presentation.players.MetaView
+import dev.quinton.goa.core.presentation.players.PairRow
+import dev.quinton.goa.core.presentation.players.StreakRow
+import dev.quinton.goa.core.presentation.players.formatPercent
+import dev.quinton.goa.core.presentation.players.formatRating
+import dev.quinton.goa.core.presentation.players.label
+import dev.quinton.goa.core.presentation.players.plural
+import dev.quinton.goa.core.presentation.players.spokenRecord
+import dev.quinton.goa.core.presentation.players.winLoss
 import dev.quinton.goa.feature.players.common.DeltaIndicator
 import dev.quinton.goa.feature.players.common.EngravedCard
 import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.SectionHeader
 import dev.quinton.goa.feature.players.common.StatRow
-import dev.quinton.goa.feature.players.common.formatPercent
-import dev.quinton.goa.feature.players.common.formatRating
 import dev.quinton.goa.feature.players.common.goaFilterChipColors
 import dev.quinton.goa.feature.players.common.goaSegmentedColors
-import dev.quinton.goa.feature.players.common.label
-import dev.quinton.goa.feature.players.common.plural
-import dev.quinton.goa.feature.players.common.spokenRecord
-import dev.quinton.goa.feature.players.common.winLoss
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -104,16 +112,7 @@ fun MetaContent(state: MetaUiState, actions: MetaActions, modifier: Modifier = M
                     listOf(
                         state.totalMatches.toString() to "Rated matches",
                         state.draftsWithBans.toString() to "Drafts with bans",
-                        (if (state.largerTeam.games == 0) "—" else formatPercent(state.largerTeam.winRate)) to
-                            (
-                                "Larger team won" + if (state.largerTeam.games >
-                                    0
-                                ) {
-                                    " (${state.largerTeam.games})"
-                                } else {
-                                    ""
-                                }
-                                ),
+                        state.largerTeamValue to state.largerTeamLabel,
                     ),
                     Modifier.padding(top = Spacing.md),
                 )
@@ -135,8 +134,7 @@ fun MetaContent(state: MetaUiState, actions: MetaActions, modifier: Modifier = M
             }
             item(key = "explain") {
                 Text(
-                    "Heroes and pairs are ranked by the 95 % Wilson lower bound of their win rate, so small " +
-                        "samples don't top the table. Ranking needs ${plural(state.minSample, "game")}.",
+                    state.rankingNote,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = Spacing.md),
@@ -180,11 +178,9 @@ fun MetaContent(state: MetaUiState, actions: MetaActions, modifier: Modifier = M
     }
 }
 
-private val NightDate = DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault())
-
 @Composable
 private fun GameNightCard(night: GameNightUi, streaks: List<StreakRow>) {
-    SectionHeader("Last game night · ${night.date.format(NightDate)}")
+    SectionHeader("Last game night · ${Dates.night(night.date)}")
     EngravedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Row(
@@ -199,15 +195,14 @@ private fun GameNightCard(night: GameNightUi, streaks: List<StreakRow>) {
                 TeamBadge(Team.BLUE)
                 Text(" ${night.blueWins}", style = MaterialTheme.typography.titleMedium)
             }
-            val up = night.movers.filter { it.delta.roundToInt() > 0 }.take(TOP_MOVERS)
-            val down = night.movers.filter { it.delta.roundToInt() < 0 }.reversed().take(1)
-            if (up.isNotEmpty() || down.isNotEmpty()) {
+            val movers = night.shownMovers
+            if (movers.isNotEmpty()) {
                 Text(
                     "Biggest movers",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                (up + down).forEach { mover ->
+                movers.forEach { mover ->
                     Row(
                         Modifier.fillMaxWidth().heightIn(min = 40.dp).semantics(mergeDescendants = true) {},
                         verticalAlignment = Alignment.CenterVertically,
@@ -375,7 +370,7 @@ private fun HeroHeader(state: MetaUiState, actions: MetaActions) {
 @Composable
 private fun HeroCompactTable(state: MetaUiState) {
     val wide = LocalDensity.current.fontScale < LARGE_FONT_SCALE
-    val rankOf = state.ranked.mapIndexed { i, row -> row.heroId to i + 1 }.toMap()
+    val rankOf = state.rankOf
     EngravedCard(Modifier.fillMaxWidth()) {
         Column {
             Row(
@@ -605,7 +600,9 @@ private fun HeroMetaItem(row: HeroMetaRow, rank: Int?) {
             Metric("Pick", formatPercent(meta.pickRate))
             Metric("Ban", meta.banRate?.let { formatPercent(it) } ?: "—")
             row.rating?.let { Metric("Hero Elo", formatRating(it.value)) }
-            if (row.bestPlayer != null && row.bestRecord != null) {
+            val bestPlayer = row.bestPlayer
+            val bestRecord = row.bestRecord
+            if (bestPlayer != null && bestRecord != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "Best",
@@ -613,20 +610,18 @@ private fun HeroMetaItem(row: HeroMetaRow, rank: Int?) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.width(Spacing.xs))
-                    PlayerAvatar(row.bestPlayer, size = 20.dp)
+                    PlayerAvatar(bestPlayer, size = 20.dp)
                     Spacer(Modifier.width(Spacing.xs))
                     Text(
-                        "${row.bestPlayer.name} ${winLoss(row.bestRecord.wins, row.bestRecord.games)}",
+                        "${bestPlayer.name} ${winLoss(bestRecord.wins, bestRecord.games)}",
                         style = MaterialTheme.typography.labelLarge,
                     )
                 }
             }
         }
-        if (row.winConditions.total > 0) {
+        row.winsSummary?.let { wins ->
             Text(
-                "Wins: " + (WinCondition.entries + listOf(null))
-                    .mapNotNull { c -> row.winConditions.counts[c]?.let { "${c?.label() ?: "not recorded"} $it" } }
-                    .joinToString(" · "),
+                wins,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.xs),
@@ -643,5 +638,3 @@ private fun Metric(label: String, value: String) {
         Text(value, style = MaterialTheme.typography.labelLarge)
     }
 }
-
-private const val TOP_MOVERS = 3

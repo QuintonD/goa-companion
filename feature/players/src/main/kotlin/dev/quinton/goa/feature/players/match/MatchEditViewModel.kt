@@ -21,12 +21,21 @@ import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.core.model.player.Player
-import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.navigation.MatchEditRoute
-import dev.quinton.goa.feature.players.common.heroName
-import dev.quinton.goa.feature.players.player.MAX_NAME_LENGTH
+import dev.quinton.goa.core.presentation.players.HeroOption
+import dev.quinton.goa.core.presentation.players.MAX_DURATION_MIN
+import dev.quinton.goa.core.presentation.players.MAX_NAME_LENGTH
+import dev.quinton.goa.core.presentation.players.MAX_SEATS_PER_TEAM
+import dev.quinton.goa.core.presentation.players.MatchEditor
+import dev.quinton.goa.core.presentation.players.MatchError
+import dev.quinton.goa.core.presentation.players.MatchForm
+import dev.quinton.goa.core.presentation.players.MatchValidation
+import dev.quinton.goa.core.presentation.players.PilotOption
+import dev.quinton.goa.core.presentation.players.PlayerLook
+import dev.quinton.goa.core.presentation.players.SavedResultUi
+import dev.quinton.goa.core.presentation.players.SeatDraft
+import dev.quinton.goa.core.presentation.players.heroName
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,38 +49,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-/** A hero the picker can offer. */
-data class HeroOption(val id: String, val name: String, val title: String, val portrait: String?, val complexity: Int?)
-
-data class PilotOption(val player: Player, val rating: Rating)
-
-/** One player's line in the "Result saved" summary. */
-data class PlayerChangeUi(
-    val player: Player?,
-    val name: String,
-    val team: Team,
-    val won: Boolean,
-    /** Player-space rating change from this match; null until the replay has run. */
-    val delta: Double?,
-    val rating: Rating,
-    /** Leaderboard position now (active players with rated games); null when unrated or archived. */
-    val rank: Int?,
-)
-
-/** Shown after a result is saved: what changed, and the way to play again. */
-data class SavedResultUi(
-    val match: Match,
-    /** False while the ratings are still being recomputed. */
-    val ratingsReady: Boolean,
-    /** Winners first, biggest gain first. */
-    val players: List<PlayerChangeUi>,
-    /** Rank 1 on the leaderboard now. */
-    val leader: PlayerChangeUi?,
-    val leaderName: String?,
-    val leaderRating: Rating?,
-    val rematchOptions: List<RematchOption>,
-)
 
 data class MatchEditUiState(
     val loading: Boolean = true,
@@ -157,27 +134,16 @@ class MatchEditViewModel @AssistedInject constructor(
     ) { edit, people, cat, results ->
         if (edit == null) return@combine MatchEditUiState()
         val byId = people.associateBy { it.id }
-        val used = (edit.form.red + edit.form.blue).mapNotNull { it.playerId }.toSet()
         MatchEditUiState(
             loading = false,
             isNew = edit.original == null,
             notFound = edit.notFound,
             form = edit.form,
-            pilots = people
-                .filter { !it.archived || it.id in used }
-                .sortedBy { it.name.lowercase() }
-                .map { PilotOption(it, results.player(it.id)) },
-            heroes = cat.heroes
-                .sortedBy { it.name.lowercase() }
-                .map { HeroOption(it.id, it.name, it.title, it.portrait, it.complexity) },
+            pilots = MatchEditor.pilotOptions(people, edit.form, results),
+            heroes = MatchEditor.heroOptions(cat),
             catalog = cat,
             playersById = byId,
-            errors = MatchValidation.validate(
-                edit.form,
-                { cat.heroName(it) },
-                { byId[it]?.name ?: "Unknown player" },
-                now = System.currentTimeMillis(),
-            ),
+            errors = MatchEditor.errors(edit.form, cat, byId, now = System.currentTimeMillis()),
             showErrors = edit.showErrors,
             saveAttempts = edit.saveAttempts,
             dirty = edit.form != edit.initialForm,
@@ -185,7 +151,7 @@ class MatchEditViewModel @AssistedInject constructor(
             fromDraft = edit.original?.draftId != null,
             resultFirst = route.result,
             unsavedResult = route.result && edit.original == null && !edit.notFound,
-            saved = edit.saved?.let { savedSummary(it, people, results) },
+            saved = edit.saved?.let { MatchEditor.savedSummary(it, people, results) },
             finished = edit.finished,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MatchEditUiState())
@@ -215,10 +181,10 @@ class MatchEditViewModel @AssistedInject constructor(
                     // A new match may be pre-filled (e.g. by the timer's "Log result"); bad values are ignored.
                     val form = MatchForm(
                         playedAt = route.prefillPlayedAt?.let(::toMinute)?.coerceAtMost(now()) ?: now(),
-                        mode = gameModeOrNull(route.prefillMode) ?: GameMode.QUICK,
+                        mode = MatchEditor.gameModeOrNull(route.prefillMode) ?: GameMode.QUICK,
                         duration = MatchForm.durationText(route.prefillDurationMin),
-                        red = List(2) { SeatDraft(key()) },
-                        blue = List(2) { SeatDraft(key()) },
+                        red = List(MatchEditor.NEW_SEATS_PER_TEAM) { SeatDraft(key()) },
+                        blue = List(MatchEditor.NEW_SEATS_PER_TEAM) { SeatDraft(key()) },
                     )
                     EditState(null, form, form)
                 }
@@ -228,7 +194,7 @@ class MatchEditViewModel @AssistedInject constructor(
 
     private fun now(): Long = toMinute(System.currentTimeMillis())
 
-    private fun toMinute(millis: Long): Long = millis - millis % TimeUnit.MINUTES.toMillis(1)
+    private fun toMinute(millis: Long): Long = MatchEditor.toMinute(millis)
 
     private fun updateForm(transform: (MatchForm) -> MatchForm) = edit.update { it?.copy(form = transform(it.form)) }
 
@@ -240,7 +206,7 @@ class MatchEditViewModel @AssistedInject constructor(
 
     fun setMode(mode: GameMode) = updateForm { it.copy(mode = mode) }
 
-    fun setMap(map: String) = updateForm { it.copy(map = map.take(MAX_TEXT)) }
+    fun setMap(map: String) = updateForm { it.copy(map = map.take(MatchEditor.MAX_TEXT)) }
 
     fun setStatus(status: MatchStatus) = updateForm { it.copy(status = status) }
 
@@ -250,13 +216,9 @@ class MatchEditViewModel @AssistedInject constructor(
     fun setWinCondition(condition: WinCondition?) = updateForm { it.copy(winCondition = condition) }
 
     /** Digits only; values above [MAX_DURATION_MIN] are capped as you type. */
-    fun setDuration(text: String) = updateForm { form ->
-        val digits = text.filter(Char::isDigit).take(3)
-        val capped = digits.toIntOrNull()?.takeIf { it > MAX_DURATION_MIN }?.let { MAX_DURATION_MIN.toString() }
-        form.copy(duration = capped ?: digits)
-    }
+    fun setDuration(text: String) = updateForm { it.copy(duration = MatchEditor.durationInput(text)) }
 
-    fun setNotes(notes: String) = updateForm { it.copy(notes = notes.take(MAX_NOTES)) }
+    fun setNotes(notes: String) = updateForm { it.copy(notes = notes.take(MatchEditor.MAX_NOTES)) }
 
     fun addSeat(team: Team) = updateForm { form ->
         if (form.seats(team).size >= MAX_SEATS_PER_TEAM) {
@@ -281,17 +243,12 @@ class MatchEditViewModel @AssistedInject constructor(
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
             val all = players.observePlayers(includeArchived = true).first()
-            val usedColors = all.map { it.color }.toSet()
             val player = players.ensurePlayer(
                 Player(
                     id = UUID.randomUUID().toString(),
                     name = trimmed,
-                    color = (
-                        PlayerColors.all.firstOrNull {
-                            it.argb !in usedColors
-                        } ?: PlayerColors.default(all.size)
-                        ).argb,
-                    avatarId = all.size % PlayerCrests.count,
+                    color = PlayerLook.newColor(all, PlayerColors.all.map { it.argb }),
+                    avatarId = PlayerLook.newCrest(all, PlayerCrests.count),
                     createdAt = System.currentTimeMillis(),
                 ),
             )
@@ -326,8 +283,7 @@ class MatchEditViewModel @AssistedInject constructor(
             recentlySaved.put(match.id)
             // A new result (new match, pending → completed, or the "Who won?" flow) shows what it
             // changed; editing an old result just goes back.
-            val newResult = match.status == MatchStatus.COMPLETED &&
-                (original == null || original.status != MatchStatus.COMPLETED || route.result)
+            val newResult = MatchEditor.isNewResult(match, original, route.result)
             edit.update {
                 it?.copy(
                     saving = false,
@@ -360,46 +316,6 @@ class MatchEditViewModel @AssistedInject constructor(
             matches.delete(original.id)
             recentlyDeleted.put(original)
             edit.update { it?.copy(finished = true) }
-        }
-    }
-
-    private fun savedSummary(match: Match, people: List<Player>, results: RatingsResult): SavedResultUi {
-        val byId = people.associateBy { it.id }
-        val change = results.matchChanges[match.id]
-        val ranked = people.filter { !it.archived && results.player(it.id).games > 0 }
-            .sortedWith(compareByDescending<Player> { results.player(it.id).value }.thenBy { it.name.lowercase() })
-        val rankOf = ranked.mapIndexed { i, p -> p.id to i + 1 }.toMap()
-        val lines = match.participants.distinctBy { it.playerId }.map { seat ->
-            PlayerChangeUi(
-                player = byId[seat.playerId],
-                name = byId[seat.playerId]?.name ?: "Unknown player",
-                team = seat.team,
-                won = seat.team == match.winner,
-                delta = change?.playerDeltas?.get(seat.playerId),
-                rating = results.player(seat.playerId),
-                rank = rankOf[seat.playerId],
-            )
-        }.sortedWith(compareByDescending<PlayerChangeUi> { it.won }.thenByDescending { it.delta ?: 0.0 })
-        val leader = ranked.firstOrNull()
-        return SavedResultUi(
-            match = match,
-            ratingsReady = change != null,
-            players = lines,
-            leader = lines.firstOrNull { it.player?.id == leader?.id },
-            leaderName = leader?.name,
-            leaderRating = leader?.let { results.player(it.id) },
-            rematchOptions = rematchOptions(match),
-        )
-    }
-
-    private companion object {
-        const val MAX_TEXT = 60
-        const val MAX_NOTES = 1_000
-
-        /** [GameMode] by its serial name ("quick", "long", "double_lane"), or null if unknown. */
-        fun gameModeOrNull(serialName: String?): GameMode? {
-            val descriptor = GameMode.serializer().descriptor
-            return GameMode.entries.firstOrNull { descriptor.getElementName(it.ordinal) == serialName }
         }
     }
 }

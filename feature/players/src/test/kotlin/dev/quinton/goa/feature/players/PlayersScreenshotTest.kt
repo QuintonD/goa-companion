@@ -20,59 +20,59 @@ import androidx.compose.ui.unit.Density
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import dev.quinton.goa.core.data.backup.BackupSummary
-import dev.quinton.goa.core.data.rating.RatingsSnapshot
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.meta.GroupStats
 import dev.quinton.goa.core.domain.meta.MetaStats
 import dev.quinton.goa.core.domain.rating.EloCalculator
 import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.domain.rating.RatingsSnapshot
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.presentation.players.HeroOption
+import dev.quinton.goa.core.presentation.players.Leaderboard
+import dev.quinton.goa.core.presentation.players.MatchForm
+import dev.quinton.goa.core.presentation.players.MatchLog
+import dev.quinton.goa.core.presentation.players.MatchLogUiState
+import dev.quinton.goa.core.presentation.players.MatchValidation
+import dev.quinton.goa.core.presentation.players.Meta
+import dev.quinton.goa.core.presentation.players.MetaUiState
+import dev.quinton.goa.core.presentation.players.MetaView
+import dev.quinton.goa.core.presentation.players.PairSide
+import dev.quinton.goa.core.presentation.players.PilotOption
+import dev.quinton.goa.core.presentation.players.PlayerChangeUi
+import dev.quinton.goa.core.presentation.players.PlayerDetail
+import dev.quinton.goa.core.presentation.players.PlayersUiState
+import dev.quinton.goa.core.presentation.players.SamePeopleOutcome
+import dev.quinton.goa.core.presentation.players.SamePeoplePair
+import dev.quinton.goa.core.presentation.players.SamePeopleUiState
+import dev.quinton.goa.core.presentation.players.SavedResultUi
+import dev.quinton.goa.core.presentation.players.SeatDraft
+import dev.quinton.goa.core.presentation.players.rematchOptions
 import dev.quinton.goa.core.testing.TestCatalog
 import dev.quinton.goa.feature.players.backup.BackupScreen
 import dev.quinton.goa.feature.players.backup.BackupUiState
 import dev.quinton.goa.feature.players.backup.ImportDialog
-import dev.quinton.goa.feature.players.match.HeroOption
 import dev.quinton.goa.feature.players.match.HeroPickerSheet
 import dev.quinton.goa.feature.players.match.MatchEditActions
 import dev.quinton.goa.feature.players.match.MatchEditScreen
 import dev.quinton.goa.feature.players.match.MatchEditUiState
-import dev.quinton.goa.feature.players.match.MatchForm
-import dev.quinton.goa.feature.players.match.MatchLogUiState
-import dev.quinton.goa.feature.players.match.MatchLogViewModel
-import dev.quinton.goa.feature.players.match.MatchValidation
-import dev.quinton.goa.feature.players.match.PilotOption
 import dev.quinton.goa.feature.players.match.PilotPickerSheet
-import dev.quinton.goa.feature.players.match.PlayerChangeUi
-import dev.quinton.goa.feature.players.match.SavedResultUi
-import dev.quinton.goa.feature.players.match.SeatDraft
-import dev.quinton.goa.feature.players.match.rematchOptions
-import dev.quinton.goa.feature.players.meta.MetaUiState
-import dev.quinton.goa.feature.players.meta.MetaView
-import dev.quinton.goa.feature.players.meta.MetaViewModel
 import dev.quinton.goa.feature.players.player.PlayerDetailActions
 import dev.quinton.goa.feature.players.player.PlayerDetailScreen
-import dev.quinton.goa.feature.players.player.PlayerDetailViewModel
 import dev.quinton.goa.feature.players.player.PlayerEditActions
 import dev.quinton.goa.feature.players.player.PlayerEditScreen
 import dev.quinton.goa.feature.players.player.PlayerEditUiState
 import dev.quinton.goa.feature.players.players.PlayersHomeActions
 import dev.quinton.goa.feature.players.players.PlayersHomeScreen
 import dev.quinton.goa.feature.players.players.PlayersTab
-import dev.quinton.goa.feature.players.players.PlayersUiState
-import dev.quinton.goa.feature.players.players.PlayersViewModel
 import dev.quinton.goa.feature.players.ratings.RatingSettingsActions
 import dev.quinton.goa.feature.players.ratings.RatingSettingsScreen
 import dev.quinton.goa.feature.players.ratings.RatingSettingsUiState
-import dev.quinton.goa.feature.players.samepeople.PairSide
 import dev.quinton.goa.feature.players.samepeople.SamePeopleActions
-import dev.quinton.goa.feature.players.samepeople.SamePeopleOutcome
-import dev.quinton.goa.feature.players.samepeople.SamePeoplePair
 import dev.quinton.goa.feature.players.samepeople.SamePeopleScreen
-import dev.quinton.goa.feature.players.samepeople.SamePeopleUiState
 import java.time.LocalDate
 import org.junit.Rule
 import org.junit.Test
@@ -93,14 +93,14 @@ private object Shots {
     val byId = Fixtures.players.associateBy { it.id }
     val today: LocalDate = LocalDate.of(2026, 10, 15)
 
-    val players: PlayersUiState = PlayersViewModel.leaderboard(Fixtures.players, snapshot, showArchived = false)
+    val players: PlayersUiState = Leaderboard.build(Fixtures.players, snapshot, showArchived = false)
     val matches = MatchLogUiState(
         loading = false,
-        groups = MatchLogViewModel.group(Fixtures.matches, byId, catalog, snapshot.ratings.matchChanges, today),
+        groups = MatchLog.group(Fixtures.matches, byId, catalog, snapshot.ratings.matchChanges, today),
         total = Fixtures.matches.size,
     )
-    val meta: MetaUiState = MetaViewModel.build(snapshot, byId, catalog)
-    val detail = PlayerDetailViewModel.build(Fixtures.ann.id, Fixtures.players, Fixtures.matches, snapshot, catalog)
+    val meta: MetaUiState = Meta.build(snapshot, byId, catalog)
+    val detail = PlayerDetail.build(Fixtures.ann.id, Fixtures.players, Fixtures.matches, snapshot, catalog)
 
     val samePeople = SamePeopleUiState(
         loading = false,

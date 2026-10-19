@@ -1,21 +1,9 @@
-package dev.quinton.goa.feature.players.share
+package dev.quinton.goa.core.presentation.players
 
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
-import dev.quinton.goa.feature.players.common.formatDelta
-import dev.quinton.goa.feature.players.common.formatPercent
-import dev.quinton.goa.feature.players.common.formatRating
-import dev.quinton.goa.feature.players.common.label
-import dev.quinton.goa.feature.players.common.plural
-import dev.quinton.goa.feature.players.common.winLoss
-import dev.quinton.goa.feature.players.match.MatchRowUi
-import dev.quinton.goa.feature.players.match.SeatUi
-import dev.quinton.goa.feature.players.meta.HeroMetaRow
-import dev.quinton.goa.feature.players.meta.MetaUiState
-import dev.quinton.goa.feature.players.meta.PairRow
-import dev.quinton.goa.feature.players.players.LeaderboardRow
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt

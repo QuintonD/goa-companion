@@ -5,12 +5,12 @@ import dev.quinton.goa.core.data.backup.BackupDocument
 import dev.quinton.goa.core.data.backup.BackupRepository
 import dev.quinton.goa.core.data.backup.ImportMode
 import dev.quinton.goa.core.data.rating.EloConfigRepository
-import dev.quinton.goa.core.data.rating.RatingsSnapshot
 import dev.quinton.goa.core.data.rating.RatingsSnapshotRepository
 import dev.quinton.goa.core.domain.meta.GroupStats
 import dev.quinton.goa.core.domain.meta.MetaStats
 import dev.quinton.goa.core.domain.rating.EloCalculator
 import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.domain.rating.RatingsSnapshot
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.draft.DraftMethodKind
 import dev.quinton.goa.core.model.draft.DraftRecord
