@@ -17,6 +17,7 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import dev.quinton.goa.core.navigation.GroupInviteRoute
 import dev.quinton.goa.core.navigation.GroupSyncRoute
+import dev.quinton.goa.core.navigation.JoinGroupLinkRoute
 import dev.quinton.goa.core.navigation.NavSheet
 import dev.quinton.goa.core.navigation.Navigator
 import dev.quinton.goa.core.navigation.SyncFileImportRoute
@@ -26,6 +27,7 @@ import dev.quinton.goa.feature.sync.group.GroupActions
 import dev.quinton.goa.feature.sync.group.GroupEvent
 import dev.quinton.goa.feature.sync.group.GroupScreen
 import dev.quinton.goa.feature.sync.group.GroupViewModel
+import dev.quinton.goa.feature.sync.hub.HubActions
 import dev.quinton.goa.feature.sync.importfile.SyncFileImportActions
 import dev.quinton.goa.feature.sync.importfile.SyncFileImportScreen
 import dev.quinton.goa.feature.sync.importfile.SyncFileImportViewModel
@@ -46,6 +48,7 @@ import kotlinx.coroutines.launch
 /** Group sync (ADR-025): the Group screen, the sync sheet, "Which player are you?" and file import. */
 fun EntryProviderScope<NavKey>.syncEntries(navigator: Navigator) {
     entry<GroupSyncRoute> { GroupEntry(navigator) }
+    entry<JoinGroupLinkRoute> { key -> GroupEntry(navigator, link = key.link) }
     entry<SyncSessionRoute>(metadata = NavSheet.metadata) { key ->
         val vm = hiltViewModel<SyncSessionViewModel, SyncSessionViewModel.Factory>(
             creationCallback = { it.create(key.role, key.firstSync) },
@@ -130,8 +133,9 @@ fun EntryProviderScope<NavKey>.syncEntries(navigator: Navigator) {
 }
 
 @Composable
-private fun GroupEntry(navigator: Navigator) {
+private fun GroupEntry(navigator: Navigator, link: String? = null) {
     val vm = hiltViewModel<GroupViewModel>()
+    LaunchedEffect(link) { link?.let(vm::openLink) }
     val state by vm.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = LocalActivity.current
@@ -183,6 +187,12 @@ private fun GroupEntry(navigator: Navigator) {
             onImportFile = { importLauncher.launch(arrayOf("*/*")) },
             onInvite = { navigator.navigate(GroupInviteRoute()) },
             onLeave = vm::leave,
+            hub = HubActions(
+                onSave = vm::setHub,
+                onClearAddressError = vm::clearHubAddressError,
+                onSyncNow = vm::syncHub,
+                onRemove = vm::removeHub,
+            ),
         ),
     )
 }

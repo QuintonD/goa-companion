@@ -8,8 +8,8 @@ import dagger.multibindings.IntoSet
 import dev.quinton.goa.core.datastore.draft.DraftStore
 import dev.quinton.goa.core.datastore.settings.SettingsDataSource
 import dev.quinton.goa.core.datastore.timer.TimerStateStore
+import dev.quinton.goa.core.domain.backup.BackupFiles
 import dev.quinton.goa.core.domain.draft.DraftMethod
-import dev.quinton.goa.core.model.settings.AppSettings
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
@@ -28,30 +28,20 @@ import kotlinx.serialization.json.jsonPrimitive
  * keep owning their schemas and migrations: a backup carries exactly what the store holds.
  */
 
-/** A newer build's unknown keys are dropped, and its unknown enum values fall back to the default. */
-private val lenient = Json {
-    ignoreUnknownKeys = true
-    coerceInputValues = true
-}
-
-/** App settings: theme, owned products, sounds, haptics (and any field added to [AppSettings] later). */
+/** App settings: theme, owned products, sounds, haptics (and any field added to `AppSettings` later). */
 internal class SettingsBackup @Inject constructor(private val source: SettingsDataSource) : BackupContributor {
     override val key = KEY
 
-    override suspend fun export(): JsonElement = lenient.encodeToJsonElement(
-        AppSettings.serializer(),
-        source.settings.first(),
-    )
+    override suspend fun export(): JsonElement = BackupFiles.settingsJson(source.settings.first())
 
     override suspend fun import(data: JsonElement, mode: ImportMode, useBackupSettings: Boolean) {
         if (!useBackupSettings) return
-        val settings =
-            runCatching { lenient.decodeFromJsonElement(AppSettings.serializer(), data) }.getOrNull() ?: return
+        val settings = BackupFiles.settings(data) ?: return
         source.update { settings }
     }
 
     companion object {
-        const val KEY = "settings"
+        const val KEY = BackupFiles.SETTINGS_KEY
     }
 }
 

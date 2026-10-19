@@ -7,6 +7,8 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.presentation.timer.ActiveUiState
+import dev.quinton.goa.core.presentation.timer.TimerUiState
 import dev.quinton.goa.feature.timer.ui.presets.PresetEditActions
 import dev.quinton.goa.feature.timer.ui.presets.PresetEditScreen
 import dev.quinton.goa.feature.timer.ui.presets.PresetsActions
@@ -14,10 +16,8 @@ import dev.quinton.goa.feature.timer.ui.presets.PresetsScreen
 import dev.quinton.goa.feature.timer.ui.preview.TimerPreviewData
 import dev.quinton.goa.feature.timer.ui.setup.MatchSetupScreen
 import dev.quinton.goa.feature.timer.ui.setup.SetupActions
-import dev.quinton.goa.feature.timer.ui.timer.ActiveUiState
 import dev.quinton.goa.feature.timer.ui.timer.TimerActions
 import dev.quinton.goa.feature.timer.ui.timer.TimerScreen
-import dev.quinton.goa.feature.timer.ui.timer.TimerUiState
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

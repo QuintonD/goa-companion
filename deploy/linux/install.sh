@@ -271,7 +271,8 @@ fi
 say "Configuring the hub for $public_url"
 systemctl stop goa-hub
 if [[ -n "$invite" ]]; then
-	if hub join "$invite" --data "$data_dir"; then
+	# On standard input (printf is a builtin): the group key never shows in a process list.
+	if printf '%s\n' "$invite" | hub join --data "$data_dir"; then
 		note "Joined the group."
 	else
 		warn "Joining failed (see above). Run this script again with a fresh invite, or see deploy/README.md."

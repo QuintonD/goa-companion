@@ -4,19 +4,12 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import dev.quinton.goa.core.presentation.draft.DraftEnvironment
 import java.util.UUID
 import javax.inject.Inject
 import kotlin.random.Random
 
-/** Ids, seeds and time for drafts — injectable so ViewModel tests are deterministic. */
-interface DraftEnvironment {
-    fun newId(): String
-
-    fun newSeed(): Long
-
-    fun nowMillis(): Long
-}
-
+/** The real [DraftEnvironment] (the interface is shared with the hub in `core:presentation`). */
 internal class SystemDraftEnvironment @Inject constructor() : DraftEnvironment {
     override fun newId(): String = UUID.randomUUID().toString()
 

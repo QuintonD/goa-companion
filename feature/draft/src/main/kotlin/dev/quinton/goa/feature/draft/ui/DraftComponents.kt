@@ -77,6 +77,13 @@ import dev.quinton.goa.core.model.catalog.HeroStats
 import dev.quinton.goa.core.model.catalog.Role as HeroRole
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.presentation.draft.HeroInfo
+import dev.quinton.goa.core.presentation.draft.StepToken
+import dev.quinton.goa.core.presentation.draft.TileState
+import dev.quinton.goa.core.presentation.draft.label
+import dev.quinton.goa.core.presentation.draft.teamGlyph
+import dev.quinton.goa.core.presentation.draft.teamName
+import dev.quinton.goa.core.presentation.draft.tokens
 
 /** Motion tokens (docs/DESIGN.md: 200–300 ms emphasised). */
 internal object DraftMotion {
@@ -92,89 +99,6 @@ internal fun rememberReducedMotion(): Boolean {
     return remember(context) {
         Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
     }
-}
-
-internal fun teamGlyph(team: Team): String = if (team == Team.RED) "◆" else "●"
-
-internal fun teamName(team: Team): String = if (team == Team.RED) "Red" else "Blue"
-
-/** "◆ Red" — team identity is never colour-only. */
-internal fun teamLabel(team: Team): String = "${teamGlyph(team)} ${teamName(team)}"
-
-internal fun actionName(action: DraftAction): String = if (action == DraftAction.BAN) "Ban" else "Pick"
-
-/** "1 game", "2 games"; [many] for irregular plurals ("heroes"). */
-internal fun plural(count: Int, one: String, many: String = "${one}s"): String =
-    "$count ${if (count == 1) one else many}"
-
-/** Official role names (rulebook p.21 Hero Profile card). */
-internal val HeroRole.label: String
-    get() = when (this) {
-        HeroRole.TACTICIAN -> "Tactician"
-        HeroRole.DISABLER -> "Disabler"
-        HeroRole.DURABLE -> "Durable"
-        HeroRole.MELEE -> "Melee"
-        HeroRole.PUSHER -> "Pusher"
-        HeroRole.DAMAGER -> "Damager"
-        HeroRole.SNIPER -> "Sniper"
-        HeroRole.TOKENS -> "Tokens"
-        HeroRole.FARMING -> "Farming"
-        HeroRole.HEALER -> "Healer"
-    }
-
-/** One of a hero's starting cards, for the draft's hero peek. */
-@Immutable
-data class CardInfo(val name: String, val color: CardColor, val tier: Int?)
-
-/**
- * The five starting cards (RB p.6, Hero Setup), selected from the catalog by [StartingCards]:
- * Gold, Silver, then Tier I by colour. Basic cards whose own text says they start in the deck
- * (Takahide's extra golds) are left out, since card text overrides the rulebook (RB p.3).
- */
-internal fun startingCards(hero: Hero): List<CardInfo> =
-    StartingCards.of(hero).map { CardInfo(it.name, it.color, it.tier) }
-
-/** Display data for one hero; unknown ids render as "Unknown hero" (ARCHITECTURE.md). */
-@Immutable
-data class HeroInfo(
-    val id: String,
-    val name: String,
-    val title: String = "",
-    val portrait: String? = null,
-    val complexity: Int? = null,
-    val known: Boolean = true,
-    val roles: List<HeroRole> = emptyList(),
-    val stats: HeroStats = HeroStats(),
-    val startingCards: List<CardInfo> = emptyList(),
-) {
-    companion object {
-        fun of(hero: Hero) = HeroInfo(
-            id = hero.id,
-            name = hero.name,
-            title = hero.title,
-            portrait = hero.portrait,
-            complexity = hero.complexity,
-            roles = hero.roles,
-            stats = hero.stats,
-            startingCards = startingCards(hero),
-        )
-
-        fun unknown(id: String) = HeroInfo(id, "Unknown hero", known = false)
-    }
-}
-
-internal fun Map<String, HeroInfo>.info(id: String): HeroInfo = this[id] ?: HeroInfo.unknown(id)
-
-/** Visual state of a hero tile on the board. */
-sealed interface TileState {
-    data object Available : TileState
-
-    /** Not choosable now (e.g. dealt to another seat) but still in play. */
-    data object Inactive : TileState
-
-    data class Banned(val team: Team) : TileState
-
-    data class Picked(val team: Team) : TileState
 }
 
 /**
@@ -351,17 +275,6 @@ internal fun ConcealedTile(team: Team, modifier: Modifier = Modifier) {
     ) {
         Icon(Icons.Filled.Lock, contentDescription = null, tint = teamColor(team))
     }
-}
-
-/** One step in a sequence preview, already resolved to a display team label. */
-@Immutable
-data class StepToken(val label: String, val action: DraftAction, val team: Team?, val hidden: Boolean = false)
-
-/** Tokens for slot steps; [teamA] maps A/B to Red/Blue once the coin is known. */
-internal fun List<SlotStep>.tokens(teamA: Team? = null): List<StepToken> = map { step ->
-    val team = teamA?.let { if (step.team == TeamSlot.A) it else it.opponent }
-    val who = team?.let { teamGlyph(it) } ?: step.team.name
-    StepToken("${actionName(step.action)} $who", step.action, team, step.hidden)
 }
 
 /**

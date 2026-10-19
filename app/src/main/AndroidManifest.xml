@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- No INTERNET permission: the app is offline by design (AGENTS.md). Group sync (ADR-025) goes
-     phone to phone over Nearby; its permissions come from feature/sync's manifest. -->
+<!-- The only server the app talks to is the group's own hub (ADR-030), over HTTPS only in release
+     builds (network_security_config). Nearby sync (ADR-025) stays phone to phone; its permissions
+     come from feature/sync's manifest. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Guard: never let a library (Play services, ML Kit) merge INTERNET in. -->
-    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+    <!-- Hub sync (ADR-030 §5): WorkManager posts this phone's sealed sync file to the hub. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- WorkManager's foreground-worker support: hub sync never runs as a foreground service
+         (no setForeground, no expedited work), and the timer has none either (ADR-007). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
 
     <application
         android:name=".GoaApplication"
@@ -17,7 +21,37 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:enableOnBackInvokedCallback="true"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/Theme.Goa.Splash">
+
+        <!-- The code scanner (ADR-025) brings Google's datatransport usage logger; its CCT backend is
+             the part that uploads. Without the backend's registration the logger has nowhere to send
+             and drops its events, so INTERNET (for the hub) doesn't switch it on. -->
+        <service
+            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+            tools:ignore="MissingClass"
+            tools:node="merge">
+            <meta-data
+                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+                tools:node="remove" />
+        </service>
+
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            tools:node="remove" />
+
+        <!-- WorkManager is started by GoaApplication (Configuration.Provider, Hilt workers), not by
+             androidx.startup. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
 
         <activity
             android:name=".MainActivity"

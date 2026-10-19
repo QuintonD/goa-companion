@@ -19,8 +19,8 @@ import dev.quinton.goa.core.domain.timer.TimerSnapshot
 import dev.quinton.goa.core.domain.timer.TimerStatus
 import dev.quinton.goa.core.navigation.EXTRA_OPEN_TAB
 import dev.quinton.goa.core.navigation.TopLevelTab
+import dev.quinton.goa.core.presentation.timer.TimerText
 import dev.quinton.goa.feature.timer.R
-import dev.quinton.goa.feature.timer.TimerText
 import javax.inject.Inject
 
 /** How the background "phase over" alert sounds, from Settings → Sounds and Haptics. */
@@ -190,11 +190,7 @@ class AndroidTimerNotifier @Inject constructor(
         ensureChannels()
         if (!alertChannelBlocked()) sounder.sound(style)
         if (!canPost()) return
-        val nextText = if (snapshot.preset.autoAdvance) {
-            "Now: ${TimerText.stepTitle(snapshot.step)}"
-        } else {
-            "Overtime is counting · ${TimerText.nextText(snapshot)}"
-        }
+        val nextText = TimerText.alertBody(snapshot)
         val builder = NotificationCompat.Builder(context, CHANNEL_ALERT)
             .setSmallIcon(R.drawable.ic_stat_timer)
             .setContentTitle("Time's up: $endedTitle")

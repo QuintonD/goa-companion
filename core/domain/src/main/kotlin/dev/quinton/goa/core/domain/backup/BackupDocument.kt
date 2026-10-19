@@ -1,11 +1,15 @@
-package dev.quinton.goa.core.data.backup
+package dev.quinton.goa.core.domain.backup
 
 import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.domain.sync.StampedEloConfig
+import dev.quinton.goa.core.domain.sync.SyncDocument
+import dev.quinton.goa.core.domain.sync.SyncMerge
 import dev.quinton.goa.core.domain.sync.UnknownHeroes
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.model.sync.Deletion
 import dev.quinton.goa.core.model.sync.PlayerMerge
 import java.time.Instant
@@ -16,7 +20,8 @@ import kotlinx.serialization.json.JsonElement
 
 /**
  * Versioned, human-readable backup of all user data (PRODUCT.md §3). Ratings are not included:
- * they are rebuilt from the match log after import (ADR-003).
+ * they are rebuilt from the match log after import (ADR-003). Pure, so the phones (core:data's
+ * `BackupRepository`) and the hub's web export write and read the very same file (ADR-030 §1).
  *
  * Versioning: bump [CURRENT_VERSION] whenever an older app would lose data from a newer file
  * (it ignores unknown keys, so it would silently drop a new field), and keep [BackupCodec]
@@ -48,7 +53,7 @@ data class BackupDocument(
     val deletions: List<Deletion> = emptyList(),
     /** Duplicate players merged into others (v4). */
     val playerMerges: List<PlayerMerge> = emptyList(),
-    /** Data from [BackupContributor]s (timer presets, custom draft methods, …) keyed by [BackupContributor.key]. */
+    /** Data from the backup contributors (settings, timer presets, custom draft methods, …) keyed by their key. */
     val extras: Map<String, JsonElement> = emptyMap(),
 ) {
     companion object {
@@ -193,4 +198,84 @@ object BackupCodec {
 
     private fun dateOf(epochMillis: Long): String =
         Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate().toString()
+}
+
+/**
+ * The file's parts that the group shares (ADR-025), and how a backup is made from them: one rule
+ * for the phones' Room export and the hub's web export, so both write the same file.
+ */
+object BackupFiles {
+    /** [BackupDocument.extras] key of the app settings (theme, owned products, sounds, haptics, …). */
+    const val SETTINGS_KEY = "settings"
+
+    /** A newer build's unknown keys are dropped, and its unknown enum values fall back to the default. */
+    private val lenient = Json {
+        ignoreUnknownKeys = true
+        coerceInputValues = true
+    }
+
+    /**
+     * The backup of [data] (records, tombstones, merges and its rating constants): the constants
+     * only when they aren't the defaults, their change time only when they were ever changed.
+     */
+    fun export(
+        data: SyncDocument,
+        exportedAt: Long,
+        appVersion: String?,
+        extras: Map<String, JsonElement> = emptyMap(),
+    ): BackupDocument = BackupDocument(
+        exportedAt = exportedAt,
+        appVersion = appVersion,
+        players = data.players,
+        matches = data.matches,
+        drafts = data.drafts,
+        eloConfig = data.eloConfig.config.takeIf { it != EloConfig.DEFAULT },
+        eloConfigUpdatedAt = data.eloConfig.updatedAt.takeIf { it > 0 },
+        deletions = data.deletions,
+        playerMerges = data.playerMerges,
+        extras = extras,
+    )
+
+    /**
+     * The file's records as a [SyncDocument], stored as they are: unknown hero ids included (read
+     * as "Unknown hero"), `updatedAt` kept. Its rating constants are not part of it: those are a
+     * settings choice ([ImportMode]).
+     */
+    fun records(document: BackupDocument): SyncDocument = SyncMerge.normalize(
+        SyncDocument(
+            players = document.players,
+            matches = document.matches,
+            drafts = document.drafts,
+            deletions = document.deletions,
+            playerMerges = document.playerMerges,
+        ),
+    )
+
+    /** [ImportMode.MERGE] of the file's records into [local]: like a group sync, the later edit wins. */
+    fun merge(local: SyncDocument, document: BackupDocument): SyncDocument =
+        SyncMerge.merge(SyncMerge.normalize(local), records(document))
+
+    /**
+     * The rating constants a file stands for when its settings are used: a file without them was
+     * made with the defaults.
+     */
+    fun eloConfig(document: BackupDocument): EloConfig = (document.eloConfig ?: EloConfig.DEFAULT).sanitized()
+
+    /**
+     * Replace restores the constants as they were: the file's change time is kept, so an old
+     * backup's constants never override newer ones from the group.
+     */
+    fun restoredEloConfig(document: BackupDocument): StampedEloConfig {
+        val stamp = document.eloConfigUpdatedAt ?: if (document.eloConfig != null) 1 else 0
+        return StampedEloConfig(eloConfig(document), stamp)
+    }
+
+    /** The `settings` extra: [settings] as the app writes it (defaults left out). */
+    fun settingsJson(
+        settings: AppSettings,
+    ): JsonElement = lenient.encodeToJsonElement(AppSettings.serializer(), settings)
+
+    /** The `settings` extra read back, or null if it can't be. */
+    fun settings(data: JsonElement): AppSettings? =
+        runCatching { lenient.decodeFromJsonElement(AppSettings.serializer(), data) }.getOrNull()
 }

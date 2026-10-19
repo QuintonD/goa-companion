@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.presentation.draft.teamGlyph
+import dev.quinton.goa.core.presentation.draft.teamName
 
 /**
  * The Tie Breaker coin. Each new [flipCount] spins it (two 300 ms half-turns per landing, snaps

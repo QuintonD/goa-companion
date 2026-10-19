@@ -108,9 +108,10 @@ fun FlowContent.hubButton(
     block: kotlinx.html.BUTTON.() -> Unit = {},
 ) {
     button(type = type, classes = style.css) {
+        // First: kotlinx.html streams the tag, so attributes (htmx, data-*) must come before content.
+        block()
         icon?.let { icon(it) }
         span { +label }
-        block()
     }
 }
 
@@ -136,16 +137,16 @@ fun FlowContent.chip(
     if (href != null) {
         a(href, classes = css) {
             if (selected) attributes["aria-current"] = "true"
+            block() // attributes (htmx); before the content, which kotlinx.html streams
             if (selected) icon(Icons.CHECK)
             span { +label }
-            block()
         }
     } else {
         button(type = ButtonType.button, classes = css) {
             attributes["aria-pressed"] = selected.toString()
+            block() // attributes (htmx); before the content, which kotlinx.html streams
             if (selected) icon(Icons.CHECK)
             span { +label }
-            block()
         }
     }
 }
@@ -183,11 +184,16 @@ fun FlowContent.playerName(player: Player?) {
 fun FlowContent.teamBadge(team: Team, showLabel: Boolean = true) {
     val (css, mark, label) = if (team == Team.RED) Triple("team-red", "◆", "Red") else Triple("team-blue", "●", "Blue")
     span("team-badge $css") {
+        // Attributes before children: kotlinx.html streams the tag.
+        if (!showLabel) {
+            attributes["role"] = "img"
+            attributes["aria-label"] = label
+        }
         span("team-mark") {
             attributes["aria-hidden"] = "true"
             +mark
         }
-        if (showLabel) span { +label } else attributes["aria-label"] = label
+        if (showLabel) span { +label }
     }
 }
 

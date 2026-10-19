@@ -106,21 +106,30 @@ import dev.quinton.goa.core.domain.teams.OddSeatMode
 import dev.quinton.goa.core.domain.teams.SeatLayouts
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.presentation.draft.MethodOption
+import dev.quinton.goa.core.presentation.draft.PlayerOption
+import dev.quinton.goa.core.presentation.draft.ResumeInfo
+import dev.quinton.goa.core.presentation.draft.SetupForm
+import dev.quinton.goa.core.presentation.draft.SetupStage
+import dev.quinton.goa.core.presentation.draft.SetupUiState
+import dev.quinton.goa.core.presentation.draft.TeamMode
+import dev.quinton.goa.core.presentation.draft.TileState
+import dev.quinton.goa.core.presentation.draft.originLabel
+import dev.quinton.goa.core.presentation.draft.plural
+import dev.quinton.goa.core.presentation.draft.ratingLabel
+import dev.quinton.goa.core.presentation.draft.teamLabel
+import dev.quinton.goa.core.presentation.draft.teamName
+import dev.quinton.goa.core.presentation.draft.tokens
 import dev.quinton.goa.feature.draft.ui.ChoiceCard
 import dev.quinton.goa.feature.draft.ui.HeroTile
 import dev.quinton.goa.feature.draft.ui.PreviewData
 import dev.quinton.goa.feature.draft.ui.SectionCard
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
 import dev.quinton.goa.feature.draft.ui.TieBreakerCoin
-import dev.quinton.goa.feature.draft.ui.TileState
 import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
 import dev.quinton.goa.feature.draft.ui.goaSegmentedColors
 import dev.quinton.goa.feature.draft.ui.goaTonalButtonColors
-import dev.quinton.goa.feature.draft.ui.plural
 import dev.quinton.goa.feature.draft.ui.teamFilterChipColors
-import dev.quinton.goa.feature.draft.ui.teamLabel
-import dev.quinton.goa.feature.draft.ui.teamName
-import dev.quinton.goa.feature.draft.ui.tokens
 import kotlin.math.roundToInt
 
 /** Callbacks from the setup wizard; a single object keeps the stateless screen signature short. */
@@ -537,7 +546,7 @@ private fun PlayerRow(option: PlayerOption, selected: Boolean, onToggle: () -> U
             Column(Modifier.weight(1f)) {
                 Text(option.player.name, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    ratingLabel(option),
+                    ratingLabel(option.rating),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -545,13 +554,6 @@ private fun PlayerRow(option: PlayerOption, selected: Boolean, onToggle: () -> U
             Checkbox(checked = selected, onCheckedChange = null)
         }
     }
-}
-
-private fun ratingLabel(option: PlayerOption): String {
-    val r = option.rating ?: return "Unrated"
-    if (r.games == 0) return "Unrated"
-    val provisional = if (r.provisional) " · provisional" else ""
-    return "Elo ${r.value.roundToInt()} · ${plural(r.games, "game")}$provisional"
 }
 
 // ---------------------------------------------------------------- Teams
@@ -938,12 +940,6 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
             choosing = false
         })
     }
-}
-
-private fun originLabel(origin: MethodOrigin) = when (origin) {
-    MethodOrigin.RULEBOOK -> "Rulebook"
-    MethodOrigin.HOUSE -> "House"
-    MethodOrigin.CUSTOM -> "Custom"
 }
 
 @Composable

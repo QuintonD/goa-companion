@@ -185,6 +185,9 @@ object NavSheet {
 /** Opens a sync file: [uri] is a content URI from the file picker, the share sheet or a file manager. */
 @Serializable data class SyncFileImportRoute(val uri: String) : NavKey
 
+/** The Group screen joining the group in an invite link opened from outside (`https://<hub>/join#…`, ADR-030 §6). */
+@Serializable data class JoinGroupLinkRoute(val link: String) : NavKey
+
 // Settings
 @Serializable data object SettingsRoute : NavKey
 

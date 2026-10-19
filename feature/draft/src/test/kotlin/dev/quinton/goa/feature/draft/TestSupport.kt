@@ -3,11 +3,11 @@ package dev.quinton.goa.feature.draft
 import dev.quinton.goa.core.domain.draft.DraftJson
 import dev.quinton.goa.core.domain.draft.DraftMethod
 import dev.quinton.goa.core.domain.draft.DraftMethodsFile
-import dev.quinton.goa.feature.draft.data.DraftEnvironment
-import dev.quinton.goa.feature.draft.data.DraftProgress
+import dev.quinton.goa.core.presentation.draft.DraftEnvironment
+import dev.quinton.goa.core.presentation.draft.DraftProgress
+import dev.quinton.goa.core.presentation.draft.MethodLibrary
+import dev.quinton.goa.core.presentation.draft.SetupForm
 import dev.quinton.goa.feature.draft.data.DraftRepository
-import dev.quinton.goa.feature.draft.data.MethodLibrary
-import dev.quinton.goa.feature.draft.setup.SetupForm
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

@@ -11,9 +11,9 @@ import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.domain.timer.TimerEngine
+import dev.quinton.goa.core.presentation.timer.TimerCommand
 import dev.quinton.goa.feature.timer.FakeClocks
 import dev.quinton.goa.feature.timer.FileTimerAssets
-import dev.quinton.goa.feature.timer.session.TimerCommand
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Test

@@ -58,9 +58,14 @@ import dev.quinton.goa.core.domain.draft.TeamSlot
 import dev.quinton.goa.core.domain.draft.ban
 import dev.quinton.goa.core.domain.draft.pick
 import dev.quinton.goa.core.model.draft.DraftAction
+import dev.quinton.goa.core.presentation.draft.MethodEditUiState
+import dev.quinton.goa.core.presentation.draft.PoolKind
+import dev.quinton.goa.core.presentation.draft.PreviewLayout
+import dev.quinton.goa.core.presentation.draft.StepSection
+import dev.quinton.goa.core.presentation.draft.actionName
+import dev.quinton.goa.core.presentation.draft.poolText
 import dev.quinton.goa.feature.draft.ui.SectionCard
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
-import dev.quinton.goa.feature.draft.ui.actionName
 import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
 import dev.quinton.goa.feature.draft.ui.goaSegmentedColors
 import dev.quinton.goa.feature.draft.ui.goaTonalIconColors
@@ -374,8 +379,9 @@ private fun PreviewCard(state: MethodEditUiState, actions: MethodEditActions) {
             }
         }
         Spacer(Modifier.width(Spacing.sm))
-        if (preview.error != null) {
-            Text(preview.error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+        val error = preview.error
+        if (error != null) {
+            Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
         } else {
             SequenceStrip(preview.tokens, modifier = Modifier.padding(top = Spacing.sm))
             if (preview.heroesNeeded > 0) {

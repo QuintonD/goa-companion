@@ -42,7 +42,8 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.timer.TimerText
+import dev.quinton.goa.core.presentation.timer.SummaryUiState
+import dev.quinton.goa.core.presentation.timer.TimerText
 import dev.quinton.goa.feature.timer.ui.components.timerDigits
 
 @Composable

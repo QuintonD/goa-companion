@@ -50,9 +50,11 @@ import dev.quinton.goa.core.domain.draft.DraftError
 import dev.quinton.goa.core.domain.draft.DraftSession
 import dev.quinton.goa.core.domain.draft.SeatAssignment
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.presentation.draft.BoardUiState
+import dev.quinton.goa.core.presentation.draft.DraftBoard
+import dev.quinton.goa.core.presentation.draft.info
+import dev.quinton.goa.core.presentation.draft.teamLabel
 import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
-import dev.quinton.goa.feature.draft.ui.info
-import dev.quinton.goa.feature.draft.ui.teamLabel
 
 /** Finished draft: arrange heroes on seats/pilots, then save and hand off to match setup. */
 @Composable
@@ -78,11 +80,7 @@ internal fun CompletionContent(state: BoardUiState, session: DraftSession, actio
                     modifier = Modifier.semantics { heading() },
                 )
                 Text(
-                    when (session.seatLock) {
-                        null -> "Tap two heroes on the same team to swap who plays them."
-                        DraftError.PlayerDraftFixed -> "Everyone plays the hero chosen for them."
-                        else -> "Everyone plays the hero they picked from their own hand."
-                    },
+                    DraftBoard.completionHint(session),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

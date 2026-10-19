@@ -19,7 +19,11 @@ Run from the project root and report each result honestly (pass / fail / skipped
 7. Check data and assets: catalog validation green; `tools/catalog-import/REPORT.md` has no
    new unresolved disagreements; every file in `assets/official/` is in `official/SOURCES.md`;
    new fonts/sounds listed in `third_party/`.
-8. Check privacy rules: merged manifest has no `INTERNET` permission
-   (`app/build/intermediates/merged_manifests/`); `git remote -v` shows no public remote.
+8. Check privacy rules: the merged release manifest
+   (`app/build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml`)
+   lists only the intended permissions — `INTERNET` is allowed for the group's hub (ADR-030), the
+   datatransport `CctBackendFactory` registration is absent (Google's logger can't upload), and
+   `networkSecurityConfig` is the HTTPS-only one; the only host the app contacts is the group's hub
+   (no other URLs in app code); `git remote -v` shows no public remote.
 
 Never report "verified on device" unless step 5 actually ran on hardware.

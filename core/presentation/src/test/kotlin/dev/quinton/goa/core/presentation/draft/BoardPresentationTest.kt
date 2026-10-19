@@ -1,4 +1,4 @@
-package dev.quinton.goa.feature.draft
+package dev.quinton.goa.core.presentation.draft
 
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.domain.draft.DraftCommand
@@ -15,16 +15,12 @@ import dev.quinton.goa.core.domain.teams.OddSeatMode
 import dev.quinton.goa.core.domain.teams.SeatLayouts
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.match.Team
-import dev.quinton.goa.core.testing.TestCatalog
-import dev.quinton.goa.feature.draft.board.PoolView
-import dev.quinton.goa.feature.draft.ui.TileState
-import dev.quinton.goa.feature.draft.ui.startingCards
 import org.junit.Test
 
 /** What the board shows: hidden choices never show through, starting cards come from the catalog. */
 class BoardPresentationTest {
     private val house = bundledMethods.methods.first { it.id == "house" }
-    private val heroIds = TestCatalog.heroes.map { it.id }
+    private val heroIds = FakeCatalog.catalog().heroes.map { it.id }
 
     private fun session(method: DraftMethod): DraftSession {
         val seats = SeatLayouts.build(listOf("a", "b"), listOf("c", "d"), OddSeatMode.HANDICAP).getOrThrow()
@@ -33,7 +29,7 @@ class BoardPresentationTest {
 
     @Test
     fun `starting cards are the gold, silver and three tier I cards, found by tier and colour`() {
-        val cards = startingCards(TestCatalog.heroes.first())
+        val cards = startingCards(FakeCatalog.catalog().heroes.first())
         assertThat(cards.map { it.color })
             .containsExactly(CardColor.GOLD, CardColor.SILVER, CardColor.RED, CardColor.GREEN, CardColor.BLUE)
             .inOrder()
