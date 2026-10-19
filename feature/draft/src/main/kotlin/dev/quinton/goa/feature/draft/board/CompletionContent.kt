@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.draft.board
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -40,6 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.EngravedRule
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamMark
@@ -55,14 +57,50 @@ import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
 import dev.quinton.goa.feature.draft.ui.info
 import dev.quinton.goa.feature.draft.ui.teamLabel
 
-/** Finished draft: arrange heroes on seats/pilots, then save and hand off to match setup. */
+/**
+ * Finished draft: arrange heroes on seats/pilots, then save and hand off to match setup. On a
+ * phone held upright the actions (Set up match, Log result later, Try on the board) stay pinned
+ * under the teams, each one tap away however many heroes there are; on a short screen
+ * (landscape) they scroll with the rest.
+ */
 @Composable
 internal fun CompletionContent(state: BoardUiState, session: DraftSession, actions: BoardActions) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        if (maxHeight >= PINNED_MIN_HEIGHT) {
+            Column(Modifier.fillMaxSize()) {
+                CompletionList(state, session, actions, withActions = false, modifier = Modifier.weight(1f))
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    Column {
+                        EngravedRule()
+                        CompletionActions(
+                            state,
+                            session,
+                            actions,
+                            dealAgain = false,
+                            modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.sm),
+                        )
+                    }
+                }
+            }
+        } else {
+            CompletionList(state, session, actions, withActions = true, modifier = Modifier.fillMaxSize())
+        }
+    }
+}
+
+@Composable
+private fun CompletionList(
+    state: BoardUiState,
+    session: DraftSession,
+    actions: BoardActions,
+    withActions: Boolean,
+    modifier: Modifier = Modifier,
+) {
     val assignments = DraftEngine.assignments(session)
     LazyColumn(
         contentPadding = PaddingValues(Spacing.screen),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier,
     ) {
         item {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -104,62 +142,87 @@ internal fun CompletionContent(state: BoardUiState, session: DraftSession, actio
                 )
             }
         }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Button(
-                    onClick = { actions.finish(openMatchSetup = true) },
-                    enabled = !state.local.saving,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                ) {
-                    Icon(Icons.Outlined.Timer, contentDescription = null)
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text("Set up match")
-                }
-                OutlinedButton(
-                    onClick = { actions.finish(openMatchSetup = false) },
-                    enabled = !state.local.saving,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                ) {
-                    Icon(Icons.AutoMirrored.Outlined.EventNote, contentDescription = null)
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text("Log result later")
-                }
-                OutlinedButton(
-                    onClick = {
-                        // Pick order per team: the board's opening places heroes in that order (p.20).
-                        val picks = session.picks
-                        actions.tryOnBoard(
-                            red = picks.filter { it.team == Team.RED }.map { it.heroId },
-                            blue = picks.filter { it.team == Team.BLUE }.map { it.heroId },
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                ) {
-                    Icon(Icons.Outlined.Hexagon, contentDescription = null)
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text("Try on the board")
-                }
-                if (session.poolEditable()) {
-                    OutlinedButton(
-                        onClick = actions::reroll,
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                    ) {
-                        Icon(Icons.Outlined.Casino, contentDescription = null)
-                        Spacer(Modifier.width(Spacing.sm))
-                        Text("Deal again")
-                    }
-                }
-                Text(
-                    "Both save a pending match to the log with these seats.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                )
-            }
+        if (session.poolEditable() && !withActions) {
+            item { DealAgain(actions) }
+        }
+        if (withActions) {
+            item { CompletionActions(state, session, actions, dealAgain = true) }
         }
     }
 }
+
+/** Set up match and Log result later (both save a pending match), Try on the board, and Deal again when allowed. */
+@Composable
+private fun CompletionActions(
+    state: BoardUiState,
+    session: DraftSession,
+    actions: BoardActions,
+    dealAgain: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Button(
+            onClick = { actions.finish(openMatchSetup = true) },
+            enabled = !state.local.saving,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+        ) {
+            Icon(Icons.Outlined.Timer, contentDescription = null)
+            Spacer(Modifier.width(Spacing.sm))
+            Text("Set up match")
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            OutlinedButton(
+                onClick = { actions.finish(openMatchSetup = false) },
+                enabled = !state.local.saving,
+                contentPadding = PaddingValues(horizontal = Spacing.sm),
+                modifier = Modifier.weight(1f).heightIn(min = 52.dp),
+            ) {
+                Icon(Icons.AutoMirrored.Outlined.EventNote, contentDescription = null)
+                Spacer(Modifier.width(Spacing.xs))
+                Text("Log result later", textAlign = TextAlign.Center)
+            }
+            OutlinedButton(
+                onClick = {
+                    // Pick order per team: the board's opening places heroes in that order (p.20).
+                    val picks = session.picks
+                    actions.tryOnBoard(
+                        red = picks.filter { it.team == Team.RED }.map { it.heroId },
+                        blue = picks.filter { it.team == Team.BLUE }.map { it.heroId },
+                    )
+                },
+                contentPadding = PaddingValues(horizontal = Spacing.sm),
+                modifier = Modifier.weight(1f).heightIn(min = 52.dp),
+            ) {
+                Icon(Icons.Outlined.Hexagon, contentDescription = null)
+                Spacer(Modifier.width(Spacing.xs))
+                Text("Try on the board", textAlign = TextAlign.Center)
+            }
+        }
+        if (dealAgain && session.poolEditable()) DealAgain(actions)
+        Text(
+            "Set up match and Log result later save a pending match with these seats.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
+private fun DealAgain(actions: BoardActions) {
+    OutlinedButton(
+        onClick = actions::reroll,
+        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+    ) {
+        Icon(Icons.Outlined.Casino, contentDescription = null)
+        Spacer(Modifier.width(Spacing.sm))
+        Text("Deal again")
+    }
+}
+
+/** Below this height (landscape) the actions scroll with the teams instead of being pinned. */
+private val PINNED_MIN_HEIGHT = 560.dp
 
 @Composable
 private fun TeamResult(
