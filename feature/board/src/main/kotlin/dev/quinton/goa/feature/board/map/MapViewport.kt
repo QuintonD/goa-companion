@@ -88,10 +88,15 @@ class MapViewport {
     /** What floats over the map changed; the Lane or Fit view follows unless the user moved it. */
     fun updateInsets(bottom: Float, end: Float, top: Float = topInset) {
         if (bottom == bottomInset && end == endInset && top == topInset) return
+        // The selection panel closed: the view had made room for it, so now fill the space it
+        // leaves rather than show a band of empty water where the panel was.
+        val grew = bottom < bottomInset || end < endInset
         bottomInset = bottom
         endInset = end
         topInset = top
-        if (layout != null) reframe()
+        if (layout == null) return
+        reframe()
+        if (grew && mode == ViewMode.MOVED) pan = fillPan(pan, zoom)
     }
 
     private fun reframe() {
@@ -120,10 +125,28 @@ class MapViewport {
         return minOf(w / (region.width * unit).coerceAtLeast(1f), h / (region.height * unit).coerceAtLeast(1f))
     }
 
-    /** The Lane view's zoom: comfortable hexes when cropping the sides is allowed, else the region fits. */
+    /**
+     * The Lane view's zoom. When cropping is allowed, only the map's sides are cropped: the Lane's
+     * length (both teams' hero spawn points, the starting Battle Zone) stays in view with hexes
+     * about [minHexPx] across, a little smaller ([LANE_SHRINK]) if that is what it takes. Else the
+     * whole region fits.
+     */
     private fun laneZoom(region: Rect): Float {
         val fit = fitZoom(region)
-        return (if (laneMayCrop) maxOf(fit, comfortableZoom) else fit).coerceIn(minZoom, maxZoom)
+        if (!laneMayCrop) return fit.coerceIn(minZoom, maxZoom)
+        val length = lengthZoom(region)
+        val lane = minOf(comfortableZoom, maxOf(length, comfortableZoom * LANE_SHRINK))
+        return maxOf(fit, lane).coerceIn(minZoom, maxZoom)
+    }
+
+    /** The zoom that fits [region]'s longer side (the Lane's length) into the visible part. */
+    private fun lengthZoom(region: Rect): Float {
+        val v = visible
+        return if (region.height >= region.width) {
+            (v.height - 2 * MARGIN_PX).coerceAtLeast(1f) / (region.height * unit).coerceAtLeast(1f)
+        } else {
+            (v.width - 2 * MARGIN_PX).coerceAtLeast(1f) / (region.width * unit).coerceAtLeast(1f)
+        }
     }
 
     private fun applyLane(region: Rect) {
@@ -264,6 +287,19 @@ class MapViewport {
         return Offset(candidate.x.coerceIn(minX, maxX), candidate.y.coerceIn(minY, maxY))
     }
 
+    /**
+     * [candidate], moved as little as needed so that along each axis where the map is larger than
+     * the visible part, the map covers it edge to edge (no empty band); other axes as [clampPan].
+     */
+    private fun fillPan(candidate: Offset, z: Float): Offset {
+        val v = visible
+        val w = content.width * z
+        val h = content.height * z
+        val x = if (w >= v.width) candidate.x.coerceIn(v.right - w, v.left) else candidate.x
+        val y = if (h >= v.height) candidate.y.coerceIn(v.bottom - h, v.top) else candidate.y
+        return clampPan(Offset(x, y), z)
+    }
+
     enum class ViewMode { LANE, FIT, MOVED }
 
     private companion object {
@@ -272,5 +308,8 @@ class MapViewport {
         const val DOUBLE_TAP_FACTOR = 2f
         const val MIN_ZOOM_SLACK = 0.9f
         const val MARGIN_PX = 24f
+
+        /** How far the Lane view may shrink hexes (38 → 32 dp) to show the Lane's length. */
+        const val LANE_SHRINK = 0.84f
     }
 }

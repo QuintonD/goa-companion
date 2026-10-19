@@ -85,7 +85,6 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.board.HeroPiece
 import dev.quinton.goa.core.model.board.MinionPiece
-import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.hero
 import dev.quinton.goa.feature.board.map.BoardMapView
@@ -280,12 +279,7 @@ private fun BoardContent(
         val layout =
             remember(state.map, orientation, state.bottomTeam) { MapLayout(state.map, orientation, state.bottomTeam) }
         // What the board opens on: the Lane between both teams' hero spawn areas, Battle Zones included.
-        val lane = remember(layout, state.map) {
-            val geometry = state.geometry
-            val hexes = Team.entries.flatMap(geometry::heroSpawns) +
-                state.map.lanes.flatMap { geometry.zoneSpaces[it.startingBattleZone].orEmpty() }
-            layout.bounds(hexes, pad = 1.2f)
-        }
+        val lane = remember(layout, state.map) { layout.laneRegion(state.map, state.geometry) }
         var collapsed by rememberSaveable { mutableStateOf(initialCollapsed) }
         val scope = rememberCoroutineScope()
         var panelSize by remember { mutableIntStateOf(0) }
@@ -326,6 +320,19 @@ private fun BoardContent(
             if (targets.isEmpty() || viewport.unit == 0f) return@LaunchedEffect
             val region = layout.bounds(targets, pad = 1.1f) ?: return@LaunchedEffect
             viewport.reveal(region, region.center)
+        }
+
+        // A push moved a Battle Zone: bring the new one (its minions just spawned) into view.
+        val battleZones = state.battleZones
+        var shownBattleZones by remember { mutableStateOf(battleZones) }
+        LaunchedEffect(battleZones, viewport.unit) {
+            if (battleZones == shownBattleZones || viewport.unit == 0f) return@LaunchedEffect
+            val moved = battleZones - shownBattleZones.toSet()
+            shownBattleZones = battleZones
+            val hexes = moved.flatMap { state.geometry.zoneSpaces[it].orEmpty() }
+            val region = layout.bounds(hexes, pad = 1.1f) ?: return@LaunchedEffect
+            // Not while a minion waits in the tray: its spaces (in that Zone) are revealed above.
+            if (state.trayTargets.isEmpty()) viewport.reveal(region, region.center)
         }
 
         BoardMapView(

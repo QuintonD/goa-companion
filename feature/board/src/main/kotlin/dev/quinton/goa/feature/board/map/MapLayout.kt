@@ -114,6 +114,16 @@ class MapLayout(map: BoardMap, val orientation: MapOrientation, val bottomTeam: 
         )
     }
 
+    /**
+     * What the board opens on (map units): the Lane between both teams' hero spawn areas, every
+     * Lane's starting Battle Zone included.
+     */
+    fun laneRegion(map: BoardMap, geometry: BoardGeometry): Rect? {
+        val hexes = Team.entries.flatMap(geometry::heroSpawns) +
+            map.lanes.flatMap { geometry.zoneSpaces[it.startingBattleZone].orEmpty() }
+        return bounds(hexes, pad = LANE_PAD)
+    }
+
     /** Distance from [point] to the centre of [hex], in map units. */
     fun distanceTo(point: Offset, hex: Hex): Float = (center(hex) - point).getDistance()
 
@@ -142,6 +152,9 @@ class MapLayout(map: BoardMap, val orientation: MapOrientation, val bottomTeam: 
 
         /** Space around the outermost hexes, in map units. */
         const val PADDING = 0.6f
+
+        /** Room around [laneRegion]'s hexes: a hero piece on a spawn point is drawn whole. */
+        private const val LANE_PAD = 1.2f
 
         /**
          * The rotation that points the line from [bottomTeam]'s Throne Zone to the other team's up
