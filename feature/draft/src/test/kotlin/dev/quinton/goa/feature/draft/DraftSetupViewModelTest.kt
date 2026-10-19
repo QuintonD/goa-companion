@@ -2,7 +2,9 @@ package dev.quinton.goa.feature.draft
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.data.rating.EloConfigRepository
 import dev.quinton.goa.core.domain.draft.MethodOrigin
+import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.domain.draft.PoolRule
 import dev.quinton.goa.core.domain.draft.PoolSource
 import dev.quinton.goa.core.domain.teams.OddSeatMode
@@ -24,6 +26,8 @@ import dev.quinton.goa.core.testing.FakeRatingsRepository
 import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.feature.draft.setup.DraftSetupViewModel
 import dev.quinton.goa.feature.draft.setup.SetupEvent
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -44,6 +48,15 @@ class DraftSetupViewModelTest {
             "p3" to Rating(1100.0, 3, 1, true),
         )
     }
+    private val eloConfig = object : EloConfigRepository {
+        override val config = MutableStateFlow(EloConfig.DEFAULT)
+
+        override suspend fun update(transform: (EloConfig) -> EloConfig) = config.update(transform)
+
+        override suspend fun reset() {
+            config.value = EloConfig.DEFAULT
+        }
+    }
     private val drafts = FakeDraftRepository()
     private val matches = FakeMatchRepository()
 
@@ -52,6 +65,7 @@ class DraftSetupViewModelTest {
             DraftSetupViewModel(
                 playerRepo,
                 ratings,
+                eloConfig,
                 FakeCatalogRepository(),
                 FakeSettingsRepository(),
                 drafts,
@@ -108,6 +122,20 @@ class DraftSetupViewModelTest {
         assertThat(form.balanceDifference).isEqualTo(0.0)
         assertThat(setOf(form.red.toSet(), form.blue.toSet())).containsExactly(setOf("p0", "p3"), setOf("p1", "p2"))
     }
+
+    @Test
+    fun `an unrated player counts as the group's starting rating when balancing, as the replay starts them`() =
+        runTest {
+            eloConfig.config.value = EloConfig.DEFAULT.copy(initialRating = 1350.0)
+            val vm = viewModel()
+            listOf("p0", "p1", "p4", "p5").forEach(vm::togglePlayer) // p4 and p5 are unrated
+            vm.setTeamMode(TeamMode.BALANCED)
+            val form = vm.uiState.value.form
+            // 1400+1300 vs 1350+1350 (with 1500 for the unrated, 1400+1500 vs 1300+1500 would win).
+            assertThat(form.balanceDifference).isEqualTo(0.0)
+            assertThat(setOf(form.red.toSet(), form.blue.toSet()))
+                .containsExactly(setOf("p0", "p1"), setOf("p4", "p5"))
+        }
 
     @Test
     fun `quick add creates a player and selects them`() = runTest {

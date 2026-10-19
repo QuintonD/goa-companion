@@ -72,4 +72,15 @@ class GroupRatingsTest {
         assertThat(HeroRecords.current(ctx).heroRatings).isEqualTo(phone.ratings.heroes)
         assertThat(DraftData(ctx).ratings()).isEqualTo(phone.ratings.players)
     }
+
+    @Test
+    fun `draft balancing counts an unrated player as the group's starting rating`() {
+        val hub = testHub(tmp.root.toPath(), FakeClock())
+        runBlocking {
+            hub.groupStore.upsertPlayer(player("new"))
+            hub.groupStore.updateEloConfig { it.copy(initialRating = 1350.0) }
+        }
+        val setup = DraftData(HubContext(hub)).setup(Devices.idOf("some-browser-token"))
+        assertThat(setup.players.single().balanceValue).isEqualTo(1350.0)
+    }
 }

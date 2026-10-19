@@ -99,6 +99,7 @@ class DraftData(private val ctx: HubContext) {
         catalog = ctx.catalog.catalog,
         settings = ctx.deviceStore.read(deviceId, SharedSlots.Settings) ?: AppSettings(),
         methods = library(deviceId),
+        initialRating = data.eloConfig.initialRating,
     )
 
     /** The saved form without players who no longer exist (as the phone does when it reads it). */
