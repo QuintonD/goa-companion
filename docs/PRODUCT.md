@@ -247,9 +247,12 @@ Ultimate), about 2,150 numbers over 32 heroes. Every question is generated from 
     time from each question appearing to its answer is summed (reading the card scan afterwards
     doesn't count). Only a Challenge with all 20 answered goes on the board; ending one early says
     "Unfinished challenges don't go on the leaderboard" in the summary. A finished Challenge's
-    summary shows the player's place ("2nd of 5 · your best 18/20").
+    summary shows the player's place ("2nd of 5 · your best 18/20"). A Challenge's summary has
+    Leaderboard, Play again and Done right under the score, above the missed cards, so the phone can
+    go round the table.
   - *Rounds:* every round played as a player that reaches its summary is recorded (score, questions,
-    best streak, answer time, Challenge or Practice). Guest rounds are not recorded.
+    best streak, answer time, Challenge or Practice), except an unfinished Challenge. Guest rounds
+    are not recorded.
   - *Leaderboard screen* (trophy on the Card trivia top bar, and "Leaderboard" on a Challenge
     summary): **Challenge** board = each player's best Challenge (score, then less answer time, then
     earlier); **Practice** board = every recorded round including Challenges: right answers (rank),
@@ -275,13 +278,17 @@ Life counters).
   and minion Spawn points by team and type, each Lane's current Battle Zone. The core single-lane
   map first; any map not verified against the official art and rulebook is badged Unverified.
 - **Set-up in one tap:** Boards and New board show the latest finished draft or match ("Latest
-  pending match · Snorri vs Gydion · **Set up**"); a finished draft ("Try on the board") and a match
+  pending match · Snorri vs Gydion · **Set up**"); a finished draft ("Try on the board", pinned
+  with Set up match and Log result later under the teams on a phone held upright) and a match
   ("Open on the board", in the draft's pick order when it came from a draft) open their board in one
   tap. A line-up whose board is still untouched (on its opening) reopens that board instead of a
   duplicate, and a double tap never opens two. With no boards yet, Board opens straight on New board.
-- **New board without scrolling:** both teams in pick order at the top, search with an "Adding to
-  Red | Blue" switch beside it, a compact grid of the heroes the group owns (Settings; "Show all
-  heroes" lists the rest), and "Map: Forgotten Island ▾" (Unverified noted) beside **Set up** at the
+- **New board without scrolling:** both teams in pick order at the top (until the first pick, the
+  latest line-up's card stands in their place, in a slot as tall as either, so the grid never moves
+  under the next tap), search with an "Adding to Red | Blue" switch beside it, a grid of the heroes
+  the group owns (Settings; "Show all heroes" lists the rest) with as many columns as it takes to
+  show them all on a 384 dp phone (portraits 42–64 dp, each with its gap a 48 dp tap; names shrink
+  rather than cut), and "Map: Forgotten Island ▾" (Unverified noted) beside **Set up** at the
   bottom. Picks alternate like a draft: the next pick goes to the team with fewer heroes (a tie to
   the other team), so tapping Brogan, Tigerclaw, Arien, Wasp gives Brogan + Arien vs Tigerclaw + Wasp
   (5 taps with Set up); tapping Red or Blue picks for that team. "Use a draft or match" (top bar)
@@ -294,7 +301,7 @@ Life counters).
   on another piece swaps them; any other drag pans. One piece per space, always. "Add" puts in a hero
   (owned heroes first), a minion (team and type) or a token (short label, an obstacle) — then tap
   where. Remove. Undo/redo every change; "Reset to opening" (added pieces go too). TalkBack hears
-  every move ("Brogan moved 2 spaces, to Lane Zone 2, Battle Zone").
+  every move ("Brogan moved 2 spaces, to Lane Zone 2, Battle Zone"), and each undo and redo.
 - **Measuring** (a hero selected): pick one of its cards (by colour, Basic → Tier III → Ultimate)
   and switch on overlays: Movement (the card's movement value: spaces it can end on, p.11; "Path:
   Normal · Tokens · Ignore all" for cards that move through tokens or ignore obstacles, p.18, and "In
@@ -314,8 +321,10 @@ Life counters).
   import replaces it on screen, a deletion closes it; it never writes over either.
 - **Layout:** the board fills the screen with the Lane running top to bottom in portrait (your
   team's Throne at the bottom; "Flip" swaps), left to right in landscape. It opens on the Lane
-  between the hero spawn areas with hexes at least ~38 dp across (a double-lane map on its whole
-  region, so neither Battle Zone is cut off); "Fit" shows the whole map (beside the side panel in
+  between the hero spawn areas, both teams' heroes in view, with hexes about 38 dp across (down to
+  32 dp if that is what it takes to show the Lane's length; a double-lane map on its whole region,
+  so neither Battle Zone is cut off); after a push it brings the new Battle Zone into view, and when
+  the selection panel closes the map fills the space it leaves; "Fit" shows the whole map (beside the side panel in
   landscape) and toggles back to the Lane; pinch to zoom, drag to pan, double tap on a space where
   the tap did nothing zooms in. Selection details sit in a bottom panel (on the right in
   landscape, where a bottom panel would leave no map) that never covers the selected piece. Pieces

@@ -137,14 +137,22 @@ Range = violet inner outline, Radius = three dots; where a piece should go (a wa
 targets, a minion's way back to its Battle Zone) = dashed teal outline; the selected piece = bright
 outline on a dark halo; Measure = bronze line (dashed when not in a straight line). The selection
 panel sits at the bottom in portrait (max half the height, collapsible) and on the right in
-landscape. The board opens on the Lane between the hero spawn areas, hexes at least 38 dp across
-(a double-lane map on its whole region); the view zooms and pans so the selected piece and what its
-overlays reach stay in sight and tappable, clear of the panel, the tools and the Unverified badge;
-"Fit" shows the whole map and turns into "Zoom to the lane". The card strip starts one card before
-the chosen card and fades at an edge with more cards beyond. **New board** fits a phone without
-scrolling: teams (pick chips, "Next pick" on the team that picks next), search with a segmented
-Red | Blue switch beside it (under it at large text), a 58 dp portrait grid, and the Map menu beside
-Set up in the bottom bar; the latest draft's or match's line-up sits on top as a card with Set up.
+landscape. The board opens on the Lane between the hero spawn areas with both teams' heroes in
+view, hexes about 38 dp across (down to 32 dp to fit the Lane's length; the map's sides are what
+gets cropped; a double-lane map on its whole region); the view zooms and pans so the selected piece
+and what its overlays reach stay in sight and tappable, clear of the panel, the tools and the
+Unverified badge; when the panel closes the map fills its place again (no band of empty water); a
+push brings the new Battle Zone into view. "Fit" shows the whole map and turns into "Zoom to the
+lane". Each space's TalkBack node is a square inside its hex (1.46 map units, so neighbours never
+overlap and Android keeps each node whole). The card strip starts one card before the chosen card
+and fades at an edge with more cards beyond. **New board** fits a 384 dp phone without scrolling:
+one slot on top holds the latest draft's or match's line-up (a card with Set up) until the first
+pick, then the teams (pick chips sharing the row, "Next pick" spelled out on an empty team, the
+border and the switch otherwise); search with a segmented Red | Blue switch beside it (under it at
+large text); a portrait grid with as many columns as it takes to fit every hero (tiles 42–64 dp,
+each with the gap around it and the name under it, which shrinks to fit, one tap target of at
+least 48 dp); and the Map menu beside Set up in the bottom bar. A finished draft pins Set up match, Log result later and Try on the board
+under the teams on a phone held upright.
 
 ## Asset policy
 Private, non-commercial build (ADR-006), so two kinds of asset:
