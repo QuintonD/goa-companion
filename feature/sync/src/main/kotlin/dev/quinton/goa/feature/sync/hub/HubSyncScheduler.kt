@@ -56,8 +56,9 @@ interface HubSyncControl {
  * When this phone syncs with the group's hub (ADR-030 §5), all through WorkManager so a sync
  * survives the app closing: when the app comes on screen and every minute while it stays there
  * ([onForeground]), 15 s after the last change to synced data (each change replaces the pending
- * sync), every hour, after a new hub address or group, and from "Sync now". Every run needs a network; failures back off exponentially. Nothing is
- * scheduled unless the phone is in a group with a hub; leaving or removing the hub cancels all.
+ * sync), every hour, after a new hub address or group, and from "Sync now". Every run needs a
+ * network; failures back off exponentially. Nothing is scheduled unless the phone is in a group
+ * with a hub; leaving or removing the hub cancels all.
  *
  * One-time syncs share the unique work [NOW]; the hourly one is [HOURLY]. A sync asked for while
  * one is running is chained after it rather than cancelling it.
