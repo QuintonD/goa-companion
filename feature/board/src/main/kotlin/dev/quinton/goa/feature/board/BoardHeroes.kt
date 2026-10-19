@@ -16,6 +16,8 @@ data class BoardHero(
     val verified: Boolean,
     /** The deck in rulebook order: Basic (Gold, Silver), then Tier I–III by colour, then Ultimate. */
     val cards: List<Card>,
+    /** The product the hero comes in: the pickers list owned products' heroes (Settings). */
+    val product: String = "",
 ) {
     companion object {
         fun of(hero: Hero) = BoardHero(
@@ -25,6 +27,7 @@ data class BoardHero(
             portrait = hero.portrait,
             verified = hero.verified,
             cards = deckOrder(hero.cards),
+            product = hero.product,
         )
 
         fun unknown(id: String) = BoardHero(id, "Unknown hero", "", null, verified = false, cards = emptyList())
@@ -55,3 +58,6 @@ data class BoardHero(
 fun Catalog.boardHeroes(): Map<String, BoardHero> = heroes.associate { it.id to BoardHero.of(it) }
 
 fun Map<String, BoardHero>.hero(id: String): BoardHero = this[id] ?: BoardHero.unknown(id)
+
+/** The group owns this hero's product; [owned] empty = every product (Settings default). */
+fun BoardHero.ownedIn(owned: Set<String>): Boolean = owned.isEmpty() || product in owned

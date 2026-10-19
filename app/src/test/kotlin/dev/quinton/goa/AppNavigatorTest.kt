@@ -3,6 +3,7 @@ package dev.quinton.goa
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.navigation.BoardRoute
 import dev.quinton.goa.core.navigation.CatalogRoute
 import dev.quinton.goa.core.navigation.DraftRoute
 import dev.quinton.goa.core.navigation.HeroDetailRoute
@@ -87,6 +88,16 @@ class AppNavigatorTest {
         navigator.navigate(MatchEditRoute("m1"))
         navigator.navigateToTab(TopLevelTab.PLAYERS, MatchLogRoute)
         assertThat(navigator.currentStack.toList()).containsExactly(PlayersRoute, MatchLogRoute).inOrder()
+    }
+
+    /** A double tap on "Try on the board" must not open the same board twice. */
+    @Test fun aDoubleTapDoesNotPushTheSameScreenTwice() {
+        val board = BoardRoute(red = listOf("arien"), blue = listOf("wasp"))
+        navigator.navigate(board)
+        navigator.navigate(board)
+        assertThat(navigator.currentStack.toList()).containsExactly(CatalogRoute, board).inOrder()
+        navigator.navigate(BoardRoute(red = listOf("brogan")))
+        assertThat(navigator.currentStack).hasSize(3)
     }
 
     @Test fun backPopsThenReturnsToHeroes() {

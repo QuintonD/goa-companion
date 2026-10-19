@@ -12,18 +12,19 @@ import dev.quinton.goa.core.data.BoardMapRepository
 import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.DraftRecordRepository
 import dev.quinton.goa.core.data.MatchRepository
+import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.model.board.BoardLineup
 import dev.quinton.goa.core.model.board.BoardMap
 import dev.quinton.goa.core.model.catalog.Catalog
-import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.navigation.BoardRoute
 import dev.quinton.goa.core.navigation.NewBoardRoute
 import dev.quinton.goa.feature.board.BoardHero
 import dev.quinton.goa.feature.board.boardHeroes
 import dev.quinton.goa.feature.board.defaultMap
 import dev.quinton.goa.feature.board.hero
-import dev.quinton.goa.feature.board.lineup
+import dev.quinton.goa.feature.board.ownedIn
 import dev.quinton.goa.feature.board.size
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,24 +33,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-
-/** Where a line-up offered by "Use a draft or match" comes from. */
-enum class LineupSourceKind(val label: String) {
-    DRAFT("Finished draft"),
-    PENDING("Pending match"),
-    LOGGED("Logged match"),
-}
-
-/** A line-up to fill both teams with in one tap. */
-@Immutable
-data class LineupSource(
-    val key: String,
-    val kind: LineupSourceKind,
-    val at: Long,
-    val lineup: BoardLineup,
-    val red: List<BoardHero>,
-    val blue: List<BoardHero>,
-)
 
 /** A bundled map the board can use; [verified] false = badged Unverified. */
 @Immutable
@@ -60,10 +43,12 @@ data class MapOption(val id: String, val name: String, val lanes: Int, val verif
 data class NewBoardForm(
     val red: List<String> = emptyList(),
     val blue: List<String> = emptyList(),
-    /** The team a tapped hero joins. */
+    /** The team the next tapped hero joins. */
     val filling: Team = Team.RED,
     /** null = the default map for this many heroes. */
     val mapId: String? = null,
+    /** Show every hero, not only the owned products' (Settings). */
+    val showAll: Boolean = false,
 ) {
     fun team(team: Team): List<String> = if (team == Team.RED) red else blue
 
@@ -78,9 +63,13 @@ sealed interface NewBoardUiState {
     @Immutable
     data class Ready(
         val form: NewBoardForm,
-        /** Every catalog hero, by name. */
+        /** The heroes to pick from, by name: the owned products' unless [NewBoardForm.showAll]. */
         val heroes: List<BoardHero>,
         val heroById: Map<String, BoardHero>,
+        /** Heroes the owned-products filter hides right now (0 = none hidden, or showing all). */
+        val hiddenHeroes: Int,
+        /** The owned-products filter is on (Settings names some products). */
+        val ownedOnly: Boolean,
         val maps: List<MapOption>,
         /** The map "Set up" uses (the chosen one, or the default for this many heroes). */
         val map: MapOption?,
@@ -92,6 +81,9 @@ sealed interface NewBoardUiState {
         val canSetUp: Boolean get() = map != null && form.lineup.size > 0
 
         val full: Boolean get() = form.red.size >= MAX_PER_TEAM && form.blue.size >= MAX_PER_TEAM
+
+        /** The newest draft or match: "Set up" on it is one tap. */
+        val latest: LineupSource? get() = sources.firstOrNull()
     }
 
     companion object {
@@ -117,10 +109,17 @@ sealed interface NewBoardAction {
 
     data class ChooseMap(val mapId: String) : NewBoardAction
 
+    data class ShowAll(val all: Boolean) : NewBoardAction
+
     data object Clear : NewBoardAction
 }
 
-/** New board: pick each team's heroes (or a draft's or match's in one tap) and a map, then Set up. */
+/**
+ * New board: pick each team's heroes (or a draft's or match's in one tap) and a map, then Set up.
+ * Picks alternate like a draft: after each one the next goes to the team with fewer heroes (a tie
+ * goes to the other team), so "Brogan, Tigerclaw, Arien, Wasp" is Brogan and Arien against Tigerclaw
+ * and Wasp; tapping Red or Blue picks for that team next.
+ */
 @HiltViewModel(assistedFactory = NewBoardViewModel.Factory::class)
 class NewBoardViewModel @AssistedInject constructor(
     @Assisted route: NewBoardRoute,
@@ -129,6 +128,7 @@ class NewBoardViewModel @AssistedInject constructor(
     mapRepository: BoardMapRepository,
     draftRepository: DraftRecordRepository,
     matchRepository: MatchRepository,
+    settingsRepository: SettingsRepository,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -140,9 +140,10 @@ class NewBoardViewModel @AssistedInject constructor(
             red = savedState.get<List<String>>(KEY_RED) ?: route.red.distinct().take(NewBoardUiState.MAX_PER_TEAM),
             blue = savedState.get<List<String>>(KEY_BLUE)
                 ?: route.blue.distinct().filterNot { it in route.red }.take(NewBoardUiState.MAX_PER_TEAM),
-            filling =
-                savedState.get<String>(KEY_FILLING)?.let { runCatching { Team.valueOf(it) }.getOrNull() } ?: Team.RED,
+            filling = savedState.get<String>(KEY_FILLING)?.let { runCatching { Team.valueOf(it) }.getOrNull() }
+                ?: nextTeam(route.red.size, route.blue.size, Team.BLUE),
             mapId = savedState.get<String>(KEY_MAP) ?: route.mapId,
+            showAll = savedState.get<Boolean>(KEY_ALL) ?: false,
         ),
     )
 
@@ -151,54 +152,29 @@ class NewBoardViewModel @AssistedInject constructor(
         matchRepository.observeMatches().catch { emit(emptyList()) },
     ) { drafts, matches -> drafts to matches }
 
-    val uiState: StateFlow<NewBoardUiState> = combine(
+    private val inputs = combine(
         catalogRepository.catalog.catch { emit(Catalog.EMPTY) },
         mapRepository.maps.catch { emit(emptyList()) },
-        sources,
-        form,
-    ) { catalog, maps, (drafts, matches), form ->
-        val heroes = catalog.boardHeroes()
-        // A draft whose match is in the log shows the same heroes: offer the match alone, in the
-        // draft's pick order (the opening places heroes in pick order, p.20).
-        val inLog = matches.mapTo(HashSet()) { it.id }
-        val draftOf = drafts.filter { it.matchId != null }.associateBy { it.matchId }
-        val draftSources = drafts.filterNot { it.matchId != null && it.matchId in inLog }
-            .sortedByDescending { it.createdAt }
-            .take(MAX_SOURCES)
-            .map { draft ->
-                source("draft:${draft.id}", LineupSourceKind.DRAFT, draft.createdAt, draft.lineup(), heroes)
-            }
-        val matchSources = matches.filter { it.status != MatchStatus.ABANDONED }
-            .sortedByDescending { it.playedAt }
-            .take(MAX_SOURCES)
-            .map { match ->
-                val kind = if (match.status ==
-                    MatchStatus.PENDING
-                ) {
-                    LineupSourceKind.PENDING
-                } else {
-                    LineupSourceKind.LOGGED
-                }
-                val seats = match.lineup()
-                val picks = draftOf[match.id]?.lineup()
-                val lineup = if (picks != null && picks.red.toSet() == seats.red.toSet() &&
-                    picks.blue.toSet() == seats.blue.toSet()
-                ) {
-                    picks
-                } else {
-                    seats
-                }
-                source("match:${match.id}", kind, match.playedAt, lineup, heroes)
-            }
-        val all = (matchSources + draftSources).filter { it.lineup.size > 0 }.sortedByDescending { it.at }
-        val options = maps.map { it.option() }
+        settingsRepository.settings.catch { emit(AppSettings()) },
+    ) { catalog, maps, settings -> Triple(catalog.boardHeroes(), maps, settings.ownedProducts) }
+
+    val uiState: StateFlow<NewBoardUiState> = combine(inputs, sources, form) {
+            (heroes, maps, owned),
+            (drafts, matches),
+            form,
+        ->
+        val all = heroes.values.sortedBy { it.name }
+        // Heroes already picked always show, owned or not (a draft may have used a friend's copy).
+        val shown = if (form.showAll) all else all.filter { it.ownedIn(owned) || form.contains(it.id) }
         NewBoardUiState.Ready(
             form = form,
-            heroes = heroes.values.sortedBy { it.name },
+            heroes = shown,
             heroById = heroes,
-            maps = options,
+            hiddenHeroes = all.size - shown.size,
+            ownedOnly = owned.isNotEmpty(),
+            maps = maps.map { it.option() },
             map = defaultMap(maps, form.lineup.size, form.mapId)?.option(),
-            sources = all,
+            sources = lineupSources(drafts, matches, heroes, MAX_SOURCES),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), NewBoardUiState.Loading)
 
@@ -208,6 +184,7 @@ class NewBoardViewModel @AssistedInject constructor(
         savedState[KEY_RED] = next.red
         savedState[KEY_BLUE] = next.blue
         savedState[KEY_FILLING] = next.filling.name
+        savedState[KEY_ALL] = next.showAll
         if (next.mapId != null) savedState[KEY_MAP] = next.mapId
     }
 
@@ -218,13 +195,8 @@ class NewBoardViewModel @AssistedInject constructor(
         return BoardRoute(red = ready.form.red, blue = ready.form.blue, mapId = ready.map?.id)
     }
 
-    private fun source(
-        key: String,
-        kind: LineupSourceKind,
-        at: Long,
-        lineup: BoardLineup,
-        heroes: Map<String, BoardHero>,
-    ) = LineupSource(key, kind, at, lineup, lineup.red.map(heroes::hero), lineup.blue.map(heroes::hero))
+    /** The board for [source] (the Latest card): set up in one tap, on the default map. */
+    fun setUp(source: LineupSource): BoardRoute = BoardRoute(red = source.lineup.red, blue = source.lineup.blue)
 
     private fun BoardMap.option() = MapOption(id, name, lanes.size, verified)
 
@@ -233,17 +205,32 @@ class NewBoardViewModel @AssistedInject constructor(
         private const val KEY_BLUE = "newBoard.blue"
         private const val KEY_FILLING = "newBoard.filling"
         private const val KEY_MAP = "newBoard.map"
+        private const val KEY_ALL = "newBoard.showAll"
         private const val MAX_SOURCES = 10
         private const val STOP_TIMEOUT_MS = 5_000L
+
+        /**
+         * Who picks next after [last] picked: the team with fewer heroes; on a tie, the other team
+         * (alternating like a draft); never a full team.
+         */
+        fun nextTeam(red: Int, blue: Int, last: Team): Team {
+            val next = when {
+                red < blue -> Team.RED
+                blue < red -> Team.BLUE
+                else -> last.opponent
+            }
+            val size = if (next == Team.RED) red else blue
+            return if (size >= NewBoardUiState.MAX_PER_TEAM) next.opponent else next
+        }
 
         fun reduce(form: NewBoardForm, action: NewBoardAction): NewBoardForm = when (action) {
             is NewBoardAction.Tap -> when {
                 form.contains(action.heroId) -> form.without(action.heroId)
 
-                form.team(form.filling).size < NewBoardUiState.MAX_PER_TEAM -> form.with(form.filling, action.heroId)
+                form.team(form.filling).size < NewBoardUiState.MAX_PER_TEAM -> form.pick(form.filling, action.heroId)
 
                 form.team(form.filling.opponent).size < NewBoardUiState.MAX_PER_TEAM ->
-                    form.with(form.filling.opponent, action.heroId).copy(filling = form.filling.opponent)
+                    form.pick(form.filling.opponent, action.heroId)
 
                 else -> form
             }
@@ -256,16 +243,23 @@ class NewBoardViewModel @AssistedInject constructor(
 
             is NewBoardAction.SwitchTeam -> form.switchTeam(action.heroId)
 
-            is NewBoardAction.Use -> form.copy(
-                red = action.source.lineup.red.take(NewBoardUiState.MAX_PER_TEAM),
-                blue = action.source.lineup.blue.filterNot {
-                    it in action.source.lineup.red
-                }.take(NewBoardUiState.MAX_PER_TEAM),
-            )
+            is NewBoardAction.Use -> {
+                val red = action.source.lineup.red.take(NewBoardUiState.MAX_PER_TEAM)
+                val blue = action.source.lineup.blue.filterNot { it in red }.take(NewBoardUiState.MAX_PER_TEAM)
+                form.copy(red = red, blue = blue, filling = nextTeam(red.size, blue.size, Team.BLUE))
+            }
 
             is NewBoardAction.ChooseMap -> form.copy(mapId = action.mapId)
 
+            is NewBoardAction.ShowAll -> form.copy(showAll = action.all)
+
             NewBoardAction.Clear -> form.copy(red = emptyList(), blue = emptyList(), filling = Team.RED)
+        }
+
+        /** Adds [heroId] to [team], then hands the next pick on ([nextTeam]). */
+        private fun NewBoardForm.pick(team: Team, heroId: String): NewBoardForm {
+            val added = with(team, heroId)
+            return added.copy(filling = nextTeam(added.red.size, added.blue.size, team))
         }
 
         private fun NewBoardForm.reorder(heroId: String, by: Int): NewBoardForm {

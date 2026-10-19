@@ -38,6 +38,9 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -45,7 +48,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -67,6 +73,7 @@ import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.domain.board.BoardRules.MovePath
 import dev.quinton.goa.core.model.board.BoardPiece
 import dev.quinton.goa.core.model.board.HeroPiece
 import dev.quinton.goa.core.model.board.MinionPiece
@@ -113,7 +120,7 @@ internal fun SelectionPanel(
             ) {
                 PieceActions(state, piece, onAction)
                 if (piece.at == null) {
-                    Note("Waiting in the tray: tap a space on the board to put it there.")
+                    Note("Waiting in the tray: tap a highlighted space on the board to put it there (p.8).")
                 } else if (hero != null) {
                     HeroMeasures(state, hero, palette, onAction)
                 } else {
@@ -145,11 +152,16 @@ private fun PanelHeader(
         is MinionPiece -> piece.team
         is TokenPiece -> piece.team
     }
-    val inBattle = zone != null && zone in state.board.state.battleZones.values
+    val battleLane = state.map.lanes.firstOrNull {
+        (state.board.state.battleZones[it.id] ?: it.startingBattleZone) == zone
+    }
+    // A minion on a double-lane map is bound to its Lane (p.20).
+    val boundTo = (piece as? MinionPiece)?.let { BoardText.lane(state.map, state.geometry.laneOf(it)) }
     val subtitle = listOfNotNull(
         team?.let { "${BoardText.team(it)} team" },
+        boundTo?.let { "$it minion" },
         if (piece.at == null) "in the tray" else BoardText.zone(state.map, zone),
-        "Battle Zone".takeIf { inBattle },
+        battleLane?.let { BoardText.battleZone(state.map, it.id) },
     ).joinToString(" · ")
     Row(
         Modifier
@@ -264,7 +276,7 @@ private fun HeroMeasures(
     val movementNote = when {
         card == null -> "Pick a card first."
         card.values.movement == null -> "This card has no Movement value."
-        else -> "Spaces it can end on, moving through empty spaces only (p.11)."
+        else -> "Spaces it can end on, with the fewest spaces each needs (p.11)."
     }
     OverlayRow(
         title = "Movement" + (overlay.movementValue?.let { " $it" } ?: ""),
@@ -279,14 +291,7 @@ private fun HeroMeasures(
         }.takeIf { card?.values?.movement != null },
         onToggle = { onAction(BoardAction.ToggleMovement) },
     )
-    if (settings.movement && overlay.movementValue != null) {
-        SwitchRow(
-            title = "Ignore obstacles",
-            note = "Moves through obstacles, never ending on one (p.19).",
-            checked = settings.ignoreObstacles,
-            onToggle = { onAction(BoardAction.ToggleIgnoreObstacles) },
-        )
-    }
+    if (settings.movement && overlay.movementValue != null) MovementRules(settings, onAction)
     OverlayRow(
         title = "Fast Travel",
         note = if (settings.fastTravel && overlay.fastTravel.isEmpty()) {
@@ -307,7 +312,7 @@ private fun HeroMeasures(
         ) {
             "This card has no Range value."
         } else {
-            "Spaces within range, obstacles counted (p.18)."
+            "Spaces within range, obstacles and the water around the board counted (p.9, p.19)."
         },
         checked = settings.range && overlay.rangeValue != null,
         enabled = overlay.rangeValue != null,
@@ -324,7 +329,7 @@ private fun HeroMeasures(
         ) {
             "This card has no Radius value."
         } else {
-            "Spaces within the radius, obstacles counted (p.18)."
+            "Spaces within the radius, obstacles and the water around the board counted (p.9, p.19)."
         },
         checked = settings.radius && overlay.radiusValue != null,
         enabled = overlay.radiusValue != null,
@@ -366,29 +371,108 @@ private fun StepsMeasure(
         onSteps = { onAction(BoardAction.Steps(it)) },
         onToggle = { onAction(BoardAction.ToggleMovement) },
     )
-    if (settings.movement) {
-        SwitchRow(
-            title = "Ignore obstacles",
-            note = "Moves through obstacles, never ending on one (p.19).",
-            checked = settings.ignoreObstacles,
-            onToggle = { onAction(BoardAction.ToggleIgnoreObstacles) },
+    if (settings.movement) MovementRules(settings, onAction)
+    if (overlay.returnTo.isNotEmpty()) {
+        Note(
+            "Outside its Battle Zone: it goes back by the shortest path of empty spaces to a highlighted " +
+                "space (p.18" + (if (state.map.lanes.size > 1) "; bound to its Lane, p.20" else "") + ").",
         )
     }
 }
 
-/** The hero's cards, Basic → Tier III → Ultimate; tap to measure with one (again to clear). */
+/**
+ * How the card lets it move: "Path" (only through empty spaces, through tokens, or ignoring every
+ * obstacle) and "In a straight line". It always ends on an empty space (p.18).
+ */
+@Composable
+private fun MovementRules(settings: OverlaySettings, onAction: (BoardAction) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(start = 40.dp, bottom = Spacing.xs)) {
+        Text("Path", style = MaterialTheme.typography.bodyMedium)
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(vertical = Spacing.xs)) {
+            val paths = MovePath.entries
+            paths.forEachIndexed { i, path ->
+                SegmentedButton(
+                    selected = settings.path == path,
+                    onClick = { onAction(BoardAction.SetPath(path)) },
+                    shape = SegmentedButtonDefaults.itemShape(i, paths.size),
+                    icon = {},
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) {
+                    Text(
+                        when (path) {
+                            MovePath.NORMAL -> "Normal"
+                            MovePath.THROUGH_TOKENS -> "Tokens"
+                            MovePath.IGNORE_OBSTACLES -> "Ignore all"
+                        },
+                        maxLines = 1,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
+        }
+        Text(
+            when (settings.path) {
+                MovePath.NORMAL -> "Only through empty spaces (p.11)."
+
+                MovePath.THROUGH_TOKENS ->
+                    "Also through tokens, never units or terrain: tokens a card lets units move through, " +
+                        "and p.18 Immune."
+
+                MovePath.IGNORE_OBSTACLES ->
+                    "Through units, tokens and terrain, never ending on one (p.18 Ignoring Obstacles)."
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    SwitchRow(
+        title = "In a straight line",
+        note = "One of the six directions, stopping at the first obstacle it may not pass (p.19).",
+        checked = settings.straightLine,
+        onToggle = { onAction(BoardAction.ToggleStraightLine) },
+    )
+}
+
+/**
+ * The hero's cards, Basic → Tier III → Ultimate; tap to measure with one (again to clear). The
+ * chosen card scrolls into view with the card before it still showing, and a fade at either edge
+ * says there are more cards that way.
+ */
 @Composable
 private fun CardStrip(cards: List<Card>, selectedId: String?, onSelect: (String?) -> Unit) {
     val listState = rememberLazyListState()
     LaunchedEffect(selectedId) {
         val index = cards.indexOfFirst { it.id == selectedId }
-        if (index >= 0) listState.animateScrollToItem(index)
+        if (index > 0) listState.animateScrollToItem(index - 1)
     }
+    val fade = MaterialTheme.colorScheme.surface
     LazyRow(
         state = listState,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         contentPadding = PaddingValues(vertical = Spacing.xs),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .drawWithContent {
+                drawContent()
+                val edge = 28.dp.toPx()
+                if (listState.canScrollBackward) {
+                    drawRect(
+                        Brush.horizontalGradient(listOf(fade, fade.copy(alpha = 0f)), startX = 0f, endX = edge),
+                        size = Size(edge, size.height),
+                    )
+                }
+                if (listState.canScrollForward) {
+                    drawRect(
+                        Brush.horizontalGradient(
+                            listOf(fade.copy(alpha = 0f), fade),
+                            startX = size.width - edge,
+                            endX = size.width,
+                        ),
+                        topLeft = Offset(size.width - edge, 0f),
+                        size = Size(edge, size.height),
+                    )
+                }
+            },
     ) {
         items(cards, key = { it.id }) { card ->
             CardChip(card, selected = card.id == selectedId, onClick = {

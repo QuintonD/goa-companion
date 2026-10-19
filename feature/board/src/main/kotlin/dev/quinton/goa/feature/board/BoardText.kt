@@ -20,6 +20,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
+import java.util.UUID
 
 /** Words the board screens share. Rulebook terms: Battle Zone, Throne Zone, Fast Travel, Spawn point. */
 object BoardText {
@@ -67,6 +68,17 @@ object BoardText {
             }
         }
     }
+
+    /** "Lane 1" on a map with several Lanes, else null (the single-lane map's Lane needs no name). */
+    fun lane(map: BoardMap, laneId: String?): String? {
+        if (map.lanes.size < 2) return null
+        val index = map.lanes.indexOfFirst { it.id == laneId }
+        return if (index >= 0) "Lane ${index + 1}" else null
+    }
+
+    /** "Battle Zone", or "Lane 1 · Battle Zone" on a map with several Lanes (p.20 "Battle Zone 1"). */
+    fun battleZone(map: BoardMap, laneId: String?): String =
+        lane(map, laneId)?.let { "$it · Battle Zone" } ?: "Battle Zone"
 
     /** What a piece is, for lists and TalkBack: "Arien, Red", "Red Melee minion", "Token Mine". */
     fun piece(piece: BoardPiece, heroName: (String) -> String): String = when (piece) {
@@ -133,15 +145,35 @@ fun defaultMap(maps: List<BoardMap>, heroes: Int, preferred: String? = null): Bo
 
 private const val DOUBLE_LANE_HEROES = 8
 
-/** New piece ids for [state]: "p1", "p2", … never one already in use. */
-fun pieceIds(state: BoardState): () -> String {
-    var next = state.pieces.mapNotNull { it.id.removePrefix("p").toIntOrNull() }.maxOrNull()?.plus(1) ?: 1
-    val used = state.pieces.mapTo(HashSet()) { it.id }
-    return {
-        var id = "p$next"
-        while (id in used) id = "p${++next}"
-        next++
-        used += id
-        id
+/**
+ * A new piece id: a fresh UUID, never one used before on any board (an id reused after Remove would
+ * let Undo, overlays or the tray mistake one piece for another).
+ */
+fun newPieceId(): String = UUID.randomUUID().toString()
+
+/**
+ * Two positions with the same pieces on the same spaces and the same Battle Zones, whatever the
+ * pieces' ids: a board still on [other] is "untouched".
+ */
+fun BoardState.sameLayoutAs(other: BoardState): Boolean =
+    mapId == other.mapId && battleZones == other.battleZones && layoutKey() == other.layoutKey()
+
+private fun BoardState.layoutKey(): List<String> = pieces.map { piece ->
+    when (piece) {
+        is HeroPiece -> "h ${piece.heroId} ${piece.team} ${piece.at}"
+        is MinionPiece -> "m ${piece.team} ${piece.type} ${piece.lane} ${piece.at}"
+        is TokenPiece -> "t ${piece.label} ${piece.team} ${piece.at}"
     }
+}.sorted()
+
+/**
+ * The line-up reordered to [order]'s pick order, team by team, when both name the same heroes (a
+ * logged match's seats against its draft's picks); otherwise unchanged.
+ */
+fun BoardLineup.inOrderOf(order: BoardLineup?): BoardLineup {
+    if (order == null) return this
+    return BoardLineup(
+        red = if (order.red.toSet() == red.toSet()) order.red else red,
+        blue = if (order.blue.toSet() == blue.toSet()) order.blue else blue,
+    )
 }

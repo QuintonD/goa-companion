@@ -619,10 +619,12 @@ card effects are open-ended text. PRODUCT's non-goals excluded board simulation.
 **Decision:** (1) **Map data** comes through the import pipeline from a new pinned source,
 `PedroVIOliv/goa2-backend` (`src/goa2/data/maps/*.json`: axial hexes, zones, spawn tags, lanes),
 normalised to our `BoardMap` (core:model) in `assets/catalog/maps/`. A map is `verified` only when
-an overlay on the official map art matches space by space and its spawn points satisfy the
-rulebook's setup (p.6: 4 Melee, 1 Ranged, 1 Heavy per team in the starting Battle Zone; three hero
-spawn points per team; p.8: the defending team has more spawn points in its pre-Throne Zone).
-Community zone names are not shown. (2) **Rules are pure Kotlin** in `core:domain/board`
+an overlay on the official map art matches space by space and the rulebook checks pass (DOMAIN.md
+*Board map JSON*): three hero spawn points per team (p.6/p.20); single-lane maps: 4 Melee, 1 Ranged,
+1 Heavy per team in the starting Battle Zone (p.6); double-lane maps: two Lanes, each with its own
+starting Battle Zone (p.20). p.8's "the defending team has more minion spawn points in their
+Pre-Throne Zone" describes the core map's example and is a note, not a check. Community zone names
+are not shown. (2) **Rules are pure Kotlin** in `core:domain/board`
 (`HexGrid`, `BoardGeometry`, `BoardRules`, `BoardSetup`), page-referenced and tested: obstacles
 (p.18), movement through empty spaces and Ignoring Obstacles (p.11, p.18), Fast Travel (p.11), Zone
 adjacency (p.17), distance counting obstacles (p.17, p.18), opening (p.6, p.20), Push the Lane steps 2–3
@@ -640,3 +642,14 @@ Narrow Passages and Magma and Ice badged Unverified, because the community data 
 Pre-Throne spawn points wrongly and was corrected from photos of the mats alone. goa2-backend's
 Vexing Cliffs is fan-made and left out. "Verified" needs the community data and the art to agree
 space by space (two sources), like the hero catalog's rule.
+**Addendum (2026-10-19, review):** Rules gaps closed: minions carry the Lane they spawned in
+(`MinionPiece.lane`, p.20 "bound to the Battle Zone they were originally spawned in"), used by
+"Minions Outside of the Battle Zone" and by Push the Lane, which also clears that Lane's minions
+still waiting in the tray (p.8 step 3); movement has three paths (normal, through tokens, ignoring
+obstacles; p.11, p.18) and a straight-line option (p.19); Range/Radius cover the water around the
+board, one ring deep (p.19 Terrain, [APP] extent); a push with no straight line has no direction.
+Set-up is one tap from the latest draft or match; untouched duplicates are reopened. The board opens
+on the Lane at a tappable hex size rather than on the whole map. A board open in the back stack
+follows its stored copy (adopts external changes, closes on deletion) so it never overwrites a
+backup import or resurrects a deleted board. `lane` has a default and boards are not synced, so no
+`SyncDocument` bump; the backup round-trips it.

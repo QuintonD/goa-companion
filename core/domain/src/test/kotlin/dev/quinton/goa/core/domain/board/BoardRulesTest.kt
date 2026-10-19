@@ -60,7 +60,9 @@ class BoardRulesTest {
         assertThat(HexGrid.distance(from, target)).isEqualTo(2)
         assertThat(BoardRules.movementReach(g, state(map), from, 6)).doesNotContainKey(target)
         assertThat(BoardRules.movementReach(g, state(map), from, 7)[target]).isEqualTo(7)
-        assertThat(BoardRules.movementReach(g, state(map), from, 2, ignoreObstacles = true)[target]).isEqualTo(2)
+        assertThat(
+            BoardRules.movementReach(g, state(map), from, 2, path = BoardRules.MovePath.IGNORE_OBSTACLES)[target],
+        ).isEqualTo(2)
     }
 
     @Test
@@ -69,7 +71,7 @@ class BoardRulesTest {
         val g = BoardGeometry.of(map)
         val blockers = listOf(minion(Team.BLUE, Hex(5, 2)), token(Hex(7, 2)))
         val s = state(map, *blockers.toTypedArray())
-        val reach = BoardRules.movementReach(g, s, Hex(4, 2), 4, ignoreObstacles = true)
+        val reach = BoardRules.movementReach(g, s, Hex(4, 2), 4, BoardRules.MovePath.IGNORE_OBSTACLES)
         assertThat(reach[Hex(8, 2)]).isEqualTo(4)
         assertThat(reach.keys).containsNoneOf(Hex(5, 2), Hex(6, 2), Hex(7, 2))
         assertThat(reach.keys.all { g.isSpace(it) }).isTrue()
@@ -85,8 +87,61 @@ class BoardRulesTest {
         assertThat(g.isTerrain(Hex(5, 0))).isFalse()
         val plain = BoardRules.movementReach(g, state(map), Hex(4, 0), 2)
         assertThat(plain).doesNotContainKey(Hex(6, 0))
-        val ignoring = BoardRules.movementReach(g, state(map), Hex(4, 0), 2, ignoreObstacles = true)
+        val ignoring = BoardRules.movementReach(g, state(map), Hex(4, 0), 2, BoardRules.MovePath.IGNORE_OBSTACLES)
         assertThat(ignoring[Hex(6, 0)]).isEqualTo(2)
+    }
+
+    @Test
+    fun `moving through tokens passes tokens only, never units or terrain, and never ends on one`() {
+        val map = strip(holes = setOf(Hex(6, 1)))
+        val g = BoardGeometry.of(map)
+        // Row 2: token at (5,2), then a minion at (7,2); row 1: a hole at (6,1).
+        val s = state(map, token(Hex(5, 2)), minion(Team.BLUE, Hex(7, 2)))
+        val normal = BoardRules.movementReach(g, s, Hex(4, 2), 2, straightLine = true)
+        assertThat(normal).doesNotContainKey(Hex(6, 2))
+        val tokens = BoardRules.movementReach(
+            g,
+            s,
+            Hex(4, 2),
+            4,
+            BoardRules.MovePath.THROUGH_TOKENS,
+            straightLine = true,
+        )
+        assertThat(tokens[Hex(6, 2)]).isEqualTo(2)
+        assertThat(tokens).doesNotContainKey(Hex(5, 2))
+        // The minion at (7,2) stops it: (8,2) is out of reach along that line.
+        assertThat(tokens).doesNotContainKey(Hex(8, 2))
+        // Terrain is no token: from (5,1) the hole at (6,1) blocks the line east.
+        val terrain = BoardRules.movementReach(g, state(map), Hex(5, 1), 3, BoardRules.MovePath.THROUGH_TOKENS, true)
+        assertThat(terrain.keys.none { it.r == 1 && it.q > 5 }).isTrue()
+        // Not in a straight line, through the token in two steps.
+        val any = BoardRules.movementReach(g, s, Hex(4, 2), 2, BoardRules.MovePath.THROUGH_TOKENS)
+        assertThat(any[Hex(6, 2)]).isEqualTo(2)
+    }
+
+    @Test
+    fun `a straight-line move goes along the six directions only and stops at the first obstacle`() {
+        val map = strip()
+        val g = BoardGeometry.of(map)
+        val from = Hex(7, 2)
+        val reach = BoardRules.movementReach(g, state(map), from, 2, straightLine = true)
+        assertThat(reach.keys.all { HexGrid.inStraightLine(from, it) }).isTrue()
+        // Six directions, two spaces each; rows 0..4 leave room for all of them.
+        assertThat(reach).hasSize(12)
+        reach.forEach { (hex, n) -> assertThat(n).isEqualTo(HexGrid.distance(from, hex)) }
+        val blocked = BoardRules.movementReach(g, state(map, minion(Team.RED, Hex(8, 2))), from, 3, straightLine = true)
+        assertThat(blocked.keys.none { it.r == 2 && it.q > 7 }).isTrue()
+        // Ignoring obstacles it passes the minion and lands beyond it.
+        val ignoring = BoardRules.movementReach(
+            g,
+            state(map, minion(Team.RED, Hex(8, 2))),
+            from,
+            3,
+            BoardRules.MovePath.IGNORE_OBSTACLES,
+            straightLine = true,
+        )
+        assertThat(ignoring[Hex(9, 2)]).isEqualTo(2)
+        assertThat(ignoring).doesNotContainKey(Hex(8, 2))
     }
 
     @Test
@@ -167,13 +222,28 @@ class BoardRulesTest {
     // --- Range / Radius (p.9) ---
 
     @Test
-    fun `within covers spaces and enclosed terrain up to N away, not the centre or off the map`() {
+    fun `within covers spaces, enclosed terrain and the water ring around the map, not the centre`() {
         val map = strip(holes = setOf(Hex(1, 1)))
         val g = BoardGeometry.of(map)
-        assertThat(BoardRules.within(g, Hex(0, 0), 1)).containsExactly(Hex(1, 0), Hex(0, 1))
+        // (0,0) is a corner: its other four neighbours are the water around the board (p.19 terrain).
+        assertThat(BoardRules.within(g, Hex(0, 0), 1)).containsExactlyElementsIn(HexGrid.neighbors(Hex(0, 0)))
         assertThat(BoardRules.within(g, Hex(1, 2), 1)).contains(Hex(1, 1))
-        // 36 hexes within 3, minus the 8 above and below the five rows.
-        assertThat(BoardRules.within(g, Hex(4, 2), 3)).hasSize(28)
+        // 60 hexes within 4 of the middle row: 22 lie above or below the five rows, all water (p.19),
+        // but only the 12 next to the map count (one ring, [APP]).
+        val within = BoardRules.within(g, Hex(4, 2), 4)
+        assertThat(within).hasSize(50)
+        assertThat(within).containsNoneOf(Hex(4, -2), Hex(2, 6))
+        assertThat(within.filterNot { g.isSpace(it) || g.isTerrain(it) }.all { it in g.edge }).isTrue()
+    }
+
+    @Test
+    fun `the water ring is every hex next to a space that is neither a space nor a hole`() {
+        val map = strip(holes = setOf(Hex(1, 1)))
+        val g = BoardGeometry.of(map)
+        assertThat(g.edge).doesNotContain(Hex(1, 1))
+        assertThat(g.edge).containsAtLeast(Hex(0, -1), Hex(-1, 0), Hex(14, 5), Hex(15, 0))
+        assertThat(g.edge.none { g.isSpace(it) }).isTrue()
+        assertThat(g.edge.all { hex -> HexGrid.neighbors(hex).any(g::isSpace) }).isTrue()
     }
 
     // --- Hero respawn (p.7) ---
@@ -206,6 +276,34 @@ class BoardRulesTest {
         assertThat(BoardRules.returnToBattleZone(g, state(map, m), Hex(4, 2), "b"))
             .containsExactly(Hex(6, 0), Hex(6, 1), Hex(6, 2))
         assertThat(BoardRules.returnToBattleZone(g, state(map, m), Hex(4, 2), "a")).containsExactly(Hex(4, 2))
+    }
+
+    @Test
+    fun `a minion goes back to the Battle Zone of its own Lane (p20)`() {
+        val base = strip()
+        // Two lanes over the strip: lane-1 fights in b, lane-2 in c.
+        val map = base.copy(
+            id = "two-lanes",
+            lanes = listOf(
+                base.lanes.single(),
+                base.lanes.single().copy(id = "lane-2", startingBattleZone = "c"),
+            ),
+        )
+        val g = BoardGeometry.of(map)
+        val bound = minion(Team.RED, Hex(4, 2)).copy(lane = "lane-2")
+        val s = state(map, bound).copy(battleZones = mapOf("lane-1" to "b", "lane-2" to "c"))
+        assertThat(BoardRules.battleZoneOf(g, s, bound)).isEqualTo("c")
+        val back = BoardRules.returnToBattleZone(g, s, bound)
+        assertThat(back).isNotEmpty()
+        assertThat(back.all { g.zoneOf(it) == "c" }).isTrue()
+        // In its own Battle Zone it stays; with no Lane on a two-lane map, nothing is known.
+        assertThat(BoardRules.returnToBattleZone(g, s, bound.copy(at = Hex(10, 2)))).isEmpty()
+        assertThat(BoardRules.returnToBattleZone(g, s, bound.copy(lane = null))).isEmpty()
+        // A single-lane map binds every minion to its one Lane.
+        val single = strip()
+        val loose = minion(Team.RED, Hex(4, 2))
+        assertThat(BoardRules.returnToBattleZone(BoardGeometry.of(single), state(single, loose), loose))
+            .containsExactly(Hex(6, 0), Hex(6, 1), Hex(6, 2))
     }
 
     @Test
@@ -249,7 +347,8 @@ class BoardRulesTest {
         val g = BoardGeometry.of(map)
         val s = state(map, minion(Team.BLUE, Hex(13, 2)))
         assertThat(BoardRules.push(g, s, Hex(12, 2), Hex(13, 2), 3)).isEqualTo(Hex(14, 2))
-        assertThat(BoardRules.push(g, s, Hex(12, 1), Hex(13, 2), 3)).isEqualTo(Hex(13, 2))
+        // Not in a straight line: no direction to push in.
+        assertThat(BoardRules.push(g, s, Hex(11, 1), Hex(13, 2), 3)).isNull()
         // Pushed from two spaces away along a line: still directly away.
         assertThat(BoardRules.push(g, s, Hex(11, 2), Hex(13, 2), 1)).isEqualTo(Hex(14, 2))
     }

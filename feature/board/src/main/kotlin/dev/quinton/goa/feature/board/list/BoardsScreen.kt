@@ -66,13 +66,19 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardHero
 import dev.quinton.goa.feature.board.BoardText
+import dev.quinton.goa.feature.board.setup.LatestCard
+import dev.quinton.goa.feature.board.setup.LineupSource
 
-/** Saved boards, newest change first, and "New board". */
+/**
+ * Saved boards, newest change first, under the latest draft's or match's line-up (Set up in one
+ * tap), and "New board".
+ */
 @Composable
 fun BoardsScreen(
     state: BoardsUiState,
     onOpen: (String) -> Unit,
     onNew: () -> Unit,
+    onSetUp: (LineupSource) -> Unit,
     onRename: (String, String) -> Unit,
     onDuplicate: (String) -> Unit,
     onDelete: (String) -> Unit,
@@ -101,19 +107,30 @@ fun BoardsScreen(
             when {
                 ready == null -> CircularProgressIndicator(Modifier.align(Alignment.Center))
 
-                ready.boards.isEmpty() -> EmptyState(
-                    icon = Icons.Outlined.Hexagon,
-                    title = "No boards yet",
-                    message = "Set up any line-up on the real map and see who can reach whom.",
-                    modifier = Modifier.align(Alignment.Center),
-                    action = {
-                        Button(onClick = onNew, modifier = Modifier.heightIn(min = 52.dp)) {
-                            Icon(Icons.Outlined.Add, contentDescription = null)
-                            Spacer(Modifier.width(Spacing.sm))
-                            Text("New board")
-                        }
-                    },
-                )
+                ready.boards.isEmpty() -> Column(Modifier.fillMaxSize()) {
+                    ready.latest?.let {
+                        LatestCard(it, { onSetUp(it) }, Modifier.padding(Spacing.screen))
+                    }
+                    Box(Modifier.weight(1f).fillMaxWidth()) {
+                        EmptyState(
+                            icon = Icons.Outlined.Hexagon,
+                            title = "No boards yet",
+                            message = if (ready.unreadable) {
+                                "The saved boards couldn't be read."
+                            } else {
+                                "Set up any line-up on the real map and see who can reach whom."
+                            },
+                            modifier = Modifier.align(Alignment.Center),
+                            action = {
+                                Button(onClick = onNew, modifier = Modifier.heightIn(min = 52.dp)) {
+                                    Icon(Icons.Outlined.Add, contentDescription = null)
+                                    Spacer(Modifier.width(Spacing.sm))
+                                    Text("New board")
+                                }
+                            },
+                        )
+                    }
+                }
 
                 else -> LazyColumn(
                     contentPadding = PaddingValues(
@@ -125,6 +142,9 @@ fun BoardsScreen(
                     verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     modifier = Modifier.fillMaxSize(),
                 ) {
+                    ready.latest?.let { latest ->
+                        item(key = "latest") { LatestCard(latest, { onSetUp(latest) }) }
+                    }
                     items(ready.boards, key = { it.id }) { board ->
                         BoardRow(
                             board = board,

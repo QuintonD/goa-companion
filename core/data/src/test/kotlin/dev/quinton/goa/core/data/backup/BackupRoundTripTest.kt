@@ -210,7 +210,7 @@ class BackupRoundTripTest {
             mapId = "core",
             pieces = listOf(
                 HeroPiece("p1", Hex(0, 1), "test-hero-1", Team.RED),
-                MinionPiece("p2", Hex(1, -1), Team.BLUE, MinionType.HEAVY),
+                MinionPiece("p2", Hex(1, -1), Team.BLUE, MinionType.HEAVY, lane = "lane"),
                 TokenPiece("p3", null, "Mine"),
             ),
             battleZones = mapOf("lane" to "zone-3"),

@@ -5,6 +5,7 @@ import dev.quinton.goa.core.model.board.BoardMap
 import dev.quinton.goa.core.model.board.BoardSpace
 import dev.quinton.goa.core.model.board.BoardZone
 import dev.quinton.goa.core.model.board.Hex
+import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.board.SpawnKind
 import dev.quinton.goa.core.model.board.SpawnPoint
 import dev.quinton.goa.core.model.board.ZoneKind
@@ -41,9 +42,24 @@ class BoardGeometry private constructor(val map: BoardMap) {
         }
     }
 
+    /**
+     * The ring of water around the map: hexes next to a space that are neither spaces nor enclosed
+     * terrain. p.19 "Terrain": "Any board space without a full grid outline counts as terrain and is
+     * an obstacle, including the water spaces surrounding the board". How far the printed water
+     * reaches differs from mat to mat; [APP] the board sandbox draws and targets one ring of it.
+     */
+    val edge: Set<Hex> = buildSet {
+        map.spaces.forEach { space ->
+            HexGrid.neighbors(space.hex).forEach { n -> if (n !in spaces && n !in terrain) add(n) }
+        }
+    }
+
     fun isSpace(hex: Hex): Boolean = hex in spaces
 
     fun isTerrain(hex: Hex): Boolean = hex in terrain
+
+    /** A space, an enclosed terrain hex or the water ring around the map ([edge]): what the app draws. */
+    fun isOnBoard(hex: Hex): Boolean = hex in spaces || hex in terrain || hex in edge
 
     fun zoneOf(hex: Hex): String? = spaces[hex]?.zone
 
@@ -59,6 +75,18 @@ class BoardGeometry private constructor(val map: BoardMap) {
 
     /** Lanes whose Zones include [zoneId]. */
     fun lanesThrough(zoneId: String): List<BoardLane> = map.lanes.filter { zoneId in it.zones }
+
+    /**
+     * The Lane [minion] is bound to (p.20): its own [MinionPiece.lane]; else the only Lane of a
+     * single-lane map; else, for a minion on the board, the one Lane through its Zone. Null when
+     * that is still unknown (a hand-added minion in the tray, or one in a Zone shared by both Lanes).
+     */
+    fun laneOf(minion: MinionPiece): String? {
+        minion.lane?.takeIf { it in lanes }?.let { return it }
+        if (map.lanes.size == 1) return map.lanes.single().id
+        val zone = minion.at?.let(::zoneOf) ?: return null
+        return lanesThrough(zone).singleOrNull()?.id
+    }
 
     companion object {
         private val cache = HashMap<String, BoardGeometry>()

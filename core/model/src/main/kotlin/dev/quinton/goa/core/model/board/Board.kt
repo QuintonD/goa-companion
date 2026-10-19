@@ -159,11 +159,18 @@ data class MinionPiece(
     val team: Team,
     /** Stored as `"minion"`: `"type"` is the JSON discriminator of [BoardPiece]. */
     @SerialName("minion") val type: MinionType,
+    /**
+     * The Lane whose Battle Zone this minion was spawned in (p.20: "Minions are bound to the Battle
+     * Zone they were originally spawned in for the purpose of respawning and when applying the
+     * 'Minions Outside of the Battle Zone' rules"). Null for a minion added by hand and on boards
+     * saved before this field; on a single-lane map that is the only Lane.
+     */
+    val lane: String? = null,
 ) : BoardPiece {
     override fun moveTo(hex: Hex?): BoardPiece = copy(at = hex)
 }
 
-/** A token (an obstacle, p.19), labelled by the user, e.g. "Mine" or "Rock". */
+/** A token (an obstacle, p.18 "Obstacle", p.19 "Tokens"), labelled by the user, e.g. "Mine" or "Rock". */
 @Serializable
 @SerialName("token")
 data class TokenPiece(
