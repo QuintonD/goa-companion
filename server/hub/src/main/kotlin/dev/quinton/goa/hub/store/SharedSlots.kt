@@ -13,7 +13,8 @@ object SharedSlots {
 
     /**
      * This browser's app settings, as a phone keeps them (owned products, timer defaults, sounds,
-     * haptics, running-timer layout, …). Missing = `AppSettings()`. Writer: Settings. The theme
+     * haptics, running-timer layout, …). Missing = `AppSettings()`. Writer: Settings; Heroes changes
+     * only `catalogListView` (atomically, with `update`, like the phone's Heroes tab). The theme
      * stays in `ShellSlots.Theme`.
      */
     val Settings = DeviceSlot("settings", AppSettings.serializer())

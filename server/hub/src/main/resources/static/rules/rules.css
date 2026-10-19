@@ -1,0 +1,128 @@
+/*
+ * Rules reference (ADR-019): read at arm's length across the table, so passages are larger than
+ * body text with generous leading. Verbatim excerpts carry a bronze quote rule and the printed page.
+ */
+
+.rules-search { margin: 0; }
+.rules-results { display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
+
+.ladder-card {
+  flex-direction: row;
+  align-items: center;
+  gap: calc(var(--space) * 3);
+  color: var(--on-surface);
+  text-decoration: none;
+}
+
+.ladder-card:hover { border-color: var(--primary); }
+.ladder-icon { width: 32px; height: 32px; color: var(--primary); }
+.ladder-text { display: flex; flex: 1; flex-direction: column; gap: 2px; }
+.ladder-title { font-family: var(--font-display); font-size: 20px; font-weight: 600; }
+
+.topic-list { display: flex; flex-direction: column; gap: calc(var(--space) * 2); margin: 0; padding: 0; list-style: none; }
+.topic-row { min-height: 64px; border: 1px solid var(--engraved); }
+.topic-row .row-title { font-size: 18px; }
+
+.page-tag {
+  flex: none;
+  padding: 2px 8px;
+  border: 1px solid var(--engraved);
+  border-radius: 10px;
+  color: var(--primary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rules-pages { font-size: 14px; font-weight: 500; }
+
+.summary-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: calc(var(--space) * 3);
+  border: 1px solid color-mix(in srgb, var(--secondary) 35%, transparent);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--secondary) 8%, transparent);
+}
+
+.summary-label { color: var(--secondary); font-family: var(--font-display); font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+
+.excerpt { display: flex; flex-direction: column; gap: 4px; }
+.excerpt-head { display: flex; align-items: center; gap: calc(var(--space) * 2); }
+.excerpt-heading { flex: 1; color: var(--primary); font-size: 18px; }
+
+.excerpt-body {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space) * 2);
+  padding-left: calc(var(--space) * 3);
+  border-left: 3px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.list-line { display: flex; }
+.list-marker { flex: none; width: 28px; color: var(--primary); }
+.rule-divider { height: 1px; background: var(--engraved); }
+
+.table-scroll { max-width: 100%; overflow-x: auto; border: 1px solid var(--engraved); border-radius: 8px; }
+.table-scroll:focus-visible { outline-offset: 2px; }
+.rules-table, .ladder-table { width: 100%; border-collapse: collapse; font-size: 16px; }
+.rules-table th, .rules-table td { padding: calc(var(--space) * 2); text-align: left; vertical-align: top; }
+.rules-table thead th { font-weight: 700; }
+.rules-table tbody th { font-weight: 400; }
+.rules-table tbody tr + tr { border-top: 1px solid var(--engraved); }
+
+/* ---- Levels & defeats ---- */
+.ladder { display: flex; flex-direction: column; gap: calc(var(--space) * 3); }
+.ladder-head { display: flex; align-items: center; gap: calc(var(--space) * 2); }
+.ladder-head .overline { flex: 1; }
+.overline { color: var(--primary); font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+.level-picker { display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(var(--space) * 2); }
+
+.level {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  border: 1px solid var(--engraved);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: var(--on-surface);
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+
+.level.selected { border-color: var(--primary); background: var(--primary); color: var(--on-primary); }
+
+.defeat-result {
+  padding: var(--pad);
+  border: 1px solid color-mix(in srgb, var(--secondary) 50%, transparent);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--secondary) 10%, transparent);
+}
+
+.defeat-title { font-size: 17px; font-weight: 600; }
+.defeat-numbers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: calc(var(--space) * 2); margin-top: calc(var(--space) * 3); text-align: center; }
+.defeat-number { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.big-digit { font-size: 40px; font-weight: 600; line-height: 44px; font-variant-numeric: tabular-nums; }
+.defeat-label { font-size: 14px; font-weight: 600; }
+
+.ladder-table th, .ladder-table td { min-width: 50px; padding: 6px 2px; text-align: center; font-variant-numeric: tabular-nums; }
+.ladder-table thead th { color: var(--on-surface-variant); font-size: 12px; font-weight: 500; line-height: 1.25; }
+.ladder-table tbody td { font-size: 17px; font-weight: 500; }
+.ladder-table tbody th a { display: block; min-height: 40px; line-height: 40px; color: var(--primary); font-size: 17px; font-weight: 700; text-decoration: none; }
+.ladder-table tbody tr.selected { background: color-mix(in srgb, var(--secondary) 16%, transparent); }
+.ladder .excerpt-body { font-size: 16px; }
+
+.exception-card { display: flex; flex-direction: column; gap: 2px; padding: calc(var(--space) * 3); border-radius: var(--radius-card); background: var(--surface-high); }
+.exception-title { font-size: 17px; font-weight: 600; }
+.exception-card .card-text { margin-top: 4px; font-size: 16px; }
+
+@media (max-width: 360px) {
+  .defeat-numbers { grid-template-columns: 1fr; text-align: left; }
+  .defeat-number { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+}

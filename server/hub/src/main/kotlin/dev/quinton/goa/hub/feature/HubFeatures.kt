@@ -7,11 +7,11 @@ package dev.quinton.goa.hub.feature
  */
 val HubFeatures: List<HubFeature> = listOf(
     // Heroes: catalog, hero page, cards, FAQ
-    ComingSoon.Heroes,
+    dev.quinton.goa.hub.heroes.HeroesFeature,
     // Card trivia
-    ComingSoon.Trivia,
+    dev.quinton.goa.hub.trivia.TriviaFeature,
     // Rules reference
-    ComingSoon.Rules,
+    dev.quinton.goa.hub.rules.RulesFeature,
     // Timer
     ComingSoon.Timer,
     // Draft

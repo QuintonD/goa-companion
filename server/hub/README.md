@@ -179,6 +179,16 @@ in case). A slot that can't be decoded reads as null. Slots in use: `theme` (`Sh
 `ThemeChoice` — written by Settings, read by every page), `invitedPlayerId`
 (`SignInSlots.InvitedPlayerId`, set when a browser joins with a personal invite `p=`; the Group
 pages ask "You're <name>?" and delete it once answered), `push`, `push-schedule` (PushService).
+`trivia` (Card trivia: the phone's two `trivia_progress` documents, progress and last setup, in the
+phone's JSON via `TriviaJson`) and `trivia-round` (the round on screen, restarted from question 1
+after a hub restart). Heroes changes only `catalogListView` in `SharedSlots.Settings`, atomically with
+`update`, as the phone's Heroes tab does.
+
+Shared catalog pieces for any page (card text with game icons, card tiles, portraits, the
+Unverified badge): `dev.quinton.goa.hub.heroes.CatalogHtml` with `static/heroes/heroes.css`
+(`HeroesFeature.styles`). Links other areas may use: `/heroes/{heroId}`,
+`/heroes/{heroId}/cards/{cardId}`, `/rules/levels?heroes=a,b` (Levels & defeats for a match's heroes),
+`/rules/{topicId}`, `/trivia?hero={heroId}`.
 
 ## Pages and components
 

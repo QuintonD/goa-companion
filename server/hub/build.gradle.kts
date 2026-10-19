@@ -13,7 +13,8 @@ application {
     applicationName = "goa-hub"
     mainClass.set("dev.quinton.goa.hub.MainKt")
     // Icons are rendered with Java2D; no display is ever needed.
-    applicationDefaultJvmArgs = listOf("-Djava.awt.headless=true")
+    // English formatting for the English UI ("2,150 numbers"), whatever the hub machine's locale.
+    applicationDefaultJvmArgs = listOf("-Djava.awt.headless=true", "-Duser.language=en", "-Duser.country=GB")
 }
 
 distributions {
