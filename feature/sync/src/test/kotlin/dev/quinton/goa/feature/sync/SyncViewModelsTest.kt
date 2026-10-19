@@ -162,6 +162,27 @@ class SyncViewModelsTest {
     }
 
     @Test
+    fun aPersonalInviteStillToAnswerLeadsTheGroupScreenEvenForAPhoneThatHadAPlayer() = runTest {
+        // Joined through a hub with a personal invite for Bob, after using the app alone as Ann:
+        // no sync sheet asks "You're Bob?", so the Group screen does until it is answered.
+        val groups =
+            FakeGroupRepository(groupState(me = "ann").copy(hubUrl = "https://goa.example", invitedPlayerId = "bob"))
+        val vm = GroupViewModel(
+            groups,
+            FakePlayerRepository(people),
+            FakeMatchRepository(),
+            FakeSyncRepository(),
+            clock,
+            phoneName,
+            FakePlayerMergeRepository(),
+        )
+        assertThat(vm.uiState.first { !it.loading }.invited?.name).isEqualTo("Bob")
+
+        groups.setMe("bob")
+        assertThat(vm.uiState.first { it.me?.id == "bob" }.invited).isNull()
+    }
+
+    @Test
     fun beforeChoosingYourselfThePhoneGoesByItsOwnNameNotItsModelCode() = runTest {
         val vm = GroupViewModel(
             FakeGroupRepository(groupState()),
@@ -170,6 +191,7 @@ class SyncViewModelsTest {
             FakeSyncRepository(),
             clock,
             phoneName,
+            FakePlayerMergeRepository(),
         )
         assertThat(vm.uiState.first { !it.loading }.deviceName).isEqualTo("Galaxy S25 Ultra")
     }
@@ -184,6 +206,7 @@ class SyncViewModelsTest {
             FakeSyncRepository(),
             clock,
             phoneName,
+            FakePlayerMergeRepository(),
         )
         backgroundScope.launch { vm.uiState.collect {} }
         vm.navigation.test {
@@ -207,7 +230,16 @@ class SyncViewModelsTest {
     fun startingAGroupShowsItsInviteAndLeavingKeepsTheData() = runTest {
         val groups = FakeGroupRepository(groupState(group = null))
         val sync = FakeSyncRepository(data("m1"))
-        val vm = GroupViewModel(groups, FakePlayerRepository(people), FakeMatchRepository(), sync, clock, phoneName)
+        val vm =
+            GroupViewModel(
+                groups,
+                FakePlayerRepository(people),
+                FakeMatchRepository(),
+                sync,
+                clock,
+                phoneName,
+                FakePlayerMergeRepository(),
+            )
         backgroundScope.launch { vm.uiState.collect {} }
         vm.start("   ")
         assertThat(vm.uiState.first { it.message != null }.inGroup).isFalse()
@@ -232,6 +264,7 @@ class SyncViewModelsTest {
                 sync,
                 clock,
                 phoneName,
+                FakePlayerMergeRepository(),
             )
         vm.navigation.test {
             vm.shareFile()

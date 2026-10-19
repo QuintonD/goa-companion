@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.GroupRepository
 import dev.quinton.goa.core.data.MatchRepository
+import dev.quinton.goa.core.data.PlayerMergeRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.SyncRepository
 import dev.quinton.goa.core.domain.sync.GroupCredentials
@@ -14,6 +15,7 @@ import dev.quinton.goa.core.domain.sync.HubAddress
 import dev.quinton.goa.core.domain.sync.SyncCrypto
 import dev.quinton.goa.core.domain.sync.SyncValidation
 import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.core.presentation.group.PlayerLink
 import dev.quinton.goa.feature.sync.PhoneName
 import dev.quinton.goa.feature.sync.SyncText
 import dev.quinton.goa.feature.sync.hub.HubSyncControl
@@ -41,6 +43,11 @@ data class GroupUiState(
     /** The invite the QR code shows (`goa-sync:1?…`, or `<hub>/join#goa-sync:1?…` with a hub, ADR-030). */
     val invite: String? = null,
     val me: Player? = null,
+    /**
+     * The player this phone's personal invite was made for, still to confirm (ADR-031): "You're
+     * <name>?" leads the screen until it is answered on "Which player are you?".
+     */
+    val invited: Player? = null,
     val deviceName: String = "",
     val phones: List<PhoneRow> = emptyList(),
     val lastSync: String? = null,
@@ -81,19 +88,26 @@ class GroupViewModel @Inject constructor(
     private val sync: SyncRepository,
     private val clock: EditClock,
     private val phoneName: PhoneName,
+    merges: PlayerMergeRepository,
     private val hubSync: HubSyncControl = HubSyncControl.Off,
 ) : ViewModel() {
     private val local = MutableStateFlow(Local())
     private val events = Channel<GroupEvent>(Channel.BUFFERED)
     val navigation: Flow<GroupEvent> = events.receiveAsFlow()
 
+    /** The invite's player, worked out as "Which player are you?" does (through the merges, active only). */
+    private val invited =
+        combine(groups.state, players.observePlayers(), merges.observeMerges()) { group, active, merged ->
+            PlayerLink.invited(group.invitedPlayerId, group.mePlayerId, merged, active)
+        }
+
     val uiState: StateFlow<GroupUiState> = combine(
-        groups.state,
+        combine(groups.state, invited, ::Pair),
         players.observePlayers(includeArchived = true),
         matches.observeMatches(),
         local,
         hubSync.running,
-    ) { group, people, log, l, hubRunning ->
+    ) { (group, invited), people, log, l, hubRunning ->
         val now = clock.now()
         val me = people.firstOrNull { it.id == group.mePlayerId }
         GroupUiState(
@@ -101,6 +115,7 @@ class GroupViewModel @Inject constructor(
             groupName = group.group?.name,
             invite = group.group?.let { GroupInvite.format(it, hubUrl = group.hubUrl) },
             me = me,
+            invited = invited,
             deviceName = me?.name ?: group.deviceName ?: phoneName.get(),
             phones = group.phones.map { PhoneRow(it.name, SyncText.ago(it.lastSyncedAt, now)) },
             lastSync = group.lastSyncAt?.let { SyncText.ago(it, now) },

@@ -8,6 +8,7 @@ import dev.quinton.goa.core.data.HubProblem
 import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.core.testing.FakeGroupRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
+import dev.quinton.goa.core.testing.FakePlayerMergeRepository
 import dev.quinton.goa.core.testing.FakePlayerRepository
 import dev.quinton.goa.feature.sync.FakeSyncRepository
 import dev.quinton.goa.feature.sync.MainDispatcherRule
@@ -51,6 +52,7 @@ class HubSectionTest {
         FakeSyncRepository(),
         clock,
         PhoneName { "Pixel" },
+        FakePlayerMergeRepository(),
         control,
     )
 

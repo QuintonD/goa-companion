@@ -190,7 +190,15 @@ private fun ColumnScope.Show(state: GroupInviteUiState, actions: InviteSheetActi
     }
     Text(
         buildString {
-            append("On your friend's phone: install the app, open Settings → Group sync → Scan invite QR code.")
+            if (!invite.startsWith("goa-sync:")) {
+                // With a hub the code is a link (ADR-030 §6): iPhones open the web app from the Camera.
+                append(
+                    "iPhone: point the Camera at the code and tap the link; the web app opens. Android: " +
+                        "in the app, Settings → Group sync → Scan invite QR code.",
+                )
+            } else {
+                append("On your friend's phone: install the app, open Settings → Group sync → Scan invite QR code.")
+            }
             if (player != null) append(" After the first sync it asks “You're ${player.name}?”.")
             append(" Anyone with this code can join, so only show it at the table.")
         },
