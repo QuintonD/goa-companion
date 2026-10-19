@@ -2,9 +2,6 @@ package dev.quinton.goa.hub.draft
 
 import dev.quinton.goa.core.domain.draft.DraftMethod
 import dev.quinton.goa.core.domain.draft.DraftMethodsFile
-import dev.quinton.goa.core.domain.rating.EloCalculator
-import dev.quinton.goa.core.domain.sync.SyncDocument
-import dev.quinton.goa.core.domain.sync.UnknownHeroes
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.model.settings.AppSettings
@@ -90,21 +87,11 @@ class DraftData(private val ctx: HubContext) {
     /** Every hero's display data, from the catalog (never anything else). */
     val heroes: Map<String, HeroInfo> by lazy { ctx.catalog.catalog.heroes.associate { it.id to HeroInfo.of(it) } }
 
-    @Volatile private var ratingsCache: Pair<SyncDocument, Map<String, Rating>>? = null
-
     fun library(deviceId: String): MethodLibrary =
         MethodLibrary.of(bundled, ctx.deviceStore.read(deviceId, DraftSlots.Methods).orEmpty())
 
-    /** Player ratings from the group's match log, recomputed only when the document changes. */
-    fun ratings(): Map<String, Rating> {
-        val doc = ctx.groupStore.read()
-        ratingsCache?.let { (cached, ratings) -> if (cached === doc) return ratings }
-        val data = GroupData(doc)
-        val known = ctx.catalog.catalog.heroes.mapTo(HashSet()) { it.id }
-        val ratings = EloCalculator.replay(UnknownHeroes.clearMatches(data.matches, known), data.eloConfig).players
-        ratingsCache = doc to ratings
-        return ratings
-    }
+    /** Player ratings from the group's match log: the one snapshot every page reads (`GroupRatings`). */
+    fun ratings(): Map<String, Rating> = ctx.ratings.current().ratings.players
 
     fun inputs(deviceId: String, data: GroupData = ctx.groupStore.data()): SetupInputs = SetupInputs(
         players = data.players(),

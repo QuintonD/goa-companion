@@ -9,6 +9,7 @@ import dev.quinton.goa.hub.push.PushTransport
 import dev.quinton.goa.hub.push.Vapid
 import dev.quinton.goa.hub.store.DeviceStore
 import dev.quinton.goa.hub.store.Devices
+import dev.quinton.goa.hub.store.GroupRatings
 import dev.quinton.goa.hub.store.GroupStore
 import dev.quinton.goa.hub.store.SyncStateStore
 import dev.quinton.goa.hub.web.JoinThrottle
@@ -31,6 +32,9 @@ class Hub(
     val config = HubConfigStore(paths.config)
     val membership = MembershipStore(paths.group)
     val groupStore = GroupStore(paths.data, paths.backups, clock)
+
+    /** Ratings, meta and group stats of the group's data: the one replay every page reads. */
+    val ratings = GroupRatings(groupStore, catalog, clock)
     val devices = Devices(paths.devices)
     val deviceStore = DeviceStore(paths.devices)
     val syncState = SyncStateStore(paths.syncState)

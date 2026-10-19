@@ -45,5 +45,6 @@ class GroupData(val document: SyncDocument) {
         document.drafts.sortedWith(compareByDescending<DraftRecord> { it.createdAt }.thenByDescending { it.id })
     }
 
-    val eloConfig: EloConfig get() = document.eloConfig.config
+    /** The group's constants, sanitized as the phones read them (`DataStoreEloConfigRepository`). */
+    val eloConfig: EloConfig get() = document.eloConfig.config.sanitized()
 }
