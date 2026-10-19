@@ -356,7 +356,7 @@ fun `players page lists the group`() {
 Main.kt, HubCli.kt          the goa-hub command
 Hub.kt, HubClock.kt         composition root, clocks
 config/                     HubPaths (data dir), HubConfig(Store) (hub.json), MembershipStore (group.json)
-store/                      AtomicFiles, GroupStore + SharedWrites + GroupData, DeviceStore + DeviceSlot, Devices, SyncStateStore
+store/                      AtomicFiles, GroupStore (runs core:domain SharedWrites) + GroupData + GroupRatings, DeviceStore + DeviceSlot, Devices, SyncStateStore
 catalog/HubCatalog.kt       the bundled catalog and images (built from app/src/main/assets)
 push/                       WebPushCrypto (RFC 8291), Vapid (RFC 8292), PushService
 web/HubServer.kt            hubModule: headers, origin check, status pages, auth, routes
