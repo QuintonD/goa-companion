@@ -522,7 +522,7 @@ class BoardViewModel internal constructor(
                         state,
                         from,
                         steps,
-                        settings.ignoreObstacles,
+                        if (settings.ignoreObstacles) BoardRules.MovePath.IGNORE_OBSTACLES else BoardRules.MovePath.NORMAL,
                     )
                 } else {
                     emptyMap()
@@ -538,7 +538,7 @@ class BoardViewModel internal constructor(
             card = card,
             movementValue = movementValue,
             movement = if (settings.movement && movementValue != null) {
-                BoardRules.movementReach(geometry, state, from, movementValue, settings.ignoreObstacles)
+                BoardRules.movementReach(geometry, state, from, movementValue, if (settings.ignoreObstacles) BoardRules.MovePath.IGNORE_OBSTACLES else BoardRules.MovePath.NORMAL)
             } else {
                 emptyMap()
             },

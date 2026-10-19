@@ -103,7 +103,7 @@ class DataStoreBoardRepositoryTest {
             mapId = "forgotten-island",
             pieces = listOf(
                 HeroPiece("p1", Hex(0, 0), "arien", Team.RED),
-                MinionPiece("p2", Hex(1, -1), Team.BLUE, MinionType.HEAVY),
+                MinionPiece("p2", Hex(1, -1), Team.BLUE, MinionType.HEAVY, lane = "lane"),
                 TokenPiece("p3", Hex(2, -1), "Mine", Team.RED),
                 // Waiting in the tray.
                 MinionPiece("p4", null, Team.RED, MinionType.MELEE),
@@ -138,6 +138,15 @@ class DataStoreBoardRepositoryTest {
         assertThat(json).contains(""""minion":"heavy"""")
         assertThat(Json.decodeFromString(SavedBoard.serializer(), json)).isEqualTo(board)
         assertThat(BoardJson.decode(BoardJson.encode(board))).isEqualTo(board)
+    }
+
+    @Test
+    fun `a board saved before minions had a Lane still reads, its minions unbound`() {
+        val old = BoardJson.encode(board("a", 10)).replace(""","lane":"lane"""", "")
+        assertThat(old).doesNotContain(""""lane":"lane"""")
+        val read = BoardJson.decode(old)!!
+        assertThat(read.state.pieces.filterIsInstance<MinionPiece>().map { it.lane }).containsExactly(null, null)
+        assertThat(BoardJson.encode(board("a", 10))).contains(""""lane":"lane"""")
     }
 
     @Test

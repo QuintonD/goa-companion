@@ -6,6 +6,8 @@ import dev.quinton.goa.core.model.board.BoardState
 import dev.quinton.goa.core.model.board.HeroPiece
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionPiece
+import dev.quinton.goa.core.model.board.SpawnKind
+import dev.quinton.goa.core.model.board.SpawnPoint
 import dev.quinton.goa.core.model.board.TokenPiece
 import dev.quinton.goa.core.model.match.Team
 
@@ -20,15 +22,16 @@ object BoardSetup {
      * adjacent to their team's occupied hero spawn points (p.20: "When playing with more than 3
      * heroes per team, place the remaining heroes into any empty spaces adjacent to their team's
      * occupied hero spawn points"), first free neighbour first; any still left wait in the tray.
+     * Each minion is bound to its Lane (p.20, [MinionPiece.lane]).
      */
     fun opening(geometry: BoardGeometry, lineup: BoardLineup, newId: () -> String): BoardState {
         val pieces = mutableListOf<BoardPiece>()
         val battleZones = geometry.map.lanes.associate { it.id to it.startingBattleZone }
-        battleZones.values.distinct().forEach { zone ->
+        battleZones.entries.distinctBy { it.value }.forEach { (lane, zone) ->
             geometry.minionSpawns(zone).forEach { space ->
                 val spawn = space.spawn ?: return@forEach
                 val type = spawn.kind.minion ?: return@forEach
-                pieces += MinionPiece(newId(), space.hex, spawn.team, type)
+                pieces += MinionPiece(newId(), space.hex, spawn.team, type, lane = lane)
             }
         }
         for (team in Team.entries) {
@@ -86,8 +89,11 @@ object BoardSetup {
      * point in the new Battle Zone (If a Spawn point is occupied by a token, first remove that token,
      * then respawn the minion)." A minion whose Spawn point holds another obstacle ("a non-token
      * obstacle") waits in the tray, to be placed by its team in the nearest empty space of the
-     * Battle Zone ([nearestEmpty]). Minions already waiting in the tray are left there: the tray
-     * doesn't record which lane they belong to. On a double-lane map only [laneId] moves (p.20).
+     * Battle Zone ([nearestEmpty]). On a double-lane map only [laneId] moves (p.20), and minions are
+     * bound to their Lane ("Minions are bound to the Battle Zone they were originally spawned in"):
+     * the removal takes the previous Battle Zone's minions except those bound to the other Lane, and
+     * this Lane's minions still waiting in the tray (they belong to the previous Battle Zone too).
+     * New minions are bound to [laneId].
      */
     fun pushLane(
         geometry: BoardGeometry,
@@ -103,15 +109,19 @@ object BoardSetup {
         val next = lane.zones.getOrNull(nextIndex) ?: return PushResult.ThroneCaptured(winner)
         if (next == geometry.throneZone(winner.opponent)) return PushResult.ThroneCaptured(winner)
 
-        val kept = state.pieces.filterNot { it is MinionPiece && it.at?.let(geometry::zoneOf) == current }
-            .toMutableList()
+        val kept = state.pieces.filterNot { piece ->
+            piece is MinionPiece && when (val at = piece.at) {
+                null -> geometry.laneOf(piece) == laneId
+                else -> geometry.zoneOf(at) == current && (geometry.laneOf(piece) ?: laneId) == laneId
+            }
+        }.toMutableList()
         val waiting = mutableListOf<WaitingMinion>()
         geometry.minionSpawns(next).forEach { space ->
             val spawn = space.spawn ?: return@forEach
             val type = spawn.kind.minion ?: return@forEach
             val occupant = kept.firstOrNull { it.at == space.hex }
             if (occupant is TokenPiece) kept.remove(occupant)
-            val minion = MinionPiece(newId(), space.hex, spawn.team, type)
+            val minion = MinionPiece(newId(), space.hex, spawn.team, type, lane = laneId)
             if (occupant == null || occupant is TokenPiece) {
                 kept += minion
             } else {
@@ -121,6 +131,38 @@ object BoardSetup {
             }
         }
         return PushResult.Pushed(state.copy(pieces = kept, battleZones = state.battleZones + (laneId to next)), waiting)
+    }
+
+    /**
+     * Where a minion waiting in the tray may go (p.8: "the owning team must place that minion in the
+     * nearest empty space of their choice in the Battle Zone"): the Battle Zone of its Lane (p.20),
+     * and [APP] "nearest" measured from the Spawn point it could not take. The tray doesn't record
+     * that Spawn point: waiting minions of one Lane, team and type take that Zone's Spawn points of
+     * their type held by something else, in order (the order the push sent them to the tray). Null
+     * when the minion
+     * has no Lane or its Battle Zone has no such Spawn point: then any empty space will do.
+     */
+    fun waitingTargets(geometry: BoardGeometry, state: BoardState, minion: MinionPiece): Set<Hex>? {
+        if (minion.at != null) return null
+        val lane = geometry.laneOf(minion) ?: return null
+        val zone = BoardRules.battleZoneOf(geometry, state, minion) ?: return null
+        val kind = SpawnKind.entries.first { it.minion == minion.type }
+        val spawns = geometry.minionSpawns(zone)
+            .filter { it.spawn == SpawnPoint(minion.team, kind) }
+            .map { it.hex }
+        if (spawns.isEmpty()) return null
+        val occupied = BoardRules.occupancy(state)
+        // Taken = held by anything but a minion of this kind (those respawned there).
+        val taken = spawns.filter { hex ->
+            val occupant = occupied[hex]
+            occupant != null && !(occupant is MinionPiece && occupant.team == minion.team && occupant.type == minion.type)
+        }.ifEmpty { spawns }
+        val queue = state.pieces.filter {
+            it is MinionPiece && it.at == null && it.team == minion.team && it.type == minion.type &&
+                geometry.laneOf(it) == lane
+        }
+        val index = queue.indexOfFirst { it.id == minion.id }.coerceAtLeast(0)
+        return nearestEmpty(geometry, state, zone, taken[minOf(index, taken.lastIndex)])
     }
 
     /**

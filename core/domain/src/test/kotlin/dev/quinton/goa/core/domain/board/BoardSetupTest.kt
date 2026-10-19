@@ -215,6 +215,83 @@ class BoardSetupTest {
     }
 
     @Test
+    fun `every minion is bound to the Lane it spawned in (p20)`() {
+        BundledMaps.all.forEach { map ->
+            val g = BoardGeometry.of(map)
+            val opening = BoardSetup.opening(g, three, newId)
+            opening.minions().forEach { m ->
+                val lane = map.lanes.single { it.id == m.lane }
+                assertWithMessage("${map.id} ${m.at}").that(g.zoneOf(m.at!!)).isEqualTo(lane.startingBattleZone)
+            }
+        }
+        val map = BundledMaps.map("across-the-river")
+        val g = BoardGeometry.of(map)
+        val l1 = map.lanes.first()
+        val pushed = pushed(BoardSetup.pushLane(g, BoardSetup.opening(g, three, newId), l1.id, Team.RED, newId)).state
+        val next = pushed.battleZones.getValue(l1.id)
+        assertThat(pushed.minions().filter { g.zoneOf(it.at!!) == next }.map { it.lane }.distinct()).containsExactly(l1.id)
+    }
+
+    @Test
+    fun `a push leaves the other Lane's minions in the previous Battle Zone`() {
+        val map = BundledMaps.map("across-the-river")
+        val g = BoardGeometry.of(map)
+        val (l1, l2) = map.lanes
+        val opening = BoardSetup.opening(g, three, newId)
+        // A Lane 2 minion pushed into Lane 1's Battle Zone stays bound to Lane 2: Lane 1's push
+        // doesn't remove it (it goes back to its own Battle Zone, p.18 / p.20).
+        val stray = opening.minions().first { it.lane == l2.id }
+        val spot = g.zoneSpaces.getValue(l1.startingBattleZone).first { hex -> opening.pieces.none { it.at == hex } }
+        val moved = opening.copy(pieces = opening.pieces.map { if (it.id == stray.id) it.moveTo(spot) else it })
+        val result = pushed(BoardSetup.pushLane(g, moved, l1.id, Team.RED, newId)).state
+        assertThat(result.pieces.single { it.id == stray.id }.at).isEqualTo(spot)
+        assertThat(result.minions().none { it.lane == l1.id && g.zoneOf(it.at!!) == l1.startingBattleZone }).isTrue()
+        assertThat(BoardRules.returnToBattleZone(g, result, result.minions().single { it.id == stray.id }))
+            .isNotEmpty()
+    }
+
+    @Test
+    fun `the next push removes the previous Battle Zone's minions still waiting in the tray (p8 step 3)`() {
+        val g = BoardGeometry.of(fi)
+        val lane = fi.lanes.single()
+        val next = lane.zones[lane.zones.indexOf(lane.startingBattleZone) + 1]
+        val blocked = g.minionSpawns(next).first()
+        val opening = BoardSetup.opening(g, three, newId)
+        val blocker = hero(Team.RED, blocked.hex, "wasp-2")
+        val first = pushed(BoardSetup.pushLane(g, opening.copy(pieces = opening.pieces + blocker), lane.id, Team.RED, newId))
+        val waiting = first.waiting.single().piece
+        assertThat(waiting.lane).isEqualTo(lane.id)
+        assertThat(first.state.pieces).contains(waiting)
+        // Blue wins the next push back: Zone `next` was the Battle Zone, so its waiting minion goes too.
+        val second = pushed(BoardSetup.pushLane(g, first.state, lane.id, Team.BLUE, newId)).state
+        assertThat(second.pieces.none { it.id == waiting.id }).isTrue()
+        assertThat(second.pieces.none { it.at == null && it is MinionPiece }).isTrue()
+        assertThat(second.pieces).contains(blocker)
+    }
+
+    @Test
+    fun `waiting minions aim at the nearest empty spaces of their Lane's Battle Zone, one Spawn point each`() {
+        val g = BoardGeometry.of(fi)
+        val lane = fi.lanes.single()
+        val next = lane.zones[lane.zones.indexOf(lane.startingBattleZone) + 1]
+        val melee = g.minionSpawns(next).filter { it.spawn == spawn(Team.RED, SpawnKind.MELEE) }.take(2)
+        check(melee.size == 2)
+        val opening = BoardSetup.opening(g, three, newId)
+        val blockers = melee.mapIndexed { i, s -> hero(Team.BLUE, s.hex, "blocker-$i") }
+        val result = pushed(
+            BoardSetup.pushLane(g, opening.copy(pieces = opening.pieces + blockers), lane.id, Team.RED, newId),
+        )
+        assertThat(result.waiting.map { it.spawn }).containsExactly(melee[0].hex, melee[1].hex).inOrder()
+        result.waiting.forEach { w ->
+            // Derived from the saved state alone (a reopened board), the same targets as right after the push.
+            assertThat(BoardSetup.waitingTargets(g, result.state, w.piece))
+                .isEqualTo(BoardSetup.nearestEmpty(g, result.state, next, w.spawn))
+        }
+        // A minion on the board, or one with no Lane on a two-lane map, has no targets.
+        assertThat(BoardSetup.waitingTargets(g, result.state, result.state.minions().first { it.at != null })).isNull()
+    }
+
+    @Test
     fun `nearestEmpty is empty when the Zone is full and counts obstacles in the distance`() {
         val map = strip()
         val g = BoardGeometry.of(map)

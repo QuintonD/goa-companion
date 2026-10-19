@@ -200,7 +200,7 @@ class BoardViewModelTest {
         vm.onAction(BoardAction.ToggleIgnoreObstacles)
         assertThat(
             vm.ready().overlay!!.movement,
-        ).isEqualTo(BoardRules.movementReach(geometry, state, hero.at!!, 2, ignoreObstacles = true))
+        ).isEqualTo(BoardRules.movementReach(geometry, state, hero.at!!, 2, BoardRules.MovePath.IGNORE_OBSTACLES))
         vm.onAction(BoardAction.ToggleFastTravel)
         assertThat(vm.ready().overlay!!.fastTravel).isEqualTo(BoardRules.fastTravel(geometry, state, hero))
     }

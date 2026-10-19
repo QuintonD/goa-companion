@@ -32,7 +32,17 @@ class BoardStoreTest {
     }
 
     @Test
-    fun `update keeps exactly what the transform returns`() = runTest(UnconfinedTestDispatcher()) {
+    fun `a boards file that can't be read is replaced, not a crash`() = runTest(UnconfinedTestDispatcher()) {
+        val file = folder.root.resolve("corrupt.preferences_pb")
+        file.writeBytes(byteArrayOf(0x7f, 0x13, 0x00, 0x42, 0x01, 0x02, 0x03))
+        val store = BoardStore(BoardStoreModule.boardsDataStore(backgroundScope) { file })
+        assertThat(store.documents.first()).isEmpty()
+        store.write("a", "{a}")
+        assertThat(store.documents.first()).containsExactly("a", "{a}")
+    }
+
+    @Test
+    fun `update keeps exactly what the transform returns`()= runTest(UnconfinedTestDispatcher()) {
         val store = store(this)
         store.write("a", "{a}")
         store.write("b", "{b}")
