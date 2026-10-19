@@ -211,6 +211,11 @@ object TimerFeature : HubFeature {
     private fun Route.setupRoutes(ctx: HubContext, timer: WebTimer) {
         get(TimerRoutes.SETUP) {
             val query = SetupQuery.from(call.request.queryParameters)
+            // A rematch gets its id once, kept in the URL, so Start pressed again (Back, a reload)
+            // reuses one match instead of leaving a second pending one (the phone keeps one per screen).
+            if (query.rematch != null && query.newId == null) {
+                return@get call.respondRedirect(query.copy(newId = UUID.randomUUID().toString()).url())
+            }
             val built = setupState(ctx, timer, call.device.id, query)
             call.respondPage(
                 page.copy(title = "Match setup", tab = Tab.TIMER, back = TimerRoutes.HOME, actions = emptyList()),
@@ -234,10 +239,17 @@ object TimerFeature : HubFeature {
             val linked = when {
                 query.match != null -> ctx.groupStore.read().matches.firstOrNull { it.id == query.match }
 
+                // Started before (Back, then Start again): the same match, never a second one.
+                query.newId != null && ctx.groupStore.read().matches.any { it.id == query.newId } ->
+                    ctx.groupStore.read().matches.first { it.id == query.newId }
+
                 // A rematch is saved only now, as the game actually starts (ADR-024).
-                built.rematchSource != null && query.kind != null ->
-                    Rematch.create(built.rematchSource, query.kind, UUID.randomUUID().toString(), ctx.clock.nowMillis())
-                        .getOrNull()
+                built.rematchSource != null && query.kind != null -> Rematch.create(
+                    built.rematchSource,
+                    query.kind,
+                    query.newId ?: UUID.randomUUID().toString(),
+                    ctx.clock.nowMillis(),
+                ).getOrNull()
 
                 else -> null
             }
@@ -245,7 +257,7 @@ object TimerFeature : HubFeature {
                 // The coin as placed at setup is part of the match record (draft coin, or corrected here).
                 val setUp = { m: Match -> m.copy(mode = state.selectedMode, tieBreaker = state.tieBreaker ?: m.tieBreaker) }
                 // A pending match changes as stored (its logged pilots kept); a rematch is new.
-                if (query.match != null) {
+                if (query.match != null || ctx.groupStore.read().matches.any { it.id == linked.id }) {
                     ctx.groupStore.editMatch(linked.id, setUp)
                 } else {
                     ctx.groupStore.upsertMatch(setUp(linked))
@@ -508,6 +520,8 @@ internal data class SetupQuery(
     val match: String? = null,
     val rematch: String? = null,
     val kind: RematchKind? = null,
+    /** The id the rematch will be saved with (made once per setup, see `GET /timer/setup`). */
+    val newId: String? = null,
     val players: Int? = null,
     val layout: String? = null,
     val mode: GameMode? = null,
@@ -521,6 +535,7 @@ internal data class SetupQuery(
             match?.let { "match" to it },
             rematch?.let { "rematch" to it },
             kind?.let { "kind" to it.name },
+            newId?.let { "id" to it },
             players?.let { "players" to it.toString() },
             layout?.let { "layout" to it },
             mode?.let { "mode" to it.name },
@@ -543,6 +558,7 @@ internal data class SetupQuery(
             match = p["match"]?.takeIf { it.isNotBlank() },
             rematch = p["rematch"]?.takeIf { it.isNotBlank() },
             kind = p["kind"]?.let { k -> RematchKind.entries.firstOrNull { it.name == k } },
+            newId = p["id"]?.takeIf { id -> id.length in 8..64 && id.all { it.isLetterOrDigit() || it == '-' } },
             players = p["players"]?.toIntOrNull(),
             layout = p["layout"]?.takeIf { it.isNotBlank() },
             mode = p["mode"]?.let { m -> GameMode.entries.firstOrNull { it.name == m } },

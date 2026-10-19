@@ -276,6 +276,44 @@ class WebTimerTest {
     }
 
     @Test
+    fun `a rematch started twice from one setup (Back, then Start) is one match`() = run { hub ->
+        runBlocking {
+            listOf("ann", "bob", "cat", "dan").forEach {
+                hub.groupStore.upsertPlayer(player(it, it.replaceFirstChar(Char::uppercase)))
+            }
+            hub.groupStore.upsertMatch(
+                Match(
+                    id = "m9",
+                    createdAt = clock.nowMillis(),
+                    playedAt = clock.nowMillis(),
+                    status = MatchStatus.COMPLETED,
+                    mode = GameMode.QUICK,
+                    winner = Team.RED,
+                    participants = listOf(
+                        Participant("ann", "arien", Team.RED),
+                        Participant("bob", "brogan", Team.RED),
+                        Participant("cat", "xargatha", Team.BLUE),
+                        Participant("dan", "wasp", Team.BLUE),
+                    ),
+                ),
+            )
+        }
+        val opened = page("/timer/setup?rematch=m9&kind=SAME_SEATS")
+        assertThat(opened.status).isEqualTo(HttpStatusCode.Found)
+        val url = opened.headers[HttpHeaders.Location]!!
+        val id = Regex("[?&]id=([^&]+)").find(url)!!.groupValues[1]
+        assertThat(page(url).bodyAsText()).contains("value=\"$id\"")
+        val start = mapOf("rematch" to "m9", "kind" to "SAME_SEATS", "id" to id)
+        assertThat(form("/timer/setup/start", start).status).isEqualTo(HttpStatusCode.Found)
+        assertThat(hub.session()!!.snapshot.matchId).isEqualTo(id)
+        clock.advance(60_000)
+        form("/timer/setup/start", start)
+        val pending = hub.groupStore.read().matches.filter { it.status == MatchStatus.PENDING }
+        assertThat(pending.map { it.id }).containsExactly(id)
+        assertThat(hub.session()!!.snapshot.matchId).isEqualTo(id)
+    }
+
+    @Test
     fun `a pending match from the draft is set up, timed, and handed to Who won`() = run { hub ->
         runBlocking {
             listOf("ann", "bob", "cat", "dan").forEach {
