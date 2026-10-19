@@ -193,9 +193,14 @@ object GroupFeature : HubFeature {
         ctx.deviceStore.delete(call.device.id, GroupSlots.PendingMerge)
     }
 
-    /** Where to go after a choice: a path on this hub only (no `//host`, no scheme). */
-    internal fun safeNext(next: String?): String =
-        next?.takeIf { it.startsWith("/") && !it.startsWith("//") && '\\' !in it && it.length <= MAX_NEXT } ?: PATH
+    /**
+     * Where to go after a choice: a path on this hub only (no `//host`, no scheme). Visible ASCII
+     * only: browsers drop tabs and newlines from a `Location`, so `/<tab>/evil.example` would turn
+     * into `//evil.example`, another site.
+     */
+    internal fun safeNext(next: String?): String = next?.takeIf {
+        it.startsWith("/") && !it.startsWith("//") && it.length <= MAX_NEXT && it.all { c -> c in '!'..'~' && c != '\\' }
+    } ?: PATH
 
     internal fun meUrl(next: String): String = if (next == PATH) ME_PATH else "$ME_PATH?next=${encode(next)}"
 
