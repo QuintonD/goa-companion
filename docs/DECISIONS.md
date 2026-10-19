@@ -763,6 +763,41 @@ INTERNET permission. Options weighed:
   death. Every setup chip is a submit button carrying an action applied with the phone's reducer.
   Haptics have no web equivalent on iPhone and are left out.
 
+**Security review (2026-10-19, hub and the app's hub sync):** an attacker on the internet (the
+address is in CT logs) and a malicious member were both assumed. Fixed, each with a regression test:
+- *Request bodies are capped* (`web/BodyLimit.kt`): 256 KB for every form and JSON post, chunked or
+  not, `413` above it; only the sync API and the backup upload read up to 8 MB themselves. An
+  unbounded `POST /join` (open to anyone) filled the heap and wedged the hub; the deploy kit also
+  runs the JVM with `-XX:+ExitOnOutOfMemoryError` so it restarts instead of hanging.
+- *The right invite always signs in.* The join throttle used to lock `/join` for everyone, valid
+  invites included, so a stranger could keep the group out; now only failures are throttled.
+- *`next=` is visible ASCII only* (browsers drop tabs from a `Location`: `/<tab>/evil.example` was an
+  open redirect).
+- *Owner-only data* whatever the umask: directory `0700`, every file `0600` (before, `data.json`
+  and the daily backups followed the umask outside the systemd unit).
+- *Sign-out sticks:* a `touch` or `rename` racing a sign-out recreated the device record.
+- *Push endpoints* must also use port 443.
+- *Android:* an invite with this group's id but another key is refused (it used to replace the key
+  and hub, sending the phone's data to whoever made the invite: the group id is in every sync
+  file's clear envelope), and an invite link whose `h=` names another hub than the link's own host
+  is refused.
+
+Inherent or accepted (also in `deploy/README.md` §10):
+- *A member holds the key.* Any member (or anyone with an invite) can read everything, sync bad but
+  valid data (tombstones, merges, huge names within the 8 MB / 32 MB caps), create browsers and sign
+  others out. The hub still refuses invalid documents (`SyncValidation`), and phones and the daily
+  backups keep earlier copies. Signing a browser out doesn't revoke the key: there is no key
+  rotation, so removing a member for good means starting a new group.
+- *Windows:* the hub's scheduled task runs as SYSTEM (the Linux unit runs as an unprivileged,
+  sandboxed user). Prefer Linux for a hub on the internet.
+- *Android Auto Backup* includes `datastore/group_sync` (the group key), so a restored phone stays
+  in its group; Google's app-data backup is end-to-end encrypted with the screen lock.
+- *A malicious app on the phone* can send an explicit VIEW intent with a self-consistent link
+  (`https://evil/join#…&h=https://evil`); a phone in no group would join that group. Low: it needs an
+  installed attacker app and exposes only that phone's own solo data.
+- An unknown path answers `404` and a signed-in one `401` to strangers, so routes can be listed;
+  no data is.
+
 ## ADR-031 — Linking a phone (or browser) to its player: personal invites and "Same people?" (2026-10-18)
 **Context:** The owner enters friends as players before they install the app. When a friend joins,
 their phone must become that player, not a new one. Today "Which player are you?" works only if the
