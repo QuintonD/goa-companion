@@ -8,6 +8,7 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.GroupRepository
 import dev.quinton.goa.core.data.SyncRepository
+import dev.quinton.goa.core.domain.sync.PlayerMerges
 import dev.quinton.goa.core.domain.sync.SyncChanges
 import dev.quinton.goa.core.domain.sync.SyncCodec
 import dev.quinton.goa.core.domain.sync.SyncDocument
@@ -76,7 +77,8 @@ class SyncFileImportViewModel @AssistedInject constructor(
             val local = sync.export()
             ImportStage.Ready(
                 groupName = group?.name.orEmpty(),
-                players = doc.players.size,
+                // As the app shows them: merged-away duplicates and archived players aren't counted.
+                players = PlayerMerges.shownCount(doc.players, doc.playerMerges),
                 matches = doc.matches.size,
                 changes = SyncMerge.changes(local, SyncMerge.merge(local, doc)),
             )

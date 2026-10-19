@@ -10,6 +10,7 @@ import dev.quinton.goa.core.domain.sync.SyncDocument
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.model.settings.TimerLayout
+import dev.quinton.goa.core.model.sync.PlayerMerge
 import dev.quinton.goa.core.presentation.settings.RatingConstants
 import dev.quinton.goa.hub.FakeClock
 import dev.quinton.goa.hub.HUB_URL
@@ -293,6 +294,22 @@ class SettingsPagesTest {
             assertThat(elo.config.kEstablished).isEqualTo(25.0)
             assertThat(elo.updatedAt).isEqualTo(clock.nowMillis())
             assertThat(hub.deviceStore.read(b.id, ShellSlots.Theme)).isEqualTo(ThemeChoice.LIGHT)
+        }
+    }
+
+    @Test
+    fun `the import preview counts players as the app shows them, merged-away ones left out`() {
+        val hub = hub()
+        hubTest(hub) {
+            val b = browser()
+            val file = BackupDocument(
+                exportedAt = 5,
+                players = listOf(player("ann", "Ann"), player("bob", "Bob"), player("ann2", "Annie")),
+                playerMerges = listOf(PlayerMerge("ann2", "ann", 3)),
+            )
+            val preview = b.upload(BackupCodec.encode(file)).bodyAsText()
+            assertThat(preview).contains(" · 2 players · ")
+            assertThat(b.get("/settings/backup").bodyAsText()).contains("2 players · 1 match")
         }
     }
 

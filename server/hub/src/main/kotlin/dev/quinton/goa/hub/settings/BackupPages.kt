@@ -196,7 +196,7 @@ private suspend fun ApplicationCall.respondBackupPage(
                 +"to one JSON file: the same backup file as the Android app's, so a phone can import it too."
             }
             p("muted small") {
-                +"${count(data.players(includeArchived = true).size, "player")} · "
+                +"${count(data.players().size, "player")} · "
                 +count(data.matches.size, "match", "matches")
                 +". Timer presets and draft methods made in this browser aren't in it yet."
             }

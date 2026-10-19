@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.domain.sync
 
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.domain.backup.summary
 import dev.quinton.goa.core.domain.rating.EloCalculator
 import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.model.sync.Deletion
@@ -92,6 +93,21 @@ class SyncMergeTest {
         val newer = StampedEloConfig(EloConfig(kEstablished = 25.0), updatedAt = 2)
         assertThat(SyncMerge.merge(SyncDocument(eloConfig = newer), SyncDocument(eloConfig = edited)).eloConfig)
             .isEqualTo(newer)
+    }
+
+    @Test
+    fun aFilesPlayersAreCountedAsTheAppShowsThemWithoutMergedAwayOrArchivedOnes() {
+        // The hands-on file: 10 players stored, 2 of them merged into others; the app shows 8.
+        val players = (1..8).map { player("p$it") } + player("p1-dup") + player("p2-dup")
+        val merges = listOf(PlayerMerge("p1-dup", "p1", 1), PlayerMerge("p2-dup", "p2", 2))
+        assertThat(PlayerMerges.shownCount(players, merges)).isEqualTo(8)
+        assertThat(PlayerMerges.shownCount(players + player("old", archived = true), emptyList())).isEqualTo(10)
+        val backup = dev.quinton.goa.core.domain.backup.BackupDocument(
+            exportedAt = 0,
+            players = players,
+            playerMerges = merges,
+        )
+        assertThat(backup.summary().players).isEqualTo(8)
     }
 
     @Test
