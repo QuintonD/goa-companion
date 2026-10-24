@@ -253,12 +253,13 @@ object DodgerHero : HeroModule {
 
     private class Ritual(private val coins: Int, private val item: Boolean) : CardScript {
         override fun primary(a: ActionScope) {
-            val enough = a.g.emptySpawnPointsWithin(a.heroId, a.pos, a.radius) >= 2
-            // "If you have your Ultimate, gain an Attack item" — a sentence of its own, independent of the first.
-            val ultimate = item && a.g.tide(a.heroId)
-            if (!enough && !ultimate) a.fizzle("fewer than 2 empty spawn points in radius")
-            if (enough) a.g.gainCoins(a.heroId, coins, a.card.name)
-            if (ultimate) {
+            // "If there are 2 or more empty spawn points in radius in the battle zone, gain N coins." The first
+            // instruction: when it cannot be done the action is not performed at all (FAQ common).
+            val points = a.g.emptySpawnPointsWithin(a.heroId, a.pos, a.radius)
+            if (points < 2) a.fizzle("fewer than 2 empty spawn points in radius")
+            a.g.gainCoins(a.heroId, coins, a.card.name)
+            // Darkest Ritual: "If you have your Ultimate, gain an Attack item."
+            if (item && a.g.tide(a.heroId)) {
                 a.hero.spareItems += Stat.ATTACK
                 a.g.touch()
                 a.g.note("${a.g.heroName(a.heroId)} gains an Attack item.")

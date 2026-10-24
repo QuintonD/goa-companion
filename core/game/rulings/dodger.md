@@ -24,10 +24,12 @@ card text and FAQ are silent and the engine takes the reading closest to the tex
    adjacent to Dodger; chosen and moved one at a time. Minions moved out of the Battle Zone go back
    after the action (p.18).
 5. **Dark / Darker / Darkest Ritual.** With fewer than two such spawn points the first instruction
-   cannot be done and the Primary action is not offered — except Darkest Ritual with the Ultimate, whose
-   second sentence ("If you have your Ultimate, gain an Attack item") stands on its own. **[APP]** The
-   item is a spare item from the box (reminder text); each play gains one more (the text has no limit).
-   It is a permanent Attack item like a Tier card item (p.16) and is shown in the hero's item icons.
+   cannot be done and the Primary action is not offered (FAQ common "Can I play an action if only some
+   of its instructions can be performed?"), Darkest Ritual included: its second sentence ("If you have
+   your Ultimate, gain an Attack item") is reached only after the first. (With the Ultimate, Tide of
+   Darkness makes every empty space count, so this almost never matters.) **[APP]** The item is a spare
+   item from the box (reminder text); each play gains one more (the text has no limit). It is a
+   permanent Attack item like a Tier card item (p.16) and is shown in the hero's item icons.
 6. **Necromancy / Necromastery.** FAQ "What minions can Dodger respawn with her Necromancy?": a friendly
    minion of any type, onto any empty friendly minion spawn point (not a space next to one); it must be
    a minion that was in play in this wave and has been defeated or removed. **[APP]** "Was in play this

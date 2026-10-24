@@ -32,8 +32,13 @@ card text and FAQ are silent and the engine takes the reading closest to the tex
    is the first instruction and needs a valid target; without one the action cannot be performed at all
    (FAQ common "Can I play an action if only some of its instructions can be performed?": "If you cannot
    perform the first instruction (e.g., there is no valid target in range…), you may not perform the
-   action at all"), even though Light Pilum's clause ends with "if able" (p.17: that makes the discard
-   itself optional for a hero with no card). A hero with an empty hand may be chosen: Light Pilum then does
+   action at all"), even though Light Pilum's clause ends with "if able". p.10's own example of such a
+   clause reads it so: "'An enemy hero in radius discards a card, if able'. You choose one enemy hero in
+   radius to target, then that hero chooses a card to discard, if they have one" — the target is chosen,
+   "if able" covers the discard. (A reviewer noted p.17 "If Able" could also be read as making the whole
+   clause skippable, so that Light Pilum with no hero in range would still give its move; goa2-backend
+   reads it that way. The same pattern decides whether Sabina's Close Support and Dodger's Death Trap
+   are offered without a target.) A hero with an empty hand may be chosen: Light Pilum then does
    nothing to it, Heavy Pilum defeats it (RULINGS 22). The move comes after in both cases.
 7. **Menace / Threaten / Terrify, Form Up! / Testudo!.** "Farther" / "closer" are measured as p.17 says
    (spaces on the shortest path, obstacles included) from Garrus's space; the end space must be empty.
