@@ -556,20 +556,41 @@ class UrsafarTest {
     }
 
     @Test
-    fun `Unbound Fury - all your resolved cards count as active (Angry Roar)`() {
+    fun `Unbound Fury - all your resolved cards count as active (Angry Roar) - one resolved without its effect`() {
+        // Designer (BGG 3458850): the Ultimate "allows you to use silver on resolved cards with active effects
+        // … which you have resolved, but didn't activate".
         val d = pos {
             clearMinions()
             turn = 2
             hero("ursafar", Team.RED, Hex(1, -2)) {
-                resolved(1, "ursafar-green-1") // Sniff Out: no active effect of its own
+                resolved(1, "ursafar-red-1") // Prey Drive, used for a secondary action: no effect in force
+                played("ursafar-silver")
+                ultimate()
+            }
+            hero("arien", Team.BLUE, Hex(2, -2)) { hand("arien-gold", "arien-silver") }
+            phase = PositionPhase.Resolving(next = "ursafar")
+        }
+        d.action("ursafar", ActionType.PRIMARY) // the only active card: performed without a question
+        d.expect(DecisionKind.DEFEND, "arien") // Prey Drive's attack
+    }
+
+    @Test
+    fun `Unbound Fury - FAQ - a resolved card with no Active effect (green) is never an Angry Roar card`() {
+        // Designer (BGG 3458850): "for the action to be usable by silver, the card has to be both active and
+        // have an active effect, which green doesn't have."
+        val d = pos {
+            clearMinions()
+            turn = 2
+            hero("ursafar", Team.RED, Hex(1, -2)) {
+                resolved(1, "ursafar-green-1") // Sniff Out: no Active effect
                 played("ursafar-silver")
                 ultimate()
             }
             hero("arien", Team.BLUE, Hex(3, -2)) { hand("arien-gold", "arien-silver") }
             phase = PositionPhase.Resolving(next = "ursafar")
         }
-        d.action("ursafar", ActionType.PRIMARY) // the only active card: performed without a question
-        d.expect(DecisionKind.CHOOSE_CARD, "arien")
+        // Enraged (Unbound Fury) with no card to perform: the mandatory step cannot be done (ruling 4).
+        assertThat(d.actions()).doesNotContain(ActionType.PRIMARY)
     }
 
     // ---- random games ---------------------------------------------------------------------------

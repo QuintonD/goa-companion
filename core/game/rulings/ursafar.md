@@ -13,18 +13,26 @@ leave open. Code: `heroes/UrsafarHero.kt`; tests: `heroes/UrsafarTest.kt`.
    included (Prowling Brute family, Cold Ire family), so a card never satisfies its own "If enraged".
    *Reason:* p.10 "applied in the exact order it is written" — the "This round" clause is printed last; on
    the Movement cards, applying it "before movement" (p.11 default) would make their own "If enraged"
-   always true, which the text would then not need. goa2-backend reads it the same way.
+   always true, which the text would then not need. goa2-backend reads it the same way. The designer
+   applies the same order to Silverarrow's Trailblazer (BGG 3592253, 2025-10-14: "Card text is applied in
+   the exact order it is written. (Page 10 of the rulebook). So no."), and posters on BGG read Ursafar so
+   (3609893, 3547872; not designer rulings).
 3. **Claws That Catch / Jaws That Bite:** "Before the attack: If enraged, you may move 1 space to a space
    adjacent to an enemy hero" — optional, a card-text move; the end space must be adjacent to an enemy hero
    (presence, p.18); then any adjacent unit (a hero for Jaws) is the target. Like RULINGS 4, the possible
    move makes the Primary action available even with no target yet.
 4. **Angry Roar:** "one of your active cards with an active effect" = a card of Ursafar's with an Active
-   effect in force or pending (turned sideways, p.7); with Unbound Fury every faceup resolved card counts
-   too (its "all your resolved cards count as active" would otherwise change nothing — only Angry Roar
-   reads "active cards"). Only cards whose Primary action can be performed are offered (FAQ "Can I play an
-   action if only some of its instructions can be performed?"); enraged with none, Angry Roar's Primary
-   action cannot be chosen (its first step is mandatory). The card performed stays where it is and its
-   text applies in full (its own "This round" effect is started again, p.10).
+   effect in force or pending (turned sideways, p.7); with Unbound Fury a faceup resolved card counts too,
+   but only one whose text has an Active effect (a bold "This round:"-type keyword, p.17), even if it was
+   resolved without performing its Primary action. Never a green card: they have no Active effect.
+   *Source:* designer, BGG 3458850 (2025-02-12): "for the action to be usable by silver, the card has to
+   be both active and have an active effect, which green doesn't have. What ultimate does is … it allows
+   you to use silver on resolved cards with active effects (so not green) which you have resolved, but
+   didn't activate." (Changed in the rules audit: before, every faceup resolved card counted with the
+   Ultimate, greens included.) Only cards whose Primary action can be performed are offered (FAQ "Can I
+   play an action if only some of its instructions can be performed?"); enraged with none, Angry Roar's
+   Primary action cannot be chosen (its first step is mandatory). The card performed stays where it is and
+   its text applies in full (its own "This round" effect is started again, p.10). Tests "Unbound Fury - …".
 5. **Prey Drive family:** "the target was not removed" = the target is still on the board after the
    attack (a hero who defended; a minion Brogan's Shield kept). "Remove" gives no coins (hero FAQ). The
    minions are chosen together, each targetable when chosen (heavy minion immunity; Whisper's FAQ on
@@ -45,11 +53,11 @@ leave open. Code: `heroes/UrsafarHero.kt`; tests: `heroes/UrsafarTest.kt`.
 10. **Cold Ire / Eyes of Flame:** +1/+2 to this card's Movement action only (hero FAQ: "It does not apply to
     any other cards"). Tests "Cold Ire - …".
 11. **Unbound Fury:** always enraged while Ursafar is on the board (p.16: an Ultimate is in effect "as long
-    as your hero is on the board"); see 4 for "resolved cards count as active".
+    as your hero is on the board"); see 4 for "resolved cards count as active" (designer, BGG 3458850).
 
 ## Disagreements with goa2-backend (cross-check only)
 
 | Topic | goa2-backend | Engine |
 |-------|--------------|--------|
 | Sniff Out family: choosing the hero | Optional | Mandatory when there is one (p.10 example; "if able" is about the discard) |
-| Unbound Fury "count as active" | A flag on every card (also seen by other heroes' filters and views) | Only Angry Roar reads "active cards"; the view still turns sideways only cards with an effect |
+| Unbound Fury "count as active" | A flag on every card (also seen by other heroes' filters and views); Angry Roar still needs a card whose text makes an Active effect | Same choice for Angry Roar (designer, BGG 3458850): resolved cards with an Active effect text, not greens; only Angry Roar reads "active cards", and the view still turns sideways only cards with an effect |
