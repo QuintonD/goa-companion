@@ -37,7 +37,8 @@ class WaspTest {
             clearMinions()
             hero("wasp", Team.RED, Hex(1, -2)) { played("wasp-gold") }
             hero("brogan", Team.BLUE, Hex(2, -2)) { hand("brogan-blue-1") }
-            hero("arien", Team.BLUE, Hex(4, -6)) { played("arien-green-3a") } // 4 away: outside radius 3; Stranger Tide, Range 3
+            // 4 away: outside radius 3; Stranger Tide, Range 3.
+            hero("arien", Team.BLUE, Hex(4, -6)) { played("arien-green-3a") }
             phase = PositionPhase.Resolving(next = "wasp")
         }
         d.action("wasp", ActionType.PRIMARY)
@@ -146,7 +147,7 @@ class WaspTest {
     // ---- Charged Boomerang / Thunder Boomerang (red alternates) -------------------------------
 
     @Test
-    fun `Charged Boomerang - Target a unit in range and not in a straight line (adjacent units are in a straight line)`() {
+    fun `Charged Boomerang - Target a unit in range and not in a straight line (adjacent ones are)`() {
         val d = pos {
             clearMinions()
             hero("wasp", Team.RED, Hex(1, -2)) { played("wasp-red-2b") } // Range 3
@@ -189,7 +190,10 @@ class WaspTest {
     fun `Deflect Projectiles - if you block, an enemy hero in range other than the attacker discards, if able`() {
         val d = pos {
             clearMinions()
-            hero("arien", Team.BLUE, Hex(1, -2)) { played("arien-red-2b"); hand("arien-gold") } // ranged attacker
+            hero("arien", Team.BLUE, Hex(1, -2)) {
+                played("arien-red-2b")
+                hand("arien-gold")
+            } // ranged attacker
             hero("wasp", Team.RED, Hex(-1, -2)) { hand("wasp-green-2a") }
             hero("brogan", Team.BLUE, Hex(-1, -3)) { hand("brogan-gold", "brogan-silver") } // 1 from Wasp
             phase = PositionPhase.Resolving(next = "arien")
@@ -206,7 +210,10 @@ class WaspTest {
     fun `Reflect Projectiles - the attacker may be the one who discards`() {
         val d = pos {
             clearMinions()
-            hero("arien", Team.BLUE, Hex(1, -2)) { played("arien-red-2b"); hand("arien-gold", "arien-silver") }
+            hero("arien", Team.BLUE, Hex(1, -2)) {
+                played("arien-red-2b")
+                hand("arien-gold", "arien-silver")
+            }
             hero("wasp", Team.RED, Hex(-1, -2)) { hand("wasp-green-3a") }
             phase = PositionPhase.Resolving(next = "arien")
         }
@@ -235,7 +242,7 @@ class WaspTest {
     // ---- Lift Up / Control Gravity / Center of Mass (blue) -------------------------------------
 
     @Test
-    fun `Lift Up - move a unit or a token in radius 1 space without changing its distance, may repeat once on the same target`() {
+    fun `Lift Up - move a unit or token in radius 1 space at the same distance, may repeat on it once`() {
         val d = pos {
             clearMinions()
             hero("wasp", Team.RED, Hex(1, -2)) { played("wasp-blue-1") } // radius 2
@@ -301,8 +308,9 @@ class WaspTest {
         val d = pos {
             clearMinions()
             hero("wasp", Team.RED, Hex(1, -2)) { played("wasp-blue-2b") }
-            hero("arien", Team.BLUE, Hex(0, -2)) { hand("arien-gold", "arien-silver") } // pushed west: (-1..-3,-2), fine
-            hero("brogan", Team.BLUE, Hex(2, -2)) { hand("brogan-gold", "brogan-silver") } // pushed east: stopped by a rock
+            // Arien is pushed west the full 3 spaces; Brogan east, stopped by a rock.
+            hero("arien", Team.BLUE, Hex(0, -2)) { hand("arien-gold", "arien-silver") }
+            hero("brogan", Team.BLUE, Hex(2, -2)) { hand("brogan-gold", "brogan-silver") }
             token("token_rock", Hex(4, -2))
             phase = PositionPhase.Resolving(next = "wasp")
         }
@@ -332,10 +340,13 @@ class WaspTest {
     // ---- High Voltage (Ultimate) ---------------------------------------------------------------
 
     @Test
-    fun `High Voltage - after a basic skill, you may defeat an enemy minion in radius and an adjacent enemy hero discards`() {
+    fun `High Voltage - after a basic skill, may defeat an enemy minion in radius, an adjacent hero discards`() {
         val d = pos {
             clearMinions()
-            hero("wasp", Team.RED, Hex(1, -2)) { played("wasp-silver"); ultimate() }
+            hero("wasp", Team.RED, Hex(1, -2)) {
+                played("wasp-silver")
+                ultimate()
+            }
             hero("arien", Team.BLUE, Hex(3, -3)) { hand("arien-gold", "arien-silver") }
             minion(Team.BLUE, MinionType.MELEE, Hex(3, -2)) // 2 away, adjacent to Arien
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))

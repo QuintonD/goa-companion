@@ -60,7 +60,12 @@ fun Game.tokensOnBoard(): List<String> = state.pieces.filter { it.at != null && 
 
 /** Units at distance 1..[n] from [center] (never the unit at [center]). */
 fun Game.unitsWithin(center: Hex, n: Int): List<String> =
-    unitsOnBoard().filter { id -> posOf(id)?.let { val d = distance(center, it); d in 1..n } == true }
+    unitsOnBoard().filter { id ->
+        posOf(id)?.let {
+            val d = distance(center, it)
+            d in 1..n
+        } == true
+    }
 
 fun Game.unitsAdjacentTo(center: Hex): List<String> = unitsWithin(center, 1)
 
@@ -123,13 +128,15 @@ fun Game.passMode(spec: MoveSpec): PassMode {
 
 private fun Game.passable(hex: Hex, mover: String, mode: PassMode): Boolean = when (mode) {
     PassMode.IGNORE_OBSTACLES -> geo.isOnBoard(hex)
+
     PassMode.NORMAL -> {
         if (!geo.isSpace(hex)) {
             false
         } else {
             val occ = occupant(hex)
             val blockedByOccupant = occ != null && occ != mover && state.piece(occ)?.passable != true
-            !blockedByOccupant && !sources().any { (b, s) -> b.countsAsObstacle(this, s, SpaceQuery(hex, mover, actor)) }
+            !blockedByOccupant &&
+                !sources().any { (b, s) -> b.countsAsObstacle(this, s, SpaceQuery(hex, mover, actor)) }
         }
     }
 }
@@ -141,59 +148,72 @@ private fun Game.passable(hex: Hex, mover: String, mode: PassMode): Boolean = wh
  */
 fun Game.reach(spec: MoveSpec): Map<Hex, List<Hex>> {
     val start = posOf(spec.unitId) ?: return emptyMap()
-    val mode = passMode(spec)
     val out = LinkedHashMap<Hex, List<Hex>>()
     if (spec.min <= 0 && spec.endFilter?.invoke(start) != false) out[start] = emptyList()
     if (spec.max <= 0) return out
-    fun endOk(h: Hex) = isEmpty(h, spec.unitId) && spec.endFilter?.invoke(h) != false
-    if (spec.straightLine) {
-        for (dir in HexGrid.DIRECTIONS.indices) {
-            if (spec.directions != null && dir !in spec.directions) continue
-            val line = straightLineFrom(start, dir, spec.max)
-            for ((i, h) in line.withIndex()) {
-                if (!passable(h, spec.unitId, mode)) break
-                if (i + 1 >= spec.min && endOk(h)) out.putIfAbsent(h, line.take(i + 1))
-            }
-        }
-        return out
-    }
-    if (spec.min <= 1) {
+    val mode = passMode(spec)
+    when {
+        spec.straightLine -> straightReach(spec, start, mode, out)
+
         // "Up to N": shortest paths suffice (any end within N steps).
-        val prev = HashMap<Hex, Hex>()
-        val dist = HashMap<Hex, Int>()
-        dist[start] = 0
-        val queue = ArrayDeque<Hex>()
-        queue += start
-        while (queue.isNotEmpty()) {
-            val h = queue.removeFirst()
-            val d = dist.getValue(h)
-            if (d == spec.max) continue
-            for (n in HexGrid.neighbors(h)) {
-                if (n in dist || !passable(n, spec.unitId, mode)) continue
+        spec.min <= 1 -> upToReach(spec, start, mode, out)
+
+        // Exact distances (min >= 2): simple paths of exactly k steps, k in min..max.
+        else -> exactReach(spec, start, mode, out)
+    }
+    return out
+}
+
+private fun Game.endOk(spec: MoveSpec, h: Hex): Boolean = isEmpty(h, spec.unitId) && spec.endFilter?.invoke(h) != false
+
+private fun Game.straightReach(spec: MoveSpec, start: Hex, mode: PassMode, out: MutableMap<Hex, List<Hex>>) {
+    for (dir in HexGrid.DIRECTIONS.indices) {
+        if (spec.directions != null && dir !in spec.directions) continue
+        val line = straightLineFrom(start, dir, spec.max)
+        val blocked = line.indexOfFirst { !passable(it, spec.unitId, mode) }.let { if (it < 0) line.size else it }
+        for (i in 0 until blocked) {
+            if (i + 1 >= spec.min && endOk(spec, line[i])) out.putIfAbsent(line[i], line.take(i + 1))
+        }
+    }
+}
+
+private fun Game.upToReach(spec: MoveSpec, start: Hex, mode: PassMode, out: MutableMap<Hex, List<Hex>>) {
+    val prev = HashMap<Hex, Hex>()
+    val dist = HashMap<Hex, Int>()
+    dist[start] = 0
+    val queue = ArrayDeque<Hex>()
+    queue += start
+    while (queue.isNotEmpty()) {
+        val h = queue.removeFirst()
+        val d = dist.getValue(h)
+        if (d == spec.max) continue
+        for (n in HexGrid.neighbors(h)) {
+            if (n !in dist && passable(n, spec.unitId, mode)) {
                 dist[n] = d + 1
                 prev[n] = h
                 queue += n
             }
         }
-        for ((h, d) in dist) {
-            if (h == start || d < spec.min || !endOk(h)) continue
-            val path = ArrayList<Hex>()
-            var at = h
-            while (at != start) {
-                path += at
-                at = prev.getValue(at)
-            }
-            path.reverse()
-            out[h] = path
-        }
-        return out
     }
-    // Exact distances (min ≥ 2): simple paths of exactly k steps, k in min..max.
+    for ((h, d) in dist) {
+        if (h == start || d < spec.min || !endOk(spec, h)) continue
+        val path = ArrayList<Hex>()
+        var at = h
+        while (at != start) {
+            path += at
+            at = prev.getValue(at)
+        }
+        path.reverse()
+        out[h] = path
+    }
+}
+
+private fun Game.exactReach(spec: MoveSpec, start: Hex, mode: PassMode, out: MutableMap<Hex, List<Hex>>) {
     val visited = LinkedHashSet<Hex>()
     visited += start
     fun dfs(at: Hex, path: ArrayList<Hex>) {
         val k = path.size
-        if (k >= spec.min && endOk(at)) out.putIfAbsent(at, ArrayList(path))
+        if (k >= spec.min && endOk(spec, at)) out.putIfAbsent(at, ArrayList(path))
         if (k == spec.max) return
         for (n in HexGrid.neighbors(at)) {
             if (n in visited || !passable(n, spec.unitId, mode)) continue
@@ -205,7 +225,6 @@ fun Game.reach(spec: MoveSpec): Map<Hex, List<Hex>> {
         }
     }
     dfs(start, ArrayList())
-    return out
 }
 
 /** Whether [spec] can be performed with at least one move of a non-zero length. */
@@ -242,7 +261,11 @@ fun Game.move(
         val choices = moves.keys.sortedHexes().map { Choice.Space(it) as Choice } +
             if (stay) listOf(Choice.Decline("Don't move")) else emptyList()
         val answer = ask(
-            chooser, DecisionKind.CHOOSE_SPACE, prompt, choices, sourceCardId,
+            chooser,
+            DecisionKind.CHOOSE_SPACE,
+            prompt,
+            choices,
+            sourceCardId,
             DecisionContext(subjectId = spec.unitId, paths = moves.mapKeys { "${it.key.q},${it.key.r}" }),
         )
         if (answer is Choice.Space) moves.getValue(answer.hex) else emptyList()
@@ -257,7 +280,13 @@ fun Game.move(
     return path
 }
 
-private fun Game.stepwiseMove(spec: MoveSpec, chooser: String, prompt: String, mayStop: Boolean, source: String?): List<Hex> {
+private fun Game.stepwiseMove(
+    spec: MoveSpec,
+    chooser: String,
+    prompt: String,
+    mayStop: Boolean,
+    source: String?,
+): List<Hex> {
     val start = posOf(spec.unitId)!!
     val mode = passMode(spec)
     val path = ArrayList<Hex>()
@@ -285,10 +314,20 @@ private fun Game.stepwiseMove(spec: MoveSpec, chooser: String, prompt: String, m
             check(canEndHere) { "Stepwise move stuck" }
             return path
         }
-        val options = nexts.map { Choice.Space(it.second) as Choice }.sortedBy { (it as Choice.Space).hex.let { h -> h.r * 1000 + h.q } } +
-            if (canEndHere) listOf(Choice.Decline(if (k == 0) "Don't move" else "Stop here")) else emptyList()
+        val options =
+            nexts.map { Choice.Space(it.second) as Choice }.sortedBy {
+                (it as Choice.Space).hex.let { h ->
+                    h.r * 1000 +
+                        h.q
+                }
+            } +
+                if (canEndHere) listOf(Choice.Decline(if (k == 0) "Don't move" else "Stop here")) else emptyList()
         val answer = ask(
-            chooser, DecisionKind.CHOOSE_SPACE, "$prompt (space ${k + 1})", options, source,
+            chooser,
+            DecisionKind.CHOOSE_SPACE,
+            "$prompt (space ${k + 1})",
+            options,
+            source,
             DecisionContext(subjectId = spec.unitId),
             auto = false,
         )
@@ -387,7 +426,13 @@ data class PushResult(val moved: Int, val stoppedByObstacle: Boolean, val to: He
  * space"; otherwise "as far as possible; this can result in pushing it 0 spaces". [from] is the
  * pusher's space. Null when not in a straight line (no "directly away"), or the target can't be pushed.
  */
-fun Game.push(targetId: String, from: Hex, spaces: Int, ignoreObstacles: Boolean = false, byHero: String? = actor): PushResult? {
+fun Game.push(
+    targetId: String,
+    from: Hex,
+    spaces: Int,
+    ignoreObstacles: Boolean = false,
+    byHero: String? = actor,
+): PushResult? {
     val at = posOf(targetId) ?: return null
     val dir = HexGrid.straightLineDirection(from, at) ?: return null
     if (!canDisplace(targetId, Displacement.PUSH, byHero)) return null
@@ -447,8 +492,14 @@ fun Game.placeToken(kind: String, owner: String?, to: Hex, takeFrom: String? = n
     if (!isEmpty(to)) return null
     val team = owner?.let { teamOf(it) }
     val piece = PieceState(
-        id = state.newId("t"), kind = kind, label = label, at = null, owner = owner, team = team,
-        removeAtEndOfRound = tk?.removeAtEndOfRound ?: true, passable = tk?.passable ?: false,
+        id = state.newId("t"),
+        kind = kind,
+        label = label,
+        at = null,
+        owner = owner,
+        team = team,
+        removeAtEndOfRound = tk?.removeAtEndOfRound ?: true,
+        passable = tk?.passable ?: false,
     )
     state.pieces += piece
     touch()

@@ -141,8 +141,13 @@ sealed interface Trigger {
     /** p.18 "Next turn, after playing cards": after all cards are revealed. */
     data object CardsRevealed : Trigger
 
-    data class BeforeAction(val heroId: String, val cardId: String?, val kind: ActionKind, val primary: Boolean, val basic: Boolean) :
-        Trigger
+    data class BeforeAction(
+        val heroId: String,
+        val cardId: String?,
+        val kind: ActionKind,
+        val primary: Boolean,
+        val basic: Boolean,
+    ) : Trigger
 
     data class AfterAction(
         val heroId: String,
@@ -157,7 +162,13 @@ sealed interface Trigger {
     /** A card was placed on its Turn slot (p.7 "Resolve Your Card"). */
     data class CardResolved(val heroId: String, val cardId: String) : Trigger
 
-    data class MinionDefeated(val minionId: String, val team: Team, val type: MinionType, val at: Hex?, val byHeroId: String?) : Trigger
+    data class MinionDefeated(
+        val minionId: String,
+        val team: Team,
+        val type: MinionType,
+        val at: Hex?,
+        val byHeroId: String?,
+    ) : Trigger
 
     data class HeroDefeated(val heroId: String, val byHeroId: String?) : Trigger
 
@@ -205,7 +216,11 @@ sealed interface Replacement {
 }
 
 /** Replacement answer for [Replacement.Discard]: the card to discard instead (null = no change). */
-class ReplacementResult(val outcome: DefeatOutcome = DefeatOutcome.NORMAL, val handled: Boolean = false, val cardId: String? = null)
+class ReplacementResult(
+    val outcome: DefeatOutcome = DefeatOutcome.NORMAL,
+    val handled: Boolean = false,
+    val cardId: String? = null,
+)
 
 /**
  * The hook interface. Override only what the card text needs; defaults change nothing.

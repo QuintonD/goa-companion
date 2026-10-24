@@ -37,7 +37,10 @@ class CombatTest {
     fun `p13 - ranged attacks target by the Range value, through obstacles (no line of sight, p9)`() {
         val d = pos {
             clearMinions()
-            hero("arien", Team.BLUE, Hex(1, -2)) { played("arien-red-2b"); items() } // Rogue Wave, Range 2
+            hero("arien", Team.BLUE, Hex(1, -2)) {
+                played("arien-red-2b")
+                items()
+            } // Rogue Wave, Range 2
             hero("wasp", Team.RED, Hex(-1, -2)) { played("wasp-green-1") } // 2 away, behind Brogan
             hero("brogan", Team.BLUE, Hex(0, -2)) { played("brogan-gold") }
             hero("xargatha", Team.RED, Hex(4, -2)) { played("xargatha-green-1") } // 3 away
@@ -55,7 +58,8 @@ class CombatTest {
             hero("brogan", Team.BLUE, Hex(1, -2)) { played("brogan-gold") }
             hero("wasp", Team.RED, Hex(-5, -4)) { played("wasp-green-1") }
             minion(Team.RED, MinionType.HEAVY, Hex(0, -2))
-            minion(Team.RED, MinionType.MELEE, Hex(-3, -2), lane = "lane-1") // outside the Battle Zone: not counted for immunity
+            // Outside the Battle Zone: not counted for immunity.
+            minion(Team.RED, MinionType.MELEE, Hex(-3, -2), lane = "lane-1")
             phase = PositionPhase.Resolving(next = "brogan")
         }
         d.action("brogan", ActionType.PRIMARY)
@@ -101,7 +105,9 @@ class CombatTest {
         assertThat(p.context.defensePreview["wasp-blue-1"]).isEqualTo(6)
         d.card("wasp-blue-1")
         assertThat(d.texts()).contains("Brogan attacks Wasp: Attack 6.")
-        assertThat(d.texts()).contains("Wasp defends with Lift Up: Defense 5 + 1 (adjacent friendly melee minion) = 6. Defended.")
+        assertThat(
+            d.texts(),
+        ).contains("Wasp defends with Lift Up: Defense 5 + 1 (adjacent friendly melee minion) = 6. Defended.")
         assertThat(d.at("wasp")).isEqualTo(Hex(1, -1))
         assertThat(d.zoneOf("wasp", "wasp-blue-1")).isEqualTo(Zone.DISCARD)
     }
@@ -176,11 +182,14 @@ class CombatTest {
     }
 
     @Test
-    fun `p13 when a hero is defeated - removed, card resolved, effects cancelled, markers returned, coins, assists, life`() {
+    fun `p13 when a hero is defeated - removed, card resolved, effects and markers gone, coins, life`() {
         val d = pos {
             clearMinions()
             turn = 2
-            hero("arien", Team.BLUE, Hex(0, -2)) { played("arien-red-1"); level = 3 }
+            hero("arien", Team.BLUE, Hex(0, -2)) {
+                played("arien-red-1")
+                level = 3
+            }
             hero("brogan", Team.BLUE, null) { played("brogan-gold") }
             hero("wasp", Team.RED, Hex(-1, -2)) {
                 level = 4
@@ -232,7 +241,10 @@ class CombatTest {
         // "Although the effect of Bolster can prevent the removal of the minion, Dodger would still gain 2 coins".
         val d = pos {
             clearMinions()
-            hero("brogan", Team.BLUE, Hex(3, -5)) { played("brogan-green-2a"); hand("brogan-silver") }
+            hero("brogan", Team.BLUE, Hex(3, -5)) {
+                played("brogan-green-2a")
+                hand("brogan-silver")
+            }
             hero("wasp", Team.RED, Hex(3, -3)) { played("wasp-gold") }
             minion(Team.BLUE, MinionType.MELEE, Hex(3, -4))
             minion(Team.BLUE, MinionType.MELEE, Hex(-1, -5))

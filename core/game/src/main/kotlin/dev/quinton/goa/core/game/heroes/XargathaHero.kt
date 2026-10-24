@@ -94,7 +94,13 @@ object XargathaHero : HeroModule {
 
     private class Cleave(private val heroOnly: Boolean) : CardScript {
         override fun primary(a: ActionScope) {
-            val t = if (heroOnly) a.adjacentAttackTarget("Target a hero adjacent to you") { a.g.isHero(it) } else a.adjacentAttackTarget()
+            val t = if (heroOnly) {
+                a.adjacentAttackTarget("Target a hero adjacent to you") {
+                    a.g.isHero(it)
+                }
+            } else {
+                a.adjacentAttackTarget()
+            }
             t ?: return
             val r = a.attack(t)
             if (!r.connected) return
@@ -132,7 +138,11 @@ object XargathaHero : HeroModule {
             val t = a.rangedAttackTarget(rangeValue = range) ?: return
             val r = a.attack(t, valid = { a.inRange(it, a.range + a.g.enemiesAdjacent(a.heroId)) })
             if (!r.connected) return
-            if (repeat) a.repeat(differentTarget = true, filter = { a.g.isHero(it) }, prompt = "Repeat on a different enemy hero?")
+            if (repeat) {
+                a.repeat(differentTarget = true, filter = {
+                    a.g.isHero(it)
+                }, prompt = "Repeat on a different enemy hero?")
+            }
         }
     }
 
@@ -150,11 +160,17 @@ object XargathaHero : HeroModule {
         private fun moveMinion(a: ActionScope, whenText: String): Boolean {
             val minions = a.unitsWithin(a.radius).filter { id ->
                 val m = a.g.state.minion(id)
-                m != null && m.type in types && a.isEnemy(id) && a.canTarget(id, ignoreHeavyImmunity = ignoreHeavy) && a.canMoveOther(id, 1, 2)
+                m != null && m.type in types && a.isEnemy(id) && a.canTarget(id, ignoreHeavyImmunity = ignoreHeavy) &&
+                    a.canMoveOther(id, 1, 2)
             }
             if (minions.isEmpty()) return false
-            val m = a.chooseUnit("You may move an enemy minion in radius up to 2 spaces ($whenText your movement)", minions, optional = true)
-                ?: return false
+            val m =
+                a.chooseUnit(
+                    "You may move an enemy minion in radius up to 2 spaces ($whenText your movement)",
+                    minions,
+                    optional = true,
+                )
+                    ?: return false
             a.moveOther(m, 0, 2)
             return true
         }
@@ -176,7 +192,7 @@ object XargathaHero : HeroModule {
                 return petrified(g, src, id)
             }
 
-            /** FAQ: no Movement action, so no Fast Travel through one either; place, swap and card-text moves still work. */
+            /** FAQ: no Movement action, so no Fast Travel through one either; place, swap, card-text moves work. */
             override fun forbidsAction(g: Game, src: Src, q: ActionQuery): Boolean =
                 (q.kind == ActionKind.MOVEMENT || q.kind == ActionKind.FAST_TRAVEL) && petrified(g, src, q.heroId)
         }
@@ -193,10 +209,19 @@ object XargathaHero : HeroModule {
                 val at = g.posOf(owner) ?: return
                 val minions = g.unitsAdjacentTo(at).filter { id ->
                     val m = g.state.minion(id)
-                    m != null && m.type in types && g.isEnemy(owner, id) && g.canTarget(id, owner, ActionKind.SKILL, src.cardId)
+                    m != null && m.type in types && g.isEnemy(owner, id) &&
+                        g.canTarget(id, owner, ActionKind.SKILL, src.cardId)
                 }
                 if (minions.isEmpty()) return
-                val c = g.ask(owner, DecisionKind.CHOOSE_UNIT, "End of round: defeat an enemy minion adjacent to you", minions.map { Choice.Unit(it) }, src.cardId) as Choice.Unit
+                val c = g.ask(
+                    owner,
+                    DecisionKind.CHOOSE_UNIT,
+                    "End of round: defeat an enemy minion adjacent to you",
+                    minions.map {
+                        Choice.Unit(it)
+                    },
+                    src.cardId,
+                ) as Choice.Unit
                 g.defeatMinion(c.unitId, owner)
             }
         }

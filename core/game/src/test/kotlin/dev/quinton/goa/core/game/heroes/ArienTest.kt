@@ -65,7 +65,9 @@ class ArienTest {
         d.action("arien", ActionType.PRIMARY)
         d.decline()
         d.defend("wasp-green-2b")
-        assertThat(d.texts()).contains("Wasp defends with Telekinesis: Defense 3 + 1 (adjacent friendly melee minion) = 4. Defended.")
+        assertThat(
+            d.texts(),
+        ).contains("Wasp defends with Telekinesis: Defense 3 + 1 (adjacent friendly melee minion) = 4. Defended.")
     }
 
     @Test
@@ -100,7 +102,8 @@ class ArienTest {
             phase = PositionPhase.Resolving(next = "arien")
         }
         d.action("arien", ActionType.PRIMARY)
-        assertThat(d.actions()).containsExactly(ActionType.MOVEMENT, ActionType.HOLD) // Wasp: no skill, movement still fine
+        // Wasp: no skill, movement still fine.
+        assertThat(d.actions()).containsExactly(ActionType.MOVEMENT, ActionType.HOLD)
         val g = g(d)
         // "except on gold cards": Misa's gold skill is allowed, her green skill is not.
         assertThat(g.actionAllowed("misa", "misa-gold", ActionKind.SKILL, true)).isTrue()
@@ -112,7 +115,14 @@ class ArienTest {
 
     // ---- Dangerous Current / Raging Stream / Violent Torrent (red) ------------------------------
 
-    private fun current(card: String, behind: Hex, victimHand: List<String> = listOf("xargatha-gold", "xargatha-red-1")) = pos {
+    private fun current(
+        card: String,
+        behind: Hex,
+        victimHand: List<String> = listOf(
+            "xargatha-gold",
+            "xargatha-red-1",
+        ),
+    ) = pos {
         clearMinions()
         hero("arien", Team.BLUE, Hex(2, -2)) { played(card) }
         hero("wasp", Team.RED, Hex(1, -2)) { hand("wasp-blue-1") }
@@ -186,7 +196,7 @@ class ArienTest {
     // ---- Rogue Wave / Tidal Blast (red alternates) ---------------------------------------------
 
     @Test
-    fun `Rogue Wave - Target a unit in range, After the attack you may push an enemy unit adjacent to you up to 2 spaces`() {
+    fun `Rogue Wave - Target a unit in range, After the attack you may push an adjacent enemy up to 2`() {
         val d = pos {
             clearMinions()
             hero("arien", Team.BLUE, Hex(1, -2)) { played("arien-red-2b") }
@@ -279,7 +289,7 @@ class ArienTest {
     }
 
     @Test
-    fun `FAQ - Arien's green placement is not movement, so a hero who cannot perform movement actions may still use it`() {
+    fun `FAQ - Arien's green placement is not movement, allowed without movement actions`() {
         val d = pos {
             clearMinions()
             hero("xargatha", Team.RED, Hex(2, -5)) { resolved(1, "xargatha-blue-1") }
@@ -335,7 +345,10 @@ class ArienTest {
         val d = pos {
             clearMinions()
             hero("wasp", Team.RED, Hex(0, -2)) { played("wasp-gold") }
-            hero("arien", Team.BLUE, Hex(1, -2)) { hand("arien-blue-2a", "arien-gold"); played("arien-green-1") }
+            hero("arien", Team.BLUE, Hex(1, -2)) {
+                hand("arien-blue-2a", "arien-gold")
+                played("arien-green-1")
+            }
             hero("xargatha", Team.RED, Hex(2, -2)) { played("xargatha-gold") }
             phase = PositionPhase.Resolving(next = "wasp")
         }
@@ -351,7 +364,10 @@ class ArienTest {
         val d = pos {
             clearMinions()
             hero("wasp", Team.RED, Hex(0, -2)) { played("wasp-gold") }
-            hero("arien", Team.BLUE, Hex(1, -2)) { hand("arien-blue-3a", "arien-gold"); played("arien-green-1") }
+            hero("arien", Team.BLUE, Hex(1, -2)) {
+                hand("arien-blue-3a", "arien-gold")
+                played("arien-green-1")
+            }
             hero("xargatha", Team.RED, Hex(2, -2)) { played("xargatha-green-1") }
             phase = PositionPhase.Resolving(next = "wasp")
         }
@@ -387,21 +403,32 @@ class ArienTest {
         e.decline() // Arien doesn't move
         assertThat(e.actions()).doesNotContain(ActionType.FAST_TRAVEL)
         e.action("wasp", ActionType.MOVEMENT)
-        for (h in e.spaces()) assertThat(dev.quinton.goa.core.domain.board.HexGrid.distance(Hex(-2, -2), h)).isEqualTo(1)
+        for (h in e.spaces()) {
+            assertThat(
+                dev.quinton.goa.core.domain.board.HexGrid.distance(Hex(-2, -2), h),
+            ).isEqualTo(1)
+        }
     }
 
     @Test
     fun `Deluge - enemy heroes in radius (radius items count)`() {
         val d = pos {
             clearMinions()
-            hero("arien", Team.BLUE, Hex(1, -2)) { played("arien-blue-3b"); items("arien-green-3a") } // +1 Radius
+            hero("arien", Team.BLUE, Hex(1, -2)) {
+                played("arien-blue-3b")
+                items("arien-green-3a")
+            } // +1 Radius
             hero("wasp", Team.RED, Hex(-1, -2)) { played("wasp-blue-1") } // 2 away
             phase = PositionPhase.Resolving(next = "arien")
         }
         d.action("arien", ActionType.PRIMARY)
         d.decline()
         d.action("wasp", ActionType.MOVEMENT)
-        for (h in d.spaces()) assertThat(dev.quinton.goa.core.domain.board.HexGrid.distance(Hex(-1, -2), h)).isEqualTo(1)
+        for (h in d.spaces()) {
+            assertThat(
+                dev.quinton.goa.core.domain.board.HexGrid.distance(Hex(-1, -2), h),
+            ).isEqualTo(1)
+        }
     }
 
     // ---- Living Tsunami (Ultimate) -------------------------------------------------------------
@@ -410,7 +437,10 @@ class ArienTest {
     fun `Living Tsunami - once per turn, before performing an Attack action, you may move 1 space`() {
         val d = pos {
             clearMinions()
-            hero("arien", Team.BLUE, Hex(2, -2)) { played("arien-red-3a"); ultimate() }
+            hero("arien", Team.BLUE, Hex(2, -2)) {
+                played("arien-red-3a")
+                ultimate()
+            }
             hero("wasp", Team.RED, Hex(0, -2)) { hand("wasp-blue-1") } // 2 away: not adjacent yet
             hero("xargatha", Team.RED, Hex(0, -1)) { hand("xargatha-gold") }
             phase = PositionPhase.Resolving(next = "arien")
@@ -426,5 +456,10 @@ class ArienTest {
         d.expect(DecisionKind.DEFEND, "xargatha")
     }
 
-    private fun Game.canTargetForTest(target: String, attacker: String) = canTarget(target, attacker, ActionKind.ATTACK, null)
+    private fun Game.canTargetForTest(target: String, attacker: String) = canTarget(
+        target,
+        attacker,
+        ActionKind.ATTACK,
+        null,
+    )
 }

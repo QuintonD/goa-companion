@@ -68,7 +68,10 @@ class BroganTest {
     fun `Bulwark - You may retrieve a discarded card`() {
         val d = pos {
             clearMinions()
-            hero("brogan", Team.BLUE, Hex(1, -2)) { played("brogan-silver"); discard("brogan-red-1") }
+            hero("brogan", Team.BLUE, Hex(1, -2)) {
+                played("brogan-silver")
+                discard("brogan-red-1")
+            }
             hero("wasp", Team.RED, Hex(-5, -4))
             phase = PositionPhase.Resolving(next = "brogan")
         }
@@ -79,11 +82,12 @@ class BroganTest {
     }
 
     @Test
-    fun `Bulwark - This turn, you and friendly units in radius cannot be moved, pushed, swapped or placed by enemy heroes`() {
+    fun `Bulwark - This turn, you and friendly units in radius cannot be moved, pushed, swapped or placed`() {
         val d = pos {
             clearMinions()
             hero("brogan", Team.BLUE, Hex(1, -2)) { played("brogan-silver") }
-            hero("wasp", Team.RED, Hex(3, -5)) { played("wasp-green-2b") } // Telekinesis: place a unit not in a straight line
+            // Telekinesis: place a unit not in a straight line.
+            hero("wasp", Team.RED, Hex(3, -5)) { played("wasp-green-2b") }
             hero("arien", Team.BLUE, Hex(0, -3)) // friendly, 1 from Brogan: protected
             minion(Team.BLUE, MinionType.MELEE, Hex(1, -4)) // friendly minion, 2 away: protected
             minion(Team.RED, MinionType.MELEE, Hex(4, -7)) // Wasp's own minions: not protected
@@ -123,7 +127,15 @@ class BroganTest {
                 hero("brogan", Team.BLUE, Hex(4, -5)) { played(card) }
                 hero("wasp", Team.RED, Hex(-5, -4))
                 // Enemy minions next to every space of the line west: (3,-5)…(0,-5).
-                for (q in -1..4) minion(Team.RED, MinionType.MELEE, Hex(q, -4).takeIf { q != 2 && q != 1 } ?: Hex(q, -6))
+                for (q in -1..4) {
+                    minion(
+                        Team.RED,
+                        MinionType.MELEE,
+                        Hex(q, -4).takeIf {
+                            q != 2 && q != 1
+                        } ?: Hex(q, -6),
+                    )
+                }
                 phase = PositionPhase.Resolving(next = "brogan")
             }
             d.action("brogan", ActionType.PRIMARY)
@@ -153,7 +165,10 @@ class BroganTest {
     fun `Throwing Axe - You may discard a card, if you do, target a unit in range`() {
         val d = pos {
             clearMinions()
-            hero("brogan", Team.BLUE, Hex(1, -2)) { played("brogan-red-2b"); hand("brogan-gold") }
+            hero("brogan", Team.BLUE, Hex(1, -2)) {
+                played("brogan-red-2b")
+                hand("brogan-gold")
+            }
             hero("wasp", Team.RED, Hex(-1, -2)) { hand("wasp-blue-1") }
             phase = PositionPhase.Resolving(next = "brogan")
         }
@@ -163,7 +178,10 @@ class BroganTest {
         d.expect(DecisionKind.DEFEND, "wasp")
         val e = pos {
             clearMinions()
-            hero("brogan", Team.BLUE, Hex(1, -2)) { played("brogan-red-2b"); hand("brogan-gold") }
+            hero("brogan", Team.BLUE, Hex(1, -2)) {
+                played("brogan-red-2b")
+                hand("brogan-gold")
+            }
             hero("wasp", Team.RED, Hex(-1, -2)) { hand("wasp-blue-1") }
             phase = PositionPhase.Resolving(next = "brogan")
         }
@@ -176,7 +194,11 @@ class BroganTest {
     fun `Throwing Spear - If you have a card in the discard, target a unit in range (even without discarding now)`() {
         val d = pos {
             clearMinions()
-            hero("brogan", Team.BLUE, Hex(1, -2)) { played("brogan-red-3b"); hand("brogan-gold"); discard("brogan-silver") }
+            hero("brogan", Team.BLUE, Hex(1, -2)) {
+                played("brogan-red-3b")
+                hand("brogan-gold")
+                discard("brogan-silver")
+            }
             hero("wasp", Team.RED, Hex(-1, -2)) { hand("wasp-blue-1") }
             phase = PositionPhase.Resolving(next = "brogan")
         }
@@ -191,7 +213,10 @@ class BroganTest {
     fun `Shield - radius 1 only, and the minion is defeated normally when Brogan declines`() {
         val d = pos {
             clearMinions()
-            hero("brogan", Team.BLUE, Hex(3, -5)) { played("brogan-green-1"); hand("brogan-silver") }
+            hero("brogan", Team.BLUE, Hex(3, -5)) {
+                played("brogan-green-1")
+                hand("brogan-silver")
+            }
             hero("wasp", Team.RED, Hex(3, -3)) { played("wasp-gold") }
             minion(Team.BLUE, MinionType.MELEE, Hex(3, -4)) // 1 from Brogan
             minion(Team.BLUE, MinionType.MELEE, Hex(-1, -5))
@@ -208,7 +233,10 @@ class BroganTest {
     fun `Fortify - discard a basic card, gold included`() {
         val d = pos {
             clearMinions()
-            hero("brogan", Team.BLUE, Hex(3, -5)) { played("brogan-green-3a"); hand("brogan-gold") }
+            hero("brogan", Team.BLUE, Hex(3, -5)) {
+                played("brogan-green-3a")
+                hand("brogan-gold")
+            }
             hero("wasp", Team.RED, Hex(3, -3)) { played("wasp-gold") }
             minion(Team.BLUE, MinionType.MELEE, Hex(3, -4))
             minion(Team.BLUE, MinionType.MELEE, Hex(-1, -5))
@@ -224,9 +252,18 @@ class BroganTest {
         val d = pos {
             clearMinions()
             turn = 4
-            hero("brogan", Team.BLUE, Hex(3, -5)) { resolved(1, "brogan-green-2a"); hand("brogan-silver") }
+            hero("brogan", Team.BLUE, Hex(3, -5)) {
+                resolved(1, "brogan-green-2a")
+                hand("brogan-silver")
+            }
             hero("wasp", Team.RED, geo.heroSpawns(Team.RED)[0])
-            effect("brogan", "brogan-green-2a", dev.quinton.goa.core.game.engine.Timing.THIS_ROUND, dev.quinton.goa.core.game.engine.ActionKind.SKILL, madeTurn = 1)
+            effect(
+                "brogan",
+                "brogan-green-2a",
+                dev.quinton.goa.core.game.engine.Timing.THIS_ROUND,
+                dev.quinton.goa.core.game.engine.ActionKind.SKILL,
+                madeTurn = 1,
+            )
             minion(Team.BLUE, MinionType.MELEE, Hex(3, -4))
             minion(Team.RED, MinionType.MELEE, Hex(-1, -5))
             minion(Team.RED, MinionType.MELEE, Hex(-1, -6))
@@ -306,11 +343,14 @@ class BroganTest {
     // ---- Shield Bash / Counterattack (blue alternates) -----------------------------------------
 
     @Test
-    fun `Shield Bash - FAQ - an enemy hero adjacent who played an attack card this turn discards, even before attacking`() {
+    fun `Shield Bash - FAQ - an adjacent enemy hero who played an attack card discards, even before attacking`() {
         val d = pos {
             clearMinions()
             hero("brogan", Team.BLUE, Hex(1, -2)) { played("brogan-blue-2b") } // 9
-            hero("wasp", Team.RED, Hex(0, -2)) { played("wasp-red-1"); hand("wasp-gold", "wasp-blue-1") } // 8, attack card
+            hero("wasp", Team.RED, Hex(0, -2)) {
+                played("wasp-red-1")
+                hand("wasp-gold", "wasp-blue-1")
+            } // 8, attack card
             hero("xargatha", Team.RED, Hex(2, -2)) { played("xargatha-green-1") } // adjacent, not an attack card
             phase = PositionPhase.Resolving()
         }
@@ -325,7 +365,10 @@ class BroganTest {
         val d = pos {
             clearMinions()
             hero("brogan", Team.BLUE, Hex(1, -2)) { played("brogan-blue-3b") }
-            hero("wasp", Team.RED, Hex(0, -2)) { played("wasp-red-1"); hand() }
+            hero("wasp", Team.RED, Hex(0, -2)) {
+                played("wasp-red-1")
+                hand()
+            }
             phase = PositionPhase.Resolving(next = "brogan")
         }
         d.action("brogan", ActionType.PRIMARY)

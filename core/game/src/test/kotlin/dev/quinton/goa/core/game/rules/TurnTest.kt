@@ -34,7 +34,9 @@ class TurnTest {
         d.play("xargatha", "xargatha-red-1").play("arien", "arien-red-1").play("brogan", "brogan-red-1")
         val revealed = d.s.view("arien").heroes.first { it.heroId == "wasp" }
         assertThat(revealed.played!!.cardId).isEqualTo("wasp-red-1")
-        assertThat(d.s.events.filterIsInstance<GameEvent.CardsRevealed>().single().played["wasp"]).isEqualTo("wasp-red-1")
+        assertThat(
+            d.s.events.filterIsInstance<GameEvent.CardsRevealed>().single().played["wasp"],
+        ).isEqualTo("wasp-red-1")
     }
 
     @Test
@@ -127,7 +129,10 @@ class TurnTest {
         val d = pos {
             clearMinions()
             tieBreaker = Team.BLUE
-            hero("xargatha", Team.RED, Hex(1, -5)) { played("xargatha-green-1"); ultimate() } // 5 + 1 (minion) = 6
+            hero("xargatha", Team.RED, Hex(1, -5)) {
+                played("xargatha-green-1")
+                ultimate()
+            } // 5 + 1 (minion) = 6
             hero("brogan", Team.BLUE, Hex(3, -2)) { played("brogan-green-1") } // 6: tied, Blue's coin
             hero("arien", Team.BLUE, Hex(3, -5)) { played("arien-red-1") } // 8
             minion(Team.BLUE, MinionType.MELEE, Hex(1, -6))
@@ -186,7 +191,14 @@ class TurnTest {
             phase = PositionPhase.Resolving()
         }
         d.expect(DecisionKind.RESPAWN, "wasp")
-        for (h in d.spaces()) assertThat(spawns.any { geo.isSpace(h) && dev.quinton.goa.core.domain.board.HexGrid.adjacent(it, h) }).isTrue()
+        for (h in d.spaces()) {
+            assertThat(
+                spawns.any {
+                    geo.isSpace(h) &&
+                        dev.quinton.goa.core.domain.board.HexGrid.adjacent(it, h)
+                },
+            ).isTrue()
+        }
         assertThat(d.spaces()).isNotEmpty()
     }
 
@@ -194,7 +206,8 @@ class TurnTest {
     fun `p7 p14 - a played Defense card offers its secondary actions and Hold, not the Defense action`() {
         val d = pos {
             clearMinions()
-            hero("arien", Team.BLUE, Hex(3, -2)) { played("arien-blue-1") } // Aspiring Duelist: Defense, secondary Movement
+            // Aspiring Duelist: Defense, secondary Movement.
+            hero("arien", Team.BLUE, Hex(3, -2)) { played("arien-blue-1") }
             hero("wasp", Team.RED, Hex(-5, -4)) { played("wasp-red-1") } // Red Throne Zone: Arien may fast travel
             phase = PositionPhase.Resolving(next = "arien")
         }

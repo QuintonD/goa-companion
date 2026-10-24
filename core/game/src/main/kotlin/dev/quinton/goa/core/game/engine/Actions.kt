@@ -63,20 +63,35 @@ class ActionScope internal constructor(
 
     // ---- choices ----------------------------------------------------------------------------
 
-    fun chooseUnit(prompt: String, ids: Collection<String>, optional: Boolean = false, chooser: String = heroId): String? {
+    fun chooseUnit(
+        prompt: String,
+        ids: Collection<String>,
+        optional: Boolean = false,
+        chooser: String = heroId,
+    ): String? {
         val opts = ids.distinct().map { Choice.Unit(it) as Choice } + declineIf(optional)
         if (opts.isEmpty()) return null
         return (g.ask(chooser, DecisionKind.CHOOSE_UNIT, prompt, opts, cardId) as? Choice.Unit)?.unitId
     }
 
-    fun chooseToken(prompt: String, ids: Collection<String>, optional: Boolean = false, chooser: String = heroId): String? {
+    fun chooseToken(
+        prompt: String,
+        ids: Collection<String>,
+        optional: Boolean = false,
+        chooser: String = heroId,
+    ): String? {
         val opts = ids.distinct().map { Choice.Token(it) as Choice } + declineIf(optional)
         if (opts.isEmpty()) return null
         return (g.ask(chooser, DecisionKind.CHOOSE_TOKEN, prompt, opts, cardId) as? Choice.Token)?.tokenId
     }
 
     /** A unit or a token ("Move a unit, or a token"): units answer [Choice.Unit], tokens [Choice.Token]. */
-    fun chooseObject(prompt: String, ids: Collection<String>, optional: Boolean = false, chooser: String = heroId): String? {
+    fun chooseObject(
+        prompt: String,
+        ids: Collection<String>,
+        optional: Boolean = false,
+        chooser: String = heroId,
+    ): String? {
         val opts = ids.distinct().map { if (g.isToken(it)) Choice.Token(it) else Choice.Unit(it) } + declineIf(optional)
         if (opts.isEmpty()) return null
         return when (val c = g.ask(chooser, DecisionKind.CHOOSE_UNIT, prompt, opts, cardId)) {
@@ -111,10 +126,25 @@ class ActionScope internal constructor(
 
     /** An optional step ("you may", p.10): asks Yes / Skip. */
     fun confirm(prompt: String, chooser: String = heroId, decline: String = "Skip"): Boolean =
-        g.ask(chooser, DecisionKind.CONFIRM, prompt, listOf(Choice.Yes, Choice.Decline(decline)), cardId, auto = false) is Choice.Yes
+        g.ask(
+            chooser,
+            DecisionKind.CONFIRM,
+            prompt,
+            listOf(Choice.Yes, Choice.Decline(decline)),
+            cardId,
+            auto = false,
+        ) is Choice.Yes
 
     fun chooseNumber(prompt: String, values: List<Int>, chooser: String = heroId): Int {
-        val c = g.ask(chooser, DecisionKind.CHOOSE_NUMBER, prompt, values.map { Choice.Number(it) }, cardId) as Choice.Number
+        val c = g.ask(
+            chooser,
+            DecisionKind.CHOOSE_NUMBER,
+            prompt,
+            values.map {
+                Choice.Number(it)
+            },
+            cardId,
+        ) as Choice.Number
         return c.value
     }
 
@@ -132,7 +162,12 @@ class ActionScope internal constructor(
      * May this action target [id] (p.10 "Picking Targets", p.18 "Immune")? Excluded units of a
      * repeat are never valid. [asKind] overrides the action type checked.
      */
-    fun canTarget(id: String, asKind: ActionKind = kind, ignoreHeavyImmunity: Boolean = false, ignoreImmunity: Boolean = false): Boolean =
+    fun canTarget(
+        id: String,
+        asKind: ActionKind = kind,
+        ignoreHeavyImmunity: Boolean = false,
+        ignoreImmunity: Boolean = false,
+    ): Boolean =
         id !in excluded && (only == null || id == only) && repeatFilter?.invoke(id) != false &&
             g.canTarget(id, heroId, asKind, cardId, primary, card.ranged, ignoreHeavyImmunity, ignoreImmunity)
 
@@ -179,7 +214,11 @@ class ActionScope internal constructor(
         for (i in 1..times) {
             if (!mandatory && !confirm(prompt, decline = "Don't repeat")) return
             val inst = g.performAction(
-                heroId, cardId, kind, primary = true, isRepeat = true,
+                heroId,
+                cardId,
+                kind,
+                primary = true,
+                isRepeat = true,
                 excluded = if (differentTarget) seen + excluded else excluded,
                 only = if (sameTarget) first else null,
                 repeatFilter = filter,
@@ -223,19 +262,29 @@ class DefenseScope internal constructor(
     fun canTarget(id: String): Boolean = g.canTarget(id, heroId, ActionKind.DEFENSE, cardId, primary = true)
 
     fun chooseUnit(prompt: String, ids: Collection<String>, optional: Boolean = false): String? {
-        val opts = ids.distinct().map { Choice.Unit(it) as Choice } + if (optional) listOf(Choice.Decline()) else emptyList()
+        val opts =
+            ids.distinct().map { Choice.Unit(it) as Choice } + if (optional) listOf(Choice.Decline()) else emptyList()
         if (opts.isEmpty()) return null
         return (g.ask(heroId, DecisionKind.CHOOSE_UNIT, prompt, opts, cardId) as? Choice.Unit)?.unitId
     }
 
     fun chooseSpace(prompt: String, hexes: Collection<Hex>, optional: Boolean = false): Hex? {
-        val opts = hexes.distinct().sortedHexes().map { Choice.Space(it) as Choice } + if (optional) listOf(Choice.Decline()) else emptyList()
+        val opts =
+            hexes.distinct().sortedHexes().map { Choice.Space(it) as Choice } +
+                if (optional) listOf(Choice.Decline()) else emptyList()
         if (opts.isEmpty()) return null
         return (g.ask(heroId, DecisionKind.CHOOSE_SPACE, prompt, opts, cardId) as? Choice.Space)?.hex
     }
 
     fun confirm(prompt: String): Boolean =
-        g.ask(heroId, DecisionKind.CONFIRM, prompt, listOf(Choice.Yes, Choice.Decline()), cardId, auto = false) is Choice.Yes
+        g.ask(
+            heroId,
+            DecisionKind.CONFIRM,
+            prompt,
+            listOf(Choice.Yes, Choice.Decline()),
+            cardId,
+            auto = false,
+        ) is Choice.Yes
 }
 
 // ---- performing actions ----------------------------------------------------------------------
@@ -250,7 +299,17 @@ fun primaryKind(card: Card): ActionKind = when (card.primary) {
 }
 
 fun Game.actionAllowed(heroId: String, cardId: String?, kind: ActionKind, primary: Boolean): Boolean {
-    val q = ActionQuery(heroId, cardId, kind, primary, cardId?.let { isBasic(it) } ?: false, cardId?.let { cardColorOf(heroId, it) })
+    val q =
+        ActionQuery(
+            heroId,
+            cardId,
+            kind,
+            primary,
+            cardId?.let {
+                isBasic(it)
+            } ?: false,
+            cardId?.let { cardColorOf(heroId, it) },
+        )
     return sources().none { (b, s) -> b.forbidsAction(this, s, q) }
 }
 
@@ -282,7 +341,9 @@ fun Game.actionOptions(heroId: String, cardId: String): List<ActionType> {
     }
     val hasAttack = card.primary == PrimaryAction.ATTACK || SecondaryAction.ATTACK in card.secondary
     val pos = hero(heroId).at
-    if (hasAttack && pos != null && tokensAdjacentTo(pos).isNotEmpty() && actionAllowed(heroId, cardId, ActionKind.CLEAR, false)) {
+    if (hasAttack && pos != null && tokensAdjacentTo(pos).isNotEmpty() &&
+        actionAllowed(heroId, cardId, ActionKind.CLEAR, false)
+    ) {
         out += ActionType.CLEAR
     }
     out += ActionType.HOLD
@@ -345,10 +406,15 @@ fun Game.performAction(
                     scope.movementDone = true
                     movementMoves(heroId, cardValue(heroId, cardId, Stat.MOVEMENT, ActionKind.MOVEMENT) ?: 0, cardId)
                 }
+
                 ActionKind.FAST_TRAVEL -> fastTravel(heroId, cardId)
+
                 ActionKind.CLEAR -> clear(heroId, cardId)
+
                 ActionKind.ATTACK -> secondaryAttack(scope)
+
                 ActionKind.HOLD -> note("${heroName(heroId)} holds.")
+
                 else -> Unit
             }
         }
@@ -388,8 +454,11 @@ fun Game.movementMoves(heroId: String, value: Int, cardId: String?): List<Hex> {
     val n = if (cap != null) minOf(cap, value) else value
     if (n <= 0) return emptyList()
     return move(
-        MoveSpec(heroId, 0, n, movementAction = true), heroId,
-        "Move up to $n space${if (n == 1) "" else "s"}", optional = true, sourceCardId = cardId,
+        MoveSpec(heroId, 0, n, movementAction = true),
+        heroId,
+        "Move up to $n space${if (n == 1) "" else "s"}",
+        optional = true,
+        sourceCardId = cardId,
     )
 }
 
@@ -409,8 +478,18 @@ fun Game.fastTravel(heroId: String, cardId: String?, optional: Boolean = false) 
     if (!canFastTravel(heroId, cardId)) return
     val dests = fastTravelDestinations(heroId)
     if (dests.isEmpty()) return
-    val opts = dests.map { Choice.Space(it) as Choice } + if (optional) listOf(Choice.Decline("Don't fast travel")) else emptyList()
-    val answer = ask(heroId, DecisionKind.CHOOSE_SPACE, "Fast travel to a space", opts, cardId, DecisionContext(subjectId = heroId))
+    val opts =
+        dests.map { Choice.Space(it) as Choice } +
+            if (optional) listOf(Choice.Decline("Don't fast travel")) else emptyList()
+    val answer =
+        ask(
+            heroId,
+            DecisionKind.CHOOSE_SPACE,
+            "Fast travel to a space",
+            opts,
+            cardId,
+            DecisionContext(subjectId = heroId),
+        )
     if (answer is Choice.Space) {
         val from = hero(heroId).at
         setPos(heroId, answer.hex)
@@ -435,7 +514,10 @@ fun Game.clear(heroId: String, cardId: String?) {
 /** Targets of a secondary Attack action: "non-ranged" (Mrak's reminder), so adjacent enemy units. */
 fun Game.secondaryAttackTargets(heroId: String, cardId: String): List<String> {
     val pos = hero(heroId).at ?: return emptyList()
-    return unitsAdjacentTo(pos).filter { isEnemy(heroId, it) && canTarget(it, heroId, ActionKind.ATTACK, cardId, primary = false) }
+    return unitsAdjacentTo(pos).filter {
+        isEnemy(heroId, it) &&
+            canTarget(it, heroId, ActionKind.ATTACK, cardId, primary = false)
+    }
 }
 
 private fun Game.secondaryAttack(scope: ActionScope) {

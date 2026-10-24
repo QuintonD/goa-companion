@@ -49,10 +49,14 @@ class SetupTest {
     }
 
     @Test
-    fun `p6 step 11 - starting hand is Gold, Silver and the three Tier I cards, the rest in the deck, Handicap in the box`() {
+    fun `p6 step 11 - starting hand is Gold, Silver and the three Tier I cards, Handicap in the box`() {
         val s = TestData.newGame()
         val wasp = s.state.hero("wasp")!!
-        assertThat(wasp.hand.map { it.id }).containsExactly("wasp-gold", "wasp-silver", "wasp-red-1", "wasp-green-1", "wasp-blue-1")
+        assertThat(
+            wasp.hand.map {
+                it.id
+            },
+        ).containsExactly("wasp-gold", "wasp-silver", "wasp-red-1", "wasp-green-1", "wasp-blue-1")
         assertThat(wasp.card("wasp-red-2a")!!.zone).isEqualTo(Zone.DECK)
         assertThat(wasp.card("wasp-purple-4")!!.zone).isEqualTo(Zone.DECK)
         assertThat(wasp.card("wasp-handicap")!!.zone).isEqualTo(Zone.BOX)
@@ -60,7 +64,19 @@ class SetupTest {
 
     @Test
     fun `p20 - a Handicap hero replaces its gold card with the Handicap card`() {
-        val setup = TestData.firstGame().let { it.copy(seats = it.seats.map { s -> if (s.heroId == "brogan") s.copy(handicap = true) else s }) }
+        val setup = TestData.firstGame().let {
+            it.copy(
+                seats = it.seats.map { s ->
+                    if (s.heroId ==
+                        "brogan"
+                    ) {
+                        s.copy(handicap = true)
+                    } else {
+                        s
+                    }
+                },
+            )
+        }
         val s = engine.newGame(setup) as EngineSession
         val brogan = s.state.hero("brogan")!!
         assertThat(brogan.hand.map { it.id }).contains("brogan-handicap")
@@ -113,14 +129,21 @@ class SetupTest {
 
     @Test
     fun `a hero is picked at most once per game`() {
-        val setup = TestData.firstGame().let { it.copy(seats = it.seats + SeatSetup("wasp", Team.BLUE, Controller.Human)) }
+        val setup = TestData.firstGame().let {
+            it.copy(seats = it.seats + SeatSetup("wasp", Team.BLUE, Controller.Human))
+        }
         assertThrows(IllegalArgumentException::class.java) { engine.newGame(setup) }
     }
 
     @Test
     fun `only complete heroes are playable`() {
         assertThat(engine.playableHeroes).containsExactly("arien", "brogan", "wasp", "xargatha")
-        val setup = TestData.firstGame().let { it.copy(seats = it.seats.dropLast(1) + SeatSetup("dodger", Team.BLUE, Controller.Human)) }
+        val setup = TestData.firstGame().let {
+            it.copy(
+                seats =
+                    it.seats.dropLast(1) + SeatSetup("dodger", Team.BLUE, Controller.Human),
+            )
+        }
         assertThrows(IllegalArgumentException::class.java) { engine.newGame(setup) }
     }
 
@@ -133,11 +156,17 @@ class SetupTest {
     fun `the built-in counter table equals match-setup json`() {
         val rules = TestData.matchRules
         for (heroes in 2..6) {
-            assertThat(Counters.life(1, GameLength.QUICK, heroes)).isEqualTo(rules.mode(GameMode.QUICK).lifeCountersFor(heroes))
-            assertThat(Counters.life(1, GameLength.LONG, heroes)).isEqualTo(rules.mode(GameMode.LONG).lifeCountersFor(heroes))
+            assertThat(
+                Counters.life(1, GameLength.QUICK, heroes),
+            ).isEqualTo(rules.mode(GameMode.QUICK).lifeCountersFor(heroes))
+            assertThat(
+                Counters.life(1, GameLength.LONG, heroes),
+            ).isEqualTo(rules.mode(GameMode.LONG).lifeCountersFor(heroes))
         }
         for (heroes in 6..10) {
-            assertThat(Counters.life(2, GameLength.LONG, heroes)).isEqualTo(rules.mode(GameMode.DOUBLE_LANE).lifeCountersFor(heroes))
+            assertThat(
+                Counters.life(2, GameLength.LONG, heroes),
+            ).isEqualTo(rules.mode(GameMode.DOUBLE_LANE).lifeCountersFor(heroes))
         }
         assertThat(Counters.waves(1, GameLength.QUICK)).isEqualTo(rules.mode(GameMode.QUICK).waveCountersPerLane)
         assertThat(Counters.waves(1, GameLength.LONG)).isEqualTo(rules.mode(GameMode.LONG).waveCountersPerLane)

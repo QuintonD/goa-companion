@@ -94,6 +94,29 @@ class Game internal constructor(
         throw Suspend(Decision(state.decisions + index, seat, team, kind, prompt, sourceCardId, options, context))
     }
 
+    /**
+     * [ask] for a question that is always asked (never answered automatically), whose options and
+     * context are costly (probes, defense previews): they are computed only when the question is
+     * really pending, not when a re-run replays its known answer. Probe runs stop here.
+     */
+    @Suppress("LongParameterList")
+    fun askAlways(
+        seat: String,
+        kind: DecisionKind,
+        prompt: String,
+        sourceCardId: String? = null,
+        context: () -> DecisionContext = { DecisionContext() },
+        options: () -> List<Choice>,
+    ): Choice {
+        if (mode == RunMode.PROBE) throw ProbeHit()
+        val index = asked
+        if (index < answers.size && lenient == null) {
+            asked++
+            return answers[index]
+        }
+        return ask(seat, kind, prompt, options(), sourceCardId, context(), auto = false)
+    }
+
     fun emit(event: GameEvent) {
         if (mode == RunMode.PROBE) return
         events += event
@@ -218,7 +241,9 @@ class Game internal constructor(
                 }
             }
             for (m in h.markers) {
-                reg.behavior(m.kind)?.let { out += it to Src(SrcKind.MARKER, m.kind, m.from, marker = m, holder = h.id) }
+                reg.behavior(m.kind)?.let {
+                    out += it to Src(SrcKind.MARKER, m.kind, m.from, marker = m, holder = h.id)
+                }
             }
         }
         for (p in state.pieces) {

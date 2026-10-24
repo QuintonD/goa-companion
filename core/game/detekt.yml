@@ -1,0 +1,19 @@
+# core:game only, on top of config/detekt/detekt.yml (ENGINE.md "Style"). Rules code follows the
+# rulebook's own branching (p.7 ties, p.14 defense order), and card hooks guard every clause of the
+# text with an early return, so these limits are wider here than in the app.
+complexity:
+  CyclomaticComplexMethod:
+    allowedComplexity: 32
+  ComplexCondition:
+    allowedConditions: 6
+  NestedBlockDepth:
+    allowedDepth: 5
+  LargeClass:
+    allowedLines: 900
+
+style:
+  ReturnCount:
+    max: 8
+    excludeGuardClauses: true
+  LoopWithTooManyJumpStatements:
+    maxJumpCount: 3

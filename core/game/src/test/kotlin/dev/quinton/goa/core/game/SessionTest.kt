@@ -71,7 +71,17 @@ class SessionTest {
     @Test
     fun `undo goes back to the last human decision`() {
         val setup = TestData.firstGame().let {
-            it.copy(seats = it.seats.map { s -> if (s.team == Team.BLUE) s.copy(controller = Controller.Ai(AiLevel.NORMAL)) else s })
+            it.copy(
+                seats = it.seats.map { s ->
+                    if (s.team ==
+                        Team.BLUE
+                    ) {
+                        s.copy(controller = Controller.Ai(AiLevel.NORMAL))
+                    } else {
+                        s
+                    }
+                },
+            )
         }
         val s = TestData.engine.newGame(setup) as EngineSession
         s.answer(0, Choice.Card("wasp-gold")) // human

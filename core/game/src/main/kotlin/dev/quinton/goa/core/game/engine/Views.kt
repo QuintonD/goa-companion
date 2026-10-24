@@ -31,7 +31,10 @@ object Views {
                 id = p.id,
                 kind = if (hidden) "facedown_token" else p.kind,
                 label = if (hidden) "Facedown token" else p.label,
-                at = at, ownerHeroId = p.owner, team = p.team, isUnit = p.unit || p.heroBody != null,
+                at = at,
+                ownerHeroId = p.owner,
+                team = p.team,
+                isUnit = p.unit || p.heroBody != null,
             )
         }
         val phase = when (state.step) {

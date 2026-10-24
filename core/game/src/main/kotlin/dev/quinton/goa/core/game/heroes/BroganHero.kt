@@ -58,7 +58,8 @@ object BroganHero : HeroModule {
     override fun register(r: Registry) {
         // Onslaught: "Target a unit adjacent to you. After the attack: Move into the space it occupied, if able."
         r.card("brogan-gold", Onslaught(heroOnly = false))
-        // Leap Forward (Handicap): "Target a hero adjacent to you. After the attack: Move into the space it occupied, if able."
+        // Leap Forward (Handicap): "Target a hero adjacent to you. After the attack: Move into the space it
+        // occupied, if able."
         r.card("brogan-handicap", Onslaught(heroOnly = true))
         // Bulwark: "You may retrieve a discarded card. This turn: You and friendly units in radius cannot
         // be moved, pushed, swapped or placed by enemy heroes."
@@ -112,7 +113,18 @@ object BroganHero : HeroModule {
             // "After the attack: Move into the space it occupied, if able." FAQ: mandatory if it is empty.
             if (a.g.isEmpty(space, a.heroId)) {
                 val spec = MoveSpec(a.heroId, 1, 1, endFilter = { it == space })
-                if (a.g.canMove(spec)) a.g.move(spec, a.heroId, "Move into the space it occupied", optional = false, sourceCardId = a.cardId)
+                if (a.g.canMove(
+                        spec,
+                    )
+                ) {
+                    a.g.move(
+                        spec,
+                        a.heroId,
+                        "Move into the space it occupied",
+                        optional = false,
+                        sourceCardId = a.cardId,
+                    )
+                }
             }
         }
     }
@@ -199,7 +211,14 @@ object BroganHero : HeroModule {
                 if (cards.isEmpty()) return ReplacementResult()
                 val what = if (basicAny) "a basic card" else "a silver card"
                 val opts = cards.map { Choice.Card(it) as Choice } + Choice.Decline("Let it be removed")
-                val c = g.ask(owner, DecisionKind.CHOOSE_CARD, "${g.name(r.minionId)} is defeated: discard $what so it is not removed?", opts, src.cardId, auto = false)
+                val c = g.ask(
+                    owner,
+                    DecisionKind.CHOOSE_CARD,
+                    "${g.name(r.minionId)} is defeated: discard $what so it is not removed?",
+                    opts,
+                    src.cardId,
+                    auto = false,
+                )
                 if (c !is Choice.Card) return ReplacementResult()
                 g.discard(owner, c.cardId)
                 return ReplacementResult(DefeatOutcome.NOT_REMOVED, handled = true)
@@ -236,7 +255,10 @@ object BroganHero : HeroModule {
             // "An enemy hero adjacent to you who has played an attack card this turn" (FAQ: whether or
             // not it attacked, and even if that card is gone).
             val played = a.g.state.turnRecord.playedAttack
-            val victims = a.unitsWithin(1).filter { a.g.isHero(it) && a.isEnemy(it) && a.g.heroBodyOf(it) in played && a.canTarget(it) }
+            val victims = a.unitsWithin(1).filter {
+                a.g.isHero(it) && a.isEnemy(it) && a.g.heroBodyOf(it) in played &&
+                    a.canTarget(it)
+            }
             if (victims.isEmpty()) a.fizzle("no enemy hero adjacent who played an attack card")
             val v = a.chooseUnit("Choose an enemy hero who played an attack card", victims)!!
             if (orDefeated) a.discardOrDefeat(v) else a.discardIfAble(v)

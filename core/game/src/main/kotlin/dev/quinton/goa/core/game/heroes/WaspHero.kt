@@ -78,7 +78,8 @@ object WaspHero : HeroModule {
         // Stop Projectiles: "Block a ranged attack."
         r.card("wasp-green-1", Projectiles(discard = Discard.NONE))
         // Deflect Projectiles: "Block a ranged attack; if you do, an enemy hero in range, other than the
-        // attacker, discards a card, if able." Reflect Projectiles: "… an enemy hero in range discards a card, if able."
+        // attacker, discards a card, if able." Reflect Projectiles: "… an enemy hero in range discards a card,
+        // if able."
         r.card("wasp-green-2a", Projectiles(discard = Discard.NOT_ATTACKER))
         r.card("wasp-green-3a", Projectiles(discard = Discard.ANY))
         // Telekinesis: "Place a unit or a token in range, which is not in a straight line, into a space
@@ -102,7 +103,13 @@ object WaspHero : HeroModule {
 
     private class Dagger(private val heroOnly: Boolean) : CardScript {
         override fun primary(a: ActionScope) {
-            val t = if (heroOnly) a.adjacentAttackTarget("Target a hero adjacent to you") { a.g.isHero(it) } else a.adjacentAttackTarget()
+            val t = if (heroOnly) {
+                a.adjacentAttackTarget("Target a hero adjacent to you") {
+                    a.g.isHero(it)
+                }
+            } else {
+                a.adjacentAttackTarget()
+            }
             t ?: return
             val r = a.attack(t)
             if (!r.connected) return
@@ -126,7 +133,10 @@ object WaspHero : HeroModule {
         }
     }
 
-    /** FAQ: "Static Barrier divides the map into 2 regions … These restrictions only apply when an enemy hero is taking the action." */
+    /**
+     * FAQ: "Static Barrier divides the map into 2 regions … These restrictions only apply when an enemy
+     * hero is taking the action."
+     */
     private object StaticBarrier : CardScript {
         override fun primary(a: ActionScope) {
             a.activeEffect(Timing.THIS_TURN)
@@ -164,11 +174,17 @@ object WaspHero : HeroModule {
 
     private class Boomerang(private val repeat: Boolean) : CardScript {
         override fun primary(a: ActionScope) {
-            val t = a.rangedAttackTarget("Target a unit in range and not in a straight line") { !a.inStraightLine(it) } ?: return
+            val t =
+                a.rangedAttackTarget("Target a unit in range and not in a straight line") { !a.inStraightLine(it) }
+                    ?: return
             val r = a.attack(t, valid = { !a.inStraightLine(it) })
             if (!r.connected) return
             // Thunder Boomerang: "After the attack: If you targeted a hero, may repeat once on a different target."
-            if (repeat && r.hero) a.repeat(differentTarget = true, prompt = "You targeted a hero: repeat on a different target?")
+            if (repeat &&
+                r.hero
+            ) {
+                a.repeat(differentTarget = true, prompt = "You targeted a hero: repeat on a different target?")
+            }
         }
     }
 
@@ -184,7 +200,8 @@ object WaspHero : HeroModule {
             if (!blocked || discard == Discard.NONE) return
             val me = d.pos ?: return
             val victims = d.g.unitsOnBoard().filter { id ->
-                d.g.isHero(id) && d.g.isEnemy(d.heroId, id) && d.g.posOf(id)!!.let { d.g.distance(me, it) in 1..d.range } &&
+                d.g.isHero(id) && d.g.isEnemy(d.heroId, id) &&
+                    d.g.posOf(id)!!.let { d.g.distance(me, it) in 1..d.range } &&
                     (discard == Discard.ANY || d.g.heroBodyOf(id) != d.attack.attackerId) && d.canTarget(id)
             }
             val v = d.chooseUnit("An enemy hero in range discards a card, if able", victims) ?: return
@@ -200,7 +217,12 @@ object WaspHero : HeroModule {
             }
             if (targets.isEmpty() || adjacent.isEmpty()) a.fizzle("nothing to place")
             val t = a.target(a.chooseObject("Place a unit or a token in range, not in a straight line", targets)!!)
-            val h = a.chooseSpace("Place ${a.g.name(t)} into a space adjacent to you", adjacent.filter { a.g.isEmpty(it, t) })!!
+            val h = a.chooseSpace(
+                "Place ${a.g.name(t)} into a space adjacent to you",
+                adjacent.filter {
+                    a.g.isEmpty(it, t)
+                },
+            )!!
             a.g.place(t, h, a.heroId)
             if (repeat) a.repeat()
         }
@@ -232,7 +254,13 @@ object WaspHero : HeroModule {
             // then push all those units that many spaces at the same time" (rays from you never cross).
             val picked = a.chooseUpTo(2, "Push an enemy unit adjacent to you", enemies)
             if (picked.isEmpty()) return
-            val d = if (distances.size == 1) distances.single() else a.chooseNumber("Push them how many spaces?", distances)
+            val d = if (distances.size ==
+                1
+            ) {
+                distances.single()
+            } else {
+                a.chooseNumber("Push them how many spaces?", distances)
+            }
             val results = picked.map { it to a.pushAway(it, d) }
             // "if a pushed hero is stopped by an obstacle, that hero discards a card, if able." (FAQ)
             for ((id, res) in results) {
@@ -247,7 +275,11 @@ object WaspHero : HeroModule {
         override val behavior: Behavior = object : Behavior {
             override fun on(g: Game, src: Src, t: Trigger) {
                 val owner = src.owner ?: return
-                if (t !is Trigger.AfterAction || t.heroId != owner || t.kind != ActionKind.SKILL || !t.basic || !t.primary) return
+                if (t !is Trigger.AfterAction || t.heroId != owner || t.kind != ActionKind.SKILL || !t.basic ||
+                    !t.primary
+                ) {
+                    return
+                }
                 val me = g.posOf(owner) ?: return
                 val radius = g.cardValue(owner, src.cardId!!, Stat.RADIUS) ?: 0
                 val minions = g.unitsOnBoard().filter { id ->
@@ -256,13 +288,32 @@ object WaspHero : HeroModule {
                 }
                 if (minions.isEmpty()) return
                 val opts = minions.map { Choice.Unit(it) as Choice } + Choice.Decline("Don't")
-                val c = g.ask(owner, DecisionKind.CHOOSE_UNIT, "High Voltage: you may defeat an enemy minion in radius", opts, src.cardId)
+                val c = g.ask(
+                    owner,
+                    DecisionKind.CHOOSE_UNIT,
+                    "High Voltage: you may defeat an enemy minion in radius",
+                    opts,
+                    src.cardId,
+                )
                 if (c !is Choice.Unit) return
                 val wasAdjacent = g.unitsAdjacentTo(g.posOf(c.unitId)!!).filter { g.isHero(it) && g.isEnemy(owner, it) }
                 g.defeatMinion(c.unitId, owner)
-                val victims = wasAdjacent.filter { g.posOf(it) != null && g.canTarget(it, owner, ActionKind.SKILL, src.cardId) }
+                val victims = wasAdjacent.filter {
+                    g.posOf(it) != null &&
+                        g.canTarget(it, owner, ActionKind.SKILL, src.cardId)
+                }
                 if (victims.isEmpty()) return
-                val v = (g.ask(owner, DecisionKind.CHOOSE_UNIT, "An enemy hero who was adjacent to that minion discards a card", victims.map { Choice.Unit(it) }, src.cardId) as Choice.Unit).unitId
+                val v = (
+                    g.ask(
+                        owner,
+                        DecisionKind.CHOOSE_UNIT,
+                        "An enemy hero who was adjacent to that minion discards a card",
+                        victims.map {
+                            Choice.Unit(it)
+                        },
+                        src.cardId,
+                    ) as Choice.Unit
+                    ).unitId
                 g.forceDiscard(v, owner, orDefeated = false, sourceCardId = src.cardId)
             }
         }

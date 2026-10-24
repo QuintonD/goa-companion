@@ -114,7 +114,8 @@ object ArienHero : HeroModule {
             // "Before the attack: You may move another unit (a minion) that is adjacent to the target 1 space."
             val tPos = a.g.posOf(t) ?: return
             val movable = a.g.unitsAdjacentTo(tPos).filter { id ->
-                a.g.heroBodyOf(id) != a.heroId && (anyUnit || a.g.isMinion(id)) && a.canTarget(id) && a.canMoveOther(id, 1)
+                a.g.heroBodyOf(id) != a.heroId && (anyUnit || a.g.isMinion(id)) && a.canTarget(id) &&
+                    a.canMoveOther(id, 1)
             }
             val what = if (anyUnit) "another unit" else "a minion"
             if (movable.isNotEmpty() && a.confirm("Move $what adjacent to the target 1 space?")) {
@@ -134,7 +135,8 @@ object ArienHero : HeroModule {
             override fun forbidsAction(g: Game, src: Src, q: ActionQuery): Boolean {
                 val owner = src.owner ?: return false
                 return q.kind == ActionKind.SKILL && q.cardColor != CardColor.GOLD &&
-                    g.isHero(q.heroId) && g.isEnemy(owner, q.heroId) && g.inRadiusOf(src, q.heroId) && g.affectedBy(src, q.heroId)
+                    g.isHero(q.heroId) && g.isEnemy(owner, q.heroId) && g.inRadiusOf(src, q.heroId) &&
+                    g.affectedBy(src, q.heroId)
             }
         }
     }
@@ -152,7 +154,11 @@ object ArienHero : HeroModule {
                 val victims = a.g.unitsOnBoard().filter { id ->
                     a.g.isHero(id) && a.isEnemy(id) && a.g.posOf(id) in spaces && a.canTarget(id)
                 }
-                val v = a.chooseUnit("Up to 1 enemy hero behind the target discards a card, or is defeated", victims, optional = true)
+                val v = a.chooseUnit(
+                    "Up to 1 enemy hero behind the target discards a card, or is defeated",
+                    victims,
+                    optional = true,
+                )
                 if (v != null) a.discardOrDefeat(v)
             }
             a.attack(t)
@@ -168,7 +174,9 @@ object ArienHero : HeroModule {
             if (!r.connected) return
             // "After the attack: You may push an enemy unit adjacent to you up to N spaces."
             val adjacent = a.unitsWithin(1).filter { a.isEnemy(it) && a.canTarget(it) }
-            val u = a.chooseUnit("You may push an enemy unit adjacent to you up to $push spaces", adjacent, optional = true) ?: return
+            val u =
+                a.chooseUnit("You may push an enemy unit adjacent to you up to $push spaces", adjacent, optional = true)
+                    ?: return
             val d = a.chooseDistance((0..push).toList(), "Push ${a.g.name(u)} how many spaces?")
             a.pushAway(u, d)
         }
@@ -241,7 +249,13 @@ object ArienHero : HeroModule {
             }
 
             /** FAQ: "restricts the movement, by a movement action"; checked at its start (p.11). */
-            override fun movementCap(g: Game, src: Src, q: MoveQuery): Int? = if (q.movementAction && applies(g, src, q.unitId)) 1 else null
+            override fun movementCap(g: Game, src: Src, q: MoveQuery): Int? = if (q.movementAction &&
+                applies(g, src, q.unitId)
+            ) {
+                1
+            } else {
+                null
+            }
 
             override fun forbidsFastTravel(g: Game, src: Src, heroId: String): Boolean = applies(g, src, heroId)
         }
@@ -259,7 +273,13 @@ object ArienHero : HeroModule {
                 if (g.posOf(owner) == null) return
                 val spec = MoveSpec(owner, 1, 1)
                 if (!g.canMove(spec)) return
-                val moved = g.move(spec, owner, "Living Tsunami: you may move 1 space before attacking", optional = true, sourceCardId = src.cardId)
+                val moved = g.move(
+                    spec,
+                    owner,
+                    "Living Tsunami: you may move 1 space before attacking",
+                    optional = true,
+                    sourceCardId = src.cardId,
+                )
                 if (moved.isNotEmpty()) g.state.turnRecord.notes += USED
             }
         }

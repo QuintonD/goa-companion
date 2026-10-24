@@ -17,8 +17,8 @@ import dev.quinton.goa.core.game.position.PositionPhase
 import dev.quinton.goa.core.model.board.HeroPiece
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.match.Team
-import org.junit.Test
 import kotlin.random.Random
+import org.junit.Test
 
 /** Movement and Fast Travel, rulebook p.11; distances p.17–18. */
 class MovementTest {
@@ -58,10 +58,18 @@ class MovementTest {
             val audited = BoardRules.movementReach(g.geo, g.boardState(), hero.at!!, steps).keys
             assertThat(mine).containsExactlyElementsIn(audited)
             val ft = g.fastTravelDestinations(hero.id).toSet()
-            val auditedFt = BoardRules.fastTravel(g.geo, g.boardState(), HeroPiece(hero.id, hero.at, hero.id, hero.team))
+            val auditedFt = BoardRules.fastTravel(
+                g.geo,
+                g.boardState(),
+                HeroPiece(hero.id, hero.at, hero.id, hero.team),
+            )
             assertThat(ft).containsExactlyElementsIn(auditedFt)
             val straight = g.reach(MoveSpec(hero.id, 0, steps, straightLine = true)).keys - hero.at!!
-            assertThat(straight).containsExactlyElementsIn(BoardRules.movementReach(g.geo, g.boardState(), hero.at!!, steps, straightLine = true).keys)
+            assertThat(
+                straight,
+            ).containsExactlyElementsIn(
+                BoardRules.movementReach(g.geo, g.boardState(), hero.at!!, steps, straightLine = true).keys,
+            )
         }
     }
 

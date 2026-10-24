@@ -19,8 +19,16 @@ import dev.quinton.goa.core.model.match.Team
 object Setup {
     fun initialState(data: EngineData, setup: GameSetup): GameState {
         require(setup.seats.isNotEmpty()) { "No heroes" }
-        require(setup.seats.map { it.heroId }.distinct().size == setup.seats.size) { "A hero is picked at most once per game" }
-        require(setup.seats.any { it.team == Team.RED } && setup.seats.any { it.team == Team.BLUE }) { "Two teams are needed" }
+        require(
+            setup.seats.map {
+                it.heroId
+            }.distinct().size == setup.seats.size,
+        ) { "A hero is picked at most once per game" }
+        require(
+            setup.seats.any {
+                it.team == Team.RED
+            } && setup.seats.any { it.team == Team.BLUE },
+        ) { "Two teams are needed" }
         val geo = data.geometry(setup.mapId)
         val state = GameState(mapId = setup.mapId, length = setup.length, tieBreaker = setup.tieBreaker)
         val lineup = BoardLineup(

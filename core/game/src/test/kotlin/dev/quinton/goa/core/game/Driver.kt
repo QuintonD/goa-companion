@@ -10,10 +10,15 @@ import dev.quinton.goa.core.game.position.position
 import dev.quinton.goa.core.model.board.Hex
 
 /** Test engine that also seats heroes not complete yet (stand-ins for rulebook examples). */
-val ANY_HERO_ENGINE: GameEngine by lazy { GameEngine(TestData.catalog, TestData.maps, TestData.matchRules, allowIncomplete = true) }
+val ANY_HERO_ENGINE: GameEngine by lazy {
+    GameEngine(TestData.catalog, TestData.maps, TestData.matchRules, allowIncomplete = true)
+}
 
-fun pos(map: String = TestData.FOREST, engine: GameEngine = ANY_HERO_ENGINE, block: PositionBuilder.() -> Unit): Driver =
-    Driver(position(engine, map, block))
+fun pos(
+    map: String = TestData.FOREST,
+    engine: GameEngine = ANY_HERO_ENGINE,
+    block: PositionBuilder.() -> Unit,
+): Driver = Driver(position(engine, map, block))
 
 /** Answers decisions in tests, checking what is asked. */
 class Driver(val s: EngineSession) {

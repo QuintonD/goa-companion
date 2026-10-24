@@ -655,7 +655,12 @@ data class CoachNote(
 /** Learning help in games against the AI (ADR-035); switchable, never answers for the player. */
 interface Coach {
     /** A nudge when [choice] looks clearly worse than another option, else null. */
-    fun nudge(session: GameSession, decision: Decision, choice: Choice, cancelled: () -> Boolean = { false }): CoachNote?
+    fun nudge(
+        session: GameSession,
+        decision: Decision,
+        choice: Choice,
+        cancelled: () -> Boolean = { false },
+    ): CoachNote?
 
     /** After the game: the few moments that decided it, oldest first. */
     fun turningPoints(saved: SavedGame, seat: String, cancelled: () -> Boolean = { false }): List<CoachNote>

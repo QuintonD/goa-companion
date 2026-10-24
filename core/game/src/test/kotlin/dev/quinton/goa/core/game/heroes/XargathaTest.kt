@@ -242,7 +242,10 @@ class XargathaTest {
     fun `Fresh Converts - if you are adjacent to an enemy minion, you may retrieve a discarded card`() {
         val d = pos {
             clearMinions()
-            hero("xargatha", Team.RED, Hex(1, -2)) { played("xargatha-blue-2b"); discard("xargatha-gold") }
+            hero("xargatha", Team.RED, Hex(1, -2)) {
+                played("xargatha-blue-2b")
+                discard("xargatha-gold")
+            }
             hero("arien", Team.BLUE, Hex(2, -2)) // an enemy hero is not a minion
             phase = PositionPhase.Resolving(next = "xargatha")
         }
@@ -250,7 +253,10 @@ class XargathaTest {
         assertThat(d.zoneOf("xargatha", "xargatha-gold")).isEqualTo(Zone.DISCARD)
         val e = pos {
             clearMinions()
-            hero("xargatha", Team.RED, Hex(1, -2)) { played("xargatha-blue-3b"); discard("xargatha-gold") }
+            hero("xargatha", Team.RED, Hex(1, -2)) {
+                played("xargatha-blue-3b")
+                discard("xargatha-gold")
+            }
             hero("arien", Team.BLUE, Hex(2, -2)) // Devoted Followers: any enemy unit
             phase = PositionPhase.Resolving(next = "xargatha")
         }
@@ -265,7 +271,10 @@ class XargathaTest {
     fun `Metamorphosis - +1 Movement and +1 Initiative per adjacent enemy unit, and she may move through obstacles`() {
         val d = pos {
             clearMinions()
-            hero("xargatha", Team.RED, Hex(1, -2)) { played("xargatha-red-1"); ultimate() } // Init 7, Movement 5
+            hero("xargatha", Team.RED, Hex(1, -2)) {
+                played("xargatha-red-1")
+                ultimate()
+            } // Init 7, Movement 5
             hero("arien", Team.BLUE, Hex(2, -2))
             minion(Team.BLUE, MinionType.MELEE, Hex(0, -2))
             phase = PositionPhase.Resolving(next = "xargatha")

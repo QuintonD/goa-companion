@@ -31,7 +31,9 @@ fun Game.moveCard(heroId: String, cardId: String, zone: Zone, slot: Int = 0, kee
             // FAQ (Brogan, Sabina): "played an attack card" is remembered for the turn.
             if (state.revealed && isAttackCard(heroId, cardId)) state.turnRecord.playedAttack += heroId
         }
+
         Zone.RESOLVED, Zone.DISCARD -> Unit
+
         else -> {
             c.played = false
             c.faceDown = false
@@ -135,13 +137,17 @@ fun Game.forceDiscard(
     val options = h.cards.filter { it.zone == Zone.HAND && filter(card(it.id)) }.map { it.id }
     if (options.isEmpty()) {
         if (orDefeated && (h.at != null || state.pieces.any { it.heroBody == heroId && it.at != null })) {
-            note("${heroName(heroId)} cannot discard ${what}.")
+            note("${heroName(heroId)} cannot discard $what.")
             defeatHero(heroId, byHero)
         }
         return null
     }
     val choice = ask(
-        heroId, DecisionKind.CHOOSE_CARD, "Discard $what", options.map { Choice.Card(it) }, sourceCardId,
+        heroId,
+        DecisionKind.CHOOSE_CARD,
+        "Discard $what",
+        options.map { Choice.Card(it) },
+        sourceCardId,
     ) as Choice.Card
     return discard(heroId, choice.cardId)
 }
@@ -199,7 +205,13 @@ fun Game.gainCoins(heroId: String, amount: Int, why: String = "") {
     val h = hero(heroId)
     h.coins += amount
     val tail = if (why.isEmpty()) "" else " ($why)"
-    emit(GameEvent.CoinsGained(heroId, amount, "${heroName(heroId)} gains $amount coin${if (amount == 1) "" else "s"}$tail."))
+    emit(
+        GameEvent.CoinsGained(
+            heroId,
+            amount,
+            "${heroName(heroId)} gains $amount coin${if (amount == 1) "" else "s"}$tail.",
+        ),
+    )
 }
 
 /** Take up to [amount] coins from [fromHero] (Tigerclaw); returns the coins taken. */
@@ -209,6 +221,12 @@ fun Game.takeCoins(heroId: String, fromHero: String, amount: Int): Int {
     if (taken <= 0) return 0
     from.coins -= taken
     hero(heroId).coins += taken
-    emit(GameEvent.CoinsGained(heroId, taken, "${heroName(heroId)} takes $taken coin${if (taken == 1) "" else "s"} from ${heroName(fromHero)}."))
+    emit(
+        GameEvent.CoinsGained(
+            heroId,
+            taken,
+            "${heroName(heroId)} takes $taken coin${if (taken == 1) "" else "s"} from ${heroName(fromHero)}.",
+        ),
+    )
     return taken
 }

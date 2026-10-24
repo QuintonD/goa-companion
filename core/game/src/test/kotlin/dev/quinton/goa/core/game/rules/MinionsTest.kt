@@ -44,7 +44,8 @@ class MinionsTest {
         assertThat(d.s.state.wavesLeft["lane-1"]).isEqualTo(2)
         val red = d.s.state.minions.filter { it.team == Team.RED }
         val blue = d.s.state.minions.filter { it.team == Team.BLUE }
-        // "the defending team has more minion spawn points in their Pre-Throne Zone. One Red minion will not be respawned."
+        // "the defending team has more minion spawn points in their Pre-Throne Zone. One Red minion will
+        // not be respawned."
         assertThat(red).hasSize(5)
         assertThat(blue).hasSize(6)
         assertThat((red + blue).all { geo.zoneOf(it.at!!) == "lane-1-3" }).isTrue()
@@ -162,7 +163,7 @@ class MinionsTest {
     }
 
     @Test
-    fun `p8 step 3 - a token on a Spawn point is removed first, a non-token obstacle sends the minion to the nearest empty space`() {
+    fun `p8 step 3 - a token on a Spawn point is removed, another obstacle sends the minion to the nearest space`() {
         val d = pos {
             clearMinions()
             hero("wasp", Team.RED, Hex(7, -5)) // on a Blue melee Spawn point of lane-1-3

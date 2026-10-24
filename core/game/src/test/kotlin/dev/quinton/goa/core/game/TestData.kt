@@ -8,10 +8,10 @@ import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.catalog.CatalogIndex
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.match.Team
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import java.io.File
 import kotlin.random.Random
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 /** The shipped catalog, maps and counter table, read from `app/src/main/assets/catalog` like the app reads them. */
 object TestData {
@@ -19,7 +19,9 @@ object TestData {
 
     fun asset(name: String): String {
         val candidates = listOf("../../app/src/main/assets/catalog/$name", "app/src/main/assets/catalog/$name")
-        val f = candidates.map(::File).firstOrNull { it.exists() } ?: error("Asset $name not found from ${File(".").absolutePath}")
+        val f =
+            candidates.map(::File).firstOrNull { it.exists() }
+                ?: error("Asset $name not found from ${File(".").absolutePath}")
         return f.readText()
     }
 
@@ -87,7 +89,12 @@ class RandomPlayer(seed: Long, private val bias: Boolean = true) {
 }
 
 /** Play [session] with [player] until the game ends or [maxDecisions]; returns the decisions answered. */
-fun playOut(session: GameSession, player: RandomPlayer, maxDecisions: Int = 20_000, onDecision: (Decision) -> Unit = {}): Int {
+fun playOut(
+    session: GameSession,
+    player: RandomPlayer,
+    maxDecisions: Int = 20_000,
+    onDecision: (Decision) -> Unit = {},
+): Int {
     var n = 0
     while (n < maxDecisions) {
         val d = session.pending ?: return n

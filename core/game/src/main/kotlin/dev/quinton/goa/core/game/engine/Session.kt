@@ -10,9 +10,9 @@ import dev.quinton.goa.core.game.GameSetup
 import dev.quinton.goa.core.game.GameView
 import dev.quinton.goa.core.game.SavedGame
 import dev.quinton.goa.core.model.match.Team
+import kotlin.random.Random
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlin.random.Random
 
 /** An answer as recorded in the game's history. */
 @Serializable
@@ -179,7 +179,12 @@ class EngineSession internal constructor(
             allowStructuredMapKeys = true
         }
 
-        internal fun replay(data: EngineData, setup: GameSetup, initial: GameState, answers: List<AnswerRecord>): EngineSession {
+        internal fun replay(
+            data: EngineData,
+            setup: GameSetup,
+            initial: GameState,
+            answers: List<AnswerRecord>,
+        ): EngineSession {
             val s = EngineSession(data, setup, initial).start()
             for (a in answers) {
                 val r = s.answer(a.decisionId, a.choice)

@@ -83,7 +83,8 @@ fun Game.addEffect(
     data: Map<String, String> = emptyMap(),
 ): ActiveEffect {
     state.effects.removeAll { it.owner == owner && it.cardId == cardId && it.key == key }
-    val e = ActiveEffect(state.nextId++, cardId, owner, timing, state.round, state.turn, action, key, LinkedHashMap(data))
+    val e =
+        ActiveEffect(state.nextId++, cardId, owner, timing, state.round, state.turn, action, key, LinkedHashMap(data))
     state.effects += e
     touch()
     if (mode != RunMode.PROBE) {
@@ -182,9 +183,14 @@ fun Game.heavyImmune(minionId: String): Boolean {
     val m = state.minion(minionId) ?: return false
     if (m.type != MinionType.HEAVY) return false
     val zone = battleZone(m.lane)
-    return state.minions.any { o ->
-        o.team == m.team && o.type != MinionType.HEAVY && o.at?.let(::zoneOf) == zone
-    }
+    val guard = state.minions.any { o -> o.team == m.team && o.type != MinionType.HEAVY && o.at?.let(::zoneOf) == zone }
+    // Pieces that count as friendly non-heavy minions there (p.17 "Counts as"), e.g. Nebkher's illusions.
+    return guard || state.pieces.any { p -> p.at?.let(::zoneOf) == zone && countsAsGuard(p, m.team) }
+}
+
+private fun Game.countsAsGuard(p: PieceState, team: Team): Boolean = sources().any { (b, s) ->
+    val counts = b.pieceCountsAsMinion(this, s, p, actor)
+    counts != null && counts.first == team && counts.second != MinionType.HEAVY
 }
 
 /**
@@ -224,7 +230,16 @@ fun Game.canTarget(
  */
 fun Game.affectedBy(src: Src, unitId: String): Boolean {
     val e = src.effect ?: return true
-    val q = AffectQuery(unitId, e.owner, e.action, primary = true, basic = isBasic(e.cardId), cardId = e.cardId, fromEffect = true)
+    val q =
+        AffectQuery(
+            unitId,
+            e.owner,
+            e.action,
+            primary = true,
+            basic = isBasic(e.cardId),
+            cardId = e.cardId,
+            fromEffect = true,
+        )
     return !isImmune(q)
 }
 

@@ -117,7 +117,9 @@ class PositionBuilder(private val engine: GameEngine, private val mapId: String)
         val tk = engine.data.registry.tokenKind(kind)
         pieces += PieceState(
             id, kind, tk?.label ?: label, at, owner, team, token = true, unit = false,
-            removeAtEndOfRound = tk?.removeAtEndOfRound ?: removeAtEndOfRound, passable = tk?.passable ?: false, faceDown = faceDown,
+            removeAtEndOfRound = tk?.removeAtEndOfRound ?: removeAtEndOfRound,
+            passable = tk?.passable ?: false,
+            faceDown = faceDown,
         )
         return id
     }
@@ -256,34 +258,53 @@ class PositionBuilder(private val engine: GameEngine, private val mapId: String)
         val taken = (state.heroes.mapNotNull { it.at } + state.pieces.mapNotNull { it.at }).toSet()
         state.minions.removeAll { m -> m.at != null && m.at in taken && m.id !in minions.map { it.id } }
         for (e in effects) {
-            state.effects += ActiveEffect(state.nextId++, e.cardId, e.owner, e.timing, round, e.turn, e.action, e.key, LinkedHashMap(e.data))
+            state.effects +=
+                ActiveEffect(
+                    state.nextId++, e.cardId, e.owner, e.timing, round, e.turn, e.action, e.key,
+                    LinkedHashMap(
+                        e.data,
+                    ),
+                )
         }
         val seen = HashSet<Hex>()
-        (state.heroes.mapNotNull { it.at } + state.minions.mapNotNull { it.at } + state.pieces.mapNotNull { it.at }).forEach {
+        (
+            state.heroes.mapNotNull {
+                it.at
+            } + state.minions.mapNotNull { it.at } + state.pieces.mapNotNull { it.at }
+            ).forEach {
             require(seen.add(it)) { "Two obstacles in $it (p.18: never more than one)" }
             require(geo.isSpace(it)) { "$it is not a space of $mapId" }
         }
         when (val p = phase) {
             PositionPhase.TurnStart -> state.step = Step.TURN_START
+
             is PositionPhase.PlayCards -> {
                 state.step = Step.PLAY
                 state.stepSeat = p.fromSeat
                 for (id in state.heroes.flatMap { h -> h.cards.filter { it.zone == Zone.PLAYED }.map { h.id } }) {
-                    require(state.hero(id)!!.seat < p.fromSeat) { "$id has played a card but plays after seat ${p.fromSeat}" }
+                    require(state.hero(id)!!.seat < p.fromSeat) {
+                        "$id has played a card but plays after seat ${p.fromSeat}"
+                    }
                 }
             }
+
             is PositionPhase.Resolving -> {
                 state.step = if (p.applyRevealEffects) Step.REVEAL else Step.RESOLVE
                 state.revealed = !p.applyRevealEffects
                 if (state.revealed) {
                     for (h in state.heroes) {
-                        if (h.cards.any { it.zone == Zone.PLAYED && data.card(it.id).primary == dev.quinton.goa.core.model.catalog.PrimaryAction.ATTACK }) {
+                        if (h.cards.any {
+                                it.zone == Zone.PLAYED &&
+                                    data.card(it.id).primary == dev.quinton.goa.core.model.catalog.PrimaryAction.ATTACK
+                            }
+                        ) {
                             state.turnRecord.playedAttack += h.id
                         }
                     }
                 }
                 p.next?.let { state.vars[NEXT_ACTOR] = it }
             }
+
             PositionPhase.EndOfRound -> {
                 state.step = Step.EOR_EFFECTS
                 state.turn = 4
@@ -318,7 +339,9 @@ class PositionBuilder(private val engine: GameEngine, private val mapId: String)
             }
         }
         // A colour slot holds one card: placing a card of a colour moves the starting card of that colour out.
-        val placedColours = hb.placed.keys.mapNotNull { id -> engine.data.card(id).takeIf { it.tier in 1..3 }?.color }.toSet()
+        val placedColours = hb.placed.keys.mapNotNull { id ->
+            engine.data.card(id).takeIf { it.tier in 1..3 }?.color
+        }.toSet()
         for (card in hero.allCards) {
             val explicit = hb.placed[card.id]
             val zone = when {
@@ -333,8 +356,12 @@ class PositionBuilder(private val engine: GameEngine, private val mapId: String)
             }
             val slot = explicit?.second ?: 0
             h.cards += CardInst(
-                card.id, zone, slot = slot, faceDown = card.id in hb.faceDown,
-                played = zone == Zone.PLAYED || zone == Zone.RESOLVED, tag = if (zone == Zone.EXTRA) "box" else null,
+                card.id,
+                zone,
+                slot = slot,
+                faceDown = card.id in hb.faceDown,
+                played = zone == Zone.PLAYED || zone == Zone.RESOLVED,
+                tag = if (zone == Zone.EXTRA) "box" else null,
             )
         }
         h.markers += hb.markers

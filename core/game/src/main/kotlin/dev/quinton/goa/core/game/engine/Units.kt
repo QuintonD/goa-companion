@@ -95,7 +95,9 @@ fun Game.pushLane(lane: String, winner: Team, collect: MutableList<WinClaim>? = 
     val left = state.wavesLeft[lane] ?: 0
     emit(
         GameEvent.LanePushed(
-            lane, winner, next ?: current,
+            lane,
+            winner,
+            next ?: current,
             "${Game.teamName(winner)} pushes the Lane. A Wave counter is flipped ($left left).",
         ),
     )
@@ -107,7 +109,11 @@ fun Game.pushLane(lane: String, winner: Team, collect: MutableList<WinClaim>? = 
     if (left == 0) state.lastWaveFlipped += lane
     // Step 2: the next Zone towards the loser's Throne.
     if (next == null || next == throneZone(loser)) {
-        claim(claims, collect, WinClaim(winner, WinReason.THRONE, "${Game.teamName(winner)} pushes the Lane into the enemy Throne."))
+        claim(
+            claims,
+            collect,
+            WinClaim(winner, WinReason.THRONE, "${Game.teamName(winner)} pushes the Lane into the enemy Throne."),
+        )
         return
     }
     // Step 3: remove the previous Battle Zone's minions of this Lane; respawn in the new one.
@@ -169,7 +175,8 @@ private fun Game.respawnWave(lane: String, zone: String) {
             waiting += m to space.hex
         }
     }
-    val order = waiting.filter { it.first.team == state.tieBreaker } + waiting.filter { it.first.team != state.tieBreaker }
+    val order =
+        waiting.filter { it.first.team == state.tieBreaker } + waiting.filter { it.first.team != state.tieBreaker }
     for ((m, from) in order) {
         val options = nearestEmptyIn(zone, from)
         if (options.isEmpty()) {
@@ -177,7 +184,8 @@ private fun Game.respawnWave(lane: String, zone: String) {
             touch()
             continue
         }
-        val hex = chooseMinionSpace(m, options, "Place your ${Game.minionName(m.type)} minion (its Spawn point is taken)")
+        val hex =
+            chooseMinionSpace(m, options, "Place your ${Game.minionName(m.type)} minion (its Spawn point is taken)")
         m.at = hex
         touch()
         emit(GameEvent.Placed(m.id, null, hex, "${name(m.id)} is placed in $hex."))
@@ -186,7 +194,9 @@ private fun Game.respawnWave(lane: String, zone: String) {
 
 private fun Game.chooseMinionSpace(m: MinionState, options: Collection<Hex>, prompt: String): Hex {
     val choice = ask(
-        teamSeat(m.team), DecisionKind.MINION_RETURN, prompt,
+        teamSeat(m.team),
+        DecisionKind.MINION_RETURN,
+        prompt,
         options.sortedHexes().map { Choice.Space(it) },
         context = dev.quinton.goa.core.game.DecisionContext(subjectId = m.id),
     ) as Choice.Space
@@ -225,7 +235,13 @@ fun Game.returnMinions() {
         if (zoneOf(at) == battleZone(m.lane)) continue
         val options = BoardRules.returnToBattleZone(geo, boardState(), at, battleZone(m.lane))
         if (options.isEmpty()) continue
-        val hex = if (options.size == 1) options.single() else chooseMinionSpace(m, options, "Return your minion to the Battle Zone")
+        val hex = if (options.size ==
+            1
+        ) {
+            options.single()
+        } else {
+            chooseMinionSpace(m, options, "Return your minion to the Battle Zone")
+        }
         m.at = hex
         touch()
         emit(GameEvent.Moved(m.id, listOf(hex), "${name(m.id)} returns to the Battle Zone."))
@@ -241,7 +257,10 @@ fun Game.canRespawnMinion(team: Team, type: MinionType, lane: String): Boolean {
     val zone = battleZone(lane)
     val kind = SpawnKind.entries.first { it.minion == type }
     val points = geo.minionSpawns(zone).count { it.spawn?.team == team && it.spawn?.kind == kind }
-    val present = state.minions.count { it.team == team && it.type == type && it.lane == lane && it.at?.let(::zoneOf) == zone }
+    val present = state.minions.count {
+        it.team == team && it.type == type && it.lane == lane &&
+            it.at?.let(::zoneOf) == zone
+    }
     return points > present
 }
 
@@ -289,10 +308,21 @@ fun Game.defeatHero(heroId: String, byHero: String?) {
     val cost = tier + sources().sumOf { (b, s) -> b.extraLifeCost(this, s, q) }
     val left = maxOf(0, (state.lifeCounters[h.team] ?: 0) - cost)
     state.lifeCounters[h.team] = left
-    emit(GameEvent.LifeSpent(h.team, cost, left, "${Game.teamName(h.team)} spends $cost Life counter${if (cost == 1) "" else "s"} ($left left)."))
+    emit(
+        GameEvent.LifeSpent(
+            h.team,
+            cost,
+            left,
+            "${Game.teamName(h.team)} spends $cost Life counter${if (cost == 1) "" else "s"} ($left left).",
+        ),
+    )
     state.heroDefeatedThisRound = true
     trigger(Trigger.HeroDefeated(heroId, byHero))
-    if (left == 0) win(h.team.opponent, WinReason.LIFE_COUNTERS, "${Game.teamName(h.team)} has spent its last Life counter.")
+    if (left ==
+        0
+    ) {
+        win(h.team.opponent, WinReason.LIFE_COUNTERS, "${Game.teamName(h.team)} has spent its last Life counter.")
+    }
     if (heroId in actors) throw ActorDefeated(heroId)
 }
 

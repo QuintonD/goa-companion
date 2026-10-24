@@ -45,7 +45,11 @@ object Determinizer {
             if (members.size < 2) continue
             // Positions in a canonical order (public), identities dealt to them at random.
             val states = members.map { Snapshot(it.zone, it.slot, it.faceDown, it.played, it.tag) }
-                .sortedWith(compareBy({ it.zone.ordinal }, { it.slot }, { it.faceDown }, { it.played }, { it.tag ?: "" }))
+                .sortedWith(
+                    compareBy({
+                        it.zone.ordinal
+                    }, { it.slot }, { it.faceDown }, { it.played }, { it.tag ?: "" }),
+                )
             val ids = members.map { it.id }.sorted().shuffled(rng)
             val byId = h.cards.associateBy { it.id }
             for ((i, id) in ids.withIndex()) {
@@ -55,7 +59,13 @@ object Determinizer {
         }
     }
 
-    private class Snapshot(val zone: Zone, val slot: Int, val faceDown: Boolean, val played: Boolean, val tag: String?) {
+    private class Snapshot(
+        val zone: Zone,
+        val slot: Int,
+        val faceDown: Boolean,
+        val played: Boolean,
+        val tag: String?,
+    ) {
         fun applyTo(c: CardInst) {
             c.zone = zone
             c.slot = slot

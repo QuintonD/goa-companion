@@ -206,7 +206,13 @@ class ActiveEffect(
     /** Applied once already (End of turn / round, After playing cards), or deactivated by its text. */
     var spent: Boolean = false,
 ) {
-    fun copy(): ActiveEffect = ActiveEffect(id, cardId, owner, timing, round, turn, action, key, LinkedHashMap(data), spent)
+    fun copy(): ActiveEffect = ActiveEffect(
+        id, cardId, owner, timing, round, turn, action, key,
+        LinkedHashMap(
+            data,
+        ),
+        spent,
+    )
 }
 
 /** Action types (p.9, pp.11–14); [DEFENSE] is the response to an attack. */

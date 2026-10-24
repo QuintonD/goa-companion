@@ -52,11 +52,20 @@ fun ActionScope.attackTarget(prompt: String, optional: Boolean = false, valid: (
 }
 
 /** "Target a unit adjacent to you." (p.13: non-ranged attacks "can only target units adjacent to you"). */
-fun ActionScope.adjacentAttackTarget(prompt: String = "Target a unit adjacent to you", optional: Boolean = false, extra: (String) -> Boolean = { true }): String? =
+fun ActionScope.adjacentAttackTarget(
+    prompt: String = "Target a unit adjacent to you",
+    optional: Boolean = false,
+    extra: (String) -> Boolean = { true },
+): String? =
     attackTarget(prompt, optional) { id -> isAdjacent(id) && extra(id) }
 
 /** "Target a unit in range." (p.9: Range counts spaces, obstacles included; no line of sight). */
-fun ActionScope.rangedAttackTarget(prompt: String = "Target a unit in range", optional: Boolean = false, rangeValue: Int = range, extra: (String) -> Boolean = { true }): String? =
+fun ActionScope.rangedAttackTarget(
+    prompt: String = "Target a unit in range",
+    optional: Boolean = false,
+    rangeValue: Int = range,
+    extra: (String) -> Boolean = { true },
+): String? =
     attackTarget(prompt, optional) { id -> inRange(id, rangeValue) && extra(id) }
 
 fun ActionScope.isAdjacent(id: String): Boolean {
@@ -104,7 +113,14 @@ fun ActionScope.attack(
     }
     val base = value ?: g.cardValue(heroId, cardId, Stat.ATTACK, ActionKind.ATTACK) ?: 0
     val total = base + bonus()
-    g.emit(GameEvent.Attacked(heroId, targetId, total, "${g.heroName(heroId)} attacks ${g.name(targetId)}: Attack $total."))
+    g.emit(
+        GameEvent.Attacked(
+            heroId,
+            targetId,
+            total,
+            "${g.heroName(heroId)} attacks ${g.name(targetId)}: Attack $total.",
+        ),
+    )
     val defender = g.heroBodyOf(targetId)
     if (defender == null) {
         val defeated = if (g.isMinion(targetId)) g.defeatMinion(targetId, heroId) else false
@@ -140,8 +156,14 @@ private fun Game.minionTerms(at: Hex, team: Team, actorId: String?): List<Term> 
     for ((t, type, pos) in minions) {
         val d = distance(at, pos)
         when {
-            type != MinionType.RANGED && d == 1 && t == team -> terms += Term(1, "adjacent friendly ${Game.minionName(type)} minion")
-            type != MinionType.RANGED && d == 1 && t != team -> terms += Term(-1, "adjacent enemy ${Game.minionName(type)} minion")
+            type != MinionType.RANGED && d == 1 && t == team ->
+                terms +=
+                    Term(1, "adjacent friendly ${Game.minionName(type)} minion")
+
+            type != MinionType.RANGED && d == 1 && t != team ->
+                terms +=
+                    Term(-1, "adjacent enemy ${Game.minionName(type)} minion")
+
             type == MinionType.RANGED && t != team && d in 1..2 -> terms += Term(-1, "enemy ranged minion in radius 2")
         }
     }
@@ -153,20 +175,28 @@ fun Game.defenseCards(heroId: String): List<String> {
     val h = hero(heroId)
     val hand = h.cards.filter { it.zone == Zone.HAND }.map { it.id }.filter { id ->
         val c = card(id)
-        c.primary == PrimaryAction.DEFENSE || c.primary == PrimaryAction.DEFENSE_SKILL || SecondaryAction.DEFENSE in c.secondary
+        c.primary == PrimaryAction.DEFENSE || c.primary == PrimaryAction.DEFENSE_SKILL ||
+            SecondaryAction.DEFENSE in c.secondary
     }
     val extra = sources().flatMap { (b, s) -> b.extraDefenseCards(this, s, heroId) }
     return (hand + extra).distinct()
 }
 
 /** The defense total [cardId] would give (step 5), or null when its text decides only as it resolves. */
-private fun Game.previewDefense(heroId: String, cardId: String, info: AttackInfo, fromInitiative: Boolean, noPrimary: Boolean): Int? {
+private fun Game.previewDefense(
+    heroId: String,
+    cardId: String,
+    info: AttackInfo,
+    fromInitiative: Boolean,
+    noPrimary: Boolean,
+): Int? {
     val card = card(cardId)
     if (card.block) return null
     val copy = Game(data, state.copy(), emptyList(), RunMode.PROBE)
     return try {
         val scope = DefenseScope(copy, heroId, cardId, info)
-        val textual = (card.primary == PrimaryAction.DEFENSE || card.primary == PrimaryAction.DEFENSE_SKILL) && !noPrimary
+        val textual =
+            (card.primary == PrimaryAction.DEFENSE || card.primary == PrimaryAction.DEFENSE_SKILL) && !noPrimary
         if (textual) data.registry.script(cardId)?.defense(scope)
         copy.defenseTotal(heroId, cardId, info, scope, fromInitiative).first
     } catch (_: ControlSignal) {
@@ -174,7 +204,13 @@ private fun Game.previewDefense(heroId: String, cardId: String, info: AttackInfo
     }
 }
 
-private fun Game.defenseTotal(heroId: String, cardId: String, info: AttackInfo, scope: DefenseScope, fromInitiative: Boolean): Pair<Int, List<Term>> {
+private fun Game.defenseTotal(
+    heroId: String,
+    cardId: String,
+    info: AttackInfo,
+    scope: DefenseScope,
+    fromInitiative: Boolean,
+): Pair<Int, List<Term>> {
     val terms = ArrayList<Term>()
     val stat = if (fromInitiative) Stat.INITIATIVE else Stat.DEFENSE
     val printed = printedValue(heroId, cardId, stat) ?: 0
@@ -200,7 +236,12 @@ private fun Game.defenseTotal(heroId: String, cardId: String, info: AttackInfo, 
  * successfully defend"; Block: "If the Block condition is fulfilled, you successfully defend,
  * regardless of the attack value. If not, you are defeated"; "You cannot defend without discarding".
  */
-internal fun Game.defend(defender: String, info: AttackInfo, fromInitiative: Boolean, noPrimary: Boolean): AttackResult {
+internal fun Game.defend(
+    defender: String,
+    info: AttackInfo,
+    fromInitiative: Boolean,
+    noPrimary: Boolean,
+): AttackResult {
     val h = hero(defender)
     val at = posOf(info.targetId)!!
     val modifier = minionModifier(at, h.team, info.attackerId)
@@ -210,18 +251,22 @@ internal fun Game.defend(defender: String, info: AttackInfo, fromInitiative: Boo
         defeatHero(defender, info.attackerId)
         return AttackResult(true, info.targetId, defeated = true, total = info.total, hero = true)
     }
-    val preview = cards.associateWith { previewDefense(defender, it, info, fromInitiative, noPrimary) }
-    val options = cards.map { Choice.Card(it) as Choice } + Choice.Decline("Don't defend")
-    val answer = ask(
-        defender, DecisionKind.DEFEND,
+    val answer = askAlways(
+        defender,
+        DecisionKind.DEFEND,
         "${heroName(info.attackerId)} attacks you with Attack ${info.total}. Discard a card to defend?",
-        options, info.cardId,
-        DecisionContext(
-            attackerId = info.attackerId, attackTotal = info.total, rangedAttack = info.ranged,
-            defensePreview = preview, minionModifier = modifier, subjectId = info.targetId,
-        ),
-        auto = false,
-    )
+        info.cardId,
+        context = {
+            DecisionContext(
+                attackerId = info.attackerId,
+                attackTotal = info.total,
+                rangedAttack = info.ranged,
+                defensePreview = cards.associateWith { previewDefense(defender, it, info, fromInitiative, noPrimary) },
+                minionModifier = modifier,
+                subjectId = info.targetId,
+            )
+        },
+    ) { cards.map { Choice.Card(it) as Choice } + Choice.Decline("Don't defend") }
     if (answer !is Choice.Card) {
         note("${heroName(defender)} does not defend.")
         defeatHero(defender, info.attackerId)
@@ -229,7 +274,13 @@ internal fun Game.defend(defender: String, info: AttackInfo, fromInitiative: Boo
     }
     val cardId = answer.cardId
     val card = card(cardId)
-    if (h.card(cardId)?.zone == Zone.HAND) discard(defender, cardId, allowReplacement = false) else moveCard(defender, cardId, Zone.DISCARD)
+    if (h.card(cardId)?.zone ==
+        Zone.HAND
+    ) {
+        discard(defender, cardId, allowReplacement = false)
+    } else {
+        moveCard(defender, cardId, Zone.DISCARD)
+    }
     val scope = DefenseScope(this, defender, cardId, info)
     val textual = (card.primary == PrimaryAction.DEFENSE || card.primary == PrimaryAction.DEFENSE_SKILL) && !noPrimary
     if (textual) {
@@ -249,12 +300,34 @@ internal fun Game.defend(defender: String, info: AttackInfo, fromInitiative: Boo
         if (success) "Blocked" else "The Block fails"
     } else {
         val parts = terms.mapIndexed { i, t ->
-            val v = if (i == 0) "${t.why} ${t.value}" else "${if (t.value >= 0) "+" else "-"} ${kotlin.math.abs(t.value)} (${t.why})"
+            val v = if (i ==
+                0
+            ) {
+                "${t.why} ${t.value}"
+            } else {
+                "${if (t.value >= 0) "+" else "-"} ${kotlin.math.abs(t.value)} (${t.why})"
+            }
             v
         }
         "${parts.joinToString(" ")} = $total. ${if (success) "Defended" else "Not enough"}"
     }
-    emit(GameEvent.Defended(defender, cardId, if (card.block) null else total, success, "${heroName(defender)} defends with ${card.name}: $how."))
+    emit(
+        GameEvent.Defended(
+            defender,
+            cardId,
+            if (card.block) null else total,
+            success,
+            "${heroName(defender)} defends with ${card.name}: $how.",
+        ),
+    )
     if (!success) defeatHero(defender, info.attackerId)
-    return AttackResult(true, info.targetId, defeated = !success, defenseCard = cardId, total = info.total, defenseTotal = total, hero = true)
+    return AttackResult(
+        true,
+        info.targetId,
+        defeated = !success,
+        defenseCard = cardId,
+        total = info.total,
+        defenseTotal = total,
+        hero = true,
+    )
 }

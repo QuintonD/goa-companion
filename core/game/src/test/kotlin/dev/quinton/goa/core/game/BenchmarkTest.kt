@@ -21,7 +21,11 @@ class BenchmarkTest {
         }
         val seconds = (System.nanoTime() - start) / 1e9
         val rate = games / seconds
-        println("BENCHMARK: $games random 2v2 Quick games in ${"%.2f".format(seconds)} s = ${"%.1f".format(rate)} games/s, ${"%.0f".format(decisions / seconds)} decisions/s")
+        println(
+            "BENCHMARK: $games random 2v2 Quick games in ${"%.2f".format(
+                seconds,
+            )} s = ${"%.1f".format(rate)} games/s, ${"%.0f".format(decisions / seconds)} decisions/s",
+        )
         assertThat(rate).isGreaterThan(2.0)
     }
 }

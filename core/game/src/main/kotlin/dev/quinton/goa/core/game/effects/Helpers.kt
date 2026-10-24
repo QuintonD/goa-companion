@@ -76,7 +76,11 @@ fun ActionScope.inStraightLine(id: String): Boolean {
 // ---- Active effects ------------------------------------------------------------------------
 
 /** Start this card's Active effect (p.17). The card's [CardScript.behavior] (or [key]) gives its hooks. */
-fun ActionScope.activeEffect(timing: Timing, key: String? = null, data: Map<String, String> = emptyMap()): ActiveEffect =
+fun ActionScope.activeEffect(
+    timing: Timing,
+    key: String? = null,
+    data: Map<String, String> = emptyMap(),
+): ActiveEffect =
     g.addEffect(heroId, cardId, timing, kind, key, data)
 
 /** For behaviours: the owner's current space. */
@@ -109,7 +113,10 @@ fun ActionScope.moveSelf(
     endFilter: ((Hex) -> Boolean)? = null,
 ): List<Hex> = g.move(
     MoveSpec(heroId, min, max, straightLine, false, ignoreObstacles, endFilter = endFilter, stepwise = stepwise),
-    heroId, moveText(min, max, straightLine), optional, cardId,
+    heroId,
+    moveText(min, max, straightLine),
+    optional,
+    cardId,
 )
 
 /** Move another unit or a token as card text says; you choose the path and the end (p.10). */
@@ -127,15 +134,32 @@ fun ActionScope.moveOther(
     target(id)
     return g.move(
         MoveSpec(id, min, max, straightLine, false, ignoreObstacles, endFilter = endFilter),
-        chooser, "Move ${g.name(id)} " + moveText(min, max, straightLine).removePrefix("Move ").lowercase(), optional, cardId,
+        chooser,
+        "Move ${g.name(id)} " + moveText(min, max, straightLine).removePrefix("Move ").lowercase(),
+        optional,
+        cardId,
     )
 }
 
-fun ActionScope.canMoveOther(id: String, min: Int, max: Int = min, straightLine: Boolean = false, endFilter: ((Hex) -> Boolean)? = null): Boolean =
+fun ActionScope.canMoveOther(
+    id: String,
+    min: Int,
+    max: Int = min,
+    straightLine: Boolean = false,
+    endFilter: (
+        (Hex) -> Boolean
+    )? = null,
+): Boolean =
     g.canMove(MoveSpec(id, min, max, straightLine, endFilter = endFilter))
 
 private fun moveText(min: Int, max: Int, straight: Boolean): String {
-    val n = if (min == max) "$min" else if (min == 0) "up to $max" else "$min to $max"
+    val n = if (min == max) {
+        "$min"
+    } else if (min == 0) {
+        "up to $max"
+    } else {
+        "$min to $max"
+    }
     return "Move $n space${if (max == 1) "" else "s"}${if (straight) " in a straight line" else ""}"
 }
 
@@ -159,7 +183,11 @@ fun ActionScope.discardIfAble(victim: String, what: String = "a card", filter: (
 }
 
 /** "X discards a card, or is defeated" ([APP] RULINGS.md: must discard if able). */
-fun ActionScope.discardOrDefeat(victim: String, what: String = "a card", filter: (Card) -> Boolean = { true }): String? {
+fun ActionScope.discardOrDefeat(
+    victim: String,
+    what: String = "a card",
+    filter: (Card) -> Boolean = { true },
+): String? {
     target(victim)
     return g.forceDiscard(victim, heroId, orDefeated = true, sourceCardId = cardId, what = what, filter = filter)
 }
@@ -182,7 +210,14 @@ fun ActionScope.chooseUpTo(n: Int, prompt: String, ids: List<String>, atLeastOne
         val optional = !(atLeastOne && picked.isEmpty())
         val opts = left.map { if (g.isToken(it)) Choice.Token(it) else Choice.Unit(it) } +
             if (optional) listOf(Choice.Decline(if (picked.isEmpty()) "None" else "Done")) else emptyList()
-        val c = g.ask(heroId, DecisionKind.CHOOSE_UNIT, "$prompt (${picked.size + 1} of up to $n)", opts, cardId, auto = !optional)
+        val c = g.ask(
+            heroId,
+            DecisionKind.CHOOSE_UNIT,
+            "$prompt (${picked.size + 1} of up to $n)",
+            opts,
+            cardId,
+            auto = !optional,
+        )
         val id = when (c) {
             is Choice.Unit -> c.unitId
             is Choice.Token -> c.tokenId
@@ -200,5 +235,9 @@ fun ActionScope.cardsIn(zone: Zone): List<String> = hero.cards.filter { it.zone 
 fun ActionScope.objectsWithin(n: Int): List<String> = unitsWithin(n) + tokensWithin(n)
 
 /** An Active effect started by a Defense action's text (p.14 step 4; the discarded card carries it, p.7). */
-fun DefenseScope.activeEffect(timing: Timing, data: Map<String, String> = emptyMap(), key: String? = null): ActiveEffect =
+fun DefenseScope.activeEffect(
+    timing: Timing,
+    data: Map<String, String> = emptyMap(),
+    key: String? = null,
+): ActiveEffect =
     g.addEffect(heroId, cardId, timing, ActionKind.DEFENSE, key, data)

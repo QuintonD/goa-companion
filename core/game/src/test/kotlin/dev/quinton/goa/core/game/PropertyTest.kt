@@ -8,9 +8,9 @@ import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.RunMode
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.model.match.Team
+import kotlin.random.Random
 import kotlinx.serialization.json.Json
 import org.junit.Test
-import kotlin.random.Random
 
 /**
  * Thousands of random-legal full games over the playable heroes (each hero at most once per game:
@@ -22,31 +22,64 @@ class PropertyTest {
     private val json = Json { allowStructuredMapKeys = true }
     private val heroes = listOf("wasp", "xargatha", "arien", "brogan")
 
-    private fun seat(id: String, team: Team, handicap: Boolean = false) = SeatSetup(id, team, Controller.Human, handicap)
+    private fun seat(id: String, team: Team, handicap: Boolean = false) = SeatSetup(
+        id,
+        team,
+        Controller.Human,
+        handicap,
+    )
 
     private fun setups(rng: Random): GameSetup {
         val coin = if (rng.nextBoolean()) Team.RED else Team.BLUE
         val shuffled = heroes.shuffled(rng)
         return when (rng.nextInt(6)) {
-            0 -> GameSetup(TestData.FOREST, listOf(seat(shuffled[0], Team.RED), seat(shuffled[1], Team.BLUE)), tieBreaker = coin)
+            0 -> GameSetup(
+                TestData.FOREST,
+                listOf(seat(shuffled[0], Team.RED), seat(shuffled[1], Team.BLUE)),
+                tieBreaker = coin,
+            )
+
             1 -> GameSetup(
                 TestData.FOREST,
-                listOf(seat(shuffled[0], Team.RED, true), seat(shuffled[1], Team.RED, true), seat(shuffled[2], Team.BLUE)),
+                listOf(
+                    seat(shuffled[0], Team.RED, true),
+                    seat(shuffled[1], Team.RED, true),
+                    seat(shuffled[2], Team.BLUE),
+                ),
                 tieBreaker = coin,
             )
+
             2 -> GameSetup(
                 TestData.FOREST,
-                listOf(seat(shuffled[0], Team.RED), seat(shuffled[1], Team.RED), seat(shuffled[2], Team.BLUE), seat(shuffled[3], Team.BLUE)),
-                length = GameLength.LONG, tieBreaker = coin,
-            )
-            3 -> GameSetup(
-                TestData.RIVER,
-                listOf(seat(shuffled[0], Team.RED), seat(shuffled[1], Team.RED), seat(shuffled[2], Team.BLUE), seat(shuffled[3], Team.BLUE)),
+                listOf(
+                    seat(shuffled[0], Team.RED),
+                    seat(shuffled[1], Team.RED),
+                    seat(shuffled[2], Team.BLUE),
+                    seat(shuffled[3], Team.BLUE),
+                ),
+                length = GameLength.LONG,
                 tieBreaker = coin,
             )
+
+            3 -> GameSetup(
+                TestData.RIVER,
+                listOf(
+                    seat(shuffled[0], Team.RED),
+                    seat(shuffled[1], Team.RED),
+                    seat(shuffled[2], Team.BLUE),
+                    seat(shuffled[3], Team.BLUE),
+                ),
+                tieBreaker = coin,
+            )
+
             else -> GameSetup(
                 TestData.FOREST,
-                listOf(seat(shuffled[0], Team.RED), seat(shuffled[1], Team.RED), seat(shuffled[2], Team.BLUE), seat(shuffled[3], Team.BLUE)),
+                listOf(
+                    seat(shuffled[0], Team.RED),
+                    seat(shuffled[1], Team.RED),
+                    seat(shuffled[2], Team.BLUE),
+                    seat(shuffled[3], Team.BLUE),
+                ),
                 tieBreaker = coin,
             )
         }
@@ -101,7 +134,7 @@ class PropertyTest {
                 val r = s.answer(d.id, player.choose(d))
                 check(r is AnswerResult.Accepted) { "Rejected $r" }
                 n++
-                check(n < 30_000) { "Game did not end: ${setup}" }
+                check(n < 30_000) { "Game did not end: $setup" }
             }
             checkInvariants(s, w)
             val v = s.view(null)

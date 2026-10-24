@@ -55,7 +55,10 @@ private fun Game.turnStart() {
     state.stepSeat = 0
 }
 
-/** p.7 "Play One Card": "You must play a card, if able … If you have no cards left in your hand, you must announce that you are passing." */
+/**
+ * p.7 "Play One Card": "You must play a card, if able … If you have no cards left in your hand,
+ * you must announce that you are passing."
+ */
 private fun Game.playStep() {
     val h = state.heroes[state.stepSeat]
     val extra = sources().sumOf { (b, s) -> b.extraCardsToPlay(this, s, h.id) }
@@ -68,8 +71,22 @@ private fun Game.playStep() {
             }
             break
         }
-        val options = hand.map { Choice.Card(it) as Choice } + if (i > 0) listOf(Choice.Decline("Play only one card")) else emptyList()
-        val answer = ask(h.id, DecisionKind.PLAY_CARD, if (i == 0) "Play a card facedown" else "Play another card?", options, auto = false)
+        val options =
+            hand.map { Choice.Card(it) as Choice } +
+                if (i > 0) listOf(Choice.Decline("Play only one card")) else emptyList()
+        val answer = ask(
+            h.id,
+            DecisionKind.PLAY_CARD,
+            if (i ==
+                0
+            ) {
+                "Play a card facedown"
+            } else {
+                "Play another card?"
+            },
+            options,
+            auto = false,
+        )
         if (answer !is Choice.Card) break
         moveCard(h.id, answer.cardId, Zone.PLAYED)
         emit(GameEvent.Note("${heroName(h.id)} plays a card facedown."))
@@ -88,11 +105,19 @@ private fun Game.reveal() {
         if (ids.any { isAttackCard(h.id, it) }) state.turnRecord.playedAttack += h.id
     }
     val text = played.entries.joinToString("; ") { (hero, card) ->
-        if (card == null) "${heroName(hero)} passes" else "${heroName(hero)} ${cardName(card)} (${initiativeText(hero)})"
+        if (card ==
+            null
+        ) {
+            "${heroName(hero)} passes"
+        } else {
+            "${heroName(hero)} ${cardName(card)} (${initiativeText(hero)})"
+        }
     }
     emit(GameEvent.CardsRevealed(played, "Cards revealed: $text."))
     for (e in orderedEffects()) {
-        if (e.timing == Timing.NEXT_TURN_AFTER_PLAYING && !e.spent && e.round == state.round && e.turn == state.turn - 1) {
+        if (e.timing == Timing.NEXT_TURN_AFTER_PLAYING && !e.spent && e.round == state.round &&
+            e.turn == state.turn - 1
+        ) {
             applyTimed(e)
         }
     }
@@ -110,7 +135,11 @@ fun Game.orderedEffects(): List<ActiveEffect> {
 
 fun Game.srcOf(e: ActiveEffect): dev.quinton.goa.core.game.effects.Src =
     dev.quinton.goa.core.game.effects.Src(
-        dev.quinton.goa.core.game.effects.SrcKind.EFFECT, e.key ?: e.cardId, e.owner, cardId = e.cardId, effect = e,
+        dev.quinton.goa.core.game.effects.SrcKind.EFFECT,
+        e.key ?: e.cardId,
+        e.owner,
+        cardId = e.cardId,
+        effect = e,
     )
 
 /** p.7 "Check the Initiative": the number on the card, + Initiative items (p.16), + modifiers. */
@@ -130,7 +159,15 @@ fun Game.initiativeOrder(): List<String> {
     val reversed = lowerActsFirst()
     val ranked = state.heroes.mapNotNull { h -> initiativeOf(h.id)?.let { h to it } }
     return ranked.sortedWith(
-        compareBy<Pair<HeroState, Int>>({ if (reversed) it.second else -it.second }, { if (it.first.team == state.tieBreaker) 0 else 1 }, { it.first.seat }),
+        compareBy<Pair<HeroState, Int>>({ if (reversed) it.second else -it.second }, {
+            if (it.first.team ==
+                state.tieBreaker
+            ) {
+                0
+            } else {
+                1
+            }
+        }, { it.first.seat }),
     ).map { it.first.id }
 }
 
@@ -165,7 +202,9 @@ private fun Game.resolveNext() {
         pool.single().id
     } else {
         val c = ask(
-            teamSeat(pool.first().team), DecisionKind.ACT_FIRST, "Tied initiative: who acts first?",
+            teamSeat(pool.first().team),
+            DecisionKind.ACT_FIRST,
+            "Tied initiative: who acts first?",
             pool.map { Choice.Unit(it.id) },
         ) as Choice.Unit
         c.unitId
@@ -190,7 +229,16 @@ fun Game.resolveCard(heroId: String) {
     val cardId = if (played.size == 1) {
         played.single()
     } else {
-        (ask(heroId, DecisionKind.CHOOSE_CARD, "Which card do you resolve first?", played.map { Choice.Card(it) }) as Choice.Card).cardId
+        (
+            ask(
+                heroId,
+                DecisionKind.CHOOSE_CARD,
+                "Which card do you resolve first?",
+                played.map {
+                    Choice.Card(it)
+                },
+            ) as Choice.Card
+            ).cardId
     }
     if (h.at == null && state.pieces.none { it.heroBody == heroId && it.at != null }) {
         val spaces = respawnSpaces(heroId)
@@ -206,11 +254,9 @@ fun Game.resolveCard(heroId: String) {
             return
         }
     }
-    val options = actionOptions(heroId, cardId)
-    val answer = ask(
-        heroId, DecisionKind.CHOOSE_ACTION, "Choose an action for ${cardName(cardId)}",
-        options.map { Choice.Action(it) }, cardId, auto = false,
-    ) as Choice.Action
+    val answer = askAlways(heroId, DecisionKind.CHOOSE_ACTION, "Choose an action for ${cardName(cardId)}", cardId) {
+        actionOptions(heroId, cardId).map { Choice.Action(it) }
+    } as Choice.Action
     val kind = when (answer.action) {
         ActionType.PRIMARY -> primaryKind(card(cardId))
         ActionType.MOVEMENT -> ActionKind.MOVEMENT
@@ -221,7 +267,9 @@ fun Game.resolveCard(heroId: String) {
     }
     emit(
         GameEvent.ActionChosen(
-            heroId, cardId, answer.action,
+            heroId,
+            cardId,
+            answer.action,
             "${heroName(heroId)} uses ${cardName(cardId)}: ${actionLabel(answer.action)}.",
         ),
     )
@@ -322,7 +370,9 @@ private fun Game.minionBattle() {
             val nonHeavy = left.filter { it.type != MinionType.HEAVY }
             val pool = nonHeavy.ifEmpty { left }
             val c = ask(
-                teamSeat(loser), DecisionKind.REMOVE_MINION, "Minion Battle: remove a minion",
+                teamSeat(loser),
+                DecisionKind.REMOVE_MINION,
+                "Minion Battle: remove a minion",
                 pool.map { Choice.Unit(it.id) },
             ) as Choice.Unit
             val pick = pool.first { it.id == c.unitId }
@@ -388,7 +438,12 @@ private class LaneSnapshot(
 )
 
 private fun Game.snapshotLanes() = LaneSnapshot(
-    state.minions.map { it.copy() }, LinkedHashMap(state.battleZones), LinkedHashMap(state.wavesLeft), LinkedHashSet(state.lastWaveFlipped),
+    state.minions.map {
+        it.copy()
+    },
+    LinkedHashMap(state.battleZones),
+    LinkedHashMap(state.wavesLeft),
+    LinkedHashSet(state.lastWaveFlipped),
 )
 
 private fun Game.restoreLanes(s: LaneSnapshot) {
@@ -404,7 +459,10 @@ private fun Game.restoreLanes(s: LaneSnapshot) {
     touch()
 }
 
-/** p.8 "Retrieve Cards": all resolved and discarded cards back to hand; "This cancels all your Active effects, including 'Next Turn' effects." */
+/**
+ * p.8 "Retrieve Cards": all resolved and discarded cards back to hand; "This cancels all your Active
+ * effects, including 'Next Turn' effects."
+ */
 private fun Game.retrieveStep() {
     for (h in state.heroes) {
         for (c in h.cards) {
@@ -456,7 +514,13 @@ fun Game.levelUp(heroId: String) {
             val ult = h.cards.firstOrNull { card(it.id).color == CardColor.PURPLE && it.zone == Zone.DECK }
             if (ult != null) {
                 moveCard(heroId, ult.id, Zone.ULTIMATE)
-                emit(GameEvent.LevelledUp(heroId, h.level, "${heroName(heroId)} reaches level 8 and unlocks ${cardName(ult.id)}."))
+                emit(
+                    GameEvent.LevelledUp(
+                        heroId,
+                        h.level,
+                        "${heroName(heroId)} reaches level 8 and unlocks ${cardName(ult.id)}.",
+                    ),
+                )
                 data.registry.script(ult.id)?.let { (it as? UltimateUnlock)?.unlocked(this, heroId) }
                 continue
             }
@@ -475,18 +539,48 @@ interface UltimateUnlock {
 private fun Game.upgradeOnce(heroId: String) {
     val h = hero(heroId)
     val coloured = setOf(CardColor.RED, CardColor.GREEN, CardColor.BLUE)
-    val candidates = h.cards.filter { it.zone == Zone.HAND && card(it.id).color in coloured && (card(it.id).tier ?: 0) in 1..2 }
+    val candidates = h.cards.filter {
+        it.zone == Zone.HAND && card(it.id).color in coloured &&
+            (card(it.id).tier ?: 0) in 1..2
+    }
     val lowest = candidates.minOfOrNull { card(it.id).tier!! } ?: return
     val pool = candidates.filter { card(it.id).tier == lowest }.map { it.id }
-    val old = (ask(heroId, DecisionKind.UPGRADE_CARD, "Level up: choose a card to upgrade", pool.map { Choice.Card(it) }) as Choice.Card).cardId
+    val old = (
+        ask(
+            heroId,
+            DecisionKind.UPGRADE_CARD,
+            "Level up: choose a card to upgrade",
+            pool.map {
+                Choice.Card(it)
+            },
+        ) as Choice.Card
+        ).cardId
     val color = card(old).color
-    val next = h.cards.filter { it.zone == Zone.DECK && card(it.id).color == color && card(it.id).tier == lowest + 1 }.map { it.id }
+    val next = h.cards.filter {
+        it.zone == Zone.DECK && card(it.id).color == color && card(it.id).tier == lowest + 1
+    }.map { it.id }
     moveCard(heroId, old, Zone.DECK)
     if (next.isEmpty()) return
-    val keep = (ask(heroId, DecisionKind.KEEP_UPGRADE, "Level up: take one card into your hand (the other becomes an item)", next.map { Choice.Card(it) }) as Choice.Card).cardId
+    val keep = (
+        ask(
+            heroId,
+            DecisionKind.KEEP_UPGRADE,
+            "Level up: take one card into your hand (the other becomes an item)",
+            next.map {
+                Choice.Card(it)
+            },
+        ) as Choice.Card
+        ).cardId
     moveCard(heroId, keep, Zone.HAND)
     for (other in next - keep) {
         moveCard(heroId, other, Zone.ITEM)
-        emit(GameEvent.CardsChanged(heroId, "${heroName(heroId)} gains ${cardName(other)} as an item (+1 ${card(other).item?.name?.lowercase() ?: "nothing"})."))
+        emit(
+            GameEvent.CardsChanged(
+                heroId,
+                "${heroName(
+                    heroId,
+                )} gains ${cardName(other)} as an item (+1 ${card(other).item?.name?.lowercase() ?: "nothing"}).",
+            ),
+        )
     }
 }

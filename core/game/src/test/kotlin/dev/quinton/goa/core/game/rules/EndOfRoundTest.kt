@@ -20,7 +20,10 @@ class EndOfRoundTest {
     @Test
     fun `p8 - tokens are removed, markers returned, unless the text says otherwise`() {
         val d = pos {
-            hero("wasp", Team.RED, geo.heroSpawns(Team.RED)[0]) { marker("marker_poison", "tigerclaw"); marker("rune", "snorri", persistent = true) }
+            hero("wasp", Team.RED, geo.heroSpawns(Team.RED)[0]) {
+                marker("marker_poison", "tigerclaw")
+                marker("rune", "snorri", persistent = true)
+            }
             hero("arien", Team.BLUE, geo.heroSpawns(Team.BLUE)[0])
             token("token_rock", Hex(2, -5))
             token("token_tree", Hex(3, -5), removeAtEndOfRound = false)
@@ -35,15 +38,22 @@ class EndOfRoundTest {
         val d = pos {
             turn = 4
             hero("wasp", Team.RED, geo.heroSpawns(Team.RED)[0]) {
-                resolved(1, "wasp-gold"); resolved(2, "wasp-silver"); resolved(3, "wasp-red-1", faceDown = true)
-                discard("wasp-green-1"); resolved(4, "wasp-blue-1")
+                resolved(1, "wasp-gold")
+                resolved(2, "wasp-silver")
+                resolved(3, "wasp-red-1", faceDown = true)
+                discard("wasp-green-1")
+                resolved(4, "wasp-blue-1")
             }
             hero("arien", Team.BLUE, geo.heroSpawns(Team.BLUE)[0])
             effect("wasp", "wasp-blue-1", Timing.NEXT_TURN, ActionKind.SKILL, madeTurn = 4)
             phase = PositionPhase.EndOfRound
         }
         val wasp = d.hero("wasp")
-        assertThat(wasp.hand.map { it.id }).containsExactly("wasp-gold", "wasp-silver", "wasp-red-1", "wasp-green-1", "wasp-blue-1")
+        assertThat(
+            wasp.hand.map {
+                it.id
+            },
+        ).containsExactly("wasp-gold", "wasp-silver", "wasp-red-1", "wasp-green-1", "wasp-blue-1")
         assertThat(wasp.cards.none { it.faceDown }).isTrue()
         assertThat(d.s.state.effects).isEmpty()
         assertThat(d.s.state.round).isEqualTo(2)
@@ -51,7 +61,8 @@ class EndOfRoundTest {
 
     @Test
     fun `p17 End of round effects come before the Minion Battle`() {
-        // Xargatha's Constrict: "End of round: Defeat an enemy melee minion adjacent to you. (Before the end of round minion battle.)"
+        // Xargatha's Constrict: "End of round: Defeat an enemy melee minion adjacent to you. (Before the end
+        // of round minion battle.)"
         val d = pos {
             clearMinions()
             turn = 4
@@ -118,7 +129,7 @@ class EndOfRoundTest {
     }
 
     @Test
-    fun `p16 - after all cards are Tier III the next level unlocks the Ultimate, then no more levels but coins still count`() {
+    fun `p16 - after all Tier III the next level unlocks the Ultimate, no more levels, coins still count`() {
         val d = pos {
             hero("wasp", Team.RED, geo.heroSpawns(Team.RED)[0]) {
                 level = 7

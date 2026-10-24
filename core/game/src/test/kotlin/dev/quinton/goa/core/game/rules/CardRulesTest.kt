@@ -78,19 +78,26 @@ class CardRulesTest {
                 },
             ) { activeEffect(Timing.THIS_ROUND) },
         )
-        // "Next turn: enemy heroes in radius have -2 Initiative." (radius 3 printed on Dodger's red-1? no: radius from data)
+        // "Next turn: enemy heroes within 3 spaces have -2 Initiative."
         r.behavior(
             inc,
             object : Behavior {
                 override fun statDelta(g: dev.quinton.goa.core.game.engine.Game, src: Src, q: StatQuery): Int =
-                    if (q.stat == Stat.INITIATIVE && g.isHero(q.unitId) && g.isEnemy(src.owner!!, q.unitId) && g.inRadiusOf(src, q.unitId, 3)) -2 else 0
+                    if (q.stat == Stat.INITIATIVE && g.isHero(q.unitId) && g.isEnemy(src.owner!!, q.unitId) &&
+                        g.inRadiusOf(src, q.unitId, 3)
+                    ) {
+                        -2
+                    } else {
+                        0
+                    }
             },
         )
         r.card("dodger-red-1", script { activeEffect(Timing.NEXT_TURN, key = inc) })
         r.token(TokenKind("token_test", "Test token", supply = 2))
     }
 
-    private val engine = GameEngine(TestData.catalog, TestData.maps, TestData.matchRules, registry, allowIncomplete = true)
+    private val engine =
+        GameEngine(TestData.catalog, TestData.maps, TestData.matchRules, registry, allowIncomplete = true)
 
     private fun at(block: PositionBuilder.() -> Unit) = Driver(position(engine, TestData.FOREST, block))
 
@@ -173,7 +180,10 @@ class CardRulesTest {
     fun `p19 This Round effects last through the turns of the round, p17 cancelled when the card changes state`() {
         val d = at {
             clearMinions()
-            hero("dodger", Team.RED, Hex(1, -2)) { played("dodger-silver"); hand("dodger-gold", exactly = false) }
+            hero("dodger", Team.RED, Hex(1, -2)) {
+                played("dodger-silver")
+                hand("dodger-gold", exactly = false)
+            }
             hero("arien", Team.BLUE, Hex(4, -5)) { played("arien-green-1") }
             phase = PositionPhase.Resolving(next = "dodger")
         }
@@ -229,7 +239,10 @@ class CardRulesTest {
     fun `p17 - Active effects are cancelled when their owner is defeated`() {
         val d = at {
             clearMinions()
-            hero("dodger", Team.RED, Hex(1, -2)) { resolved(1, "dodger-silver"); hand("dodger-blue-1") }
+            hero("dodger", Team.RED, Hex(1, -2)) {
+                resolved(1, "dodger-silver")
+                hand("dodger-blue-1")
+            }
             hero("brogan", Team.BLUE, Hex(2, -2)) { played("brogan-gold") }
             effect("dodger", "dodger-silver", Timing.THIS_ROUND, ActionKind.SKILL, madeTurn = 1)
             turn = 2
@@ -244,7 +257,10 @@ class CardRulesTest {
     fun `p10 card states - swapped cards swap every state, facedown cards lose their Active effect`() {
         val s = position(engine, TestData.FOREST) {
             clearMinions()
-            hero("dodger", Team.RED, Hex(1, -2)) { resolved(2, "dodger-silver"); discard("dodger-gold") }
+            hero("dodger", Team.RED, Hex(1, -2)) {
+                resolved(2, "dodger-silver")
+                discard("dodger-gold")
+            }
             hero("arien", Team.BLUE, Hex(4, -5))
             effect("dodger", "dodger-silver", Timing.THIS_ROUND, ActionKind.SKILL)
         }
@@ -256,7 +272,11 @@ class CardRulesTest {
         assertThat(h.card("dodger-silver")!!.zone).isEqualTo(Zone.DISCARD)
         g.turnFaceDown("dodger", "dodger-silver")
         assertThat(g.state.effects).isEmpty()
-        assertThat(s.view("arien").heroes.first { it.heroId == "dodger" }.discard.single().cardId).isEqualTo("dodger-gold")
+        assertThat(
+            s.view("arien").heroes.first {
+                it.heroId == "dodger"
+            }.discard.single().cardId,
+        ).isEqualTo("dodger-gold")
     }
 
     @Test
