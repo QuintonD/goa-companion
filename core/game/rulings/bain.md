@@ -25,10 +25,16 @@ leave open. Code: `heroes/BainHero.kt`; tests: `heroes/BainTest.kt`.
    mandatory move could not be made.
 5. **Light Crossbow / Heavy Crossbow / Arbalest:** "no units or terrain between you" — tokens between do
    not block (they are neither, p.19); adjacent units are always in a straight line (p.19).
-6. **Close Call / Narrow Escape / Perfect Getaway** are Block cards (p.14): they block exactly when some
-   hero holds the Bounty marker ("a hero in play"), else Bain is defeated. Close Call: the holder gives the
-   marker to Bain (if Bain holds it, it stays); this is not Bain giving it, so A Complicated Profession
-   does not apply. Narrow Escape: the marker goes back to Bain's supply.
+6. **Close Call / Narrow Escape / Perfect Getaway** are Block cards (p.14): they block exactly when a hero
+   other than Bain holds the Bounty marker ("a hero in play"), else Bain is defeated. Bain holding it
+   himself (after a Close Call) does not count. *Source:* designer, BGG 3676852 (2026-03-13), quoting p.10
+   "If your action is affecting you (your hero), it will say so in the card text": "Narrow Escape cannot be
+   used by Bain to block an attack if Bain himself has the marker. Otherwise the card would say '...If you,
+   or a hero in play...'." (The question was about Close Call; the three cards share the condition.)
+   (Changed in the rules audit: before, Bain's own marker made the Block succeed.) Close Call: the holder
+   gives the marker to Bain; this is not Bain giving it, so A Complicated Profession does not apply. Narrow
+   Escape: the marker goes back to Bain's supply. Test "Close Call, Narrow Escape, Perfect Getaway -
+   designer - …".
 7. **A Game of Chance / Dead Man's Hand / We're Not Done Yet!:** Bain picks an enemy hero in radius
    (targetable) with two or more cards in hand; that hero picks the card (p.10 "Making Choices"); Bain
    guesses a colour, the card is revealed; correct: that hero discards that card; wrong: the coins.
@@ -42,7 +48,8 @@ leave open. Code: `heroes/BainHero.kt`; tests: `heroes/BainTest.kt`.
    either order (p.10 "you can choose the bullet points in any order"), one action; "both" is offered only
    when two different units can be targeted. Both are ranged attacks (RULINGS 19).
 9. **Vantage Point / High Ground:** a Movement action ignoring obstacles (never ending on one), +1/+2
-   Movement while any hero holds the Bounty marker; for this action only (it has no "This round").
+   Movement while a hero other than Bain holds the Bounty marker (the same "a hero in play" as ruling 6,
+   designer BGG 3676852; changed in the rules audit); for this action only (it has no "This round").
 10. **Drinking Buddies / Another One!:** Bain may pick a hero in radius (never himself, p.10), friend or
     enemy; once picked, that hero retrieves a card of its choice (the "may" is Bain's). **[APP]** Heroes with
     an empty discard are not offered (picking one would do nothing: "If they do" fails). Another One!'s

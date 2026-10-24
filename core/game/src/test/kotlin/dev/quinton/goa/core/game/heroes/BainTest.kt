@@ -274,6 +274,7 @@ class BainTest {
         hero("bain", Team.RED, Hex(1, -2)) {
             hand(card, "bain-gold")
             if (ultimate) ultimate()
+            if (bountyOn == "bain") marker(BainHero.BOUNTY, from = "bain")
         }
         hero("brogan", Team.BLUE, Hex(7, -2)) { if (bountyOn == "brogan") marker(BainHero.BOUNTY, from = "bain") }
         phase = PositionPhase.Resolving(next = "arien")
@@ -325,6 +326,17 @@ class BainTest {
         assertThat(d.hasBounty("brogan")).isTrue()
         val e = escape("bain-green-3a", bountyOn = null)
         assertThat(e.at("bain")).isNull()
+    }
+
+    @Test
+    fun `Close Call, Narrow Escape, Perfect Getaway - designer - a hero in play is not Bain - his own marker does not block`() {
+        // Designer, BGG 3676852: "Narrow Escape cannot be used by Bain to block an attack if Bain himself has the
+        // marker. Otherwise the card would say '...If you, or a hero in play...'." (p.10)
+        for (card in listOf("bain-green-1", "bain-green-2a", "bain-green-3a")) {
+            val d = escape(card, bountyOn = "bain")
+            assertThat(d.at("bain")).isNull()
+            assertThat(d.texts().any { it.startsWith("Bain defends with") && it.contains("The Block fails") }).isTrue()
+        }
     }
 
     // ---- A Game of Chance / Dead Man's Hand / We're Not Done Yet! (blue) ------------------------
@@ -467,9 +479,12 @@ class BainTest {
 
     // ---- Vantage Point / High Ground (green alternates) -----------------------------------------
 
-    private fun vantage(card: String, bounty: Boolean) = pos {
+    private fun vantage(card: String, bounty: Boolean, onBain: Boolean = false) = pos {
         clearMinions()
-        hero("bain", Team.RED, Hex(1, -2)) { played(card) } // Movement 2, boxed in
+        hero("bain", Team.RED, Hex(1, -2)) {
+            played(card) // Movement 2, boxed in
+            if (onBain) marker(BainHero.BOUNTY, from = "bain")
+        }
         hero("arien", Team.BLUE, Hex(7, -2)) { if (bounty) marker(BainHero.BOUNTY, from = "bain") }
         for (h in listOf(Hex(2, -2), Hex(2, -3), Hex(0, -2), Hex(0, -1), Hex(1, -1))) {
             minion(Team.RED, MinionType.MELEE, h)
@@ -485,6 +500,12 @@ class BainTest {
         assertThat(d.spaces()).doesNotContain(Hex(2, -2)) // never ends on an obstacle
         val e = vantage("bain-green-2b", bounty = true)
         assertThat(e.spaces().maxOf { HexGrid.distance(Hex(1, -2), it) }).isEqualTo(3)
+    }
+
+    @Test
+    fun `Vantage Point - Bain holding the marker himself is not a hero in play with it (as Close Call)`() {
+        val d = vantage("bain-green-2b", bounty = false, onBain = true)
+        assertThat(d.spaces().maxOf { HexGrid.distance(Hex(1, -2), it) }).isEqualTo(2)
     }
 
     @Test

@@ -111,8 +111,16 @@ object BainHero : HeroModule {
 
     // ---- the Bounty marker ---------------------------------------------------------------------
 
-    /** The hero holding the Bounty marker ("a hero in play has a Bounty marker"), if any. */
+    /** The hero holding the Bounty marker, if any. */
     private fun Game.bountyHolder(): String? = state.heroes.firstOrNull { h -> h.markers.any { it.kind == BOUNTY } }?.id
+
+    /**
+     * "If a hero in play has a Bounty marker" — another hero than [self] (p.10: "If your action is affecting
+     * you (your hero), it will say so in the card text"). Designer, BGG 3676852: "Narrow Escape cannot be used
+     * by Bain to block an attack if Bain himself has the marker. Otherwise the card would say '...If you, or a
+     * hero in play...'."
+     */
+    private fun Game.bountyInPlay(self: String): String? = bountyHolder()?.takeIf { heroBodyOf(it) != heroBodyOf(self) }
 
     private fun Game.holdsBounty(heroId: String): Boolean = hero(heroId).markers.any { it.kind == BOUNTY }
 
@@ -219,13 +227,14 @@ object BainHero : HeroModule {
         override val hasPrimary: Boolean get() = false
 
         override fun defense(d: DefenseScope) {
-            val holder = d.g.bountyHolder()
+            // "If a hero in play has a Bounty marker" — not Bain himself (designer, BGG 3676852).
+            val holder = d.g.bountyInPlay(d.heroId)
             d.block(holder != null)
             if (holder == null) return
             val marker = d.g.hero(holder).markers.first { it.kind == BOUNTY }
             when (mode) {
                 // "that hero gives the marker to you" (not Bain giving it: A Complicated Profession does not apply).
-                Mode.TAKE -> if (holder != d.heroId) d.g.giveMarker(d.heroId, BOUNTY, marker.from)
+                Mode.TAKE -> d.g.giveMarker(d.heroId, BOUNTY, marker.from)
 
                 // "retrieve the marker": back to Bain's supply.
                 Mode.RETRIEVE -> {
@@ -327,8 +336,9 @@ object BainHero : HeroModule {
 
     private class Vantage(private val bonus: Int) : CardScript {
         override fun primary(a: ActionScope) {
-            // "Ignore obstacles. If a hero in play has a Bounty marker, +N movement." (This action only.)
-            a.movementAction(bonus = if (a.g.bountyHolder() != null) bonus else 0, ignoreObstacles = true)
+            // "Ignore obstacles. If a hero in play has a Bounty marker, +N movement." (This action only; a hero
+            // other than Bain, as on Close Call.)
+            a.movementAction(bonus = if (a.g.bountyInPlay(a.heroId) != null) bonus else 0, ignoreObstacles = true)
         }
     }
 
