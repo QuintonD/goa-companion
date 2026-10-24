@@ -683,9 +683,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** "Before the attack" choices happen before the defence is calculated (p.14 order), and "Choose up to three times" lets you mix bullets in any order (p.10 Modal actions). Each removal needs the token adjacent to the target at that moment. Wasp's adjacent friendly melee gives her +1 (p.14), and equal totals defend.
 - **Rules:** p.10 Modal actions; p.14 order, Defense total, Minion defense modifiers; p.19 Tokens.
 - **Risk:** none.
-- **Encoded as p31 (2026-10-24):** as in the concept. The solver also accepts the other orders of the
-  same three choices (remove Z1 first, or move Z2 and remove it before Z1); the wrong tries tested are
-  "remove Z1 and stop", "move Z2 twice" and "move Z2 to (4,−6)".
+- **Encoded as p31 (changed, hardening 2026-10-24):** first encoded as in the concept; the review found Sabina, Wasp and Brogan at level 1 in round 3 (impossible, p.8/p.15) and the puzzle forgiving (the three choices worked in any order). New position: goal **`WinGame`** (Red 1 Life counter, Blue 2), so there are two targets. Mortimer (Blue, L2, Attack item `green-2a`: Knife 5) at (1,−5); Sabina (Blue, L2) idle at (3,−2), her gold (12) resolved this turn; **Brogan** (Red, L3, played Bullrush, holds `blue-2b` Shield Bash 6, Defense item `red-2b`: 7) at (0,−5) and Wasp (Red, L2, played Telekinesis, holds Lift Up 5, +1 for the Red melee at (3,−6): 6) at (2,−5), both adjacent to Mortimer; Brogan seated first so he is the first target offered. Four Zombies (the supply): (0,−6) and (−1,−5) beside Brogan, (2,−6) beside Wasp, (3,−7) two from her whose only way next to her is (2,−6). Brogan needs +3 but the third Zombie costs a move: 7 against 7. Wasp needs +2, and only one order works: remove (2,−6), move (3,−7) into it, remove it. Wrong tries: target Brogan; move first; remove and stop; move the far Zombie elsewhere.
 
 ### C32 — Fight as One
 - **Theme:** reusing a resolved skill; range measured from a token (Pyro). **Difficulty:** 2. **Heroes:** Widget; Dodger, Wasp (Garrus idle).
