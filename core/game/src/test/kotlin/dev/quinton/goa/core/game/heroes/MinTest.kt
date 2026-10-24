@@ -628,4 +628,21 @@ class MinTest {
         assertThat(d.s.state.minion(b)).isNotNull()
         assertThat(d.hero("min").coins).isEqualTo(4)
     }
+
+    // ---- audit E regressions --------------------------------------------------------------------
+
+    @Test
+    fun `Ruse - no Smoke bomb in range, the swap cannot be done, so the text stops and nothing is placed`() {
+        val d = pos {
+            clearMinions()
+            hero("min", Team.RED, Hex(0, -2)) { hand("min-green-3a") } // Range 4
+            hero("arien", Team.BLUE, Hex(1, -2)) { played("arien-gold") }
+            phase = PositionPhase.Resolving(next = "arien")
+        }
+        d.action("arien", ActionType.PRIMARY)
+        d.defend("min-green-3a")
+        // p.10: the mandatory swap fails, the Block fails (p.14) and the rest of the text is skipped.
+        assertThat(d.at("min")).isNull()
+        assertThat(d.s.state.pieces.none { it.kind == MinHero.SMOKE && it.at != null }).isTrue()
+    }
 }
