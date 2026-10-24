@@ -26,7 +26,7 @@ object P31KnifeOfTheLivingDead : Puzzle() {
         id = "p31",
         number = 31,
         title = "Knife of the Living Dead",
-        difficulty = 2,
+        difficulty = 3,
         theme = "Token arithmetic, Before the attack",
         heroes = listOf("mortimer", "sabina", "brogan", "wasp"),
         goal = PuzzleGoal.WinGame("Win the game this turn."),
@@ -44,11 +44,12 @@ object P31KnifeOfTheLivingDead : Puzzle() {
             "Brogan needs three removed Zombies and Wasp two. \"Before the attack\" text comes first (p.14 order) " +
             "and \"Choose up to three times\" lets you take the bullets in any order (p.10 Modal Actions), but a " +
             "move spends a choice: Brogan has two Zombies beside him and the third is two spaces away, so " +
-            "Mortimer can reach no more than 7 against his 7. Wasp has one Zombie beside her; the other can reach her " +
-            "only through the space that Zombie fills (tokens are obstacles, p.18). So remove the first, move the " +
-            "second into the space it left, and remove that one too: Attack 7 against 6, and Red's last Life " +
-            "counter goes (p.13). Moving first, or stopping after one removal, leaves you a point short. The " +
-            "lesson: on a \"Choose up to\" card, the order of the choices can matter as much as the choices.",
+            "Mortimer can reach no more than 7 against his 7. Wasp has one Zombie beside her; the other can " +
+            "reach her only through the space that Zombie fills (tokens are obstacles, p.18). So remove the " +
+            "first, move the second into the space it left, and remove that one too: Attack 7 against 6, and " +
+            "Red's last Life counter goes (p.13). Moving first, or stopping after one removal, leaves you a " +
+            "point short. The lesson: on a \"Choose up to\" card, the order of the choices can matter as much " +
+            "as the choices.",
         rules = listOf(
             "p.10 Modal Actions",
             "p.13 When a hero is defeated",
@@ -142,7 +143,12 @@ object P31KnifeOfTheLivingDead : Puzzle() {
         WrongTry(
             "Move the far Zombie to a space that is not next to Wasp",
             listOf(
-                action(ActionType.PRIMARY), hero("wasp"), option(1), option(0), tokenAt(3, -7), space(4, -7),
+                action(ActionType.PRIMARY),
+                hero("wasp"),
+                option(1),
+                option(0),
+                tokenAt(3, -7),
+                space(4, -7),
             ),
         ),
     )
