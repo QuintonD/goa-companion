@@ -603,9 +603,8 @@ private fun Game.upgradeOnce(heroId: String) {
         emit(
             GameEvent.CardsChanged(
                 heroId,
-                "${heroName(
-                    heroId,
-                )} gains ${cardName(other)} as an item (+1 ${card(other).item?.name?.lowercase() ?: "nothing"}).",
+                // Which card was tucked is hidden; only its item icon is public (BGG 3590819).
+                "${heroName(heroId)} gains an item: +1 ${card(other).item?.name?.lowercase() ?: "nothing"}.",
             ),
         )
     }
