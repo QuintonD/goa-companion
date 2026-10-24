@@ -395,6 +395,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** The pull is movement in the card text, so it follows movement rules and needs a clear path (p.11); the card also demands no obstacle between Bain and the target, and terrain is an obstacle (p.18, p.19). Bain at 13 acts long before Xargatha at 7 (p.7).
 - **Rules:** p.7 initiative; p.11 Movement in the card text; p.18 Obstacle; p.19 Terrain, Straight line.
 - **Risk:** none.
+- **Encoded as p16 (changed, 2026-10-24):** as written the terrain-blocked Wasp is simply not offered as a target, so the only real pull was Dodger (no choice). Wasp now stands on Bain's clear SW line at (−2,−2) holding `wasp-blue-1` (resolved gold, silver, red-1); pulled, she lands on (−1,−3) next to Xargatha. A Red melee at (−1,−5) (next to Xargatha) makes Threatening Slash 6 against Wasp, but a Red melee at (0,−3) guards her landing space: 5 + 1 = 6 holds. That is the tempting wrong try; pulling Dodger (no cards) to (0,−5) and slashing her wins, as in the concept. Xargatha resolved gold, silver, blue-1 (hand green-1); Dodger's discard blue-1.
 
 ### C17 — Into the Wall
 - **Theme:** pushes stopped by obstacles force a discard; stripping the last card. **Difficulty:** 1. **Heroes:** Wasp, Xargatha; Arien (Brogan idle).
@@ -430,6 +431,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** "Maximum range" means exactly the Range value (p.9, and Snorri's bird rune is the exception that would lift it). "A rune is active as long as it is below the turn slot matching the current turn" (card text); on turn 3 that is the axe, whose After-the-attack text hits a hero who *was* adjacent to the target, so it still works after the minion is removed (p.17 After the attack).
 - **Rules:** p.9 Range; p.14 order; p.17 After the attack.
 - **Risk:** none.
+- **Encoded as p18 (2026-10-24):** as in the concept. Under the engine Dodger (d2) is never offered; the real choice is Wasp or the minion, both at d3, and Wasp comes first. Garrus idle at (−1,−1) with hand green-1, blue-1.
 
 ### C19 — Smoke on the Line
 - **Theme:** tokens that block straight-line targeting; "place" needs an empty space; protecting the last minion. **Difficulty:** 1. **Heroes:** Min; Swift, Wasp (Brogan idle).
@@ -485,6 +487,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Mad Dash's move is mandatory and exact (p.11 Movement in the card text; Brogan FAQ), so only two landing squares next to Dodger exist. Shield of Decay is a primary Defense, so its text applies when she defends (p.14); "empty" means no obstacle in the space, and a hero is an obstacle (p.17, p.18) — standing on a spawn point switches the bonus off. Equal totals defend (p.14), so the +2 decides it.
 - **Rules:** p.11 Movement in the card text; p.14 Defense action, Defense total, Minion modifiers; p.17 Empty; p.18 Obstacle.
 - **Risk:** none (Dodger FAQ: minion spawn points of either colour in the current BZ count).
+- **Encoded as p21 (changed, 2026-10-24):** as written the winning landing (3,−4) is the first space offered (spaces go by row), so answering the first option everywhere won. The whole position is turned half a turn, (q,r) → (3−q, −7−r), with the teams swapped: Brogan (Red) at (2,−5), Dodger (Blue) at (0,−4), Arien (Red, idle) at (4,−8), Xargatha (Blue, idle) at (−2,−3); Blue melee (−1,−3), (3,−1), Blue ranged (3,−4), Blue heavy (2,−7); Red melee (1,−6), (0,−6), (−2,1), Red heavy (1,0); coin Red. The landings are now (0,−5) (first: two spawn points stay empty, 6 holds 6), (4,−5) (only the Blue ranged minion) and the winning (0,−3), the empty Red ranged spawn point. Same geometry, same lesson.
 
 ### C22 — Change of Plans
 - **Theme:** initiative is re-checked after every resolution; a card swap moves a teammate up the order. **Difficulty:** 2. **Heroes:** Takahide, Brogan; Dodger (Wasp idle).
@@ -502,6 +505,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** After each card resolves, the next actor is whoever holds the highest initiative on an unresolved card (p.7), checked again every time. Swapping a played card swaps all its states (p.10), so Onslaught becomes Brogan's played, unresolved card at 11 and jumps ahead of Dodger.
 - **Rules:** p.7 Resolve your card; p.10 Swap a card; p.13 Attacking a hero.
 - **Risk:** none.
+- **Encoded as p22 (changed, 2026-10-24):** as written it is a click-through (Takahide has one target, Brogan is the only friend, and Onslaught is gold, so always the first card offered). A tempting hero target next to Takahide does not help either: After the attack happens even when the attack is defended or blocked (p.17, the engine's reading), so the swap still comes. It now **starts at Takahide's card choice** (`PlayCards(fromSeat = 2)`): Brogan and Dodger are seated first with their cards already played (as in the concept), Wasp has no cards and passes (moved to (4,−2)), and Takahide holds `takahide-silver` Bushido, `takahide-red-1` Set an Example and `takahide-blue-1` Proven Warrior (resolved gold, green-1). Only Set an Example wins; wrong tries: Bushido, Proven Warrior, swapping in Mad Dash, keeping Shield.
 
 ### C23 — Lift Up into the Line
 - **Theme:** moving an enemy hero without changing its distance; exact maximum range. **Difficulty:** 2. **Heroes:** Wasp, Swift; Dodger (Brogan idle).
@@ -537,6 +541,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** A "Next turn" effect is in force for that entire turn (p.18); Reverse Time flips the initiative order, ties still going by the usual rules (card text, p.7). Tigerclaw has a single card left, so his play is forced and he will have no card to defend with (p.7 "You must play a card, if able"; p.13). Nature's Protector's second bullet needs only a unit in range next to a Tree token (card text).
 - **Rules:** p.7 Play one card, Check the initiative; p.13 Attacking a hero; p.18 Next Turn.
 - **Risk:** none (the starting phase "play a card" must be supported by the puzzle builder).
+- **Encoded as p24 (changed, 2026-10-24):** as written the first card offered at each step (Wuk's red-1, Emmitt's silver) wins: a click-through with no initiative decision. Now the reversal itself is the trap: **Tigerclaw's last card is Hit and Run (9)** (seated first, already played), so under Reverse Time anything above 9 comes after him. Wuk at (0,−5) holds `wuk-gold` Tree Slam (11) and `wuk-red-1` Nature's Protector (7) (resolved silver, blue-1, green-1); the Tree is at (0,−4), adjacent to Wuk; Tigerclaw at (2,−5) is in Tree Slam's range but not next to the Tree. Emmitt at (−1,−2) holds `emmitt-green-1` Time Walk (6) and `emmitt-blue-1` Time Snare (8) (resolved red-1, silver, gold). Solution: Nature's Protector + Time Walk; Emmitt (6) moves Tigerclaw SW to (0,−3), next to the Tree, then Wuk (7) shoots him. Wrong tries: Tree Slam ("11 is faster", but reversed it comes after his 9 and he walks away), Time Snare, Time Walk NE. Dodger has no cards (passes; seated second) — this also keeps the off-key replies fast. Same lesson, now with a real initiative choice.
 
 ### C25 — Cold Snap
 - **Theme:** minion defence modifiers; moving every enemy unit at once; blocked moves. **Difficulty:** 2. **Heroes:** Tali, Brogan; Wasp (Dodger idle).
@@ -571,6 +576,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Defeating the last enemy minion in the BZ pushes the Lane at once (p.8); if the enemy Throne Zone becomes the new BZ, the team that won the push wins (p.8 step 2). The heavy minion is Immune while a friendly non-heavy minion remains (p.13). Blood Fury's repeat needs an enemy hero in radius with a discarded card (card text).
 - **Rules:** p.8 Push the Lane, Triggering a Push; p.10 Repeat; p.13 Heavy Minion Immunity.
 - **Risk:** none.
+- **Encoded as p26 (2026-10-24):** as in the concept (the immune heavy is never offered first; Xargatha is the first target offered and the tempting wrong try). The repeat is asked as a yes/no first.
 
 ### C27 — Rain of Arrows
 - **Theme:** items change "maximum range"; mandatory repeat on a second hero. **Difficulty:** 2. **Heroes:** Silverarrow; Dodger, Tigerclaw, Xargatha (Wuk idle).
@@ -587,6 +593,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Each item adds +1 to the matching icon on your cards; a Range item raises the Range icon of ranged cards (p.16), so "maximum range" is 4 here. Rain of Arrows' repeat on a different hero is part of the same action (p.10 Repeat). Two tier-I heroes defeated cost Red two counters (p.13).
 - **Rules:** p.9 Range; p.10 Repeat; p.13 When a hero is defeated; p.16 Item bonus.
 - **Risk:** none.
+- **Encoded as p27 (changed, 2026-10-24):** as written the d3 Xargatha is never offered (the engine only offers units at maximum range), leaving Dodger and Tigerclaw as the only targets in order: a click-through. Now all three Red heroes stand at d4 and two keep a card: **Tigerclaw `tigerclaw-blue-1` Dodge** (no Defense value, but it blocks ranged attacks; played green-1) and **Xargatha at (3,−3) `xargatha-green-1` Charm** (Defense 3 < 4; played red-1); Dodger none. Silverarrow picks two: Dodger and Xargatha win (either order); any line with Tigerclaw fails (he is the first option). Wuk (−1,−3) and Arien (−1,1) are Blue's idle heroes.
 
 ### C28 — Angry Stampede
 - **Theme:** straight-line movement through units; Last Push; the right line among several. **Difficulty:** 2. **Heroes:** Wuk; Dodger (Xargatha, Garrus idle).
@@ -603,6 +610,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Moving "through" units is possible only while ignoring obstacles, and the move must end on an empty space (p.18 Ignoring Obstacles). Angry Stampede defeats up to two minions you passed — both at once, so the heavy-immunity trap does not arise here (Wuk FAQ). The last enemy minion defeated pushes the Lane and the final Wave counter ends the game (p.8, p.3).
 - **Rules:** p.3 Last Push; p.8 Triggering a Push; p.18 Ignoring Obstacles; p.19 Straight line.
 - **Risk:** none.
+- **Encoded as p28 (2026-10-24):** as in the concept. The engine asks "move in a straight line, ignoring obstacles?" (yes), then the end space (20 offered; only (4,−2) wins), then the minions to defeat.
 
 ### C29 — Threaten the Guards
 - **Theme:** minion defence modifiers; repeat on a different target; "farther away" moves. **Difficulty:** 2. **Heroes:** Garrus, Brogan; Wasp.
@@ -620,6 +628,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Each adjacent friendly melee minion adds +1 Defense (p.14). A repeat performs the whole action again with the same restrictions but a new choice of target unless the card says otherwise (p.10). "Farther" is measured by spaces from Garrus (p.17), and moved minions must stay in the BZ or they walk straight back (p.18).
 - **Rules:** p.10 Repeat; p.14 Minion defense modifiers; p.17 Farther; p.18 Minions Outside of the Battle Zone.
 - **Risk:** `RISKY` (low): the repeat choosing a different unit relies on p.10's general rule (cards that require the same target say so, e.g. Lift Up).
+- **Encoded as p29 (2026-10-24):** as in the concept, plus Xargatha as Red's idle second hero at (−2,1) (a game has equal teams). Either guard may go first; the first may go to (4,−5) or (3,−4). The engine's Threaten repeat may pick any unit (GarrusHero), matching the reading above.
 
 ### C30 — Three Obstacles
 - **Theme:** "adjacent to 3 or more obstacles" (units, terrain, water); a teammate creates the condition. **Difficulty:** 2. **Heroes:** Tigerclaw, Brynn; Dodger.
@@ -637,6 +646,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Units, terrain and the water around the board are all obstacles (p.18, p.19; Brynn's reminder text "You, other heroes, minions, tokens, and terrain"). Blink Strike's jump must be exactly 2 spaces through an enemy unit (Tigerclaw FAQ), and Tigerclaw's 13 resolves before Brynn's 12 (p.7).
 - **Rules:** p.7 initiative; p.11 Movement in the card text; p.18 Obstacle; p.19 Terrain.
 - **Risk:** none.
+- **Encoded as p30 (2026-10-24):** as in the concept. Both Blink landings are offered (the right one first); Brynn's first bullet (the adjacent minion) is the first option and loses.
 
 ### C31 — Knife of the Living Dead
 - **Theme:** token arithmetic with a limited number of choices. **Difficulty:** 2. **Heroes:** Mortimer; Wasp (Sabina, Brogan idle).

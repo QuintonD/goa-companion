@@ -12,5 +12,15 @@ object Puzzles {
         P14LongThrust,
         P17IntoTheWall,
         P34RespawnWhereItCounts,
+        P16GetOverHere,
+        P18RunecasterAtMaximumRange,
+        P21ChargeOntoTheSpawnPoint,
+        P22ChangeOfPlans,
+        P24ReverseTime,
+        P26BloodFuryToTheThrone,
+        P27RainOfArrows,
+        P28AngryStampede,
+        P29ThreatenTheGuards,
+        P30ThreeObstacles,
     )
 }
