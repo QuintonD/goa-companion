@@ -7,6 +7,8 @@ plugins {
 dependencies {
     api(projects.core.model)
     api(projects.core.domain)
+    // Play against the computer (ADR-035): the engine contract and GameEngine.
+    api(projects.core.game)
     implementation(projects.core.database)
     implementation(projects.core.datastore)
     implementation(libs.kotlinx.coroutines.android)

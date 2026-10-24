@@ -192,6 +192,20 @@ object NavSheet {
     val matchId: String? = null,
 ) : NavKey
 
+// Play against the computer (ADR-035, owner: board)
+
+/**
+ * A new game against the computer: line-up, who you control, difficulty, length, map, Coach.
+ * [red]/[blue] pre-fill the teams (hero ids in pick order), e.g. from a draft or a finished game.
+ */
+@Serializable data class NewGameRoute(
+    val red: List<String> = emptyList(),
+    val blue: List<String> = emptyList(),
+) : NavKey
+
+/** A game against the computer, saved under [gameId] (created by New game, resumed from Boards). */
+@Serializable data class PlayRoute(val gameId: String) : NavKey
+
 // Group sync (ADR-025, owner: sync)
 
 /** The group: start or join one; once joined, invite, sync, share or import a sync file, leave. */
