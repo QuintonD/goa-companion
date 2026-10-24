@@ -492,13 +492,16 @@ class PuzzleViewModel internal constructor(
     private fun scheduleIdle() {
         idle?.cancel()
         val puzzle = info ?: return
-        if (!nudgesOn || phase != PuzzlePhase.SOLVING || nudgeVisible || replay != null) return
-        if (nudgeLevel >= puzzle.nudges.size) return
+        if (!nudgesOn || !waitingForNudge || nudgeLevel >= puzzle.nudges.size) return
         idle = viewModelScope.launch {
             delay(timing.idleNudgeMs)
-            if (isActive && phase == PuzzlePhase.SOLVING && !busy && replay == null && !nudgeVisible) showNudge()
+            if (isActive && !busy && waitingForNudge) showNudge()
         }
     }
+
+    /** The player is on a question with no nudge showing (and not watching the replay). */
+    private val waitingForNudge: Boolean
+        get() = phase == PuzzlePhase.SOLVING && replay == null && !nudgeVisible
 
     // ---- The solution, replayed ------------------------------------------------------------
 
@@ -528,15 +531,21 @@ class PuzzleViewModel internal constructor(
         fun since(): List<String> = s.game.events.drop(seen).also { seen = s.game.events.size }
             .filterNot { it is GameEvent.RoundStarted || it is GameEvent.TurnStarted }
             .map { it.text }
-        var guard = 0
-        while (guard++ < MAX_STEPS && s.status == PuzzleStatus.PLAYING) {
-            val decision = s.game.pending ?: break
-            val choice = s.bestChoice() ?: break
+        var accepted = true
+        while (accepted && steps.size < MAX_STEPS) {
+            val (decision, choice) = bestMove(s) ?: break
             steps += ReplayStep(openView(s.game), decision, choice, since())
-            if (s.answer(decision.id, choice) !is AnswerResult.Accepted) break
+            accepted = s.answer(decision.id, choice) is AnswerResult.Accepted
         }
         steps += ReplayStep(openView(s.game), null, null, since())
         return steps
+    }
+
+    /** The player's question and the solver's answer to it, while the puzzle is still being played. */
+    private fun bestMove(s: PuzzleSession): Pair<Decision, Choice>? {
+        if (s.status != PuzzleStatus.PLAYING) return null
+        val decision = s.game.pending ?: return null
+        return s.bestChoice()?.let { decision to it }
     }
 
     private fun step(by: Int) {
@@ -581,65 +590,10 @@ class PuzzleViewModel internal constructor(
         val r = replay
         val snapshot = withContext(engine) { Snapshot(s.game.pending, openView(s.game), s.game.events.toList()) }
         val live = interim
-        val decision = snapshot.pending?.takeIf { phase == PuzzlePhase.SOLVING && it.seat in mine }
         val step = r?.steps?.getOrNull(r.index)
-        val table = if (step != null) {
-            TableUi(
-                map = board,
-                view = step.view,
-                heroes = heroes,
-                cards = cards,
-                mine = mine,
-                decision = step.decision,
-                asking = false,
-                selected = step.choice,
-                bottomTeam = bottomTeam,
-            )
-        } else {
-            TableUi(
-                map = board,
-                view = live?.first ?: snapshot.view,
-                heroes = heroes,
-                cards = cards,
-                mine = mine,
-                decision = if (live == null) decision else null,
-                asking = live == null && decision != null && !busy,
-                selected = selected?.takeIf { decision != null && it in decision.options },
-                bottomTeam = bottomTeam,
-                hint = hint?.takeIf { decision != null && it in decision.options },
-            )
-        }
-        val replayUi = if (r != null && step != null) {
-            ReplayUi(
-                index = r.index,
-                count = r.steps.size,
-                title = when {
-                    step.decision != null && step.choice != null ->
-                        "${heroes.hero(step.decision.seat).name} · ${step.decision.prompt}: " +
-                            table.label(step.choice)
-
-                    r.steps.lastOrNull() == step && r.steps.size > 1 -> "Goal met: ${puzzle.goal.text}"
-
-                    else -> "The solution can't be shown for this position."
-                },
-                lines = step.lines,
-                last = r.index == r.steps.lastIndex,
-                solved = step.decision == null && r.steps.size > 1,
-                afterSolve = r.afterSolve,
-            )
-        } else {
-            null
-        }
-        val nudge = if (nudgeVisible && nudgeLevel > 0) {
-            NudgeUi(
-                text = puzzle.nudges[nudgeLevel - 1],
-                level = nudgeLevel,
-                total = puzzle.nudges.size,
-                hint = table.hint?.let(table::label),
-            )
-        } else {
-            null
-        }
+        val table = if (step != null) replayTable(board, step) else liveTable(board, snapshot)
+        val replayUi = if (r != null && step != null) replayUi(puzzle, r, step, table) else null
+        val nudge = nudgeUi(puzzle, table)
         state.value = PuzzleUiState.Ready(
             PuzzleUi(
                 info = puzzle,
@@ -663,6 +617,61 @@ class PuzzleViewModel internal constructor(
                 busy = busy,
                 announcement = announcement,
             ),
+        )
+    }
+
+    private fun replayTable(board: BoardMap, step: ReplayStep) = TableUi(
+        map = board,
+        view = step.view,
+        heroes = heroes,
+        cards = cards,
+        mine = mine,
+        decision = step.decision,
+        asking = false,
+        selected = step.choice,
+        bottomTeam = bottomTeam,
+    )
+
+    /** The live puzzle; while replies are narrated, the board just after the player's move and no question. */
+    private fun liveTable(board: BoardMap, snapshot: Snapshot): TableUi {
+        val live = interim
+        val decision = snapshot.pending?.takeIf { live == null && phase == PuzzlePhase.SOLVING && it.seat in mine }
+        val options = decision?.options.orEmpty()
+        return TableUi(
+            map = board,
+            view = live?.first ?: snapshot.view,
+            heroes = heroes,
+            cards = cards,
+            mine = mine,
+            decision = decision,
+            asking = decision != null && !busy,
+            selected = selected?.takeIf { it in options },
+            bottomTeam = bottomTeam,
+            hint = hint?.takeIf { it in options },
+        )
+    }
+
+    private fun replayUi(puzzle: PuzzleInfo, r: Replay, step: ReplayStep, table: TableUi): ReplayUi {
+        val last = r.index == r.steps.lastIndex
+        val solved = step.decision == null && r.steps.size > 1
+        val title = when {
+            step.decision != null && step.choice != null ->
+                "${heroes.hero(step.decision.seat).name} · ${step.decision.prompt}: ${table.label(step.choice)}"
+
+            solved -> "Goal met: ${puzzle.goal.text}"
+
+            else -> "The solution can't be shown for this position."
+        }
+        return ReplayUi(r.index, r.steps.size, title, step.lines, last, solved, r.afterSolve)
+    }
+
+    private fun nudgeUi(puzzle: PuzzleInfo, table: TableUi): NudgeUi? {
+        if (!nudgeVisible || nudgeLevel == 0) return null
+        return NudgeUi(
+            text = puzzle.nudges[nudgeLevel - 1],
+            level = nudgeLevel,
+            total = puzzle.nudges.size,
+            hint = table.hint?.let(table::label),
         )
     }
 
