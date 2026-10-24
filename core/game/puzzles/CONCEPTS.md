@@ -656,6 +656,9 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** "Before the attack" choices happen before the defence is calculated (p.14 order), and "Choose up to three times" lets you mix bullets in any order (p.10 Modal actions). Each removal needs the token adjacent to the target at that moment. Wasp's adjacent friendly melee gives her +1 (p.14), and equal totals defend.
 - **Rules:** p.10 Modal actions; p.14 order, Defense total, Minion defense modifiers; p.19 Tokens.
 - **Risk:** none.
+- **Encoded as p31 (2026-10-24):** as in the concept. The solver also accepts the other orders of the
+  same three choices (remove Z1 first, or move Z2 and remove it before Z1); the wrong tries tested are
+  "remove Z1 and stop", "move Z2 twice" and "move Z2 to (4,−6)".
 
 ### C32 — Fight as One
 - **Theme:** reusing a resolved skill; range measured from a token (Pyro). **Difficulty:** 2. **Heroes:** Widget; Dodger, Wasp (Garrus idle).

@@ -12,5 +12,6 @@ object Puzzles {
         P14LongThrust,
         P17IntoTheWall,
         P34RespawnWhereItCounts,
+        P31KnifeOfTheLivingDead,
     )
 }
