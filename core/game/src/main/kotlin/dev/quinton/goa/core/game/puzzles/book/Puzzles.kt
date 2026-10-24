@@ -17,5 +17,8 @@ object Puzzles {
         P12FastTravelWithinTheZone,
         P19SmokeOnTheLine,
         P20ClearTheSmoke,
+        P23LiftUpIntoTheLine,
+        P25ColdSnap,
+        P35OnslaughtsForcedStep,
     )
 }
