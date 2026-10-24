@@ -718,4 +718,66 @@ class SwiftTest {
         assertThat(d.s.state.minion(m)).isNull()
         assertThat(d.zoneOf("arien", "arien-gold")).isEqualTo(Zone.HAND)
     }
+
+    // ---- audit E regressions --------------------------------------------------------------------
+
+    @Test
+    fun `Steam Jump - a space that counts as an obstacle for Swift is not offered (Takahide's blade)`() {
+        val d = pos {
+            clearMinions()
+            hero("swift", Team.RED, Hex(-1, -2)) { played("swift-blue-1") } // radius 3
+            hero("takahide", Team.BLUE, Hex(3, -2)) { resolved(1, "takahide-red-2b") }
+            minion(Team.BLUE, MinionType.MELEE, Hex(4, -7))
+            minion(Team.RED, MinionType.MELEE, Hex(-1, -5))
+            turn = 2
+            // Spinning Blade: "This turn: Empty spaces adjacent to you count as obstacles for enemy units."
+            effect("takahide", "takahide-red-2b", Timing.THIS_TURN, ActionKind.ATTACK)
+            phase = PositionPhase.Resolving(next = "swift")
+        }
+        d.action("swift", ActionType.PRIMARY)
+        d.expect(DecisionKind.CHOOSE_SPACE, "swift")
+        assertThat(d.spaces()).contains(Hex(1, -2))
+        assertThat(d.spaces()).doesNotContain(Hex(2, -2)) // next to Takahide: not empty for Swift
+        d.space(1, -2)
+        assertThat(d.at("swift")).isEqualTo(Hex(1, -2))
+    }
+
+    @Test
+    fun `Mark for Death - a minion defeated but not removed (Brogan's Shield) still counts as defeated`() {
+        lateinit var m: String
+        val d = pos {
+            clearMinions()
+            hero("swift", Team.RED, Hex(0, -5)) {
+                played("swift-gold")
+                resolved(1, "swift-green-2b")
+            }
+            hero("brogan", Team.BLUE, Hex(2, -5)) {
+                resolved(1, "brogan-green-1")
+                hand("brogan-silver")
+            }
+            m = minion(Team.BLUE, MinionType.MELEE, Hex(1, -5))
+            minion(Team.BLUE, MinionType.MELEE, Hex(4, -7))
+            minion(Team.RED, MinionType.MELEE, Hex(-1, -2))
+            turn = 2
+            effect("brogan", "brogan-green-1", Timing.THIS_ROUND, ActionKind.SKILL, madeTurn = 1)
+            // Mark for Death played last turn: "Next turn: The first time an enemy minion in radius is
+            // defeated, gain 1 coin."
+            effect(
+                "swift",
+                "swift-green-2b",
+                Timing.NEXT_TURN,
+                ActionKind.SKILL,
+                madeTurn = 1,
+                data = mapOf("left" to "1"),
+            )
+            phase = PositionPhase.Resolving(next = "swift")
+        }
+        d.action("swift", ActionType.PRIMARY)
+        d.option(1) // Reload: defeat a minion adjacent to you
+        d.expect(DecisionKind.CHOOSE_CARD, "brogan")
+        d.card("brogan-silver") // Shield: the minion is not removed
+        assertThat(d.s.state.minion(m)).isNotNull()
+        // p.12: the minion was still defeated (2 coins), so Mark for Death gives its coin too.
+        assertThat(d.hero("swift").coins).isEqualTo(2 + 1)
+    }
 }
