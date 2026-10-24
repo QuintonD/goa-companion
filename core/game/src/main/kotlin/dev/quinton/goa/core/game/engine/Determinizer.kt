@@ -48,7 +48,10 @@ object Determinizer {
                 .sortedWith(compareBy({ it.zone.ordinal }, { it.slot }, { it.faceDown }, { it.played }, { it.tag ?: "" }))
             val ids = members.map { it.id }.sorted().shuffled(rng)
             val byId = h.cards.associateBy { it.id }
-            for ((i, id) in ids.withIndex()) states[i].applyTo(byId.getValue(id))
+            for ((i, id) in ids.withIndex()) {
+                states[i].applyTo(byId.getValue(id))
+                byId.getValue(id).stamp = 0
+            }
         }
     }
 
@@ -70,6 +73,7 @@ object Determinizer {
         if (playedCount == 0) return
         val shuffled = pool.shuffled(rng)
         for ((i, c) in shuffled.withIndex()) {
+            c.stamp = 0 // stamps would tell which card was played last
             if (i < playedCount) {
                 c.zone = Zone.PLAYED
                 c.played = true
