@@ -5,6 +5,9 @@ file is how the code uses it, what each level does, what it costs and how strong
 
 ## Architecture
 
+The app binds these in `core/data/.../game/PlayEngineModule.kt`: `AiPlayers { level -> forLevel(level, seed) }`
+and `AiCoach(factory)`.
+
 | File | What |
 |------|------|
 | `AiPlayers.kt` | `AiPlayers.forLevel(level, seed)` (production, wall-clock capped) and `deterministic(level, seed)` (tests); the four `LevelProfile`s; `SearchAi`, the one `AiPlayer`; `Fallback` (answers from the `Decision` alone) |
@@ -209,8 +212,9 @@ with the rule behind it.
 - **Double lane:** the evaluation sums the lanes; it plays legally (smoke test) but has not been tuned.
 - **Opponent model** is the static card policy: a human who plays unusual cards is guessed poorly
   (15% of each guess is uniform to stay robust).
-- **Only four heroes** were playable when this was tuned; the weights are starting points for
-  re-tuning with self-play (`TournamentTest`, `ExperimentTest`) as heroes arrive.
+- **Tuned on four heroes** (Wasp, Xargatha, Arien, Brogan); all 32 are played legally
+  (`AllHeroesAiTest`), but the ladder and weights should be re-measured over mixed line-ups
+  (`TournamentTest`, `ExperimentTest`; `AiHarness.LINEUPS` still uses the first four).
 - **Wall-clock cap**: on a loaded phone the production player may search less than on the desktop;
   answers are then still legal but no longer reproducible for a seed.
 - **Coach turning points** on quiet turns say only that the heroes "moved into position".
@@ -223,6 +227,7 @@ with the rule behind it.
 | `NoPeekingTest` | Same public view, different hidden enemy cards → same answer at every level; the determinizer keeps every public fact and samples only consistent upgrade histories |
 | `DecisionKindsTest` | Every `DecisionKind` gets a legal answer at every level: in AI games, a Clear action's token choice, and built questions of every kind |
 | `AiSmokeTest` | Full AI games finish: every level, Long, 1v1, 2v1 with a Handicap card, the double-lane map |
+| `AllHeroesAiTest` | 16 seeded AI-vs-AI games over shuffled line-ups that seat each of the 32 heroes twice (Easy, Normal, Hard, two at Expert): all finish, every answer accepted (2026-10-24: 6–18 rounds, all three win types) |
 | `CoachTest` | Nudges on hand-built blunders (no defense, too weak a defense, walking into a revealed attack) and silence on the right choices; turning points of a finished game |
 | `CoachSurveyTest` | The coach speaks on fewer than 15% of a weak player's decisions |
 | `TimingTest` | Decision times per level (prints the table above) |
