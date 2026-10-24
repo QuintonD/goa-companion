@@ -94,10 +94,15 @@ object BrynnHero : HeroModule {
         r.card(ULTIMATE, OverTheTop)
     }
 
-    /** Spaces next to [unitId] that are obstacles now (p.18), for the acting hero's action. */
-    fun Game.obstaclesAround(unitId: String): Int {
+    /**
+     * Spaces next to [unitId] that are obstacles now (p.18), for the acting hero's action; spaces that count
+     * as obstacles for [forHero] (Brynn) count too — designer, BGG 3482037, on Takahide's Spinning Blade
+     * spaces that "count as obstacles for enemy units": "they count for enemy heroes = they count for enemy
+     * heroes card effects". Brynn's own space is an obstacle as well (the card's reminder: "You, …").
+     */
+    fun Game.obstaclesAround(unitId: String, forHero: String? = null): Int {
         val at = posOf(unitId) ?: return 0
-        return HexGrid.neighbors(at).count { isObstacle(it) }
+        return HexGrid.neighbors(at).count { isObstacle(it) || (forHero != null && isObstacle(it, forHero)) }
     }
 
     /**
@@ -109,7 +114,7 @@ object BrynnHero : HeroModule {
     fun ActionScope.obstacleBound(id: String): Boolean {
         if (!g.isHero(id) || g.posOf(id) == null || !canTarget(id)) return false
         if (isEnemy(id) && overTheTop()) return true
-        return g.obstaclesAround(id) >= OBSTACLES
+        return g.obstaclesAround(id, forHero = heroId) >= OBSTACLES
     }
 
     /** p.16: an unlocked Ultimate is in effect while its hero is on the board; "while you are performing actions". */
