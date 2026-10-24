@@ -58,7 +58,7 @@ object MrakHero : HeroModule {
     override fun register(r: Registry) {
         // Removed at the end of round (p.19). The box's Rock supply is not in our sources: not limited
         // ([APP] rulings/mrak.md).
-        r.token(TokenKind(ROCK, "Rock token", supply = null))
+        r.token(TokenKind(ROCK, "Rock", supply = null))
         // Fissure: "Target a unit adjacent to you. After the attack: Place a Rock token in each of the
         // first three empty spaces in the straight line from you in the direction of the attack."
         r.card("mrak-gold", Fissure(heroOnly = false))

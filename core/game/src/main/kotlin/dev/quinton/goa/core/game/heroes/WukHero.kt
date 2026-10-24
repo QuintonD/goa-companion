@@ -56,7 +56,7 @@ object WukHero : HeroModule {
     override fun register(r: Registry) {
         // Mystic Saplings: "Tree tokens are not removed at the end of round." The box's Tree supply is
         // not in our sources: not limited ([APP] rulings/wuk.md).
-        r.token(TokenKind(TREE, "Tree token", supply = null, removeAtEndOfRound = false))
+        r.token(TokenKind(TREE, "Tree", supply = null, removeAtEndOfRound = false))
         // Tree Slam: "Choose one — • Target a minion adjacent to you. • Remove a Tree token adjacent to
         // you. Target a unit in range."
         r.card("wuk-gold", TreeSlam(heroOnly = false))

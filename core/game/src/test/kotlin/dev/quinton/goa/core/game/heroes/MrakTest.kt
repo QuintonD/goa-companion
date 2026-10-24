@@ -601,6 +601,26 @@ class MrakTest {
         assertThat(d.zoneOf("wasp", "wasp-gold")).isEqualTo(Zone.HAND)
     }
 
+    @Test
+    fun `Rock and a Hard Place - an immune enemy hero next to the rocks neither counts nor discards`() {
+        val d = pos {
+            clearMinions()
+            hero("mrak", Team.RED, Hex(0, -2)) {
+                played("mrak-gold")
+                ultimate()
+            }
+            minion(Team.BLUE, MinionType.MELEE, Hex(1, -2))
+            hero("brogan", Team.BLUE, Hex(2, -1)) { hand("brogan-gold") } // next to (2,-2)
+            // Master Duelist: immune to attack actions (Fissure) of enemy heroes other than Wasp.
+            hero("arien", Team.BLUE, Hex(3, -3)) { hand("arien-gold") }
+            effect("arien", "arien-blue-3a", Timing.THIS_ROUND, ActionKind.DEFENSE, data = mapOf("attacker" to "wasp"))
+            phase = PositionPhase.Resolving(next = "mrak")
+        }
+        d.action("mrak", ActionType.PRIMARY)
+        assertThat(d.zoneOf("brogan", "brogan-gold")).isEqualTo(Zone.DISCARD)
+        assertThat(d.zoneOf("arien", "arien-gold")).isEqualTo(Zone.HAND)
+    }
+
     // ---- random games ----------------------------------------------------------------------------
 
     @Test

@@ -214,6 +214,22 @@ class WukTest {
     }
 
     @Test
+    fun `Nature's Protector - a hero immune to Wuk's attacks next to a tree is not offered`() {
+        val d = pos {
+            clearMinions()
+            hero("wuk", Team.RED, Hex(1, -2)) { played("wuk-red-1") }
+            hero("brogan", Team.BLUE, Hex(2, -2)) { hand("brogan-blue-1") }
+            // Master Duelist: immune to attack actions of enemy heroes other than Wasp this round.
+            hero("arien", Team.BLUE, Hex(3, -3))
+            effect("arien", "arien-blue-3a", Timing.THIS_ROUND, ActionKind.DEFENSE, data = mapOf("attacker" to "wasp"))
+            token(WukHero.TREE, Hex(4, -3), owner = "wuk")
+            phase = PositionPhase.Resolving(next = "wuk")
+        }
+        d.action("wuk", ActionType.PRIMARY)
+        d.expect(DecisionKind.DEFEND, "brogan")
+    }
+
+    @Test
     fun `Nature's Guardian - Range 3`() {
         lateinit var m: String
         val d = pos {
