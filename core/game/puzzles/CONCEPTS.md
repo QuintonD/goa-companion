@@ -958,6 +958,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** End-of-round effects marked "before the minion battle" fire first (card reminder), then the Minion Battle removes the difference and a team that loses its last minion is pushed (p.8). Necromancy may bring back any removed friendly minion onto any friendly spawn point, but only one that was in play this wave (Dodger FAQ; p.19 Respawn: there must be more spawn points of that type than such minions present).
 - **Rules:** p.8 Minion Battle, Push the Lane; p.17 End of Round; p.19 Respawn; FAQ Dodger (Necromancy).
 - **Risk:** `RISKY` (low): respawning a ranged/heavy minion onto a *melee* spawn point rests on the Dodger FAQ ("it need not be a matching minion type").
+- **Encoded as p48 (2026-10-24):** as in the concept (Tigerclaw and Arien seated idle, hands chosen: Dodger keeps `dodger-blue-1`). Necromancy offers the minion type as a choice (melee first, so the first option loses); ranged and heavy both win. The Minion Battle removal is Dodger's choice and either minion wins.
 
 ### C49 — Prey Drive's Dilemma
 - **Theme:** the defender's best reply — sometimes being defeated is the better defence; make both answers lose. **Difficulty:** 3. **Heroes:** Ursafar; Brogan, Wasp (Garrus idle).
@@ -975,6 +976,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** A defender may always choose not to defend (p.13), and the solver will when that blocks the bonus. Removing the last enemy minion pushes the Lane at once (p.8) — removal counts as well as defeat. Life counters follow the lowest tier (p.13): Wasp's defeat ends the game, Brogan's does not.
 - **Rules:** p.3 Last Push; p.8 Triggering a Push; p.13 Attacking a hero, When a hero is defeated; p.17 Active Effects.
 - **Risk:** none.
+- **Encoded as p49 (2026-10-24):** as in the concept (Garrus seated idle). The engine totals Wasp's defence as 5 + 1 (item) − 1 (adjacent heavy) = 5 against 5; her best reply is to defend, then Ursafar removes the Red minion. Prey Drive on Brogan is refuted by Brogan not defending.
 
 ### C50 — Shoot, Push, Scoot
 - **Theme:** a mid-turn push empties the old Battle Zone and opens Fast Travel; maximum range. **Difficulty:** 3. **Heroes:** Silverarrow; Xargatha, Brogan (Arien idle).
@@ -993,6 +995,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Defeating the last enemy minion pushes the Lane in the middle of the turn and removes every minion from the old BZ (p.8). "After the attack" applies after the target is removed (p.17), so the Fast Travel check sees the emptied Zone: no enemy heroes or minions in the Zone you leave or enter (p.11). The turn then continues in initiative order (p.8).
 - **Rules:** p.8 Push the Lane, Triggering a Push; p.9 Range; p.11 Fast Travel; p.17 After the attack.
 - **Risk:** none.
+- **Encoded as p50 (2026-10-24):** as in the concept (Arien seated idle; Xargatha keeps `xargatha-blue-1`, Brogan `brogan-blue-1`). After the push every Fast Travel space offered (Blue's pre-Throne Zone and the side Zones, ~70) wins; Red's pre-Throne Zone is not offered.
 
 ### C51 — Ice in the Veins
 - **Theme:** initiative changed mid-turn by tokens; moving an enemy into them. **Difficulty:** 3. **Heroes:** Tali, Brogan; Tigerclaw (Dodger idle).
@@ -1027,6 +1030,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Chilling Howl's first sentence discards one of Garrus's resolved cards; Battle Fury then lets him perform that card's primary action (Ultimate text). Items raise the Attack icon of every card (p.16). Acting at 14, Garrus resolves before Tigerclaw's 12 (p.7).
 - **Rules:** p.7 initiative; p.10 Discard a card, card states; p.16 Ultimate, Item bonus.
 - **Risk:** `RISKY`: the timing of a triggered primary action in the middle of another card's text, and that Hunt Down's discard condition counts the card itself once it is in the discard. Both are natural readings; neither is spelled out.
+- **Encoded as p52 (changed, 2026-10-24):** round 4 instead of 2 (a level-8 Garrus in round 2 is not a reachable game), and Wasp and Arien have **already resolved** (as written, Arien's unresolved card would act after Tigerclaw as an AI teammate, against the conventions). Tigerclaw: resolved gold, green-1, discard silver. Any of the four spaces next to Tigerclaw wins.
 
 ### C53 — Death Grenade
 - **Theme:** an End-of-turn effect; the opponent's best reply with a moving card. **Difficulty:** 3. **Heroes:** Min; Tigerclaw, Wasp (Arien idle).
@@ -1062,6 +1066,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Ignatia's cards apply the text matching the symbol on the Tie Breaker coin at the moment the action is performed (card reminder). The Ultimate's flip happens after the first performance and the repeat must choose different targets (Ultimate text; p.10 Repeat). A hero with no cards cannot defend (p.13).
 - **Rules:** p.5 Tie Breaker coin; p.7 Tied Initiative (the coin); p.10 Repeat; p.13 Attacking a hero.
 - **Risk:** `RISKY`: which coin face is "{blue}" and which is "{orange}" — read as the Blue team's side and the Red team's side (the community engine reads it the same way). The puzzle only needs "the face shown now gives the minion text; the other gives the hero text"; encode it from whichever mapping the engine adopts.
+- **Encoded as p54 (2026-10-24):** as in the concept; the engine maps `{tiebreaker_blue}` to the coin's Blue side (rulings/ignatia.md 1), so with Blue showing the first bolt hits the adjacent minion and the flipped bolt a hero. Xargatha is seated before Tigerclaw, so the first target offered is the wrong one.
 
 ### C55 — The Push Strips the Guard
 - **Theme:** a mid-turn push respawns minions next to an enemy hero; defence modifiers change instantly. **Difficulty:** 3. **Heroes:** Swift, Brogan; Arien (Dodger idle).
@@ -1097,6 +1102,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** "If you defeat the last enemy minion, the wave will push and repeating your attack could allow you to defeat a freshly respawned minion" (p.10). The push is immediate (p.8), so the second bullet sees the new BZ; "friendly" never includes yourself (p.17). Minions are worth 2 coins (p.13).
 - **Rules:** p.8 Triggering a Push; p.10 Modal actions, Repeat note; p.13 Attacking a minion; p.17 Friendly.
 - **Risk:** `RISKY` (low): treating Pile On's "Choose one, or both, in any order" like the p.10 repeat note — the second bullet is chosen after the first resolves.
+- **Encoded as p56 (changed, 2026-10-24):** as written every first option won (the only adjacent target was the minion, and the "Also the second bullet?" confirm offers Yes first), so **Dodger (Blue, L3, no cards, already resolved) stands next to Hanu at (4,−3)** as the tempting target: 3 coins for her defeat, but no push, so no second target. Only Hanu is a player seat (Tigerclaw's assist coins would otherwise make the Dodger line reach 4) and the goal reads "Hanu gains at least 4 coins"; Arien and Dodger are the idle Blue heroes.
 
 ### C57 — Turned to Stone
 - **Theme:** "counts as terrain"; ordering a same-team tie; the opponent's sacrifice. **Difficulty:** 3. **Heroes:** Mrak, Xargatha; Dodger, Wasp.
@@ -1114,6 +1120,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** An object that counts as another type takes on that type's rules (p.17 Counts as), so a stone-gazed hero is terrain for Seismic Slam. The Stone Gaze radius is measured from Xargatha's current space (p.17 Active Effects), and same-team ties are ordered by the team (p.7). A defender may always decline to defend (p.13).
 - **Rules:** p.7 Tied Initiative; p.13 Attacking a hero; p.17 Active Effects, Counts as; p.18 Next Turn.
 - **Risk:** `RISKY` (low): "counts as … terrain" satisfying "adjacent to terrain" — directly supported by p.17 Counts as and the Xargatha FAQ ("count as both heroes and terrain"), but not illustrated anywhere.
+- **Encoded as p57 (changed, 2026-10-24):** position as written, but the same-team order is not forced: Xargatha may act first if she holds or stays within 2 of Wasp (any card she plays can Hold), so the puzzle teaches "a petrified hero is terrain, and don't remove that terrain"; the tie is part of the choice and both orders are accepted. Wrong tries: Xargatha striking Wasp (Red declines to defend), Xargatha walking away, Slam on Wasp.
 
 ### C58 — Unexpected Journey
 - **Theme:** swapping places with an enemy; the swapped enemy becomes the obstacle; temporary immunity. **Difficulty:** 3. **Heroes:** Hanu, Wuk; Xargatha, Brogan.
@@ -1131,6 +1138,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** A swap is neither movement nor placement and just exchanges the two pieces (p.19 Swap); the swapped enemy is immune this turn (card text) and still an obstacle (p.18). Threatening Slash only reaches adjacent units (p.13), and Mad Dash needs two empty spaces in a line (p.11). The End-of-turn swap back happens after everyone has acted (p.17).
 - **Rules:** p.11 Movement in the card text; p.13 Non-ranged attacks; p.17 End of Turn; p.18 Immune, Obstacle; p.19 Swap.
 - **Risk:** none.
+- **Encoded as p58 (changed, 2026-10-24):** as written (Brogan and Xargatha both 7, Red orders them) the swap is refuted: Xargatha acts first, steps off Hanu's old space with her Movement action, and Brogan charges through it to Wuk. Now **Brogan is L2 with an Initiative item (`brogan-blue-2a`; keeps `brogan-blue-2b`)**, so Mad Dash is 8 and he acts before Xargatha; the swapped Xargatha is the wall when he moves. **Wuk is a player seat** too, so his defeat fails the Survive goal.
 
 ### C59 — Mind Grip
 - **Theme:** using an enemy's previous card (NebKher); a borrowed movement-attack. **Difficulty:** 3. **Heroes:** NebKher; Dodger, Brogan, Wasp (Sabina idle).
@@ -1149,6 +1157,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Mind Grip performs an action of the card in the enemy's previous turn slot as if it were NebKher's (NebKher FAQ: copied attacks keep their kind — a copied non-ranged attack is non-ranged; copied active effects work normally). Mad Dash's text then applies with NebKher as the mover (p.11), and a hero with no cards cannot defend (p.13).
 - **Rules:** p.11 Movement in the card text; p.13 Attacking a hero; FAQ NebKher (Mind Grip).
 - **Risk:** `RISKY`: which values a copied attack uses — the copied card's printed Attack (6) and whether NebKher's own items apply. The puzzle avoids the question (no items; Dodger has no card, so any Attack value wins).
+- **Encoded as p59 (changed, 2026-10-24):** Dodger's turn slots are gold (T1) and **silver Death Trap (T2)**, discard red-1 and blue-1: with Littlefinger of Death in her previous slot NebKher could copy its second bullet ("a hero in range who has one or more cards in the discard", range 2) and shoot her, and with Dread Razor its second bullet (NebKher is next to the empty spawn point (2,−3)): unintended solutions. Seated 3v2 without Handicap (Life counters set). Both Mad Dash lines (to (3,−2) and (3,−4)) win.
 
 ### C60 — Hold My Saké
 - **Theme:** card states — bringing a discarded card back as this turn's card; initiative of the new card. **Difficulty:** 3. **Heroes:** Takahide, Brogan; Dodger (Wasp idle).
@@ -1166,6 +1175,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Swapping two cards swaps all their states (p.10): the discarded Mad Dash becomes played and unresolved, so it resolves at its own initiative in the normal order (p.7). Its exact 2-space move reaches a square next to Dodger (p.11).
 - **Rules:** p.7 Resolve your card; p.10 Swap a card; p.11 Movement in the card text.
 - **Risk:** none.
+- **Encoded as p60 (2026-10-24):** as in the concept (Wasp idle with `wasp-green-1` played). Takahide and Brogan are both player seats, so Brogan's swap is the player's choice; both Mad Dash lines win.
 
 ---
 
