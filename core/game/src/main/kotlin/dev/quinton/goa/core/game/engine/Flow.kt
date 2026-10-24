@@ -281,7 +281,8 @@ fun Game.resolveCard(heroId: String) {
         val answer = ask(heroId, DecisionKind.RESPAWN, "Respawn in your Throne Zone?", options, cardId, auto = false)
         if (answer is Choice.Space) {
             setPos(heroId, answer.hex)
-            emit(GameEvent.Placed(heroId, null, answer.hex, "${heroName(heroId)} respawns in ${spaceName(answer.hex)}."))
+            val text = "${heroName(heroId)} respawns in ${spaceName(answer.hex)}."
+            emit(GameEvent.Placed(heroId, null, answer.hex, text))
             trigger(Trigger.Placed(heroId, null, answer.hex, heroId))
         } else {
             note("${heroName(heroId)} stays off the board; ${cardName(cardId)} is resolved without an action.")

@@ -133,7 +133,8 @@ object SilverarrowHero : HeroModule {
         )
         if (answer !is Choice.Space) return
         g.setPos(heroId, answer.hex)
-        g.emit(GameEvent.Placed(heroId, me, answer.hex, "${g.heroName(heroId)} fast travels to ${g.spaceName(answer.hex)}."))
+        val text = "${g.heroName(heroId)} fast travels to ${g.spaceName(answer.hex)}."
+        g.emit(GameEvent.Placed(heroId, me, answer.hex, text))
         g.trigger(Trigger.Placed(heroId, me, answer.hex, heroId))
     }
 

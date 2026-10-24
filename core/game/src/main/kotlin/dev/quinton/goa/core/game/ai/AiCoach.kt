@@ -219,11 +219,15 @@ internal class Explainer(
         val (by, card) = killers.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key ?: return null
         val enemy = data.heroName(by)
         val revealedCard = card?.takeIf { cardIsOpen(by, it) }?.let { cardName(it) }
-        val where = mine is Choice.Space || d.kind == DecisionKind.CHOOSE_ACTION || d.kind == DecisionKind.RESPAWN
+        val where = mine is Choice.Space || d.kind == DecisionKind.RESPAWN
+        // Choosing an action is not choosing a space: "that space" read as the space the hero stands on.
+        val action = d.kind == DecisionKind.CHOOSE_ACTION
         val text = when {
             revealedCard != null && where -> "$enemy's $revealedCard can still reach that space."
+            revealedCard != null && action -> "$enemy's $revealedCard can still reach $name after this action."
             revealedCard != null -> "$enemy's $revealedCard can still defeat $name after this."
             where -> "$enemy can still reach $name there."
+            action -> "$enemy can still reach $name after this action."
             else -> "This leaves $name open to $enemy."
         }
         return text to (modifierDetail() ?: DEFENSE_DETAIL)
@@ -295,6 +299,7 @@ internal class Explainer(
     }
 
     private fun killReason(): Pair<String, String>? {
+        if (bestHolds()) return null
         val bestKill = share(best) { kills(it) > 0 }
         val mineKill = share(mine) { kills(it) > 0 }
         if (bestKill - mineKill < 0.6) return null
@@ -321,7 +326,15 @@ internal class Explainer(
             l.end.state.hero(e.byHeroId!!)?.team == team
     }
 
+    /**
+     * Holding takes nothing: when it is the better option, minions or heroes defeated later in its
+     * playouts are not its doing, so "there is a minion for the taking" would send the player looking
+     * for an attack that isn't there (hands-on round: Hold over Movement with no target in reach).
+     */
+    private fun bestHolds(): Boolean = (best as? Choice.Action)?.action == ActionType.HOLD
+
     private fun minionReason(): Pair<String, String>? {
+        if (bestHolds()) return null
         val more = leaves(best).map { minionKills(it) }.average() - leaves(mine).map { minionKills(it) }.average()
         if (more.isNaN() || more < 0.7) return null
         val text = when (val b = best) {

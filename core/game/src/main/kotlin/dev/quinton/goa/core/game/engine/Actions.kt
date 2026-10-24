@@ -536,7 +536,8 @@ fun Game.fastTravel(heroId: String, cardId: String?, optional: Boolean = false) 
     if (answer is Choice.Space) {
         val from = hero(heroId).at
         setPos(heroId, answer.hex)
-        emit(GameEvent.Placed(heroId, from, answer.hex, "${heroName(heroId)} fast travels to ${spaceName(answer.hex)}."))
+        val text = "${heroName(heroId)} fast travels to ${spaceName(answer.hex)}."
+        emit(GameEvent.Placed(heroId, from, answer.hex, text))
         trigger(Trigger.Placed(heroId, from, answer.hex, heroId))
     }
 }
