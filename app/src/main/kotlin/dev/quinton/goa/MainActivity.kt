@@ -18,15 +18,19 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.IntentCompat
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.navigation.EXTRA_OPEN_TAB
 import dev.quinton.goa.core.navigation.TopLevelTab
+import dev.quinton.goa.feature.sync.server.SyncServerScheduler
 import dev.quinton.goa.ui.GoaApp
 import dev.quinton.goa.ui.SyncFileRequest
 import dev.quinton.goa.ui.TabRequest
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 
 @AndroidEntryPoint
@@ -40,9 +44,19 @@ class MainActivity : ComponentActivity() {
     private val syncFileRequests = MutableStateFlow<SyncFileRequest?>(null)
     private var requestCount = 0L
 
+    @Inject lateinit var serverSync: SyncServerScheduler
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
+        // On screen: sync with the group's sync server now and every few minutes (ADR-036).
+        lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onStart(owner: LifecycleOwner) = serverSync.onScreen(true)
+
+                override fun onStop(owner: LifecycleOwner) = serverSync.onScreen(false)
+            },
+        )
         // A recreated activity (rotation, process restore) keeps its tab; only a real launch obeys the intent.
         val coldStart = savedInstanceState == null
         if (coldStart) handle(intent)

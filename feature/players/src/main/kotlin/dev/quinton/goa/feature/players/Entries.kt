@@ -189,7 +189,11 @@ private fun PlayersHomeEntry(navigator: Navigator) {
             onOpenSettings = { navigator.navigate(SettingsRoute) },
             onOpenRatingSettings = { navigator.navigate(RatingSettingsRoute) },
             onShareStats = statsVm::share,
-            onOpenSync = { navigator.navigate(if (players.inGroup) SyncSessionRoute() else GroupSyncRoute) },
+            onOpenSync = {
+                // A server problem a person must fix opens the Group screen, where it is explained.
+                val sheet = players.inGroup && !players.serverNeedsAttention
+                navigator.navigate(if (sheet) SyncSessionRoute() else GroupSyncRoute)
+            },
         ),
         followUps = followUps(matchesVm, navigator),
         metaActions = MetaActions(

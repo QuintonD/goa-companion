@@ -68,6 +68,8 @@ import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.sync.invite.InviteQr
+import dev.quinton.goa.feature.sync.server.SyncServerActions
+import dev.quinton.goa.feature.sync.server.SyncServerCard
 
 class GroupActions(
     val onBack: () -> Unit = {},
@@ -81,6 +83,7 @@ class GroupActions(
     val onImportFile: () -> Unit = {},
     val onShareInvite: (String) -> Unit = {},
     val onLeave: () -> Unit = {},
+    val server: SyncServerActions = SyncServerActions(),
 )
 
 @Composable
@@ -137,7 +140,8 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
         }
         Text(
             "Each friend's phone keeps the same matches, players and ratings. Phones sync face to face at the " +
-                "table over Bluetooth and Wi-Fi: no internet, no accounts, no server.",
+                "table over Bluetooth and Wi-Fi, and through the group's sync server when there's internet. No " +
+                "accounts, and the server only ever sees the data locked with the group key.",
             style = MaterialTheme.typography.bodyMedium,
         )
         GoaCard(Modifier.fillMaxWidth()) {
@@ -262,6 +266,8 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                 }
             }
         }
+        item { SectionHeader("Sync server") }
+        item { SyncServerCard(state.server, actions.server) }
         item { SectionHeader("This phone") }
         item {
             GoaCard(Modifier.fillMaxWidth(), onClick = actions.onWhoAreYou) {

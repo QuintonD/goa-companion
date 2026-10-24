@@ -34,6 +34,7 @@ import dev.quinton.goa.feature.sync.invite.ScanResult
 import dev.quinton.goa.feature.sync.me.WhoAreYouActions
 import dev.quinton.goa.feature.sync.me.WhoAreYouScreen
 import dev.quinton.goa.feature.sync.me.WhoAreYouViewModel
+import dev.quinton.goa.feature.sync.server.SyncServerActions
 import dev.quinton.goa.feature.sync.session.SyncSessionActions
 import dev.quinton.goa.feature.sync.session.SyncSessionEntry
 import dev.quinton.goa.feature.sync.session.SyncSessionViewModel
@@ -154,11 +155,19 @@ private fun GroupEntry(navigator: Navigator) {
             onImportFile = { importLauncher.launch(arrayOf("*/*")) },
             onShareInvite = { invite ->
                 // With what to do with it: a bare goa-sync: link means nothing in a chat.
-                val text = GroupInvite.parse(invite).getOrNull()?.let(GroupInvite::shareText) ?: invite
+                val text = GroupInvite.parseInvite(invite).getOrNull()
+                    ?.let { GroupInvite.shareText(it.group, it.serverUrl) } ?: invite
                 val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
                 context.startActivity(Intent.createChooser(send, "Share invite"))
             },
             onLeave = vm::leave,
+            server = SyncServerActions(
+                onSyncNow = vm::syncWithServer,
+                onEnabled = vm::setServerSyncEnabled,
+                onSaveAddress = vm::setServerAddress,
+                onUseDefault = vm::useDefaultServer,
+                onClearAddressError = vm::clearAddressError,
+            ),
         ),
     )
 }
