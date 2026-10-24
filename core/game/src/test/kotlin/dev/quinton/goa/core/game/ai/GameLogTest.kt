@@ -33,7 +33,13 @@ class GameLogTest {
         val decisions = System.getenv("AI_LOG_DECISIONS") != null
         // AI_LOG_VALUES: Hard-level playout values of every option of card plays and actions.
         val values = System.getenv("AI_LOG_VALUES") != null
-        val searcher = Searcher(Evaluator(TestData.engine.data), AiPlayers.profile(AiLevel.HARD))
+        // AI_LOG_LEAVES=<hero>: also the playout events of the first sample for that hero's actions.
+        val leavesOf = System.getenv("AI_LOG_LEAVES")
+        val searcher = Searcher(
+            Evaluator(TestData.engine.data),
+            AiPlayers.profile(AiLevel.HARD),
+            keepLeaves = leavesOf != null,
+        )
         println("LOG Red ${r.joinToString()} ($red) vs Blue ${b.joinToString()} ($blue)")
         var printed = 0
         var n = 0
@@ -45,6 +51,12 @@ class GameLogTest {
                 val a = searcher.analyze(s as EngineSession, d, 7L + d.id, { false }, Long.MAX_VALUE)
                 a?.options?.sortedByDescending { it.mean }?.forEach {
                     println("LOG       ${"%7.2f".format(it.mean)} ±${"%.1f".format(it.sd)} ${it.choice}")
+                }
+                if (d.seat == leavesOf && d.kind == DecisionKind.CHOOSE_ACTION) {
+                    a?.leaves?.filter { it.sample == 0 }?.forEach { l ->
+                        println("LOG       leaf ${l.choice}:")
+                        l.end.events.drop(l.startEvents).forEach { println("LOG         ${it.text}") }
+                    }
                 }
             }
             s.answer(d.id, c)

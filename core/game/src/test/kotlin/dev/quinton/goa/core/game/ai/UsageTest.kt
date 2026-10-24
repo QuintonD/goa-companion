@@ -39,8 +39,11 @@ class UsageTest {
         } finally {
             pool.shutdown()
         }
+        val heroes = TestData.engine.playableHeroes
         val actions = sortedMapOf<String, MutableMap<ActionType, Int>>()
         val defended = HashMap<String, Int>()
+        val defeats = HashMap<String, Int>()
+        val kills = HashMap<String, Int>()
         for (events in all) {
             for (e in events) {
                 when (e) {
@@ -50,6 +53,11 @@ class UsageTest {
                     }
 
                     is GameEvent.Defended -> e.cardId?.let { defended[it] = (defended[it] ?: 0) + 1 }
+
+                    is GameEvent.Defeated -> if (e.unitId in heroes) {
+                        defeats[e.unitId] = (defeats[e.unitId] ?: 0) + 1
+                        e.byHeroId?.let { kills[it] = (kills[it] ?: 0) + 1 }
+                    }
 
                     else -> Unit
                 }
@@ -62,7 +70,8 @@ class UsageTest {
             val prim = cards.sumOf { actions.getValue(it)[ActionType.PRIMARY] ?: 0 }
             val hold = cards.sumOf { actions.getValue(it)[ActionType.HOLD] ?: 0 }
             println(
-                "USAGE $hero: $tot actions, primary ${pct(prim, tot)}, hold ${pct(hold, tot)} | " +
+                "USAGE $hero: $tot actions, primary ${pct(prim, tot)}, hold ${pct(hold, tot)}, " +
+                    "defeated ${defeats[hero] ?: 0}, kills ${kills[hero] ?: 0} | " +
                     cards.joinToString("; ") { c ->
                         val m = actions.getValue(c)
                         "${data.card(c).name} " + m.entries.joinToString(" ") { "${it.key.name.take(2)}${it.value}" } +

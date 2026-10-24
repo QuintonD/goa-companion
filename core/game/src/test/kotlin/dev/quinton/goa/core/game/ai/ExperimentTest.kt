@@ -29,7 +29,6 @@ class ExperimentTest {
                     "${n}NoShallow" to p.copy(shallow = false),
                     "${n}NoPieces" to p.copy(knobs = p.knobs.copy(pieces = 0.0)),
                     "${n}Old" to p.copy(shallow = false, knobs = p.knobs.copy(pieces = 0.0)),
-                    "${n}Discard45" to p.copy(knobs = p.knobs.copy(discardNoSpare = 4.5)),
                 )
             }
 

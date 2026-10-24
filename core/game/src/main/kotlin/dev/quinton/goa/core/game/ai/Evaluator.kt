@@ -32,8 +32,6 @@ internal data class EvalKnobs(
     val nextTurnThreat: Double = 0.22,
     /** Scale of the worth of a hero's own pieces on the board (tokens, the Turret…); 0 = ignored. */
     val pieces: Double = 1.0,
-    /** A forced discard when the hero has no spare card (it then misses a play this round). */
-    val discardNoSpare: Double = 2.5,
 )
 
 /**
@@ -312,7 +310,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
     fun discardCost(hero: HeroInfo): Double {
         if (roundOver) return 0.0
         val spare = hero.hand.size - hero.playsLeft
-        return if (spare >= 1) spareWeight() else knobs.discardNoSpare
+        return if (spare >= 1) spareWeight() else 2.5
     }
 
     private fun spareWeight(): Double = when (state.turn) {
