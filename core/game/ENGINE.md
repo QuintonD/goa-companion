@@ -99,6 +99,13 @@ facedown token is "A facedown token" (RULINGS 54). Item cards are not named in `
 icons, `itemStats`); the level-up log line names the item card, which the item icon already tells
 (every Tier II/III pair of a colour has two different item icons in the catalog).
 
+**Review (ADR-037).** The session keeps the committed checkpoints at turn boundaries (`Mark` in
+`Review.kt`: turn start, just after the reveal, round end; a built position's start state) — a reference
+each, since checkpoints are never mutated. `review(viewers)` turns them into `TurnReview`s: the cards
+come from `Views.merged` on the post-reveal state (the same hiding as the live table), the order from the
+turn record at the turn's end, the lines from the event indices kept with each mark; `positionAt` is
+`Views.merged` on a turn's start state. Forks share the marks; replay rebuilds them.
+
 ## Behaviours in force
 
 `Game.sources()` lists every behaviour in force with its source: hero rules, unlocked Ultimates of
@@ -138,6 +145,7 @@ hook code guards every clause of a card with an early return. Everything else is
 | `rules/CardRulesTest` | p.10, p.17–19 with test-only scripts: mandatory and optional steps, Primary availability, before the attack, repeat, Active effect timings and cancelling, card states, token supply |
 | `heroes/*Test` | Every card of Arien, Brogan, Wasp and Xargatha, clause by clause, with their FAQ |
 | `SessionTest` | Decision ids, rejected answers, save/restore mid-card and mid-defense, fork, undo, determinize |
+| `ReviewTest` | The game-state review: turns partition the log, cards as the viewer saw them at the reveal, no card the viewer never saw (review and kept boards), facedown played cards / tucked items / facedown resolved cards hidden, puzzle viewers, mid-turn positions, restore/fork/undo, `actedThisTurn` |
 | `PropertyTest` | 1 200 random games (1v1, 2v1 Handicap, 2v2 Quick/Long, double lane): invariants at every decision; determinism; save/restore and fork equivalence; determinize |
 | `BenchmarkTest` | Games per second |
 | `ai/*Test` | The computer opponents and the coach: level ladder, no peeking, every decision kind, timings ([ai/AI.md](ai/AI.md)) |

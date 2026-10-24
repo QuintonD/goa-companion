@@ -60,7 +60,27 @@ object Views {
             acting = state.acting,
             winner = state.winner,
             winReason = state.winReason,
+            actedThisTurn = if (state.revealed) {
+                state.turnRecord.resolved.filter { id -> state.hero(id) != null }.distinct()
+            } else {
+                emptyList()
+            },
         )
+    }
+
+    /**
+     * What several seats played by one person see together: each of [viewers] as it sees itself, every
+     * other hero as the first of [viewers] (in seat order) sees it. No seated viewer = a spectator.
+     */
+    fun merged(data: EngineData, setup: GameSetup, state: GameState, viewers: Set<String>): GameView {
+        val seats = setup.seats.map { it.heroId }.filter { it in viewers }
+        val first = seats.firstOrNull() ?: return build(data, setup, state, null)
+        val base = build(data, setup, state, first)
+        if (seats.size == 1) return base
+        val own = seats.drop(1).associateWith { seat ->
+            build(data, setup, state, seat).heroes.first { it.heroId == seat }
+        }
+        return base.copy(heroes = base.heroes.map { hero -> own[hero.heroId] ?: hero })
     }
 
     private fun heroView(g: Game, setup: GameSetup, state: GameState, h: HeroState, viewer: String?): HeroView {

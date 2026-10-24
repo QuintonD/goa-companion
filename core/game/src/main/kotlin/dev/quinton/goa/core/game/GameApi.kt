@@ -416,6 +416,56 @@ data class GameView(
     val acting: String? = null,
     val winner: Team? = null,
     val winReason: WinReason? = null,
+    /** After the reveal: the heroes who have resolved their card this turn, in the order they acted. */
+    val actedThisTurn: List<String> = emptyList(),
+)
+
+// ---------------------------------------------------------------------------------------------
+// Review (ADR-037): the game so far, turn by turn, as a seat may see it (p.4 open information).
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * One turn of the game for the review: the cards revealed, what happened, the end of the round
+ * after a 4th turn. Built only from what the viewers saw at the time (the engine's own views, p.4):
+ * a card played facedown and never revealed, an enemy's hand and tucked items never appear.
+ */
+@Serializable
+data class TurnReview(
+    val round: Int,
+    /** 1..4 (p.7). */
+    val turn: Int,
+    /**
+     * Every hero's card at the reveal as the viewers saw it, in the order the heroes acted (those
+     * who have not acted yet next, in initiative order; passes last). Empty until the reveal.
+     */
+    val plays: List<TurnPlay> = emptyList(),
+    /** Events from the turn's start up to and including the reveal (cards played facedown, start effects). */
+    val opening: List<GameEvent> = emptyList(),
+    /** Events after the reveal to the end of the turn (or until now, for the turn being played). */
+    val events: List<GameEvent> = emptyList(),
+    /** After the round's last turn: the end of round events (Minion Battle, push, retrieve, level up, Pity coin). */
+    val endOfRound: List<GameEvent> = emptyList(),
+    /** False for the turn being played. */
+    val finished: Boolean = false,
+    /** The board at the start of this turn is kept: [GameSession.positionAt]. */
+    val hasStart: Boolean = false,
+    /** The game began inside this turn from a built position (a puzzle); its "start" is that position. */
+    val fromPosition: Boolean = false,
+)
+
+/** One hero's card in a [TurnReview]. */
+@Serializable
+data class TurnPlay(
+    val heroId: String,
+    val team: Team,
+    /** The card played as the viewers saw it after the reveal ([CardView.cardId] null = facedown); null = passed. */
+    val card: CardView?,
+    /** More cards played this turn (Emmitt's Ultimate), hidden the same way. */
+    val alsoPlayed: List<CardView> = emptyList(),
+    /** The initiative as it counted at the reveal (items and effects included, p.7); null for a pass. */
+    val initiative: Int? = null,
+    /** The hero has resolved its card this turn (so far, for the turn being played). */
+    val resolved: Boolean = false,
 )
 
 // ---------------------------------------------------------------------------------------------
@@ -566,6 +616,20 @@ interface GameSession {
 
     /** Undo the last answer of a [Controller.Human] seat and everything after it, if any. */
     fun undoToLastHumanDecision(): Boolean
+
+    /**
+     * The game so far, turn by turn, oldest first, the turn being played last, as [viewers] may see
+     * it (ADR-037): each hero as it sees itself when it is one of [viewers], everyone else as the first
+     * of [viewers] in seat order sees them (none: a spectator). Pass the person's own heroes; a puzzle
+     * passes every seat (its hands are open). Empty when the session keeps no history.
+     */
+    fun review(viewers: Set<String>): List<TurnReview> = emptyList()
+
+    /**
+     * The board at the start of [round]'s [turn] (or a puzzle's starting position inside it) as
+     * [viewers] saw it then, merged as in [review]; null when it is not kept.
+     */
+    fun positionAt(round: Int, turn: Int, viewers: Set<String>): GameView? = null
 }
 
 /** A saved game: setup plus whatever the engine needs to rebuild the exact same session. */

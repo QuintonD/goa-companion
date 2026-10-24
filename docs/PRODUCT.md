@@ -363,6 +363,17 @@ opponents (and teammates) at four levels. One phone, one human team.
   says what is asked and which card asks it; every option is shown on the board or as a button;
   the log narrates every event (TalkBack reads it). The computer never sees hidden cards (p.4):
   it plans on guesses consistent with what is face up.
+- **Game state** (a top-bar action, one tap; also on puzzles): a full-height sheet with **Now** — Life
+  and Wave counters, pushes won, minions per team in the Battle Zone, the Tie Breaker coin, who has
+  acted this turn, who acts now and next (before the reveal: who has played facedown); every hero by
+  team with its card in play (facedown before the reveal, named only to its owner), the resolved Turn
+  slots, discards, item icons, level, coins, hand size, on/off the board, markers and its tokens, and
+  your own hand — and **Turns** — every turn so far, newest first, each hero's card at the reveal in the
+  order they acted (facedown cards stay hidden), the turn's lines not to miss with the rest behind
+  "Show all", the end of each round, and **Board**: the start of any earlier turn, read only, as you
+  saw it then. Tap a card to read it. Only open information (p.4): built by the engine from its own
+  views, never from the log's words. Note: the rulebook forbids taking notes at the table (p.4 Table
+  Talk); the history is the log's own content, offered as a learning aid (ADR-037).
 - **See the whole board:** the panel (questions, the computer's move, the coach) hides to a
   one-line peek bar that still says what is asked ("● Arien · Choose an action for Dangerous
   Current", teal when it waits for you; a new question is announced by TalkBack). The map fits the
@@ -382,7 +393,10 @@ opponents (and teammates) at four levels. One phone, one human team.
 - **Until heroes are playable** the Boards entry and New game say play is coming; heroes not yet
   playable show in New game's grid, veiled as "Later". Puzzles show as coming soon until a
   puzzle's heroes are all playable; then Boards' Puzzles entry says "N of M solved".
-- **Done when:** every rule above has a page-referenced test; random full games over every
+- **Done when:** the Game state sheet shows nothing the person's live view did not (engine tests:
+  facedown and unrevealed cards, enemy hands and tucked items never appear), with screenshots (light/
+  dark, 384 dp at font scale 2, landscape, the rewound board); every rule above has a page-referenced
+  test; random full games over every
   playable hero keep the invariants (one obstacle per space, cards conserved, deterministic,
   save/restore and fork identical); each level beats the one below it over a seeded tournament;
   the table has screenshots for every decision kind (light/dark, font scale 2, 384 dp, landscape);
@@ -420,6 +434,8 @@ turn", "Push the lane before the round ends", "Survive this turn"), one way (or 
   The replay drives a fresh copy of the puzzle with the solver's choice: Back / Next through the
   steps, each the position before a move with the move outlined (a card's image beside its name) and
   the log of what happened since; the last step is the goal met. Back to the puzzle leaves it as it was.
+- **Game state** as in §9, from the puzzle's top bar: every hand open (the puzzle's convention), the
+  puzzle's turn marked "The puzzle starts in this turn", its starting position under Board.
 - Progress (solved and when, tries, most nudges in a try, solution seen) is on this phone only
   (`datastore/puzzle_progress`; not synced, not in the backup file).
 - **Done when:** a solver proves every puzzle against best replies within its time budget, the

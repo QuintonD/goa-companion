@@ -4,6 +4,8 @@ import androidx.compose.runtime.Immutable
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.PuzzleInfo
 import dev.quinton.goa.feature.board.play.game.PlayAnnouncement
+import dev.quinton.goa.feature.board.play.review.ReviewAction
+import dev.quinton.goa.feature.board.play.review.ReviewUi
 import dev.quinton.goa.feature.board.play.table.LogLine
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
@@ -87,6 +89,8 @@ data class PuzzleUi(
     /** An answer is on its way, or the solution is being prepared: buttons wait. */
     val busy: Boolean = false,
     val announcement: PlayAnnouncement? = null,
+    /** The game-state review, while its sheet is open (ADR-037). */
+    val review: ReviewUi? = null,
 ) {
     val canNudge: Boolean get() = nudgeCount > 0 && (nudgeLevel < nudgeCount || nudge == null)
 }
@@ -141,4 +145,7 @@ sealed interface PuzzleAction {
     data object CloseReplay : PuzzleAction
 
     data object Flip : PuzzleAction
+
+    /** The game-state review: opened, closed, a board rewound. */
+    data class Review(val action: ReviewAction) : PuzzleAction
 }

@@ -147,6 +147,16 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   font scale 2 on all three screens; the landscape bar at font scale 2). JVM only, not on the S25 Ultra
 - [ ] End-to-end test that plays a game to its end (needs the engine bound)
 - [ ] Hands-on at the table and TalkBack on the S25 Ultra
+- [x] Game state review (`feature/play-review`, ADR-037, owner: "let players review the game state, e.g.
+  what cards have been played"): a top-bar Game state sheet on the game and puzzle screens — Now (Life,
+  Waves, pushes, minions in the Battle Zone, coin, who acted / acts / is next; every hero by team with
+  card in play, Turn slots, discards, item icons, markers, tokens, own hand) and Turns (each turn's
+  cards at the reveal in acting order, its lines, the end of round), plus the read-only board at the
+  start of any earlier turn. Engine: `GameSession.review` / `positionAt`, `GameView.actedThisTurn`,
+  built from kept checkpoints through `Views` — 2026-10-25, `ReviewTest` (no card the viewer never saw,
+  same review for games that differ only in hidden cards or tucked items, facedown stays facedown),
+  `ReviewViewModelTest`, 12 review screenshots. JVM only
+- [ ] Game state review hands-on on the S25 Ultra (pinch on the rewound board inside the sheet, TalkBack)
 
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
