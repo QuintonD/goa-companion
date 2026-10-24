@@ -338,6 +338,57 @@ Life counters).
   a two-lane board); an end-to-end test sets up a board from a finished draft's "Try on the board"
   and moves a hero to a named space next to it.
 
+### 9. Play against the computer (ADR-035)
+Learn by playing: the real game on the board, with the app running every rule and computer
+opponents (and teammates) at four levels. One phone, one human team.
+- **New game** (from Boards): a line-up as on New board (alternate picks, "Use a draft or match");
+  only heroes whose every card the engine implements and tests can be seated, the rest show as
+  coming later. Pick the hero(es) you control (one, or your whole team); every other seat is the
+  computer at **Easy** (makes visible mistakes, plays fast), **Normal** (sensible, short look-ahead),
+  **Hard** (plans the turn against what you might have played) or **Expert** (searches longest),
+  one level for all or per seat. Quick or Long, a verified map (Forgotten Island default), Coach on
+  or off. The app flips the Tie Breaker coin. 2v2 is the rulebook's standard; 1v1 is offered,
+  labelled as not the rulebook's way (p.20: two players each control two heroes).
+- **The game** follows the rulebook exactly: play a card facedown, reveal, initiative order (coin
+  ties, team ties), respawn, one action per card, attacks and defense with the totals shown
+  (minion modifiers, items, card text), minions, pushes mid-turn, the six end-of-round steps,
+  mandatory level ups with the upgrade choice, Pity coin, the three ways to win. Every question
+  says what is asked and which card asks it; every option is shown on the board or as a button;
+  the log narrates every event (TalkBack reads it). The computer never sees hidden cards (p.4):
+  it plans on guesses consistent with what is face up.
+- **Pacing:** each computer action is shown for a moment (Slow / Normal / Fast); "thinking…" when
+  it takes long. Take back undoes your last choice (counted in the summary).
+- **Coach** (on/off, also in-game): before a clearly worse choice, a gentle nudge ("Coach: Wasp's
+  Lift Up can still reach you") with Choose anyway / Rethink; never chooses for you. After the
+  game: the turning points, by round and turn, with the rule behind each.
+- **Saved as you play:** a game in progress resumes from Boards after leaving or process death;
+  local only, not synced, not in the backup file.
+- **Done when:** every rule above has a page-referenced test; random full games over every
+  playable hero keep the invariants (one obstacle per space, cards conserved, deterministic,
+  save/restore and fork identical); each level beats the one below it over a seeded tournament;
+  the table has screenshots for every decision kind (light/dark, font scale 2, 384 dp, landscape);
+  an end-to-end test plays a game to its end.
+
+### 10. Puzzles (ADR-035)
+Fifty difficult puzzles in the style of chess tactics: a position, a goal ("Defeat Brogan this
+turn", "Push the lane before the round ends", "Survive this turn"), one way (or a few) to make it.
+- **List:** numbered, with title, theme (initiative, defense math, minion modifiers, pushing the
+  lane, Fast Travel, Active effects…), difficulty (hard / harder / hardest), heroes, and solved /
+  tried / hints used. Next unsolved first.
+- **Solving:** the game table with the goal banner; you answer your heroes' questions, the other
+  side answers at once with its best reply. A move that loses the forced line says so gently
+  ("Not quite — Brogan can still defend with Bulwark") with Try again from before it, or Restart.
+  Any winning line counts, not just the stored one.
+- **Nudges** (on by default; switch in the puzzle and in Settings): when you're stuck (a miss, or a
+  while without progress) a gentle nudge appears; asking for more gives a stronger one; the last
+  names the first move. Off = no nudges unless asked from the menu.
+- **Explanation at the end** (solved, or after "Show solution"): why it works in a few sentences,
+  with rulebook pages, and the solution replayed step by step on the board.
+- Progress is on this phone only (not synced, not in the backup file).
+- **Done when:** a solver proves every puzzle against best replies within its time budget, the
+  stored solution and every nudge agree with it, an independent review checked each puzzle's
+  rules, and the list, puzzle, miss, nudge and explanation screens have screenshots.
+
 ### Settings
 Theme (dark default / light / system), owned products (default: all), timer defaults, running
 timer view (step by step / whole round), cue sounds and haptics, Elo constants (advanced; shared
@@ -348,8 +399,8 @@ with the sync group), Group sync, export/import, About/credits.
   (ADR-034). Group sync is phone to phone at the table (ADR-025).
 - Play Store release: not in v1 (sideloaded); bundled official assets would need permission
   (ADR-034).
-- A full rules engine. The board sandbox (8) moves pieces and measures movement, Fast Travel,
-  range and distance; it never resolves cards, attacks, coins, turns or Life counters.
+- Online play and pass-and-play between several humans on opposing teams in Play (9); one human
+  team per game.
 - iOS; tablet-first layouts (phone-first; tablets must not break).
 
 ## Open questions (owner to decide)
