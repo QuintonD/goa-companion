@@ -225,8 +225,9 @@ class PositionBuilder(private val engine: GameEngine, private val mapId: String)
             level = 8
         }
 
-        fun marker(kind: String, from: String?, persistent: Boolean = false) {
-            markers += Marker(kind, from, persistent)
+        /** A marker; [data] is its [Marker.data] (e.g. the Turn slot of one of Snorri's runes). */
+        fun marker(kind: String, from: String?, persistent: Boolean = false, data: Map<String, String> = emptyMap()) {
+            markers += Marker(kind, from, persistent, LinkedHashMap(data))
         }
 
         fun vars(vararg pairs: Pair<String, String>) {

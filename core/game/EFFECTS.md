@@ -341,3 +341,15 @@ What each hero needs beyond plain actions, and the framework pieces that cover i
   with the mover): build placement and respawn options with `isEmpty(hex, unit)`, not `isEmpty(hex)`,
   or `g.place` (which checks with the unit) rejects the space. Known gap: hero respawn and minion
   respawn by card text check `isEmpty(hex)` without the unit, so they ignore those spaces.
+
+### NebKher, Snorri, Ignatia (hero batch 7)
+
+- **`Behavior.forbidsMarker(g, src, heroId, kind, fromHeroId)`** (any source): `giveMarker` gives
+  nothing when a behaviour forbids it; it returns a `Marker` that is on no hero, so callers that set
+  `marker.data` keep working. NebKher's hero rule uses it with `tokenKind` for Mind Grip's "place
+  Illusion tokens instead; skip giving markers" (`rulings/nebkher.md` 3). Tested by `NebkherTest`
+  "Mind Grip - skip giving markers" (NebKher performing Snorri's Inscribe the Runes).
+- **`PositionBuilder.HeroBuilder.marker(kind, from, persistent, data)`**: a marker with `Marker.data`
+  (Snorri's runes carry their Turn slot: `marker("marker_rune_axe", "snorri", persistent = true,
+  data = mapOf("slot" to "1"))`).
+- Hero rulings of this batch are in `core/game/rulings/{nebkher,snorri,ignatia}.md`.
