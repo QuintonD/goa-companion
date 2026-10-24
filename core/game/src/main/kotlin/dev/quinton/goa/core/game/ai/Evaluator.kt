@@ -5,6 +5,7 @@ import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.Game
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.HeroState
+import dev.quinton.goa.core.game.engine.PieceState
 import dev.quinton.goa.core.game.engine.RunMode
 import dev.quinton.goa.core.game.engine.Step
 import dev.quinton.goa.core.game.engine.Zone
@@ -61,7 +62,7 @@ internal class Evaluator(val data: EngineData, val knobs: EvalKnobs = EvalKnobs(
         const val PRESENCE_PER_SPACE: Double = 0.55
         const val IN_BATTLE_ZONE: Double = 1.0
 
-        /** A hero's own piece on the board: lasting beyond the round / for the rest of this round / near an enemy hero. */
+        /** A hero's own piece on the board: lasting beyond the round / for the rest of the round / near an enemy. */
         const val PIECE_LASTING: Double = 1.2
         const val PIECE_ROUND: Double = 0.8
         const val PIECE_NEAR: Double = 0.4
@@ -434,29 +435,29 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
     private fun pieceValueRed(): Double {
         if (knobs.pieces == 0.0) return 0.0
         val turnsLeft = if (roundOver) 0 else 5 - state.turn
-        val byOwner = HashMap<String, MutableList<Double>>()
-        val teams = HashMap<String, Team>()
-        for (p in state.pieces) {
-            val at = p.at ?: continue
-            if (p.heroBody != null) continue
-            val owner = p.owner ?: continue
-            val team = p.team ?: state.hero(owner)?.team ?: continue
-            var w = if (p.removeAtEndOfRound) Evaluator.PIECE_ROUND * turnsLeft / 4.0 else Evaluator.PIECE_LASTING
-            if (w <= 0.0) continue
-            // Far from the fight a piece does little (zombies by the own Throne, a Turret left behind).
-            w *= max(0.25, 1.0 - 0.12 * fightDistance(at))
-            if (state.heroes.any { it.team != team && it.at?.let { e -> HexGrid.distance(e, at) <= 2 } == true }) {
-                w += Evaluator.PIECE_NEAR
-            }
-            teams[owner] = team
-            byOwner.getOrPut(owner) { ArrayList() } += w
-        }
+        val worths = state.pieces.mapNotNull { pieceWorth(it, turnsLeft) }
         var v = 0.0
-        for ((owner, ws) in byOwner) {
-            val sum = ws.sortedDescending().take(Evaluator.PIECES_COUNTED).sum()
-            v += if (teams[owner] == Team.RED) sum else -sum
+        for ((_, ws) in worths.groupBy { it.first }) {
+            val sum = ws.map { it.third }.sortedDescending().take(Evaluator.PIECES_COUNTED).sum()
+            v += if (ws.first().second == Team.RED) sum else -sum
         }
         return v * knobs.pieces
+    }
+
+    /** (owner, its team, worth) of one piece on the board, or null when it counts for nothing. */
+    private fun pieceWorth(p: PieceState, turnsLeft: Int): Triple<String, Team, Double>? {
+        val at = p.at
+        val owner = p.owner
+        val team = p.team ?: owner?.let { state.hero(it)?.team }
+        if (at == null || p.heroBody != null || owner == null || team == null) return null
+        var w = if (p.removeAtEndOfRound) Evaluator.PIECE_ROUND * turnsLeft / 4.0 else Evaluator.PIECE_LASTING
+        if (w <= 0.0) return null
+        // Far from the fight a piece does little (zombies by the own Throne, a Turret left behind).
+        w *= max(0.25, 1.0 - 0.12 * fightDistance(at))
+        if (state.heroes.any { it.team != team && it.at?.let { e -> HexGrid.distance(e, at) <= 2 } == true }) {
+            w += Evaluator.PIECE_NEAR
+        }
+        return Triple(owner, team, w)
     }
 
     /** Spaces from [at] to the nearest Battle Zone. */

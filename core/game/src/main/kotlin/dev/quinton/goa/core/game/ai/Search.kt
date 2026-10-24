@@ -252,17 +252,17 @@ internal class Searcher(
 
         DecisionKind.CHOOSE_SPACE -> {
             val subject = d.context.subjectId
-            subject == null || (s.hero(subject) == null && s.minion(subject) == null && s.piece(subject)?.heroBody == null)
+            subject == null ||
+                (s.hero(subject) == null && s.minion(subject) == null && s.piece(subject)?.heroBody == null)
         }
 
         // Attack targets ("Target a unit in range") have good static scores; pushes, swaps, pulls,
         // "which one of you acts", Mind Grip's hero… do not.
         DecisionKind.CHOOSE_UNIT -> {
             val team = s.hero(d.seat)?.team ?: d.team
-            !d.prompt.startsWith("Target") || d.options.any { o ->
-                o is Choice.Unit &&
-                    (s.hero(o.unitId)?.team == team || s.piece(o.unitId)?.let { it.heroBody != null && it.team == team } == true)
-            }
+            fun ownBody(id: String) = s.piece(id)?.let { it.heroBody != null && it.team == team } == true
+            !d.prompt.startsWith("Target") ||
+                d.options.any { o -> o is Choice.Unit && (s.hero(o.unitId)?.team == team || ownBody(o.unitId)) }
         }
 
         DecisionKind.CHOOSE_CARD -> {

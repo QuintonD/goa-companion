@@ -42,7 +42,8 @@ class CoachSurveyTest {
                     maxMs = maxOf(maxMs, ms)
                     if (note != null) {
                         spoke++
-                        println("NUDGE [$human ${d.seat} ${d.kind} r${note.round}t${note.turn}] ${note.text} | ${note.detail}")
+                        val at = "r${note.round}t${note.turn}"
+                        println("NUDGE [$human ${d.seat} ${d.kind} $at] ${note.text} | ${note.detail}")
                     }
                 }
                 s.answer(d.id, c)

@@ -147,8 +147,14 @@ object Tournament {
                 val reason = r.session.view(null).winReason?.name ?: "UNFINISHED"
                 score.reasons[reason] = (score.reasons[reason] ?: 0) + 1
                 score.rounds += r.rounds
-                score.lines += "${red.joinToString("+")} vs ${blue.joinToString("+")}: $a ${if (aRed[i]) "Red" else "Blue"}, " +
-                    "${if (w == null) "draw" else if (aWon) "$a won" else "$b won"} by $reason in round ${r.rounds}"
+                val side = if (aRed[i]) "Red" else "Blue"
+                val result = when {
+                    w == null -> "draw"
+                    aWon -> "$a won"
+                    else -> "$b won"
+                }
+                score.lines += "${red.joinToString("+")} vs ${blue.joinToString("+")}: $a $side, " +
+                    "$result by $reason in round ${r.rounds}"
             }
         } finally {
             pool.shutdown()

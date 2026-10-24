@@ -36,7 +36,18 @@ the same answer for the same seed.
 **Generic.** Nothing names a hero. Card effects are resolved only by the engine (forks); the
 heuristics read printed values and a few text patterns (`CardProfile`). A hero added later is played
 through the same `Decision` options; unusual card shapes degrade to "plain card" heuristics and the
-determinizer's fallback.
+determinizer's fallback. Two generic devices carry the hero mechanics the heuristics cannot read
+(2026-10-24, measured over all 32 heroes):
+
+- **Opaque choices are looked at one ply deep** (`Searcher.opaque`, `LevelProfile.shallow`): a
+  "Choose one" bullet, a confirm or number, a token, a space that is not a hero's or a minion's
+  move (placing a Zombie, the Turret, Pyro, an Illusion; moving a token), a unit choice that is not
+  an attack target ("Target …": swaps, pushes, pulls, Mind Grip's hero, which of Razzle's bodies
+  acts) and another hero's card (Hurry up!). Inside playouts, and for Easy at the root, each option
+  is answered on a fork, the action finished statically and the result evaluated. Before this every
+  "Choose one" took its first bullet and token placements were scored as if the hero moved there.
+- **What the evaluation sees of a hero's set-up** (below): its own pieces on the board, its public
+  dashboard counters and several bodies. The only names it knows are the counter keys.
 
 **Determinism.** An answer depends on the seed, the decision id and the seat (not on the order of
 calls), so undo and restore give the same answers. The production player stops sampling at the
@@ -87,7 +98,17 @@ because the deck order of the tucked cards told which colour each came from.
   Attack total beats the hero's best Defense there (items, minion modifiers, Block answers; a
   discard-or-defeat text against an empty hand), giving
   `P(defeat) × (Life value + level coins + assists + 5 tempo) + P(discard) × card value`.
-  Off the board: −4 plus the Throne's distance to the Battle Zone.
+  Off the board: −4 plus the Throne's distance to the Battle Zone. A hero with several bodies
+  (Razzle's Stunt Doubles: any of them may act, a defeat of any defeats the hero) counts the best
+  presence and reach and the worst exposure over its bodies.
+- **Counters** on a hero's dashboard (`HeroState.counters`, public): spells ready in a spellbook
+  1.5 each up to 5 (every Gydion card but the refill casts from it; the book starts empty), spells
+  already cast 0.1, Wish casts 10.
+- **Pieces:** each hero's own pieces on the board (tokens, the Turret, Pyro; not its bodies), the best
+  4 per hero: 1.2 if it lasts beyond the round, else 0.8 × the turns left / 4; × (1 − 0.12 per space
+  from the Battle Zone, at least 0.25); +0.4 within 2 spaces of an enemy hero. Zero-sum like the rest:
+  enemy pieces count against us, so Clear actions on them have a reason. A scale of 0.4 or 0 for
+  round-only pieces (Illusions, Rocks, Ice…) measured no better (46%, 49% over 192 games).
 
 ## Levels
 
@@ -96,7 +117,8 @@ because the deck order of the tucked cards told which colour each came from.
 | Search | none: static scores on one sample | each option played out once | 6 samples for card plays, 2 for other decisions | 16 / 6 samples |
 | Horizon (cards / other) | — | end of turn / end of the action | end of turn / end of turn | end of turn / end of turn |
 | Enemy cards | uniform guess | opponent model | opponent model | + memory of cards shown since each level up |
-| Later choices inside a playout | — | static | static | one-ply search for every hero (its own, teammates', enemies') |
+| Later choices inside a playout | — | static; opaque ones one ply deep | static; opaque ones one ply deep | one-ply search for every hero (its own, teammates', enemies') |
+| Opaque choices at the root (bullets, tokens, swaps…) | one ply deep | searched | searched | searched |
 | Threats seen | nearest enemy only, next-turn weight 0.12 | all, 0.22 | all, 0.22 | all, 0.22 |
 | Minion modifiers when moving | ignored 40% of the time | always | always | always |
 | Card plays | — | mean | mean − 0.3 sd | mean |
@@ -133,45 +155,70 @@ because the deck order of the tucked cards told which colour each came from.
   bias); Expert's playout refinement is not built.
 - **Team play**: AI teammates share the evaluation (so they rarely block each other or chase the same
   minion), but there is no explicit focus-fire plan and no "I'll take the minions" log line.
+- **Tried over all 32 heroes and dropped** (Hard vs Hard, 192 mirrored games each, 2026-10-24): a
+  charge of 1 or 2 for a card played only to hold (Silver and Gold cards whose Primary has no target
+  are held about half the time they are played): 49% and 49%; a forced discard without a spare card
+  costing 4.5 instead of 2.5: 50% (Normal 52%); Expert with mean − 0.3 sd: 63% against Hard where
+  plain Expert made 68% on the same 128 games.
 
 ## Budgets and measured time
 
-`TimingTest`, desktop JVM (development machine shared with other builds, 2026-10-24), production
-players (`forLevel`), two games per level, the measured team's decisions with more than one option.
-A phone is assumed 3–4× slower.
+`TimingTest` with `AI_TIMING_GAMES=8`, desktop JVM (development machine shared with other builds,
+2026-10-24), production players (`forLevel`), eight mixed line-ups per level seating all 32 heroes
+once, both teams' decisions with more than one option (800–1 200 card plays per level). A phone is
+assumed 3–4× slower.
 
-| Level | Card play mean / p95 / max | Other decisions mean (max) | Device budget per card |
-|-------|---------------------------|----------------------------|------------------------|
-| Easy | 0.1 / 0.1 / 0.1 ms | 0.1 ms (0.2) | 50 ms |
-| Normal | 1.7 / 3.8 / 5.7 ms | 0.2–0.9 ms (2.7) | 300 ms |
-| Hard | 9.8 / 20.7 / 35.7 ms | 0.4–4.8 ms (12.6) | 1.5 s |
-| Expert | 118 / 222 / 428 ms | 5–58 ms (169) | 4 s |
+| Level | Card play mean / p95 / max | Other decisions mean (max) | Slowest heroes, card play p95 / max | Device budget per card |
+|-------|---------------------------|----------------------------|-------------------------------------|------------------------|
+| Easy | 0.1 / 0.1 / 0.8 ms | 0.1–0.3 ms (1.8) | — (all under 1 ms) | 50 ms |
+| Normal | 3.6 / 10.5 / 28.7 ms | 0.8–2.4 ms (33) | Cutter 29 / 29, Snorri 28 / 28, Rowenna 27 / 27 | 300 ms |
+| Hard | 29 / 117 / 241 ms | 5–16 ms (111) | Snorri 191 / 241, Rowenna 187 / 231, Cutter 184 / 233 | 1.5 s |
+| Expert | 176 / 408 / 832 ms | 32–105 ms (746) | Bain 617 / 728, Emmitt 545 / 581, Tali 500 / 509 | 4 s |
 
-Even at 4× the desktop time every level stays well inside its budget (Expert's worst card play
-≈ 1.7 s on a phone). The coach's `nudge` averages 7–17 ms (max 274 ms) per decision on the desktop.
+At 4× the desktop time every level stays inside its budget at p95 and at the worst card play
+(Expert ≈ 1.6 s at p95, 3.3 s at worst; Hard ≈ 1.0 s worst; Normal ≈ 0.12 s). The figures are for a
+warm JVM: the very first decision of a process paid up to 25 ms of JIT warm-up at Easy. Against the
+earlier four-hero measurement the mean card play grew 2× (Normal), 3× (Hard) and 1.5× (Expert):
+the opaque choices looked at one ply deep and the longer texts of the mixed roster (Snorri, Rowenna,
+Cutter, Bain: long option lists and multi-step cards). Other decisions get a third of the card budget; Expert's worst move choice
+(746 ms) would be cut by that cap on a slow phone (fewer samples, still legal). The coach's `nudge`
+averages 47 ms (max 757 ms) per decision on the desktop over 12 mixed games.
 
 ## Measured strength
 
-Mirrored tournaments (STRATEGY §4.5): the three ways to split Wasp, Xargatha, Arien and Brogan into
-two teams × both coin sides × *n* seeds, every game played twice with the levels swapping teams
-(same seed and coin), Quick, Forgotten Island, `deterministic` players. Final run, seeds 100–107
-(not used for tuning), 96 games per pair, 2026-10-24; 95% Wilson intervals:
+Mirrored tournaments (STRATEGY §4.5) over **mixed line-ups from all 32 heroes**
+(`AiHarness.mixedLineups`: consecutive seeded shuffles of the roster cut into fours, so every hero is
+seated equally often), the coin alternating, every game played twice with the levels swapping teams
+(same seed and coin), Quick, Forgotten Island, `deterministic` players
+(`AI_MIXED=96 AI_FIRST_SEED=96`). Final run on line-ups 96–191 (not used for tuning), 192 games per
+pair, 2026-10-24; 95% Wilson intervals:
 
 | Pair | Wins | Rate | 95% interval | ≈ Elo gap |
 |------|------|------|--------------|-----------|
-| Normal vs Easy | 90–6 | 94% | 87–97% | +470 |
-| Hard vs Normal | 77–19 | 80% | 71–87% | +240 |
-| Expert vs Hard | 62–34 | 65% | 55–73% | +110 |
-| Hard vs Easy | 95–1 | 99% | 94–100% | — |
-| Expert vs Normal | 85–11 | 89% | 81–93% | — |
+| Normal vs Easy | 178–14 | 93% | 88–96% | +450 |
+| Hard vs Normal | 146–46 | 76% | 70–82% | +200 |
+| Expert vs Hard | 115–77 | 60% | 53–67% | +70 |
+| Hard vs Easy | 191–1 | 99% | 97–100% | — |
+| Expert vs Normal | 161–31 | 84% | 78–88% | — |
 
-Earlier runs on other seeds agree (Expert vs the final Hard: 24–12, 24–12, 24–12 on three disjoint
-36-game sets). Games last 6.6–7.1 rounds; endings over the final run: last push 43%, Throne 42%,
-Life counters 15% (kills decide more often when Expert or Hard plays: 24 of 96 Expert–Hard games).
-`LevelLadderTest` replays a 24-game slice of this on every test run (100% / 79% / 63%).
+On the tuning line-ups (0–63) Expert beat the same Hard 87–41 (68%, 59–75%); over both sets
+202–118 (63%, 58–68%). Before this round of work, with the AI tuned on four heroes, the same harness
+gave Normal–Easy 88% (79–93%), Hard–Normal 81% (72–88%), Expert–Hard 61% (51–71%) over 96 games on
+line-ups 0–47; the new Hard beat the old Hard 57% (50–64%) and 59% (51–67%) on two sets. Games last
+7.4–7.7 rounds; endings over the final Expert–Hard run: last push 60%, Life counters 23%, Throne 17%.
+Expert's margin did not grow with more search: 24 samples or 14 candidates per decision made 59%
+against Hard on the 128 games where 16 samples and 10 candidates made 68%.
+
+The first-game heroes alone (the earlier measurement, seeds 100–107, 96 games per pair, before
+this round): 94% / 80% / 65%. `LevelLadderTest` replays 24 mixed games (line-ups 200–211) plus 12
+first-game games per pair on every test run (97% / 86% / 58%).
 
 The gaps are uneven: Easy is a beginner and is meant to lose to anyone careful; Expert's margin over
-Hard is the smallest because more search buys less once the playout policy is the limit.
+Hard is the smallest because more search buys less once the playout policy and the evaluation are
+the limit. Per hero (`TournamentTest` prints each level's win rate with every hero; 12 games each,
+so ±25 points): the stronger level gains least with Gydion, NebKher, Tali, Trinkets and Widget,
+the heroes whose cards work through set-up (spells, Illusions, Ice, the Turret, Pyro) that the
+evaluation sees only as pieces and counters.
 
 ## The coach
 
@@ -194,7 +241,13 @@ Real outputs (`CoachTest`, `CoachSurveyTest`):
 - "Brogan's Bullrush can still reach that space." — *The enemy ranged minion gives you −1 Defense
   within 2 spaces of it (p.14).*
 
-Over a whole game with an Easy player in the human seat it spoke on 4 of 124 decisions (3%).
+Over 12 games on mixed line-ups from all 32 heroes (an Easy or Normal player in the human seat
+against Hard, `AI_COACH_GAMES=12`) it spoke on 47 of 1 915 decisions (2.5%): minions left in reach
+and missed minion kills 26, hero kills missed 9, lane pushes given or missed 5, defeats walked into 6,
+Fast Travel with a Red card 1. A kill or a minion is credited to the choice only when the deciding
+hero itself makes it in the playouts; before that it once told Dodger that Dark Ritual (a coin skill)
+"can take a minion" because a teammate took one later in the turn. It never commented on a hero
+mechanic (tokens, spells, bodies, swaps): its reasons are all read from engine events.
 
 `turningPoints` replays the save (`GameEngine` needed), evaluates the seat's winning chance
 `σ(score / 15)` at every turn boundary and explains the 3–6 biggest swings, preferring turns where
@@ -203,18 +256,30 @@ with the rule behind it.
 
 ## Known weaknesses
 
+Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
+
 - **Lane-first and cautious:** hero kills come from opportunities the playouts find, not from plans;
   there is no deliberate focus fire, card-kill setup over two turns, or "let the wave push itself".
-- **Text-heavy heroes** are played by their numbers inside playouts: tokens, the Turret, Pyro, runes,
-  the spellbook and other set-up cards are only valued when a root decision's playout shows the
-  effect within the turn. Heroes added later will play legally but below their potential.
+- **Holding:** about a quarter of all actions are Holds (Hard self-play, 64 mixed games: 13%
+  Mortimer to 35% Razzle). Most are chosen (moving would not improve the space), but Silver and Gold
+  cards without a movement are often played on a turn their Primary has no target and are then held
+  (Siren's Call, Death Trap, Crowd Control, Hurry up!, Inscribe the Runes about half the time they are
+  played). The static round plan plays Silver early and the evaluation does not see that the card
+  would have been worth more later; charging such plays measured no better (above), so the waste is
+  mostly the spare card spent early.
+- **Set-up heroes** are played through their pieces and counters only: an Illusion, Rock or Ice token
+  is worth the same whatever it is for, so NebKher places Illusions where swapping enemy cards or
+  setting up Mind Grip would be better and rarely attacks; Trinkets, Widget and Gydion gain least from
+  deeper search (per-hero tables above). "Name a colour" (NebKher's Blue) and other choices whose
+  effect comes next turn are looked at one ply deep, which sees nothing, so the first option wins.
+- **Runes and other per-turn plans** (Snorri's rune under each turn slot, Swift's slot order, Cutter's
+  Ultimate) are not planned over the round: the static round plan does not read them.
 - **Fast Travel blocking**, spawn camping and post-push repositioning are not modelled explicitly.
 - **Double lane:** the evaluation sums the lanes; it plays legally (smoke test) but has not been tuned.
 - **Opponent model** is the static card policy: a human who plays unusual cards is guessed poorly
   (15% of each guess is uniform to stay robust).
-- **Tuned on four heroes** (Wasp, Xargatha, Arien, Brogan); all 32 are played legally
-  (`AllHeroesAiTest`), but the ladder and weights should be re-measured over mixed line-ups
-  (`TournamentTest`, `ExperimentTest`; `AiHarness.LINEUPS` still uses the first four).
+- **Expert's margin** over Hard is 60–68% depending on the line-ups; more samples or candidates did
+  not widen it. The next gains need a better evaluation of set-up and round plans, not more search.
 - **Wall-clock cap**: on a loaded phone the production player may search less than on the desktop;
   answers are then still legal but no longer reproducible for a seed.
 - **Coach turning points** on quiet turns say only that the heroes "moved into position".
@@ -223,12 +288,12 @@ with the rule behind it.
 
 | Test | What |
 |------|------|
-| `LevelLadderTest` | Each level beats the one below over a seeded, mirrored tournament (24 games per pair, thresholds 75% / 70% / 55%) |
+| `LevelLadderTest` | Each level beats the one below over a seeded, mirrored tournament (24 games on mixed line-ups from all heroes + 12 on the first-game heroes per pair, thresholds 75% / 70% / 55%) |
 | `NoPeekingTest` | Same public view, different hidden enemy cards → same answer at every level; the determinizer keeps every public fact and samples only consistent upgrade histories |
 | `DecisionKindsTest` | Every `DecisionKind` gets a legal answer at every level: in AI games, a Clear action's token choice, and built questions of every kind |
 | `AiSmokeTest` | Full AI games finish: every level, Long, 1v1, 2v1 with a Handicap card, the double-lane map |
-| `AllHeroesAiTest` | 16 seeded AI-vs-AI games over shuffled line-ups that seat each of the 32 heroes twice (Easy, Normal, Hard, two at Expert): all finish, every answer accepted (2026-10-24: 6–18 rounds, all three win types) |
+| `AllHeroesAiTest` | 16 seeded AI-vs-AI games over shuffled line-ups that seat each of the 32 heroes twice (Easy, Normal, Hard, two at Expert): all finish, every answer accepted (2026-10-24: 5–15 rounds, all three win types) |
 | `CoachTest` | Nudges on hand-built blunders (no defense, too weak a defense, walking into a revealed attack) and silence on the right choices; turning points of a finished game |
-| `CoachSurveyTest` | The coach speaks on fewer than 15% of a weak player's decisions |
-| `TimingTest` | Decision times per level (prints the table above) |
-| `TournamentTest`, `ExperimentTest`, `GameLogTest` | Opt-in (`AI_TOURNAMENT`, `AI_EXPERIMENT`, `AI_LOG` environment variables): long tournaments, profile experiments, one game's log |
+| `CoachSurveyTest` | The coach speaks on fewer than 15% of a weak player's decisions, on mixed line-ups (`AI_COACH_GAMES` for more games) |
+| `TimingTest` | Decision times per level over mixed line-ups, the slowest heroes (`AI_TIMING_GAMES=8` prints the table above) |
+| `TournamentTest`, `ExperimentTest`, `GameLogTest`, `UsageTest` | Opt-in (`AI_TOURNAMENT` / `AI_MIXED`, `AI_EXPERIMENT`, `AI_LOG`, `AI_USAGE` environment variables): long tournaments (per-hero rates; `AI_GAMES=<hero>` lists the games), profile experiments, one game's log (a mixed or explicit line-up; `AI_LOG_DECISIONS`, `AI_LOG_VALUES`, `AI_LOG_LEAVES=<hero>`), each card's actions, defeats and kills per hero |

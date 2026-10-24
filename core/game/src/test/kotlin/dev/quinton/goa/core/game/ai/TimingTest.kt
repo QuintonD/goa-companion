@@ -48,13 +48,15 @@ class TimingTest {
                 .sortedByDescending { p95(it.value) }.take(5)
             println(
                 "TIMING   slowest heroes (card play p95/max ms): " +
-                    slow.joinToString(", ") { "${it.key} ${"%.0f".format(p95(it.value))}/${"%.0f".format(it.value.last())}" },
+                    slow.joinToString(", ") { (hero, t) -> "$hero ${ms(p95(t))}/${ms(t.last())}" },
             )
             val play = all.getValue(DecisionKind.PLAY_CARD).map { it / 1e6 }
             // Desktop mean well under the phone budget (a phone is ~3–4× slower).
             assertThat(play.average()).isLessThan(budgets.getValue(level) / 2.0)
         }
     }
+
+    private fun ms(v: Double): String = "%.0f".format(v)
 
     private fun p95(sorted: List<Double>): Double = sorted[(sorted.size * 0.95).toInt().coerceAtMost(sorted.size - 1)]
 }

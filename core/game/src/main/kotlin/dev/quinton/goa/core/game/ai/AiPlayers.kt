@@ -15,8 +15,9 @@ import kotlin.random.Random
  * level (STRATEGY.md §4): Easy plays from static heuristics with human-looking slips; Normal plays
  * each option out to the end of the action (cards: the turn) against the most likely enemy plays;
  * Hard samples the enemies' hidden cards from an opponent model and plays the whole turn out for each;
- * Expert samples more, looks to the end of the next turn, remembers every card shown since an enemy's
- * last level up, and mixes between near-equal plays so it is hard to read.
+ * Expert samples more, plays every hero's later choices in a playout by one-ply search, remembers
+ * every card shown since an enemy's last level up, and mixes between near-equal plays so it is hard
+ * to read.
  *
  * Deterministic for a seed (answers depend on the seed, the decision id and the seat), except that a
  * wall-clock cap (the phone budget) may end a search early on a slow device; [timeCap] = false

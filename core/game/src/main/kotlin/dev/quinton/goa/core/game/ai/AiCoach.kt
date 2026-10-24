@@ -298,7 +298,8 @@ internal class Explainer(
         val bestKill = share(best) { kills(it) > 0 }
         val mineKill = share(mine) { kills(it) > 0 }
         if (bestKill - mineKill < 0.6) return null
-        val victim = leaves(best).flatMap { l -> events(l).filterIsInstance<GameEvent.Defeated>().filter { it.byHeroId == seat } }
+        val victim = leaves(best).flatMap { l -> events(l).filterIsInstance<GameEvent.Defeated>() }
+            .filter { it.byHeroId == seat }
             .mapNotNull { e -> es.state.hero(e.unitId)?.takeIf { it.team != team }?.id }
             .groupingBy { it }.eachCount().maxByOrNull { it.value }?.key ?: return null
         val who = data.heroName(victim)

@@ -32,7 +32,8 @@ class TournamentTest {
             if (mixed != null) println("TOURNAMENT by hero ($a): ${score.byHero()}")
             // AI_GAMES=<hero>: every game with that hero seated (or "all").
             System.getenv("AI_GAMES")?.let { h ->
-                score.lines.filter { h == "all" || h in it.substringBefore(":") }.forEach { println("TOURNAMENT   $it") }
+                score.lines.filter { h == "all" || h in it.substringBefore(":") }
+                    .forEach { println("TOURNAMENT   $it") }
             }
         }
     }
