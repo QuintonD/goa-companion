@@ -1154,6 +1154,15 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.8 Push the Lane, Triggering a Push; p.9 Range; p.11 Fast Travel; p.17 After the attack.
 - **Risk:** none.
 - **Encoded as p50 (2026-10-24):** as in the concept (Arien seated idle; Xargatha keeps `xargatha-blue-1`, Brogan `brogan-blue-1`). After the push every Fast Travel space offered (Blue's pre-Throne Zone and the side Zones, ~70) wins; Red's pre-Throne Zone is not offered.
+- **Hardened as p50 (2026-10-24, changed):** legality: everyone L2–3 in round 4 (Silverarrow L2, item Long
+  Shot = Initiative; Xargatha L2; Brogan L3 with Bolster and Shield Bash set aside = two Attack items, so
+  Mad Dash hits 8; Arien L3), and Arien no longer resolved a slow card before Silverarrow: the puzzle now
+  starts at turn 3's card choice, with Arien's and Xargatha's cards forced (one each) and Brogan's (Mad
+  Dash or Mighty Punch) the solver's. Harder: Silverarrow holds Shoot and Scoot, Trailblazer (14, "fast
+  travel, if able": not able with Red's minion in the Zone) and Disorient (3, too late); she now has
+  cards, but 1 + 4 (four friendly melee) never holds 8. Xargatha has no card left, so shooting her is a real
+  hero kill that loses (the minion still closes the Zone). The Fast Travel space is still free (every
+  offered space wins). Grasping Roots was tried as a third card and cut: its 3-space movement escapes.
 
 ### C51 — Ice in the Veins
 - **Theme:** initiative changed mid-turn by tokens; moving an enemy into them. **Difficulty:** 3. **Heroes:** Tali, Brogan; Tigerclaw (Dodger idle).

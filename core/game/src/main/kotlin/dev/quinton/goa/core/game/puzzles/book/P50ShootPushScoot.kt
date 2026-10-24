@@ -7,7 +7,7 @@ import dev.quinton.goa.core.game.PuzzleInfo
 import dev.quinton.goa.core.game.position.PositionBuilder
 import dev.quinton.goa.core.game.position.PositionPhase
 import dev.quinton.goa.core.game.puzzles.Moves.action
-import dev.quinton.goa.core.game.puzzles.Moves.decline
+import dev.quinton.goa.core.game.puzzles.Moves.card
 import dev.quinton.goa.core.game.puzzles.Moves.hero
 import dev.quinton.goa.core.game.puzzles.Moves.space
 import dev.quinton.goa.core.game.puzzles.Moves.unitAt
@@ -27,24 +27,27 @@ object P50ShootPushScoot : Puzzle() {
         title = "Shoot, Push, Scoot",
         difficulty = 3,
         theme = "A push in the middle of a turn opens Fast Travel",
-        heroes = listOf("silverarrow", "xargatha", "brogan", "arien"),
+        heroes = listOf("silverarrow", "arien", "xargatha", "brogan"),
         goal = PuzzleGoal.Survive(Deadline.END_OF_TURN, "Survive this turn."),
-        intro = "Round 4, turn 4. Silverarrow has played Shoot and Scoot and acts next; she has no cards " +
-            "left in hand, so she cannot defend. Xargatha (Threatening Slash) and Brogan (Mad Dash) act " +
-            "after her, both at 7. Xargatha keeps Stone Gaze, Brogan Brutal Jab. Red has one minion left " +
-            "in the Battle Zone.",
+        intro = "Round 4, turn 3: play your card. Silverarrow holds Shoot and Scoot, Trailblazer and Disorient. " +
+            "Xargatha's only card is Threatening Slash (7); Brogan holds Mad Dash (7) and Mighty Punch. Arien's " +
+            "only card is Liquid Leap. Red has one minion left in the Battle Zone.",
         nudges = listOf(
-            "You can't Fast Travel out of a Zone with an enemy minion in it, unless it stops being there.",
-            "What happens to every minion of the Battle Zone when the lane is pushed?",
-            "Shoot Red's last minion, then Fast Travel far away.",
+            "Brogan's Mad Dash reaches Silverarrow where she stands, none of her cards holds it, and her own " +
+                "steps all end next to Xargatha. She has to leave the Zone.",
+            "No Fast Travel out of a Zone with an enemy minion in it, unless it stops being there.",
+            "Play Shoot and Scoot and shoot Red's last minion, then Fast Travel away.",
         ),
-        explanation = "Shoot and Scoot targets a unit exactly 2 spaces away: Xargatha or Red's last minion. " +
-            "Xargatha simply defends, and with Red's minion still in the middle Zone Silverarrow cannot Fast " +
-            "Travel (p.11), so Brogan's Mad Dash reaches her. Defeating the last enemy minion pushes the lane " +
-            "in the middle of the turn (p.8): a Wave counter flips, the Battle Zone moves towards Red, and " +
-            "every minion of the old Battle Zone is removed, Blue's too. After the attack (p.17) the middle " +
-            "Zone holds no enemy hero or minion, so she may Fast Travel to any adjacent Zone without enemies " +
-            "(p.11), far from both attackers. Stepping 1 space instead leaves her next to Xargatha.",
+        explanation = "Mad Dash moves Brogan 2 spaces in a straight line next to an enemy unit and attacks " +
+            "(card text): from where he stands that is Silverarrow, and her best card defends 1 + 4 for the " +
+            "Blue minions around her (p.14) against his 8. Her free neighbouring spaces are next to Xargatha, " +
+            "and Disorient (3) comes too late. Trailblazer is her fastest card, but its Fast Travel is \"if able\", " +
+            "and with Red's minion in the middle Zone it is not (p.11). Shoot and Scoot targets a unit exactly " +
+            "2 spaces away: Xargatha, who has no card left, or Red's last minion. Defeating Xargatha is " +
+            "tempting, but the minion still closes the Zone and Brogan arrives. Defeating the last enemy minion " +
+            "pushes the lane in the middle of the turn (p.8): every minion of the old Battle Zone is removed, " +
+            "Blue's too. After the attack (p.17) the middle Zone holds no enemy, so she may Fast Travel to an " +
+            "adjacent Zone without enemies (p.11), far from both.",
         rules = listOf(
             "p.8 Push the Lane, Triggering a Push",
             "p.9 Range",
@@ -57,39 +60,41 @@ object P50ShootPushScoot : Puzzle() {
 
     override fun PositionBuilder.setUp() {
         round = 4
-        turn = 4
+        turn = 3
         tieBreaker = Team.BLUE
         clearMinions()
         lifeCounters(Team.RED, 3)
         lifeCounters(Team.BLUE, 3)
         hero("silverarrow", Team.BLUE, Hex(-1, -3)) {
-            played("silverarrow-gold")
-            resolved(1, "silverarrow-silver")
-            resolved(2, "silverarrow-red-1")
-            resolved(3, "silverarrow-blue-1")
-            discard("silverarrow-green-1")
-            hand()
-        }
-        hero("xargatha", Team.RED, Hex(-3, -2)) {
-            played("xargatha-red-1")
-            resolved(1, "xargatha-gold")
-            resolved(2, "xargatha-silver")
-            resolved(3, "xargatha-green-1")
-            hand("xargatha-blue-1")
-        }
-        hero("brogan", Team.RED, Hex(-4, 0)) {
-            played("brogan-red-1")
-            resolved(1, "brogan-gold")
-            resolved(2, "brogan-silver")
-            resolved(3, "brogan-green-1")
-            hand("brogan-blue-1")
+            level = 2
+            resolved(1, "silverarrow-red-2a")
+            resolved(2, "silverarrow-blue-1")
+            hand("silverarrow-gold", "silverarrow-silver", "silverarrow-green-1")
+            items("silverarrow-red-2b")
         }
         hero("arien", Team.BLUE, Hex(4, -6)) {
+            level = 3
             resolved(1, "arien-gold")
             resolved(2, "arien-silver")
-            resolved(3, "arien-red-1")
-            resolved(4, "arien-green-1")
-            hand("arien-blue-1")
+            discard("arien-red-2b", "arien-blue-2a")
+            hand("arien-green-1")
+            items("arien-red-2a", "arien-blue-2b")
+        }
+        hero("xargatha", Team.RED, Hex(-3, -2)) {
+            level = 2
+            resolved(1, "xargatha-gold")
+            resolved(2, "xargatha-silver")
+            discard("xargatha-green-1", "xargatha-blue-2a")
+            hand("xargatha-red-1")
+            items("xargatha-blue-2b")
+        }
+        hero("brogan", Team.RED, Hex(-4, 0)) {
+            level = 3
+            resolved(1, "brogan-gold")
+            resolved(2, "brogan-silver")
+            discard("brogan-green-2b")
+            hand("brogan-red-1", "brogan-blue-2a")
+            items("brogan-green-2a", "brogan-blue-2b")
         }
         minion(Team.RED, MinionType.MELEE, Hex(1, -4))
         minion(Team.BLUE, MinionType.MELEE, Hex(0, -3))
@@ -97,24 +102,28 @@ object P50ShootPushScoot : Puzzle() {
         minion(Team.BLUE, MinionType.MELEE, Hex(-1, -4))
         minion(Team.BLUE, MinionType.MELEE, Hex(-1, -2))
         minion(Team.BLUE, MinionType.HEAVY, Hex(2, -7))
-        phase = PositionPhase.Resolving(next = "silverarrow")
+        phase = PositionPhase.PlayCards(fromSeat = 0)
     }
 
-    // Every Fast Travel space offered wins (Red's pre-Throne Zone holds Red, so none is there); (7,-7) is
-    // in Blue's pre-Throne Zone.
-    override val solution = listOf(action(ActionType.PRIMARY), unitAt(1, -4), space(7, -7))
+    // Every Fast Travel space offered wins (Blue's pre-Throne Zone and the side Zones); (7,-7) is in Blue's.
+    override val solution = listOf(
+        card("silverarrow-gold"),
+        action(ActionType.PRIMARY),
+        unitAt(1, -4),
+        space(7, -7),
+    )
 
-    override val nudgedMoves = solution.take(2)
+    override val nudgedMoves = solution.take(3)
 
     override val wrongTries = listOf(
+        WrongTry("Disorient: at 3 it comes after Brogan", listOf(card("silverarrow-green-1"))),
         WrongTry(
-            "Shoot Xargatha: she defends, no push, and Fast Travel stays closed",
-            listOf(action(ActionType.PRIMARY), hero("xargatha")),
+            "Trailblazer: Fast Travel \"if able\", and Red's minion closes the Zone",
+            listOf(card("silverarrow-silver")),
         ),
         WrongTry(
-            "Shoot the minion but stay: Brogan's Mad Dash reaches her",
-            listOf(action(ActionType.PRIMARY), unitAt(1, -4), decline()),
+            "Shoot Xargatha: she falls, but the minion still closes the Zone and Brogan arrives",
+            listOf(card("silverarrow-gold"), action(ActionType.PRIMARY), hero("xargatha")),
         ),
-        WrongTry("Walk instead: both free spaces are next to Xargatha", listOf(action(ActionType.MOVEMENT))),
     )
 }
