@@ -1126,6 +1126,15 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.3 Last Push; p.8 Triggering a Push; p.13 Attacking a hero, When a hero is defeated; p.17 Active Effects.
 - **Risk:** none.
 - **Encoded as p49 (2026-10-24):** as in the concept (Garrus seated idle). The engine totals Wasp's defence as 5 + 1 (item) − 1 (adjacent heavy) = 5 against 5; her best reply is to defend, then Ursafar removes the Red minion. Prey Drive on Brogan is refuted by Brogan not defending.
+- **Hardened as p49 (2026-10-24, changed):** legality: Ursafar L3 (Cold Ire, Instinctive Reaction; items
+  Eyes on the Prey = Attack, Rampaging Beast = Defense: Prey Drive 6) and Garrus L3, no level 1 in round
+  5; Garrus is no longer resolved before Ursafar with a slower card. Harder: Garrus is a player seat and
+  acts first with Menace (9). Wasp starts two spaces from Ursafar at (3,−7), next to Garrus at (3,−8);
+  Menace moves her 1 space farther from Garrus, and only (2,−6), of three, is next to Ursafar (1,−5). Red's
+  last minion moved to (−1,−5) (radius 2 from Ursafar); the Blue heavy to (2,−1), so Wasp's Control
+  Gravity holds 5 + 1 against 6 and her best reply is to stand, after which Ursafar removes the minion
+  (push, last Wave counter). Brogan (0,−4) is still the trap: Bullrush would hold, so he declines to defend
+  and costs only one counter.
 
 ### C50 — Shoot, Push, Scoot
 - **Theme:** a mid-turn push empties the old Battle Zone and opens Fast Travel; maximum range. **Difficulty:** 3. **Heroes:** Silverarrow; Xargatha, Brogan (Arien idle).
