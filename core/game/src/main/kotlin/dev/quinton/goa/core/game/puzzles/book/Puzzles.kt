@@ -15,5 +15,8 @@ object Puzzles {
         P02WorthTwoCounters,
         P03MeleeFirstThenTheHeavy,
         P04PriceOnHerHead,
+        P05BeatTheDrum,
+        P06TheHandsOfTheClock,
+        P07RangedAtPointBlank,
     )
 }

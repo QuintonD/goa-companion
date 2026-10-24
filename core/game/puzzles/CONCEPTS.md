@@ -208,6 +208,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Defeating a hero pays its level to the attacker and assist coins equal to its lowest tier to each teammate (p.13). War Drummer gives 3 instead of 1 once any hero was defeated this round, and it acts at initiative 5, after Hit and Run at 9 (p.7). Its target must be another hero in range when it resolves, so Tigerclaw's optional after-attack step matters.
 - **Rules:** p.7 initiative; p.10 Mandatory and optional steps; p.13 coins table; p.17 Friendly.
 - **Risk:** `GainCoins` counts the team total (convention); Tigerclaw alone gains 5.
+- **Encoded as p05 (2026-10-24):** as written (Brogan's item `brogan-green-2a`, Arien's `arien-red-2b`). Winning steps after the attack: (2,−6) or (2,−5).
 
 ### C06 — The Hands of the Clock
 - **Theme:** defending with initiative (Temporal Punch); choosing the target. **Difficulty:** 1. **Heroes:** Emmitt; Wuk, Tigerclaw (Sabina idle).
@@ -225,6 +226,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Temporal Punch replaces the Defense value of the defender's card and items with its Initiative value; minion defence modifiers still apply (card reminder). Wuk's whole deck is slow (initiative stat 1), Tigerclaw's gold card is the fastest in his deck, so the "weak" defender is the safe one this time. The defender always chooses the best card (p.14).
 - **Rules:** p.14 Defense action, Defense total, Minion defense modifiers; p.13 When a hero is defeated.
 - **Risk:** none.
+- **Encoded as p06 (2026-10-24):** as written; Tigerclaw is seated before Wuk, so the tempting target is listed first.
 
 ### C07 — Ranged at Point Blank
 - **Theme:** Block: which attack is ranged; defend with the right card. **Difficulty:** 1. **Heroes:** Tigerclaw; Sabina, Brogan.
@@ -242,6 +244,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** An attack is ranged when its primary action says "Ranged", whatever its range; Point Blank Shot has Range 1, so it can only reach adjacent targets but is still ranged (p.9, faq-common-J6uK9mGB). Parry blocks only non-ranged attacks; Block cards succeed only when their condition is met (p.14). Each attack is defended with a separate card from hand (p.14), so the order of use matters.
 - **Rules:** p.9 Ranged/Non-ranged; p.13 Attack action; p.14 Defense action, Block.
 - **Risk:** none.
+- **Encoded as p07 (changed, 2026-10-24):** as written the first option at every decision won (Combat Reflexes, the first card in catalog order, is right against the first attack, then Parry against Brogan). Tigerclaw now holds **`tigerclaw-red-2b` Backstab (Defense 5) and `tigerclaw-blue-2a` Sidestep (Block a ranged attack)**, with the items `tigerclaw-red-2a` (+1 Initiative) and `tigerclaw-blue-2b` (+1 Defense). Same lesson: Sidestep blocks the point-blank shot, Backstab 5 + 1 = 6 holds Brogan's 6; Backstab first leaves Sidestep against a non-ranged attack. Sidestep's optional step is free (every choice survives). Wasp's idle hand: `wasp-green-1`, `wasp-blue-1`.
 
 ### C08 — Walk the Plank
 - **Theme:** pushing across a zone border; zones you might not notice. **Difficulty:** 1. **Heroes:** Cutter; Wasp, Dodger (Swift idle).
