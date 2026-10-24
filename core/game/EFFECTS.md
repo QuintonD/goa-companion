@@ -315,3 +315,26 @@ What each hero needs beyond plain actions, and the framework pieces that cover i
   script; the engine treats `HeroState.at` as the body that acts.
 - NebKher performing another hero's card runs that card's script with NebKher as `heroId`; scripts
   should use `a.heroId`/`a.hero` (never a hard-coded hero id) for "you".
+
+### Silverarrow: every Defense action fires `BeforeAction`
+
+`Game.defend` fires `Trigger.BeforeAction(defender, card, DEFENSE, primary, basic)` for every card used to
+defend (p.14: discarding it is "to perform its Defense action"), after the card is discarded and before
+its Defense text; `primary` is true only when the card's Defense text applies (Primary Defense or
+Defense/Skill). Before, only cards with Defense text fired it. Hooks meaning "before a primary action"
+must check `primary`. A defender defeated during its own Defense action now ends that defense (the attack
+result is "defeated") instead of escaping as `ActorDefeated`. Used by Silverarrow's Wild Hunt ("Each time
+before you perform an action"); test `SilverarrowTest` "Wild Hunt - also before a Defense action".
+
+### Bain: extra Life costs are read before markers are returned
+
+`Units.defeatHero` sums `extraLifeCost` before the defeated hero's Active effects are cancelled and its
+markers returned, so a marker's own cost applies to its holder (Bain's Bounty: "A hero with the Bounty
+marker spends 1 additional Life counter when defeated"). Test `BainTest` "Bounty marker - a hero with it
+spends 1 additional Life counter when defeated".
+
+### Hero batch 2: a shared modal helper
+
+`heroes/batch2/Modal.kt` — `ActionScope.chooseBullets(labels, possible, both)` for two-bullet "Choose
+one —" / "Choose one, or both —" texts (p.10 "Modal Actions", RULINGS 38): bullets that cannot start are
+not offered, "both" is offered in either order. Used by Whisper, Ursafar and Bain.

@@ -294,18 +294,22 @@ fun Game.defeatHero(heroId: String, byHero: String?) {
         moveCard(heroId, c.id, Zone.RESOLVED, slot = state.turn, keepEffects = true)
         note("${heroName(heroId)}'s ${cardName(c.id)} is resolved without an action.")
     }
+    val tier = lowestTier(heroId)
+    // Extra Life costs are read while the hero still has its markers and effects: the defeat is when the
+    // text applies (Bain's Bounty: "A hero with the Bounty marker spends 1 additional Life counter when
+    // defeated"; card text beats the p.13 order, p.3).
+    val q = LifeQuery(heroId, byHero, tier)
+    val extraCost = sources().sumOf { (b, s) -> b.extraLifeCost(this, s, q) }
     cancelEffectsOf(heroId)
     h.markers.removeAll { !it.persistent }
     touch()
-    val tier = lowestTier(heroId)
     if (byHero != null && teamOf(byHero) != h.team) {
         gainCoins(byHero, h.level, "defeated ${heroName(heroId)}")
         for (f in state.heroes) {
             if (f.team == teamOf(byHero) && f.id != byHero) gainCoins(f.id, tier, "assist")
         }
     }
-    val q = LifeQuery(heroId, byHero, tier)
-    val cost = tier + sources().sumOf { (b, s) -> b.extraLifeCost(this, s, q) }
+    val cost = tier + extraCost
     val left = maxOf(0, (state.lifeCounters[h.team] ?: 0) - cost)
     state.lifeCounters[h.team] = left
     emit(

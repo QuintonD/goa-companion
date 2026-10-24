@@ -137,11 +137,15 @@ class SetupTest {
 
     @Test
     fun `only complete heroes are playable`() {
-        assertThat(engine.playableHeroes).containsExactly("arien", "brogan", "wasp", "xargatha")
+        // Hero agents mark their heroes complete one by one: the playable set is exactly the complete modules.
+        val complete = dev.quinton.goa.core.game.heroes.Heroes.all.filter { it.complete }.map { it.heroId }
+        assertThat(engine.playableHeroes).containsExactlyElementsIn(complete)
+        assertThat(engine.playableHeroes).containsAtLeast("arien", "brogan", "wasp", "xargatha")
+        val incomplete = dev.quinton.goa.core.game.heroes.Heroes.all.firstOrNull { !it.complete } ?: return
         val setup = TestData.firstGame().let {
             it.copy(
                 seats =
-                    it.seats.dropLast(1) + SeatSetup("dodger", Team.BLUE, Controller.Human),
+                    it.seats.dropLast(1) + SeatSetup(incomplete.heroId, Team.BLUE, Controller.Human),
             )
         }
         assertThrows(IllegalArgumentException::class.java) { engine.newGame(setup) }
