@@ -4,6 +4,8 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import dev.quinton.goa.core.data.BoardMapRepository
+import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.AiPlayer
 import dev.quinton.goa.core.game.Choice
@@ -15,12 +17,10 @@ import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.GameSetup
 import dev.quinton.goa.core.game.SavedGame
 import dev.quinton.goa.core.game.engine.GameEngine
-import dev.quinton.goa.core.data.BoardMapRepository
-import dev.quinton.goa.core.data.CatalogRepository
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import javax.inject.Singleton
 import kotlin.random.Random
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 /** The computer players, one per level (ADR-035). */
 fun interface AiPlayers {
