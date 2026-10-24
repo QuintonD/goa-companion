@@ -35,7 +35,7 @@ object P04PriceOnHerHead : Puzzle() {
             "has a Defense item; Xargatha (level 2) holds Stone Gaze and has a Defense item. Bain and Brogan " +
             "each have an Attack item. Red has two Life counters left.",
         nudges = listOf(
-            "Red has two Life counters, and Dodger is level 3: she pays one, plus one if she wears the Bounty.",
+            "Red has two Life counters left. Which Red hero could Brogan defeat, and what would make her pay both?",
             "Vampiric Shield adds 2 while two or more spawn points within 2 of Dodger are empty. Count them " +
                 "after each kill Bain could make, and after each space Brogan could land on.",
             "Bain defeats the Red minion south-east of him and gives Dodger the Bounty; Brogan charges three " +

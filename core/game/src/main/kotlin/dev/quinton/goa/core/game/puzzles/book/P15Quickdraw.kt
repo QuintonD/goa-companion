@@ -36,9 +36,9 @@ object P15Quickdraw : Puzzle() {
             "Red. Wasp has played Stop Projectiles. Arien holds Spell Break, Wasp Magnetic Dagger; each has a " +
             "Defense item. Blue has one Life counter left.",
         nudges = listOf(
-            "Quickdraw is much stronger against some targets: who has played an attack card this turn, even " +
-                "one not used yet?",
-            "Count Arien's defense against it, minions included, and see what Tigerclaw can change first.",
+            "Quickdraw is much stronger against some targets than others.",
+            "Arien's Dangerous Current counts even before he uses it. Count his defense against the shot, " +
+                "minions included: what can Tigerclaw change first?",
             "Tigerclaw steps next to the Blue minion beside Arien and defeats it; then Sabina shoots Arien.",
         ),
         explanation = "Quickdraw's +3 checks what the target played this turn, whatever action they took or " +
