@@ -6,6 +6,7 @@ import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -26,8 +27,10 @@ import kotlinx.coroutines.flow.map
 /**
  * This phone's group-sync state (ADR-025), in its own DataStore file (`datastore/group_sync`),
  * apart from the app settings: the group joined (id, key, name), this install's id and name,
- * "who am I" and the phones last synced with. None of it is synced or put in a backup file.
- * Values are plain strings; core:data owns their meaning.
+ * "who am I", the phones last synced with, and the group's sync server (ADR-036: an address that
+ * overrides the build's default, the on/off switch, the last server sync's time, rev and error).
+ * None of it is synced or put in a backup file. Values are plain strings; core:data owns their
+ * meaning.
  */
 class GroupSyncStore(private val store: DataStore<Preferences>) {
     val prefs: Flow<GroupSyncPrefs> = store.data
@@ -49,6 +52,13 @@ class GroupSyncStore(private val store: DataStore<Preferences>) {
         val ME = stringPreferencesKey("me_player_id")
         val PHONES = stringPreferencesKey("phones_json")
         val LAST_SYNC = longPreferencesKey("last_sync_at")
+        val SERVER_URL = stringPreferencesKey("server_url")
+        val SERVER_ENABLED = booleanPreferencesKey("server_enabled")
+        val SERVER_SYNCED_AT = longPreferencesKey("server_synced_at")
+        val SERVER_REV = longPreferencesKey("server_rev")
+        val SERVER_ERROR = stringPreferencesKey("server_error")
+        val SERVER_ERROR_KIND = stringPreferencesKey("server_error_kind")
+        val SERVER_ERROR_AT = longPreferencesKey("server_error_at")
     }
 
     private fun read(prefs: Preferences) = GroupSyncPrefs(
@@ -60,6 +70,13 @@ class GroupSyncStore(private val store: DataStore<Preferences>) {
         mePlayerId = prefs[Keys.ME],
         phonesJson = prefs[Keys.PHONES],
         lastSyncAt = prefs[Keys.LAST_SYNC],
+        serverUrl = prefs[Keys.SERVER_URL],
+        serverEnabled = prefs[Keys.SERVER_ENABLED],
+        serverSyncedAt = prefs[Keys.SERVER_SYNCED_AT],
+        serverRev = prefs[Keys.SERVER_REV],
+        serverError = prefs[Keys.SERVER_ERROR],
+        serverErrorKind = prefs[Keys.SERVER_ERROR_KIND],
+        serverErrorAt = prefs[Keys.SERVER_ERROR_AT],
     )
 
     private fun write(prefs: MutablePreferences, value: GroupSyncPrefs) {
@@ -71,6 +88,13 @@ class GroupSyncStore(private val store: DataStore<Preferences>) {
         prefs.set(Keys.ME, value.mePlayerId)
         prefs.set(Keys.PHONES, value.phonesJson)
         prefs.set(Keys.LAST_SYNC, value.lastSyncAt)
+        prefs.set(Keys.SERVER_URL, value.serverUrl)
+        prefs.set(Keys.SERVER_ENABLED, value.serverEnabled)
+        prefs.set(Keys.SERVER_SYNCED_AT, value.serverSyncedAt)
+        prefs.set(Keys.SERVER_REV, value.serverRev)
+        prefs.set(Keys.SERVER_ERROR, value.serverError)
+        prefs.set(Keys.SERVER_ERROR_KIND, value.serverErrorKind)
+        prefs.set(Keys.SERVER_ERROR_AT, value.serverErrorAt)
     }
 
     private fun <T> MutablePreferences.set(key: Preferences.Key<T>, value: T?) {
@@ -92,7 +116,27 @@ data class GroupSyncPrefs(
     val mePlayerId: String? = null,
     val phonesJson: String? = null,
     val lastSyncAt: Long? = null,
-)
+    /** The group's sync server when it isn't the build's default (an origin); null = the default. */
+    val serverUrl: String? = null,
+    /** "Sync through the server"; null = on (the default whenever there is a server). */
+    val serverEnabled: Boolean? = null,
+    /** When this phone last synced with the server, and the document's rev then. */
+    val serverSyncedAt: Long? = null,
+    val serverRev: Long? = null,
+    /** Why the last server sync failed (readable), its kind and when; null after a success. */
+    val serverError: String? = null,
+    val serverErrorKind: String? = null,
+    val serverErrorAt: Long? = null,
+) {
+    /** The same, without the last server sync's outcome (another group or another server). */
+    fun withoutServerStatus() = copy(
+        serverSyncedAt = null,
+        serverRev = null,
+        serverError = null,
+        serverErrorKind = null,
+        serverErrorAt = null,
+    )
+}
 
 @Module
 @InstallIn(SingletonComponent::class)

@@ -13,6 +13,7 @@ import dev.quinton.goa.core.data.PlayerMergeResult
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.PuzzleProgressRepository
 import dev.quinton.goa.core.data.RatingsRepository
+import dev.quinton.goa.core.data.ServerSyncState
 import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.data.SyncedPhone
 import dev.quinton.goa.core.data.TriviaProgressRepository
@@ -145,16 +146,45 @@ class FakeGroupRepository(initial: GroupState = GroupState(null, "this-phone", n
     override suspend fun start(name: String): GroupCredentials =
         GroupCredentials.create(name).also { join(it) }
 
-    override suspend fun join(group: GroupCredentials) = current.update {
+    override suspend fun join(group: GroupCredentials, serverUrl: String?) = current.update {
         val same = it.group?.groupId == group.groupId
+        val server = it.server
+        val url = serverUrl ?: if (same && server.custom) server.url else server.defaultUrl
         it.copy(
             group = group,
             phones = if (same) it.phones else emptyList(),
             mePlayerId = if (same) it.mePlayerId else null,
+            server = if (same && url == server.url) {
+                server
+            } else {
+                ServerSyncState(url = url, custom = url != server.defaultUrl, defaultUrl = server.defaultUrl)
+            },
         )
     }
 
-    override suspend fun leave() = current.update { it.copy(group = null, phones = emptyList(), lastSyncAt = null) }
+    override suspend fun leave() = current.update {
+        it.copy(
+            group = null,
+            phones = emptyList(),
+            lastSyncAt = null,
+            server = ServerSyncState(url = it.server.defaultUrl, defaultUrl = it.server.defaultUrl),
+        )
+    }
+
+    override suspend fun setServerUrl(url: String?) = current.update {
+        val server = it.server
+        val next = url ?: server.defaultUrl
+        it.copy(
+            server = if (next == server.url) {
+                server
+            } else {
+                server.copy(url = next, custom = next != server.defaultUrl, syncedAt = null, rev = null, error = null)
+            },
+        )
+    }
+
+    override suspend fun setServerSyncEnabled(enabled: Boolean) =
+        current.update { it.copy(server = it.server.copy(enabled = enabled)) }
 
     override suspend fun setMe(playerId: String?) = current.update { it.copy(mePlayerId = playerId) }
 

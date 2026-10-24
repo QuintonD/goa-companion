@@ -2,11 +2,17 @@ package dev.quinton.goa.core.data.sync
 
 import dev.quinton.goa.core.data.GroupRepository
 import dev.quinton.goa.core.data.GroupState
+import dev.quinton.goa.core.data.ServerSyncState
+import dev.quinton.goa.core.data.SyncServerDefaults
+import dev.quinton.goa.core.data.SyncServerError
+import dev.quinton.goa.core.data.SyncServerProblem
+import dev.quinton.goa.core.data.SyncServerResult
 import dev.quinton.goa.core.data.SyncedPhone
 import dev.quinton.goa.core.datastore.sync.GroupSyncPrefs
 import dev.quinton.goa.core.datastore.sync.GroupSyncStore
 import dev.quinton.goa.core.domain.sync.GroupCredentials
 import dev.quinton.goa.core.domain.sync.SecureBytes
+import dev.quinton.goa.core.domain.sync.SyncServerAddress
 import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
 import java.util.Base64
 import java.util.UUID
@@ -24,8 +30,13 @@ import kotlinx.serialization.json.Json
 @Singleton
 internal class DataStoreGroupRepository @Inject constructor(
     private val store: GroupSyncStore,
+    private val defaults: SyncServerDefaults,
 ) : GroupRepository {
     internal var random: SecureBytes = SecureBytes.System
+
+    /** The build's default server, checked like a typed one (an unusable default is no default). */
+    private val defaultUrl: String? =
+        defaults.defaultUrl?.let { SyncServerAddress.normalize(it, defaults.allowLocalHttp) }
 
     override val state: Flow<GroupState> = store.prefs
         .onStart { ensureDeviceId() }
@@ -39,9 +50,13 @@ internal class DataStoreGroupRepository @Inject constructor(
         return group
     }
 
-    override suspend fun join(group: GroupCredentials) = store.edit { prefs ->
+    override suspend fun join(group: GroupCredentials, serverUrl: String?) = store.edit { prefs ->
         val same = prefs.groupId == group.groupId
-        prefs.copy(
+        val invited = serverUrl?.let(::override)
+        val server = if (serverUrl == null && same) prefs.serverUrl else invited
+        // The last server sync's outcome belongs to that group and server.
+        val status = if (same && server == prefs.serverUrl) prefs else prefs.withoutServerStatus()
+        status.copy(
             groupId = group.groupId,
             groupKey = Base64.getEncoder().encodeToString(group.key),
             groupName = group.name,
@@ -49,12 +64,30 @@ internal class DataStoreGroupRepository @Inject constructor(
             phonesJson = if (same) prefs.phonesJson else null,
             lastSyncAt = if (same) prefs.lastSyncAt else null,
             mePlayerId = if (same || prefs.groupId == null) prefs.mePlayerId else null,
+            serverUrl = server,
+            serverEnabled = if (same) prefs.serverEnabled else null,
         )
     }
 
     override suspend fun leave() = store.edit {
-        it.copy(groupId = null, groupKey = null, groupName = null, phonesJson = null, lastSyncAt = null)
+        it.withoutServerStatus().copy(
+            groupId = null,
+            groupKey = null,
+            groupName = null,
+            phonesJson = null,
+            lastSyncAt = null,
+            serverUrl = null,
+            serverEnabled = null,
+        )
     }
+
+    override suspend fun setServerUrl(url: String?) = store.edit { prefs ->
+        val server = url?.let(::override)
+        (if (server == prefs.serverUrl) prefs else prefs.withoutServerStatus()).copy(serverUrl = server)
+    }
+
+    override suspend fun setServerSyncEnabled(enabled: Boolean) =
+        store.edit { it.copy(serverEnabled = enabled.takeUnless { on -> on }) }
 
     override suspend fun setMe(playerId: String?) = store.edit { it.copy(mePlayerId = playerId) }
 
@@ -71,6 +104,38 @@ internal class DataStoreGroupRepository @Inject constructor(
         prefs.copy(phonesJson = json.encodeToString(phoneList, merged), lastSyncAt = at)
     }
 
+    /**
+     * Stores how a server sync of [groupId] with [server] went, unless the group or server
+     * changed while it ran (that outcome isn't theirs).
+     */
+    internal suspend fun recordServerSync(groupId: String, server: String, outcome: SyncServerResult) =
+        store.edit { prefs ->
+            if (prefs.groupId != groupId || serverOf(prefs) != server) return@edit prefs
+            when (outcome) {
+                is SyncServerResult.Synced -> prefs.copy(
+                    serverSyncedAt = outcome.at,
+                    serverRev = outcome.rev,
+                    serverError = null,
+                    serverErrorKind = null,
+                    serverErrorAt = null,
+                )
+
+                is SyncServerResult.Failed -> prefs.copy(
+                    serverError = outcome.error.message,
+                    serverErrorKind = outcome.error.problem.name,
+                    serverErrorAt = outcome.error.at,
+                )
+
+                SyncServerResult.NotConfigured -> prefs
+            }
+        }
+
+    /** What to store for [url]: its origin, or null when it is the default (or not an address). */
+    private fun override(url: String): String? =
+        SyncServerAddress.normalize(url, defaults.allowLocalHttp)?.takeIf { it != defaultUrl }
+
+    private fun serverOf(prefs: GroupSyncPrefs): String? = prefs.serverUrl ?: defaultUrl
+
     private suspend fun ensureDeviceId() {
         store.edit { if (it.deviceId == null) it.copy(deviceId = UUID.randomUUID().toString()) else it }
     }
@@ -86,6 +151,22 @@ internal class DataStoreGroupRepository @Inject constructor(
             mePlayerId = prefs.mePlayerId,
             phones = decodePhones(prefs.phonesJson),
             lastSyncAt = prefs.lastSyncAt,
+            server = ServerSyncState(
+                url = serverOf(prefs),
+                custom = prefs.serverUrl != null,
+                defaultUrl = defaultUrl,
+                enabled = prefs.serverEnabled ?: true,
+                syncedAt = prefs.serverSyncedAt,
+                rev = prefs.serverRev,
+                error = prefs.serverError?.let { message ->
+                    SyncServerError(
+                        problem = SyncServerProblem.entries.firstOrNull { it.name == prefs.serverErrorKind }
+                            ?: SyncServerProblem.SERVER,
+                        message = message,
+                        at = prefs.serverErrorAt ?: 0,
+                    )
+                },
+            ),
         )
     }
 
