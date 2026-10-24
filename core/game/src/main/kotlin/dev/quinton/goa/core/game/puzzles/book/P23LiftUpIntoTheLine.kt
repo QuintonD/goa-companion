@@ -34,7 +34,7 @@ object P23LiftUpIntoTheLine : Puzzle() {
         heroes = listOf("wasp", "swift", "dodger", "brogan"),
         goal = PuzzleGoal.DefeatHero("dodger", Deadline.END_OF_TURN, "Defeat Dodger this turn."),
         intro = "Round 3, turn 4. Wasp has played Lift Up and acts next, then Swift with Snipe; Swift has an " +
-            "Attack item. Dodger has played Dark Ritual (initiative 3) and keeps Littlefinger of Death " +
+            "Attack item. Dodger has played Dark Ritual (4 with her item) and keeps Littlefinger of Death " +
             "(Defense 5) in hand. Brogan has already acted.",
         nudges = listOf(
             "Snipe only hits a target exactly four spaces away, in a straight line. Who can Lift Up move?",
@@ -50,7 +50,7 @@ object P23LiftUpIntoTheLine : Puzzle() {
             "with 5 + 1 for the Attack item (p.16). Where she stands, Dodger's melee minion gives her +1 " +
             "(p.14): 5 + 1 = 6, and equal totals defend. Moved, she leaves it behind, and ends next to the " +
             "Blue heavy minion as well (−1): 4 against 6. Moving the minion away does nothing, as Dodger is " +
-            "not in Swift's line. Wasp at 11 acts before Swift at 8, and both before Dodger at 3 (p.7). The " +
+            "not in Swift's line. Wasp at 11 acts before Swift at 8, and both before Dodger at 4 (p.7). The " +
             "lesson: a move that keeps one distance changes all the others, guards included.",
         rules = listOf(
             "p.7 Check the initiative",

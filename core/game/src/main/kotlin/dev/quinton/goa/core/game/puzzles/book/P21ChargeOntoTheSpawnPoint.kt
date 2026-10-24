@@ -35,15 +35,15 @@ object P21ChargeOntoTheSpawnPoint : Puzzle() {
         heroes = listOf("arien", "brogan", "dodger", "xargatha"),
         goal = PuzzleGoal.DefeatHero("dodger", Deadline.END_OF_TURN, "Defeat Dodger this turn."),
         intro = "Round 3, turn 4: play your cards. Arien holds Noble Blade and Dangerous Current, Brogan Mad " +
-            "Dash and Bolster. Dodger has played Dark Ritual (initiative 3) and keeps Shield of Decay (Defense " +
+            "Dash and Bolster. Dodger has played Dark Ritual (4 with her item) and keeps Shield of Decay (Defense " +
             "3, +2 if there are 2 or more empty spawn points within 2 spaces of her in the Battle Zone). " +
             "Xargatha has played Charm (5).",
         nudges = listOf(
             "Count the empty spawn points around Dodger, and count Brogan's ways to reach her.",
             "One hero cannot fill two spawn points. A unit Arien moves before his attack can fill one, and " +
                 "free a path.",
-            "Play Noble Blade and Mad Dash. Attack the Blue minion and first move your own minion onto the " +
-                "spawn point beside it.",
+            "Play Noble Blade and Mad Dash. Attack the Blue minion, and before the attack move your own minion " +
+                "one space north-west, onto the spawn point there.",
         ),
         explanation = "Shield of Decay is a primary Defense, so its text applies when Dodger defends (p.14), and " +
             "an empty spawn point is one with nothing on it (p.17 Empty). Three of the spawn points within " +
@@ -53,11 +53,11 @@ object P21ChargeOntoTheSpawnPoint : Puzzle() {
             "spaces in a straight line to a space next to an enemy unit (card text; Brogan FAQ), and the only " +
             "run that reaches her is blocked by Arien's own minion. Noble Blade fixes both: before attacking " +
             "the Blue minion, Arien may move another unit next to it 1 space (card text), so his minion steps " +
-            "onto the empty spawn point behind it, out of Brogan's path. Brogan's run then ends on a second " +
+            "north-west onto an empty spawn point, out of Brogan's path (the spawn point to its north-east " +
+            "would block Brogan's landing). Brogan's run then ends on a second " +
             "spawn point, next to Dodger: one empty spawn point is left, no +2, 4 against 6. Dangerous Current " +
             "is the tempting card: Dodger stands right behind the minion and must discard her only card (card " +
-            "text), but Brogan still cannot reach her. Killing a minion that stands on a spawn point empties " +
-            "it: look at what a defeat gives back.",
+            "text), but Brogan still cannot reach her. Your own minions are pieces you can place, too.",
         rules = listOf(
             "p.11 Movement in the card text",
             "p.14 Defense total, Minion defense modifiers",
