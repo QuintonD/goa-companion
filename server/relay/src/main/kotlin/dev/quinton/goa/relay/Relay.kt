@@ -42,7 +42,7 @@ fun Application.relayModule(
     limiter: RateLimiter = RateLimiter(config.perClientPerMinute, config.globalPerMinute),
 ) {
     // One log line per request: method, path template, status, duration. Never bodies, tokens,
-    // group ids or client addresses.
+    // group ids or client addresses. Healthy health checks (Docker polls every 30 s) log at debug.
     intercept(ApplicationCallPipeline.Monitoring) {
         val started = System.nanoTime()
         call.response.header("X-Content-Type-Options", "nosniff")
@@ -53,7 +53,9 @@ fun Application.relayModule(
         } finally {
             val status = call.response.status()?.value ?: HttpStatusCode.InternalServerError.value
             val millis = (System.nanoTime() - started) / 1_000_000
-            log.info("{} {} {} {}ms", call.request.httpMethod.value, template(call.request.path()), status, millis)
+            val path = template(call.request.path())
+            val line = "${call.request.httpMethod.value} $path $status ${millis}ms"
+            if (path == "/v1/health" && status == HttpStatusCode.OK.value) log.debug(line) else log.info(line)
         }
     }
 
