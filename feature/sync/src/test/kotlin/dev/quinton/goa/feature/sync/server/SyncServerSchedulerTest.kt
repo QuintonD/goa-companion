@@ -317,7 +317,8 @@ class SyncServerSchedulerTest {
             val expected = if (problem.transient) SyncServerWorker.Next.Retry else SyncServerWorker.Next.Fail
             assertThat(SyncServerWorker.decide(failed(problem), 0)).isEqualTo(expected)
             // Someone is waiting on a join: never retry.
-            assertThat(SyncServerWorker.decide(failed(problem), 0, watched = true)).isEqualTo(SyncServerWorker.Next.Fail)
+            val watched = SyncServerWorker.decide(failed(problem), 0, watched = true)
+            assertThat(watched).isEqualTo(SyncServerWorker.Next.Fail)
         }
         assertThat(SyncServerProblem.entries.filter { it.transient }).containsExactly(
             SyncServerProblem.UNREACHABLE,
@@ -327,7 +328,8 @@ class SyncServerSchedulerTest {
             SyncServerProblem.SERVER_FULL,
         )
         val last = SyncServerWorker.MAX_ATTEMPTS - 1
-        assertThat(SyncServerWorker.decide(failed(SyncServerProblem.TIMEOUT), last)).isEqualTo(SyncServerWorker.Next.Fail)
+        assertThat(SyncServerWorker.decide(failed(SyncServerProblem.TIMEOUT), last))
+            .isEqualTo(SyncServerWorker.Next.Fail)
         // Retry-After: within the backoff, WorkManager's own retry; longer, a run queued no earlier.
         assertThat(SyncServerWorker.backoffSeconds(0)).isEqualTo(30)
         assertThat(SyncServerWorker.backoffSeconds(2)).isEqualTo(120)
