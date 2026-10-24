@@ -99,7 +99,11 @@ class EndOfRoundTest {
         assertThat(wasp.card("wasp-green-2b")!!.zone).isEqualTo(Zone.HAND)
         assertThat(wasp.card("wasp-green-2a")!!.zone).isEqualTo(Zone.ITEM)
         assertThat(wasp.card("wasp-green-1")!!.zone).isEqualTo(Zone.DECK)
-        assertThat(d.s.view("arien").heroes.first { it.heroId == "wasp" }.items).containsExactly("wasp-green-2a")
+        // Only the item icon is public (BGG 3590819); Wasp sees her own item card.
+        val seenByArien = d.s.view("arien").heroes.first { it.heroId == "wasp" }
+        assertThat(seenByArien.items).isEmpty()
+        assertThat(seenByArien.itemStats).hasSize(1)
+        assertThat(d.s.view("wasp").heroes.first { it.heroId == "wasp" }.items).containsExactly("wasp-green-2a")
         // Wasp levelled up: no Pity coin; Arien did not: 1 coin.
         assertThat(d.hero("arien").coins).isEqualTo(1)
     }

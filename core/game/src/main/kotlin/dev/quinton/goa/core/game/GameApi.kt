@@ -340,7 +340,10 @@ data class HeroView(
     /** Resolved cards on the dashboard's Turn slots, turn 1..4 (open information). */
     val resolved: List<CardView>,
     val discard: List<CardView>,
-    /** Tucked item cards (open information, p.16). */
+    /**
+     * Tucked item cards, for the viewer's own hero only (empty for everyone else): which card was
+     * tucked is not public, only its item icon is (designer, BGG 3590819). See [itemStats].
+     */
     val items: List<String>,
     val ultimate: Boolean,
     /** Markers on this hero (poison, bounty, runes…) by marker kind, with the giving hero. */
@@ -349,6 +352,8 @@ data class HeroView(
     val activeEffects: List<String> = emptyList(),
     /** Hero-specific public counters a card or the UI shows (e.g. charges), by name. */
     val counters: Map<String, Int> = emptyMap(),
+    /** The item bonus icons on the dashboard, one per item (open information, p.16), for every hero. */
+    val itemStats: List<dev.quinton.goa.core.model.catalog.Stat> = emptyList(),
 )
 
 @Serializable
@@ -632,6 +637,9 @@ data class PuzzleInfo(
  * card of it (deck, Handicap, Ultimate, extras) has a tested implementation.
  */
 interface GameFactory {
+    /** The engine version a [SavedGame] needs; a save with another version can't be restored. */
+    val engineVersion: Int
+
     val playableHeroes: Set<String>
 
     /** Maps a game can be played on (verified single-lane first). */
@@ -640,6 +648,11 @@ interface GameFactory {
     fun newGame(setup: GameSetup): GameSession
 
     fun restore(saved: SavedGame): GameSession
+}
+
+/** The engine once the catalog and maps are loaded (they load asynchronously in the app). */
+fun interface GameFactoryProvider {
+    suspend fun get(): GameFactory
 }
 
 /** Answers decisions for a [Controller.Ai] seat. Blocking; checks [cancelled] while it searches. */

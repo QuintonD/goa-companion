@@ -24,6 +24,8 @@ class GameEngine(
 ) : GameFactory {
     val data: EngineData = EngineData(catalog, maps, registry, matchRules)
 
+    override val engineVersion: Int get() = ENGINE_VERSION
+
     override val playableHeroes: Set<String> =
         registry.heroModules.filter { it.complete && catalog.hero(it.heroId) != null }.map { it.heroId }.toSortedSet()
 
