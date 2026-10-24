@@ -10,7 +10,6 @@ import dev.quinton.goa.core.game.position.PositionBuilder
 import dev.quinton.goa.core.game.position.PositionPhase
 import dev.quinton.goa.core.game.puzzles.Moves.action
 import dev.quinton.goa.core.game.puzzles.Moves.hero
-import dev.quinton.goa.core.game.puzzles.Moves.space
 import dev.quinton.goa.core.game.puzzles.Puzzle
 import dev.quinton.goa.core.game.puzzles.WrongTry
 import dev.quinton.goa.core.model.board.Hex
@@ -27,28 +26,32 @@ object P57TurnedToStone : Puzzle() {
         title = "Turned to Stone",
         difficulty = 3,
         theme = "Counts as terrain; ordering a same-team tie",
-        heroes = listOf("mrak", "xargatha", "wasp", "dodger"),
-        goal = PuzzleGoal.DefeatHero("dodger", Deadline.END_OF_TURN, "Defeat Dodger this turn."),
-        intro = "Round 3, turn 4. Mrak (Seismic Slam) and Xargatha (Threatening Slash) both act at 7; you " +
-            "choose who goes first. Xargatha's Stone Gaze, resolved in turn 3, is in effect this turn. " +
-            "Dodger has no cards left; Wasp keeps Lift Up. Red has 2 Life counters.",
+        heroes = listOf("xargatha", "mrak", "tigerclaw", "wasp"),
+        goal = PuzzleGoal.DefeatHero("tigerclaw", Deadline.END_OF_TURN, "Defeat Tigerclaw this turn."),
+        intro = "Round 5, turn 3. Mrak (Seismic Slam, 8 with his Initiative item) and Xargatha (Rapid Thrusts, " +
+            "8) are tied; you choose who goes first. Xargatha's Petrifying Stare, resolved in turn 2, is in " +
+            "effect this turn. Tigerclaw and Wasp act after them. Tigerclaw keeps Sidestep.",
         nudges = listOf(
-            "What does Stone Gaze turn Wasp into?",
-            "Seismic Slam wants a hero next to terrain, and Wasp has to stay petrified where she is.",
-            "Let Mrak act first and Slam Dodger.",
+            "What does Petrifying Stare turn Wasp into, and what does Seismic Slam need?",
+            "Sidestep blocks a ranged attack and then lets Tigerclaw step aside. A petrified hero can't perform " +
+                "a movement action, but is that one?",
+            "Let Mrak act first and Slam Tigerclaw.",
         ),
-        explanation = "Stone Gaze makes enemy heroes within 2 of Xargatha count as both heroes and terrain " +
-            "(card text; p.17 Counts as): Wasp stands next to Xargatha, so she is terrain, and Dodger " +
-            "stands next to Wasp. Seismic Slam makes an enemy hero next to terrain discard a card or be " +
-            "defeated, and Dodger has none. Slamming Wasp only costs her Lift Up. If Xargatha strikes Wasp " +
-            "first, Red's best answer is not to defend (p.13): Wasp is defeated, Red spends 1 of its 2 Life " +
-            "counters, and Dodger is next to no terrain any more. Moving Xargatha more than 2 spaces from " +
-            "Wasp ends it too, since the radius moves with her (p.17 Active Effects). The tie is yours to " +
-            "order (p.7): Mrak first is safest; Xargatha first works only if she leaves Wasp petrified.",
+        explanation = "Petrifying Stare makes enemy heroes in its radius count as both heroes and terrain (card " +
+            "text; p.17 Counts as): Wasp is terrain, and Tigerclaw stands next to her, with no printed terrain " +
+            "around him. Seismic Slam makes an enemy hero in radius next to terrain discard a card or be " +
+            "defeated. Mrak first: Tigerclaw must throw away Sidestep, his only card, and Xargatha's Rapid " +
+            "Thrusts (a ranged attack, range 1 +1 per adjacent enemy unit) then finds him with no defense (p.13). " +
+            "Xargatha first is the trap: Sidestep blocks her ranged attack (p.14 Block), and its \"You may move 1 " +
+            "space\" is movement in the card text, which a petrified hero may still make (p.11: only movement " +
+            "actions are stopped). He steps to the one space beside him that touches no terrain and not Mrak, and " +
+            "the Slam has nothing to grip. The tie is yours to order (p.7): the order is the whole puzzle.",
         rules = listOf(
             "p.7 Tied Initiative",
+            "p.11 Movement in the Card Text",
             "p.13 Attacking a Hero",
-            "p.17 Counts as, Active Effects",
+            "p.14 Block",
+            "p.17 Counts as",
             "p.18 Next Turn",
             "p.19 Terrain",
         ),
@@ -57,66 +60,72 @@ object P57TurnedToStone : Puzzle() {
     override val playerSeats = setOf("mrak", "xargatha")
 
     override fun PositionBuilder.setUp() {
-        round = 3
-        turn = 4
+        round = 5
+        turn = 3
         tieBreaker = Team.RED
         clearMinions()
-        lifeCounters(Team.RED, 2)
+        lifeCounters(Team.RED, 3)
         lifeCounters(Team.BLUE, 3)
-        hero("xargatha", Team.BLUE, Hex(2, -5)) {
-            played("xargatha-red-1")
+        hero("xargatha", Team.BLUE, Hex(4, -3)) {
+            level = 5
+            played("xargatha-red-3b")
             resolved(1, "xargatha-gold")
-            resolved(2, "xargatha-silver")
-            resolved(3, "xargatha-blue-1")
-            hand("xargatha-green-1")
+            resolved(2, "xargatha-blue-2a")
+            hand("xargatha-silver", "xargatha-green-2b")
+            items("xargatha-red-2b", "xargatha-red-3a", "xargatha-green-2a", "xargatha-blue-2b")
         }
-        hero("mrak", Team.BLUE, Hex(2, -8)) {
+        hero("mrak", Team.BLUE, Hex(1, -1)) {
+            level = 2
             played("mrak-red-1")
             resolved(1, "mrak-gold")
             resolved(2, "mrak-silver")
-            resolved(3, "mrak-green-1")
-            hand("mrak-blue-1")
+            hand("mrak-green-2a", "mrak-blue-1")
+            items("mrak-green-2b")
         }
-        hero("wasp", Team.RED, Hex(3, -6)) {
+        hero("tigerclaw", Team.RED, Hex(3, -2)) {
+            level = 3
+            played("tigerclaw-green-2a")
+            resolved(1, "tigerclaw-gold")
+            resolved(2, "tigerclaw-red-1")
+            discard("tigerclaw-silver")
+            hand("tigerclaw-blue-2a")
+            items("tigerclaw-green-2b", "tigerclaw-blue-2b")
+        }
+        hero("wasp", Team.RED, Hex(3, -1)) {
+            level = 2
             played("wasp-green-1")
             resolved(1, "wasp-gold")
             resolved(2, "wasp-silver")
-            resolved(3, "wasp-red-1")
-            hand("wasp-blue-1")
+            hand("wasp-red-2a", "wasp-blue-1")
+            items("wasp-red-2b")
         }
-        hero("dodger", Team.RED, Hex(4, -7)) {
-            played("dodger-green-1")
-            resolved(1, "dodger-gold")
-            resolved(2, "dodger-silver")
-            resolved(3, "dodger-red-1")
-            discard("dodger-blue-1")
-            hand()
-        }
-        // Stone Gaze, resolved in turn 3: "Next turn: Enemy heroes in radius count as both heroes and
+        // Petrifying Stare, resolved in turn 2: "Next turn: Enemy heroes in radius count as both heroes and
         // terrain, and cannot perform movement actions."
-        effect("xargatha", "xargatha-blue-1", Timing.NEXT_TURN, ActionKind.SKILL, madeTurn = 3)
+        effect("xargatha", "xargatha-blue-2a", Timing.NEXT_TURN, ActionKind.SKILL, madeTurn = 2)
         minion(Team.RED, MinionType.MELEE, Hex(0, -6))
         minion(Team.RED, MinionType.HEAVY, Hex(1, 0))
-        minion(Team.BLUE, MinionType.MELEE, Hex(3, -1))
+        minion(Team.BLUE, MinionType.MELEE, Hex(1, -4))
         minion(Team.BLUE, MinionType.HEAVY, Hex(2, -7))
         phase = PositionPhase.Resolving()
     }
 
-    override val solution = listOf(hero("mrak"), action(ActionType.PRIMARY), hero("dodger"))
+    override val solution = listOf(
+        hero("mrak"),
+        action(ActionType.PRIMARY),
+        hero("tigerclaw"),
+        action(ActionType.PRIMARY),
+        hero("tigerclaw"),
+    )
 
-    override val nudgedMoves = solution
+    override val nudgedMoves = solution.take(3)
 
     override val wrongTries = listOf(
         WrongTry(
-            "Xargatha first, striking Wasp: she lets herself be defeated and the terrain is gone",
-            listOf(hero("xargatha"), action(ActionType.PRIMARY)),
+            "Xargatha first: Sidestep blocks her ranged attack and Tigerclaw steps away from the stone",
+            listOf(hero("xargatha")),
         ),
         WrongTry(
-            "Xargatha first, walking away: Wasp is no longer in Stone Gaze's radius",
-            listOf(hero("xargatha"), action(ActionType.MOVEMENT), space(0, -4)),
-        ),
-        WrongTry(
-            "Slam Wasp: she discards Lift Up and survives",
+            "Slam Wasp: she discards a card, and Tigerclaw keeps Sidestep",
             listOf(hero("mrak"), action(ActionType.PRIMARY), hero("wasp")),
         ),
     )
