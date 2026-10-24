@@ -248,7 +248,18 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Defeating a hero pays its level to the attacker and assist coins equal to its lowest tier to each teammate (p.13). War Drummer gives 3 instead of 1 once any hero was defeated this round, and it acts at initiative 5, after Hit and Run at 9 (p.7). Its target must be another hero in range when it resolves, so Tigerclaw's optional after-attack step matters.
 - **Rules:** p.7 initiative; p.10 Mandatory and optional steps; p.13 coins table; p.17 Friendly.
 - **Risk:** `GainCoins` counts the team total (convention); Tigerclaw alone gains 5.
-- **Encoded as p05 (2026-10-24):** as written (Brogan's item `brogan-green-2a`, Arien's `arien-red-2b`). Winning steps after the attack: (2,−6) or (2,−5).
+- **Encoded as p05 (hardened 2026-10-24, changed; difficulty 3):** the reviewers found Wasp's resolved
+  Stop Projectiles (3) before Tigerclaw (9) and an obvious target with 2 of 6 steps winning. Now round 3,
+  turn 4, **Xargatha replaces Arien** and strikes between Tigerclaw and the drum. Tigerclaw (Blue, L2,
+  `tigerclaw-red-2a` **Combat Reflexes** 9: move 1 before the attack, or 1 after if he didn't; item
+  `tigerclaw-red-2b`; hand Dodge) at (4,−3); Brogan (L2, War Drummer 5, item `brogan-green-2a`) at
+  (2,−5); Wasp (Red, L3, already acted with Control Gravity 10, no cards) at (3,−2); Xargatha (Red, L2,
+  no cards in hand, Threatening Slash 7, Attack item) at (4,−4), next to Tigerclaw. Goal 7 coins. Answer:
+  attack Wasp without moving (3 + 1 assist), then step into her space (3,−2): the only end space not next
+  to Xargatha and within 4 of Brogan; the drum pays 3: 7. Wrong tries refuted: defeating Xargatha (2 + 1
+  + 3 = 6), staying put (Xargatha defeats him, Dodge cannot block a melee attack, the drum has no
+  target), stepping SE to (4,−2) (5 from Brogan). Solver: one winning option at every decision (5
+  pre-moves, 2 targets, 6 post-moves).
 
 ### C06 — The Hands of the Clock
 - **Theme:** defending with initiative (Temporal Punch); choosing the target. **Difficulty:** 1. **Heroes:** Emmitt; Wuk, Tigerclaw (Sabina idle).
