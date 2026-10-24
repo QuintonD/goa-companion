@@ -368,6 +368,25 @@ class MortimerTest {
     }
 
     @Test
+    fun `Stage Dive - a Range item widens the range`() {
+        lateinit var z: String
+        val d = pos {
+            clearMinions()
+            hero("mortimer", Team.RED, Hex(1, -2)) {
+                played("mortimer-green-1") // Range 4
+                items("mortimer-red-3a") // item: +1 Range
+            }
+            hero("brogan", Team.BLUE, Hex(4, -5))
+            z = token(MortimerHero.ZOMBIE, Hex(-4, -2), owner = "mortimer") // 5 away
+            phase = PositionPhase.Resolving(next = "mortimer")
+        }
+        d.action("mortimer", ActionType.PRIMARY)
+        d.option(1)
+        assertThat(d.at("mortimer")).isEqualTo(Hex(-4, -2))
+        assertThat(d.at(z)).isEqualTo(Hex(1, -2))
+    }
+
+    @Test
     fun `Crowd Drift - up to two times`() {
         lateinit var z: String
         val d = pos {

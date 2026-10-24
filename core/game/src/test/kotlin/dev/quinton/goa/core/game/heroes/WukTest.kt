@@ -158,6 +158,21 @@ class WukTest {
         assertThat(d.trees()).containsExactly(Hex(3, -2))
     }
 
+    @Test
+    fun `Mystic Saplings - a Radius item widens the radius`() {
+        val d = pos {
+            clearMinions()
+            hero("wuk", Team.RED, Hex(1, -2)) {
+                played("wuk-silver")
+                items("wuk-red-3b") // item: +1 Radius
+            }
+            hero("brogan", Team.BLUE, Hex(4, -5))
+            phase = PositionPhase.Resolving(next = "wuk")
+        }
+        d.action("wuk", ActionType.PRIMARY)
+        assertThat(d.spaces()).contains(Hex(-3, -2)) // 4 away
+    }
+
     // ---- Nature's Protector / Guardian / Champion (red) ----------------------------------------
 
     @Test

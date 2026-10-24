@@ -189,6 +189,21 @@ class MrakTest {
     }
 
     @Test
+    fun `Seismic Slam - a Radius item widens the radius`() {
+        val d = pos {
+            clearMinions()
+            hero("mrak", Team.RED, Hex(0, -2)) {
+                played("mrak-red-1") // Radius 3
+                items("mrak-green-3a") // item: +1 Radius
+            }
+            hero("brogan", Team.BLUE, Hex(4, -2)) { hand("brogan-gold") } // 4 away, next to terrain
+            phase = PositionPhase.Resolving(next = "mrak")
+        }
+        d.action("mrak", ActionType.PRIMARY)
+        assertThat(d.zoneOf("brogan", "brogan-gold")).isEqualTo(Zone.DISCARD)
+    }
+
+    @Test
     fun `Epicenter - May repeat once on a different target`() {
         val d = pos {
             clearMinions()
