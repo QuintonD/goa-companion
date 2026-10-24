@@ -4,6 +4,7 @@ import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Coach
+import dev.quinton.goa.core.game.CoachAnalysis
 import dev.quinton.goa.core.game.CoachNote
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
@@ -28,30 +29,80 @@ import kotlin.math.abs
  * otherwise it stays silent. [turningPoints] replays a saved game and explains the 3–6 turns where the
  * seat's winning chances swung most.
  */
-class AiCoach(private val factory: GameFactory? = null, private val seed: Long = 0x0C0AC4L) : Coach {
+class AiCoach internal constructor(
+    private val factory: GameFactory?,
+    private val seed: Long,
+    budgetMs: Long,
+) : Coach {
+    constructor(factory: GameFactory? = null, seed: Long = 0x0C0AC4L) : this(factory, seed, BUDGET_MS)
+
     private val profile = AiPlayers.profile(dev.quinton.goa.core.game.AiLevel.HARD).copy(
         playSamples = 6,
         otherSamples = 4,
         otherHorizon = Horizon.TURN,
         candidates = 8,
-        budgetMs = 1500,
+        budgetMs = budgetMs,
     )
-    private var cached: Pair<EngineData, Searcher>? = null
+
+    @Volatile private var cached: Pair<EngineData, Searcher>? = null
 
     private fun searcher(data: EngineData): Searcher {
         cached?.let { if (it.first === data) return it.second }
         return Searcher(Evaluator(data, profile.knobs), profile, keepLeaves = true).also { cached = data to it }
     }
 
-    override fun nudge(session: GameSession, decision: Decision, choice: Choice, cancelled: () -> Boolean): CoachNote? {
-        if (decision.options.size < 2 || choice !in decision.options) return null
-        // Nothing to learn from a forced pass, or from the order of tied teammates.
-        if (decision.kind == DecisionKind.ACT_FIRST || decision.kind == DecisionKind.MINION_RETURN) return null
-        val es = session as? EngineSession ?: return null
-        val s = searcher(es.engineData)
+    /** Nothing to learn from a forced pass, or from the order of tied teammates. */
+    private fun worthLooking(decision: Decision): Boolean = decision.options.size >= 2 &&
+        decision.kind != DecisionKind.ACT_FIRST && decision.kind != DecisionKind.MINION_RETURN
+
+    private fun analyze(
+        es: EngineSession,
+        decision: Decision,
+        cancelled: () -> Boolean,
+        mustInclude: Choice?,
+    ): Analysis? {
         val deadline = System.nanoTime() + profile.budgetMs * 1_000_000L
-        val a = s.analyze(es, decision, Searcher.mix(seed, decision.id), cancelled, deadline, mustInclude = choice)
-            ?: return null
+        return searcher(es.engineData)
+            .analyze(es, decision, Searcher.mix(seed, decision.id), cancelled, deadline, mustInclude = mustInclude)
+    }
+
+    override fun nudge(session: GameSession, decision: Decision, choice: Choice, cancelled: () -> Boolean): CoachNote? {
+        if (!worthLooking(decision) || choice !in decision.options) return null
+        val es = session as? EngineSession ?: return null
+        val a = analyze(es, decision, cancelled, mustInclude = choice) ?: return null
+        return judge(es, decision, a, choice)
+    }
+
+    /**
+     * The same analysis as [nudge] without the person's choice (it isn't known yet), on the session
+     * given (the app's fork). [nudge] with the result adds the choice when the pruning left it out.
+     */
+    override fun prepare(session: GameSession, decision: Decision, cancelled: () -> Boolean): CoachAnalysis? {
+        if (!worthLooking(decision)) return null
+        val es = session as? EngineSession ?: return null
+        val a = analyze(es, decision, cancelled, mustInclude = null) ?: return null
+        // A cancelled search is cut short: not the analysis [nudge] would have made.
+        return if (cancelled()) null else Prepared(decision, es, a)
+    }
+
+    override fun nudge(
+        analysis: CoachAnalysis,
+        session: GameSession,
+        decision: Decision,
+        choice: Choice,
+        cancelled: () -> Boolean,
+    ): CoachNote? {
+        val p = analysis as? Prepared
+        if (p == null || p.decision != decision) return nudge(session, decision, choice, cancelled)
+        if (choice !in decision.options) return null
+        val a = searcher(p.session.engineData)
+            .extend(p.session, decision, Searcher.mix(seed, decision.id), p.analysis, choice, cancelled) ?: return null
+        return judge(p.session, decision, a, choice)
+    }
+
+    /** Speaks only when [choice] is clearly and consistently worse than the best option, with a reason. */
+    @Suppress("ReturnCount")
+    private fun judge(es: EngineSession, decision: Decision, a: Analysis, choice: Choice): CoachNote? {
         val mine = a.options.firstOrNull { it.choice == choice } ?: return null
         val best = a.options.maxByOrNull { it.mean } ?: return null
         if (best.choice == choice || mine.n == 0) return null
@@ -64,6 +115,12 @@ class AiCoach(private val factory: GameFactory? = null, private val seed: Long =
         val reason = Explainer(es, decision, a, choice, best.choice).explain() ?: return null
         val state = es.state
         return CoachNote(reason.first, reason.second, decision.id, state.round, state.turn)
+    }
+
+    /** [prepare]'s result: the analysis and the session (a fork) it was made on. */
+    internal class Prepared(val decision: Decision, val session: EngineSession, val analysis: Analysis) :
+        CoachAnalysis {
+        override val decisionId: Long get() = decision.id
     }
 
     override fun turningPoints(saved: SavedGame, seat: String, cancelled: () -> Boolean): List<CoachNote> {
@@ -124,6 +181,9 @@ class AiCoach(private val factory: GameFactory? = null, private val seed: Long =
     }
 
     companion object {
+        /** Wall-clock cap of one analysis (the samples stop early past it; at least one is always made). */
+        const val BUDGET_MS: Long = 1500
+
         /** Coin-equivalents below the best option before the coach speaks, and the share of samples. */
         const val NUDGE_GAP: Double = 5.0
         const val NUDGE_CONSISTENCY: Double = 0.75

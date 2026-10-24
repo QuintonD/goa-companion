@@ -11,6 +11,7 @@ import dev.quinton.goa.core.game.AnswerResult
 import dev.quinton.goa.core.game.CardView
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Coach
+import dev.quinton.goa.core.game.CoachAnalysis
 import dev.quinton.goa.core.game.CoachNote
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.Decision
@@ -1038,12 +1039,46 @@ class FakeAi : AiPlayer {
 
 fun fakeAiPlayers(ai: FakeAi = FakeAi()) = AiPlayers { ai }
 
-/** Nudges when the person holds instead of attacking, or doesn't defend; two turning points after. */
-class FakeCoach(var silent: Boolean = false) : Coach {
+/**
+ * Nudges when the person holds instead of attacking, or doesn't defend; two turning points after.
+ * With [prepares] it also looks ahead ([prepare]) and answers from that look.
+ */
+class FakeCoach(var silent: Boolean = false, var prepares: Boolean = false) : Coach {
+    /** Answers looked at without a prepared look. */
     var asked = 0
+
+    /** Answers looked at with a prepared look. */
+    var askedPrepared = 0
+
+    /** Each [prepare] call: the decision id, and whether it was already cancelled when it began. */
+    val looks = mutableListOf<Pair<Long, Boolean>>()
+
+    class Look(override val decisionId: Long) : CoachAnalysis
+
+    override fun prepare(session: GameSession, decision: Decision, cancelled: () -> Boolean): CoachAnalysis? {
+        if (!prepares) return null
+        looks += decision.id to cancelled()
+        return Look(decision.id)
+    }
+
+    override fun nudge(
+        analysis: CoachAnalysis,
+        session: GameSession,
+        decision: Decision,
+        choice: Choice,
+        cancelled: () -> Boolean,
+    ): CoachNote? {
+        askedPrepared++
+        check(analysis.decisionId == decision.id) { "A look at ${analysis.decisionId} used for ${decision.id}" }
+        return verdict(decision, choice)
+    }
 
     override fun nudge(session: GameSession, decision: Decision, choice: Choice, cancelled: () -> Boolean): CoachNote? {
         asked++
+        return verdict(decision, choice)
+    }
+
+    private fun verdict(decision: Decision, choice: Choice): CoachNote? {
         if (silent) return null
         return when {
             decision.kind == DecisionKind.CHOOSE_ACTION && choice == Choice.Action(ActionType.HOLD) -> CoachNote(

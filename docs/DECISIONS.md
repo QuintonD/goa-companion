@@ -751,3 +751,17 @@ one JSON document in `datastore/puzzle_progress` (solved, solvedAt, tries, most 
 seen) keyed by `PuzzleInfo.id`; local only, not synced, not in the backup file. A try is counted at
 its first move; Try again and Restart start a new one. (6) The replay drives a fresh session with
 `bestChoice()` at every player question, so it shows a winning line even when the key has several.
+**Addendum (2026-10-24, coach looks ahead):** Replaces (5) of the play-UI addendum. A hands-on tester
+saw no nudge in a whole game: the Hard-level analysis ran after the tap, and on a phone (3–4× the
+desktop time, more under load) it could pass the 1.5 s timeout, while every tap waited for it. Now
+the analysis starts as soon as the person's question is asked (`Coach.prepare`, additive with a
+default; core/game/CONTRACT-CHANGES.md), on a `fork()` made on the engine thread and searched on
+`Dispatchers.Default`: the session itself is still touched only on the engine thread, and the table
+stays responsive while the coach looks. One look at a time (a new one waits for the cancelled one to
+stop). The answer is checked with `Coach.nudge(analysis, …)`, instant once the look has finished
+(only the person's choice is played out, when the pruning had left it out); an unfinished look is
+waited for at most 300 ms, then the answer goes through unnudged — under 0.3 s still reads as the
+tap's own response, and the look has usually finished while the person thought. The look is dropped
+and its search cancelled when the question is answered, on take back, rematch, Coach off, deleting
+the game and leaving. Same seed, same nudge: `CoachAheadTest` compares both ways on every answer of
+a game.

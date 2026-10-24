@@ -132,6 +132,11 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   ("Red Throne Zone" ×3, "Red Melee minion" ×3), the coach's minion nudge when only Hold was better,
   "that space" on an action choice, "Turr / et", Razzle's figures drawn as tokens, "SPELLSREMOVED",
   the title clipped at 384 dp. E2E `PlayFlowTest` (Boards → first reveal) green. Emulator only
+- [x] Coach looks ahead (`fix/play-coach-ahead`, 2026-10-24): a tester saw no nudge in a whole game (the
+  Hard-level analysis ran after the tap and could pass the 1.5 s timeout on a phone). The coach now
+  analyses each question as soon as it is asked, on a fork in the background, and the answer is
+  checked against it at once (at most 300 ms wait); same nudges for the same seed (`CoachAheadTest`).
+  JVM only; the time on the S25 Ultra is not measured yet
 - [ ] End-to-end test that plays a game to its end (needs the engine bound)
 - [ ] Hands-on at the table and TalkBack on the S25 Ultra
 

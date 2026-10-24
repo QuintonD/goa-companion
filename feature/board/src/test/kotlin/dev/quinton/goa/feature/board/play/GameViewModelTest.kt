@@ -21,13 +21,16 @@ import dev.quinton.goa.feature.board.play.game.NoGame
 import dev.quinton.goa.feature.board.play.game.PlayUi
 import dev.quinton.goa.feature.board.play.game.TurnStatus
 import dev.quinton.goa.feature.board.play.table.TableTap
+import kotlin.coroutines.CoroutineContext
 import kotlin.random.Random
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -47,7 +50,10 @@ class GameViewModelTest {
 
     @After fun tearDown() = Dispatchers.resetMain()
 
-    private fun TestScope.viewModel(saves: FakeGameSaveRepository) = GameViewModel(
+    private fun TestScope.viewModel(
+        saves: FakeGameSaveRepository,
+        analysis: CoroutineDispatcher = dispatcher,
+    ) = GameViewModel(
         catalogRepository = FakeCatalogRepository(bundledCatalog),
         mapRepository = FakeBoardMapRepository(bundledMaps),
         saves = saves,
@@ -57,6 +63,7 @@ class GameViewModelTest {
         clock = EditClock { 5_000L },
         engine = dispatcher,
         random = Random(1),
+        analysis = analysis,
     ).also { runCurrent() }
 
     private fun saved(coach: Boolean = true, pace: AiPace = AiPace.NORMAL) =
@@ -237,6 +244,87 @@ class GameViewModelTest {
         }
 
     @Test
+    fun `the coach looks while the person thinks, so its nudge is there the moment they answer`() =
+        runTest(dispatcher) {
+            coach.prepares = true
+            val vm = viewModel(saved(coach = true))
+            advanceUntilIdle()
+            answerScripted(vm)
+            // A look at each of the person's questions as it was asked: the card, then the action.
+            assertThat(coach.looks.map { it.second }).containsExactly(false, false)
+            val before = currentTime
+            vm.onAction(GameAction.Answer(Choice.Action(ActionType.HOLD)))
+            runCurrent()
+            assertThat(currentTime).isEqualTo(before)
+            assertThat(vm.play.nudge?.note?.text).isEqualTo("Tigerclaw is next to you")
+            // Both answers were checked against the finished look; the coach never searched at the tap.
+            assertThat(coach.askedPrepared).isEqualTo(2)
+            assertThat(coach.asked).isEqualTo(0)
+            // Rethink keeps the question and its look: answering again is checked against it at once.
+            vm.onAction(GameAction.Rethink)
+            runCurrent()
+            assertThat(coach.looks).hasSize(2)
+            vm.onAction(GameAction.Answer(Choice.Action(ActionType.PRIMARY)))
+            runCurrent()
+            assertThat(currentTime).isEqualTo(before)
+            assertThat(coach.askedPrepared).isEqualTo(3)
+        }
+
+    @Test
+    fun `an unfinished look holds the answer a moment at most, and take back cancels the look`() =
+        runTest(dispatcher) {
+            coach.prepares = true
+            // The look's search runs only when released: it is "still looking" until then.
+            val held = HeldDispatcher()
+            val vm = viewModel(saved(coach = true), analysis = held)
+            advanceUntilIdle()
+            val choice = session.preferred()!!
+            val before = currentTime
+            vm.onAction(GameAction.Answer(choice))
+            advanceTimeBy(GameViewModel.NUDGE_WAIT_MS - 1)
+            assertThat(vm.play.table.decision?.kind).isEqualTo(DecisionKind.PLAY_CARD)
+            advanceUntilIdle()
+            // It went through unnudged once the wait was over; the computer has played on.
+            assertThat(ai.calls).isAtLeast(3)
+            assertThat(vm.play.table.decision?.kind).isEqualTo(DecisionKind.CHOOSE_ACTION)
+            assertThat(currentTime - before).isAtLeast(GameViewModel.NUDGE_WAIT_MS)
+            // Take back while the coach is (still) looking at the action question.
+            vm.onAction(GameAction.TakeBack)
+            advanceUntilIdle()
+            assertThat(vm.play.table.decision?.kind).isEqualTo(DecisionKind.PLAY_CARD)
+            held.release()
+            advanceUntilIdle()
+            // The dropped looks never searched (or saw themselves cancelled); one live look remains,
+            // at the question asked again after the take back, and the next answer uses it at once.
+            assertThat(coach.looks.count { !it.second }).isEqualTo(1)
+            val again = currentTime
+            vm.onAction(GameAction.Answer(choice))
+            runCurrent()
+            assertThat(coach.askedPrepared).isEqualTo(1)
+            assertThat(currentTime).isEqualTo(again)
+        }
+
+    @Test
+    fun `switching Coach off cancels its look, switching it on looks at the question asked`() = runTest(dispatcher) {
+        coach.prepares = true
+        val held = HeldDispatcher()
+        val vm = viewModel(saved(coach = true), analysis = held)
+        advanceUntilIdle()
+        vm.onAction(GameAction.SetCoach(false))
+        advanceUntilIdle()
+        held.release()
+        advanceUntilIdle()
+        assertThat(coach.looks.count { !it.second }).isEqualTo(0)
+        vm.onAction(GameAction.SetCoach(true))
+        advanceUntilIdle()
+        held.release()
+        advanceUntilIdle()
+        assertThat(coach.looks.count { !it.second }).isEqualTo(1)
+        answerScripted(vm)
+        assertThat(coach.askedPrepared).isEqualTo(1)
+    }
+
+    @Test
     fun `with Coach off no choice is shown to the coach`() = runTest(dispatcher) {
         val vm = viewModel(saved(coach = false))
         advanceUntilIdle()
@@ -354,5 +442,18 @@ class GameViewModelTest {
         assertThat(vm.play.table.decision?.kind).isEqualTo(DecisionKind.PLAY_CARD)
         val stored = (saves.state.value as StoredGame.Saved).game
         assertThat(stored.game.setup.seats).isEqualTo(fakeSetup().seats)
+    }
+}
+
+/** Runs what is dispatched to it only on [release]: a background search that takes its time. */
+private class HeldDispatcher : CoroutineDispatcher() {
+    private val queue = ArrayDeque<Runnable>()
+
+    override fun dispatch(context: CoroutineContext, block: Runnable) {
+        queue += block
+    }
+
+    fun release() {
+        while (queue.isNotEmpty()) queue.removeFirst().run()
     }
 }

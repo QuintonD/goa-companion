@@ -15,7 +15,7 @@ and `AiCoach(factory)`.
 | `Evaluator.kt` | The static evaluation in coin-equivalents (STRATEGY §2) and `Ctx`, its per-state cache, which also scores "this hero standing on that space" without forking |
 | `StaticPolicy.kt` | Scores every option of every `DecisionKind` from one state, no fork (STRATEGY §3): the playout policy, the opponent model and Easy |
 | `CardProfile.kt` | Per-card numbers the heuristics need (attack, reach incl. "Before the attack: Move N", discard-or-defeat, blocks, a rating), read once from the catalog; nothing hero-specific |
-| `AiCoach.kt` | `AiCoach(factory)`: `nudge` (Hard-level analysis from the human team's view) with `Explainer`; `turningPoints` with `TurningPoint` |
+| `AiCoach.kt` | `AiCoach(factory)`: `nudge` (Hard-level analysis from the human team's view) with `Explainer`, `prepare` (the same analysis before the answer); `turningPoints` with `TurningPoint` |
 | `engine/Determinizer.kt` | Samples hidden information (below) |
 
 One answer, every level but Easy: draw *N* determinized copies of the game from the deciding team's
@@ -230,6 +230,11 @@ choice (a card that would stop the attack, a card too weak, a cheaper card that 
 totals, p.14); a defeat the choice walks into (the attacker, its card when it is face up, the minion
 modifier at that space, p.14); an empty hand (p.13); a lane push gained or given (p.8); a hero kill
 missed (p.13); Fast Travel with the Red or Gold card (p.11); a minion left in reach (p.13, p.8).
+The app runs the analysis ahead: `prepare` searches as soon as the question is asked (the pruned
+candidates, without the choice, on a fork), and `nudge(analysis, …)` at the answer plays out only the
+person's choice if the pruning left it out (same seeds and samples), then judges as above — the same
+note as `nudge` (`CoachAheadTest`, every answer of a game compared). Desktop, one Easy-vs-Hard game
+on mixed line-ups, two runs: `prepare` mean 9–11 ms, max 44–86 ms; the answer-time `nudge` mean 0.1 ms, max 7 ms.
 Real outputs (`CoachTest`, `CoachSurveyTest`):
 
 - "Your Lift Up can still stop this attack (Defense 5 against Attack 4)." — *A Defense total equal to
@@ -294,6 +299,7 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
 | `AiSmokeTest` | Full AI games finish: every level, Long, 1v1, 2v1 with a Handicap card, the double-lane map |
 | `AllHeroesAiTest` | 16 seeded AI-vs-AI games over shuffled line-ups that seat each of the 32 heroes twice (Easy, Normal, Hard, two at Expert): all finish, every answer accepted (2026-10-24: 5–15 rounds, all three win types) |
 | `CoachTest` | Nudges on hand-built blunders (no defense, too weak a defense, walking into a revealed attack) and silence on the right choices; turning points of a finished game |
+| `CoachAheadTest` | `prepare` + `nudge(analysis, …)` equals `nudge` on the blunder positions (every option) and on every answer of a game (every option of the first long lists); the session is unchanged; the answer-time cost |
 | `CoachSurveyTest` | The coach speaks on fewer than 15% of a weak player's decisions, on mixed line-ups (`AI_COACH_GAMES` for more games) |
 | `TimingTest` | Decision times per level over mixed line-ups, the slowest heroes (`AI_TIMING_GAMES=8` prints the table above) |
 | `TournamentTest`, `ExperimentTest`, `GameLogTest`, `UsageTest` | Opt-in (`AI_TOURNAMENT` / `AI_MIXED`, `AI_EXPERIMENT`, `AI_LOG`, `AI_USAGE` environment variables): long tournaments (per-hero rates; `AI_GAMES=<hero>` lists the games), profile experiments, one game's log (a mixed or explicit line-up; `AI_LOG_DECISIONS`, `AI_LOG_VALUES`, `AI_LOG_LEAVES=<hero>`), each card's actions, defeats and kills per hero |

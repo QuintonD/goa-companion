@@ -87,6 +87,8 @@ internal class Analysis(
     val options: List<OptionValue>,
     val leaves: List<Leaf>,
     val samples: Int,
+    /** Sample indices the search went through (0 until [tried]), done or skipped; [Searcher.extend] repeats them. */
+    val tried: Int = samples,
 )
 
 /**
@@ -159,7 +161,42 @@ internal class Searcher(
             k++
         }
         if (done == 0) return null
-        return Analysis(d, table.map { (c, v) -> OptionValue(c, v) }, leaves, done)
+        return Analysis(d, table.map { (c, v) -> OptionValue(c, v) }, leaves, done, k)
+    }
+
+    /**
+     * [a] (an [analyze] of [d] with no `mustInclude`) as `analyze(…, mustInclude = choice)` would have
+     * made it: when the pruning left [choice] out, it is played out on the same determinizations (same
+     * seeds, same samples) and appended last, as [analyze] appends it. Every candidate is played on its
+     * own fork, so the other options' values don't change. Null if cancelled.
+     */
+    @Suppress("ReturnCount", "LongParameterList")
+    fun extend(
+        es: EngineSession,
+        d: Decision,
+        seed: Long,
+        a: Analysis,
+        choice: Choice,
+        cancelled: () -> Boolean,
+    ): Analysis? {
+        if (a.options.any { it.choice == choice }) return a
+        val size = a.options.firstOrNull()?.values?.size ?: return a
+        val isPlay = d.kind == DecisionKind.PLAY_CARD
+        val horizon = if (isPlay) profile.playHorizon else profile.otherHorizon
+        val values = DoubleArray(size) { Double.NaN }
+        val table = mapOf(choice to values)
+        val leaves = ArrayList(a.leaves)
+        var first = true
+        for (k in 0 until a.tried) {
+            if (cancelled()) return null
+            val det = determinize(es, d, mix(seed, k.toLong()))
+            val dp = det.pending?.takeIf { it.seat == d.seat && it.kind == d.kind } ?: continue
+            // [analyze] fixes the candidates at the first sample: the choice joins only if offered there.
+            if (first && choice !in dp.options) return a
+            first = false
+            if (!sample(det, dp, d, listOf(choice), k, horizon, table, leaves, cancelled)) return null
+        }
+        return Analysis(d, a.options + OptionValue(choice, values), leaves, a.samples, a.tried)
     }
 
     /** One determinization: every candidate answered on a fork and played out. False if cancelled. */

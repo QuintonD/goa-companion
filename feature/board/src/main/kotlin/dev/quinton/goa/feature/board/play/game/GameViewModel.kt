@@ -15,6 +15,7 @@ import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.AnswerResult
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Coach
+import dev.quinton.goa.core.game.CoachAnalysis
 import dev.quinton.goa.core.game.CoachNote
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.Decision
@@ -39,10 +40,12 @@ import javax.inject.Provider
 import kotlin.random.Random
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.async
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,11 +63,14 @@ import kotlinx.coroutines.withTimeoutOrNull
  * Plays the game in progress (PRODUCT §9). The person answers their heroes' questions; computer
  * seats are answered by [AiPlayers] off the main thread, one action at a time, each shown for the
  * chosen pace with its log line ("thinking…" once it takes a while). Take back undoes the person's
- * last answer. With Coach on, an answer is first shown to the coach (short timeout); a nudge waits
- * for Choose anyway or Rethink and never answers for the person. Every answer is saved.
+ * last answer. With Coach on, the coach starts looking at each of the person's questions as soon as
+ * it is asked ([Coach.prepare], in the background), so an answer is checked against a finished look
+ * at once; a nudge waits for Choose anyway or Rethink and never answers for the person. Every answer
+ * is saved.
  *
  * The session is not thread-safe: every call on it runs on [engine], one at a time (a single
- * thread of Dispatchers.Default in the app).
+ * thread of Dispatchers.Default in the app). The coach's look ahead runs on [analysis] on a fork of
+ * the session that nothing else touches, so the table stays responsive while it looks.
  */
 @HiltViewModel
 class GameViewModel internal constructor(
@@ -77,6 +83,7 @@ class GameViewModel internal constructor(
     private val clock: EditClock,
     private val engine: CoroutineDispatcher,
     private val random: Random,
+    private val analysis: CoroutineDispatcher = engine,
 ) : ViewModel() {
     @OptIn(ExperimentalCoroutinesApi::class)
     @Inject
@@ -98,6 +105,7 @@ class GameViewModel internal constructor(
         clock,
         Dispatchers.Default.limitedParallelism(1),
         Random.Default,
+        Dispatchers.Default,
     )
 
     private val state = MutableStateFlow<GameUiState>(GameUiState.Loading)
@@ -131,6 +139,14 @@ class GameViewModel internal constructor(
 
     /** The computer's turn (or the coach after the game): cancelled by take back, rematch, leaving. */
     private var driver: Job? = null
+
+    /**
+     * The coach's look at the person's pending question, started when it is asked: dropped (and its
+     * search cancelled) once the question is answered, on take back, rematch, Coach off and leaving.
+     */
+    private var lookahead: Lookahead? = null
+
+    private class Lookahead(val decision: Decision, val analysis: Deferred<CoachAnalysis?>)
 
     init {
         viewModelScope.launch { load() }
@@ -208,7 +224,7 @@ class GameViewModel internal constructor(
 
             GameAction.TakeBack -> takeBack()
 
-            is GameAction.SetCoach -> update { it.copy(coach = action.on) }
+            is GameAction.SetCoach -> setCoach(action.on)
 
             is GameAction.SetPace -> update { it.copy(pace = action.pace) }
 
@@ -266,13 +282,66 @@ class GameViewModel internal constructor(
         }
     }
 
-    private suspend fun askCoach(game: GameSession, decision: Decision, choice: Choice) =
-        withTimeoutOrNull(NUDGE_TIMEOUT_MS) {
+    /**
+     * The coach's verdict on [choice]: from the look ahead when it has finished (at once), else after
+     * waiting for it at most [NUDGE_WAIT_MS]; with no look ahead (a coach that doesn't prepare) the
+     * coach looks at the answer itself, within the same wait. Past it the answer goes through unnudged.
+     */
+    private suspend fun askCoach(game: GameSession, decision: Decision, choice: Choice): CoachNote? {
+        val ahead = lookahead?.takeIf { it.decision == decision }?.analysis
+        return withTimeoutOrNull(NUDGE_WAIT_MS) {
+            val prepared = ahead?.let { awaitLook(it) }
             withContext(engine) {
                 val job = currentCoroutineContext().job
-                runCatching { coach.nudge(game, decision, choice) { !job.isActive } }.getOrNull()
+                runCatching {
+                    if (prepared != null) {
+                        coach.nudge(prepared, game, decision, choice) { !job.isActive }
+                    } else {
+                        coach.nudge(game, decision, choice) { !job.isActive }
+                    }
+                }.getOrNull()
             }
         }
+    }
+
+    /** A look ahead's result; null when it was cancelled (the caller's own cancellation still throws). */
+    private suspend fun awaitLook(look: Deferred<CoachAnalysis?>): CoachAnalysis? {
+        look.join()
+        return if (look.isCancelled) null else look.await()
+    }
+
+    /**
+     * Starts the coach looking at the person's [decision] in the background (Coach on), on a fork made
+     * on [engine]: the real session is never touched off [engine], and looking never changes it.
+     */
+    private fun lookAhead(game: GameSession, decision: Decision) {
+        if (progress?.coach != true || decision.seat !in humans) return
+        if (lookahead?.decision == decision) return
+        val previous = lookahead?.analysis
+        previous?.cancel()
+        val look = viewModelScope.async {
+            // One look at a time: the coach's search is not made for two callers at once.
+            previous?.join()
+            val copy = withContext(engine) { game.fork() }
+            withContext(analysis) {
+                val job = currentCoroutineContext().job
+                runCatching { coach.prepare(copy, decision) { !job.isActive } }.getOrNull()
+            }
+        }
+        lookahead = Lookahead(decision, look)
+    }
+
+    private fun dropLookahead() {
+        lookahead?.analysis?.cancel()
+        lookahead = null
+    }
+
+    private fun setCoach(on: Boolean) {
+        update { it.copy(coach = on) }
+        if (!on) return dropLookahead()
+        val game = session ?: return
+        viewModelScope.launch { withContext(engine) { game.pending }?.let { lookAhead(game, it) } }
+    }
 
     private fun chooseAnyway() {
         val pending = nudge ?: return
@@ -298,6 +367,7 @@ class GameViewModel internal constructor(
     }
 
     private suspend fun commit(game: GameSession, decision: Decision, choice: Choice) {
+        dropLookahead()
         val result = withContext(engine) { game.answer(decision.id, choice) }
         busy = false
         selected = null
@@ -314,6 +384,7 @@ class GameViewModel internal constructor(
     private fun takeBack() {
         val game = session ?: return
         if (busy) return
+        dropLookahead()
         viewModelScope.launch {
             driver?.let {
                 it.cancel()
@@ -343,6 +414,7 @@ class GameViewModel internal constructor(
     private fun rematch() {
         val game = session ?: return
         val old = progress ?: return
+        dropLookahead()
         viewModelScope.launch {
             driver?.let {
                 it.cancel()
@@ -376,6 +448,7 @@ class GameViewModel internal constructor(
     /** Deletes an unreadable or incompatible save (or ends the game in progress). */
     fun deleteSaved() {
         driver?.cancel()
+        dropLookahead()
         viewModelScope.launch {
             withContext(NonCancellable) { saves.clear() }
             session = null
@@ -407,6 +480,7 @@ class GameViewModel internal constructor(
                     return@launch
                 }
                 if (decision.seat in humans) {
+                    lookAhead(game, decision)
                     publish()
                     return@launch
                 }
@@ -650,11 +724,16 @@ class GameViewModel internal constructor(
 
     override fun onCleared() {
         driver?.cancel()
+        dropLookahead()
     }
 
     internal companion object {
-        /** The coach gets this long to look at a choice; then the answer goes through unnudged. */
-        const val NUDGE_TIMEOUT_MS = 1_500L
+        /**
+         * The most an answer waits for the coach; then it goes through unnudged. The look ahead has
+         * usually finished while the person was thinking (it starts with the question), so this only
+         * covers an answer given within moments; 300 ms still reads as the tap's own response.
+         */
+        const val NUDGE_WAIT_MS = 300L
 
         const val TURNING_POINTS_TIMEOUT_MS = 20_000L
 

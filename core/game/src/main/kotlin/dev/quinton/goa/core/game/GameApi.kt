@@ -689,6 +689,11 @@ data class CoachNote(
     val turn: Int? = null,
 )
 
+/** The coach's look at one decision before the person answers it ([Coach.prepare]); opaque to the app. */
+interface CoachAnalysis {
+    val decisionId: Long
+}
+
 /** Learning help in games against the AI (ADR-035); switchable, never answers for the player. */
 interface Coach {
     /** A nudge when [choice] looks clearly worse than another option, else null. */
@@ -698,6 +703,27 @@ interface Coach {
         choice: Choice,
         cancelled: () -> Boolean = { false },
     ): CoachNote?
+
+    /**
+     * Looks at [decision] before the person answers, so the nudge at answer time is quick. Give it a
+     * [GameSession.fork] the caller doesn't touch meanwhile: it may run off the engine thread, reads
+     * only what the deciding team may know and never changes the session. Null when there is nothing
+     * to look at (the default: [nudge] then does all the work). One call at a time.
+     */
+    fun prepare(session: GameSession, decision: Decision, cancelled: () -> Boolean = { false }): CoachAnalysis? =
+        null
+
+    /**
+     * [nudge] from an [analysis] that [prepare] made for this [decision]: the same note as
+     * `nudge(session, decision, choice)` for the same seed, mostly without searching again.
+     */
+    fun nudge(
+        analysis: CoachAnalysis,
+        session: GameSession,
+        decision: Decision,
+        choice: Choice,
+        cancelled: () -> Boolean = { false },
+    ): CoachNote? = nudge(session, decision, choice, cancelled)
 
     /** After the game: the few moments that decided it, oldest first. */
     fun turningPoints(saved: SavedGame, seat: String, cancelled: () -> Boolean = { false }): List<CoachNote>

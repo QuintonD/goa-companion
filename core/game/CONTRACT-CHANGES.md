@@ -105,3 +105,20 @@ All additive (defaults keep old callers and saves working; events are rebuilt on
 - Event text names Zones instead of hex coordinates: "Brogan fast travels to Lane Zone 2.",
   "Wasp respawns in the Red Throne Zone.", "Arien is placed 3 spaces away, in Lane Zone 1."
   (`Game.spaceName`, on `core:domain`'s `BoardMap.zoneName`, which `BoardText.zone` now uses).
+
+## 2026-10-24 (coach looks ahead, `fix/play-coach-ahead`)
+
+Additive; a `Coach` that implements neither new method behaves as before.
+
+- `CoachAnalysis` (`decisionId`): the coach's look at one decision, opaque to the app.
+- `Coach.prepare(session, decision, cancelled): CoachAnalysis?` (default `null`): looks at a decision
+  before the person answers. Called on a `fork()` the caller doesn't touch meanwhile, possibly off the
+  engine thread; never changes the session; reads only what the deciding team may know (the same
+  determinized copies as `nudge`). One call at a time per coach.
+- `Coach.nudge(analysis, session, decision, choice, cancelled): CoachNote?` (default: the old
+  `nudge(session, decision, choice, cancelled)`): the nudge from a prepared look. `AiCoach` gives the
+  same note as the old `nudge` for the same seed (`CoachAheadTest`); it falls back to the old `nudge`
+  when the analysis was made for another decision.
+- `AiCoach` behaviour: `prepare` runs the analysis `nudge` ran, without the choice; `nudge(analysis, …)`
+  plays out only the person's choice when the pruning had left it out (same seeds and samples,
+  appended last as before), then judges and explains as before.
