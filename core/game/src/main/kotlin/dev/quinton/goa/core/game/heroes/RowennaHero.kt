@@ -131,6 +131,7 @@ object RowennaHero : HeroModule {
     private object Gauntlet : CardScript {
         override fun primary(a: ActionScope) {
             val me = a.pos
+
             // Empty for Rowenna herself (p.18 "Place"; Takahide's blades make spaces obstacles to her).
             fun spacesNext(e: String): List<Hex> = HexGrid.neighbors(a.g.posOf(e)!!).filter {
                 a.g.distance(me, it) in 1..a.range && a.g.isEmpty(it, a.heroId)
