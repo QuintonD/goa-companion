@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.game.puzzles
 
+import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.engine.GameEngine
 
 /**
@@ -107,13 +108,22 @@ class AnswerKey(
         fun generate(prepared: PreparedPuzzle, maxEntries: Int = MAX_ENTRIES): AnswerKey {
             val solver = prepared.solver
             val entries = LinkedHashMap<String, Entry>()
-            fun visit(n: Node, path: List<Int>) {
+
+            // [hiddenOpponentPlay]: an opponent chose a card that is still facedown; a later choice of
+            // card by the player must not depend on it (the solver would read it, the player can't).
+            fun visit(n: Node, path: List<Int>, hiddenOpponentPlay: Boolean) {
                 val d = n.decision ?: return
                 if (n.progress.state != GoalState.OPEN) return
                 check(entries.size < maxEntries) {
                     "${prepared.info.id}: more than $maxEntries decisions on winning lines"
                 }
+                val hidden = hiddenOpponentPlay && !n.session.state.revealed
+                val choosesCard = d.kind == DecisionKind.PLAY_CARD && d.options.size > 1
                 if (solver.sideOf(d) == Side.PLAYER) {
+                    check(!(hidden && choosesCard)) {
+                        "${prepared.info.id}: the player chooses a card after an opponent chose one facedown " +
+                            "(the solver would read it): seat the player's heroes first, or leave the opponent one card"
+                    }
                     val wins = ArrayList<Int>()
                     for (i in d.options.indices) {
                         val c = checkNotNull(solver.child(n, d.options[i]))
@@ -123,15 +133,16 @@ class AnswerKey(
                     }
                     check(wins.isNotEmpty()) { "${prepared.info.id}: no winning option at '${pathOf(path)}'" }
                     entries[pathOf(path)] = Wins(wins)
-                    for (i in wins) visit(solver.child(n, d.options[i])!!, path + i)
+                    for (i in wins) visit(solver.child(n, d.options[i])!!, path + i, hidden)
                 } else {
                     val s = solver.solve(n)
                     check(s.value == Value.WIN) { "${prepared.info.id}: ${s.value} at '${pathOf(path)}'" }
                     entries[pathOf(path)] = Reply(s.best)
-                    visit(solver.child(n, d.options[s.best])!!, path + s.best)
+                    val hides = hidden || (solver.sideOf(d) == Side.OPPONENT && choosesCard)
+                    visit(solver.child(n, d.options[s.best])!!, path + s.best, hides)
                 }
             }
-            visit(prepared.rootNode, emptyList())
+            visit(prepared.rootNode, emptyList(), false)
             return AnswerKey(prepared.info.id, GameEngine.ENGINE_VERSION, fingerprint(prepared.rootNode), entries)
         }
 

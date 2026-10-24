@@ -33,6 +33,7 @@ class PuzzleBookTest(private val puzzle: Puzzle) {
     private val id = puzzle.info.id
 
     private fun play(session: EnginePuzzleSession, moves: List<Move>, label: String, check: (Int) -> Unit = {}) {
+        val t = System.nanoTime()
         moves.forEachIndexed { i, m ->
             val d = session.game.pending ?: error("$id $label: no decision for move ${i + 1} ($m)")
             val c = m.resolve(d, session.position.session)
@@ -44,6 +45,7 @@ class PuzzleBookTest(private val puzzle: Puzzle) {
             assertWithMessage("$id $label move ${i + 1} took $ms ms").that(ms).isLessThan(ANSWER_MS)
             check(i)
         }
+        println("$id $label: ${moves.size} answers in ${(System.nanoTime() - t) / 1_000_000} ms")
     }
 
     private fun session() = book.start(id) as EnginePuzzleSession
@@ -133,14 +135,17 @@ class PuzzleBookTest(private val puzzle: Puzzle) {
             assertThat(s.bestChoice()).isNull()
             // Play on to the end off the key: every reply is a budgeted search.
             var more = 0
+            var worst = 0L
             while (more < 200) {
                 val d = s.game.pending ?: break
                 val t0 = System.nanoTime()
                 s.answer(d.id, d.options.first())
                 val ms = (System.nanoTime() - t0) / 1_000_000
                 assertWithMessage("$id ${w.label}: answer off the key took $ms ms").that(ms).isLessThan(ANSWER_MS)
+                worst = maxOf(worst, ms)
                 more++
             }
+            println("$id ${w.label}: $more answers off the key, slowest $worst ms")
             assertThat(s.status).isEqualTo(PuzzleStatus.MISSED)
             // Undo back to just after the wrong answer (still missed), then that answer too.
             repeat(more) { assertThat(s.undo()).isTrue() }

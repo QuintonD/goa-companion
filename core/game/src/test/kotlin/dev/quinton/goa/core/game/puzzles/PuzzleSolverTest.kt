@@ -25,6 +25,8 @@ class PuzzleSolverTest {
         goal: PuzzleGoal,
         private val waspAt: Hex,
         private val arienHand: List<String>,
+        /** Start at the play step instead: Wasp (seat 0) and Arien both choose between two cards. */
+        private val playStep: Boolean = false,
     ) : Puzzle() {
         override val concept = "C00"
         override val info = PuzzleInfo(
@@ -46,9 +48,13 @@ class PuzzleSolverTest {
             turn = 2
             clearMinions()
             hero("wasp", Team.RED, waspAt) {
-                played("wasp-red-1")
+                if (playStep) {
+                    hand("wasp-red-1", "wasp-blue-1")
+                } else {
+                    played("wasp-red-1")
+                    hand("wasp-blue-1")
+                }
                 resolved(1, "wasp-gold")
-                hand("wasp-blue-1")
             }
             hero("xargatha", Team.RED, Hex(-1, -5)) {
                 resolved(1, "xargatha-gold")
@@ -56,17 +62,37 @@ class PuzzleSolverTest {
                 hand("xargatha-blue-1")
             }
             hero("arien", Team.BLUE, Hex(1, -2)) {
-                played("arien-green-1")
+                if (playStep) {
+                    hand("arien-green-1", *arienHand.toTypedArray())
+                } else {
+                    played("arien-green-1")
+                    hand(*arienHand.toTypedArray())
+                }
                 resolved(1, "arien-gold")
-                hand(*arienHand.toTypedArray())
             }
             hero("brogan", Team.BLUE, Hex(4, -5)) {
                 resolved(1, "brogan-gold")
                 resolved(2, "brogan-red-1")
                 hand("brogan-blue-1")
             }
-            phase = PositionPhase.Resolving()
+            phase = if (playStep) PositionPhase.PlayCards() else PositionPhase.Resolving()
         }
+    }
+
+    @Test
+    fun `an answer key refuses a player card choice made after an opponent's facedown choice`() {
+        val p = prepared(
+            TestPuzzle(
+                PuzzleGoal.Survive(Deadline.END_OF_TURN, "Survive"),
+                Hex(3, -5),
+                listOf("arien-blue-1"),
+                playStep = true,
+            ),
+        )
+        assertThat(p.solver.sideOf(p.rootNode.decision!!)).isEqualTo(Side.OPPONENT)
+        val e = runCatching { AnswerKey.generate(p) }.exceptionOrNull()
+        assertThat(e).isInstanceOf(IllegalStateException::class.java)
+        assertThat(e!!.message).contains("facedown")
     }
 
     private fun prepared(p: Puzzle) = PreparedPuzzle(p, TestData.engine, useKey = false)
