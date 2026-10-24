@@ -131,7 +131,8 @@ class Batch3GamesTest {
         }
         val secs = (System.nanoTime() - start) / 1e9
         val checks = checkNanos / 1e9
-        println("BATCH3 $hero: $n games, $decisions decisions in ${"%.1f".format(secs)} s (checks ${"%.1f".format(checks)} s)")
+        val timing = "${"%.1f".format(secs)} s (checks ${"%.1f".format(checks)} s)"
+        println("BATCH3 $hero: $n games, $decisions decisions in $timing")
     }
 
     @Test

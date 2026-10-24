@@ -6,8 +6,16 @@ import dev.quinton.goa.core.game.ANY_HERO_ENGINE
 import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.Driver
+import dev.quinton.goa.core.game.TestData
+import dev.quinton.goa.core.game.effects.AffectQuery
+import dev.quinton.goa.core.game.effects.Behavior
+import dev.quinton.goa.core.game.effects.Registry
+import dev.quinton.goa.core.game.effects.Src
+import dev.quinton.goa.core.game.engine.ActionKind
 import dev.quinton.goa.core.game.engine.Game
+import dev.quinton.goa.core.game.engine.GameEngine
 import dev.quinton.goa.core.game.engine.RunMode
+import dev.quinton.goa.core.game.engine.Timing
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.engine.initiativeOf
 import dev.quinton.goa.core.game.pos
@@ -135,6 +143,33 @@ class TaliTest {
     }
 
     @Test
+    fun `Commune with Spirits - FAQ - a friend immune to Tali's action cannot be chosen, so nothing happens`() {
+        val registry = Registry().also { r ->
+            Heroes.all.forEach(r::module)
+            // A test-only "you are immune to every action" effect (Tali's own team has no such card).
+            r.behavior(
+                "test-immune",
+                object : Behavior {
+                    override fun immune(g: Game, src: Src, q: AffectQuery): Boolean = q.targetId == src.owner
+                },
+            )
+        }
+        val engine = GameEngine(TestData.catalog, TestData.maps, TestData.matchRules, registry, allowIncomplete = true)
+        val d = pos(engine = engine) {
+            clearMinions()
+            hero("tali", Team.RED, Hex(0, -2)) {
+                played("tali-silver")
+                discard("tali-red-1")
+            }
+            hero("wasp", Team.RED, Hex(3, -5)) { discard("wasp-blue-3a") }
+            hero("arien", Team.BLUE, Hex(1, -2))
+            effect("wasp", "wasp-blue-3a", Timing.THIS_TURN, ActionKind.SKILL, key = "test-immune")
+            phase = PositionPhase.Resolving(next = "tali")
+        }
+        assertThat(d.actions()).doesNotContain(ActionType.PRIMARY)
+    }
+
+    @Test
     fun `Commune with Spirits - nothing of that color to perform, so the action stops`() {
         val d = pos {
             clearMinions()
@@ -164,6 +199,22 @@ class TaliTest {
         d.defend("arien-silver")
         assertThat(d.texts().any { it.contains("Attack 5.") }).isTrue()
         assertThat(d.at("arien")).isNull()
+    }
+
+    @Test
+    fun `Winter Dagger - an Attack item adds to the icon, the +3 is card text (p 16)`() {
+        val d = pos {
+            clearMinions()
+            hero("tali", Team.RED, Hex(0, -2)) {
+                played("tali-red-1")
+                items("tali-green-2b") // +1 Attack
+            }
+            hero("arien", Team.BLUE, Hex(1, -2)) { hand("arien-silver") }
+            phase = PositionPhase.Resolving(next = "tali")
+        }
+        d.action("tali", ActionType.PRIMARY)
+        d.defend("arien-silver")
+        assertThat(d.texts().any { it.contains("Attack 6.") }).isTrue()
     }
 
     @Test
@@ -434,6 +485,23 @@ class TaliTest {
         assertThat(d.at(back)).isEqualTo(Hex(2, -2)) // moved into the space the other left
         assertThat(d.at(blocked)).isEqualTo(Hex(0, -3))
         assertThat(d.at(friend)).isEqualTo(Hex(-1, -2))
+    }
+
+    @Test
+    fun `Cold Snap - a heavy minion guarded by its friends is immune and stays (p 13)`() {
+        lateinit var heavy: String
+        val d = pos {
+            clearMinions()
+            hero("tali", Team.RED, Hex(0, -2)) { played("tali-blue-1") }
+            hero("arien", Team.BLUE, Hex(8, -6))
+            heavy = minion(Team.BLUE, MinionType.HEAVY, Hex(1, -2))
+            minion(Team.BLUE, MinionType.MELEE, Hex(4, -5)) // in the Battle Zone: the heavy is immune
+            minion(Team.RED, MinionType.MELEE, Hex(-1, -5))
+            phase = PositionPhase.Resolving(next = "tali")
+        }
+        d.action("tali", ActionType.PRIMARY)
+        d.option(0)
+        assertThat(d.at(heavy)).isEqualTo(Hex(1, -2))
     }
 
     @Test

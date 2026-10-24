@@ -556,6 +556,23 @@ class MinTest {
     }
 
     @Test
+    fun `Inner Strength - the doubling lasts the whole round, not only this turn`() {
+        val d = pos {
+            clearMinions()
+            hero("min", Team.RED, Hex(0, -2)) {
+                played("min-green-2b")
+                items("min-red-2a")
+            }
+            hero("arien", Team.BLUE, Hex(8, -6))
+            phase = PositionPhase.Resolving(next = "min")
+        }
+        d.action("min", ActionType.PRIMARY)
+        d.expect(DecisionKind.PLAY_CARD) // turn 2
+        assertThat(d.s.state.turn).isEqualTo(2)
+        assertThat(d.value("min", "min-gold", Stat.INITIATIVE)).isEqualTo(15)
+    }
+
+    @Test
     fun `Perfect Self - Choose one, or both, take a Tier II card from your deck as a permanent item`() {
         val d = pos {
             clearMinions()
