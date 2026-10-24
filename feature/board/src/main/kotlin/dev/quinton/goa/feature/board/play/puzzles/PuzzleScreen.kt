@@ -74,7 +74,6 @@ import dev.quinton.goa.feature.board.board.BoardSheet
 import dev.quinton.goa.feature.board.board.SheetTitle
 import dev.quinton.goa.feature.board.map.MapViewport
 import dev.quinton.goa.feature.board.play.game.PlaySheet
-import dev.quinton.goa.feature.board.play.table.CardDetail
 import dev.quinton.goa.feature.board.play.table.DecisionPanel
 import dev.quinton.goa.feature.board.play.table.EventLog
 import dev.quinton.goa.feature.board.play.table.GameTable
@@ -83,6 +82,10 @@ import dev.quinton.goa.feature.board.play.table.RecentEvents
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.YourHand
+import dev.quinton.goa.feature.board.ui.cards.CardFocusHost
+import dev.quinton.goa.feature.board.ui.cards.CardFocusState
+import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
+import dev.quinton.goa.feature.board.ui.cards.rememberCardFocusState
 
 /**
  * One puzzle (PRODUCT §10): the game table with the goal floating at the top; in the panel the
@@ -107,6 +110,7 @@ fun PuzzleScreen(
     var sheet by remember { mutableStateOf(initialSheet) }
     var menu by remember { mutableStateOf(false) }
     val viewport = remember { MapViewport() }
+    val focus = rememberCardFocusState()
     KeepScreenOn(puzzle != null)
     GoaScreen(
         title = puzzle?.let { "Puzzle ${it.info.number}" } ?: "Puzzle",
@@ -164,7 +168,7 @@ fun PuzzleScreen(
                         onFlip = { onAction(PuzzleAction.Flip) },
                         banner = { GoalBanner(p.info.goal.text, p.playing) },
                     ) {
-                        PuzzlePanel(p, onAction, onNext, onList, onCard = { sheet = PlaySheet.Card(it.id) })
+                        PuzzlePanel(p, onAction, onNext, onList, focus)
                     }
                     // TalkBack hears what just happened.
                     p.announcement?.let { said ->
@@ -191,21 +195,14 @@ fun PuzzleScreen(
             is PlaySheet.Hero -> BoardSheet(onDismiss = { sheet = null }) {
                 Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
                     SheetTitle(puzzle.table.hero(open.heroId).name, "Open information (p.4)", onDone = { sheet = null })
-                    HeroDetail(puzzle.table, open.heroId, onCard = { sheet = PlaySheet.Card(it.id, back = open) })
-                }
-            }
-
-            is PlaySheet.Card -> BoardSheet(onDismiss = { sheet = null }) {
-                val card = puzzle.table.card(open.cardId)
-                Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
-                    SheetTitle(card?.name ?: "Card", null, onDone = { sheet = open.back })
-                    if (card != null) CardDetail(card)
+                    HeroDetail(puzzle.table, open.heroId, focus)
                 }
             }
 
             null -> Unit
         }
     }
+    CardFocusHost(focus)
 }
 
 @Composable
@@ -282,11 +279,11 @@ private fun ColumnScope.PuzzlePanel(
     onAction: (PuzzleAction) -> Unit,
     onNext: (String) -> Unit,
     onList: () -> Unit,
-    onCard: (Card) -> Unit,
+    focus: CardFocusState,
 ) {
     val replay = puzzle.replay
     when {
-        replay != null -> ReplayPanel(puzzle, replay, onAction, onCard)
+        replay != null -> ReplayPanel(puzzle, replay, onAction, focus)
 
         puzzle.phase == PuzzlePhase.SOLVED -> SolvedPanel(puzzle, onAction, onNext, onList)
 
@@ -306,11 +303,11 @@ private fun ColumnScope.PuzzlePanel(
                 puzzle.table,
                 onSelect = { onAction(PuzzleAction.Select(it)) },
                 onAnswer = { onAction(PuzzleAction.Answer(it)) },
-                onCard = onCard,
+                focus = focus,
                 busy = puzzle.busy,
             )
             RecentEvents(puzzle.recent.takeLast(2), Modifier.padding(top = Spacing.xs))
-            if (!puzzle.table.handDecision) YourHand(puzzle.table, onCard)
+            if (!puzzle.table.handDecision) YourHand(puzzle.table, focus)
         }
     }
 }
@@ -547,7 +544,7 @@ private fun Explanation(info: PuzzleInfo) {
 
 /** The solution on the board, step by step: Back / Next, the move outlined, what happened; then why. */
 @Composable
-private fun ReplayPanel(puzzle: PuzzleUi, replay: ReplayUi, onAction: (PuzzleAction) -> Unit, onCard: (Card) -> Unit) {
+private fun ReplayPanel(puzzle: PuzzleUi, replay: ReplayUi, onAction: (PuzzleAction) -> Unit, focus: CardFocusState) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = { onAction(PuzzleAction.ReplayBack) }, enabled = !replay.first) {
             Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Step back")
@@ -567,7 +564,13 @@ private fun ReplayPanel(puzzle: PuzzleUi, replay: ReplayUi, onAction: (PuzzleAct
     Row(verticalAlignment = Alignment.CenterVertically) {
         val card = (puzzle.table.selected as? Choice.Card)?.let { puzzle.table.card(it.cardId) }
         if (card != null) {
-            Surface(onClick = { onCard(card) }, shape = RoundedCornerShape(4.dp)) { TableCard(card, width = 40.dp) }
+            Surface(
+                onClick = { focus.show(listOf(card), title = "Solution · step ${replay.index + 1}") },
+                shape = RoundedCornerShape(4.dp),
+                modifier = Modifier.cardFocusOrigin(focus, card.id).semantics {
+                    contentDescription = "${card.name}. Look at the card"
+                },
+            ) { TableCard(card, width = 40.dp) }
             Spacer(Modifier.width(Spacing.sm))
         }
         Text(

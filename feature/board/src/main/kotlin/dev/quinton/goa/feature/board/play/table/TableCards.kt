@@ -182,68 +182,7 @@ fun spokenCard(card: Card): String = buildList {
     card.values.radius?.let { add("Radius $it") }
 }.joinToString(", ")
 
-/**
- * A card read in full (a sheet): the official image, its printed values and its text verbatim with
- * inline game icons, and what it gives as an item when it has one (p.16).
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-internal fun CardDetail(card: Card, modifier: Modifier = Modifier, note: String? = null) {
-    Column(
-        modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = Spacing.screen, vertical = Spacing.sm),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        TableCard(card, Modifier.semantics { contentDescription = "Card image: ${card.name}" }, width = 220.dp)
-        Column(Modifier.widthIn(max = 520.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(
-                card.name,
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.semantics { heading() },
-            )
-            Text(
-                "${tierLabel(card)} ${cardColorName(card.color)}",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (note != null) {
-                Text(note, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
-            }
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                card.initiative?.let { ValueChip(GameIcons.initiative, "Initiative $it") }
-                card.values.attack?.let { ValueChip(GameIcons.attack, "Attack $it") }
-                card.values.defense?.let { ValueChip(GameIcons.defense, "Defense $it") }
-                card.values.movement?.let { ValueChip(GameIcons.movement, "Movement $it") }
-                card.values.range?.let { ValueChip(GameIcons.range, "Range $it") }
-                card.values.radius?.let { ValueChip(GameIcons.radius, "Radius $it") }
-            }
-            if (card.text.isNotBlank()) {
-                Surface(
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-                ) {
-                    CardTextView(
-                        card.text,
-                        style = MaterialTheme.typography.bodyLarge,
-                        iconTint = cardColor(card.color),
-                        modifier = Modifier.padding(Spacing.md),
-                    )
-                }
-            }
-            card.item?.let { stat ->
-                ItemLine(stat, "As an item: +1 ${PlayText.stat(stat)} (p.16)")
-            }
-        }
-    }
-}
-
+/** A card's printed value with its icon ("Attack 3"), as the card focus viewer lists them. */
 @Composable
 internal fun ValueChip(icon: GameIcon, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics(mergeDescendants = true) {}) {

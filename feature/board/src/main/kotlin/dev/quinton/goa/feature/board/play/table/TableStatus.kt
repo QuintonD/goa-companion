@@ -56,10 +56,12 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.CardView
 import dev.quinton.goa.core.game.HeroView
-import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.ui.cards.CardFocusState
+import dev.quinton.goa.feature.board.ui.cards.FocusCard
+import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
 
 /** Turns in a round (p.7). */
 private const val TURNS = 4
@@ -328,7 +330,7 @@ private fun Stat(icon: ImageVector?, text: String) {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun HeroDetail(table: TableUi, heroId: String, onCard: (Card) -> Unit, modifier: Modifier = Modifier) {
+internal fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState, modifier: Modifier = Modifier) {
     val hero = table.heroView(heroId) ?: return
     val info = table.hero(heroId)
     Column(
@@ -399,28 +401,28 @@ internal fun HeroDetail(table: TableUi, heroId: String, onCard: (Card) -> Unit, 
         }
         if (hero.activeEffects.isNotEmpty()) {
             Section("Active effects")
-            CardRow(hero.activeEffects.map { CardView(it, active = true) }, table, onCard)
+            CardRow(hero.activeEffects.map { CardView(it, active = true) }, table, focus, "${info.name} · Active effects")
         }
         hero.played?.let { played ->
             Section("Played this turn")
-            CardRow(listOf(played) + hero.alsoPlayed, table, onCard)
+            CardRow(listOf(played) + hero.alsoPlayed, table, focus, "${info.name} · Played this turn")
         }
         if (hero.resolved.isNotEmpty()) {
             Section("Resolved · Turn slots")
-            CardRow(hero.resolved, table, onCard, slots = true)
+            CardRow(hero.resolved, table, focus, "${info.name} · Resolved", slots = true)
         }
         if (hero.discard.isNotEmpty()) {
             Section("Discarded")
-            CardRow(hero.discard, table, onCard)
+            CardRow(hero.discard, table, focus, "${info.name} · Discarded")
         }
         val hand = hero.hand
         if (hand != null && heroId in table.mine) {
             Section("Your hand")
-            CardRow(hand.map { CardView(it) }, table, onCard)
+            CardRow(hand.map { CardView(it) }, table, focus, "${info.name} · Your hand")
         } else if (hand != null && hand.isNotEmpty()) {
             // Only a puzzle shows another hero's hand: its hands are open information.
             Section("In hand · open in this puzzle")
-            CardRow(hand.map { CardView(it) }, table, onCard)
+            CardRow(hand.map { CardView(it) }, table, focus, "${info.name} · In hand")
         }
         Spacer(Modifier.size(Spacing.md))
     }
@@ -444,57 +446,75 @@ private fun Section(title: String) {
     )
 }
 
-/** The person's hand, small (one row per hero they control); tap a card to read it. */
+/** The person's hand, small (one row per hero they control); tap a card to see it large. */
 @Composable
-fun YourHand(table: TableUi, onCard: (Card) -> Unit) {
+fun YourHand(table: TableUi, focus: CardFocusState) {
     table.mine.forEach { heroId ->
         val hand = table.heroView(heroId)?.hand ?: return@forEach
         if (hand.isEmpty()) return@forEach
+        val title = if (table.mine.size > 1) "${table.hero(heroId).name}'s hand" else "Your hand"
         Text(
-            if (table.mine.size > 1) "${table.hero(heroId).name.uppercase()}'S HAND" else "YOUR HAND",
+            title.uppercase(),
             style = GoaTextStyles.overline,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(top = Spacing.xs),
         )
-        CardRow(hand.map { CardView(it) }, table, onCard)
+        CardRow(hand.map { CardView(it) }, table, focus, title)
     }
 }
 
-/** Small cards in a row; a facedown one shows its back. Tap a face-up one to read it. */
+/**
+ * Small cards in a row; a facedown one shows its back. Tap a face-up one to see it large in the
+ * card focus viewer, swiping through the row's other face-up cards ([title] heads the viewer).
+ */
 @Composable
-internal fun CardRow(cards: List<CardView>, table: TableUi, onCard: (Card) -> Unit, slots: Boolean = false) {
+internal fun CardRow(
+    cards: List<CardView>,
+    table: TableUi,
+    focus: CardFocusState,
+    title: String,
+    slots: Boolean = false,
+) {
+    val captions = cards.map { view ->
+        listOfNotNull(view.slot?.takeIf { slots }?.let { "Turn $it" }, "Active".takeIf { view.active }).joinToString(" · ")
+    }
+    val open = cards.indices.filter { !cards[it].facedown && table.card(cards[it].cardId) != null }
+    val viewable = open.map { i ->
+        val card = table.card(cards[i].cardId)!!
+        FocusCard(card, key = "$title/${card.id}", caption = captions[i].ifEmpty { null })
+    }
     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        cards.forEach { view ->
+        cards.forEachIndexed { i, view ->
             val card = table.card(view.cardId).takeIf { !view.facedown }
             val spoken = listOfNotNull(
                 view.slot?.takeIf { slots }?.let { "Turn $it" },
                 card?.let(::spokenCard) ?: "Facedown card",
                 "Active".takeIf { view.active },
             ).joinToString(", ")
+            val at = open.indexOf(i)
+            val show = { if (at >= 0) focus.open(viewable, at, title = title) }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.semantics(mergeDescendants = true) {
                     contentDescription = spoken
                     if (card != null) {
-                        onClick(label = "Read the card") {
-                            onCard(card)
+                        onClick(label = "Look at the card") {
+                            show()
                             true
                         }
                     }
                 },
             ) {
                 Surface(
-                    onClick = { card?.let(onCard) },
+                    onClick = show,
                     enabled = card != null,
                     shape = RoundedCornerShape(6.dp),
                     border = if (view.active) BorderStroke(2.dp, MaterialTheme.colorScheme.secondary) else null,
+                    modifier = if (card != null) Modifier.cardFocusOrigin(focus, "$title/${card.id}") else Modifier,
                 ) {
                     TableCard(card, width = 64.dp)
                 }
-                val caption = listOfNotNull(
-                    view.slot?.takeIf { slots }?.let { "Turn $it" },
-                    "Active".takeIf { view.active },
-                ).joinToString(" · ")
+                val caption = captions[i]
                 if (caption.isNotEmpty()) {
                     Text(
                         caption,
