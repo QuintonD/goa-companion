@@ -513,8 +513,9 @@ private fun placeLabel(state: BoardUiState.Ready, piece: NewPiece): String = whe
     is NewPiece.Token -> "the token “${piece.label}”"
 }
 
+/** A round button floating over the map (Fit, Flip): shared by the sandbox and the game table. */
 @Composable
-private fun MapButton(icon: ImageVector, description: String, onClick: () -> Unit) {
+internal fun MapButton(icon: ImageVector, description: String, onClick: () -> Unit) {
     FilledTonalIconButton(
         onClick = onClick,
         colors = IconButtonDefaults.filledTonalIconButtonColors(

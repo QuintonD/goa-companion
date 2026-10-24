@@ -15,15 +15,22 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.navigation.BoardRoute
 import dev.quinton.goa.core.navigation.BoardsRoute
+import dev.quinton.goa.core.navigation.GameRoute
 import dev.quinton.goa.core.navigation.Navigator
 import dev.quinton.goa.core.navigation.NewBoardRoute
+import dev.quinton.goa.core.navigation.NewGameRoute
 import dev.quinton.goa.feature.board.board.BoardScreen
 import dev.quinton.goa.feature.board.board.BoardViewModel
 import dev.quinton.goa.feature.board.list.BoardsScreen
-import dev.quinton.goa.feature.board.list.BoardsUiState
 import dev.quinton.goa.feature.board.list.BoardsViewModel
+import dev.quinton.goa.feature.board.play.game.GameScreen
+import dev.quinton.goa.feature.board.play.game.GameUiState
+import dev.quinton.goa.feature.board.play.game.GameViewModel
+import dev.quinton.goa.feature.board.play.setup.NewGameScreen
+import dev.quinton.goa.feature.board.play.setup.NewGameViewModel
 import dev.quinton.goa.feature.board.setup.NewBoardScreen
 import dev.quinton.goa.feature.board.setup.NewBoardViewModel
 import kotlinx.coroutines.launch
@@ -34,18 +41,8 @@ fun EntryProviderScope<NavKey>.boardEntries(navigator: Navigator) {
         val viewModel = hiltViewModel<BoardsViewModel>()
         val state by viewModel.uiState.collectAsStateWithLifecycle()
         val scope = rememberCoroutineScope()
-        // With no boards yet, Boards opens straight on New board (once: deleting the last board
-        // later leaves the list showing). Back from New board returns to where Board was opened.
-        var checked by rememberSaveable { mutableStateOf(false) }
-        LaunchedEffect(state) {
-            val ready = state as? BoardsUiState.Ready ?: return@LaunchedEffect
-            if (checked) return@LaunchedEffect
-            checked = true
-            if (ready.boards.isEmpty() && !ready.unreadable) {
-                navigator.back()
-                navigator.navigate(NewBoardRoute())
-            }
-        }
+        // Boards is also where games against the computer start and resume (ADR-035), so it no
+        // longer jumps straight to New board when there are no boards yet.
         BoardsScreen(
             state = state,
             onOpen = { navigator.navigate(BoardRoute(boardId = it)) },
@@ -60,6 +57,8 @@ fun EntryProviderScope<NavKey>.boardEntries(navigator: Navigator) {
                 }
             },
             onBack = navigator::back,
+            onPlay = { navigator.navigate(NewGameRoute()) },
+            onResume = { navigator.navigate(GameRoute) },
         )
     }
     entry<NewBoardRoute> { key ->
@@ -105,6 +104,70 @@ fun EntryProviderScope<NavKey>.boardEntries(navigator: Navigator) {
             state = state,
             onAction = viewModel::onAction,
             onTap = viewModel::tap,
+            onBack = navigator::back,
+        )
+    }
+    playEntries(navigator)
+}
+
+/** Play against the computer (ADR-035): New game and the game in progress. */
+private fun EntryProviderScope<NavKey>.playEntries(navigator: Navigator) {
+    entry<NewGameRoute> { key ->
+        val viewModel = hiltViewModel<NewGameViewModel, NewGameViewModel.Factory>(
+            creationCallback = { it.create(key) },
+        )
+        val state by viewModel.uiState.collectAsStateWithLifecycle()
+        val scope = rememberCoroutineScope()
+        // One tap on Start makes one game, even if tapped again while it is being set up.
+        var starting by remember { mutableStateOf(false) }
+        NewGameScreen(
+            state = state,
+            onAction = viewModel::onAction,
+            onStart = {
+                if (!starting) {
+                    starting = true
+                    scope.launch {
+                        if (viewModel.start()) {
+                            // The game replaces New game: Back from it returns to Boards.
+                            navigator.back()
+                            navigator.navigate(GameRoute)
+                        } else {
+                            starting = false
+                            navigator.showMessage("This game couldn't be set up.")
+                        }
+                    }
+                }
+            },
+            onBack = navigator::back,
+            starting = starting,
+        )
+    }
+    entry<GameRoute> {
+        val viewModel = hiltViewModel<GameViewModel>()
+        val state by viewModel.uiState.collectAsStateWithLifecycle()
+        GameScreen(
+            state = state,
+            onAction = viewModel::onAction,
+            onTap = viewModel::tap,
+            onDelete = {
+                viewModel.deleteSaved()
+                navigator.back()
+            },
+            onNewGame = {
+                val heroes = (state as? GameUiState.Playing)?.play?.table?.view?.heroes.orEmpty()
+                viewModel.discardFinished()
+                navigator.back()
+                navigator.navigate(
+                    NewGameRoute(
+                        red = heroes.filter { it.team == Team.RED }.map { it.heroId },
+                        blue = heroes.filter { it.team == Team.BLUE }.map { it.heroId },
+                    ),
+                )
+            },
+            onDone = {
+                viewModel.discardFinished()
+                navigator.back()
+            },
             onBack = navigator::back,
         )
     }

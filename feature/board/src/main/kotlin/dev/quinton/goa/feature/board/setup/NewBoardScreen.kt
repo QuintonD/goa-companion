@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.board.setup
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -210,13 +211,13 @@ private fun NewBoardContent(
                         latest?.let {
                             LatestCard(it, { onSetUpLatest(it) }, onEdit = { onAction(NewBoardAction.Use(it)) })
                         }
-                        Teams(state, onAction)
+                        Teams(state.picker, onAction)
                     }
                     SetUpBar(state, onAction, onSetUp)
                 }
                 Column(Modifier.weight(0.58f).fillMaxHeight()) {
                     search(Modifier.padding(start = Spacing.sm, end = Spacing.screen))
-                    HeroGrid(shown, state, onAction, large, start = Spacing.sm, end = Spacing.screen)
+                    HeroGrid(shown, state.picker, onAction, large, start = Spacing.sm, end = Spacing.screen)
                 }
             }
         } else {
@@ -231,10 +232,10 @@ private fun NewBoardContent(
                             LatestCard(it, { onSetUpLatest(it) }, onEdit = { onAction(NewBoardAction.Use(it)) })
                         }
                     },
-                    other = { Teams(state, onAction) },
+                    other = { Teams(state.picker, onAction) },
                 )
                 search(Modifier.padding(horizontal = Spacing.screen))
-                HeroGrid(shown, state, onAction, large, start = Spacing.screen, end = Spacing.screen)
+                HeroGrid(shown, state.picker, onAction, large, start = Spacing.screen, end = Spacing.screen)
                 SetUpBar(state, onAction, onSetUp)
             }
         }
@@ -269,9 +270,9 @@ private enum class OneOfSlot { ONE, OTHER }
  * scrolling ([heroGridColumns]); with large text, fewer and bigger tiles that scroll.
  */
 @Composable
-private fun ColumnScope.HeroGrid(
+internal fun ColumnScope.HeroGrid(
     shown: List<BoardHero>,
-    state: NewBoardUiState.Ready,
+    state: LineupPicker,
     onAction: (NewBoardAction) -> Unit,
     large: Boolean,
     start: Dp,
@@ -318,7 +319,7 @@ private fun ColumnScope.HeroGrid(
 
 private fun LazyGridScope.heroTiles(
     heroes: List<BoardHero>,
-    state: NewBoardUiState.Ready,
+    state: LineupPicker,
     onAction: (NewBoardAction) -> Unit,
     pad: Dp,
 ) {
@@ -351,7 +352,7 @@ private fun LazyGridScope.heroTiles(
 
 /** "Adding to": the team the next tapped hero joins. */
 @Composable
-private fun TeamSwitch(filling: Team, onPick: (Team) -> Unit) {
+internal fun TeamSwitch(filling: Team, onPick: (Team) -> Unit) {
     SingleChoiceSegmentedButtonRow(Modifier.semantics { contentDescription = "Adding to" }) {
         Team.entries.forEachIndexed { i, team ->
             val color = teamColor(team)
@@ -378,7 +379,7 @@ private fun TeamSwitch(filling: Team, onPick: (Team) -> Unit) {
 }
 
 @Composable
-private fun Teams(state: NewBoardUiState.Ready, onAction: (NewBoardAction) -> Unit) {
+internal fun Teams(state: LineupPicker, onAction: (NewBoardAction) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Team.entries.forEach { team -> TeamRow(state, team, onAction) }
     }
@@ -386,7 +387,7 @@ private fun Teams(state: NewBoardUiState.Ready, onAction: (NewBoardAction) -> Un
 
 /** One team's heroes in pick order; tap the row to pick for this team next. */
 @Composable
-private fun TeamRow(state: NewBoardUiState.Ready, team: Team, onAction: (NewBoardAction) -> Unit) {
+private fun TeamRow(state: LineupPicker, team: Team, onAction: (NewBoardAction) -> Unit) {
     val color = teamColor(team)
     val filling = state.form.filling == team
     val heroes = state.team(team)
@@ -457,7 +458,7 @@ private fun SlotChip(
     team: Team,
     index: Int,
     count: Int,
-    state: NewBoardUiState.Ready,
+    state: LineupPicker,
     onAction: (NewBoardAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -545,7 +546,7 @@ private fun SlotChip(
 }
 
 @Composable
-private fun HeroTile(hero: BoardHero, state: NewBoardUiState.Ready, onAction: (NewBoardAction) -> Unit, pad: Dp) {
+private fun HeroTile(hero: BoardHero, state: LineupPicker, onAction: (NewBoardAction) -> Unit, pad: Dp) {
     val team = when (hero.id) {
         in state.form.red -> Team.RED
         in state.form.blue -> Team.BLUE
@@ -554,13 +555,15 @@ private fun HeroTile(hero: BoardHero, state: NewBoardUiState.Ready, onAction: (N
     val pick = team?.let { state.form.team(it).indexOf(hero.id) + 1 }
     val filling = state.form.filling
     val full = team == null && state.full
+    val later = team == null && hero.id in state.unavailable
     val description = when {
         team != null -> "${hero.name}, ${BoardText.team(team)} pick $pick"
+        later -> "${hero.name}, coming later"
         else -> hero.name
     }
     val action = when {
         team != null -> "Remove from ${BoardText.team(team)}"
-        full -> null
+        full || later -> null
         state.form.team(filling).size < NewBoardUiState.MAX_PER_TEAM -> "Add to ${BoardText.team(filling)}"
         else -> "Add to ${BoardText.team(filling.opponent)}"
     }
@@ -590,6 +593,7 @@ private fun HeroTile(hero: BoardHero, state: NewBoardUiState.Ready, onAction: (N
         ) {
             Box {
                 HeroPortrait(hero.id, hero.portrait, null, Modifier.fillMaxSize())
+                if (later) ComingLater(Modifier.align(Alignment.BottomCenter))
                 if (team != null && pick != null && color != null) {
                     Surface(
                         shape = RoundedCornerShape(50),
@@ -633,6 +637,29 @@ private fun HeroTile(hero: BoardHero, state: NewBoardUiState.Ready, onAction: (N
             overflow = TextOverflow.Clip,
             autoSize = TextAutoSize.StepBased(minFontSize = LABEL_MIN, maxFontSize = style.fontSize),
             modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+        )
+    }
+}
+
+/**
+ * A hero that can't be seated yet (New game: not every card of it is built and tested): the
+ * portrait is veiled and marked "Later", so the grid keeps its place and the hero reads as coming.
+ */
+@Composable
+private fun ComingLater(modifier: Modifier = Modifier) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background.copy(alpha = 0.62f)))
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+        modifier = modifier.padding(bottom = 3.dp),
+    ) {
+        Text(
+            "Later",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            modifier = Modifier.padding(horizontal = 5.dp),
         )
     }
 }

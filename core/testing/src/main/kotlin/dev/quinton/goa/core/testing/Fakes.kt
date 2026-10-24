@@ -4,6 +4,7 @@ import dev.quinton.goa.core.data.BoardMapRepository
 import dev.quinton.goa.core.data.BoardRepository
 import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.DraftRecordRepository
+import dev.quinton.goa.core.data.GameSaveRepository
 import dev.quinton.goa.core.data.GroupRepository
 import dev.quinton.goa.core.data.GroupState
 import dev.quinton.goa.core.data.MatchRepository
@@ -15,6 +16,8 @@ import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.data.SyncedPhone
 import dev.quinton.goa.core.data.TriviaProgressRepository
 import dev.quinton.goa.core.data.TriviaRoundRepository
+import dev.quinton.goa.core.data.game.GameInProgress
+import dev.quinton.goa.core.data.game.StoredGame
 import dev.quinton.goa.core.data.player.PlayerNames
 import dev.quinton.goa.core.data.rating.HeroPilotsRepository
 import dev.quinton.goa.core.domain.meta.HeroPilots
@@ -233,6 +236,24 @@ class FakeTriviaRoundRepository(initial: List<TriviaRound> = emptyList()) : Triv
 
 class FakeBoardMapRepository(maps: List<BoardMap>) : BoardMapRepository {
     override val maps: Flow<List<BoardMap>> = MutableStateFlow(maps)
+}
+
+class FakeGameSaveRepository(initial: StoredGame = StoredGame.None) : GameSaveRepository {
+    val state = MutableStateFlow(initial)
+
+    /** Every game written, oldest first. */
+    val saves = mutableListOf<GameInProgress>()
+
+    override val current: Flow<StoredGame> = state
+
+    override suspend fun save(game: GameInProgress) {
+        saves += game
+        state.value = StoredGame.Saved(game)
+    }
+
+    override suspend fun clear() {
+        state.value = StoredGame.None
+    }
 }
 
 class FakeBoardRepository(initial: List<SavedBoard> = emptyList()) : BoardRepository {
