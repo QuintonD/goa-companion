@@ -17,11 +17,14 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.data.EditClock
+import dev.quinton.goa.core.data.GameSaveRepository
+import dev.quinton.goa.core.data.game.StoredGame
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.board.BoardGeometry
 import dev.quinton.goa.core.domain.board.BoardRules
 import dev.quinton.goa.core.domain.board.BoardSetup
 import dev.quinton.goa.core.domain.board.HexGrid
+import dev.quinton.goa.core.game.GameFactory
 import dev.quinton.goa.core.model.board.BoardLineup
 import dev.quinton.goa.core.model.board.HeroPiece
 import dev.quinton.goa.core.model.board.MinionPiece
@@ -44,6 +47,7 @@ import dev.quinton.goa.core.testing.FakeBoardMapRepository
 import dev.quinton.goa.core.testing.FakeBoardRepository
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
+import dev.quinton.goa.core.testing.FakeGameSaveRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
 import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.feature.board.board.AddContent
@@ -64,6 +68,8 @@ import dev.quinton.goa.feature.board.setup.NewBoardViewModel
 import dev.quinton.goa.feature.board.setup.SourcesContent
 import java.time.LocalDateTime
 import java.time.ZoneId
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -141,7 +147,12 @@ class BoardScreenshotTest {
     }
 
     @Composable
-    private fun Boards(boards: List<SavedBoard>, withDraft: Boolean = true) {
+    private fun Boards(
+        boards: List<SavedBoard>,
+        withDraft: Boolean = true,
+        games: GameSaveRepository = FakeGameSaveRepository(),
+        engine: GameFactory? = null,
+    ) {
         val vm =
             remember {
                 BoardsViewModel(
@@ -151,6 +162,9 @@ class BoardScreenshotTest {
                     if (withDraft) drafts else FakeDraftRecordRepository(),
                     if (withDraft) matches else FakeMatchRepository(),
                     EditClock { now },
+                    CoroutineScope(Dispatchers.Unconfined),
+                    games,
+                    engine?.let { e -> { e } },
                 )
             }
         val state by vm.uiState.collectAsState()
@@ -166,8 +180,35 @@ class BoardScreenshotTest {
         )
     }
 
-    /** No boards and no draft yet (the list opens on New board when empty; this shows after deleting all). */
+    /** No boards and no draft yet: play is coming soon, and New board. */
     @Test fun boardsEmptyDark() = capture(ThemeMode.DARK) { Boards(emptyList(), withDraft = false) }
+
+    /** Heroes are playable and a game is in progress: Resume on top, then Play and the boards. */
+    @Test
+    fun boardsPlayResumeDark() = capture(ThemeMode.DARK) {
+        val factory = remember { dev.quinton.goa.feature.board.play.fakeFactory() }
+        val games = remember {
+            FakeGameSaveRepository(
+                StoredGame.Saved(
+                    dev.quinton.goa.feature.board.play.fakeInProgress(factory).let {
+                        it.copy(game = it.game.copy(savedAt = now - HOUR))
+                    },
+                ),
+            )
+        }
+        Boards(savedBoards(), games = games, engine = factory)
+    }
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun boardsPlayResumeW384LightFontScale2() = capture(ThemeMode.LIGHT, 2f) {
+        val factory = remember { dev.quinton.goa.feature.board.play.fakeFactory() }
+        val games =
+            remember {
+                FakeGameSaveRepository(StoredGame.Saved(dev.quinton.goa.feature.board.play.fakeInProgress(factory)))
+            }
+        Boards(emptyList(), games = games, engine = factory)
+    }
 
     /** No boards, but a finished draft: its line-up is one tap away. */
     @Test fun boardsEmptyLight() = capture(ThemeMode.LIGHT) { Boards(emptyList()) }

@@ -7,6 +7,8 @@ plugins {
 dependencies {
     api(projects.core.model)
     api(projects.core.domain)
+    // Saved games and the play engine's bindings (ADR-035).
+    api(projects.core.game)
     implementation(projects.core.database)
     implementation(projects.core.datastore)
     implementation(libs.kotlinx.coroutines.android)

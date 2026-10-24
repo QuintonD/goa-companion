@@ -76,6 +76,18 @@ class EngineSession internal constructor(
     /** The engine data this session runs on (the AI's evaluation reads card data and maps from it). */
     internal val engineData: EngineData get() = data
 
+    /** The state at the start of the current step (puzzle solver's transposition key). Read-only. */
+    internal val checkpointState: GameState get() = checkpoint
+
+    /** The answers given in the current step so far (with [checkpointState] they fix the position). */
+    internal val stepAnswers: List<Choice> get() = segment
+
+    /**
+     * Stops the game before a step whose start state matches (a puzzle's deadline): [pending] becomes
+     * null as at the end of a game. Checked only between steps; copied by [forkSession].
+     */
+    internal var haltWhen: ((GameState) -> Boolean)? = null
+
     internal fun start(): EngineSession {
         advance()
         return this
@@ -87,6 +99,11 @@ class EngineSession internal constructor(
         while (true) {
             // A round has well under a thousand steps without a question; more means a flow bug.
             check(++steps < MAX_STEPS_WITHOUT_DECISION) { "The game made no progress (step ${checkpoint.step})" }
+            if (segment.isEmpty() && haltWhen?.invoke(checkpoint) == true) {
+                display = checkpoint
+                pendingDecision = null
+                return
+            }
             val work = checkpoint.copy()
             val g = Game(data, work, segment, RunMode.NORMAL, lenient)
             try {
@@ -149,7 +166,25 @@ class EngineSession internal constructor(
         f.history = history
         f.committed = committed
         f.partial = partial
+        f.haltWhen = haltWhen
         // The checkpoint is never mutated in place (each run works on a copy), so sharing it is safe.
+        return f
+    }
+
+    /**
+     * A fork that is answered at once (the puzzle solver): like [forkSession] but shares the displayed
+     * state instead of copying it, since the next answer replaces it. Don't read its state before answering.
+     */
+    internal fun forkForAnswer(): EngineSession {
+        val f = EngineSession(data, setup, initial, lenient)
+        f.checkpoint = checkpoint
+        f.segment = ArrayList(segment)
+        f.display = display
+        f.pendingDecision = pendingDecision
+        f.history = history
+        f.committed = committed
+        f.partial = partial
+        f.haltWhen = haltWhen
         return f
     }
 

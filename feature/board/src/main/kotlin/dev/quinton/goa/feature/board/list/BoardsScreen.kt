@@ -17,9 +17,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ContentCopy
@@ -52,6 +54,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
@@ -67,6 +70,7 @@ import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardHero
@@ -89,6 +93,8 @@ fun BoardsScreen(
     onDelete: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onPlay: () -> Unit = {},
+    onResume: () -> Unit = {},
 ) {
     var renaming by rememberSaveable { mutableStateOf<String?>(null) }
     val ready = state as? BoardsUiState.Ready
@@ -112,11 +118,18 @@ fun BoardsScreen(
             when {
                 ready == null -> CircularProgressIndicator(Modifier.align(Alignment.Center))
 
-                ready.boards.isEmpty() -> Column(Modifier.fillMaxSize()) {
+                ready.boards.isEmpty() -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                    PlayHub(
+                        ready.play,
+                        ready.now,
+                        onPlay,
+                        onResume,
+                        Modifier.padding(horizontal = Spacing.screen).padding(top = Spacing.lg),
+                    )
                     ready.latest?.let {
                         LatestCard(it, { onSetUp(it) }, Modifier.padding(Spacing.screen))
                     }
-                    Box(Modifier.weight(1f).fillMaxWidth()) {
+                    Box(Modifier.fillMaxWidth().padding(vertical = Spacing.lg)) {
                         EmptyState(
                             icon = Icons.Outlined.Hexagon,
                             title = "No boards yet",
@@ -147,6 +160,15 @@ fun BoardsScreen(
                     verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     modifier = Modifier.fillMaxSize(),
                 ) {
+                    item(key = "play") { PlayHub(ready.play, ready.now, onPlay, onResume) }
+                    item(key = "boards") {
+                        Text(
+                            "BOARDS",
+                            style = GoaTextStyles.overline,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = Spacing.sm).semantics { heading() },
+                        )
+                    }
                     ready.latest?.let { latest ->
                         item(key = "latest") { LatestCard(latest, { onSetUp(latest) }) }
                     }

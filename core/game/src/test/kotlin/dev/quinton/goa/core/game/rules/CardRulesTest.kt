@@ -40,14 +40,14 @@ import org.junit.Test
 
 /**
  * The card rules of p.10 (states, mandatory steps, modal actions, repeat) and p.17–19 (Active effects,
- * immunity, tokens), checked with test-only scripts on Dodger's card ids (Dodger has no module yet),
- * so the engine primitives are tested on their own.
+ * immunity, tokens), checked with test-only scripts on Dodger's card ids (her real module is left out
+ * of this test's registry), so the engine primitives are tested on their own.
  */
 class CardRulesTest {
     private val inc = "inc" // a "+1 Attack this effect" key
 
     private val registry = Registry().also { r ->
-        Heroes.all.forEach(r::module)
+        Heroes.all.filter { it.heroId != "dodger" }.forEach(r::module)
         // "You may move 1 space. Push an enemy unit adjacent to you 1 space. Gain 1 coin."
         r.card(
             "dodger-green-1",

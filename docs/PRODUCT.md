@@ -282,7 +282,9 @@ Life counters).
   with Set up match and Log result later under the teams on a phone held upright) and a match
   ("Open on the board", in the draft's pick order when it came from a draft) open their board in one
   tap. A line-up whose board is still untouched (on its opening) reopens that board instead of a
-  duplicate, and a double tap never opens two. With no boards yet, Board opens straight on New board.
+  duplicate, and a double tap never opens two. Boards also holds Play against the computer and
+  Puzzles (9, 10) above the boards, so with no boards yet it shows those and "New board" rather than
+  jumping to New board.
 - **New board without scrolling:** both teams in pick order at the top (until the first pick, the
   latest line-up's card stands in their place, in a slot as tall as either, so the grid never moves
   under the next tap), search with an "Adding to Red | Blue" switch beside it, a grid of the heroes
@@ -362,7 +364,11 @@ opponents (and teammates) at four levels. One phone, one human team.
   Lift Up can still reach you") with Choose anyway / Rethink; never chooses for you. After the
   game: the turning points, by round and turn, with the rule behind each.
 - **Saved as you play:** a game in progress resumes from Boards after leaving or process death;
-  local only, not synced, not in the backup file.
+  local only, not synced, not in the backup file. One game at a time: starting another replaces it
+  (New game says so). A save that can't be read, or that the engine can no longer rebuild, is
+  offered for deletion, never a crash. "End this game" deletes it.
+- **Until heroes are playable** the Boards entry and New game say play is coming; heroes not yet
+  playable show in New game's grid, veiled as "Later". Puzzles show as coming soon.
 - **Done when:** every rule above has a page-referenced test; random full games over every
   playable hero keep the invariants (one obstacle per space, cards conserved, deterministic,
   save/restore and fork identical); each level beats the one below it over a seeded tournament;

@@ -625,6 +625,11 @@ data class PuzzleInfo(
     val explanation: String,
     /** Rulebook pages the puzzle leans on, e.g. "p.14 Minion Defense Modifiers". */
     val rules: List<String> = emptyList(),
+    /**
+     * Shown with the goal before the first move: what the player knows that the board doesn't show
+     * (who acts next, cards played facedown, opponents' hands), e.g. "Arien keeps Expert Duelist".
+     */
+    val intro: String = "",
 )
 
 // ---------------------------------------------------------------------------------------------

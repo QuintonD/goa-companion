@@ -182,6 +182,9 @@ fun Game.defenseCards(heroId: String): List<String> {
     return (hand + extra).distinct()
 }
 
+private fun isPrimaryDefense(card: dev.quinton.goa.core.model.catalog.Card): Boolean =
+    card.primary == PrimaryAction.DEFENSE || card.primary == PrimaryAction.DEFENSE_SKILL
+
 /** The defense total [cardId] would give (step 5), or null when its text decides only as it resolves. */
 private fun Game.previewDefense(
     heroId: String,
@@ -252,7 +255,9 @@ internal fun Game.defend(
     // Step 2: "Calculate minion defense modifier", before the defender reveals a card.
     val minion = minionTerms(at, h.team, info.attackerId)
     val modifier = minion.sumOf { it.value }
-    val cards = defenseCards(defender)
+    // "the target cannot perform a primary action to defend" (Tigerclaw's Ballista): cards whose Defense
+    // action is their Primary action (Defense, Defense/Skill, p.14) cannot be used; secondary Defense can.
+    val cards = defenseCards(defender).filter { !noPrimary || !isPrimaryDefense(card(it)) }
     if (cards.isEmpty()) {
         note("${heroName(defender)} has no card to defend with.")
         defeatHero(defender, info.attackerId)
@@ -292,16 +297,20 @@ internal fun Game.defend(
     }
     val scope = DefenseScope(this, defender, cardId, info)
     val textual = (card.primary == PrimaryAction.DEFENSE || card.primary == PrimaryAction.DEFENSE_SKILL) && !noPrimary
-    if (textual) {
-        actors += defender
-        try {
-            trigger(Trigger.BeforeAction(defender, cardId, ActionKind.DEFENSE, true, isBasic(cardId)))
-            data.registry.script(cardId)?.defense(scope)
-        } catch (f: Fizzle) {
-            note("${heroName(defender)}'s ${card.name} text stops: ${f.message}.")
-        } finally {
-            actors.removeAt(actors.lastIndex)
-        }
+    actors += defender
+    try {
+        // A Defense action is an action (p.14), with or without card text: "before you perform an action"
+        // hooks see it (Silverarrow's Wild Hunt); primary = the card's Defense text applies.
+        trigger(Trigger.BeforeAction(defender, cardId, ActionKind.DEFENSE, textual, isBasic(cardId)))
+        if (textual) data.registry.script(cardId)?.defense(scope)
+    } catch (f: Fizzle) {
+        note("${heroName(defender)}'s ${card.name} text stops: ${f.message}.")
+    } catch (a: ActorDefeated) {
+        // The defender was defeated while performing its Defense action: it is removed, nothing to total.
+        if (a.heroId != defender) throw a
+        return AttackResult(true, info.targetId, defeated = true, defenseCard = cardId, total = info.total, hero = true)
+    } finally {
+        actors.removeAt(actors.lastIndex)
     }
     val (total, terms) = defenseTotal(defender, cardId, scope, fromInitiative, minion, info.attackerId)
     val success = if (card.block) scope.blocked == true else total >= info.total

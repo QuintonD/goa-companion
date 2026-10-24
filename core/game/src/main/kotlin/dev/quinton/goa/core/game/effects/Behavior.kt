@@ -141,6 +141,12 @@ sealed interface Trigger {
     /** p.18 "Next turn, after playing cards": after all cards are revealed. */
     data object CardsRevealed : Trigger
 
+    /**
+     * [heroId] is about to choose the action for [cardId] (p.7 "Perform One Action"), after any respawn.
+     * Razzle chooses here which one of her performs it (EFFECTS.md "Razzle").
+     */
+    data class ChoosingAction(val heroId: String, val cardId: String) : Trigger
+
     data class BeforeAction(
         val heroId: String,
         val cardId: String?,
@@ -293,6 +299,9 @@ interface Behavior {
 
     /** The token kind actually placed when [byHeroId] places [kind] (NebKher: "place Illusion tokens instead"). */
     fun tokenKind(g: Game, src: Src, kind: String, byHeroId: String?): String? = null
+
+    /** A [kind] marker [fromHeroId] would give [heroId] is not given (NebKher: "skip giving markers"). Any. */
+    fun forbidsMarker(g: Game, src: Src, heroId: String, kind: String, fromHeroId: String?): Boolean = false
 
     /** Extra Life counters spent for a defeat (Bounty). Summed. */
     fun extraLifeCost(g: Game, src: Src, q: LifeQuery): Int = 0
