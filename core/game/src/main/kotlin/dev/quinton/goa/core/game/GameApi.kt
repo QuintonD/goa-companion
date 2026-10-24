@@ -304,6 +304,10 @@ enum class WinReason {
     /** The other team spent its last Life counter (p.13). */
     @SerialName("life_counters")
     LIFE_COUNTERS,
+
+    /** A card says so ("you alone win the game": Cutter; "your team wins the game": Gydion's Wish). */
+    @SerialName("card_text")
+    CARD_TEXT,
 }
 
 /** A card as a viewer may see it: [cardId] null when it is facedown/hidden to this viewer. */
@@ -313,6 +317,8 @@ data class CardView(
     val facedown: Boolean = false,
     /** A resolved or discarded card with an Active effect shown on its side (p.7). */
     val active: Boolean = false,
+    /** The Turn slot 1..4 of a resolved card (p.7), else null. */
+    val slot: Int? = null,
 )
 
 @Serializable
@@ -329,6 +335,8 @@ data class HeroView(
     val handCount: Int,
     /** This turn's played card: hidden until the reveal unless it is the viewer's. */
     val played: CardView?,
+    /** More played cards this turn, when an effect allows it (Emmitt's Ultimate); same hiding as [played]. */
+    val alsoPlayed: List<CardView> = emptyList(),
     /** Resolved cards on the dashboard's Turn slots, turn 1..4 (open information). */
     val resolved: List<CardView>,
     val discard: List<CardView>,
@@ -653,7 +661,12 @@ data class CoachNote(
 /** Learning help in games against the AI (ADR-035); switchable, never answers for the player. */
 interface Coach {
     /** A nudge when [choice] looks clearly worse than another option, else null. */
-    fun nudge(session: GameSession, decision: Decision, choice: Choice, cancelled: () -> Boolean = { false }): CoachNote?
+    fun nudge(
+        session: GameSession,
+        decision: Decision,
+        choice: Choice,
+        cancelled: () -> Boolean = { false },
+    ): CoachNote?
 
     /** After the game: the few moments that decided it, oldest first. */
     fun turningPoints(saved: SavedGame, seat: String, cancelled: () -> Boolean = { false }): List<CoachNote>

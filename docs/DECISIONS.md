@@ -702,3 +702,10 @@ the end. Until now a full rules engine was a non-goal (ADR-033: "measure, never 
 **Consequences:** PRODUCT's "no full rules engine" non-goal is gone. Rules accuracy now covers ~630
 card texts: every card needs a test, and each hero batch gets an independent rules audit before it
 is offered. Hidden-information rules bind the AI, not just the UI.
+**Addendum (2026-10-24, engine core):** The engine re-executes: the state is plain serializable data;
+each step of the flow (one card resolution, one end-of-round step) runs from a checkpoint with the
+answers given so far, and the first unanswered `Game.ask` suspends it (core/game/ENGINE.md). Card
+effects are ordinary Kotlin per card plus stateless hook objects (`Behavior`) found from the state's
+ids; saves are the start state plus the answers. Readings the rulebook leaves open are listed in
+core/game/RULINGS.md; contract additions in core/game/CONTRACT-CHANGES.md. core:game alone widens
+detekt's complexity limits (core/game/detekt.yml).

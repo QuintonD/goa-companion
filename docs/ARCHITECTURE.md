@@ -34,6 +34,10 @@ core/domain/             # JVM: TimerEngine, EloCalculator, DraftEngine, MetaSta
                          #   trivia/ TriviaChallenge + TriviaLeaderboard (derived, ADR-032),
                          #   sync/ (SyncMerge, PlayerMerges, crypto, codec, SyncHost/SyncClient protocol);
                          #   testFixtures: in-memory SyncTransport + data port
+core/game/               # JVM: the rules engine (ADR-035): GameApi.kt contract, engine/ (re-execution session,
+                         #   flow, board/combat/minion rules, views, determinize), effects/ (hooks for card
+                         #   scripts), heroes/ (one module per hero), position/ (PositionBuilder); see
+                         #   core/game/ENGINE.md, EFFECTS.md, RULINGS.md
 core/data/               # repositories; catalog and board-map loaders; JSON/Room <-> model; export/import
 core/database/           # Room 3 DB (schema v4: players, matches, drafts, trivia_rounds, deletions,
                          #   player_merges), DAOs, entities, migrations, schemas/
@@ -210,6 +214,7 @@ the draft setup for "Draft again".
 ## Testing strategy
 | Layer | Tests |
 |-------|-------|
+| core:game | Rule tests by rulebook page (setup, turn, movement, combat, minions, end of round, card rules), one test class per hero following each card clause by clause, session tests (save/restore mid-card, fork, undo, determinize), property tests over 1 200 random games, a games-per-second benchmark (core/game/ENGINE.md "Tests") |
 | core:domain | Unit + property tests (Elo maths, draft legality for every method/player count, timer with fake clock) |
 | core:data | Catalog validation (schema, unique IDs, asset paths exist, every hero has a full deck), export/import round-trip |
 | core:database | Room in-memory tests; migration tests for every schema bump (v1 → v2: `matches.tie_breaker`; v2 → v3: `updated_at` backfill, `deletions`, `player_merges`; v3 → v4: `trivia_rounds`) |
