@@ -60,5 +60,13 @@ object Puzzles {
         P28AngryStampede,
         P29ThreatenTheGuards,
         P30ThreeObstacles,
+        P38StripTheSilver,
+        P39StaticBarrier,
+        P40CarryAway,
+        P42TheCourteousTrap,
+        P44AFistfulOfCoins,
+        P51IceInTheVeins,
+        P53DeathGrenade,
+        P55ThePushStripsTheGuard,
     )
 }
