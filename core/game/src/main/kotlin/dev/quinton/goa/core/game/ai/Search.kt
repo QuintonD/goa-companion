@@ -54,6 +54,8 @@ internal data class LevelProfile(
     /** Teammates (and with [greedyEnemies] the enemies) also play their playout actions by one-ply search. */
     val greedyTeam: Boolean = false,
     val greedyEnemies: Boolean = false,
+    /** Opaque choices ([Searcher.opaque]) inside playouts are answered one ply deep instead of statically. */
+    val shallow: Boolean = true,
 )
 
 /** One option's values over the samples (NaN where the option did not exist in a sample). */
@@ -231,6 +233,8 @@ internal class Searcher(
 
                 searchIt -> greedy(f, d)
 
+                profile.shallow && opaque(s, d) -> greedy(f, d)
+
                 else -> static.best(s, d)
             }
             f.answer(d.id, c)
@@ -238,8 +242,39 @@ internal class Searcher(
         }
     }
 
+    /**
+     * Choices whose worth only the card text knows (which bullet of "Choose one", where a token goes,
+     * which of a hero's bodies acts, whose card to name): the static rules of thumb would answer them
+     * blindly, so even the cheap playout looks one step ahead through the engine.
+     */
+    fun opaque(s: GameState, d: Decision): Boolean = when (d.kind) {
+        DecisionKind.CHOOSE_OPTION, DecisionKind.CHOOSE_TOKEN, DecisionKind.CONFIRM, DecisionKind.CHOOSE_NUMBER -> true
+
+        DecisionKind.CHOOSE_SPACE -> {
+            val subject = d.context.subjectId
+            subject == null || (s.hero(subject) == null && s.minion(subject) == null && s.piece(subject)?.heroBody == null)
+        }
+
+        // Attack targets ("Target a unit in range") have good static scores; pushes, swaps, pulls,
+        // "which one of you acts", Mind Grip's hero… do not.
+        DecisionKind.CHOOSE_UNIT -> {
+            val team = s.hero(d.seat)?.team ?: d.team
+            !d.prompt.startsWith("Target") || d.options.any { o ->
+                o is Choice.Unit &&
+                    (s.hero(o.unitId)?.team == team || s.piece(o.unitId)?.let { it.heroBody != null && it.team == team } == true)
+            }
+        }
+
+        DecisionKind.CHOOSE_CARD -> {
+            val own = s.hero(d.seat)
+            d.options.any { it is Choice.Card && own?.card(it.cardId) == null }
+        }
+
+        else -> false
+    }
+
     /** One-ply: each option answered on a fork, the action finished statically, evaluated. */
-    private fun greedy(f: EngineSession, d: Decision): Choice {
+    fun greedy(f: EngineSession, d: Decision): Choice {
         val opts = if (d.options.size > GREEDY_MAX) {
             val sc = static.scores(f.state, d)
             d.options.indices.sortedByDescending { sc[it] }.take(GREEDY_MAX).map { d.options[it] }

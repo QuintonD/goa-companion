@@ -30,6 +30,10 @@ internal data class EvalKnobs(
     val nearestThreatOnly: Boolean = false,
     /** Weight of the opponent's threats next turn (Expert looks further). */
     val nextTurnThreat: Double = 0.22,
+    /** Scale of the worth of a hero's own pieces on the board (tokens, the Turret…); 0 = ignored. */
+    val pieces: Double = 1.0,
+    /** A forced discard when the hero has no spare card (it then misses a play this round). */
+    val discardNoSpare: Double = 2.5,
 )
 
 /**
@@ -59,7 +63,26 @@ internal class Evaluator(val data: EngineData, val knobs: EvalKnobs = EvalKnobs(
         const val PRESENCE_PER_SPACE: Double = 0.55
         const val IN_BATTLE_ZONE: Double = 1.0
 
+        /** A hero's own piece on the board: lasting beyond the round / for the rest of this round / near an enemy hero. */
+        const val PIECE_LASTING: Double = 1.2
+        const val PIECE_ROUND: Double = 0.8
+        const val PIECE_NEAR: Double = 0.4
+        const val PIECES_COUNTED: Int = 4
+
         fun sigmoid(x: Double): Double = 1.0 / (1.0 + exp(-x))
+
+        /**
+         * A public hero counter's worth ([HeroState.counters], shown on the dashboard). The only
+         * counters today are a spellbook's: the spells ready to cast (every deck card but the refill
+         * casts from it, so an empty book leaves the hero without Primary actions; a few are plenty),
+         * the spells already cast (some spells grow with them) and the Wish casts (three win).
+         */
+        fun counterValue(key: String, n: Int): Double = when (key) {
+            "spellbook" -> 1.5 * min(n, 5)
+            "spellsRemoved" -> 0.1 * n
+            "wishCasts" -> 10.0 * n
+            else -> 0.0
+        }
 
         fun lifeValue(counters: Int): Double {
             var v = 0.0
@@ -289,7 +312,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
     fun discardCost(hero: HeroInfo): Double {
         if (roundOver) return 0.0
         val spare = hero.hand.size - hero.playsLeft
-        return if (spare >= 1) spareWeight() else 2.5
+        return if (spare >= 1) spareWeight() else knobs.discardNoSpare
     }
 
     private fun spareWeight(): Double = when (state.turn) {
@@ -342,6 +365,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
         var v = h.coins * (if (early) 1.3 else 1.0) + h.level * (h.level - 1) / 2.0 + 3.0 * (h.level - 1)
         if (h.coins >= h.level && h.level < 8) v += 1.0
         if (h.ultimateUnlocked) v += 8.0
+        for ((key, n) in h.counters) v += Evaluator.counterValue(key, n)
         if (!roundOver) {
             val needed = hi.playsLeft
             val n = hi.hand.size
@@ -353,7 +377,15 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
             val spawn = map.throneSpawns[h.team].orEmpty().firstOrNull()
             -4.0 + (spawn?.let { presence(h.team, it) } ?: -4.0)
         } else {
-            placement(h.id, at)
+            val bodies = state.pieces.filter { it.heroBody == h.id && it.at != null }.map { it.at!! }
+            if (bodies.isEmpty()) {
+                placement(h.id, at)
+            } else {
+                // Several bodies of one hero (Razzle): any of them may act, and a defeat of any of
+                // them defeats the hero, so the best reach and presence but the worst exposure count.
+                val all = listOf(at) + bodies
+                all.maxOf { presence(h.team, it) } + all.maxOf { opportunity(hi, it) } - all.maxOf { exposure(hi, it) }
+            }
         }
         return v
     }
@@ -395,9 +427,47 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
         return pp
     }
 
+    /**
+     * The hero's own pieces on the board (Zombies, Trees, Rocks, the Turret, Pyro, Ice…): the engine
+     * resolves what they do; the evaluation only knows that a hero put them there for its cards to
+     * use (STRATEGY §5: "summon zombies as soon as possible"). A piece that lasts beyond the round is
+     * worth more, one near an enemy hero more again; a hero's bodies (Razzle) are the hero itself.
+     */
+    private fun pieceValueRed(): Double {
+        if (knobs.pieces == 0.0) return 0.0
+        val turnsLeft = if (roundOver) 0 else 5 - state.turn
+        val byOwner = HashMap<String, MutableList<Double>>()
+        val teams = HashMap<String, Team>()
+        for (p in state.pieces) {
+            val at = p.at ?: continue
+            if (p.heroBody != null) continue
+            val owner = p.owner ?: continue
+            val team = p.team ?: state.hero(owner)?.team ?: continue
+            var w = if (p.removeAtEndOfRound) Evaluator.PIECE_ROUND * turnsLeft / 4.0 else Evaluator.PIECE_LASTING
+            if (w <= 0.0) continue
+            // Far from the fight a piece does little (zombies by the own Throne, a Turret left behind).
+            w *= max(0.25, 1.0 - 0.12 * fightDistance(at))
+            if (state.heroes.any { it.team != team && it.at?.let { e -> HexGrid.distance(e, at) <= 2 } == true }) {
+                w += Evaluator.PIECE_NEAR
+            }
+            teams[owner] = team
+            byOwner.getOrPut(owner) { ArrayList() } += w
+        }
+        var v = 0.0
+        for ((owner, ws) in byOwner) {
+            val sum = ws.sortedDescending().take(Evaluator.PIECES_COUNTED).sum()
+            v += if (teams[owner] == Team.RED) sum else -sum
+        }
+        return v * knobs.pieces
+    }
+
+    /** Spaces from [at] to the nearest Battle Zone. */
+    private fun fightDistance(at: Hex): Int =
+        map.laneZones.keys.mapNotNull { state.battleZones[it] }.minOfOrNull { map.distanceToZone(at, it) } ?: 0
+
     fun scoreRed(): Double {
         state.winner?.let { return if (it == Team.RED) Evaluator.WIN - state.round else -Evaluator.WIN + state.round }
-        var v = laneValueRed()
+        var v = laneValueRed() + pieceValueRed()
         v +=
             Evaluator.lifeValue(state.lifeCounters[Team.RED] ?: 0) -
             Evaluator.lifeValue(state.lifeCounters[Team.BLUE] ?: 0)

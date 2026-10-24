@@ -291,14 +291,14 @@ internal class Explainer(
     }
 
     private fun kills(l: Leaf): Int = events(l).count { e ->
-        e is GameEvent.Defeated && l.end.state.hero(e.unitId)?.team == team.opponent
+        e is GameEvent.Defeated && e.byHeroId == seat && l.end.state.hero(e.unitId)?.team == team.opponent
     }
 
     private fun killReason(): Pair<String, String>? {
         val bestKill = share(best) { kills(it) > 0 }
         val mineKill = share(mine) { kills(it) > 0 }
         if (bestKill - mineKill < 0.6) return null
-        val victim = leaves(best).flatMap { l -> events(l).filterIsInstance<GameEvent.Defeated>() }
+        val victim = leaves(best).flatMap { l -> events(l).filterIsInstance<GameEvent.Defeated>().filter { it.byHeroId == seat } }
             .mapNotNull { e -> es.state.hero(e.unitId)?.takeIf { it.team != team }?.id }
             .groupingBy { it }.eachCount().maxByOrNull { it.value }?.key ?: return null
         val who = data.heroName(victim)
@@ -317,8 +317,7 @@ internal class Explainer(
     }
 
     private fun minionKills(l: Leaf): Int = events(l).count { e ->
-        e is GameEvent.Defeated && l.end.state.hero(e.unitId) == null && e.byHeroId != null &&
-            l.end.state.hero(e.byHeroId!!)?.team == team
+        e is GameEvent.Defeated && l.end.state.hero(e.unitId) == null && e.byHeroId == seat
     }
 
     private fun minionReason(): Pair<String, String>? {

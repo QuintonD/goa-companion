@@ -106,6 +106,8 @@ internal class SearchAi(
         val det = s.determinize(es, d, rng.nextLong())
         val dp = det.pending
         if (dp == null || dp.seat != d.seat || dp.kind != d.kind) return Fallback.choose(d)
+        // What only the card text knows (a bullet, where a token goes) is looked at one step ahead.
+        if (profile.shallow && s.opaque(det.state, dp)) s.greedy(det, dp).takeIf { it in d.options }?.let { return it }
         val scores = s.static.scores(det.state, dp)
         val byChoice = dp.options.withIndex().associate { (i, c) -> c to scores[i] }
         val choices = d.options.filter { it in byChoice }
