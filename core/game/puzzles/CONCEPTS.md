@@ -408,7 +408,18 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Fast Travel replaces a whole Movement action, whatever its value, and may land on any empty space of the same Zone or an adjacent Zone, provided neither the Zone you leave nor the one you enter holds an enemy hero or minion (p.11; the Arien example allows the own Zone). Swift in `blue-throne` and the minions in `lane-1-2` close those Zones, but `blue-side` itself is long and empty.
 - **Rules:** p.11 Fast Travel; p.13 Ranged attacks.
 - **Risk:** none.
-- **Encoded as p12 (2026-10-24):** as in the concept (hands: Brogan `brogan-silver`, Swift `swift-blue-1`, Dodger `dodger-blue-1`). The solver's winning Fast Travel spaces are exactly the ten listed; Hold, a Movement action and Fast Travel to (2,2) are refuted.
+- **Encoded as p12 (hardened 2026-10-24, changed — a different puzzle on the same idea):** the
+  reviewers found level 1 heroes in round 4 and 10 of 14 Fast Travel spaces winning. An escape cannot be
+  made tight (two attackers never cover a 15-space side Zone), so Xargatha now Fast Travels the length
+  of her own Zone to **support an attack**. Round 3, turn 4, all level 2; Red 3 Life counters, Blue 1
+  (Blue lost heroes earlier this round, so the Red heroes hold 3 unspent coins each). Xargatha (Red, L2,
+  Cleave 11, Defense item) at (5,0), the far end of `blue-side`; Tigerclaw (Red, L2, `tigerclaw-red-2b`
+  Backstab 5, +2 if a friendly unit is adjacent to the target; initiative item → 10) at (0,2); Brogan
+  (Blue, L2, Attack item `brogan-green-2a`, hand Brutal Jab 5, Mad Dash 7 to come) at (−1,2), beside a
+  Blue melee (−2,2): 6. Swift (Blue, L2, Prepared Shot 9) far off at (3,−5). Answer: Xargatha Fast
+  Travels to (−1,3), the only `blue-side` space beside Brogan (the Battle Zone around him is closed to
+  her, p.11); Backstab 7 against 6. Wrong tries refuted: Fast Travel to (0,3), beside Tigerclaw but not
+  Brogan; a Movement action. Solver: 1 of 33 Fast Travel spaces wins.
 
 ### C13 — Empty the Spawn Point
 - **Theme:** coins; "empty spawn point" conditions; initiative between teammates. **Difficulty:** 1. **Heroes:** Tigerclaw, Dodger; Arien (Wasp idle).
