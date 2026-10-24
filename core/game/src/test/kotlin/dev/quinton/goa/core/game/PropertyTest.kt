@@ -97,7 +97,8 @@ class PropertyTest {
             assertThat(h.level).isIn(1..8)
             val catalog = engine.data.catalogHero(h.id).allCards.map { it.id }.sorted()
             assertWithMessage("cards of ${h.id}").that(h.cards.map { it.id }.sorted()).isEqualTo(catalog)
-            assertThat(h.cards.count { it.zone == Zone.PLAYED }).isAtMost(1)
+            // Emmitt's Ultimate plays two cards before the reveal (EFFECTS.md "Known engine limits").
+            assertThat(h.cards.count { it.zone == Zone.PLAYED }).isAtMost(if (h.id == "emmitt") 2 else 1)
             assertThat(h.cards.count { it.zone == Zone.ULTIMATE }).isAtMost(1)
         }
         for (m in st.minions) m.at?.let { assertThat(g.geo.isSpace(it)).isTrue() }

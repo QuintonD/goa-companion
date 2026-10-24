@@ -141,6 +141,12 @@ sealed interface Trigger {
     /** p.18 "Next turn, after playing cards": after all cards are revealed. */
     data object CardsRevealed : Trigger
 
+    /**
+     * [heroId] is about to choose the action for [cardId] (p.7 "Perform One Action"), after any respawn.
+     * Razzle chooses here which one of her performs it (EFFECTS.md "Razzle").
+     */
+    data class ChoosingAction(val heroId: String, val cardId: String) : Trigger
+
     data class BeforeAction(
         val heroId: String,
         val cardId: String?,
