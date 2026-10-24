@@ -146,7 +146,14 @@ Each ruling names the code and the test that pins it.
 37. **Repeats (p.10):** a repeated instance cannot repeat; "on a different target" excludes every
     unit the action targeted so far; "on the same target" allows only the first target.
 38. **[APP] "Choose one —" with a bullet that cannot start** is not offered; with one possible
-    bullet there is no question.
+    bullet there is no question. *Reasons:* choosing a bullet makes its first instruction the action's
+    first instruction, and "If you cannot perform the first instruction … you may not perform the action
+    at all" (FAQ "Can I play an action if only some of its instructions can be performed?", p.10); and
+    Whisper's Lesser Evil needs a reminder to allow the opposite — "(Any option can be chosen, even if it
+    would have no effect.)" — so that is the exception, not the rule (its FAQ and the designer, BGG
+    2888636, confirm it for Lesser Evil / Greater Good, where the enemy hero chooses). A bullet that can
+    start but stops later (a move, then no target) is offered. No general designer ruling was found
+    (BGG searched 2026-10-24); goa2-backend offers every bullet.
 
 ## The four first-game heroes
 
