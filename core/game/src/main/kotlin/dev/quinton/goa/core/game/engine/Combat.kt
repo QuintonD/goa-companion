@@ -209,6 +209,26 @@ private fun Game.previewDefense(
 }
 
 /**
+ * Whether a Block card's condition holds against this attack (p.14 "If the Block condition is
+ * fulfilled, you successfully defend … If not, you are defeated"), when its text settles it before
+ * any choice (a ranged attack against "Block a ranged attack"); null when only resolving it tells.
+ */
+private fun Game.previewBlock(heroId: String, cardId: String, info: AttackInfo, noPrimary: Boolean): Boolean? {
+    val card = card(cardId)
+    if (!card.block) return null
+    // A Block is card text: without its Primary Defense action there is nothing to block with.
+    if (noPrimary) return false
+    val copy = Game(data, state.copy(), emptyList(), RunMode.PROBE)
+    val scope = DefenseScope(copy, heroId, cardId, info)
+    try {
+        data.registry.script(cardId)?.defense(scope)
+    } catch (_: ControlSignal) {
+        // A question after the condition was checked still leaves the answer known.
+    }
+    return scope.blocked
+}
+
+/**
  * Step 5: the Defense total. [minion] are the minion defense modifiers calculated at step 2, before
  * the Defense text (p.14 order), so a Defense text that moves the defender doesn't change them.
  */
@@ -276,6 +296,8 @@ internal fun Game.defend(
                 defensePreview = cards.associateWith {
                     previewDefense(defender, it, info, fromInitiative, noPrimary, minion)
                 },
+                blockPreview = cards.mapNotNull { id -> previewBlock(defender, id, info, noPrimary)?.let { id to it } }
+                    .toMap(),
                 minionModifier = modifier,
                 subjectId = info.targetId,
             )

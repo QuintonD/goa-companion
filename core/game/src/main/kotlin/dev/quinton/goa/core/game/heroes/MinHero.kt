@@ -330,7 +330,7 @@ object MinHero : HeroModule {
             // "remove mine tokens after an enemy hero moves through them; for every blast removed, that hero
             // discards a card, if able."
             g.removePiece(piece.id)
-            g.note("The Mine at $at was a ${if (blast) "blast" else "dud"}.")
+            g.note("The Mine token in ${g.spaceName(at)} was a ${if (blast) "blast" else "dud"}.")
             if (!blast) return
             // [APP] A hero immune to Min's skill actions is not affected by its discard (rulings/min.md 6).
             val q = AffectQuery(hero, owner, ActionKind.SKILL, true, false, piece.data[MINE_CARD], fromEffect = true)

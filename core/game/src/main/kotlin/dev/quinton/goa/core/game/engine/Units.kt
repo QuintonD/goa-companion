@@ -203,7 +203,7 @@ private fun Game.respawnWave(lane: String, zone: String) {
             chooseMinionSpace(m, options, "Place your ${Game.minionName(m.type)} minion (its Spawn point is taken)")
         m.at = hex
         touch()
-        emit(GameEvent.Placed(m.id, null, hex, "${name(m.id)} is placed in $hex."))
+        emit(GameEvent.Placed(m.id, null, hex, "${name(m.id)} is placed in ${spaceName(hex)}."))
     }
 }
 
@@ -284,7 +284,7 @@ fun Game.respawnMinion(team: Team, type: MinionType, lane: String, at: Hex): Str
     val m = MinionState(state.newId("m"), team, type, at, lane)
     state.minions += m
     touch()
-    emit(GameEvent.Placed(m.id, null, at, "${name(m.id)} respawns in $at."))
+    emit(GameEvent.Placed(m.id, null, at, "${name(m.id)} respawns in ${spaceName(at)}."))
     return m.id
 }
 

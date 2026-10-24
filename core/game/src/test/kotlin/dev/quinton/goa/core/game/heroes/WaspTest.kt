@@ -382,9 +382,23 @@ class WaspTest {
             phase = PositionPhase.Resolving(next = "arien")
         }
         d.action("arien", ActionType.PRIMARY)
-        assertThat(d.expect(DecisionKind.DEFEND).context.defensePreview["wasp-green-1"]).isNull() // a Block
+        val context = d.expect(DecisionKind.DEFEND).context
+        assertThat(context.defensePreview["wasp-green-1"]).isNull() // a Block: no Defense total
+        assertThat(context.blockPreview["wasp-green-1"]).isEqualTo(true) // a ranged attack: it holds
         d.defend("wasp-green-1")
         assertThat(d.at("wasp")).isEqualTo(Hex(-1, -2))
+    }
+
+    @Test
+    fun `Stop Projectiles - against a melee attack the Block is shown failing before it is chosen`() {
+        val d = pos {
+            clearMinions()
+            hero("brogan", Team.BLUE, Hex(1, -2)) { played("brogan-gold") }
+            hero("wasp", Team.RED, Hex(0, -2)) { hand("wasp-green-1") }
+            phase = PositionPhase.Resolving(next = "brogan")
+        }
+        d.action("brogan", ActionType.PRIMARY) // the only target in reach: not asked
+        assertThat(d.expect(DecisionKind.DEFEND).context.blockPreview["wasp-green-1"]).isEqualTo(false)
     }
 
     @Test

@@ -410,7 +410,8 @@ fun Game.place(id: String, to: Hex, byHero: String? = actor) {
     check(isEmpty(to, id)) { "Place into a non-empty space $to" }
     val from = posOf(id)
     setPos(id, to)
-    emit(GameEvent.Placed(id, from, to, "${name(id)} is placed${if (from == null) "" else " from $from"} into $to."))
+    val away = from?.let { " ${HexGrid.distance(it, to).let { d -> if (d == 1) "1 space" else "$d spaces" }} away," }.orEmpty()
+    emit(GameEvent.Placed(id, from, to, "${name(id)} is placed$away in ${spaceName(to)}."))
     trigger(Trigger.Placed(id, from, to, byHero))
 }
 

@@ -97,6 +97,7 @@ object Views {
             markers = h.markers.map { MarkerView(it.kind, it.from) },
             activeEffects = active.toList(),
             counters = LinkedHashMap(h.counters),
+            initiative = if (state.revealed) g.initiativeOf(h.id) else null,
         )
     }
 }

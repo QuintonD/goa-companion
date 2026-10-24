@@ -90,3 +90,18 @@ other branches should know are listed too.
   `"<hero> gains <card name> as an item (+1 …)"` (`Flow.kt`, `upgradeOnce`) names the tucked card,
   which is hidden information (designer, BGG 3590819); suggest `"<hero> gains an item (+1 …)"`. The AI
   does not read that event.
+
+## 2026-10-24 (hands-on play round, `fix/play-handson`)
+
+All additive (defaults keep old callers and saves working; events are rebuilt on replay).
+
+- `DecisionContext.blockPreview: Map<String, Boolean>` (DEFEND): for Block cards whose condition the
+  engine settles before any choice, whether the Block holds against this attack (Stop Projectiles
+  against a melee attack: `false`). `defensePreview` stays `null` for Block cards.
+- `GameEvent.CardsRevealed.played` is ordered as the cards will act (initiative, ties by the coin,
+  p.7; passes last) and its text follows that order; new `initiatives` (as they count: items and
+  effects included).
+- `HeroView.initiative`: after the reveal, while the card is unresolved, its initiative as it counts.
+- Event text names Zones instead of hex coordinates: "Brogan fast travels to Lane Zone 2.",
+  "Wasp respawns in the Red Throne Zone.", "Arien is placed 3 spaces away, in Lane Zone 1."
+  (`Game.spaceName`, on `core:domain`'s `BoardMap.zoneName`, which `BoardText.zone` now uses).
