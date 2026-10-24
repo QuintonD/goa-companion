@@ -215,7 +215,22 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Bain acts at 11, before Brogan's 7, so the marker is in place when Dodger falls (p.7 initiative order). "A hero with the Bounty marker spends 1 additional Life counter when defeated" (card text), on top of the lowest-tier counters (p.13). The bounty is given after Bain's own attack resolves, so he needs some adjacent target.
 - **Rules:** p.7 Check the initiative; p.10 Mandatory steps; p.13 When a hero is defeated.
 - **Risk:** none.
-- **Encoded as p04 (2026-10-24):** as written. Xargatha is seated before Dodger. As the concept says, any adjacent target works for Bain (the solver accepts the ranged minion or Xargatha); the Bounty must go to Dodger, and Brogan's dash may end at (3,−2) or (3,−4).
+- **Encoded as p04 (hardened 2026-10-24, changed; difficulty 3):** the reviewers found every hero
+  level 1 in round 4 and Bain's own target irrelevant. Now round 3, turn 4, and Dodger defends with
+  **Vampiric Shield** (+2 while 2+ spawn points within 2 of her in the Battle Zone are empty), so Bain's
+  kill and Brogan's landing decide her defense. Bain (Blue, L2, Attack item `bain-green-2b`) at (3,−4)
+  has played Dead or Alive (11, Attack 5); Brogan (L3, items `brogan-red-2b`, `brogan-blue-2b`) at
+  (5,−4) has played `brogan-red-2a` **Bullrush** (7, Attack 7, move 2 or 3 in a straight line). Dodger
+  (Red, L3, Defense item `dodger-red-2b`, hand `dodger-blue-2a`, Dark Ritual still to resolve) at
+  (2,−2) between Red melee (2,−3) (on a Red spawn point) and (3,−3) (not); empty spawn points within 2:
+  (2,−1), (3,−1); Bain stands on (3,−4), the Red heavy on (1,0). Xargatha (L2, Stone Gaze, Defense item)
+  at (4,−5), next to Bain but out of Brogan's reach. Dodger's defense: 4 + 1 + 2 + 2 = 9. Answer: Bain
+  defeats the melee (3,−3) (8), gives Dodger the Bounty; Bullrush 3 spaces SW ends on the spawn point
+  (2,−1), one empty spawn point left: 4 + 1 + 1 = 6 against 7; Dodger costs 1 + 1. Wrong tries refuted:
+  defeating the minion on the spawn point (2,−3) (one guard fewer but a third empty spawn point: 8 even
+  after the landing), Bullrush only 2 spaces to (3,−2) (8), stripping Xargatha's card and marking her
+  (Brogan cannot reach her). Solver: one winning option at every decision (3 targets, 3 Bounty choices,
+  2 landings).
 
 ### C05 — Beat the Drum
 - **Theme:** coins and assist coins; "friendly" never includes you. **Difficulty:** 1. **Heroes:** Tigerclaw, Brogan; Arien (Wasp idle).
