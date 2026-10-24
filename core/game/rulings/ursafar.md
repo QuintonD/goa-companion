@@ -33,6 +33,9 @@ leave open. Code: `heroes/UrsafarHero.kt`; tests: `heroes/UrsafarTest.kt`.
    counter" — both clauses are under "If enraged" (one sentence). The extra counter is spent by that hero's
    team after the defeat's own Life counters (and can end the game, p.13).
 7. **Sniff Out family:** Ursafar picks an enemy hero in range (p.10 example). Not enraged: nothing.
+   Enraged with no targetable enemy hero in range: the step can't be done, for Sniff Out and Eyes on
+   the Prey too ("if able" covers only the discard: goa2-faq, Energy Drain; RULINGS 51), so the
+   Primary action is not offered (rules audit 2026-10-24; before, these two did nothing instead).
 8. **Instinctive Reaction / Evolutionary Response:** "Perform the primary action on one of your discarded
    cards": a faceup discarded card whose Primary action can be performed; it stays discarded (an Active
    effect it starts lives on the discarded card). "Choose one, or both": chosen up front, either order
