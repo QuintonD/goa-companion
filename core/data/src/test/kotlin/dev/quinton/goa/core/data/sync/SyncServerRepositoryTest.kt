@@ -99,9 +99,12 @@ class SyncServerRepositoryTest {
             return when (request.method) {
                 "GET" -> when {
                     blob == null -> answer(404)
+
                     !tokenOk -> answer(401)
+
                     request.headers["If-None-Match"] == "\"$rev\"" ->
                         MockResponse.Builder().code(304).setHeader("ETag", "\"$rev\"").build()
+
                     else -> MockResponse.Builder().code(200).setHeader("ETag", "\"$rev\"")
                         .setHeader("Content-Type", SyncCodec.FILE_MIME_TYPE).body(Buffer().write(blob!!)).build()
                 }
@@ -118,11 +121,17 @@ class SyncServerRepositoryTest {
             val ifMatch = request.headers["If-Match"]
             return when {
                 tokenHash != null && !tokenOk -> answer(401)
+
                 token == null -> answer(401)
+
                 body.isEmpty() -> answer(400)
+
                 ifNoneMatch == null && ifMatch == null -> answer(428)
+
                 ifNoneMatch == "*" && blob != null -> answer(412)
+
                 ifMatch != null && ifMatch != "\"$rev\"" -> answer(412)
+
                 else -> {
                     blob = body
                     rev++

@@ -213,9 +213,12 @@ internal class OkHttpSyncServerRepository @Inject constructor(
         return call(request) { response ->
             when (response.code) {
                 HTTP_OK, HTTP_CREATED -> Stored.Saved(rev(response))
+
                 HTTP_PRECONDITION_FAILED -> Stored.Conflict
+
                 // A PUT is never "not found" on a sync server: something else answers there.
                 HTTP_NOT_FOUND -> throw Failure(SyncServerProblem.WRONG_ADDRESS, NOT_A_SERVER)
+
                 else -> throw refusal(response.code)
             }
         }
@@ -275,9 +278,17 @@ internal class OkHttpSyncServerRepository @Inject constructor(
     } catch (e: SyncFileException) {
         throw when {
             e.version == VersionGap.FILE_NEWER -> Failure(SyncServerProblem.VERSION, SERVER_NEWER, e)
+
             e.version == VersionGap.FILE_OLDER -> Failure(SyncServerProblem.VERSION, SERVER_OLDER, e)
+
             e.problem == SyncFileProblem.OTHER_GROUP -> Failure(SyncServerProblem.BAD_DOCUMENT, OTHER_GROUP, e)
-            e.problem == SyncFileProblem.INVALID -> Failure(SyncServerProblem.BAD_DOCUMENT, "$UNUSABLE\n${e.message}", e)
+
+            e.problem == SyncFileProblem.INVALID -> Failure(
+                SyncServerProblem.BAD_DOCUMENT,
+                "$UNUSABLE\n${e.message}",
+                e,
+            )
+
             else -> Failure(SyncServerProblem.BAD_DOCUMENT, UNREADABLE, e)
         }
     }
@@ -288,8 +299,11 @@ internal class OkHttpSyncServerRepository @Inject constructor(
     private fun networkFailure(e: IOException): Failure = when (e) {
         // Release builds refuse plain HTTP (network_security_config).
         is UnknownServiceException -> Failure(SyncServerProblem.WRONG_ADDRESS, HTTPS_ONLY, e)
+
         is SSLException -> Failure(SyncServerProblem.WRONG_ADDRESS, CERTIFICATE, e)
+
         is InterruptedIOException -> Failure(SyncServerProblem.TIMEOUT, TIMEOUT, e)
+
         else -> Failure(SyncServerProblem.UNREACHABLE, UNREACHABLE, e)
     }
 

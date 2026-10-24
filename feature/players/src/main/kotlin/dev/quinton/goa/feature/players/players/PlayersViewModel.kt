@@ -78,7 +78,8 @@ class PlayersViewModel @Inject constructor(
         me,
         groups.state.map { it.serverSyncOn && it.server.error?.problem?.transient == false }.distinctUntilChanged(),
     ) { list, snapshot, archivedVisible, (meId, inGroup), serverAttention ->
-        leaderboard(list, snapshot, archivedVisible, meId).copy(inGroup = inGroup, serverNeedsAttention = serverAttention)
+        val board = leaderboard(list, snapshot, archivedVisible, meId)
+        board.copy(inGroup = inGroup, serverNeedsAttention = serverAttention)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlayersUiState())
 
     fun toggleArchived() = showArchived.update { !it }
