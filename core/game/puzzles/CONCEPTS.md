@@ -1129,6 +1129,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.9 Radius; p.17 End of Turn; p.18 Place; p.19 Tokens.
 - **Risk:** none.
 - **Encoded as p53:** as in the concept, one correction to the reasoning: all three Grenade spaces next to Tigerclaw are three spaces from Wasp, so she can never move the Grenade; the difference is only whether Tigerclaw's one ring step (to (3,−5)) stays next to it. Min also chooses the End-of-turn target (Tigerclaw) as a player move.
+- **Hardened (2026-10-24, legality only):** round 3 needs every hero at level 2, and the heroes who acted in turn 4 must have done so at 11 or more. **Wasp L2** (Electrocute kept, Defense item; Lift Up still Tier I, no Initiative item), **Tigerclaw L2** (Pick Pocket kept, Initiative item) resolved his **gold (14) in turn 4**, Light-Fingered's slot now Pick Pocket; **Arien L2** (Raging Stream kept) resolved his **silver (13) in turn 4**. The geometry and the one winning space are unchanged (1 of 15, reviewers' 7/10).
 
 ### C54 — Chaos Incarnate
 - **Theme:** the Tie Breaker coin as card text; an Ultimate repeat that flips it. **Difficulty:** 3. **Heroes:** Ignatia; Tigerclaw, Xargatha (Brogan idle).

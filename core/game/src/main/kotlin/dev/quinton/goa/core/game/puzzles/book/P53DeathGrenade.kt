@@ -28,7 +28,7 @@ object P53DeathGrenade : Puzzle() {
         heroes = listOf("min", "wasp", "tigerclaw", "arien"),
         goal = PuzzleGoal.DefeatHero("tigerclaw", Deadline.END_OF_TURN, "Defeat Tigerclaw this turn."),
         intro = "Round 3, turn 4. Min (Death Grenade, 11) acts next; Wasp (Lift Up, 10) acts after him. " +
-            "Tigerclaw has already acted this turn and has no cards left. Arien has acted too, far away.",
+            "Tigerclaw and Arien have already acted this turn; Tigerclaw's hand is empty.",
         nudges = listOf(
             "Wasp acts after you and will try to pull the Grenade and Tigerclaw apart.",
             "Lift Up reaches only pieces within 2 spaces of Wasp, and keeps them at the same distance from her. " +
@@ -65,26 +65,32 @@ object P53DeathGrenade : Puzzle() {
             items("min-blue-2a")
         }
         hero("wasp", Team.RED, Hex(4, -4)) {
+            level = 2
             played("wasp-blue-1")
             resolved(1, "wasp-gold")
             resolved(2, "wasp-silver")
-            resolved(3, "wasp-red-1")
+            resolved(3, "wasp-red-2a")
             hand("wasp-green-1")
+            items("wasp-red-2b")
         }
         hero("tigerclaw", Team.RED, Hex(4, -6)) {
-            resolved(1, "tigerclaw-gold")
-            resolved(2, "tigerclaw-silver")
-            resolved(3, "tigerclaw-red-1")
-            resolved(4, "tigerclaw-green-1")
+            level = 2
+            resolved(1, "tigerclaw-silver")
+            resolved(2, "tigerclaw-red-1")
+            resolved(3, "tigerclaw-green-2a")
+            resolved(4, "tigerclaw-gold")
             discard("tigerclaw-blue-1")
             hand()
+            items("tigerclaw-green-2b")
         }
         hero("arien", Team.BLUE, Hex(-1, 0)) {
+            level = 2
             resolved(1, "arien-gold")
-            resolved(2, "arien-silver")
-            resolved(3, "arien-red-1")
-            resolved(4, "arien-green-1")
+            resolved(2, "arien-red-2a")
+            resolved(3, "arien-green-1")
+            resolved(4, "arien-silver")
             hand("arien-blue-1")
+            items("arien-red-2b")
         }
         minion(Team.RED, MinionType.MELEE, Hex(0, -6))
         minion(Team.RED, MinionType.HEAVY, Hex(1, 0))
