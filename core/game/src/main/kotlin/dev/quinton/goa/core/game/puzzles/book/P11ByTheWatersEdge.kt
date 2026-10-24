@@ -37,12 +37,12 @@ object P11ByTheWatersEdge : Puzzle() {
         ),
         explanation = "\"Any board space without a full grid outline counts as terrain … including the water " +
             "spaces surrounding the board\" (p.19), so a hero on the edge of the island is next to terrain, just " +
-            "like Dodger beside the rocks. Seismic Slam's \"discards a card, or is defeated\" defeats a hero " +
-            "with no cards (p.17 If able). Wasp is level 4, her lowest tier is II, so she costs Red both of its " +
-            "Life counters (p.13); Dodger, slammed or hit with the secondary Attack, costs only one.",
+            "like Dodger beside the rocks: every space on the rim touches terrain. Seismic Slam makes the hero " +
+            "discard a card or be defeated (card text), so a hero with no cards is simply defeated. Wasp is " +
+            "level 4, her lowest card tier is II, so she costs Red both of its Life counters (p.13); Dodger, " +
+            "slammed or hit with the secondary Attack, is tier I and costs only one.",
         rules = listOf(
             "p.13 When a hero is defeated",
-            "p.17 If able",
             "p.19 Terrain",
         ),
     )

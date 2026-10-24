@@ -40,10 +40,11 @@ object P34RespawnWhereItCounts : Puzzle() {
         explanation = "A hero off the board may respawn on any empty Spawn point of its Throne Zone before " +
             "acting (p.7). Mad Dash's move is mandatory and exactly two spaces in a straight line to a space " +
             "next to an enemy unit (p.11 Movement in the card text; Brogan FAQ): if it can't be made, there " +
-            "is no attack. From the nearest spawn point every two-space line ends too far from Red's minion " +
-            "or runs into it; only the far one has a line that ends beside it. Defeating the last enemy " +
-            "minion in the Battle Zone pushes the lane at once (p.8): a Wave counter flips and the Battle " +
-            "Zone moves toward Red.",
+            "is no attack. From the nearest spawn point and from the northern one, every two-space line ends " +
+            "too far from Red's minion or runs into it or into Wasp; only the far southern one has a line " +
+            "that ends beside it. Defeating the last enemy minion in the Battle Zone pushes the lane at once " +
+            "(p.8): a Wave counter flips and the Battle Zone moves toward Red. The lesson: where you respawn " +
+            "is part of your move, so pick the spawn point for the card you have played, not the closest one.",
         rules = listOf("p.7 Hero Respawn", "p.8 Push the Lane, Triggering a Push", "p.11 Movement in the card text"),
     )
 

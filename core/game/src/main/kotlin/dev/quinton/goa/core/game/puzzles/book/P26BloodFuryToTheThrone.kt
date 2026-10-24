@@ -41,7 +41,8 @@ object P26BloodFuryToTheThrone : Puzzle() {
             "the melee minion must fall first. Blood Fury may repeat once on a different target if an enemy " +
             "hero in radius has a card in the discard (card text, p.10 Repeat): Xargatha and Arien both do. " +
             "Defeating Xargatha, who has no card left, looks good, but it costs Blue only one of three Life " +
-            "counters and uses up the first hit: the repeat can take the melee minion, never the heavy too.",
+            "counters and uses up the first hit: the repeat can take the melee minion, never the heavy too. " +
+            "One push from the enemy Throne, count the minions before the heroes.",
         rules = listOf("p.8 Push the Lane, Triggering a Push", "p.10 Repeat", "p.13 Heavy Minion Immunity"),
     )
 

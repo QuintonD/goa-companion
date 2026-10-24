@@ -33,16 +33,19 @@ object P47SwoopIn : Puzzle() {
             "keeps one card. Wasp has acted.",
         nudges = listOf(
             "With one card you can survive exactly one of their effects.",
-            "Garrus's pilum reaches 2 spaces; Brynn's second option counts every unit and wall next to you.",
-            "Swoop to (0,-5) and take back Challenge Accepted.",
+            "Garrus's pilum reaches 2 spaces; Brynn's second option counts every unit and terrain space next to " +
+                "you.",
+            "Swoop In next to Brynn and the Blue minion beside her, far from Garrus, and take back Challenge " +
+                "Accepted.",
         ),
         explanation = "Garrus's Heavy Pilum hits a hero within 2, Brynn's Deadfall Trap one next to her or next to " +
             "3 or more obstacles: each \"discards a card, or is defeated\", which only defeats a hero who has no " +
             "card to discard (p.17 If Able). Staying put, Misa is in Garrus's range with nothing in hand. Swoop " +
             "In places her (p.18 Place) and its retrieve gives her one card back (p.10 Retrieve a Card). One card " +
-            "survives one effect, so she must land out of Garrus's reach: (0,-5) or (-1,-3), each beside Brynn " +
-            "and a Blue minion. The spaces near Garrus also touch 3 obstacles (units count, p.18 Obstacle), so " +
-            "both heroes would hit her and the second one defeats her.",
+            "survives one effect, so she must land out of Garrus's reach: on either of the two spaces touching " +
+            "both Brynn and the Blue minion next to her, only Brynn can reach her, and she discards the card she " +
+            "took back. The spaces near Garrus also touch 3 obstacles (units count, p.18 Obstacle), so both " +
+            "heroes would hit her and the second one defeats her.",
         rules = listOf("p.10 Retrieve a Card", "p.17 If Able", "p.18 Obstacle, Place"),
     )
 
@@ -100,10 +103,16 @@ object P47SwoopIn : Puzzle() {
     override val solution = listOf(action(ActionType.PRIMARY), space(0, -5), card("misa-red-1"))
 
     override val wrongTries = listOf(
-        WrongTry("Swoop next to Garrus: both heroes hit her", listOf(action(ActionType.PRIMARY), space(3, -7))),
-        WrongTry("Swoop to (2,-5): in Garrus's range", listOf(action(ActionType.PRIMARY), space(2, -5))),
         WrongTry(
-            "Swoop to (0,-5) but keep the discard",
+            "Swoop north-west of Garrus, by the heavy minion: both heroes hit her",
+            listOf(action(ActionType.PRIMARY), space(3, -7)),
+        ),
+        WrongTry(
+            "Swoop south-west of Garrus: still in his range, and next to 3 obstacles for Brynn",
+            listOf(action(ActionType.PRIMARY), space(2, -5)),
+        ),
+        WrongTry(
+            "Swoop next to Brynn but leave Challenge Accepted in the discard",
             listOf(action(ActionType.PRIMARY), space(0, -5), decline()),
         ),
         WrongTry("Hold: Garrus's pilum finds her with no card", listOf(action(ActionType.HOLD))),

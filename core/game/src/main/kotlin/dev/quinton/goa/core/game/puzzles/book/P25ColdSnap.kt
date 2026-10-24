@@ -33,15 +33,17 @@ object P25ColdSnap : Puzzle() {
         nudges = listOf(
             "Wasp is guarded: by what?",
             "Cold Snap moves them all the same way, unless one of them can't move.",
-            "Cold Snap south-east.",
+            "Cold Snap south-east, then Mad Dash east into the space the minion left.",
         ),
         explanation = "An adjacent friendly melee minion gives a hero +1 Defense, and equal totals defend " +
             "(p.14): next to her minion Wasp defends Mad Dash's 6 with 6. Cold Snap moves each enemy unit " +
             "in radius one space \"if able\": a unit that would enter terrain simply stays (p.17 If able, " +
             "p.19 Terrain). South-east, Wasp is held by the water while the minion steps away, which " +
-            "splits her from her guard and frees (4,-6) for Brogan's two-space charge (p.11 Movement in " +
-            "the card text): 6 against 5. West or north-west both move together and she keeps her guard; " +
-            "east or north-east she ends out of Brogan's reach.",
+            "splits her from her guard and empties the minion's old space, two spaces east of Brogan, for " +
+            "his Mad Dash (p.11 Movement in the card text): 6 against 5. West or north-west both move " +
+            "together and she keeps her guard; east or north-east she ends out of Brogan's reach; south-west " +
+            "nobody can move and the minion still blocks the charge. When one effect moves a group the same " +
+            "way, look for the member the board holds back.",
         rules = listOf(
             "p.11 Movement in the card text",
             "p.14 Minion defense modifiers",

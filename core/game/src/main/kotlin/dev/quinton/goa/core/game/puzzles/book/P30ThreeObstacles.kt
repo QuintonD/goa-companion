@@ -39,8 +39,10 @@ object P30ThreeObstacles : Puzzle() {
             "the water around the island included, is terrain (card text; p.18 Obstacle, p.19 Terrain). " +
             "Dodger touches the water and one Red minion: two. Blink Strike must move exactly 2 spaces in a " +
             "straight line through an enemy unit (Tigerclaw FAQ); north-east it lands next to Dodger, and " +
-            "Tigerclaw himself becomes her third obstacle. He resolves at 13 before Brynn's 12 (p.7). Shooting " +
-            "the minion next to Brynn instead would take one of Dodger's obstacles away.",
+            "Tigerclaw himself becomes her third obstacle (the minion he jumps and defeats was never one of " +
+            "them). He resolves at 13 before Brynn's 12 (p.7). Brynn's first bullet only reaches the minion " +
+            "next to her, which is one of Dodger's obstacles. Your own hero is an obstacle like any other: " +
+            "sometimes the best move is simply to stand in the right place.",
         rules = listOf("p.7 Initiative", "p.11 Movement in the card text", "p.18 Obstacle", "p.19 Terrain"),
     )
 

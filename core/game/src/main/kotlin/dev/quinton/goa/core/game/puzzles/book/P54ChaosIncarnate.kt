@@ -39,9 +39,9 @@ object P54ChaosIncarnate : Puzzle() {
             "reminder): with Blue's face up it can only target a minion adjacent to Ignatia. Chaos Incarnate " +
             "lets her flip the coin after that first primary action and perform it again on different " +
             "targets (Ultimate text; p.16): now Red's face is up, and the bolt targets a hero in range 3. " +
-            "Xargatha defends with Stone Gaze (Defense 5 against 3), but Tigerclaw has no card left, so he " +
-            "is defeated (p.13) and Blue spends its last Life counter. Without the flip there is no second " +
-            "shot, and the minion is all Ignatia can hit.",
+            "Xargatha defends with Stone Gaze (Defense 5 against Attack 2 + 1 item = 3), but Tigerclaw has no " +
+            "card left, so he is defeated (p.13) and Blue spends its last Life counter. Without the flip there " +
+            "is no second shot, and the minion is all Ignatia can hit.",
         rules = listOf(
             "p.5 Tie Breaker coin",
             "p.13 Attacking a Hero, When a Hero is Defeated",

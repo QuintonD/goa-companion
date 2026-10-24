@@ -29,8 +29,8 @@ object P28AngryStampede : Puzzle() {
         heroes = listOf("wuk", "garrus", "dodger", "xargatha"),
         goal = PuzzleGoal.PushLane(Deadline.END_OF_TURN, "Push the lane this turn."),
         intro = "Round 5, turn 4. Wuk (level 5) has played Angry Stampede and acts next. One Wave counter " +
-            "is left. Red's heavy minion has already fallen; Dodger has no cards left in hand. Garrus and " +
-            "Xargatha have already acted.",
+            "is left. Red has only a melee and a ranged minion left in the Battle Zone; Dodger has no cards " +
+            "left in hand. Garrus and Xargatha have already acted.",
         nudges = listOf(
             "One Wave counter left, and Red has exactly two minions in the Battle Zone.",
             "Find a single straight line through both of them, with an empty space to stop on.",

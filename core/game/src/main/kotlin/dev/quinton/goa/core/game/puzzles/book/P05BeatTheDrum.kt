@@ -37,12 +37,14 @@ object P05BeatTheDrum : Puzzle() {
             "Count the range from Brogan to where Tigerclaw ends his action.",
             "Defeat Arien with Hit and Run, then step one space towards Brogan.",
         ),
-        explanation = "Defeating a hero pays the attacker coins equal to its level and each of his teammates " +
-            "assist coins equal to its lowest tier (p.13): Arien gives Tigerclaw 2 and Brogan 1. War Drummer " +
-            "gives a friendly hero in range 1 coin, or 3 once any hero was defeated this round, and it resolves " +
-            "at 5, after Hit and Run at 9 (p.7). Its target must be in range when it resolves: from where he " +
-            "stands Tigerclaw is 5 spaces from Brogan, so the optional step after the attack (p.10) is what " +
-            "brings him within 4. 2 + 1 + 3 = 6. Hitting the minion instead pays 2, and the drum only 1.",
+        explanation = "Defeating a hero pays the attacker coins equal to the defeated hero's level, and each " +
+            "of the attacker's teammates assist coins set by that hero's lowest tier (p.13): Arien gives Tigerclaw 2 " +
+            "and Brogan 1. War Drummer gives a friendly hero in range 1 coin, or 3 once any hero was " +
+            "defeated this round, and it resolves at 5, after Hit and Run at 9 (p.7). Its target must be in " +
+            "range when it resolves: from where he stands Tigerclaw is 5 spaces from Brogan, so the optional " +
+            "step after the attack (p.10) is what brings him within 4. 2 + 1 + 3 = 6. Hitting the minion " +
+            "instead pays 2, and the drum only 1. The lesson: when a teammate acts after you, end your " +
+            "action where his card can still reach you.",
         rules = listOf(
             "p.7 Check the initiative",
             "p.10 Mandatory and optional steps",

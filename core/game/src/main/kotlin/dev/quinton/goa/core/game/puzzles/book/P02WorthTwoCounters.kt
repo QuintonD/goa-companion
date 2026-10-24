@@ -41,7 +41,7 @@ object P02WorthTwoCounters : Puzzle() {
             "up to 2 spaces before the attack because he has a card in his discard (card text), which puts " +
             "him beside Wasp. A Block card defends only when its condition is met (p.14): Deflect " +
             "Projectiles blocks ranged attacks, and Chase is not ranged, so Wasp cannot defend and Red is out " +
-            "of Life counters. Hitting the defenceless Brogan next to you feels safe but leaves Red one counter.",
+            "of Life counters. Hitting the defenseless Brogan next to you feels safe but leaves Red one counter.",
         rules = listOf(
             "p.13 Attacking a hero, When a hero is defeated, the level and tier table",
             "p.14 Block",

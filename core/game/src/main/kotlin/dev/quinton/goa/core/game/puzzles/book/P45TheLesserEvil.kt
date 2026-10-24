@@ -36,14 +36,15 @@ object P45TheLesserEvil : Puzzle() {
         ),
         explanation = "With Lesser Evil the enemy hero picks the bullet (p.10 Making Choices), so give her two " +
             "losing ones. Xargatha holds a single card: if she discards it, Tigerclaw's Hit and Run (9) hits her " +
-            "with no card to defend (p.14) and Red spends its last Life counter (p.3). If she picks the minion, " +
+            "with no card to defend (p.14) and Red spends its last Life counter (p.13). If she picks the minion, " +
             "Whisper defeats Red's last minion beside him: the lane is pushed at once (p.8 Triggering a Push) " +
             "and the last Wave counter ends the game (p.3 Last Push). Wasp would just discard one of her two " +
             "cards, and against Petrifying Stare's 6, Tigerclaw's 3 alone never lands.",
         rules = listOf(
-            "p.3 Life counters, Last Push",
+            "p.3 Last Push",
             "p.8 Triggering a Push",
             "p.10 Making Choices",
+            "p.13 When a Hero is Defeated",
             "p.14 Defense",
         ),
     )

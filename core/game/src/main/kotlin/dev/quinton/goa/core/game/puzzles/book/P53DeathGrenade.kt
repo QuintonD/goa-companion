@@ -27,22 +27,23 @@ object P53DeathGrenade : Puzzle() {
         theme = "End of turn, the opponent's reply",
         heroes = listOf("min", "wasp", "tigerclaw", "arien"),
         goal = PuzzleGoal.DefeatHero("tigerclaw", Deadline.END_OF_TURN, "Defeat Tigerclaw this turn."),
-        intro = "Round 3, turn 4. Min (Death Grenade, 11) acts next; Wasp (Lift Up, 10) acts after her. " +
-            "Tigerclaw has already acted this turn and has no cards left. Arien is far away.",
+        intro = "Round 3, turn 4. Min (Death Grenade, 11) acts next; Wasp (Lift Up, 10) acts after him. " +
+            "Tigerclaw has already acted this turn and has no cards left. Arien has acted too, far away.",
         nudges = listOf(
             "Wasp acts after you and will try to pull the Grenade and Tigerclaw apart.",
             "Lift Up reaches only pieces within 2 spaces of Wasp, and keeps them at the same distance from her. " +
                 "Where can it put Tigerclaw?",
-            "Place the Grenade at (3,-6), west of Tigerclaw.",
+            "Place the Grenade on the space west of Tigerclaw.",
         ),
         explanation = "End of turn text is applied after every hero has acted (p.17), so Wasp gets her reply " +
             "first. The three spaces next to Tigerclaw that Min can reach are all three spaces from Wasp, out of " +
-            "Lift Up's radius 2 (p.19 Radius), so she cannot move the Grenade; she must move Tigerclaw instead. " +
-            "Lift Up moves a piece 1 space without bringing it closer to or farther from Wasp (card text): the " +
-            "only such space is (3,-5), and the repeat can only bring him back. (3,-5) is still next to (3,-6), so " +
-            "at the end of turn Tigerclaw, with no card to discard, is defeated. With the Grenade on (4,-7) or " +
-            "(5,-7), that one step breaks the contact.",
-        rules = listOf("p.17 End of Turn (Active Effect)", "p.18 Place", "p.19 Radius, Tokens"),
+            "Lift Up's radius 2 (p.9), so she cannot move the Grenade; she must move Tigerclaw instead. Lift Up " +
+            "moves a piece 1 space without bringing it closer to or farther from Wasp (card text): the only such " +
+            "space is the one south-west of him, and the repeat can only bring him back. That space still touches " +
+            "a Grenade west of him, so at the end of turn Min picks Tigerclaw, who has no card to discard and is " +
+            "defeated. With the Grenade north-west or north-east of him, that one step breaks the contact. The " +
+            "lesson: before you set a trap that springs at the end of turn, work out every reply still to come.",
+        rules = listOf("p.9 Radius", "p.17 End of Turn (Active Effect)", "p.18 Place", "p.19 Tokens"),
     )
 
     override val playerSeats = setOf("min")
@@ -98,11 +99,11 @@ object P53DeathGrenade : Puzzle() {
 
     override val wrongTries = listOf(
         WrongTry(
-            "Grenade at (4,-7): Lift Up steps Tigerclaw to (3,-5), out of contact",
+            "Grenade north-west of Tigerclaw: Lift Up steps him south-west, out of contact",
             listOf(action(ActionType.PRIMARY), space(4, -7)),
         ),
         WrongTry(
-            "Grenade at (5,-7): Lift Up steps Tigerclaw to (3,-5), out of contact",
+            "Grenade north-east of Tigerclaw: Lift Up steps him south-west, out of contact",
             listOf(action(ActionType.PRIMARY), space(5, -7)),
         ),
     )

@@ -32,15 +32,17 @@ object P44AFistfulOfCoins : Puzzle() {
         nudges = listOf(
             "Give the enemy a choice where both answers lose.",
             "Count what each Red hero is worth in Life counters.",
-            "A Fistful of Coins on Wasp; if she lets you place her, put her four spaces from Swift in a straight line.",
+            "A Fistful of Coins on Wasp; if she lets you place her, put her four spaces from Swift " +
+                "in a straight line.",
         ),
         explanation = "When a card makes an enemy hero choose, that hero picks (p.10 Making Choices), so offer " +
-            "only losing answers. If Wasp lets Cutter take 3 coins, he has 13 and wins alone (card text). If she " +
-            "lets him place her, he puts her on (1,-1), exactly four spaces in a straight line from Swift (p.18 " +
-            "Place, p.19 Straight Line); with no cards she cannot defend the Snipe (p.13), and her lowest card " +
-            "Tier is II, so Red spends its last two Life counters (p.13). Dodger is the trap: he also chooses to " +
-            "be placed and falls to the Snipe, but his Tier I cards cost Red only one counter. The other Snipe " +
-            "square in Cutter's radius, (1,-5), is taken by Blue's own minion.",
+            "only losing answers. If Wasp lets Cutter take 3 coins, Cutter has 13 and wins alone (card text). If " +
+            "she lets Cutter place her, Cutter puts her on the space just south-east of herself, exactly four " +
+            "spaces south-west of Swift in a straight line, Snipe's maximum range (p.18 Place, p.19 Straight " +
+            "Line); with no cards she cannot defend the Snipe (p.13), and her lowest card Tier is II, so Red " +
+            "spends its last two Life counters (p.13). Dodger is the trap: she also chooses to be placed and " +
+            "falls to the Snipe, but her Tier I cards cost Red only one counter. The other Snipe space in " +
+            "Cutter's radius, four spaces due west of Swift, is taken by Blue's own minion.",
         rules = listOf(
             "p.10 Making Choices",
             "p.13 When a Hero is Defeated",
@@ -115,7 +117,7 @@ object P44AFistfulOfCoins : Puzzle() {
 
     override val wrongTries = listOf(
         WrongTry(
-            "Fistful on Dodger: he dies to the Snipe, but a level 1 hero costs one Life counter",
+            "Fistful on Dodger: she dies to the Snipe, but a level 1 hero costs one Life counter",
             listOf(action(ActionType.PRIMARY), hero("dodger")),
         ),
         WrongTry(

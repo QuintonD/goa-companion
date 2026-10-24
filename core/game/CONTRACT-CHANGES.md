@@ -56,8 +56,8 @@ other branches should know are listed too.
 ## Puzzle behaviour (no type change)
 
 - **`PuzzleInfo.id`** is `p` + the concept number of core/game/puzzles/CONCEPTS.md (`p01`…`p60`),
-  so encoders working in parallel never collide; at most 50 are shipped. **`PuzzleInfo.number`** is
-  set by the book: the place in its list (difficulty, then id) among the playable puzzles.
+  so encoders working in parallel never collide; 50 are shipped. **`PuzzleInfo.number`** is set by
+  the book: the place in the `Puzzles.all` list (the learning order) among the playable puzzles.
 - **A puzzle game stops at its deadline**: `PuzzleSession.game.pending` is null once the turn (or
   round) of the goal is over, whether the goal was met or not; `status` says which.
 - **Answer through `PuzzleSession.answer`**, never `game.answer`: the runtime answers every other

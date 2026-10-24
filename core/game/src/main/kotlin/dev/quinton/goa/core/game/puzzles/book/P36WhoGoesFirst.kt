@@ -40,7 +40,8 @@ object P36WhoGoesFirst : Puzzle() {
             "hero acts before Wasp. If Dodger goes first, Blue shows for the next tie, Wasp acts before " +
             "Tigerclaw, and Electrocute defeats him: he has no card to defend with (p.14). Dodger can't stop " +
             "it: Wasp is not next to her and has no card in her discard, so Finger of Death can't target her. " +
-            "Tigerclaw first just steps out of reach (Electrocute needs an adjacent target), and Dodger acts last.",
+            "Tigerclaw first just steps out of reach (Electrocute needs an adjacent target), and Dodger acts last. " +
+            "The lesson: the coin favours your team for one hero only, so spend it on the hero who must move.",
         rules = listOf("p.7 Check the Initiative, Tied Initiative", "p.14 Defense"),
     )
 

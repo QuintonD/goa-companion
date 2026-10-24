@@ -32,15 +32,16 @@ object P43CountTheMinions : Puzzle() {
         nudges = listOf(
             "At the end of the round, count minions, not heroes.",
             "Xargatha's Constrict needs its own victim next to her: don't take it from her.",
-            "Blink Strike east, through the minion at (2,-5).",
+            "Blink Strike east, through the Blue minion that is not next to Xargatha.",
         ),
         explanation = "Arien has no card, and Blink Strike through him would defeat him, but the Minion Battle " +
-            "only counts minions (p.8). Blink east through the Blue minion at (2,-5) instead: Blue is down to " +
-            "two. Arien can take one Red minion back, but at the end of the round Constrict defeats the Blue " +
+            "only counts minions (p.8). Blink east through the other Blue melee minion instead: Blue is down to " +
+            "two. Arien can still defeat one Red minion, but at the end of the round Constrict defeats the Blue " +
             "melee next to Xargatha before the battle (card text; p.17 End of Round). Blue then has only its " +
             "heavy minion against Red's two or three, must remove the difference, heavy last, and loses its last " +
-            "minion: the lane is pushed (p.8). Through Arien, Blue keeps a minion after the battle; through the " +
-            "minion next to Xargatha, Constrict has nothing left to defeat.",
+            "minion: the lane is pushed (p.8). Through Arien, Blue keeps all three: Constrict leaves two, and " +
+            "Red's three remove only one. Through the minion next to Xargatha, Constrict has nothing left to " +
+            "defeat, and after Arien's reply it is two against two.",
         rules = listOf("p.8 Minion Battle, Push the Lane", "p.13 Attacking a minion", "p.17 End of Round"),
     )
 

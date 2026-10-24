@@ -38,8 +38,9 @@ object P10ShotgunSplash : Puzzle() {
             "card and is worth 1. Wasp is three spaces away, beyond Super-Shotgun's Range 2, but the Red " +
             "minion next to her is in range. \"Before the attack\" text is applied first, before the target " +
             "is hit (p.14 order, p.17), so Wasp, adjacent to the target and with no card to discard, is " +
-            "defeated and Red loses its last two counters. Shooting Brogan instead takes only one counter; " +
-            "here it does not even get that far, because nobody stands next to him for the blast.",
+            "defeated and Red loses its last two counters. Shooting Brogan, who has no card either, defeats " +
+            "him but takes only one counter: no other Red hero stands next to him for the blast to catch. " +
+            "The best target is not always the hero you want: it can be the unit standing next to him.",
         rules = listOf(
             "p.9 Range",
             "p.13 When a hero is defeated",
@@ -106,7 +107,7 @@ object P10ShotgunSplash : Puzzle() {
 
     override val wrongTries = listOf(
         WrongTry(
-            "Shoot Brogan: nobody stands next to him, and he is worth one counter",
+            "Shoot Brogan: no other Red hero stands next to him, and he is worth one counter",
             listOf(action(ActionType.PRIMARY), hero("brogan")),
         ),
         WrongTry("Move towards Wasp: no attack follows", listOf(action(ActionType.MOVEMENT))),

@@ -42,7 +42,10 @@ object P29ThreatenTheGuards : Puzzle() {
             "defends 5 + 2 = 7 against Mad Dash's 6. Threaten moves an enemy unit 1 space farther from Garrus " +
             "(p.17 Farther), and a repeat performs the action again with a new choice of target (p.10 " +
             "Repeat): move one guard, then the other, to spaces that are no longer next to her and still in " +
-            "the Battle Zone (p.18). Moving only one leaves 6 against 6, and equal totals defend (p.14). " +
+            "the Battle Zone (p.18). Watch the second step: when the guard two spaces from Garrus moves " +
+            "first, the space it leaves is also farther away for the guard next to Garrus, and a guard " +
+            "moved into it stands next to Wasp again. Moving only one leaves 6 against 6, and equal totals " +
+            "defend (p.14). " +
             "Moving Wasp herself strips both guards, but she lands where no two-space Mad Dash line reaches " +
             "her (p.11).",
         rules = listOf(

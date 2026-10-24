@@ -32,7 +32,7 @@ object P41TheDuelistsOath : Puzzle() {
             "his discard is empty. Wasp keeps Static Barrier and Stop Projectiles, Dodger two cards. Sabina has " +
             "acted.",
         nudges = listOf(
-            "Dodger's second attack can only find you if the first one changes something.",
+            "Dodger's ranged shot can only find you if Wasp's dagger changes something about you.",
             "Read the condition on Middlefinger's ranged bullet, and what Expert Duelist does after you defend.",
             "Defend Wasp's dagger with Expert Duelist.",
         ),

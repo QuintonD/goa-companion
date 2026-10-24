@@ -29,7 +29,7 @@ object P01ThroughTheLine : Puzzle() {
         intro = "Round 3, turn 4. Arien has played Dangerous Current and acts next. Wasp has no cards " +
             "left in hand; Xargatha holds Siren's Call. Red has one Life counter left.",
         nudges = listOf(
-            "Who on Red can no longer defend?",
+            "Who on Red has no card left to give up?",
             "Dangerous Current reaches further than the unit you hit: look at the spaces behind it.",
             "Attack the melee minion east of Arien; Wasp stands two spaces behind it.",
         ),

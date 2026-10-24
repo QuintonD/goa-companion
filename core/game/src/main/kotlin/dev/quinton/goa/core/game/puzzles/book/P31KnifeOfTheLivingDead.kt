@@ -35,15 +35,18 @@ object P31KnifeOfTheLivingDead : Puzzle() {
         nudges = listOf(
             "Wasp defends at 6 with the minion beside her. Each Zombie you remove next to her adds one Attack.",
             "A Zombie must be next to Wasp at the moment you remove it, and you have three choices to spend.",
-            "Knife of the Living Dead: move the far Zombie onto the free space beside Wasp, then remove both Zombies.",
+            "Knife of the Living Dead: move the far Zombie onto the space between it and Wasp, then remove both " +
+                "Zombies.",
         ),
         explanation = "Mortimer attacks at 5 (4 on the card, +1 from his Attack item); Wasp defends with Lift Up at " +
             "5, +1 for the friendly melee minion beside her (p.14), and an equal total defends. \"Before the " +
             "attack\" text comes first, before her defense (p.14 order), and \"Choose up to three times\" lets " +
             "you take the bullets in any order (p.10 Modal Actions). Removing the one Zombie next to her and " +
             "stopping makes it 6 against 6: she survives. Each removal needs a Zombie adjacent to the target at " +
-            "that moment, so spend one choice moving the far Zombie onto the only free space beside her, then " +
-            "remove both: Attack 7 against 6. Moving a Zombie twice, or to any other space, leaves you a point short.",
+            "that moment, so spend one choice moving the far Zombie onto the space between it and her (the " +
+            "only free space beside her it can reach), then remove both: Attack 7 against 6. Moving a Zombie " +
+            "twice, or to any other space, leaves you a point short. The lesson: on a \"Choose up to\" card, " +
+            "a choice spent setting up can be worth more than one spent cashing in.",
         rules = listOf(
             "p.10 Modal Actions",
             "p.14 Attack/Defense Detailed Order, Minion Defense Modifiers",

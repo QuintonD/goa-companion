@@ -22,7 +22,8 @@ Code: `core/game/src/main/kotlin/dev/quinton/goa/core/game/puzzles/`
    (`GameEngine.playableHeroes`; a hero is playable once its module says `complete = true`).
 2. **Write** `book/Pnn<Name>.kt`, `nn` = the concept number (C23 → `P23LiftUpIntoTheLine`, id
    `p23`). Copy the closest existing puzzle (see "The puzzles so far" below).
-3. **Register** it: one line in `book/Puzzles.kt`.
+3. **Register** it: one line in `book/Puzzles.kt`, at its place in the learning order (the list
+   order is the book's numbering; `difficulty` 1/2/3 must not decrease along it).
 4. **Run** `./gradlew --no-daemon -Pkotlin.compiler.execution.strategy=in-process :core:game:test --tests '*Puzzle*'`
    (with `GRADLE_USER_HOME`, `TMP`, `TEMP` on D:, see AGENTS.md). The first run writes the answer
    key and fails "the answer key was missing … run the tests again"; run again. Read the output
@@ -60,8 +61,8 @@ object P14LongThrust : Puzzle() {
 ```
 
 - **`info`**: `id` = `p` + concept number (permanent: progress is stored by it; parallel encoders
-  never collide). `number` is set by the book (its place in the list: difficulty, then id), so put
-  the concept number there. `heroes`: every seated hero, a player hero first; the book lists a
+  never collide). `number` is set by the book (its place in `Puzzles.all`, which is the learning
+  order, hard to hardest), so put the concept number there. `heroes`: every seated hero, a player hero first; the book lists a
   puzzle only when all of them are playable. `intro`: shown with the goal; everything the player
   knows that the board doesn't show (the round and turn, who acts next, cards played facedown, the
   opponents' hands: puzzles treat them as open). `nudges`: at least three, gentle to strong; the last

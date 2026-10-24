@@ -38,16 +38,18 @@ object P23LiftUpIntoTheLine : Puzzle() {
             "Snipe only hits a target exactly four spaces away, in a straight line.",
             "Lift Up slides a unit around Wasp without bringing it closer or pushing it away, and it can " +
                 "do that twice.",
-            "Lift Up Dodger south-west, to (-1,0), then once more.",
+            "Lift Up Dodger south-east, one step farther from Swift, then repeat it once more.",
         ),
         explanation = "Lift Up moves a unit 1 space without changing its distance from Wasp, and its repeat " +
             "must use the same target (card text; Wasp FAQ \"the distance between you and the target must " +
-            "remain unchanged\"; p.10 Repeat). Dodger has two such steps: north to (0,-2), which leads " +
-            "nowhere, and south-west to (-1,0), from where the second step reaches (-1,1). Snipe needs its " +
-            "target at its maximum range and in a straight line (p.9, p.19): (-1,1) is exactly four spaces " +
-            "south-east of Swift, and with no card Dodger cannot defend (p.13). One step is not enough: " +
-            "(-1,0) is only three spaces from Swift. Wasp at 10 acts before Swift at 8, and both before " +
-            "Dodger at 3 (p.7).",
+            "remain unchanged\"; p.10 Repeat). Dodger already stands on Swift's south-east line, two spaces " +
+            "away, and she has only two such steps: north-east, from where the only further step leads " +
+            "back, and south-east, along Swift's line, from where the repeat goes south-east again. Snipe " +
+            "needs its target at its maximum range and in a straight line (p.9, p.19): after two steps " +
+            "Dodger is exactly four spaces south-east of Swift, and with no card she cannot defend (p.13). " +
+            "One step is not enough: three spaces is not Snipe's maximum range. The lesson: a move that keeps " +
+            "a distance to one hero can still change the distance to another. Wasp at 10 acts before Swift " +
+            "at 8, and both before Dodger at 3 (p.7).",
         rules = listOf("p.7 Check the initiative", "p.9 Range", "p.10 Repeat", "p.19 Straight line"),
     )
 
@@ -108,11 +110,11 @@ object P23LiftUpIntoTheLine : Puzzle() {
 
     override val wrongTries = listOf(
         WrongTry(
-            "Lift Dodger north: from (0,-2) the only further step leads back",
+            "Lift Dodger north-east: from there the only further step leads back",
             listOf(action(ActionType.PRIMARY), hero("dodger"), space(0, -2)),
         ),
         WrongTry(
-            "One step only: (-1,0) is three spaces from Swift, not four",
+            "One step only: Dodger is three spaces from Swift, not four",
             listOf(action(ActionType.PRIMARY), hero("dodger"), space(-1, 0), decline()),
         ),
     )
