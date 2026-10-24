@@ -1081,6 +1081,14 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
   Brynn resolved `gold`, `silver`, `red-2a`, hand `blue-2a`, items `red-2b`, `green-2b`, `green-3b`,
   `blue-2b` (no Initiative item, so she stays at 2). The solver accepts (0,−5) and (−1,−3); (3,−7) is
   first in the canonical order. Wrong tries tested: (3,−7), (2,−5), no retrieve, Hold.
+- **Hardened as p47 (2026-10-24, changed):** legality: Misa L2 (Gust of Wind; item Dash and Slash =
+  Defense) and Wasp L2, no level 1 in round 4; Wasp's turn-4 card is Lift Up (10), resolved before Misa's
+  6 (Stop Projectiles at 3 stays in her hand). Harder, new position: Misa (4,−7), Garrus (2,−6), Brynn
+  (3,−9), Blue melee (3,−7), (4,−6), (1,−7), heavy (3,−1); Red minions away to the south. All five
+  Swoop In spaces are within 2 of Garrus, so the question is only Brynn's trap: (3,−8) is next to her,
+  (2,−8), (2,−7) and (3,−6) touch 3 or more obstacles; (1,−6), west of Garrus, touches just Garrus and the
+  minion (1,−7) (Garrus's step after the pilum is still one unit). One space of five wins, then the
+  retrieve.
 
 ### C48 — Necromancy at the Bell
 - **Theme:** end-of-round order (End of round effects, Minion Battle); minion types; respawn rules. **Difficulty:** 3. **Heroes:** Dodger; Xargatha (Tigerclaw, Arien idle).
