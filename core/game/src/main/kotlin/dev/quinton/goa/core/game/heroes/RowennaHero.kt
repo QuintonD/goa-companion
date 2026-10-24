@@ -131,8 +131,9 @@ object RowennaHero : HeroModule {
     private object Gauntlet : CardScript {
         override fun primary(a: ActionScope) {
             val me = a.pos
+            // Empty for Rowenna herself (p.18 "Place"; Takahide's blades make spaces obstacles to her).
             fun spacesNext(e: String): List<Hex> = HexGrid.neighbors(a.g.posOf(e)!!).filter {
-                a.g.distance(me, it) in 1..a.range && a.g.isEmpty(it)
+                a.g.distance(me, it) in 1..a.range && a.g.isEmpty(it, a.heroId)
             }
             val enemies = a.unitsWithin(a.range).filter { id ->
                 a.g.isHero(id) && a.isEnemy(id) && a.canTarget(id) && spacesNext(id).isNotEmpty()
@@ -205,40 +206,46 @@ object RowennaHero : HeroModule {
                 "Place an enemy minion in radius into a space adjacent to you",
             )
             repeat(limit) { i ->
-                val heroes = enemyHeroesWithRoom(a)
                 val friendly = minionsInRadius(a, friendly = true)
-                val enemy = minionsInRadius(a, friendly = false)
-                val roomNextToMe = HexGrid.neighbors(a.pos).any { a.g.isEmpty(it) }
+                val heroes = enemyHeroesWithRoom(a, friendly)
+                val enemy = minionsInRadius(a, friendly = false).filter { roomNextTo(a, a.pos, it).isNotEmpty() }
                 val possible = listOfNotNull(
-                    0.takeIf { heroes.isNotEmpty() && friendly.isNotEmpty() },
-                    1.takeIf { roomNextToMe && enemy.isNotEmpty() },
+                    0.takeIf { heroes.isNotEmpty() },
+                    1.takeIf { enemy.isNotEmpty() },
                 )
                 if (possible.isEmpty()) return
                 val prompt = if (limit == 1) "You may choose one" else "Choose up to $limit times (${i + 1} of $limit)"
                 val pick = a.chooseOption(prompt, possible.map { labels[it] }, optional = true) ?: return
                 if (possible[pick] == 0) {
                     val h = a.chooseUnit("Next to which enemy hero?", heroes)!!
-                    val m = a.target(a.chooseUnit("Place a friendly minion in radius", friendly)!!)
-                    val to = a.chooseSpace(
-                        "Place it into a space adjacent to ${a.g.name(h)}",
-                        HexGrid.neighbors(a.g.posOf(h)!!).filter { a.g.isEmpty(it) },
-                    )!!
+                    val hPos = a.g.posOf(h)!!
+                    val movable = friendly.filter { roomNextTo(a, hPos, it).isNotEmpty() }
+                    val m = a.target(a.chooseUnit("Place a friendly minion in radius", movable)!!)
+                    val to =
+                        a.chooseSpace("Place it into a space adjacent to ${a.g.name(h)}", roomNextTo(a, hPos, m))!!
                     a.g.place(m, to, a.heroId)
                 } else {
                     val m = a.target(a.chooseUnit("Place an enemy minion in radius", enemy)!!)
-                    val to = a.chooseSpace(
-                        "Place it into a space adjacent to you",
-                        HexGrid.neighbors(a.pos).filter { a.g.isEmpty(it) },
-                    )!!
+                    val to = a.chooseSpace("Place it into a space adjacent to you", roomNextTo(a, a.pos, m))!!
                     a.g.place(m, to, a.heroId)
                 }
             }
         }
 
-        /** Enemy heroes adjacent to Rowenna with an empty space next to them. */
-        private fun enemyHeroesWithRoom(a: ActionScope): List<String> = a.unitsWithin(1).filter { id ->
-            a.g.isHero(id) && a.isEnemy(id) && HexGrid.neighbors(a.g.posOf(id)!!).any { a.g.isEmpty(it) }
-        }
+        /**
+         * Spaces next to [at] that are empty for the minion [m] (p.18 "Place": an empty space; an effect may
+         * make a space an obstacle for some units only, e.g. Takahide's blades), never its own space ("a
+         * different space").
+         */
+        private fun roomNextTo(a: ActionScope, at: Hex, m: String): List<Hex> =
+            HexGrid.neighbors(at).filter { it != a.g.posOf(m) && a.g.isEmpty(it, m) }
+
+        /** Enemy heroes adjacent to Rowenna with a space next to them that one of [friendly] may be placed into. */
+        private fun enemyHeroesWithRoom(a: ActionScope, friendly: List<String>): List<String> =
+            a.unitsWithin(1).filter { id ->
+                a.g.isHero(id) && a.isEnemy(id) &&
+                    friendly.any { m -> roomNextTo(a, a.g.posOf(id)!!, m).isNotEmpty() }
+            }
 
         private fun minionsInRadius(a: ActionScope, friendly: Boolean): List<String> = a.unitsWithin(
             a.radius,
