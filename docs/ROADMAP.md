@@ -158,8 +158,11 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   swipe to next, not an option, TalkBack actions, view only), `CardFocusDecisionTest` (4: discard,
   defend with back and swipe, play, Coach nudge after the second tap), `reviewCardFocusDark` (a review
   card opens view only, back returns); 10 new screenshots, the table / sandbox screenshots with card
-  rows re-recorded, `tableCardSheetDark` and `PlaySheet.Card` removed. JVM only: the gestures, the predictive
-  back animation and the haptics are not yet checked on a device
+  rows re-recorded, `tableCardSheetDark` and `PlaySheet.Card` removed. Emulator (`goa_s25b`, debug
+  build, gesture navigation): first tap zooms, sideways swipe to the next card, the edge back gesture
+  shrinks the card as it is dragged and springs back when cancelled, a finished back and an upward swipe
+  close with nothing played, the second tap settles with the tick and plays the card. Haptics and the
+  S25 Ultra itself not checked
 - [ ] End-to-end test that plays a game to its end (needs the engine bound)
 - [ ] Hands-on at the table and TalkBack on the S25 Ultra
 - [x] Game state review (`feature/play-review`, ADR-037, owner: "let players review the game state, e.g.
