@@ -1,8 +1,7 @@
 # Guards of Atlantis Companion — agent instructions
 
 Native Android companion app for the **Guards of Atlantis II** board game (Wolff Designa).
-Private, local-only, never sold or published (see ADR-006). This file is the canonical,
-tool-agnostic entry point; `CLAUDE.md` imports it.
+This file is the canonical, tool-agnostic entry point; `CLAUDE.md` imports it.
 
 **Status:** feature-complete v1 plus a full validation round (rules audit, card-scan check,
 hands-on game nights, rules reference) — built and tested on JVM + emulator (2026-10-17);
@@ -45,23 +44,16 @@ Details and acceptance criteria: [docs/PRODUCT.md](docs/PRODUCT.md).
   [docs/DOMAIN.md](docs/DOMAIN.md#sources) through the import pipeline (`import-catalog`
   skill); corrections go through `fix-hero`. Memory is not a source. Unresolved → `null`,
   `"verified": false`, and the UI marks it.
-- **Official and community game assets are allowed** (private, non-commercial use): card
-  images, artwork and verbatim card text may be bundled, each recorded in
-  `official/SOURCES.md`. Our own UI and brand assets stay original
-  (see [docs/DESIGN.md](docs/DESIGN.md#asset-policy)).
+- **Official and community game assets are allowed:** card images, artwork and verbatim card
+  text may be bundled, each recorded in `official/SOURCES.md`. Our own UI and brand assets stay
+  original (see [docs/DESIGN.md](docs/DESIGN.md#asset-policy)). They belong to Wolff Designa and
+  sit in `assets/official/`; a public release with them bundled needs permission (ADR-034).
 - **2nd printing is the data baseline.** Every hero/card records its printing; a 3rd printing
   (2027) will need a refresh, not a rewrite.
-- **Keep it private.** Never push to a public remote and never publish the APK publicly. The
-  owner may share the signed APK with their play group via a private Drive link (ADR-006
-  addendum); never via public releases or the owner's company accounts. Official
-  assets sit in `assets/official/` so they can be removed easily if that ever changes.
 - **Match history is the source of truth.** Ratings and meta stats are derived, recomputable
   from the ordered match log. Never store a rating that cannot be rebuilt.
 - **Domain logic is pure Kotlin** (`:core:domain`) with unit tests. Timer, Elo and draft
   engines must not depend on Android classes.
-- **The app is offline.** No `INTERNET` permission (the app manifest removes any a library
-  merges in; check the merged release manifest). Online data is fetched only at dev time by
-  `tools/catalog-import` and bundled. Group sync is phone to phone, never through the internet.
 - **Synced data is last-writer-wins by `updatedAt`.** Every write to players, matches and drafts
   goes through the repositories (they stamp it); deletes leave tombstones; never rewrite the log
   for merges. A new field on a synced type bumps `SyncDocument.VERSION` (ADR-025).
@@ -91,6 +83,6 @@ A change is done when build, unit tests, lint and screenshot checks pass. Run th
 
 - Physical test device: Samsung S25 Ultra (ARM64). Emulator-only proof is not device proof.
 - Distinguish "builds" from "verified on device" in every status report.
-- Local git only. Small, reviewable commits on a branch; one feature module per branch where
+- Small, reviewable commits on a branch; one feature module per branch where
   practical.
 - Project path contains spaces (`guards of Atlantis`) — quote paths in scripts.

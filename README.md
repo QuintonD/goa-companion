@@ -1,11 +1,11 @@
 # Guards of Atlantis Companion
 
-A private Android companion for the Guards of Atlantis II board game: hero catalog, phase
+An Android companion for the Guards of Atlantis II board game: hero catalog, phase
 timer, friends and Elo tracking, a pick/ban drafting system, a rules reference and phone-to-phone
 group sync.
 
-Personal, non-commercial use only. Not affiliated with Wolff Designa. Official game content
-and art belong to them and are included only for this private build.
+Non-commercial. Not affiliated with Wolff Designa. Official game content and art belong to
+them; a public release with them bundled needs their permission (ADR-034).
 
 - Agents: start at [AGENTS.md](AGENTS.md).
 - Humans: start at [docs/PRODUCT.md](docs/PRODUCT.md) and [docs/ROADMAP.md](docs/ROADMAP.md).
@@ -29,9 +29,8 @@ The debug build (`.\gradlew.bat :app:installDebug`) installs side by side as
 
 ## Sharing with the play group
 
-Share the signed release APK with your group only, through a private, unlisted link (Google
-Drive on your personal account; ADR-006 addendum). Never publish it: no GitHub Releases, no
-public posts. `D:\GoA-share\` holds the APK and a `HOW-TO-INSTALL.txt` for friends. For an update,
+Share the signed release APK with your group through a link (Google Drive works).
+`D:\GoA-share\` holds the APK and a `HOW-TO-INSTALL.txt` for friends. For an update,
 bump `versionCode`/`versionName` in `app/build.gradle.kts`, rebuild, and replace the file in the
 same Drive folder (Drive "Manage versions" keeps the link). Friends install over the old version
 and keep their data.

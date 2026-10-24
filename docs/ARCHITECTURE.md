@@ -78,10 +78,12 @@ Features never depend on each other; cross-feature navigation goes through `app`
   an in-memory index. Hero IDs are permanent: never rename or reuse one, since matches
   reference them. Unknown IDs render as "Unknown hero"; imported or synced ones are stored as
   they are and read as Unknown-hero seats (DOMAIN.md *Backup import*, ADR-025).
-- **The app never goes online.** Catalog data and images are fetched at dev time by
-  `tools/catalog-import` and bundled. No `INTERNET` permission: the app manifest removes it
-  (`tools:node="remove"`) because the code scanner's `transport-backend-cct` declares it. Group
-  sync is phone to phone (below).
+- **Catalog data is bundled.** Catalog data and images are fetched at dev time by
+  `tools/catalog-import` and bundled. No feature uses the network yet, so the app manifest
+  removes the `INTERNET` permission (`tools:node="remove"`) that the code scanner's
+  `transport-backend-cct` declares, which keeps Google's usage logger silent. Going online is
+  allowed (ADR-034): drop that line in the feature that needs it. Group sync is phone to phone
+  (below).
 
 ## Group sync (ADR-025)
 - **Layers.** `core:domain/sync` is pure Kotlin: `SyncDocument` (version 2: players, matches,

@@ -10,7 +10,7 @@ All heroes from all products, **2nd printing** (current). Pin each source to a c
 in `tools/catalog-import/sources.lock.json`; fetch from `raw.githubusercontent.com` (the
 GitHub API allows only 60 unauthenticated requests per hour; the importer makes one cached
 tree listing per pinned SHA). None of these repos has a licence; content belongs to Wolff
-Designa. Fine for this private build, never redistribute. Facts below verified at the pinned
+Designa. Bundled in our builds; a public release needs permission (ADR-034). Facts below verified at the pinned
 SHAs on 2026-10-17.
 
 | # | Source | Use for |

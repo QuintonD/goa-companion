@@ -155,7 +155,7 @@ least 48 dp); and the Map menu beside Set up in the bottom bar. A finished draft
 under the teams on a phone held upright.
 
 ## Asset policy
-Private, non-commercial build (ADR-006), so two kinds of asset:
+Two kinds of asset (ADR-006, ADR-034):
 
 **Official game assets** — allowed for game content.
 - Card images (photographed full cards), card artwork used as hero portraits, card text and
@@ -183,7 +183,7 @@ Private, non-commercial build (ADR-006), so two kinds of asset:
   on the canvas colour and is held until settings (theme) have loaded.
 - Sounds: original, CC0, or official if available; record the source in `third_party/ASSETS.md`.
 
-In-app "About": credit Wolff Designa for game content and art; note this is a private build.
+In-app "About": credit Wolff Designa for game content and art.
 
 ### Container colours (added 2026-10-17)
 Material containers are set explicitly so components never fall back to Material's default

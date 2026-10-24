@@ -4,7 +4,7 @@
 
 The app a GoA2 group leaves open on the table all game: it keeps the pace, settles "who is
 best with Tigerclaw", runs the draft, and answers questions about a hero without digging
-through cards. Private build for one play group (ADR-006).
+through cards. Built for one play group.
 
 **Users:** a regular play group (2–10 players, usually 4–6), one phone passed around or propped
 up; friends may have the app on their own phones too, kept in step by group sync. **Quality bar:** feels like a first-party premium app — fast, polished,
@@ -171,10 +171,10 @@ research, 2026-10-17). A reference, not a card cheat sheet: hidden information s
   topic page have light/dark (and font scale 2) screenshots.
 
 ### 6. Group sync (ADR-025)
-Each friend has the app on their own phone (APK shared privately, ADR-006 addendum); the group's
+Each friend has the app on their own phone (the owner shares the APK); the group's
 phones keep the same matches, players, drafts, deletions and rating constants by syncing **face to
 face at the table**, phone to phone over Bluetooth and Wi-Fi Direct (Google Nearby Connections).
-No server, no accounts, no internet; the app still has no INTERNET permission.
+No server, no accounts, no internet.
 - **Group:** "Start a group" (name) creates the group and its key; "Invite a friend" shows a QR
   code (and "Share as text", which sends the invite with what to do with it); a friend's phone
   joins by scanning it (Google's code scanner, no camera permission) or pasting the invite (or the
@@ -199,7 +199,7 @@ No server, no accounts, no internet; the app still has no INTERNET permission.
   change. A file from another group, or one this phone's key can't open, gets a clear error.
 - **Done when:** merge properties (commutative, associative, idempotent, convergence, identical
   ratings) and the protocol over a fake transport (host + 3 phones, a dropped phone, a wrong key)
-  pass on the JVM; the merged release manifest has no INTERNET permission; **two physical phones
+  pass on the JVM; **two physical phones
   sync at the table** (emulators prove Nearby only over virtual Bluetooth).
 
 ### 7. Card trivia (ADR-028)
@@ -344,9 +344,10 @@ timer view (step by step / whole round), cue sounds and haptics, Elo constants (
 with the sync group), Group sync, export/import, About/credits.
 
 ## Non-goals (v1)
-- Online play, accounts, cloud sync, ads, analytics SDKs, any network access from the app. (Group
-  sync is phone to phone at the table, ADR-025; nothing goes through the internet.)
-- Play Store or any public distribution — sideloaded only.
+- Online play, accounts, cloud sync, ads, analytics SDKs: not in v1, no longer ruled out
+  (ADR-034). Group sync is phone to phone at the table (ADR-025).
+- Play Store release: not in v1 (sideloaded); bundled official assets would need permission
+  (ADR-034).
 - A full rules engine. The board sandbox (8) moves pieces and measures movement, Fast Travel,
   range and distance; it never resolves cards, attacks, coins, turns or Life counters.
 - iOS; tablet-first layouts (phone-first; tablets must not break).

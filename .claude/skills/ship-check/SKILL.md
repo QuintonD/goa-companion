@@ -19,7 +19,5 @@ Run from the project root and report each result honestly (pass / fail / skipped
 7. Check data and assets: catalog validation green; `tools/catalog-import/REPORT.md` has no
    new unresolved disagreements; every file in `assets/official/` is in `official/SOURCES.md`;
    new fonts/sounds listed in `third_party/`.
-8. Check privacy rules: merged manifest has no `INTERNET` permission
-   (`app/build/intermediates/merged_manifests/`); `git remote -v` shows no public remote.
 
 Never report "verified on device" unless step 5 actually ran on hardware.

@@ -9,7 +9,7 @@ Supersede rather than edit.
 **Consequences:** Best platform integration (foreground service, haptics, widgets later);
 no iOS without a rewrite or KMP migration (core:model/domain kept pure Kotlin to keep that open).
 
-## ADR-002 — Offline-first, no backend in v1 (2026-10-17) — sync part SUPERSEDED by ADR-025
+## ADR-002 — Offline-first, no backend in v1 (2026-10-17) — sync part SUPERSEDED by ADR-025; "no backend" lifted by ADR-034
 **Context:** Play groups share one phone; accounts add cost, privacy and moderation burden.
 **Decision:** All data local (Room/DataStore). Sharing via JSON export/import.
 **Consequences:** No cross-device live sync in v1; data model uses UUIDs so a sync layer can
@@ -33,7 +33,7 @@ unofficial-fan-app disclaimer. No Play Store publication without an explicit own
 **Consequences:** Clear boundaries for parallel agents and faster incremental builds; slightly
 more setup in M0.
 
-## ADR-006 — Private build; official sources and assets allowed (2026-10-17)
+## ADR-006 — Private build; official sources and assets allowed (2026-10-17) — privacy rule SUPERSEDED by ADR-034
 **Context:** The owner confirmed the app is for local, personal use only and will never be
 sold or published.
 **Decision:** Use official sources freely: verbatim card text, official hero art, card images
@@ -350,7 +350,7 @@ Discard (confirmed; deletes only a still-pending match).
 **Consequences:** A rematch backed out of leaves nothing; existing pending matches keep working
 (resume, Who won?, Discard). The Timer tab loses whatever was stacked on it when a timer starts.
 
-## ADR-025 — Group sync: phone to phone at the table over Nearby, LWW merge, no server (2026-10-17)
+## ADR-025 — Group sync: phone to phone at the table over Nearby, LWW merge, no server (2026-10-17) — "no INTERNET" constraint lifted by ADR-034
 Supersedes the "no cross-device sync" part of ADR-002 (everything else in ADR-002 stands: all
 data is local, no accounts, no backend).
 
@@ -653,3 +653,25 @@ on the Lane at a tappable hex size rather than on the whole map. A board open in
 follows its stored copy (adopts external changes, closes on deletion) so it never overwrites a
 backup import or resurrects a deleted board. `lane` has a default and boards are not synced, so no
 `SyncDocument` bump; the backup round-trips it.
+
+## ADR-034 — No privacy or offline rule: the app may go online and be published (2026-10-19)
+**Context:** Two rules have bounded every choice so far: "keep it private" (ADR-006 and its
+addendum: no public remote, no public APK, shared only by a private Drive link) and "the app is
+offline" (no `INTERNET` permission, no server; ADR-002, ADR-025, ADR-027). The owner lifted both
+while weighing a hosted backend for sync.
+**Decision:** Neither is a rule any more. A feature may use the network, a server or a
+third-party service, and the repo and APK may be published; each such step is judged on its own
+merits in its own ADR. This ADR changes nothing in the app: it still uses no network, Nearby sync
+and the sync file stay, and the manifest still removes `INTERNET` until a feature needs it.
+**Consequences:**
+- `ship-check` no longer checks the merged manifest for `INTERNET` or `git remote -v`.
+- Dropping the manifest's `INTERNET` removal also lets the code scanner's Play services usage
+  logger (`datatransport`, ADR-025) send to Google; the first online feature decides whether to
+  accept that or turn the logger off.
+- Official assets stay allowed in our builds. They belong to Wolff Designa, and the community
+  sources (catalog, maps) have no licence, so a public release of the app or repo with
+  `assets/official/`, verbatim card text or community data bundled needs permission, or those
+  files removed; ADR-006's note on ADR-004 still describes that path.
+- Synced data stays last-writer-wins by `updatedAt` (ADR-025); a server copy joins the same merge.
+- The hub branches (ADR-030: "the group's own hub is the only server") carry their own version of
+  the offline rule; reconcile it with this ADR when they merge.
