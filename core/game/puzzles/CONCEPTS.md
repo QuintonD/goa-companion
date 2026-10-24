@@ -154,6 +154,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** A defeated hero's team spends Life counters equal to that hero's lowest card tier, not one per hero (p.13): level 4 means tier II, so Wasp costs Red 2 counters while Brogan (level 3, tier I) costs 1. A Block card defends only when its condition is met; otherwise the defender is defeated (p.14). Chase's movement needs at least one card in your discard (card text), which Garrus has.
 - **Rules:** p.13 Attacking a hero, When a hero is defeated, level/tier table; p.14 Block.
 - **Risk:** none.
+- **Encoded as p02 (2026-10-24):** as written (Brogan's items `brogan-red-2b`, `brogan-green-2a`; Wasp's `wasp-red-2b`, `wasp-blue-2b`, `wasp-green-2b`). The solver finds (2,−5) and (2,−6) as the winning spaces of Chase's move; Chase's second option, or its first without moving, leaves only Brogan to hit.
 
 ### C03 — Melee First, Then the Heavy
 - **Theme:** Heavy Minion Immunity; Last Push. **Difficulty:** 1. **Heroes:** Snorri; Xargatha (Garrus, Tigerclaw idle).
@@ -171,6 +172,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** As long as a friendly non-heavy minion is in the BZ the heavy minion is Immune and cannot be targeted (p.13). Defeating the melee lifts that, and the axe rune's repeat (a new instance of the attack, p.10) can then take the heavy. When the last enemy minion in the BZ is defeated the Lane is pushed immediately (p.8), and flipping the last Wave counter ends the game for the team that won the push (p.3, p.8).
 - **Rules:** p.8 Push the Lane, Triggering a Push; p.10 Repeat; p.13 Heavy Minion Immunity.
 - **Risk:** none.
+- **Encoded as p03 (2026-10-24):** as written; Garrus and Tigerclaw (both playable now) sit idle. Rune markers carry their Turn slot (`marker_rune_axe` under slot 4). After the axe repeat the heavy minion is the only target, so the line is Primary, the melee minion, Yes.
 
 ### C04 — Price on Her Head
 - **Theme:** Life counters (Bounty marker); initiative order between teammates. **Difficulty:** 1. **Heroes:** Bain, Brogan; Dodger, Xargatha.
@@ -188,6 +190,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Bain acts at 11, before Brogan's 7, so the marker is in place when Dodger falls (p.7 initiative order). "A hero with the Bounty marker spends 1 additional Life counter when defeated" (card text), on top of the lowest-tier counters (p.13). The bounty is given after Bain's own attack resolves, so he needs some adjacent target.
 - **Rules:** p.7 Check the initiative; p.10 Mandatory steps; p.13 When a hero is defeated.
 - **Risk:** none.
+- **Encoded as p04 (2026-10-24):** as written. Xargatha is seated before Dodger. As the concept says, any adjacent target works for Bain (the solver accepts the ranged minion or Xargatha); the Bounty must go to Dodger, and Brogan's dash may end at (3,−2) or (3,−4).
 
 ### C05 — Beat the Drum
 - **Theme:** coins and assist coins; "friendly" never includes you. **Difficulty:** 1. **Heroes:** Tigerclaw, Brogan; Arien (Wasp idle).

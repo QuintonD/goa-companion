@@ -12,5 +12,8 @@ object Puzzles {
         P14LongThrust,
         P17IntoTheWall,
         P34RespawnWhereItCounts,
+        P02WorthTwoCounters,
+        P03MeleeFirstThenTheHeavy,
+        P04PriceOnHerHead,
     )
 }
