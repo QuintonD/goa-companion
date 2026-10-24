@@ -148,6 +148,23 @@ class BrynnTest {
     }
 
     @Test
+    fun `Decoy - a minion Brynn may not move (Bulwark) is not offered`() {
+        val d = pos {
+            clearMinions()
+            hero("brynn", Team.RED, Hex(1, -5)) { played("brynn-silver") }
+            // Bulwark: "This turn: You and friendly units in radius cannot be moved … by enemy heroes."
+            hero("brogan", Team.BLUE, Hex(3, -5)) { resolved(1, "brogan-silver") }
+            effect("brogan", "brogan-silver", Timing.THIS_TURN, ActionKind.SKILL)
+            minion(Team.BLUE, MinionType.MELEE, Hex(2, -5)) // next to Brogan: protected
+            minion(Team.RED, MinionType.MELEE, Hex(-1, -2))
+            phase = PositionPhase.Resolving(next = "brynn")
+        }
+        // The only enemy minion in radius cannot be moved, and Brogan has fewer than 3 obstacles next to
+        // him: nothing can be moved, so Decoy has no Primary action (its moves are mandatory).
+        assertThat(d.actions()).doesNotContain(ActionType.PRIMARY)
+    }
+
+    @Test
     fun `Decoy - with no enemy minion or qualifying hero in radius there is no Primary action`() {
         val d = pos {
             clearMinions()
@@ -186,6 +203,26 @@ class BrynnTest {
         }
         d.action("brynn", ActionType.PRIMARY)
         assertThat(d.expect(DecisionKind.DEFEND, "arien").context.attackTotal).isEqualTo(4)
+    }
+
+    @Test
+    fun `High Ground - designer - spaces that count as obstacles for enemy heroes (Spinning Blade) count`() {
+        // Designer, BGG 3482037: Takahide's spaces that count as obstacles for enemy units "count for enemy
+        // heroes = they count for enemy heroes card effects".
+        val d = pos {
+            clearMinions()
+            hero("brynn", Team.RED, Hex(1, -2)) { played("brynn-red-1") } // Attack 4
+            // Spinning Blade: "This turn: Empty spaces adjacent to you count as obstacles for enemy units."
+            hero("takahide", Team.BLUE, Hex(2, -2)) {
+                resolved(1, "takahide-red-2b")
+                hand("takahide-blue-1")
+            }
+            effect("takahide", "takahide-red-2b", Timing.THIS_TURN, ActionKind.ATTACK)
+            phase = PositionPhase.Resolving(next = "brynn")
+        }
+        d.action("brynn", ActionType.PRIMARY)
+        // Brynn and Takahide's five empty neighbouring spaces: 6 obstacles for Brynn.
+        assertThat(d.expect(DecisionKind.DEFEND, "takahide").context.attackTotal).isEqualTo(6)
     }
 
     @Test

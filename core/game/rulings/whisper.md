@@ -33,7 +33,11 @@ leave open. Code: `heroes/WhisperHero.kt`; tests: `heroes/WhisperTest.kt`.
 7. **Shadow Step / Shadow Walk:** an empty minion spawn point (heavy included, not hero spawn points) in
    range and in a Battle Zone. **[APP] Creeping Shadow** "or into a space in range adjacent to such a spawn
    point": the space must be in range and empty; the spawn point next to it must be an empty minion spawn
-   point in a Battle Zone, but need not itself be in range ("in range" is restated for the space).
+   point in a Battle Zone, but need not itself be in range ("in range" is restated for the space). goa2-backend
+   reads it the same way; no designer ruling found (BGG searched 2026-10-24). The space Whisper is placed
+   into must be empty for him (p.18 "Place"): a space that counts as an obstacle for enemy units (Takahide's
+   Spinning Blade) is not offered (rules audit; before, choosing it crashed). Test "Shadow Step - a spawn
+   point that counts as an obstacle for Whisper …".
 8. **Seeds of Fear family:** "occupying a spawn point" — any spawn point, minion or hero (the text does not
    say "minion"); Seeds of Fear's move of exactly 1 is mandatory (a unit that cannot be moved 1 space is
    not a target), Sprouts / Blooming "up to 2 (3)" may be 0.

@@ -116,6 +116,12 @@ object UrsafarHero : HeroModule {
         if (hero.at != null) activeEffect(Timing.THIS_ROUND, key = ENRAGED)
     }
 
+    /** p.17: an Active effect begins with a bold keyword ("This round:", "Next turn:", …). */
+    private val ACTIVE_KEYWORD =
+        Regex("""\*\*(This turn|This round|Next turn|End of turn|End of round)\b""", RegexOption.IGNORE_CASE)
+
+    private fun hasActiveEffectText(text: String?): Boolean = text != null && ACTIVE_KEYWORD.containsMatchIn(text)
+
     /** Cards whose Primary action Ursafar may perform now (not one being performed, faceup, possible). */
     private fun ActionScope.performable(ids: List<String>): List<String> {
         val busy = g.actions.map { it.cardId }.toSet() + cardId
@@ -155,11 +161,18 @@ object UrsafarHero : HeroModule {
     private object AngryRoar : CardScript {
         override fun primary(a: ActionScope) {
             // "If enraged, perform the primary action on one of your active cards with an active effect."
-            // Unbound Fury: "all your resolved cards count as active".
+            // Unbound Fury: "all your resolved cards count as active" — but a card must still have an Active
+            // effect (designer, BGG 3458850: "the card has to be both active and have an active effect, which
+            // green doesn't have"; the Ultimate allows "resolved cards with active effects … which you have
+            // resolved, but didn't activate").
             if (a.enraged()) {
                 val active =
                     a.g.activeCards(a.heroId) +
-                        if (a.g.furyUnlocked(a.heroId)) a.g.resolvedCards(a.heroId) else emptyList()
+                        if (a.g.furyUnlocked(a.heroId)) {
+                            a.g.resolvedCards(a.heroId).filter { hasActiveEffectText(a.g.card(it).text) }
+                        } else {
+                            emptyList()
+                        }
                 val cards = a.performable(active.distinct())
                 if (cards.isEmpty()) a.fizzle("no active card whose primary action can be performed")
                 val c = a.chooseCard("Perform the primary action on one of your active cards", cards)!!

@@ -7,10 +7,13 @@ reading the card text and FAQ leave open. Code: `heroes/BrynnHero.kt`; tests: `h
    counted when they hold an obstacle: any unit of either team (Brynn included), a token, terrain
    (rocks printed on the board and the water around it), or another miniature such as Trinkets' Turret.
    Reason: the card's reminder "(You, other heroes, minions, tokens, and terrain are obstacles.)"; p.18
-   "Obstacle"; p.19 "Terrain … including the water spaces surrounding the board". **[APP]** Spaces an
-   effect makes "count as obstacles" during Brynn's action (Wasp's Static Barrier) count too: they are
-   obstacles for that action. `BrynnHero.obstaclesAround`; `BrynnTest` "High Ground - plus 2 attack …
-   (Brynn counts)".
+   "Obstacle"; p.19 "Terrain … including the water spaces surrounding the board". Spaces an effect makes
+   "count as obstacles" for Brynn count too: during her action (Wasp's Static Barrier), and spaces that
+   count as obstacles for enemy units such as Takahide's Spinning Blade. *Source:* designer, BGG 3482037
+   (2025-03-21), on Spinning Blade and Split Attack: "they count for enemy heroes = they count for enemy
+   heroes card effects". (Changed in the rules audit: before, Spinning Blade's spaces did not count.)
+   `BrynnHero.obstaclesAround`; `BrynnTest` "High Ground - plus 2 attack … (Brynn counts)", "High Ground -
+   designer - spaces that count as obstacles for enemy heroes (Spinning Blade) count".
 2. **All cards — an immune hero (FAQ).** "Whenever you are required to check the status of a unit, it
    counts as targeting, which you cannot do with an immune unit." A hero the action cannot target never
    counts as adjacent to 3 or more obstacles, also in the conditions of True Grit, Die Hard, Mountain
@@ -26,10 +29,11 @@ reading the card text and FAQ leave open. Code: `heroes/BrynnHero.kt`; tests: `h
    this as a single action … you can choose the bullet points in any order"); a bullet may be chosen
    twice; the second target must differ from the first; "up to" allows choosing none (p.10: steps with
    "up to" are non-mandatory). Each move is exactly 1 space (p.11 card-text movement). The Primary is
-   not offered when nothing can be moved. Other heroes' Ultimates that widen choices are asked
+   not offered when nothing can be moved; a unit Brynn may not move (Brogan's Bulwark) is not offered
+   (rules audit; before, it was offered and the action then stopped). Other heroes' Ultimates that widen choices are asked
    (`choiceLimit`). `BrynnTest` "Decoy - …".
 6. **Peak Precision — "After the attack: You may retrieve this card."** Only after an attack that
-   connected (RULINGS 18) on a qualifying hero. The card goes from its played state back to the hand, so
+   connected (RULINGS 18) on a qualifying hero (designer, BGG 3686648: "Only if condition is met."). The card goes from its played state back to the hand, so
    there is no card to place on the Turn slot this turn (p.7) — **[APP]**, the rulebook does not describe
    a card retrieved while it resolves. `BrynnTest` "Peak Precision - …".
 7. **Split Attack — "may repeat once on a different unit adjacent to you".** The repeat is the whole

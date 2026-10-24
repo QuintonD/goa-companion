@@ -19,7 +19,6 @@ import dev.quinton.goa.core.game.effects.mayRetrieve
 import dev.quinton.goa.core.game.effects.moveSelf
 import dev.quinton.goa.core.game.effects.radiusOf
 import dev.quinton.goa.core.game.effects.unitsWithin
-import dev.quinton.goa.core.game.engine.ActionKind
 import dev.quinton.goa.core.game.engine.ActionScope
 import dev.quinton.goa.core.game.engine.Game
 import dev.quinton.goa.core.game.engine.PieceState
@@ -116,21 +115,13 @@ object TrinketsHero : HeroModule {
 
     // ---- the Turret ----------------------------------------------------------------------------
 
-    /** [owner]'s Turret on the board, if any. */
-    fun Game.turret(owner: String): PieceState? = state.pieces.firstOrNull {
-        it.kind == TURRET && it.owner == owner &&
-            it.at != null
-    }
-
-    /** The hero whose card [cardId] is (Trinkets), whoever performs it. */
-    private fun cardOwner(g: Game, cardId: String?): String? =
-        cardId?.let { id -> g.state.heroes.firstOrNull { it.card(id) != null }?.id }
-
     /**
-     * Whose Turret "the Turret" of this card is: Trinkets', also when another hero performs her card
-     * (goa2-faq, NebKher's Mind Grip: "NebKher can copy Trinkets' cards to remove and/or place the Turret").
+     * The Turret on the board, if any. There is a single Turret (FAQ: "You're limited to the single provided
+     * Turret"), and a hero performing one of Trinkets' cards (NebKher's Mind Grip) uses *the* Turret —
+     * designer, BGG 3485218: "No he places *the* turret"; "all Trinket's card texts refer to *the* turret,
+     * not *a* turret. Nothing in the text prevents Neb from using it, as long as the turret is on the board."
      */
-    private fun ActionScope.turretOwner(): String = cardOwner(g, cardId) ?: heroId
+    fun Game.turret(): PieceState? = state.pieces.firstOrNull { it.kind == TURRET && it.at != null }
 
     /** "it counts as an obstacle" (a piece on its space is one) and, per the FAQ, as terrain. */
     private object TurretRules : Behavior {
@@ -142,17 +133,19 @@ object TrinketsHero : HeroModule {
         val spaces = HexGrid.neighbors(pos).filter { g.isEmpty(it) }
         if (spaces.isEmpty()) fizzle("no empty space next to you for the Turret")
         val h = chooseSpace("Place the Turret into a space adjacent to you", spaces)!!
-        val existing = g.turret(turretOwner())
+        val existing = g.turret()
         if (existing != null) {
             g.place(existing.id, h, heroId)
             return
         }
+        // Trinkets' Turret, whoever performs her card (designer, BGG 3485218).
+        val trinkets = g.state.heroes.firstOrNull { it.card(cardId) != null }?.id ?: heroId
         val piece = PieceState(
             id = g.state.newId("p"),
             kind = TURRET,
             label = "Turret",
             at = null,
-            owner = turretOwner(),
+            owner = trinkets,
             team = null,
             token = false,
             unit = false,
@@ -163,7 +156,7 @@ object TrinketsHero : HeroModule {
         g.place(piece.id, h, heroId)
     }
 
-    private fun ActionScope.turretPos(): Hex? = g.turret(turretOwner())?.at
+    private fun ActionScope.turretPos(): Hex? = g.turret()?.at
 
     /** [id] is 1..[n] spaces from the Turret ("in radius / in range of the Turret", p.9; FAQ: measured on its own). */
     private fun ActionScope.nearTurret(id: String, n: Int): Boolean {
@@ -197,7 +190,7 @@ object TrinketsHero : HeroModule {
     private object Salvage : CardScript {
         override fun primary(a: ActionScope) {
             val canPlace = HexGrid.neighbors(a.pos).any { a.g.isEmpty(it) }
-            val hasTurret = a.g.turret(a.turretOwner()) != null
+            val hasTurret = a.g.turret() != null
             val labels = listOf(
                 "Place the Turret into a space adjacent to you",
                 "Remove the Turret; move up to 3 spaces",
@@ -216,12 +209,12 @@ object TrinketsHero : HeroModule {
                 0 -> a.placeTurretAdjacent()
 
                 1 -> {
-                    a.g.removePiece(a.g.turret(a.turretOwner())!!.id)
+                    a.g.removePiece(a.g.turret()!!.id)
                     a.moveSelf(0, 3)
                 }
 
                 else -> {
-                    a.g.removePiece(a.g.turret(a.turretOwner())!!.id)
+                    a.g.removePiece(a.g.turret()!!.id)
                     a.mayRetrieve()
                 }
             }
@@ -265,7 +258,7 @@ object TrinketsHero : HeroModule {
     private class Design(private val removeAfter: Boolean, private val placeBullet: Boolean) : CardScript {
         override fun primary(a: ActionScope) {
             // "If you are in radius of the Turret," — otherwise the text does nothing.
-            val turret = a.g.turret(a.turretOwner()) ?: return
+            val turret = a.g.turret() ?: return
             val tp = turret.at!!
             val r = a.radius
             if (a.g.distance(a.pos, tp) !in 1..r) return
@@ -274,7 +267,8 @@ object TrinketsHero : HeroModule {
                     a.g.canSwap(a.heroId, id, a.heroId)
             }
             val places = if (placeBullet && a.g.canPlace(a.heroId, a.heroId)) {
-                a.g.within(tp, r).filter { it != a.pos && a.g.isEmpty(it) }
+                // Empty for Trinkets herself (p.18 "Place"; Spinning Blade's spaces count as obstacles for her).
+                a.g.within(tp, r).filter { it != a.pos && a.g.isEmpty(it, a.heroId) }
             } else {
                 emptyList()
             }
@@ -296,15 +290,18 @@ object TrinketsHero : HeroModule {
             val t = a.target(a.chooseObject(labels[0], swaps)!!)
             a.g.swap(a.heroId, t, a.heroId)
             // Early Prototype: "then remove the Turret."
-            if (removeAfter) a.g.turret(a.turretOwner())?.let { a.g.removePiece(it.id) }
+            if (removeAfter) a.g.turret()?.let { a.g.removePiece(it.id) }
         }
     }
 
     /**
      * [APP] "Before any enemy hero … performs a primary action": before each primary action it performs
      * (a repeat is a separate action, p.10; a primary performed by another card's text counts), measured
-     * from where the hero stands then; not before a Defense action (p.14: "different from all other
-     * actions", performed in response to an attack).
+     * from where the hero stands then — a primary Defense action too (defending with a card whose Primary
+     * action is Defense, or a Defense/Skill card, after it is discarded and before its text): the rulebook
+     * calls it one (p.14 "since Defense is the Primary action of 'Vampiric Shield'"; quick reference
+     * "Defense Action … Primary: Same as above, and, in addition, apply the card text"; "Defense/Skill …
+     * perform either Defense or a Skill as a primary action"). Secondary Defense actions are not.
      */
     private class Disruptor(private val orDefeated: Boolean) : CardScript {
         override fun primary(a: ActionScope) {
@@ -313,11 +310,11 @@ object TrinketsHero : HeroModule {
 
         override val behavior: Behavior = object : Behavior {
             override fun on(g: Game, src: Src, t: Trigger) {
-                if (t !is Trigger.BeforeAction || !t.primary || t.kind == ActionKind.DEFENSE) return
+                if (t !is Trigger.BeforeAction || !t.primary) return
                 val owner = src.owner ?: return
                 val e = src.effect ?: return
                 if (!g.isHero(t.heroId) || !g.isEnemy(owner, t.heroId)) return
-                val turret = g.turret(cardOwner(g, src.cardId) ?: owner)?.at ?: return
+                val turret = g.turret()?.at ?: return
                 val at = g.posOf(t.heroId) ?: return
                 if (g.distance(turret, at) !in 1..g.radiusOf(src) || !g.affectedBy(src, t.heroId)) return
                 // "that hero discards a card, if able (or is defeated); if they discard a card, deactivate this
@@ -339,7 +336,7 @@ object TrinketsHero : HeroModule {
             val picked = a.chooseUpTo(2, "An enemy hero in radius of the Turret discards a card", heroes)
             for (v in picked) if (orDefeated) a.discardOrDefeat(v) else a.discardIfAble(v)
             // "Remove the Turret."
-            a.g.turret(a.turretOwner())?.let { a.g.removePiece(it.id) } ?: a.fizzle("the Turret is gone")
+            a.g.turret()?.let { a.g.removePiece(it.id) } ?: a.fizzle("the Turret is gone")
         }
     }
 

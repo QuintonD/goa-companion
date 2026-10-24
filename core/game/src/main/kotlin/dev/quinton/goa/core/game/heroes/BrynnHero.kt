@@ -2,6 +2,7 @@ package dev.quinton.goa.core.game.heroes
 
 import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.game.effects.CardScript
+import dev.quinton.goa.core.game.effects.Displacement
 import dev.quinton.goa.core.game.effects.HeroModule
 import dev.quinton.goa.core.game.effects.Registry
 import dev.quinton.goa.core.game.effects.canMoveOther
@@ -19,6 +20,7 @@ import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.engine.adjacentAttackTarget
 import dev.quinton.goa.core.game.engine.attack
 import dev.quinton.goa.core.game.engine.attackTarget
+import dev.quinton.goa.core.game.engine.canDisplace
 import dev.quinton.goa.core.game.engine.canSwap
 import dev.quinton.goa.core.game.engine.inRange
 import dev.quinton.goa.core.game.engine.isAdjacent
@@ -92,10 +94,15 @@ object BrynnHero : HeroModule {
         r.card(ULTIMATE, OverTheTop)
     }
 
-    /** Spaces next to [unitId] that are obstacles now (p.18), for the acting hero's action. */
-    fun Game.obstaclesAround(unitId: String): Int {
+    /**
+     * Spaces next to [unitId] that are obstacles now (p.18), for the acting hero's action; spaces that count
+     * as obstacles for [forHero] (Brynn) count too — designer, BGG 3482037, on Takahide's Spinning Blade
+     * spaces that "count as obstacles for enemy units": "they count for enemy heroes = they count for enemy
+     * heroes card effects". Brynn's own space is an obstacle as well (the card's reminder: "You, …").
+     */
+    fun Game.obstaclesAround(unitId: String, forHero: String? = null): Int {
         val at = posOf(unitId) ?: return 0
-        return HexGrid.neighbors(at).count { isObstacle(it) }
+        return HexGrid.neighbors(at).count { isObstacle(it) || (forHero != null && isObstacle(it, forHero)) }
     }
 
     /**
@@ -107,7 +114,7 @@ object BrynnHero : HeroModule {
     fun ActionScope.obstacleBound(id: String): Boolean {
         if (!g.isHero(id) || g.posOf(id) == null || !canTarget(id)) return false
         if (isEnemy(id) && overTheTop()) return true
-        return g.obstaclesAround(id) >= OBSTACLES
+        return g.obstaclesAround(id, forHero = heroId) >= OBSTACLES
     }
 
     /** p.16: an unlocked Ultimate is in effect while its hero is on the board; "while you are performing actions". */
@@ -151,8 +158,11 @@ object BrynnHero : HeroModule {
                 "Move an enemy minion in radius 1 space",
                 "Move an enemy hero in radius who is adjacent to 3 or more obstacles 1 space",
             )
+
+            // A unit Brynn may not move (Brogan's Bulwark) is not offered: the move of 1 space is mandatory.
             fun candidates(i: Int) = a.unitsWithin(a.radius).filter { id ->
-                a.isEnemy(id) && id !in a.targets && a.canTarget(id) && bullets[i](id) && a.canMoveOther(id, 1)
+                a.isEnemy(id) && id !in a.targets && a.canTarget(id) && bullets[i](id) &&
+                    a.g.canDisplace(id, Displacement.MOVE, a.heroId) && a.canMoveOther(id, 1)
             }
             // "Choose up to two times, on different targets" (p.10: a single action; any order, a bullet
             // may be chosen again; "up to": none at all is allowed).
