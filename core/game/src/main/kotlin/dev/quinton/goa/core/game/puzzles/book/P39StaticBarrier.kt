@@ -14,7 +14,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** CONCEPTS.md C39 "Static Barrier". */
+/** CONCEPTS.md C39 "Static Barrier" (changed: starts at the card choice; the Barrier also shields Tigerclaw). */
 object P39StaticBarrier : Puzzle() {
     override val concept = "C39"
 
@@ -22,83 +22,96 @@ object P39StaticBarrier : Puzzle() {
         id = "p39",
         number = 39,
         title = "Static Barrier",
-        difficulty = 2,
-        theme = "Active effects, Block",
-        heroes = listOf("wasp", "brogan", "swift", "tigerclaw"),
+        difficulty = 1,
+        theme = "Active effects, Block, choosing your card",
+        heroes = listOf("wasp", "tigerclaw", "brogan", "swift"),
         goal = PuzzleGoal.Survive(Deadline.END_OF_TURN, "Survive this turn."),
-        intro = "Round 3, turn 3. Wasp has played Static Barrier (13) and acts first. Swift has played " +
-            "Snipe (8) and Brogan Mad Dash (7); Tigerclaw (Light-Fingered, 2) is far away. Wasp keeps " +
-            "Magnetic Dagger (Defense 2) and Stop Projectiles in her hand.",
+        intro = "Round 2, turn 2. Swift (Snipe, with an Attack item) and Brogan (Mad Dash) have played their cards, " +
+            "and so has Tigerclaw (Light-Fingered, 2). Choose Wasp's card: she holds Magnetic Dagger, Static " +
+            "Barrier, Shock and Stop Projectiles. Tigerclaw holds Blink Strike, Blend Into Shadows and Hit and Run.",
         nudges = listOf(
-            "Two attacks are coming and you have two cards. One of them stops only one kind of attack.",
-            "Mad Dash must end next to you. What if every space around you were an obstacle for Brogan?",
-            "Perform Static Barrier, then block Swift's Snipe with Stop Projectiles.",
+            "Two attacks are coming: Snipe at Wasp, and Mad Dash at whichever of your heroes Brogan can reach. " +
+                "Tigerclaw's cards can't stop it.",
+            "Static Barrier makes the spaces around Wasp obstacles for an enemy acting from outside them. Where " +
+                "would Brogan's runs have to end?",
+            "Play Static Barrier, perform it, then block Snipe with Stop Projectiles.",
         ),
-        explanation = "Magnetic Dagger's Defense 2 stops neither attack (Snipe 5, Mad Dash 6; p.14). Static " +
-            "Barrier makes every space within 2 of Wasp an obstacle while an enemy hero outside that radius acts " +
-            "(card text, p.18 Obstacle): Brogan, three spaces away, can't end a Mad Dash next to her, and if he " +
-            "can't make that move he can't attack (card text). The Barrier does not stop attacks (Wasp FAQ), so " +
-            "Swift's Snipe still comes: Stop Projectiles blocks a ranged attack (p.14 Block), while Magnetic " +
-            "Dagger would lose 2 against 5. Holding instead leaves one Block for two attacks, and Mad Dash is not " +
-            "ranged.",
+        explanation = "Snipe needs a target exactly four spaces away in a straight line (p.19): only Wasp. Mad Dash " +
+            "must move exactly two spaces in a straight line to a space next to an enemy unit (card text, p.11): " +
+            "Brogan has two runs, one ending beside both of your heroes and one beside Tigerclaw, whose cards " +
+            "can't stop Attack 6. Running with Shock or Magnetic Dagger leaves Tigerclaw to Brogan: Wasp could " +
+            "stand in one run, never in both. Static Barrier acts first at 13; while Brogan, outside its radius, " +
+            "performs his action, every space within 2 of Wasp is an obstacle (card text; p.18 Obstacle), so " +
+            "neither run can be made and there is no attack. The Barrier doesn't stop attacks (Wasp FAQ), so Snipe " +
+            "still comes: Stop Projectiles blocks a ranged attack (p.14 Block), while Shock would defend at 6 - 1 " +
+            "for the Blue ranged minion within 2 (p.14) = 5 against 6. Played as your card, Stop Projectiles acts " +
+            "last and can't block: you defend only by discarding from your hand (p.14).",
         rules = listOf(
             "p.11 Movement in the Card Text",
-            "p.14 Defense, Block",
+            "p.14 Defense, Block, Minion Defense Modifiers",
             "p.17 Active Effects",
             "p.18 Obstacle",
+            "p.19 Straight Line",
             "Wasp FAQ: Static Barrier",
         ),
     )
 
-    override val playerSeats = setOf("wasp")
+    override val playerSeats = setOf("wasp", "tigerclaw")
 
     override fun PositionBuilder.setUp() {
-        round = 3
-        turn = 3
+        round = 2
+        turn = 2
         tieBreaker = Team.RED
         clearMinions()
-        lifeCounters(Team.RED, 3)
-        lifeCounters(Team.BLUE, 3)
-        hero("brogan", Team.BLUE, Hex(4, -7)) {
-            played("brogan-red-1")
-            resolved(1, "brogan-gold")
-            resolved(2, "brogan-blue-1")
-            hand("brogan-silver", "brogan-green-1")
-        }
-        hero("swift", Team.BLUE, Hex(5, -5)) {
+        hero("swift", Team.BLUE, Hex(3, -5)) {
+            level = 2
             played("swift-red-1")
             resolved(1, "swift-blue-1")
-            resolved(2, "swift-green-1")
-            hand("swift-gold", "swift-silver")
+            hand("swift-gold", "swift-silver", "swift-green-2b")
+            items("swift-green-2a")
         }
-        hero("tigerclaw", Team.RED, Hex(-1, -2)) {
+        hero("brogan", Team.BLUE, Hex(2, -6)) {
+            played("brogan-red-1")
+            resolved(1, "brogan-gold")
+            hand("brogan-silver", "brogan-green-1", "brogan-blue-1")
+        }
+        hero("tigerclaw", Team.RED, Hex(0, -5)) {
             played("tigerclaw-green-1")
-            resolved(1, "tigerclaw-gold")
-            resolved(2, "tigerclaw-silver")
-            hand("tigerclaw-red-1", "tigerclaw-blue-1")
+            resolved(1, "tigerclaw-blue-1")
+            hand("tigerclaw-gold", "tigerclaw-silver", "tigerclaw-red-1")
         }
-        hero("wasp", Team.RED, Hex(1, -5)) {
-            played("wasp-silver")
-            resolved(1, "wasp-red-1")
-            resolved(2, "wasp-blue-1")
-            hand("wasp-gold", "wasp-green-1")
+        hero("wasp", Team.RED, Hex(-1, -5)) {
+            resolved(1, "wasp-blue-1")
+            hand("wasp-gold", "wasp-silver", "wasp-red-1", "wasp-green-1")
         }
-        minion(Team.RED, MinionType.MELEE, Hex(0, -6))
+        minion(Team.RED, MinionType.MELEE, Hex(-2, 1))
         minion(Team.RED, MinionType.HEAVY, Hex(1, 0))
         minion(Team.BLUE, MinionType.MELEE, Hex(3, -1))
-        minion(Team.BLUE, MinionType.HEAVY, Hex(2, -7))
-        phase = PositionPhase.Resolving(next = "wasp")
+        minion(Team.BLUE, MinionType.RANGED, Hex(-1, -3))
+        minion(Team.BLUE, MinionType.HEAVY, Hex(5, -8))
+        phase = PositionPhase.PlayCards(fromSeat = 3)
     }
 
-    override val solution = listOf(action(ActionType.PRIMARY), card("wasp-green-1"))
+    override val solution = listOf(
+        card("wasp-silver"),
+        action(ActionType.PRIMARY),
+        card("wasp-green-1"),
+        action(ActionType.HOLD),
+    )
 
-    override val nudgedMoves = solution
+    override val nudgedMoves = solution.take(2)
 
     override val wrongTries = listOf(
-        WrongTry("Hold: one Block card cannot answer two attacks", listOf(action(ActionType.HOLD))),
+        WrongTry("Magnetic Dagger's step: Tigerclaw is left to Brogan", listOf(card("wasp-gold"))),
+        WrongTry("Shock to run away: one of Brogan's runs still reaches Tigerclaw", listOf(card("wasp-red-1"))),
         WrongTry(
-            "Trust the Barrier to stop the Snipe and defend with Magnetic Dagger: 2 against 5",
-            listOf(action(ActionType.PRIMARY), card("wasp-gold")),
+            "Play Stop Projectiles: nothing stops Brogan, and Wasp can't block Snipe with a played card",
+            listOf(card("wasp-green-1")),
+        ),
+        WrongTry("Static Barrier, but hold", listOf(card("wasp-silver"), action(ActionType.HOLD))),
+        WrongTry(
+            "Static Barrier, then defend with Shock: 5 against 6",
+            listOf(card("wasp-silver"), action(ActionType.PRIMARY), card("wasp-red-1")),
         ),
     )
 }

@@ -18,7 +18,10 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** CONCEPTS.md C29 "Threaten the Guards" (Xargatha added as Red's idle second hero). */
+/**
+ * CONCEPTS.md C29 "Threaten the Guards" (changed: an immune heavy minion guards Wasp too, so Wasp herself
+ * must be moved twice; Xargatha is Red's idle second hero).
+ */
 object P29ThreatenTheGuards : Puzzle() {
     override val concept = "C29"
 
@@ -26,34 +29,34 @@ object P29ThreatenTheGuards : Puzzle() {
         id = "p29",
         number = 29,
         title = "Threaten the Guards",
-        difficulty = 2,
-        theme = "Minion defense modifiers, Repeat",
+        difficulty = 3,
+        theme = "Minion defense modifiers, heavy minion immunity, Repeat",
         heroes = listOf("garrus", "brogan", "wasp", "xargatha"),
         goal = PuzzleGoal.DefeatHero("wasp", Deadline.END_OF_TURN, "Defeat Wasp this turn."),
-        intro = "Round 3, turn 4. Garrus has played Threaten (10) and acts next; Brogan has played Mad Dash " +
-            "(7). Wasp has played Stop Projectiles (3) and keeps Lift Up (Defense 5). Xargatha has already " +
-            "acted.",
+        intro = "Round 3, turn 4. Garrus has played Threaten (10) and acts next; Brogan has played Mad Dash (7) " +
+            "and has an Attack item. Wasp has played Stop Projectiles (3) and keeps Kinetic Repulse (Defense 5); " +
+            "she has a Defense item. Xargatha has already acted.",
         nudges = listOf(
-            "Wasp's two melee minions are worth +2 to her defense.",
-            "Threaten may repeat, and the repeat may pick a different minion.",
-            "Move both melee minions one space away from Garrus, then Mad Dash next to Wasp.",
+            "Count Wasp's Defense against Brogan's Attack 7, and count every minion beside her.",
+            "Red still has melee minions in the Battle Zone, so its heavy minion is immune: Threaten can't move " +
+                "it. Threaten can move Wasp, though, and the repeat may move her again.",
+            "Threaten Wasp one space west, then repeat and move her west again.",
         ),
-        explanation = "Each adjacent friendly melee minion gives a defending hero +1 Defense (p.14), so Wasp " +
-            "defends 5 + 2 = 7 against Mad Dash's 6. Threaten moves an enemy unit 1 space farther from Garrus " +
-            "(p.17 Farther), and a repeat performs the action again with a new choice of target (p.10 " +
-            "Repeat): move one guard, then the other, to spaces that are no longer next to her and still in " +
-            "the Battle Zone (p.18). Watch the second step: when the guard two spaces from Garrus moves " +
-            "first, the space it leaves is also farther away for the guard next to Garrus, and a guard " +
-            "moved into it stands next to Wasp again. Moving only one leaves 6 against 6, and equal totals " +
-            "defend (p.14). " +
-            "Moving Wasp herself strips both guards, but she lands where no two-space Mad Dash line reaches " +
-            "her (p.11).",
+        explanation = "Each adjacent friendly melee or heavy minion gives a defending hero +1 Defense (p.14), so " +
+            "Wasp defends 5 + 1 (item) + 3 = 9 against Mad Dash's 6 + 1 = 7. While Red has a melee minion in the " +
+            "Battle Zone its heavy minion is immune: no action can move it (p.13), yet it still guards her. Moving " +
+            "both melee minions leaves 5 + 1 + 1 = 7 against 7, and equal totals defend (p.14). Threaten may move " +
+            "Wasp herself, and the repeat may choose her again (p.10 Repeat), each time to a space farther from " +
+            "Garrus (p.17 Farther). West and west again, no minion is left beside her: 6 against 7, and Brogan's " +
+            "two-space run south-east ends next to her (p.11). North-east twice also strips every guard, but no " +
+            "two-space line of Brogan's ends beside her there; any other second step leaves her next to the heavy " +
+            "minion. The lesson: when a guard can't be moved, move the hero it guards.",
         rules = listOf(
             "p.10 Repeat",
             "p.11 Movement in the card text",
+            "p.13 Heavy Minion Immunity",
             "p.14 Minion defense modifiers",
             "p.17 Farther",
-            "p.18 Minions outside of the Battle Zone",
         ),
     )
 
@@ -64,7 +67,9 @@ object P29ThreatenTheGuards : Puzzle() {
         turn = 4
         tieBreaker = Team.RED
         clearMinions()
-        hero("garrus", Team.BLUE, Hex(3, -7)) {
+        lifeCounters(Team.RED, 3)
+        lifeCounters(Team.BLUE, 3)
+        hero("garrus", Team.BLUE, Hex(1, 0)) {
             level = 2
             played("garrus-blue-2a")
             resolved(1, "garrus-gold")
@@ -73,55 +78,70 @@ object P29ThreatenTheGuards : Puzzle() {
             hand("garrus-green-1")
             items("garrus-blue-2b")
         }
-        hero("brogan", Team.BLUE, Hex(0, -4)) {
+        hero("brogan", Team.BLUE, Hex(0, -3)) {
+            level = 2
             played("brogan-red-1")
             resolved(1, "brogan-gold")
             resolved(2, "brogan-blue-1")
             resolved(3, "brogan-silver")
-            hand("brogan-green-1")
+            hand("brogan-green-2b")
+            items("brogan-green-2a")
         }
-        hero("wasp", Team.RED, Hex(2, -5)) {
+        hero("wasp", Team.RED, Hex(1, -1)) {
+            level = 2
             played("wasp-green-1")
             resolved(1, "wasp-gold")
-            resolved(2, "wasp-red-1")
-            resolved(3, "wasp-silver")
-            hand("wasp-blue-1")
+            resolved(2, "wasp-silver")
+            resolved(3, "wasp-red-1")
+            hand("wasp-blue-2b")
+            items("wasp-blue-2a")
         }
-        hero("xargatha", Team.RED, Hex(-2, 1)) {
-            resolved(1, "xargatha-gold")
-            resolved(2, "xargatha-silver")
-            resolved(3, "xargatha-red-1")
-            resolved(4, "xargatha-green-1")
-            hand("xargatha-blue-1")
+        hero("xargatha", Team.RED, Hex(4, -7)) {
+            level = 2
+            resolved(1, "xargatha-silver")
+            resolved(2, "xargatha-red-1")
+            resolved(3, "xargatha-green-1")
+            resolved(4, "xargatha-gold")
+            hand("xargatha-blue-2a")
+            items("xargatha-blue-2b")
         }
-        minion(Team.RED, MinionType.MELEE, Hex(3, -5))
-        minion(Team.RED, MinionType.MELEE, Hex(3, -6))
-        minion(Team.RED, MinionType.HEAVY, Hex(1, 0))
-        minion(Team.BLUE, MinionType.MELEE, Hex(3, -1))
+        minion(Team.RED, MinionType.MELEE, Hex(2, -1))
+        minion(Team.RED, MinionType.MELEE, Hex(0, 0))
+        minion(Team.RED, MinionType.HEAVY, Hex(1, -2))
+        minion(Team.BLUE, MinionType.MELEE, Hex(5, -8))
         minion(Team.BLUE, MinionType.HEAVY, Hex(2, -7))
         phase = PositionPhase.Resolving(next = "garrus")
     }
 
     override val solution = listOf(
         action(ActionType.PRIMARY),
-        unitAt(3, -5),
-        space(4, -5),
+        hero("wasp"),
+        space(0, -1),
         yes(),
-        unitAt(3, -6),
-        space(4, -6),
+        hero("wasp"),
+        space(-1, -1),
         action(ActionType.PRIMARY),
+        hero("wasp"),
     )
 
     override val nudgedMoves = solution.take(6)
 
     override val wrongTries = listOf(
         WrongTry(
-            "Threaten Wasp herself: she ends out of every Mad Dash line",
-            listOf(action(ActionType.PRIMARY), hero("wasp")),
+            "Threaten a melee guard: with both moved, the immune heavy still guards her, 7 against 7",
+            listOf(action(ActionType.PRIMARY), unitAt(2, -1)),
         ),
         WrongTry(
-            "Move one guard only: 5 + 1 = 6 still holds against 6",
-            listOf(action(ActionType.PRIMARY), unitAt(3, -5), space(4, -5), decline()),
+            "Move Wasp north-east: two steps that way strip her guards, but no Mad Dash line reaches her",
+            listOf(action(ActionType.PRIMARY), hero("wasp"), space(2, -2)),
+        ),
+        WrongTry(
+            "Move Wasp west, then north-west: she is next to the heavy minion again",
+            listOf(action(ActionType.PRIMARY), hero("wasp"), space(0, -1), yes(), hero("wasp"), space(0, -2)),
+        ),
+        WrongTry(
+            "Move Wasp once and stop: the heavy and a melee minion still guard her",
+            listOf(action(ActionType.PRIMARY), hero("wasp"), space(0, -1), decline()),
         ),
     )
 }
