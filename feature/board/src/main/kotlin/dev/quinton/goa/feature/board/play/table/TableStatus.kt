@@ -270,14 +270,24 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TeamMark(hero.team, markSize = 8.dp)
                     Spacer(Modifier.width(3.dp))
+                    // The name may shorten; "Now" never does ("Trinkets · N…" at large text).
                     Text(
-                        if (acting) "${info.name} · Now" else info.name,
+                        info.name,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.widthIn(max = 108.dp),
                     )
+                    if (acting) {
+                        Text(
+                            " · Now",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                        )
+                    }
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

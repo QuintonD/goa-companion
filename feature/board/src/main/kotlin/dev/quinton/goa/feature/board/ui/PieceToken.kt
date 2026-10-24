@@ -152,12 +152,14 @@ private fun TokenSquare(piece: TokenPiece, size: Dp, palette: BoardPalette) {
             .border(size * 0.06f, edge, shape),
         contentAlignment = Alignment.Center,
     ) {
+        // Sized to the piece, not the font scale: the token must keep its label inside, and a word
+        // is never split across lines ("Turr / et" on the game table): the longest word sets the size.
+        val em = tokenEm(piece.label)
         Text(
             piece.label.take(TOKEN_CHARS),
             color = palette.onToken,
-            // Sized to the piece, not the font scale: the token must keep its label inside.
-            fontSize = (size.value * 0.27f / fontScale).sp,
-            lineHeight = (size.value * 0.3f / fontScale).sp,
+            fontSize = (size.value * em / fontScale).sp,
+            lineHeight = (size.value * em * LINE / fontScale).sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             maxLines = 2,
@@ -182,4 +184,19 @@ fun TeamShape(team: Team, size: Dp, palette: BoardPalette, modifier: Modifier = 
 
 private const val PORTRAIT_PX = 256
 private const val LIFT_SCALE = 1.18f
-private const val TOKEN_CHARS = 8
+private const val TOKEN_CHARS = 16
+
+/** The label's font size as a share of the piece: as large as fits its longest word on one line. */
+internal fun tokenEm(label: String): Float {
+    val longest = label.take(TOKEN_CHARS).split(' ').maxOfOrNull { it.length }?.coerceAtLeast(1) ?: 1
+    return (TOKEN_WIDTH / (CHAR_EM * longest)).coerceIn(MIN_EM, MAX_EM)
+}
+
+/** The token's inner width (0.82 of the piece, less padding), as a share of the piece. */
+private const val TOKEN_WIDTH = 0.66f
+
+/** An average bold character's width, in em. */
+private const val CHAR_EM = 0.66f
+private const val MIN_EM = 0.14f
+private const val MAX_EM = 0.27f
+private const val LINE = 1.1f

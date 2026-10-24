@@ -10,6 +10,7 @@ import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GamePhase
 import dev.quinton.goa.core.game.GameView
 import dev.quinton.goa.core.game.HeroView
+import dev.quinton.goa.core.game.PieceView
 import dev.quinton.goa.core.model.board.BoardMap
 import dev.quinton.goa.core.model.board.BoardPiece
 import dev.quinton.goa.core.model.board.HeroPiece
@@ -61,7 +62,15 @@ data class TableUi(
     val pieces: List<BoardPiece>
         get() = buildList {
             view.minions.forEach { add(MinionPiece(it.id, it.at, it.team, it.type, it.lane)) }
-            view.pieces.forEach { add(TokenPiece(it.id, it.at, it.label, it.team)) }
+            view.pieces.forEach { p ->
+                val figureOf = figureOf(p)
+                // A hero's other figures (Razzle's) are drawn as that hero, not as a token.
+                if (figureOf != null && p.team != null) {
+                    add(HeroPiece(p.id, p.at, figureOf, p.team!!))
+                } else {
+                    add(TokenPiece(p.id, p.at, p.label, p.team))
+                }
+            }
             view.heroes.forEach { h -> h.at?.let { add(HeroPiece(h.heroId, it, h.heroId, h.team)) } }
         }
 
@@ -143,20 +152,32 @@ data class TableUi(
         view.minions.firstOrNull {
             it.id == id
         }?.let { return "${BoardText.team(it.team)} ${BoardText.minion(it.type)}" }
-        view.pieces.firstOrNull { it.id == id }?.let { piece ->
-            return listOfNotNull("Token ${piece.label}", piece.team?.let(BoardText::team)).joinToString(", ")
-        }
-        return "Unknown piece"
+        return view.pieces.firstOrNull { it.id == id }?.let(::pieceLabel) ?: "Unknown piece"
     }
+
+    private fun pieceLabel(piece: PieceView): String = figureOf(piece)?.let { "${hero(it).name}'s other figure" }
+        ?: listOfNotNull("Token ${piece.label}", piece.team?.let(BoardText::team)).joinToString(", ")
 
     /** What a choice is, in words: for buttons, TalkBack and the Confirm button. */
     fun label(choice: Choice): String = when (choice) {
         is Choice.Space -> spaceLabel(choice.hex)
-        is Choice.Unit -> pieceName(choice.unitId)
-        is Choice.Token -> pieceName(choice.tokenId)
+        is Choice.Unit -> distinctPieceName(choice.unitId)
+        is Choice.Token -> distinctPieceName(choice.tokenId)
         is Choice.Card -> card(choice.cardId)?.name ?: "Unknown card"
         is Choice.Action -> PlayText.action(choice.action, sourceCard)
         else -> PlayText.button(choice)
+    }
+
+    /**
+     * A piece's name, with where it stands when another option has the same name ("Red Melee
+     * minion · Lane Zone 2 · 1 space from Mortimer"): three chips saying "Red Melee minion" told
+     * the player nothing at the Minion Battle.
+     */
+    private fun distinctPieceName(id: String): String {
+        val name = pieceName(id)
+        val twins = pieceOptions.keys.count { it != id && pieceName(it) == name }
+        val at = at(id)
+        return if (twins > 0 && at != null) "$name · ${spaceLabel(at)}" else name
     }
 
     /** "Lane Zone 2 · 3 spaces from Arien". */
@@ -177,6 +198,13 @@ data class TableUi(
     val handDecision: Boolean
         get() = decision?.kind == DecisionKind.PLAY_CARD || decision?.kind == DecisionKind.DEFEND
 }
+
+/**
+ * The hero a piece is another figure of (a unit the engine treats as that hero: Razzle's doubles,
+ * kind `<hero>_double`), else null.
+ */
+internal fun figureOf(piece: PieceView): String? =
+    piece.ownerHeroId?.takeIf { piece.isUnit && piece.kind == "${it}_double" }
 
 /** A tap on the game map: a piece (by id) or a space. */
 sealed interface TableTap {
