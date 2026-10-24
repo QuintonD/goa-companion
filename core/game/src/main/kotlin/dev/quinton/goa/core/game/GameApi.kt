@@ -313,6 +313,8 @@ data class CardView(
     val facedown: Boolean = false,
     /** A resolved or discarded card with an Active effect shown on its side (p.7). */
     val active: Boolean = false,
+    /** The Turn slot 1..4 of a resolved card (p.7), else null. */
+    val slot: Int? = null,
 )
 
 @Serializable
