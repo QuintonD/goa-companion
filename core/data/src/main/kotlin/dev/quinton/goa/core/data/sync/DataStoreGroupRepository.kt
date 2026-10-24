@@ -21,6 +21,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.serialization.builtins.ListSerializer
@@ -108,27 +109,44 @@ internal class DataStoreGroupRepository @Inject constructor(
      * Stores how a server sync of [groupId] with [server] went, unless the group or server
      * changed while it ran (that outcome isn't theirs).
      */
-    internal suspend fun recordServerSync(groupId: String, server: String, outcome: SyncServerResult) =
-        store.edit { prefs ->
-            if (prefs.groupId != groupId || serverOf(prefs) != server) return@edit prefs
-            when (outcome) {
-                is SyncServerResult.Synced -> prefs.copy(
-                    serverSyncedAt = outcome.at,
-                    serverRev = outcome.rev,
-                    serverError = null,
-                    serverErrorKind = null,
-                    serverErrorAt = null,
-                )
+    internal suspend fun recordServerSync(
+        groupId: String,
+        server: String,
+        outcome: SyncServerResult,
+        documentHash: String? = null,
+    ) = store.edit { prefs ->
+        if (prefs.groupId != groupId || serverOf(prefs) != server) return@edit prefs
+        when (outcome) {
+            is SyncServerResult.Synced -> prefs.copy(
+                serverSyncedAt = outcome.at,
+                serverRev = outcome.rev,
+                serverDocHash = documentHash.takeIf { outcome.rev != null },
+                serverError = null,
+                serverErrorKind = null,
+                serverErrorAt = null,
+            )
 
-                is SyncServerResult.Failed -> prefs.copy(
-                    serverError = outcome.error.message,
-                    serverErrorKind = outcome.error.problem.name,
-                    serverErrorAt = outcome.error.at,
-                )
+            is SyncServerResult.Failed -> prefs.copy(
+                serverError = outcome.error.message,
+                serverErrorKind = outcome.error.problem.name,
+                serverErrorAt = outcome.error.at,
+            )
 
-                SyncServerResult.NotConfigured -> prefs
-            }
+            SyncServerResult.NotConfigured -> prefs
         }
+    }
+
+    /**
+     * The rev and document hash of the last sync of [groupId] with [server] (both sides held that
+     * document then); null when there is none.
+     */
+    internal suspend fun serverCheckpoint(groupId: String, server: String): Pair<Long, String>? {
+        val prefs = store.prefs.first()
+        if (prefs.groupId != groupId || serverOf(prefs) != server) return null
+        val rev = prefs.serverRev ?: return null
+        val hash = prefs.serverDocHash ?: return null
+        return rev to hash
+    }
 
     /** What to store for [url]: its origin, or null when it is the default (or not an address). */
     private fun override(url: String): String? =

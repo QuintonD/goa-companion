@@ -24,6 +24,17 @@ class SyncServerTest {
         assertThat(hash).isEqualTo("f8f51f43e4c066e0ca7149d763ec4149881e6890d9a8330491c10add0af944ff")
     }
 
+    /** The vector in SYNC-SERVER.md, asserted by the relay's `RelayTokenTest` too. */
+    @Test
+    fun theTokenMatchesTheServersVector() {
+        val relayGroup = GroupCredentials("8c4f2b1e-3a5d-4c6e-9f70-1a2b3c4d5e6f", ByteArray(32) { it.toByte() }, "g")
+        val token = SyncServerToken.derive(relayGroup)
+        assertThat(token).isEqualTo("dFROVzWTpa17AzhaeXje8rW5l1okK5Q9nuEeVerIQTI")
+        val hash = MessageDigest.getInstance("SHA-256").digest(token.toByteArray(Charsets.US_ASCII))
+            .joinToString("") { "%02x".format(it) }
+        assertThat(hash).isEqualTo("cfb0311773dcc2650c1160044e1f82ed615b49d23428d9b9c935d82d01399e25")
+    }
+
     @Test
     fun theTokenIsTheFormulaAndNeverTheKey() {
         val expected = Base64.getUrlEncoder().withoutPadding().encodeToString(

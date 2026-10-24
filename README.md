@@ -38,7 +38,8 @@ and keep their data.
 ## Group sync: every friend's phone, the same data (ADR-025)
 
 Phones sync face to face at the table, over Bluetooth and Wi-Fi Direct (Google Nearby
-Connections). No internet, no accounts, no server; the app still has no internet permission.
+Connections), and through the group's sync server whenever they have internet (see "The sync
+server" below). No accounts.
 
 **Start the group (once, on one phone):** Settings → Group sync → Start a group → name it.
 
@@ -70,6 +71,26 @@ group key, through Quick Share, a message or Drive; the other phone opens it (or
 The invite QR code is the group's key: show it only at the table. Release and debug builds
 don't see each other (different app ids). Leaving a group keeps all data on the phone.
 
+### The sync server (ADR-036)
+
+A small relay on the owner's machine (`server/relay/`, deployed from `deploy/relay/`, protocol in
+[docs/SYNC-SERVER.md](docs/SYNC-SERVER.md)) keeps one copy of each group's data, locked with the
+group key it never sees. Phones do the work: they fetch the copy, merge it like a sync file and
+upload the result when it changed. With a server, a friend who scans the invite gets the group's
+data at once, and phones stay in step between game nights without meeting.
+
+- **Built-in address:** the Gradle property `goa.syncServer` (default in `gradle.properties`:
+  `https://oldboi.taila4d38d.ts.net:8443`). Override it per machine in
+  `~/.gradle/gradle.properties` or with `-Pgoa.syncServer=https://host:port`; set it empty for a
+  build without a server. It must be an `https://` origin (debug builds also accept
+  `http://10.0.2.2:<port>` for a server on the PC running the emulator).
+- **Per group:** Group sync → Sync server → **Advanced** sets another address for this group
+  (https only in release builds) or goes back to the built-in one. New invites from that phone
+  carry the address, so friends who scan them use the same server.
+- **Off switch:** "Sync through the server" on the same card; off = face to face and sync files only.
+- **Status:** the card shows when this phone last synced and, when something is wrong, what to do;
+  a problem that needs a person also puts a dot on the Players tab's sync icon.
+
 ## Release signing key — back it up
 
 Release builds are signed with a private key kept **outside** the repo:
@@ -84,8 +105,9 @@ deletes the match history on the phone (export a backup from Players → Backup 
 
 ## Your data
 
-Everything is stored on the phone; the app has no internet permission. Group sync (above)
-keeps the group's phones in step. Use Players → Backup to export a JSON file (and to move data
+Everything is stored on the phone. The only place the app connects to is the group's sync server
+(above), which holds a copy locked with the group key and can't read it; switch it off on the
+Group screen and the app stays offline. Group sync (above) keeps the group's phones in step. Use Players → Backup to export a JSON file (and to move data
 to a new phone; a sync with the group afterwards brings it up to date). Android Auto Backup
 also covers the database and settings.
 

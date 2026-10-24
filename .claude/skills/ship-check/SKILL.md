@@ -19,5 +19,10 @@ Run from the project root and report each result honestly (pass / fail / skipped
 7. Check data and assets: catalog validation green; `tools/catalog-import/REPORT.md` has no
    new unresolved disagreements; every file in `assets/official/` is in `official/SOURCES.md`;
    new fonts/sounds listed in `third_party/`.
+8. Check the network surface (ADR-036): the merged release manifest
+   (`app/build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml`)
+   has `INTERNET`, no `backend:com.google.android.datatransport.cct.CctBackendFactory` meta-data (the
+   code scanner's usage logger must have no upload backend), no `FOREGROUND_SERVICE`, and the
+   HTTPS-only `networkSecurityConfig`; app code contacts no host but the group's sync server.
 
 Never report "verified on device" unless step 5 actually ran on hardware.

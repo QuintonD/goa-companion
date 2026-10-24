@@ -12,7 +12,7 @@
 | Async | Coroutines + Flow; `StateFlow<UiState>` per screen |
 | Charts | Vico 3.x (`compose`, `compose-m3`) |
 | Images | Coil 3 — `AsyncImage(model = "file:///android_asset/official/…")` |
-| Group sync | Google Nearby Connections 19.5.1 (`P2P_STAR`), Google code scanner 16.1.0 (invite QR, no CAMERA permission), ZXing core 3.5.4 (draws the QR), `javax.crypto` only (ADR-025) |
+| Group sync | Google Nearby Connections 19.5.1 (`P2P_STAR`), Google code scanner 16.1.0 (invite QR, no CAMERA permission), ZXing core 3.5.4 (draws the QR), `javax.crypto` only (ADR-025); sync server client: OkHttp 5.5 + WorkManager 2.12 with Hilt workers (ADR-036) |
 | Quality | Android Lint, ktlint (`org.jlleitschuh.gradle.ktlint`), detekt 2.0 (`dev.detekt`, alpha — see ADR-008), Roborazzi, JUnit + Turbine + Truth |
 
 Pin versions in `gradle/libs.versions.toml`; never inline a version in a module build file.
@@ -74,7 +74,8 @@ feature/board/           # board sandbox (ADR-033): Boards list, New board, Boar
                          #   engine thread: answers, narrated replies, miss/undo/restart, nudges, the replay).
                          #   Builds against core:game's GameApi.kt only (tests use the real EnginePuzzleBook)
 feature/sync/            # group sync (ADR-025): Group screen, sync sheet, Who are you, sync-file import;
-                         #   NearbySyncTransport, invite QR + scanner, FileProvider, permissions
+                         #   NearbySyncTransport, invite QR + scanner, FileProvider, permissions;
+                         #   server/ (ADR-036): SyncServerScheduler + SyncServerWorker, SyncServerCard
 tools/catalog-import/    # JVM CLI (reuses core:model): sources.lock.json, overrides.json,
                          #   cache/ (gitignored), REPORT.md → writes assets/catalog + assets/official;
                          #   --rules-only: rules-reference drift check vs the pinned rulebook (PDFBox)
@@ -95,11 +96,11 @@ Features never depend on each other; cross-feature navigation goes through `app`
   reference them. Unknown IDs render as "Unknown hero"; imported or synced ones are stored as
   they are and read as Unknown-hero seats (DOMAIN.md *Backup import*, ADR-025).
 - **Catalog data is bundled.** Catalog data and images are fetched at dev time by
-  `tools/catalog-import` and bundled. No feature uses the network yet, so the app manifest
-  removes the `INTERNET` permission (`tools:node="remove"`) that the code scanner's
-  `transport-backend-cct` declares, which keeps Google's usage logger silent. Going online is
-  allowed (ADR-034): drop that line in the feature that needs it. Group sync is phone to phone
-  (below).
+  `tools/catalog-import` and bundled. The only network use is the group's sync server
+  (ADR-036, below): the app declares `INTERNET`, release builds speak HTTPS only to system CAs
+  (`res/xml/network_security_config.xml`; the debug copy adds plain HTTP to `10.0.2.2` /
+  `localhost`), and the manifest removes the datatransport `CctBackendFactory` registration, so
+  the code scanner's Google usage logger has no backend to upload through.
 
 ## Group sync (ADR-025)
 - **Layers.** `core:domain/sync` is pure Kotlin: `SyncDocument` (version 2: players, matches,
@@ -124,6 +125,26 @@ Features never depend on each other; cross-feature navigation goes through `app`
   ABORT carries a readable reason. Timeouts per stage (`SyncTimeouts`); a link-send returns only
   once Nearby reports the payload delivered. The host closes after the ACK; a client waits for the
   hang-up before closing, so the last message isn't cut off.
+- **Sync server (ADR-036, [SYNC-SERVER.md](SYNC-SERVER.md)).** `core:domain`: `SyncServerToken`
+  (bearer = base64url HKDF of the group key, info `goa-relay/token/v1`), `SyncServerAddress`
+  (origin normalizer), the invite's `s=` field. `core:data`: `OkHttpSyncServerRepository` runs the
+  phone algorithm (GET → `SyncCodec.decodeFile` → `SyncRepository.apply`, the sync-file import
+  path → PUT the sealed merge with `If-Match`/`If-None-Match` only when the canonical document
+  differs from the server's → 412 retried, three tries; a conditional GET with the last rev when this
+  phone's data still hashes to the document both sides held then, so `304` ends an idle sync) and
+  records time/rev/document hash/error through
+  `DataStoreGroupRepository` in `group_sync` (also the per-group server override and the on/off
+  switch); `SyncServerHttp` is a dedicated OkHttp client (whole-call timeout, no redirects, no
+  logging/cache/cookies, cancelled with the coroutine). The build default comes from BuildConfig
+  `SYNC_SERVER_URL` (Gradle property `goa.syncServer`) through `SyncServerDefaults`, bound in
+  `app` (`di/SyncServerModule`). `feature:sync`: `SyncServerScheduler` (unique work `server-sync`,
+  REPLACE for the debounce and APPEND_OR_REPLACE behind a running one; `server-sync-hourly`
+  periodic with a network constraint; on screen via `MainActivity`'s lifecycle and every 5 min
+  while visible; 15 s after `localChanges`, the Room invalidation tracker on the synced tables plus
+  the rating constants), `SyncServerWorker` (`@HiltWorker`; transient problems retry with
+  exponential backoff from 30 s, eight attempts), the Group screen's `SyncServerCard`. WorkManager
+  starts from `GoaApplication` (`Configuration.Provider`, `HiltWorkerFactory`); its startup
+  initializer, foreground service and `FOREGROUND_SERVICE` are removed from the manifest.
 - **Shell.** Sync files reach `MainActivity` as VIEW/SEND intents and open `SyncFileImportRoute` on
   the Players tab. A sheet entry can hold itself open (`NavSheet.LocalDismissible`) while merged
   data is written. The sync sheet keeps the screen on.
@@ -231,7 +252,7 @@ the draft setup for "Draft again".
 | core:domain | Unit + property tests (Elo maths, draft legality for every method/player count, timer with fake clock) |
 | core:data | Catalog validation (schema, unique IDs, asset paths exist, every hero has a full deck), export/import round-trip |
 | core:database | Room in-memory tests; migration tests for every schema bump (v1 → v2: `matches.tie_breaker`; v2 → v3: `updated_at` backfill, `deletions`, `player_merges`; v3 → v4: `trivia_rounds`) |
-| Group sync | `core:domain`: merge properties (commutative, associative, idempotent, convergence, identical ratings), examples (ties, tombstones, merge chains and cycles, unknown heroes), crypto/codec (RFC 5869 vector, tamper, other group), protocol over the in-memory transport (host + 3, drops mid-upload and mid-download, wrong key, relay, Nearby unavailable). `core:data`: real Room phones syncing (game night, deletions, duplicates, trivia rounds), stamping, backup v5. `feature:sync`: VM tests, screenshots. Real Nearby: two physical phones only |
+| Group sync | `core:domain`: merge properties (commutative, associative, idempotent, convergence, identical ratings), examples (ties, tombstones, merge chains and cycles, unknown heroes), crypto/codec (RFC 5869 vector, tamper, other group), protocol over the in-memory transport (host + 3, drops mid-upload and mid-download, wrong key, relay, Nearby unavailable). `core:data`: real Room phones syncing (game night, deletions, duplicates, trivia rounds), stamping, backup v5; the sync server client against a fake relay on MockWebServer (every branch and status, `SyncServerRepositoryTest`) and its `group_sync` state. `core:domain`: the token's fixed vector. `feature:sync`: VM tests, screenshots, `SyncServerSchedulerTest` on WorkManager's test driver. Real Nearby: two physical phones only |
 | ViewModels | Turbine on `uiState` with fakes from `core:testing` |
 | Puzzles | `PuzzleViewModelTest` on the real `EnginePuzzleBook` (each listed puzzle solved with its stored line through the table's model, wrong tries missed and tried again, nudge timing on virtual time, nudges off, replay, progress), the list VM; `PuzzleScreenshotTest` drives the real ViewModel on a test scheduler before drawing; `DataStorePuzzleProgressRepositoryTest` |
 | Play UI | `feature:board` test sources only: `FakeGameSession`, a scripted 2v2 on Forgotten Island that asks every `DecisionKind` (never shipped); `GameViewModelTest` (answers, AI pacing on a test dispatcher, take back, Coach nudge shown/skipped, the Coach's look ahead used at once and cancelled on take back and Coach off, save/restore, corrupt and incompatible saves, game over, rematch), `NewGameViewModelTest`; `PlayScreenshotTest` (the table in every decision kind, New game, game over) |

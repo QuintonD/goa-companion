@@ -69,7 +69,7 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] Room v3 (`updated_at` backfill, `deletions`, `player_merges`), stamped repository writes, tombstones in the delete's transaction, read-time merge resolution, "Merge into…" with refusal; backup v4 with v1–v3 still importing — 2026-10-17, `MigrationTest`, `RoomPlayerRepositoryTest`, `BackupRoundTripTest`, `GroupSyncDataTest` (three Room phones syncing a game night, deletions, a duplicate friend)
 - [x] Protocol and crypto: key proof bound to the link's auth token, AES-256-GCM sessions, chunking, timeouts, the sealed sync file — 2026-10-17, `SyncProtocolTest` (host + 3 phones, drops mid-upload and mid-download, wrong key, relay, invalid data, Nearby unavailable), `SyncCodecTest` (RFC 5869 vector, tamper, other group)
 - [x] `:feature:sync`: Group screen, invite QR + Google code scanner, sync sheet with permission rationale, Who are you, sync-file share/import; Players tab sync action and "You"; Settings row — 2026-10-17, `SyncViewModelsTest`, 18 screenshots (light/dark, font scale 2)
-- [x] Merged release manifest has no INTERNET permission (the scanner's `transport-backend-cct` declares it; removed by `tools:node="remove"`) — 2026-10-17, `aapt2 dump permissions` on the release APK
+- [x] Merged release manifest has no INTERNET permission (the scanner's `transport-backend-cct` declares it; removed by `tools:node="remove"`) — 2026-10-17, `aapt2 dump permissions` on the release APK (superseded by ADR-036: INTERNET for the sync server, the logger's CCT backend removed instead; see M13)
 - [x] Adversarial review of merge and protocol, findings fixed (ADR-025 consequences) — 2026-10-18; gate green: `assembleDebug`, `testDebugUnitTest` (773 JVM tests, 0 failures), `lintDebug detekt ktlintCheck`, `verifyRoborazziDebug`, `:app:assembleRelease` (unsigned in the agent worktree: `keystore.properties` lives in the main checkout)
 - [x] 0.2.0 hands-on on two S25-sized API 36 emulators (release build) — 2026-10-18: in-place upgrade 0.1.0 → 0.2.0 with real data (7 players, one archived, 2 drafts, 4 matches, one deleted, a custom preset, settings, a running timer) identical after upgrade (backup export diff: only the new v4 fields); **Nearby was broken on Android 12+** (manifest capped `ACCESS_WIFI_STATE` at 31, `BLUETOOTH_SCAN` lacked `neverForLocation`: errors 8032, 8034, 8036) and after the fix ran between the emulators over virtual Bluetooth: join by pasted invite, host + join, full syncs, a later rename winning, a deletion staying deleted, "Merge into…" with identical leaderboards and match logs on both phones; sync file both ways, another group's file and a tampered file refused with clear errors; permission refusal, permanent denial, settings round trip, no host (2-minute timeout), scanner unavailable all lead to the sync file. Fixed on `fix/0.2.0-handson` (ADR-025 consequences); JVM gate green
 - [ ] **Two physical phones sync at the table** (emulators prove Nearby only over virtual Bluetooth): host + join, permissions on Android 12+ and 16, a phone walking away mid-sync, Wi-Fi Direct upgrade and range, the first-scan scanner download (unavailable on the emulators), a sync file over Quick Share
@@ -139,6 +139,30 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   JVM only; the time on the S25 Ultra is not measured yet
 - [ ] End-to-end test that plays a game to its end (needs the engine bound)
 - [ ] Hands-on at the table and TalkBack on the S25 Ultra
+
+## M13 — Sync server client (ADR-036)
+- [x] `core:domain`: `SyncServerToken` (fixed vector, computed independently in Python), `SyncServerAddress`,
+  the invite's `s=` field (only when the group's server isn't the build default; unknown fields still
+  ignored), `SyncFileException.version` — 2026-10-25, `SyncServerTest`, `SyncCodecTest`. JVM only
+- [x] `core:data`: `OkHttpSyncServerRepository` (the phone algorithm in SYNC-SERVER.md through the sync-file
+  merge path; upload only when the canonical document differs; 412 retried, three tries; every status in
+  words; conditional GET → 304 when neither side changed), `group_sync` server override / switch / last
+  outcome — 2026-10-25, `SyncServerRepositoryTest` (20 cases against a fake relay on MockWebServer),
+  `SyncServerGroupStateTest`; token asserts SYNC-SERVER.md's vector. Plus a one-off JVM run (not
+  committed) against the live relay on oldboi: two Room "phones" in throwaway group
+  `ce6939c8-a052-4e9d-a909-306aeae14dcb` — first upload (rev 1), the second phone receiving 2 players +
+  1 match without uploading, its new match uploaded (rev 2) and merged into the first, an idle sync,
+  and another key for the same group id refused (401)
+- [x] `feature:sync` + `app`: WorkManager scheduling (on screen and every 5 min while visible, 15 s after
+  changes, hourly with a network, Sync with the server), join by invite syncs from the server and falls
+  back to Nearby, Group screen Sync server card, Players tab dot, INTERNET with the CCT logger backend
+  removed, HTTPS-only network config, `goa.syncServer` → BuildConfig — 2026-10-25,
+  `SyncServerSchedulerTest`, `SyncServerSectionTest`, `ServerAttentionTest`, 12 new screenshots. Built,
+  JVM-tested; **not run on an emulator or device yet**
+- [ ] Against the real server on oldboi: two emulators syncing through it without meeting; a phone
+  offline then online; wrong key after re-creating a group id; the release build's merged manifest
+  (INTERNET present, `CctBackendFactory` absent, HTTPS-only config)
+- [ ] Two physical phones (S25 Ultra + one more) syncing through the server; Doze and the hourly sync
 
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)

@@ -56,6 +56,7 @@ class GroupSyncStore(private val store: DataStore<Preferences>) {
         val SERVER_ENABLED = booleanPreferencesKey("server_enabled")
         val SERVER_SYNCED_AT = longPreferencesKey("server_synced_at")
         val SERVER_REV = longPreferencesKey("server_rev")
+        val SERVER_DOC_HASH = stringPreferencesKey("server_doc_hash")
         val SERVER_ERROR = stringPreferencesKey("server_error")
         val SERVER_ERROR_KIND = stringPreferencesKey("server_error_kind")
         val SERVER_ERROR_AT = longPreferencesKey("server_error_at")
@@ -74,6 +75,7 @@ class GroupSyncStore(private val store: DataStore<Preferences>) {
         serverEnabled = prefs[Keys.SERVER_ENABLED],
         serverSyncedAt = prefs[Keys.SERVER_SYNCED_AT],
         serverRev = prefs[Keys.SERVER_REV],
+        serverDocHash = prefs[Keys.SERVER_DOC_HASH],
         serverError = prefs[Keys.SERVER_ERROR],
         serverErrorKind = prefs[Keys.SERVER_ERROR_KIND],
         serverErrorAt = prefs[Keys.SERVER_ERROR_AT],
@@ -92,6 +94,7 @@ class GroupSyncStore(private val store: DataStore<Preferences>) {
         prefs.set(Keys.SERVER_ENABLED, value.serverEnabled)
         prefs.set(Keys.SERVER_SYNCED_AT, value.serverSyncedAt)
         prefs.set(Keys.SERVER_REV, value.serverRev)
+        prefs.set(Keys.SERVER_DOC_HASH, value.serverDocHash)
         prefs.set(Keys.SERVER_ERROR, value.serverError)
         prefs.set(Keys.SERVER_ERROR_KIND, value.serverErrorKind)
         prefs.set(Keys.SERVER_ERROR_AT, value.serverErrorAt)
@@ -123,6 +126,11 @@ data class GroupSyncPrefs(
     /** When this phone last synced with the server, and the document's rev then. */
     val serverSyncedAt: Long? = null,
     val serverRev: Long? = null,
+    /**
+     * SHA-256 of the canonical document this phone and the server both held at [serverRev]: when
+     * this phone's data still hashes the same, a sync may ask for the document only if it changed.
+     */
+    val serverDocHash: String? = null,
     /** Why the last server sync failed (readable), its kind and when; null after a success. */
     val serverError: String? = null,
     val serverErrorKind: String? = null,
@@ -132,6 +140,7 @@ data class GroupSyncPrefs(
     fun withoutServerStatus() = copy(
         serverSyncedAt = null,
         serverRev = null,
+        serverDocHash = null,
         serverError = null,
         serverErrorKind = null,
         serverErrorAt = null,

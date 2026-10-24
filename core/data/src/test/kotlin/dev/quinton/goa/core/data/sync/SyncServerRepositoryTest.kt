@@ -100,6 +100,8 @@ class SyncServerRepositoryTest {
                 "GET" -> when {
                     blob == null -> answer(404)
                     !tokenOk -> answer(401)
+                    request.headers["If-None-Match"] == "\"$rev\"" ->
+                        MockResponse.Builder().code(304).setHeader("ETag", "\"$rev\"").build()
                     else -> MockResponse.Builder().code(200).setHeader("ETag", "\"$rev\"")
                         .setHeader("Content-Type", SyncCodec.FILE_MIME_TYPE).body(Buffer().write(blob!!)).build()
                 }
@@ -311,9 +313,39 @@ class SyncServerRepositoryTest {
 
         assertThat(again.uploaded).isFalse()
         assertThat(again.changes.isEmpty).isTrue()
+        assertThat(again.rev).isEqualTo(1)
         assertThat(relay.puts).hasSize(1)
         assertThat(relay.requests.map { it.method }).containsExactly("GET", "PUT", "GET").inOrder()
+        // Nothing changed on either side since rev 1: a conditional GET, answered 304 with no body.
+        assertThat(relay.requests.first().headers["If-None-Match"]).isNull()
+        assertThat(relay.requests.last().headers["If-None-Match"]).isEqualTo("\"1\"")
         assertThat(groups.state.first().server.syncedAt).isEqualTo(now)
+    }
+
+    @Test
+    fun aChangeOnEitherSideSinceTheLastSyncIsNeverSkipped() = runTest {
+        val relay = FakeRelay()
+        server.dispatcher = relay
+        groups.join(group)
+        four.forEach { players.upsert(it) }
+        syncNow()
+
+        // This phone changed: a plain GET (304 would hide nothing, but the change must go up).
+        now += 1_000
+        matches.upsert(match("p1", listOf("ann"), listOf("bob")))
+        val mine = syncNow() as SyncServerResult.Synced
+        assertThat(mine.uploaded).isTrue()
+        assertThat(relay.requests[2].headers["If-None-Match"]).isNull()
+        assertThat(relay.stored().matches.map { it.id }).containsExactly("p1")
+
+        // Another phone changed the server's copy: the conditional GET gets the new document.
+        val x1 = SyncDocument(matches = listOf(match("x1", listOf("cid"), listOf("dee"))))
+        relay.seed(SyncMerge.merge(relay.stored(), x1))
+        val theirs = syncNow() as SyncServerResult.Synced
+        assertThat(relay.requests[4].headers["If-None-Match"]).isEqualTo("\"2\"")
+        assertThat(theirs.changes.matchesAdded).isEqualTo(1)
+        assertThat(theirs.uploaded).isFalse()
+        assertThat(localMatches()).containsExactly("p1", "x1")
     }
 
     @Test

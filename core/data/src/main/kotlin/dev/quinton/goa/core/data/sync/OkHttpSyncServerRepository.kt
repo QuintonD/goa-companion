@@ -14,6 +14,7 @@ import dev.quinton.goa.core.domain.sync.SyncCodec
 import dev.quinton.goa.core.domain.sync.SyncDocument
 import dev.quinton.goa.core.domain.sync.SyncFileException
 import dev.quinton.goa.core.domain.sync.SyncFileProblem
+import dev.quinton.goa.core.domain.sync.SyncJson
 import dev.quinton.goa.core.domain.sync.SyncMerge
 import dev.quinton.goa.core.domain.sync.SyncServerToken
 import dev.quinton.goa.core.domain.sync.SyncValidation
@@ -22,6 +23,7 @@ import dev.quinton.goa.core.domain.sync.protocol.SyncApplyResult
 import java.io.IOException
 import java.io.InterruptedIOException
 import java.net.UnknownServiceException
+import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
 import javax.net.ssl.SSLException
@@ -47,6 +49,8 @@ import okio.Buffer
  *
  * 1. `GET /v1/groups/{groupId}/document`: `404` = no document yet; `200` = the sealed document
  *    and its rev (`ETag`), opened with [SyncCodec.decodeFile] (another document version stops).
+ *    When this phone's data still hashes to the document both sides held at the last sync, the GET
+ *    carries `If-None-Match: "<rev>"` and a `304` ends the sync: neither side has anything new.
  * 2. Merge it in through [SyncRepository.apply], the path an imported sync file takes (it re-reads
  *    this phone's data and writes the merge in one transaction): the result is
  *    `SyncMerge.merge(local, remote)`, or `SyncMerge.normalize(local)` when there is none.
@@ -83,40 +87,63 @@ internal class OkHttpSyncServerRepository @Inject constructor(
         val outcome = try {
             run(group, server) ?: return SyncServerResult.NotConfigured
         } catch (e: Failure) {
-            SyncServerResult.Failed(SyncServerError(e.problem, e.message, clock.now()))
+            Done(SyncServerResult.Failed(SyncServerError(e.problem, e.message, clock.now())), hash = null)
         }
-        groups.recordServerSync(group.groupId, server, outcome)
-        outcome
+        groups.recordServerSync(group.groupId, server, outcome.result, outcome.hash)
+        outcome.result
     }
 
+    /** A sync's outcome and, after a success, the hash of the document both sides now hold. */
+    private class Done(val result: SyncServerResult, val hash: String?)
+
     /** Null when the group or server changed while this ran: what came back isn't ours to apply. */
-    @Suppress("ThrowsCount")
-    private suspend fun run(group: GroupCredentials, server: String): SyncServerResult.Synced? {
+    @Suppress("ThrowsCount", "CyclomaticComplexMethod")
+    private suspend fun run(group: GroupCredentials, server: String): Done? {
         val token = SyncServerToken.derive(group)
         val url = "$server/v1/groups/${group.groupId}/document"
         var changes = SyncChanges.NONE
-        repeat(MAX_ATTEMPTS) {
-            val remote = fetch(url, token, group)
+        // Both sides held this document at the last sync; if this phone still does, ask the server
+        // for its document only if it has changed since (304 otherwise: nothing to do at all).
+        val checkpoint = groups.serverCheckpoint(group.groupId, server)
+            ?.takeIf { (_, hash) -> fingerprint(sync.export()) == hash }
+        repeat(MAX_ATTEMPTS) { attempt ->
+            val known = checkpoint?.takeIf { attempt == 0 }
+            val fetched = fetch(url, token, group, ifNoneMatch = known?.first)
             if (!stillFor(group, server)) return null
+            if (fetched === Fetched.NotModified) {
+                val (rev, hash) = known ?: throw Failure(SyncServerProblem.SERVER, NO_REV)
+                return Done(SyncServerResult.Synced(changes, clock.now(), rev, uploaded = false), hash)
+            }
+            val remote = fetched as? Fetched.Found
             val merged = if (remote == null) {
                 sync.export()
             } else {
                 apply(remote.document).also { changes += it.changes }.document
             }
             if (remote != null && SyncMerge.normalize(remote.document) == merged) {
-                return SyncServerResult.Synced(changes, clock.now(), remote.rev, uploaded = false)
+                val synced = SyncServerResult.Synced(changes, clock.now(), remote.rev, uploaded = false)
+                return Done(synced, fingerprint(merged))
             }
             // Never upload what every phone would refuse to open: it would stop the whole group.
             SyncValidation.problem(merged)?.let { throw Failure(SyncServerProblem.INVALID_DATA, "$LOCAL_FIX\n$it") }
             val body = SyncCodec.encodeFile(merged, group, createdAt = clock.now())
             if (body.size > MAX_UPLOAD_BYTES) throw Failure(SyncServerProblem.TOO_BIG, TOO_BIG)
             when (val stored = store(url, token, body, remote?.rev)) {
-                is Stored.Saved -> return SyncServerResult.Synced(changes, clock.now(), stored.rev, uploaded = true)
+                is Stored.Saved -> {
+                    val synced = SyncServerResult.Synced(changes, clock.now(), stored.rev, uploaded = true)
+                    return Done(synced, fingerprint(merged))
+                }
+
                 Stored.Conflict -> Unit // Another phone uploaded meanwhile: fetch its document and merge again.
             }
         }
         throw Failure(SyncServerProblem.BUSY, BUSY)
     }
+
+    /** SHA-256 of the canonical document's JSON: equal data, equal hash. */
+    private fun fingerprint(doc: SyncDocument): String = MessageDigest.getInstance("SHA-256")
+        .digest(SyncJson.encodeToString(SyncDocument.serializer(), SyncMerge.normalize(doc)).toByteArray())
+        .joinToString("") { "%02x".format(it) }
 
     private suspend fun stillFor(group: GroupCredentials, server: String): Boolean {
         val now = groups.state.first()
@@ -133,7 +160,14 @@ internal class OkHttpSyncServerRepository @Inject constructor(
         throw Failure(SyncServerProblem.SAVE_FAILED, SAVE_FAILED, e)
     }
 
-    private class Remote(val document: SyncDocument, val rev: Long)
+    private sealed interface Fetched {
+        class Found(val document: SyncDocument, val rev: Long) : Fetched
+
+        data object Missing : Fetched
+
+        /** 304: still the rev named in `If-None-Match`. */
+        data object NotModified : Fetched
+    }
 
     private sealed interface Stored {
         class Saved(val rev: Long?) : Stored
@@ -141,20 +175,27 @@ internal class OkHttpSyncServerRepository @Inject constructor(
         data object Conflict : Stored
     }
 
-    /** Step 1: the server's document, or null when it has none. */
+    /** Step 1: the server's document; with [ifNoneMatch], 304 when it is still that rev. */
     @Suppress("ThrowsCount")
-    private suspend fun fetch(url: String, token: String, group: GroupCredentials): Remote? {
-        val request = Request.Builder().url(url).header(AUTHORIZATION, "Bearer $token").get().build()
+    private suspend fun fetch(url: String, token: String, group: GroupCredentials, ifNoneMatch: Long?): Fetched {
+        val request = Request.Builder()
+            .url(url)
+            .header(AUTHORIZATION, "Bearer $token")
+            .apply { ifNoneMatch?.let { header("If-None-Match", "\"$it\"") } }
+            .get()
+            .build()
         return call(request) { response ->
             when (response.code) {
                 HTTP_OK -> {
                     val rev = rev(response) ?: throw Failure(SyncServerProblem.SERVER, NO_REV)
                     val bytes = limited(response, MAX_DOWNLOAD_BYTES)
                         ?: throw Failure(SyncServerProblem.BAD_DOCUMENT, DOWNLOAD_TOO_BIG)
-                    Remote(open(bytes, group), rev)
+                    Fetched.Found(open(bytes, group), rev)
                 }
 
-                HTTP_NOT_FOUND -> null
+                HTTP_NOT_MODIFIED -> Fetched.NotModified
+
+                HTTP_NOT_FOUND -> Fetched.Missing
 
                 else -> throw refusal(response.code)
             }
@@ -292,6 +333,7 @@ internal class OkHttpSyncServerRepository @Inject constructor(
         private const val AUTHORIZATION = "Authorization"
         private const val HTTP_OK = 200
         private const val HTTP_CREATED = 201
+        private const val HTTP_NOT_MODIFIED = 304
         private const val HTTP_UNAUTHORIZED = 401
         private const val HTTP_NOT_FOUND = 404
         private const val HTTP_PRECONDITION_FAILED = 412

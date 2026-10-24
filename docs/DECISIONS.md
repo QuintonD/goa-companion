@@ -781,3 +781,47 @@ Tailscale Funnel on port 8443 (443 stays the owner's tailnet-only service). Near
 wiped loses nothing: the next phone to sync re-uploads the merged log. Whoever runs the server can
 see group sizes and sync times, never content. A `SyncDocument.VERSION` bump still needs every phone
 updated before they sync again.
+
+**Addendum (2026-10-25, Android client, `feature/sync-client`):**
+- *Ported from `feature/hub-sync-android`:* the OkHttp client (whole-call timeout, redirects refused
+  so the bearer never follows one, no logging/cache/cookies, cancelled with the coroutine), the
+  WorkManager scheduler and worker, the Group screen card, the Players tab dot, the network
+  security configs and the address normalizer, renamed "sync server" (`SyncServer*`). The hub's
+  server-side merge (`POST /api/v1/sync`), `h=` invite field and App Links are not ported.
+- *Token:* `SyncServerToken` = base64url-no-pad(HKDF-SHA256(group key, groupId UTF-8,
+  `goa-relay/token/v1`, 32)); `SyncServerTest` asserts SYNC-SERVER.md's vector (groupId
+  `8c4f2b1e-…`, token `dFROVzWT…IQTI`, hash `cfb03117…9e25`) and a second one (key 0x00..0x1f,
+  groupId `6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d` → `3LzQ_IsXcyHp8SiAV9FGqdB_TQmU1C8PXkjjvBbDTIA`),
+  both also computed independently with Python's hmac/hashlib.
+- *Same merge as a sync file:* the fetched document goes through `SyncRepository.apply` (re-read and
+  merge in one transaction), so Nearby, sync files and the server share one write path. "Content
+  differs" compares canonical `SyncDocument`s (`SyncMerge.normalize(remote)` vs the merge), never
+  bytes, so a fresh envelope salt or `createdAt` doesn't cause an upload. A merge that fails
+  `SyncValidation` is never uploaded: every phone would refuse the whole document.
+- *Conditional GET:* after each success `group_sync` keeps the rev and the SHA-256 of the canonical
+  document both sides then held. When this phone's data still hashes the same, the GET carries
+  `If-None-Match: "<rev>"` and a `304` ends the sync (nothing new on either side); any local change
+  means a plain GET, so a change is never skipped.
+- *412:* three tries in one sync, then "Other phones kept syncing" (waits for the next trigger).
+  Statuses: 401 wrong key; GET 404 = no document; any other 4xx (or a PUT 404) = no sync server at
+  that address; 413 too big (also checked before sending, 8 MiB); 429/5xx (the relay's 503 when
+  full included)/IO/timeout transient (the worker retries with exponential backoff from 30 s, eight
+  attempts; `Retry-After` is not read); a 200 without `ETag` is not trusted; error bodies are
+  ignored. Version gaps come from `SyncFileException.version` (new, nullable), not message text.
+- *Address:* BuildConfig `SYNC_SERVER_URL` from the Gradle property `goa.syncServer` (default in
+  `gradle.properties`), bound as `SyncServerDefaults` in `app`. A per-group override and an on/off
+  switch live in `group_sync`; the override is stored only when it differs from the default, and
+  an invite carries `s=` only then. Re-joining the same group by an invite without `s=` keeps the
+  override; another group starts from the default with a clean status. Release builds accept only
+  https; debug also `http://10.0.2.2|localhost|127.0.0.1`.
+- *Triggers:* the activity coming on screen (`MainActivity` lifecycle; at most once a minute, so a
+  rotation doesn't sync) and every 5 min while visible, 15 s after the last change (Room
+  invalidation tracker on the synced tables + rating constants), hourly with a network constraint,
+  "Sync with the server" (no network constraint, so the outcome shows), and a new server or group.
+- *Joining:* with a server switched on, joining runs one sync in the ViewModel and waits for it;
+  only when it brought data does the Nearby first sync stay closed. Nothing on the server yet, or
+  the server unreachable: the Nearby first sync opens as before.
+- *Manifest:* `INTERNET` declared; Google's datatransport logger (code scanner) stays off by
+  removing its `CctBackendFactory` registration; WorkManager's startup initializer, foreground
+  service and `FOREGROUND_SERVICE` removed (WorkManager starts from `GoaApplication` with Hilt).
+- `SyncDocument.VERSION` unchanged (no synced type changed).
