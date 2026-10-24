@@ -8,8 +8,8 @@ import dev.quinton.goa.core.data.GroupRepository
 import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.SyncRepository
+import dev.quinton.goa.core.data.SyncServerControl
 import dev.quinton.goa.core.data.SyncServerDefaults
-import dev.quinton.goa.core.data.SyncServerResult
 import dev.quinton.goa.core.domain.sync.GroupCredentials
 import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.core.domain.sync.SyncServerAddress
@@ -17,7 +17,6 @@ import dev.quinton.goa.core.domain.sync.SyncValidation
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.feature.sync.PhoneName
 import dev.quinton.goa.feature.sync.SyncText
-import dev.quinton.goa.feature.sync.server.SyncServerControl
 import dev.quinton.goa.feature.sync.server.SyncServerText
 import dev.quinton.goa.feature.sync.server.SyncServerUi
 import dev.quinton.goa.feature.sync.share.SyncFiles
@@ -104,8 +103,9 @@ class GroupViewModel @Inject constructor(
         GroupUiState(
             loading = false,
             groupName = group.group?.name,
-            // The server travels in the invite only when it isn't the app's built-in one.
-            invite = group.group?.let { GroupInvite.format(it, group.server.url.takeIf { group.server.custom }) },
+            // The server travels in the invite only when this phone syncs through it and it isn't
+            // the app's built-in one.
+            invite = group.group?.let { GroupInvite.format(it, group.server.activeUrl.takeIf { group.server.custom }) },
             me = me,
             deviceName = me?.name ?: group.deviceName ?: phoneName.get(),
             phones = group.phones.map { PhoneRow(it.name, SyncText.ago(it.lastSyncedAt, now)) },
@@ -157,26 +157,29 @@ class GroupViewModel @Inject constructor(
         )
     }
 
-    /** True when the group's data came from the server; false = sync face to face instead. */
+    /**
+     * True when the group's data came from the server; false = sync face to face instead. The sync
+     * runs as WorkManager work: leaving the screen stops only this wait, never the sync.
+     */
     private suspend fun firstSyncFromServer(name: String): Boolean {
         if (!groups.state.first().serverSyncOn) return false
         local.update { it.copy(busy = true) }
-        val result = try {
-            serverSync.syncOnce()
+        val outcome = try {
+            serverSync.syncAndWatch().first()
         } finally {
             local.update { it.copy(busy = false) }
         }
-        val changes = (result as? SyncServerResult.Synced)?.changes
+        val received = outcome.received
         val message = when {
-            changes == null -> "Joined “$name”. The sync server can't help right now, so sync face to face."
+            !outcome.synced -> "Joined “$name”. The sync server can't help right now, so sync face to face."
 
-            changes.isEmpty ->
+            received == null ->
                 "Joined “$name”. The sync server has nothing from the group yet, so sync face to face once."
 
-            else -> "Joined “$name”. From the sync server: ${SyncText.summary(changes)}."
+            else -> "Joined “$name”. From the sync server: $received."
         }
         local.update { it.copy(message = message) }
-        return changes != null && !changes.isEmpty
+        return outcome.synced && received != null
     }
 
     fun scanFailed(message: String) = local.update { it.copy(joinError = message) }

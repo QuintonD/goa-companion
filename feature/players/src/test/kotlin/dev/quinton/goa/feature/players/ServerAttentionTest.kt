@@ -3,7 +3,9 @@ package dev.quinton.goa.feature.players
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.GroupState
 import dev.quinton.goa.core.data.ServerSyncState
+import dev.quinton.goa.core.data.SyncServerControl
 import dev.quinton.goa.core.data.SyncServerError
+import dev.quinton.goa.core.data.SyncServerOutcome
 import dev.quinton.goa.core.data.SyncServerProblem
 import dev.quinton.goa.core.domain.sync.GroupCredentials
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
@@ -13,6 +15,7 @@ import dev.quinton.goa.core.testing.FakePlayerRepository
 import dev.quinton.goa.feature.players.players.PlayersViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -49,8 +52,32 @@ class ServerAttentionTest {
         failWith(SyncServerProblem.VERSION)
         assertThat(vm.uiState.first { it.serverNeedsAttention }.inGroup).isTrue()
 
+        // A full server waits for its owner, so it is flagged though it is retried.
+        failWith(SyncServerProblem.SERVER_FULL)
+        assertThat(vm.uiState.first { it.serverNeedsAttention }.serverNeedsAttention).isTrue()
+
         // Switched off: the server's old problem no longer matters.
         groups.setServerSyncEnabled(false)
-        assertThat(vm.uiState.first { !it.serverNeedsAttention }.serverNeedsAttention).isFalse()
+        val off = vm.uiState.first { !it.serverNeedsAttention }
+        assertThat(off.serverSyncOn).isFalse()
+    }
+
+    @Test
+    fun withAServerTheSyncIconSyncsThroughIt() = runTest {
+        var syncs = 0
+        val control = object : SyncServerControl {
+            override val running = flowOf(false)
+
+            override fun syncNow() {
+                syncs++
+            }
+
+            override fun syncAndWatch() = flowOf(SyncServerOutcome.FAILED)
+        }
+        val vm = PlayersViewModel(FakePlayerRepository(Fixtures.players), ratings, groups, control)
+        backgroundScope.launch { vm.uiState.collect {} }
+        assertThat(vm.uiState.first { !it.loading }.serverSyncOn).isTrue()
+        vm.syncWithServer()
+        assertThat(syncs).isEqualTo(1)
     }
 }

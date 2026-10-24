@@ -108,6 +108,22 @@ class SyncServerScreenshotTest {
 
     @Test fun groupWithServerDark() = shot { GroupScreen(joined, GroupActions()) }
 
+    /** Sync now goes through the server; face to face is the secondary action. */
+    @Test fun groupWithServerSyncingLight() = shot(ThemeMode.LIGHT) {
+        GroupScreen(joined.copy(server = synced.copy(syncing = true, status = "Syncing…")), GroupActions())
+    }
+
+    @Test fun serverFullDark() = shot {
+        Card(
+            synced.copy(
+                error = "The sync server is full: it takes no new groups right now. Ask whoever runs it to make " +
+                    "room; this phone tries again later. Face-to-face sync still works.",
+                errorAgo = "just now",
+                retrying = true,
+            ),
+        )
+    }
+
     @Test fun groupWithServerOfflineLight() =
         shot(ThemeMode.LIGHT) { GroupScreen(joined.copy(server = offline), GroupActions()) }
 }

@@ -514,6 +514,44 @@ class SyncServerRepositoryTest {
         assertThat(offline.message).startsWith("Can't reach the sync server")
     }
 
+    private fun refusing(code: Int, retryAfter: String, error: String) = object : Dispatcher() {
+        override fun dispatch(request: RecordedRequest) = MockResponse.Builder().code(code)
+            .setHeader("Retry-After", retryAfter)
+            .setHeader("Content-Type", "application/json")
+            .body("""{"error":"$error"}""")
+            .build()
+    }
+
+    @Test
+    fun retryAfterIsKeptForTheRetryAndAFullServerSaysSo() = runTest {
+        groups.join(group)
+        server.dispatcher = refusing(429, "120", "rate_limited")
+        val limited = failed()
+        assertThat(limited.problem).isEqualTo(SyncServerProblem.RATE_LIMITED)
+        assertThat(limited.retryAfterSeconds).isEqualTo(120)
+
+        server.dispatcher = refusing(503, "30", "store_unavailable")
+        val unavailable = failed()
+        assertThat(unavailable.problem).isEqualTo(SyncServerProblem.SERVER)
+        assertThat(unavailable.retryAfterSeconds).isEqualTo(30)
+
+        // The group cap: only a first upload can meet it.
+        val relay = FakeRelay()
+        relay.beforePut = {
+            MockResponse.Builder().code(503).setHeader("Retry-After", "3600").body("""{"error":"relay_full"}""").build()
+        }
+        server.dispatcher = relay
+        players.upsert(player("ann"))
+        val full = failed()
+        assertThat(full.problem).isEqualTo(SyncServerProblem.SERVER_FULL)
+        assertThat(full.message).startsWith("The sync server is full")
+        assertThat(full.retryAfterSeconds).isEqualTo(3600)
+        assertThat(full.problem.transient).isTrue()
+        assertThat(full.problem.needsAttention).isTrue()
+        assertThat(SyncServerProblem.SERVER.needsAttention).isFalse()
+        assertThat(groups.state.first().server.error?.problem).isEqualTo(SyncServerProblem.SERVER_FULL)
+    }
+
     @Test
     fun redirectsAndSomethingThatIsntASyncServerAreTheWrongAddress() = runTest {
         groups.join(group)

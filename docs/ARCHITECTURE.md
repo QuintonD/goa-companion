@@ -144,8 +144,12 @@ Features never depend on each other; cross-feature navigation goes through `app`
   REPLACE for the debounce and APPEND_OR_REPLACE behind a running one; `server-sync-hourly`
   periodic with a network constraint; on screen via `MainActivity`'s lifecycle and every 5 min
   while visible; 15 s after `localChanges`, the Room invalidation tracker on the synced tables plus
-  the rating constants), `SyncServerWorker` (`@HiltWorker`; transient problems retry with
-  exponential backoff from 30 s, eight attempts), the Group screen's `SyncServerCard`. WorkManager
+  the rating constants; `syncAndWatch` for joining: the same unique work, expedited on API 31+,
+  watched through `getWorkInfoByIdFlow`), `SyncServerWorker` (`@HiltWorker`; transient problems
+  retry with exponential backoff from 30 s, eight attempts; a `Retry-After` longer than the backoff
+  queues a fresh run with that initial delay behind the current one), the Group screen's
+  `SyncServerCard`. `SyncServerControl` (core:data, bound to the scheduler) lets the Group screen's
+  Sync now and the Players tab's sync icon sync through the server. WorkManager
   starts from `GoaApplication` (`Configuration.Provider`, `HiltWorkerFactory`); its startup
   initializer, foreground service and `FOREGROUND_SERVICE` are removed from the manifest.
 - **Shell.** Sync files reach `MainActivity` as VIEW/SEND intents and open `SyncFileImportRoute` on

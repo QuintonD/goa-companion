@@ -816,23 +816,35 @@ container `goa-relay` (read-only root, uid 10001, data in `/var/lib/goa-relay`,
   means a plain GET, so a change is never skipped.
 - *412:* three tries in one sync, then "Other phones kept syncing" (waits for the next trigger).
   Statuses: 401 wrong key; GET 404 = no document; any other 4xx (or a PUT 404) = no sync server at
-  that address; 413 too big (also checked before sending, 8 MiB); 429/5xx (the relay's 503 when
-  full included)/IO/timeout transient (the worker retries with exponential backoff from 30 s, eight
-  attempts; `Retry-After` is not read); a 200 without `ETag` is not trusted; error bodies are
-  ignored. Version gaps come from `SyncFileException.version` (new, nullable), not message text.
+  that address; 413 too big (also checked before sending, 8 MiB); 429/5xx/IO/timeout transient (the
+  worker retries with exponential backoff from 30 s, eight attempts); a 200 without `ETag` is not
+  trusted. `Retry-After` (seconds, or an HTTP date) on 429/503 is honoured: when it is longer than
+  the next backoff, the worker queues a fresh run with that initial delay behind itself (APPEND on
+  the unique work, so the current run succeeds) instead of `Result.retry()`. Error bodies are read
+  only for a 503: `{"error":"relay_full"}` (the group cap) becomes `SERVER_FULL`, "The sync server
+  is full", retried no sooner than its `Retry-After` (3600 s) and flagged with the Players dot,
+  since only the server's owner can fix it. Version gaps come from `SyncFileException.version`
+  (new, nullable), not message text.
 - *Address:* BuildConfig `SYNC_SERVER_URL` from the Gradle property `goa.syncServer` (default in
   `gradle.properties`), bound as `SyncServerDefaults` in `app`. A per-group override and an on/off
   switch live in `group_sync`; the override is stored only when it differs from the default, and
-  an invite carries `s=` only then. Re-joining the same group by an invite without `s=` keeps the
+  an invite carries `s=` only then and only while this phone's server sync is switched on. Re-joining the same group by an invite without `s=` keeps the
   override; another group starts from the default with a clean status. Release builds accept only
   https; debug also `http://10.0.2.2|localhost|127.0.0.1`.
 - *Triggers:* the activity coming on screen (`MainActivity` lifecycle; at most once a minute, so a
   rotation doesn't sync) and every 5 min while visible, 15 s after the last change (Room
   invalidation tracker on the synced tables + rating constants), hourly with a network constraint,
-  "Sync with the server" (no network constraint, so the outcome shows), and a new server or group.
-- *Joining:* with a server switched on, joining runs one sync in the ViewModel and waits for it;
-  only when it brought data does the Nearby first sync stay closed. Nothing on the server yet, or
-  the server unreachable: the Nearby first sync opens as before.
+  "Sync now" (no network constraint, so the outcome shows), and a new server or group.
+- *One Sync now:* with the server switched on, the Group screen's primary Sync now and the Players
+  tab's sync icon queue a server sync (`SyncServerControl`, core:data, bound to the scheduler);
+  Nearby moves to a secondary "Sync at the table (no internet)". Without a server nothing changes.
+  The card has no button of its own.
+- *Joining:* with a server switched on, joining queues the sync on the same unique work
+  (`syncAndWatch`: no network constraint, expedited on API 31+ where no foreground service is
+  needed, never retried) and the ViewModel only watches its `WorkInfo`; leaving the screen stops
+  the watching, not the sync. The worker reports `synced` and a summary of what arrived in its
+  output data. Only when data arrived does the Nearby first sync stay closed; nothing on the server
+  yet, or the server unreachable: the Nearby first sync opens as before.
 - *Manifest:* `INTERNET` declared; Google's datatransport logger (code scanner) stays off by
   removing its `CctBackendFactory` registration; WorkManager's startup initializer, foreground
   service and `FOREGROUND_SERVICE` removed (WorkManager starts from `GoaApplication` with Hilt).

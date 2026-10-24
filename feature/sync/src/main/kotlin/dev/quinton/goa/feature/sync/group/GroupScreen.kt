@@ -77,7 +77,10 @@ class GroupActions(
     val onScan: () -> Unit = {},
     val onPaste: (String) -> Unit = {},
     val onClearJoinError: () -> Unit = {},
+    /** Through the server when it is on, else the face-to-face sheet. */
     val onSyncNow: () -> Unit = {},
+    /** The face-to-face (Nearby) sheet, offered beside a server. */
+    val onSyncAtTable: () -> Unit = {},
     val onWhoAreYou: () -> Unit = {},
     val onShareFile: () -> Unit = {},
     val onImportFile: () -> Unit = {},
@@ -251,10 +254,31 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.size(Spacing.md))
-                Button(onClick = actions.onSyncNow, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                    Icon(Icons.Outlined.Sync, null)
+                // With a server, Sync now syncs through it; face to face is the secondary way.
+                val syncing = state.server.active && state.server.syncing
+                Button(
+                    onClick = actions.onSyncNow,
+                    enabled = !syncing,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                ) {
+                    if (syncing) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.Outlined.Sync, null)
+                    }
                     Spacer(Modifier.width(Spacing.sm))
-                    Text("Sync now")
+                    Text(if (syncing) "Syncing…" else "Sync now")
+                }
+                if (state.server.active) {
+                    Spacer(Modifier.size(Spacing.sm))
+                    OutlinedButton(
+                        onClick = actions.onSyncAtTable,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    ) {
+                        Icon(Icons.Outlined.Groups, null)
+                        Spacer(Modifier.width(Spacing.sm))
+                        Text("Sync at the table (no internet)")
+                    }
                 }
                 Spacer(Modifier.size(Spacing.sm))
                 OutlinedButton(onClick = {
@@ -301,7 +325,11 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
         if (state.phones.isEmpty()) {
             item {
                 Text(
-                    "None yet. Tap Sync now with a friend's phone next to this one.",
+                    if (state.server.active) {
+                        "None face to face yet. Tap Sync at the table with a friend's phone next to this one."
+                    } else {
+                        "None yet. Tap Sync now with a friend's phone next to this one."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -93,6 +93,8 @@ data at once, and phones stay in step between game nights without meeting.
 - **Per group:** Group sync → Sync server → **Advanced** sets another address for this group
   (https only in release builds) or goes back to the built-in one. New invites from that phone
   carry the address, so friends who scan them use the same server.
+- **Sync now:** with the server on, Group sync → **Sync now** and the Players tab's sync icon sync
+  through it; **Sync at the table (no internet)** is the face-to-face sync.
 - **Off switch:** "Sync through the server" on the same card; off = face to face and sync files only.
 - **Status:** the card shows when this phone last synced and, when something is wrong, what to do;
   a problem that needs a person also puts a dot on the Players tab's sync icon.

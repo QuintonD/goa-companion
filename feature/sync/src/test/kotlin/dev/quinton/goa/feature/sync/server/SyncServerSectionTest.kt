@@ -4,12 +4,12 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.ServerSyncState
+import dev.quinton.goa.core.data.SyncServerControl
 import dev.quinton.goa.core.data.SyncServerDefaults
 import dev.quinton.goa.core.data.SyncServerError
+import dev.quinton.goa.core.data.SyncServerOutcome
 import dev.quinton.goa.core.data.SyncServerProblem
-import dev.quinton.goa.core.data.SyncServerResult
 import dev.quinton.goa.core.domain.sync.GroupInvite
-import dev.quinton.goa.core.domain.sync.SyncChanges
 import dev.quinton.goa.core.testing.FakeGroupRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
 import dev.quinton.goa.core.testing.FakePlayerRepository
@@ -20,8 +20,10 @@ import dev.quinton.goa.feature.sync.TestGroup
 import dev.quinton.goa.feature.sync.group.GroupEvent
 import dev.quinton.goa.feature.sync.group.GroupViewModel
 import dev.quinton.goa.feature.sync.groupState
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -43,15 +45,15 @@ class SyncServerSectionTest {
         override val running = MutableStateFlow(false)
         var syncs = 0
         var onces = 0
-        var result: SyncServerResult = SyncServerResult.Synced(SyncChanges(matchesAdded = 3), 1, 1, uploaded = false)
+        var outcome = SyncServerOutcome(synced = true, received = "+3 matches")
 
         override fun syncNow() {
             syncs++
         }
 
-        override suspend fun syncOnce(): SyncServerResult {
+        override fun syncAndWatch(): Flow<SyncServerOutcome> = flow {
             onces++
-            return result
+            emit(outcome)
         }
     }
 
@@ -130,6 +132,13 @@ class SyncServerSectionTest {
         assertThat(GroupInvite.parseInvite(custom.invite!!).getOrThrow().serverUrl)
             .isEqualTo("https://goa.example.org:8443")
 
+        // Switched off on this phone: its invites don't send friends to that server either.
+        vm.setServerSyncEnabled(false)
+        val off = vm.uiState.first { !it.server.enabled }
+        assertThat(off.invite).doesNotContain("&s=")
+        vm.setServerSyncEnabled(true)
+        assertThat(vm.uiState.first { it.server.enabled }.invite).contains("&s=")
+
         vm.useDefaultServer()
         val back = vm.uiState.first { !it.server.custom }
         assertThat(back.server.url).isEqualTo(default)
@@ -176,11 +185,8 @@ class SyncServerSectionTest {
 
     @Test
     fun whenTheServerCantHelpTheFirstSyncIsFaceToFace() = runTest {
-        listOf(
-            SyncServerResult.Failed(SyncServerError(SyncServerProblem.UNREACHABLE, "Offline", 1)),
-            SyncServerResult.Synced(SyncChanges.NONE, 1, 1, uploaded = true),
-        ).forEach { outcome ->
-            control.result = outcome
+        listOf(SyncServerOutcome.FAILED, SyncServerOutcome(synced = true, received = null)).forEach { outcome ->
+            control.outcome = outcome
             val groups = FakeGroupRepository(groupState(group = null).copy(server = withDefault))
             val vm = vm(groups)
             backgroundScope.launch { vm.uiState.collect {} }

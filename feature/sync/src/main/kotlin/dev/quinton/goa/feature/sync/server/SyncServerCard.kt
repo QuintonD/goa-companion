@@ -19,8 +19,6 @@ import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.Sync
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -53,7 +51,6 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 private const val LARGE_FONT_SCALE = 1.3f
 
 class SyncServerActions(
-    val onSyncNow: () -> Unit = {},
     val onEnabled: (Boolean) -> Unit = {},
     val onSaveAddress: (String) -> Unit = {},
     val onUseDefault: () -> Unit = {},
@@ -80,22 +77,9 @@ fun SyncServerCard(
             EnabledRow(server.enabled, actions.onEnabled)
         }
         if (server.active) {
+            // "Sync now" at the top of the Group screen syncs through the server; no second button here.
             server.error?.let { ErrorBlock(server, it) }
             Spacer(Modifier.size(Spacing.md))
-            OutlinedButton(
-                onClick = actions.onSyncNow,
-                enabled = !server.syncing,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            ) {
-                if (server.syncing) {
-                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                } else {
-                    Icon(Icons.Outlined.Sync, null)
-                }
-                Spacer(Modifier.width(Spacing.sm))
-                Text(if (server.hasProblem) "Try again" else "Sync with the server")
-            }
-            Spacer(Modifier.size(Spacing.sm))
             Text(
                 SyncServerText.AUTOMATIC,
                 style = MaterialTheme.typography.bodySmall,

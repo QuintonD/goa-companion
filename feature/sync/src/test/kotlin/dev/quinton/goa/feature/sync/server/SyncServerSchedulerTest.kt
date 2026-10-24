@@ -6,7 +6,6 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.work.BackoffPolicy
 import androidx.work.Configuration
 import androidx.work.ListenableWorker
-import androidx.work.ListenableWorker.Result
 import androidx.work.NetworkType
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
@@ -18,6 +17,7 @@ import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.ServerSyncState
 import dev.quinton.goa.core.data.SyncServerError
+import dev.quinton.goa.core.data.SyncServerOutcome
 import dev.quinton.goa.core.data.SyncServerProblem
 import dev.quinton.goa.core.data.SyncServerRepository
 import dev.quinton.goa.core.data.SyncServerResult
@@ -29,12 +29,16 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -224,11 +228,58 @@ class SyncServerSchedulerTest {
     }
 
     @Test
-    fun aSyncRunHereShowsAsRunning() = runTest {
+    fun aWatchedSyncRunsAsUniqueWorkAndReportsItsOutcomeWithoutRetrying() = runTest {
         started()
-        val result = scheduler.syncOnce()
-        assertThat(result).isInstanceOf(SyncServerResult.Synced::class.java)
-        assertThat(server.calls).isEqualTo(1)
+        server.script += SyncServerResult.Synced(SyncChanges(matchesAdded = 2), 1, 1, uploaded = false)
+
+        val outcome = withContext(Dispatchers.Default) { withTimeout(10_000) { scheduler.syncAndWatch().first() } }
+
+        assertThat(outcome).isEqualTo(SyncServerOutcome(synced = true, received = "+2 matches"))
+        val request = SyncServerScheduler.watchedRequest()
+        assertThat(request.workSpec.constraints.requiredNetworkType).isEqualTo(NetworkType.NOT_REQUIRED)
+        assertThat(infos(SyncServerScheduler.NOW).map { it.state }).containsExactly(WorkInfo.State.SUCCEEDED)
+
+        // Nothing new on the server: synced, nothing received.
+        assertThat(withContext(Dispatchers.Default) { scheduler.syncAndWatch().first() })
+            .isEqualTo(SyncServerOutcome(synced = true, received = null))
+
+        // Offline: no retry while someone waits; the outcome says so at once.
+        server.script += failed(SyncServerProblem.UNREACHABLE)
+        val offline = withContext(Dispatchers.Default) { withTimeout(10_000) { scheduler.syncAndWatch().first() } }
+        assertThat(offline.synced).isFalse()
+        assertThat(server.calls).isEqualTo(3)
+        assertThat(pending()).isEmpty()
+    }
+
+    @Test
+    fun retryAfterLongerThanTheBackoffQueuesTheNextTryNoEarlier() = runTest {
+        started()
+        server.script += failed(SyncServerProblem.RATE_LIMITED, retryAfter = 600)
+
+        scheduler.syncNow()
+        runCurrent()
+
+        val first = infos(SyncServerScheduler.NOW).first()
+        assertThat(settled(first.id).state).isEqualTo(WorkInfo.State.SUCCEEDED)
+        val next = settledPending()
+        assertThat(next.initialDelayMillis).isEqualTo(600_000)
+        assertThat(next.constraints.requiredNetworkType).isEqualTo(NetworkType.CONNECTED)
+
+        // It runs when its time comes, counting as the second attempt.
+        val driver = WorkManagerTestInitHelper.getTestDriver(context)!!
+        driver.setAllConstraintsMet(next.id)
+        driver.setInitialDelayMet(next.id)
+        assertThat(settled(next.id).state).isEqualTo(WorkInfo.State.SUCCEEDED)
+        assertThat(server.calls).isEqualTo(2)
+    }
+
+    /** The retry queued behind a finished run shows up once that run has settled. */
+    private fun settledPending(): WorkInfo {
+        repeat(200) {
+            pending().firstOrNull()?.let { return it }
+            Thread.sleep(25)
+        }
+        error("No retry was queued")
     }
 
     @Test
@@ -258,25 +309,38 @@ class SyncServerSchedulerTest {
     }
 
     @Test
-    fun workerOutcomes() {
+    fun workerDecisions() {
         val synced = SyncServerResult.Synced(SyncChanges.NONE, 1, 1, uploaded = true)
-        assertThat(SyncServerWorker.outcome(synced, 0)).isEqualTo(Result.success())
-        assertThat(SyncServerWorker.outcome(SyncServerResult.NotConfigured, 0)).isEqualTo(Result.success())
+        assertThat(SyncServerWorker.decide(synced, 0)).isEqualTo(SyncServerWorker.Next.Done)
+        assertThat(SyncServerWorker.decide(SyncServerResult.NotConfigured, 0)).isEqualTo(SyncServerWorker.Next.Done)
         SyncServerProblem.entries.forEach { problem ->
-            val expected = if (problem.transient) Result.retry() else Result.failure()
-            assertThat(SyncServerWorker.outcome(failed(problem), 0)).isEqualTo(expected)
+            val expected = if (problem.transient) SyncServerWorker.Next.Retry else SyncServerWorker.Next.Fail
+            assertThat(SyncServerWorker.decide(failed(problem), 0)).isEqualTo(expected)
+            // Someone is waiting on a join: never retry.
+            assertThat(SyncServerWorker.decide(failed(problem), 0, watched = true)).isEqualTo(SyncServerWorker.Next.Fail)
         }
-        val transient = SyncServerProblem.entries.filter { it.transient }
-        assertThat(transient).containsExactly(
+        assertThat(SyncServerProblem.entries.filter { it.transient }).containsExactly(
             SyncServerProblem.UNREACHABLE,
             SyncServerProblem.TIMEOUT,
             SyncServerProblem.SERVER,
             SyncServerProblem.RATE_LIMITED,
+            SyncServerProblem.SERVER_FULL,
         )
         val last = SyncServerWorker.MAX_ATTEMPTS - 1
-        assertThat(SyncServerWorker.outcome(failed(SyncServerProblem.TIMEOUT), last)).isEqualTo(Result.failure())
+        assertThat(SyncServerWorker.decide(failed(SyncServerProblem.TIMEOUT), last)).isEqualTo(SyncServerWorker.Next.Fail)
+        // Retry-After: within the backoff, WorkManager's own retry; longer, a run queued no earlier.
+        assertThat(SyncServerWorker.backoffSeconds(0)).isEqualTo(30)
+        assertThat(SyncServerWorker.backoffSeconds(2)).isEqualTo(120)
+        assertThat(SyncServerWorker.decide(failed(SyncServerProblem.SERVER, retryAfter = 30), 0))
+            .isEqualTo(SyncServerWorker.Next.Retry)
+        assertThat(SyncServerWorker.decide(failed(SyncServerProblem.SERVER, retryAfter = 30), 2))
+            .isEqualTo(SyncServerWorker.Next.Retry)
+        assertThat(SyncServerWorker.decide(failed(SyncServerProblem.SERVER_FULL, retryAfter = 3600), 0))
+            .isEqualTo(SyncServerWorker.Next.RetryAfter(3600))
+        assertThat(SyncServerWorker.decide(failed(SyncServerProblem.RATE_LIMITED, retryAfter = 45), 0))
+            .isEqualTo(SyncServerWorker.Next.RetryAfter(45))
     }
 
-    private fun failed(problem: SyncServerProblem) =
-        SyncServerResult.Failed(SyncServerError(problem, problem.name, 1))
+    private fun failed(problem: SyncServerProblem, retryAfter: Long? = null) =
+        SyncServerResult.Failed(SyncServerError(problem, problem.name, 1, retryAfter))
 }

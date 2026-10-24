@@ -24,6 +24,8 @@ import java.io.IOException
 import java.io.InterruptedIOException
 import java.net.UnknownServiceException
 import java.security.MessageDigest
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 import javax.net.ssl.SSLException
@@ -87,7 +89,8 @@ internal class OkHttpSyncServerRepository @Inject constructor(
         val outcome = try {
             run(group, server) ?: return SyncServerResult.NotConfigured
         } catch (e: Failure) {
-            Done(SyncServerResult.Failed(SyncServerError(e.problem, e.message, clock.now())), hash = null)
+            val error = SyncServerError(e.problem, e.message, clock.now(), e.retryAfterSeconds)
+            Done(SyncServerResult.Failed(error), hash = null)
         }
         groups.recordServerSync(group.groupId, server, outcome.result, outcome.hash)
         outcome.result
@@ -197,7 +200,7 @@ internal class OkHttpSyncServerRepository @Inject constructor(
 
                 HTTP_NOT_FOUND -> Fetched.Missing
 
-                else -> throw refusal(response.code)
+                else -> throw refusal(response)
             }
         }
     }
@@ -219,7 +222,7 @@ internal class OkHttpSyncServerRepository @Inject constructor(
                 // A PUT is never "not found" on a sync server: something else answers there.
                 HTTP_NOT_FOUND -> throw Failure(SyncServerProblem.WRONG_ADDRESS, NOT_A_SERVER)
 
-                else -> throw refusal(response.code)
+                else -> throw refusal(response)
             }
         }
     }
@@ -242,15 +245,48 @@ internal class OkHttpSyncServerRepository @Inject constructor(
         }
     }
 
+    /** What a status the algorithm doesn't expect means, in words; 429/503 carry their `Retry-After`. */
     @Suppress("CyclomaticComplexMethod")
-    private fun refusal(code: Int): Failure = when {
-        code == HTTP_UNAUTHORIZED -> Failure(SyncServerProblem.WRONG_KEY, WRONG_KEY)
-        code == HTTP_TOO_BIG -> Failure(SyncServerProblem.TOO_BIG, TOO_BIG)
-        code == HTTP_TOO_MANY -> Failure(SyncServerProblem.RATE_LIMITED, RATE_LIMITED)
-        code in REDIRECTS -> Failure(SyncServerProblem.WRONG_ADDRESS, REDIRECTED)
-        code >= HTTP_SERVER_ERROR -> Failure(SyncServerProblem.SERVER, "The sync server had a problem (error $code).")
-        else -> Failure(SyncServerProblem.WRONG_ADDRESS, "$NOT_A_SERVER (error $code)")
+    private fun refusal(response: Response): Failure {
+        val code = response.code
+        val wait = retryAfter(response)
+        return when {
+            code == HTTP_UNAUTHORIZED -> Failure(SyncServerProblem.WRONG_KEY, WRONG_KEY)
+
+            code == HTTP_TOO_BIG -> Failure(SyncServerProblem.TOO_BIG, TOO_BIG)
+
+            code == HTTP_TOO_MANY -> Failure(SyncServerProblem.RATE_LIMITED, RATE_LIMITED, retryAfterSeconds = wait)
+
+            code == HTTP_UNAVAILABLE && errorCode(response) == RELAY_FULL ->
+                Failure(SyncServerProblem.SERVER_FULL, SERVER_FULL, retryAfterSeconds = wait)
+
+            code in REDIRECTS -> Failure(SyncServerProblem.WRONG_ADDRESS, REDIRECTED)
+
+            code >= HTTP_SERVER_ERROR -> Failure(
+                SyncServerProblem.SERVER,
+                "The sync server had a problem (error $code).",
+                retryAfterSeconds = wait,
+            )
+
+            else -> Failure(SyncServerProblem.WRONG_ADDRESS, "$NOT_A_SERVER (error $code)")
+        }
     }
+
+    /** `Retry-After` in seconds (the relay sends seconds; an HTTP date counts from now). */
+    private fun retryAfter(response: Response): Long? {
+        val value = response.header("Retry-After")?.trim() ?: return null
+        value.toLongOrNull()?.let { return it.coerceIn(0, MAX_RETRY_AFTER_SECONDS) }
+        val date = runCatching { ZonedDateTime.parse(value, DateTimeFormatter.RFC_1123_DATE_TIME) }.getOrNull()
+            ?: return null
+        val seconds = (date.toInstant().toEpochMilli() - clock.now()) / MILLIS
+        return seconds.coerceIn(0, MAX_RETRY_AFTER_SECONDS)
+    }
+
+    /** The relay's JSON error code (`{"error":"relay_full"}`), read from a small body only. */
+    private fun errorCode(response: Response): String? = runCatching { limited(response, MAX_ERROR_BYTES) }
+        .getOrNull()
+        ?.toString(Charsets.UTF_8)
+        ?.let { ERROR_CODE.find(it)?.groupValues?.get(1) }
 
     /** `ETag: "<rev>"` → rev; null when missing or not a positive number. */
     private fun rev(response: Response): Long? = response.header("ETag")
@@ -293,8 +329,12 @@ internal class OkHttpSyncServerRepository @Inject constructor(
         }
     }
 
-    private class Failure(val problem: SyncServerProblem, override val message: String, cause: Throwable? = null) :
-        Exception(message, cause)
+    private class Failure(
+        val problem: SyncServerProblem,
+        override val message: String,
+        cause: Throwable? = null,
+        val retryAfterSeconds: Long? = null,
+    ) : Exception(message, cause)
 
     private fun networkFailure(e: IOException): Failure = when (e) {
         // Release builds refuse plain HTTP (network_security_config).
@@ -353,6 +393,12 @@ internal class OkHttpSyncServerRepository @Inject constructor(
         private const val HTTP_PRECONDITION_FAILED = 412
         private const val HTTP_TOO_BIG = 413
         private const val HTTP_TOO_MANY = 429
+        private const val HTTP_UNAVAILABLE = 503
+        private const val RELAY_FULL = "relay_full"
+        private val ERROR_CODE = Regex(""""error"\s*:\s*"([a-z_]+)"""")
+        private const val MAX_ERROR_BYTES = 4L * 1024
+        private const val MAX_RETRY_AFTER_SECONDS = 24L * 60 * 60
+        private const val MILLIS = 1_000L
         private const val HTTP_SERVER_ERROR = 500
         private val REDIRECTS = 300..399
 
@@ -377,6 +423,9 @@ internal class OkHttpSyncServerRepository @Inject constructor(
         private const val SAVE_FAILED = "The group's data couldn't be saved on this phone. Nothing changed."
         private const val NOT_A_SERVER = "There's no sync server at this address. Check it."
         private const val RATE_LIMITED = "The sync server is busy. This phone tries again in a moment."
+        private const val SERVER_FULL =
+            "The sync server is full: it takes no new groups right now. Ask whoever runs it to make room; " +
+                "this phone tries again later. Face-to-face sync still works."
         private const val REDIRECTED = "The sync server address points somewhere else. Use the server's own address."
         private const val HTTPS_ONLY = "This app only talks to a sync server over HTTPS. Use its https address."
         private const val CERTIFICATE = "The sync server's certificate isn't trusted. Check the address."

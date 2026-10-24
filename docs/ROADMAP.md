@@ -167,6 +167,12 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   removed, HTTPS-only network config, `goa.syncServer` → BuildConfig — 2026-10-25,
   `SyncServerSchedulerTest`, `SyncServerSectionTest`, `ServerAttentionTest`, 12 new screenshots. Built,
   JVM-tested; **not run on an emulator or device yet**
+- [x] Follow-up after merging feature/play (sync server + board full view): one Sync now (Group screen
+  and Players icon sync through the server when it is on; Nearby is "Sync at the table (no internet)"),
+  join-time sync as watched WorkManager work (expedited on API 31+), `Retry-After` honoured on 429/503,
+  "The sync server is full" for `relay_full`, `s=` only while server sync is on — 2026-10-25,
+  `SyncServerSchedulerTest` (11), `SyncServerSectionTest` (9), `SyncServerRepositoryTest` (21),
+  `ServerAttentionTest` (2), 14 server screenshots. JVM only
 - [ ] Against the real server on oldboi: two emulators syncing through it without meeting; a phone
   offline then online; wrong key after re-creating a group id; the release build's merged manifest
   (INTERNET present, `CctBackendFactory` absent, HTTPS-only config)

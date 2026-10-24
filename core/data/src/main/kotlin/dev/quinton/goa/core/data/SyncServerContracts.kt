@@ -2,6 +2,7 @@ package dev.quinton.goa.core.data
 
 import dev.quinton.goa.core.domain.sync.SyncChanges
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * Sync through the group's sync server (ADR-036, docs/SYNC-SERVER.md; owner: sync). The server is
@@ -45,6 +46,12 @@ enum class SyncServerProblem(val transient: Boolean) {
     /** 429: too many requests for now. */
     RATE_LIMITED(true),
 
+    /**
+     * 503 `relay_full`: the server takes no new groups (its group cap). Retried no earlier than its
+     * `Retry-After`, but it passes only when whoever runs the server makes room.
+     */
+    SERVER_FULL(true),
+
     /** A redirect, a plain-HTTP address this build won't use, an untrusted certificate, or no sync server there. */
     WRONG_ADDRESS(false),
 
@@ -68,10 +75,61 @@ enum class SyncServerProblem(val transient: Boolean) {
 
     /** The merged data couldn't be saved on this phone (nothing changed). */
     SAVE_FAILED(false),
+    ;
+
+    /** A person has to act (the Players tab's dot): everything that won't pass by itself. */
+    val needsAttention: Boolean get() = !transient || this == SERVER_FULL
 }
 
-/** A failed server sync: what, in words for the Group screen, and when (epoch ms). */
-data class SyncServerError(val problem: SyncServerProblem, val message: String, val at: Long)
+/**
+ * A failed server sync: what, in words for the Group screen, and when (epoch ms).
+ * [retryAfterSeconds] is the server's `Retry-After` (429/503): no retry before it.
+ */
+data class SyncServerError(
+    val problem: SyncServerProblem,
+    val message: String,
+    val at: Long,
+    val retryAfterSeconds: Long? = null,
+)
+
+/** How a sync the UI waits on ended ([SyncServerControl.syncAndWatch]). */
+data class SyncServerOutcome(
+    val synced: Boolean,
+    /** "+3 matches, +1 player" when data arrived on this phone; null when nothing did. */
+    val received: String? = null,
+) {
+    companion object {
+        val FAILED = SyncServerOutcome(synced = false)
+    }
+}
+
+/**
+ * Server sync for the UI (owner: sync; WorkManager behind it): whether one runs, "Sync now", and a
+ * sync to wait on that keeps running when the screen goes away.
+ */
+interface SyncServerControl {
+    val running: Flow<Boolean>
+
+    /** Queues a sync that runs at once, even offline, so the person who tapped sees the outcome. */
+    fun syncNow()
+
+    /**
+     * Queues a sync at once (expedited where the system allows) and emits its outcome when it ends
+     * (joining a group). Leaving the screen stops only the watching, never the sync.
+     */
+    fun syncAndWatch(): Flow<SyncServerOutcome>
+
+    companion object {
+        /** No server sync (previews and tests that don't need it). */
+        val Off: SyncServerControl = object : SyncServerControl {
+            override val running: Flow<Boolean> = flowOf(false)
+
+            override fun syncNow() = Unit
+
+            override fun syncAndWatch(): Flow<SyncServerOutcome> = flowOf(SyncServerOutcome.FAILED)
+        }
+    }
+}
 
 /**
  * The build's sync server (BuildConfig `SYNC_SERVER_URL`, Gradle property `goa.syncServer`; empty

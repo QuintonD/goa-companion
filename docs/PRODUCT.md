@@ -202,13 +202,16 @@ and **through the group's sync server** whenever a phone has internet (ADR-036).
   the group's document, opens it, merges it exactly like an imported sync file, and uploads the
   merge (sealed again) only when the server's copy is missing something, so the server never sees
   content and an idle phone only reads. Automatic: when the app comes on screen and every 5 minutes
-  while it stays there, 15 s after the last change to synced data, hourly in the background (with a
-  network), and "Sync with the server" on the Group screen. Two phones uploading at once: the later
-  one re-reads, merges and tries again (three tries).
+  while it stays there, 15 s after the last change to synced data, and hourly in the background (with
+  a network). Two phones uploading at once: the later one re-reads, merges and tries again (three
+  tries). A busy or full server's `Retry-After` is respected: no retry before it.
+  - *One Sync now:* with the server switched on, the Group screen's **Sync now** and the Players
+    tab's sync icon sync through the server; face to face becomes the secondary **Sync at the table
+    (no internet)**. Without a server both behave as before (the Nearby sheet).
   - *Server address:* the app's built-in server (Gradle property `goa.syncServer`, empty = none),
     or a group's own address under Group sync → Sync server → Advanced (https only in release
-    builds). An invite carries the address only when it isn't the built-in one; older apps ignore
-    it and join as before.
+    builds). An invite carries the address only when it isn't the built-in one and this phone syncs
+    through it (switched on); older apps ignore it and join as before.
   - *Switch:* "Sync through the server", on by default whenever there is a server; off = Nearby and
     files only.
   - *Status:* the Group screen's Sync server card shows the server, "Synced 2 min ago" / "Not
@@ -216,10 +219,12 @@ and **through the group's sync server** whenever a phone has internet (ADR-036).
     own (no connection, timeout, server error, busy) retry with backoff and say "Trying again on its
     own"; problems that need a person (the server holds the group under another key, another app
     version, data too big, data this phone must fix first, other phones kept uploading) wait, and
-    put a dot on the Players tab's sync icon, which then opens the Group screen.
-  - *Joining:* scanning or pasting an invite with a server switched on syncs with it at once; the
-    group's data arrives without anyone hosting. When the server has nothing yet or can't be
-    reached, the first sync is face to face as before.
+    put a dot on the Players tab's sync icon, which then opens the Group screen. A server at its
+    group cap says "The sync server is full", is retried no sooner than it asks, and also gets the dot.
+  - *Joining:* scanning or pasting an invite with a server switched on syncs with it at once (as
+    background work, expedited on Android 12+, so leaving the screen doesn't stop it); the group's
+    data arrives without anyone hosting. When the server has nothing yet or can't be reached, the
+    first sync is face to face as before.
 - **Done when:** merge properties (commutative, associative, idempotent, convergence, identical
   ratings) and the protocol over a fake transport (host + 3 phones, a dropped phone, a wrong key)
   pass on the JVM; **two physical phones

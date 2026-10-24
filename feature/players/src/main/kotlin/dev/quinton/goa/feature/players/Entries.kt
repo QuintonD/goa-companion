@@ -190,9 +190,22 @@ private fun PlayersHomeEntry(navigator: Navigator) {
             onOpenRatingSettings = { navigator.navigate(RatingSettingsRoute) },
             onShareStats = statsVm::share,
             onOpenSync = {
-                // A server problem a person must fix opens the Group screen, where it is explained.
-                val sheet = players.inGroup && !players.serverNeedsAttention
-                navigator.navigate(if (sheet) SyncSessionRoute() else GroupSyncRoute)
+                when {
+                    // A server problem a person must fix opens the Group screen, where it is explained.
+                    players.serverNeedsAttention -> navigator.navigate(GroupSyncRoute)
+
+                    // With a server, the sync icon syncs through it (ADR-036); the table sync is on the Group screen.
+                    players.serverSyncOn -> {
+                        playersVm.syncWithServer()
+                        navigator.showMessage("Syncing with the sync server…", "Group sync") {
+                            navigator.navigate(GroupSyncRoute)
+                        }
+                    }
+
+                    players.inGroup -> navigator.navigate(SyncSessionRoute())
+
+                    else -> navigator.navigate(GroupSyncRoute)
+                }
             },
         ),
         followUps = followUps(matchesVm, navigator),

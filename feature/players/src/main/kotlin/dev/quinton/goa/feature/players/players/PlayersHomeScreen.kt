@@ -103,6 +103,7 @@ fun PlayersHomeScreen(
                         Icons.Outlined.Sync,
                         contentDescription = when {
                             players.serverNeedsAttention -> "Group sync: the sync server needs attention"
+                            players.serverSyncOn -> "Sync with the sync server"
                             players.inGroup -> "Sync with the group"
                             else -> "Group sync"
                         },
