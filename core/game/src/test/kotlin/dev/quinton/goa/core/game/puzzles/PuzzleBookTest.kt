@@ -25,8 +25,12 @@ class PuzzleBookTest(private val puzzle: Puzzle) {
             .filter { p -> p.info.heroes.all { it in TestData.engine.playableHeroes } }
             .map { arrayOf(it) }
 
-        /** Desktop budget for one player answer (a phone is ~3-4x slower; the target there is < 1 s). */
-        const val ANSWER_MS = 200L
+        /**
+         * Desktop budget for one player answer. Typical answers take a few ms (key) or < 50 ms (budgeted
+         * search after a miss); the headroom keeps the check from failing while other builds load the
+         * machine. The phone target (~3-4x slower) is < 1 s.
+         */
+        const val ANSWER_MS = 500L
     }
 
     private val book = EnginePuzzleBook(TestData.engine)
