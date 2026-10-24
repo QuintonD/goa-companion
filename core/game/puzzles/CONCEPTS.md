@@ -438,7 +438,18 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** An empty spawn point is one in a space with no obstacle (p.17), and Dodger's card counts only those in the current BZ (Dodger FAQ). Minions are worth 2 coins, a level-2 hero 2 coins plus 1 assist coin (p.13). Tigerclaw's 9 resolves before Dodger's 3, so the spawn point is empty when the Ritual checks.
 - **Rules:** p.7 initiative; p.13 coins; p.17 Empty.
 - **Risk:** none.
-- **Encoded as p13 (2026-10-24):** as written (Arien: level 2, `arien-red-2a` in the discard, item `arien-red-2b`). After the attack, staying put or stepping to (3,−6) or (1,−5) all win; only (1,−4) loses.
+- **Encoded as p13 (hardened 2026-10-24, changed; difficulty 3):** the reviewers scored it 5 (one good
+  trap, three of four steps winning). Now round 3, turn 4, every hero level 2, goal **5** coins, and
+  all six spawn points within 3 of Dodger start taken. Tigerclaw (Red, L2, Hit and Run 9, Attack item
+  `tigerclaw-blue-2a`) stands on the Blue melee spawn point (2,−1); Arien (Blue, L2, no cards, Liquid
+  Leap 4) on (3,−1); a Blue melee on (1,0); Blue melee (1,−4), Blue ranged (3,−4), Red ranged (0,−3) on
+  the rest; Dodger (Red, L2, Darker Ritual 3, item `dodger-green-2b`) on (2,−3). Wasp (Blue, L2, Stop
+  Projectiles 3, movement 2) at (1,1) is **tied with Dodger at 3 and the coin shows Blue**, so she moves
+  first; her only way in is through (2,0). Answer: defeat Arien (2 + 1 assist), step SE to (2,0), which
+  empties Tigerclaw's own spawn point and shuts Wasp out; the Ritual finds (2,−1) and (3,−1) empty: 5.
+  Wrong tries refuted: defeating Arien and staying (one empty), stepping NE to (3,−2) (Wasp walks onto
+  one), defeating the Blue minion on (1,0) (no assist: 4 at most). Solver: one winning option at every
+  decision (2 targets, 6 steps).
 
 ### C14 — Long Thrust
 - **Theme:** range set by card text (enemy units adjacent to you). **Difficulty:** 1. **Heroes:** Xargatha; Tigerclaw, Arien (Wasp idle).
