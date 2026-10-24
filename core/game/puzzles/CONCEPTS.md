@@ -960,6 +960,16 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Encoded as p43 (2026-10-24):** as in the concept (`PushLane(round)`). Only the east Blink wins; the
   blink through Arien is first in the canonical order. The solver's best reply for Arien is to move away
   (the push still comes, 3 vs 1). Wrong tries tested: through Arien, through B2, Hold.
+- **Hardened as p43 (2026-10-24, changed):** legality: Tigerclaw L2 (Poisoned Dagger; item Pick Pocket =
+  Attack, so Blink Strike stays 13), Arien L2, Wasp L2 (item Electrocute = Initiative: her turn-4 Static
+  Barrier shows 14 and went first). Harder, new position: Arien plays Rogue Wave (9: ranged, after the attack
+  push an enemy next to him up to 2), so he can push Xargatha off her Constrict victims. Red 5 minions, Blue
+  4 (melee (−1,−4) and (1,−5) both next to Xargatha at (0,−4), melee (3,−5), heavy (2,−7)); Arien (0,−3),
+  Tigerclaw (2,−5) keeping Dodge, Wasp (3,−6) with no cards. Blink options: west through (1,−5), landing
+  (0,−5) right behind Xargatha so the push moves her 0 (wins: Blue 2 after Constrict against Red ≥ 4);
+  east through (3,−5) (the push frees her: Blue keeps one); through Wasp (a hero kill with no cards; Blue
+  keeps one). Arien's best reply then shoots Tigerclaw on (0,−5): the player must block with Dodge, or the
+  square empties and the push works again.
 
 ### C44 — A Fistful of Coins
 - **Theme:** a fork through the opponent's own choice; picking the right hero to force. **Difficulty:** 3. **Heroes:** Cutter, Swift; Wasp, Dodger.
