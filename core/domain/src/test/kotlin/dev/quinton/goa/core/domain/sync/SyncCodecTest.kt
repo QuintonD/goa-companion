@@ -85,6 +85,12 @@ class SyncCodecTest {
         assertThat(message(older, group)).contains("older version of the app. Update the phone that made it")
         val newer = SyncCodec.encodeFile(valid.copy(version = SyncDocument.VERSION + 1), group, createdAt = 5)
         assertThat(message(newer, group)).contains("newer version of the app. Update the app first")
+        // Which side is older, for the sync server's own words (ADR-036).
+        fun gap(file: ByteArray) =
+            assertThrows(SyncFileException::class.java) { SyncCodec.decodeFile(file, group) }.version
+        assertThat(gap(older)).isEqualTo(VersionGap.FILE_OLDER)
+        assertThat(gap(newer)).isEqualTo(VersionGap.FILE_NEWER)
+        assertThat(gap(SyncCodec.encodeFile(valid, GroupCredentials.create("Other"), createdAt = 5))).isNull()
         // The same refusal for data received over Nearby.
         val v1 = SyncCodec.encode(valid.copy(version = 1))
         assertThat(assertThrows(SyncFormatException::class.java) { SyncCodec.decode(v1) }.message)
