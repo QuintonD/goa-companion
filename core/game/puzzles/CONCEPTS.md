@@ -486,6 +486,16 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.14 Defense total, Minion defense modifiers; FAQ Sabina.
 - **Risk:** none.
 - **Encoded as p15 (changed, 2026-10-24):** a position can't record that a hero *resolved* an attack card this turn (`PositionBuilder` marks "played an attack card" only for an unresolved played card). Arien has instead **played `arien-red-1` Dangerous Current (8), not yet resolved**, tied with Sabina at 8 with the **coin showing Red** (Sabina acts first, p.7), resolved gold, green-1, blue-1, hand `arien-silver`. The Sabina FAQ covers both cases. Wasp is seated before Arien.
+- **Hardened p15 (2026-10-24, changed):** the reviewers found level 1 heroes in round 4 and a single
+  choice whose only difficulty was knowing Dangerous Current is an attack card. Now round 3, turn 4, all
+  level 2, two player seats, and Arien is **guarded**: Arien (Blue, L2, Defense item `arien-green-2b`,
+  Spell Break) at (2,−5) beside a Blue melee (3,−5): 3 + 1 + 1 = 5 against Quickdraw's 2 + 3, a tie that
+  holds. Tigerclaw (Red, L2, `tigerclaw-red-2a` Combat Reflexes 9, move 1 before the attack) at (4,−4),
+  3 from Arien, 2 from the guard, next to a decoy Blue melee (4,−3). Sabina (Red, L2, Quickdraw 8) at
+  (0,−5). Wasp (Blue, L2, Defense item, Magnetic Dagger, Stop Projectiles played) at (0,−3) beside a Blue
+  melee (−1,−3): 2 + 1 + 1. Answer: Tigerclaw steps to (4,−5) or (3,−4) and defeats the guard; Sabina
+  shoots Arien, 5 against 4. Wrong tries refuted: Tigerclaw attacking without moving (only the decoy is
+  in reach), Sabina shooting Wasp (no bonus, 2 against 4). Solver: 2 of 6 pre-moves, 1 of 3 targets.
 
 ### C16 — Get Over Here!
 - **Theme:** moving an enemy hero; "no obstacles between" for a straight-line effect. **Difficulty:** 1. **Heroes:** Bain, Xargatha; Dodger, Wasp.
