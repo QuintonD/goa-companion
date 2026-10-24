@@ -57,6 +57,26 @@ data class NewBoardForm(
     fun contains(heroId: String): Boolean = heroId in red || heroId in blue
 }
 
+/**
+ * What the line-up picker shows (both teams in pick order, the Red | Blue switch, the hero grid).
+ * New board and New game share it; [unavailable] heroes are shown but can't be picked (New game:
+ * not playable yet, "coming later").
+ */
+@Immutable
+data class LineupPicker(
+    val form: NewBoardForm,
+    val heroes: List<BoardHero>,
+    val heroById: Map<String, BoardHero>,
+    val hiddenHeroes: Int,
+    val ownedOnly: Boolean,
+    val unavailable: Set<String> = emptySet(),
+) {
+    fun team(team: Team): List<BoardHero> = form.team(team).map(heroById::hero)
+
+    val full: Boolean
+        get() = form.red.size >= NewBoardUiState.MAX_PER_TEAM && form.blue.size >= NewBoardUiState.MAX_PER_TEAM
+}
+
 sealed interface NewBoardUiState {
     data object Loading : NewBoardUiState
 
@@ -77,6 +97,8 @@ sealed interface NewBoardUiState {
         val sources: List<LineupSource>,
     ) : NewBoardUiState {
         fun team(team: Team): List<BoardHero> = form.team(team).map(heroById::hero)
+
+        val picker: LineupPicker get() = LineupPicker(form, heroes, heroById, hiddenHeroes, ownedOnly)
 
         val canSetUp: Boolean get() = map != null && form.lineup.size > 0
 
