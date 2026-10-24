@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -29,6 +28,7 @@ import androidx.compose.material.icons.automirrored.outlined.Redo
 import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.CenterFocusStrong
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.KeyboardDoubleArrowUp
 import androidx.compose.material.icons.outlined.MoreVert
@@ -78,7 +78,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
-import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -91,6 +90,11 @@ import dev.quinton.goa.feature.board.map.BoardMapView
 import dev.quinton.goa.feature.board.map.MapLayout
 import dev.quinton.goa.feature.board.map.MapOrientation
 import dev.quinton.goa.feature.board.map.MapViewport
+import dev.quinton.goa.feature.board.ui.BoardScaffold
+import dev.quinton.goa.feature.board.ui.FitWhileHidden
+import dev.quinton.goa.feature.board.ui.HideablePanel
+import dev.quinton.goa.feature.board.ui.PanelCover
+import dev.quinton.goa.feature.board.ui.PanelPeek
 import dev.quinton.goa.feature.board.ui.PieceToken
 import dev.quinton.goa.feature.board.ui.boardPalette
 import kotlinx.coroutines.launch
@@ -112,7 +116,7 @@ fun BoardScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     initialOverlay: BoardOverlay? = null,
-    initialCollapsed: Boolean = false,
+    initialPanelHidden: Boolean = false,
 ) {
     val ready = state as? BoardUiState.Ready
     var overlay by rememberSaveable { mutableStateOf(initialOverlay) }
@@ -133,7 +137,7 @@ fun BoardScreen(
             onAction(BoardAction.HintShown(hint.id))
         }
     }
-    GoaScreen(
+    BoardScaffold(
         title = ready?.board?.name ?: "Board",
         onBack = onBack,
         modifier = modifier,
@@ -189,7 +193,7 @@ fun BoardScreen(
                 is BoardUiState.Ready -> BoardContent(
                     state = state,
                     viewport = viewport,
-                    initialCollapsed = initialCollapsed,
+                    initialPanelHidden = initialPanelHidden,
                     onAction = onAction,
                     onTap = onTap,
                     onOpen = { overlay = it },
@@ -267,12 +271,14 @@ fun BoardScreen(
 private fun BoardContent(
     state: BoardUiState.Ready,
     viewport: MapViewport,
-    initialCollapsed: Boolean,
+    initialPanelHidden: Boolean,
     onAction: (BoardAction) -> Unit,
     onTap: (MapTap) -> Boolean,
     onOpen: (BoardOverlay) -> Unit,
     onAmbiguous: (Offset) -> Unit,
 ) {
+    // Hidden or shown is kept for the board (and survives rotation); it applies to every selection.
+    var hidden by rememberSaveable { mutableStateOf(initialPanelHidden) }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight
         val orientation = if (landscape) MapOrientation.LANDSCAPE else MapOrientation.PORTRAIT
@@ -280,36 +286,35 @@ private fun BoardContent(
             remember(state.map, orientation, state.bottomTeam) { MapLayout(state.map, orientation, state.bottomTeam) }
         // What the board opens on: the Lane between both teams' hero spawn areas, Battle Zones included.
         val lane = remember(layout, state.map) { layout.laneRegion(state.map, state.geometry) }
-        var collapsed by rememberSaveable { mutableStateOf(initialCollapsed) }
         val scope = rememberCoroutineScope()
-        var panelSize by remember { mutableIntStateOf(0) }
+        var cover by remember { mutableStateOf(PanelCover()) }
         var toolsHeight by remember { mutableIntStateOf(0) }
         var badgeBottom by remember { mutableIntStateOf(0) }
         val selected = state.selected
         val panelShown = selected != null
+        // The panel is hidden to see the whole board: its peek bar stays.
+        val peeking = panelShown && hidden
         val sidePanelWidth = if (landscape) minOf(maxWidth * 0.46f, SIDE_PANEL) else 0.dp
-        val sidePanelPx = with(LocalDensity.current) { sidePanelWidth.toPx() }
         val sidePadPx = with(LocalDensity.current) { Spacing.sm.toPx() }
 
-        // What floats over the map: the panel (bottom, or right in landscape) or the tools.
-        LaunchedEffect(panelShown, panelSize, toolsHeight, landscape, sidePanelPx, badgeBottom) {
-            val bottom = when {
-                !panelShown -> toolsHeight.toFloat()
-                landscape -> 0f
-                else -> panelSize.toFloat()
-            }
-            val end = if (panelShown && landscape) sidePanelPx else 0f
+        // What floats over the map: the panel (bottom, or right in landscape), its peek bar, or the tools.
+        LaunchedEffect(panelShown, cover, toolsHeight, badgeBottom) {
+            val bottom = if (panelShown) cover.bottom.toFloat() else toolsHeight.toFloat()
+            val end = if (panelShown) cover.end.toFloat() else 0f
             // The badge sits in a row padded by Spacing.sm.
             val top = if (badgeBottom > 0) badgeBottom + sidePadPx else 0f
             viewport.updateInsets(bottom, end, top)
         }
+        FitWhileHidden(viewport, peeking)
 
-        // Keep the selected piece and what its overlays reach comfortably in view (big enough to tap).
+        // Keep the selected piece and what its overlays reach comfortably in view (big enough to tap);
+        // with the panel hidden the whole board is in view, unless the person has moved it.
         val at = selected?.at
         val reach = state.overlay?.reach.orEmpty()
         val measureTarget = state.measure?.target
-        LaunchedEffect(at, reach, measureTarget, viewport.unit, viewport.bottomInset, viewport.endInset) {
+        LaunchedEffect(at, reach, measureTarget, viewport.unit, viewport.bottomInset, viewport.endInset, peeking) {
             if (at == null || viewport.unit == 0f) return@LaunchedEffect
+            if (peeking && !viewport.userMoved) return@LaunchedEffect
             val region = layout.bounds(reach + listOfNotNull(at, measureTarget), pad = 1.1f) ?: return@LaunchedEffect
             viewport.reveal(region, layout.center(at))
         }
@@ -360,7 +365,7 @@ private fun BoardContent(
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(end = if (panelShown) sidePanelWidth else 0.dp)
+                .padding(end = if (panelShown && !hidden) sidePanelWidth else 0.dp)
                 .padding(Spacing.sm),
             verticalAlignment = Alignment.Top,
         ) {
@@ -389,34 +394,33 @@ private fun BoardContent(
             }
         }
 
-        // Bottom (portrait) or right (landscape): the tray, then the panel or the tools.
-        val panelModifier = if (landscape) {
-            Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(sidePanelWidth)
-        } else {
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth().heightIn(max = maxHeight * PANEL_MAX)
-        }
+        // Bottom (portrait) or right (landscape): the tray, then the panel (or its peek bar) or the tools.
         if (selected != null) {
-            Surface(
-                modifier = panelModifier.onSizeChanged { panelSize = if (landscape) it.width else it.height },
-                shape = if (landscape) {
-                    RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
-                } else {
-                    RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-                },
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-                shadowElevation = 6.dp,
-            ) {
-                Column {
-                    if (state.waiting.isNotEmpty()) WaitingTray(state, onAction, Modifier.padding(Spacing.sm))
-                    SelectionPanel(
-                        state = state,
-                        piece = selected,
-                        collapsed = collapsed && !landscape,
-                        onCollapse = { collapsed = it },
-                        onAction = onAction,
+            val palette = boardPalette()
+            HideablePanel(
+                landscape = landscape,
+                hidden = hidden,
+                onHiddenChange = { hidden = it },
+                peek = PanelPeek(text = pieceWhere(state, selected), label = pieceTitle(state, selected)),
+                sideWidth = sidePanelWidth,
+                maxShare = PANEL_MAX,
+                onCover = { cover = it },
+                peekLeading = {
+                    PieceToken(
+                        selected,
+                        (selected as? HeroPiece)?.let { state.heroes.hero(it.heroId) },
+                        scaledIconSize(28.dp, maxScale = 1.4f),
+                        palette,
                     )
-                }
+                },
+                peekTrailing = {
+                    IconButton(onClick = { onAction(BoardAction.Deselect) }) {
+                        Icon(Icons.Outlined.Close, contentDescription = "Deselect")
+                    }
+                },
+            ) {
+                if (state.waiting.isNotEmpty()) WaitingTray(state, onAction, Modifier.padding(Spacing.sm))
+                SelectionPanel(state = state, piece = selected, onAction = onAction)
             }
         } else {
             Column(
@@ -579,7 +583,13 @@ private fun ToolButton(icon: ImageVector, label: String, compact: Boolean, modif
             ) {
                 iconContent()
                 Spacer(Modifier.width(Spacing.sm))
-                Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         } else {
             Column(

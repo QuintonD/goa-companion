@@ -29,8 +29,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.ExpandLess
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.material3.FilterChip
@@ -96,39 +94,54 @@ import dev.quinton.goa.feature.board.ui.drawSwatch
 /**
  * Details of the selected piece: who it is and where, Measure and Remove, and (for a hero) a card
  * to measure with and its overlays, each switch labelled with the pattern it draws on the map.
- * [collapsed] shows the header only.
+ * The panel around it hides (BoardScreen); hidden, the piece's name and Zone stay in its peek bar.
  */
 @Composable
 internal fun SelectionPanel(
     state: BoardUiState.Ready,
     piece: BoardPiece,
-    collapsed: Boolean,
-    onCollapse: (Boolean) -> Unit,
     onAction: (BoardAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = boardPalette()
     val hero = (piece as? HeroPiece)?.let { state.heroes.hero(it.heroId) }
     Column(modifier) {
-        PanelHeader(state, piece, hero, palette, collapsed, onCollapse, onAction)
-        if (!collapsed) {
-            Column(
-                Modifier
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = Spacing.lg)
-                    .padding(bottom = Spacing.lg),
-            ) {
-                PieceActions(state, piece, onAction)
-                if (piece.at == null) {
-                    Note("Waiting in the tray: tap a highlighted space on the board to put it there (p.8).")
-                } else if (hero != null) {
-                    HeroMeasures(state, hero, palette, onAction)
-                } else {
-                    StepsMeasure(state, piece, palette, onAction)
-                }
+        PanelHeader(state, piece, hero, palette, onAction)
+        Column(
+            Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Spacing.lg)
+                .padding(bottom = Spacing.lg),
+        ) {
+            PieceActions(state, piece, onAction)
+            if (piece.at == null) {
+                Note("Waiting in the tray: tap a highlighted space on the board to put it there (p.8).")
+            } else if (hero != null) {
+                HeroMeasures(state, hero, palette, onAction)
+            } else {
+                StepsMeasure(state, piece, palette, onAction)
             }
         }
     }
+}
+
+/** The selected piece's name: the hero, the minion's type, or the token's label. */
+internal fun pieceTitle(state: BoardUiState.Ready, piece: BoardPiece): String = when (piece) {
+    is HeroPiece -> state.heroes.hero(piece.heroId).name
+    is MinionPiece -> BoardText.minion(piece.type)
+    is TokenPiece -> "Token: ${piece.label}"
+}
+
+/** Where the selected piece is: its Zone ("in the tray" while it waits) and Battle Zone. */
+internal fun pieceWhere(state: BoardUiState.Ready, piece: BoardPiece): String {
+    val zone = piece.at?.let { state.geometry.zoneOf(it) }
+    val battleLane = state.map.lanes.firstOrNull {
+        (state.board.state.battleZones[it.id] ?: it.startingBattleZone) == zone
+    }
+    return listOfNotNull(
+        if (piece.at == null) "in the tray" else BoardText.zone(state.map, zone),
+        battleLane?.let { BoardText.battleZone(state.map, it.id) },
+    ).joinToString(" · ")
 }
 
 @Composable
@@ -137,8 +150,6 @@ private fun PanelHeader(
     piece: BoardPiece,
     hero: BoardHero?,
     palette: BoardPalette,
-    collapsed: Boolean,
-    onCollapse: (Boolean) -> Unit,
     onAction: (BoardAction) -> Unit,
 ) {
     val title = when (piece) {
@@ -166,7 +177,7 @@ private fun PanelHeader(
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.xs)
+            .padding(start = Spacing.lg, end = Spacing.xs, bottom = Spacing.xs)
             .semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -192,12 +203,6 @@ private fun PanelHeader(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-            )
-        }
-        IconButton(onClick = { onCollapse(!collapsed) }) {
-            Icon(
-                if (collapsed) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                contentDescription = if (collapsed) "Show details" else "Hide details",
             )
         }
         IconButton(onClick = { onAction(BoardAction.Deselect) }) {

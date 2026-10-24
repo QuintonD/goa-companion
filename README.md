@@ -67,6 +67,12 @@ group key, through Quick Share, a message or Drive; the other phone opens it (or
 **Same friend twice** (added on two phones before they ever synced): open either player →
 **Merge into…** → pick the other. Sync again so the other phones follow.
 
+**Sync server (ADR-036):** the group can also sync over the internet through a small relay on the
+owner's home server (`oldboi`, `https://oldboi.taila4d38d.ts.net:8443`). It only stores the
+group's data sealed with the group key and can't read it; the phones still do all the merging.
+Server: [server/relay/README.md](server/relay/README.md) · runbook:
+[deploy/relay/README.md](deploy/relay/README.md) · protocol: [docs/SYNC-SERVER.md](docs/SYNC-SERVER.md).
+
 The invite QR code is the group's key: show it only at the table. Release and debug builds
 don't see each other (different app ids). Leaving a group keeps all data on the phone.
 

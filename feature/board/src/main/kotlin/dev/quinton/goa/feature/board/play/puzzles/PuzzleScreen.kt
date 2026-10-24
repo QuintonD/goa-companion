@@ -63,7 +63,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
-import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -78,10 +77,12 @@ import dev.quinton.goa.feature.board.play.table.DecisionPanel
 import dev.quinton.goa.feature.board.play.table.EventLog
 import dev.quinton.goa.feature.board.play.table.GameTable
 import dev.quinton.goa.feature.board.play.table.HeroDetail
+import dev.quinton.goa.feature.board.play.table.PeekConfirm
 import dev.quinton.goa.feature.board.play.table.RecentEvents
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.YourHand
+import dev.quinton.goa.feature.board.ui.BoardScaffold
 import dev.quinton.goa.feature.board.ui.cards.CardFocusHost
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
@@ -105,6 +106,7 @@ fun PuzzleScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     initialSheet: PlaySheet? = null,
+    initialPanelHidden: Boolean = false,
 ) {
     val puzzle = (state as? PuzzleUiState.Ready)?.puzzle
     var sheet by remember { mutableStateOf(initialSheet) }
@@ -112,7 +114,7 @@ fun PuzzleScreen(
     val viewport = remember { MapViewport() }
     val focus = rememberCardFocusState()
     KeepScreenOn(puzzle != null)
-    GoaScreen(
+    BoardScaffold(
         title = puzzle?.let { "Puzzle ${it.info.number}" } ?: "Puzzle",
         onBack = onBack,
         modifier = modifier,
@@ -167,6 +169,13 @@ fun PuzzleScreen(
                         onHero = { sheet = PlaySheet.Hero(it) },
                         onFlip = { onAction(PuzzleAction.Flip) },
                         banner = { GoalBanner(p.info.goal.text, p.playing) },
+                        peek = puzzlePeek(p),
+                        peekTrailing = {
+                            if (p.phase == PuzzlePhase.SOLVING && p.replay == null) {
+                                PeekConfirm(p.table, p.busy) { onAction(PuzzleAction.Answer(it)) }
+                            }
+                        },
+                        initialPanelHidden = initialPanelHidden,
                     ) {
                         PuzzlePanel(p, onAction, onNext, onList, focus)
                     }

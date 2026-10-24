@@ -258,7 +258,14 @@ private class FocusMotion {
 
             FocusExit.FLY_UP -> {
                 launch {
-                    animate(drag, -heightPx, animationSpec = tween(Motion.MEDIUM_MS, easing = Motion.EmphasizedAccelerate)) { v, _ ->
+                    animate(
+                        drag,
+                        -heightPx,
+                        animationSpec = tween(Motion.MEDIUM_MS, easing = Motion.EmphasizedAccelerate),
+                    ) {
+                            v,
+                            _,
+                        ->
                         drag = v
                     }
                 }
@@ -530,7 +537,9 @@ private fun FocusPage(
                             scale = lerp(if (motion.exitKind == FocusExit.FLY_UP) 1f else ENTER_SCALE, 1f, t)
                             alpha = t
                         }
-                        scale *= motion.press.value * (1f - motion.back * BACK_SHRINK) * if (pressed && selectable) 0.98f else 1f
+                        scale *=
+                            motion.press.value * (1f - motion.back * BACK_SHRINK) *
+                            if (pressed && selectable) 0.98f else 1f
                         scaleX = scale
                         scaleY = scale
                         val edge = if (motion.backEdge == BackEventCompat.EDGE_LEFT) 1f else -1f
@@ -558,7 +567,10 @@ private fun FocusPage(
 private fun NotAnOption(modifier: Modifier) {
     Box(Modifier.fillMaxSize().background(ScrimColor.copy(alpha = 0.5f)))
     Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surface, modifier = modifier) {
-        Row(Modifier.padding(horizontal = Spacing.md, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.padding(horizontal = Spacing.md, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Icon(Icons.Outlined.Block, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
             Spacer(Modifier.width(6.dp))
             Text("Not an option", style = MaterialTheme.typography.labelLarge)
@@ -585,7 +597,12 @@ internal fun VerdictBadge(verdict: CardVerdict, modifier: Modifier = Modifier) {
                 )
                 Spacer(Modifier.width(4.dp))
             }
-            Text(verdict.label, style = MaterialTheme.typography.labelLarge, color = color, fontWeight = FontWeight.Bold)
+            Text(
+                verdict.label,
+                style = MaterialTheme.typography.labelLarge,
+                color = color,
+                fontWeight = FontWeight.Bold,
+            )
         }
     }
 }

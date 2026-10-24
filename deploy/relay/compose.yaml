@@ -1,0 +1,45 @@
+# The group sync relay on oldboi (ADR-036). Run from this directory: `docker compose up -d --build`
+# (deploy.sh does that). Published on host loopback only; Tailscale Funnel/Serve puts it on :8443.
+name: goa-relay
+
+services:
+  relay:
+    build:
+      context: ../../server/relay
+      dockerfile: ../../deploy/relay/Dockerfile
+    image: goa-relay:latest
+    container_name: goa-relay
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8787:8787"
+    environment:
+      GOA_RELAY_HOST: 0.0.0.0 # inside the container; the host side is loopback only (above)
+      GOA_RELAY_PORT: "8787"
+      GOA_RELAY_DATA: /var/lib/goa-relay
+      # GOA_RELAY_MAX_GROUPS: "200"
+      # GOA_RELAY_RATE_PER_CLIENT: "60"
+      # GOA_RELAY_RATE_GLOBAL: "600"
+    volumes:
+      # Ciphertext, token hashes and revision numbers only; back this directory up as is.
+      - /var/lib/goa-relay:/var/lib/goa-relay
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 512m
+    pids_limit: 256
+    healthcheck:
+      # No curl in the JRE image: a plain HTTP request over bash's /dev/tcp.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8787; printf 'GET /v1/health HTTP/1.1\\r\\nHost: relay\\r\\nConnection: close\\r\\n\\r\\n' >&3; grep -q '\"ok\":true' <&3"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

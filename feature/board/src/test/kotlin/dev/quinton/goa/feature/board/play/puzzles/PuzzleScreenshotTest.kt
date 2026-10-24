@@ -122,14 +122,20 @@ class PuzzleScreenshotTest {
     }
 
     /** Builds the state first (the ViewModel on virtual time), then draws it. */
-    private fun shot(mode: ThemeMode, fontScale: Float = 1f, needs: List<String>, state: () -> PuzzleUi) {
+    private fun shot(
+        mode: ThemeMode,
+        fontScale: Float = 1f,
+        needs: List<String>,
+        hidden: Boolean = false,
+        state: () -> PuzzleUi,
+    ) {
         need(*needs.toTypedArray())
         val puzzle = state()
-        capture(mode, fontScale) { Puzzle(puzzle) }
+        capture(mode, fontScale) { Puzzle(puzzle, hidden) }
     }
 
     @Composable
-    private fun Puzzle(puzzle: PuzzleUi) {
+    private fun Puzzle(puzzle: PuzzleUi, hidden: Boolean = false) {
         PuzzleScreen(
             state = PuzzleUiState.Ready(puzzle),
             onAction = {},
@@ -137,6 +143,7 @@ class PuzzleScreenshotTest {
             onNext = {},
             onList = {},
             onBack = {},
+            initialPanelHidden = hidden,
         )
     }
 
@@ -154,6 +161,17 @@ class PuzzleScreenshotTest {
     @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
     @Test
     fun puzzleStartLandscapeDark() = shot(ThemeMode.DARK, needs = listOf("p01")) { start() }
+
+    /** The panel hidden: the whole board, the question in the peek bar. */
+    @Test fun puzzlePanelHiddenDark() = shot(ThemeMode.DARK, needs = listOf("p01"), hidden = true) { start() }
+
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun puzzlePanelHiddenLandscapeDark() = shot(ThemeMode.DARK, needs = listOf("p01"), hidden = true) { start() }
+
+    /** The last nudge's bronze ring on the whole board, the panel hidden. */
+    @Test
+    fun puzzleNudgeHintHiddenLight() = shot(ThemeMode.LIGHT, needs = listOf("p34"), hidden = true) { lastNudge() }
 
     /** Two heroes to play at once: Wasp's card is down, Xargatha's hand is up (the intro folded). */
     @Test

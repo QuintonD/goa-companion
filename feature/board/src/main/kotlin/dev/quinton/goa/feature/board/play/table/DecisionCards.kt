@@ -81,8 +81,9 @@ internal fun offeredCards(table: TableUi): List<OfferedCard> {
     val options = table.cardOptions
     val byId = options.associateBy { it.cardId }
     val hand = table.decider?.hand
-    val wholeHand = hand != null && decision.kind != DecisionKind.KEEP_UPGRADE && decision.kind != DecisionKind.DEFEND &&
-        options.isNotEmpty() && options.all { it.cardId in hand } && hand.size > options.size
+    val wholeHand =
+        hand != null && decision.kind != DecisionKind.KEEP_UPGRADE && decision.kind != DecisionKind.DEFEND &&
+            options.isNotEmpty() && options.all { it.cardId in hand } && hand.size > options.size
     val ids = if (wholeHand) hand.orEmpty() else options.map { it.cardId }
     return ids.mapNotNull { id -> table.card(id)?.let { OfferedCard(it, byId[id]) } }
 }
@@ -151,7 +152,9 @@ private fun focusCard(table: TableUi, offered: OfferedCard): FocusCard {
             // p.15: the card kept goes to hand, the other is tucked as an item.
             notes += CardNote("${card.name} goes to your hand.")
             table.cardOptions.firstOrNull { it.cardId != card.id }?.let { table.card(it.cardId) }?.let { other ->
-                other.item?.let { notes += CardNote("${other.name} becomes an item: +1 ${PlayText.stat(it)} (p.16)", it) }
+                other.item?.let {
+                    notes += CardNote("${other.name} becomes an item: +1 ${PlayText.stat(it)} (p.16)", it)
+                }
             }
         }
 
@@ -211,7 +214,9 @@ internal fun HandPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardF
     if (table.buttonOptions.isNotEmpty()) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             table.buttonOptions.forEach { choice ->
-                OutlinedButton(onClick = { onAnswer(choice) }, enabled = !busy, modifier = Modifier.heightIn(min = 52.dp)) {
+                OutlinedButton(onClick = {
+                    onAnswer(choice)
+                }, enabled = !busy, modifier = Modifier.heightIn(min = 52.dp)) {
                     Text(table.label(choice))
                 }
             }
@@ -276,7 +281,10 @@ private fun OfferedRow(
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val n = offered.size.coerceAtLeast(1)
         val width = ((maxWidth - Spacing.sm * (n - 1)) / n).coerceIn(MIN_HAND_CARD, HAND_CARD)
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
             offered.forEachIndexed { i, item ->
                 OfferedThumb(item, width, keep, reason, focus) { onOpen(i) }
             }
@@ -406,7 +414,11 @@ private fun AttackHeader(heading: String, attack: Int?, minionModifier: Int?) {
         modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
     ) {
         Column(Modifier.padding(Spacing.md)) {
-            Text(heading, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onErrorContainer)
+            Text(
+                heading,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
             Text(
                 attack?.let { "Attack $it" } ?: "Attack decided by the card",
                 style = MaterialTheme.typography.headlineSmall,
@@ -470,7 +482,12 @@ private fun DefenseRow(card: Card, line: DefenseLine, focus: CardFocusState, onO
             TableCard(card, Modifier.cardFocusOrigin(focus, card.id), width = 34.dp)
             Spacer(Modifier.width(Spacing.sm))
             Column(Modifier.weight(1f)) {
-                Text(card.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    card.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text(
                     line.detail,
                     style = MaterialTheme.typography.bodySmall,

@@ -401,7 +401,14 @@ internal fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState, m
         }
         if (hero.activeEffects.isNotEmpty()) {
             Section("Active effects")
-            CardRow(hero.activeEffects.map { CardView(it, active = true) }, table, focus, "${info.name} · Active effects")
+            CardRow(
+                hero.activeEffects.map {
+                    CardView(it, active = true)
+                },
+                table,
+                focus,
+                "${info.name} · Active effects",
+            )
         }
         hero.played?.let { played ->
             Section("Played this turn")
@@ -476,7 +483,12 @@ internal fun CardRow(
     slots: Boolean = false,
 ) {
     val captions = cards.map { view ->
-        listOfNotNull(view.slot?.takeIf { slots }?.let { "Turn $it" }, "Active".takeIf { view.active }).joinToString(" · ")
+        listOfNotNull(
+            view.slot?.takeIf {
+                slots
+            }?.let { "Turn $it" },
+            "Active".takeIf { view.active },
+        ).joinToString(" · ")
     }
     val open = cards.indices.filter { !cards[it].facedown && table.card(cards[it].cardId) != null }
     val viewable = open.map { i ->

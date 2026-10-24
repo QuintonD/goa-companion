@@ -296,7 +296,7 @@ private fun ViewHint(many: Boolean) {
         )
         Spacer(Modifier.width(Spacing.sm))
         Text(
-            if (many) "Swipe sideways for the other cards; swipe up or go back to close." else "Swipe up or go back to close.",
+            if (many) "Swipe sideways for the other cards; swipe up or go back to close." else CLOSE_HINT,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -304,3 +304,4 @@ private fun ViewHint(many: Boolean) {
 }
 
 private val RELATED_CARD = 72.dp
+private const val CLOSE_HINT = "Swipe up or go back to close."
