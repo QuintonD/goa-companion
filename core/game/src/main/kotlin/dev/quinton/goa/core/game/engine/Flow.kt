@@ -114,13 +114,7 @@ private fun Game.reveal() {
         }
     }
     emit(GameEvent.CardsRevealed(played, "Cards revealed: $text."))
-    for (e in orderedEffects()) {
-        if (e.timing == Timing.NEXT_TURN_AFTER_PLAYING && !e.spent && e.round == state.round &&
-            e.turn == state.turn - 1
-        ) {
-            applyTimed(e)
-        }
-    }
+    applyDue { e -> e.timing == Timing.NEXT_TURN_AFTER_PLAYING && e.round == state.round && e.turn == state.turn - 1 }
     trigger(Trigger.CardsRevealed)
     state.step = Step.RESOLVE
 }
@@ -131,6 +125,42 @@ private fun Game.initiativeText(heroId: String): String = initiativeOf(heroId)?.
 fun Game.orderedEffects(): List<ActiveEffect> {
     val order = orderedHeroes().map { it.id }
     return state.effects.sortedWith(compareBy({ order.indexOf(it.owner) }, { it.id }))
+}
+
+/**
+ * Apply every timed Active effect that is [due] now, once each (p.17 "End of turn", "End of round",
+ * "Next turn, after playing cards"). p.17: "In cases when multiple Active effects come into effect at
+ * the same time … use the same method as when resolving tied initiative (See page 7), but do not flip
+ * the Tie Breaker coin": the coin's team first; within a team "they have to decide" (p.7), so the
+ * team (the owner, when the effects are all one hero's) picks which applies next. Effects are looked
+ * up again before each one: an effect cancelled by an earlier one (its owner was defeated, p.13; its
+ * card changed state, p.17) no longer applies; effects made meanwhile wait for the next time.
+ */
+fun Game.applyDue(due: (ActiveEffect) -> Boolean) {
+    val eligible = state.effects.filter { !it.spent && due(it) }.map { it.id }.toHashSet()
+    val done = HashSet<Int>()
+    while (true) {
+        val pending = orderedEffects().filter { it.id in eligible && it.id !in done && !it.spent }
+        if (pending.isEmpty()) return
+        val team = teamOf(pending.first().owner)
+        val same = pending.filter { teamOf(it.owner) == team }
+        val next = if (same.size == 1) {
+            same.single()
+        } else {
+            val owners = same.map { it.owner }.distinct()
+            val seat = if (owners.size == 1) owners.single() else teamSeat(team ?: Team.RED)
+            val labels = same.map { "${heroName(it.owner)}'s ${cardName(it.cardId)}" }
+            val pick = ask(
+                seat,
+                DecisionKind.CHOOSE_OPTION,
+                "These effects apply at the same time: which one first?",
+                labels.mapIndexed { i, l -> Choice.Option(i, l) },
+            ) as Choice.Option
+            same[pick.index]
+        }
+        done += next.id
+        applyTimed(next)
+    }
 }
 
 fun Game.srcOf(e: ActiveEffect): dev.quinton.goa.core.game.effects.Src =
@@ -300,11 +330,7 @@ private fun Game.finishCard(heroId: String, cardId: String, playedBefore: List<S
 
 /** p.7 "Turn Ends": "All active 'This Turn' effects are canceled"; End of turn text first (p.17). */
 private fun Game.endOfTurn() {
-    for (e in orderedEffects()) {
-        if (e.timing == Timing.END_OF_TURN && !e.spent && e.round == state.round && e.turn == state.turn) {
-            applyTimed(e)
-        }
-    }
+    applyDue { e -> e.timing == Timing.END_OF_TURN && e.round == state.round && e.turn == state.turn }
     trigger(Trigger.TurnEnding)
     returnMinions()
     val turn = state.turn
@@ -330,11 +356,7 @@ private fun Game.endOfTurn() {
 /** "End of round:" text (p.17), before the Minion Battle (e.g. Xargatha's Constrict reminder). */
 private fun Game.endOfRoundEffects() {
     emit(GameEvent.Note("End of round ${state.round}."))
-    for (e in orderedEffects()) {
-        if (e.timing == Timing.END_OF_ROUND && !e.spent && e.round == state.round) {
-            applyTimed(e)
-        }
-    }
+    applyDue { e -> e.timing == Timing.END_OF_ROUND && e.round == state.round }
     trigger(Trigger.RoundEnding)
     returnMinions()
     state.step = Step.MINION_BATTLE
@@ -415,10 +437,13 @@ private fun Game.pushStep() {
     val doubleLane = geo.lanes.size > 1
     val before = if (doubleLane) snapshotLanes() else null
     val claims = if (doubleLane) ArrayList<WinClaim>() else null
+    var pushed = false
     for (lane in geo.map.lanes.map { it.id }) {
         val winner = state.pushDue.remove(lane) ?: continue
         pushLane(lane, winner, claims)
+        pushed = true
     }
+    if (claims != null && pushed) countZonesAfterPushes(claims)
     if (claims != null && claims.isNotEmpty()) {
         if (claims.map { it.team }.distinct().size > 1) {
             restoreLanes(before!!)

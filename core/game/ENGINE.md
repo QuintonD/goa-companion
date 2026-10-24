@@ -88,7 +88,11 @@ Rules for code that runs inside a step (scripts included):
 `Views.build` follows p.4: a seat sees its own hand and played card; other hands only as counts;
 played cards facedown until the reveal; facedown resolved/discarded cards and the other team's
 facedown tokens hidden; everything else open. Events are full English sentences (`GameEvent.text`)
-for the log and TalkBack; they never name a facedown card.
+for the log and TalkBack; they never name a hidden card: a facedown card, or a card that is hidden
+both before and after a swap, is "a facedown card" / "two hidden cards" (`Cards.isPublic`), and a
+facedown token is "A facedown token" (RULINGS 52). Item cards are not named in `HeroView` (only their
+icons, `itemStats`); the level-up log line names the item card, which the item icon already tells
+(every Tier II/III pair of a colour has two different item icons in the catalog).
 
 ## Behaviours in force
 

@@ -116,12 +116,22 @@ fun Game.pushLane(lane: String, winner: Team, collect: MutableList<WinClaim>? = 
         )
         return
     }
-    // Step 3: remove the previous Battle Zone's minions of this Lane; respawn in the new one.
-    state.minions.removeAll { it.lane == lane && (it.at == null || zoneOf(it.at!!) == current) }
+    // Step 3: remove the previous Battle Zone's minions of this Lane; respawn in the new one. A minion of
+    // the Lane displaced out of the Zone during the action is still in that Battle Zone (p.18: displacing
+    // it "has no impact"; it would only walk back there) and is removed with the others.
+    state.minions.removeAll { it.lane == lane }
     state.battleZones[lane] = next
     touch()
     respawnWave(lane, next)
-    if (doubleLane && state.lastWaveFlipped.isNotEmpty()) zoneCount()?.let { claim(claims, collect, it) }
+    // p.20 Zone count. At the end of the round both Lanes push "simultaneously" (p.20), so the count
+    // waits until both pushes are done ([countZonesAfterPushes]).
+    if (doubleLane && collect == null && state.lastWaveFlipped.isNotEmpty()) zoneCount()?.let { claim(claims, null, it) }
+}
+
+/** p.20: the Zone count after the end-of-round pushes of a double-lane map, made once for both Lanes. */
+fun Game.countZonesAfterPushes(claims: MutableList<WinClaim>) {
+    if (state.lastWaveFlipped.isEmpty()) return
+    zoneCount()?.let { claim(claims, claims, it) }
 }
 
 private fun Game.claim(claims: MutableList<WinClaim>, collect: MutableList<WinClaim>?, c: WinClaim) {

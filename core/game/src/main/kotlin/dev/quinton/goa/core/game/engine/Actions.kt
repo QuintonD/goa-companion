@@ -434,7 +434,12 @@ fun Game.performAction(
         actors.removeAt(actors.lastIndex)
         actions.removeAt(actions.lastIndex)
     }
-    if (defeated) return null
+    if (defeated) {
+        // The action ended with its hero's defeat: displaced minions still go back (p.18 "after you
+        // perform an action").
+        returnMinions()
+        return null
+    }
     trigger(Trigger.AfterAction(heroId, cardId, kind, primary, basic, isRepeat, scope.targets.toList()))
     returnMinions()
     return scope

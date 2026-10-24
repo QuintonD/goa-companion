@@ -482,10 +482,11 @@ fun Game.push(
 /** p.19 "Remove": take a piece off the board; no coins. Minions: see [removeMinion]. */
 fun Game.removePiece(id: String) {
     val p = state.piece(id) ?: error("No piece $id")
+    val label = if (p.faceDown) "A facedown token" else p.label
     setPos(id, null)
     state.pieces.remove(p)
     touch()
-    emit(GameEvent.Removed(id, "${p.label} is removed."))
+    emit(GameEvent.Removed(id, "$label is removed."))
 }
 
 /**
