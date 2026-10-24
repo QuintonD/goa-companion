@@ -13,5 +13,9 @@ object Puzzles {
         P17IntoTheWall,
         P34RespawnWhereItCounts,
         P31KnifeOfTheLivingDead,
+        P32FightAsOne,
+        P33EvenABlockedShotPushes,
+        P36WhoGoesFirst,
+        P37ThePoisonedClock,
     )
 }

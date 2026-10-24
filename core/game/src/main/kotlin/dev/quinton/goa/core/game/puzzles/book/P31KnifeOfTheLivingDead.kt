@@ -44,7 +44,11 @@ object P31KnifeOfTheLivingDead : Puzzle() {
             "stopping makes it 6 against 6: she survives. Each removal needs a Zombie adjacent to the target at " +
             "that moment, so spend one choice moving the far Zombie onto the only free space beside her, then " +
             "remove both: Attack 7 against 6. Moving a Zombie twice, or to any other space, leaves you a point short.",
-        rules = listOf("p.10 Modal Actions", "p.14 Attack/Defense Detailed Order, Minion Defense Modifiers", "p.19 Tokens"),
+        rules = listOf(
+            "p.10 Modal Actions",
+            "p.14 Attack/Defense Detailed Order, Minion Defense Modifiers",
+            "p.19 Tokens",
+        ),
     )
 
     override val playerSeats = setOf("mortimer")

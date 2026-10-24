@@ -677,6 +677,11 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Fight as One performs the primary action of a resolved skill card again (card text); the action is the card's own, so Scorching Breath still measures "in range of Pyro and in a straight line from Pyro" (card text, p.19 Straight line). A hero with no cards is defeated by "discards a card, or is defeated" (p.17 If able).
 - **Rules:** p.10 Making choices; p.17 If able; p.19 Straight line.
 - **Risk:** none.
+- **Encoded as p32 (changed, 2026-10-24):** Wasp moved to **(3,−7)** and keeps **`wasp-blue-1`** in
+  hand: she is now in a straight line from both Widget (NE, d2) and Pyro (NW, d2), so Scorching Breath
+  offers two targets and the closer one (Wasp) just discards. Why: as written Wasp was never a legal
+  Breath target (the engine doesn't offer her), so the concept's tempting wrong try could not be played;
+  now it can, and it fails. Wrong tries tested: Breath on Wasp, Dragon Bond after the attack, a Movement action.
 
 ### C33 — Even a Blocked Shot Pushes
 - **Theme:** After-the-attack text applies even when the attack is blocked; a push sets up a teammate. **Difficulty:** 2. **Heroes:** Sabina, Brogan; Tigerclaw.
@@ -694,6 +699,11 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** "After the attack" text applies after the target defends or is removed (p.17, p.14 order step 7), so a blocked shot still pushes. The push moves him one space directly away (p.18), straight into the end of Brogan's straight line. Dodge only stops ranged attacks (card text, p.14 Block).
 - **Rules:** p.11 Movement in the card text; p.14 order, Block; p.17 After the attack; p.18 Push.
 - **Risk:** none.
+- **Encoded as p33 (changed, 2026-10-24):** as written every decision had a single option, so "first
+  option everywhere" solved it. Added: a **Blue melee at (4,−6)**, adjacent to Sabina (the "shoot
+  something else" target), and the idle **Arien at (−3,−7)** holding `arien-red-1` (Defense 6), so
+  Brogan's Mad Dash has a second run, west to (−2,−7), which ends next to Arien and comes first in the
+  canonical order. Tigerclaw's resolved cards: `red-1`, `green-1`, `silver`, `gold` (this turn).
 
 ### C34 — Respawn Where It Counts
 - **Theme:** hero respawn choice; mandatory 2-space move; pushing the lane mid-turn. **Difficulty:** 2. **Heroes:** Brogan; Arien, Tigerclaw (Wasp idle).
@@ -747,6 +757,10 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** In a cross-team tie the team shown on the coin acts first and picks which of its tied heroes goes; that player then flips the coin (p.7), so the next tie falls to the other team. Teammates choose their order without discussing reasons (p.4, p.7).
 - **Rules:** p.4 Table talk; p.7 Tied Initiative.
 - **Risk:** none.
+- **Encoded as p36 (2026-10-24):** as in the concept; Dodger is seated before Tigerclaw, so the team's
+  "who acts first?" lists her first. Tigerclaw's discard is `tigerclaw-blue-1`. The solver accepts any
+  Tigerclaw action that ends away from Wasp (Movement, or Combat Reflexes with a step); Wasp's best reply
+  is then to move. Wrong tries tested: Dodger first; Tigerclaw first but Hold.
 
 ### C37 — The Poisoned Clock
 - **Theme:** markers that change initiative and defence; Block cards only stop one attack type; choosing your card when the enemy's is forced. **Difficulty:** 2. **Heroes:** Wasp; Arien (Tigerclaw, Brogan idle).
@@ -765,6 +779,12 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.7 Play one card, Check the initiative, Tied Initiative; p.13 Attacking a hero; p.18 Markers.
 - **Risk:** none (the "play a card" starting step must be supported by the puzzle builder).
 - **Encoding note (2026-10-24):** blocked on Tigerclaw: the Poison marker's rules will be a behaviour of `TigerclawHero` (not written yet), and he is seated. The builder supports the play step (`PlayCards`); seat Wasp before Arien (or give Arien his forced card as already played), else the answer key refuses a card choice made after an opponent's facedown one (ENCODING.md "Hidden information").
+- **Encoded as p37 (changed, 2026-10-24):** Wasp's hand is **`wasp-silver` Static Barrier (13) and
+  `wasp-red-1` Shock (8)**, resolved `gold`, `green-1`, `blue-1`. Why: hand cards are offered in catalog
+  order, so with Shock and Stop Projectiles the first option was the answer; Static Barrier is the
+  tempting "act first for sure" card and comes first. The Block lesson goes; the poison lesson stays.
+  Tigerclaw (resolved `red-1`, `green-2b`, `blue-1`; discard `gold`, `silver`; item `green-2a`) and
+  Brogan have no cards and pass, so no teammate's choice matters. Seats: Wasp, Tigerclaw, Arien, Brogan.
 
 ### C38 — Strip the Silver
 - **Theme:** an enemy Active effect (Bolster) protecting the last minion; same-team order. **Difficulty:** 2. **Heroes:** Wasp, Swift; Brogan, Dodger.
