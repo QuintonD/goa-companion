@@ -15,13 +15,15 @@ class CoachSurveyTest {
     fun `the coach speaks rarely and only with a reason`() {
         val coach = AiCoach(TestData.engine)
         val games = System.getenv("AI_COACH_GAMES")?.toIntOrNull() ?: 1
+        // Line-ups from every playable hero: the coach must stay quiet about mechanics it does not read.
+        val lineups = AiHarness.mixedLineups(games, seed = 77L)
         var asked = 0
         var spoke = 0
         var maxMs = 0.0
         var totalMs = 0.0
         for (g in 0 until games) {
             val human = if (g % 2 == 0) AiLevel.EASY else AiLevel.NORMAL
-            val (red, blue) = AiHarness.LINEUPS[g % 3]
+            val (red, blue) = lineups[g]
             val s = TestData.engine.newGame(AiHarness.setup(red, blue, human, AiLevel.HARD, Team.RED))
             val players = mapOf(
                 Team.RED to AiPlayers.deterministic(human, 70L + g),
@@ -40,7 +42,7 @@ class CoachSurveyTest {
                     maxMs = maxOf(maxMs, ms)
                     if (note != null) {
                         spoke++
-                        println("NUDGE [$human ${d.kind} r${note.round}t${note.turn}] ${note.text} | ${note.detail}")
+                        println("NUDGE [$human ${d.seat} ${d.kind} r${note.round}t${note.turn}] ${note.text} | ${note.detail}")
                     }
                 }
                 s.answer(d.id, c)
