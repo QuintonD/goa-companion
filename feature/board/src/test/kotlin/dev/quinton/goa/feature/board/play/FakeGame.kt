@@ -61,6 +61,8 @@ private val json = Json { ignoreUnknownKeys = true }
 private data class Answer(val id: Long, val choice: Choice, val seat: String)
 
 /** The scripted game. Every answer is recorded; fork, save, restore and undo replay them. */
+// One scripted story, read top to bottom: it stays in one class and one list on purpose.
+@Suppress("LargeClass")
 class FakeGameSession(
     override val setup: GameSetup,
     private val map: BoardMap,
@@ -236,7 +238,12 @@ class FakeGameSession(
             seat.heroId to Hero(seat.heroId, seat.team, basicHand(seat.heroId))
         }
         val heavy = pieces.filterIsInstance<MinionPiece>().first { it.team == Team.BLUE && it.type == MinionType.HEAVY }
-        return State(board = board.copy(pieces = pieces), heroes = heroes, coin = setup.tieBreaker, immune = setOf(heavy.id))
+        return State(
+            board = board.copy(pieces = pieces),
+            heroes = heroes,
+            coin = setup.tieBreaker,
+            immune = setOf(heavy.id),
+        )
     }
 
     internal fun at(id: String): Hex? = s.board.pieces.firstOrNull { it.id == id }?.at
@@ -251,7 +258,10 @@ class FakeGameSession(
 
     internal fun emptyNeighbours(of: Hex): List<Hex> {
         val occupied = BoardRules.occupancy(s.board)
-        return HexGrid.neighbors(of).filter { BoardRules.isEmpty(geometry, occupied, it) && it !in s.tokens.map { t -> t.at } }
+        return HexGrid.neighbors(of).filter {
+            BoardRules.isEmpty(geometry, occupied, it) &&
+                it !in s.tokens.map { t -> t.at }
+        }
     }
 
     /** Shortest paths over empty spaces from [from], up to [steps]: destination → path (excl. start). */
@@ -296,7 +306,9 @@ class FakeGameSession(
     }
 
     internal fun name(id: String): String = NAMES[id] ?: s.board.pieces.firstOrNull { it.id == id }?.let { piece ->
-        (piece as? MinionPiece)?.let { "the ${if (it.team == Team.RED) "Red" else "Blue"} ${it.type.name.lowercase()} minion" }
+        (piece as? MinionPiece)?.let {
+            "the ${if (it.team == Team.RED) "Red" else "Blue"} ${it.type.name.lowercase()} minion"
+        }
     } ?: id
 
     internal val state: State get() = s
@@ -357,7 +369,14 @@ class FakeGameSession(
         onAnswer = { st, choice ->
             val action = (choice as Choice.Action).action
             st.action = action
-            emit(GameEvent.ActionChosen(heroId, st.heroes.getValue(heroId).played.orEmpty(), action, "${name(heroId)} chooses ${action.name.lowercase().replace('_', ' ')}."))
+            emit(
+                GameEvent.ActionChosen(
+                    heroId,
+                    st.heroes.getValue(heroId).played.orEmpty(),
+                    action,
+                    "${name(heroId)} chooses ${action.name.lowercase().replace('_', ' ')}.",
+                ),
+            )
             if (action == ActionType.HOLD) {
                 emit(GameEvent.Note("${name(heroId)} holds."))
                 resolve(heroId)
@@ -366,14 +385,22 @@ class FakeGameSession(
     )
 
     /** A move: the destinations with the engine's path to each (context.paths keys "q,r"). */
-    private fun moveBeat(heroId: String, steps: Int, applies: (State) -> Boolean = { true }, near: String? = null) = Beat(
+    private fun moveBeat(
+        heroId: String,
+        steps: Int,
+        applies: (State) -> Boolean = { true },
+        near: String? = null,
+    ) = Beat(
         applies = applies,
         ask = { st ->
             val from = at(heroId)!!
             val reach = if (near != null) {
                 emptyNeighbours(at(near)!!).associateWith { listOf(it) }
             } else {
-                paths(from, steps).filterValues { it.size <= steps }.entries.take(MAX_MOVES).associate { it.key to it.value }
+                paths(from, steps).filterValues { it.size <= steps }.entries.take(MAX_MOVES).associate {
+                    it.key to
+                        it.value
+                }
             }
             decision(
                 heroId,
@@ -389,7 +416,13 @@ class FakeGameSession(
             val from = at(heroId)!!
             move(heroId, to)
             val dist = HexGrid.distance(from, to)
-            emit(GameEvent.Moved(heroId, listOf(from, to), "${name(heroId)} moves ${if (dist == 1) "1 space" else "$dist spaces"}."))
+            emit(
+                GameEvent.Moved(
+                    heroId,
+                    listOf(from, to),
+                    "${name(heroId)} moves ${if (dist == 1) "1 space" else "$dist spaces"}.",
+                ),
+            )
             resolve(heroId)
         },
     )
@@ -403,6 +436,7 @@ class FakeGameSession(
         advance()
     }
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
     private fun beats(): List<Beat> = listOf(
         // ---- Round 1, turn 1: simultaneous card play, then the reveal (p.7).
         playCard("arien", "arien-red-1"),
@@ -410,13 +444,25 @@ class FakeGameSession(
         playCard("wasp", "wasp-blue-1"),
         playCard("tigerclaw", "tigerclaw-red-1"),
         // Wasp (initiative 10) moves.
-        chooseAction("wasp", listOf(ActionType.PRIMARY, ActionType.MOVEMENT, ActionType.FAST_TRAVEL, ActionType.HOLD), ActionType.MOVEMENT),
+        chooseAction(
+            "wasp",
+            listOf(ActionType.PRIMARY, ActionType.MOVEMENT, ActionType.FAST_TRAVEL, ActionType.HOLD),
+            ActionType.MOVEMENT,
+        ),
         moveBeat("wasp", 3),
         // Tigerclaw (9) moves next to Arien.
-        chooseAction("tigerclaw", listOf(ActionType.PRIMARY, ActionType.MOVEMENT, ActionType.HOLD), ActionType.MOVEMENT),
+        chooseAction(
+            "tigerclaw",
+            listOf(ActionType.PRIMARY, ActionType.MOVEMENT, ActionType.HOLD),
+            ActionType.MOVEMENT,
+        ),
         moveBeat("tigerclaw", 4, near = "arien"),
         // Arien (8): an attack, or a move with its path, or hold.
-        chooseAction("arien", listOf(ActionType.PRIMARY, ActionType.MOVEMENT, ActionType.FAST_TRAVEL, ActionType.HOLD), ActionType.PRIMARY),
+        chooseAction(
+            "arien",
+            listOf(ActionType.PRIMARY, ActionType.MOVEMENT, ActionType.FAST_TRAVEL, ActionType.HOLD),
+            ActionType.PRIMARY,
+        ),
         Beat(
             applies = { it.action == ActionType.PRIMARY },
             ask = { st ->
@@ -434,7 +480,11 @@ class FakeGameSession(
                     "Choose an adjacent enemy to attack",
                     adjacent.map { Choice.Unit(it) },
                     source = st.heroes.getValue("arien").played,
-                    context = DecisionContext(highlight = HexGrid.neighbors(at("arien")!!).filter { mapGeometry.isSpace(it) }),
+                    context = DecisionContext(
+                        highlight = HexGrid.neighbors(at("arien")!!).filter {
+                            mapGeometry.isSpace(it)
+                        },
+                    ),
                 )
             },
             prefer = { _, _ -> Choice.Unit("tigerclaw") },
@@ -442,7 +492,15 @@ class FakeGameSession(
                 st.target = (choice as Choice.Unit).unitId
                 emit(GameEvent.Attacked("arien", st.target!!, 6, "Arien attacks ${name(st.target!!)} with Attack 6."))
                 if (st.target !in st.heroes) {
-                    emit(GameEvent.Defeated(st.target!!, "arien", "${name(st.target!!).replaceFirstChar { it.uppercase() }} is defeated."))
+                    emit(
+                        GameEvent.Defeated(
+                            st.target!!,
+                            "arien",
+                            "${name(st.target!!).replaceFirstChar {
+                                it.uppercase()
+                            }} is defeated.",
+                        ),
+                    )
                     remove(st.target!!)
                     st.heroes.getValue("arien").coins += 1
                     emit(GameEvent.CoinsGained("arien", 1, "Arien gains 1 coin."))
@@ -466,7 +524,8 @@ class FakeGameSession(
                         attackerId = "arien",
                         attackTotal = 6,
                         rangedAttack = false,
-                        defensePreview = hand.associateWith { DEFENSE[it] },
+                        // The +1 minion defense modifier is inside each total, as the contract says.
+                        defensePreview = hand.associateWith { id -> DEFENSE[id]?.plus(1) },
                         minionModifier = 1,
                         subjectId = "tigerclaw",
                     ),
@@ -479,7 +538,16 @@ class FakeGameSession(
                     defender.discard += choice.cardId
                     val total = DEFENSE[choice.cardId]
                     val held = (total ?: 0) >= 6
-                    emit(GameEvent.Defended("tigerclaw", choice.cardId, total, held, "Tigerclaw defends with ${CARD_NAMES[choice.cardId]}: ${if (held) "the attack is blocked" else "not enough"}."))
+                    emit(
+                        GameEvent.Defended(
+                            "tigerclaw",
+                            choice.cardId,
+                            total,
+                            held,
+                            "Tigerclaw defends with ${CARD_NAMES[choice.cardId]}: " +
+                                if (held) "the attack is blocked." else "not enough.",
+                        ),
+                    )
                     if (held) {
                         resolve("arien")
                         return@Beat
@@ -504,7 +572,9 @@ class FakeGameSession(
                     source = st.heroes.getValue("brogan").played,
                 )
             },
-            onAnswer = { _, choice -> emit(GameEvent.Note("Brogan dashes ${(choice as Choice.Number).value} spaces.")) },
+            onAnswer = { _, choice ->
+                emit(GameEvent.Note("Brogan dashes ${(choice as Choice.Number).value} spaces."))
+            },
         ),
         Beat(
             applies = { it.action == ActionType.PRIMARY },
@@ -519,7 +589,17 @@ class FakeGameSession(
                 )
             },
             onAnswer = { _, choice ->
-                emit(GameEvent.Note(if (choice == Choice.Yes) "Brogan swings at the air." else "Brogan does not attack."))
+                emit(
+                    GameEvent.Note(
+                        if (choice ==
+                            Choice.Yes
+                        ) {
+                            "Brogan swings at the air."
+                        } else {
+                            "Brogan does not attack."
+                        },
+                    ),
+                )
                 resolve("brogan")
             },
         ),
@@ -640,10 +720,15 @@ class FakeGameSession(
         Beat(
             ask = { st ->
                 // A Red minion stands outside the Battle Zone and goes back (p.18).
-                val minion = st.board.pieces.filterIsInstance<MinionPiece>().first { it.team == Team.RED && it.at != null }
+                val minion = st.board.pieces.filterIsInstance<MinionPiece>().first {
+                    it.team == Team.RED &&
+                        it.at != null
+                }
                 val zone = st.board.battleZones[laneId]!!
                 val spaces = BoardRules.returnToBattleZone(mapGeometry, st.board, minion).ifEmpty {
-                    mapGeometry.zoneSpaces[zone].orEmpty().filter { h -> st.board.pieces.none { it.at == h } }.take(2).toSet()
+                    mapGeometry.zoneSpaces[zone].orEmpty().filter { h ->
+                        st.board.pieces.none { it.at == h }
+                    }.take(2).toSet()
                 }.take(2)
                 decision(
                     "arien",
@@ -654,9 +739,18 @@ class FakeGameSession(
                 )
             },
             onAnswer = { st, choice ->
-                val minion = st.board.pieces.filterIsInstance<MinionPiece>().first { it.team == Team.RED && it.at != null }
+                val minion = st.board.pieces.filterIsInstance<MinionPiece>().first {
+                    it.team == Team.RED &&
+                        it.at != null
+                }
                 move(minion.id, (choice as Choice.Space).hex)
-                emit(GameEvent.Moved(minion.id, listOf((choice).hex), "The Red melee minion returns to the Battle Zone."))
+                emit(
+                    GameEvent.Moved(
+                        minion.id,
+                        listOf((choice).hex),
+                        "The Red melee minion returns to the Battle Zone.",
+                    ),
+                )
                 // The push (p.8 step 3): Red wins it, one Wave counter flips.
                 var n = 100
                 when (val pushed = BoardSetup.pushLane(mapGeometry, st.board, laneId, Team.RED) { "m${++n}" }) {
@@ -664,7 +758,14 @@ class FakeGameSession(
                     is BoardSetup.PushResult.ThroneCaptured -> Unit
                 }
                 st.waves -= 1
-                emit(GameEvent.LanePushed(laneId, Team.RED, st.board.battleZones[laneId]!!, "Red pushes the lane. ${st.waves} Wave counters left."))
+                emit(
+                    GameEvent.LanePushed(
+                        laneId,
+                        Team.RED,
+                        st.board.battleZones[laneId]!!,
+                        "Red pushes the lane. ${st.waves} Wave counters left.",
+                    ),
+                )
                 st.heroes.values.forEach { h ->
                     h.hand.addAll(h.resolved + h.discard + listOfNotNull(h.played))
                     h.resolved.clear()
@@ -710,7 +811,12 @@ class FakeGameSession(
                 arien.hand.remove(st.upgraded)
                 arien.hand.add(keep)
                 arien.items.add(item)
-                emit(GameEvent.CardsChanged("arien", "Arien keeps ${CARD_NAMES[keep]}; ${CARD_NAMES[item]} becomes an item."))
+                emit(
+                    GameEvent.CardsChanged(
+                        "arien",
+                        "Arien keeps ${CARD_NAMES[keep]}; ${CARD_NAMES[item]} becomes an item.",
+                    ),
+                )
                 st.heroes.getValue("brogan").coins += 1
                 emit(GameEvent.CoinsGained("brogan", 1, "Brogan didn't level up and collects a Pity coin."))
                 st.round = 2
@@ -768,7 +874,15 @@ class FakeGameSession(
                     val arien = st.heroes.getValue("arien")
                     arien.hand.remove(choice.cardId)
                     arien.discard += choice.cardId
-                    emit(GameEvent.Defended("arien", choice.cardId, DEFENSE[choice.cardId], true, "Arien defends with ${CARD_NAMES[choice.cardId]}."))
+                    emit(
+                        GameEvent.Defended(
+                            "arien",
+                            choice.cardId,
+                            DEFENSE[choice.cardId],
+                            true,
+                            "Arien defends with ${CARD_NAMES[choice.cardId]}.",
+                        ),
+                    )
                 } else {
                     defeat(st, "arien", by = "wasp")
                 }
@@ -794,7 +908,13 @@ class FakeGameSession(
                     st.reason = WinReason.LIFE_COUNTERS
                     st.phase = GamePhase.GAME_OVER
                     st.acting = null
-                    emit(GameEvent.GameOver(Team.RED, WinReason.LIFE_COUNTERS, "Red wins: Blue is out of Life counters."))
+                    emit(
+                        GameEvent.GameOver(
+                            Team.RED,
+                            WinReason.LIFE_COUNTERS,
+                            "Red wins: Blue is out of Life counters.",
+                        ),
+                    )
                 }
             },
         ),
@@ -802,7 +922,10 @@ class FakeGameSession(
 
     private fun endTurn(st: State, nextTurn: Int) {
         if (st.turn == nextTurn) return
-        st.heroes.values.forEach { h -> h.played?.let { h.resolved += it }; h.played = null }
+        st.heroes.values.forEach { h ->
+            h.played?.let { h.resolved += it }
+            h.played = null
+        }
         st.turn = nextTurn
         st.order = listOf("arien", "brogan", "wasp", "tigerclaw")
         st.acting = "arien"
@@ -817,7 +940,14 @@ class FakeGameSession(
         val left = (st.life[team] ?: 0) - 1
         st.life = st.life + (team to left)
         emit(GameEvent.Defeated(heroId, by, "${name(heroId)} is defeated by ${name(by)}."))
-        emit(GameEvent.LifeSpent(team, 1, left, "${if (team == Team.RED) "Red" else "Blue"} spends a Life counter; $left left."))
+        emit(
+            GameEvent.LifeSpent(
+                team,
+                1,
+                left,
+                "${if (team == Team.RED) "Red" else "Blue"} spends a Life counter; $left left.",
+            ),
+        )
         st.heroes.getValue(by).coins += 2
         emit(GameEvent.CoinsGained(by, 2, "${name(by)} gains 2 coins."))
         if (left <= 0) {
@@ -825,7 +955,13 @@ class FakeGameSession(
             st.reason = WinReason.LIFE_COUNTERS
             st.phase = GamePhase.GAME_OVER
             st.acting = null
-            emit(GameEvent.GameOver(team.opponent, WinReason.LIFE_COUNTERS, "${if (team == Team.RED) "Blue" else "Red"} wins: the other team is out of Life counters."))
+            emit(
+                GameEvent.GameOver(
+                    team.opponent,
+                    WinReason.LIFE_COUNTERS,
+                    "${if (team == Team.RED) "Blue" else "Red"} wins: the other team is out of Life counters.",
+                ),
+            )
         }
     }
 
@@ -834,7 +970,13 @@ class FakeGameSession(
 
         val NAMES = mapOf("arien" to "Arien", "brogan" to "Brogan", "wasp" to "Wasp", "tigerclaw" to "Tigerclaw")
 
-        fun basicHand(heroId: String) = mutableListOf("$heroId-gold", "$heroId-silver", "$heroId-red-1", "$heroId-green-1", "$heroId-blue-1")
+        fun basicHand(heroId: String) = mutableListOf(
+            "$heroId-gold",
+            "$heroId-silver",
+            "$heroId-red-1",
+            "$heroId-green-1",
+            "$heroId-blue-1",
+        )
     }
 }
 
@@ -907,17 +1049,24 @@ class FakeCoach(var silent: Boolean = false) : Coach {
                 "Holding wastes Dangerous Current's Attack 6 while an enemy hero stands adjacent (p.13).",
                 decisionId = decision.id,
             )
+
             decision.kind == DecisionKind.DEFEND && choice is Choice.Decline -> CoachNote(
                 "Expert Duelist holds this attack",
                 "A Defense total at least the Attack blocks it (p.14); not defending costs a Life counter.",
                 decisionId = decision.id,
             )
+
             else -> null
         }
     }
 
     override fun turningPoints(saved: SavedGame, seat: String, cancelled: () -> Boolean): List<CoachNote> = listOf(
-        CoachNote("Arien's attack on Tigerclaw", "Defeating a hero cost Blue a Life counter early (p.13).", round = 1, turn = 1),
+        CoachNote(
+            "Arien's attack on Tigerclaw",
+            "Defeating a hero cost Blue a Life counter early (p.13).",
+            round = 1,
+            turn = 1,
+        ),
         CoachNote("Brogan finished Wasp", "Blue had one Life counter left (p.13).", round = 2, turn = 1),
     )
 }

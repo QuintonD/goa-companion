@@ -43,7 +43,13 @@ import dev.quinton.goa.feature.board.BoardText
  * computer" (coming soon until heroes are playable) and Puzzles (coming soon).
  */
 @Composable
-internal fun PlayHub(play: PlayHubUi, now: Long, onPlay: () -> Unit, onResume: () -> Unit, modifier: Modifier = Modifier) {
+internal fun PlayHub(
+    play: PlayHubUi,
+    now: Long,
+    onPlay: () -> Unit,
+    onResume: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         play.resume?.let { ResumeCard(it, now, onResume) }
         EntryCard(
@@ -75,13 +81,19 @@ private fun EntryCard(icon: ImageVector, title: String, text: String, enabled: B
         enabled = enabled,
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, if (enabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.6f) else GoaTheme.colors.engravedBorder),
+        border = BorderStroke(
+            1.dp,
+            if (enabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.6f) else GoaTheme.colors.engravedBorder,
+        ),
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
             .semantics { if (!enabled) stateDescription = "Coming soon" },
     ) {
-        Row(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Icon(
                 icon,
                 null,
@@ -91,7 +103,11 @@ private fun EntryCard(icon: ImageVector, title: String, text: String, enabled: B
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleMedium, color = content)
-                Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
@@ -108,16 +124,29 @@ private fun ResumeCard(resume: ResumeUi, now: Long, onResume: () -> Unit) {
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(Modifier.padding(start = Spacing.md, end = Spacing.sm, top = Spacing.sm, bottom = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.padding(start = Spacing.md, end = Spacing.sm, top = Spacing.sm, bottom = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Column(
                 Modifier
                     .weight(1f)
                     .semantics(mergeDescendants = true) {
-                        contentDescription = "Game in progress" + (if (names.isNotEmpty()) ": $names. " else ". ") + resume.summary
+                        contentDescription =
+                            "Game in progress" + (if (names.isNotEmpty()) ": $names. " else ". ") + resume.summary
                     },
             ) {
                 Text(
-                    if (resume.savedAt > 0) "GAME IN PROGRESS · ${BoardText.changed(resume.savedAt, now).removePrefix("Changed ").uppercase()}" else "GAME IN PROGRESS",
+                    if (resume.savedAt >
+                        0
+                    ) {
+                        "GAME IN PROGRESS · ${BoardText.changed(
+                            resume.savedAt,
+                            now,
+                        ).removePrefix("Changed ").uppercase()}"
+                    } else {
+                        "GAME IN PROGRESS"
+                    },
                     style = GoaTextStyles.overline,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
@@ -129,7 +158,11 @@ private fun ResumeCard(resume: ResumeUi, now: Long, onResume: () -> Unit) {
                         modifier = Modifier.padding(top = Spacing.xs),
                     ) {
                         LineupHeroes(Team.RED, resume.red, size = 26.dp)
-                        Text("vs", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Text(
+                            "vs",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
                         LineupHeroes(Team.BLUE, resume.blue, size = 26.dp)
                     }
                 }

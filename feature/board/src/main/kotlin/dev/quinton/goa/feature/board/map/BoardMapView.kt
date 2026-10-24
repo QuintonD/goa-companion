@@ -284,7 +284,15 @@ fun BoardMapView(
                 }
             // The map, then the Zone labels (fixed size, below every piece and overlay), then the rest.
             Box(transform) { MapBase(state.map, battleZones, layout, unit, palette) }
-            ZoneLabels(state.map, state.battleZones, state.bottomTeam, layout, viewport, palette, labelBusy(state, layout))
+            ZoneLabels(
+                state.map,
+                state.battleZones,
+                state.bottomTeam,
+                layout,
+                viewport,
+                palette,
+                labelBusy(state, layout),
+            )
             Box(transform.semantics { isTraversalGroup = true }) {
                 MapOverlays(state, layout, unit, palette)
                 DropTarget(state.geometry, layout, unit, palette, drag)

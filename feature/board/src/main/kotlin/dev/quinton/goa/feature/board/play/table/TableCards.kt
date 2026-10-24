@@ -212,7 +212,10 @@ internal fun CardDetail(card: Card, modifier: Modifier = Modifier, note: String?
             if (note != null) {
                 Text(note, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
             }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 card.initiative?.let { ValueChip(GameIcons.initiative, "Initiative $it") }
                 card.values.attack?.let { ValueChip(GameIcons.attack, "Attack $it") }
                 card.values.defense?.let { ValueChip(GameIcons.defense, "Defense $it") }
@@ -244,7 +247,12 @@ internal fun CardDetail(card: Card, modifier: Modifier = Modifier, note: String?
 @Composable
 internal fun ValueChip(icon: GameIcon, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics(mergeDescendants = true) {}) {
-        Icon(icon.vector, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(scaledIconSize(16.dp)))
+        Icon(
+            icon.vector,
+            null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(scaledIconSize(16.dp)),
+        )
         Spacer(Modifier.width(4.dp))
         Text(text, style = MaterialTheme.typography.bodyMedium)
     }

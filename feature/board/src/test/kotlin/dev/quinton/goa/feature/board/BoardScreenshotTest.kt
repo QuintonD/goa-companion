@@ -19,15 +19,12 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.GameSaveRepository
 import dev.quinton.goa.core.data.game.StoredGame
-import dev.quinton.goa.core.game.GameFactory
-import dev.quinton.goa.core.testing.FakeGameSaveRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.board.BoardGeometry
 import dev.quinton.goa.core.domain.board.BoardRules
 import dev.quinton.goa.core.domain.board.BoardSetup
 import dev.quinton.goa.core.domain.board.HexGrid
+import dev.quinton.goa.core.game.GameFactory
 import dev.quinton.goa.core.model.board.BoardLineup
 import dev.quinton.goa.core.model.board.HeroPiece
 import dev.quinton.goa.core.model.board.MinionPiece
@@ -50,6 +47,7 @@ import dev.quinton.goa.core.testing.FakeBoardMapRepository
 import dev.quinton.goa.core.testing.FakeBoardRepository
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
+import dev.quinton.goa.core.testing.FakeGameSaveRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
 import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.feature.board.board.AddContent
@@ -70,6 +68,8 @@ import dev.quinton.goa.feature.board.setup.NewBoardViewModel
 import dev.quinton.goa.feature.board.setup.SourcesContent
 import java.time.LocalDateTime
 import java.time.ZoneId
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -203,7 +203,10 @@ class BoardScreenshotTest {
     @Test
     fun boardsPlayResumeW384LightFontScale2() = capture(ThemeMode.LIGHT, 2f) {
         val factory = remember { dev.quinton.goa.feature.board.play.fakeFactory() }
-        val games = remember { FakeGameSaveRepository(StoredGame.Saved(dev.quinton.goa.feature.board.play.fakeInProgress(factory))) }
+        val games =
+            remember {
+                FakeGameSaveRepository(StoredGame.Saved(dev.quinton.goa.feature.board.play.fakeInProgress(factory)))
+            }
         Boards(emptyList(), games = games, engine = factory)
     }
 

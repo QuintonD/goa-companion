@@ -88,7 +88,9 @@ class GameViewModelTest {
     }
 
     @Test
-    fun `a card is selected, then played, the computer plays its cards, the reveal waits a moment`() = runTest(dispatcher) {
+    fun `a card is selected, then played, the computer plays its cards, the reveal waits a moment`() = runTest(
+        dispatcher,
+    ) {
         val vm = viewModel(saved(pace = AiPace.NORMAL))
         advanceUntilIdle()
         vm.onAction(GameAction.Select(Choice.Card("arien-red-1")))
@@ -323,7 +325,8 @@ class GameViewModelTest {
     @Test
     fun `every kind of question reaches the person when they play all four heroes`() = runTest(dispatcher) {
         val all = setOf("arien", "brogan", "wasp", "tigerclaw")
-        val saves = FakeGameSaveRepository(StoredGame.Saved(fakeInProgress(factory, fakeSetup(humans = all), coach = false)))
+        val saves =
+            FakeGameSaveRepository(StoredGame.Saved(fakeInProgress(factory, fakeSetup(humans = all), coach = false)))
         val vm = viewModel(saves)
         advanceUntilIdle()
         val kinds = mutableSetOf<DecisionKind>()

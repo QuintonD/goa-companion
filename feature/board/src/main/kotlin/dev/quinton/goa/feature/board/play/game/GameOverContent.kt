@@ -86,7 +86,12 @@ internal fun GameOverContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 ) {
-                    Icon(Icons.Outlined.EmojiEvents, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
+                    Icon(
+                        Icons.Outlined.EmojiEvents,
+                        null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(40.dp),
+                    )
                     Text(
                         if (over.youWon) "You won" else "The computer won",
                         style = MaterialTheme.typography.headlineMedium,
@@ -137,11 +142,13 @@ internal fun GameOverContent(
                             Spacer(Modifier.width(Spacing.sm))
                             Text("The coach is going through the game…", style = MaterialTheme.typography.bodyMedium)
                         }
+
                         points.isEmpty() -> Text(
                             "No single moment decided this one.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+
                         else -> points.forEach { note ->
                             Surface(
                                 shape = RoundedCornerShape(14.dp),
@@ -149,7 +156,11 @@ internal fun GameOverContent(
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Row(Modifier.padding(Spacing.md).semantics(mergeDescendants = true) {}) {
-                                    Icon(Icons.Outlined.Lightbulb, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                    Icon(
+                                        Icons.Outlined.Lightbulb,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    )
                                     Spacer(Modifier.width(Spacing.sm))
                                     Column {
                                         val at = listOfNotNull(
@@ -157,7 +168,11 @@ internal fun GameOverContent(
                                             note.turn?.let { "Turn $it" },
                                         ).joinToString(" · ")
                                         if (at.isNotEmpty()) {
-                                            Text(at.uppercase(), style = GoaTextStyles.overline, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                            Text(
+                                                at.uppercase(),
+                                                style = GoaTextStyles.overline,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            )
                                         }
                                         Text(
                                             note.text,
@@ -180,7 +195,9 @@ internal fun GameOverContent(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Button(onClick = { onAction(GameAction.Rematch) }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                Button(onClick = {
+                    onAction(GameAction.Rematch)
+                }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                     Text("Rematch", style = MaterialTheme.typography.titleMedium)
                 }
                 Text(
@@ -190,7 +207,9 @@ internal fun GameOverContent(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedButton(onClick = onNewGame, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("New game") }
+                OutlinedButton(onClick = onNewGame, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Text("New game")
+                }
                 TextButton(onClick = onDone, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Done") }
             }
         }
@@ -246,9 +265,17 @@ private fun HeroResultRow(play: PlayUi, result: HeroResult, onHero: (String) -> 
                     Spacer(Modifier.width(4.dp))
                     Text(info.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.width(Spacing.sm))
-                    Text(who, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        who,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
-                Text(facts.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    facts.joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

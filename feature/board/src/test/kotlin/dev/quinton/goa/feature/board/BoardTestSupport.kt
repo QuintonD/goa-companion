@@ -128,11 +128,17 @@ object BundledImages {
 
     val idle: Boolean get() = pending.get() == 0
 
+    /**
+     * [memoryCache] false: every image decodes at its own size. A screen that shows one portrait at
+     * two sizes otherwise gets whichever was decoded first (the cache serves a larger bitmap to a
+     * smaller request), and its screenshot changes with load order.
+     */
     @OptIn(DelicateCoilApi::class)
-    fun install(context: Context) {
+    fun install(context: Context, memoryCache: Boolean = true) {
         pending.set(0)
         SingletonImageLoader.setUnsafe(
             ImageLoader.Builder(context)
+                .apply { if (!memoryCache) memoryCache(null) }
                 .components {
                     add(AssetFetcher.Factory())
                     add(BitmapFactoryDecoder.Factory())

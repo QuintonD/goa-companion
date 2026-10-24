@@ -100,8 +100,8 @@ class GameViewModel internal constructor(
         Random.Default,
     )
 
-    private val _state = MutableStateFlow<GameUiState>(GameUiState.Loading)
-    val uiState: StateFlow<GameUiState> = _state.asStateFlow()
+    private val state = MutableStateFlow<GameUiState>(GameUiState.Loading)
+    val uiState: StateFlow<GameUiState> = state.asStateFlow()
 
     /** The game being played; only touched on [engine]. */
     private var session: GameSession? = null
@@ -117,6 +117,7 @@ class GameViewModel internal constructor(
     private var thinking = false
     private var humanAnswered = false
     private var reveal: List<RevealedCard> = emptyList()
+
     /** The coach's turning points once the game is over (null until it has looked). */
     private var points: List<CoachNote>? = null
     private var announcementId = 0L
@@ -151,7 +152,8 @@ class GameViewModel internal constructor(
                 null
             }
         } ?: return unavailable(NoGame.INCOMPATIBLE)
-        val boardMap = maps.firstOrNull { it.id == inProgress.game.setup.mapId } ?: return unavailable(NoGame.MAP_MISSING)
+        val boardMap =
+            maps.firstOrNull { it.id == inProgress.game.setup.mapId } ?: return unavailable(NoGame.MAP_MISSING)
         map = boardMap
         heroes = catalog.boardHeroes()
         cards = catalog.heroes.flatMap { it.allCards }.associateBy { it.id }
@@ -159,7 +161,7 @@ class GameViewModel internal constructor(
     }
 
     private fun unavailable(why: NoGame) {
-        _state.value = GameUiState.Unavailable(why)
+        state.value = GameUiState.Unavailable(why)
     }
 
     private suspend fun start(game: GameSession, inProgress: GameInProgress, fresh: Boolean) {
@@ -170,11 +172,16 @@ class GameViewModel internal constructor(
         selected = null
         nudge = null
         points = null
-        humanAnswered = !fresh && withContext(engine) { game.events.isNotEmpty() }
+        humanAnswered = !fresh && canUndo(game)
         shownEvents = withContext(engine) { game.events.size }
         reveal = withContext(engine) { latestReveal(game.events) }
         publish()
         drive()
+    }
+
+    /** Whether the person has an answer to take back: tried on a copy, so the game is untouched. */
+    private suspend fun canUndo(game: GameSession): Boolean = withContext(engine) {
+        runCatching { game.fork().undoToLastHumanDecision() }.getOrDefault(false)
     }
 
     // ---- Actions -------------------------------------------------------------------------
@@ -182,18 +189,28 @@ class GameViewModel internal constructor(
     fun onAction(action: GameAction) {
         when (action) {
             is GameAction.Tap -> tap(action.tap)
+
             is GameAction.Select -> select(action.choice)
+
             is GameAction.Answer -> answer(action.choice)
+
             GameAction.ChooseAnyway -> chooseAnyway()
+
             GameAction.Rethink -> rethink()
+
             GameAction.TakeBack -> takeBack()
+
             is GameAction.SetCoach -> update { it.copy(coach = action.on) }
+
             is GameAction.SetPace -> update { it.copy(pace = action.pace) }
+
             GameAction.Flip -> {
                 bottomTeam = bottomTeam.opponent
                 viewModelScope.launch { publish() }
             }
+
             GameAction.Rematch -> rematch()
+
             is GameAction.MessageShown -> if (action.id == messageId) {
                 message = null
                 viewModelScope.launch { publish() }
@@ -302,6 +319,7 @@ class GameViewModel internal constructor(
             selected = null
             nudge = null
             thinking = false
+            humanAnswered = canUndo(game)
             shownEvents = withContext(engine) { game.events.size }
             reveal = withContext(engine) { latestReveal(game.events) }
             update(publish = false) { it.copy(takeBacks = it.takeBacks + 1) }
@@ -455,7 +473,9 @@ class GameViewModel internal constructor(
                     reveal = revealOf(event)
                     revealed = true
                 }
+
                 is GameEvent.TurnStarted, is GameEvent.RoundStarted -> reveal = emptyList()
+
                 else -> Unit
             }
         }
@@ -466,7 +486,12 @@ class GameViewModel internal constructor(
     private fun latestReveal(events: List<GameEvent>): List<RevealedCard> {
         val last = events.indexOfLast { it is GameEvent.CardsRevealed }
         if (last < 0) return emptyList()
-        if (events.drop(last + 1).any { it is GameEvent.TurnStarted || it is GameEvent.RoundStarted }) return emptyList()
+        if (events.drop(last + 1).any {
+                it is GameEvent.TurnStarted || it is GameEvent.RoundStarted
+            }
+        ) {
+            return emptyList()
+        }
         return revealOf(events[last] as GameEvent.CardsRevealed)
     }
 
@@ -506,9 +531,13 @@ class GameViewModel internal constructor(
         val view = snapshot.view
         val status = when {
             decision == null || view.phase == GamePhase.GAME_OVER -> TurnStatus.Over
+
             decision.seat in humans -> TurnStatus.YourTurn
-            decision.kind == DecisionKind.PLAY_CARD && humans.all { h -> view.heroes.any { it.heroId == h && it.played != null } } ->
+
+            decision.kind == DecisionKind.PLAY_CARD &&
+                humans.all { h -> view.heroes.any { it.heroId == h && it.played != null } } ->
                 TurnStatus.Waiting(view.heroes.filter { it.heroId !in humans && it.played == null }.map { it.heroId })
+
             else -> TurnStatus.Computer(decision.seat, thinking)
         }
         val table = TableUi(
@@ -523,7 +552,7 @@ class GameViewModel internal constructor(
             bottomTeam = bottomTeam,
         )
         val over = if (status == TurnStatus.Over) gameOver(view, snapshot.events, inProgress, game) else null
-        _state.update {
+        state.update {
             GameUiState.Playing(
                 PlayUi(
                     table = table,
@@ -560,7 +589,12 @@ class GameViewModel internal constructor(
         return base.copy(heroes = base.heroes.map { hero -> own[hero.heroId] ?: hero })
     }
 
-    private fun gameOver(view: GameView, events: List<GameEvent>, inProgress: GameInProgress, game: GameSession): GameOverUi? {
+    private fun gameOver(
+        view: GameView,
+        events: List<GameEvent>,
+        inProgress: GameInProgress,
+        game: GameSession,
+    ): GameOverUi? {
         val over = events.filterIsInstance<GameEvent.GameOver>().lastOrNull()
         val winner = view.winner ?: over?.winner ?: return null
         val reason = view.winReason ?: over?.reason ?: return null
@@ -576,7 +610,9 @@ class GameViewModel internal constructor(
                 heroDefeats = defeats.count { it.byHeroId == seat.heroId && it.unitId in heroIds },
                 minionDefeats = defeats.count { it.byHeroId == seat.heroId && it.unitId !in heroIds },
                 defeated = defeats.count { it.unitId == seat.heroId },
-                coins = events.filterIsInstance<GameEvent.CoinsGained>().filter { it.heroId == seat.heroId }.sumOf { it.amount },
+                coins = events.filterIsInstance<GameEvent.CoinsGained>().filter {
+                    it.heroId == seat.heroId
+                }.sumOf { it.amount },
             )
         }
         val yourTeam = game.setup.seats.firstOrNull { it.controller == Controller.Human }?.team

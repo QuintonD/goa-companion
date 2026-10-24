@@ -77,7 +77,13 @@ data class TableUi(
 
     /** Spaces the person can tap to answer, with the choice each one is. */
     val spaceOptions: Map<Hex, Choice.Space>
-        get() = if (!asking) emptyMap() else decision?.options.orEmpty().filterIsInstance<Choice.Space>().associateBy { it.hex }
+        get() = if (!asking) {
+            emptyMap()
+        } else {
+            decision?.options.orEmpty().filterIsInstance<Choice.Space>().associateBy {
+                it.hex
+            }
+        }
 
     /** Units and tokens the person can tap to answer, by piece id. */
     val pieceOptions: Map<String, Choice>
@@ -123,7 +129,9 @@ data class TableUi(
     /** Name of a unit or token, as the log and TalkBack say it. */
     fun pieceName(id: String): String {
         view.heroes.firstOrNull { it.heroId == id }?.let { return hero(id).name }
-        view.minions.firstOrNull { it.id == id }?.let { return "${BoardText.team(it.team)} ${BoardText.minion(it.type)}" }
+        view.minions.firstOrNull {
+            it.id == id
+        }?.let { return "${BoardText.team(it.team)} ${BoardText.minion(it.type)}" }
         view.pieces.firstOrNull { it.id == id }?.let { piece ->
             return listOfNotNull("Token ${piece.label}", piece.team?.let(BoardText::team)).joinToString(", ")
         }

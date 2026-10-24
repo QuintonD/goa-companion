@@ -131,7 +131,10 @@ fun GameMapView(
                     }
                     if (!gesture) {
                         val hex = layout.hexAt(viewport.screenToMap(down.position))
-                        val did = resolve(current, hex)?.let { tap(it); true } ?: false
+                        val did = resolve(current, hex)?.let {
+                            tap(it)
+                            true
+                        } ?: false
                         val double = !did && hex == lastHex && up - lastUp < viewConfiguration.doubleTapTimeoutMillis
                         if (double) scope.launch { viewport.zoomStep(down.position) }
                         lastUp = if (double) 0L else up
@@ -218,7 +221,13 @@ private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, pale
                         drawLine(palette.halo, path[i], path[i + 1], strokeWidth = unit * 0.24f, cap = StrokeCap.Round)
                     }
                     for (i in 0 until path.size - 1) {
-                        drawLine(palette.measure, path[i], path[i + 1], strokeWidth = unit * 0.12f, cap = StrokeCap.Round)
+                        drawLine(
+                            palette.measure,
+                            path[i],
+                            path[i + 1],
+                            strokeWidth = unit * 0.12f,
+                            cap = StrokeCap.Round,
+                        )
                     }
                     path.drop(1).dropLast(1).forEach { drawCircle(palette.measure, unit * 0.12f, it) }
                 }

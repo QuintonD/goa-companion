@@ -14,21 +14,19 @@ import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.game.StoredGame
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.GameFactory
-import dev.quinton.goa.feature.board.play.PlayText
-import javax.inject.Provider
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import dev.quinton.goa.core.model.board.SavedBoard
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardHero
 import dev.quinton.goa.feature.board.boardHeroes
 import dev.quinton.goa.feature.board.hero
+import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.setup.LineupSource
 import dev.quinton.goa.feature.board.setup.lineupSources
 import java.util.UUID
 import javax.inject.Inject
+import javax.inject.Provider
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -38,6 +36,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -231,7 +231,15 @@ class BoardsViewModel internal constructor(
         /** The saved game as its entry shows it: line-up, who you play, the computer's levels. */
         fun resumeOf(stored: StoredGame, heroes: Map<String, BoardHero>): ResumeUi? = when (stored) {
             StoredGame.None -> null
-            StoredGame.Unreadable -> ResumeUi(emptyList(), emptyList(), "This saved game can't be read.", 0, unreadable = true)
+
+            StoredGame.Unreadable -> ResumeUi(
+                emptyList(),
+                emptyList(),
+                "This saved game can't be read.",
+                0,
+                unreadable = true,
+            )
+
             is StoredGame.Saved -> {
                 val seats = stored.game.game.setup.seats
                 val mine = seats.filter { it.controller == Controller.Human }.map { heroes.hero(it.heroId).name }
@@ -241,7 +249,10 @@ class BoardsViewModel internal constructor(
                     blue = seats.filter { it.team == Team.BLUE }.map { heroes.hero(it.heroId) },
                     summary = listOfNotNull(
                         "You play ${mine.joinToString(" and ")}".takeIf { mine.isNotEmpty() },
-                        levels.takeIf { it.isNotEmpty() }?.let { l -> "Computer: " + l.joinToString(", ") { PlayText.level(it) } },
+                        levels.takeIf { it.isNotEmpty() }?.let { l ->
+                            "Computer: " +
+                                l.joinToString(", ") { PlayText.level(it) }
+                        },
                     ).joinToString(" · "),
                     savedAt = stored.game.game.savedAt,
                 )

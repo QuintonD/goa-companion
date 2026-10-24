@@ -45,7 +45,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
-import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
@@ -83,9 +82,12 @@ fun DecisionPanel(
         PromptHeader(table, decision, onCard)
         when (decision.kind) {
             DecisionKind.PLAY_CARD -> HandPicker(table, onSelect, onAnswer, onCard, busy)
+
             DecisionKind.DEFEND -> DefensePanel(table, onSelect, onAnswer, onCard, busy)
+
             DecisionKind.CHOOSE_CARD, DecisionKind.UPGRADE_CARD, DecisionKind.KEEP_UPGRADE ->
                 CardPicker(table, onSelect, onAnswer, onCard, busy)
+
             else -> BoardOptions(table, onSelect, onAnswer, busy)
         }
         if (decision.kind != DecisionKind.DEFEND && decision.kind != DecisionKind.PLAY_CARD) {
@@ -101,17 +103,6 @@ private fun PromptHeader(table: TableUi, decision: Decision, onCard: (Card) -> U
     val name = hero?.let { table.hero(it.heroId).name } ?: BoardText.team(decision.team)
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (hero != null) {
-                HeroPortrait(
-                    hero.heroId,
-                    table.hero(hero.heroId).portrait,
-                    null,
-                    Modifier.size(scaledIconSize(22.dp, 1.3f)),
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    framed = false,
-                )
-                Spacer(Modifier.width(6.dp))
-            }
             TeamMark(decision.team, markSize = scaledIconSize(9.dp))
             Spacer(Modifier.width(4.dp))
             Text(
@@ -138,11 +129,23 @@ private fun PromptHeader(table: TableUi, decision: Decision, onCard: (Card) -> U
                     .heightIn(min = 40.dp)
                     .semantics { contentDescription = "Asked by ${card.name}. Read the card" },
             ) {
-                Row(Modifier.padding(horizontal = Spacing.sm, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.padding(horizontal = Spacing.sm, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     TableCard(card, width = 22.dp)
                     Spacer(Modifier.width(Spacing.sm))
-                    Text("Asked by ", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(card.name, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        "Asked by ",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        card.name,
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
@@ -198,7 +201,10 @@ private fun BoardOptions(table: TableUi, onSelect: (Choice) -> Unit, onAnswer: (
     }
     val chips = pieces + if (spaces.size <= MAX_SPACE_CHIPS) spaces else emptyList()
     if (chips.isNotEmpty()) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
             chips.forEach { choice -> OptionChip(table.label(choice), choice == selected) { onSelect(choice) } }
         }
     }
@@ -219,14 +225,25 @@ private fun OptionChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(10.dp),
         color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) MaterialTheme.colorScheme.secondary else GoaTheme.colors.engravedBorder),
+        border = BorderStroke(
+            if (selected) 2.dp else 1.dp,
+            if (selected) MaterialTheme.colorScheme.secondary else GoaTheme.colors.engravedBorder,
+        ),
         modifier = Modifier
             .heightIn(min = 48.dp)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
     ) {
-        Row(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             if (selected) {
-                Icon(Icons.Outlined.CheckCircle, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.secondary)
+                Icon(
+                    Icons.Outlined.CheckCircle,
+                    null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.secondary,
+                )
                 Spacer(Modifier.width(4.dp))
             }
             Text(label, style = MaterialTheme.typography.labelLarge)
@@ -241,7 +258,10 @@ private fun Buttons(table: TableUi, choices: List<Choice>, onAnswer: (Choice) ->
     if (choices.isEmpty()) return
     val numbers = choices.filterIsInstance<Choice.Number>()
     if (numbers.size == choices.size) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
             numbers.forEach { n ->
                 OutlinedButton(onClick = { onAnswer(n) }, enabled = !busy, modifier = Modifier.heightIn(min = 52.dp)) {
                     Text("${n.value}", style = MaterialTheme.typography.titleMedium)
@@ -277,7 +297,11 @@ private fun Buttons(table: TableUi, choices: List<Choice>, onAnswer: (Choice) ->
                             fontWeight = FontWeight.SemiBold,
                         )
                         if (note != null) {
-                            Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Text(
+                                note,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
                         }
                     }
                 }
@@ -317,7 +341,16 @@ private fun HandPicker(
                 enabled = selected != null && !busy,
                 modifier = Modifier.weight(1f).heightIn(min = 52.dp),
             ) {
-                Text(if (card != null) "Play ${card.name} facedown" else "Pick a card to play facedown", textAlign = TextAlign.Center)
+                Text(
+                    if (card !=
+                        null
+                    ) {
+                        "Play ${card.name} facedown"
+                    } else {
+                        "Pick a card to play facedown"
+                    },
+                    textAlign = TextAlign.Center,
+                )
             }
         }
     }
@@ -342,7 +375,9 @@ private fun CardPicker(
             // p.15: the card kept goes to hand, the other is tucked as an item.
             val other = options.firstOrNull { it != selected }?.let { table.card(it.cardId) }
             Text("${card.name} goes to your hand.", style = MaterialTheme.typography.bodyMedium)
-            other?.item?.let { stat -> ItemLine(stat, "${other.name} becomes an item: +1 ${PlayText.stat(stat)} (p.16)") }
+            other?.item?.let { stat ->
+                ItemLine(stat, "${other.name} becomes an item: +1 ${PlayText.stat(stat)} (p.16)")
+            }
         } else {
             CardPreview(card, onCard)
         }
@@ -402,7 +437,12 @@ private fun CardStrip(table: TableUi, options: List<Choice.Card>, selected: Choi
                 }
                 if (keep) card?.item?.let { ItemIcon(it, 14.dp) }
                 if (chosen) {
-                    Icon(Icons.Outlined.CheckCircle, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Outlined.CheckCircle,
+                        null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(16.dp),
+                    )
                 }
             }
         }
@@ -490,7 +530,9 @@ private fun DefensePanel(
         table.cardOptions.forEach { choice ->
             val card = table.card(choice.cardId)
             val total = context.defensePreview[choice.cardId]
-            DefenseRow(card, total, attack, choice == selected, onClick = { onSelect(choice) }, onRead = { card?.let(onCard) })
+            DefenseRow(card, total, attack, choice == selected, onClick = {
+                onSelect(choice)
+            }, onRead = { card?.let(onCard) })
         }
         table.buttonOptions.forEach { choice ->
             DeclineRow(table.label(choice), choice == selected) { onSelect(choice) }
@@ -498,7 +540,9 @@ private fun DefensePanel(
     }
     if (selected != null) {
         val card = (selected as? Choice.Card)?.let { table.card(it.cardId) }
-        Button(onClick = { onAnswer(selected) }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+        Button(onClick = {
+            onAnswer(selected)
+        }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
             Text(card?.let { "Defend with ${it.name}" } ?: table.label(selected))
         }
     }
@@ -508,7 +552,14 @@ private fun DefensePanel(
 fun holds(defense: Int?, attack: Int?): Boolean? = if (defense == null || attack == null) null else defense >= attack
 
 @Composable
-private fun DefenseRow(card: Card?, total: Int?, attack: Int?, selected: Boolean, onClick: () -> Unit, onRead: () -> Unit) {
+private fun DefenseRow(
+    card: Card?,
+    total: Int?,
+    attack: Int?,
+    selected: Boolean,
+    onClick: () -> Unit,
+    onRead: () -> Unit,
+) {
     val verdict = holds(total, attack)
     val verdictText = when (verdict) {
         true -> "Holds"
@@ -523,7 +574,10 @@ private fun DefenseRow(card: Card?, total: Int?, attack: Int?, selected: Boolean
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) MaterialTheme.colorScheme.secondary else GoaTheme.colors.engravedBorder),
+        border = BorderStroke(
+            if (selected) 2.dp else 1.dp,
+            if (selected) MaterialTheme.colorScheme.secondary else GoaTheme.colors.engravedBorder,
+        ),
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
@@ -537,11 +591,19 @@ private fun DefenseRow(card: Card?, total: Int?, attack: Int?, selected: Boolean
                 }
             },
     ) {
-        Row(Modifier.padding(horizontal = Spacing.sm, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.padding(horizontal = Spacing.sm, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Surface(onClick = onRead, shape = RoundedCornerShape(4.dp)) { TableCard(card, width = 34.dp) }
             Spacer(Modifier.width(Spacing.sm))
             Column(Modifier.weight(1f)) {
-                Text(card?.name ?: "Unknown card", style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    card?.name ?: "Unknown card",
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text(
                     total?.let { "Defense $it" } ?: "Defense decided while it resolves",
                     style = MaterialTheme.typography.bodySmall,
@@ -585,7 +647,10 @@ private fun DeclineRow(label: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) MaterialTheme.colorScheme.secondary else GoaTheme.colors.engravedBorder),
+        border = BorderStroke(
+            if (selected) 2.dp else 1.dp,
+            if (selected) MaterialTheme.colorScheme.secondary else GoaTheme.colors.engravedBorder,
+        ),
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 52.dp)

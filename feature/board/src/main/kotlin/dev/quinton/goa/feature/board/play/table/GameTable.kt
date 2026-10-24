@@ -73,7 +73,8 @@ fun GameTable(
     BoxWithConstraints(modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight
         val orientation = if (landscape) MapOrientation.LANDSCAPE else MapOrientation.PORTRAIT
-        val layout = remember(table.map, orientation, table.bottomTeam) { MapLayout(table.map, orientation, table.bottomTeam) }
+        val layout =
+            remember(table.map, orientation, table.bottomTeam) { MapLayout(table.map, orientation, table.bottomTeam) }
         val lane = remember(layout, table.map) { layout.laneRegion(table.map, table.geometry) }
         val scope = rememberCoroutineScope()
         val density = LocalDensity.current
@@ -123,7 +124,11 @@ fun GameTable(
                         scope.launch { viewport.animateFit() }
                     }
                 }
-                MapButton(Icons.Outlined.SwapVert, "Flip: ${BoardText.team(table.bottomTeam.opponent)} at the bottom", onFlip)
+                MapButton(
+                    Icons.Outlined.SwapVert,
+                    "Flip: ${BoardText.team(table.bottomTeam.opponent)} at the bottom",
+                    onFlip,
+                )
             }
         }
 
@@ -183,7 +188,11 @@ fun EventLog(lines: List<LogLine>, modifier: Modifier = Modifier) {
                         .semantics { heading() },
                 )
             } else {
-                Text(line.text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = Spacing.screen))
+                Text(
+                    line.text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = Spacing.screen),
+                )
             }
         }
     }
@@ -202,7 +211,7 @@ fun RecentEvents(lines: List<String>, modifier: Modifier = Modifier) {
                 Text(
                     line,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (last) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.run { if (last) onSurface else onSurfaceVariant },
                 )
             }
         }

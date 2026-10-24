@@ -141,16 +141,18 @@ private fun TurnPips(turn: Int) {
     val done = MaterialTheme.colorScheme.primary
     val rest = MaterialTheme.colorScheme.onSurfaceVariant
     Row(horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
-        (1..TURNS).forEach { t ->
+        for (t in 1..TURNS) {
             val current = t == turn
             Canvas(Modifier.size(if (current) 11.dp else 8.dp)) {
                 val r = size.minDimension / 2f
                 when {
                     t < turn -> drawCircle(done, r)
+
                     current -> {
                         drawCircle(done, r * 0.55f)
                         drawCircle(done, r * 0.92f, style = Stroke(width = r * 0.3f))
                     }
+
                     else -> drawCircle(rest, r * 0.8f, style = Stroke(width = r * 0.3f))
                 }
             }
@@ -234,7 +236,10 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
                 }
             },
     ) {
-        Row(Modifier.padding(start = 4.dp, end = Spacing.sm, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.padding(start = 4.dp, end = Spacing.sm, top = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Box {
                 HeroPortrait(
                     hero.heroId,
@@ -274,11 +279,16 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
                         modifier = Modifier.widthIn(max = 108.dp),
                     )
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
                     Stat(null, "Lv ${hero.level}")
                     Stat(Icons.Filled.Paid, "${hero.coins}")
                     Stat(Icons.Outlined.Style, "${hero.handCount}")
-                    played?.initiative?.let { Stat(dev.quinton.goa.core.designsystem.cardtext.GameIcons.initiative.vector, "$it") }
+                    played?.initiative?.let {
+                        Stat(dev.quinton.goa.core.designsystem.cardtext.GameIcons.initiative.vector, "$it")
+                    }
                 }
             }
         }
@@ -289,7 +299,12 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
 private fun Stat(icon: ImageVector?, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (icon != null) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(scaledIconSize(12.dp, 1.3f)))
+            Icon(
+                icon,
+                null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(scaledIconSize(12.dp, 1.3f)),
+            )
             Spacer(Modifier.width(1.dp))
         }
         Text(text, style = GoaTextStyles.numeric.copy(fontSize = MaterialTheme.typography.labelSmall.fontSize))
@@ -324,7 +339,13 @@ internal fun HeroDetail(table: TableUi, heroId: String, onCard: (Card) -> Unit, 
             )
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
-                Text(info.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+                Text(
+                    info.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.semantics {
+                        heading()
+                    },
+                )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TeamMark(hero.team, markSize = 10.dp)
                     Spacer(Modifier.width(4.dp))
@@ -336,7 +357,10 @@ internal fun HeroDetail(table: TableUi, heroId: String, onCard: (Card) -> Unit, 
                 }
             }
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.lg), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             Fact("Level", "${hero.level}")
             Fact("Coins", "${hero.coins}")
             Fact("In hand", "${hero.handCount}")
@@ -355,7 +379,12 @@ internal fun HeroDetail(table: TableUi, heroId: String, onCard: (Card) -> Unit, 
             Section("Markers")
             hero.markers.forEach { marker ->
                 val from = marker.fromHeroId?.let { " · from ${table.hero(it).name}" }.orEmpty()
-                Text(marker.kind.replaceFirstChar { it.uppercase() } + from, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    marker.kind.replaceFirstChar {
+                        it.uppercase()
+                    } + from,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
         }
         if (hero.activeEffects.isNotEmpty()) {
@@ -437,7 +466,11 @@ internal fun CardRow(cards: List<CardView>, table: TableUi, onCard: (Card) -> Un
                     "Active".takeIf { view.active },
                 ).joinToString(" · ")
                 if (caption.isNotEmpty()) {
-                    Text(caption, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        caption,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }

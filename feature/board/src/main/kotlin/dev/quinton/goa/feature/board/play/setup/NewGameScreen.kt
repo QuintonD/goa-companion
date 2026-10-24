@@ -30,8 +30,8 @@ import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Hexagon
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -129,7 +129,9 @@ fun NewGameScreen(
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (state) {
                 NewGameUiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+
                 NewGameUiState.ComingSoon -> ComingSoon(onBack, Modifier.align(Alignment.Center))
+
                 is NewGameUiState.Ready -> if (options) {
                     OptionsStep(state, onAction, starting)
                 } else {
@@ -177,14 +179,17 @@ private fun LineupStep(state: NewGameUiState.Ready, onAction: (NewGameAction) ->
     val focus = LocalFocusManager.current
     val picker = state.picker
     val shown = picker.heroes.filter {
-        query.isBlank() || it.name.contains(query.trim(), ignoreCase = true) || it.title.contains(query.trim(), ignoreCase = true)
+        query.isBlank() || it.name.contains(query.trim(), ignoreCase = true) ||
+            it.title.contains(query.trim(), ignoreCase = true)
     }
     val large = LocalDensity.current.fontScale > LARGE_FONT
     val lineup: (NewBoardAction) -> Unit = { onAction(NewGameAction.Lineup(it)) }
     val search = @Composable { mod: Modifier ->
         if (large) {
             Column(mod) {
-                SearchField(query, { query = it }, onSearch = { focus.clearFocus() }, horizontalPadding = 0.dp, placeholder = "Search")
+                SearchField(query, {
+                    query = it
+                }, onSearch = { focus.clearFocus() }, horizontalPadding = 0.dp, placeholder = "Search")
                 TeamSwitch(state.form.lineup.filling, onPick = { lineup(NewBoardAction.Fill(it)) })
             }
         } else {
@@ -246,7 +251,12 @@ private fun PlayableNote(state: NewGameUiState.Ready) {
     val later = state.picker.heroById.size - state.playable
     if (later <= 0) return
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Outlined.Info, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+        Icon(
+            Icons.Outlined.Info,
+            null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp),
+        )
         Spacer(Modifier.width(Spacing.xs))
         Text(
             "${BoardText.count(state.playable, "hero")} can play so far; $later more join as their cards are tested.",
@@ -270,7 +280,11 @@ private fun LineupBar(state: NewGameUiState.Ready, onAction: (NewGameAction) -> 
         ) {
             Column(Modifier.weight(1f)) {
                 Text("$red v $blue", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    note,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             Spacer(Modifier.width(Spacing.sm))
             Button(
@@ -320,10 +334,18 @@ private fun OptionsStep(state: NewGameUiState.Ready, onAction: (NewGameAction) -
                         itemVerticalAlignment = Alignment.CenterVertically,
                     ) {
                         LineupHeroes(Team.RED, state.red.map(state::hero))
-                        Text("vs", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "vs",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                         LineupHeroes(Team.BLUE, state.blue.map(state::hero))
                     }
-                    Text("Change", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "Change",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
                 }
             }
 
@@ -368,7 +390,9 @@ private fun OptionsStep(state: NewGameUiState.Ready, onAction: (NewGameAction) -
                     Modifier
                         .fillMaxWidth()
                         .heightIn(min = 56.dp)
-                        .toggleable(value = state.form.coach, role = Role.Switch) { onAction(NewGameAction.SetCoach(it)) },
+                        .toggleable(value = state.form.coach, role = Role.Switch) {
+                            onAction(NewGameAction.SetCoach(it))
+                        },
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
@@ -430,13 +454,20 @@ private fun ControlRow(state: NewGameUiState.Ready, control: Control, selected: 
                 ids,
             )
         }
+
         is Control.Hero -> {
             val team = if (control.heroId in state.red) Team.RED else Team.BLUE
             val mates = state.form.lineup.team(team) - control.heroId
             Triple(
                 state.hero(control.heroId).name,
-                BoardText.team(team) + if (mates.isEmpty()) "" else ". Your teammate${if (mates.size > 1) "s" else ""} " +
-                    mates.joinToString(", ") { state.hero(it).name } + " play${if (mates.size > 1) "" else "s"} as the computer.",
+                BoardText.team(team) +
+                    if (mates.isEmpty()) {
+                        ""
+                    } else {
+                        ". Your teammate${if (mates.size > 1) "s" else ""} " +
+                            mates.joinToString(", ") { state.hero(it).name } +
+                            " play${if (mates.size > 1) "" else "s"} as the computer."
+                    },
                 listOf(control.heroId),
             )
         }
@@ -448,13 +479,19 @@ private fun ControlRow(state: NewGameUiState.Ready, control: Control, selected: 
     Surface(
         shape = MaterialTheme.shapes.medium,
         color = if (selected) teamColor(team).copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) teamColor(team) else GoaTheme.colors.engravedBorder),
+        border = BorderStroke(
+            if (selected) 2.dp else 1.dp,
+            if (selected) teamColor(team) else GoaTheme.colors.engravedBorder,
+        ),
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
     ) {
-        Row(Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             RadioButton(selected = selected, onClick = null)
             Spacer(Modifier.width(Spacing.xs))
             heroes.forEach { id ->
@@ -474,7 +511,11 @@ private fun ControlRow(state: NewGameUiState.Ready, control: Control, selected: 
                     Spacer(Modifier.width(4.dp))
                     Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                 }
-                Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    note,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
@@ -538,9 +579,15 @@ private fun MapChoice(state: NewGameUiState.Ready, onAction: (NewGameAction) -> 
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 56.dp)
-                .semantics { contentDescription = "Map: ${map?.name ?: "none"}" + if (state.maps.size > 1) ". Change map" else "" },
+                .semantics {
+                    contentDescription =
+                        "Map: ${map?.name ?: "none"}" + if (state.maps.size > 1) ". Change map" else ""
+                },
         ) {
-            Row(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Column(Modifier.weight(1f)) {
                     Text(map?.name ?: "No map", style = MaterialTheme.typography.titleSmall)
                     Text(
@@ -558,7 +605,13 @@ private fun MapChoice(state: NewGameUiState.Ready, onAction: (NewGameAction) -> 
                 DropdownMenuItem(
                     text = { Text(option.name) },
                     leadingIcon = {
-                        if (option.id == map?.id) Icon(Icons.Outlined.Check, contentDescription = "Chosen") else Spacer(Modifier.size(24.dp))
+                        if (option.id ==
+                            map?.id
+                        ) {
+                            Icon(Icons.Outlined.Check, contentDescription = "Chosen")
+                        } else {
+                            Spacer(Modifier.size(24.dp))
+                        }
                     },
                     onClick = {
                         menu = false
@@ -587,7 +640,11 @@ private fun CoinDialog(coin: Team, starting: Boolean, onStart: () -> Unit, onDis
         confirmButton = {
             Button(onClick = onStart, enabled = !starting, modifier = Modifier.heightIn(min = 48.dp)) {
                 if (starting) {
-                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                    CircularProgressIndicator(
+                        Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
                 } else {
                     Text("Start the game")
                 }

@@ -131,10 +131,13 @@ fun GameScreen(
             onAction(GameAction.MessageShown(play.messageId))
         }
     }
+    // With large text the title shortens so the round and turn stay readable beside the actions.
+    val large = androidx.compose.ui.platform.LocalDensity.current.fontScale > LARGE_FONT
     GoaScreen(
         title = when {
             play == null -> "Play"
             play.over != null -> "Game over"
+            large -> "R${play.table.view.round} · T${play.table.view.turn}"
             else -> "Round ${play.table.view.round} · Turn ${play.table.view.turn}"
         },
         onBack = onBack,
@@ -149,8 +152,13 @@ fun GameScreen(
                     Icon(Icons.AutoMirrored.Outlined.FormatListBulleted, contentDescription = "Game log")
                 }
                 Box {
-                    IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More options") }
-                    GameMenu(play, expanded = menu, onDismiss = { menu = false }, onAction = onAction, onEnd = { ending = true })
+                    IconButton(onClick = {
+                        menu = true
+                    }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More options") }
+                    GameMenu(play, expanded = menu, onDismiss = { menu = false }, onAction = onAction, onEnd = {
+                        ending =
+                            true
+                    })
                 }
             }
         },
@@ -158,17 +166,30 @@ fun GameScreen(
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (state) {
                 GameUiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-                is GameUiState.Unavailable -> Unavailable(state.why, onDelete, onNewGame, onBack, Modifier.align(Alignment.Center))
+
+                is GameUiState.Unavailable -> Unavailable(
+                    state.why,
+                    onDelete,
+                    onNewGame,
+                    onBack,
+                    Modifier.align(Alignment.Center),
+                )
+
                 is GameUiState.Playing -> {
                     val over = state.play.over
                     if (over != null) {
-                        GameOverContent(state.play, over, onAction, onNewGame, onDone, onHero = { sheet = PlaySheet.Hero(it) })
+                        GameOverContent(state.play, over, onAction, onNewGame, onDone, onHero = {
+                            sheet =
+                                PlaySheet.Hero(it)
+                        })
                     } else {
                         GameTable(
                             table = state.play.table,
                             viewport = viewport,
                             onTap = { tap ->
-                                if (!onTap(tap) && tap is TableTap.Piece && state.play.table.heroView(tap.pieceId) != null) {
+                                if (!onTap(tap) && tap is TableTap.Piece &&
+                                    state.play.table.heroView(tap.pieceId) != null
+                                ) {
                                     sheet = PlaySheet.Hero(tap.pieceId)
                                 }
                             },
@@ -199,12 +220,14 @@ fun GameScreen(
                     EventLog(play.log, Modifier.weight(1f))
                 }
             }
+
             is PlaySheet.Hero -> BoardSheet(onDismiss = { sheet = null }) {
                 Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
                     SheetTitle(play.table.hero(open.heroId).name, "Open information (p.4)", onDone = { sheet = null })
                     HeroDetail(play.table, open.heroId, onCard = { sheet = PlaySheet.Card(it.id, back = open) })
                 }
             }
+
             is PlaySheet.Card -> BoardSheet(onDismiss = { sheet = null }) {
                 val card = play.table.card(open.cardId)
                 Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
@@ -216,14 +239,16 @@ fun GameScreen(
                     if (card != null) CardDetail(card)
                 }
             }
+
             null -> Unit
         }
     }
     if (ending) {
         ConfirmDialog(
             title = "End this game?",
-            message = "The game is deleted from this phone. It is saved after every move, so you can also just leave it " +
-                "and resume later from Boards.",
+            message =
+                "The game is deleted from this phone. It is saved after every move, so you can also just leave it " +
+                    "and resume later from Boards.",
             confirmLabel = "End game",
             destructive = true,
             icon = Icons.Outlined.Flag,
@@ -280,7 +305,13 @@ private fun GameMenu(
             DropdownMenuItem(
                 text = { Text(PlayText.pace(pace)) },
                 leadingIcon = {
-                    if (pace == play.pace) Icon(Icons.Outlined.Check, contentDescription = "Chosen") else Spacer(Modifier.size(24.dp))
+                    if (pace ==
+                        play.pace
+                    ) {
+                        Icon(Icons.Outlined.Check, contentDescription = "Chosen")
+                    } else {
+                        Spacer(Modifier.size(24.dp))
+                    }
                 },
                 onClick = {
                     onAction(GameAction.SetPace(pace))
@@ -299,7 +330,9 @@ private fun GameMenu(
         )
         DropdownMenuItem(
             text = { Text("End this game", color = MaterialTheme.colorScheme.error) },
-            leadingIcon = { Icon(Icons.Outlined.Flag, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+            leadingIcon = {
+                Icon(Icons.Outlined.Flag, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+            },
             onClick = {
                 onDismiss()
                 onEnd()
@@ -310,11 +343,16 @@ private fun GameMenu(
 
 /** The panel's content: a nudge, the question, the computer's move or the wait, the reveal, your hand. */
 @Composable
-private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, onCard: (dev.quinton.goa.core.model.catalog.Card) -> Unit) {
+private fun ColumnScope.Panel(
+    play: PlayUi,
+    onAction: (GameAction) -> Unit,
+    onCard: (dev.quinton.goa.core.model.catalog.Card) -> Unit,
+) {
     val table = play.table
     val nudge = play.nudge
     when {
         nudge != null -> CoachNudge(nudge, onAction)
+
         play.status is TurnStatus.YourTurn -> {
             if (play.reveal.isNotEmpty() && table.decision?.kind != dev.quinton.goa.core.game.DecisionKind.PLAY_CARD) {
                 RevealLine(table, play.reveal)
@@ -328,11 +366,14 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, onCa
             )
             if (play.busy && play.coach) CoachLooking()
         }
+
         play.status is TurnStatus.Computer -> {
             ComputerMove(table, play.status)
             if (play.reveal.isNotEmpty()) Reveal(table, play.reveal)
         }
+
         play.status is TurnStatus.Waiting -> Waiting(table, play.status)
+
         else -> Unit
     }
     when {
@@ -353,7 +394,11 @@ private fun CoachNudge(nudge: PendingNudge, onAction: (GameAction) -> Unit) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics(mergeDescendants = true) {}) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.semantics(mergeDescendants = true) {
+                },
+            ) {
                 Icon(Icons.Outlined.Lightbulb, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
                 Spacer(Modifier.width(Spacing.sm))
                 Text(
@@ -365,7 +410,11 @@ private fun CoachNudge(nudge: PendingNudge, onAction: (GameAction) -> Unit) {
                 )
             }
             if (nudge.note.detail.isNotBlank()) {
-                Text(nudge.note.detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                Text(
+                    nudge.note.detail,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
             }
             Text(
                 "Your choice: ${nudge.choiceLabel}",
@@ -377,7 +426,9 @@ private fun CoachNudge(nudge: PendingNudge, onAction: (GameAction) -> Unit) {
                     onClick = { onAction(GameAction.ChooseAnyway) },
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                 ) { Text("Choose anyway") }
-                Button(onClick = { onAction(GameAction.Rethink) }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                Button(onClick = {
+                    onAction(GameAction.Rethink)
+                }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
                     Text("Rethink")
                 }
             }
@@ -390,7 +441,11 @@ private fun CoachLooking() {
     Row(verticalAlignment = Alignment.CenterVertically) {
         CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp)
         Spacer(Modifier.width(Spacing.sm))
-        Text("Coach is looking…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            "Coach is looking…",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -408,7 +463,13 @@ private fun ComputerMove(table: TableUi, status: TurnStatus.Computer) {
             status.heroId,
             info.portrait,
             null,
-            Modifier.size(40.dp).border(2.dp, hero?.team?.let { teamColor(it) } ?: GoaTheme.colors.engravedBorder, CircleShape),
+            Modifier.size(40.dp).border(
+                2.dp,
+                hero?.team?.let {
+                    teamColor(it)
+                } ?: GoaTheme.colors.engravedBorder,
+                CircleShape,
+            ),
             shape = CircleShape,
             framed = false,
         )
@@ -445,7 +506,9 @@ private fun Waiting(table: TableUi, status: TurnStatus.Waiting) {
         Column(Modifier.weight(1f).semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) {
             Text("Your card is down", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(
-                "Waiting for ${status.heroIds.joinToString(" and ") { table.hero(it).name }.ifEmpty { "the others" }} " +
+                "Waiting for ${status.heroIds.joinToString(" and ") {
+                    table.hero(it).name
+                }.ifEmpty { "the others" }} " +
                     "to play facedown. Cards are revealed together (p.7).",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -460,7 +523,10 @@ private fun Waiting(table: TableUi, status: TurnStatus.Waiting) {
 private fun Reveal(table: TableUi, reveal: List<RevealedCard>) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text("CARDS REVEALED · p.7", style = GoaTextStyles.overline, color = MaterialTheme.colorScheme.primary)
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
             reveal.forEach { shown ->
                 val hero = table.heroView(shown.heroId)
                 val card = table.card(shown.cardId)
@@ -478,7 +544,11 @@ private fun Reveal(table: TableUi, reveal: List<RevealedCard>) {
                         Text(table.hero(shown.heroId).name, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                     }
                     shown.initiative?.let {
-                        Text("Initiative $it", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Initiative $it",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
                     }
                 }
             }
@@ -513,13 +583,24 @@ private fun YourHand(table: TableUi, onCard: (dev.quinton.goa.core.model.catalog
 }
 
 @Composable
-private fun Unavailable(why: NoGame, onDelete: () -> Unit, onNewGame: () -> Unit, onBack: () -> Unit, modifier: Modifier) {
+private fun Unavailable(
+    why: NoGame,
+    onDelete: () -> Unit,
+    onNewGame: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier,
+) {
     val (title, text) = when (why) {
         NoGame.NONE -> "No game in progress" to "Set up a game against the computer to play on the real map."
-        NoGame.UNREADABLE -> "This saved game can't be read" to
-            "It may have been damaged, or saved by another version of the app. Delete it to start a new one."
-        NoGame.INCOMPATIBLE -> "This game can't be continued" to
-            "The rules engine has changed since it was saved, so it can't be rebuilt move for move. Delete it to start a new one."
+
+        NoGame.UNREADABLE ->
+            "This saved game can't be read" to
+                "It may have been damaged, or saved by another version of the app. Delete it to start a new one."
+
+        NoGame.INCOMPATIBLE ->
+            "This game can't be continued" to
+                "The rules engine has changed since it was saved, so it can't be rebuilt move for move. Delete it to start a new one."
+
         NoGame.MAP_MISSING -> "This game's map isn't in this build" to "Delete it to start a new one."
     }
     EmptyState(
@@ -542,3 +623,4 @@ private fun Unavailable(why: NoGame, onDelete: () -> Unit, onNewGame: () -> Unit
 }
 
 private const val SHEET_HEIGHT = 0.9f
+private const val LARGE_FONT = 1.3f

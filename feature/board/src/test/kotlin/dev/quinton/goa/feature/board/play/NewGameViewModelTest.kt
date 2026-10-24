@@ -50,7 +50,10 @@ class NewGameViewModelTest {
 
     @After fun tearDown() = Dispatchers.resetMain()
 
-    private fun TestScope.viewModel(engine: GameFactory = factory, route: NewGameRoute = NewGameRoute()) = NewGameViewModel(
+    private fun TestScope.viewModel(
+        engine: GameFactory = factory,
+        route: NewGameRoute = NewGameRoute(),
+    ) = NewGameViewModel(
         route,
         SavedStateHandle(),
         FakeCatalogRepository(bundledCatalog),
@@ -81,7 +84,9 @@ class NewGameViewModelTest {
         assertThat(vm.ready.picker.heroes.take(4).map { it.id }).containsExactly("arien", "brogan", "tigerclaw", "wasp")
         vm.onAction(NewGameAction.Lineup(NewBoardAction.Tap("xargatha")))
         assertThat(vm.ready.red).isEmpty()
-        listOf("arien", "wasp", "brogan", "tigerclaw").forEach { vm.onAction(NewGameAction.Lineup(NewBoardAction.Tap(it))) }
+        listOf("arien", "wasp", "brogan", "tigerclaw").forEach {
+            vm.onAction(NewGameAction.Lineup(NewBoardAction.Tap(it)))
+        }
         assertThat(vm.ready.red).containsExactly("arien", "brogan").inOrder()
         assertThat(vm.ready.blue).containsExactly("wasp", "tigerclaw").inOrder()
         assertThat(vm.ready.canContinue).isTrue()

@@ -289,25 +289,35 @@ class NewGameViewModel internal constructor(
             } == true
             if (blocked) form else form.copy(lineup = NewBoardViewModel.reduce(form.lineup, action.action), coin = null)
         }
+
         is NewGameAction.Step -> form.copy(step = action.step)
+
         is NewGameAction.SetControl -> form.copy(control = action.control)
+
         is NewGameAction.SetLevel -> form.copy(level = action.level, seatLevels = emptyMap())
+
         is NewGameAction.SetSeatLevel -> form.copy(seatLevels = form.seatLevels + (action.heroId to action.level))
+
         is NewGameAction.SetAdvanced -> form.copy(advanced = action.open)
+
         is NewGameAction.SetLength -> form.copy(length = action.length)
+
         is NewGameAction.SetMap -> form.copy(mapId = action.mapId)
+
         is NewGameAction.SetCoach -> form.copy(coach = action.on)
+
         NewGameAction.FlipCoin -> form.copy(coin = if (random.nextBoolean()) Team.RED else Team.BLUE)
+
         NewGameAction.CancelCoin -> form.copy(coin = null)
     }
 
     /** The setup for the current form (seats in pick order per team), or null when it can't start. */
     fun setup(): GameSetup? {
-        val ready = uiState.value as? NewGameUiState.Ready ?: return null
-        val coin = ready.form.coin ?: return null
-        val map = ready.map ?: return null
-        val control = ready.control ?: return null
-        if (!ready.canStart) return null
+        val ready = (uiState.value as? NewGameUiState.Ready)?.takeIf { it.canStart } ?: return null
+        val coin = ready.form.coin
+        val map = ready.map
+        val control = ready.control
+        if (coin == null || map == null || control == null) return null
         fun seat(heroId: String, team: Team) = SeatSetup(
             heroId = heroId,
             team = team,
