@@ -137,6 +137,14 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   analyses each question as soon as it is asked, on a fork in the background, and the answer is
   checked against it at once (at most 300 ms wait); same nudges for the same seed (`CoachAheadTest`).
   JVM only; the time on the S25 Ultra is not measured yet
+- [x] See the whole board (`feature/board-full-view`, owner request "view the entire board by hiding
+  the large window; a smaller top bar, especially in landscape") — 2026-10-25: one `HideablePanel` for
+  the sandbox, the game and puzzles (Hide / drag down → a one-line peek bar with the question and
+  Confirm for a tapped space or piece; a small card at the bottom end in landscape; hiding fits the
+  whole board unless the person moved the view; the game's hero strip and the puzzle's goal hide with
+  it; kept across rotation) and a compact `BoardScaffold` title bar (48 dp portrait, 40 dp landscape).
+  `:feature:board` screenshots re-recorded (75 updated) plus 9 new (panel hidden portrait, landscape and
+  font scale 2 on all three screens; the landscape bar at font scale 2). JVM only, not on the S25 Ultra
 - [ ] End-to-end test that plays a game to its end (needs the engine bound)
 - [ ] Hands-on at the table and TalkBack on the S25 Ultra
 
