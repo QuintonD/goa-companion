@@ -46,7 +46,10 @@ class PlayFlowTest {
         // Turn 1: Wasp's hand as cards; choose one, then "Play … facedown".
         rule.waitFor(hasText("Play a card facedown"), timeout = GAME_TIMEOUT)
         rule.tap(hasClickLabel("Choose"))
-        rule.tap(hasText("facedown", substring = true) and hasText("Play ", substring = true) and isEnabled())
+        rule.tap(
+            hasText("facedown", substring = true) and hasText("Play ", substring = true) and
+                hasClickAction() and isEnabled(),
+        )
 
         // The computer plays its three cards, then all four are revealed together (p.7).
         rule.waitFor(hasText("Cards revealed:", substring = true), timeout = GAME_TIMEOUT)
