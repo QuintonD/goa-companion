@@ -166,7 +166,20 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** A defeated hero's team spends Life counters equal to that hero's lowest card tier, not one per hero (p.13): level 4 means tier II, so Wasp costs Red 2 counters while Brogan (level 3, tier I) costs 1. A Block card defends only when its condition is met; otherwise the defender is defeated (p.14). Chase's movement needs at least one card in your discard (card text), which Garrus has.
 - **Rules:** p.13 Attacking a hero, When a hero is defeated, level/tier table; p.14 Block.
 - **Risk:** none.
-- **Encoded as p02 (2026-10-24):** as written (Brogan's items `brogan-red-2b`, `brogan-green-2a`; Wasp's `wasp-red-2b`, `wasp-blue-2b`, `wasp-green-2b`). The solver finds (2,−5) and (2,−6) as the winning spaces of Chase's move; Chase's second option, or its first without moving, leaves only Brogan to hit.
+- **Encoded as p02 (hardened 2026-10-24, changed):** the reviewers found Arien level 1 in round 4,
+  Arien's resolved Liquid Leap (4) before Garrus (9), and one obvious choice. Now round 4, **turn 3**
+  (so Wasp can hold two cards), two player seats. Arien (Blue, L2, item `arien-red-2b`) at (2,−2) has
+  played Noble Blade (11) and acts next; Garrus (L2, Chase 8 + 1 initiative item `garrus-red-2b`, one
+  card in his discard) at (2,0) follows; Wasp (Red, L4, items `wasp-red-2b`/`green-2b`/`blue-2b`)
+  already acted with her gold (12) and holds **Deflect Projectiles and Control Gravity**; Brogan (Red,
+  L3, no cards, Brutal Jab still to resolve) at (2,−3). Wasp at (3,−3) is boxed in: Red melee (3,−2),
+  (4,−3), (4,−4), Red ranged (3,−4), Brogan, Arien; Blue melee (2,−1) and (1,−4), Blue heavy (2,−7).
+  Answer: Noble Blade on Wasp, moving the Red melee (3,−2) one space E to (4,−2) before the attack; she
+  must spend Control Gravity (5 + 1 + 2 = 8 against 4; Deflect blocks only ranged); Garrus's Chase moves
+  via (3,−1) into (3,−2) and defeats her: two counters. Wrong tries refuted: Arien defeats Brogan (one
+  counter, Wasp keeps both cards), Arien defeats the minion (3,−2) (the space opens, Wasp keeps Control
+  Gravity), the minion moved to (3,−1) instead (it blocks Garrus). Solver: one winning option at every
+  decision (3 targets, 5 units to move, 2 spaces, 10 Chase spaces).
 
 ### C03 — Melee First, Then the Heavy
 - **Theme:** Heavy Minion Immunity; Last Push. **Difficulty:** 1. **Heroes:** Snorri; Xargatha (Garrus, Tigerclaw idle).
