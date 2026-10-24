@@ -96,7 +96,7 @@ object P50ShootPushScoot : Puzzle() {
             hand("brogan-red-1", "brogan-blue-2a")
             items("brogan-green-2a", "brogan-blue-2b")
         }
-        minion(Team.RED, MinionType.MELEE, Hex(1, -4))
+        minion(Team.RED, MinionType.HEAVY, Hex(1, -4))
         minion(Team.BLUE, MinionType.MELEE, Hex(0, -3))
         minion(Team.BLUE, MinionType.MELEE, Hex(0, -4))
         minion(Team.BLUE, MinionType.MELEE, Hex(-1, -4))

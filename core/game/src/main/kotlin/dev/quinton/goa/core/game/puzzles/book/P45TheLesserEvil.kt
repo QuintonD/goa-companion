@@ -35,16 +35,17 @@ object P45TheLesserEvil : Puzzle() {
             "Red is one Life counter or two minions away from losing, and Lesser Evil lets the enemy pick.",
             "Whichever bullet Red picks, Tigerclaw has to finish the job. Check what Combat Reflexes can " +
                 "reach in each case.",
-            "Lesser Evil on Xargatha; if she gives up a minion, take the one Tigerclaw can't reach.",
+            "Lesser Evil on Xargatha; if she gives up a minion, take the melee and leave the heavy to Tigerclaw.",
         ),
         explanation = "With Lesser Evil the enemy hero picks the bullet, even one with no effect (card text, " +
             "p.10 Making Choices), so both must lose for Red, and Tigerclaw must finish either one. Combat " +
             "Reflexes moves him 1 space at most before the attack (card text). Xargatha holds one card: if she " +
             "discards it, she is next to Tigerclaw with nothing to defend with (p.14) and Red spends its last " +
-            "Life counter (p.13). If she gives up a minion, Whisper defeats one of the two Red minions beside " +
-            "him: take the north-east one, out of Tigerclaw's reach, and Tigerclaw defeats the other, Red's " +
-            "last: the lane is pushed at once (p.8 Triggering a Push) and the last Wave counter ends the game " +
-            "(p.3 Last Push). Take the wrong one and the last minion is out of reach. Wasp's single card " +
+            "Life counter (p.13). If she gives up a minion, Whisper may defeat one next to him: the heavy is " +
+            "immune while the melee stands (p.13 Heavy Minion Immunity), so he takes the melee, out of " +
+            "Tigerclaw's reach, and the heavy, now Red's last minion and no longer immune, is next to " +
+            "Tigerclaw: he defeats it, the lane is pushed at once (p.8 Triggering a Push) and the last Wave " +
+            "counter ends the game (p.3 Last Push). Wasp's single card " +
             "looks just as good, but no step brings Tigerclaw next to her, so she simply discards. Without " +
             "Lesser Evil, Petrifying Stare's 6 + 1 holds Combat Reflexes' 5, and once the lane is one minion " +
             "from falling, that minion is the target, not Xargatha.",
@@ -52,7 +53,7 @@ object P45TheLesserEvil : Puzzle() {
             "p.3 Last Push",
             "p.8 Triggering a Push",
             "p.10 Making Choices",
-            "p.13 When a Hero is Defeated",
+            "p.13 Heavy Minion Immunity, When a Hero is Defeated",
             "p.14 Defense",
         ),
     )
@@ -101,7 +102,7 @@ object P45TheLesserEvil : Puzzle() {
             hand("xargatha-blue-2a")
             items("xargatha-red-2b", "xargatha-blue-2b")
         }
-        minion(Team.RED, MinionType.MELEE, Hex(1, -2))
+        minion(Team.RED, MinionType.HEAVY, Hex(1, -2))
         minion(Team.RED, MinionType.MELEE, Hex(3, -3))
         minion(Team.BLUE, MinionType.MELEE, Hex(2, -1))
         minion(Team.BLUE, MinionType.MELEE, Hex(1, -4))
@@ -127,8 +128,8 @@ object P45TheLesserEvil : Puzzle() {
             listOf(action(ActionType.PRIMARY), hero("wasp")),
         ),
         WrongTry(
-            "Xargatha gives up a minion and Whisper takes the one next to Tigerclaw: the last one is out of reach",
-            listOf(action(ActionType.PRIMARY), hero("xargatha"), unitAt(1, -2)),
+            "Xargatha gives up a minion and Whisper declines it: Red keeps two",
+            listOf(action(ActionType.PRIMARY), hero("xargatha"), decline()),
         ),
         WrongTry(
             "Tigerclaw goes for Xargatha instead of Red's last minion: 7 against 5",

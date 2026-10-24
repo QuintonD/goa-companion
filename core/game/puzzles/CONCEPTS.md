@@ -873,10 +873,11 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
   items Finger of Death = Initiative, Necromancy = Attack), Wasp L2 (Kinetic Repulse; item Control Gravity):
   no level 1 in round 5. Wasp's turn-4 card is Kinetic Repulse (10), tied with Carry Away and won on Red's
   side of the coin, which she flipped to Blue (Stop Projectiles at 3 could not have gone first). One Blue
-  heavy only (on its spawn point (2,−7)). Harder: Dodger now holds Shield of Decay (Defense 3, +2 with two
+  heavy only (on its spawn point (2,−7)); Red's last minion is its heavy (a heavy goes last, p.8/p.13),
+  still at (1,−6). Harder: Dodger now holds Shield of Decay (Defense 3, +2 with two
   empty spawn points within 2 in the Battle Zone) and Swift moved to (5,−5), so two Carry Away landings are
   four from Swift in a straight line: south-west (1,−5) beside Widget, where the Shield holds (3 + 2 + 1 Red
-  melee − 1 Blue melee = 5 against 5), and north-east (5,−9), one empty spawn point and no minion: 3 against
+  heavy − 1 Blue melee = 5 against 5), and north-east (5,−9), one empty spawn point and no minion: 3 against
   5. The player must find both landings and count the board around each; the minion trap stays (its Carry
   Away squares are out of Snipe's reach). Only Pyro (4,−8) then Dodger (5,−9) wins.
 
@@ -1022,12 +1023,13 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
   round 5 (Whisper keeps Blood Fury, items Sprouts of Panic = Initiative and Sanguine Path = Defense, so
   Lesser Evil shows 11; Tigerclaw keeps Combat Reflexes (9) and Poisoned Dagger, items Backstab = Defense,
   Pick Pocket = Attack). Harder: Wasp now also holds a single card (Control Gravity), so "the one-card
-  hero" no longer names the target; Red has two minions, both next to Whisper, at (1,−2) and (3,−3);
-  Tigerclaw (0,−1) plays Combat Reflexes (move 1 before the attack), which reaches Xargatha (−1,−1) and the
-  minion (1,−2) but neither Wasp (4,−4) nor the minion (3,−3). Lesser Evil on Wasp: she discards out of
-  reach. On Xargatha both bullets lose: discarding leaves her to Tigerclaw; giving up a minion (the
-  solver's reply) makes Whisper choose — take (3,−3), the one Tigerclaw can't reach — and Tigerclaw must
-  then take Red's last minion (push, last Wave counter), not Xargatha (Petrifying Stare 6 + 1 holds 5).
+  hero" no longer names the target; Red has two minions, both next to Whisper: its heavy at (1,−2) and a
+  melee at (3,−3). Tigerclaw (0,−1) plays Combat Reflexes (move 1 before the attack), which reaches
+  Xargatha (−1,−1) and the heavy but neither Wasp (4,−4) nor the melee. Lesser Evil on Wasp: she discards
+  out of reach. On Xargatha both bullets lose: discarding leaves her to Tigerclaw; giving up a minion (the
+  solver's reply) lets Whisper take the melee (the heavy is immune while it stands), and the heavy, now
+  Red's last minion and not immune, is Tigerclaw's (push, last Wave counter), not Xargatha (Petrifying
+  Stare 6 + 1 holds 5).
 
 ### C46 — Hurry Up!
 - **Theme:** changing a teammate's initiative; a tie on the coin; the opponent's blocking reply. **Difficulty:** 3. **Heroes:** Hanu, Brogan; Tigerclaw, Xargatha.
@@ -1131,7 +1133,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
   5; Garrus is no longer resolved before Ursafar with a slower card. Harder: Garrus is a player seat and
   acts first with Menace (9). Wasp starts two spaces from Ursafar at (3,−7), next to Garrus at (3,−8);
   Menace moves her 1 space farther from Garrus, and only (2,−6), of three, is next to Ursafar (1,−5). Red's
-  last minion moved to (−1,−5) (radius 2 from Ursafar); the Blue heavy to (2,−1), so Wasp's Control
+  last minion, now its heavy (a heavy goes last, p.8/p.13), moved to (−1,−5) (radius 2 from Ursafar); the Blue heavy to (2,−1), so Wasp's Control
   Gravity holds 5 + 1 against 6 and her best reply is to stand, after which Ursafar removes the minion
   (push, last Wave counter). Brogan (0,−4) is still the trap: Bullrush would hold, so he declines to defend
   and costs only one counter.
@@ -1161,7 +1163,8 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
   Dash or Mighty Punch) the solver's. Harder: Silverarrow holds Shoot and Scoot, Trailblazer (14, "fast
   travel, if able": not able with Red's minion in the Zone) and Disorient (3, too late); she now has
   cards, but 1 + 4 (four friendly melee) never holds 8. Xargatha has no card left, so shooting her is a real
-  hero kill that loses (the minion still closes the Zone). The Fast Travel space is still free (every
+  hero kill that loses (the minion still closes the Zone). Red's last minion is its heavy (a heavy goes
+  last, p.8/p.13). The Fast Travel space is still free (every
   offered space wins). Grasping Roots was tried as a third card and cut: its 3-space movement escapes.
 
 ### C51 — Ice in the Veins

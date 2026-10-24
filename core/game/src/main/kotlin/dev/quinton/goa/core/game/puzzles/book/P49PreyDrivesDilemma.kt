@@ -115,7 +115,7 @@ object P49PreyDrivesDilemma : Puzzle() {
             madeTurn = 1,
             key = UrsafarHero.ENRAGED,
         )
-        minion(Team.RED, MinionType.MELEE, Hex(-1, -5))
+        minion(Team.RED, MinionType.HEAVY, Hex(-1, -5))
         minion(Team.BLUE, MinionType.MELEE, Hex(1, -4))
         minion(Team.BLUE, MinionType.MELEE, Hex(3, -1))
         minion(Team.BLUE, MinionType.HEAVY, Hex(2, -1))

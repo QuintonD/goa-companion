@@ -104,7 +104,7 @@ object P40CarryAway : Puzzle() {
             items("wasp-blue-2a")
         }
         token(WidgetHero.PYRO, Hex(2, -6), owner = "widget")
-        minion(Team.RED, MinionType.MELEE, Hex(1, -6))
+        minion(Team.RED, MinionType.HEAVY, Hex(1, -6))
         minion(Team.BLUE, MinionType.MELEE, Hex(1, -4))
         minion(Team.BLUE, MinionType.HEAVY, Hex(2, -7))
         phase = PositionPhase.Resolving(next = "widget")
