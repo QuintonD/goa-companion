@@ -101,6 +101,15 @@ fun DecisionPanel(
         if (decision.kind != DecisionKind.DEFEND && decision.kind != DecisionKind.PLAY_CARD) {
             Buttons(table, table.buttonOptions, onAnswer, busy)
         }
+        if (decision.kind == DecisionKind.ACT_FIRST) {
+            // A bare "who acts first?" over two portraits told nothing about why it was asked.
+            Text(
+                "Heroes of one team on the same initiative choose which of them acts first; between " +
+                    "teams the Tie Breaker coin decides, then it flips (p.7).",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         if (decision.kind == DecisionKind.CHOOSE_ACTION && attackMissing(table.sourceCard, decision.options)) {
             Text(
                 "No Attack: no unit you may target is in reach (p.13), or an effect forbids it.",

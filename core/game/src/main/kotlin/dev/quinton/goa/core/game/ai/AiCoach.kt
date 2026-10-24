@@ -391,6 +391,18 @@ internal class TurningPoint(
 
     private fun plural(n: Int, what: String) = "$n $what${if (n == 1) "" else "s"}"
 
+    /** +1 when the told events favour [team], −1 when they favour the other team, 0 when mixed or none. */
+    private fun eventSign(
+        defeats: List<GameEvent.Defeated>,
+        pushes: List<GameEvent.LanePushed>,
+        over: GameEvent.GameOver?,
+    ): Int {
+        if (over != null) return if (over.winner == team) 1 else -1
+        val score = pushes.sumOf { if (it.winner == team) 1 else -1 } +
+            defeats.sumOf { if (teamOf(it.unitId) == team) -1 else 1 }
+        return score.coerceIn(-1, 1)
+    }
+
     fun note(): CoachNote {
         val good = swing.delta > 0
         val round = swing.from.round
@@ -463,8 +475,12 @@ internal class TurningPoint(
         }
         val sentence = parts.joinToString("; ").replaceFirstChar { it.uppercase() }
         val swingText = if (good) "a good moment for your team" else "the game turned against your team"
+        // The verdict must not contradict what the sentence tells: "the other team pushed the lane — a
+        // good moment for your team" read as a mistake (the swing came from the position after it).
+        val told = eventSign(defeats, pushes, over)
+        val verdict = if (told == 0 || (told > 0) == good) " — $swingText" else ""
         return CoachNote(
-            text = "Round $round, turn $turn: $sentence — $swingText.",
+            text = "Round $round, turn $turn: $sentence$verdict.",
             detail = detail,
             decisionId = swing.from.decisionId,
             round = round,

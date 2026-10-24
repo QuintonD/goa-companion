@@ -175,7 +175,8 @@ internal fun GameOverContent(
                                             )
                                         }
                                         Text(
-                                            note.text,
+                                            // The heading already says when: no "Round 1, turn 1:" again.
+                                            if (at.isNotEmpty()) withoutWhen(note.text) else note.text,
                                             style = MaterialTheme.typography.titleSmall,
                                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                                         )
@@ -280,3 +281,7 @@ private fun HeroResultRow(play: PlayUi, result: HeroResult, onHero: (String) -> 
         }
     }
 }
+
+/** "Round 3, turn 4: The other team pushed the lane." → "The other team pushed the lane." */
+internal fun withoutWhen(text: String): String =
+    text.replaceFirst(Regex("^Round \\d+, turn \\d+: "), "").replaceFirstChar { it.uppercase() }

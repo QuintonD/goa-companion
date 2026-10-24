@@ -81,6 +81,14 @@ class PlayPanelTextTest {
     }
 
     @Test
+    fun aTurningPointUnderItsHeadingDoesNotRepeatWhen() {
+        assertEquals(
+            "The other team pushed the lane.",
+            dev.quinton.goa.feature.board.play.game.withoutWhen("Round 3, turn 4: The other team pushed the lane."),
+        )
+    }
+
+    @Test
     fun countersReadAsWords() {
         assertEquals("Spells removed", PlayText.counter("spellsRemoved"))
         assertEquals("Spellbook", PlayText.counter("spellbook"))
