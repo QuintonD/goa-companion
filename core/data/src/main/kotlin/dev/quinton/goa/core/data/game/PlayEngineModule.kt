@@ -14,7 +14,13 @@ import dev.quinton.goa.core.game.GameFactory
 import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.GameSetup
 import dev.quinton.goa.core.game.SavedGame
+import dev.quinton.goa.core.game.engine.GameEngine
+import dev.quinton.goa.core.data.BoardMapRepository
+import dev.quinton.goa.core.data.CatalogRepository
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import javax.inject.Singleton
+import kotlin.random.Random
 
 /** The computer players, one per level (ADR-035). */
 fun interface AiPlayers {
@@ -42,11 +48,13 @@ fun interface AiPlayers {
 internal object PlayEngineModule {
     @Provides
     @Singleton
-    fun factory(): GameFactory = ComingSoonGameFactory
+    fun factory(catalog: CatalogRepository, maps: BoardMapRepository): GameFactory =
+        // Screens ask for the factory on Dispatchers.Default only (see above), never on the main thread.
+        runBlocking { GameEngine(catalog.catalog.first(), maps.maps.first()) }
 
     @Provides
     @Singleton
-    fun ai(): AiPlayers = AiPlayers { FirstOptionAi }
+    fun ai(): AiPlayers = AiPlayers { RandomLegalAi() }
 
     @Provides
     @Singleton
@@ -55,6 +63,7 @@ internal object PlayEngineModule {
 
 /** No hero is playable yet: New game and the Boards entry show "coming soon". */
 internal object ComingSoonGameFactory : GameFactory {
+    override val engineVersion: Int = 0
     override val playableHeroes: Set<String> = emptySet()
     override val playableMaps: List<String> = emptyList()
 
@@ -63,10 +72,10 @@ internal object ComingSoonGameFactory : GameFactory {
     override fun restore(saved: SavedGame): GameSession = error("Play against the computer is not in this build yet")
 }
 
-/** Never reached while no hero is playable; answers with the first listed (always legal) option. */
-internal object FirstOptionAi : AiPlayer {
+/** Stand-in until the AI levels are bound: a seeded random legal option. */
+internal class RandomLegalAi(private val random: Random = Random(0)) : AiPlayer {
     override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice =
-        decision.options.first()
+        decision.options.random(random)
 }
 
 /** A coach with nothing to say. */
