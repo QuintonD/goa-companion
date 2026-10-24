@@ -27,7 +27,7 @@ object P02WorthTwoCounters : Puzzle() {
         id = "p02",
         number = 2,
         title = "Worth Two Counters",
-        difficulty = 2,
+        difficulty = 3,
         theme = "Life counters by tier, Block cards",
         heroes = listOf("arien", "garrus", "wasp", "brogan"),
         goal = PuzzleGoal.WinGame("Win the game this turn."),

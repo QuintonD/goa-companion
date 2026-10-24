@@ -166,7 +166,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** A defeated hero's team spends Life counters equal to that hero's lowest card tier, not one per hero (p.13): level 4 means tier II, so Wasp costs Red 2 counters while Brogan (level 3, tier I) costs 1. A Block card defends only when its condition is met; otherwise the defender is defeated (p.14). Chase's movement needs at least one card in your discard (card text), which Garrus has.
 - **Rules:** p.13 Attacking a hero, When a hero is defeated, level/tier table; p.14 Block.
 - **Risk:** none.
-- **Encoded as p02 (hardened 2026-10-24, changed):** the reviewers found Arien level 1 in round 4,
+- **Encoded as p02 (hardened 2026-10-24, changed; difficulty 3):** the reviewers found Arien level 1 in round 4,
   Arien's resolved Liquid Leap (4) before Garrus (9), and one obvious choice. Now round 4, **turn 3**
   (so Wasp can hold two cards), two player seats. Arien (Blue, L2, item `arien-red-2b`) at (2,−2) has
   played Noble Blade (11) and acts next; Garrus (L2, Chase 8 + 1 initiative item `garrus-red-2b`, one
@@ -514,6 +514,18 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.7 initiative; p.11 Movement in the card text; p.18 Obstacle; p.19 Terrain, Straight line.
 - **Risk:** none.
 - **Encoded as p16 (changed, 2026-10-24):** as written the terrain-blocked Wasp is simply not offered as a target, so the only real pull was Dodger (no choice). Wasp now stands on Bain's clear SW line at (−2,−2) holding `wasp-blue-1` (resolved gold, silver, red-1); pulled, she lands on (−1,−3) next to Xargatha. A Red melee at (−1,−5) (next to Xargatha) makes Threatening Slash 6 against Wasp, but a Red melee at (0,−3) guards her landing space: 5 + 1 = 6 holds. That is the tempting wrong try; pulling Dodger (no cards) to (0,−5) and slashing her wins, as in the concept. Xargatha resolved gold, silver, blue-1 (hand green-1); Dodger's discard blue-1.
+- **Hardened p16 (2026-10-24, changed; difficulty 2):** the reviewers found level 1 heroes in round 4,
+  Red's three spent Life counters with no kill coins for Blue, and an intro giving away Dodger's empty
+  hand. Now round 3, turn 4, all level 2 (Bain and Xargatha hold 2 unspent coins), and no hero is
+  cardless: the pull must **raise Threatening Slash's bonus without raising Wasp's guard**. Bain (Blue,
+  Get over here! 13) at (0,0); Xargatha (Blue, Slash 7, Attack item `xargatha-blue-2b`) at (0,1); Wasp
+  (Red, Lift Up, Defense item) at (0,2), already beside Xargatha; Red melee (1,1) is beside both: 5 + 1
+  + 1 = 7 against 5 + 1 + 1 = 7, a tie that holds. Dodger (Red, Shield of Decay 10 played, hand Dread
+  Razor) at (2,0) on Bain's east line; Red melee (−2,2), (−2,0), (0,−2) on his other lines; Red heavy
+  (−1,−3). Answer: pull the Red melee (−2,2), which lands at (−1,1), beside Xargatha but not Wasp: 8
+  against 7. Wrong tries refuted: pulling Dodger to (1,0) beside Xargatha (she acts at 10 and walks
+  away before the Slash at 7), pulling the minion (0,−2) (it lands beside Bain only). Solver: 1 of 5
+  pull targets, then 1 of 3 Slash targets.
 
 ### C17 — Into the Wall
 - **Theme:** pushes stopped by obstacles force a discard; stripping the last card. **Difficulty:** 1. **Heroes:** Wasp, Xargatha; Arien (Brogan idle).
