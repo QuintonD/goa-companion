@@ -132,7 +132,7 @@ optional, straightLine, ignoreObstacles, stepwise, endFilter)`, `moveOther(id, �
 - **Cards** — `moveCard(hero, card, zone, slot, keepEffects)`, `hand`, `discardPile`,
   `resolvedCards` (slot order: last = rightmost), `unresolvedCard`, `cardTypeOf`, `cardColorOf`,
   `isAttackCard`, `isSkillCard`, `isDefenseCard`, `lowestTier`, `discard`, `forceDiscard`,
-  `retrieve`, `swapCards(hero, a, b, keepEffects)`, `turnFaceDown`, `gainCoins`, `takeCoins`.
+  `retrieve`, `swapCards(hero, a, b, keepEffects, text)` (each card keeps its own facedown, RULINGS 51; the log hides hidden cards), `turnFaceDown`, `gainCoins`, `takeCoins`.
 - **Units** — `defeatMinion(id, by)`, `removeMinion(id)`, `defeatHero(id, by)`, `spendLife(team, n)`,
   `regainLife(team, n, max)`, `canRespawnMinion(team, type, lane)`, `respawnMinion(...)`,
   `nearestEmptyIn`, `returnMinions`, `respawnSpaces`, `pushLane`, `checkPush`.

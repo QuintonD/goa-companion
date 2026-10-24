@@ -159,10 +159,15 @@ fun Game.retrieve(heroId: String, cardId: String) {
 }
 
 /**
- * p.10 "Swap a Card": "all their card states are swapped" (zone, slot, played, facedown).
- * Both cards' Active effects are cancelled unless [keepEffects].
+ * p.10 "Swap a Card": "all their card states are swapped" (zone, slot, played: in hand, played,
+ * unresolved, resolved, discarded). Both cards' Active effects are cancelled unless [keepEffects].
+ * Facedown is not one of those states (p.10 "Facedown": a property of a resolved or discarded card, lost
+ * when it "changes state to in hand"), so each card keeps its own: a facedown card swapped between two
+ * Turn slots stays facedown, and a card entering the hand or play is faceup (RULINGS 51). The log never
+ * names a card that is hidden both before and after (hand, deck, facedown: events are public, p.4);
+ * [text] replaces the log line.
  */
-fun Game.swapCards(heroId: String, a: String, b: String, keepEffects: Boolean = false) {
+fun Game.swapCards(heroId: String, a: String, b: String, keepEffects: Boolean = false, text: String? = null) {
     val h = hero(heroId)
     val ca = h.card(a)!!
     val cb = h.card(b)!!
@@ -170,26 +175,32 @@ fun Game.swapCards(heroId: String, a: String, b: String, keepEffects: Boolean = 
         cancelEffectsOf(heroId, a)
         cancelEffectsOf(heroId, b)
     }
+    val hiddenBefore = listOf(ca, cb).associate { it.id to isHiddenCard(it) }
     val z = ca.zone
     val s = ca.slot
     val p = ca.played
-    val f = ca.faceDown
     val t = ca.tag
     ca.zone = cb.zone
     ca.slot = cb.slot
     ca.played = cb.played
-    ca.faceDown = cb.faceDown
     ca.tag = cb.tag
     cb.zone = z
     cb.slot = s
     cb.played = p
-    cb.faceDown = f
     cb.tag = t
+    for (c in listOf(ca, cb)) {
+        if (c.zone != Zone.RESOLVED && c.zone != Zone.DISCARD) c.faceDown = false
+    }
     ca.stamp = stamp()
     cb.stamp = stamp()
     touch()
-    emit(GameEvent.CardsChanged(heroId, "${heroName(heroId)} swaps ${cardName(a)} and ${cardName(b)}."))
+    fun named(c: CardInst): String =
+        if (hiddenBefore.getValue(c.id) && isHiddenCard(c)) "a hidden card" else cardName(c.id)
+    emit(GameEvent.CardsChanged(heroId, text ?: "${heroName(heroId)} swaps ${named(ca)} and ${named(cb)}."))
 }
+
+/** A card other seats cannot see (p.4: hands and decks; p.10: facedown cards). */
+private fun isHiddenCard(c: CardInst): Boolean = c.faceDown || c.zone == Zone.HAND || c.zone == Zone.DECK
 
 /** Turn a resolved or discarded card facedown (p.10): it is hidden and its Active effect is cancelled. */
 fun Game.turnFaceDown(heroId: String, cardId: String) {

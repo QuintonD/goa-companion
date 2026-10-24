@@ -182,6 +182,20 @@ Each ruling names the code and the test that pins it.
 50. **Brogan's Onslaught:** the move into the space is mandatory when it is empty (FAQ), and does
     not happen when the attack did not connect.
 
+## Card swaps
+
+51. **Facedown is not a swapped card state (p.10).** "When two cards are swapped, all their card states
+    are swapped": the card states p.10 lists are in hand, played, unresolved, resolved and discarded.
+    Facedown is described apart ("If a resolved or discarded card is facedown, it loses its type, color and
+    actions, until it changes state to in hand or becomes faceup"), so each card keeps its own face: two
+    resolved cards swapped by NebKher's Diabolical Laughter change Turn slots and a facedown one stays
+    facedown (before, it turned faceup and the other card facedown); a card entering the hand or play is
+    faceup (Snorri's Ancestral Boon, Emmitt's Time Warp; as rulings/takahide.md 12). Card text that says
+    otherwise still applies (Takahide's Bushido: "place the new card facedown"). The log names a card only
+    when it is visible before or after the swap. `Game.swapCards`; tests `NebkherTest` "Diabolical
+    Laughter - a facedown resolved card stays facedown …", `SnorriTest` "Ancestral Boon - axe, a facedown
+    resolved card …".
+
 ## Disagreements with goa2-backend (source 7, cross-check only)
 
 | Topic | goa2-backend (`deterministic_rules.md`, `scripts/`) | Engine (from the rulebook) |
