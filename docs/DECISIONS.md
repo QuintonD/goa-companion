@@ -736,3 +736,18 @@ and never answers. (6) Map taps select and a Confirm button answers; buttons (ac
 yes/decline, numbers) answer at once. (7) Defend marks each card "Holds" when its previewed total is
 at least the Attack (p.14). (8) Boards hosts Play and Puzzles, so it no longer jumps to New board
 when there are no boards (PRODUCT §8).
+**Addendum (2026-10-24, puzzle UI):** (1) `PuzzleBook` is bound in `PlayEngineModule` on the same
+`GameEngine` as play and reached through a `Provider` on `Dispatchers.Default`; the list shows
+`PuzzleBook.puzzles` as it is, so puzzles appear as their heroes become playable. (2) The other
+side's replies come back inside one `PuzzleSession.answer`; to show them paced, the screen answers a
+`game.fork()` with the player's choice first (the board just after the player's own move), then
+narrates the remaining events line by line (0.7 s each, at most 3.5 s) before showing the session's
+board. (3) The miss reason is derived from the events that followed (an enemy's successful
+`Defended`, a player hero `Defeated`), else from the goal; the encoded wrong tries' labels are not in
+the contract. (4) Nudges: one preference (`AppSettings.puzzleNudges`, on by default, also backed up
+as a setting); with it on, the next nudge comes with a miss or after 90 s without progress on the
+current question; the last nudge outlines `bestChoice()` for the current question. (5) Progress is
+one JSON document in `datastore/puzzle_progress` (solved, solvedAt, tries, most nudges, solution
+seen) keyed by `PuzzleInfo.id`; local only, not synced, not in the backup file. A try is counted at
+its first move; Try again and Restart start a new one. (6) The replay drives a fresh session with
+`bestChoice()` at every player question, so it shows a winning line even when the key has several.

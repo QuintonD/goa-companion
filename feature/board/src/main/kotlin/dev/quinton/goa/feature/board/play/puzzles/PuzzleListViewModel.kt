@@ -54,7 +54,8 @@ sealed interface PuzzleListUiState {
 
     /**
      * [next]: the first unsolved puzzle in book order (Continue), null once all are solved.
-     * [rows]: the puzzles that pass [filters]; [difficulties] and [themes] are the choices there are.
+     * [rows]: the puzzles that pass [filters]; [difficulties] and [themes] (those shared by two or
+     * more puzzles) are the choices there are.
      */
     @Immutable
     data class Ready(
@@ -124,7 +125,8 @@ class PuzzleListViewModel internal constructor(
             total = rows.size,
             filters = filters,
             difficulties = list.map { it.difficulty }.distinct().sorted(),
-            themes = list.map { it.theme }.distinct().sorted(),
+            // Only themes shared by two or more puzzles make a useful filter.
+            themes = list.groupingBy { it.theme }.eachCount().filterValues { it > 1 }.keys.sorted(),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), PuzzleListUiState.Loading)
 

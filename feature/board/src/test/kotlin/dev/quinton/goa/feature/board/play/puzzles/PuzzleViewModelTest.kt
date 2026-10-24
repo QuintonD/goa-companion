@@ -269,25 +269,30 @@ class PuzzleViewModelTest {
 
     @Test
     fun `the other side's replies are narrated before the board catches up`() = runTest(dispatcher) {
-        val id = first()
-        val vm = viewModel(id)
-        val moves = puzzleFile(id).solution
-        var narrated = false
-        moves.forEach { move ->
-            vm.onAction(PuzzleAction.Answer(vm.ui().table.choiceOf(move)))
-            runCurrent()
-            advanceTimeBy(1)
-            runCurrent()
-            if (vm.ui().phase == PuzzlePhase.REPLYING) {
-                narrated = true
-                assertThat(vm.ui().replying).isNotNull()
-                assertThat(vm.ui().table.asking).isFalse()
+        assumeTrue(book.puzzles.isNotEmpty())
+        var narrated = 0
+        // Every wrong try and every solution: the other side's replies show line by line, then the board.
+        book.puzzles.forEach { info ->
+            val file = puzzleFile(info.id)
+            (file.wrongTries.map { it.moves } + listOf(file.solution)).forEach { moves ->
+                val vm = viewModel(info.id)
+                moves.forEach { move ->
+                    vm.onAction(PuzzleAction.Answer(vm.ui().table.choiceOf(move)))
+                    runCurrent()
+                    advanceTimeBy(PuzzleTiming().replyLineMs + 1)
+                    runCurrent()
+                    if (vm.ui().phase == PuzzlePhase.REPLYING) {
+                        narrated++
+                        assertThat(vm.ui().replying!!.lines).isNotEmpty()
+                        assertThat(vm.ui().table.asking).isFalse()
+                        assertThat(vm.ui().table.decision).isNull()
+                    }
+                    settle()
+                    assertThat(vm.ui().phase).isNotEqualTo(PuzzlePhase.REPLYING)
+                }
             }
-            settle()
         }
-        assertThat(vm.ui().phase).isEqualTo(PuzzlePhase.SOLVED)
-        // Some line of the first puzzle has replies (an attack's consequences at the least).
-        assertThat(narrated || vm.ui().recent.isNotEmpty()).isTrue()
+        assertThat(narrated).isGreaterThan(0)
     }
 
     @Test

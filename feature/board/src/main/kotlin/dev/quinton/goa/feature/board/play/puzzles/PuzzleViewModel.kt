@@ -35,7 +35,6 @@ import dev.quinton.goa.feature.board.play.game.PlayAnnouncement
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.choiceFor
-import dev.quinton.goa.feature.board.play.table.kindTitle
 import dev.quinton.goa.feature.board.play.table.logLines
 import javax.inject.Provider
 import kotlinx.coroutines.CancellationException
@@ -616,7 +615,7 @@ class PuzzleViewModel internal constructor(
                 count = r.steps.size,
                 title = when {
                     step.decision != null && step.choice != null ->
-                        "${heroes.hero(step.decision.seat).name} · ${kindTitle(step.decision.kind)}: " +
+                        "${heroes.hero(step.decision.seat).name} · ${step.decision.prompt}: " +
                             table.label(step.choice)
 
                     r.steps.lastOrNull() == step && r.steps.size > 1 -> "Goal met: ${puzzle.goal.text}"

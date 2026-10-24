@@ -40,11 +40,13 @@ core/game/               # JVM: the rules engine (ADR-035): GameApi.kt contract,
                          #   core/game/ENGINE.md, EFFECTS.md, RULINGS.md
 core/data/               # repositories; catalog and board-map loaders; JSON/Room <-> model; export/import;
                          #   game/ (ADR-035): the game in progress (DataStoreGameSaveRepository) and
-                         #   PlayEngineModule, the one place GameFactory, the AI per level and the Coach are bound
+                         #   PlayEngineModule, the one place GameFactory, the AI per level, the Coach and the
+                         #   PuzzleBook are bound; puzzle/ (DataStorePuzzleProgressRepository)
 core/database/           # Room 3 DB (schema v4: players, matches, drafts, trivia_rounds, deletions,
                          #   player_merges), DAOs, entities, migrations, schemas/
 core/datastore/          # settings, persisted timer state, trivia progress, boards (datastore/boards),
-                         #   the game against the computer in progress (datastore/games, one document)
+                         #   the game against the computer in progress (datastore/games, one document),
+                         #   puzzle progress (datastore/puzzle_progress, one document; local only)
 core/designsystem/       # theme, tokens, components, icons, sigils; cardtext/ (CardTextView, GameIcons:
                          #   card text with inline game icons, shared by the catalog and the board)
 core/testing/            # fakes, fixtures, test rules
@@ -68,7 +70,9 @@ feature/board/           # board sandbox (ADR-033): Boards list, New board, Boar
                          #   reusable game table (GameMapView, DecisionPanel, hero status, log) over a TableUi;
                          #   setup/ = New game; game/ = GameViewModel (drives the GameSession on one engine
                          #   thread: the person's answers, paced AI turns, take back, Coach, autosave), game over.
-                         #   Builds against core:game's GameApi.kt only
+                         #   puzzles/ = the puzzle list and a puzzle (PuzzleViewModel drives a PuzzleSession on one
+                         #   engine thread: answers, narrated replies, miss/undo/restart, nudges, the replay).
+                         #   Builds against core:game's GameApi.kt only (tests use the real EnginePuzzleBook)
 feature/sync/            # group sync (ADR-025): Group screen, sync sheet, Who are you, sync-file import;
                          #   NearbySyncTransport, invite QR + scanner, FileProvider, permissions
 tools/catalog-import/    # JVM CLI (reuses core:model): sources.lock.json, overrides.json,
@@ -229,6 +233,7 @@ the draft setup for "Draft again".
 | core:database | Room in-memory tests; migration tests for every schema bump (v1 → v2: `matches.tie_breaker`; v2 → v3: `updated_at` backfill, `deletions`, `player_merges`; v3 → v4: `trivia_rounds`) |
 | Group sync | `core:domain`: merge properties (commutative, associative, idempotent, convergence, identical ratings), examples (ties, tombstones, merge chains and cycles, unknown heroes), crypto/codec (RFC 5869 vector, tamper, other group), protocol over the in-memory transport (host + 3, drops mid-upload and mid-download, wrong key, relay, Nearby unavailable). `core:data`: real Room phones syncing (game night, deletions, duplicates, trivia rounds), stamping, backup v5. `feature:sync`: VM tests, screenshots. Real Nearby: two physical phones only |
 | ViewModels | Turbine on `uiState` with fakes from `core:testing` |
+| Puzzles | `PuzzleViewModelTest` on the real `EnginePuzzleBook` (each listed puzzle solved with its stored line through the table's model, wrong tries missed and tried again, nudge timing on virtual time, nudges off, replay, progress), the list VM; `PuzzleScreenshotTest` drives the real ViewModel on a test scheduler before drawing; `DataStorePuzzleProgressRepositoryTest` |
 | Play UI | `feature:board` test sources only: `FakeGameSession`, a scripted 2v2 on Forgotten Island that asks every `DecisionKind` (never shipped); `GameViewModelTest` (answers, AI pacing on a test dispatcher, take back, Coach nudge shown/skipped, save/restore, corrupt and incompatible saves, game over, rematch), `NewGameViewModelTest`; `PlayScreenshotTest` (the table in every decision kind, New game, game over) |
 | UI | Roborazzi (`recordRoborazziDebug` / `verifyRoborazziDebug`), light/dark × font scale 1.0/2.0 |
 | End to end | `app/src/androidTest` (`connectedDebugAndroidTest`): real Hilt graph and bundled catalog, a scripted game night (`GameNight`: House draft → setup → timer round → "Who won?" → rating changes → ratings/meta), a rematch night (`RematchTimerFlowTest`: logged match → Rematch "Same seats" → setup → timer with the rules sheet, rules screen and a notification tap back to the Timer tab → second result), catalog, players, double pilot, settings, card trivia and the trivia Challenge → leaderboard (`TriviaChallengeFlowTest`), the board sandbox (`BoardFlowTest`: House draft → Try on the board → move a hero to the space named 1 space from it → Boards), and ATF accessibility checks on every main screen. Runs through the AndroidX Test Orchestrator with `clearPackageData`, so each test starts from a fresh install |

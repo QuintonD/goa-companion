@@ -368,7 +368,8 @@ opponents (and teammates) at four levels. One phone, one human team.
   (New game says so). A save that can't be read, or that the engine can no longer rebuild, is
   offered for deletion, never a crash. "End this game" deletes it.
 - **Until heroes are playable** the Boards entry and New game say play is coming; heroes not yet
-  playable show in New game's grid, veiled as "Later". Puzzles show as coming soon.
+  playable show in New game's grid, veiled as "Later". Puzzles show as coming soon until a
+  puzzle's heroes are all playable; then Boards' Puzzles entry says "N of M solved".
 - **Done when:** every rule above has a page-referenced test; random full games over every
   playable hero keep the invariants (one obstacle per space, cards conserved, deterministic,
   save/restore and fork identical); each level beats the one below it over a seeded tournament;
@@ -378,26 +379,41 @@ opponents (and teammates) at four levels. One phone, one human team.
 ### 10. Puzzles (ADR-035)
 Fifty difficult puzzles in the style of chess tactics: a position, a goal ("Defeat Brogan this
 turn", "Push the lane before the round ends", "Survive this turn"), one way (or a few) to make it.
-- **List:** numbered, with title, theme (initiative, defense math, minion modifiers, pushing the
-  lane, Fast Travel, Active effects…), difficulty (hard / harder / hardest), heroes, and solved /
-  tried / hints used. Next unsolved first.
-- **Solving:** the game table with the goal banner; you answer your heroes' questions, the other
-  side answers at once with its best reply. A move that loses the forced line says so gently
-  ("Not quite — Brogan can still defend with Bulwark") with Try again from before it, or Restart.
-  Any winning line counts, not just the stored one.
-- **Nudges** (on by default; switch in the puzzle and in Settings): when you're stuck (a miss, or a
-  while without progress) a gentle nudge appears; asking for more gives a stronger one; the last
-  names the first move. Off = no nudges unless asked from the menu.
-- **Explanation at the end** (solved, or after "Show solution"): why it works in a few sentences,
-  with rulebook pages, and the solution replayed step by step on the board.
-- Progress is on this phone only (not synced, not in the backup file).
+- **List** (from Boards → Puzzles; only puzzles whose heroes are all playable): a Continue card on
+  top with the first unsolved one and "N of M solved" (all solved: a seal instead); difficulty filter
+  chips, and theme chips for themes two or more puzzles share; then every puzzle by number with
+  title, theme, difficulty (three hexes and the word: hard / harder / hardest), heroes, and Solved /
+  Tried N times / Not tried yet, nudges used, "Solution seen". Reset progress in the menu, confirmed.
+- **Solving:** the game table with the goal banner floating under the hero strip ("Win the game this
+  turn." · "You play Wasp and Xargatha"); in the panel the number, difficulty, title and theme, "What
+  you know" (the intro: what the board doesn't show; it folds after the first move), then the
+  question. Every hero's hand is open (tap a hero). The other side answers at once with its best
+  reply; its replies are narrated line by line ("Arien answers") over the board as it was after your
+  move, then the board catches up. A move that loses the forced line says so gently, with the reason
+  taken from what followed where it can ("Not quite — that lets Arien defend with Aspiring
+  Duelist."; otherwise what the goal can no longer reach), and offers Try again from before that
+  move, Restart and Show solution. Tries are counted. Any winning line counts, not just the stored one.
+- **Nudges** (on by default; switch in the puzzle's menu and in Settings → Learning → Puzzle
+  nudges, one preference): when you're stuck (a miss, or 90 s without progress on the question) a
+  gentle nudge card appears in the panel (not a dialog; close it with ×); "Another nudge" gives the
+  next, stronger one; the last names the first move and outlines the solver's move for the current
+  question in bronze on the board ("Outlined in bronze: …"). A correct move clears the card. Off =
+  no nudges unless asked from the menu ("Nudge me" / "Another nudge").
+- **Explanation at the end** (solved, or after "Show solution", offered after a miss and in the
+  menu): solved shows a seal, the title, "First try · no nudges" (or tries and nudges), then why it
+  works with its rulebook pages, and Replay the solution, Next puzzle, All puzzles, Play it again.
+  The replay drives a fresh copy of the puzzle with the solver's choice: Back / Next through the
+  steps, each the position before a move with the move outlined (a card's image beside its name) and
+  the log of what happened since; the last step is the goal met. Back to the puzzle leaves it as it was.
+- Progress (solved and when, tries, most nudges in a try, solution seen) is on this phone only
+  (`datastore/puzzle_progress`; not synced, not in the backup file).
 - **Done when:** a solver proves every puzzle against best replies within its time budget, the
   stored solution and every nudge agree with it, an independent review checked each puzzle's
   rules, and the list, puzzle, miss, nudge and explanation screens have screenshots.
 
 ### Settings
 Theme (dark default / light / system), owned products (default: all), timer defaults, running
-timer view (step by step / whole round), cue sounds and haptics, Elo constants (advanced; shared
+timer view (step by step / whole round), cue sounds and haptics, puzzle nudges (on by default), Elo constants (advanced; shared
 with the sync group), Group sync, export/import, About/credits.
 
 ## Non-goals (v1)
