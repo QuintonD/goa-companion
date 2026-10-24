@@ -15,10 +15,12 @@ import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.GameFactory
 import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.GameSetup
+import dev.quinton.goa.core.game.PuzzleBook
 import dev.quinton.goa.core.game.SavedGame
 import dev.quinton.goa.core.game.ai.AiCoach
 import dev.quinton.goa.core.game.ai.AiPlayers as GameAiPlayers
 import dev.quinton.goa.core.game.engine.GameEngine
+import dev.quinton.goa.core.game.puzzles.EnginePuzzleBook
 import javax.inject.Singleton
 import kotlin.random.Random
 import kotlinx.coroutines.flow.first
@@ -30,8 +32,8 @@ fun interface AiPlayers {
 }
 
 /**
- * The play engine's three entry points (ADR-035): the game factory, the computer players and the
- * coach. **This is the one place to swap in the real engine**, e.g.
+ * The play engine's entry points (ADR-035): the game factory, the computer players, the coach and
+ * the puzzle book. **This is the one place to swap in the real engine**, e.g.
  *
  * ```
  * @Provides @Singleton
@@ -63,6 +65,18 @@ internal object PlayEngineModule {
     @Provides
     @Singleton
     fun coach(factory: GameFactory): Coach = AiCoach(factory)
+
+    /**
+     * The bundled puzzles (PRODUCT §10) on the same engine as play (a fresh one if the factory is
+     * not the engine): a puzzle is listed once every hero it seats is playable. Screens get it
+     * through a `Provider` on `Dispatchers.Default`, as the factory.
+     */
+    @Provides
+    @Singleton
+    fun puzzles(factory: GameFactory, catalog: CatalogRepository, maps: BoardMapRepository): PuzzleBook =
+        EnginePuzzleBook(
+            factory as? GameEngine ?: runBlocking { GameEngine(catalog.catalog.first(), maps.maps.first()) },
+        )
 
     private const val AI_SEED = 0x60A_2026L
 }

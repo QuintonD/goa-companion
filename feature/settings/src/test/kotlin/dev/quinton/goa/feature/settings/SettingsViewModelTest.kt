@@ -71,6 +71,16 @@ class SettingsViewModelTest {
         assertThat(settings.state.value.timerLayout).isEqualTo(TimerLayout.ROUND)
     }
 
+    @Test fun puzzleNudgesAreOnByDefaultAndSaved() = runTest {
+        val vm = SettingsViewModel(settings, catalog)
+        vm.uiState.test {
+            assertThat(ready().puzzleNudges).isTrue()
+            vm.onAction(SettingsAction.SetPuzzleNudges(false))
+            assertThat(ready().puzzleNudges).isFalse()
+        }
+        assertThat(settings.state.value.puzzleNudges).isFalse()
+    }
+
     @Test fun deselectingFromAllStoresTheRest() = runTest {
         val vm = SettingsViewModel(settings, catalog)
         vm.uiState.test {

@@ -182,6 +182,23 @@ Game over leads with "You won" / "The computer won" in a card bordered in the wi
 rulebook reason, each hero's results, then the coach's turning points by round and turn. New game
 reuses New board's picker; heroes not yet playable are veiled and marked "Later".
 
+### Puzzles (ADR-035, PRODUCT §10)
+The puzzle screen is the game table (above) plus: the **goal banner** floating under the hero strip
+(surface at 94 %, bronze border, flag icon, goal in titleSmall, "You play …" under it); the panel opens
+with "PUZZLE n OF m", the **difficulty mark** (three small hexes, filled up to the level, and the
+word Hard / Harder / Hardest: shape and word, never colour alone), the title in Cinzel and the theme,
+then "What you know" (surfaceVariant, folds to one line). A **nudge** is a secondary-container card
+like the Coach's ("NUDGE 2 OF 3", ×, Another nudge); the last nudge's move is a **dashed bronze ring**
+around its space on the map (apart from the teal options and the white selection; TalkBack: "hint").
+The other side's replies appear line by line under "<HERO> ANSWERS" with a progress bar. A **miss** is
+a quiet surfaceVariant card ("Not quite" in Cinzel, the reason, filled "Try again from before that
+move", outlined Restart, text Show solution); never error red. **Solved** is a primary-container card
+with a 2 dp bronze border and the original **seal** (a bronze hex with a tide-teal tick and six
+points, drawn in code, opening out once with emphasised deceleration), then WHY IT WORKS and RULES.
+The **replay** panel has Back / Next arrows around "SOLUTION · STEP n OF m", the move in titleMedium
+(its card beside it), WHAT HAPPENED, and the explanation below. The list's numbers are Cinzel in a
+bronze ring (filled when solved); Continue is a secondary-container card (all solved: the seal).
+
 ## Asset policy
 Two kinds of asset (ADR-006, ADR-034):
 

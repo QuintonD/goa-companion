@@ -11,9 +11,11 @@ import dev.quinton.goa.core.data.DraftRecordRepository
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.GameSaveRepository
 import dev.quinton.goa.core.data.MatchRepository
+import dev.quinton.goa.core.data.PuzzleProgressRepository
 import dev.quinton.goa.core.data.game.StoredGame
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.GameFactory
+import dev.quinton.goa.core.game.PuzzleBook
 import dev.quinton.goa.core.model.board.SavedBoard
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.Team
@@ -69,9 +71,16 @@ data class ResumeUi(
     val unreadable: Boolean = false,
 )
 
-/** Play against the computer (ADR-035): offered once heroes are playable; a game in progress to resume. */
+/** The puzzles as the Boards entry shows them: how many of the playable ones are solved. */
 @Immutable
-data class PlayHubUi(val available: Boolean = false, val resume: ResumeUi? = null)
+data class PuzzleHubUi(val solved: Int, val total: Int)
+
+/**
+ * Play against the computer (ADR-035): offered once heroes are playable; a game in progress to
+ * resume. [puzzles]: null while no puzzle is playable (the entry says they are coming).
+ */
+@Immutable
+data class PlayHubUi(val available: Boolean = false, val resume: ResumeUi? = null, val puzzles: PuzzleHubUi? = null)
 
 sealed interface BoardsUiState {
     data object Loading : BoardsUiState
@@ -107,6 +116,8 @@ class BoardsViewModel internal constructor(
     private val restoreScope: CoroutineScope,
     games: GameSaveRepository? = null,
     factory: (suspend () -> GameFactory)? = null,
+    puzzleBook: (suspend () -> PuzzleBook)? = null,
+    puzzleProgress: PuzzleProgressRepository? = null,
 ) : ViewModel() {
     @Inject constructor(
         catalogRepository: CatalogRepository,
@@ -117,6 +128,8 @@ class BoardsViewModel internal constructor(
         clock: EditClock,
         games: GameSaveRepository,
         factory: Provider<GameFactory>,
+        puzzleBook: Provider<PuzzleBook>,
+        puzzleProgress: PuzzleProgressRepository,
     ) : this(
         catalogRepository,
         mapRepository,
@@ -127,6 +140,8 @@ class BoardsViewModel internal constructor(
         CoroutineScope(SupervisorJob() + Dispatchers.Default),
         games,
         { withContext(Dispatchers.Default) { factory.get() } },
+        { withContext(Dispatchers.Default) { puzzleBook.get() } },
+        puzzleProgress,
     )
 
     /** Whether any game can be set up yet: two playable heroes and a playable map. */
@@ -141,10 +156,30 @@ class BoardsViewModel internal constructor(
         emit(engine != null && engine.playableHeroes.size >= 2 && engine.playableMaps.isNotEmpty())
     }
 
+    /** The playable puzzles' ids (empty while none can be played). */
+    private val puzzleIds = flow {
+        val ids = try {
+            puzzleBook?.invoke()?.puzzles?.map { it.id }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        }
+        emit(ids.orEmpty())
+    }
+
+    private val puzzles = combine(
+        puzzleIds,
+        puzzleProgress?.progress?.catch { emit(emptyMap()) } ?: flowOf(emptyMap()),
+    ) { ids, progress ->
+        if (ids.isEmpty()) null else PuzzleHubUi(solved = ids.count { progress[it]?.solved == true }, total = ids.size)
+    }
+
     private val play = combine(
         playable,
         games?.current?.catch { emit(StoredGame.None) } ?: flowOf(StoredGame.None),
-    ) { available, stored -> available to stored }
+        puzzles,
+    ) { available, stored, puzzles -> Triple(available, stored, puzzles) }
 
     private val newId: () -> String = { UUID.randomUUID().toString() }
 
@@ -163,7 +198,7 @@ class BoardsViewModel internal constructor(
         boards,
         latest,
         play,
-    ) { catalog, maps, (boards, unreadable), (drafts, matches), (available, stored) ->
+    ) { catalog, maps, (boards, unreadable), (drafts, matches), (available, stored, puzzles) ->
         val heroes = catalog.boardHeroes()
         BoardsUiState.Ready(
             boards = boards.map { board ->
@@ -181,7 +216,7 @@ class BoardsViewModel internal constructor(
             now = clock.now(),
             latest = lineupSources(drafts, matches, heroes, limit = 1).firstOrNull(),
             unreadable = unreadable,
-            play = PlayHubUi(available = available, resume = resumeOf(stored, heroes)),
+            play = PlayHubUi(available = available, resume = resumeOf(stored, heroes), puzzles = puzzles),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), BoardsUiState.Loading)
 

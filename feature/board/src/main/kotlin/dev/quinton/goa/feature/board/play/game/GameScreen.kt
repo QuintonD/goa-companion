@@ -73,7 +73,6 @@ import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.core.game.CardView
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.board.BoardSheet
@@ -81,7 +80,6 @@ import dev.quinton.goa.feature.board.board.SheetTitle
 import dev.quinton.goa.feature.board.map.MapViewport
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.play.table.CardDetail
-import dev.quinton.goa.feature.board.play.table.CardRow
 import dev.quinton.goa.feature.board.play.table.DecisionPanel
 import dev.quinton.goa.feature.board.play.table.EventLog
 import dev.quinton.goa.feature.board.play.table.GameTable
@@ -90,6 +88,7 @@ import dev.quinton.goa.feature.board.play.table.RecentEvents
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
+import dev.quinton.goa.feature.board.play.table.YourHand
 
 /** The sheets the game opens (hoisted so screenshots can open one). */
 sealed interface PlaySheet {
@@ -564,22 +563,6 @@ private fun RevealLine(table: TableUi, reveal: List<RevealedCard>) {
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-}
-
-/** The person's hand, small; tap a card to read it. */
-@Composable
-private fun YourHand(table: TableUi, onCard: (dev.quinton.goa.core.model.catalog.Card) -> Unit) {
-    table.mine.forEach { heroId ->
-        val hand = table.heroView(heroId)?.hand ?: return@forEach
-        if (hand.isEmpty()) return@forEach
-        Text(
-            if (table.mine.size > 1) "${table.hero(heroId).name.uppercase()}'S HAND" else "YOUR HAND",
-            style = GoaTextStyles.overline,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(top = Spacing.xs),
-        )
-        CardRow(hand.map { CardView(it) }, table, onCard)
-    }
 }
 
 @Composable

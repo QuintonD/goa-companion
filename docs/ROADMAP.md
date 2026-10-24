@@ -109,7 +109,17 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   with turning points and Rematch, autosave and resume from Boards, Boards' Play and Puzzles entries
   — 2026-10-24, `GameViewModelTest`, `NewGameViewModelTest`, `DataStoreGameSaveRepositoryTest`,
   49 play screenshots; sandbox screenshots unchanged. JVM only
-- [ ] Bind the real engine, AI per level and Coach in `core:data` `PlayEngineModule` (placeholders seat no hero)
+- [x] Puzzle screens (`feature/play-puzzles-ui`, PRODUCT §10): the list (Continue, N of M solved,
+  difficulty/theme filters, progress, Reset), the puzzle on the game table (goal banner, intro, open
+  hands, narrated replies, gentle miss with Try again / Restart / Show solution, nudges after a miss
+  or 90 s idle or when asked, the last one outlining the move, seal and explanation, step-by-step
+  replay), Settings → Puzzle nudges, local progress in `datastore/puzzle_progress`, Boards' Puzzles
+  entry with "N of M solved"; `PuzzleBook` bound in `PlayEngineModule` on the play engine — 2026-10-24,
+  `PuzzleViewModelTest` on the real `EnginePuzzleBook` (every listed puzzle solved with its stored
+  line, every wrong try missed and narrated), `DataStorePuzzleProgressRepositoryTest`, 25 puzzle
+  screenshots; play and sandbox screenshots unchanged. JVM only
+- [ ] Puzzles hands-on on the S25 Ultra (TalkBack on the narrated replies and the nudge card)
+- [ ] Bind the AI per level and the Coach in `core:data` `PlayEngineModule`
 - [ ] End-to-end test that plays a game to its end (needs the engine bound)
 - [ ] Hands-on at the table and TalkBack on the S25 Ultra
 

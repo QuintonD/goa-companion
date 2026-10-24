@@ -1005,7 +1005,7 @@ class FakeGameFactory(
     override val playableHeroes: Set<String> = setOf("arien", "brogan", "wasp", "tigerclaw"),
     var failRestore: Boolean = false,
 ) : GameFactory {
-    override val engineVersion: Int = 1
+    override val engineVersion: Int = FAKE_ENGINE_VERSION
     override val playableMaps: List<String> = maps.filter { it.verified }.map { it.id }
     val created = mutableListOf<FakeGameSession>()
 

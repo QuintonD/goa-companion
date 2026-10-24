@@ -34,6 +34,7 @@ sealed interface SettingsUiState {
         val hapticsEnabled: Boolean,
         val soundsEnabled: Boolean,
         val timerLayout: TimerLayout = TimerLayout.STEPS,
+        val puzzleNudges: Boolean = true,
     ) : SettingsUiState {
         val ownedCount: Int get() = products.count { it.owned }
     }
@@ -51,6 +52,8 @@ sealed interface SettingsAction {
     data class SetSounds(val enabled: Boolean) : SettingsAction
 
     data class SetTimerLayout(val layout: TimerLayout) : SettingsAction
+
+    data class SetPuzzleNudges(val enabled: Boolean) : SettingsAction
 }
 
 @HiltViewModel
@@ -67,10 +70,19 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             when (action) {
                 is SettingsAction.SetTheme -> settingsRepository.update { it.copy(theme = action.theme) }
+
                 is SettingsAction.SetHaptics -> settingsRepository.update { it.copy(hapticsEnabled = action.enabled) }
+
                 is SettingsAction.SetSounds -> settingsRepository.update { it.copy(soundsEnabled = action.enabled) }
+
                 is SettingsAction.SetTimerLayout -> settingsRepository.update { it.copy(timerLayout = action.layout) }
+
+                is SettingsAction.SetPuzzleNudges -> settingsRepository.update {
+                    it.copy(puzzleNudges = action.enabled)
+                }
+
                 is SettingsAction.SetOwnsEverything -> setOwnsEverything(action.ownsEverything)
+
                 is SettingsAction.ToggleProduct -> toggleProduct(action.productId)
             }
         }
@@ -125,6 +137,7 @@ class SettingsViewModel @Inject constructor(
             hapticsEnabled = s.hapticsEnabled,
             soundsEnabled = s.soundsEnabled,
             timerLayout = s.timerLayout,
+            puzzleNudges = s.puzzleNudges,
         )
     }
 }

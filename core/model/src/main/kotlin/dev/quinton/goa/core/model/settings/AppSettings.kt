@@ -25,4 +25,6 @@ data class AppSettings(
     /** Heroes tab shows the compact list instead of the portrait grid. */
     val catalogListView: Boolean = false,
     val timerLayout: TimerLayout = TimerLayout.STEPS,
+    /** Puzzles nudge when the player is stuck (after a miss, or a while without progress); off = only when asked. */
+    val puzzleNudges: Boolean = true,
 )

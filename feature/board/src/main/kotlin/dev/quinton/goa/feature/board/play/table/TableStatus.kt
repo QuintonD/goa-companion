@@ -314,7 +314,7 @@ private fun Stat(icon: ImageVector?, text: String) {
 /**
  * One hero in full (open information, p.4): level, coins, cards in hand, items with the stat each
  * raises, markers, Active effects, the card played this turn, the resolved Turn slots and the
- * discard. Its own hand when it is the person's hero. Tap a card to read it.
+ * discard. Its own hand when it is the person's hero (any hero's in a puzzle). Tap a card to read it.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -407,6 +407,10 @@ internal fun HeroDetail(table: TableUi, heroId: String, onCard: (Card) -> Unit, 
         if (hand != null && heroId in table.mine) {
             Section("Your hand")
             CardRow(hand.map { CardView(it) }, table, onCard)
+        } else if (hand != null && hand.isNotEmpty()) {
+            // Only a puzzle shows another hero's hand: its hands are open information.
+            Section("In hand · open in this puzzle")
+            CardRow(hand.map { CardView(it) }, table, onCard)
         }
         Spacer(Modifier.size(Spacing.md))
     }
@@ -428,6 +432,22 @@ private fun Section(title: String) {
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.semantics { heading() },
     )
+}
+
+/** The person's hand, small (one row per hero they control); tap a card to read it. */
+@Composable
+fun YourHand(table: TableUi, onCard: (Card) -> Unit) {
+    table.mine.forEach { heroId ->
+        val hand = table.heroView(heroId)?.hand ?: return@forEach
+        if (hand.isEmpty()) return@forEach
+        Text(
+            if (table.mine.size > 1) "${table.hero(heroId).name.uppercase()}'S HAND" else "YOUR HAND",
+            style = GoaTextStyles.overline,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(top = Spacing.xs),
+        )
+        CardRow(hand.map { CardView(it) }, table, onCard)
+    }
 }
 
 /** Small cards in a row; a facedown one shows its back. Tap a face-up one to read it. */

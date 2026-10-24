@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Leaderboard
 import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material.icons.outlined.Timer
@@ -179,6 +180,23 @@ private fun SettingsList(
                 )
                 Spacer(Modifier.size(Spacing.md))
                 ChoiceSelector(TimerLayoutOptions, state.timerLayout) { onAction(SettingsAction.SetTimerLayout(it)) }
+            }
+        }
+
+        item { SectionHeader("Learning") }
+        item {
+            GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
+                SwitchRow(
+                    icon = Icons.Outlined.Lightbulb,
+                    title = "Puzzle nudges",
+                    subtitle = if (state.puzzleNudges) {
+                        "A gentle nudge when you're stuck on a puzzle"
+                    } else {
+                        "Only when you ask for one from the puzzle's menu"
+                    },
+                    checked = state.puzzleNudges,
+                    onCheckedChange = { onAction(SettingsAction.SetPuzzleNudges(it)) },
+                )
             }
         }
 

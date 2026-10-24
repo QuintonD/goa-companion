@@ -39,6 +39,7 @@ class SettingsDataSource @Inject constructor(@param:SettingsStore private val st
             prefs[Keys.SOUNDS] = next.soundsEnabled
             prefs[Keys.CATALOG_LIST] = next.catalogListView
             prefs[Keys.TIMER_LAYOUT] = next.timerLayout.name
+            prefs[Keys.PUZZLE_NUDGES] = next.puzzleNudges
         }
     }
 
@@ -49,6 +50,7 @@ class SettingsDataSource @Inject constructor(@param:SettingsStore private val st
         val SOUNDS = booleanPreferencesKey("sounds_enabled")
         val CATALOG_LIST = booleanPreferencesKey("catalog_list_view")
         val TIMER_LAYOUT = stringPreferencesKey("timer_layout")
+        val PUZZLE_NUDGES = booleanPreferencesKey("puzzle_nudges")
     }
 
     private companion object {
@@ -63,6 +65,7 @@ class SettingsDataSource @Inject constructor(@param:SettingsStore private val st
             catalogListView = prefs[Keys.CATALOG_LIST] ?: Defaults.catalogListView,
             timerLayout = prefs[Keys.TIMER_LAYOUT]?.let { name -> TimerLayout.entries.firstOrNull { it.name == name } }
                 ?: Defaults.timerLayout,
+            puzzleNudges = prefs[Keys.PUZZLE_NUDGES] ?: Defaults.puzzleNudges,
         )
     }
 }

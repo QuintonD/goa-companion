@@ -58,7 +58,7 @@ import kotlinx.coroutines.launch
  * landscape), the round at a glance and every hero's status floating at the top, Fit and Flip at
  * the right, and [panel] (the question, the computer's move, the coach…) at the bottom in portrait
  * or on the right in landscape. The map frames the Lane between them and brings the spaces asked
- * for into view.
+ * for into view. [banner] (a puzzle's goal) floats under the hero strip, and the map keeps clear of it.
  */
 @Composable
 fun GameTable(
@@ -68,6 +68,7 @@ fun GameTable(
     onHero: (String) -> Unit,
     onFlip: () -> Unit,
     modifier: Modifier = Modifier,
+    banner: (@Composable () -> Unit)? = null,
     panel: @Composable ColumnScope.() -> Unit,
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
@@ -115,6 +116,7 @@ fun GameTable(
             ) {
                 TableHud(table)
                 HeroStrip(table, onHero)
+                banner?.invoke()
             }
             Column(Modifier.align(Alignment.End), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 if (viewport.isFit) {

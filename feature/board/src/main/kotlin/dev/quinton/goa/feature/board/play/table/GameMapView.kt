@@ -188,7 +188,8 @@ private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, pale
     val decision = table.decision
     val selected = table.selected
     val view = table.view
-    val draw = remember(decision, table.asking, selected, view, layout, unit, palette) {
+    val hint = table.hintAt
+    val draw = remember(decision, table.asking, selected, hint, view, layout, unit, palette) {
         Modifier.drawWithCache {
             fun cell(hex: Hex) = layout.corners(hex).map { it * unit } to layout.center(hex) * unit
             val highlight = decision?.context?.highlight.orEmpty().map(::cell)
@@ -208,6 +209,7 @@ private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, pale
             }
             val acting = view.acting?.let(table::at)?.let(::cell)
             val immune = view.minions.filter { it.immune }.map { layout.center(it.at) * unit }
+            val hintCell = hint?.let(::cell)
             val dash = PathEffect.dashPathEffect(floatArrayOf(unit * 0.22f, unit * 0.16f))
             onDrawBehind {
                 highlight.forEach { (c, m) -> drawRangeCell(c, m, unit, palette) }
@@ -230,6 +232,15 @@ private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, pale
                         )
                     }
                     path.drop(1).dropLast(1).forEach { drawCircle(palette.measure, unit * 0.12f, it) }
+                }
+                // A puzzle's hint: a bronze ring of dashes outside the space, apart from the selection.
+                hintCell?.let { (c, m) ->
+                    drawPath(hexPath(c, 1.0f, m), palette.halo, style = Stroke(width = unit * 0.34f))
+                    drawPath(
+                        hexPath(c, 1.0f, m),
+                        palette.measure,
+                        style = Stroke(width = unit * 0.2f, pathEffect = dash, join = StrokeJoin.Round),
+                    )
                 }
                 chosenCell?.let { (c, m) -> drawSelectionCell(c, m, unit, palette) }
                 immune.forEach { m ->
@@ -317,6 +328,7 @@ private fun GameSpaceNodes(table: TableUi, layout: MapLayout, viewport: MapViewp
                 if (occupant != null && occupant == table.view.acting) add("acting now")
                 if (option) add("option")
                 if (space.hex in table.decision?.context?.highlight.orEmpty()) add("highlighted")
+                if (space.hex == table.hintAt) add("hint")
             }.joinToString(", ")
             val action = when {
                 option && chosen -> null
