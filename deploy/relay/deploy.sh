@@ -21,7 +21,9 @@ main() {
     docker info >/dev/null 2>&1 || docker=(sudo docker)
 
     # The container runs as uid/gid 10001 and only this directory is writable.
-    sudo install -d -o 10001 -g 10001 -m 0700 "$data"
+    sudo mkdir -p "$data"
+    sudo chown 10001:10001 "$data"
+    sudo chmod 0700 "$data"
     # Restart on reboot: the Docker service must start at boot (compose has restart: unless-stopped).
     sudo systemctl enable --now docker.service >/dev/null 2>&1 || sudo systemctl enable docker.service
 
