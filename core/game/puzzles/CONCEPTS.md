@@ -859,6 +859,10 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** A primary Defense card applies its text when you defend with it (p.14); Expert Duelist ignores minion modifiers and grants immunity to attack actions of all other enemy heroes this turn — conditional immunity (p.18 Immune; common FAQ). Discarding a card to defend puts it in your discard (p.10), which is exactly what Middlefinger's ranged bullet looks for.
 - **Rules:** p.10 Discard a card; p.14 Defense action, Defense/Skill; p.18 Immune.
 - **Risk:** none.
+- **Encoded as p41 (2026-10-24):** as in the concept. Dodger's cards: resolved `gold`, `silver`, hand
+  `green-2a`, `blue-2a`; Wasp: resolved `red-1`, `blue-1`, hand `silver`, `green-1`. The defence choice
+  offers Rogue Wave first. Arien ends the turn with Liquid Leap's Hold (any Movement also wins; its
+  primary is not offered). Wrong tries tested: Rogue Wave, no defense.
 
 ### C42 — The Courteous Trap
 - **Theme:** choosing your last-but-one card; tie broken by the coin; an attack that heals the target. **Difficulty:** 3. **Heroes:** Rowenna; Tigerclaw (Swift, Xargatha idle).
@@ -893,6 +897,9 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** In the Minion Battle the team with fewer minions removes the difference, heavy last; losing the last minion pushes the Lane (p.8). Constrict defeats a melee minion before the battle (card reminder text). Defeating Arien removes one Red loss but no Blue minion — and the battle only counts minions.
 - **Rules:** p.8 Minion Battle, Push the Lane; p.13 Attacking a minion; p.17 End of Round.
 - **Risk:** none.
+- **Encoded as p43 (2026-10-24):** as in the concept (`PushLane(round)`). Only the east Blink wins; the
+  blink through Arien is first in the canonical order. The solver's best reply for Arien is to move away
+  (the push still comes, 3 vs 1). Wrong tries tested: through Arien, through B2, Hold.
 
 ### C44 — A Fistful of Coins
 - **Theme:** a fork through the opponent's own choice; picking the right hero to force. **Difficulty:** 3. **Heroes:** Cutter, Swift; Wasp, Dodger.
@@ -928,6 +935,11 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** The enemy hero picks the bullet (p.10), and "any option can be chosen, even if it would have no effect" (card reminder) — which is why the target must still hold a card, or "discard" would be a free pass. Losing the last minion pushes at once and the last Wave counter ends the game (p.8, p.3); a cardless hero cannot defend (p.13).
 - **Rules:** p.3 Last Push; p.8 Triggering a Push; p.10 Making choices; p.13 Attacking a hero.
 - **Risk:** none (Whisper FAQ confirms the hero picks regardless of effect).
+- **Encoded as p45 (2026-10-24):** as in the concept; Wasp is seated before Xargatha, so Lesser Evil
+  offers Wasp first. Cards: Whisper resolved `gold`, `red-1`, hand `silver`, `green-1`, item `blue-2a`;
+  Tigerclaw resolved `gold`, `silver`, hand `green-1`, `blue-1`; Xargatha resolved `gold`, `red-1`,
+  discard `silver`, item `blue-2b`; Wasp resolved `gold`, `silver`, hand `red-1`, `blue-1`. Both of
+  Xargatha's bullets are refuted by the solver. Wrong tries tested: Lesser Evil on Wasp, Movement.
 
 ### C46 — Hurry Up!
 - **Theme:** changing a teammate's initiative; a tie on the coin; the opponent's blocking reply. **Difficulty:** 3. **Heroes:** Hanu, Brogan; Tigerclaw, Xargatha.
@@ -946,6 +958,10 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Initiative is checked again after every resolution (p.7), so changing a card's printed value moves its owner in the queue. A cross-team tie goes to the team on the coin, and that player flips it afterwards (p.7). Xargatha's one-space move is her only way to interfere; two disjoint routes beat it.
 - **Rules:** p.7 Check the initiative, Tied Initiative; p.11 Movement in the card text.
 - **Risk:** none (no initiative items are involved, so "printed value" vs items does not arise).
+- **Encoded as p46 (2026-10-24):** as in the concept; Tigerclaw and Xargatha are seated first, so Hurry
+  up! offers Tigerclaw before Brogan. The solver's reply for Xargatha is Cleave on the Blue minion (a
+  step can't block both runs); either run then wins. Wrong tries tested: Hurry up! on Tigerclaw, Hanu
+  Holds, Brogan's dash to (3,−4) hitting the Red minion instead.
 
 ### C47 — Swoop In
 - **Theme:** retrieving a card to survive; two different threats with different conditions. **Difficulty:** 3. **Heroes:** Misa; Garrus, Brynn (Wasp idle).
@@ -963,6 +979,11 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Swoop In is a placement, so it needs only an empty space in radius adjacent to two enemy units (p.18 Place), and its retrieve gives Misa one card (p.10 Retrieve). "Discards a card, or is defeated" only defeats a hero who cannot discard (p.17 If able). Units, terrain and tokens are all obstacles (p.18) — swooping next to enemies feeds Brynn's 3-obstacle condition.
 - **Rules:** p.10 Retrieve a card; p.17 If able; p.18 Obstacle, Place.
 - **Risk:** none.
+- **Encoded as p47 (2026-10-24):** as in the concept. Level-5 cards: Garrus resolved `gold`, `silver`,
+  `red-2b`, hand `blue-2a`, items `red-2a`, `green-2b`, `green-3a` (his only Initiative item), `blue-2b`;
+  Brynn resolved `gold`, `silver`, `red-2a`, hand `blue-2a`, items `red-2b`, `green-2b`, `green-3b`,
+  `blue-2b` (no Initiative item, so she stays at 2). The solver accepts (0,−5) and (−1,−3); (3,−7) is
+  first in the canonical order. Wrong tries tested: (3,−7), (2,−5), no retrieve, Hold.
 
 ### C48 — Necromancy at the Bell
 - **Theme:** end-of-round order (End of round effects, Minion Battle); minion types; respawn rules. **Difficulty:** 3. **Heroes:** Dodger; Xargatha (Tigerclaw, Arien idle).

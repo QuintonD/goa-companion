@@ -17,5 +17,10 @@ object Puzzles {
         P33EvenABlockedShotPushes,
         P36WhoGoesFirst,
         P37ThePoisonedClock,
+        P41TheDuelistsOath,
+        P43CountTheMinions,
+        P45TheLesserEvil,
+        P46HurryUp,
+        P47SwoopIn,
     )
 }
