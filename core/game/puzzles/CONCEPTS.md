@@ -296,6 +296,18 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.9 Ranged/Non-ranged; p.13 Attack action; p.14 Defense action, Block.
 - **Risk:** none.
 - **Encoded as p07 (changed, 2026-10-24):** as written the first option at every decision won (Combat Reflexes, the first card in catalog order, is right against the first attack, then Parry against Brogan). Tigerclaw now holds **`tigerclaw-red-2b` Backstab (Defense 5) and `tigerclaw-blue-2a` Sidestep (Block a ranged attack)**, with the items `tigerclaw-red-2a` (+1 Initiative) and `tigerclaw-blue-2b` (+1 Defense). Same lesson: Sidestep blocks the point-blank shot, Backstab 5 + 1 = 6 holds Brogan's 6; Backstab first leaves Sidestep against a non-ranged attack. Sidestep's optional step is free (every choice survives). Wasp's idle hand: `wasp-green-1`, `wasp-blue-1`.
+- **Hardened p07 (2026-10-24, changed; difficulty 2):** the reviewers found Wasp's Shock (8) resolved
+  this turn before Sabina (12) and a single 1-of-3 card choice. Now round 3, turn 3, everyone L2 but
+  Tigerclaw (L3, same cards and items); Wasp already acted with her silver (13) and stands far off at
+  (5,−7). Sidestep's step now decides, because Point Blank Shot pushes its target 1 space after the
+  attack if still adjacent. Tigerclaw at (0,−2), Sabina (Blue, L2, item `sabina-red-2b`) at (−1,−2),
+  Brogan (Blue, L2, Mad Dash 6, item `brogan-green-2b`) at (0,−4); Blue melee (1,−1) and (−1,0), Blue
+  heavy (2,−7); Red melee (2,−5), (−2,1), Red heavy (1,−6). Answer: Sidestep, step NW to (0,−3) (still
+  beside Sabina), her push carries Tigerclaw NE to (1,−4), next to Brogan but on no 2-space Mad Dash
+  line. Wrong tries refuted: Backstab against the shot (pushed to (1,−2), Sidestep cannot block Mad
+  Dash), Sidestep and stay (pushed to (1,−2) beside the Blue melee (1,−1): Backstab 5 + 1 − 1 = 5
+  against 6), Sidestep east to (1,−2) (the same). The other two steps also end beside a Blue melee.
+  Solver: one winning option at both decisions (3 defenses, 5 steps); Tigerclaw's own last action is free.
 
 ### C08 — Walk the Plank
 - **Theme:** pushing across a zone border; zones you might not notice. **Difficulty:** 1. **Heroes:** Cutter; Wasp, Dodger (Swift idle).
