@@ -112,6 +112,7 @@ internal class Searcher(
         cancelled: () -> Boolean,
         deadline: Long,
         only: List<Choice>? = null,
+        mustInclude: Choice? = null,
     ): Analysis? {
         val isPlay = d.kind == DecisionKind.PLAY_CARD
         val samples = if (isPlay) profile.playSamples else profile.otherSamples
@@ -125,7 +126,11 @@ internal class Searcher(
             val det = determinize(es, d, mix(seed, k.toLong()))
             val dp = det.pending ?: continue
             if (dp.seat != d.seat || dp.kind != d.kind) continue
-            if (candidates == null) candidates = prune(det, d, dp)
+            if (candidates == null) {
+                candidates = prune(det, d, dp).let { c ->
+                    if (mustInclude != null && mustInclude !in c && mustInclude in dp.options) c + mustInclude else c
+                }
+            }
             for (o in candidates) table.getOrPut(o) { DoubleArray(samples) { Double.NaN } }
             var complete = true
             for (o in candidates) {
@@ -182,7 +187,9 @@ internal class Searcher(
                 Horizon.NEXT_TURN -> turnIndex(s) > startTurn + 1
             }
             if (stop) return
-            val c = if (profile.greedySelf && d.seat == rootSeat && d.options.size > 1) greedy(f, d) else static.best(s, d)
+            // A facedown play has no immediate effect to look at: the static round plan picks it.
+            val searchIt = profile.greedySelf && d.seat == rootSeat && d.options.size > 1 && d.kind != DecisionKind.PLAY_CARD
+            val c = if (searchIt) greedy(f, d) else static.best(s, d)
             f.answer(d.id, c)
             n++
         }

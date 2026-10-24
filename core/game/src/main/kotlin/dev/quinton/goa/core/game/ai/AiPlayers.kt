@@ -33,7 +33,7 @@ object AiPlayers {
             staticOnly = true, playSamples = 1, otherSamples = 1,
             playHorizon = Horizon.ACTION, otherHorizon = Horizon.ACTION, candidates = 1,
             temperature = 1.2, maxGap = 4.0, slipRate = 0.08, risk = 0.0,
-            knobs = EvalKnobs(nearestThreatOnly = true, nextTurnThreat = 0.15),
+            knobs = EvalKnobs(nearestThreatOnly = true, nextTurnThreat = 0.12),
             modelPlays = false, memory = false, greedySelf = false, budgetMs = 50,
         )
         AiLevel.NORMAL -> LevelProfile(
@@ -52,7 +52,7 @@ object AiPlayers {
             staticOnly = false, playSamples = 16, otherSamples = 5,
             playHorizon = Horizon.NEXT_TURN, otherHorizon = Horizon.TURN, candidates = 10,
             temperature = 0.15, maxGap = 0.6, slipRate = 0.0, risk = 0.2,
-            knobs = EvalKnobs(nextTurnThreat = 0.35), modelPlays = true, memory = true, greedySelf = true,
+            knobs = EvalKnobs(nextTurnThreat = 0.28), modelPlays = true, memory = true, greedySelf = true,
             budgetMs = 4000,
         )
     }

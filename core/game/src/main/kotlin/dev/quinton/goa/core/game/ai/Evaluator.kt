@@ -16,7 +16,6 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.ZoneKind
 import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.match.Team
-import kotlin.math.ceil
 import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.min
@@ -30,7 +29,7 @@ internal data class EvalKnobs(
     val modifierBlind: Boolean = false,
     val nearestThreatOnly: Boolean = false,
     /** Weight of the opponent's threats next turn (Expert looks further). */
-    val nextTurnThreat: Double = 0.3,
+    val nextTurnThreat: Double = 0.22,
 )
 
 /**
@@ -52,8 +51,12 @@ internal class Evaluator(val data: EngineData, val knobs: EvalKnobs = EvalKnobs(
         const val WIN: Double = 1000.0
         const val LANE_WEIGHT: Double = 60.0
         const val MINION_MARGIN: Double = 1.5
-        const val PRESENCE_PER_TURN: Double = 1.3
-        const val SPACES_PER_TURN: Double = 3.0
+
+        /** Chance a revealed enemy attack card that can reach a hero is aimed at it this turn. */
+        const val NOW_WEIGHT: Double = 0.6
+        /** Per space outside the Battle Zone (a path of 3 spaces is worth about an action, BGG 2898177). */
+        const val PRESENCE_PER_SPACE: Double = 0.55
+        const val IN_BATTLE_ZONE: Double = 1.0
 
         fun sigmoid(x: Double): Double = 1.0 / (1.0 + exp(-x))
 
@@ -217,7 +220,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
         val pool = if (revealed) e.unresolved else e.unresolved + e.hand
         // This turn: a revealed card is certain to be played (the target is still a choice).
         if (pool.isNotEmpty() && (e.unresolved.isNotEmpty() || !revealed)) {
-            val w = if (revealed) 0.7 else 0.7 * min(1.0, 2.0 / pool.size)
+            val w = if (revealed) Evaluator.NOW_WEIGHT else Evaluator.NOW_WEIGHT * min(1.0, 2.0 / pool.size)
             pool.forEach { add(it, w, 0) }
         }
         // Next turn: what is left in hand, after an approach with this turn's card.
@@ -301,24 +304,23 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
         val acted = state.revealed && hero.unresolved.isEmpty()
         val nowCards = if (!acted && state.revealed) hero.unresolved.filter { it.attackCard } else emptyList()
         for (c in nowCards) {
-            if (enemyMinions.any { HexGrid.distance(at, it.at!!) <= c.reach }) v += 2.5
+            if (enemyMinions.any { HexGrid.distance(at, it.at!!) <= c.reach }) v += 3.0
         }
         val later = hero.hand.filter { it.attackCard }
         if (later.isNotEmpty() && enemyMinions.any { m -> later.any { HexGrid.distance(at, m.at!!) <= it.reach } }) {
-            v += 1.2
+            v += 1.5
         }
-        return min(v, 4.0)
+        return min(v, 4.5)
     }
 
-    /** Lane presence: turns of movement from [at] to the Battle Zone. */
+    /** Lane presence (STRATEGY H5): spaces from [at] to the Battle Zone, a bonus inside it. */
+    @Suppress("UNUSED_PARAMETER")
     fun presence(team: Team, at: Hex): Double {
         var v = 0.0
-        for ((lane, zones) in map.laneZones) {
+        for (lane in map.laneZones.keys) {
             val bz = state.battleZones[lane] ?: continue
             val d = map.distanceToZone(at, bz)
-            val turns = ceil(d / Evaluator.SPACES_PER_TURN)
-            v += -Evaluator.PRESENCE_PER_TURN * turns + if (d == 0) 0.8 else 0.0
-            if (zones.isEmpty()) continue
+            v += if (d == 0) Evaluator.IN_BATTLE_ZONE else -Evaluator.PRESENCE_PER_SPACE * d
         }
         return v / max(1, map.laneZones.size)
     }
