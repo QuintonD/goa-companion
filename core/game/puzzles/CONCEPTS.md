@@ -137,6 +137,18 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Dangerous Current's "Before the attack" text resolves before the target is hit (p.14 order step 1, p.17) and reaches the 2 spaces in a straight line behind the target, whatever stands between — there are no line-of-sight rules (p.3, p.9). Wasp has no card left, so "discards a card, or is defeated" defeats her. A defeated hero's team spends Life counters equal to her lowest card tier (p.13); Red had one left, so the game ends immediately.
 - **Rules:** p.3 Line of sight; p.9 Range/Radius; p.13 When a hero is defeated; p.14 Attack/Defense detailed order; p.17 Before the attack, If able.
 - **Risk:** none ("directly behind" = continuing the line from Arien through the target, the card's own wording).
+- **Encoded as p01 (hardened 2026-10-24, changed):** the reviewers found every hero level 1 in round 3
+  and a single choice between two minions. Now round 3, turn 4, all four heroes level 2, and Red needs
+  **two** defeats (Red 2 Life counters, Blue 3). Brogan (Blue, L2, item `brogan-blue-2b`) at (2,−8) has
+  played `brogan-blue-2a` Mighty Punch (9) and acts first; Arien (L2, `arien-blue-2b` Attack item, hand
+  `arien-blue-2a`) at (0,−5) follows with Dangerous Current (6 + 1). Wasp (L2, `wasp-red-2b` Defense item,
+  hand Lift Up) at (1,−6), guarded by Red melee (0,−6) and (2,−6) and next to the Blue heavy (2,−7):
+  5 + 1 + 2 − 1 = 7, a tie that holds. Xargatha (L2, no cards) at (3,−5), already two spaces behind the
+  space east of Arien, past a Blue melee at (2,−5). Answer: Brogan moves to (1,−7) and pushes Wasp 1
+  space SE to (1,−5) (5 + 1 + 1 − 1 = 6); Arien targets Wasp, Xargatha behind is defeated, then Wasp
+  falls. Wrong tries refuted: punching the Red minion (0,−6) off Wasp (she falls where she stands, but
+  nobody is behind her: one counter), pushing Wasp 2 spaces. Solver: one winning option at every decision
+  (4 moves, 2 push targets, 3 distances, 2 attack targets).
 
 ### C02 — Worth Two Counters
 - **Theme:** Life counters by lowest tier; Block cards only stop their attack type. **Difficulty:** 1. **Heroes:** Garrus; Brogan, Wasp.
@@ -154,7 +166,20 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** A defeated hero's team spends Life counters equal to that hero's lowest card tier, not one per hero (p.13): level 4 means tier II, so Wasp costs Red 2 counters while Brogan (level 3, tier I) costs 1. A Block card defends only when its condition is met; otherwise the defender is defeated (p.14). Chase's movement needs at least one card in your discard (card text), which Garrus has.
 - **Rules:** p.13 Attacking a hero, When a hero is defeated, level/tier table; p.14 Block.
 - **Risk:** none.
-- **Encoded as p02 (2026-10-24):** as written (Brogan's items `brogan-red-2b`, `brogan-green-2a`; Wasp's `wasp-red-2b`, `wasp-blue-2b`, `wasp-green-2b`). The solver finds (2,−5) and (2,−6) as the winning spaces of Chase's move; Chase's second option, or its first without moving, leaves only Brogan to hit.
+- **Encoded as p02 (hardened 2026-10-24, changed; difficulty 3):** the reviewers found Arien level 1 in round 4,
+  Arien's resolved Liquid Leap (4) before Garrus (9), and one obvious choice. Now round 4, **turn 3**
+  (so Wasp can hold two cards), two player seats. Arien (Blue, L2, item `arien-red-2b`) at (2,−2) has
+  played Noble Blade (11) and acts next; Garrus (L2, Chase 8 + 1 initiative item `garrus-red-2b`, one
+  card in his discard) at (2,0) follows; Wasp (Red, L4, items `wasp-red-2b`/`green-2b`/`blue-2b`)
+  already acted with her gold (12) and holds **Deflect Projectiles and Control Gravity**; Brogan (Red,
+  L3, no cards, Brutal Jab still to resolve) at (2,−3). Wasp at (3,−3) is boxed in: Red melee (3,−2),
+  (4,−3), (4,−4), Red ranged (3,−4), Brogan, Arien; Blue melee (2,−1) and (1,−4), Blue heavy (2,−7).
+  Answer: Noble Blade on Wasp, moving the Red melee (3,−2) one space E to (4,−2) before the attack; she
+  must spend Control Gravity (5 + 1 + 2 = 8 against 4; Deflect blocks only ranged); Garrus's Chase moves
+  via (3,−1) into (3,−2) and defeats her: two counters. Wrong tries refuted: Arien defeats Brogan (one
+  counter, Wasp keeps both cards), Arien defeats the minion (3,−2) (the space opens, Wasp keeps Control
+  Gravity), the minion moved to (3,−1) instead (it blocks Garrus). Solver: one winning option at every
+  decision (3 targets, 5 units to move, 2 spaces, 10 Chase spaces).
 
 ### C03 — Melee First, Then the Heavy
 - **Theme:** Heavy Minion Immunity; Last Push. **Difficulty:** 1. **Heroes:** Snorri; Xargatha (Garrus, Tigerclaw idle).
@@ -190,7 +215,22 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Bain acts at 11, before Brogan's 7, so the marker is in place when Dodger falls (p.7 initiative order). "A hero with the Bounty marker spends 1 additional Life counter when defeated" (card text), on top of the lowest-tier counters (p.13). The bounty is given after Bain's own attack resolves, so he needs some adjacent target.
 - **Rules:** p.7 Check the initiative; p.10 Mandatory steps; p.13 When a hero is defeated.
 - **Risk:** none.
-- **Encoded as p04 (2026-10-24):** as written. Xargatha is seated before Dodger. As the concept says, any adjacent target works for Bain (the solver accepts the ranged minion or Xargatha); the Bounty must go to Dodger, and Brogan's dash may end at (3,−2) or (3,−4).
+- **Encoded as p04 (hardened 2026-10-24, changed; difficulty 3):** the reviewers found every hero
+  level 1 in round 4 and Bain's own target irrelevant. Now round 3, turn 4, and Dodger defends with
+  **Vampiric Shield** (+2 while 2+ spawn points within 2 of her in the Battle Zone are empty), so Bain's
+  kill and Brogan's landing decide her defense. Bain (Blue, L2, Attack item `bain-green-2b`) at (3,−4)
+  has played Dead or Alive (11, Attack 5); Brogan (L3, items `brogan-red-2b`, `brogan-blue-2b`) at
+  (5,−4) has played `brogan-red-2a` **Bullrush** (7, Attack 7, move 2 or 3 in a straight line). Dodger
+  (Red, L3, Defense item `dodger-red-2b`, hand `dodger-blue-2a`, Dark Ritual still to resolve) at
+  (2,−2) between Red melee (2,−3) (on a Red spawn point) and (3,−3) (not); empty spawn points within 2:
+  (2,−1), (3,−1); Bain stands on (3,−4), the Red heavy on (1,0). Xargatha (L2, Stone Gaze, Defense item)
+  at (4,−5), next to Bain but out of Brogan's reach. Dodger's defense: 4 + 1 + 2 + 2 = 9. Answer: Bain
+  defeats the melee (3,−3) (8), gives Dodger the Bounty; Bullrush 3 spaces SW ends on the spawn point
+  (2,−1), one empty spawn point left: 4 + 1 + 1 = 6 against 7; Dodger costs 1 + 1. Wrong tries refuted:
+  defeating the minion on the spawn point (2,−3) (one guard fewer but a third empty spawn point: 8 even
+  after the landing), Bullrush only 2 spaces to (3,−2) (8), stripping Xargatha's card and marking her
+  (Brogan cannot reach her). Solver: one winning option at every decision (3 targets, 3 Bounty choices,
+  2 landings).
 
 ### C05 — Beat the Drum
 - **Theme:** coins and assist coins; "friendly" never includes you. **Difficulty:** 1. **Heroes:** Tigerclaw, Brogan; Arien (Wasp idle).
@@ -208,7 +248,18 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Defeating a hero pays its level to the attacker and assist coins equal to its lowest tier to each teammate (p.13). War Drummer gives 3 instead of 1 once any hero was defeated this round, and it acts at initiative 5, after Hit and Run at 9 (p.7). Its target must be another hero in range when it resolves, so Tigerclaw's optional after-attack step matters.
 - **Rules:** p.7 initiative; p.10 Mandatory and optional steps; p.13 coins table; p.17 Friendly.
 - **Risk:** `GainCoins` counts the team total (convention); Tigerclaw alone gains 5.
-- **Encoded as p05 (2026-10-24):** as written (Brogan's item `brogan-green-2a`, Arien's `arien-red-2b`). Winning steps after the attack: (2,−6) or (2,−5).
+- **Encoded as p05 (hardened 2026-10-24, changed; difficulty 3):** the reviewers found Wasp's resolved
+  Stop Projectiles (3) before Tigerclaw (9) and an obvious target with 2 of 6 steps winning. Now round 3,
+  turn 4, **Xargatha replaces Arien** and strikes between Tigerclaw and the drum. Tigerclaw (Blue, L2,
+  `tigerclaw-red-2a` **Combat Reflexes** 9: move 1 before the attack, or 1 after if he didn't; item
+  `tigerclaw-red-2b`; hand Dodge) at (4,−3); Brogan (L2, War Drummer 5, item `brogan-green-2a`) at
+  (2,−5); Wasp (Red, L3, already acted with Control Gravity 10, no cards) at (3,−2); Xargatha (Red, L2,
+  no cards in hand, Threatening Slash 7, Attack item) at (4,−4), next to Tigerclaw. Goal 7 coins. Answer:
+  attack Wasp without moving (3 + 1 assist), then step into her space (3,−2): the only end space not next
+  to Xargatha and within 4 of Brogan; the drum pays 3: 7. Wrong tries refuted: defeating Xargatha (2 + 1
+  + 3 = 6), staying put (Xargatha defeats him, Dodge cannot block a melee attack, the drum has no
+  target), stepping SE to (4,−2) (5 from Brogan). Solver: one winning option at every decision (5
+  pre-moves, 2 targets, 6 post-moves).
 
 ### C06 — The Hands of the Clock
 - **Theme:** defending with initiative (Temporal Punch); choosing the target. **Difficulty:** 1. **Heroes:** Emmitt; Wuk, Tigerclaw (Sabina idle).
@@ -245,6 +296,18 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.9 Ranged/Non-ranged; p.13 Attack action; p.14 Defense action, Block.
 - **Risk:** none.
 - **Encoded as p07 (changed, 2026-10-24):** as written the first option at every decision won (Combat Reflexes, the first card in catalog order, is right against the first attack, then Parry against Brogan). Tigerclaw now holds **`tigerclaw-red-2b` Backstab (Defense 5) and `tigerclaw-blue-2a` Sidestep (Block a ranged attack)**, with the items `tigerclaw-red-2a` (+1 Initiative) and `tigerclaw-blue-2b` (+1 Defense). Same lesson: Sidestep blocks the point-blank shot, Backstab 5 + 1 = 6 holds Brogan's 6; Backstab first leaves Sidestep against a non-ranged attack. Sidestep's optional step is free (every choice survives). Wasp's idle hand: `wasp-green-1`, `wasp-blue-1`.
+- **Hardened p07 (2026-10-24, changed; difficulty 2):** the reviewers found Wasp's Shock (8) resolved
+  this turn before Sabina (12) and a single 1-of-3 card choice. Now round 3, turn 3, everyone L2 but
+  Tigerclaw (L3, same cards and items); Wasp already acted with her silver (13) and stands far off at
+  (5,−7). Sidestep's step now decides, because Point Blank Shot pushes its target 1 space after the
+  attack if still adjacent. Tigerclaw at (0,−2), Sabina (Blue, L2, item `sabina-red-2b`) at (−1,−2),
+  Brogan (Blue, L2, Mad Dash 6, item `brogan-green-2b`) at (0,−4); Blue melee (1,−1) and (−1,0), Blue
+  heavy (2,−7); Red melee (2,−5), (−2,1), Red heavy (1,−6). Answer: Sidestep, step NW to (0,−3) (still
+  beside Sabina), her push carries Tigerclaw NE to (1,−4), next to Brogan but on no 2-space Mad Dash
+  line. Wrong tries refuted: Backstab against the shot (pushed to (1,−2), Sidestep cannot block Mad
+  Dash), Sidestep and stay (pushed to (1,−2) beside the Blue melee (1,−1): Backstab 5 + 1 − 1 = 5
+  against 6), Sidestep east to (1,−2) (the same). The other two steps also end beside a Blue melee.
+  Solver: one winning option at both decisions (3 defenses, 5 steps); Tigerclaw's own last action is free.
 
 ### C08 — Walk the Plank
 - **Theme:** pushing across a zone border; zones you might not notice. **Difficulty:** 1. **Heroes:** Cutter; Wasp, Dodger (Swift idle).
@@ -262,7 +325,17 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** A push moves the target in a straight line directly away from the pusher, as far as possible up to the distance chosen (p.18 Push); obstacles and terrain stop it. `red-side` is a separate Zone even though it is a thin strip, so Wasp ends in another Zone and the card's second clause applies; with no card to discard she is defeated (p.17 If able).
 - **Rules:** p.18 Push; p.19 Zone, Terrain; p.13 When a hero is defeated.
 - **Risk:** "pushed into another zone" read as "ends the push in a different Zone than it started" (unambiguous here).
-- **Encoded as p08 (2026-10-24):** as in the concept (Swift idle, resolved). The solver confirms Wasp as the only winning hero and 2, 3 or 4 as the winning distances; pushing Dodger, pushing Wasp 1 and the minion bullet are refuted.
+- **Encoded as p08 (hardened 2026-10-24, changed):** the reviewers found Swift's Steam Jump (9)
+  resolved before Cutter (12), every hero level 1 in round 4, and pushes of 2, 3 and 4 all winning. Now
+  round 3, turn 4, all level 2, and **Swift plays**: Cutter (Blue, L2, item `cutter-red-2b`) at (0,−3)
+  with Walk the Plank (12) and Swift (Blue, L2, item `swift-red-2a`) at (0,−8) with Bounce (12) are
+  tied on one team, so the player decides who acts first (p.7). Wasp (Red, L2, no cards) at (0,−4):
+  straight away from Cutter (NW) lie (0,−5), (0,−6), (0,−7) of the middle Zone, then (0,−8) of the side
+  strip, where Swift stands. Dodger (Red, L2, hand Shield of Decay) at (−1,−3): one push W puts her in
+  `lane-1-1`. Answer: Swift first, Bounce off the line ((2,−8), (2,−10) or (−2,−6)), then Walk the
+  Plank on Wasp, exactly 4 spaces. Wrong tries refuted: Cutter first (Swift blocks the end of the line),
+  Swift bouncing SE down the line to (0,−6), pushing Dodger (she discards), pushing Wasp 3. Solver: one
+  winning option at every decision but Swift's landing (3 of 4).
 
 ### C09 — Phantom at Five Spaces
 - **Theme:** targeting conditions; moving a token before the attack. **Difficulty:** 1. **Heroes:** NebKher; Dodger, Wasp (Garrus idle).
@@ -335,7 +408,18 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Fast Travel replaces a whole Movement action, whatever its value, and may land on any empty space of the same Zone or an adjacent Zone, provided neither the Zone you leave nor the one you enter holds an enemy hero or minion (p.11; the Arien example allows the own Zone). Swift in `blue-throne` and the minions in `lane-1-2` close those Zones, but `blue-side` itself is long and empty.
 - **Rules:** p.11 Fast Travel; p.13 Ranged attacks.
 - **Risk:** none.
-- **Encoded as p12 (2026-10-24):** as in the concept (hands: Brogan `brogan-silver`, Swift `swift-blue-1`, Dodger `dodger-blue-1`). The solver's winning Fast Travel spaces are exactly the ten listed; Hold, a Movement action and Fast Travel to (2,2) are refuted.
+- **Encoded as p12 (hardened 2026-10-24, changed — a different puzzle on the same idea):** the
+  reviewers found level 1 heroes in round 4 and 10 of 14 Fast Travel spaces winning. An escape cannot be
+  made tight (two attackers never cover a 15-space side Zone), so Xargatha now Fast Travels the length
+  of her own Zone to **support an attack**. Round 3, turn 4, all level 2; Red 3 Life counters, Blue 1
+  (Blue lost heroes earlier this round, so the Red heroes hold 3 unspent coins each). Xargatha (Red, L2,
+  Cleave 11, Defense item) at (5,0), the far end of `blue-side`; Tigerclaw (Red, L2, `tigerclaw-red-2b`
+  Backstab 5, +2 if a friendly unit is adjacent to the target; initiative item → 10) at (0,2); Brogan
+  (Blue, L2, Attack item `brogan-green-2a`, hand Brutal Jab 5, Mad Dash 7 to come) at (−1,2), beside a
+  Blue melee (−2,2): 6. Swift (Blue, L2, Prepared Shot 9) far off at (3,−5). Answer: Xargatha Fast
+  Travels to (−1,3), the only `blue-side` space beside Brogan (the Battle Zone around him is closed to
+  her, p.11); Backstab 7 against 6. Wrong tries refuted: Fast Travel to (0,3), beside Tigerclaw but not
+  Brogan; a Movement action. Solver: 1 of 33 Fast Travel spaces wins.
 
 ### C13 — Empty the Spawn Point
 - **Theme:** coins; "empty spawn point" conditions; initiative between teammates. **Difficulty:** 1. **Heroes:** Tigerclaw, Dodger; Arien (Wasp idle).
@@ -354,7 +438,18 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** An empty spawn point is one in a space with no obstacle (p.17), and Dodger's card counts only those in the current BZ (Dodger FAQ). Minions are worth 2 coins, a level-2 hero 2 coins plus 1 assist coin (p.13). Tigerclaw's 9 resolves before Dodger's 3, so the spawn point is empty when the Ritual checks.
 - **Rules:** p.7 initiative; p.13 coins; p.17 Empty.
 - **Risk:** none.
-- **Encoded as p13 (2026-10-24):** as written (Arien: level 2, `arien-red-2a` in the discard, item `arien-red-2b`). After the attack, staying put or stepping to (3,−6) or (1,−5) all win; only (1,−4) loses.
+- **Encoded as p13 (hardened 2026-10-24, changed; difficulty 3):** the reviewers scored it 5 (one good
+  trap, three of four steps winning). Now round 3, turn 4, every hero level 2, goal **5** coins, and
+  all six spawn points within 3 of Dodger start taken. Tigerclaw (Red, L2, Hit and Run 9, Attack item
+  `tigerclaw-blue-2a`) stands on the Blue melee spawn point (2,−1); Arien (Blue, L2, no cards, Liquid
+  Leap 4) on (3,−1); a Blue melee on (1,0); Blue melee (1,−4), Blue ranged (3,−4), Red ranged (0,−3) on
+  the rest; Dodger (Red, L2, Darker Ritual 3, item `dodger-green-2b`) on (2,−3). Wasp (Blue, L2, Stop
+  Projectiles 3, movement 2) at (1,1) is **tied with Dodger at 3 and the coin shows Blue**, so she moves
+  first; her only way in is through (2,0). Answer: defeat Arien (2 + 1 assist), step SE to (2,0), which
+  empties Tigerclaw's own spawn point and shuts Wasp out; the Ritual finds (2,−1) and (3,−1) empty: 5.
+  Wrong tries refuted: defeating Arien and staying (one empty), stepping NE to (3,−2) (Wasp walks onto
+  one), defeating the Blue minion on (1,0) (no assist: 4 at most). Solver: one winning option at every
+  decision (2 targets, 6 steps).
 
 ### C14 — Long Thrust
 - **Theme:** range set by card text (enemy units adjacent to you). **Difficulty:** 1. **Heroes:** Xargatha; Tigerclaw, Arien (Wasp idle).
@@ -391,6 +486,16 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.14 Defense total, Minion defense modifiers; FAQ Sabina.
 - **Risk:** none.
 - **Encoded as p15 (changed, 2026-10-24):** a position can't record that a hero *resolved* an attack card this turn (`PositionBuilder` marks "played an attack card" only for an unresolved played card). Arien has instead **played `arien-red-1` Dangerous Current (8), not yet resolved**, tied with Sabina at 8 with the **coin showing Red** (Sabina acts first, p.7), resolved gold, green-1, blue-1, hand `arien-silver`. The Sabina FAQ covers both cases. Wasp is seated before Arien.
+- **Hardened p15 (2026-10-24, changed):** the reviewers found level 1 heroes in round 4 and a single
+  choice whose only difficulty was knowing Dangerous Current is an attack card. Now round 3, turn 4, all
+  level 2, two player seats, and Arien is **guarded**: Arien (Blue, L2, Defense item `arien-green-2b`,
+  Spell Break) at (2,−5) beside a Blue melee (3,−5): 3 + 1 + 1 = 5 against Quickdraw's 2 + 3, a tie that
+  holds. Tigerclaw (Red, L2, `tigerclaw-red-2a` Combat Reflexes 9, move 1 before the attack) at (4,−4),
+  3 from Arien, 2 from the guard, next to a decoy Blue melee (4,−3). Sabina (Red, L2, Quickdraw 8) at
+  (0,−5). Wasp (Blue, L2, Defense item, Magnetic Dagger, Stop Projectiles played) at (0,−3) beside a Blue
+  melee (−1,−3): 2 + 1 + 1. Answer: Tigerclaw steps to (4,−5) or (3,−4) and defeats the guard; Sabina
+  shoots Arien, 5 against 4. Wrong tries refuted: Tigerclaw attacking without moving (only the decoy is
+  in reach), Sabina shooting Wasp (no bonus, 2 against 4). Solver: 2 of 6 pre-moves, 1 of 3 targets.
 
 ### C16 — Get Over Here!
 - **Theme:** moving an enemy hero; "no obstacles between" for a straight-line effect. **Difficulty:** 1. **Heroes:** Bain, Xargatha; Dodger, Wasp.
@@ -409,6 +514,18 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.7 initiative; p.11 Movement in the card text; p.18 Obstacle; p.19 Terrain, Straight line.
 - **Risk:** none.
 - **Encoded as p16 (changed, 2026-10-24):** as written the terrain-blocked Wasp is simply not offered as a target, so the only real pull was Dodger (no choice). Wasp now stands on Bain's clear SW line at (−2,−2) holding `wasp-blue-1` (resolved gold, silver, red-1); pulled, she lands on (−1,−3) next to Xargatha. A Red melee at (−1,−5) (next to Xargatha) makes Threatening Slash 6 against Wasp, but a Red melee at (0,−3) guards her landing space: 5 + 1 = 6 holds. That is the tempting wrong try; pulling Dodger (no cards) to (0,−5) and slashing her wins, as in the concept. Xargatha resolved gold, silver, blue-1 (hand green-1); Dodger's discard blue-1.
+- **Hardened p16 (2026-10-24, changed; difficulty 2):** the reviewers found level 1 heroes in round 4,
+  Red's three spent Life counters with no kill coins for Blue, and an intro giving away Dodger's empty
+  hand. Now round 3, turn 4, all level 2 (Bain and Xargatha hold 2 unspent coins), and no hero is
+  cardless: the pull must **raise Threatening Slash's bonus without raising Wasp's guard**. Bain (Blue,
+  Get over here! 13) at (0,0); Xargatha (Blue, Slash 7, Attack item `xargatha-blue-2b`) at (0,1); Wasp
+  (Red, Lift Up, Defense item) at (0,2), already beside Xargatha; Red melee (1,1) is beside both: 5 + 1
+  + 1 = 7 against 5 + 1 + 1 = 7, a tie that holds. Dodger (Red, Shield of Decay 10 played, hand Dread
+  Razor) at (2,0) on Bain's east line; Red melee (−2,2), (−2,0), (0,−2) on his other lines; Red heavy
+  (−1,−3). Answer: pull the Red melee (−2,2), which lands at (−1,1), beside Xargatha but not Wasp: 8
+  against 7. Wrong tries refuted: pulling Dodger to (1,0) beside Xargatha (she acts at 10 and walks
+  away before the Slash at 7), pulling the minion (0,−2) (it lands beside Bain only). Solver: 1 of 5
+  pull targets, then 1 of 3 Slash targets.
 
 ### C17 — Into the Wall
 - **Theme:** pushes stopped by obstacles force a discard; stripping the last card. **Difficulty:** 1. **Heroes:** Wasp, Xargatha; Arien (Brogan idle).

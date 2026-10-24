@@ -6,7 +6,6 @@ import dev.quinton.goa.core.game.PuzzleInfo
 import dev.quinton.goa.core.game.position.PositionBuilder
 import dev.quinton.goa.core.game.position.PositionPhase
 import dev.quinton.goa.core.game.puzzles.Moves.action
-import dev.quinton.goa.core.game.puzzles.Moves.decline
 import dev.quinton.goa.core.game.puzzles.Moves.hero
 import dev.quinton.goa.core.game.puzzles.Moves.space
 import dev.quinton.goa.core.game.puzzles.Moves.unitAt
@@ -16,7 +15,10 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** CONCEPTS.md C04 "Price on Her Head". */
+/**
+ * CONCEPTS.md C04 "Price on Her Head" (changed: Dodger defends with Vampiric Shield, so Bain's own
+ * target and the length of Brogan's Bullrush decide her defense; see the concept's "Encoded as").
+ */
 object P04PriceOnHerHead : Puzzle() {
     override val concept = "C04"
 
@@ -24,98 +26,126 @@ object P04PriceOnHerHead : Puzzle() {
         id = "p04",
         number = 4,
         title = "Price on Her Head",
-        difficulty = 1,
+        difficulty = 3,
         theme = "Life counters and the Bounty marker",
-        heroes = listOf("bain", "brogan", "xargatha", "dodger"),
+        heroes = listOf("bain", "brogan", "dodger", "xargatha"),
         goal = PuzzleGoal.WinGame("Win the game this turn."),
-        intro = "Round 4, turn 4. Bain has played Dead or Alive (11) and acts next; Brogan has played Mad " +
-            "Dash (7). Dodger has no cards left in hand; Xargatha holds Stone Gaze. Both Red heroes act " +
-            "after Brogan. Red has two Life counters left.",
+        intro = "Round 3, turn 4. Bain has played Dead or Alive (11) and acts next, then Brogan with " +
+            "Bullrush (7); Dodger and Xargatha act after them. Dodger (level 3) holds Vampiric Shield and " +
+            "has a Defense item; Xargatha (level 2) holds Stone Gaze and has a Defense item. Bain and Brogan " +
+            "each have an Attack item. Red has two Life counters left.",
         nudges = listOf(
-            "Red has two Life counters, and a level 1 hero only pays one.",
-            "Bain can make one hero cost more, but only one of them can Brogan actually reach.",
-            "Attack the ranged minion with Bain and give Dodger the Bounty marker.",
+            "Red has two Life counters left. Which Red hero could Brogan defeat, and what would make her pay both?",
+            "Vampiric Shield adds 2 while two or more spawn points within 2 of Dodger are empty. Count them " +
+                "after each kill Bain could make, and after each space Brogan could land on.",
+            "Bain defeats the Red minion south-east of him and gives Dodger the Bounty; Brogan charges three " +
+                "spaces south-west.",
         ),
-        explanation = "Bain acts at 11, before Brogan's 7, so the marker is in place before Brogan attacks " +
-            "(p.7). \"A hero with the Bounty marker spends 1 additional Life counter when defeated\" (card " +
-            "text), on top of the counters for her lowest tier (p.13): Dodger, level 1 and with no card to " +
-            "defend with, then costs Red both counters. The bounty comes after Bain's own attack, so he needs " +
-            "an adjacent target first (p.10). Xargatha is the obvious one to mark, standing right next to " +
-            "Bain, but Mad Dash must move exactly 2 spaces in a straight line to a space next to its target " +
-            "(Brogan FAQ), and no such line ends beside her.",
+        explanation = "\"A hero with the Bounty marker spends 1 additional Life counter when defeated\" (card " +
+            "text), on top of her lowest tier (p.13): Dodger, level 3 with a tier I card, then costs Red both " +
+            "counters, and Bain at 11 places the marker before Brogan at 7 attacks (p.7). The marker comes " +
+            "after Bain's own attack, and that attack decides the fight. Vampiric Shield is a Defense " +
+            "primary, so its text applies when she discards it (p.14): 4, +1 item, +1 for each Red melee " +
+            "minion beside her, +2 while two or more spawn points within 2 of her in the Battle Zone are " +
+            "empty, and a space is empty only with nothing on it (p.17, Dodger FAQ). As it stands that is " +
+            "4 + 1 + 2 + 2 = 9. Bain defeating the minion on the spawn point north-west of her takes one " +
+            "guard away but empties a third spawn point; the one south-east of him, on no spawn point, " +
+            "makes it 8. Bullrush moves 2 or 3 spaces in a straight line to a space next to an enemy " +
+            "(card text): two spaces stop beside her on a plain space, three end on the empty spawn point " +
+            "south-east of her, which leaves only one empty: 4 + 1 + 1 = 6 against 6 + 1, and Dodger is " +
+            "defeated. Stripping Xargatha's card with Bain leaves her out of Brogan's reach.",
         rules = listOf(
             "p.7 Check the initiative",
-            "p.10 Mandatory and optional steps",
             "p.13 When a hero is defeated",
-            "Brogan FAQ: Mad Dash",
+            "p.14 Defense action, Minion defense modifiers",
+            "p.17 Empty",
+            "Dodger FAQ: empty spawn points in the Battle Zone",
         ),
     )
 
     override val playerSeats = setOf("bain", "brogan")
 
     override fun PositionBuilder.setUp() {
-        round = 4
+        round = 3
         turn = 4
         tieBreaker = Team.BLUE
         clearMinions()
         lifeCounters(Team.RED, 2)
         lifeCounters(Team.BLUE, 3)
-        hero("bain", Team.BLUE, Hex(0, -4)) {
+        hero("bain", Team.BLUE, Hex(3, -4)) {
+            level = 2
             played("bain-gold")
             resolved(1, "bain-red-1")
             resolved(2, "bain-blue-1")
             resolved(3, "bain-silver")
-            hand("bain-green-1")
+            items("bain-green-2b")
+            hand("bain-green-2a")
         }
-        hero("brogan", Team.BLUE, Hex(1, -2)) {
-            played("brogan-red-1")
+        hero("brogan", Team.BLUE, Hex(5, -4)) {
+            level = 3
+            played("brogan-red-2a")
             resolved(1, "brogan-gold")
-            resolved(2, "brogan-blue-1")
+            resolved(2, "brogan-blue-2a")
             resolved(3, "brogan-silver")
+            items("brogan-red-2b", "brogan-blue-2b")
             hand("brogan-green-1")
         }
-        hero("xargatha", Team.RED, Hex(1, -5)) {
-            played("xargatha-silver")
-            resolved(1, "xargatha-gold")
-            resolved(2, "xargatha-red-1")
-            resolved(3, "xargatha-green-1")
-            hand("xargatha-blue-1")
-        }
-        hero("dodger", Team.RED, Hex(3, -3)) {
+        hero("dodger", Team.RED, Hex(2, -2)) {
+            level = 3
             played("dodger-green-1")
             resolved(1, "dodger-gold")
-            resolved(2, "dodger-red-1")
+            resolved(2, "dodger-red-2a")
             resolved(3, "dodger-silver")
-            discard("dodger-blue-1")
-            hand()
+            items("dodger-red-2b", "dodger-blue-2b")
+            hand("dodger-blue-2a")
         }
-        minion(Team.RED, MinionType.RANGED, Hex(0, -3))
-        minion(Team.RED, MinionType.MELEE, Hex(4, -4))
+        hero("xargatha", Team.RED, Hex(4, -5)) {
+            level = 2
+            played("xargatha-green-1")
+            resolved(1, "xargatha-gold")
+            resolved(2, "xargatha-red-2a")
+            resolved(3, "xargatha-silver")
+            items("xargatha-red-2b")
+            hand("xargatha-blue-1")
+        }
+        minion(Team.RED, MinionType.MELEE, Hex(2, -3))
+        minion(Team.RED, MinionType.MELEE, Hex(3, -3))
+        minion(Team.RED, MinionType.MELEE, Hex(0, -6))
         minion(Team.RED, MinionType.HEAVY, Hex(1, 0))
-        minion(Team.BLUE, MinionType.MELEE, Hex(2, -1))
-        minion(Team.BLUE, MinionType.MELEE, Hex(3, -1))
+        minion(Team.BLUE, MinionType.MELEE, Hex(5, -8))
+        minion(Team.BLUE, MinionType.MELEE, Hex(1, -5))
         minion(Team.BLUE, MinionType.HEAVY, Hex(2, -7))
         phase = PositionPhase.Resolving(next = "bain")
     }
 
     override val solution = listOf(
         action(ActionType.PRIMARY),
-        unitAt(0, -3),
+        unitAt(3, -3),
         hero("dodger"),
         action(ActionType.PRIMARY),
-        space(3, -2),
+        space(2, -1),
     )
 
-    override val nudgedMoves = solution.take(3)
+    override val nudgedMoves = solution
 
     override val wrongTries = listOf(
         WrongTry(
-            "Put the Bounty on Xargatha: Brogan has no straight 2-space line that ends next to her",
-            listOf(action(ActionType.PRIMARY), unitAt(0, -3), hero("xargatha")),
+            "Defeat the minion on the spawn point: Dodger loses a guard but gains Vampiric Shield's +2",
+            listOf(action(ActionType.PRIMARY), unitAt(2, -3)),
         ),
         WrongTry(
-            "No bounty: Dodger alone costs Red one counter",
-            listOf(action(ActionType.PRIMARY), unitAt(0, -3), decline()),
+            "Charge only two spaces: two spawn points stay empty and Dodger defends with 8",
+            listOf(
+                action(ActionType.PRIMARY),
+                unitAt(3, -3),
+                hero("dodger"),
+                action(ActionType.PRIMARY),
+                space(3, -2),
+            ),
+        ),
+        WrongTry(
+            "Strip Xargatha's card and mark her: Brogan cannot reach her",
+            listOf(action(ActionType.PRIMARY), hero("xargatha")),
         ),
     )
 }
