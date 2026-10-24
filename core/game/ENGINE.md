@@ -14,6 +14,7 @@ in [RULINGS.md](RULINGS.md); contract changes in [CONTRACT-CHANGES.md](CONTRACT-
 | `core.game.effects` | The authoring framework: `Behavior` (hooks), `CardScript`/`HeroModule`/`Registry`, `Helpers.kt` |
 | `core.game.heroes` | One `HeroModule` per hero (`<Hero>Hero.kt`) and `Heroes.all` |
 | `core.game.position` | `PositionBuilder` / `position { }` |
+| `core.game.puzzles` | Puzzle solver, answer keys, runtime (`PuzzleBook`, `PuzzleSession`) and `book/` (one file per puzzle): [puzzles/ENCODING.md](puzzles/ENCODING.md) |
 
 ## State
 
@@ -130,3 +131,5 @@ hook code guards every clause of a card with an early return. Everything else is
 | `SessionTest` | Decision ids, rejected answers, save/restore mid-card and mid-defense, fork, undo, determinize |
 | `PropertyTest` | 1 200 random games (1v1, 2v1 Handicap, 2v2 Quick/Long, double lane): invariants at every decision; determinism; save/restore and fork equivalence; determinize |
 | `BenchmarkTest` | Games per second |
+| `puzzles/PuzzleBookTest` | Every bundled puzzle: proof, answer key up to date, solution, nudges, wrong tries, first-option and "show me" lines, answer times |
+| `puzzles/PuzzleSolverTest` | Solver, goals, deadline halt, runtime and answer-key rules on small positions |
