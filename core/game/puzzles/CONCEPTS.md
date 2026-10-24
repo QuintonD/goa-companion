@@ -1050,6 +1050,15 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
   up! offers Tigerclaw before Brogan. The solver's reply for Xargatha is Cleave on the Blue minion (a
   step can't block both runs); either run then wins. Wrong tries tested: Hurry up! on Tigerclaw, Hanu
   Holds, Brogan's dash to (3,−4) hitting the Red minion instead.
+- **Hardened as p46 (2026-10-24, changed):** legality: Hanu and Brogan L3, Tigerclaw and Xargatha L2 (no
+  level 1 in round 3). Harder, the idea turned round: the puzzle starts at the card choice and the
+  obvious "speed up your friend" fails. Hanu holds Hurry up! and There and Back Again, Brogan Onslaught and
+  Mighty Punch, each with one Initiative item (Hanu: This Way! set aside; Brogan: Bullrush), so they show
+  13 / 12 and 12 / 10. Tigerclaw's only card is Blink Strike (13, he steps away), Xargatha's Charm (5);
+  Blue on the coin. Hurry up! ties Blink Strike at 13 and goes first on the coin; setting Brogan's
+  Onslaught (printed 11) changes nothing, and Mighty Punch only reaches 12. Setting Tigerclaw's Blink
+  Strike to 11 (items: none) lets Onslaught at 12 go first and take him with no card. One pair of cards
+  and one target win of 2 × 2 × 2. Brogan moved to (2,−2), next to Tigerclaw at (3,−3).
 
 ### C47 — Swoop In
 - **Theme:** retrieving a card to survive; two different threats with different conditions. **Difficulty:** 3. **Heroes:** Misa; Garrus, Brynn (Wasp idle).
