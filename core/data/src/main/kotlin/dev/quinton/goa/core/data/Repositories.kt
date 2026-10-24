@@ -1,5 +1,7 @@
 package dev.quinton.goa.core.data
 
+import dev.quinton.goa.core.data.game.GameInProgress
+import dev.quinton.goa.core.data.game.StoredGame
 import dev.quinton.goa.core.domain.sync.GroupCredentials
 import dev.quinton.goa.core.domain.sync.PlayerMerges
 import dev.quinton.goa.core.domain.sync.protocol.SyncApplyResult
@@ -173,6 +175,19 @@ interface BoardRepository {
 
     /** Backup import: Replace = exactly [boards]; Merge = the later `updatedAt` of each id wins. */
     suspend fun import(boards: List<SavedBoard>, replace: Boolean)
+}
+
+/**
+ * The game against the computer in progress (owner: board, ADR-035): one at a time, on this phone
+ * only (not synced, not in the backup file). Written after every answer.
+ */
+interface GameSaveRepository {
+    /** Emits [StoredGame.None] when no game is in progress; never fails. */
+    val current: Flow<StoredGame>
+
+    suspend fun save(game: GameInProgress)
+
+    suspend fun clear()
 }
 
 /** Wall-clock time (epoch ms) for the `updatedAt` stamps on local writes (ADR-025). */
