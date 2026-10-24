@@ -289,7 +289,12 @@ fun Game.move(
         return path
     }
     setPos(spec.unitId, path.last())
-    emit(GameEvent.Moved(spec.unitId, path, "${name(spec.unitId)} moves ${path.size} space${plural(path.size)}."))
+    // Moved by another hero's card ("Xargatha moves Arien 3 spaces."), or by itself.
+    val mover = byHero?.takeIf { it != spec.unitId && state.hero(it) != null }
+    val spaces = "${path.size} space${plural(path.size)}"
+    val text = mover?.let { "${heroName(it)} moves ${name(spec.unitId)} $spaces." }
+        ?: "${name(spec.unitId)} moves $spaces."
+    emit(GameEvent.Moved(spec.unitId, path, text))
     trigger(Trigger.Moved(spec.unitId, path, byHero, push = false))
     return path
 }
@@ -410,7 +415,9 @@ fun Game.place(id: String, to: Hex, byHero: String? = actor) {
     check(isEmpty(to, id)) { "Place into a non-empty space $to" }
     val from = posOf(id)
     setPos(id, to)
-    emit(GameEvent.Placed(id, from, to, "${name(id)} is placed${if (from == null) "" else " from $from"} into $to."))
+    val away = from?.let { HexGrid.distance(it, to) }
+        ?.let { d -> if (d == 1) " 1 space away," else " $d spaces away," }.orEmpty()
+    emit(GameEvent.Placed(id, from, to, "${name(id)} is placed$away in ${spaceName(to)}."))
     trigger(Trigger.Placed(id, from, to, byHero))
 }
 

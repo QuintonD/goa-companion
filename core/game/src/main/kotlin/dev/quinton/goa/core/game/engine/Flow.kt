@@ -98,11 +98,15 @@ private fun Game.playStep() {
 /** p.7: "Once all players have either played a card Facedown, or passed, reveal the cards". */
 private fun Game.reveal() {
     state.revealed = true
-    val played = LinkedHashMap<String, String?>()
     for (h in state.heroes) {
         val ids = h.cards.filter { it.zone == Zone.PLAYED }.map { it.id }
-        played[h.id] = ids.firstOrNull()
         if (ids.any { isAttackCard(h.id, it) }) state.turnRecord.playedAttack += h.id
+    }
+    // In the order the cards will act (ties by the coin, p.7), heroes who passed last.
+    val order = initiativeOrder()
+    val played = LinkedHashMap<String, String?>()
+    for (h in state.heroes.sortedBy { h -> order.indexOf(h.id).let { if (it < 0) order.size + h.seat else it } }) {
+        played[h.id] = h.cards.firstOrNull { it.zone == Zone.PLAYED }?.id
     }
     val text = played.entries.joinToString("; ") { (hero, card) ->
         if (card ==
@@ -113,7 +117,8 @@ private fun Game.reveal() {
             "${heroName(hero)} ${cardName(card)} (${initiativeText(hero)})"
         }
     }
-    emit(GameEvent.CardsRevealed(played, "Cards revealed: $text."))
+    val initiatives = played.keys.mapNotNull { id -> initiativeOf(id)?.let { id to it } }.toMap()
+    emit(GameEvent.CardsRevealed(played, "Cards revealed: $text.", initiatives))
     applyDue { e -> e.timing == Timing.NEXT_TURN_AFTER_PLAYING && e.round == state.round && e.turn == state.turn - 1 }
     trigger(Trigger.CardsRevealed)
     state.step = Step.RESOLVE
@@ -276,7 +281,8 @@ fun Game.resolveCard(heroId: String) {
         val answer = ask(heroId, DecisionKind.RESPAWN, "Respawn in your Throne Zone?", options, cardId, auto = false)
         if (answer is Choice.Space) {
             setPos(heroId, answer.hex)
-            emit(GameEvent.Placed(heroId, null, answer.hex, "${heroName(heroId)} respawns in ${answer.hex}."))
+            val text = "${heroName(heroId)} respawns in ${spaceName(answer.hex)}."
+            emit(GameEvent.Placed(heroId, null, answer.hex, text))
             trigger(Trigger.Placed(heroId, null, answer.hex, heroId))
         } else {
             note("${heroName(heroId)} stays off the board; ${cardName(cardId)} is resolved without an action.")
@@ -600,11 +606,13 @@ private fun Game.upgradeOnce(heroId: String) {
     moveCard(heroId, keep, Zone.HAND)
     for (other in next - keep) {
         moveCard(heroId, other, Zone.ITEM)
+        // "+1 Defense", the stat as the cards print it.
+        val stat = card(other).item?.name?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "nothing"
         emit(
             GameEvent.CardsChanged(
                 heroId,
                 // Which card was tucked is hidden; only its item icon is public (BGG 3590819).
-                "${heroName(heroId)} gains an item: +1 ${card(other).item?.name?.lowercase() ?: "nothing"}.",
+                "${heroName(heroId)} gains an item: +1 $stat.",
             ),
         )
     }

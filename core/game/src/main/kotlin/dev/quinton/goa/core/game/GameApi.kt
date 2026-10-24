@@ -262,6 +262,11 @@ data class DecisionContext(
      * decides only during resolution (Block conditions, choices).
      */
     val defensePreview: Map<String, Int?> = emptyMap(),
+    /**
+     * DEFEND: for Block cards whose condition the engine can settle up front, whether the Block
+     * holds against this attack (p.14: "regardless of the attack value"); other cards are absent.
+     */
+    val blockPreview: Map<String, Boolean> = emptyMap(),
     /** The minion defense modifier counted for this attack (p.14), already inside [defensePreview]. */
     val minionModifier: Int? = null,
     /** Spaces the UI should show as context (e.g. a card's range) besides the options. */
@@ -354,6 +359,8 @@ data class HeroView(
     val counters: Map<String, Int> = emptyMap(),
     /** The item bonus icons on the dashboard, one per item (open information, p.16), for every hero. */
     val itemStats: List<dev.quinton.goa.core.model.catalog.Stat> = emptyList(),
+    /** After the reveal, while its card is unresolved: the initiative as it counts (items, effects, p.7). */
+    val initiative: Int? = null,
 )
 
 @Serializable
@@ -430,7 +437,13 @@ sealed interface GameEvent {
 
     @Serializable
     @SerialName("cards_revealed")
-    data class CardsRevealed(val played: Map<String, String?>, override val text: String) : GameEvent
+    data class CardsRevealed(
+        /** Each hero's card (null = passed), in the order they will act (ties by the coin, p.7). */
+        val played: Map<String, String?>,
+        override val text: String,
+        /** Each card's initiative as it counts (items and effects included, p.7). */
+        val initiatives: Map<String, Int> = emptyMap(),
+    ) : GameEvent
 
     @Serializable
     @SerialName("action")

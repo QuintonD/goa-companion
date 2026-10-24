@@ -211,7 +211,7 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
         add(PlayText.controller(hero.controller))
         if (acting) add("acting now")
         place?.let { add("${PlayText.ordinal(it)} in initiative order") }
-        played?.initiative?.let { add("played initiative $it") }
+        (hero.initiative ?: played?.initiative)?.let { add("played initiative $it") }
         add("level ${hero.level}")
         add(BoardText.count(hero.coins, "coin"))
         add("${BoardText.count(hero.handCount, "card")} in hand")
@@ -270,14 +270,24 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TeamMark(hero.team, markSize = 8.dp)
                     Spacer(Modifier.width(3.dp))
+                    // The name may shorten; "Now" never does ("Trinkets · N…" at large text).
                     Text(
-                        if (acting) "${info.name} · Now" else info.name,
+                        info.name,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.widthIn(max = 108.dp),
                     )
+                    if (acting) {
+                        Text(
+                            " · Now",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                        )
+                    }
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -286,7 +296,7 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
                     Stat(null, "Lv ${hero.level}")
                     Stat(Icons.Filled.Paid, "${hero.coins}")
                     Stat(Icons.Outlined.Style, "${hero.handCount}")
-                    played?.initiative?.let {
+                    (hero.initiative ?: played?.initiative)?.let {
                         Stat(dev.quinton.goa.core.designsystem.cardtext.GameIcons.initiative.vector, "$it")
                     }
                 }
@@ -366,7 +376,7 @@ internal fun HeroDetail(table: TableUi, heroId: String, onCard: (Card) -> Unit, 
             Fact("In hand", "${hero.handCount}")
             if (hero.ultimate) Fact("Ultimate", "Active")
             if (hero.at == null) Fact("Board", "Off the board")
-            hero.counters.forEach { (name, value) -> Fact(name, "$value") }
+            hero.counters.forEach { (name, value) -> Fact(PlayText.counter(name), "$value") }
         }
         if (hero.items.isNotEmpty()) {
             Section("Items · p.16")

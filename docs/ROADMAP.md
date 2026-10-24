@@ -120,6 +120,18 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   screenshots; play and sandbox screenshots unchanged. JVM only
 - [ ] Puzzles hands-on on the S25 Ultra (TalkBack on the narrated replies and the nudge card)
 - [ ] Bind the AI per level and the Coach in `core:data` `PlayEngineModule`
+- [x] Hands-on with the debug build on an S25-sized emulator (`goa_s25a`, 1080×2340, font scale 1 and
+  1.3, landscape) — 2026-10-24: Wasp + Arien vs Brogan + Xargatha (Easy, Coach on) three rounds with a
+  defense, a defeat, respawn, a level up and Take back; Trinkets + Mortimer vs Widget + Razzle (Hard)
+  and Mortimer + Gydion vs Razzle + Widget (Easy, Fast) with the Turret, Zombies, the spellbook and
+  Razzle's figures; force-stop mid-card and resume. Fixed on `fix/play-handson`: hex coordinates in the
+  log ("fast travels to (7,-9)"), the reveal in seat order, a unit moved by another hero's card read as
+  moving itself, Block cards "Decided by its text" against a melee attack, a defeat or the end of round
+  scrolled out of the panel unseen, Play / Upgrade / Defend buttons pushed out of the panel by the
+  preview, five cards not fitting, upgrade choice without the next Tier's cards, duplicate chips
+  ("Red Throne Zone" ×3, "Red Melee minion" ×3), the coach's minion nudge when only Hold was better,
+  "that space" on an action choice, "Turr / et", Razzle's figures drawn as tokens, "SPELLSREMOVED",
+  the title clipped at 384 dp. E2E `PlayFlowTest` (Boards → first reveal) green. Emulator only
 - [ ] End-to-end test that plays a game to its end (needs the engine bound)
 - [ ] Hands-on at the table and TalkBack on the S25 Ultra
 

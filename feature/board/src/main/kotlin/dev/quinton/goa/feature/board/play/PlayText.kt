@@ -140,6 +140,12 @@ object PlayText {
         is Choice.Card -> choice.cardId
     }
 
+    /** A hero's counter as words: "spellsRemoved" → "Spells removed" (it read "SPELLSREMOVED"). */
+    fun counter(name: String): String = name
+        .replace(Regex("([a-z])([A-Z])")) { "${it.groupValues[1]} ${it.groupValues[2].lowercase()}" }
+        .replace('_', ' ')
+        .replaceFirstChar { it.uppercase() }
+
     fun ordinal(n: Int): String = when {
         n % 100 in 11..13 -> "${n}th"
         n % 10 == 1 -> "${n}st"

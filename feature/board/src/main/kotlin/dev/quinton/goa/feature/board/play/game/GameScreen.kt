@@ -55,6 +55,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -130,14 +131,14 @@ fun GameScreen(
             onAction(GameAction.MessageShown(play.messageId))
         }
     }
-    // With large text the title shortens so the round and turn stay readable beside the actions.
-    val large = androidx.compose.ui.platform.LocalDensity.current.fontScale > LARGE_FONT
+    // The title shortens to fit beside the three actions: on a phone in portrait "R2 · Turn 3",
+    // with large text "R2 · T3" (the HUD and TalkBack say it in full).
+    val room = LocalConfiguration.current.screenWidthDp / androidx.compose.ui.platform.LocalDensity.current.fontScale
     GoaScreen(
         title = when {
             play == null -> "Play"
             play.over != null -> "Game over"
-            large -> "R${play.table.view.round} · T${play.table.view.turn}"
-            else -> "Round ${play.table.view.round} · Turn ${play.table.view.turn}"
+            else -> roundTitle(play.table.view.round, play.table.view.turn, room)
         },
         onBack = onBack,
         modifier = modifier,
@@ -377,7 +378,10 @@ private fun ColumnScope.Panel(
     }
     when {
         nudge != null -> Unit
-        play.status is TurnStatus.YourTurn -> RecentEvents(play.recent.takeLast(2), Modifier.padding(top = Spacing.xs))
+
+        play.status is TurnStatus.YourTurn ->
+            RecentEvents(play.recent, Modifier.padding(top = Spacing.xs), strong = play.recentStrong)
+
         else -> RecentEvents(play.recent)
     }
     if (!table.handDecision && nudge == null) YourHand(table, onCard)
@@ -605,5 +609,13 @@ private fun Unavailable(
     )
 }
 
+/** The game's title for [room] dp of width at font scale 1. */
+internal fun roundTitle(round: Int, turn: Int, room: Float): String = when {
+    room >= FULL_TITLE_DP -> "Round $round · Turn $turn"
+    room >= SHORT_TITLE_DP -> "R$round · Turn $turn"
+    else -> "R$round · T$turn"
+}
+
 private const val SHEET_HEIGHT = 0.9f
-private const val LARGE_FONT = 1.3f
+private const val FULL_TITLE_DP = 400f
+private const val SHORT_TITLE_DP = 300f

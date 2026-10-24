@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.board
 
+import dev.quinton.goa.core.domain.board.zoneName
 import dev.quinton.goa.core.model.board.BoardLineup
 import dev.quinton.goa.core.model.board.BoardMap
 import dev.quinton.goa.core.model.board.BoardPiece
@@ -9,7 +10,6 @@ import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.board.SpawnKind
 import dev.quinton.goa.core.model.board.TokenPiece
-import dev.quinton.goa.core.model.board.ZoneKind
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
@@ -49,25 +49,7 @@ object BoardText {
      * named by its place: "Red Throne Zone", "Lane Zone 2" (counted from Red's Throne Zone),
      * "Side Zone 1".
      */
-    fun zone(map: BoardMap, zoneId: String?): String {
-        val zone = map.zones.firstOrNull { it.id == zoneId } ?: return "Off the board"
-        zone.name?.let { return it }
-        return when (zone.kind) {
-            ZoneKind.THRONE -> zone.team?.let { "${team(it)} Throne Zone" } ?: "Throne Zone"
-
-            ZoneKind.LANE -> {
-                val lane = map.lanes.firstOrNull { zone.id in it.zones }
-                val index = lane?.zones?.indexOf(zone.id) ?: -1
-                val prefix = if (map.lanes.size > 1 && lane != null) "Lane ${map.lanes.indexOf(lane) + 1} · " else ""
-                if (index > 0) "${prefix}Lane Zone $index" else "${prefix}Lane Zone"
-            }
-
-            ZoneKind.SIDE -> {
-                val sides = map.zones.filter { it.kind == ZoneKind.SIDE }
-                if (sides.size > 1) "Side Zone ${sides.indexOf(zone) + 1}" else "Side Zone"
-            }
-        }
-    }
+    fun zone(map: BoardMap, zoneId: String?): String = map.zoneName(zoneId)
 
     /** "Lane 1" on a map with several Lanes, else null (the single-lane map's Lane needs no name). */
     fun lane(map: BoardMap, laneId: String?): String? {

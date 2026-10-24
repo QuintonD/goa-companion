@@ -288,11 +288,12 @@ class FakeGameSession(
 
     internal fun reveal() {
         s.phase = GamePhase.RESOLVE
-        val played = s.heroes.values.associate { it.id to it.played }
-        emit(GameEvent.CardsRevealed(played, "Cards are revealed."))
         s.order = s.heroes.values.sortedWith(
             compareByDescending<Hero> { initiative(it.played) }.thenBy { if (it.team == s.coin) 0 else 1 },
         ).map { it.id }
+        // As the engine does: in the order the cards will act.
+        val played = s.order.associateWith { s.heroes.getValue(it).played }
+        emit(GameEvent.CardsRevealed(played, "Cards are revealed."))
         s.acting = s.order.first()
     }
 

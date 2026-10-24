@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.game.engine
 
 import dev.quinton.goa.core.domain.board.BoardGeometry
+import dev.quinton.goa.core.domain.board.zoneName
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionContext
@@ -163,6 +164,12 @@ class Game internal constructor(
     fun heroOrNull(id: String): HeroState? = state.hero(id)
 
     fun heroName(id: String): String = data.heroName(id)
+
+    /** The Zone [hex] is in, for event text: "the Red Throne Zone", "Lane Zone 2". */
+    fun spaceName(hex: Hex): String {
+        val name = data.maps[state.mapId]?.zoneName(geo.zoneOf(hex)) ?: return "a space"
+        return if (name.endsWith("Throne Zone")) "the $name" else name
+    }
 
     /** Readable name of any unit, token or hero for event text. */
     fun name(id: String): String {
