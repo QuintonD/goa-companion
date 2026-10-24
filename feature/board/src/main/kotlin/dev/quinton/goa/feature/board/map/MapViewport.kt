@@ -56,6 +56,13 @@ class MapViewport {
     var mode by mutableStateOf(ViewMode.LANE)
         private set
 
+    /**
+     * True once the person pinched, panned or double-tapped since the view was last framed by Fit,
+     * the Lane or a new layout: hiding a panel then leaves their view alone instead of fitting.
+     */
+    var userMoved = false
+        private set
+
     private var maxZoom = MIN_MAX_ZOOM
     private var maxHexPx = 0f
     private var minHexPx = 0f
@@ -82,6 +89,7 @@ class MapViewport {
         unit = minOf(size.width / layout.width, size.height / layout.height)
         content = Size(layout.width * unit, layout.height * unit)
         maxZoom = (maxHexPx / (2f * unit)).coerceAtLeast(MIN_MAX_ZOOM)
+        userMoved = false
         reframe()
     }
 
@@ -173,6 +181,7 @@ class MapViewport {
     /** Animated: the whole map. */
     suspend fun animateFit() {
         val z = fitZoom(fullMap()).coerceIn(minZoom, maxZoom)
+        userMoved = false
         animateTo(z, centerOn(fullMap().center, z))
         mode = ViewMode.FIT
     }
@@ -181,6 +190,7 @@ class MapViewport {
     suspend fun animateLane() {
         val region = lane ?: return animateFit()
         val z = laneZoom(region)
+        userMoved = false
         animateTo(z, clampPan(centerOn(region.center, z), z))
         mode = ViewMode.LANE
     }
@@ -200,12 +210,14 @@ class MapViewport {
 
     fun panBy(delta: Offset) {
         mode = ViewMode.MOVED
+        userMoved = true
         pan = clampPan(pan + delta, zoom)
     }
 
     /** Pinch: zooms by [factor] keeping [focus] (screen px) still, then pans by [delta]. */
     fun transform(factor: Float, focus: Offset, delta: Offset) {
         mode = ViewMode.MOVED
+        userMoved = true
         val next = (zoom * factor).coerceIn(minZoom, maxZoom)
         val applied = next / zoom
         val panned = focus - (focus - pan) * applied + delta
@@ -222,6 +234,7 @@ class MapViewport {
             val applied = next / zoom
             animateTo(next, clampPan(focus - (focus - pan) * applied, next))
             mode = ViewMode.MOVED
+            userMoved = true
         }
     }
 

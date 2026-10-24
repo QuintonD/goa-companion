@@ -80,6 +80,9 @@ tools/catalog-import/    # JVM CLI (reuses core:model): sources.lock.json, overr
                          #   cache/ (gitignored), REPORT.md → writes assets/catalog + assets/official;
                          #   --rules-only: rules-reference drift check vs the pinned rulebook (PDFBox)
                          #   --maps-only: board maps (catalog/maps) + overlay check images in cache/maps
+server/relay/            # NOT in the root build: standalone Gradle build (own wrapper + pinned catalog), the Ktor
+                         #   (CIO) sync relay of ADR-036 / docs/SYNC-SERVER.md: one sealed blob per group,
+                         #   ETag/If-Match, token-hash TOFU, never parses bodies. Docker deploy kit: deploy/relay/
 ```
 Dependency direction: `feature → core:data/domain/designsystem → core:model`.
 Features never depend on each other; cross-feature navigation goes through `app`.

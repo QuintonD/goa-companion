@@ -356,7 +356,12 @@ Life counters).
   the selection panel closes the map fills the space it leaves; "Fit" shows the whole map (beside the side panel in
   landscape) and toggles back to the Lane; pinch to zoom, drag to pan, double tap on a space where
   the tap did nothing zooms in. Selection details sit in a bottom panel (on the right in
-  landscape, where a bottom panel would leave no map) that never covers the selected piece. Pieces
+  landscape, where a bottom panel would leave no map) that never covers the selected piece. **See the
+  whole board:** the panel hides (Hide, or drag it down) to a one-line peek bar with the piece's name
+  and Zone, Deselect and Show (a small card at the bottom end in landscape); the map then fits the
+  whole board unless you had pinched or panned, and taps on the map work as before. Hidden or shown is
+  remembered while the board is open, also across rotation. The title bar is compact (48 dp, 40 dp in
+  landscape) on the board, the game and a puzzle. Pieces
   show the hero's portrait ringed in team colour, minions by type, tokens by label. TalkBack: a
   "Pieces" list selects any piece; spaces in view read their Zone, what stands there and how far
   they are from the selected piece.
@@ -385,6 +390,13 @@ opponents (and teammates) at four levels. One phone, one human team.
   says what is asked and which card asks it; every option is shown on the board or as a button;
   the log narrates every event (TalkBack reads it). The computer never sees hidden cards (p.4):
   it plans on guesses consistent with what is face up.
+- **See the whole board:** the panel (questions, the computer's move, the coach) hides to a
+  one-line peek bar that still says what is asked ("● Arien · Choose an action for Dangerous
+  Current", teal when it waits for you; a new question is announced by TalkBack). The map fits the
+  whole board (unless you had moved it), only the round at a glance stays at the top (the hero strip
+  returns with the panel), and a space or piece tapped on the map is answered with Confirm in the
+  peek bar, without opening the panel. Show (or a tap on the peek bar, or dragging it up) brings the
+  panel back. In landscape the side panel hides to a small card at the bottom end.
 - **Pacing:** each computer action is shown for a moment (Slow / Normal / Fast); "thinking…" when
   it takes long. Take back undoes your last choice (counted in the summary).
 - **Coach** (on/off, also in-game): before a clearly worse choice, a gentle nudge ("Coach: Wasp's
@@ -420,6 +432,9 @@ turn", "Push the lane before the round ends", "Survive this turn"), one way (or 
   taken from what followed where it can ("Not quite — that lets Arien defend with Aspiring
   Duelist."; otherwise what the goal can no longer reach), and offers Try again from before that
   move, Restart and Show solution. Tries are counted. Any winning line counts, not just the stored one.
+  The panel hides as in a game (9): the whole board with the question, the latest reply, the miss,
+  "Solved" or the replay's step in the peek bar, Confirm there for a tapped space or piece; the goal
+  banner returns with the panel.
 - **Nudges** (on by default; switch in the puzzle's menu and in Settings → Learning → Puzzle
   nudges, one preference): when you're stuck (a miss, or 90 s without progress on the question) a
   gentle nudge card appears in the panel (not a dialog; close it with ×); "Another nudge" gives the
