@@ -27,9 +27,9 @@ object P25ColdSnap : Puzzle() {
         theme = "Minion defense modifiers",
         heroes = listOf("tali", "brogan", "wasp", "dodger"),
         goal = PuzzleGoal.DefeatHero("wasp", Deadline.END_OF_TURN, "Defeat Wasp this turn."),
-        intro = "Round 3, turn 4. Tali has played Cold Snap and acts next, then Brogan with Mad Dash. Wasp " +
+        intro = "Round 2, turn 4. Tali has played Cold Snap and acts next, then Brogan with Mad Dash. Wasp " +
             "has played Stop Projectiles (initiative 3) and keeps Lift Up (Defense 5) in hand. Dodger has " +
-            "already acted.",
+            "already acted, with Dread Razor.",
         nudges = listOf(
             "Wasp is guarded: by what?",
             "Cold Snap moves them all the same way, unless one of them can't move.",
@@ -55,7 +55,7 @@ object P25ColdSnap : Puzzle() {
     override val playerSeats = setOf("tali", "brogan")
 
     override fun PositionBuilder.setUp() {
-        round = 3
+        round = 2
         turn = 4
         tieBreaker = Team.RED
         clearMinions()
@@ -81,10 +81,11 @@ object P25ColdSnap : Puzzle() {
             hand("wasp-blue-1")
         }
         hero("dodger", Team.RED, Hex(0, -2)) {
-            resolved(1, "dodger-gold")
-            resolved(2, "dodger-silver")
+            // Already acted this turn, with Dread Razor (12): faster than every card still to resolve.
+            resolved(1, "dodger-silver")
+            resolved(2, "dodger-green-1")
             resolved(3, "dodger-red-1")
-            resolved(4, "dodger-green-1")
+            resolved(4, "dodger-gold")
             hand("dodger-blue-1")
         }
         minion(Team.RED, MinionType.MELEE, Hex(4, -6))

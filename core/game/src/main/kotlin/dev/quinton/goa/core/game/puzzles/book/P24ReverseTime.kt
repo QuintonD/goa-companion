@@ -33,10 +33,10 @@ object P24ReverseTime : Puzzle() {
         theme = "Reversed initiative",
         heroes = listOf("wuk", "emmitt", "tigerclaw", "dodger"),
         goal = PuzzleGoal.DefeatHero("tigerclaw", Deadline.END_OF_TURN, "Defeat Tigerclaw this turn."),
-        intro = "Round 3, turn 4: play your cards. Emmitt resolved Reverse Time last turn, so this turn heroes " +
+        intro = "Round 2, turn 4: play your cards. Emmitt resolved Reverse Time last turn, so this turn heroes " +
             "with lower initiative act first. Wuk holds Tree Slam (11) and Nature's Protector (7), Emmitt " +
-            "Time Walk (6) and Time Snare (8). Tigerclaw has already played his last card, Hit and Run (9), so " +
-            "he has no card left to defend with; Dodger has no cards at all.",
+            "Time Walk (6) and Time Snare (8). Tigerclaw has played Hit and Run (9), his last card, and has " +
+            "not moved since last turn; Dodger has no cards.",
         nudges = listOf(
             "Who acts first this turn, really? Lower initiative goes first.",
             "Tree Slam can reach Tigerclaw now, but at 11 it comes after his 9. Nature's Protector at 7 comes " +
@@ -56,7 +56,7 @@ object P24ReverseTime : Puzzle() {
     override val playerSeats = setOf("wuk", "emmitt")
 
     override fun PositionBuilder.setUp() {
-        round = 3
+        round = 2
         turn = 4
         tieBreaker = Team.RED
         clearMinions()
