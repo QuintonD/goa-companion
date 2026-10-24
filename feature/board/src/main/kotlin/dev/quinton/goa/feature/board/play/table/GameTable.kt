@@ -39,12 +39,14 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.Choice
+import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.board.MapButton
@@ -95,8 +97,12 @@ fun GameTable(
         val decision = table.decision
         LaunchedEffect(decision?.id, table.asking, viewport.unit, viewport.bottomInset, viewport.endInset) {
             if (decision == null || viewport.unit == 0f) return@LaunchedEffect
+            // Choosing a card: the person's own heroes (the others choose theirs hidden, p.7).
+            if (decision.kind == DecisionKind.PLAY_CARD && !table.asking) return@LaunchedEffect
+            val who = if (decision.kind == DecisionKind.PLAY_CARD) table.mine else setOf(decision.seat)
             val hexes = table.spaceOptions.keys + table.pieceOptions.keys.mapNotNull(table::at) +
-                decision.context.highlight + listOfNotNull(table.subject?.let(table::at))
+                decision.context.highlight + listOfNotNull(table.subject?.let(table::at)) +
+                who.mapNotNull(table::at)
             val region = layout.bounds(hexes, pad = 1.1f) ?: return@LaunchedEffect
             viewport.reveal(region, region.center)
         }
@@ -200,20 +206,26 @@ fun EventLog(lines: List<LogLine>, modifier: Modifier = Modifier) {
     }
 }
 
-/** What just happened: the latest events, newest last, the newest in full contrast. */
+/**
+ * What just happened: the latest events, newest last, the newest in full contrast; lines at
+ * [strong] (indices into [lines]: a defeat, a push, a level up…) in full contrast and bold.
+ */
 @Composable
-fun RecentEvents(lines: List<String>, modifier: Modifier = Modifier) {
+fun RecentEvents(lines: List<String>, modifier: Modifier = Modifier, strong: Set<Int> = emptySet()) {
     if (lines.isEmpty()) return
+    val skip = (lines.size - RECENT).coerceAtLeast(0)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        lines.takeLast(RECENT).forEachIndexed { i, line ->
+        lines.drop(skip).forEachIndexed { i, line ->
             val last = i == minOf(lines.size, RECENT) - 1
+            val bold = (i + skip) in strong
             Row {
                 Text("•", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.width(Spacing.xs))
                 Text(
                     line,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.run { if (last) onSurface else onSurfaceVariant },
+                    fontWeight = if (bold) FontWeight.SemiBold else null,
+                    color = MaterialTheme.colorScheme.run { if (last || bold) onSurface else onSurfaceVariant },
                 )
             }
         }

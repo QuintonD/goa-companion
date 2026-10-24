@@ -46,6 +46,7 @@ import dev.quinton.goa.feature.board.play.game.PlaySheet
 import dev.quinton.goa.feature.board.play.game.PlayUi
 import dev.quinton.goa.feature.board.play.game.RevealedCard
 import dev.quinton.goa.feature.board.play.game.TurnStatus
+import dev.quinton.goa.feature.board.play.game.recentSince
 import dev.quinton.goa.feature.board.play.setup.Control
 import dev.quinton.goa.feature.board.play.setup.NewGameAction
 import dev.quinton.goa.feature.board.play.setup.NewGameScreen
@@ -166,7 +167,12 @@ class PlayScreenshotTest {
     ) = PlayUi(
         table = table(session, humans, selected),
         status = status,
-        recent = session.events.takeLast(4).map { it.text },
+        // As the game shows it: what happened since the person's last answer (here, the whole game).
+        recent = if (status == TurnStatus.YourTurn) {
+            recentSince(session.events, 0, session.setup.seats.map { it.heroId }.toSet()).lines
+        } else {
+            session.events.takeLast(4).map { it.text }
+        },
         log = logLines(session.events),
         coach = true,
         pace = AiPace.NORMAL,

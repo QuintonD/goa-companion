@@ -72,7 +72,10 @@ data class PlayAnnouncement(val text: String, val id: Long)
 data class PlayUi(
     val table: TableUi,
     val status: TurnStatus,
-    /** The latest events, oldest first. */
+    /**
+     * The latest events, oldest first. When the question is the person's: what happened since
+     * their last answer ([recentSince]), the lines not to miss at [recentStrong].
+     */
     val recent: List<String>,
     val log: List<LogLine>,
     val coach: Boolean,
@@ -89,6 +92,7 @@ data class PlayUi(
     /** A short message for the snackbar ("Nothing to take back yet"); [messageId] tells repeats apart. */
     val message: String? = null,
     val messageId: Long = 0,
+    val recentStrong: Set<Int> = emptySet(),
 )
 
 /** Why there is no game to show. */

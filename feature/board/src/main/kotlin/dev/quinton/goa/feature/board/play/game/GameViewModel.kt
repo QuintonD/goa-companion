@@ -126,6 +126,9 @@ class GameViewModel internal constructor(
     private var messageId = 0L
     private var shownEvents = 0
 
+    /** The event count at the person's last answer: the panel tells what happened since. */
+    private var answeredAt = 0
+
     /** The computer's turn (or the coach after the game): cancelled by take back, rematch, leaving. */
     private var driver: Job? = null
 
@@ -174,10 +177,15 @@ class GameViewModel internal constructor(
         points = null
         humanAnswered = !fresh && canUndo(game)
         shownEvents = withContext(engine) { game.events.size }
+        answeredAt = withContext(engine) { turnStart(game.events) }
         reveal = withContext(engine) { latestReveal(game.events) }
         publish()
         drive()
     }
+
+    /** Where the current turn's events begin (after a restore or take back, "since your last answer"). */
+    private fun turnStart(events: List<GameEvent>): Int =
+        events.indexOfLast { it is GameEvent.TurnStarted || it is GameEvent.RoundStarted }.coerceAtLeast(0)
 
     /** Whether the person has an answer to take back: tried on a copy, so the game is untouched. */
     private suspend fun canUndo(game: GameSession): Boolean = withContext(engine) {
@@ -296,6 +304,7 @@ class GameViewModel internal constructor(
         if (result is AnswerResult.Accepted) {
             humanAnswered = true
             absorb(game)
+            answeredAt = shownEvents
             save()
         }
         publish()
@@ -321,9 +330,10 @@ class GameViewModel internal constructor(
             thinking = false
             humanAnswered = canUndo(game)
             shownEvents = withContext(engine) { game.events.size }
+            answeredAt = withContext(engine) { turnStart(game.events) }
             reveal = withContext(engine) { latestReveal(game.events) }
             update(publish = false) { it.copy(takeBacks = it.takeBacks + 1) }
-            announce("Took back your last choice.")
+            say("Took back your last choice.")
             save()
             publish()
             drive()
@@ -495,9 +505,11 @@ class GameViewModel internal constructor(
         return revealOf(events[last] as GameEvent.CardsRevealed)
     }
 
+    /** The engine lists the cards in the order they will act (initiative, ties by the coin, p.7). */
     private fun revealOf(event: GameEvent.CardsRevealed): List<RevealedCard> = event.played
-        .map { (hero, card) -> RevealedCard(hero, card, card?.let(cards::get)?.initiative) }
-        .sortedByDescending { it.initiative ?: -1 }
+        .map { (hero, card) ->
+            RevealedCard(hero, card, event.initiatives[hero] ?: card?.let(cards::get)?.initiative)
+        }
 
     private fun announce(text: String) {
         if (text.isBlank()) return
@@ -552,12 +564,18 @@ class GameViewModel internal constructor(
             bottomTeam = bottomTeam,
         )
         val over = if (status == TurnStatus.Over) gameOver(view, snapshot.events, inProgress, game) else null
+        val recent = if (status == TurnStatus.YourTurn) {
+            recentSince(snapshot.events, answeredAt, game.setup.seats.map { it.heroId }.toSet())
+        } else {
+            RecentLines(snapshot.events.takeLast(RECENT).map { it.text })
+        }
         state.update {
             GameUiState.Playing(
                 PlayUi(
                     table = table,
                     status = status,
-                    recent = snapshot.events.takeLast(RECENT).map { it.text },
+                    recent = recent.lines,
+                    recentStrong = recent.strong,
                     log = logLines(snapshot.events),
                     coach = inProgress.coach,
                     pace = inProgress.pace,

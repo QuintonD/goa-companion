@@ -211,7 +211,7 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
         add(PlayText.controller(hero.controller))
         if (acting) add("acting now")
         place?.let { add("${PlayText.ordinal(it)} in initiative order") }
-        played?.initiative?.let { add("played initiative $it") }
+        (hero.initiative ?: played?.initiative)?.let { add("played initiative $it") }
         add("level ${hero.level}")
         add(BoardText.count(hero.coins, "coin"))
         add("${BoardText.count(hero.handCount, "card")} in hand")
@@ -286,7 +286,7 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
                     Stat(null, "Lv ${hero.level}")
                     Stat(Icons.Filled.Paid, "${hero.coins}")
                     Stat(Icons.Outlined.Style, "${hero.handCount}")
-                    played?.initiative?.let {
+                    (hero.initiative ?: played?.initiative)?.let {
                         Stat(dev.quinton.goa.core.designsystem.cardtext.GameIcons.initiative.vector, "$it")
                     }
                 }

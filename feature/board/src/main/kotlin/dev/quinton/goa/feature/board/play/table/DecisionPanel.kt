@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.board.play.table
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +32,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -43,6 +48,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.component.TeamMark
@@ -52,10 +58,12 @@ import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.model.catalog.Card
+import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
 
@@ -93,7 +101,22 @@ fun DecisionPanel(
         if (decision.kind != DecisionKind.DEFEND && decision.kind != DecisionKind.PLAY_CARD) {
             Buttons(table, table.buttonOptions, onAnswer, busy)
         }
+        if (decision.kind == DecisionKind.CHOOSE_ACTION && attackMissing(table.sourceCard, decision.options)) {
+            Text(
+                "No Attack: no unit you may target is in reach (p.13), or an effect forbids it.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
+}
+
+/** The card attacks (an Attack value), but neither its attack nor its Attack primary is offered. */
+internal fun attackMissing(card: Card?, options: List<Choice>): Boolean {
+    if (card?.values?.attack == null) return false
+    val actions = options.filterIsInstance<Choice.Action>().map { it.action }
+    val primaryAttacks = card.primary == PrimaryAction.ATTACK && ActionType.PRIMARY in actions
+    return ActionType.ATTACK !in actions && !primaryAttacks
 }
 
 /** Who is asked, what, and which card's text asks it (tap the card to read it). */
@@ -120,6 +143,8 @@ private fun PromptHeader(table: TableUi, decision: Decision, onCard: (Card) -> U
             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
         )
         table.sourceCard?.let { card ->
+            // "in radius", "in range" in the question are the card's own values (p.10): say them.
+            val reach = sourceReach(decision.prompt, card)
             Surface(
                 onClick = { onCard(card) },
                 shape = RoundedCornerShape(10.dp),
@@ -127,7 +152,10 @@ private fun PromptHeader(table: TableUi, decision: Decision, onCard: (Card) -> U
                 border = BorderStroke(1.dp, cardColor(card.color).copy(alpha = 0.8f)),
                 modifier = Modifier
                     .heightIn(min = 40.dp)
-                    .semantics { contentDescription = "Asked by ${card.name}. Read the card" },
+                    .semantics {
+                        contentDescription = listOfNotNull("Asked by ${card.name}", reach).joinToString(", ") +
+                            ". Read the card"
+                    },
             ) {
                 Row(
                     Modifier.padding(horizontal = Spacing.sm, vertical = 4.dp),
@@ -146,10 +174,27 @@ private fun PromptHeader(table: TableUi, decision: Decision, onCard: (Card) -> U
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    reach?.let {
+                        Text(
+                            " · $it",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
         }
     }
+}
+
+/** "Radius 2" / "Range 3" when the question speaks of the asking card's radius or range. */
+internal fun sourceReach(prompt: String, card: Card): String? {
+    val text = prompt.lowercase()
+    return listOfNotNull(
+        card.values.radius?.takeIf { "radius" in text }?.let { "Radius $it" },
+        card.values.range?.takeIf { "range" in text }?.let { "Range $it" },
+    ).joinToString(" · ").ifEmpty { null }
 }
 
 /** A short name for each kind of question, for the header. */
@@ -199,15 +244,6 @@ private fun BoardOptions(table: TableUi, onSelect: (Choice) -> Unit, onAnswer: (
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-    val chips = pieces + if (spaces.size <= MAX_SPACE_CHIPS) spaces else emptyList()
-    if (chips.isNotEmpty()) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            chips.forEach { choice -> OptionChip(table.label(choice), choice == selected) { onSelect(choice) } }
-        }
-    }
     if (selected != null) {
         Button(
             onClick = { onAnswer(selected) },
@@ -216,6 +252,20 @@ private fun BoardOptions(table: TableUi, onSelect: (Choice) -> Unit, onAnswer: (
             contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),
         ) {
             Text("Confirm · ${table.label(selected)}", textAlign = TextAlign.Center)
+        }
+    }
+    // A chip must say which one it is: spaces whose names repeat ("Red Throne Zone" three times)
+    // are only told apart on the board.
+    val spaceChips = spaces.takeIf { list ->
+        list.size <= MAX_SPACE_CHIPS && list.map(table::label).distinct().size == list.size
+    }.orEmpty()
+    val chips = pieces + spaceChips
+    if (chips.isNotEmpty()) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            chips.forEach { choice -> OptionChip(table.label(choice), choice == selected) { onSelect(choice) } }
         }
     }
 }
@@ -326,9 +376,16 @@ private fun HandPicker(
 ) {
     val options = table.cardOptions
     val selected = table.selected as? Choice.Card
+    table.decider?.takeIf { it.at == null }?.let { hero ->
+        Text(
+            "${table.hero(hero.heroId).name} is off the board. When this card resolves you may respawn in " +
+                "your Throne Zone, then act with it (p.7).",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
     CardStrip(table, options, selected, onSelect)
     val card = table.card(selected?.cardId)
-    if (card != null) CardPreview(card, onCard)
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
         table.buttonOptions.forEach { choice ->
             OutlinedButton(onClick = { onAnswer(choice) }, enabled = !busy, modifier = Modifier.heightIn(min = 52.dp)) {
@@ -354,6 +411,8 @@ private fun HandPicker(
             }
         }
     }
+    // Under the button, so choosing a card never pushes "Play" out of the panel.
+    if (card != null) CardPreview(card, onCard)
 }
 
 /** Card choices other than playing: discard, retrieve, which card to upgrade, which to keep. */
@@ -371,16 +430,7 @@ private fun CardPicker(
     CardStrip(table, options, selected, onSelect)
     val card = table.card(selected?.cardId)
     if (card != null) {
-        if (decision.kind == DecisionKind.KEEP_UPGRADE) {
-            // p.15: the card kept goes to hand, the other is tucked as an item.
-            val other = options.firstOrNull { it != selected }?.let { table.card(it.cardId) }
-            Text("${card.name} goes to your hand.", style = MaterialTheme.typography.bodyMedium)
-            other?.item?.let { stat ->
-                ItemLine(stat, "${other.name} becomes an item: +1 ${PlayText.stat(stat)} (p.16)")
-            }
-        } else {
-            CardPreview(card, onCard)
-        }
+        // The button first, so the preview below never pushes it out of the panel.
         Button(
             onClick = { selected?.let(onAnswer) },
             enabled = !busy,
@@ -394,6 +444,18 @@ private fun CardPicker(
                 },
             )
         }
+        if (decision.kind == DecisionKind.KEEP_UPGRADE) {
+            // p.15: the card kept goes to hand, the other is tucked as an item.
+            val other = options.firstOrNull { it != selected }?.let { table.card(it.cardId) }
+            Text("${card.name} goes to your hand.", style = MaterialTheme.typography.bodyMedium)
+            other?.item?.let { stat ->
+                ItemLine(stat, "${other.name} becomes an item: +1 ${PlayText.stat(stat)} (p.16)")
+            }
+        } else if (decision.kind == DecisionKind.UPGRADE_CARD && upgradesOf(table, card).size == 2) {
+            UpgradePreview(card, upgradesOf(table, card), onCard)
+        } else {
+            CardPreview(card, onCard)
+        }
     } else if (decision.kind == DecisionKind.KEEP_UPGRADE) {
         Text(
             "One goes to your hand; the other is tucked under your hero as an item (p.15, p.16).",
@@ -403,10 +465,64 @@ private fun CardPicker(
     }
 }
 
+/** The cards of the next Tier in [card]'s colour (p.15): what upgrading it offers. */
+internal fun upgradesOf(table: TableUi, card: Card): List<Card> {
+    val tier = card.tier ?: return emptyList()
+    return table.cards.values
+        .filter { it.heroId == card.heroId && it.color == card.color && it.tier == tier + 1 }
+        .sortedBy { it.id }
+}
+
+/** Upgrading a card: the two of the next Tier, one to keep, the other an item (p.15, p.16). */
+@Composable
+private fun UpgradePreview(card: Card, next: List<Card>, onCard: (Card) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text(
+            "${card.name} is replaced by one of these: you keep one, the other becomes an item (p.15, p.16).",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            next.forEach { option ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.semantics(mergeDescendants = true) {
+                        contentDescription = spokenCard(option) +
+                            (option.item?.let { ". As an item: +1 ${PlayText.stat(it)}" } ?: "")
+                    },
+                ) {
+                    Surface(onClick = { onCard(option) }, shape = RoundedCornerShape(6.dp)) {
+                        TableCard(option, width = UPGRADE_CARD)
+                    }
+                    option.item?.let { ItemIcon(it, 14.dp) }
+                }
+            }
+        }
+    }
+}
+
 /** Card images in a row, selectable; each one a TalkBack node with its values. */
 @Composable
 private fun CardStrip(table: TableUi, options: List<Choice.Card>, selected: Choice.Card?, onSelect: (Choice) -> Unit) {
     val keep = table.decision?.kind == DecisionKind.KEEP_UPGRADE
+    // The whole hand in view (five cards after a level up): the cards shrink to fit, down to a size
+    // still easy to tap; only beyond that does the row scroll.
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val n = options.size.coerceAtLeast(1)
+        val fit = (maxWidth - Spacing.sm * (n - 1) - STRIP_SLACK) / n
+        val width = fit.coerceIn(MIN_HAND_CARD, HAND_CARD)
+        CardRow(table, options, selected, onSelect, keep, width)
+    }
+}
+
+@Composable
+private fun CardRow(
+    table: TableUi,
+    options: List<Choice.Card>,
+    selected: Choice.Card?,
+    onSelect: (Choice) -> Unit,
+    keep: Boolean,
+    cardWidth: Dp,
+) {
     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         options.forEach { choice ->
             val card = table.card(choice.cardId)
@@ -433,7 +549,7 @@ private fun CardStrip(table: TableUi, options: List<Choice.Card>, selected: Choi
                     ),
                     modifier = Modifier.padding(top = if (chosen) 0.dp else 6.dp, bottom = if (chosen) 6.dp else 0.dp),
                 ) {
-                    TableCard(card, width = HAND_CARD)
+                    TableCard(card, width = cardWidth)
                 }
                 if (keep) card?.item?.let { ItemIcon(it, 14.dp) }
                 if (chosen) {
@@ -505,8 +621,10 @@ private fun DefensePanel(
     ) {
         Column(Modifier.padding(Spacing.md)) {
             Text(
-                listOfNotNull(attacker?.let { "$it attacks" }, if (context.rangedAttack == true) "ranged" else null)
-                    .joinToString(" · ")
+                listOfNotNull(
+                    attacker?.let { "$it attacks" },
+                    context.rangedAttack?.let { if (it) "ranged" else "melee" },
+                ).joinToString(" · ")
                     .ifEmpty { "Attacked" },
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onErrorContainer,
@@ -526,13 +644,30 @@ private fun DefensePanel(
             }
         }
     }
+    val verdicts = table.cardOptions.associate { choice ->
+        choice.cardId to
+            defenseVerdict(context.defensePreview[choice.cardId], context.blockPreview[choice.cardId], attack)
+    }
+    if (attack != null && verdicts.isNotEmpty() && verdicts.values.all { it == false }) {
+        // p.14: a failed defense still discards the card, and the hero is defeated all the same.
+        Text(
+            "None of your cards stops Attack $attack. Not defending keeps them in your hand (p.14).",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         table.cardOptions.forEach { choice ->
             val card = table.card(choice.cardId)
-            val total = context.defensePreview[choice.cardId]
-            DefenseRow(card, total, attack, choice == selected, onClick = {
-                onSelect(choice)
-            }, onRead = { card?.let(onCard) })
+            DefenseRow(
+                card,
+                context.defensePreview[choice.cardId],
+                context.blockPreview[choice.cardId],
+                verdicts[choice.cardId],
+                choice == selected,
+                onClick = { onSelect(choice) },
+                onRead = { card?.let(onCard) },
+            )
         }
         table.buttonOptions.forEach { choice ->
             DeclineRow(table.label(choice), choice == selected) { onSelect(choice) }
@@ -540,9 +675,14 @@ private fun DefensePanel(
     }
     if (selected != null) {
         val card = (selected as? Choice.Card)?.let { table.card(it.cardId) }
-        Button(onClick = {
-            onAnswer(selected)
-        }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+        // The button is under every row: bring it into view once a row is chosen.
+        val requester = remember { BringIntoViewRequester() }
+        LaunchedEffect(selected) { requester.bringIntoView() }
+        Button(
+            onClick = { onAnswer(selected) },
+            enabled = !busy,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).bringIntoViewRequester(requester),
+        ) {
             Text(card?.let { "Defend with ${it.name}" } ?: table.label(selected))
         }
     }
@@ -551,26 +691,34 @@ private fun DefensePanel(
 /** Defense succeeds when its total is at least the Attack (p.14). */
 fun holds(defense: Int?, attack: Int?): Boolean? = if (defense == null || attack == null) null else defense >= attack
 
+/**
+ * Whether a defense card stops the attack: a Block by its condition when the engine settles it
+ * ([blocks], p.14 "regardless of the attack value"), else its Defense total against the Attack;
+ * null when only resolving it tells.
+ */
+fun defenseVerdict(total: Int?, blocks: Boolean?, attack: Int?): Boolean? = blocks ?: holds(total, attack)
+
 @Composable
 private fun DefenseRow(
     card: Card?,
     total: Int?,
-    attack: Int?,
+    blocks: Boolean?,
+    verdict: Boolean?,
     selected: Boolean,
     onClick: () -> Unit,
     onRead: () -> Unit,
 ) {
-    val verdict = holds(total, attack)
     val verdictText = when (verdict) {
-        true -> "Holds"
+        true -> if (blocks == true) "Blocks" else "Holds"
         false -> "Falls"
         null -> "Decided by its text"
     }
-    val spoken = listOfNotNull(
-        card?.name ?: "Unknown card",
-        total?.let { "Defense $it" } ?: "Defense decided while it resolves",
-        verdictText,
-    ).joinToString(", ")
+    val detail = when (blocks) {
+        true -> "Block: stops this attack whatever its value"
+        false -> "Block: not against this attack"
+        null -> total?.let { "Defense $it" } ?: "Defense decided while it resolves"
+    }
+    val spoken = listOfNotNull(card?.name ?: "Unknown card", detail, verdictText).joinToString(", ")
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
@@ -605,7 +753,7 @@ private fun DefenseRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    total?.let { "Defense $it" } ?: "Defense decided while it resolves",
+                    detail,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -668,5 +816,10 @@ private fun DeclineRow(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 private val HAND_CARD = 84.dp
+private val MIN_HAND_CARD = 60.dp
+
+/** The selected card's 3 dp border on both sides. */
+private val STRIP_SLACK = 6.dp
+private val UPGRADE_CARD = 72.dp
 private const val MAX_SPACE_CHIPS = 6
 private const val PREVIEW_LINES = 4
