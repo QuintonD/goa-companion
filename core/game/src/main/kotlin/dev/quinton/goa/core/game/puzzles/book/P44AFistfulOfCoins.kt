@@ -22,12 +22,12 @@ object P44AFistfulOfCoins : Puzzle() {
         id = "p44",
         number = 44,
         title = "A Fistful of Coins",
-        difficulty = 3,
+        difficulty = 2,
         theme = "The opponent's own choice",
         heroes = listOf("cutter", "swift", "wasp", "dodger"),
         goal = PuzzleGoal.WinGame("Win the game this turn."),
-        intro = "Round 5, turn 4. Both teams have two Life counters. Cutter (A Fistful of Coins, 12) acts " +
-            "next with 10 coins, then Swift (Snipe, 8). Wasp (level 4) and Dodger (level 1) have played their " +
+        intro = "Round 6, turn 4. Both teams have two Life counters. Cutter (A Fistful of Coins, 12) acts " +
+            "next with 10 coins, then Swift (Snipe, 9). Wasp (level 4) and Dodger (level 3) have played their " +
             "last cards and have none in hand.",
         nudges = listOf(
             "Give the enemy a choice where both answers lose.",
@@ -41,8 +41,8 @@ object P44AFistfulOfCoins : Puzzle() {
             "spaces south-west of Swift in a straight line, Snipe's maximum range (p.18 Place, p.19 Straight " +
             "Line); with no cards she cannot defend the Snipe (p.13), and her lowest card Tier is II, so Red " +
             "spends its last two Life counters (p.13). Dodger is the trap: she also chooses to be placed and " +
-            "falls to the Snipe, but her Tier I cards cost Red only one counter. The other Snipe space in " +
-            "Cutter's radius, four spaces due west of Swift, is taken by Blue's own minion.",
+            "falls to the Snipe, but at level 3 her lowest card is still Tier I: one counter. The other Snipe " +
+            "space in Cutter's radius, four spaces due west of Swift, is taken by Blue's own minion.",
         rules = listOf(
             "p.10 Making Choices",
             "p.13 When a Hero is Defeated",
@@ -54,7 +54,7 @@ object P44AFistfulOfCoins : Puzzle() {
     override val playerSeats = setOf("cutter", "swift")
 
     override fun PositionBuilder.setUp() {
-        round = 5
+        round = 6
         turn = 4
         tieBreaker = Team.BLUE
         clearMinions()
@@ -78,11 +78,13 @@ object P44AFistfulOfCoins : Puzzle() {
             )
         }
         hero("swift", Team.BLUE, Hex(5, -5)) {
+            level = 3
             played("swift-red-1")
             resolved(1, "swift-gold")
             resolved(2, "swift-silver")
-            resolved(3, "swift-blue-1")
-            hand("swift-green-1")
+            resolved(3, "swift-blue-2b")
+            hand("swift-green-2a")
+            items("swift-green-2b", "swift-blue-2a")
         }
         hero("wasp", Team.RED, Hex(0, -2)) {
             level = 4
@@ -95,12 +97,14 @@ object P44AFistfulOfCoins : Puzzle() {
             items("wasp-red-2b", "wasp-green-2b", "wasp-blue-2a")
         }
         hero("dodger", Team.RED, Hex(3, -3)) {
-            played("dodger-green-1")
+            level = 3
+            played("dodger-green-2a")
             resolved(1, "dodger-gold")
             resolved(2, "dodger-silver")
-            resolved(3, "dodger-red-1")
+            resolved(3, "dodger-red-2b")
             discard("dodger-blue-1")
             hand()
+            items("dodger-red-2a", "dodger-green-2b")
         }
         minion(Team.RED, MinionType.MELEE, Hex(2, -3))
         minion(Team.RED, MinionType.HEAVY, Hex(1, 0))
@@ -117,7 +121,7 @@ object P44AFistfulOfCoins : Puzzle() {
 
     override val wrongTries = listOf(
         WrongTry(
-            "Fistful on Dodger: she dies to the Snipe, but a level 1 hero costs one Life counter",
+            "Fistful on Dodger: she dies to the Snipe, but a level 3 hero costs one Life counter",
             listOf(action(ActionType.PRIMARY), hero("dodger")),
         ),
         WrongTry(

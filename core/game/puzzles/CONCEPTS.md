@@ -878,6 +878,18 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.8 Triggering a Push; p.18 Ignoring Obstacles, Minions Outside of the Battle Zone; p.19 Straight line.
 - **Risk:** none.
 - **Encoded as p40:** as in the concept. Widget's cards made concrete (resolved Fight as One, Dragon Bond, Diversionary Attack; holds Nibble; items Airborne Attack, Flaming Breath, Take-Off, Safe Landing). The engine asks Pyro's space, then the enemy's (2 or 3 each, same direction): Pyro east 2 is the only winning Pyro move, Dodger east 2 (not 3) the only winning Dodger move. With one Wave counter left, sniping the minion would also have won (last push): no Carry Away puts it in Snipe's reach.
+- **Hardened as p40 (2026-10-24, changed):** legality: Swift L3 (Pin Down, Assault Jump; items Mark for
+  Death = Initiative, Delayed Jump = Defense, so Snipe shows 9), Dodger L3 (Burning Skull, Darker Ritual;
+  items Finger of Death = Initiative, Necromancy = Attack), Wasp L2 (Kinetic Repulse; item Control Gravity):
+  no level 1 in round 5. Wasp's turn-4 card is Kinetic Repulse (10), tied with Carry Away and won on Red's
+  side of the coin, which she flipped to Blue (Stop Projectiles at 3 could not have gone first). One Blue
+  heavy only (on its spawn point (2,−7)); Red's last minion is its heavy (a heavy goes last, p.8/p.13),
+  still at (1,−6). Harder: Dodger now holds Shield of Decay (Defense 3, +2 with two
+  empty spawn points within 2 in the Battle Zone) and Swift moved to (5,−5), so two Carry Away landings are
+  four from Swift in a straight line: south-west (1,−5) beside Widget, where the Shield holds (3 + 2 + 1 Red
+  heavy − 1 Blue melee = 5 against 5), and north-east (5,−9), one empty spawn point and no minion: 3 against
+  5. The player must find both landings and count the board around each; the minion trap stays (its Carry
+  Away squares are out of Snipe's reach). Only Pyro (4,−8) then Dodger (5,−9) wins.
 
 ---
 
@@ -904,6 +916,16 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
   `green-2a`, `blue-2a`; Wasp: resolved `red-1`, `blue-1`, hand `silver`, `green-1`. The defence choice
   offers Rogue Wave first. Arien ends the turn with Liquid Leap's Hold (any Movement also wins; its
   primary is not offered). Wrong tries tested: Rogue Wave, no defense.
+- **Hardened as p41 (2026-10-24, changed):** legality: round 4 (Dodger L5 with Middlefinger needs the
+  coins: not round 2); Sabina's turn-2 card is Point Blank Shot (12), tied with Wasp's dagger and won on
+  Blue's side, which she flipped to Red. Harder: turn 2, so Arien holds three cards (Dangerous Current,
+  Expert Duelist, Arcane Whirlpool; L3, items Slippery Ground and Magical Current = Attack) and acts between
+  the attacks with Noble Blade (11); Sabina (no card that holds a 7) stands next to Dodger and is a player
+  seat (`Survive` covers both). Expert Duelist is still the only defence (Dangerous Current 6 − 1 holds the
+  dagger's 5 but opens Middlefinger's discard bullet; Arcane Whirlpool 3 − 1 fails), and then Noble Blade
+  must target the Red melee (3,−5) between Arien and Sabina and move Sabina to (4,−6), the one space beside
+  it not next to Dodger ((5,−5) and (3,−4) are). Noble Blade on Wasp (it even defeats her) leaves Sabina to
+  Dodger. Positions moved: Arien (2,−5), Wasp (1,−5), Sabina (4,−5), Dodger (4,−4).
 
 ### C42 — The Courteous Trap
 - **Theme:** choosing your last-but-one card; tie broken by the coin; an attack that heals the target. **Difficulty:** 3. **Heroes:** Rowenna; Tigerclaw (Swift, Xargatha idle).
@@ -921,6 +943,13 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.7 Play one card, Tied Initiative; p.12 Skill action; p.14 Defense total; p.16 Item bonus.
 - **Risk:** none (requires the "play a card" starting step).
 - **Encoded as p42 (changed):** Xargatha moved from (5,−6), which is terrain (not a space), to (7,−8). Rowenna is seated first; the idle heroes' forced cards are Swift's Suppress (4) and Xargatha's Charm (5), both after the 10s. The engine confirms 3 + 1 + 1 = 5 against 5 for the gold.
+- **Hardened as p42 (2026-10-24, changed):** legality: Swift L3 and Xargatha L2 (no level 1 in round
+  3). Harder: Red now shows on the coin, so Accept Surrender alone loses the 10–10 tie and Tigerclaw runs.
+  Swift is a player seat holding Bounce (13) and Delayed Jump (10, 11 with her Initiative item from Mark for
+  Death); Xargatha's only card is Cleave (11). Delayed Jump ties Xargatha across teams: Red's Xargatha goes
+  first and flips the coin to Blue, and Rowenna then wins the 10–10 tie. Four card pairs, one wins (Accept
+  Surrender + Delayed Jump); Code of Chivalry still loses to the retrieved Combat Reflexes (5 against 5),
+  and Bounce ties no one. Seats: Rowenna, Swift, Tigerclaw, Xargatha (both Red cards forced).
 
 ### C43 — Count the Minions
 - **Theme:** Minion Battle arithmetic; an End-of-round effect; why killing the hero is wrong. **Difficulty:** 3. **Heroes:** Tigerclaw, Xargatha; Arien (Wasp idle).
@@ -942,6 +971,16 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Encoded as p43 (2026-10-24):** as in the concept (`PushLane(round)`). Only the east Blink wins; the
   blink through Arien is first in the canonical order. The solver's best reply for Arien is to move away
   (the push still comes, 3 vs 1). Wrong tries tested: through Arien, through B2, Hold.
+- **Hardened as p43 (2026-10-24, changed):** legality: Tigerclaw L2 (Poisoned Dagger; item Pick Pocket =
+  Attack, so Blink Strike stays 13), Arien L2, Wasp L2 (item Electrocute = Initiative: her turn-4 Static
+  Barrier shows 14 and went first). Harder, new position: Arien plays Rogue Wave (9: ranged, after the attack
+  push an enemy next to him up to 2), so he can push Xargatha off her Constrict victims. Red 5 minions, Blue
+  4 (melee (−1,−4) and (1,−5) both next to Xargatha at (0,−4), melee (3,−5), heavy (2,−7)); Arien (0,−3),
+  Tigerclaw (2,−5) keeping Dodge, Wasp (3,−6) with no cards. Blink options: west through (1,−5), landing
+  (0,−5) right behind Xargatha so the push moves her 0 (wins: Blue 2 after Constrict against Red ≥ 4);
+  east through (3,−5) (the push frees her: Blue keeps one); through Wasp (a hero kill with no cards; Blue
+  keeps one). Arien's best reply then shoots Tigerclaw on (0,−5): the player must block with Dodge, or the
+  square empties and the push works again.
 
 ### C44 — A Fistful of Coins
 - **Theme:** a fork through the opponent's own choice; picking the right hero to force. **Difficulty:** 3. **Heroes:** Cutter, Swift; Wasp, Dodger.
@@ -961,6 +1000,13 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.9 Range; p.10 Making choices; p.13 When a hero is defeated; p.18 Place; p.19 Straight line.
 - **Risk:** "you alone win the game" treated as a team win (`WinGame`). Cutter can hold 10 coins at level 7 because levels are bought only at the end of a round (p.8, p.15).
 - **Encoded as p44 (changed):** Blue's melee minion moved from (1,−4) to (1,−5), so (1,−1) is the only Snipe square in Cutter's radius: as written (1,−5) was the first placement option and taking the first option everywhere solved it. The last nudge names Wasp, not the square. Wasp's level-4 cards: resolved Magnetic Dagger, Static Barrier, Electrocute, Kinetic Repulse discarded; items Charged Boomerang, Telekinesis, Control Gravity (none touches the numbers used). Engine: Cutter's "alone wins" is a team win (rulings/cutter.md 8).
+- **Hardened as p44 (2026-10-24):** legality: round 6, not 5 (Cutter at level 7 with 10 unspent coins
+  needs the rounds); Swift L3 (Pin Down, Delayed Jump; items Mark for Death = Initiative, so Snipe shows 9,
+  and Assault Jump = Attack) and Dodger L3 (Burning Skull, Darker Ritual; items Finger of Death =
+  Initiative, Necromancy = Attack): no level 1 in round 6. Harder: Dodger at level 3 is still Tier I (one
+  Life counter) while Wasp at level 4 is Tier II, so the player must know the p.13 table, not just compare
+  levels. The rest as before: Wasp is the target, and (1,−1) is the only one of 27 placement spaces that
+  wins.
 
 ### C45 — The Lesser Evil
 - **Theme:** opponent's choice as a fork (Last Push or Life counters). **Difficulty:** 3. **Heroes:** Whisper, Tigerclaw; Xargatha, Wasp.
@@ -983,6 +1029,17 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
   Tigerclaw resolved `gold`, `silver`, hand `green-1`, `blue-1`; Xargatha resolved `gold`, `red-1`,
   discard `silver`, item `blue-2b`; Wasp resolved `gold`, `silver`, hand `red-1`, `blue-1`. Both of
   Xargatha's bullets are refuted by the solver. Wrong tries tested: Lesser Evil on Wasp, Movement.
+- **Hardened as p45 (2026-10-24, changed):** legality: Whisper, Tigerclaw, Wasp and Xargatha all L3 in
+  round 5 (Whisper keeps Blood Fury, items Sprouts of Panic = Initiative and Sanguine Path = Defense, so
+  Lesser Evil shows 11; Tigerclaw keeps Combat Reflexes (9) and Poisoned Dagger, items Backstab = Defense,
+  Pick Pocket = Attack). Harder: Wasp now also holds a single card (Control Gravity), so "the one-card
+  hero" no longer names the target; Red has two minions, both next to Whisper: its heavy at (1,−2) and a
+  melee at (3,−3). Tigerclaw (0,−1) plays Combat Reflexes (move 1 before the attack), which reaches
+  Xargatha (−1,−1) and the heavy but neither Wasp (4,−4) nor the melee. Lesser Evil on Wasp: she discards
+  out of reach. On Xargatha both bullets lose: discarding leaves her to Tigerclaw; giving up a minion (the
+  solver's reply) lets Whisper take the melee (the heavy is immune while it stands), and the heavy, now
+  Red's last minion and not immune, is Tigerclaw's (push, last Wave counter), not Xargatha (Petrifying
+  Stare 6 + 1 holds 5).
 
 ### C46 — Hurry Up!
 - **Theme:** changing a teammate's initiative; a tie on the coin; the opponent's blocking reply. **Difficulty:** 3. **Heroes:** Hanu, Brogan; Tigerclaw, Xargatha.
@@ -1005,6 +1062,15 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
   up! offers Tigerclaw before Brogan. The solver's reply for Xargatha is Cleave on the Blue minion (a
   step can't block both runs); either run then wins. Wrong tries tested: Hurry up! on Tigerclaw, Hanu
   Holds, Brogan's dash to (3,−4) hitting the Red minion instead.
+- **Hardened as p46 (2026-10-24, changed):** legality: Hanu and Brogan L3, Tigerclaw and Xargatha L2 (no
+  level 1 in round 3). Harder, the idea turned round: the puzzle starts at the card choice and the
+  obvious "speed up your friend" fails. Hanu holds Hurry up! and There and Back Again, Brogan Onslaught and
+  Mighty Punch, each with one Initiative item (Hanu: This Way! set aside; Brogan: Bullrush), so they show
+  13 / 12 and 12 / 10. Tigerclaw's only card is Blink Strike (13, he steps away), Xargatha's Charm (5);
+  Blue on the coin. Hurry up! ties Blink Strike at 13 and goes first on the coin; setting Brogan's
+  Onslaught (printed 11) changes nothing, and Mighty Punch only reaches 12. Setting Tigerclaw's Blink
+  Strike to 11 (items: none) lets Onslaught at 12 go first and take him with no card. One pair of cards
+  and one target win of 2 × 2 × 2. Brogan moved to (2,−2), next to Tigerclaw at (3,−3).
 
 ### C47 — Swoop In
 - **Theme:** retrieving a card to survive; two different threats with different conditions. **Difficulty:** 3. **Heroes:** Misa; Garrus, Brynn (Wasp idle).
@@ -1027,6 +1093,14 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
   Brynn resolved `gold`, `silver`, `red-2a`, hand `blue-2a`, items `red-2b`, `green-2b`, `green-3b`,
   `blue-2b` (no Initiative item, so she stays at 2). The solver accepts (0,−5) and (−1,−3); (3,−7) is
   first in the canonical order. Wrong tries tested: (3,−7), (2,−5), no retrieve, Hold.
+- **Hardened as p47 (2026-10-24, changed):** legality: Misa L2 (Gust of Wind; item Dash and Slash =
+  Defense) and Wasp L2, no level 1 in round 4; Wasp's turn-4 card is Lift Up (10), resolved before Misa's
+  6 (Stop Projectiles at 3 stays in her hand). Harder, new position: Misa (4,−7), Garrus (2,−6), Brynn
+  (3,−9), Blue melee (3,−7), (4,−6), (1,−7), heavy (3,−1); Red minions away to the south. All five
+  Swoop In spaces are within 2 of Garrus, so the question is only Brynn's trap: (3,−8) is next to her,
+  (2,−8), (2,−7) and (3,−6) touch 3 or more obstacles; (1,−6), west of Garrus, touches just Garrus and the
+  minion (1,−7) (Garrus's step after the pilum is still one unit). One space of five wins, then the
+  retrieve.
 
 ### C48 — Necromancy at the Bell
 - **Theme:** end-of-round order (End of round effects, Minion Battle); minion types; respawn rules. **Difficulty:** 3. **Heroes:** Dodger; Xargatha (Tigerclaw, Arien idle).
@@ -1064,6 +1138,15 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.3 Last Push; p.8 Triggering a Push; p.13 Attacking a hero, When a hero is defeated; p.17 Active Effects.
 - **Risk:** none.
 - **Encoded as p49 (2026-10-24):** as in the concept (Garrus seated idle). The engine totals Wasp's defence as 5 + 1 (item) − 1 (adjacent heavy) = 5 against 5; her best reply is to defend, then Ursafar removes the Red minion. Prey Drive on Brogan is refuted by Brogan not defending.
+- **Hardened as p49 (2026-10-24, changed):** legality: Ursafar L3 (Cold Ire, Instinctive Reaction; items
+  Eyes on the Prey = Attack, Rampaging Beast = Defense: Prey Drive 6) and Garrus L3, no level 1 in round
+  5; Garrus is no longer resolved before Ursafar with a slower card. Harder: Garrus is a player seat and
+  acts first with Menace (9). Wasp starts two spaces from Ursafar at (3,−7), next to Garrus at (3,−8);
+  Menace moves her 1 space farther from Garrus, and only (2,−6), of three, is next to Ursafar (1,−5). Red's
+  last minion, now its heavy (a heavy goes last, p.8/p.13), moved to (−1,−5) (radius 2 from Ursafar); the Blue heavy to (2,−1), so Wasp's Control
+  Gravity holds 5 + 1 against 6 and her best reply is to stand, after which Ursafar removes the minion
+  (push, last Wave counter). Brogan (0,−4) is still the trap: Bullrush would hold, so he declines to defend
+  and costs only one counter.
 
 ### C50 — Shoot, Push, Scoot
 - **Theme:** a mid-turn push empties the old Battle Zone and opens Fast Travel; maximum range. **Difficulty:** 3. **Heroes:** Silverarrow; Xargatha, Brogan (Arien idle).
@@ -1083,6 +1166,16 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.8 Push the Lane, Triggering a Push; p.9 Range; p.11 Fast Travel; p.17 After the attack.
 - **Risk:** none.
 - **Encoded as p50 (2026-10-24):** as in the concept (Arien seated idle; Xargatha keeps `xargatha-blue-1`, Brogan `brogan-blue-1`). After the push every Fast Travel space offered (Blue's pre-Throne Zone and the side Zones, ~70) wins; Red's pre-Throne Zone is not offered.
+- **Hardened as p50 (2026-10-24, changed):** legality: everyone L2–3 in round 4 (Silverarrow L2, item Long
+  Shot = Initiative; Xargatha L2; Brogan L3 with Bolster and Shield Bash set aside = two Attack items, so
+  Mad Dash hits 8; Arien L3), and Arien no longer resolved a slow card before Silverarrow: the puzzle now
+  starts at turn 3's card choice, with Arien's and Xargatha's cards forced (one each) and Brogan's (Mad
+  Dash or Mighty Punch) the solver's. Harder: Silverarrow holds Shoot and Scoot, Trailblazer (14, "fast
+  travel, if able": not able with Red's minion in the Zone) and Disorient (3, too late); she now has
+  cards, but 1 + 4 (four friendly melee) never holds 8. Xargatha has no card left, so shooting her is a real
+  hero kill that loses (the minion still closes the Zone). Red's last minion is its heavy (a heavy goes
+  last, p.8/p.13). The Fast Travel space is still free (every
+  offered space wins). Grasping Roots was tried as a third card and cut: its 3-space movement escapes.
 
 ### C51 — Ice in the Veins
 - **Theme:** initiative changed mid-turn by tokens; moving an enemy into them. **Difficulty:** 3. **Heroes:** Tali, Brogan; Tigerclaw (Dodger idle).
