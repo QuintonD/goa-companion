@@ -119,14 +119,14 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
     val position: Node get() = node
 
     /** True while the current position is on the answer key. */
-    val onKey: Boolean get() = key?.entries?.containsKey(AnswerKey.pathOf(path)) == true
+    val onKey: Boolean get() = keyEntry() != null
 
     override fun answer(decisionId: Long, choice: Choice): AnswerResult {
         val d = node.session.pending ?: return AnswerResult.Rejected("The puzzle is over")
         if (solver.sideOf(d) != Side.PLAYER) return AnswerResult.Rejected("Not the player's decision")
         val index = d.options.indexOf(choice)
         if (decisionId != d.id || index < 0) return node.session.answer(decisionId, choice)
-        val wins = key?.entries?.get(AnswerKey.pathOf(path)) as? AnswerKey.Wins
+        val wins = keyEntry() as? AnswerKey.Wins
         val events = ArrayList<GameEvent>()
         val r = apply(decisionId, index, byPlayer = true, events)
         if (r !is AnswerResult.Accepted) return r
@@ -153,7 +153,7 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
     override fun bestChoice(cancelled: () -> Boolean): Choice? {
         val d = node.session.pending ?: return null
         if (solver.sideOf(d) != Side.PLAYER || current != PuzzleStatus.PLAYING) return null
-        (key?.entries?.get(AnswerKey.pathOf(path)) as? AnswerKey.Wins)?.let { return d.options[it.options.first()] }
+        (keyEntry() as? AnswerKey.Wins)?.let { return d.options[it.options.first()] }
         val s = solver.solve(node, cancelled)
         return if (s.value == Value.WIN) d.options[s.best] else null
     }
@@ -197,7 +197,7 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
             val reply = when {
                 node.progress.state != GoalState.OPEN -> 0
 
-                else -> (key?.entries?.get(AnswerKey.pathOf(path)) as? AnswerKey.Reply)?.option
+                else -> (keyEntry() as? AnswerKey.Reply)?.option
                     ?: replyOffKey()
             }
             val r = apply(d.id, reply, byPlayer = false, events)
@@ -208,13 +208,17 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
 
     /** Off the key: a full solve while the puzzle can still be won, a budgeted one after a miss. */
     private fun replyOffKey(): Int {
-        val budget = if (current == PuzzleStatus.MISSED &&
-            key != null
-        ) {
-            PreparedPuzzle.RUNTIME_BUDGET
-        } else {
-            solver.nodeBudget
-        }
+        val budget = if (current == PuzzleStatus.MISSED) PreparedPuzzle.RUNTIME_BUDGET else solver.nodeBudget
         return solver.solve(node, budget = budget).best
+    }
+
+    /** The key's entry for the current position, when it fits the pending decision. */
+    private fun keyEntry(): AnswerKey.Entry? {
+        val options = node.session.pending?.options?.size ?: return null
+        return when (val e = key?.entries?.get(AnswerKey.pathOf(path))) {
+            is AnswerKey.Wins -> e.takeIf { w -> w.options.all { it < options } }
+            is AnswerKey.Reply -> e.takeIf { it.option < options }
+            null -> null
+        }
     }
 }

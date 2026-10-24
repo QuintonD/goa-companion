@@ -157,8 +157,10 @@ Exact AND-OR search over the engine's own decisions (`EngineSession.forkForAnswe
   `Defeated`, no lane pushed against the team, until the deadline; `GainCoins` = the sum of
   `CoinsGained` of the player seats. The game is **halted** at the deadline
   (`EngineSession.haltWhen`): end of turn = after the turn's End of turn step (in turn 4, before
-  the end-of-round steps); end of round = when the next round would start. A position is a WIN
-  when the goal is met against every reply before the halt.
+  the end-of-round steps); end of round = when the next round would start, so the Minion Battle,
+  pushes, level-up choices (asked of the player's seats too) and pity coins (they count for
+  `GainCoins`) are inside it. A position is a WIN when the goal is met against every reply before
+  the halt.
 - **Transpositions.** Positions are keyed by a 128-bit hash of the engine checkpoint (the decision
   counter removed, card stamps ranked), the answers inside the current step, and the coins so far.
   Only proven values are stored; the table is cleared past 400 000 entries.
