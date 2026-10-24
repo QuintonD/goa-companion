@@ -60,8 +60,9 @@ where text and FAQ are silent.
     and is not a repeat (its own "may repeat" works). **[APP] "Choosing different targets"**: every
     unit and token the first performance (and its repeats) targeted is excluded; spaces are not
     targets (p.19 "Target" speaks of units), so a Path can be performed again freely. The flip by
-    Chaos Incarnate is independent of the tie flip of p.7 (both happen if both apply). Tests: `Chaos
-    Incarnate - …` (three).
+    Chaos Incarnate is independent of the tie flip of p.7 (both happen if both apply). It plays no part
+    in deciding whether a Primary action is possible (RULINGS 4 probes the action's own text). Tests:
+    `Chaos Incarnate - …` (three).
 
 ## Disagreements with goa2-backend (cross-check only)
 

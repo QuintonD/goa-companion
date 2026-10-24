@@ -870,10 +870,10 @@ class SnorriTest {
 internal object Batch7Games {
     private val reference = listOf("arien", "brogan", "wasp", "xargatha")
 
-    fun run(hero: String, games: Int, seed: Long = 7) {
+    fun run(hero: String, games: Int, seed: Long = 7, pool: List<String> = reference) {
         val rng = kotlin.random.Random(seed)
         repeat(games) { i ->
-            val others = reference.shuffled(rng)
+            val others = pool.shuffled(rng)
             val coin = if (rng.nextBoolean()) Team.RED else Team.BLUE
             val heroTeam = if (rng.nextBoolean()) Team.RED else Team.BLUE
             fun seat(
@@ -930,6 +930,11 @@ internal object Batch7Games {
                 check(n < 30_000) { "Game $i did not end: $setup" }
             }
             check(s.state.winner != null) { "Game $i ended without a winner" }
+            // Deterministic: replaying the saved answers gives the same game.
+            if (i % 10 == 0) {
+                val back = ANY_HERO_ENGINE.restore(s.save())
+                check(back.view(null) == s.view(null)) { "Game $i restores differently" }
+            }
         }
     }
 }

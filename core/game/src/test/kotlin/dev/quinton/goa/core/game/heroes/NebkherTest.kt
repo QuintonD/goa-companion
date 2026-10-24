@@ -588,4 +588,9 @@ class NebkherTest {
     fun `random legal games with NebKher run without errors`() {
         Batch7Games.run("nebkher", games = 150, seed = 23)
     }
+
+    @Test
+    fun `random legal games of NebKher with Snorri and Ignatia (Mind Grip on their cards) run without errors`() {
+        Batch7Games.run("nebkher", games = 120, seed = 31, pool = listOf("snorri", "ignatia", "wasp", "arien"))
+    }
 }

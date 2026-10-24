@@ -22,6 +22,7 @@ import dev.quinton.goa.core.game.effects.script
 import dev.quinton.goa.core.game.effects.unitsWithin
 import dev.quinton.goa.core.game.engine.ActionScope
 import dev.quinton.goa.core.game.engine.Game
+import dev.quinton.goa.core.game.engine.RunMode
 import dev.quinton.goa.core.game.engine.Timing
 import dev.quinton.goa.core.game.engine.actionAllowed
 import dev.quinton.goa.core.game.engine.attack
@@ -358,6 +359,8 @@ object IgnatiaHero : HeroModule {
                 val owner = src.owner ?: return
                 // A repeat is part of the action it repeats: the Ultimate reacts after the whole action.
                 if (t !is Trigger.AfterAction || t.heroId != owner || !t.primary || t.repeat) return
+                // The probe asking whether a Primary action is possible (RULINGS 4) ignores what follows it.
+                if (g.mode == RunMode.PROBE) return
                 val cardId = t.cardId ?: return
                 // "The first time each turn": that first primary action uses it, whatever she decides.
                 if (CHAOS_USED in g.state.turnRecord.notes) return
