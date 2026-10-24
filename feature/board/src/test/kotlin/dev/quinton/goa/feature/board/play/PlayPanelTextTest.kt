@@ -81,6 +81,13 @@ class PlayPanelTextTest {
     }
 
     @Test
+    fun countersReadAsWords() {
+        assertEquals("Spells removed", PlayText.counter("spellsRemoved"))
+        assertEquals("Spellbook", PlayText.counter("spellbook"))
+        assertEquals("Wish casts", PlayText.counter("wishCasts"))
+    }
+
+    @Test
     fun aMissingAttackIsExplainedAndTheAskingCardsReachIsSaid() {
         val dagger = Card(
             id = "wasp-gold",

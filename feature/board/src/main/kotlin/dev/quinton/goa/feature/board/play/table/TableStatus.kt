@@ -376,7 +376,7 @@ internal fun HeroDetail(table: TableUi, heroId: String, onCard: (Card) -> Unit, 
             Fact("In hand", "${hero.handCount}")
             if (hero.ultimate) Fact("Ultimate", "Active")
             if (hero.at == null) Fact("Board", "Off the board")
-            hero.counters.forEach { (name, value) -> Fact(name, "$value") }
+            hero.counters.forEach { (name, value) -> Fact(PlayText.counter(name), "$value") }
         }
         if (hero.items.isNotEmpty()) {
             Section("Items · p.16")
