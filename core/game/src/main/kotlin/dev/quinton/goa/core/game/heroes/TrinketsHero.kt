@@ -122,6 +122,16 @@ object TrinketsHero : HeroModule {
             it.at != null
     }
 
+    /** The hero whose card [cardId] is (Trinkets), whoever performs it. */
+    private fun cardOwner(g: Game, cardId: String?): String? =
+        cardId?.let { id -> g.state.heroes.firstOrNull { it.card(id) != null }?.id }
+
+    /**
+     * Whose Turret "the Turret" of this card is: Trinkets', also when another hero performs her card
+     * (goa2-faq, NebKher's Mind Grip: "NebKher can copy Trinkets' cards to remove and/or place the Turret").
+     */
+    private fun ActionScope.turretOwner(): String = cardOwner(g, cardId) ?: heroId
+
     /** "it counts as an obstacle" (a piece on its space is one) and, per the FAQ, as terrain. */
     private object TurretRules : Behavior {
         override fun countsAsTerrain(g: Game, src: Src, hex: Hex): Boolean = src.piece?.at == hex
@@ -132,7 +142,7 @@ object TrinketsHero : HeroModule {
         val spaces = HexGrid.neighbors(pos).filter { g.isEmpty(it) }
         if (spaces.isEmpty()) fizzle("no empty space next to you for the Turret")
         val h = chooseSpace("Place the Turret into a space adjacent to you", spaces)!!
-        val existing = g.turret(heroId)
+        val existing = g.turret(turretOwner())
         if (existing != null) {
             g.place(existing.id, h, heroId)
             return
@@ -142,7 +152,7 @@ object TrinketsHero : HeroModule {
             kind = TURRET,
             label = "Turret",
             at = null,
-            owner = heroId,
+            owner = turretOwner(),
             team = null,
             token = false,
             unit = false,
@@ -153,7 +163,7 @@ object TrinketsHero : HeroModule {
         g.place(piece.id, h, heroId)
     }
 
-    private fun ActionScope.turretPos(): Hex? = g.turret(heroId)?.at
+    private fun ActionScope.turretPos(): Hex? = g.turret(turretOwner())?.at
 
     /** [id] is 1..[n] spaces from the Turret ("in radius / in range of the Turret", p.9; FAQ: measured on its own). */
     private fun ActionScope.nearTurret(id: String, n: Int): Boolean {
@@ -187,7 +197,7 @@ object TrinketsHero : HeroModule {
     private object Salvage : CardScript {
         override fun primary(a: ActionScope) {
             val canPlace = HexGrid.neighbors(a.pos).any { a.g.isEmpty(it) }
-            val hasTurret = a.g.turret(a.heroId) != null
+            val hasTurret = a.g.turret(a.turretOwner()) != null
             val labels = listOf(
                 "Place the Turret into a space adjacent to you",
                 "Remove the Turret; move up to 3 spaces",
@@ -206,12 +216,12 @@ object TrinketsHero : HeroModule {
                 0 -> a.placeTurretAdjacent()
 
                 1 -> {
-                    a.g.removePiece(a.g.turret(a.heroId)!!.id)
+                    a.g.removePiece(a.g.turret(a.turretOwner())!!.id)
                     a.moveSelf(0, 3)
                 }
 
                 else -> {
-                    a.g.removePiece(a.g.turret(a.heroId)!!.id)
+                    a.g.removePiece(a.g.turret(a.turretOwner())!!.id)
                     a.mayRetrieve()
                 }
             }
@@ -255,7 +265,7 @@ object TrinketsHero : HeroModule {
     private class Design(private val removeAfter: Boolean, private val placeBullet: Boolean) : CardScript {
         override fun primary(a: ActionScope) {
             // "If you are in radius of the Turret," — otherwise the text does nothing.
-            val turret = a.g.turret(a.heroId) ?: return
+            val turret = a.g.turret(a.turretOwner()) ?: return
             val tp = turret.at!!
             val r = a.radius
             if (a.g.distance(a.pos, tp) !in 1..r) return
@@ -286,7 +296,7 @@ object TrinketsHero : HeroModule {
             val t = a.target(a.chooseObject(labels[0], swaps)!!)
             a.g.swap(a.heroId, t, a.heroId)
             // Early Prototype: "then remove the Turret."
-            if (removeAfter) a.g.turret(a.heroId)?.let { a.g.removePiece(it.id) }
+            if (removeAfter) a.g.turret(a.turretOwner())?.let { a.g.removePiece(it.id) }
         }
     }
 
@@ -307,7 +317,7 @@ object TrinketsHero : HeroModule {
                 val owner = src.owner ?: return
                 val e = src.effect ?: return
                 if (!g.isHero(t.heroId) || !g.isEnemy(owner, t.heroId)) return
-                val turret = g.turret(owner)?.at ?: return
+                val turret = g.turret(cardOwner(g, src.cardId) ?: owner)?.at ?: return
                 val at = g.posOf(t.heroId) ?: return
                 if (g.distance(turret, at) !in 1..g.radiusOf(src) || !g.affectedBy(src, t.heroId)) return
                 // "that hero discards a card, if able (or is defeated); if they discard a card, deactivate this
@@ -329,7 +339,7 @@ object TrinketsHero : HeroModule {
             val picked = a.chooseUpTo(2, "An enemy hero in radius of the Turret discards a card", heroes)
             for (v in picked) if (orDefeated) a.discardOrDefeat(v) else a.discardIfAble(v)
             // "Remove the Turret."
-            a.g.turret(a.heroId)?.let { a.g.removePiece(it.id) } ?: a.fizzle("the Turret is gone")
+            a.g.turret(a.turretOwner())?.let { a.g.removePiece(it.id) } ?: a.fizzle("the Turret is gone")
         }
     }
 

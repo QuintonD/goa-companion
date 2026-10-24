@@ -292,7 +292,9 @@ object TakahideHero : HeroModule {
             val chosen = a.chooseCard("Choose a card in the discard of a friendly hero in radius", cards)!!
             val color = a.g.card(chosen).color
             val what = "a ${color.name.lowercase()} card"
+            // Enemy heroes, not their figures: "up to two enemy heroes" never picks one hero twice (Razzle).
             val enemies = a.unitsWithin(a.radius).filter { a.isHero(it) && a.isEnemy(it) && a.canTarget(it) }
+                .mapNotNull { a.g.heroBodyOf(it) }.distinct()
             if (upToTwo) {
                 // "Up to two enemy heroes in radius discard a card of the same color, if able."
                 val victims = a.chooseUpTo(2, "An enemy hero in radius discards $what", enemies)

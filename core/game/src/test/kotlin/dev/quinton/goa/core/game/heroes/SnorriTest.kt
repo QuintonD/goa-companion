@@ -799,6 +799,34 @@ class SnorriTest {
     }
 
     @Test
+    fun `Ancestral Boon - axe, a facedown resolved card goes to hand unnamed, the hand card resolves faceup`() {
+        val d = pos {
+            clearMinions()
+            turn = 2
+            hero("snorri", Team.BLUE, Hex(1, -2)) {
+                played("snorri-blue-2b")
+                runes(Rune.BIRD, Rune.AXE, Rune.ANVIL, Rune.HORN)
+            }
+            hero("arien", Team.BLUE, Hex(3, -2)) {
+                resolved(1, "arien-red-1", faceDown = true)
+                hand("arien-gold")
+            }
+            hero("wasp", Team.RED, Hex(-5, -4))
+            phase = PositionPhase.Resolving(next = "snorri")
+        }
+        d.action("snorri", ActionType.PRIMARY)
+        d.card("arien-red-1")
+        // p.10: the card states (in hand, resolved) are swapped; facedown is not one of them (RULINGS 51).
+        assertThat(d.zoneOf("arien", "arien-gold")).isEqualTo(Zone.RESOLVED)
+        assertThat(d.hero("arien").card("arien-gold")!!.slot).isEqualTo(1)
+        assertThat(d.hero("arien").card("arien-gold")!!.faceDown).isFalse()
+        assertThat(d.zoneOf("arien", "arien-red-1")).isEqualTo(Zone.HAND)
+        // The facedown card was hidden and stays hidden in hand: the log does not name it.
+        assertThat(d.texts().none { it.contains("Dangerous Current") }).isTrue()
+        assertThat(d.texts()).contains("Arien swaps a hidden card and Noble Blade.")
+    }
+
+    @Test
     fun `Ancestral Boon - anvil, a friendly hero may retrieve all their discarded cards`() {
         val d = pos {
             clearMinions()

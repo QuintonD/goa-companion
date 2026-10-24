@@ -354,7 +354,10 @@ object NebkherHero : HeroModule {
                 ).index
             val c1 = resolved.first { it.slot == first }.id
             val c2 = resolved.first { it.slot == second }.id
-            a.g.swapCards(e, c1, c2, keepEffects = true)
+            // The log names the slots, never a facedown card (p.10; events are public).
+            val text = "${a.g.heroName(a.heroId)} swaps ${a.g.heroName(e)}'s resolved cards: " +
+                "${label(first)} and ${label(second)}."
+            a.g.swapCards(e, c1, c2, keepEffects = true, text = text)
         }
     }
 

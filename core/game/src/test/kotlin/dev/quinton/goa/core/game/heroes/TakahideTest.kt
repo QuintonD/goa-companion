@@ -11,6 +11,7 @@ import dev.quinton.goa.core.game.GameSetup
 import dev.quinton.goa.core.game.SeatSetup
 import dev.quinton.goa.core.game.TestData
 import dev.quinton.goa.core.game.engine.EngineSession
+import dev.quinton.goa.core.game.engine.PieceState
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.heroes.gydion.HeroRandomGames
 import dev.quinton.goa.core.game.pos
@@ -521,6 +522,36 @@ class TakahideTest {
         d.unit("brogan")
         assertThat(d.zoneOf("arien", "arien-red-1")).isEqualTo(Zone.DISCARD)
         assertThat(d.zoneOf("brogan", "brogan-red-1")).isEqualTo(Zone.DISCARD)
+    }
+
+    @Test
+    fun `The Right Hand - up to two enemy heroes, never one hero twice (Razzle's figures are one hero)`() {
+        val d = pos {
+            clearMinions()
+            hero("takahide", Team.RED, t0) { played("takahide-blue-3a") }
+            hero("wasp", Team.RED, Hex(3, -5)) { discard("wasp-red-1") }
+            hero("razzle", Team.BLUE, Hex(3, -2)) { hand("razzle-red-1", "razzle-gold") }
+            piece(
+                PieceState(
+                    "rz2",
+                    RazzleHero.DOUBLE,
+                    "Razzle",
+                    Hex(0, -2),
+                    token = false,
+                    unit = true,
+                    removeAtEndOfRound = false,
+                    heroBody = "razzle",
+                ),
+            )
+            phase = PositionPhase.Resolving(next = "takahide")
+        }
+        d.action("takahide", ActionType.PRIMARY)
+        d.expect(DecisionKind.CHOOSE_UNIT, "takahide")
+        assertThat(d.units()).containsExactly("razzle")
+        d.unit("razzle")
+        assertThat(d.zoneOf("razzle", "razzle-red-1")).isEqualTo(Zone.DISCARD)
+        // No second enemy hero: the text is done (Razzle's other figure is not another hero).
+        assertThat(d.s.pending?.kind).isNotEqualTo(DecisionKind.CHOOSE_UNIT)
     }
 
     // ---- Calculated Risk / Tactical Gambit ----------------------------------------------------------------

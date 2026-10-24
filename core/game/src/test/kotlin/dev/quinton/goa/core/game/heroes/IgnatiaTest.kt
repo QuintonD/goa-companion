@@ -411,6 +411,25 @@ class IgnatiaTest {
     }
 
     @Test
+    fun `Searing Heat - an enemy hero who cannot be moved by her (Bulwark) is not offered`() {
+        // Brogan's Bulwark: "This turn: You and friendly units in radius cannot be moved … by enemy heroes."
+        val d = ig("ignatia-blue-2b", Team.RED) {
+            hero("brogan", Team.BLUE, Hex(-1, -2))
+            effect("brogan", "brogan-silver", Timing.THIS_TURN, ActionKind.SKILL)
+        }
+        assertThat(d.actions()).doesNotContain(ActionType.PRIMARY)
+        val e = ig("ignatia-blue-3b", Team.RED) {
+            hero("brogan", Team.BLUE, Hex(-1, -2))
+            hero("arien", Team.BLUE, Hex(4, -2)) // 5 from Brogan: outside Bulwark's radius 4
+            effect("brogan", "brogan-silver", Timing.THIS_TURN, ActionKind.SKILL)
+        }
+        e.action("ignatia", ActionType.PRIMARY)
+        // Only Arien can be moved, so no hero is asked: the move is Arien's.
+        e.expect(DecisionKind.CHOOSE_SPACE, "ignatia")
+        assertThat(e.d.context.subjectId).isEqualTo("arien")
+    }
+
+    @Test
     fun `Scorching Blaze - 2 or 3 spaces in a straight line`() {
         val d = ig("ignatia-blue-3b", Team.RED) {
             hero("arien", Team.BLUE, Hex(-1, -2))

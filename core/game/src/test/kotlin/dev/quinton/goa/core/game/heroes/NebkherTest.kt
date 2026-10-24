@@ -8,8 +8,10 @@ import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.Driver
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.engine.ActionKind
+import dev.quinton.goa.core.game.engine.PieceState
 import dev.quinton.goa.core.game.engine.Timing
 import dev.quinton.goa.core.game.engine.Zone
+import dev.quinton.goa.core.game.heroes.gydion.Spellbook
 import dev.quinton.goa.core.game.pos
 import dev.quinton.goa.core.game.position.PositionBuilder
 import dev.quinton.goa.core.game.position.PositionPhase
@@ -189,6 +191,78 @@ class NebkherTest {
         assertThat(d.s.state.minions.any { it.at == Hex(2, -2) }).isTrue()
     }
 
+    private fun PositionBuilder.turret(at: Hex) = piece(
+        PieceState(
+            "turret",
+            TrinketsHero.TURRET,
+            "Turret",
+            at,
+            owner = "trinkets",
+            token = false,
+            removeAtEndOfRound = false,
+        ),
+    )
+
+    private fun turrets(d: Driver) = d.s.state.pieces.filter { it.kind == TrinketsHero.TURRET && it.at != null }
+
+    @Test
+    fun `Mind Grip - FAQ, NebKher copies Trinkets' cards to place and remove her Turret`() {
+        // Salvage Parts: "Choose one — • Place the Turret into a space adjacent to you … • Remove the Turret;
+        // move up to 3 spaces. • Remove the Turret; you may retrieve a discarded card."
+        val d = neb("nebkher-gold", turn = 2) {
+            hero("trinkets", Team.RED, Hex(4, -2)) { resolved(1, "trinkets-silver") }
+            turret(Hex(4, -5))
+        }
+        d.action("nebkher", ActionType.PRIMARY)
+        d.action("nebkher", ActionType.PRIMARY)
+        // The three bullets: her Turret is on the board, so it can be removed.
+        d.expect(DecisionKind.CHOOSE_OPTION, "nebkher")
+        assertThat(d.d.options).hasSize(3)
+        option(d, "Place the Turret")
+        d.space(2, -2)
+        // Her one Turret moves next to NebKher: no second Turret.
+        assertThat(turrets(d).map { it.id to it.at }).containsExactly("turret" to Hex(2, -2))
+        val e = neb("nebkher-gold", turn = 2) {
+            hero("trinkets", Team.RED, Hex(4, -2)) { resolved(1, "trinkets-silver") }
+            turret(Hex(4, -5))
+        }
+        e.action("nebkher", ActionType.PRIMARY)
+        e.action("nebkher", ActionType.PRIMARY)
+        option(e, "Remove the Turret; you may")
+        assertThat(turrets(e)).isEmpty()
+    }
+
+    @Test
+    fun `Mind Grip - FAQ, a copied Trinkets attack uses her Turret`() {
+        // Makeshift Minigun: "Target a unit in range of both you and the Turret. …"
+        val d = neb("nebkher-gold", turn = 2) {
+            hero("trinkets", Team.RED, Hex(4, -2)) { resolved(1, "trinkets-red-1") }
+            hero("wasp", Team.RED, Hex(2, -2)) { hand("wasp-blue-1") }
+            turret(Hex(3, -2))
+        }
+        d.action("nebkher", ActionType.PRIMARY)
+        assertThat(d.actions()).contains(ActionType.PRIMARY)
+        d.action("nebkher", ActionType.PRIMARY)
+        d.expect(DecisionKind.DEFEND, "wasp")
+    }
+
+    @Test
+    fun `Mind Grip - a copied Gydion card casts from Gydion's spellbook (designer, BGG 3487018)`() {
+        // Elementary Evocation: "Cast the "Burning Hands" spell in the spellbook."
+        val d = neb("nebkher-gold", turn = 2) {
+            hero("gydion", Team.RED, Hex(4, -2)) {
+                resolved(1, "gydion-red-1")
+                extra(*Spellbook.ALL.toTypedArray(), tag = Spellbook.SPELLBOOK)
+            }
+            hero("wasp", Team.RED, Hex(2, -2)) { hand("wasp-blue-1") }
+        }
+        d.action("nebkher", ActionType.PRIMARY)
+        d.action("nebkher", ActionType.PRIMARY)
+        // NebKher is the caster ("you" in the spell): Burning Hands' Attack 5 on the unit next to him.
+        assertThat(d.expect(DecisionKind.DEFEND, "wasp").context.attackTotal).isEqualTo(5)
+        assertThat(d.hero("gydion").card(Spellbook.BURNING_HANDS)!!.tag).isEqualTo(Spellbook.REMOVED)
+    }
+
     // ---- Diabolical Laughter (silver) / What the Hell Are You? (Ultimate) ----------------------
 
     @Test
@@ -236,6 +310,28 @@ class NebkherTest {
         assertThat(d.hero("wasp").card("wasp-silver")!!.slot).isEqualTo(2)
         assertThat(d.hero("wasp").card("wasp-red-1")!!.slot).isEqualTo(1)
         assertThat(d.s.state.effects.any { it.cardId == "wasp-silver" }).isTrue()
+    }
+
+    @Test
+    fun `Diabolical Laughter - a facedown resolved card stays facedown and unnamed when swapped`() {
+        val d = neb("nebkher-silver", turn = 3) {
+            hero("wasp", Team.RED, Hex(3, -2)) {
+                resolved(1, "wasp-silver", faceDown = true)
+                resolved(2, "wasp-red-1")
+            }
+        }
+        d.action("nebkher", ActionType.PRIMARY)
+        option(d, "Swap two resolved cards")
+        d.answer(d.d.options.first { (it as Choice.Option).index == 1 })
+        // The cards change slots; each keeps its own face (facedown is not a swapped card state, RULINGS 51).
+        assertThat(d.hero("wasp").card("wasp-silver")!!.slot).isEqualTo(2)
+        assertThat(d.hero("wasp").card("wasp-silver")!!.faceDown).isTrue()
+        assertThat(d.hero("wasp").card("wasp-red-1")!!.slot).isEqualTo(1)
+        assertThat(d.hero("wasp").card("wasp-red-1")!!.faceDown).isFalse()
+        assertThat(d.texts().none { it.contains("Static Barrier") }).isTrue()
+        assertThat(d.texts()).contains(
+            "NebKher swaps Wasp's resolved cards: Turn slot 1: a facedown card and Turn slot 2: Shock.",
+        )
     }
 
     @Test

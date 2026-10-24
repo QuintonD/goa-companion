@@ -56,7 +56,7 @@ besides the goa2-faq; the threads were read through `api.geekdo.com` on 2026-10-
    in the spell text) and the spell is removed from Gydion's spellbook. Source: designer, BGG 3487018
    ("Correct"; he sees the spell only once chosen — no hidden information in the engine, ruling 3).
    The scripts use the caster (`ActionScope.heroId`) and find the spellbook by the spell card's owner.
-   Not tested here: NebKher is another batch's hero.
+   Test: `NebkherTest` "Mind Grip - a copied Gydion card casts from Gydion's spellbook".
 
 ## Deck cards
 

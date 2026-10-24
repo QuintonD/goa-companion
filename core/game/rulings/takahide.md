@@ -89,7 +89,8 @@ text beats the rulebook, p.3). Takahide has no FAQ entries (goa2-faq `cards/taka
     silver are colours) is "the same color".
 19. **"An enemy hero in radius discards a card of the same color, if able."** Takahide chooses the enemy
     hero (mandatory when one is in radius; immune heroes cannot be chosen); that hero discards a card of
-    that colour if they have one. The Right Hand: up to two different enemy heroes, each discards if able.
+    that colour if they have one. The Right Hand: up to two different enemy heroes, each discards if able (heroes, not figures:
+    two of Razzle's figures are one hero, so she is never picked twice).
     Tests `Proven Warrior - …`, `Chosen Champion - …`, `The Right Hand - …`.
 
 ## Disagreements with goa2-backend (cross-check only)

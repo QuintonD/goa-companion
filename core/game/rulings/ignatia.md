@@ -49,7 +49,8 @@ where text and FAQ are silent.
    chooses where); orange "You may move 1 space" moves Ignatia. Tests: `Unstable Portal - …`,
    `Chaos Gate - …`.
 9. **Searing Heat / Scorching Blaze**: the move is mandatory and exact (2, or 2 or 3, p.11); only heroes
-   that can make it are offered; Ignatia chooses the hero and the space. Tests: `Searing Heat - …`,
+   that can make it and that Ignatia may move are offered (a hero under Brogan's Bulwark is not; with
+   no other hero the Primary action cannot start); Ignatia chooses the hero and the space. Tests: `Searing Heat - …`,
    `Scorching Blaze - …`.
 10. **Chaos Incarnate (Ultimate).** "The first time each turn after you perform a primary action": the
     first Primary action Ignatia completes in a turn (a repeat is part of the action it repeats, so it

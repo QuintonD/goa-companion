@@ -39,7 +39,11 @@ where text and FAQ are silent.
    choose one …`.
 7. **FAQ notes about other heroes' cards** ("this card" means the printed card; Min's mines, Wuk's
    trees, Trinkets' Turret are used as those heroes would) depend on those heroes' scripts using the
-   performing hero (`a.heroId`) for "you" (EFFECTS.md "Known engine limits"). Snorri's rune cards read
+   performing hero (`a.heroId`) for "you" (EFFECTS.md "Known engine limits"). "The Turret" of a
+   Trinkets card is Trinkets' one Turret whoever performs it, so NebKher places, removes and attacks
+   with hers and never builds a second one. Gydion's cards cast from Gydion's spellbook
+   (rulings/gydion.md 9). Tests: `Mind Grip - FAQ, NebKher copies Trinkets' cards …`, `- FAQ, a copied
+   Trinkets attack …`, `- a copied Gydion card casts from Gydion's spellbook …`. Snorri's rune cards read
    Snorri's runes when NebKher performs them (rulings/snorri.md 16). The FAQ line on Ignatia's
    Equilibrium describes another printing's card (rulings/ignatia.md 4).
 
@@ -51,7 +55,9 @@ where text and FAQ are silent.
    Tests: `Diabolical Laughter - …` (three).
 9. **"Swap two resolved cards of an enemy hero in radius, without canceling active effects"**: NebKher
    picks the hero and two of its Turn slots (chosen by slot, so a facedown card stays hidden); the two
-   cards swap slots and keep their Active effects. Test: `Diabolical Laughter - swap two resolved
+   cards swap slots and keep their Active effects, and each keeps its own face: a facedown card stays
+   facedown and the log does not name it (RULINGS 51; before the audit the facedown state stayed with
+   the slot, which revealed the card). Test: `Diabolical Laughter - swap two resolved
    cards …`.
 10. **Ultimate**: right after the laugh (before the choices), every enemy hero in radius 5 (the
     Ultimate's Radius, items included) that can be targeted discards a card, or is defeated (RULINGS
