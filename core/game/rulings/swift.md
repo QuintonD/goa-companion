@@ -24,7 +24,12 @@ Readings of Swift's cards (`catalog/heroes/swift.json`) beyond the plain text, i
    Shotgun's sentence has no "if able" and no "up to" (compare Arien's "Up to 1 enemy hero … discards a
    card, or is defeated"), so it is mandatory (p.10 "all other steps are mandatory"): with no
    targetable enemy hero next to the target the action stops before the attack. **Disagreement:**
-   goa2-backend makes that step optional for Super-Shotgun too. Tests "Super-Shotgun - …".
+   goa2-backend makes that step optional for Super-Shotgun too. Tests "Super-Shotgun - …". Audit E
+   (2026-10-24) checked it again and keeps it: the designer defines "non-mandatory" as "your action
+   doesn't fizzle if you cannot complete that step" (BGG 3533578), and the 1st printing's Super-Shotgun
+   read "Up to one enemy hero adjacent to the target discards a card, or is defeated" (quoted in the
+   playtesters' Swift spotlight, BGG 2889490); the 2nd printing dropped the "Up to one" that made it
+   optional.
 4. **[APP] Bullet Time, "you cannot target the same enemy hero twice in the same turn this way".** The
    extra primary action may not target any enemy hero Swift's actions already targeted this turn
    (the resolved card's own action, and actions it performed, e.g. Reload! performing a red card).

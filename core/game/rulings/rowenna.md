@@ -20,7 +20,11 @@ Readings of Rowenna's cards (`catalog/heroes/rowenna.json`) beyond the plain tex
    On the repeat "on a different target" every unit targeted so far is excluded (RULINGS 37), the
    friend who gained the first coin included, so a second coin goes to another friend or to no one.
    Test "Paragon of Grace - …". (Players may read the repeat as excluding only the attack target; the
-   engine keeps ruling 37's literal reading for all heroes.)
+   engine keeps ruling 37's literal reading for all heroes.) Audit E (2026-10-24) checked both points
+   and keeps them: p.19 "Target": "Whenever your action has any effect on another unit in any way, you
+   target that unit", so the friend given a coin was a target of the first instance; and the repeat is
+   a later step of the same text, which p.10 skips once a mandatory step fails. No FAQ or designer post
+   on this card was found (BGG Rules forums read 2026-10-24).
 4. **Feat of Bravery / Paragon of Valor:** "may retrieve" is optional for the friend, who chooses the
    card; only friends with a discarded card are offered (the others could not retrieve). Paragon of
    Valor repeats only "if they do" retrieve.

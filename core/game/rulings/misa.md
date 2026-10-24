@@ -43,6 +43,9 @@ entries (goa2-faq has no `misa.json`). Code: `heroes/MisaHero.kt`; tests: `heroe
     RULINGS 12). Not a respawn (p.7 is a respawn, not a placement), a swap (p.19 "This does not count as
     movement or placement"), or a placement by another hero. Misa chooses an adjacent enemy hero that can
     be targeted; it chooses the card. Test: "Power Overwhelming - APP - Fast Travel is placing yourself".
+    Audit E (2026-10-24) keeps it, for consistency with RULINGS 12 (Magnetic Dagger stops Fast Travel as
+    a placement). The other reading: p.11 words Fast Travel as "you may move to any space", and "place
+    yourself" is card-text wording (p.18 "Place"), so only Misa's own placing texts would count.
 
 ## Disagreements with goa2-backend (cross-check only)
 
