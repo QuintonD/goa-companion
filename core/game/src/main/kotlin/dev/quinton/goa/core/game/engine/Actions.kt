@@ -346,7 +346,7 @@ fun Game.actionOptions(heroId: String, cardId: String): List<ActionType> {
     }
     val hasAttack = card.primary == PrimaryAction.ATTACK || SecondaryAction.ATTACK in card.secondary
     val pos = hero(heroId).at
-    if (hasAttack && pos != null && tokensAdjacentTo(pos).isNotEmpty() &&
+    if (hasAttack && pos != null && clearableTokens(heroId, cardId).isNotEmpty() &&
         actionAllowed(heroId, cardId, ActionKind.CLEAR, false)
     ) {
         out += ActionType.CLEAR
@@ -358,14 +358,29 @@ fun Game.actionOptions(heroId: String, cardId: String): List<ActionType> {
 /**
  * FAQ (source 3): "If you cannot perform the first instruction … you may not perform the action at
  * all." Probed on a copy: possible when the text reaches a real choice or changes the position
- * before stopping; impossible when it stops (fizzles) before doing anything.
+ * before stopping; impossible when it stops (fizzles) before doing anything. [excluded] and
+ * [repeatFilter] restrict the targets as for [performAction] (a primary performed by another card's
+ * text with limits, e.g. Swift's Backup "you cannot target minions").
  */
-fun Game.primaryPossible(heroId: String, cardId: String): Boolean {
+fun Game.primaryPossible(
+    heroId: String,
+    cardId: String,
+    excluded: Set<String> = emptySet(),
+    repeatFilter: ((String) -> Boolean)? = null,
+): Boolean {
     val copy = state.copy()
     val probe = Game(data, copy, emptyList(), RunMode.PROBE)
     val before = copy.stamp
     return try {
-        probe.performAction(heroId, cardId, primaryKind(card(cardId)), primary = true, probing = true)
+        probe.performAction(
+            heroId,
+            cardId,
+            primaryKind(card(cardId)),
+            primary = true,
+            excluded = excluded,
+            probing = true,
+            repeatFilter = repeatFilter,
+        )
         true
     } catch (_: ProbeHit) {
         true
@@ -526,11 +541,19 @@ fun Game.fastTravel(heroId: String, cardId: String?, optional: Boolean = false) 
     }
 }
 
+/**
+ * Tokens adjacent to [heroId] that a Clear action may remove: p.18 "Immune": an immune token "is not
+ * affected by your actions" (Tali's Venerated Totem: "Totem tokens are immune to enemy actions").
+ */
+fun Game.clearableTokens(heroId: String, cardId: String?): List<String> {
+    val pos = hero(heroId).at ?: return emptyList()
+    return tokensAdjacentTo(pos).filter { canTarget(it, heroId, ActionKind.CLEAR, cardId, primary = false) }
+}
+
 /** p.13 Clear: "you may remove any number of tokens adjacent to you". */
 fun Game.clear(heroId: String, cardId: String?) {
     while (true) {
-        val pos = hero(heroId).at ?: return
-        val tokens = tokensAdjacentTo(pos)
+        val tokens = clearableTokens(heroId, cardId)
         if (tokens.isEmpty()) return
         val opts = tokens.map { Choice.Token(it) as Choice } + Choice.Decline("Stop clearing")
         val c = ask(heroId, DecisionKind.CHOOSE_TOKEN, "Remove an adjacent token", opts, cardId, auto = false)

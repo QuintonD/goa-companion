@@ -454,11 +454,15 @@ fun Game.push(
     var end: Hex? = null
     var endIndex = 0
     var stopped = false
+    var passed = false
     for ((i, h) in line.withIndex()) {
         val empty = isEmpty(h, targetId)
         if (empty) {
             end = h
             endIndex = i + 1
+        } else if (!ignoreObstacles && pushPassable(h, targetId)) {
+            // p.18: "or the obstacle can be 'moved through'" (Min's mines): pushed through it.
+            passed = true
         } else if (!ignoreObstacles) {
             stopped = true
             break
@@ -466,7 +470,7 @@ fun Game.push(
             break
         }
     }
-    if (ignoreObstacles && endIndex < spaces) stopped = true
+    if ((ignoreObstacles || passed) && endIndex < spaces) stopped = true
     if (end != null) {
         setPos(targetId, end)
         val path = line.take(endIndex)
@@ -477,6 +481,14 @@ fun Game.push(
     }
     trigger(Trigger.Pushed(targetId, byHero, endIndex, stopped))
     return PushResult(endIndex, stopped, end ?: at)
+}
+
+/** A space a pushed unit may be pushed through without ignoring obstacles: a piece units may move through. */
+private fun Game.pushPassable(hex: Hex, mover: String): Boolean {
+    if (!geo.isSpace(hex)) return false
+    val occ = occupant(hex) ?: return false
+    if (state.piece(occ)?.passable != true) return false
+    return sources().none { (b, s) -> b.countsAsObstacle(this, s, SpaceQuery(hex, mover, actor)) } && canInteract(hex)
 }
 
 /** p.19 "Remove": take a piece off the board; no coins. Minions: see [removeMinion]. */
