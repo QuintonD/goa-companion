@@ -6,12 +6,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.game.AiPace
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -89,6 +94,8 @@ class PlayScreenshotTest {
         fontScale: Float = 1f,
         before: () -> Unit = {
         },
+        /** The whole screen, every window: the card focus viewer is its own. */
+        screen: Boolean = false,
         content: @Composable () -> Unit,
     ) {
         compose.setContent {
@@ -102,7 +109,7 @@ class PlayScreenshotTest {
         compose.waitForIdle()
         compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledImages.idle }
         compose.waitForIdle()
-        compose.onRoot().captureRoboImage()
+        if (screen) captureScreenRoboImage() else compose.onRoot().captureRoboImage()
     }
 
     // ---- The scripted game, stopped at a question ---------------------------------------
@@ -399,9 +406,65 @@ class PlayScreenshotTest {
         Game(remember { at(DecisionKind.UPGRADE_CARD) }, sheet = PlaySheet.Log)
     }
 
+    // ---- Card focus: a card tapped in the panel, large, ready for a second tap --------------
+
+    /** Taps the card called [name] in the panel (its thumbnail or defense row), as a first tap does. */
+    private fun tapCard(name: String) {
+        compose.onAllNodes(hasContentDescription(name, substring = true) and hasClickAction()).onFirst().performClick()
+    }
+
+    private fun firstOption(play: PlayUi): String = play.table.card(play.table.cardOptions.first().cardId)!!.name
+
+    /** Discard a card (Blend Into Shadows): Magnetic Dagger focused, "Tap the card again to discard…". */
+    private fun focusedDiscard(mode: ThemeMode, fontScale: Float = 1f) {
+        val play = at(DecisionKind.CHOOSE_CARD)
+        capture(mode, fontScale, before = { tapCard(firstOption(play)) }, screen = true) { Game(play) }
+    }
+
+    @Test fun tableCardFocusDark() = focusedDiscard(ThemeMode.DARK)
+
+    @Test fun tableCardFocusLight() = focusedDiscard(ThemeMode.LIGHT)
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
     @Test
-    fun tableCardSheetDark() = capture(ThemeMode.DARK) {
-        Game(remember { at(DecisionKind.PLAY_CARD) }, sheet = PlaySheet.Card("arien-red-1"))
+    fun tableCardFocusW384DarkFontScale2() = focusedDiscard(ThemeMode.DARK, 2f)
+
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun tableCardFocusLandscapeDark() = focusedDiscard(ThemeMode.DARK)
+
+    /** Defend: the card large with its verdict on its corner and "Defense 3 against Attack 6". */
+    @Test
+    fun tableDefendFocusDark() {
+        val play = at(DecisionKind.DEFEND)
+        capture(ThemeMode.DARK, before = { tapCard(firstOption(play)) }, screen = true) { Game(play) }
+    }
+
+    /** Play a card: the hand large, neighbours peeking, "Tap the card again to play … facedown". */
+    @Test
+    fun tablePlayCardFocusDark() {
+        val play = at(DecisionKind.PLAY_CARD)
+        capture(ThemeMode.DARK, before = {
+            tapCard(play.table.card(play.table.cardOptions[1].cardId)!!.name)
+        }, screen = true) {
+            Game(play)
+        }
+    }
+
+    /** Level up: the card to upgrade with the two of the next Tier it is replaced by. */
+    @Test
+    fun tableUpgradeFocusDark() {
+        val play = at(DecisionKind.UPGRADE_CARD)
+        capture(ThemeMode.DARK, before = { tapCard(cards.getValue("arien-red-1").name) }, screen = true) { Game(play) }
+    }
+
+    /** Your hand, view only: swipe between, no confirm. */
+    @Test
+    fun tableHandViewDark() {
+        val play = at(DecisionKind.CHOOSE_ACTION, 3)
+        val first = play.table.heroView(play.table.mine.first { play.table.heroView(it)?.hand?.isNotEmpty() == true })!!
+            .hand!!.first()
+        capture(ThemeMode.DARK, before = { tapCard(cards.getValue(first).name) }, screen = true) { Game(play) }
     }
 
     // ---- Game over ------------------------------------------------------------------------

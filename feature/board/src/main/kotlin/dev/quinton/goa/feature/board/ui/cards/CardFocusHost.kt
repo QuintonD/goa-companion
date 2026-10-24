@@ -50,6 +50,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -83,6 +84,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -119,6 +121,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun CardFocusHost(state: CardFocusState) {
     val request = state.request ?: return
+    // The window's own density would drop a font scale set by the screen (screenshots at scale 2).
+    val density = LocalDensity.current
     Dialog(
         onDismissRequest = { state.close() },
         properties = DialogProperties(
@@ -133,7 +137,9 @@ fun CardFocusHost(state: CardFocusState) {
             window?.setDimAmount(0f)
             window?.setWindowAnimations(0)
         }
-        key(request.id) { FocusOverlay(state, request) }
+        CompositionLocalProvider(LocalDensity provides density) {
+            key(request.id) { FocusOverlay(state, request) }
+        }
     }
 }
 
@@ -149,7 +155,7 @@ private fun FocusOverlay(state: CardFocusState, request: CardFocusRequest) {
     val pager = rememberPagerState(initialPage = request.initial) { request.cards.size }
     LaunchedEffect(pager) { snapshotFlow { pager.currentPage }.collect { state.index = it } }
 
-    val motion = remember { FocusMotion() }
+    val motion = remember { FocusMotion(state) }
     LaunchedEffect(Unit) {
         motion.reveal.animateTo(1f, tween(Motion.LONG_MS + 40, easing = Motion.EmphasizedDecelerate))
     }
@@ -204,10 +210,9 @@ private fun FocusOverlay(state: CardFocusState, request: CardFocusRequest) {
         Box(
             Modifier
                 .fillMaxSize()
-                .clearAndSetSemantics {}
+                .clearAndSetSemantics { testTag = SCRIM_TAG }
                 .background(ScrimColor.copy(alpha = scrimAlpha))
-                .clickable(remember { MutableInteractionSource() }, indication = null) { state.close() }
-                .testTag(SCRIM_TAG),
+                .clickable(remember { MutableInteractionSource() }, indication = null) { state.close() },
         )
         Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             FocusLayout(state, request, pager, motion, actions)
@@ -219,7 +224,7 @@ private fun FocusOverlay(state: CardFocusState, request: CardFocusRequest) {
 private class FocusActions(val confirm: () -> Unit, val step: (Int) -> Unit, val close: () -> Unit)
 
 /** Every animated value of the viewer. */
-private class FocusMotion {
+private class FocusMotion(private val state: CardFocusState) {
     /** 0 = in the thumbnail (or gone), 1 = focused. */
     val reveal = Animatable(0f)
 
@@ -232,7 +237,13 @@ private class FocusMotion {
     /** A refused tap (a card that can't be chosen) shakes it. */
     val shakeX = Animatable(0f)
     var drag by mutableFloatStateOf(0f)
-    var back by mutableFloatStateOf(0f)
+
+    // The predictive back gesture's progress lives in the state (tests read it).
+    var back: Float
+        get() = state.backProgress
+        set(value) {
+            state.backProgress = value
+        }
     var backEdge by mutableIntStateOf(BackEventCompat.EDGE_LEFT)
     var confirming by mutableStateOf(false)
     var exitKind by mutableStateOf<FocusExit?>(null)
@@ -451,6 +462,7 @@ private fun FocusPage(
     val backShiftPx = with(density) { BACK_SHIFT.toPx() }
     val semantics = if (current) {
         Modifier.clearAndSetSemantics {
+            testTag = CARD_TAG
             contentDescription = listOfNotNull(spokenCard(item.card), item.caption).joinToString(", ")
             stateDescription = listOfNotNull(
                 item.verdict?.label,
@@ -496,7 +508,7 @@ private fun FocusPage(
                     },
                 )
             }
-        }.testTag(CARD_TAG)
+        }
     } else {
         Modifier.clearAndSetSemantics {}
     }
@@ -524,11 +536,11 @@ private fun FocusPage(
                     shape = RoundedCornerShape(cardWidth * CORNER)
                     clip = true
                     if (page == state.index) {
-                        val origin = state.origins[item.key]
-                        val target = motion.target
                         val grow = motion.exitKind == null || motion.exitKind == FocusExit.SHRINK
+                        val origin = state.origins[item.key]?.takeIf { grow }
+                        val target = motion.target?.takeIf { it.width > 0f }
                         var scale: Float
-                        if (grow && origin != null && target != null && target.width > 0f) {
+                        if (origin != null && target != null) {
                             scale = lerp(origin.width / target.width, 1f, t)
                             translationX = (origin.center.x - target.center.x) * (1f - t)
                             translationY = (origin.center.y - target.center.y) * (1f - t)
@@ -634,12 +646,12 @@ internal const val SCRIM_TAG = "cardFocus:scrim"
 internal const val CLOSE_TAG = "cardFocus:close"
 internal const val CONFIRM_TAG = "cardFocus:confirm"
 
-private const val SCRIM_ALPHA = 0.86f
+private const val SCRIM_ALPHA = 0.93f
 private const val PORTRAIT_CARD_SHARE = 0.52f
-private const val PORTRAIT_CARD_SHARE_LARGE = 0.44f
+private const val PORTRAIT_CARD_SHARE_LARGE = 0.38f
 private const val LANDSCAPE_CARD_SHARE = 0.4f
 private const val ENTER_SCALE = 0.86f
-private const val NEIGHBOUR_SCALE = 0.86f
+private const val NEIGHBOUR_SCALE = 0.93f
 private const val NEIGHBOUR_ALPHA = 0.55f
 private const val BACK_SHRINK = 0.14f
 private const val DOWN_RESIST = 0.3f
@@ -650,7 +662,7 @@ private const val CORNER = 0.05f
 private const val MAX_DOTS = 8
 private val TOP_BAR = 56.dp
 private val PEEK = 36.dp
-private val PAGE_GAP = 14.dp
+private val PAGE_GAP = 10.dp
 private val FLY_DISTANCE = 96.dp
 private val FLY_VELOCITY = 900.dp
 private val SHAKE = 10.dp

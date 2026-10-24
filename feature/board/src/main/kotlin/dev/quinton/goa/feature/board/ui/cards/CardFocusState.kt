@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -103,6 +104,10 @@ class CardFocusState {
     internal var exit by mutableStateOf(FocusExit.SHRINK)
         private set
 
+    /** How far a predictive back gesture has gone (0–1): the card shrinks with it. */
+    var backProgress by mutableFloatStateOf(0f)
+        internal set
+
     internal val origins = mutableStateMapOf<String, Rect>()
     private var next = 0
 
@@ -130,6 +135,7 @@ class CardFocusState {
         this.index = start
         closing = false
         exit = FocusExit.SHRINK
+        backProgress = 0f
     }
 
     /** Opens plain cards to read, swiping between them. */
