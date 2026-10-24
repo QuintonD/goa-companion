@@ -76,7 +76,7 @@ class XargathaTest {
     }
 
     @Test
-    fun `Sirens Call - "if able" - when no space next to Xargatha can be reached, the target stays`() {
+    fun `Sirens Call - if able - when no space next to Xargatha can be reached, the target stays`() {
         val d = pos {
             clearMinions()
             hero("xargatha", Team.RED, Hex(1, -2)) { played("xargatha-silver") }
@@ -286,5 +286,62 @@ class XargathaTest {
         val far = d.spaces().maxOf { HexGrid.distance(it, Hex(1, -2)) }
         assertThat(far).isEqualTo(7)
         assertThat(d.spaces()).contains(Hex(3, -2))
+    }
+
+    @Test
+    fun `Control - an enemy ranged or melee minion, not the heavy`() {
+        val d = pos {
+            clearMinions()
+            hero("xargatha", Team.RED, Hex(1, -2)) { played("xargatha-green-2a") }
+            hero("arien", Team.BLUE, Hex(-5, -4))
+            minion(Team.BLUE, MinionType.MELEE, Hex(3, -2))
+            minion(Team.BLUE, MinionType.RANGED, Hex(2, -2))
+            minion(Team.BLUE, MinionType.HEAVY, Hex(-1, -2)) // immune anyway
+            phase = PositionPhase.Resolving(next = "xargatha")
+        }
+        d.action("xargatha", ActionType.PRIMARY)
+        assertThat(
+            d.units().map {
+                d.s.state.minion(it)!!.type
+            }.toSet(),
+        ).containsExactly(MinionType.MELEE, MinionType.RANGED)
+    }
+
+    @Test
+    fun `Petrifying Stare and Turn into Statues - radius 3 and 4`() {
+        for ((card, dist) in listOf("xargatha-blue-2a" to 3, "xargatha-blue-3a" to 4)) {
+            val d = pos {
+                clearMinions()
+                hero("xargatha", Team.RED, Hex(0, -5)) { played(card) }
+                hero("brogan", Team.BLUE, Hex(dist, -5)) { played("brogan-blue-1") }
+                phase = PositionPhase.Resolving(next = "xargatha")
+            }
+            d.action("xargatha", ActionType.PRIMARY)
+            d.action("brogan", ActionType.HOLD)
+            d.play("xargatha", "xargatha-gold")
+            d.play("brogan", "brogan-gold")
+            // Next turn, cards revealed: Brogan, 3 (4) spaces away, counts as terrain.
+            assertThat(
+                Game(TestData.engine.data, d.s.state, emptyList(), RunMode.PROBE).isTerrain(Hex(dist, -5)),
+            ).isTrue()
+        }
+    }
+
+    @Test
+    fun `Constrict - End of round, defeat an enemy melee minion adjacent to you, not a ranged one`() {
+        val d = pos {
+            clearMinions()
+            turn = 4
+            hero("xargatha", Team.RED, Hex(1, -2)) { resolved(1, "xargatha-green-2b") }
+            hero("arien", Team.BLUE, geo.heroSpawns(Team.BLUE)[0])
+            minion(Team.BLUE, MinionType.RANGED, Hex(0, -2))
+            minion(Team.BLUE, MinionType.MELEE, Hex(2, -2))
+            minion(Team.RED, MinionType.MELEE, Hex(-1, -5))
+            minion(Team.RED, MinionType.MELEE, Hex(-1, -6))
+            effect("xargatha", "xargatha-green-2b", Timing.END_OF_ROUND, ActionKind.SKILL, madeTurn = 1)
+            phase = PositionPhase.EndOfRound
+        }
+        assertThat(d.texts()).contains("Blue melee minion is defeated by Xargatha.")
+        assertThat(d.texts()).doesNotContain("Blue ranged minion is defeated by Xargatha.")
     }
 }

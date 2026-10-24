@@ -148,7 +148,7 @@ class ArienTest {
     }
 
     @Test
-    fun `Dangerous Current - "or is defeated" with no card to discard, and "Up to 1" may be nobody (FAQ)`() {
+    fun `Dangerous Current - or is defeated with no card to discard, and Up to 1 may be nobody (FAQ)`() {
         val d = current("arien-red-1", Hex(-1, -2), victimHand = emptyList()) // 2 behind, empty hand
         d.action("arien", ActionType.PRIMARY)
         d.unit("xargatha")
@@ -462,4 +462,23 @@ class ArienTest {
         ActionKind.ATTACK,
         null,
     )
+
+    @Test
+    fun `Aspiring Duelist - Ignore all minion defense modifiers, his own minions included`() {
+        val d = pos {
+            clearMinions()
+            hero("brogan", Team.BLUE, Hex(4, -5))
+            // Threatening Slash: Attack 5, +1 per other adjacent enemy.
+            hero("xargatha", Team.RED, Hex(1, -2)) { played("xargatha-red-1") }
+            hero("arien", Team.BLUE, Hex(2, -2)) { hand("arien-blue-1", "arien-gold") }
+            minion(Team.BLUE, MinionType.MELEE, Hex(3, -2)) // +1 to Arien, ignored
+            minion(Team.BLUE, MinionType.MELEE, Hex(1, -1)) // adjacent to Xargatha: +1 Attack
+            phase = PositionPhase.Resolving(next = "xargatha")
+        }
+        d.action("xargatha", ActionType.PRIMARY)
+        d.unit("arien")
+        d.defend("arien-blue-1") // 5, not 5 + 1: Attack 6 wins
+        assertThat(d.texts()).contains("Arien defends with Aspiring Duelist: Defense 5 = 5. Not enough.")
+        assertThat(d.at("arien")).isNull()
+    }
 }

@@ -358,4 +358,62 @@ class WaspTest {
         d.expect(DecisionKind.CHOOSE_CARD, "arien")
         assertThat(d.hero("wasp").coins).isEqualTo(2)
     }
+
+    @Test
+    fun `Electrocute - radius 3, an enemy hero not adjacent discards a card, if able`() {
+        val d = pos {
+            clearMinions()
+            hero("wasp", Team.RED, Hex(1, -2)) { played("wasp-red-2a") }
+            hero("brogan", Team.BLUE, Hex(2, -2)) { hand("brogan-red-1") }
+            hero("arien", Team.BLUE, Hex(-2, -2)) { hand("arien-gold", "arien-silver") } // 3 away
+            phase = PositionPhase.Resolving(next = "wasp")
+        }
+        d.action("wasp", ActionType.PRIMARY)
+        d.defend("brogan-red-1")
+        d.expect(DecisionKind.CHOOSE_CARD, "arien")
+    }
+
+    @Test
+    fun `Stop Projectiles - Block a ranged attack`() {
+        val d = pos {
+            clearMinions()
+            hero("arien", Team.BLUE, Hex(1, -2)) { played("arien-red-2b") }
+            hero("wasp", Team.RED, Hex(-1, -2)) { hand("wasp-green-1") }
+            phase = PositionPhase.Resolving(next = "arien")
+        }
+        d.action("arien", ActionType.PRIMARY)
+        assertThat(d.expect(DecisionKind.DEFEND).context.defensePreview["wasp-green-1"]).isNull() // a Block
+        d.defend("wasp-green-1")
+        assertThat(d.at("wasp")).isEqualTo(Hex(-1, -2))
+    }
+
+    @Test
+    fun `Mass Telekinesis - place a unit or token next to you, may repeat once`() {
+        val d = pos {
+            clearMinions()
+            hero("wasp", Team.RED, Hex(1, -2)) { played("wasp-green-3b") }
+            hero("arien", Team.BLUE, Hex(3, -3)) // not in a straight line
+            token("token_rock", Hex(-1, -1)) // not in a straight line, 2 away
+            phase = PositionPhase.Resolving(next = "wasp")
+        }
+        d.action("wasp", ActionType.PRIMARY)
+        d.unit("arien")
+        d.space(0, -2)
+        d.yes()
+        d.space(d.spaces().first())
+        assertThat(HexGrid.distance(d.s.state.pieces.single().at!!, Hex(1, -2))).isEqualTo(1)
+    }
+
+    @Test
+    fun `Control Gravity - radius 3`() {
+        val d = pos {
+            clearMinions()
+            hero("wasp", Team.RED, Hex(1, -2)) { played("wasp-blue-2a") }
+            hero("arien", Team.BLUE, Hex(-5, -4))
+            token("token_rock", Hex(4, -2)) // 3 away
+            phase = PositionPhase.Resolving(next = "wasp")
+        }
+        d.action("wasp", ActionType.PRIMARY)
+        for (h in d.spaces()) assertThat(HexGrid.distance(h, Hex(1, -2))).isEqualTo(3)
+    }
 }

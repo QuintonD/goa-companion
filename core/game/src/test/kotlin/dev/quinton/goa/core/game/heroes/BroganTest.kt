@@ -414,4 +414,20 @@ class BroganTest {
         assertThat(d.s.events.filterIsInstance<GameEvent.LanePushed>().single().winner).isEqualTo(Team.RED)
         assertThat(d.at("brogan")).isEqualTo(Hex(3, -5))
     }
+
+    @Test
+    fun `Mighty Punch - You may move 1 space, then push an enemy unit or a token adjacent up to 2 spaces`() {
+        val d = pos {
+            clearMinions()
+            hero("brogan", Team.BLUE, Hex(1, -2)) { played("brogan-blue-2a") }
+            hero("wasp", Team.RED, Hex(0, -2)) { played("wasp-blue-1") }
+            phase = PositionPhase.Resolving(next = "brogan")
+        }
+        d.action("brogan", ActionType.PRIMARY)
+        d.decline() // no move
+        d.expect(DecisionKind.CHOOSE_NUMBER)
+        assertThat(d.d.options).hasSize(3)
+        d.number(2)
+        assertThat(d.at("wasp")).isEqualTo(Hex(-2, -2))
+    }
 }
