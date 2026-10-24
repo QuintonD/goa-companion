@@ -109,8 +109,9 @@ class AiCoach(private val factory: GameFactory? = null, private val seed: Long =
         }
         val ranked = swings.sortedByDescending(::weight)
         val eventful = ranked.filter { weight(it) >= abs(it.delta) && abs(it.delta) >= MIN_SWING }.take(MAX_POINTS)
-        val chosen = (if (eventful.size >= MIN_POINTS) eventful else (eventful + (ranked - eventful.toSet())).take(MIN_POINTS))
-            .sortedBy { it.from.events }
+        val filler = ranked - eventful.toSet()
+        val picked = if (eventful.size >= MIN_POINTS) eventful else (eventful + filler).take(MIN_POINTS)
+        val chosen = picked.sortedBy { it.from.events }
         return chosen.map { sw ->
             TurningPoint(engine.data, saved, team, events.subList(sw.from.events, sw.to.events), sw).note()
         }
@@ -275,7 +276,8 @@ internal class Explainer(
         val oursBest = share(best) { pushes(it, team) }
         val oursMine = share(mine) { pushes(it, team) }
         if (oursBest - oursMine >= 0.6) {
-            val how = bestName()?.let { "$it wins the lane push for your team." } ?: "There's a lane push for your team here."
+            val how = bestName()?.let { "$it wins the lane push for your team." }
+                ?: "There's a lane push for your team here."
             return how to
                 "Defeating or removing the last enemy minion in the Battle Zone pushes the Lane at once (p.8)."
         }
@@ -333,6 +335,7 @@ internal class Explainer(
     /** The better option in a few words ("Shock", "Shock's movement", "Brogan"), or null. */
     private fun bestName(): String? = when (val b = best) {
         is Choice.Card -> cardName(b.cardId)
+
         is Choice.Action -> d.sourceCardId?.let { cardName(it) }?.let { card ->
             when (b.action) {
                 ActionType.PRIMARY -> "$card's primary action"
@@ -343,7 +346,9 @@ internal class Explainer(
                 ActionType.HOLD -> null
             }
         }
+
         is Choice.Unit -> "Choosing ${unitName(b.unitId)}"
+
         else -> null
     }
 

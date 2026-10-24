@@ -16,7 +16,7 @@ class ExperimentTest {
             mapOf(
                 "expertNextTurn" to expert.copy(playHorizon = Horizon.NEXT_TURN),
                 "expertLight" to expert.copy(playSamples = 10, otherSamples = 4),
-            "expert24" to expert.copy(playSamples = 24, otherSamples = 8),
+                "expert24" to expert.copy(playSamples = 24, otherSamples = 8),
                 "hard8" to hard.copy(playSamples = 8, otherSamples = 3, greedySelf = true),
                 "greedyAll" to hard.copy(greedyTeam = true, greedyEnemies = true),
             )

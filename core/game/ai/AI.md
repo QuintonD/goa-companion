@@ -145,11 +145,30 @@ A phone is assumed 3–4× slower.
 | Expert | 118 / 222 / 428 ms | 5–58 ms (169) | 4 s |
 
 Even at 4× the desktop time every level stays well inside its budget (Expert's worst card play
-≈ 1.7 s on a phone). The coach's `nudge` averages 7 ms (max 36 ms) per decision on the desktop.
+≈ 1.7 s on a phone). The coach's `nudge` averages 7–17 ms (max 274 ms) per decision on the desktop.
 
 ## Measured strength
 
-TOURNAMENT_RESULTS
+Mirrored tournaments (STRATEGY §4.5): the three ways to split Wasp, Xargatha, Arien and Brogan into
+two teams × both coin sides × *n* seeds, every game played twice with the levels swapping teams
+(same seed and coin), Quick, Forgotten Island, `deterministic` players. Final run, seeds 100–107
+(not used for tuning), 96 games per pair, 2026-10-24; 95% Wilson intervals:
+
+| Pair | Wins | Rate | 95% interval | ≈ Elo gap |
+|------|------|------|--------------|-----------|
+| Normal vs Easy | 90–6 | 94% | 87–97% | +470 |
+| Hard vs Normal | 77–19 | 80% | 71–87% | +240 |
+| Expert vs Hard | 62–34 | 65% | 55–73% | +110 |
+| Hard vs Easy | 95–1 | 99% | 94–100% | — |
+| Expert vs Normal | 85–11 | 89% | 81–93% | — |
+
+Earlier runs on other seeds agree (Expert vs the final Hard: 24–12, 24–12, 24–12 on three disjoint
+36-game sets). Games last 6.6–7.1 rounds; endings over the final run: last push 43%, Throne 42%,
+Life counters 15% (kills decide more often when Expert or Hard plays: 24 of 96 Expert–Hard games).
+`LevelLadderTest` replays a 24-game slice of this on every test run (100% / 79% / 63%).
+
+The gaps are uneven: Easy is a beginner and is meant to lose to anyone careful; Expert's margin over
+Hard is the smallest because more search buys less once the playout policy is the limit.
 
 ## The coach
 

@@ -14,6 +14,7 @@ in [RULINGS.md](RULINGS.md); contract changes in [CONTRACT-CHANGES.md](CONTRACT-
 | `core.game.effects` | The authoring framework: `Behavior` (hooks), `CardScript`/`HeroModule`/`Registry`, `Helpers.kt` |
 | `core.game.heroes` | One `HeroModule` per hero (`<Hero>Hero.kt`) and `Heroes.all` |
 | `core.game.position` | `PositionBuilder` / `position { }` |
+| `core.game.ai` | The computer opponents (`AiPlayers`) and the coach (`AiCoach`): [ai/AI.md](ai/AI.md) |
 
 ## State
 
@@ -134,3 +135,4 @@ hook code guards every clause of a card with an early return. Everything else is
 | `SessionTest` | Decision ids, rejected answers, save/restore mid-card and mid-defense, fork, undo, determinize |
 | `PropertyTest` | 1 200 random games (1v1, 2v1 Handicap, 2v2 Quick/Long, double lane): invariants at every decision; determinism; save/restore and fork equivalence; determinize |
 | `BenchmarkTest` | Games per second |
+| `ai/*Test` | The computer opponents and the coach: level ladder, no peeking, every decision kind, timings ([ai/AI.md](ai/AI.md)) |
