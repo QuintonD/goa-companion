@@ -5,12 +5,16 @@ rulebook (printed pages), the FAQ (Mortimer's `faq`, goa2-faq `common.json`). **
 FAQ are silent; the engine takes the reading closest to the text. Code: `heroes/MortimerHero.kt`;
 tests: `heroes/MortimerTest.kt`.
 
-1. **[APP] Zombie token supply.** FAQ (Mortimer): "Can I take Zombie tokens from the board if all
+1. **Zombie token supply: 4.** FAQ (Mortimer): "Can I take Zombie tokens from the board if all
    Zombie tokens are already in play? Yes … first remove up to that number of tokens of the same
-   type from the board" (p.18 "Place"). The box's Zombie count is in none of the pinned sources, so
-   the supply is not limited (`TokenKind.supply = null`) and nothing is ever taken from the board.
-   Gap: with the real count, the placements must first ask which Zombie tokens on the board to take
-   (`placeToken(takeFrom)`, p.18 "first remove up to that number of tokens"); not written yet. Test: "Awaken - FAQ - more zombies than the supply (APP - …)".
+   type from the board" (p.18 "Place"). Count: at least 4 (Awaken!: "Place up to 4 Zombie tokens"; the
+   BGG "Mad_Mike Builds the Awakener" opening, thread 3556825, places four in one action) and at most 4
+   (BGG thread 3466150, a token-tray maker who had opened every pack but Renowned — Mortimer is Wayward:
+   "no other hero had more than 4 tokens"). Community sources; the dashboard back is not in ours.
+   Engine: `supply = 4`. With none left, Awaken! asks which zombie to take from the board first, or to
+   stop ("up to 4"), and only offers zombies whose removal leaves a space; Gathering Horde / Army of
+   Darkness take one back (Mortimer's choice) before the replacing zombie is placed. Tests: "Awaken -
+   FAQ - all four zombies in play …", "Gathering Horde - replace …".
 2. **Zombie tokens stay between rounds.** Card: Awaken! ("Zombie tokens are not removed at the end of
    round"). Reading: a property of every Zombie token, including those placed by Gathering Horde.
    They are not removed when Mortimer is defeated (p.19). Tests: "Awaken - Zombie tokens are not
@@ -28,13 +32,19 @@ tests: `heroes/MortimerTest.kt`.
    time ("up to"), and the choices stop when no bullet can be done. "Choose one —" is mandatory:
    with no possible bullet the step fails (RULINGS 38). One action (p.10 "Treat this as a single
    action").
-6. **[APP] "Move a Zombie token in range up to 1 space" (Corpse Slam family, Robbing Zombies
-   family).** Reading: a Zombie token in range must be chosen (the bullet is not offered without one);
-   "up to" makes the distance 0 or 1. Reason: same reading as Brogan's "Push an enemy unit or a token
-   adjacent to you up to 1 space", which needs a target (BroganHero). So Robbing Zombies' coin needs a
-   zombie in range, but not a move. p.10 calls "up to" steps non-mandatory; the step being optional
-   would let the coin be gained with no zombie at all, which the engine does not allow. Tests:
-   "Robbing Zombies - …".
+6. **"Move a Zombie token in range up to 1 space" (Corpse Slam family, Robbing Zombies family).**
+   p.10: "Steps which include 'you may', 'up to' and 'if able' are non-mandatory"; nichik (who posts for
+   Wolff Designa, BGG thread 3533578, article 46263552): "'non-mandatory' in this context means your
+   action doesn't fizzle if you cannot complete that step". Reading: the distance is 0 or 1 and, with
+   no Zombie token in range, the step is skipped and the rest of the bullet still applies. So Robbing
+   Zombies / Stalking Scalpers' "Gain 1 coin" (a mandatory step after it) is gained with no zombie in
+   range too. Corpse Slam's bullet has nothing left to do without a zombie ("that Zombie token may
+   push …"), so it is not offered then (RULINGS 38; choosing it would change nothing).
+   **Changed (audit C, 2026-10-24).** Before: a zombie in range was required, by analogy with Brogan's
+   "Push an enemy unit or a token adjacent to you up to 1 space" (BroganHero fizzles with no target).
+   That analogy does not hold: Brutal Jab's push is its last step, so skipping and fizzling give the
+   same result there, while Robbing Zombies has a step after it. Tests: "Robbing Zombies - p10 up to is
+   non-mandatory, no zombie in range still gains the coin".
 7. **[APP] "that Zombie token may push a unit or a token adjacent to it 1 space".** Reading: any unit
    or token next to the zombie except the zombie itself and Mortimer (p.10: "If your action is
    affecting you … it will say so"), targeted, not one that can't be pushed by Mortimer; pushed 1
@@ -42,7 +52,11 @@ tests: `heroes/MortimerTest.kt`.
 8. **Crawling / Walking / Racing Dead: "Another enemy hero in radius, adjacent to a Zombie token,
    discards a card, if able".** Reading: an enemy hero other than the attack's target, targeted
    (immune heroes can't be chosen), next to a zombie; "each enemy hero can only be targeted once" =
-   by this bullet within the action. Only after an attack that connected (RULINGS 18).
+   by this bullet within the action. Only after an attack that connected (RULINGS 18). **Razzle FAQ**:
+   "Cards such as Mortimer's Crawling Dead (which let you affect 'another enemy hero in radius') … can
+   target Razzle twice by targeting two Razzle figures": "another" and "only once" are per figure, so a
+   second figure of hers may be chosen (and one other than the attack's target). Test: "Walking Dead -
+   Razzle FAQ - …".
 9. **Braains…! / Braaaaaaaains…! "If an enemy hero in radius is adjacent to a Zombie token, retrieve a
    discarded card".** Reading: the retrieve is not optional (no "may"), so the bullet is offered only
    when Mortimer has a discarded card and the condition holds. **FAQ (common): "Would an immune hero

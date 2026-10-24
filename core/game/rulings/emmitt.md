@@ -17,6 +17,9 @@ tests: `heroes/EmmittTest.kt`.
    Vu's "You may place" is not offered. Reason: p.10 mandatory steps; placing part of a set is not
    what the text says.
 4. **[APP] Glitch supply 3.** The most any card places; our sources do not list the box contents.
+   Audit C (2026-10-24) searched the shop, retailer listings, Kickstarter/Gamefound pages and the BGG
+   forums: no Glitch count is given anywhere; the only bound is a token-tray maker's "no other hero had
+   more than 4 tokens" (BGG thread 3466150; Emmitt is Wayward), so the box holds 3 or 4.
    With too few in the supply Emmitt first takes tokens of the same type from the board, choosing
    which (p.18 "Place").
 5. **Unstable Timeline — who chooses.** "An enemy hero in play" is any enemy hero on the board; Emmitt

@@ -5,10 +5,17 @@ Sources in order (RULINGS.md): card text (`catalog/heroes/mrak.json`), the 2nd-p
 are silent; the engine takes the reading closest to the text. Code: `heroes/MrakHero.kt`; tests:
 `heroes/MrakTest.kt`.
 
-1. **[APP] Rock token supply.** Question: how many Rock tokens are there (p.18 "Tokens are
-   intentionally limited")? Reading: not limited (`TokenKind.supply = null`). Reason: the box's count
-   is in none of the pinned sources. Needs the real count to be exact. Rocks are removed at the end
-   of round (p.19, the text says nothing else).
+1. **Rock token supply: 3.** p.18 "Place": "Tokens are intentionally limited … If you need to place
+   more tokens than are available in the supply, first remove up to that number of tokens of the same
+   type from the board, if able." Count: the Mrak Hero Spotlight (BGG thread 3449043, 2nd printing): "The
+   rock supply is limited to 3 tokens, so gold will remove the rocks, if used to attack later in the
+   round" (community; the dashboard back is not in our sources). Rocks are removed at the end of round
+   (p.19, the text says nothing else). Engine: `supply = 3`; rocks are taken back *before* the spaces are
+   found ("first remove"): Fissure takes back what it lacks (Mrak picks while there is a choice) and
+   a rock taken from the line frees its space; Stone Grip needs all three, so every rock in play goes
+   first and their spaces count as empty when the enemy hero is checked; Stomping Step / Ground Shaker
+   take one back when none is left (`Game.takeTokensBack`). Tests: "Fissure - p18 …", "Stone Grip -
+   p18 …", "Stomping Step - p18 …".
 2. **"Adjacent to terrain, or to a Rock token".** Cards: Seismic Slam/Assault, Epicenter, Treacherous
    Ground, Rockslide, Avalanche, Stomping Step, Ground Shaker. Reading: a neighbouring hex that is
    terrain (p.19: printed terrain and the water around the board; units that count as terrain, Stone
@@ -55,7 +62,8 @@ are silent; the engine takes the reading closest to the text. Code: `heroes/Mrak
     enemy hero next to at least one of the rocks just placed discards a card, if able; once per turn
     (only a placement next to at least one such hero uses it). Immune heroes neither trigger it nor
     discard (goa2-faq common: "Would an immune hero trigger effects, that require adjacency? No.").
-    Tests: "Rock and a Hard Place - …".
+    Razzle FAQ: each of her figures next to the rocks is one of "those heroes", so she discards once per
+    figure. Tests: "Rock and a Hard Place - …".
 
 ## Disagreements with goa2-backend (cross-check only)
 

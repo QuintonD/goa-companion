@@ -57,6 +57,89 @@ class MrakTest {
     }
 
     @Test
+    fun `Fissure - p18 three Rock tokens, rocks in play are first taken from the board and free their space`() {
+        val d = pos {
+            clearMinions()
+            hero("mrak", Team.RED, Hex(0, -2)) { played("mrak-gold") }
+            hero("brogan", Team.BLUE, Hex(4, -5))
+            minion(Team.BLUE, MinionType.MELEE, Hex(1, -2)) // east of Mrak
+            token(MrakHero.ROCK, Hex(2, -2), owner = "mrak") // in the line
+            token(MrakHero.ROCK, Hex(-1, -5), owner = "mrak")
+            phase = PositionPhase.Resolving(next = "mrak")
+        }
+        val inLine = d.s.state.pieces.single { it.at == Hex(2, -2) }.id
+        d.action("mrak", ActionType.PRIMARY)
+        // Three to place, one in the supply: Mrak takes back one rock (his choice), then the second.
+        d.expect(DecisionKind.CHOOSE_TOKEN, "mrak")
+        d.token(inLine)
+        // The other one must go as well (no choice left); (2,-2) is empty again and is in the first three.
+        assertThat(d.rocks()).containsExactly(Hex(1, -2), Hex(2, -2), Hex(3, -2))
+        assertThat(d.s.state.pieces.count { it.kind == MrakHero.ROCK }).isEqualTo(3)
+    }
+
+    @Test
+    fun `Stone Grip - p18 with rocks in play, all three are taken back first and their spaces count`() {
+        val d = pos {
+            clearMinions()
+            hero("mrak", Team.RED, Hex(1, -2)) { played("mrak-silver") } // Range 3
+            hero("brogan", Team.BLUE, Hex(3, -2))
+            token(MrakHero.ROCK, Hex(4, -2), owner = "mrak")
+            token(MrakHero.ROCK, Hex(4, -3), owner = "mrak")
+            token(MrakHero.ROCK, Hex(3, -1), owner = "mrak")
+            minion(Team.RED, MinionType.MELEE, Hex(2, -2))
+            minion(Team.RED, MinionType.MELEE, Hex(3, -3))
+            phase = PositionPhase.Resolving(next = "mrak")
+        }
+        // Brogan has only one empty space around him now, but the three rocks around him must be taken back
+        // first (the supply is empty), so Stone Grip can be played.
+        assertThat(d.actions()).contains(ActionType.PRIMARY)
+        d.action("mrak", ActionType.PRIMARY)
+        // Taken back with no question (all three must go), then the three farthest spaces again.
+        assertThat(d.rocks()).containsExactly(Hex(4, -2), Hex(4, -3), Hex(3, -1))
+        assertThat(d.texts().count { it.contains("is removed") }).isAtLeast(3)
+    }
+
+    @Test
+    fun `Stomping Step - p18 with all three rocks in play, Mrak first takes one from the board`() {
+        val d = pos {
+            clearMinions()
+            hero("mrak", Team.RED, Hex(1, -2)) { played("mrak-blue-2b") } // Radius 4
+            hero("brogan", Team.BLUE, Hex(4, -2)) // next to terrain (5,-2)
+            token(MrakHero.ROCK, Hex(-1, -5), owner = "mrak")
+            token(MrakHero.ROCK, Hex(0, -5), owner = "mrak")
+            token(MrakHero.ROCK, Hex(1, -5), owner = "mrak")
+            phase = PositionPhase.Resolving(next = "mrak")
+        }
+        val first = d.s.state.pieces.single { it.at == Hex(0, -5) }.id
+        d.action("mrak", ActionType.PRIMARY)
+        d.space(4, -3) // Brogan, the only unit next to terrain or a rock
+        d.expect(DecisionKind.CHOOSE_TOKEN, "mrak")
+        d.token(first)
+        assertThat(d.rocks()).containsExactly(Hex(-1, -5), Hex(1, -5), Hex(4, -2))
+    }
+
+    @Test
+    fun `Rock and a Hard Place - Razzle FAQ - two of her figures next to the rocks, she discards twice`() {
+        val d = pos {
+            clearMinions()
+            hero("mrak", Team.RED, Hex(0, -2)) {
+                played("mrak-gold")
+                ultimate()
+            }
+            minion(Team.BLUE, MinionType.MELEE, Hex(1, -2))
+            hero("razzle", Team.BLUE, Hex(2, -1)) { hand("razzle-gold", "razzle-silver", "razzle-red-1") }
+            razzleDouble("rzA", Hex(3, -3), Team.BLUE)
+            phase = PositionPhase.Resolving(next = "mrak")
+        }
+        d.action("mrak", ActionType.PRIMARY)
+        d.expect(DecisionKind.CHOOSE_CARD, "razzle")
+        d.card("razzle-gold")
+        d.expect(DecisionKind.CHOOSE_CARD, "razzle")
+        d.card("razzle-silver")
+        assertThat(d.zoneOf("razzle", "razzle-red-1")).isEqualTo(Zone.HAND)
+    }
+
+    @Test
     fun `Lesser Fissure - Target a hero adjacent to you, not a minion`() {
         val d = pos {
             clearMinions()

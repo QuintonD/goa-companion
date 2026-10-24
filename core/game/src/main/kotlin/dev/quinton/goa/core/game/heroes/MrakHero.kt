@@ -36,6 +36,9 @@ import dev.quinton.goa.core.game.engine.isEmpty
 import dev.quinton.goa.core.game.engine.isTerrain
 import dev.quinton.goa.core.game.engine.move
 import dev.quinton.goa.core.game.engine.placeToken
+import dev.quinton.goa.core.game.engine.takeTokensBack
+import dev.quinton.goa.core.game.engine.tokenSupplyLeft
+import dev.quinton.goa.core.game.engine.tokensInPlay
 import dev.quinton.goa.core.game.engine.unitsOnBoard
 import dev.quinton.goa.core.model.board.Hex
 
@@ -56,9 +59,9 @@ object MrakHero : HeroModule {
     private const val ANY_NUMBER = 40
 
     override fun register(r: Registry) {
-        // Removed at the end of round (p.19). The box's Rock supply is not in our sources: not limited
-        // ([APP] rulings/mrak.md).
-        r.token(TokenKind(ROCK, "Rock", supply = null))
+        // Removed at the end of round (p.19). Three Rock tokens in the box (rulings/mrak.md 1); p.18: when
+        // the supply lacks rocks, Mrak first takes them from the board.
+        r.token(TokenKind(ROCK, "Rock", supply = 3))
         // Fissure: "Target a unit adjacent to you. After the attack: Place a Rock token in each of the
         // first three empty spaces in the straight line from you in the direction of the attack."
         r.card("mrak-gold", Fissure(heroOnly = false))
@@ -122,6 +125,9 @@ object MrakHero : HeroModule {
      * (goa2-faq common: checking a unit's status counts as targeting).
      */
     private fun ActionScope.placeRocks(hexes: List<Hex>) {
+        // p.18 "Place": with too few in the supply, rocks are first taken from the board (Fissure and Stone
+        // Grip do it before choosing their spaces, so this only acts for Stomping Step / Ground Shaker).
+        g.takeTokensBack(ROCK, heroId, hexes.size, heroId, cardId)
         val placed = hexes.filter { g.isEmpty(it) && g.placeToken(ROCK, heroId, it) != null }
         if (placed.isEmpty()) return
         if (hero.card(ULTIMATE)?.zone != Zone.ULTIMATE || hero.at == null) return
@@ -130,14 +136,16 @@ object MrakHero : HeroModule {
         val victims = g.unitsOnBoard().filter { id ->
             g.isHero(id) && isEnemy(id) && canTarget(id) &&
                 g.posOf(id)?.let { p -> placed.any { g.distance(p, it) == 1 } } == true
-        }.map { g.heroBodyOf(it)!! }.distinct()
+        }
         if (victims.isEmpty()) return
         g.state.turnRecord.notes += once
         g.note(
             "Rock and a Hard Place: ${victims.joinToString(", ") {
-                g.heroName(it)
+                g.heroName(g.heroBodyOf(it)!!)
             }} discard${if (victims.size == 1) "s" else ""} a card, if able.",
         )
+        // Razzle FAQ: during an action each of her figures is "another hero", so each one next to the rocks
+        // makes her discard.
         for (v in victims) discardIfAble(v)
     }
 
@@ -157,13 +165,28 @@ object MrakHero : HeroModule {
             // "After the attack: Place a Rock token in each of the first three empty spaces in the
             // straight line from you": occupied spaces are skipped, the line ends at the board's edge.
             val step = HexGrid.DIRECTIONS[dir]
-            val spaces = ArrayList<Hex>()
-            var k = 1
-            while (spaces.size < 3) {
-                val h = Hex(a.pos.q + step.q * k, a.pos.r + step.r * k)
-                if (!a.g.geo.isOnBoard(h)) break
-                if (a.g.isEmpty(h)) spaces += h
-                k++
+            fun firstThree(): List<Hex> {
+                val spaces = ArrayList<Hex>()
+                var k = 1
+                while (spaces.size < 3) {
+                    val h = Hex(a.pos.q + step.q * k, a.pos.r + step.r * k)
+                    if (!a.g.geo.isOnBoard(h)) break
+                    if (a.g.isEmpty(h)) spaces += h
+                    k++
+                }
+                return spaces
+            }
+            // p.18 "Place": "first remove up to that number of tokens of the same type from the board" —
+            // before the spaces are found, so a rock taken from the line frees its space.
+            var spaces = firstThree()
+            while (true) {
+                val left = a.g.tokenSupplyLeft(ROCK, a.heroId) ?: break
+                if (spaces.size <= left ||
+                    a.g.takeTokensBack(ROCK, a.heroId, left + 1, a.heroId, a.cardId) <= left
+                ) {
+                    break
+                }
+                spaces = firstThree()
             }
             a.placeRocks(spaces)
         }
@@ -171,11 +194,26 @@ object MrakHero : HeroModule {
 
     private object StoneGrip : CardScript {
         override fun primary(a: ActionScope) {
-            fun emptyAround(id: String) = HexGrid.neighbors(a.g.posOf(id)!!).filter { a.g.isEmpty(it) }
-            // "exactly 3": a hero with fewer than 3 empty spaces around it can't be chosen ([APP]).
-            val heroes = a.unitsWithin(a.range).filter {
-                a.g.isHero(it) && a.isEnemy(it) && a.canTarget(it) && emptyAround(it).size >= 3
+            fun emptyAround(id: String, freed: Set<Hex> = emptySet()) =
+                HexGrid.neighbors(a.g.posOf(id)!!).filter { a.g.isEmpty(it) || it in freed }
+            fun heroes(freed: Set<Hex> = emptySet()) = a.unitsWithin(a.range).filter {
+                a.g.isHero(it) && a.isEnemy(it) && a.canTarget(it) && emptyAround(it, freed).size >= 3
             }
+            // p.18 "Place": with too few rocks in the supply, rocks are first taken from the board. When
+            // all of them must go (always, with a supply of 3), their spaces count as empty for the check.
+            val inPlay = a.g.tokensInPlay(ROCK, a.heroId)
+            val left = a.g.tokenSupplyLeft(ROCK, a.heroId)
+            val freed = if (left != null &&
+                3 - left >= inPlay.size
+            ) {
+                inPlay.mapNotNull { a.g.posOf(it) }.toSet()
+            } else {
+                emptySet()
+            }
+            // "exactly 3": a hero with fewer than 3 empty spaces around it can't be chosen ([APP]).
+            if (heroes(freed).isEmpty()) a.fizzle("no enemy hero in range with 3 empty spaces around it")
+            a.g.takeTokensBack(ROCK, a.heroId, 3, a.heroId, a.cardId)
+            val heroes = heroes()
             if (heroes.isEmpty()) a.fizzle("no enemy hero in range with 3 empty spaces around it")
             val t = a.target(a.chooseUnit("Place 3 Rock tokens next to an enemy hero in range", heroes)!!)
             // "as far away from you as possible": the farthest spaces first; Mrak picks among ties.
