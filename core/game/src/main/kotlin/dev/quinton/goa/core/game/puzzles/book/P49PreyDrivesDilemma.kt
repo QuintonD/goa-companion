@@ -43,7 +43,7 @@ object P49PreyDrivesDilemma : Puzzle() {
             "counters (p.13), and a removed target switches off Prey Drive's bonus. Wasp is level 4: her " +
             "lowest card is Tier II, so her defeat spends Red's last 2 counters. If she defends instead " +
             "(Defense 5 + 1 item - 1 for the adjacent Blue heavy minion = 5 against 5, enough: p.14), she " +
-            "stays, and Ursafar removes Red's only minion within 3. Removing the last enemy minion pushes " +
+            "stays, and Ursafar removes Red's only minion, two spaces away. Removing the last enemy minion pushes " +
             "the lane at once (p.8), and the last Wave counter makes it Blue's win (p.3 Last Push).",
         rules = listOf(
             "p.3 Last Push",

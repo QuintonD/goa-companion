@@ -31,17 +31,19 @@ object P08WalkThePlank : Puzzle() {
             "no cards left in hand. Red has one Life counter left.",
         nudges = listOf(
             "Walk the Plank only bites when the push crosses a Zone border.",
-            "The narrow strip north-west of the middle is a Zone of its own.",
+            "The narrow strip along the north-west edge of the middle Zone is a Zone of its own.",
             "Push Wasp at least two spaces.",
         ),
         explanation = "A push moves the target in a straight line directly away from the pusher, as far " +
-            "as it can up to the distance chosen; terrain stops it (p.18 Push, p.19 Terrain). Pushed " +
-            "two or more spaces, Wasp ends in red-side: a separate Zone even though it is a thin strip " +
-            "(p.19 Zone), so Walk the Plank's second clause applies and, with no card to discard, she is " +
-            "defeated (p.17 If able). Red spends its last Life counter and Blue wins at once (p.13). " +
-            "Dodger is the tempting target, already standing in another Zone, but every push carries her " +
-            "further along that same Zone, and one space is not enough for Wasp.",
-        rules = listOf("p.13 When a hero is defeated", "p.17 If able", "p.18 Push", "p.19 Zone, Terrain"),
+            "as it can up to the distance chosen; terrain, water included, stops it (p.18 Push, p.19 " +
+            "Terrain). Pushed two or more spaces, Wasp ends in the narrow side strip by the water: a " +
+            "separate Zone even though it is only a thin strip (p.19 Zone), so Walk the Plank's \"discards " +
+            "a card, or is defeated\" applies and, with no card to discard, she is defeated (card text). " +
+            "Red spends its last Life counter and Blue wins at once (p.13). Dodger is the tempting target, " +
+            "already standing in another Zone, but every push carries her further along that same Zone, " +
+            "and one space is not enough for Wasp. Before a push, check where the Zone borders are, not " +
+            "just how far the target flies.",
+        rules = listOf("p.13 When a hero is defeated", "p.18 Push", "p.19 Zone, Terrain"),
     )
 
     override val playerSeats = setOf("cutter")

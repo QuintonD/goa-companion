@@ -34,11 +34,12 @@ object P06TheHandsOfTheClock : Puzzle() {
             "Punch Wuk.",
         ),
         explanation = "Temporal Punch makes the defender use the Initiative value of their card and items " +
-            "instead of its Defense value; minion defense modifiers still apply (card text, p.14). Tigerclaw's " +
+            "instead of the Defense value; minion defense modifiers still apply (card text, p.14). Tigerclaw's " +
             "Blink Strike has Defense 1 but initiative 13, so against this punch he is the safe one: 13 holds " +
             "against Attack 9. Wuk's Nature's Protector has initiative 7, plus 1 for the friendly heavy minion " +
-            "next to him (p.14): 8 is not enough, and with no defense he is defeated as well (p.13). Red's last " +
-            "Life counter goes and Blue wins at once.",
+            "next to him (p.14): 8 is not enough, so he is defeated, Red spends its last Life counter (p.13) " +
+            "and Blue wins at once. When an attack changes which number defends, read every hand again by " +
+            "that number: the weak target and the safe one can trade places.",
         rules = listOf(
             "p.13 Attacking a hero, When a hero is defeated",
             "p.14 Defense total, Minion defense modifiers",

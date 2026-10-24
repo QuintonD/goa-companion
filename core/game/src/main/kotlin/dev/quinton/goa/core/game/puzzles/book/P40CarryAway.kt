@@ -39,8 +39,8 @@ object P40CarryAway : Puzzle() {
         explanation = "\"A Lane Push can never be triggered by moving, pushing, or swapping a minion. It must be " +
             "either defeated, or removed\" (p.8): carried out of the Battle Zone, the last Red minion just walks " +
             "back (p.18 Minions Outside of the Battle Zone), and nowhere Carry Away can put it is in Snipe's " +
-            "reach. Dodger is the real target: with no cards he cannot defend, so any attack that reaches him " +
-            "defeats him (p.13), and Red's last Life counter goes with him. Carry Away moves Pyro and the enemy " +
+            "reach. Dodger is the real target: with no cards she cannot defend, so any attack that reaches her " +
+            "defeats her (p.13), and Red's last Life counter goes with her. Carry Away moves Pyro and the enemy " +
             "next to it 2 or 3 spaces each in the same direction, ignoring obstacles (card text, p.18 Ignoring " +
             "Obstacles): two spaces east puts Dodger exactly four spaces from Swift in a straight line, Snipe's " +
             "only range (card text, p.19 Straight Line). Three spaces is one too far.",

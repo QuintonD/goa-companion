@@ -38,11 +38,12 @@ object P33EvenABlockedShotPushes : Puzzle() {
         ),
         explanation = "Point Blank Shot is ranged, so Tigerclaw blocks it with Dodge. A block is a successful " +
             "defense, and \"After the attack\" text applies after the target defends (p.14 order, step 7; " +
-            "p.17): he is still adjacent, so he is pushed one space directly away, to (1,-5) (p.18 Push), " +
-            "with no card left. Mad Dash's two-space run (p.11 Movement in the card text) can now end beside " +
-            "him at (0,-5), and its Attack 6 meets no defense (p.14: you cannot defend without a card). " +
+            "p.17): he is still adjacent, so he is pushed one space directly away from Sabina, to the west " +
+            "(p.18 Push), with no card left. Mad Dash's two-space run (p.11 Movement in the card text) south-east " +
+            "now ends beside him, and its Attack 6 meets no defense (p.14: you cannot defend without a card). " +
             "Shooting the minion leaves him out of Brogan's reach, and the only other run, west, finds Arien, " +
-            "who defends with Dangerous Current.",
+            "who defends with Dangerous Current. The lesson: a Block stops the damage, not the card. Text " +
+            "after the attack still happens, so an attack you know will be blocked can still be the move.",
         rules = listOf(
             "p.11 Movement in the card text",
             "p.14 Block, Attack/Defense Detailed Order",

@@ -28,17 +28,19 @@ object P19SmokeOnTheLine : Puzzle() {
         goal = PuzzleGoal.Survive(Deadline.END_OF_TURN, "Don't let the lane be pushed this turn."),
         intro = "Round 5, turn 4. Min has played Smoke Bomb and acts next. Wasp has played Charged " +
             "Boomerang (initiative 10) and Swift Snipe (8); each will try to defeat Blue's last minion in " +
-            "the Battle Zone. Blue has one Wave counter left. Brogan has already acted.",
+            "the Battle Zone. The lane has one Wave counter left. Brogan has already acted.",
         nudges = listOf(
             "Who can actually shoot your last minion?",
             "The smoke only matters on the line between the shooter and the target.",
-            "Put the Smoke bomb at (3,-5), between Swift and your minion.",
+            "Put the Smoke bomb between Swift and your minion, in the empty space next to the Red minion.",
         ),
         explanation = "The Smoke bomb stops enemy heroes targeting any unit when the token stands on the " +
             "straight line between them (card text; p.19 Straight line). Snipe needs a target exactly 4 " +
-            "spaces away in a straight line, and the only space of that line Min can reach is (3,-5): " +
-            "(2,-5) is taken, and a piece is placed only into an empty space (p.18 Place), and (4,-5) is " +
-            "beyond the radius of 3 (p.9). Wasp is no threat at all: Charged Boomerang can only target a " +
+            "spaces away in a straight line, and of the three spaces between Swift and the minion Min can " +
+            "use only the middle one: the Red minion's space is taken, and a piece is placed only into an " +
+            "empty space (p.18 Place), and the space next to Swift is beyond the radius of 3 (p.9). Smoke " +
+            "behind the minion or anywhere else off that stretch blocks nothing. Wasp, who acts first, is " +
+            "the red herring: Charged Boomerang can only target a " +
             "unit not in a straight line from her, and the minion is in one. If Blue's last minion in the " +
             "Battle Zone fell, the lane would be pushed at once and the last Wave counter would end the " +
             "game (p.8).",
@@ -98,7 +100,7 @@ object P19SmokeOnTheLine : Puzzle() {
 
     override val wrongTries = listOf(
         WrongTry(
-            "Smoke next to the minion, off Swift's line: Snipe still has a clear target",
+            "Smoke behind the minion, not between it and Swift: Snipe still has a clear target",
             listOf(action(ActionType.PRIMARY), space(0, -5)),
         ),
         WrongTry("Hold: Snipe defeats the minion and the lane is pushed", listOf(action(ActionType.HOLD))),

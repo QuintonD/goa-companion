@@ -24,24 +24,26 @@ object P35OnslaughtsForcedStep : Puzzle() {
         number = 35,
         title = "Onslaught's Forced Step",
         difficulty = 2,
-        theme = "\"If able\" steps are mandatory",
+        theme = "A forced follow-up step",
         heroes = listOf("brogan", "wasp", "xargatha", "swift"),
         goal = PuzzleGoal.Survive(Deadline.END_OF_TURN, "Survive this turn."),
         intro = "Round 4, turn 4. Brogan has played Onslaught and acts next; he has no cards left in hand. " +
-            "Swift has played Snipe (initiative 8) and Xargatha Threatening Slash (7), and keeps Stone " +
-            "Gaze (Defense 5). Both will attack Brogan if they can. Wasp has already acted.",
+            "Swift has played Snipe (initiative 8); Xargatha has played Threatening Slash (7) and keeps " +
+            "Stone Gaze (Defense 5). Both will attack Brogan if they can. Wasp has already acted.",
         nudges = listOf(
             "Every space you can walk to is covered.",
             "Onslaught's follow-up step is not optional, so choose where it takes you.",
-            "Defeat the minion at (-1,-1).",
+            "Onslaught on the minion north-east of Brogan.",
         ),
-        explanation = "\"If able\" makes a step optional only when it cannot be done; otherwise it is " +
-            "mandatory (p.17 If able; Brogan FAQ: \"Brogan must move into the space where the target was, " +
-            "if he is able to\"). Defeating the minion at (-1,-1) carries Brogan into its space: two " +
-            "spaces from Xargatha, whose Threatening Slash reaches only adjacent units (p.13), and on none " +
-            "of Swift's straight lines at exactly 4 (Snipe, p.19). The other minion would pull him into " +
-            "(-1,0), next to Xargatha. Onslaught on Xargatha fails: she defends 5 against 4, the space " +
-            "stays occupied and he stays beside her. A Movement step lands on Snipe's line or next to her.",
+        explanation = "Onslaught's step ends with \"if able\": failing it never stops the action (p.10, " +
+            "p.17 If able), but when it can be made it must be (Brogan FAQ: \"Brogan must move into the " +
+            "space where the target was, if he is able to\"). Defeating the minion north-east of Brogan " +
+            "carries him into its space: two spaces from Xargatha, whose Threatening Slash reaches only " +
+            "adjacent units (p.13), and on none of Swift's straight lines at exactly 4 (Snipe, p.19). The " +
+            "minion to his east would pull him into its space, next to Xargatha. Onslaught on Xargatha " +
+            "fails: Stone Gaze defends 5, +1 for the Blue minion beside her (p.14), against 4, so the space " +
+            "stays occupied and he stays beside her. A Movement step lands on Snipe's line or next to her. " +
+            "The lesson: a forced move is still a move you aim. Pick the target for where it leaves you.",
         rules = listOf(
             "p.10 Mandatory steps",
             "p.13 Non-ranged attacks",
@@ -100,7 +102,7 @@ object P35OnslaughtsForcedStep : Puzzle() {
 
     override val wrongTries = listOf(
         WrongTry(
-            "Onslaught on the minion at (-1,0): the step lands next to Xargatha",
+            "Onslaught on the minion to the east: the step lands next to Xargatha",
             listOf(action(ActionType.PRIMARY), unitAt(-1, 0)),
         ),
         WrongTry(

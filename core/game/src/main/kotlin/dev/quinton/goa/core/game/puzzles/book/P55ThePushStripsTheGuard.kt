@@ -32,18 +32,19 @@ object P55ThePushStripsTheGuard : Puzzle() {
             "Leap, 4), who keeps Raging Stream (Defense 7, +1 from his item). Blue's only minion in the Battle " +
             "Zone is the melee minion four spaces east of Swift. Dodger has already acted and has no cards left.",
         nudges = listOf(
-            "Arien stands alone at the edge of the next zone, for now.",
+            "Arien stands alone in the next zone, for now.",
             "If Red pushes the lane, where do the fresh minions appear?",
             "Snipe Blue's last minion, not Dodger.",
         ),
         explanation = "Defeating the last enemy minion in the Battle Zone pushes the lane at once (p.8): the " +
             "minions of the old Battle Zone are removed, the next zone toward Blue becomes the Battle Zone, a " +
             "minion respawns on each of its spawn points, and the turn goes on in initiative order. Three of the " +
-            "new Red minions land around Arien: a heavy and a melee next to him and a ranged one within 2, each " +
-            "-1 to his Defense (p.14 Minion Defense Modifiers). Raging Stream now defends 7 + 1 - 3 = 5, and " +
-            "Brogan's Mad Dash, two spaces north-east to the space beside him, hits with 6. Shooting Dodger is " +
-            "the trap: with no cards he falls, but that costs Blue one Life counter, there is no push, and Arien " +
-            "defends 8 against 6.",
+            "new Red minions land right next to Arien, a heavy, a melee and a ranged one, and each is -1 to his " +
+            "Defense (p.14 Minion Defense Modifiers: an adjacent enemy melee or heavy, an enemy ranged within 2). " +
+            "Raging Stream now defends 7 + 1 - 3 = 5, and Brogan's Mad Dash, two spaces north-east to the space " +
+            "beside him, hits with 6. Shooting Dodger is the trap: with no cards she falls, but that costs Blue " +
+            "only one Life counter, there is no push, and Arien defends 8 against 6. Before you attack a strong " +
+            "defender, ask where a push would put the fresh minions.",
         rules = listOf(
             "p.8 Push the Lane, Triggering a Push",
             "p.11 Movement in the Card Text",

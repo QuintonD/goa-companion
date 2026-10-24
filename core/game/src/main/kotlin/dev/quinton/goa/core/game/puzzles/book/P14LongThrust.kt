@@ -32,12 +32,13 @@ object P14LongThrust : Puzzle() {
             "Count the enemy units touching Xargatha.",
             "Thrust at Brogan: three spaces is in range.",
         ),
-        explanation = "The Range value on a card can be changed by its text (the + sign next to the icon, " +
-            "p.9, p.13): Long Thrust gains 1 Range for each enemy unit adjacent to Xargatha, minions and " +
-            "heroes alike (p.19 Unit). The Blue minion and Arien make it Range 3, and Brogan stands exactly " +
-            "three spaces away with no card left to defend with (p.13). Blue spends its last Life counter " +
-            "(his lowest card tier is I) and Red wins at once. Arien, the obvious target, defends with " +
-            "Aspiring Duelist (5 against 3).",
+        explanation = "The printed Range is only a starting point: it \"can be modified by conditions in the " +
+            "card text\" (p.13, p.9). Long Thrust gains 1 Range for each enemy unit adjacent to Xargatha, " +
+            "minions and heroes alike (p.19 Unit). The Blue minion and Arien make it Range 3, and Brogan " +
+            "stands exactly three spaces away with no card left to defend with (p.13). Blue spends its last " +
+            "Life counter (his lowest card tier is I) and Red wins at once. Arien, the obvious target next to " +
+            "her, defends with Aspiring Duelist (5 against 3). The enemies crowding you are what extend your " +
+            "reach: count them before you pick a target.",
         rules = listOf("p.9 Range", "p.13 Attacking a hero, When a hero is defeated", "p.19 Unit"),
     )
 

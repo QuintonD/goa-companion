@@ -39,7 +39,8 @@ object P20ClearTheSmoke : Puzzle() {
             "gone nothing stops Swift targeting along the line, and Wuk stands exactly at Snipe's maximum " +
             "range of 4 in a straight line with no card to defend with (p.9, p.13). Brogan's 11 acts before " +
             "Swift's 8, and both before Wuk's 6 (p.7). Onslaught on the Blue minion earns two coins, but " +
-            "the smoke stays and Swift can no longer target Wuk.",
+            "the smoke stays and Swift still cannot target Wuk. Tokens are obstacles you can remove: when " +
+            "one is in the way, the hero standing next to it can trade their attack for a Clear.",
         rules = listOf("p.7 Check the initiative", "p.9 Range", "p.13 Clear action", "p.19 Tokens"),
     )
 

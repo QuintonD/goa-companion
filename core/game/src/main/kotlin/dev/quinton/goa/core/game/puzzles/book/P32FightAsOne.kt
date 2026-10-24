@@ -27,8 +27,8 @@ object P32FightAsOne : Puzzle() {
         theme = "Reusing a resolved skill, range from Pyro",
         heroes = listOf("widget", "garrus", "wasp", "dodger"),
         goal = PuzzleGoal.WinGame("Win the game this turn."),
-        intro = "Round 5, turn 4. Widget has played Fight as One (initiative 12) and acts next; Scorching " +
-            "Breath and Dragon Bond are among his resolved cards. Red has one Life counter left. Wasp has " +
+        intro = "Round 5, turn 4. Widget has played Fight as One (initiative 12 with her item) and acts next; " +
+            "Scorching Breath and Dragon Bond are among her resolved cards. Red has one Life counter left. Wasp has " +
             "played Stop Projectiles and keeps Lift Up; Dodger has played her last card and holds none. " +
             "Garrus has acted.",
         nudges = listOf(
@@ -36,8 +36,8 @@ object P32FightAsOne : Puzzle() {
             "That second action is a card you have already resolved, and it measures from your dragon, not from you.",
             "Attack the minion, then perform Scorching Breath through Pyro on Dodger.",
         ),
-        explanation = "Fight as One's After-the-attack text lets Widget perform the primary action of one of his " +
-            "resolved skill cards on a different unit (card text), so first attack the minion beside him. " +
+        explanation = "Fight as One's After-the-attack text lets Widget perform the primary action of one of her " +
+            "resolved skill cards on a different unit (card text), so first attack the minion beside her. " +
             "Scorching Breath is still that card's own action: its range and straight line are counted from " +
             "Pyro (card text; p.9 Range, p.19 Straight Line), and an enemy hero who can't discard is defeated. " +
             "Wasp is the closer target, in line with both Widget and Pyro, but she still holds Lift Up and " +

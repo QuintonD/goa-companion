@@ -29,9 +29,9 @@ object P27RainOfArrows : Puzzle() {
         heroes = listOf("silverarrow", "wuk", "arien", "tigerclaw", "dodger", "xargatha"),
         goal = PuzzleGoal.WinGame("Win the game this turn."),
         intro = "Round 6, turn 4, three heroes a side. Silverarrow (level 6) has played Rain of Arrows and " +
-            "acts next; her items give +1 Range and +1 Attack. Tigerclaw holds Dodge, Xargatha holds Charm " +
-            "(Defense 3), Dodger has no cards left in hand. Red has two Life counters left. Wuk and Arien " +
-            "have already acted.",
+            "acts next; among her five items are one Range and one Attack item. Tigerclaw holds Dodge, " +
+            "Xargatha holds Charm (Defense 3), Dodger has no cards left in hand. Red has two Life counters " +
+            "left. Wuk and Arien have already acted.",
         nudges = listOf(
             "What is your real Range this turn, and which heroes stand exactly that far away?",
             "Dodge has no Defense value, but read what it does against an arrow.",

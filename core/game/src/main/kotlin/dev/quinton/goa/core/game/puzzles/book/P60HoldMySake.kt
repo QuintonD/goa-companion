@@ -42,7 +42,8 @@ object P60HoldMySake : Puzzle() {
             "Dash then resolves at its own Initiative, 7, before Dodger's 3 (p.7): Brogan charges 2 spaces " +
             "in a straight line to a space next to Dodger and attacks (p.11). She has no card, so she is " +
             "defeated (p.13). Onslaught from his hand would act sooner (11), but it only hits an adjacent " +
-            "unit, and Dodger is 2 spaces away; keeping Shield does nothing to her.",
+            "unit, and Dodger is 2 spaces away; keeping Shield does nothing to her. A discarded card is not " +
+            "gone for the round: a swap can put it back into play.",
         rules = listOf(
             "p.7 Check the Initiative",
             "p.10 Swap a Card",

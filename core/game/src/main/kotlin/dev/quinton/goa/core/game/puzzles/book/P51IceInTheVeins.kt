@@ -42,7 +42,8 @@ object P51IceInTheVeins : Puzzle() {
             "Tigerclaw next to all three tokens, 9 - 3 = 6, below Brogan's 7. Brogan acts next: Mad Dash runs two " +
             "spaces south-east to the space Tigerclaw left, right beside him, and with no cards he cannot defend " +
             "(p.13). East or north-west touch only one token (8, still ahead of Brogan) and he runs; the other " +
-            "directions leave him next to none.",
+            "directions leave him next to none. The order is not fixed when the cards are revealed: whatever " +
+            "changes an Initiative mid-turn reorders everyone still to act.",
         rules = listOf(
             "p.7 Check the Initiative, Resolve Your Card",
             "p.11 Movement in the Card Text",

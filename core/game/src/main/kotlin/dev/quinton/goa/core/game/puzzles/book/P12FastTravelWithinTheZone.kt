@@ -32,15 +32,17 @@ object P12FastTravelWithinTheZone : Puzzle() {
         nudges = listOf(
             "Walking one space won't get you clear.",
             "Your card's Movement action can be replaced by something much longer.",
-            "Fast Travel inside blue-side, to its far end.",
+            "Fast Travel to the far end of the side Zone Xargatha stands in.",
         ),
         explanation = "Fast Travel replaces a whole Movement action, whatever its value, and may land on " +
             "any empty space of the same Zone or an adjacent one, as long as neither the Zone you leave nor " +
             "the one you enter holds an enemy hero or minion (p.11; the Arien example allows your own Zone). " +
-            "Swift in Blue's Throne Zone and the minions in the middle close those Zones, but blue-side " +
-            "itself is long and empty. Holding leaves Xargatha on Prepared Shot's line (Range 4, in a " +
-            "straight line, not adjacent: p.13), and every space one step away is on that line or at the end " +
-            "of one of Mad Dash's two-space charges (p.11 Movement in the card text).",
+            "Swift in Blue's Throne Zone and Brogan with the Blue minions in the Battle Zone close those two " +
+            "Zones, but Xargatha's own side Zone is long and empty: Fast Travel is not only for changing " +
+            "Zones. Holding leaves her on Prepared Shot's line (Range 4, in a straight line, not adjacent: " +
+            "p.13), and every space one step away is on that line or next to the end of one of Mad Dash's " +
+            "two-space charges (p.11 Movement in the card text). Don't stop short either: the space three " +
+            "steps along the Zone is still next to the end of Brogan's charge to the south-east.",
         rules = listOf("p.11 Fast Travel", "p.11 Movement in the card text", "p.13 Ranged attacks"),
     )
 
@@ -101,7 +103,7 @@ object P12FastTravelWithinTheZone : Puzzle() {
             listOf(action(ActionType.MOVEMENT)),
         ),
         WrongTry(
-            "Fast Travel to (2,2): Brogan charges south-east to (3,1), next to her",
+            "Fast Travel only three spaces along the Zone: Brogan charges two spaces south-east, next to her",
             listOf(action(ActionType.FAST_TRAVEL), space(2, 2)),
         ),
     )

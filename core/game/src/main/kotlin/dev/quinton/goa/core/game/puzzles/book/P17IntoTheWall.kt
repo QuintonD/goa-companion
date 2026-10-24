@@ -36,7 +36,8 @@ object P17IntoTheWall : Puzzle() {
             "Play Kinetic Repulse with Wasp and Threatening Slash with Xargatha.",
         ),
         explanation = "Shock looks right: Arien must spend Expert Duelist to defend it (Defense 6 against 5), " +
-            "but he stays two spaces from Xargatha, and Threatening Slash only hits adjacent units. Kinetic " +
+            "but he stays two spaces from Xargatha, and Threatening Slash only hits adjacent units (and Expert " +
+            "Duelist's own text would make him immune to her attack this turn anyway, p.14). Kinetic " +
             "Repulse (initiative 10) does both jobs. A push moves the target directly away as far as it can, " +
             "possibly less than the full distance (p.18); terrain is an obstacle (p.19), so Arien stops after " +
             "one space, and a hero stopped by an obstacle discards a card (card text; Wasp FAQ). He loses his " +

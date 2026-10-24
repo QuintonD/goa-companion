@@ -609,7 +609,7 @@ enum class Deadline {
 /** Puzzle metadata the list and the result screen show. The position itself is built in code. */
 @Serializable
 data class PuzzleInfo(
-    /** Permanent id, `p01`…`p50`; progress is stored by it. */
+    /** Permanent id, `p01`…`p60` (the concept number); progress is stored by it. */
     val id: String,
     val number: Int,
     val title: String,

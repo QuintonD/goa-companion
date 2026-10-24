@@ -39,9 +39,10 @@ object P46HurryUp : Puzzle() {
         explanation = "Initiative is checked again after every card (p.7), so Hurry up! moves a card in the queue. " +
             "Set Brogan's Mad Dash to 11: it ties Xargatha's Cleave across teams, Red shows, so she goes first " +
             "and then flips the coin (p.7); Brogan at 11 still acts before Tigerclaw's 10. One step lets her " +
-            "block at most one of Brogan's two runs, east to (3,-2) or north-east to (3,-4); either ends beside " +
-            "Tigerclaw, who has no card to defend with (p.14). Hurrying Tigerclaw's Dodge only ties him with his " +
-            "own teammate, still ahead of Brogan, and he runs.",
+            "block at most one of Brogan's two runs, east (to land between Tigerclaw and Xargatha) or north-east " +
+            "(between Tigerclaw and the Red minion); either ends beside Tigerclaw, who has no card to defend " +
+            "with (p.14), so make him the target, not his neighbour. Hurrying Tigerclaw's Dodge only ties him " +
+            "with his own teammate, still ahead of Brogan, and he runs.",
         rules = listOf("p.7 Check the Initiative, Tied Initiative", "p.11 Movement in the card text", "p.14 Defense"),
     )
 

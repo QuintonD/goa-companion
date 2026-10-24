@@ -38,7 +38,7 @@ object P57TurnedToStone : Puzzle() {
             "Let Mrak act first and Slam Dodger.",
         ),
         explanation = "Stone Gaze makes enemy heroes within 2 of Xargatha count as both heroes and terrain " +
-            "(p.17 Counts as; Xargatha FAQ): Wasp stands next to Xargatha, so she is terrain, and Dodger " +
+            "(card text; p.17 Counts as): Wasp stands next to Xargatha, so she is terrain, and Dodger " +
             "stands next to Wasp. Seismic Slam makes an enemy hero next to terrain discard a card or be " +
             "defeated, and Dodger has none. Slamming Wasp only costs her Lift Up. If Xargatha strikes Wasp " +
             "first, Red's best answer is not to defend (p.13): Wasp is defeated, Red spends 1 of its 2 Life " +
@@ -51,7 +51,6 @@ object P57TurnedToStone : Puzzle() {
             "p.17 Counts as, Active Effects",
             "p.18 Next Turn",
             "p.19 Terrain",
-            "Xargatha FAQ: Stone Gaze",
         ),
     )
 

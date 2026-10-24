@@ -14,7 +14,8 @@ import dev.quinton.goa.core.game.puzzles.book.Puzzles
 
 /**
  * The bundled puzzles that can be played with [engine]: a puzzle is listed once every hero it seats
- * is playable. Ordered by difficulty, then id; [PuzzleInfo.number] is the place in that order.
+ * is playable. In the order of [Puzzles.all] (the book's learning progression, hard to hardest);
+ * [PuzzleInfo.number] is the place in that order.
  * Each puzzle keeps one solver (and its transposition table) for all its sessions.
  */
 class EnginePuzzleBook(
@@ -25,7 +26,6 @@ class EnginePuzzleBook(
 ) : PuzzleBook {
     private val available: List<Puzzle> =
         all.filter { p -> p.info.heroes.all { it in engine.playableHeroes } }
-            .sortedWith(compareBy({ it.info.difficulty }, { it.info.id }))
 
     override val puzzles: List<PuzzleInfo> = available.mapIndexed { i, p -> p.info.copy(number = i + 1) }
 
