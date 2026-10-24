@@ -12,5 +12,10 @@ object Puzzles {
         P14LongThrust,
         P17IntoTheWall,
         P34RespawnWhereItCounts,
+        P48NecromancyAtTheBell,
+        P49PreyDrivesDilemma,
+        P50ShootPushScoot,
+        P52BattleFury,
+        P54ChaosIncarnate,
     )
 }
