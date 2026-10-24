@@ -45,6 +45,8 @@ Readings of Tali's cards (`catalog/heroes/tali.json`) beyond the plain text, in 
    discards a card of that colour if it has one (p.10 "if able"). With no such hero nothing happens.
 10. **Reign of Winter, "with your basic attack":** an Attack action on a basic card (p.9), the gold
     card performed from the discard through Commune with Spirits included. Tali chooses the hero, then
-    the colour. The radius is the Ultimate's (4, Radius items included as for High Voltage).
+    the colour. The radius is the Ultimate's (4, Radius items included as for High Voltage). A minion
+    "defeated but not removed" (Brogan's Shield) was defeated (p.12), so it counts (test "Reign of Winter
+    - a minion defeated but not removed …").
 11. **Guardian Spirit / Warrior Spirit:** "Up to 1 friendly hero" may be no one; only friends with a
     discarded card are offered. Guardian Spirit's "retrieve it" is mandatory when it is in the discard.

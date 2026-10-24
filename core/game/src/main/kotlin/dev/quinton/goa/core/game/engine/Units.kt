@@ -42,6 +42,9 @@ fun Game.defeatMinion(minionId: String, byHero: String?): Boolean {
     byHero?.let { gainCoins(it, minionCoins(m.type), "defeated a ${Game.minionName(m.type)} minion") }
     if (outcome == DefeatOutcome.NOT_REMOVED) {
         note("${name(minionId)} is not removed.")
+        // Still a defeat (p.12: Dodger "would still gain 2 coins for 'defeating' it"): "when a minion is
+        // defeated" triggers apply (Swift's Mark for Death, Tali's Reign of Winter).
+        trigger(Trigger.MinionDefeated(minionId, m.team, m.type, at, byHero, removed = false))
         return true
     }
     state.minions.remove(m)

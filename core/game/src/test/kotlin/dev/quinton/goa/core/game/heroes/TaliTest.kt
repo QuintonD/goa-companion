@@ -655,4 +655,34 @@ class TaliTest {
     }
 
     private fun Driver.hand(hero: String) = this.hero(hero).cards.filter { it.zone == Zone.HAND }
+
+    // ---- audit E regressions --------------------------------------------------------------------
+
+    @Test
+    fun `Reign of Winter - a minion defeated but not removed (Brogan's Shield) is still defeated`() {
+        lateinit var m: String
+        val d = pos {
+            clearMinions()
+            hero("tali", Team.RED, Hex(0, -5)) {
+                played("tali-gold")
+                ultimate()
+            }
+            hero("brogan", Team.BLUE, Hex(2, -5)) {
+                resolved(1, "brogan-green-1")
+                hand("brogan-silver", "brogan-blue-1")
+            }
+            m = minion(Team.BLUE, MinionType.MELEE, Hex(1, -5))
+            minion(Team.BLUE, MinionType.MELEE, Hex(4, -7))
+            minion(Team.RED, MinionType.MELEE, Hex(-1, -2))
+            turn = 2
+            effect("brogan", "brogan-green-1", Timing.THIS_ROUND, ActionKind.SKILL, madeTurn = 1)
+            phase = PositionPhase.Resolving(next = "tali")
+        }
+        d.action("tali", ActionType.PRIMARY) // Ice Blast on the only adjacent unit, the minion
+        d.expect(DecisionKind.CHOOSE_CARD, "brogan")
+        d.card("brogan-silver")
+        assertThat(d.s.state.minion(m)).isNotNull()
+        // "Each time after you defeat a minion with your basic attack": Tali names the colour Brogan discards.
+        d.expect(DecisionKind.CHOOSE_OPTION, "tali")
+    }
 }

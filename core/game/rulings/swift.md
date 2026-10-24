@@ -41,8 +41,9 @@ Readings of Swift's cards (`catalog/heroes/swift.json`) beyond the plain text, i
 8. **Mark for Death / Hunting Season:** the minion move is optional ("up to", p.10), so the Next turn
    effect always starts. It counts every enemy minion defeated in radius by anyone, measured from
    Swift's space at the moment of the defeat (p.17), the first one (two) times only. Minion Battle
-   removals are not defeats. Engine limit: a minion "defeated but not removed" by Brogan's Shield does
-   not fire the defeat trigger, so it gives no coin here.
+   removals are not defeats. A minion "defeated but not removed" by Brogan's Shield is still defeated
+   (p.12: Dodger "would still gain 2 coins for 'defeating' it"), so it counts (test "Mark for Death - a
+   minion defeated but not removed …"); a minion saved by Tali's Totem is not defeated (Tali FAQ).
 9. **Steam Jump family:** "Push … up to N spaces" is optional (p.10 "up to"); the distance is chosen
    once for both units of Drop Trooper (p.18 "Push"). The placement is the first instruction
    (mandatory).
