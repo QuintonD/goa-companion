@@ -4,6 +4,7 @@ import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.effects.Behavior
 import dev.quinton.goa.core.game.effects.CardScript
+import dev.quinton.goa.core.game.effects.Displacement
 import dev.quinton.goa.core.game.effects.HeroModule
 import dev.quinton.goa.core.game.effects.Registry
 import dev.quinton.goa.core.game.effects.Src
@@ -27,6 +28,7 @@ import dev.quinton.goa.core.game.engine.Timing
 import dev.quinton.goa.core.game.engine.actionAllowed
 import dev.quinton.goa.core.game.engine.attack
 import dev.quinton.goa.core.game.engine.attackTarget
+import dev.quinton.goa.core.game.engine.canDisplace
 import dev.quinton.goa.core.game.engine.canSwap
 import dev.quinton.goa.core.game.engine.defeatMinion
 import dev.quinton.goa.core.game.engine.inRange
@@ -336,9 +338,10 @@ object IgnatiaHero : HeroModule {
         private val labels = "Move a friendly hero in radius $n spaces in a straight line" to
             "Move an enemy hero in radius $n spaces in a straight line"
 
+        /** Heroes Ignatia can move this way ("cannot be moved" effects such as Bulwark leave them out). */
         private fun heroes(a: ActionScope, side: Side) = a.unitsWithin(a.radius).filter { id ->
             a.g.isHero(id) && (if (side == Side.BLUE) a.isFriendly(id) else a.isEnemy(id)) && a.canTarget(id) &&
-                a.canMoveOther(id, min, max, straightLine = true)
+                a.g.canDisplace(id, Displacement.MOVE, a.heroId) && a.canMoveOther(id, min, max, straightLine = true)
         }
 
         override fun primary(a: ActionScope) {
