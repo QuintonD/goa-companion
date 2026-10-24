@@ -29,14 +29,15 @@ object P55ThePushStripsTheGuard : Puzzle() {
         heroes = listOf("swift", "brogan", "arien", "dodger"),
         goal = PuzzleGoal.DefeatHero("arien", Deadline.END_OF_TURN, "Defeat Arien this turn."),
         intro = "Round 4, turn 4. Swift (Snipe, 8) acts next, then Brogan (Mad Dash, 7), then Arien (Liquid " +
-            "Leap, 4), who keeps Raging Stream (Defense 7, +1 from his item). Blue's only minion in the Battle " +
-            "Zone is the melee minion four spaces east of Swift. Dodger has already acted and has no cards left.",
+            "Leap, 4), who keeps Raging Stream (Defense 7, +1 from his item). Dodger has already acted; her " +
+            "hand is empty.",
         nudges = listOf(
             "Arien stands alone in the next zone, for now.",
             "If Red pushes the lane, where do the fresh minions appear?",
-            "Snipe Blue's last minion, not Dodger.",
+            "Snipe the heavy minion, not Dodger.",
         ),
-        explanation = "Defeating the last enemy minion in the Battle Zone pushes the lane at once (p.8): the " +
+        explanation = "The Blue heavy minion is Blue's last minion in the Battle Zone, so it is no longer " +
+            "immune (p.13) and Snipe can take it. Defeating the last enemy minion pushes the lane at once (p.8): the " +
             "minions of the old Battle Zone are removed, the next zone toward Blue becomes the Battle Zone, a " +
             "minion respawns on each of its spawn points, and the turn goes on in initiative order. Three of the " +
             "new Red minions land right next to Arien, a heavy, a melee and a ranged one, and each is -1 to his " +
@@ -47,6 +48,7 @@ object P55ThePushStripsTheGuard : Puzzle() {
             "defender, ask where a push would put the fresh minions.",
         rules = listOf(
             "p.8 Push the Lane, Triggering a Push",
+            "p.13 Heavy Minion Immunity",
             "p.11 Movement in the Card Text",
             "p.14 Defense total, Minion Defense Modifiers",
         ),
@@ -62,18 +64,22 @@ object P55ThePushStripsTheGuard : Puzzle() {
         lifeCounters(Team.RED, 3)
         lifeCounters(Team.BLUE, 3)
         hero("swift", Team.RED, Hex(-1, -3)) {
+            level = 2
             played("swift-red-1")
             resolved(1, "swift-gold")
             resolved(2, "swift-silver")
             resolved(3, "swift-blue-1")
-            hand("swift-green-1")
+            hand("swift-green-2b")
+            items("swift-green-2a")
         }
         hero("brogan", Team.RED, Hex(4, -4)) {
+            level = 2
             played("brogan-red-1")
             resolved(1, "brogan-gold")
             resolved(2, "brogan-silver")
             resolved(3, "brogan-blue-1")
-            hand("brogan-green-1")
+            hand("brogan-green-2a")
+            items("brogan-green-2b")
         }
         hero("arien", Team.BLUE, Hex(7, -7)) {
             level = 2
@@ -85,14 +91,16 @@ object P55ThePushStripsTheGuard : Puzzle() {
             items("arien-red-2b")
         }
         hero("dodger", Team.BLUE, Hex(3, -7)) {
-            resolved(1, "dodger-gold")
-            resolved(2, "dodger-silver")
-            resolved(3, "dodger-red-1")
-            resolved(4, "dodger-green-1")
-            discard("dodger-blue-1")
+            level = 2
+            resolved(1, "dodger-silver")
+            resolved(2, "dodger-red-1")
+            resolved(3, "dodger-green-1")
+            resolved(4, "dodger-gold")
+            discard("dodger-blue-2a")
             hand()
+            items("dodger-blue-2b")
         }
-        minion(Team.BLUE, MinionType.MELEE, Hex(3, -3))
+        minion(Team.BLUE, MinionType.HEAVY, Hex(3, -3))
         minion(Team.RED, MinionType.MELEE, Hex(0, -6))
         minion(Team.RED, MinionType.MELEE, Hex(2, -3))
         minion(Team.RED, MinionType.HEAVY, Hex(1, 0))
@@ -110,7 +118,7 @@ object P55ThePushStripsTheGuard : Puzzle() {
             listOf(action(ActionType.PRIMARY), hero("dodger")),
         ),
         WrongTry(
-            "Push, then Mad Dash to the Blue minion instead of Arien",
+            "Push, then Mad Dash to a fresh Blue minion instead of Arien",
             listOf(action(ActionType.PRIMARY), unitAt(3, -3), action(ActionType.PRIMARY), space(6, -4)),
         ),
     )

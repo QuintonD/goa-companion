@@ -1168,6 +1168,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.8 Push the Lane, Triggering a Push; p.14 order, Minion defense modifiers.
 - **Risk:** none.
 - **Encoded as p55 (changed):** Dodger moved from (0,1) to (3,−7), four spaces north-east of Swift in a straight line, with no cards: he is Snipe's first target and a tempting free kill (no push, Arien then defends 8 against 6). As written Swift had one target and taking the first option everywhere solved it. A second wrong try: after the push, Mad Dash to (6,−4) beside a fresh Blue minion. The engine prints Arien's defence as 7 + 1 − 1 − 1 − 1 = 5.
+- **Hardened (2026-10-24, legality):** a team's heavy goes last (p.8 Minion Battle; immune while its non-heavy minions stand, p.13), so **Blue's last minion is now its heavy** at (3,−3) (Snipe can take it because it is the last). **Swift L2** (Mark for Death kept, Attack item) and **Brogan L2** (Bolster kept, Defense item; Mad Dash still 6 at 7) as round 4 requires; **Dodger L2** resolved her **gold (12)** in turn 4, not Dark Ritual (3), and defended with Vampiric Shield earlier. Same two decisions (Snipe target, Mad Dash end).
 
 ### C56 — Pile On the Fresh Wave
 - **Theme:** pushing the lane mid-action and hitting a freshly respawned minion (the rulebook's own hint, p.10). **Difficulty:** 3. **Heroes:** Hanu, Tigerclaw; (Blue: Arien, Dodger idle).
