@@ -24,7 +24,7 @@ object P55ThePushStripsTheGuard : Puzzle() {
         id = "p55",
         number = 55,
         title = "The Push Strips the Guard",
-        difficulty = 3,
+        difficulty = 1,
         theme = "A push respawns minions; defence modifiers",
         heroes = listOf("swift", "brogan", "arien", "dodger"),
         goal = PuzzleGoal.DefeatHero("arien", Deadline.END_OF_TURN, "Defeat Arien this turn."),
@@ -48,8 +48,8 @@ object P55ThePushStripsTheGuard : Puzzle() {
             "defender, ask where a push would put the fresh minions.",
         rules = listOf(
             "p.8 Push the Lane, Triggering a Push",
-            "p.13 Heavy Minion Immunity",
             "p.11 Movement in the Card Text",
+            "p.13 Heavy Minion Immunity",
             "p.14 Defense total, Minion Defense Modifiers",
         ),
     )

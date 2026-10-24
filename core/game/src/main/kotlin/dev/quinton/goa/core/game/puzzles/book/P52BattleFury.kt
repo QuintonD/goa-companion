@@ -25,7 +25,7 @@ object P52BattleFury : Puzzle() {
         id = "p52",
         number = 52,
         title = "Battle Fury",
-        difficulty = 2,
+        difficulty = 1,
         theme = "An Ultimate that turns a discard into an action",
         heroes = listOf("garrus", "wasp", "tigerclaw", "arien"),
         goal = PuzzleGoal.DefeatHero("tigerclaw", Deadline.END_OF_TURN, "Defeat Tigerclaw this turn."),

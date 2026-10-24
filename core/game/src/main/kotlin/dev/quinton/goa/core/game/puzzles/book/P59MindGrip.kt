@@ -22,7 +22,7 @@ object P59MindGrip : Puzzle() {
         id = "p59",
         number = 59,
         title = "Mind Grip",
-        difficulty = 2,
+        difficulty = 1,
         theme = "Using an enemy's previous card",
         heroes = listOf("nebkher", "sabina", "arien", "brogan", "wasp", "dodger"),
         goal = PuzzleGoal.WinGame("Win the game this turn."),

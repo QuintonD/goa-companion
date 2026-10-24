@@ -33,8 +33,7 @@ object P60HoldMySake : Puzzle() {
         intro = "Round 5, turn 3. Takahide has played Hold my Saké (12) and acts next. Brogan has played " +
             "Bolster (6 with his Initiative item), Dodger Necromancy (3). Wasp has already acted.",
         nudges = listOf(
-            "Work out Dodger's Defense against Brogan's attacks, spawn points and minions included. Can any " +
-            "attack of his beat it?",
+            "Work out Dodger's Defense, spawn points and minions included. Can any attack of Brogan's beat it?",
             "A hero who defends discards the card she defends with. Hold my Saké can also reach into a discard pile.",
             "Hold my Saké on Dodger herself, then swap Mad Dash from Brogan's discard for Bolster.",
         ),
