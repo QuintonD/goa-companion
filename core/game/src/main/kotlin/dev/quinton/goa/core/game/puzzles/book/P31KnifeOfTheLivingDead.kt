@@ -45,8 +45,8 @@ object P31KnifeOfTheLivingDead : Puzzle() {
             "stopping makes it 6 against 6: she survives. Each removal needs a Zombie adjacent to the target at " +
             "that moment, so spend one choice moving the far Zombie onto the space between it and her (the " +
             "only free space beside her it can reach), then remove both: Attack 7 against 6. Moving a Zombie " +
-            "twice, or to any other space, leaves you a point short. The lesson: on a \"Choose up to\" card, a choice spent setting up can be worth more than one spent " +
-            "cashing in.",
+            "twice, or to any other space, leaves you a point short. The lesson: on a \"Choose up to\" card, " +
+            "a choice spent setting up can be worth more than one spent cashing in.",
         rules = listOf(
             "p.10 Modal Actions",
             "p.14 Attack/Defense Detailed Order, Minion Defense Modifiers",
