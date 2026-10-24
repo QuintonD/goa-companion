@@ -101,6 +101,18 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] Hands-on with the release build on a 384 dp emulator: Try on the board 1 tap, latest line-up 2 taps, a 2v2 from scratch 5 taps with no scrolling; overlays counted by hand against the rulebook and the card JSON; push, tray, throne capture; 10 findings fixed — 2026-10-19, emulator only
 - [ ] Board pinch/pan/drag smoothness and TalkBack on the S25 Ultra (the emulator renders in software)
 
+## M12 — Play against the computer (ADR-035)
+- [x] Play UI on the engine's contract, driven by a scripted fake (`feature/play-ui`): the game table
+  (every `DecisionKind`, Defend with previews, hand, hero status and Turn slots, HUD, initiative strip,
+  log), New game (line-up, who you play, level per seat, Quick/Long, map, Coach, Tie Breaker flip),
+  the game (paced computer turns Slow/Normal/Fast, reveal, wait, take back, Coach nudges), game over
+  with turning points and Rematch, autosave and resume from Boards, Boards' Play and Puzzles entries
+  — 2026-10-24, `GameViewModelTest`, `NewGameViewModelTest`, `DataStoreGameSaveRepositoryTest`,
+  49 play screenshots; sandbox screenshots unchanged. JVM only
+- [ ] Bind the real engine, AI per level and Coach in `core:data` `PlayEngineModule` (placeholders seat no hero)
+- [ ] End-to-end test that plays a game to its end (needs the engine bound)
+- [ ] Hands-on at the table and TalkBack on the S25 Ultra
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check

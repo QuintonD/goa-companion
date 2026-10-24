@@ -154,6 +154,34 @@ each with the gap around it and the name under it, which shrinks to fit, one tap
 least 48 dp); and the Map menu beside Set up in the bottom bar. A finished draft pins Set up match, Log result later and Try on the board
 under the teams on a phone held upright.
 
+### Play against the computer (ADR-035)
+The game table draws the sandbox's map (`MapBase`, Zone labels, `PieceToken`) and adds only what a
+question needs. **On the board:** every space or piece that answers the question is the dashed teal
+target outline; the tapped one gets the selection outline, and a move shows the engine's path as a
+bronze line with dots at each step; a decision's other highlights (a card's range) use the violet
+Range outline; the acting hero's space is outlined in bronze; an immune minion is ringed with a
+dashed teal circle (TalkBack: "immune"). Map taps select, a **Confirm** button with the choice
+spelled out ("Confirm · Lane Zone 3 · 3 spaces from Wasp") answers. **Top, floating:** one HUD pill
+(each team's Life counters as heart + number by its shape, Wave counters per Lane, "R2" and four
+turn pips: done filled, current ringed, later hollow; the Tie Breaker coin as the showing team's
+shape on a bronze ring) and the hero strip, one chip per hero (portrait ringed in team colour,
+shape, name, Lv, coins, cards in hand); after the reveal the strip is in initiative order, numbered,
+with each played card's initiative, and the acting hero's chip has a bronze border and "· Now".
+**Panel** (bottom, max 56 % in portrait; right side in landscape): the header names the deciding
+hero and the kind in the team's colour ("◆ ARIEN · DEFEND"), the prompt in titleMedium (a live
+region), and "Asked by <card>" with a thumbnail (tap to read it). Cards are official images: the hand
+as 84 dp cards, the chosen one raised with a teal border and a tick, its values and text under it;
+Keep shows each card's item stat (backpack + stat icon). **Defend** is an error-container panel with
+the attacker and the Attack total, then one row per hand card with its Defense total and the verdict
+in words with an icon ("✓ Holds" teal, "! Falls" red, "Decided by its text" grey): never colour
+alone. Actions are primary-container buttons with one line on what each does (p.11–p.13);
+declines and Pass are outlined. The computer's move shows its portrait, level and prompt, a linear
+progress bar once it is "thinking…"; the reveal shows every card with hero and initiative; the
+coach's nudge is a secondary-container card with "Choose anyway" (outlined) and "Rethink" (filled).
+Game over leads with "You won" / "The computer won" in a card bordered in the winner's colour, the
+rulebook reason, each hero's results, then the coach's turning points by round and turn. New game
+reuses New board's picker; heroes not yet playable are veiled and marked "Later".
+
 ## Asset policy
 Two kinds of asset (ADR-006, ADR-034):
 
