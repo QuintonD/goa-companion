@@ -108,7 +108,7 @@ fun PlayScreen(
     val title = when {
         playing == null -> "Game"
         playing.over != null -> "Game over"
-        else -> "Round ${playing.table.view.round} · Turn ${playing.table.view.turn}"
+        else -> "Game"
     }
     GoaScreen(
         title = title,
@@ -484,7 +484,7 @@ internal fun GameOverContent(state: PlayUiState.Playing, callbacks: PlayCallback
                     )
                     Text(
                         listOf(
-                            BoardText.count(summary.defeats, "hero") + " defeated",
+                            BoardText.count(summary.defeats, "hero", "heroes") + " defeated",
                             "defeated " + BoardText.count(summary.defeated, "time"),
                             BoardText.count(summary.minions, "minion"),
                             BoardText.count(summary.coins, "coin"),

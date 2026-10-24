@@ -33,10 +33,25 @@ object PlayTestData {
         level: AiLevel = AiLevel.NORMAL,
         tieBreaker: Team = Team.RED,
     ): GameSetup {
-        fun seat(id: String, team: Team) = SeatSetup(id, team, if (id in human) Controller.Human else Controller.Ai(level))
+        fun seat(id: String, team: Team) = SeatSetup(
+            id,
+            team,
+            if (id in
+                human
+            ) {
+                Controller.Human
+            } else {
+                Controller.Ai(level)
+            },
+        )
         return GameSetup(
             mapId = MAP,
-            seats = listOf(seat("wasp", Team.RED), seat("xargatha", Team.RED), seat("arien", Team.BLUE), seat("brogan", Team.BLUE)),
+            seats = listOf(
+                seat("wasp", Team.RED),
+                seat("xargatha", Team.RED),
+                seat("arien", Team.BLUE),
+                seat("brogan", Team.BLUE),
+            ),
             length = GameLength.QUICK,
             tieBreaker = tieBreaker,
         )
@@ -93,7 +108,14 @@ class FakeCoach(var nudging: Boolean = false, private val points: List<CoachNote
 
     override fun nudge(session: GameSession, decision: Decision, choice: Choice, cancelled: () -> Boolean): CoachNote? {
         calls++
-        return if (nudging) CoachNote("Wasp's Lift Up can still reach you", "Movement and Range matter here (p.11).") else null
+        return if (nudging) {
+            CoachNote(
+                "Wasp's Lift Up can still reach you",
+                "Movement and Range matter here (p.11).",
+            )
+        } else {
+            null
+        }
     }
 
     override fun turningPoints(saved: SavedGame, seat: String, cancelled: () -> Boolean): List<CoachNote> = points

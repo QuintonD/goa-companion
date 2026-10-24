@@ -155,10 +155,14 @@ class NewGameViewModelTest {
         val game = games.stored("new-game")!!
         val controllers = game.game.setup.seats.associate { it.heroId to it.controller }
         assertThat(controllers).containsExactly(
-            "wasp", Controller.Ai(AiLevel.EASY),
-            "xargatha", Controller.Ai(AiLevel.HARD),
-            "arien", Controller.Human,
-            "brogan", Controller.Human,
+            "wasp",
+            Controller.Ai(AiLevel.EASY),
+            "xargatha",
+            Controller.Ai(AiLevel.HARD),
+            "arien",
+            Controller.Human,
+            "brogan",
+            Controller.Human,
         )
         assertThat(game.game.setup.length).isEqualTo(GameLength.LONG)
         assertThat(game.options.coach).isFalse()

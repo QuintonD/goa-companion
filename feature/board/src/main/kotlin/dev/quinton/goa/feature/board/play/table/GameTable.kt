@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -52,6 +54,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
@@ -178,16 +181,16 @@ fun GameTable(
         if (landscape) {
             Row(Modifier.fillMaxSize()) {
                 Column(Modifier.weight(1f).fillMaxHeight()) {
-                    Counters(state)
-                    HeroStrip(state, onHero = { sheet = TableSheet.Hero(it) })
+                    Hud { Counters(state) }
+                    Hud { HeroStrip(state, onHero = { sheet = TableSheet.Hero(it) }) }
                     map(Modifier.weight(1f).fillMaxWidth())
                 }
                 panel(Modifier.fillMaxHeight().width(sideWidth))
             }
         } else {
             Column(Modifier.fillMaxSize()) {
-                Counters(state)
-                HeroStrip(state, onHero = { sheet = TableSheet.Hero(it) })
+                Hud { Counters(state) }
+                Hud { HeroStrip(state, onHero = { sheet = TableSheet.Hero(it) }) }
                 map(Modifier.weight(1f).fillMaxWidth())
                 panel(Modifier.fillMaxWidth().heightIn(max = panelMax))
             }
@@ -274,6 +277,17 @@ private fun Hand(state: TableState, onRead: (Card) -> Unit) {
             actionLabel = "Read",
         )
     }
+}
+
+/**
+ * The counters and the hero strip are table furniture: they grow with large text up to
+ * [MAX_HUD_SCALE], never enough to push the map off a phone (TalkBack reads them in full).
+ */
+@Composable
+private fun Hud(content: @Composable () -> Unit) {
+    val density = LocalDensity.current
+    val scale = minOf(density.fontScale, MAX_HUD_SCALE)
+    CompositionLocalProvider(LocalDensity provides Density(density.density, scale)) { content() }
 }
 
 /** Round and turn (pips), Life counters, Wave counters, the Tie Breaker coin. */
@@ -432,7 +446,7 @@ private fun HeroChip(hero: TableHero, order: Pair<Int, Int?>?, onClick: () -> Un
         ),
         modifier = Modifier
             .heightIn(min = 48.dp)
-            .widthIn(max = 220.dp)
+            .widthIn(max = 260.dp)
             .semantics(mergeDescendants = true) {
                 contentDescription = listOfNotNull(
                     order?.let { (n, init) -> "Acts ${ordinal(n)}" + (init?.let { ", initiative $it" } ?: "") },
@@ -472,7 +486,7 @@ private fun HeroChip(hero: TableHero, order: Pair<Int, Int?>?, onClick: () -> Un
                             order?.second?.let { "Init $it" },
                             "Lv ${hero.level}",
                             "${hero.coins}c",
-                            "${hero.handCount} in hand",
+                            BoardText.count(hero.handCount, "card"),
                             "off board".takeIf { hero.at == null },
                         ).joinToString(" · "),
                         style = MaterialTheme.typography.labelSmall,
@@ -528,3 +542,4 @@ private fun MapButtons(viewport: MapViewport, modifier: Modifier) {
 
 private val SIDE_PANEL = 380.dp
 private const val PANEL_MAX = 0.55f
+private const val MAX_HUD_SCALE = 1.3f

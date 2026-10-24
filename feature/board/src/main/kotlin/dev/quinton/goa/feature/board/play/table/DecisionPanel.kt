@@ -105,7 +105,7 @@ private fun PromptHeader(decision: DecisionUi, onRead: (Card) -> Unit) {
             TextButton(
                 onClick = { onRead(card) },
                 modifier = Modifier.heightIn(min = 40.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp),
             ) {
                 Text("Asked by ${card.name} · read the card", style = MaterialTheme.typography.labelLarge)
             }
@@ -408,7 +408,13 @@ private fun BoardContent(decision: DecisionUi, picked: Choice?, onPick: (Choice?
     ) {
         Icon(if (listed) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, contentDescription = null)
         Spacer(Modifier.width(Spacing.xs))
-        Text(if (listed) "Hide the list" else "List all ${all.size} options")
+        Text(
+            when {
+                listed -> "Hide the list"
+                all.size == 1 -> "List the option"
+                else -> "List all ${all.size} options"
+            },
+        )
     }
     if (listed) {
         all.forEach { item ->

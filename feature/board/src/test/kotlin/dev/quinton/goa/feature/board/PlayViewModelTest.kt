@@ -96,7 +96,9 @@ class PlayViewModelTest {
         while (state.over == null && !until(state) && n++ < maxAnswers) {
             when {
                 state.interlude != null -> vm.continueGame()
+
                 state.coach != null -> vm.chooseAnyway()
+
                 else -> {
                     val decision = state.table.decision
                     assertThat(decision).isNotNull()
@@ -312,7 +314,9 @@ class PlayViewModelTest {
         stale.deleteUnplayable()
         assertThat(repo.state.value).isEmpty()
 
-        val broken = PlayTestData.stored(PlayTestData.firstGame()).let { it.copy(game = it.game.copy(payload = "{\"x\":1}")) }
+        val broken = PlayTestData.stored(PlayTestData.firstGame()).let {
+            it.copy(game = it.game.copy(payload = "{\"x\":1}"))
+        }
         val brokenVm = viewModel(games(broken))
         advanceUntilIdle()
         assertThat((brokenVm.uiState.value as PlayUiState.Unplayable).otherRules).isTrue()
