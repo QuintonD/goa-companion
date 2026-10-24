@@ -123,7 +123,9 @@ class NoPeekingTest {
             val tierTwo = hand.filter { it.contains("-2") }
             assertThat(tierTwo).hasSize(1)
             assertThat(items.single().substringBeforeLast('-')).isEqualTo(tierTwo.single().substringBeforeLast('-'))
-            assertThat(TestData.engine.data.card(items.single()).item).isEqualTo(dev.quinton.goa.core.model.catalog.Stat.DEFENSE)
+            assertThat(
+                TestData.engine.data.card(items.single()).item,
+            ).isEqualTo(dev.quinton.goa.core.model.catalog.Stat.DEFENSE)
             kept += tierTwo.single()
         }
         // Both histories with a Defense item occur: Red (keep 2a) and Blue (keep 2b).

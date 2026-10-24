@@ -15,7 +15,10 @@ class GameLogTest {
         val seed = spec.getOrNull(2)?.toLong() ?: 1L
         val (r, b) = AiHarness.LINEUPS[spec.getOrNull(3)?.toInt() ?: 0]
         val s = TestData.engine.newGame(AiHarness.setup(r, b, red, blue, Team.RED))
-        val players = mapOf(Team.RED to AiPlayers.deterministic(red, seed), Team.BLUE to AiPlayers.deterministic(blue, seed + 1))
+        val players = mapOf(
+            Team.RED to AiPlayers.deterministic(red, seed),
+            Team.BLUE to AiPlayers.deterministic(blue, seed + 1),
+        )
         var printed = 0
         var n = 0
         while (n < 6000) {

@@ -36,24 +36,29 @@ object AiPlayers {
             knobs = EvalKnobs(nearestThreatOnly = true, nextTurnThreat = 0.12),
             modelPlays = false, memory = false, greedySelf = false, budgetMs = 50,
         )
+
         AiLevel.NORMAL -> LevelProfile(
             staticOnly = false, playSamples = 1, otherSamples = 1,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.ACTION, candidates = 6,
             temperature = 0.6, maxGap = 1.5, slipRate = 0.0, risk = 0.0,
             knobs = EvalKnobs(), modelPlays = true, memory = false, greedySelf = false, budgetMs = 300,
         )
+
         AiLevel.HARD -> LevelProfile(
-            staticOnly = false, playSamples = 8, otherSamples = 3,
+            staticOnly = false, playSamples = 6, otherSamples = 2,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 8,
             temperature = 0.25, maxGap = 0.8, slipRate = 0.0, risk = 0.3,
-            knobs = EvalKnobs(), modelPlays = true, memory = false, greedySelf = true, budgetMs = 1500,
+            knobs = EvalKnobs(), modelPlays = true, memory = false, greedySelf = false, budgetMs = 1500,
         )
+
+        // Playouts to the end of the next turn measured worse than to the end of this one (AI.md):
+        // Expert spends its time on more samples and on smarter playouts for every hero instead.
         AiLevel.EXPERT -> LevelProfile(
-            staticOnly = false, playSamples = 16, otherSamples = 5,
-            playHorizon = Horizon.NEXT_TURN, otherHorizon = Horizon.TURN, candidates = 10,
-            temperature = 0.15, maxGap = 0.6, slipRate = 0.0, risk = 0.2,
-            knobs = EvalKnobs(nextTurnThreat = 0.28), modelPlays = true, memory = true, greedySelf = true,
-            budgetMs = 4000,
+            staticOnly = false, playSamples = 16, otherSamples = 6,
+            playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 10,
+            temperature = 0.15, maxGap = 0.6, slipRate = 0.0, risk = 0.0,
+            knobs = EvalKnobs(), modelPlays = true, memory = true, greedySelf = true,
+            budgetMs = 4000, greedyTeam = true, greedyEnemies = true,
         )
     }
 }
@@ -128,8 +133,11 @@ internal object Fallback {
                 .minByOrNull { d.context.defensePreview[it.cardId] ?: 0 }
                 ?: d.options.first { it is Choice.Decline }
         }
+
         DecisionKind.RESPAWN -> d.options.firstOrNull { it is Choice.Space } ?: d.options.first()
+
         DecisionKind.CONFIRM -> d.options.firstOrNull { it is Choice.Yes } ?: d.options.first()
+
         else -> d.options.firstOrNull { it !is Choice.Decline } ?: d.options.first()
     }
 }

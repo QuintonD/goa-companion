@@ -75,12 +75,16 @@ Rules for code that runs inside a step (scripts included):
 - `undoToLastHumanDecision()`: replays the history up to the last answer of a `Controller.Human`
   seat; that decision is pending again.
 - `determinize(team, seed)` (`Determinizer`): from the checkpoint, for every hero of the other team,
-  hidden cards (hand, deck, the facedown played card before the reveal, facedown resolved/discarded
-  cards) swap identities within their colour and Tier, then hand and played card are dealt again
-  from the hand pool; the other team's facedown tokens shuffle kinds. Positions are canonicalised
-  first and stamps cleared, so the sample depends only on public information and the seed
-  (`SessionTest`, `PropertyTest`). The step is then re-run with the given answers in *lenient* mode:
-  an answer that no longer fits the sampled state is replaced by a seeded option.
+  an *upgrade history* consistent with its level, item icons and faceup cards is drawn (item card
+  ids are private), its kept cards and the hidden basics are dealt to the hidden places (hand,
+  facedown cards, the unrevealed played card), then hand and played card are dealt again from the
+  hand pool; heroes outside the one-card-per-colour shape swap hidden identities within colour and
+  Tier instead; the other team's facedown tokens shuffle kinds. Places are canonicalised first and
+  hand stamps cleared, so the sample depends only on public information and the seed
+  (`SessionTest`, `PropertyTest`, `ai/NoPeekingTest`). `determinizeWith(team, seed, options)` adds the
+  AI's opponent model, card memory and hidden teammate plays (`ai/AI.md`). The step is then re-run
+  with the given answers in *lenient* mode: an answer that no longer fits the sampled state is
+  replaced by a seeded option.
 
 ## Views and events
 

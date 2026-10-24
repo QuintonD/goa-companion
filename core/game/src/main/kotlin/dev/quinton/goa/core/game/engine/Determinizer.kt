@@ -83,7 +83,10 @@ object Determinizer {
         }
         if (tiers.values.any { it[0].size != 1 || it[1].size != 2 || it[2].size != 2 }) return false
         val upgrades = (h.level - 1).coerceIn(0, 6)
-        val itemIcons = h.cards.filter { it.zone == Zone.ITEM }.map { data.card(it.id).item }.sortedBy { it?.ordinal ?: -1 }
+        val itemIcons = h.cards.filter { it.zone == Zone.ITEM }.map { data.card(it.id).item }.sortedBy {
+            it?.ordinal
+                ?: -1
+        }
         fun public(c: CardInst) = c.zone in ACTIVE && !hidden(s, c)
         val fixed = COLOURED.associateWith { c ->
             h.cards.firstOrNull { colourOf[it.id] == c && public(it) }?.id
@@ -100,28 +103,25 @@ object Determinizer {
                 }.filter { choice -> fixed.getValue(c)?.let { it == choice.kept } ?: true }
             }
         }
-        val histories = ArrayList<List<ColourChoice>>()
-        for (tr in 1..3) for (tg in 1..3) for (tb in 1..3) {
-            val v = listOf(tr, tg, tb)
-            if (v.sumOf { it - 1 } != upgrades || (v.any { it == 3 } && v.any { it == 1 })) continue
-            val options = v.mapIndexed { i, t -> perColour[i].getValue(t) }
-            if (options.any { it.isEmpty() }) continue
-            for (a in options[0]) for (b in options[1]) for (c in options[2]) {
-                val combo = listOf(a, b, c)
-                val icons = combo.flatMap { it.items }.map { data.card(it).item }.sortedBy { it?.ordinal ?: -1 }
-                if (icons == itemIcons) histories += combo
-            }
-        }
+        val vectors = cartesian(COLOURED.map { listOf(1, 2, 3) })
+            .filter { v -> v.sumOf { it - 1 } == upgrades && !(v.any { it == 3 } && v.any { it == 1 }) }
+        fun icons(combo: List<ColourChoice>) =
+            combo.flatMap { it.items }.map { data.card(it).item }.sortedBy { it?.ordinal ?: -1 }
+        val histories = vectors.flatMap { v -> cartesian(v.mapIndexed { i, t -> perColour[i].getValue(t) }) }
+            .filter { icons(it) == itemIcons }
         if (histories.isEmpty()) return false
         val history = histories[rng.nextInt(histories.size)]
-        apply(data, s, h, history, colourOf, rng, ::public)
+        apply(data, h, history, colourOf, rng, ::public)
         return true
     }
+
+    /** Every way to pick one element from each list, in order. */
+    private fun <T> cartesian(lists: List<List<T>>): List<List<T>> =
+        lists.fold(listOf(emptyList())) { acc, l -> acc.flatMap { prefix -> l.map { prefix + it } } }
 
     @Suppress("LongParameterList")
     private fun apply(
         data: EngineData,
-        s: GameState,
         h: HeroState,
         history: List<ColourChoice>,
         colourOf: Map<String, CardColor>,
@@ -132,7 +132,9 @@ object Determinizer {
         val publicActive = h.cards.filter { it.zone in ACTIVE && public(it) }
         val publicColours = publicActive.map { colourOf.getValue(it.id) }.toSet()
         // Hidden places of the hand pool, in a public canonical order.
-        val places = h.cards.filter { it.zone in ACTIVE && !public(it) }.map { Snapshot.of(it) }.sortedWith(Snapshot.ORDER)
+        val places = h.cards.filter {
+            it.zone in ACTIVE && !public(it)
+        }.map { Snapshot.of(it) }.sortedWith(Snapshot.ORDER)
         val dealt = ArrayList<String>()
         for (c in BASIC) {
             if (c in publicColours) continue
@@ -201,7 +203,11 @@ object Determinizer {
 
         companion object {
             fun of(c: CardInst) = Snapshot(
-                c.zone, c.slot, c.faceDown, c.played, c.tag,
+                c.zone,
+                c.slot,
+                c.faceDown,
+                c.played,
+                c.tag,
                 if (c.zone == Zone.DISCARD || c.zone == Zone.RESOLVED) c.stamp else 0,
             )
 

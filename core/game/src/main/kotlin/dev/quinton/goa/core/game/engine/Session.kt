@@ -153,7 +153,11 @@ class EngineSession internal constructor(
         return f
     }
 
-    override fun determinize(viewer: Team, seed: Long): GameSession = determinizeWith(viewer, seed, Determinizer.Options())
+    override fun determinize(viewer: Team, seed: Long): GameSession = determinizeWith(
+        viewer,
+        seed,
+        Determinizer.Options(),
+    )
 
     /**
      * [determinize] with the AI's refinements ([Determinizer.Options]: public card memory, an opponent

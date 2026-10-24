@@ -47,16 +47,21 @@ internal data class LevelProfile(
     val modelPlays: Boolean,
     /** Remember cards seen faceup since each enemy's last level up (Expert). */
     val memory: Boolean,
-    /** The level's own hero plays its later decisions in a playout by one-ply search (Hard+). */
+    /** The level's own hero plays its later decisions in a playout by one-ply search (Expert). */
     val greedySelf: Boolean,
     /** Wall-clock cap per PLAY_CARD decision (device budget); smaller decisions get a third. */
     val budgetMs: Long,
+    /** Teammates (and with [greedyEnemies] the enemies) also play their playout actions by one-ply search. */
+    val greedyTeam: Boolean = false,
+    val greedyEnemies: Boolean = false,
 )
 
 /** One option's values over the samples (NaN where the option did not exist in a sample). */
 internal class OptionValue(val choice: Choice, val values: DoubleArray) {
     val n: Int get() = values.count { !it.isNaN() }
-    val mean: Double get() = values.filter { !it.isNaN() }.average().let { if (it.isNaN()) Double.NEGATIVE_INFINITY else it }
+    val mean: Double get() = values.filter {
+        !it.isNaN()
+    }.average().let { if (it.isNaN()) Double.NEGATIVE_INFINITY else it }
     val sd: Double
         get() {
             val v = values.filter { !it.isNaN() }
@@ -67,9 +72,20 @@ internal class OptionValue(val choice: Choice, val values: DoubleArray) {
 }
 
 /** A playout's end, kept for the coach's explanations. */
-internal class Leaf(val choice: Choice, val sample: Int, val end: EngineSession, val startEvents: Int, val value: Double)
+internal class Leaf(
+    val choice: Choice,
+    val sample: Int,
+    val end: EngineSession,
+    val startEvents: Int,
+    val value: Double,
+)
 
-internal class Analysis(val decision: Decision, val options: List<OptionValue>, val leaves: List<Leaf>, val samples: Int)
+internal class Analysis(
+    val decision: Decision,
+    val options: List<OptionValue>,
+    val leaves: List<Leaf>,
+    val samples: Int,
+)
 
 /**
  * Evaluates the options of a decision by playouts on determinized copies (never the real session's
@@ -85,7 +101,9 @@ internal class Searcher(
 
     fun determinize(es: EngineSession, d: Decision, seed: Long): EngineSession {
         val team = d.team
-        val humans = es.setup.seats.filter { it.team == team && it.controller == Controller.Human && it.heroId != d.seat }
+        val humans = es.setup.seats.filter {
+            it.team == team && it.controller == Controller.Human && it.heroId != d.seat
+        }
             .map { it.heroId }.toSet()
         val options = Determinizer.Options(
             seen = if (profile.memory) seenCards(es, team) else emptyMap(),
@@ -121,40 +139,52 @@ internal class Searcher(
         val table = LinkedHashMap<Choice, DoubleArray>()
         val leaves = ArrayList<Leaf>()
         var done = 0
-        for (k in 0 until samples) {
-            if (k > 0 && (cancelled() || System.nanoTime() > deadline)) break
+        var k = 0
+        while (k < samples && (k == 0 || !(cancelled() || System.nanoTime() > deadline))) {
             val det = determinize(es, d, mix(seed, k.toLong()))
-            val dp = det.pending ?: continue
-            if (dp.seat != d.seat || dp.kind != d.kind) continue
-            if (candidates == null) {
-                candidates = prune(det, d, dp).let { c ->
+            val dp = det.pending?.takeIf { it.seat == d.seat && it.kind == d.kind }
+            if (dp != null) {
+                val cs = candidates ?: prune(det, d, dp).let { c ->
                     if (mustInclude != null && mustInclude !in c && mustInclude in dp.options) c + mustInclude else c
-                }
-            }
-            for (o in candidates) table.getOrPut(o) { DoubleArray(samples) { Double.NaN } }
-            var complete = true
-            for (o in candidates) {
-                if (cancelled()) {
-                    complete = false
+                }.also { candidates = it }
+                for (o in cs) table.getOrPut(o) { DoubleArray(samples) { Double.NaN } }
+                if (!sample(det, dp, d, cs, k, horizon, table, leaves, cancelled)) {
+                    for (arr in table.values) arr[k] = Double.NaN
                     break
                 }
-                if (o !in dp.options) continue
-                val f = det.forkSession()
-                val before = f.events.size
-                f.answer(dp.id, o)
-                playout(f, d.seat, horizon)
-                val v = ev.evaluate(f.state, d.team)
-                table.getValue(o)[k] = v
-                if (keepLeaves) leaves += Leaf(o, k, f, before, v)
+                done++
             }
-            if (!complete) {
-                for (arr in table.values) arr[k] = Double.NaN
-                break
-            }
-            done++
+            k++
         }
         if (done == 0) return null
         return Analysis(d, table.map { (c, v) -> OptionValue(c, v) }, leaves, done)
+    }
+
+    /** One determinization: every candidate answered on a fork and played out. False if cancelled. */
+    @Suppress("LongParameterList")
+    private fun sample(
+        det: EngineSession,
+        dp: Decision,
+        d: Decision,
+        candidates: List<Choice>,
+        k: Int,
+        horizon: Horizon,
+        table: Map<Choice, DoubleArray>,
+        leaves: MutableList<Leaf>,
+        cancelled: () -> Boolean,
+    ): Boolean {
+        for (o in candidates) {
+            if (cancelled()) return false
+            if (o !in dp.options) continue
+            val f = det.forkSession()
+            val before = f.events.size
+            f.answer(dp.id, o)
+            playout(f, d.seat, d.team, horizon)
+            val v = ev.evaluate(f.state, d.team)
+            table.getValue(o)[k] = v
+            if (keepLeaves) leaves += Leaf(o, k, f, before, v)
+        }
+        return true
     }
 
     /** Big option lists: keep the best few by static score (plus every non-space option). */
@@ -169,7 +199,7 @@ internal class Searcher(
     }
 
     /** Play on to the horizon with the rollout policy. */
-    fun playout(f: EngineSession, rootSeat: String, horizon: Horizon, maxSteps: Int = 400) {
+    fun playout(f: EngineSession, rootSeat: String, rootTeam: Team, horizon: Horizon, maxSteps: Int = 400) {
         val start = f.state
         val startTurn = turnIndex(start)
         val startStep = start.step
@@ -181,15 +211,28 @@ internal class Searcher(
             val d = f.pending ?: return
             val s = f.state
             val stop = when (horizon) {
-                Horizon.ACTION -> s.round != startRound || s.step != startStep || s.stepSeat != startSeat ||
-                    s.acting != startActor || turnIndex(s) != startTurn
+                Horizon.ACTION ->
+                    s.round != startRound || s.step != startStep || s.stepSeat != startSeat ||
+                        s.acting != startActor || turnIndex(s) != startTurn
+
                 Horizon.TURN -> turnIndex(s) > startTurn
+
                 Horizon.NEXT_TURN -> turnIndex(s) > startTurn + 1
             }
             if (stop) return
-            // A facedown play has no immediate effect to look at: the static round plan picks it.
-            val searchIt = profile.greedySelf && d.seat == rootSeat && d.options.size > 1 && d.kind != DecisionKind.PLAY_CARD
-            val c = if (searchIt) greedy(f, d) else static.best(s, d)
+            val mine = d.team == rootTeam
+            val searchIt = (profile.greedySelf && d.seat == rootSeat) || (profile.greedyTeam && mine) ||
+                (profile.greedyEnemies && !mine)
+            val c = when {
+                d.options.size == 1 -> d.options[0]
+
+                // A facedown play has no immediate effect to look at: the static round plan picks it.
+                d.kind == DecisionKind.PLAY_CARD -> static.best(s, d)
+
+                searchIt -> greedy(f, d)
+
+                else -> static.best(s, d)
+            }
             f.answer(d.id, c)
             n++
         }
@@ -253,10 +296,28 @@ internal class Searcher(
             val seen = LinkedHashMap<String, MutableSet<String>>()
             for (e in es.events) {
                 when (e) {
-                    is GameEvent.CardsRevealed -> e.played.forEach { (h, c) -> if (h in enemies && c != null) seen.getOrPut(h) { LinkedHashSet() } += c }
-                    is GameEvent.Defended -> if (e.heroId in enemies && e.cardId != null) seen.getOrPut(e.heroId) { LinkedHashSet() } += e.cardId!!
-                    is GameEvent.ActionChosen -> if (e.heroId in enemies) seen.getOrPut(e.heroId) { LinkedHashSet() } += e.cardId
+                    is GameEvent.CardsRevealed -> e.played.forEach { (h, c) ->
+                        if (h in enemies &&
+                            c != null
+                        ) {
+                            seen.getOrPut(h) { LinkedHashSet() } += c
+                        }
+                    }
+
+                    is GameEvent.Defended -> if (e.heroId in enemies &&
+                        e.cardId != null
+                    ) {
+                        seen.getOrPut(e.heroId) { LinkedHashSet() } += e.cardId!!
+                    }
+
+                    is GameEvent.ActionChosen -> if (e.heroId in
+                        enemies
+                    ) {
+                        seen.getOrPut(e.heroId) { LinkedHashSet() } += e.cardId
+                    }
+
                     is GameEvent.LevelledUp -> seen.remove(e.heroId)
+
                     else -> Unit
                 }
             }
@@ -267,7 +328,14 @@ internal class Searcher(
 
 /** Picks among analysed options: best, or a softmax over the near-best (natural variety). */
 internal object Picker {
-    fun pick(choices: List<Choice>, values: DoubleArray, temperature: Double, maxGap: Double, slipRate: Double, rng: Random): Choice {
+    fun pick(
+        choices: List<Choice>,
+        values: DoubleArray,
+        temperature: Double,
+        maxGap: Double,
+        slipRate: Double,
+        rng: Random,
+    ): Choice {
         val order = choices.indices.sortedByDescending { values[it] }
         if (slipRate > 0 && rng.nextDouble() < slipRate) {
             val top = order.take(3).filter { values[it] > values[order[0]] - SLIP_GAP }

@@ -93,7 +93,10 @@ class CoachTest {
         val (red, blue) = AiHarness.LINEUPS[0]
         val r = AiHarness.play(
             AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.HARD, Team.RED),
-            mapOf(Team.RED to AiPlayers.deterministic(AiLevel.NORMAL, 3), Team.BLUE to AiPlayers.deterministic(AiLevel.HARD, 4)),
+            mapOf(
+                Team.RED to AiPlayers.deterministic(AiLevel.NORMAL, 3),
+                Team.BLUE to AiPlayers.deterministic(AiLevel.HARD, 4),
+            ),
         )
         val notes = coach.turningPoints(r.session.save(), "wasp")
         notes.forEach { println("TURNING POINT: ${it.text} | ${it.detail}") }

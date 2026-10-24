@@ -54,6 +54,7 @@ internal class Evaluator(val data: EngineData, val knobs: EvalKnobs = EvalKnobs(
 
         /** Chance a revealed enemy attack card that can reach a hero is aimed at it this turn. */
         const val NOW_WEIGHT: Double = 0.6
+
         /** Per space outside the Battle Zone (a path of 3 spaces is worth about an action, BGG 2898177). */
         const val PRESENCE_PER_SPACE: Double = 0.55
         const val IN_BATTLE_ZONE: Double = 1.0
@@ -116,7 +117,7 @@ internal class MapInfo private constructor(g: Game) {
 }
 
 /** One threat: an enemy card that may hit a hero this turn or the next. */
-internal class Threat(val p: CardProfile, val attackTotal: Int, val reach: Int, val weight: Double)
+internal class Threat(val p: CardProfile, val attackTotal: Int, val reach: Int, val weight: Double, val now: Boolean)
 
 /** A hero's defense at a moment: best numeric value (before minion modifiers) and its Block answers. */
 internal class DefenseSet(
@@ -185,8 +186,11 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
                 if (c.ignoresMinionModifiers) ignoring = max(ignoring, v) else best = max(best, v)
             }
             return DefenseSet(
-                defenders.size, best, ignoring,
-                defenders.any { it.blocksRanged }, defenders.any { it.blocksMelee },
+                defenders.size,
+                best,
+                ignoring,
+                defenders.any { it.blocksRanged },
+                defenders.any { it.blocksMelee },
             )
         }
 
@@ -196,7 +200,8 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
 
     fun minionMod(hex: Hex, team: Team): Int {
         if (knobs.modifierBlind) return 0
-        val key = (hex.q.toLong() shl 32) xor (hex.r.toLong() and 0xffffffffL) xor (if (team == Team.RED) 1L shl 62 else 0L)
+        val key =
+            (hex.q.toLong() shl 32) xor (hex.r.toLong() and 0xffffffffL) xor (if (team == Team.RED) 1L shl 62 else 0L)
         return modCache.getOrPut(key) { g.minionModifier(hex, team, null) }
     }
 
@@ -207,10 +212,10 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
 
     private fun threatsOf(e: HeroInfo): List<Threat> {
         val out = ArrayList<Threat>()
-        fun add(c: CardProfile, w: Double, approach: Int) {
+        fun add(c: CardProfile, w: Double, approach: Int, now: Boolean = false) {
             if (c.reach <= 0) return
             val reach = c.reach + approach + if (c.attackCard && c.ranged) e.rangeItems else 0
-            out += Threat(c, c.attack + e.attackItems, reach, w)
+            out += Threat(c, c.attack + e.attackItems, reach, w, now)
         }
         if (roundOver) {
             e.all.forEach { add(it, 0.2, 0) }
@@ -221,7 +226,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
         // This turn: a revealed card is certain to be played (the target is still a choice).
         if (pool.isNotEmpty() && (e.unresolved.isNotEmpty() || !revealed)) {
             val w = if (revealed) Evaluator.NOW_WEIGHT else Evaluator.NOW_WEIGHT * min(1.0, 2.0 / pool.size)
-            pool.forEach { add(it, w, 0) }
+            pool.forEach { add(it, w, 0, now = true) }
         }
         // Next turn: what is left in hand, after an approach with this turn's card.
         val approach = when {
@@ -253,7 +258,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
             val d = HexGrid.distance(e.at!!, at)
             for (t in list) {
                 if (d > t.reach) continue
-                val set = if (t.weight >= 0.5) nowSet else nextSet
+                val set = if (t.now) nowSet else nextSet
                 val kills = when {
                     set.cards == 0 -> true
                     !t.p.attackCard -> false
@@ -393,7 +398,9 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
     fun scoreRed(): Double {
         state.winner?.let { return if (it == Team.RED) Evaluator.WIN - state.round else -Evaluator.WIN + state.round }
         var v = laneValueRed()
-        v += Evaluator.lifeValue(state.lifeCounters[Team.RED] ?: 0) - Evaluator.lifeValue(state.lifeCounters[Team.BLUE] ?: 0)
+        v +=
+            Evaluator.lifeValue(state.lifeCounters[Team.RED] ?: 0) -
+            Evaluator.lifeValue(state.lifeCounters[Team.BLUE] ?: 0)
         for (h in state.heroes) {
             val hv = heroValue(h)
             v += if (h.team == Team.RED) hv else -hv

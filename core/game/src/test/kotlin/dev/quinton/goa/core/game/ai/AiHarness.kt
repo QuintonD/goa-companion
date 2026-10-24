@@ -46,7 +46,13 @@ object AiHarness {
         tieBreaker = coin,
     )
 
-    fun play(setup: GameSetup, players: Map<Team, AiPlayer>, maxDecisions: Int = 6000, timed: Boolean = false): Result {
+    fun play(
+        setup: GameSetup,
+        players: Map<Team, AiPlayer>,
+        maxDecisions: Int = 6000,
+        timed: Boolean = false,
+        timedTeam: Team? = null,
+    ): Result {
         val s = TestData.engine.newGame(setup) as EngineSession
         val timings = LinkedHashMap<DecisionKind, MutableList<Long>>()
         var n = 0
@@ -55,7 +61,9 @@ object AiHarness {
             val t0 = System.nanoTime()
             val c = players.getValue(d.team).choose(s, d)
             val dt = System.nanoTime() - t0
-            if (timed && d.options.size > 1) timings.getOrPut(d.kind) { ArrayList() } += dt
+            if (timed && d.options.size > 1 && (timedTeam == null || d.team == timedTeam)) {
+                timings.getOrPut(d.kind) { ArrayList() } += dt
+            }
             val r = s.answer(d.id, c)
             check(r is AnswerResult.Accepted) { "Rejected $c for $d: $r" }
             n++

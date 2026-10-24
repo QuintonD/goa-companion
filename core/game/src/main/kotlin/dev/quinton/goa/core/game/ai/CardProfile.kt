@@ -69,7 +69,11 @@ internal class CardProfile(card: Card) {
         if (skillCard) r += 1.5
         r += movement * 0.25
         r += initiative * 0.05
-        if (discardOrDefeat) r += 1.5 else if (forcesDiscard) r += 0.8
+        if (discardOrDefeat) {
+            r += 1.5
+        } else if (forcesDiscard) {
+            r += 0.8
+        }
         return r
     }
 

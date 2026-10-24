@@ -34,21 +34,35 @@ internal class StaticPolicy(private val ev: Evaluator) {
         val ctx = ev.context(state)
         return when (d.kind) {
             DecisionKind.PLAY_CARD -> d.options.map { playScore(ctx, d.seat, it) }
+
             DecisionKind.CHOOSE_ACTION -> d.options.map { actionScore(ctx, d, it) }
+
             DecisionKind.CHOOSE_SPACE, DecisionKind.MINION_RETURN -> spaceScores(ctx, d)
+
             DecisionKind.RESPAWN -> d.options.map {
                 if (it is Choice.Space) ctx.placement(d.seat, it.hex) else -8.0
             }
+
             DecisionKind.CHOOSE_UNIT -> d.options.map { unitScore(ctx, d, it) }
+
             DecisionKind.DEFEND -> defendScores(ctx, d)
+
             DecisionKind.CHOOSE_CARD -> d.options.map { cardChoiceScore(ctx, d, it) }
-            DecisionKind.REMOVE_MINION -> d.options.map { removeScore(ctx, d, it) }
+
+            DecisionKind.REMOVE_MINION -> d.options.map { removeScore(ctx, it) }
+
             DecisionKind.UPGRADE_CARD -> d.options.map { upgradeScore(ctx, d, it) }
+
             DecisionKind.KEEP_UPGRADE -> d.options.map { keepScore(ctx, d, it) }
+
             DecisionKind.CHOOSE_TOKEN -> d.options.map { tokenScore(ctx, d, it) }
+
             DecisionKind.CONFIRM -> d.options.map { if (it is Choice.Yes) 0.5 else 0.0 }
+
             DecisionKind.CHOOSE_NUMBER -> d.options.map { if (it is Choice.Number) it.value * 0.1 else 0.0 }
+
             DecisionKind.ACT_FIRST -> d.options.map { actFirstScore(ctx, it) }
+
             DecisionKind.CHOOSE_OPTION -> d.options.mapIndexed { i, _ -> -0.01 * i }
         }.toDoubleArray()
     }
@@ -82,7 +96,11 @@ internal class StaticPolicy(private val ev: Evaluator) {
             var best = -0.5
             for ((pos, value) in enemyUnits) {
                 val d = HexGrid.distance(at, pos)
-                if (d <= p.reach) best = max(best, value) else if (d <= p.reach + 2) best = max(best, value * 0.3)
+                if (d <= p.reach) {
+                    best = max(best, value)
+                } else if (d <= p.reach + 2) {
+                    best = max(best, value * 0.3)
+                }
             }
             v += best
         }
@@ -133,23 +151,37 @@ internal class StaticPolicy(private val ev: Evaluator) {
         val here = ctx.placement(seat, at)
         return when (o.action) {
             ActionType.HOLD -> 0.0
+
             ActionType.MOVEMENT -> bestMove(ctx, seat, at, cardId) - here
+
             ActionType.FAST_TRAVEL -> {
                 val dests = ctx.g.fastTravelDestinations(seat)
                 val best = dests.maxOfOrNull { ctx.placement(seat, it) } ?: here
                 best - here - if (p.color == CardColor.RED || p.color == CardColor.GOLD) 1.5 else 0.3
             }
+
             ActionType.PRIMARY -> when {
                 p.attackCard -> attackValue(ctx, seat, at, p.reach, p.attack, p.ranged) + 0.5
+
                 ev.data.card(cardId).primary == PrimaryAction.MOVEMENT -> bestMove(ctx, seat, at, cardId) - here + 0.5
+
                 else -> {
                     val r = max(p.range, p.radius) + 1
-                    val near = ctx.state.heroes.any { it.team != h.team && it.at?.let { e -> HexGrid.distance(e, at) <= r } == true } ||
-                        ctx.state.minions.any { it.team != h.team && it.at?.let { m -> HexGrid.distance(m, at) <= r } == true }
+                    val near =
+                        ctx.state.heroes.any {
+                            it.team != h.team &&
+                                it.at?.let { e -> HexGrid.distance(e, at) <= r } == true
+                        } ||
+                            ctx.state.minions.any {
+                                it.team != h.team &&
+                                    it.at?.let { m -> HexGrid.distance(m, at) <= r } == true
+                            }
                     if (near) 1.5 else 0.3
                 }
             }
+
             ActionType.ATTACK -> attackValue(ctx, seat, at, 1, p.attack, false)
+
             ActionType.CLEAR -> 0.1
         }
     }
@@ -187,8 +219,10 @@ internal class StaticPolicy(private val ev: Evaluator) {
     fun heroHitValue(ctx: Ctx, id: String, total: Int, ranged: Boolean, pos: Hex): Double {
         val t = ctx.info(id)
         val set = t.defenseNow
-        val safe = set.cards > 0 && ((ranged && set.blocksRanged) || (!ranged && set.blocksMelee) ||
-            set.total(ctx.minionMod(pos, t.h.team)) >= total)
+        val safe = set.cards > 0 && (
+            (ranged && set.blocksRanged) || (!ranged && set.blocksMelee) ||
+                set.total(ctx.minionMod(pos, t.h.team)) >= total
+            )
         return if (safe) ctx.discardCost(t) + 0.5 else ctx.killCost(t)
     }
 
@@ -209,7 +243,9 @@ internal class StaticPolicy(private val ev: Evaluator) {
                     val sign = if (ctx.state.hero(heroBody)!!.team == deciderTeam) 1.0 else -1.0
                     sign * ctx.placement(heroBody, hex)
                 }
+
                 ctx.state.minion(subject) != null -> minionSpaceScore(ctx, subject, hex, deciderTeam)
+
                 else -> 0.0
             }
         }
@@ -276,10 +312,15 @@ internal class StaticPolicy(private val ev: Evaluator) {
                     val keep = p.rating + if (usefulLater && p.attackCard) 2.0 else 0.0
                     when {
                         o.cardId in sure -> 20.0 - keep
-                        d.context.defensePreview[o.cardId] == null && !p.blocksRanged && !p.blocksMelee -> 2.0 - keep * 0.1
+
+                        d.context.defensePreview[o.cardId] == null && !p.blocksRanged && !p.blocksMelee ->
+                            2.0 -
+                                keep * 0.1
+
                         else -> -10.0 - keep
                     }
                 }
+
                 else -> if (sure.isEmpty()) 0.0 else -20.0
             }
         }
@@ -297,13 +338,16 @@ internal class StaticPolicy(private val ev: Evaluator) {
         return if (zone == Zone.HAND) -p.rating else p.rating
     }
 
-    private fun removeScore(ctx: Ctx, d: Decision, o: Choice): Double {
+    private fun removeScore(ctx: Ctx, o: Choice): Double {
         if (o !is Choice.Unit) return 0.0
         val m = ctx.state.minion(o.unitId) ?: return 0.0
         val at = m.at ?: return 0.0
         val enemyDist = ctx.state.heroes.filter { it.team != m.team && it.at != null }
             .minOfOrNull { HexGrid.distance(it.at!!, at) } ?: 9
-        val guardsAlly = ctx.state.heroes.any { it.team == m.team && it.at?.let { a -> HexGrid.distance(a, at) == 1 } == true }
+        val guardsAlly = ctx.state.heroes.any {
+            it.team == m.team &&
+                it.at?.let { a -> HexGrid.distance(a, at) == 1 } == true
+        }
         // Remove the minion the enemy would kill anyway (a kill pays 2 coins, a removal none).
         return -enemyDist - if (guardsAlly && m.type != MinionType.RANGED) 2.0 else 0.0
     }

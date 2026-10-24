@@ -18,7 +18,13 @@ class TournamentTest {
         val first = System.getenv("AI_FIRST_SEED")?.toIntOrNull() ?: 0
         for ((a, b) in pairs) {
             val t0 = System.nanoTime()
-            val score = Tournament.run(a, b, seeds, threads = System.getenv("AI_THREADS")?.toIntOrNull() ?: 4, firstSeed = first)
+            val score = Tournament.run(
+                a,
+                b,
+                seeds,
+                threads = System.getenv("AI_THREADS")?.toIntOrNull() ?: 4,
+                firstSeed = first,
+            )
             println("TOURNAMENT $score in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
         }
     }

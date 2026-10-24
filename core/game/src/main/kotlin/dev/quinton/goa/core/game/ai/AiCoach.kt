@@ -11,11 +11,11 @@ import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.GameFactory
 import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.SavedGame
+import dev.quinton.goa.core.game.WinReason
 import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameEngine
 import dev.quinton.goa.core.game.engine.SavedPayload
-import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.match.Team
@@ -75,7 +75,8 @@ class AiCoach(private val factory: GameFactory? = null, private val seed: Long =
         val points = ArrayList<Snapshot>()
         fun snap() {
             val st = session.state
-            points += Snapshot(st.round, st.turn, winChance(ev.evaluate(st, team)), session.events.size, session.pending?.id)
+            points +=
+                Snapshot(st.round, st.turn, winChance(ev.evaluate(st, team)), session.events.size, session.pending?.id)
         }
         snap()
         var lastTurn = Searcher.turnIndex(session.state)
@@ -92,18 +93,27 @@ class AiCoach(private val factory: GameFactory? = null, private val seed: Long =
         if (points.size < 2) return emptyList()
         val events = session.events
         val swings = (1 until points.size).map { i -> Swing(points[i - 1], points[i]) }
+
         // Turns where something happened (a defeat, a push, a level, a minion, a forced card) explain best.
         fun weight(sw: Swing): Double {
             val evs = events.subList(sw.from.events, sw.to.events)
             val big = evs.any { it is GameEvent.LanePushed || it is GameEvent.GameOver || it is GameEvent.LifeSpent }
             val some = evs.any { it is GameEvent.Defeated || it is GameEvent.Defended || it is GameEvent.LevelledUp }
-            return abs(sw.delta) * if (big) 1.5 else if (some) 1.0 else 0.4
+            return abs(sw.delta) * if (big) {
+                1.5
+            } else if (some) {
+                1.0
+            } else {
+                0.4
+            }
         }
         val ranked = swings.sortedByDescending(::weight)
-        val chosen = ranked.filter { abs(it.delta) >= MIN_SWING }.take(MAX_POINTS)
-            .let { if (it.size >= MIN_POINTS) it else ranked.take(MIN_POINTS) }
+        val eventful = ranked.filter { weight(it) >= abs(it.delta) && abs(it.delta) >= MIN_SWING }.take(MAX_POINTS)
+        val chosen = (if (eventful.size >= MIN_POINTS) eventful else (eventful + (ranked - eventful.toSet())).take(MIN_POINTS))
             .sortedBy { it.from.events }
-        return chosen.map { sw -> TurningPoint(engine.data, saved, team, events.subList(sw.from.events, sw.to.events), sw).note() }
+        return chosen.map { sw ->
+            TurningPoint(engine.data, saved, team, events.subList(sw.from.events, sw.to.events), sw).note()
+        }
     }
 
     internal class Snapshot(val round: Int, val turn: Int, val chance: Double, val events: Int, val decisionId: Long?)
@@ -176,11 +186,13 @@ internal class Explainer(
             if (mineV != null && mineV < total) {
                 val card = cardName(best.cardId) ?: return null
                 return "${cardName(mine.cardId)} isn't enough against Attack $total, but $card is." to
-                    "Defense ${mineV} is below $attacker's Attack $total, so the card is discarded and $name is still defeated (p.14)."
+                    "Defense $mineV is below $attacker's Attack $total, so the card is discarded and $name is still defeated (p.14)."
             }
             val bv = d.context.defensePreview[best.cardId]
             if (bv != null && bv >= total) {
-                return "${cardName(best.cardId)} also stops this attack and keeps ${cardName(mine.cardId)} for later." to
+                return "${cardName(
+                    best.cardId,
+                )} also stops this attack and keeps ${cardName(mine.cardId)} for later." to
                     "Cards used to defend are discarded (p.10); keep the card you still want to play this round."
             }
         }
@@ -213,7 +225,7 @@ internal class Explainer(
             where -> "$enemy can still reach $name there."
             else -> "This leaves $name open to $enemy."
         }
-        return text to (modifierDetail() ?: defenseDetail())
+        return text to (modifierDetail() ?: DEFENSE_DETAIL)
     }
 
     /** Is [cardId] of [heroId] face up for the deciding seat now (revealed or resolved)? */
@@ -224,15 +236,13 @@ internal class Explainer(
             h.resolved.any { it.cardId == cardId } || h.discard.any { it.cardId == cardId }
     }
 
-    private fun defenseDetail(): String =
-        "An attack whose total is higher than your best Defense card defeats you; minion modifiers count (p.14)."
-
     /** For a move: the minion defense modifier at the chosen space versus the better one (p.14). */
     private fun modifierDetail(): String? {
         val hex = (mine as? Choice.Space)?.hex ?: return null
         val state = es.state
         val enemyRanged = state.minions.any {
-            it.team != team && it.type == MinionType.RANGED && it.at?.let { m -> HexGrid.distance(m, hex) in 1..2 } == true
+            it.team != team && it.type == MinionType.RANGED &&
+                it.at?.let { m -> HexGrid.distance(m, hex) in 1..2 } == true
         }
         val enemyMelee = state.minions.count {
             it.team != team && it.type != MinionType.RANGED && it.at?.let { m -> HexGrid.distance(m, hex) == 1 } == true
@@ -247,8 +257,12 @@ internal class Explainer(
     private fun handAfter(l: Leaf): Int = l.end.state.hero(seat)?.hand?.size ?: 0
 
     private fun emptyHandReason(): Pair<String, String>? {
-        if (d.kind != DecisionKind.PLAY_CARD && d.kind != DecisionKind.DEFEND && d.kind != DecisionKind.CHOOSE_CARD) return null
-        val mineEmpty = share(mine) { handAfter(it) == 0 && !it.end.state.revealed.not() }
+        if (d.kind != DecisionKind.PLAY_CARD && d.kind != DecisionKind.DEFEND &&
+            d.kind != DecisionKind.CHOOSE_CARD
+        ) {
+            return null
+        }
+        val mineEmpty = share(mine) { handAfter(it) == 0 }
         val bestEmpty = share(best) { handAfter(it) == 0 }
         if (mineEmpty < 0.75 || bestEmpty > 0.25) return null
         return "This leaves $name no card to defend with." to
@@ -261,7 +275,8 @@ internal class Explainer(
         val oursBest = share(best) { pushes(it, team) }
         val oursMine = share(mine) { pushes(it, team) }
         if (oursBest - oursMine >= 0.6) {
-            return "There's a lane push for your team here." to
+            val how = bestName()?.let { "$it wins the lane push for your team." } ?: "There's a lane push for your team here."
+            return how to
                 "Defeating or removing the last enemy minion in the Battle Zone pushes the Lane at once (p.8)."
         }
         val theirsMine = share(mine) { pushes(it, team.opponent) }
@@ -284,7 +299,8 @@ internal class Explainer(
         val victim = leaves(best).flatMap { l -> events(l).filterIsInstance<GameEvent.Defeated>() }
             .mapNotNull { e -> es.state.hero(e.unitId)?.takeIf { it.team != team }?.id }
             .groupingBy { it }.eachCount().maxByOrNull { it.value }?.key ?: return null
-        return "You can defeat ${data.heroName(victim)} here." to
+        val who = data.heroName(victim)
+        return (bestName()?.let { "$it can defeat $who." } ?: "You can defeat $who here.") to
             "A hero who cannot defend is defeated: the attacker gains coins equal to its level and its team spends Life counters (p.13)."
     }
 
@@ -306,12 +322,43 @@ internal class Explainer(
     private fun minionReason(): Pair<String, String>? {
         val more = leaves(best).map { minionKills(it) }.average() - leaves(mine).map { minionKills(it) }.average()
         if (more.isNaN() || more < 0.7) return null
-        return "A minion is there for the taking." to
+        val text = when (val b = best) {
+            is Choice.Unit -> es.state.minion(b.unitId)?.let { "Attacking ${unitName(b.unitId)} is a sure 2 coins." }
+            else -> bestName()?.let { "$it can take a minion." }
+        } ?: "A minion is there for the taking."
+        return text to
             "Minions can't defend: each one you defeat is 2 coins (Heavy 4) and a step towards the push (p.13, p.8)."
     }
 
-    @Suppress("unused")
-    private fun hexText(h: Hex): String = "${h.q},${h.r}"
+    /** The better option in a few words ("Shock", "Shock's movement", "Brogan"), or null. */
+    private fun bestName(): String? = when (val b = best) {
+        is Choice.Card -> cardName(b.cardId)
+        is Choice.Action -> d.sourceCardId?.let { cardName(it) }?.let { card ->
+            when (b.action) {
+                ActionType.PRIMARY -> "$card's primary action"
+                ActionType.MOVEMENT -> "$card's movement"
+                ActionType.FAST_TRAVEL -> "Fast travelling with $card"
+                ActionType.ATTACK -> "$card's attack"
+                ActionType.CLEAR -> "Clearing with $card"
+                ActionType.HOLD -> null
+            }
+        }
+        is Choice.Unit -> "Choosing ${unitName(b.unitId)}"
+        else -> null
+    }
+
+    private fun unitName(id: String): String {
+        es.state.minion(id)?.let { m ->
+            val colour = if (m.team == Team.RED) "Red" else "Blue"
+            return "the $colour ${m.type.name.lowercase()} minion"
+        }
+        return data.heroName(id)
+    }
+
+    companion object {
+        const val DEFENSE_DETAIL: String =
+            "An attack whose total is higher than your best Defense card defeats you; minion modifiers count (p.14)."
+    }
 }
 
 /** One swing of the game, explained from the events in it. */
@@ -341,45 +388,58 @@ internal class TurningPoint(
             parts += "${data.heroName(dft.unitId)} was defeated$by"
         }
         if (defeats.isNotEmpty()) {
-            detail = "A defeated hero's team spends Life counters equal to its lowest card Tier and the attacker gains coins (p.13)."
+            detail =
+                "A defeated hero's team spends Life counters equal to its lowest card Tier and the attacker gains coins (p.13)."
         }
         for (p in pushes) {
             parts += "${if (p.winner == team) "your team" else "the other team"} pushed the lane"
-            detail = "The Lane is pushed when a team loses its last minion in the Battle Zone; the fight moves one Zone (p.8)."
+            detail =
+                "The Lane is pushed when a team loses its last minion in the Battle Zone; the fight moves one Zone (p.8)."
         }
         if (over != null) {
             parts += if (over.winner == team) "your team won" else "the other team won"
             detail = when (over.reason) {
-                dev.quinton.goa.core.game.WinReason.THRONE -> "Pushing the Lane into the enemy Throne Zone wins at once (p.8)."
-                dev.quinton.goa.core.game.WinReason.LAST_PUSH -> "The team that wins the push of the last Wave counter wins (p.8)."
-                dev.quinton.goa.core.game.WinReason.LIFE_COUNTERS -> "Spending the last Life counter loses the game (p.13)."
-                dev.quinton.goa.core.game.WinReason.CARD_TEXT -> "A card's text won the game."
+                WinReason.THRONE -> "Pushing the Lane into the enemy Throne Zone wins at once (p.8)."
+                WinReason.LAST_PUSH -> "The team that wins the push of the last Wave counter wins (p.8)."
+                WinReason.LIFE_COUNTERS -> "Spending the last Life counter loses the game (p.13)."
+                WinReason.CARD_TEXT -> "A card's text won the game (p.3: card text beats the rules)."
             }
         }
         if (parts.isEmpty() && levels.isNotEmpty()) {
             parts += levels.joinToString(", ") { "${data.heroName(it.heroId)} reached level ${it.level}" }
-            detail = "Levels bring a stronger card and an item; the lowest Tier also sets the Life cost of a defeat (p.15, p.13)."
+            detail =
+                "Levels bring a stronger card and an item; the lowest Tier also sets the Life cost of a defeat (p.15, p.13)."
         }
         if (parts.isEmpty()) {
-            val minionKills = events.filterIsInstance<GameEvent.Defeated>().filter { teamOf(it.unitId) == null && it.byHeroId != null }
+            val minionKills = events.filterIsInstance<GameEvent.Defeated>().filter {
+                teamOf(it.unitId) == null &&
+                    it.byHeroId != null
+            }
             val ours = minionKills.count { teamOf(it.byHeroId) == team }
             val theirs = minionKills.size - ours
             val defends = events.filterIsInstance<GameEvent.Defended>()
             when {
                 ours + theirs > 0 -> {
                     parts += "your team defeated ${plural(ours, "minion")} to their $theirs"
-                    detail = "Each minion is 2 coins (Heavy 4) and a step towards the push: the team with more minions " +
+                    detail =
+                        "Each minion is 2 coins (Heavy 4) and a step towards the push: the team with more minions " +
                         "in the Battle Zone wins the Minion Battle at the end of the round (p.13, p.8)."
                 }
+
                 defends.isNotEmpty() -> {
                     parts += defends.joinToString("; ") { e ->
-                        "${data.heroName(e.heroId)} had to defend with ${e.cardId?.let { data.cardOrNull(it)?.name } ?: "a card"}"
+                        "${data.heroName(e.heroId)} had to defend with ${e.cardId?.let {
+                            data.cardOrNull(it)?.name
+                        } ?: "a card"}"
                     }
-                    detail = "Cards used to defend are discarded, so they can't be played later in the round (p.14, p.10)."
+                    detail =
+                        "Cards used to defend are discarded, so they can't be played later in the round (p.14, p.10)."
                 }
+
                 else -> {
                     parts += "the heroes moved into position"
-                    detail = "Where heroes end a turn decides who can attack whom next; minions next to a hero change its Defense (p.14)."
+                    detail =
+                        "Where heroes end a turn decides who can attack whom next; minions next to a hero change its Defense (p.14)."
                 }
             }
         }
