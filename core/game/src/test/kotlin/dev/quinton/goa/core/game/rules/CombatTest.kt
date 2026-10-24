@@ -116,12 +116,17 @@ class CombatTest {
     fun `p13 example - Mad Dash must move first, so the adjacent minion and the immune heavy cannot be targets`() {
         // "Brogan cannot target the melee minion next to him, because Mad Dash requires him to move 2 spaces in a
         // straight line before the attack. He cannot target the heavy minion … because the heavy minion is Immune,
-        // but he can target either Dodger … or Wasp".
+        // but he can target either Dodger … or Wasp". p.14 goes on: "This time Brogan chooses to attack Dodger
+        // with his Mad Dash. Dodger uses her Vampiric Shield card to defend … the card text is applied,
+        // giving Dodger +2 Defense for the 2 empty minion spawn points within a radius of 2 spaces".
         val d = pos {
             clearMinions()
             hero("brogan", Team.BLUE, Hex(2, -2)) { played("brogan-red-1") }
             hero("wasp", Team.RED, Hex(-1, -1)) { played("wasp-green-1") }
-            hero("dodger", Team.RED, Hex(0, -3)) { played("dodger-green-1") }
+            hero("dodger", Team.RED, Hex(0, -3)) {
+                played("dodger-green-1")
+                hand("dodger-blue-2a", exactly = false)
+            }
             minion(Team.RED, MinionType.MELEE, Hex(3, -2)) // adjacent to Brogan at the start
             minion(Team.RED, MinionType.HEAVY, Hex(-1, -2)) // immune: a Red melee minion is in the Battle Zone
             phase = PositionPhase.Resolving(next = "brogan")
@@ -131,6 +136,17 @@ class CombatTest {
         assertThat(d.at("brogan")).isEqualTo(Hex(0, -2))
         d.expect(DecisionKind.CHOOSE_UNIT)
         assertThat(d.units()).containsExactly("wasp", "dodger")
+        d.unit("dodger")
+        val p = d.expect(DecisionKind.DEFEND, "dodger")
+        assertThat(p.context.attackTotal).isEqualTo(6)
+        // The spawn points (1,-4) and (2,-3) are empty and 1 and 2 spaces from Dodger: +2 Defense. Here the
+        // immune heavy minion (north-west of Brogan, so next to Dodger north-east of him) adds +1 too; the
+        // p.14 picture is a different position (DodgerTest "p14 example" has the rulebook's total of 6).
+        assertThat(p.context.defensePreview["dodger-blue-2a"]).isEqualTo(7)
+        d.card("dodger-blue-2a")
+        assertThat(d.texts()).contains(
+            "Dodger defends with Vampiric Shield: Defense 4 + 2 (card text) + 1 (adjacent friendly heavy minion) = 7. Defended.",
+        )
     }
 
     @Test
