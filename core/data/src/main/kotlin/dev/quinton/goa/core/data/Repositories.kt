@@ -2,6 +2,7 @@ package dev.quinton.goa.core.data
 
 import dev.quinton.goa.core.data.game.GameInProgress
 import dev.quinton.goa.core.data.game.StoredGame
+import dev.quinton.goa.core.data.puzzle.PuzzleProgress
 import dev.quinton.goa.core.domain.sync.GroupCredentials
 import dev.quinton.goa.core.domain.sync.PlayerMerges
 import dev.quinton.goa.core.domain.sync.protocol.SyncApplyResult
@@ -188,6 +189,21 @@ interface GameSaveRepository {
     suspend fun save(game: GameInProgress)
 
     suspend fun clear()
+}
+
+/**
+ * Puzzle progress (owner: board, ADR-035, PRODUCT §10): solved, tries, nudges used, solution shown,
+ * per puzzle id. On this phone only (not synced, not in the backup file).
+ */
+interface PuzzleProgressRepository {
+    /** Every puzzle with any progress, by id; empty before the first try. Never fails. */
+    val progress: Flow<Map<String, PuzzleProgress>>
+
+    /** Rewrites one puzzle's progress in one transaction ([transform] gets the stored one or the default). */
+    suspend fun update(puzzleId: String, transform: (PuzzleProgress) -> PuzzleProgress)
+
+    /** Forgets every puzzle's progress. */
+    suspend fun reset()
 }
 
 /** Wall-clock time (epoch ms) for the `updatedAt` stamps on local writes (ADR-025). */

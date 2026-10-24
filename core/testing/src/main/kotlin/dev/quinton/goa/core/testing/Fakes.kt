@@ -11,6 +11,7 @@ import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.PlayerMergeRepository
 import dev.quinton.goa.core.data.PlayerMergeResult
 import dev.quinton.goa.core.data.PlayerRepository
+import dev.quinton.goa.core.data.PuzzleProgressRepository
 import dev.quinton.goa.core.data.RatingsRepository
 import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.data.SyncedPhone
@@ -19,6 +20,7 @@ import dev.quinton.goa.core.data.TriviaRoundRepository
 import dev.quinton.goa.core.data.game.GameInProgress
 import dev.quinton.goa.core.data.game.StoredGame
 import dev.quinton.goa.core.data.player.PlayerNames
+import dev.quinton.goa.core.data.puzzle.PuzzleProgress
 import dev.quinton.goa.core.data.rating.HeroPilotsRepository
 import dev.quinton.goa.core.domain.meta.HeroPilots
 import dev.quinton.goa.core.domain.meta.MetaConfig
@@ -236,6 +238,19 @@ class FakeTriviaRoundRepository(initial: List<TriviaRound> = emptyList()) : Triv
 
 class FakeBoardMapRepository(maps: List<BoardMap>) : BoardMapRepository {
     override val maps: Flow<List<BoardMap>> = MutableStateFlow(maps)
+}
+
+class FakePuzzleProgressRepository(initial: Map<String, PuzzleProgress> = emptyMap()) : PuzzleProgressRepository {
+    val state = MutableStateFlow(initial)
+
+    override val progress: Flow<Map<String, PuzzleProgress>> = state
+
+    override suspend fun update(puzzleId: String, transform: (PuzzleProgress) -> PuzzleProgress) =
+        state.update { it + (puzzleId to transform(it[puzzleId] ?: PuzzleProgress())) }
+
+    override suspend fun reset() {
+        state.value = emptyMap()
+    }
 }
 
 class FakeGameSaveRepository(initial: StoredGame = StoredGame.None) : GameSaveRepository {

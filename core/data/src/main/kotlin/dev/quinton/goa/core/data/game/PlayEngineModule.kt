@@ -4,6 +4,8 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import dev.quinton.goa.core.data.BoardMapRepository
+import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.AiPlayer
 import dev.quinton.goa.core.game.Choice
@@ -13,8 +15,13 @@ import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.GameFactory
 import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.GameSetup
+import dev.quinton.goa.core.game.PuzzleBook
 import dev.quinton.goa.core.game.SavedGame
+import dev.quinton.goa.core.game.engine.GameEngine
+import dev.quinton.goa.core.game.puzzles.EnginePuzzleBook
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 /** The computer players, one per level (ADR-035). */
 fun interface AiPlayers {
@@ -22,8 +29,8 @@ fun interface AiPlayers {
 }
 
 /**
- * The play engine's three entry points (ADR-035): the game factory, the computer players and the
- * coach. **This is the one place to swap in the real engine**, e.g.
+ * The play engine's entry points (ADR-035): the game factory, the computer players, the coach and
+ * the puzzle book. **This is the one place to swap in the real engine**, e.g.
  *
  * ```
  * @Provides @Singleton
@@ -51,6 +58,17 @@ internal object PlayEngineModule {
     @Provides
     @Singleton
     fun coach(): Coach = QuietCoach
+
+    /**
+     * The bundled puzzles (PRODUCT §10) on the real engine: a puzzle is listed once every hero it
+     * seats is playable. Waits for the catalog and maps to load, so screens get it through a
+     * `Provider` on `Dispatchers.Default` (never the main thread), as the factory above.
+     */
+    @Provides
+    @Singleton
+    fun puzzles(catalog: CatalogRepository, maps: BoardMapRepository): PuzzleBook = runBlocking {
+        EnginePuzzleBook(GameEngine(catalog.catalog.first(), maps.maps.first()))
+    }
 }
 
 /** No hero is playable yet: New game and the Boards entry show "coming soon". */

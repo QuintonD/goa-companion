@@ -50,6 +50,9 @@ class SettingsDataSourceTest {
             assertThat(awaitItem().catalogListView).isTrue()
             ds.update { it.copy(timerLayout = TimerLayout.ROUND) }
             assertThat(awaitItem().timerLayout).isEqualTo(TimerLayout.ROUND)
+            assertThat(last.puzzleNudges).isTrue()
+            ds.update { it.copy(puzzleNudges = false) }
+            assertThat(awaitItem().puzzleNudges).isFalse()
         }
     }
 

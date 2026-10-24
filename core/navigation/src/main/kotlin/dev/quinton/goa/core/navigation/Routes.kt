@@ -206,6 +206,14 @@ object NavSheet {
 /** The game in progress (the one saved on this phone): the table, then the game-over summary. */
 @Serializable data object GameRoute : NavKey
 
+// Puzzles (ADR-035, PRODUCT §10, owner: board)
+
+/** The puzzle list: numbered puzzles with progress, Continue at the top. */
+@Serializable data object PuzzlesRoute : NavKey
+
+/** One puzzle ([puzzleId] = `PuzzleInfo.id`, e.g. `p17`): the table, nudges, then the explanation. */
+@Serializable data class PuzzleRoute(val puzzleId: String) : NavKey
+
 // Group sync (ADR-025, owner: sync)
 
 /** The group: start or join one; once joined, invite, sync, share or import a sync file, leave. */
