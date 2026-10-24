@@ -27,6 +27,9 @@ object P17IntoTheWall : Puzzle() {
         theme = "Pushes stopped by obstacles",
         heroes = listOf("wasp", "xargatha", "arien", "brogan"),
         goal = PuzzleGoal.DefeatHero("arien", Deadline.END_OF_TURN, "Defeat Arien this turn."),
+        intro = "Round 3, turn 4: play your cards. Arien has played Liquid Leap (initiative 4) and keeps " +
+            "Expert Duelist (Defense 6). Wasp holds Shock and Kinetic Repulse, Xargatha Threatening Slash " +
+            "and Siren's Call. Brogan has no cards.",
         nudges = listOf(
             "Taking Arien's last card is not enough: someone must still hit him afterwards.",
             "A push that runs into a wall costs the victim a card. Where would Arien stop?",

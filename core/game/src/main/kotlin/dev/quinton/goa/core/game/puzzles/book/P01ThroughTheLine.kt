@@ -26,6 +26,8 @@ object P01ThroughTheLine : Puzzle() {
         theme = "Targets and straight lines",
         heroes = listOf("arien", "wasp", "xargatha", "brogan"),
         goal = PuzzleGoal.WinGame("Win the game this turn."),
+        intro = "Round 3, turn 4. Arien has played Dangerous Current and acts next. Wasp has no cards " +
+            "left in hand; Xargatha holds Siren's Call. Red has one Life counter left.",
         nudges = listOf(
             "Who on Red can no longer defend?",
             "Dangerous Current reaches further than the unit you hit: look at the spaces behind it.",

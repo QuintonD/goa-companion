@@ -25,6 +25,8 @@ object P14LongThrust : Puzzle() {
         theme = "Range set by card text",
         heroes = listOf("xargatha", "wasp", "arien", "brogan"),
         goal = PuzzleGoal.WinGame("Win the game this turn."),
+        intro = "Round 3, turn 4. Xargatha has played Long Thrust and acts next. Arien holds Aspiring " +
+            "Duelist; Brogan has no cards left in hand. Blue has one Life counter left.",
         nudges = listOf(
             "Your range isn't the number printed on the card.",
             "Count the enemy units touching Xargatha.",

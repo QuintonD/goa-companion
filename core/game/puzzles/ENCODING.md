@@ -43,6 +43,7 @@ object P14LongThrust : Puzzle() {
         theme = "Range set by card text",
         heroes = listOf("xargatha", "wasp", "arien", "brogan"),   // every seated hero, player first
         goal = PuzzleGoal.WinGame("Win the game this turn."),
+        intro = "Round 3, turn 4. Xargatha has played Long Thrust and acts next. Arien holds …",
         nudges = listOf("gentle…", "stronger…", "names the first move"),
         explanation = "Why it works, with page refs (p.9) …",
         rules = listOf("p.9 Range", "p.13 Attacking a hero", "p.19 Unit"),
@@ -61,7 +62,9 @@ object P14LongThrust : Puzzle() {
 - **`info`**: `id` = `p` + concept number (permanent: progress is stored by it; parallel encoders
   never collide). `number` is set by the book (its place in the list: difficulty, then id), so put
   the concept number there. `heroes`: every seated hero, a player hero first; the book lists a
-  puzzle only when all of them are playable. `nudges`: at least three, gentle to strong; the last
+  puzzle only when all of them are playable. `intro`: shown with the goal; everything the player
+  knows that the board doesn't show (the round and turn, who acts next, cards played facedown, the
+  opponents' hands: puzzles treat them as open). `nudges`: at least three, gentle to strong; the last
   names the first move(s), which are `nudgedMoves` (default: the first solution move).
   `explanation`: shown solved or not; say why the tempting tries fail too; cite printed pages
   (`p.N` = PDF page − 1). `rules`: the pages it leans on.

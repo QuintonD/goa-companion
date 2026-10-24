@@ -30,6 +30,8 @@ object P34RespawnWhereItCounts : Puzzle() {
         theme = "Hero respawn, exact moves, pushing the lane",
         heroes = listOf("brogan", "wasp", "arien", "xargatha"),
         goal = PuzzleGoal.PushLane(Deadline.END_OF_TURN, "Push the lane this turn."),
+        intro = "Round 3, turn 4. Brogan was defeated earlier this round; he has played Mad Dash and may " +
+            "respawn before he acts. Red has one minion left in the Battle Zone. Everyone else has acted.",
         nudges = listOf(
             "You choose where Brogan comes back.",
             "Mad Dash needs exactly two spaces in a straight line: the closest spawn point isn't the best one.",

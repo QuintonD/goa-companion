@@ -58,6 +58,7 @@ class PuzzleBookTest(private val puzzle: Puzzle) {
         assertThat(info.difficulty).isIn(1..3)
         assertThat(info.nudges.size).isAtLeast(3)
         assertThat(info.explanation).isNotEmpty()
+        assertThat(info.intro).isNotEmpty()
         assertThat(info.rules).isNotEmpty()
         assertThat(info.heroes.first()).isIn(puzzle.playerSeats)
         assertThat(puzzle.solution).isNotEmpty()
