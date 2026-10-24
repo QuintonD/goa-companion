@@ -71,8 +71,25 @@ object ExampleHero : HeroModule {
 - A **mandatory** step that can't be done: `a.fizzle("reason")` (or let a primitive fizzle: a
   mandatory `moveSelf`, `attackTarget` with no target). The action ends; the card is resolved.
 - **"you may"**: `confirm(...)`, `optional = true`, or a choice with Decline. **"up to N"**: min 0
-  (or `chooseUpTo`). **"if able"** at the end of a clause: do it when possible, skip silently when
-  not (check first, e.g. `canMoveOther`), never fizzle.
+  (or `chooseUpTo`).
+- **"if able"** (p.17 "If Able": "If a sentence ends with this keyword, the clause preceding the
+  keyword is non-mandatory. If it is at the beginning, the entire sentence is non-mandatory").
+  - At the **start** ("If able, move 3 spaces in a straight line"): the whole sentence is optional —
+    do it when possible, skip silently when not (check first, e.g. `canMoveOther`), never fizzle.
+  - At the **end** of a sentence with its own subject — "An enemy hero in radius discards a card, if
+    able", "that hero discards a card, if able": the subject is still a target that must be found;
+    only the clause after it (the discard, the move) is optional. goa2-faq (Gydion's Energy Drain,
+    "An enemy hero in range discards a non-basic card, if able. Your team regains 1 spent Life
+    counter."): "you need to be able to target a hero first. 'If able' after a comma makes the
+    preceding step non-mandatory (p. 17), so it only applies to the 'discard' step"; p.10's own
+    example reads the same ("You choose one enemy hero in radius to target, then that hero chooses a
+    card to discard, if they have one"). So: **no subject → `fizzle`** (as the first instruction the
+    Primary action is then not offered, FAQ "fizzle"); a subject with nothing to discard → nothing
+    happens and the text goes on (`discardIfAble(v)` does this half). Write the subject as a
+    mandatory choice (`chooseUnit(…)!!` after an emptiness check that fizzles), never `?: return`
+    when later steps exist or it is the first instruction.
+  - A move or other step "…, if able" with no subject of its own ("Move into the space it occupied,
+    if able"): do it when possible, skip it when not.
 - The engine offers the Primary action only if the first instruction can be done (it probes the
   script on a copy: a real question or a board change counts). So write the first instruction first.
 
