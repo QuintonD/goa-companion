@@ -20,6 +20,7 @@ import dev.quinton.goa.core.game.SavedGame
 import dev.quinton.goa.core.game.engine.GameEngine
 import dev.quinton.goa.core.game.puzzles.EnginePuzzleBook
 import javax.inject.Singleton
+import kotlin.random.Random
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
@@ -49,26 +50,29 @@ fun interface AiPlayers {
 internal object PlayEngineModule {
     @Provides
     @Singleton
-    fun factory(): GameFactory = ComingSoonGameFactory
+    fun factory(catalog: CatalogRepository, maps: BoardMapRepository): GameFactory =
+        // Screens ask for the factory on Dispatchers.Default only (see above), never on the main thread.
+        runBlocking { GameEngine(catalog.catalog.first(), maps.maps.first()) }
 
     @Provides
     @Singleton
-    fun ai(): AiPlayers = AiPlayers { FirstOptionAi }
+    fun ai(): AiPlayers = AiPlayers { RandomLegalAi() }
 
     @Provides
     @Singleton
     fun coach(): Coach = QuietCoach
 
     /**
-     * The bundled puzzles (PRODUCT §10) on the real engine: a puzzle is listed once every hero it
-     * seats is playable. Waits for the catalog and maps to load, so screens get it through a
-     * `Provider` on `Dispatchers.Default` (never the main thread), as the factory above.
+     * The bundled puzzles (PRODUCT §10) on the same engine as play (a fresh one if the factory is
+     * not the engine): a puzzle is listed once every hero it seats is playable. Screens get it
+     * through a `Provider` on `Dispatchers.Default`, as the factory.
      */
     @Provides
     @Singleton
-    fun puzzles(catalog: CatalogRepository, maps: BoardMapRepository): PuzzleBook = runBlocking {
-        EnginePuzzleBook(GameEngine(catalog.catalog.first(), maps.maps.first()))
-    }
+    fun puzzles(factory: GameFactory, catalog: CatalogRepository, maps: BoardMapRepository): PuzzleBook =
+        EnginePuzzleBook(
+            factory as? GameEngine ?: runBlocking { GameEngine(catalog.catalog.first(), maps.maps.first()) },
+        )
 }
 
 /** No hero is playable yet: New game and the Boards entry show "coming soon". */
@@ -82,10 +86,10 @@ internal object ComingSoonGameFactory : GameFactory {
     override fun restore(saved: SavedGame): GameSession = error("Play against the computer is not in this build yet")
 }
 
-/** Never reached while no hero is playable; answers with the first listed (always legal) option. */
-internal object FirstOptionAi : AiPlayer {
+/** Stand-in until the AI levels are bound: a seeded random legal option. */
+internal class RandomLegalAi(private val random: Random = Random(0)) : AiPlayer {
     override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice =
-        decision.options.first()
+        decision.options.random(random)
 }
 
 /** A coach with nothing to say. */
