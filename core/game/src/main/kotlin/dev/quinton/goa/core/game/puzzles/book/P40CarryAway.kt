@@ -25,28 +25,32 @@ object P40CarryAway : Puzzle() {
         number = 40,
         title = "Carry Away",
         difficulty = 2,
-        theme = "Minions outside the Battle Zone",
+        theme = "Minions outside the Battle Zone, defense by the board",
         heroes = listOf("widget", "swift", "dodger", "wasp"),
         goal = PuzzleGoal.WinGame("Win the game this turn."),
         intro = "Round 5, turn 4. Red has one Life counter left and Blue two; one Wave counter remains. " +
-            "Widget (Carry Away, 10) acts next, then Swift (Snipe, 8), then Dodger (Dark Ritual, 3), who has no " +
-            "cards left in hand. Wasp has already acted. Red's only minion and Dodger both stand next to Pyro.",
+            "Widget (Carry Away, 10) acts next, then Swift (Snipe, 9), then Dodger (Darker Ritual, 4). Dodger " +
+            "holds one card, Shield of Decay. Wasp has acted.",
         nudges = listOf(
-            "Dragging Red's last minion out of the Battle Zone does not count as removing it.",
-            "Snipe needs a target exactly four spaces away in a straight line. Where would Swift like Dodger?",
-            "Carry Away on Dodger: Pyro and Dodger two spaces east each.",
+            "Red loses with one more Life counter or one more minion. Which of those can Carry Away really take?",
+            "Snipe needs a target exactly four spaces from Swift in a straight line. Then read Shield of Decay " +
+                "and count what stands around each such space.",
+            "Carry Away on Dodger: Pyro and Dodger two spaces north-east.",
         ),
         explanation = "\"A Lane Push can never be triggered by moving, pushing, or swapping a minion. It must be " +
-            "either defeated, or removed\" (p.8): carried out of the Battle Zone, the last Red minion just walks " +
+            "either defeated, or removed\" (p.8): carried out of the Battle Zone, Red's last minion just walks " +
             "back (p.18 Minions Outside of the Battle Zone), and nowhere Carry Away can put it is in Snipe's " +
-            "reach. Dodger is the real target: with no cards she cannot defend, so any attack that reaches her " +
-            "defeats her (p.13), and Red's last Life counter goes with her. Carry Away moves Pyro and the enemy " +
-            "next to it 2 or 3 spaces each in the same direction, ignoring obstacles (card text, p.18 Ignoring " +
-            "Obstacles): two spaces east puts Dodger exactly four spaces from Swift in a straight line, Snipe's " +
-            "only range (card text, p.19 Straight Line). Three spaces is one too far.",
+            "reach. Dodger is the target: Carry Away moves Pyro and the enemy next to it 2 or 3 spaces each in " +
+            "the same direction, ignoring obstacles (card text, p.18 Ignoring Obstacles), and two landings are " +
+            "exactly four spaces from Swift in a straight line, Snipe's only range (p.19 Straight Line). " +
+            "South-west, beside Widget, is the trap: Shield of Decay gives +2 there for the two empty spawn " +
+            "points within 2 (p.14), and the Red minion next to her (+1) cancels the Blue one (-1): 3 + 2 = 5 " +
+            "holds Swift's 5. Two spaces north-east she has one empty spawn point near her and no minion: 3 " +
+            "against 5, she is defeated (p.13) and Red's last Life counter goes with her.",
         rules = listOf(
             "p.8 Triggering a Push",
             "p.13 Attacking a Hero",
+            "p.14 Defense total, Minion Defense Modifiers",
             "p.18 Ignoring Obstacles, Minions Outside of the Battle Zone",
             "p.19 Straight Line",
         ),
@@ -57,6 +61,7 @@ object P40CarryAway : Puzzle() {
     override fun PositionBuilder.setUp() {
         round = 5
         turn = 4
+        // Wasp's Kinetic Repulse (10) tied Widget's Carry Away; Red showed, Wasp went first and flipped it.
         tieBreaker = Team.BLUE
         clearMinions()
         lifeCounters(Team.RED, 1)
@@ -71,41 +76,46 @@ object P40CarryAway : Puzzle() {
             hand("widget-green-2b")
             items("widget-red-2b", "widget-green-2a", "widget-blue-2a", "widget-blue-3a")
         }
-        hero("swift", Team.BLUE, Hex(1, -7)) {
+        hero("swift", Team.BLUE, Hex(5, -5)) {
+            level = 3
             played("swift-red-1")
             resolved(1, "swift-gold")
-            resolved(2, "swift-blue-1")
-            resolved(3, "swift-green-1")
-            hand("swift-silver")
+            resolved(2, "swift-silver")
+            resolved(3, "swift-green-2a")
+            hand("swift-blue-2a")
+            items("swift-green-2b", "swift-blue-2b")
         }
         hero("dodger", Team.RED, Hex(3, -7)) {
-            played("dodger-green-1")
+            level = 3
+            played("dodger-green-2a")
             resolved(1, "dodger-gold")
             resolved(2, "dodger-silver")
-            resolved(3, "dodger-red-1")
-            discard("dodger-blue-1")
-            hand()
+            resolved(3, "dodger-red-2b")
+            hand("dodger-blue-1")
+            items("dodger-red-2a", "dodger-green-2b")
         }
         hero("wasp", Team.RED, Hex(4, -2)) {
+            level = 2
             resolved(1, "wasp-gold")
             resolved(2, "wasp-silver")
             resolved(3, "wasp-red-1")
-            resolved(4, "wasp-green-1")
-            hand("wasp-blue-1")
+            resolved(4, "wasp-blue-2b")
+            hand("wasp-green-1")
+            items("wasp-blue-2a")
         }
         token(WidgetHero.PYRO, Hex(2, -6), owner = "widget")
         minion(Team.RED, MinionType.MELEE, Hex(1, -6))
         minion(Team.BLUE, MinionType.MELEE, Hex(1, -4))
-        minion(Team.BLUE, MinionType.HEAVY, Hex(3, -1))
+        minion(Team.BLUE, MinionType.HEAVY, Hex(2, -7))
         phase = PositionPhase.Resolving(next = "widget")
     }
 
-    // Snipe's only target (Dodger) is not asked.
+    // Snipe's only target (Dodger) is not asked; Dodger's defense is the solver's.
     override val solution = listOf(
         action(ActionType.PRIMARY),
         hero("dodger"),
-        space(4, -6),
-        space(5, -7),
+        space(4, -8),
+        space(5, -9),
         action(ActionType.PRIMARY),
     )
 
@@ -117,8 +127,8 @@ object P40CarryAway : Puzzle() {
             listOf(action(ActionType.PRIMARY), unitAt(1, -6)),
         ),
         WrongTry(
-            "Carry Dodger three spaces east: five spaces from Swift, out of Snipe's range",
-            listOf(action(ActionType.PRIMARY), hero("dodger"), space(4, -6), space(6, -7)),
+            "Carry Dodger two spaces south-west, four from Swift: Shield of Decay holds 5 against 5",
+            listOf(action(ActionType.PRIMARY), hero("dodger"), space(0, -4)),
         ),
     )
 }

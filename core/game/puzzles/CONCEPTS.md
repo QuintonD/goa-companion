@@ -868,6 +868,17 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.8 Triggering a Push; p.18 Ignoring Obstacles, Minions Outside of the Battle Zone; p.19 Straight line.
 - **Risk:** none.
 - **Encoded as p40:** as in the concept. Widget's cards made concrete (resolved Fight as One, Dragon Bond, Diversionary Attack; holds Nibble; items Airborne Attack, Flaming Breath, Take-Off, Safe Landing). The engine asks Pyro's space, then the enemy's (2 or 3 each, same direction): Pyro east 2 is the only winning Pyro move, Dodger east 2 (not 3) the only winning Dodger move. With one Wave counter left, sniping the minion would also have won (last push): no Carry Away puts it in Snipe's reach.
+- **Hardened as p40 (2026-10-24, changed):** legality: Swift L3 (Pin Down, Assault Jump; items Mark for
+  Death = Initiative, Delayed Jump = Defense, so Snipe shows 9), Dodger L3 (Burning Skull, Darker Ritual;
+  items Finger of Death = Initiative, Necromancy = Attack), Wasp L2 (Kinetic Repulse; item Control Gravity):
+  no level 1 in round 5. Wasp's turn-4 card is Kinetic Repulse (10), tied with Carry Away and won on Red's
+  side of the coin, which she flipped to Blue (Stop Projectiles at 3 could not have gone first). One Blue
+  heavy only (on its spawn point (2,−7)). Harder: Dodger now holds Shield of Decay (Defense 3, +2 with two
+  empty spawn points within 2 in the Battle Zone) and Swift moved to (5,−5), so two Carry Away landings are
+  four from Swift in a straight line: south-west (1,−5) beside Widget, where the Shield holds (3 + 2 + 1 Red
+  melee − 1 Blue melee = 5 against 5), and north-east (5,−9), one empty spawn point and no minion: 3 against
+  5. The player must find both landings and count the board around each; the minion trap stays (its Carry
+  Away squares are out of Snipe's reach). Only Pyro (4,−8) then Dodger (5,−9) wins.
 
 ---
 
@@ -894,6 +905,16 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
   `green-2a`, `blue-2a`; Wasp: resolved `red-1`, `blue-1`, hand `silver`, `green-1`. The defence choice
   offers Rogue Wave first. Arien ends the turn with Liquid Leap's Hold (any Movement also wins; its
   primary is not offered). Wrong tries tested: Rogue Wave, no defense.
+- **Hardened as p41 (2026-10-24, changed):** legality: round 4 (Dodger L5 with Middlefinger needs the
+  coins: not round 2); Sabina's turn-2 card is Point Blank Shot (12), tied with Wasp's dagger and won on
+  Blue's side, which she flipped to Red. Harder: turn 2, so Arien holds three cards (Dangerous Current,
+  Expert Duelist, Arcane Whirlpool; L3, items Slippery Ground and Magical Current = Attack) and acts between
+  the attacks with Noble Blade (11); Sabina (no card that holds a 7) stands next to Dodger and is a player
+  seat (`Survive` covers both). Expert Duelist is still the only defence (Dangerous Current 6 − 1 holds the
+  dagger's 5 but opens Middlefinger's discard bullet; Arcane Whirlpool 3 − 1 fails), and then Noble Blade
+  must target the Red melee (3,−5) between Arien and Sabina and move Sabina to (4,−6), the one space beside
+  it not next to Dodger ((5,−5) and (3,−4) are). Noble Blade on Wasp (it even defeats her) leaves Sabina to
+  Dodger. Positions moved: Arien (2,−5), Wasp (1,−5), Sabina (4,−5), Dodger (4,−4).
 
 ### C42 — The Courteous Trap
 - **Theme:** choosing your last-but-one card; tie broken by the coin; an attack that heals the target. **Difficulty:** 3. **Heroes:** Rowenna; Tigerclaw (Swift, Xargatha idle).
@@ -911,6 +932,13 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.7 Play one card, Tied Initiative; p.12 Skill action; p.14 Defense total; p.16 Item bonus.
 - **Risk:** none (requires the "play a card" starting step).
 - **Encoded as p42 (changed):** Xargatha moved from (5,−6), which is terrain (not a space), to (7,−8). Rowenna is seated first; the idle heroes' forced cards are Swift's Suppress (4) and Xargatha's Charm (5), both after the 10s. The engine confirms 3 + 1 + 1 = 5 against 5 for the gold.
+- **Hardened as p42 (2026-10-24, changed):** legality: Swift L3 and Xargatha L2 (no level 1 in round
+  3). Harder: Red now shows on the coin, so Accept Surrender alone loses the 10–10 tie and Tigerclaw runs.
+  Swift is a player seat holding Bounce (13) and Delayed Jump (10, 11 with her Initiative item from Mark for
+  Death); Xargatha's only card is Cleave (11). Delayed Jump ties Xargatha across teams: Red's Xargatha goes
+  first and flips the coin to Blue, and Rowenna then wins the 10–10 tie. Four card pairs, one wins (Accept
+  Surrender + Delayed Jump); Code of Chivalry still loses to the retrieved Combat Reflexes (5 against 5),
+  and Bounce ties no one. Seats: Rowenna, Swift, Tigerclaw, Xargatha (both Red cards forced).
 
 ### C43 — Count the Minions
 - **Theme:** Minion Battle arithmetic; an End-of-round effect; why killing the hero is wrong. **Difficulty:** 3. **Heroes:** Tigerclaw, Xargatha; Arien (Wasp idle).
