@@ -44,7 +44,17 @@ card text and FAQ are silent and the engine takes the reading closest to the tex
    fails (the defender is defeated, p.14) and the rest of the text is skipped (p.10) — no move, no
    retrieve, the attacker discards nothing. Agrees with goa2-backend (`build_on_block_steps`) and with
    Wasp's FAQ reading of "Block a ranged attack" against a non-ranged attack. Tests: "Sidestep - APP",
-   "Parry - APP".
+   "Parry - APP". **Other reading (audit E, 2026-10-24, kept the engine's):** p.14 calls "Block a ranged
+   attack" a Block *condition* ("If the Block condition is fulfilled, you successfully defend … If not,
+   you are defeated"), and the defeat comes at step 6, after the Defense text (step 4); Wasp's FAQ
+   ("Why do Wasp's Tier II and III abilities say 'If you do'? … You can always discard a card to attempt
+   to defend, even if it does not defend successfully") and the designer's "If two statements are
+   linked, they will be either connected with ';' or have something like 'if you do'" (BGG 3083239)
+   suggest that text in a separate sentence still applies — a failed Evade would still retrieve the
+   silver card, a failed Riposte would still make the attacker discard or be defeated. Kept: the Block
+   instruction carries none of p.10's optional words, and the designer's remark is about skipping
+   optional steps, not about a mandatory step that fails. Min's Ruse now reads the same way
+   (rulings/min.md 5).
 9. **Evade — "your resolved or discarded basic skill card".** The silver card (Blend Into Shadows) when
    it is resolved or discarded and faceup; retrieving it from a Turn slot cancels its Active effect (a
    state change, p.17).

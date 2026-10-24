@@ -25,9 +25,16 @@ Readings of Min's cards (`catalog/heroes/min.json`) beyond the plain text, in th
    it (p.18). Tests "Smoke Bomb - …".
 5. **Poof! / Vanish / Ruse.** The swap is mandatory when Min's Smoke bomb is in range (the card's
    Range with items) and he may be swapped; then the Block succeeds, otherwise it fails (p.14). Ruse's
-   "You may place the Smoke bomb into a space in range" is a sentence of its own, so it may be done even
-   without the swap (from Min's space then). **Disagreement:** goa2-backend allows the placement only
-   after a swap.
+   "You may place the Smoke bomb into a space in range" follows only a swap: "Swap with a Smoke bomb in
+   range" has no "you may", "up to" or "if able", so when it cannot be done (no Smoke bomb on the board,
+   out of range, or Min may not be swapped) the text stops there and the rest is skipped (p.10; the
+   designer: "'non-mandatory' in this context means your action doesn't fizzle if you cannot complete
+   that step", BGG 3533578). Same reading as Tigerclaw's failed Blocks (rulings/tigerclaw.md 8).
+   Test "Ruse - no Smoke bomb in range …". **Other reading (audit E, 2026-10-24, changed):** the earlier
+   engine let Min place the Smoke bomb (from the supply or from where it was) even without the swap,
+   because the sentence stands alone (the designer: linked statements use ";" or "if you do", BGG
+   3083239). That remark is about skipping optional steps; it does not lift p.10's stop at a failed
+   mandatory step. goa2-backend also places only after a swap.
 6. **Mines.** "units may move through them" (passable tokens; the mover chooses the path space by
    space, RULINGS 15); "remove mine tokens after an enemy hero moves through them": any move through
    the token's space, by any means — a Movement action, card text, ignoring obstacles (p.18: "any

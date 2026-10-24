@@ -32,7 +32,11 @@ Readings of Swift's cards (`catalog/heroes/swift.json`) beyond the plain text, i
    keyword, the clause preceding the keyword is non-mandatory" read as the whole sentence, so Shotgun
    attacks with no enemy hero next to the target. The FAQ is ranked above the rulebook text for this
    project and matches the printed "Up to 1" wording elsewhere, so it is kept. goa2-backend makes the
-   step optional for both cards. RULINGS 53. Tests "Shotgun - …", "Super-Shotgun - …".
+   step optional for both cards. RULINGS 53. Tests "Shotgun - …", "Super-Shotgun - …". Super-Shotgun's
+   sentence has no "if able" at all, so it is mandatory (p.10); audit E (2026-10-24) confirmed it with
+   the designer's definition of "non-mandatory" — "your action doesn't fizzle if you cannot complete
+   that step" (BGG 3533578, where he also rules that an "if able" step must be done when possible) — and
+   the 1st printing's "Up to one enemy hero …" (BGG 2889490), which the 2nd printing dropped.
 4. **[APP] Bullet Time, "you cannot target the same enemy hero twice in the same turn this way".** The
    extra primary action may not target any enemy hero Swift's actions already targeted this turn
    (the resolved card's own action, and actions it performed, e.g. Reload! performing a red card).
@@ -49,8 +53,9 @@ Readings of Swift's cards (`catalog/heroes/swift.json`) beyond the plain text, i
 8. **Mark for Death / Hunting Season:** the minion move is optional ("up to", p.10), so the Next turn
    effect always starts. It counts every enemy minion defeated in radius by anyone, measured from
    Swift's space at the moment of the defeat (p.17), the first one (two) times only. Minion Battle
-   removals are not defeats. Engine limit: a minion "defeated but not removed" by Brogan's Shield does
-   not fire the defeat trigger, so it gives no coin here.
+   removals are not defeats. A minion "defeated but not removed" by Brogan's Shield is still defeated
+   (p.12: Dodger "would still gain 2 coins for 'defeating' it"), so it counts (test "Mark for Death - a
+   minion defeated but not removed …"); a minion saved by Tali's Totem is not defeated (Tali FAQ).
 9. **Steam Jump family:** "Push … up to N spaces" is optional (p.10 "up to"); the distance is chosen
    once for both units of Drop Trooper (p.18 "Push"). The placement is the first instruction
    (mandatory).

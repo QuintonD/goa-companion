@@ -174,6 +174,8 @@ sealed interface Trigger {
         val type: MinionType,
         val at: Hex?,
         val byHeroId: String?,
+        /** False when an effect kept it on the board ("defeated but not removed": Brogan's Shield). */
+        val removed: Boolean = true,
     ) : Trigger
 
     data class HeroDefeated(val heroId: String, val byHeroId: String?) : Trigger

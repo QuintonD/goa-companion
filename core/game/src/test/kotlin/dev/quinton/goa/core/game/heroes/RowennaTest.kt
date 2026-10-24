@@ -586,4 +586,44 @@ class RowennaTest {
         d.action("rowenna", ActionType.PRIMARY)
         assertThat(d.s.state.minion(m)).isNull()
     }
+
+    // ---- audit E regressions --------------------------------------------------------------------
+
+    @Test
+    fun `Throw the Gauntlet - spaces that count as obstacles for Rowenna are not offered (Takahide's blade)`() {
+        val d = pos {
+            clearMinions()
+            hero("rowenna", Team.RED, Hex(0, -5)) { played("rowenna-silver") } // Range 4
+            hero("takahide", Team.BLUE, Hex(3, -5)) { resolved(1, "takahide-red-2b") }
+            turn = 2
+            // Spinning Blade: "This turn: Empty spaces adjacent to you count as obstacles for enemy units."
+            effect("takahide", "takahide-red-2b", Timing.THIS_TURN, ActionKind.ATTACK)
+            phase = PositionPhase.Resolving(next = "rowenna")
+        }
+        // Every space next to Takahide is an obstacle for Rowenna: she cannot be placed there (p.18).
+        assertThat(d.actions()).doesNotContain(ActionType.PRIMARY)
+    }
+
+    @Test
+    fun `Close Quarters - a minion is only placed into a space that is empty for it (Takahide's blade)`() {
+        lateinit var enemy: String
+        val d = pos {
+            clearMinions()
+            hero("rowenna", Team.RED, Hex(1, -2)) { played("rowenna-green-1") } // Movement 2, radius 2
+            hero("takahide", Team.BLUE, Hex(2, -2)) { resolved(1, "takahide-red-2b") }
+            minion(Team.RED, MinionType.MELEE, Hex(0, -2))
+            enemy = minion(Team.BLUE, MinionType.MELEE, Hex(1, 0))
+            turn = 2
+            effect("takahide", "takahide-red-2b", Timing.THIS_TURN, ActionKind.ATTACK)
+            phase = PositionPhase.Resolving(next = "rowenna")
+        }
+        d.action("rowenna", ActionType.PRIMARY)
+        d.decline() // stay next to Takahide
+        // The spaces next to Takahide are obstacles for Rowenna's (red) minion: only the second bullet.
+        d.expect(DecisionKind.CHOOSE_OPTION, "rowenna")
+        assertThat(d.d.options.count { it is dev.quinton.goa.core.game.Choice.Option }).isEqualTo(1)
+        d.option(0)
+        d.space(0, -1)
+        assertThat(d.at(enemy)).isEqualTo(Hex(0, -1))
+    }
 }

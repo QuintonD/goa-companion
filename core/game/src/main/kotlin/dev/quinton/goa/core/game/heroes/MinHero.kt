@@ -267,8 +267,9 @@ object MinHero : HeroModule {
                 d.g.canSwap(d.heroId, bomb, d.heroId)
             if (swapped) d.g.swap(d.heroId, bomb!!, d.heroId)
             d.block(swapped)
-            // Ruse: "You may place the Smoke bomb into a space in range." (a sentence of its own)
-            if (!place) return
+            // Ruse: "You may place the Smoke bomb into a space in range." The swap is a mandatory step: when it
+            // cannot be done the text stops there (p.10), so there is no placement (rulings/min.md 5).
+            if (!place || !swapped) return
             val now = d.pos ?: return
             val spaces = d.g.within(now, d.range).filter { d.g.isEmpty(it) }
             d.chooseSpace("You may place the Smoke bomb into a space in range", spaces, optional = true)?.let {

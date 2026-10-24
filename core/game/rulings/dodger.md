@@ -29,7 +29,9 @@ card text and FAQ are silent and the engine takes the reading closest to the tex
    your Ultimate, gain an Attack item") is reached only after the first. (With the Ultimate, Tide of
    Darkness makes every empty space count, so this almost never matters.) **[APP]** The item is a spare
    item from the box (reminder text); each play gains one more (the text has no limit). It is a
-   permanent Attack item like a Tier card item (p.16) and is shown in the hero's item icons.
+   permanent Attack item like a Tier card item (p.16) and is shown in the hero's item icons. Audit E
+   (2026-10-24) keeps both: the second sentence is a later step of the same text, and nothing limits
+   the items but the spare cards in the box, which the engine does not count.
 6. **Necromancy / Necromastery.** FAQ "What minions can Dodger respawn with her Necromancy?": a friendly
    minion of any type, onto any empty friendly minion spawn point (not a space next to one); it must be
    a minion that was in play in this wave and has been defeated or removed. **[APP]** "Was in play this
@@ -37,7 +39,10 @@ card text and FAQ are silent and the engine takes the reading closest to the tex
    points of that type than friendly minions of that type on the board (minions displaced out of the
    Battle Zone during the action still count). The respawned minion belongs to that Lane (p.20). With
    several missing types Dodger chooses which. Tests: "Necromancy - FAQ" (any type, full wave),
-   "Necromastery".
+   "Necromastery". Audit E (2026-10-24) keeps the per-type count: the FAQ's "a minion that was
+   originally in play in this wave" is what p.19's count measures, and Tide of Darkness changes where
+   she may respawn, not which minions exist. (The designer's "any minion in any spawn point", BGG
+   2948110, is about the 1st printing; the 2nd printing says "friendly spawn point".)
 7. **Shield of Decay / Vampiric Shield / Aegis of Doom.** Primary Defense cards, so their text applies
    when discarded to defend (p.14); the bonus is "card text" Defense. Rulebook p.14 example: Defense 4
    + 2 = 6 against Mad Dash's 6 defends. Test: "p14 example". The p.13 example position

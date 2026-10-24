@@ -250,19 +250,18 @@ object MisaHero : HeroModule {
             }
             if (placeUnit) {
                 // "you may place an enemy unit you moved through into a space adjacent to you."
-                val units = passed.filter { a.g.canPlace(it, a.heroId) }
-                val free = HexGrid.neighbors(a.pos).filter { a.g.isEmpty(it) }
-                if (units.isEmpty() || free.isEmpty()) return
+                // Spaces next to Misa that are empty for that unit (an effect may make a space an obstacle for
+                // some units only, e.g. Takahide's blades), never its own space (p.18 "a different space").
+                val free: (String) -> List<Hex> = { u ->
+                    HexGrid.neighbors(a.pos).filter { it != a.g.posOf(u) && a.g.isEmpty(it, u) }
+                }
+                val units = passed.filter { a.g.canPlace(it, a.heroId) && free(it).isNotEmpty() }
+                if (units.isEmpty()) return
                 val u =
                     a.chooseUnit("You may place an enemy unit you moved through next to you", units, optional = true)
                         ?: return
                 a.target(u)
-                val h = a.chooseSpace(
-                    "Place ${a.g.name(u)} into a space adjacent to you",
-                    free.filter {
-                        a.g.isEmpty(it, u)
-                    },
-                )!!
+                val h = a.chooseSpace("Place ${a.g.name(u)} into a space adjacent to you", free(u))!!
                 a.g.place(u, h, a.heroId)
             } else {
                 // "an enemy hero you moved through discards a card, if able."

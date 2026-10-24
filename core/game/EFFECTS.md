@@ -207,7 +207,7 @@ immune to its Active effects).
 
 Triggers (`Trigger`): `TurnStarted`, `CardsRevealed`, `BeforeAction` (before any action, after it is
 chosen), `AfterAction` (with its targets; also after a repeat), `CardResolved`, `MinionDefeated`
-(with its space and the defeater), `HeroDefeated`, `Moved` (path; `push` flag), `Pushed` (spaces,
+(with its space and the defeater; also for a minion "defeated but not removed", `removed = false`), `HeroDefeated`, `Moved` (path; `push` flag), `Pushed` (spaces,
 stopped by an obstacle), `Placed` (from/to, by; Fast Travel included), `Swapped`, `MarkerGiven`,
 `CardDiscarded` (from a Turn slot or not), `AttackDone`, `TurnEnding`, `RoundEnding`. To know what is
 being performed inside a trigger use `g.currentAction()` (card, kind, basic, targets).

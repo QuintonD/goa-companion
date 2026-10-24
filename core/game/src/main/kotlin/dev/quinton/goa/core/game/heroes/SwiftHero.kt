@@ -296,7 +296,9 @@ object SwiftHero : HeroModule {
         override fun primary(a: ActionScope) {
             // "Place yourself into a space in a straight line in radius."
             val me = a.pos
-            val spaces = a.g.within(me, a.radius).filter { HexGrid.inStraightLine(me, it) && a.g.isEmpty(it) }
+            // Empty for Swift herself (p.18 "Place": an empty space; Takahide's blades make spaces obstacles to her).
+            val spaces =
+                a.g.within(me, a.radius).filter { HexGrid.inStraightLine(me, it) && a.g.isEmpty(it, a.heroId) }
             if (spaces.isEmpty() || !a.g.canPlace(a.heroId, a.heroId)) a.fizzle("no space to place yourself")
             val to = a.chooseSpace("Place yourself into a space in a straight line in radius", spaces)!!
             a.g.place(a.heroId, to, a.heroId)
@@ -326,7 +328,8 @@ object SwiftHero : HeroModule {
                 val me = g.posOf(owner) ?: return
                 // "Place yourself into a space in radius not in a straight line from you." (mandatory: if
                 // no such space, the text stops and there is no Fast Travel.)
-                val spaces = g.within(me, g.radiusOf(src)).filter { !HexGrid.inStraightLine(me, it) && g.isEmpty(it) }
+                val spaces =
+                    g.within(me, g.radiusOf(src)).filter { !HexGrid.inStraightLine(me, it) && g.isEmpty(it, owner) }
                 if (spaces.isEmpty() || !g.canPlace(owner, owner)) g.fizzle("no space to place yourself")
                 val c = g.ask(
                     owner,

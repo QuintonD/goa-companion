@@ -382,4 +382,30 @@ class MisaTest {
     fun `random games with Misa keep every invariant`() {
         batch1RandomGames("misa", games = 200, seed = 14)
     }
+
+    // ---- audit E regressions --------------------------------------------------------------------
+
+    @Test
+    fun `Sudden Breeze - no space next to Misa is empty for the unit, so no placement (Takahide's blade)`() {
+        lateinit var m: String
+        val d = pos {
+            clearMinions()
+            hero("misa", Team.RED, Hex(-1, -2)) { played("misa-blue-1") }
+            hero("takahide", Team.RED, Hex(2, -3)) { resolved(1, "takahide-red-2b") }
+            hero("arien", Team.BLUE, Hex(8, -6))
+            m = minion(Team.BLUE, MinionType.MELEE, Hex(0, -2))
+            minion(Team.RED, MinionType.MELEE, Hex(0, -1))
+            minion(Team.RED, MinionType.MELEE, Hex(1, -1))
+            turn = 2
+            // Takahide's Spinning Blade: (2,-2), the only other free space next to (1,-2), is next to him, so it
+            // counts as an obstacle for the enemy minion.
+            effect("takahide", "takahide-red-2b", Timing.THIS_TURN, ActionKind.ATTACK)
+            phase = PositionPhase.Resolving(next = "misa")
+        }
+        d.action("misa", ActionType.PRIMARY)
+        d.space(1, -2) // through the minion
+        assertThat(d.at("misa")).isEqualTo(Hex(1, -2))
+        assertThat(d.at(m)).isEqualTo(Hex(0, -2))
+        assertThat(d.d.kind).isNotEqualTo(DecisionKind.CHOOSE_UNIT) // no placement offered, no crash
+    }
 }
