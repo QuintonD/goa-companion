@@ -12,5 +12,10 @@ object Puzzles {
         P14LongThrust,
         P17IntoTheWall,
         P34RespawnWhereItCounts,
+        P08WalkThePlank,
+        P10ShotgunSplash,
+        P12FastTravelWithinTheZone,
+        P19SmokeOnTheLine,
+        P20ClearTheSmoke,
     )
 }
