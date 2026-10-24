@@ -32,10 +32,9 @@ import dev.quinton.goa.core.game.engine.discardPile
 import dev.quinton.goa.core.game.engine.inRange
 import dev.quinton.goa.core.game.engine.isAdjacent
 import dev.quinton.goa.core.game.engine.isEmpty
+import dev.quinton.goa.core.game.engine.mayPlaceToken
 import dev.quinton.goa.core.game.engine.place
-import dev.quinton.goa.core.game.engine.placeToken
 import dev.quinton.goa.core.game.engine.removePiece
-import dev.quinton.goa.core.game.engine.sortedHexes
 import dev.quinton.goa.core.game.engine.swap
 import dev.quinton.goa.core.game.engine.tokensAdjacentTo
 import dev.quinton.goa.core.game.engine.unitsOnBoard
@@ -54,9 +53,9 @@ object WukHero : HeroModule {
     const val TREE: String = "token_tree"
 
     override fun register(r: Registry) {
-        // Mystic Saplings: "Tree tokens are not removed at the end of round." The box's Tree supply is
-        // not in our sources: not limited ([APP] rulings/wuk.md).
-        r.token(TokenKind(TREE, "Tree", supply = null, removeAtEndOfRound = false))
+        // Mystic Saplings: "Tree tokens are not removed at the end of round." Three Tree tokens in the box
+        // (rulings/wuk.md 1); p.18: with none left in the supply, one is first taken from the board.
+        r.token(TokenKind(TREE, "Tree", supply = 3, removeAtEndOfRound = false))
         // Tree Slam: "Choose one — • Target a minion adjacent to you. • Remove a Tree token adjacent to
         // you. Target a unit in range."
         r.card("wuk-gold", TreeSlam(heroOnly = false))
@@ -202,12 +201,17 @@ object WukHero : HeroModule {
 
     private object MysticSaplings : CardScript {
         override fun primary(a: ActionScope) {
-            // "Place up to 3 Tree tokens in radius" — one at a time, into empty spaces (p.18 "Place").
+            // "Place up to 3 Tree tokens in radius" — one at a time, into empty spaces (p.18 "Place"); with
+            // the supply empty, a Tree token is first taken from the board (p.18).
             for (i in 1..3) {
-                val spaces = a.g.within(a.pos, a.radius).filter { a.g.isEmpty(it) }
-                if (spaces.isEmpty()) return
-                val h = a.chooseSpace("Place a Tree token in radius ($i of up to 3)", spaces, optional = true) ?: return
-                a.g.placeToken(TREE, a.heroId, h)
+                a.g.mayPlaceToken(
+                    TREE,
+                    a.heroId,
+                    a.heroId,
+                    a.g.within(a.pos, a.radius),
+                    "Place a Tree token in radius ($i of up to 3)",
+                    a.cardId,
+                ) ?: return
             }
         }
     }
@@ -345,13 +349,12 @@ object WukHero : HeroModule {
             val path = a.movementAction(ignoreObstacles = true, straightLine = true)
             // The units in the spaces moved through (start and end excluded).
             val through = path.dropLast(1).mapNotNull { a.g.occupant(it) }.filter { a.g.isUnit(it) }
-            // "each enemy hero you moved through discards a card, or is defeated" — all of them.
+            // "each enemy hero you moved through discards a card, or is defeated" — all of them. Razzle FAQ:
+            // during an action each of her figures is "another hero", so every figure moved through makes
+            // her discard (figures gone with her defeat are skipped).
             val heroes = through.filter { a.g.isHero(it) && a.isEnemy(it) && a.canTarget(it) }
-                .map { a.g.heroBodyOf(it)!! }.distinct()
             for (h in heroes) {
-                if (a.g.heroOrNull(h)?.at != null || a.g.state.pieces.any { it.heroBody == h && it.at != null }) {
-                    a.discardOrDefeat(h)
-                }
+                if (a.g.posOf(h) != null) a.discardOrDefeat(h)
             }
             // "defeat up to N minions you moved through" — FAQ: chosen at the same time, so a heavy minion
             // still immune when they are chosen cannot be defeated.
@@ -396,16 +399,16 @@ object WukHero : HeroModule {
                 if (t !is Trigger.CardResolved || t.heroId != owner) return
                 val at = g.posOf(owner) ?: return
                 val radius = g.cardValue(owner, src.cardId!!, Stat.RADIUS) ?: 0
-                val spaces = g.within(at, radius).filter { g.isEmpty(it) }.sortedHexes()
-                if (spaces.isEmpty()) return
-                val c = g.ask(
+                // p.18: with the supply empty, a Tree token is first taken from the board.
+                g.mayPlaceToken(
+                    TREE,
                     owner,
-                    DecisionKind.CHOOSE_SPACE,
+                    owner,
+                    g.within(at, radius),
                     "March of Nature: you may place a Tree token in radius",
-                    spaces.map { Choice.Space(it) as Choice } + Choice.Decline("Don't place"),
                     src.cardId,
+                    decline = "Don't place",
                 )
-                if (c is Choice.Space) g.placeToken(TREE, owner, c.hex)
             }
         }
     }

@@ -522,6 +522,101 @@ fun Game.placeToken(placed: String, owner: String?, to: Hex, takeFrom: String? =
     return piece.id
 }
 
+/** The token kind [placeToken] places for [placed] now (a `tokenKind` behaviour may change it: NebKher). */
+fun Game.placedTokenKind(placed: String): String =
+    sources().firstNotNullOfOrNull { (b, s) -> b.tokenKind(this, s, placed, actor) } ?: placed
+
+/** [owner]'s tokens of the kind [placed] would be placed as, on the board, in creation order. */
+fun Game.tokensInPlay(placed: String, owner: String?): List<String> {
+    val kind = placedTokenKind(placed)
+    return state.pieces.filter { it.kind == kind && it.at != null && (owner == null || it.owner == owner) }
+        .map { it.id }
+}
+
+/** [placed] tokens left in [owner]'s supply (p.18 "Tokens are intentionally limited"); null = not limited. */
+fun Game.tokenSupplyLeft(placed: String, owner: String?): Int? {
+    val supply = data.registry.tokenKind(placedTokenKind(placed))?.supply ?: return null
+    return maxOf(0, supply - tokensInPlay(placed, owner).size)
+}
+
+/**
+ * p.18 "Place": "If you need to place more tokens than are available in the supply, first remove up to
+ * that number of tokens of the same type from the board, if able." Before [count] [placed] tokens are
+ * placed for [owner] (a mandatory placement), takes back from the board as many as the supply lacks;
+ * [chooser] picks which when not all of them go. Returns how many can be placed now.
+ */
+@Suppress("LongParameterList")
+fun Game.takeTokensBack(placed: String, owner: String?, count: Int, chooser: String, sourceCardId: String?): Int {
+    var left = tokenSupplyLeft(placed, owner) ?: return count
+    while (left < count) {
+        val back = tokensInPlay(placed, owner)
+        if (back.isEmpty()) break
+        if (count - left >= back.size) {
+            // Every one of them must go: nothing to choose.
+            for (id in back) removePiece(id)
+            left += back.size
+            continue
+        }
+        val label = data.registry.tokenKind(placedTokenKind(placed))?.label ?: placed
+        val c = ask(
+            chooser,
+            DecisionKind.CHOOSE_TOKEN,
+            "Not enough $label tokens in the supply: first take one from the board",
+            back.map { Choice.Token(it) },
+            sourceCardId,
+        ) as Choice.Token
+        removePiece(c.tokenId)
+        left++
+    }
+    return minOf(left, count)
+}
+
+/**
+ * One [placed] token a card *may* place ("place up to N", "you may place") into an empty space of
+ * [area] (the spaces the text allows, empty or not), p.18 with a limited supply: when [owner]'s supply
+ * is empty, [chooser] first picks one of those tokens on the board to take back, or declines; then the
+ * space (after taking one back the placement is no longer optional). Only tokens whose removal leaves
+ * a space to place into are offered. Returns the token placed, or null when declined or impossible.
+ */
+@Suppress("LongParameterList")
+fun Game.mayPlaceToken(
+    placed: String,
+    owner: String?,
+    chooser: String,
+    area: Collection<Hex>,
+    prompt: String,
+    sourceCardId: String?,
+    decline: String = Choice.Decline().label,
+): String? {
+    var optional = true
+    if (tokenSupplyLeft(placed, owner) == 0) {
+        val open = area.any { isEmpty(it) }
+        val back = tokensInPlay(placed, owner).filter { open || posOf(it) in area }
+        if (back.isEmpty()) return null
+        val label = data.registry.tokenKind(placedTokenKind(placed))?.label ?: placed
+        val c = ask(
+            chooser,
+            DecisionKind.CHOOSE_TOKEN,
+            "$prompt — no $label token left in the supply: first take one from the board",
+            back.map { Choice.Token(it) as Choice } + Choice.Decline(decline),
+            sourceCardId,
+        )
+        if (c !is Choice.Token) return null
+        removePiece(c.tokenId)
+        optional = false
+    }
+    val spaces = area.filter { isEmpty(it) }.distinct().sortedHexes()
+    if (spaces.isEmpty()) return null
+    val c = ask(
+        chooser,
+        DecisionKind.CHOOSE_SPACE,
+        prompt,
+        spaces.map { Choice.Space(it) as Choice } + if (optional) listOf(Choice.Decline(decline)) else emptyList(),
+        sourceCardId,
+    ) as? Choice.Space ?: return null
+    return placeToken(placed, owner, c.hex)
+}
+
 /**
  * p.19 "Spawn": like Place, but from the supply; "If a unit Spawns in a Spawn Point covered by a
  * token, remove the token first, then spawn the unit." [piece] must not be on the board yet; it is

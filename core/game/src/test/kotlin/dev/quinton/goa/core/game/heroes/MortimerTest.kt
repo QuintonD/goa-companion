@@ -160,21 +160,33 @@ class MortimerTest {
     }
 
     @Test
-    fun `Awaken - FAQ - more zombies than the supply (APP - supply not limited, nothing is taken)`() {
+    fun `Awaken - FAQ - all four zombies in play, one is first taken from the board for each placed`() {
         val d = pos {
             clearMinions()
             hero("mortimer", Team.RED, Hex(1, -2)) { played("mortimer-silver") }
             hero("brogan", Team.BLUE, Hex(4, -5))
-            for (h in listOf(Hex(-1, -5), Hex(0, -5), Hex(1, -5), Hex(2, -5), Hex(3, -5), Hex(4, -4))) {
-                token(MortimerHero.ZOMBIE, h, owner = "mortimer")
-            }
+            token(MortimerHero.ZOMBIE, Hex(2, -2), owner = "mortimer")
+            token(MortimerHero.ZOMBIE, Hex(-1, -5), owner = "mortimer")
+            token(MortimerHero.ZOMBIE, Hex(0, -5), owner = "mortimer")
+            token(MortimerHero.ZOMBIE, Hex(4, -4), owner = "mortimer")
             phase = PositionPhase.Resolving(next = "mortimer")
         }
+        fun zombieAt(h: Hex) = d.s.state.pieces.single { it.kind == MortimerHero.ZOMBIE && it.at == h }.id
         d.action("mortimer", ActionType.PRIMARY)
-        d.space(2, -2)
+        // Supply 4, all in play: "first remove up to that number of tokens of the same type from the board".
+        d.expect(DecisionKind.CHOOSE_TOKEN, "mortimer")
+        assertThat(d.d.options.filterIsInstance<Choice.Token>()).hasSize(4)
+        assertThat(d.d.options.any { it is Choice.Decline }).isTrue() // "up to 4": Mortimer may stop instead
+        d.token(zombieAt(Hex(-1, -5)))
+        // Taken back: the placement is no longer optional.
+        d.expect(DecisionKind.CHOOSE_SPACE, "mortimer")
+        assertThat(d.d.options.none { it is Choice.Decline }).isTrue()
         d.space(0, -2)
+        d.token(zombieAt(Hex(0, -5)))
+        d.space(2, -3)
+        d.expect(DecisionKind.CHOOSE_TOKEN, "mortimer")
         d.decline()
-        assertThat(d.zombies()).hasSize(8)
+        assertThat(d.zombies()).containsExactly(Hex(2, -2), Hex(4, -4), Hex(0, -2), Hex(2, -3))
     }
 
     // ---- Crawling Dead / Walking Dead / Racing Dead (red) --------------------------------------
@@ -239,6 +251,32 @@ class MortimerTest {
         assertThat(d.options()).containsExactly(0)
         d.decline()
         assertThat(d.zoneOf("arien", "arien-silver")).isEqualTo(Zone.HAND)
+    }
+
+    @Test
+    fun `Walking Dead - Razzle FAQ - two of her figures are two enemy heroes, she discards twice`() {
+        val d = pos {
+            clearMinions()
+            hero("mortimer", Team.RED, Hex(1, -2)) { played("mortimer-red-2a") } // Radius 4
+            hero("brogan", Team.BLUE, Hex(2, -2)) { hand("brogan-red-1") }
+            hero("razzle", Team.BLUE, Hex(4, -2)) { hand("razzle-gold", "razzle-silver", "razzle-red-1") }
+            razzleDouble("rzA", Hex(4, -4), Team.BLUE)
+            token(MortimerHero.ZOMBIE, Hex(4, -3), owner = "mortimer") // next to both figures
+            phase = PositionPhase.Resolving(next = "mortimer")
+        }
+        d.action("mortimer", ActionType.PRIMARY)
+        d.defend("brogan-red-1")
+        d.option(1)
+        assertThat(d.units()).containsExactly("razzle", "rzA")
+        d.unit("razzle")
+        d.card("razzle-gold")
+        // "each enemy hero can only be targeted once": the other figure is another enemy hero (FAQ).
+        d.expect(DecisionKind.CHOOSE_OPTION, "mortimer")
+        assertThat(d.options()).containsExactly(0, 1)
+        d.option(1)
+        d.card("razzle-silver")
+        assertThat(d.zoneOf("razzle", "razzle-gold")).isEqualTo(Zone.DISCARD)
+        assertThat(d.zoneOf("razzle", "razzle-silver")).isEqualTo(Zone.DISCARD)
     }
 
     @Test
@@ -446,7 +484,11 @@ class MortimerTest {
         assertThat(d.units()).containsExactly(m1, m2)
         d.unit(m1)
         assertThat(d.s.state.minion(m1)).isNull()
-        assertThat(d.zombies()).contains(Hex(3, -2))
+        // All four Zombie tokens are in play (supply 4): FAQ / p.18, Mortimer first takes one from the board.
+        d.expect(DecisionKind.CHOOSE_TOKEN, "mortimer")
+        val far = d.s.state.pieces.single { it.at == Hex(-2, -2) }.id
+        d.answer(Choice.Token(far))
+        assertThat(d.zombies()).containsExactly(Hex(4, -2), Hex(3, -3), Hex(-1, -1), Hex(3, -2))
         assertThat(d.hero("mortimer").coins).isEqualTo(0) // replaced, not defeated: no coins
         // Once per turn: the second choice may only move a zombie.
         d.expect(DecisionKind.CHOOSE_OPTION, "mortimer")
@@ -590,7 +632,7 @@ class MortimerTest {
     }
 
     @Test
-    fun `Robbing Zombies - no zombie in range, no coin (APP)`() {
+    fun `Robbing Zombies - p10 up to is non-mandatory, no zombie in range still gains the coin`() {
         val d = pos {
             clearMinions()
             hero("mortimer", Team.RED, Hex(1, -2)) { played("mortimer-blue-2b") }
@@ -600,7 +642,13 @@ class MortimerTest {
         }
         d.action("mortimer", ActionType.PRIMARY)
         d.expect(DecisionKind.CHOOSE_OPTION, "mortimer")
-        assertThat(d.options()).containsExactly(1)
+        assertThat(d.options()).containsExactly(0, 1)
+        // "Move a Zombie token in range up to 1 space" can't be done and is skipped; "Gain 1 coin" still is.
+        d.option(0)
+        d.option(0)
+        assertThat(d.hero("mortimer").coins).isEqualTo(2)
+        assertThat(d.zombies()).containsExactly(Hex(-4, -2))
+        d.expect(DecisionKind.PLAY_CARD)
     }
 
     @Test

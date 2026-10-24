@@ -5,10 +5,17 @@ Sources in order (RULINGS.md): card text (`catalog/heroes/wuk.json`), the 2nd-pr
 silent; the engine takes the reading closest to the text. Code: `heroes/WukHero.kt`; tests:
 `heroes/WukTest.kt`.
 
-1. **[APP] Tree token supply.** Card: Mystic Saplings, March of Nature. Question: how many Tree
-   tokens are there (p.18 "Tokens are intentionally limited")? Reading: not limited
-   (`TokenKind.supply = null`). Reason: the box's token count is in none of the pinned sources;
-   inventing one is worse than not limiting. Needs the real count (box contents) to be exact.
+1. **Tree token supply: 3.** Card: Mystic Saplings, March of Nature. p.18 "Place": "Tokens are
+   intentionally limited. When a card tells you to place a token, take it from the supply first. If you
+   need to place more tokens than are available in the supply, first remove up to that number of tokens
+   of the same type from the board, if able." Count: BGG thread 3466489 ("When Wuk has all 3 tree tokens
+   deployed …", answered "He can pick-up and replace"), thread 3504393 ("after he has placed all 3 on the
+   board?", answered by nichik, who posts for Wolff Designa, pointing to p.18 "Place", without correcting
+   the 3); the hero dashboard back (rulebook p.6 step 11) lists the tokens but no photo of it is in our
+   sources. Engine: `supply = 3`; with the supply empty, Mystic Saplings and March of Nature ask which
+   Tree token to take from the board first, or to stop ("up to" / "may"), and only offer trees whose
+   removal leaves a space to place into (`Game.mayPlaceToken`). Tests: "Mystic Saplings - p18 …",
+   "March of Nature - p18 …".
 2. **Tree tokens stay between rounds.** Card: Mystic Saplings ("Tree tokens are not removed at the
    end of round"). Reading: a property of every Tree token, including those March of Nature places
    (p.19 "Unless the card text says otherwise, tokens are removed at the end of round"). Test:
@@ -51,7 +58,10 @@ silent; the engine takes the reading closest to the text. Code: `heroes/WukHero.
    obstacles can't pass units). "Moved through" = units in the spaces between the start and the end.
    Every enemy hero moved through (not immune to Wuk's Movement action) discards a card or is
    defeated (RULINGS 22), in path order; then Wuk picks up to 1 (2) enemy minions moved through and
-   they are defeated (coins to Wuk). Friendly units are never affected. Tests: "Trample - …".
+   they are defeated (coins to Wuk). Friendly units are never affected (p.17 "Defeat": "You can never
+   defeat a friendly unit", so "defeat up to one minion" means an enemy one). **Razzle FAQ** ("During any
+   action … all the Razzles other than the active one is considered 'another hero'"): each of her figures
+   moved through is an enemy hero, so she discards once per figure. Tests: "Trample - …".
 10. **FAQ (Wuk): "When moving through a heavy minion and another one, does the order matter?"** —
     "'Up to two minions' resolves at the same time, so the heavy minion cannot be targeted and will
     not be defeated." The minions are chosen together while the heavy one is still immune. Test:

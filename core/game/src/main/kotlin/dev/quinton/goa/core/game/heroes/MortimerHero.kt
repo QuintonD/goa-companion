@@ -31,12 +31,14 @@ import dev.quinton.goa.core.game.engine.discardPile
 import dev.quinton.goa.core.game.engine.gainCoins
 import dev.quinton.goa.core.game.engine.isEmpty
 import dev.quinton.goa.core.game.engine.isSpawnPoint
+import dev.quinton.goa.core.game.engine.mayPlaceToken
 import dev.quinton.goa.core.game.engine.placeToken
 import dev.quinton.goa.core.game.engine.push
 import dev.quinton.goa.core.game.engine.removeMinion
 import dev.quinton.goa.core.game.engine.removePiece
 import dev.quinton.goa.core.game.engine.retrieve
 import dev.quinton.goa.core.game.engine.swap
+import dev.quinton.goa.core.game.engine.takeTokensBack
 import dev.quinton.goa.core.game.engine.tokensAdjacentTo
 import dev.quinton.goa.core.game.engine.unitsAdjacentTo
 import dev.quinton.goa.core.game.engine.within
@@ -55,9 +57,9 @@ object MortimerHero : HeroModule {
     const val ZOMBIE: String = "token_zombie"
 
     override fun register(r: Registry) {
-        // Awaken!: "Zombie tokens are not removed at the end of round." The box's Zombie supply is not
-        // in our sources: not limited ([APP] rulings/mortimer.md).
-        r.token(TokenKind(ZOMBIE, "Zombie", supply = null, removeAtEndOfRound = false))
+        // Awaken!: "Zombie tokens are not removed at the end of round." Four Zombie tokens in the box
+        // (rulings/mortimer.md 1); FAQ / p.18: with none left in the supply, one is first taken from the board.
+        r.token(TokenKind(ZOMBIE, "Zombie", supply = 4, removeAtEndOfRound = false))
         // Knife of the Living Dead: "Target a unit adjacent to you. Before the attack: Choose up to
         // three times — • Move a Zombie token in radius 1 space. • Remove a Zombie token adjacent to the
         // target; if you do, gain +1 Attack."
@@ -162,13 +164,23 @@ object MortimerHero : HeroModule {
         }
     }
 
-    /** "Move a Zombie token in range up to 1 space" (a token in range is needed; the distance is 0..1). */
-    private fun ActionScope.moveZombieUpTo(label: String, then: (String) -> Unit, index: Int): Bullet =
-        Bullet(index, label, { zombies(range).isNotEmpty() }) {
-            val z = target(chooseToken("Move a Zombie token in range up to 1 space", zombies(range))!!)
-            if (g.canDisplace(z, Displacement.MOVE, heroId)) moveOther(z, 0, 1)
-            then(z)
-        }
+    /**
+     * "Move a Zombie token in range up to 1 space" (the distance is 0..1), then [then] with the zombie.
+     * p.10: a step with "up to" is non-mandatory, so with no Zombie token in range it is skipped and the
+     * rest of the bullet still applies ([then] with null) — the bullet is offered without a zombie only
+     * when [withoutZombie] (Robbing Zombies' coin). Designer (BGG 3533578): "non-mandatory … means your
+     * action doesn't fizzle if you cannot complete that step".
+     */
+    private fun ActionScope.moveZombieUpTo(
+        label: String,
+        then: (String?) -> Unit,
+        index: Int,
+        withoutZombie: Boolean = false,
+    ): Bullet = Bullet(index, label, { withoutZombie || zombies(range).isNotEmpty() }) {
+        val z = chooseToken("Move a Zombie token in range up to 1 space", zombies(range))?.let { target(it) }
+        if (z != null && g.canDisplace(z, Displacement.MOVE, heroId)) moveOther(z, 0, 1)
+        then(z)
+    }
 
     /** "Move 1 space." */
     private fun ActionScope.moveOne(index: Int): Bullet =
@@ -211,25 +223,30 @@ object MortimerHero : HeroModule {
 
     private object Awaken : CardScript {
         override fun primary(a: ActionScope) {
-            awaken(a.g, a.heroId, a.radius) { prompt, spaces -> a.chooseSpace(prompt, spaces, optional = true) }
+            awaken(a.g, a.heroId, a.radius, a.cardId)
         }
 
         /** p.14: a Defense/Skill card's text applies when it is discarded to defend (FAQ: whatever its value). */
         override fun defense(d: DefenseScope) {
-            awaken(d.g, d.heroId, d.radius) { prompt, spaces -> d.chooseSpace(prompt, spaces, optional = true) }
+            awaken(d.g, d.heroId, d.radius, d.cardId)
         }
 
-        /** "Place up to 4 Zombie tokens into spaces adjacent to you, or into spawn points in radius." */
-        private fun awaken(g: Game, heroId: String, radius: Int, choose: (String, List<Hex>) -> Hex?) {
+        /**
+         * "Place up to 4 Zombie tokens into spaces adjacent to you, or into spawn points in radius." FAQ / p.18:
+         * with no Zombie token left in the supply, one is first taken from the board.
+         */
+        private fun awaken(g: Game, heroId: String, radius: Int, cardId: String) {
             for (i in 1..4) {
                 val at = g.posOf(heroId) ?: return
-                val adjacent = HexGrid.neighbors(at).filter { g.isEmpty(it) }
-                val spawns = g.within(at, radius).filter { g.isSpawnPoint(it) && g.isEmpty(it) }
-                val spaces = (adjacent + spawns).distinct()
-                if (spaces.isEmpty()) return
-                val h = choose("Place a Zombie token next to you or on a spawn point in radius ($i of up to 4)", spaces)
-                    ?: return
-                g.placeToken(ZOMBIE, heroId, h)
+                val area = (HexGrid.neighbors(at) + g.within(at, radius).filter { g.isSpawnPoint(it) }).distinct()
+                g.mayPlaceToken(
+                    ZOMBIE,
+                    heroId,
+                    heroId,
+                    area,
+                    "Place a Zombie token next to you or on a spawn point in radius ($i of up to 4)",
+                    cardId,
+                ) ?: return
             }
         }
     }
@@ -239,14 +256,15 @@ object MortimerHero : HeroModule {
             val t = a.adjacentAttackTarget() ?: return
             val r = a.attack(t)
             if (!r.connected) return
-            val targetHero = a.g.heroBodyOf(t)
             val hit = LinkedHashSet<String>()
 
             // "Another enemy hero in radius, adjacent to a Zombie token" (not the attack's target); Walking
-            // and Racing Dead: "each enemy hero can only be targeted once".
+            // and Racing Dead: "each enemy hero can only be targeted once". Razzle FAQ: every one of her
+            // figures other than the one in question is "another enemy hero" ("Mortimer's Crawling Dead …
+            // can target Razzle twice by targeting two Razzle figures"), so figures count one by one.
             fun victims() = a.unitsWithin(a.radius).filter {
-                a.g.isHero(it) && a.isEnemy(it) && a.canTarget(it) && a.g.heroBodyOf(it) != targetHero &&
-                    a.g.heroBodyOf(it) !in hit && a.g.zombiesNextTo(it) > 0
+                a.g.isHero(it) && a.isEnemy(it) && a.canTarget(it) && it != t &&
+                    it !in hit && a.g.zombiesNextTo(it) > 0
             }
             // "After the attack: Choose one / up to N times —"
             a.choose(
@@ -259,7 +277,7 @@ object MortimerHero : HeroModule {
                         val v = a.target(
                             a.chooseUnit("Another enemy hero next to a Zombie token discards a card", victims())!!,
                         )
-                        hit += a.g.heroBodyOf(v)!!
+                        hit += v
                         a.discardIfAble(v)
                     },
                 ),
@@ -328,7 +346,11 @@ object MortimerHero : HeroModule {
                         // p.19 "Replace": the minion leaves the board (removed: no coins; a push if it was
                         // the last, p.8), the Zombie token takes its space.
                         a.g.removeMinion(m)
-                        if (a.g.isEmpty(at)) a.g.placeToken(ZOMBIE, a.heroId, at)
+                        if (a.g.isEmpty(at)) {
+                            // FAQ / p.18: with no Zombie token left in the supply, one is taken from the board.
+                            a.g.takeTokensBack(ZOMBIE, a.heroId, 1, a.heroId, a.cardId)
+                            a.g.placeToken(ZOMBIE, a.heroId, at)
+                        }
                     },
                 ),
             )
@@ -337,9 +359,9 @@ object MortimerHero : HeroModule {
 
     private class Mosh(private val times: Int) : CardScript {
         override fun primary(a: ActionScope) {
-            val push = { z: String ->
+            val push = { z: String? ->
                 // "that Zombie token may push a unit or a token adjacent to it 1 space" (away from it).
-                val zp = a.g.posOf(z)
+                val zp = z?.let { a.g.posOf(it) }
                 if (zp != null) {
                     val pushable = (a.g.unitsAdjacentTo(zp) + a.g.tokensAdjacentTo(zp)).filter {
                         it != z && a.g.heroBodyOf(it) != a.heroId && a.canTarget(it) &&
@@ -371,10 +393,13 @@ object MortimerHero : HeroModule {
             a.choose(
                 times,
                 listOf(
+                    // "Gain 1 coin" is mandatory and follows a non-mandatory step (p.10): gained with no
+                    // Zombie token in range too (rulings/mortimer.md 6).
                     a.moveZombieUpTo(
                         "Move a Zombie token in range up to 1 space. Gain 1 coin",
                         { a.g.gainCoins(a.heroId, 1, a.card.name) },
                         0,
+                        withoutZombie = true,
                     ),
                     a.moveOne(1),
                 ),

@@ -214,7 +214,14 @@ Starting the same card's effect again replaces it (p.10).
 - Register a token kind with `r.token(TokenKind(kind, label, supply, removeAtEndOfRound, passable))`
   and its rules with `r.behavior(kind, …)` (the behaviour is in force while the piece is on the board;
   `src.piece`). Place with `g.placeToken(kind, owner, hex, takeFrom)`: it respects the supply (p.18:
-  recycle a token of the same kind from the board — ask which first and pass `takeFrom`).
+  recycle a token of the same kind from the board — ask which first and pass `takeFrom`). Shared p.18
+  helpers (`Board.kt`): `g.tokenSupplyLeft(kind, owner)`, `g.tokensInPlay(kind, owner)`;
+  `g.takeTokensBack(kind, owner, count, chooser, card)` before a mandatory placement of `count` tokens
+  ("first remove up to that number … from the board": asks which while there is a choice, takes all when
+  all must go); `g.mayPlaceToken(kind, owner, chooser, area, prompt, card)` for one optional placement
+  ("place up to N", "you may place": with the supply empty it first asks which token to take back, or to
+  stop). Sourced box counts: Tree 3, Rock 3, Zombie 4, Pyro 1 (rulings of Wuk, Mrak, Mortimer, Widget);
+  Glitch 3 is [APP]; Barrier, Magma, Illusion and Familiar are not in any source we found (`null`).
   Tokens are obstacles (p.19), removed at the end of round unless `removeAtEndOfRound = false`, not
   removed when their owner is defeated, removed by Clear. `faceDown = true` hides the kind from the
   other team (Min's mines).

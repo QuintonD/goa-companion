@@ -159,6 +159,33 @@ class WukTest {
     }
 
     @Test
+    fun `Mystic Saplings - p18 three Tree tokens, with two in play one is placed and then one is taken back`() {
+        val d = pos {
+            clearMinions()
+            hero("wuk", Team.RED, Hex(1, -2)) { played("wuk-silver") }
+            hero("brogan", Team.BLUE, Hex(4, -5))
+            token(WukHero.TREE, Hex(-1, -5), owner = "wuk")
+            token(WukHero.TREE, Hex(4, -2), owner = "wuk")
+            phase = PositionPhase.Resolving(next = "wuk")
+        }
+        val far = d.s.state.pieces.single { it.at == Hex(-1, -5) }.id
+        d.action("wuk", ActionType.PRIMARY)
+        // One left in the supply: placed with no question about the board.
+        d.expect(DecisionKind.CHOOSE_SPACE, "wuk")
+        d.space(3, -2)
+        // Supply empty: "first remove up to that number of tokens of the same type from the board" (or stop).
+        d.expect(DecisionKind.CHOOSE_TOKEN, "wuk")
+        assertThat(d.d.options.filterIsInstance<Choice.Token>()).hasSize(3)
+        d.token(far)
+        d.expect(DecisionKind.CHOOSE_SPACE, "wuk")
+        assertThat(d.d.options.none { it is Choice.Decline }).isTrue()
+        d.space(0, -2)
+        d.expect(DecisionKind.CHOOSE_TOKEN, "wuk")
+        d.decline()
+        assertThat(d.trees()).containsExactly(Hex(4, -2), Hex(3, -2), Hex(0, -2))
+    }
+
+    @Test
     fun `Mystic Saplings - a Radius item widens the radius`() {
         val d = pos {
             clearMinions()
@@ -612,6 +639,27 @@ class WukTest {
     }
 
     @Test
+    fun `Trample - Razzle FAQ - each of her figures moved through is an enemy hero, she discards twice`() {
+        val d = pos {
+            clearMinions()
+            hero("wuk", Team.RED, Hex(1, -2)) { played("wuk-red-2b") }
+            hero("razzle", Team.BLUE, Hex(2, -2)) { hand("razzle-gold", "razzle-silver", "razzle-red-1") }
+            razzleDouble("rzA", Hex(3, -2), Team.BLUE)
+            phase = PositionPhase.Resolving(next = "wuk")
+        }
+        d.action("wuk", ActionType.PRIMARY)
+        d.yes()
+        d.space(4, -2)
+        d.expect(DecisionKind.CHOOSE_CARD, "razzle")
+        d.card("razzle-gold")
+        d.expect(DecisionKind.CHOOSE_CARD, "razzle")
+        d.card("razzle-silver")
+        assertThat(d.zoneOf("razzle", "razzle-gold")).isEqualTo(Zone.DISCARD)
+        assertThat(d.zoneOf("razzle", "razzle-silver")).isEqualTo(Zone.DISCARD)
+        assertThat(d.zoneOf("razzle", "razzle-red-1")).isEqualTo(Zone.HAND)
+    }
+
+    @Test
     fun `Trample - moving normally applies no text and may not pass obstacles`() {
         val d = pos {
             clearMinions()
@@ -788,6 +836,29 @@ class WukTest {
         d.action("wuk", ActionType.HOLD)
         d.decline()
         assertThat(d.trees()).isEmpty()
+    }
+
+    @Test
+    fun `March of Nature - p18 with all three Tree tokens in play, Wuk may first take one from the board`() {
+        val d = pos {
+            clearMinions()
+            hero("wuk", Team.RED, Hex(1, -2)) {
+                played("wuk-gold")
+                ultimate()
+            }
+            hero("brogan", Team.BLUE, Hex(4, -5))
+            token(WukHero.TREE, Hex(-1, -5), owner = "wuk")
+            token(WukHero.TREE, Hex(0, -5), owner = "wuk")
+            token(WukHero.TREE, Hex(4, -2), owner = "wuk")
+            phase = PositionPhase.Resolving(next = "wuk")
+        }
+        val far = d.s.state.pieces.single { it.at == Hex(0, -5) }.id
+        d.action("wuk", ActionType.HOLD)
+        d.expect(DecisionKind.CHOOSE_TOKEN, "wuk")
+        assertThat(d.d.options.any { it is Choice.Decline }).isTrue()
+        d.token(far)
+        d.space(3, -2)
+        assertThat(d.trees()).containsExactly(Hex(-1, -5), Hex(4, -2), Hex(3, -2))
     }
 
     // ---- random games ----------------------------------------------------------------------------
