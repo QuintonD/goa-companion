@@ -177,6 +177,7 @@ class PositionBuilder(private val engine: GameEngine, private val mapId: String)
         internal var ultimate = false
         internal val vars = LinkedHashMap<String, String>()
         internal val counters = LinkedHashMap<String, Int>()
+        internal val extraTags = LinkedHashMap<String, String>()
         internal var exactHand = false
 
         /**
@@ -208,6 +209,14 @@ class PositionBuilder(private val engine: GameEngine, private val mapId: String)
 
         fun deck(vararg cardIds: String) {
             cardIds.forEach { placed[it] = Zone.DECK to 0 }
+        }
+
+        /**
+         * Extra cards (the hero JSON `extras`, e.g. Gydion's spells) in the hero-specific place [tag]
+         * of [Zone.EXTRA] (`CardInst.tag`); extras not named stay in the box (tag `box`).
+         */
+        fun extra(vararg cardIds: String, tag: String) {
+            cardIds.forEach { extraTags[it] = tag }
         }
 
         /** The Ultimate is unlocked (level 8). */
@@ -344,14 +353,15 @@ class PositionBuilder(private val engine: GameEngine, private val mapId: String)
         }.toSet()
         for (card in hero.allCards) {
             val explicit = hb.placed[card.id]
+            // Extras before the purple rule: Gydion's purple Wish spell is not the Ultimate.
             val zone = when {
                 explicit != null -> explicit.first
+                card in hero.extras -> Zone.EXTRA
                 card.color == CardColor.PURPLE -> if (hb.ultimate) Zone.ULTIMATE else Zone.DECK
                 card.id in start && card.tier in 1..3 && card.color in placedColours -> Zone.DECK
                 card.id in start && !hb.exactHand -> Zone.HAND
                 card.id in start && hb.exactHand -> Zone.DISCARD
                 card.id == hero.handicap?.id || card.id == boxed -> Zone.BOX
-                card in hero.extras -> Zone.EXTRA
                 else -> Zone.DECK
             }
             val slot = explicit?.second ?: 0
@@ -361,7 +371,7 @@ class PositionBuilder(private val engine: GameEngine, private val mapId: String)
                 slot = slot,
                 faceDown = card.id in hb.faceDown,
                 played = zone == Zone.PLAYED || zone == Zone.RESOLVED,
-                tag = if (zone == Zone.EXTRA) "box" else null,
+                tag = if (zone == Zone.EXTRA) hb.extraTags[card.id] ?: "box" else null,
             )
         }
         h.markers += hb.markers
