@@ -9,7 +9,16 @@ import dev.quinton.goa.core.data.BoardRepository
 import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.DraftRecordRepository
 import dev.quinton.goa.core.data.EditClock
+import dev.quinton.goa.core.data.GameSaveRepository
 import dev.quinton.goa.core.data.MatchRepository
+import dev.quinton.goa.core.data.game.StoredGame
+import dev.quinton.goa.core.game.Controller
+import dev.quinton.goa.core.game.GameFactory
+import dev.quinton.goa.feature.board.play.PlayText
+import javax.inject.Provider
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import dev.quinton.goa.core.model.board.SavedBoard
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.Team
@@ -48,12 +57,29 @@ data class BoardRowUi(
     fun team(team: Team): List<BoardHero> = if (team == Team.RED) red else blue
 }
 
+/** The game against the computer saved on this phone, as the Boards entry shows it. */
+@Immutable
+data class ResumeUi(
+    val red: List<BoardHero>,
+    val blue: List<BoardHero>,
+    /** "You play Arien · Computer: Hard". */
+    val summary: String,
+    val savedAt: Long,
+    /** The save can't be read: opening it offers to delete it. */
+    val unreadable: Boolean = false,
+)
+
+/** Play against the computer (ADR-035): offered once heroes are playable; a game in progress to resume. */
+@Immutable
+data class PlayHubUi(val available: Boolean = false, val resume: ResumeUi? = null)
+
 sealed interface BoardsUiState {
     data object Loading : BoardsUiState
 
     /**
      * [latest]: the newest finished draft or match, set up in one tap. [unreadable]: the boards
-     * couldn't be read (the list shows what it can, never crashes).
+     * couldn't be read (the list shows what it can, never crashes). [play]: the entry to games
+     * against the computer and puzzles.
      */
     @Immutable
     data class Ready(
@@ -61,6 +87,7 @@ sealed interface BoardsUiState {
         val now: Long,
         val latest: LineupSource? = null,
         val unreadable: Boolean = false,
+        val play: PlayHubUi = PlayHubUi(),
     ) : BoardsUiState
 }
 
@@ -78,6 +105,8 @@ class BoardsViewModel internal constructor(
     matchRepository: MatchRepository,
     private val clock: EditClock,
     private val restoreScope: CoroutineScope,
+    games: GameSaveRepository? = null,
+    factory: (suspend () -> GameFactory)? = null,
 ) : ViewModel() {
     @Inject constructor(
         catalogRepository: CatalogRepository,
@@ -86,6 +115,8 @@ class BoardsViewModel internal constructor(
         draftRepository: DraftRecordRepository,
         matchRepository: MatchRepository,
         clock: EditClock,
+        games: GameSaveRepository,
+        factory: Provider<GameFactory>,
     ) : this(
         catalogRepository,
         mapRepository,
@@ -94,7 +125,26 @@ class BoardsViewModel internal constructor(
         matchRepository,
         clock,
         CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        games,
+        { withContext(Dispatchers.Default) { factory.get() } },
     )
+
+    /** Whether any game can be set up yet: two playable heroes and a playable map. */
+    private val playable = flow {
+        val engine = try {
+            factory?.invoke()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        }
+        emit(engine != null && engine.playableHeroes.size >= 2 && engine.playableMaps.isNotEmpty())
+    }
+
+    private val play = combine(
+        playable,
+        games?.current?.catch { emit(StoredGame.None) } ?: flowOf(StoredGame.None),
+    ) { available, stored -> available to stored }
 
     private val newId: () -> String = { UUID.randomUUID().toString() }
 
@@ -112,7 +162,8 @@ class BoardsViewModel internal constructor(
         mapRepository.maps.catch { emit(emptyList()) },
         boards,
         latest,
-    ) { catalog, maps, (boards, unreadable), (drafts, matches) ->
+        play,
+    ) { catalog, maps, (boards, unreadable), (drafts, matches), (available, stored) ->
         val heroes = catalog.boardHeroes()
         BoardsUiState.Ready(
             boards = boards.map { board ->
@@ -130,6 +181,7 @@ class BoardsViewModel internal constructor(
             now = clock.now(),
             latest = lineupSources(drafts, matches, heroes, limit = 1).firstOrNull(),
             unreadable = unreadable,
+            play = PlayHubUi(available = available, resume = resumeOf(stored, heroes)),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), BoardsUiState.Loading)
 
@@ -175,5 +227,25 @@ class BoardsViewModel internal constructor(
         private const val STOP_TIMEOUT_MS = 5_000L
 
         fun copyName(name: String): String = "$name (copy)".take(MAX_NAME)
+
+        /** The saved game as its entry shows it: line-up, who you play, the computer's levels. */
+        fun resumeOf(stored: StoredGame, heroes: Map<String, BoardHero>): ResumeUi? = when (stored) {
+            StoredGame.None -> null
+            StoredGame.Unreadable -> ResumeUi(emptyList(), emptyList(), "This saved game can't be read.", 0, unreadable = true)
+            is StoredGame.Saved -> {
+                val seats = stored.game.game.setup.seats
+                val mine = seats.filter { it.controller == Controller.Human }.map { heroes.hero(it.heroId).name }
+                val levels = seats.mapNotNull { (it.controller as? Controller.Ai)?.level }.distinct()
+                ResumeUi(
+                    red = seats.filter { it.team == Team.RED }.map { heroes.hero(it.heroId) },
+                    blue = seats.filter { it.team == Team.BLUE }.map { heroes.hero(it.heroId) },
+                    summary = listOfNotNull(
+                        "You play ${mine.joinToString(" and ")}".takeIf { mine.isNotEmpty() },
+                        levels.takeIf { it.isNotEmpty() }?.let { l -> "Computer: " + l.joinToString(", ") { PlayText.level(it) } },
+                    ).joinToString(" · "),
+                    savedAt = stored.game.game.savedAt,
+                )
+            }
+        }
     }
 }
