@@ -23,13 +23,13 @@ object P46HurryUp : Puzzle() {
         id = "p46",
         number = 46,
         title = "Hurry Up!",
-        difficulty = 3,
+        difficulty = 2,
         theme = "Changing initiative, items and ties",
         heroes = listOf("hanu", "brogan", "tigerclaw", "xargatha"),
         goal = PuzzleGoal.DefeatHero("tigerclaw", Deadline.END_OF_TURN, "Defeat Tigerclaw this turn."),
-        intro = "Round 3, turn 4: play your cards. Hanu holds Hurry up! and There and Back Again, Brogan holds Onslaught " +
-            "and Mighty Punch; each has one Initiative item. Tigerclaw's only card is Blink Strike (13), " +
-            "Xargatha's is Charm (5). Blue shows on the Tie Breaker coin.",
+        intro = "Round 3, turn 4: play your cards. Hanu holds Hurry up! and There and Back Again, Brogan " +
+            "holds Onslaught and Mighty Punch; each has one Initiative item. Tigerclaw's only card is Blink " +
+            "Strike (13), Xargatha's is Charm (5). Blue shows on the Tie Breaker coin.",
         nudges = listOf(
             "Tigerclaw will have no card left to defend with, but at 13 he moves first and steps away from " +
                 "Brogan.",

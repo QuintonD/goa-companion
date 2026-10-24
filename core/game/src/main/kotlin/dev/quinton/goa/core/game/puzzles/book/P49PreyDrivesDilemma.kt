@@ -27,7 +27,7 @@ object P49PreyDrivesDilemma : Puzzle() {
         id = "p49",
         number = 49,
         title = "Prey Drive's Dilemma",
-        difficulty = 3,
+        difficulty = 2,
         theme = "The defender's best reply",
         heroes = listOf("ursafar", "garrus", "brogan", "wasp"),
         goal = PuzzleGoal.WinGame("Win the game this turn."),
@@ -106,7 +106,7 @@ object P49PreyDrivesDilemma : Puzzle() {
             hand("wasp-blue-2a")
             items("wasp-red-2b", "wasp-green-2b", "wasp-blue-2b")
         }
-    // Claws That Catch, turn 1: "This round: You are enraged."
+        // Claws That Catch, turn 1: "This round: You are enraged."
         effect(
             "ursafar",
             "ursafar-gold",

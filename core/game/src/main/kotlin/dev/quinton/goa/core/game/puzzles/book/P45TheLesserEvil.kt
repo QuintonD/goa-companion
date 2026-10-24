@@ -23,7 +23,7 @@ object P45TheLesserEvil : Puzzle() {
         id = "p45",
         number = 45,
         title = "The Lesser Evil",
-        difficulty = 2,
+        difficulty = 1,
         theme = "The opponent's choice as a fork",
         heroes = listOf("whisper", "tigerclaw", "wasp", "xargatha"),
         goal = PuzzleGoal.WinGame("Win the game this turn."),

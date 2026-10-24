@@ -24,7 +24,7 @@ object P47SwoopIn : Puzzle() {
         id = "p47",
         number = 47,
         title = "Swoop In",
-        difficulty = 2,
+        difficulty = 1,
         theme = "Retrieve to survive, counting obstacles",
         heroes = listOf("misa", "wasp", "garrus", "brynn"),
         goal = PuzzleGoal.Survive(Deadline.END_OF_TURN, "Survive this turn."),

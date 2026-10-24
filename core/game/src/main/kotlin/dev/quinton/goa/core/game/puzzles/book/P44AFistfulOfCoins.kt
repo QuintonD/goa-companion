@@ -22,7 +22,7 @@ object P44AFistfulOfCoins : Puzzle() {
         id = "p44",
         number = 44,
         title = "A Fistful of Coins",
-        difficulty = 3,
+        difficulty = 2,
         theme = "The opponent's own choice",
         heroes = listOf("cutter", "swift", "wasp", "dodger"),
         goal = PuzzleGoal.WinGame("Win the game this turn."),

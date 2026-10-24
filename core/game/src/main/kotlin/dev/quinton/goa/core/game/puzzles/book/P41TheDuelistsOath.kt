@@ -27,7 +27,7 @@ object P41TheDuelistsOath : Puzzle() {
         id = "p41",
         number = 41,
         title = "The Duelist's Oath",
-        difficulty = 2,
+        difficulty = 3,
         theme = "Defend with the right card, conditional immunity",
         heroes = listOf("arien", "sabina", "wasp", "dodger"),
         goal = PuzzleGoal.Survive(Deadline.END_OF_TURN, "Arien and Sabina both survive this turn."),

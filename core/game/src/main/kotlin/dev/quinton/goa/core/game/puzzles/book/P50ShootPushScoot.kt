@@ -25,7 +25,7 @@ object P50ShootPushScoot : Puzzle() {
         id = "p50",
         number = 50,
         title = "Shoot, Push, Scoot",
-        difficulty = 3,
+        difficulty = 1,
         theme = "A push in the middle of a turn opens Fast Travel",
         heroes = listOf("silverarrow", "arien", "xargatha", "brogan"),
         goal = PuzzleGoal.Survive(Deadline.END_OF_TURN, "Survive this turn."),
