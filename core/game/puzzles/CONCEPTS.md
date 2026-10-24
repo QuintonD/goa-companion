@@ -720,11 +720,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** "After the attack" text applies after the target defends or is removed (p.17, p.14 order step 7), so a blocked shot still pushes. The push moves him one space directly away (p.18), straight into the end of Brogan's straight line. Dodge only stops ranged attacks (card text, p.14 Block).
 - **Rules:** p.11 Movement in the card text; p.14 order, Block; p.17 After the attack; p.18 Push.
 - **Risk:** none.
-- **Encoded as p33 (changed, 2026-10-24):** as written every decision had a single option, so "first
-  option everywhere" solved it. Added: a **Blue melee at (4,−6)**, adjacent to Sabina (the "shoot
-  something else" target), and the idle **Arien at (−3,−7)** holding `arien-red-1` (Defense 6), so
-  Brogan's Mad Dash has a second run, west to (−2,−7), which ends next to Arien and comes first in the
-  canonical order. Tigerclaw's resolved cards: `red-1`, `green-1`, `silver`, `gold` (this turn).
+- **Encoded as p33 (changed, hardening 2026-10-24):** first encoded with a Blue minion and an idle Arien added; the review found every hero at level 1 in round 4 and the goal ("defeat Tigerclaw") pointing at the answer. New position, **round 4, turn 3, goal `WinGame`** (Blue 1 Life counter, Red 2): Sabina (Red, L3, Attack item `green-2a`: Point Blank Shot 3) at (3,−5); Brogan (Red, L3, **Bullrush** `red-2a`, Attack item `green-2a`: 7) at (0,−2); **Arien** (Blue, L2, played Magical Current (4), holds Dangerous Current 6 and Aspiring Duelist 5, Defense item `green-2b`) at (3,−4), beside Sabina; Tigerclaw (Blue, L3, resolved his gold (13) this turn, holds only Dodge, discard silver) at (2,−5), beside Sabina; Red melee (−2,1), heavy (1,0), Blue melee (5,−8), heavy (2,−7). Seats Sabina, Brogan, Arien, Tigerclaw (Arien is the first target offered). Shot on Tigerclaw: Dodge blocks, the push still moves him west to (1,−5), and Bullrush north-west (2 or 3 spaces) defeats him. Shot on Arien: he is pushed to (3,−3), in reach of Bullrush east, but he defends the shot with Aspiring Duelist and keeps Dangerous Current, 7 against 7. Wrong tries: shoot Arien; Sabina moves; Brogan only moves.
 
 ### C34 — Respawn Where It Counts
 - **Theme:** hero respawn choice; mandatory 2-space move; pushing the lane mid-turn. **Difficulty:** 2. **Heroes:** Brogan; Arien, Tigerclaw (Wasp idle).
