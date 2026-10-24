@@ -765,6 +765,22 @@ tap's own response, and the look has usually finished while the person thought. 
 and its search cancelled when the question is answered, on take back, rematch, Coach off, deleting
 the game and leaving. Same seed, same nudge: `CoachAheadTest` compares both ways on every answer of
 a game.
+**Addendum (2026-10-25, card focus):** Amends (6) of the play-UI addendum for cards: the owner asked
+for a first tap that zooms a card, a second tap that confirms, back or an upward swipe to deselect
+and a sideways swipe through the options. (1) Card questions no longer select then Confirm: the first
+tap opens the card focus viewer and answers nothing (the ViewModel's selection is untouched), the
+second tap on the focused card or its button sends the same `Answer` the Confirm button sent, so the
+Coach's nudge (5) intercepts it unchanged; board questions keep tap-to-select + Confirm. (2) The viewer
+is its own full-screen dialog window (platform dim and window animation off, its own scrim and
+animations), not an overlay inside the screen: it must show above the board panel, a hidden panel's
+peek bar and the hero sheet (a separate window) without each screen re-wrapping its scaffold; its
+back gesture goes to the dialog's own dispatcher, where `PredictiveBackHandler` gets the progress.
+The cost: no `SharedTransitionLayout` across windows, so the card grows from its thumbnail by a
+scale-and-translate from the thumbnail's window bounds. (3) It lives in `:feature:board`
+(`ui/cards`): its content is the board's (`TableCard`, the defense verdicts, item stats); the catalog
+keeps its own viewer and could adopt this one by moving it to `core:designsystem` with a card slot.
+(4) When every option of a card question is in the deciding hero's hand, the whole hand is shown, the
+rest marked "Not an option" (the engine gives no reason, so the reason is generic per kind).
 
 ## ADR-036 — A sync server on the owner's machine: an encrypted mailbox, phones do the work (2026-10-25)
 **Context:** The owner set up a home server (`oldboi`, Ubuntu, on their tailnet) and asked for it to

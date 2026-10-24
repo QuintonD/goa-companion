@@ -145,6 +145,19 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   it; kept across rotation) and a compact `BoardScaffold` title bar (48 dp portrait, 40 dp landscape).
   `:feature:board` screenshots re-recorded (75 updated) plus 9 new (panel hidden portrait, landscape and
   font scale 2 on all three screens; the landscape bar at font scale 2). JVM only, not on the S25 Ultra
+- [x] Card focus (`feature/card-focus`, owner request "automatic focus/zoom on selected cards on the
+  first click, another click to confirm, a back swipe or upwards swipe to deselect, swipe across to see
+  the other options") — 2026-10-25: one viewer (`ui/cards`: `CardFocusState`, `CardFocusHost`,
+  DESIGN "Card focus") replaces the card strip + Confirm and the card sheet for every card question
+  (play, discard / retrieve / swap, defend, upgrade, keep) in the game and puzzles, and reads the hand,
+  a hero's cards, the "Asked by" card and a replay's card; the sandbox gains "Read the cards" (a second
+  tap measures with the card). Hand cards a question doesn't offer are shown, marked, unchoosable.
+  Card text now draws icons inside reminders ("(Skill ✦ is an action type.)"). `CardFocusTest` (11:
+  tap, second tap, Confirm, back, predictive back progress / cancel / commit, swipe up, scrim and ×,
+  swipe to next, not an option, TalkBack actions, view only), `CardFocusDecisionTest` (4: discard,
+  defend with back and swipe, play, Coach nudge after the second tap); 9 new screenshots, 19 table /
+  sandbox screenshots re-recorded, `tableCardSheetDark` removed. JVM only: the gestures, the predictive
+  back animation and the haptics are not yet checked on a device
 - [ ] End-to-end test that plays a game to its end (needs the engine bound)
 - [ ] Hands-on at the table and TalkBack on the S25 Ultra
 
