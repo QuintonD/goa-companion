@@ -358,14 +358,29 @@ fun Game.actionOptions(heroId: String, cardId: String): List<ActionType> {
 /**
  * FAQ (source 3): "If you cannot perform the first instruction … you may not perform the action at
  * all." Probed on a copy: possible when the text reaches a real choice or changes the position
- * before stopping; impossible when it stops (fizzles) before doing anything.
+ * before stopping; impossible when it stops (fizzles) before doing anything. [excluded] and
+ * [repeatFilter] restrict the targets as for [performAction] (a primary performed by another card's
+ * text with limits, e.g. Swift's Backup "you cannot target minions").
  */
-fun Game.primaryPossible(heroId: String, cardId: String): Boolean {
+fun Game.primaryPossible(
+    heroId: String,
+    cardId: String,
+    excluded: Set<String> = emptySet(),
+    repeatFilter: ((String) -> Boolean)? = null,
+): Boolean {
     val copy = state.copy()
     val probe = Game(data, copy, emptyList(), RunMode.PROBE)
     val before = copy.stamp
     return try {
-        probe.performAction(heroId, cardId, primaryKind(card(cardId)), primary = true, probing = true)
+        probe.performAction(
+            heroId,
+            cardId,
+            primaryKind(card(cardId)),
+            primary = true,
+            excluded = excluded,
+            probing = true,
+            repeatFilter = repeatFilter,
+        )
         true
     } catch (_: ProbeHit) {
         true

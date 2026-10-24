@@ -315,3 +315,9 @@ What each hero needs beyond plain actions, and the framework pieces that cover i
   script; the engine treats `HeroState.at` as the body that acts.
 - NebKher performing another hero's card runs that card's script with NebKher as `heroId`; scripts
   should use `a.heroId`/`a.hero` (never a hard-coded hero id) for "you".
+
+### Swift (hero batch 3)
+
+- `Game.primaryPossible(hero, card, excluded, repeatFilter)`: the probe takes the same target limits
+  as `performAction`, for a primary performed by another text with limits (Swift's Backup "you cannot
+  target minions", Bullet Time's "not the same enemy hero twice"). Both default to none.
