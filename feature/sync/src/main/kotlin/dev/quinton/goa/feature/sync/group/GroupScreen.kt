@@ -68,6 +68,8 @@ import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.sync.invite.InviteQr
+import dev.quinton.goa.feature.sync.server.SyncServerActions
+import dev.quinton.goa.feature.sync.server.SyncServerCard
 
 class GroupActions(
     val onBack: () -> Unit = {},
@@ -75,12 +77,16 @@ class GroupActions(
     val onScan: () -> Unit = {},
     val onPaste: (String) -> Unit = {},
     val onClearJoinError: () -> Unit = {},
+    /** Through the server when it is on, else the face-to-face sheet. */
     val onSyncNow: () -> Unit = {},
+    /** The face-to-face (Nearby) sheet, offered beside a server. */
+    val onSyncAtTable: () -> Unit = {},
     val onWhoAreYou: () -> Unit = {},
     val onShareFile: () -> Unit = {},
     val onImportFile: () -> Unit = {},
     val onShareInvite: (String) -> Unit = {},
     val onLeave: () -> Unit = {},
+    val server: SyncServerActions = SyncServerActions(),
 )
 
 @Composable
@@ -137,7 +143,8 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
         }
         Text(
             "Each friend's phone keeps the same matches, players and ratings. Phones sync face to face at the " +
-                "table over Bluetooth and Wi-Fi: no internet, no accounts, no server.",
+                "table over Bluetooth and Wi-Fi, and through the group's sync server when there's internet. No " +
+                "accounts, and the server only ever sees the data locked with the group key.",
             style = MaterialTheme.typography.bodyMedium,
         )
         GoaCard(Modifier.fillMaxWidth()) {
@@ -247,10 +254,31 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.size(Spacing.md))
-                Button(onClick = actions.onSyncNow, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                    Icon(Icons.Outlined.Sync, null)
+                // With a server, Sync now syncs through it; face to face is the secondary way.
+                val syncing = state.server.active && state.server.syncing
+                Button(
+                    onClick = actions.onSyncNow,
+                    enabled = !syncing,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                ) {
+                    if (syncing) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.Outlined.Sync, null)
+                    }
                     Spacer(Modifier.width(Spacing.sm))
-                    Text("Sync now")
+                    Text(if (syncing) "Syncing…" else "Sync now")
+                }
+                if (state.server.active) {
+                    Spacer(Modifier.size(Spacing.sm))
+                    OutlinedButton(
+                        onClick = actions.onSyncAtTable,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    ) {
+                        Icon(Icons.Outlined.Groups, null)
+                        Spacer(Modifier.width(Spacing.sm))
+                        Text("Sync at the table (no internet)")
+                    }
                 }
                 Spacer(Modifier.size(Spacing.sm))
                 OutlinedButton(onClick = {
@@ -262,6 +290,8 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                 }
             }
         }
+        item { SectionHeader("Sync server") }
+        item { SyncServerCard(state.server, actions.server) }
         item { SectionHeader("This phone") }
         item {
             GoaCard(Modifier.fillMaxWidth(), onClick = actions.onWhoAreYou) {
@@ -295,7 +325,11 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
         if (state.phones.isEmpty()) {
             item {
                 Text(
-                    "None yet. Tap Sync now with a friend's phone next to this one.",
+                    if (state.server.active) {
+                        "None face to face yet. Tap Sync at the table with a friend's phone next to this one."
+                    } else {
+                        "None yet. Tap Sync now with a friend's phone next to this one."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

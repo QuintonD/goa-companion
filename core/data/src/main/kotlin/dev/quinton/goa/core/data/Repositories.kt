@@ -244,8 +244,21 @@ interface GroupRepository {
     /** Starts a new group with a fresh id and 256-bit key; this phone becomes its first member. */
     suspend fun start(name: String): GroupCredentials
 
-    /** Joins [group] (from an invite). Joining another group forgets the old one's phones and "who am I". */
-    suspend fun join(group: GroupCredentials)
+    /**
+     * Joins [group] (from an invite). Joining another group forgets the old one's phones, "who am
+     * I", sync server and its status. [serverUrl] is the invite's server (ADR-036): null means the
+     * build's default, except that re-joining the same group keeps the server this phone has.
+     */
+    suspend fun join(group: GroupCredentials, serverUrl: String? = null)
+
+    /**
+     * The group's sync server ([dev.quinton.goa.core.domain.sync.SyncServerAddress] origin); null
+     * or the build's default = use the default. Another server starts with a clean status.
+     */
+    suspend fun setServerUrl(url: String?)
+
+    /** "Sync through the server" (on by default whenever there is a server). */
+    suspend fun setServerSyncEnabled(enabled: Boolean)
 
     /** Leaves the group: the key is forgotten, all data stays on this phone. */
     suspend fun leave()
@@ -269,8 +282,34 @@ data class GroupState(
     /** Phones this one has synced with, most recent first. */
     val phones: List<SyncedPhone>,
     val lastSyncAt: Long?,
+    /** The group's sync server and how this phone's last sync with it went (ADR-036). */
+    val server: ServerSyncState = ServerSyncState(),
 ) {
     val inGroup: Boolean get() = group != null
+
+    /** In a group with a sync server switched on: automatic server sync runs. */
+    val serverSyncOn: Boolean get() = group != null && server.activeUrl != null
+}
+
+/** The sync server as this phone sees it (ADR-036); none of it is synced or backed up. */
+data class ServerSyncState(
+    /** The server in use: the group's own address, else the build's default; null = none known. */
+    val url: String? = null,
+    /** The address is this phone's choice (or an invite's), not the build's default. */
+    val custom: Boolean = false,
+    /** The build's default server, for "Use the default"; null = the build has none. */
+    val defaultUrl: String? = null,
+    /** "Sync through the server". */
+    val enabled: Boolean = true,
+    /** When this phone last synced with the server (epoch ms); null = not yet (or another group/server). */
+    val syncedAt: Long? = null,
+    /** The server document's rev after that sync. */
+    val rev: Long? = null,
+    /** Why the last server sync failed; null when it worked (or none ran yet). */
+    val error: SyncServerError? = null,
+) {
+    /** The server automatic sync uses: null when there is none or it is switched off. */
+    val activeUrl: String? get() = url?.takeIf { enabled }
 }
 
 @kotlinx.serialization.Serializable

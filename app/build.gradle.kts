@@ -17,6 +17,18 @@ android {
         // Each instrumented test starts from a fresh install state: the orchestrator runs every
         // test in its own process and clears the app's data (Room DB, DataStore) before it.
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
+        // The group sync server every new group uses unless it picks another (ADR-036): Gradle
+        // property goa.syncServer (gradle.properties, ~/.gradle, -P); empty = no built-in server.
+        // http works only for a local test server in debug builds (10.0.2.2 / localhost).
+        val syncServer = providers.gradleProperty("goa.syncServer").orNull?.trim().orEmpty()
+        val origin = Regex("""(https://[A-Za-z0-9.-]+|http://(10\.0\.2\.2|localhost|127\.0\.0\.1))(:\d+)?/?""")
+        require(syncServer.isEmpty() || origin.matches(syncServer)) {
+            "goa.syncServer must be an https origin like https://host:8443, got \"$syncServer\""
+        }
+        buildConfigField("String", "SYNC_SERVER_URL", "\"${syncServer.trimEnd('/')}\"")
+    }
+    buildFeatures {
+        buildConfig = true
     }
     testOptions {
         execution = "ANDROIDX_TEST_ORCHESTRATOR"
@@ -80,6 +92,9 @@ dependencies {
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.serialization.json)
+    // WorkManager with Hilt workers (the sync server, ADR-036).
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.hilt.work)
 
     testImplementation(projects.core.testing)
 

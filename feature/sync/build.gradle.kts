@@ -12,6 +12,11 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material.icons.extended)
+    // The group's sync server (ADR-036): automatic sync in the background.
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
 
     testImplementation(testFixtures(projects.core.domain))
+    testImplementation(libs.androidx.work.testing)
 }
