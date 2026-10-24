@@ -12,5 +12,15 @@ object Puzzles {
         P14LongThrust,
         P17IntoTheWall,
         P34RespawnWhereItCounts,
+        P02WorthTwoCounters,
+        P03MeleeFirstThenTheHeavy,
+        P04PriceOnHerHead,
+        P05BeatTheDrum,
+        P06TheHandsOfTheClock,
+        P07RangedAtPointBlank,
+        P09PhantomAtFiveSpaces,
+        P11ByTheWatersEdge,
+        P13EmptyTheSpawnPoint,
+        P15Quickdraw,
     )
 }
