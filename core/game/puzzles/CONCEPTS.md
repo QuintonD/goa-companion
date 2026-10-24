@@ -779,6 +779,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Bolster is a "This round" Active effect that stays while the card is resolved (p.17); its cost is a silver card from hand. Shock's After-the-attack makes a non-adjacent enemy hero in radius discard (card text) — Brogan's only card. Same-team ties are ordered by the team (p.7). With the minion defeated and removed, the Lane is pushed at once (p.8).
 - **Rules:** p.7 Tied Initiative; p.8 Triggering a Push; p.17 Active Effects, After the attack.
 - **Risk:** none.
+- **Encoded as p38 (changed):** Swift is seated before Wasp, so the same-team tie question lists Swift first (the trap) rather than the answer. Unlisted cards made concrete: Swift resolved Steam Jump, Suppress, holds Reload!, Bounce; Wasp resolved Static Barrier, Lift Up, holds Magnetic Dagger, Stop Projectiles; Dodger resolved Dread Razor, Littlefinger, Death Trap discarded; Bolster as a This-round effect made on turn 1. Wrong try (2) dropped (Shock never offers Brogan as a target), replaced by "Wasp first, but she moves". Shock defeats Dodger on the way (Shield of Decay 3 against 5); it changes nothing.
 
 ### C39 — Static Barrier
 - **Theme:** an Active effect that blocks movement but not attacks; Block. **Difficulty:** 2. **Heroes:** Wasp; Brogan, Swift (Tigerclaw idle).
@@ -796,6 +797,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Static Barrier turns the spaces in radius into obstacles for enemies acting from outside, so they cannot move into them, but they can still attack a unit inside (Wasp FAQ). Stop Projectiles blocks ranged attacks only (card text, p.14 Block).
 - **Rules:** p.11 Movement; p.14 Block; p.17 Active Effects; p.18 Obstacle; FAQ Wasp (Static Barrier).
 - **Risk:** none.
+- **Encoded as p39 (changed):** turn 3 instead of 4, so Wasp also holds Magnetic Dagger (Defense 2); resolved Shock, Lift Up. As written every first option won (Primary, then the only card to defend with); now the Snipe's defence is a real choice and "trust the Barrier, defend with the gold" is a wrong try. Starting at the card choice instead (gold / silver / Stop Projectiles) was tried and rejected: Magnetic Dagger (12) moves 1 off both attack lines and survives. Tigerclaw has played Light-Fingered (2) far away; Brogan and Swift hold two cards each (irrelevant).
 
 ### C40 — Carry Away
 - **Theme:** minions outside the Battle Zone go back — moving a minion never pushes the lane. **Difficulty:** 2. **Heroes:** Widget, Swift; Dodger (Wasp idle).
@@ -814,6 +816,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** "A Lane Push can never be triggered by moving, pushing, or swapping a minion. It must be either defeated, or removed" (p.8); a minion left outside the BZ after an action returns by the shortest path (p.18). Carry Away moves both pieces the same distance and direction, through obstacles, onto empty spaces (card text, p.18 Ignoring Obstacles).
 - **Rules:** p.8 Triggering a Push; p.18 Ignoring Obstacles, Minions Outside of the Battle Zone; p.19 Straight line.
 - **Risk:** none.
+- **Encoded as p40:** as in the concept. Widget's cards made concrete (resolved Fight as One, Dragon Bond, Diversionary Attack; holds Nibble; items Airborne Attack, Flaming Breath, Take-Off, Safe Landing). The engine asks Pyro's space, then the enemy's (2 or 3 each, same direction): Pyro east 2 is the only winning Pyro move, Dodger east 2 (not 3) the only winning Dodger move. With one Wave counter left, sniping the minion would also have won (last push): no Carry Away puts it in Snipe's reach.
 
 ---
 
@@ -852,6 +855,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** A hero with one card must play it (p.7), so Tigerclaw arrives at turn 4's resolve with an empty hand. Accept Surrender is a skill: no defence is possible (p.12). The tie at 10 is broken by the coin — Blue's symbol shows, so Blue acts first and then flips it (p.7). The gold would have handed him back a defence card before the attack (card text; Rowenna FAQ).
 - **Rules:** p.7 Play one card, Tied Initiative; p.12 Skill action; p.14 Defense total; p.16 Item bonus.
 - **Risk:** none (requires the "play a card" starting step).
+- **Encoded as p42 (changed):** Xargatha moved from (5,−6), which is terrain (not a space), to (7,−8). Rowenna is seated first; the idle heroes' forced cards are Swift's Suppress (4) and Xargatha's Charm (5), both after the 10s. The engine confirms 3 + 1 + 1 = 5 against 5 for the gold.
 
 ### C43 — Count the Minions
 - **Theme:** Minion Battle arithmetic; an End-of-round effect; why killing the hero is wrong. **Difficulty:** 3. **Heroes:** Tigerclaw, Xargatha; Arien (Wasp idle).
@@ -888,6 +892,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** When a card makes the enemy choose, the enemy picks (p.10 Making choices) — so build a choice with no good answer. Placing a hero needs an empty space in the card's radius (p.18 Place). Snipe requires maximum range in a straight line (p.9, p.19). Wasp at level 4 costs two counters (p.13); the coin threshold is the card's own win condition.
 - **Rules:** p.9 Range; p.10 Making choices; p.13 When a hero is defeated; p.18 Place; p.19 Straight line.
 - **Risk:** "you alone win the game" treated as a team win (`WinGame`). Cutter can hold 10 coins at level 7 because levels are bought only at the end of a round (p.8, p.15).
+- **Encoded as p44 (changed):** Blue's melee minion moved from (1,−4) to (1,−5), so (1,−1) is the only Snipe square in Cutter's radius: as written (1,−5) was the first placement option and taking the first option everywhere solved it. The last nudge names Wasp, not the square. Wasp's level-4 cards: resolved Magnetic Dagger, Static Barrier, Electrocute, Kinetic Repulse discarded; items Charged Boomerang, Telekinesis, Control Gravity (none touches the numbers used). Engine: Cutter's "alone wins" is a team win (rulings/cutter.md 8).
 
 ### C45 — The Lesser Evil
 - **Theme:** opponent's choice as a fork (Last Push or Life counters). **Difficulty:** 3. **Heroes:** Whisper, Tigerclaw; Xargatha, Wasp.
@@ -1011,6 +1016,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Tali's Ice tokens keep their property while on the board (p.19 Tokens): enemy heroes lose 1 Initiative per adjacent Ice token. Initiative is compared again before each resolution (p.7), so the move takes effect immediately; ties would go to the team on the coin (p.7).
 - **Rules:** p.7 Check the initiative, Tied Initiative; p.11 Movement in the card text; p.19 Tokens.
 - **Risk:** `RISKY`: that the Ice penalty is a lasting token property (not an Active effect that ends with the turn Pack Ice was played) and that a mid-turn initiative change re-orders the remaining heroes. Both follow from p.19 and p.7 but are not spelled out for this card.
+- **Encoded as p51:** as in the concept; the engine reads both RISKY points the same way (the Ice tokens' penalty is a piece behaviour; the next actor is picked after each resolution). Unlisted cards: Brogan resolved Onslaught, Bulwark, Brutal Jab, holds Shield; Tigerclaw resolved Blink Strike, Blend Into Shadows, Light-Fingered, Dodge discarded. Directions are asked as "Choose one" bullets (east first).
 
 ### C52 — Battle Fury
 - **Theme:** an Ultimate that turns a discard into an action; card states; acting first. **Difficulty:** 3. **Heroes:** Garrus; Tigerclaw (Wasp, Arien idle).
@@ -1045,6 +1051,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** End-of-turn text applies after every player has acted (p.17), so later actors get to respond. Lift Up keeps the moved piece at the same distance from Wasp (card text) and needs it within radius 2 (p.9); a Grenade at d3 is out of her reach, and Tigerclaw's only ring step stays next to it.
 - **Rules:** p.9 Radius; p.17 End of Turn; p.18 Place; p.19 Tokens.
 - **Risk:** none.
+- **Encoded as p53:** as in the concept, one correction to the reasoning: all three Grenade spaces next to Tigerclaw are three spaces from Wasp, so she can never move the Grenade; the difference is only whether Tigerclaw's one ring step (to (3,−5)) stays next to it. Min also chooses the End-of-turn target (Tigerclaw) as a player move.
 
 ### C54 — Chaos Incarnate
 - **Theme:** the Tie Breaker coin as card text; an Ultimate repeat that flips it. **Difficulty:** 3. **Heroes:** Ignatia; Tigerclaw, Xargatha (Brogan idle).
@@ -1080,6 +1087,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** A mid-turn push respawns one minion on every Spawn point of the new BZ (p.8) and the turn goes on in initiative order (p.8). Minion defence modifiers are counted when the defence happens (p.14 order step 2), so the fresh Red minions next to Arien count against him.
 - **Rules:** p.8 Push the Lane, Triggering a Push; p.14 order, Minion defense modifiers.
 - **Risk:** none.
+- **Encoded as p55 (changed):** Dodger moved from (0,1) to (3,−7), four spaces north-east of Swift in a straight line, with no cards: he is Snipe's first target and a tempting free kill (no push, Arien then defends 8 against 6). As written Swift had one target and taking the first option everywhere solved it. A second wrong try: after the push, Mad Dash to (6,−4) beside a fresh Blue minion. The engine prints Arien's defence as 7 + 1 − 1 − 1 − 1 = 5.
 
 ### C56 — Pile On the Fresh Wave
 - **Theme:** pushing the lane mid-action and hitting a freshly respawned minion (the rulebook's own hint, p.10). **Difficulty:** 3. **Heroes:** Hanu, Tigerclaw; (Blue: Arien, Dodger idle).

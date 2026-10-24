@@ -16,5 +16,9 @@ object Puzzles {
         P39StaticBarrier,
         P40CarryAway,
         P42TheCourteousTrap,
+        P44AFistfulOfCoins,
+        P51IceInTheVeins,
+        P53DeathGrenade,
+        P55ThePushStripsTheGuard,
     )
 }
