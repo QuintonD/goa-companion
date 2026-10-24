@@ -79,6 +79,10 @@ import dev.quinton.goa.feature.board.board.BoardSheet
 import dev.quinton.goa.feature.board.board.SheetTitle
 import dev.quinton.goa.feature.board.map.MapViewport
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.play.review.ReviewButton
+import dev.quinton.goa.feature.board.play.review.ReviewOpenEffect
+import dev.quinton.goa.feature.board.play.review.ReviewSheet
+import dev.quinton.goa.feature.board.play.review.ReviewTab
 import dev.quinton.goa.feature.board.play.table.DecisionPanel
 import dev.quinton.goa.feature.board.play.table.EventLog
 import dev.quinton.goa.feature.board.play.table.GameTable
@@ -99,6 +103,9 @@ sealed interface PlaySheet {
     data object Log : PlaySheet
 
     data class Hero(val heroId: String) : PlaySheet
+
+    /** The game-state review (ADR-037). */
+    data class Review(val tab: ReviewTab = ReviewTab.NOW) : PlaySheet
 }
 
 /**
@@ -151,6 +158,7 @@ fun GameScreen(
                 IconButton(onClick = { onAction(GameAction.TakeBack) }, enabled = play.canTakeBack && !play.busy) {
                     Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = "Take back")
                 }
+                ReviewButton(onClick = { sheet = PlaySheet.Review() })
                 IconButton(onClick = { sheet = PlaySheet.Log }) {
                     Icon(Icons.AutoMirrored.Outlined.FormatListBulleted, contentDescription = "Game log")
                 }
@@ -222,6 +230,7 @@ fun GameScreen(
             }
         }
     }
+    ReviewOpenEffect(sheet) { onAction(GameAction.Review(it)) }
     if (play != null) {
         when (val open = sheet) {
             PlaySheet.Log -> BoardSheet(onDismiss = { sheet = null }) {
@@ -237,6 +246,10 @@ fun GameScreen(
                     HeroDetail(play.table, open.heroId, focus)
                 }
             }
+
+            is PlaySheet.Review -> ReviewSheet(play.table, play.review, open, {
+                sheet = it
+            }, { onAction(GameAction.Review(it)) }, focus)
 
             null -> Unit
         }

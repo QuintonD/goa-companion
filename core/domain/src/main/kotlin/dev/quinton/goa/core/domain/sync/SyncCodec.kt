@@ -14,8 +14,22 @@ open class SyncFormatException(message: String, cause: Throwable? = null) : Exce
 /** Why a sync file can't be imported. */
 enum class SyncFileProblem { NOT_A_SYNC_FILE, NOT_IN_A_GROUP, OTHER_GROUP, CANT_DECRYPT, INVALID }
 
-class SyncFileException(val problem: SyncFileProblem, message: String, cause: Throwable? = null) :
-    SyncFormatException(message, cause)
+/** Which side is older when a sync file and this app have different [SyncDocument.VERSION]s. */
+enum class VersionGap {
+    /** The file was made by a newer app: update this one. */
+    FILE_NEWER,
+
+    /** The file was made by an older app: update the phone that made it. */
+    FILE_OLDER,
+}
+
+/** [version] is set when [problem] is [SyncFileProblem.INVALID] because the versions differ. */
+class SyncFileException(
+    val problem: SyncFileProblem,
+    message: String,
+    cause: Throwable? = null,
+    val version: VersionGap? = null,
+) : SyncFormatException(message, cause)
 
 /**
  * Bytes for [SyncDocument]s: gzip'd [SyncJson] for the Nearby payloads, and an encrypted file for
@@ -117,11 +131,13 @@ object SyncCodec {
             newer -> SyncFileException(
                 SyncFileProblem.INVALID,
                 "This file was made by a newer version of the app. Update the app first.",
+                version = VersionGap.FILE_NEWER,
             )
 
             envelope.documentVersion < SyncDocument.VERSION -> SyncFileException(
                 SyncFileProblem.INVALID,
                 "This file was made by an older version of the app. Update the phone that made it and share again.",
+                version = VersionGap.FILE_OLDER,
             )
 
             else -> null

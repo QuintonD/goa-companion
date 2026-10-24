@@ -9,10 +9,12 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import dev.quinton.goa.core.data.SyncServerControl
 import dev.quinton.goa.core.domain.sync.protocol.SyncTransport
 import dev.quinton.goa.feature.sync.PhoneName
 import dev.quinton.goa.feature.sync.importfile.SyncFileReader
 import dev.quinton.goa.feature.sync.nearby.NearbySyncTransport
+import dev.quinton.goa.feature.sync.server.SyncServerScheduler
 import dev.quinton.goa.feature.sync.share.SyncFiles
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -45,6 +47,9 @@ internal object SyncModule {
             ?: Build.MODEL?.trim()?.takeIf(String::isNotEmpty)
             ?: "Phone"
     }
+
+    @Provides
+    fun serverSync(scheduler: SyncServerScheduler): SyncServerControl = scheduler
 
     @Provides
     fun fileReader(@ApplicationContext context: Context): SyncFileReader = SyncFileReader { uri ->

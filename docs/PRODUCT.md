@@ -173,8 +173,8 @@ research, 2026-10-17). A reference, not a card cheat sheet: hidden information s
 ### 6. Group sync (ADR-025)
 Each friend has the app on their own phone (the owner shares the APK); the group's
 phones keep the same matches, players, drafts, deletions and rating constants by syncing **face to
-face at the table**, phone to phone over Bluetooth and Wi-Fi Direct (Google Nearby Connections).
-No server, no accounts, no internet.
+face at the table**, phone to phone over Bluetooth and Wi-Fi Direct (Google Nearby Connections),
+and **through the group's sync server** whenever a phone has internet (ADR-036). No accounts.
 - **Group:** "Start a group" (name) creates the group and its key; "Invite a friend" shows a QR
   code (and "Share as text", which sends the invite with what to do with it); a friend's phone
   joins by scanning it (Google's code scanner, no camera permission) or pasting the invite (or the
@@ -197,10 +197,42 @@ No server, no accounts, no internet.
 - **Fallback:** "Share sync file" (encrypted with the group key) through Quick Share, a message or
   Drive; "Import sync file" or opening the file merges it the same way, after showing what would
   change. A file from another group, or one this phone's key can't open, gets a clear error.
+- **Sync server (ADR-036, [SYNC-SERVER.md](SYNC-SERVER.md)):** a dumb mailbox on the owner's
+  machine holding one sealed document per group; it never has the group key. Each phone fetches
+  the group's document, opens it, merges it exactly like an imported sync file, and uploads the
+  merge (sealed again) only when the server's copy is missing something, so the server never sees
+  content and an idle phone only reads. Automatic: when the app comes on screen and every 5 minutes
+  while it stays there, 15 s after the last change to synced data, and hourly in the background (with
+  a network). Two phones uploading at once: the later one re-reads, merges and tries again (three
+  tries). A busy or full server's `Retry-After` is respected: no retry before it.
+  - *One Sync now:* with the server switched on, the Group screen's **Sync now** and the Players
+    tab's sync icon sync through the server; face to face becomes the secondary **Sync at the table
+    (no internet)**. Without a server both behave as before (the Nearby sheet).
+  - *Server address:* the app's built-in server (Gradle property `goa.syncServer`, empty = none),
+    or a group's own address under Group sync → Sync server → Advanced (https only in release
+    builds). An invite carries the address only when it isn't the built-in one and this phone syncs
+    through it (switched on); older apps ignore it and join as before.
+  - *Switch:* "Sync through the server", on by default whenever there is a server; off = Nearby and
+    files only.
+  - *Status:* the Group screen's Sync server card shows the server, "Synced 2 min ago" / "Not
+    synced yet" / "Syncing…", and an error in words with what to do. Problems that pass on their
+    own (no connection, timeout, server error, busy) retry with backoff and say "Trying again on its
+    own"; problems that need a person (the server holds the group under another key, another app
+    version, data too big, data this phone must fix first, other phones kept uploading) wait, and
+    put a dot on the Players tab's sync icon, which then opens the Group screen. A server at its
+    group cap says "The sync server is full", is retried no sooner than it asks, and also gets the dot.
+  - *Joining:* scanning or pasting an invite with a server switched on syncs with it at once (as
+    background work, expedited on Android 12+, so leaving the screen doesn't stop it); the group's
+    data arrives without anyone hosting. When the server has nothing yet or can't be reached, the
+    first sync is face to face as before.
 - **Done when:** merge properties (commutative, associative, idempotent, convergence, identical
   ratings) and the protocol over a fake transport (host + 3 phones, a dropped phone, a wrong key)
   pass on the JVM; **two physical phones
-  sync at the table** (emulators prove Nearby only over virtual Bluetooth).
+  sync at the table** (emulators prove Nearby only over virtual Bluetooth). Server sync: every
+  branch of the phone algorithm against a fake relay on a real socket (empty server, newer server
+  copy, both sides new, 412 then success, 412 three times, 401, version gap, 413, 429/5xx/timeout/no
+  connection, wrong address, refused local data), the scheduler on WorkManager's test driver, and
+  two physical phones syncing through the real server without meeting.
 
 ### 7. Card trivia (ADR-028)
 Learn the numbers printed on the heroes' Action cards so the table doesn't have to look them up:
@@ -373,6 +405,17 @@ opponents (and teammates) at four levels. One phone, one human team.
   the Coach exactly as a button's does. The same viewer, without the button, reads any card on the
   table: your hand, a hero's played, resolved and discarded cards, the card that asks. TalkBack: Select,
   Next card, Previous card, Close. Portrait and landscape, font scale 2, light and dark.
+- **Game state** (a top-bar action, one tap; also on puzzles): a full-height sheet with **Now** — Life
+  and Wave counters, pushes won, minions per team in the Battle Zone, the Tie Breaker coin, who has
+  acted this turn, who acts now and next (before the reveal: who has played facedown); every hero by
+  team with its card in play (facedown before the reveal, named only to its owner), the resolved Turn
+  slots, discards, item icons, level, coins, hand size, on/off the board, markers and its tokens, and
+  your own hand — and **Turns** — every turn so far, newest first, each hero's card at the reveal in the
+  order they acted (facedown cards stay hidden), the turn's lines not to miss with the rest behind
+  "Show all", the end of each round, and **Board**: the start of any earlier turn, read only, as you
+  saw it then. Tap a card to read it in the card focus viewer, over the sheet. Only open information (p.4): built by the engine from its own
+  views, never from the log's words. Note: the rulebook forbids taking notes at the table (p.4 Table
+  Talk); the history is the log's own content, offered as a learning aid (ADR-037).
 - **See the whole board:** the panel (questions, the computer's move, the coach) hides to a
   one-line peek bar that still says what is asked ("● Arien · Choose an action for Dangerous
   Current", teal when it waits for you; a new question is announced by TalkBack). The map fits the
@@ -392,7 +435,10 @@ opponents (and teammates) at four levels. One phone, one human team.
 - **Until heroes are playable** the Boards entry and New game say play is coming; heroes not yet
   playable show in New game's grid, veiled as "Later". Puzzles show as coming soon until a
   puzzle's heroes are all playable; then Boards' Puzzles entry says "N of M solved".
-- **Done when:** every rule above has a page-referenced test; random full games over every
+- **Done when:** the Game state sheet shows nothing the person's live view did not (engine tests:
+  facedown and unrevealed cards, enemy hands and tucked items never appear), with screenshots (light/
+  dark, 384 dp at font scale 2, landscape, the rewound board); every rule above has a page-referenced
+  test; random full games over every
   playable hero keep the invariants (one obstacle per space, cards conserved, deterministic,
   save/restore and fork identical); each level beats the one below it over a seeded tournament;
   the table has screenshots for every decision kind (light/dark, font scale 2, 384 dp, landscape)
@@ -434,6 +480,8 @@ turn", "Push the lane before the round ends", "Survive this turn"), one way (or 
   The replay drives a fresh copy of the puzzle with the solver's choice: Back / Next through the
   steps, each the position before a move with the move outlined (a card's image beside its name) and
   the log of what happened since; the last step is the goal met. Back to the puzzle leaves it as it was.
+- **Game state** as in §9, from the puzzle's top bar: every hand open (the puzzle's convention), the
+  puzzle's turn marked "The puzzle starts in this turn", its starting position under Board.
 - Progress (solved and when, tries, most nudges in a try, solution seen) is on this phone only
   (`datastore/puzzle_progress`; not synced, not in the backup file).
 - **Done when:** a solver proves every puzzle against best replies within its time budget, the
@@ -447,7 +495,8 @@ with the sync group), Group sync, export/import, About/credits.
 
 ## Non-goals (v1)
 - Online play, accounts, cloud sync, ads, analytics SDKs: not in v1, no longer ruled out
-  (ADR-034). Group sync is phone to phone at the table (ADR-025).
+  (ADR-034). Group sync is phone to phone at the table (ADR-025) and through the group's own
+  encrypted sync server (ADR-036); no third-party cloud.
 - Play Store release: not in v1 (sideloaded); bundled official assets would need permission
   (ADR-034).
 - Online play and pass-and-play between several humans on opposing teams in Play (9); one human

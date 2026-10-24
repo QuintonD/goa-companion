@@ -56,6 +56,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.CardView
 import dev.quinton.goa.core.game.HeroView
+import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
@@ -482,19 +483,38 @@ internal fun CardRow(
     title: String,
     slots: Boolean = false,
 ) {
-    val captions = cards.map { view ->
-        listOfNotNull(
-            view.slot?.takeIf {
-                slots
-            }?.let { "Turn $it" },
-            "Active".takeIf { view.active },
-        ).joinToString(" · ")
-    }
+    val captions = cards.map { caption(it, slots) }
     val open = cards.indices.filter { !cards[it].facedown && table.card(cards[it].cardId) != null }
     val viewable = open.map { i ->
         val card = table.card(cards[i].cardId)!!
         FocusCard(card, key = "$title/${card.id}", caption = captions[i].ifEmpty { null })
     }
+    ThumbRow(
+        cards,
+        table,
+        slots,
+        origin = { card -> Modifier.cardFocusOrigin(focus, "$title/${card.id}") },
+        onOpen = { i, _ -> open.indexOf(i).takeIf { it >= 0 }?.let { focus.open(viewable, it, title = title) } },
+    )
+}
+
+/** Small cards in a row; a tap on a face-up one goes to [onCard] (the caller decides how it is read). */
+@Composable
+internal fun CardRow(cards: List<CardView>, table: TableUi, onCard: (Card) -> Unit, slots: Boolean = false) {
+    ThumbRow(cards, table, slots, origin = { Modifier }, onOpen = { _, card -> onCard(card) })
+}
+
+private fun caption(view: CardView, slots: Boolean): String =
+    listOfNotNull(view.slot?.takeIf { slots }?.let { "Turn $it" }, "Active".takeIf { view.active }).joinToString(" · ")
+
+@Composable
+private fun ThumbRow(
+    cards: List<CardView>,
+    table: TableUi,
+    slots: Boolean,
+    origin: (Card) -> Modifier,
+    onOpen: (index: Int, card: Card) -> Unit,
+) {
     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         cards.forEachIndexed { i, view ->
             val card = table.card(view.cardId).takeIf { !view.facedown }
@@ -503,8 +523,7 @@ internal fun CardRow(
                 card?.let(::spokenCard) ?: "Facedown card",
                 "Active".takeIf { view.active },
             ).joinToString(", ")
-            val at = open.indexOf(i)
-            val show = { if (at >= 0) focus.open(viewable, at, title = title) }
+            val show = { if (card != null) onOpen(i, card) }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.semantics(mergeDescendants = true) {
@@ -522,11 +541,11 @@ internal fun CardRow(
                     enabled = card != null,
                     shape = RoundedCornerShape(6.dp),
                     border = if (view.active) BorderStroke(2.dp, MaterialTheme.colorScheme.secondary) else null,
-                    modifier = if (card != null) Modifier.cardFocusOrigin(focus, "$title/${card.id}") else Modifier,
+                    modifier = if (card != null) origin(card) else Modifier,
                 ) {
                     TableCard(card, width = 64.dp)
                 }
-                val caption = captions[i]
+                val caption = caption(view, slots)
                 if (caption.isNotEmpty()) {
                     Text(
                         caption,

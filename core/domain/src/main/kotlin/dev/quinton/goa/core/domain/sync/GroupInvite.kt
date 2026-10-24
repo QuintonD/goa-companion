@@ -38,29 +38,52 @@ class GroupCredentials(val groupId: String, key: ByteArray, val name: String) {
 }
 
 /**
- * The invite a QR code carries: `goa-sync:1?g=<groupId>&k=<base64url key>&n=<name>`. Anyone who
- * scans it can join, so it is shown only at the table.
+ * What an invite carries: the [group], and the group's sync server ([serverUrl], an origin such as
+ * `https://goa.example.org:8443`, ADR-036) when it isn't the app's built-in default.
+ */
+data class Invite(val group: GroupCredentials, val serverUrl: String? = null)
+
+/**
+ * The invite a QR code carries: `goa-sync:1?g=<groupId>&k=<base64url key>&n=<name>[&s=<server>]`.
+ * `s` is there only when the group syncs through a server other than the build's default
+ * (ADR-036); apps that don't know it ignore it, as [parse] ignores any field it doesn't know.
+ * Anyone who scans it can join, so it is shown only at the table.
  */
 object GroupInvite {
     const val SCHEME = "goa-sync"
     private const val VERSION = "1"
 
-    fun format(group: GroupCredentials): String {
+    fun format(group: GroupCredentials, serverUrl: String? = null): String {
         val key = Base64.getUrlEncoder().withoutPadding().encodeToString(group.key)
-        return "$SCHEME:$VERSION?g=${group.groupId}&k=$key&n=${encode(group.name)}"
+        val server = serverUrl?.let {
+            requireNotNull(SyncServerAddress.normalize(it)) { "Not a server address: $it" }
+        }
+        return buildString {
+            append("$SCHEME:$VERSION?g=${group.groupId}&k=$key&n=${encode(group.name)}")
+            server?.let { append("&s=${encode(it)}") }
+        }
     }
+
+    fun format(invite: Invite): String = format(invite.group, invite.serverUrl)
 
     /**
      * The invite as a message for the share sheet: what to do with it, then the invite on its own
      * line. [parse] finds the invite inside the whole message, so a friend can paste all of it.
      */
-    fun shareText(group: GroupCredentials): String =
+    fun shareText(group: GroupCredentials, serverUrl: String? = null): String =
         "Join “${group.name}” in the Guards of Atlantis companion: install the app, open Settings → " +
             "Group sync and paste this whole message under “Join a group”. It's the key to the group's " +
-            "data, so only send it to the group.\n\n${format(group)}"
+            "data, so only send it to the group.\n\n${format(group, serverUrl)}"
 
     /** The group in [text] (an invite, or a message containing one), or a user-readable error. */
-    fun parse(text: String): Result<GroupCredentials> = runCatching {
+    fun parse(text: String): Result<GroupCredentials> = parseInvite(text).map { it.group }
+
+    /**
+     * The whole invite in [text]. A server address that doesn't check out is dropped, not an
+     * error: the group itself is still joinable (face to face, or through the default server).
+     * Fields this version doesn't know are ignored, so newer invites still join.
+     */
+    fun parseInvite(text: String): Result<Invite> = runCatching {
         val trimmed = INVITE.find(text)?.value ?: text.trim()
         require(trimmed.startsWith("$SCHEME:")) { "This isn't a Guards of Atlantis group invite." }
         val rest = trimmed.removePrefix("$SCHEME:")
@@ -73,7 +96,10 @@ object GroupInvite {
         val key = params["k"]?.let { runCatching { Base64.getUrlDecoder().decode(it) }.getOrNull() }
             ?.takeIf { it.size == SyncCrypto.KEY_BYTES } ?: throw IllegalArgumentException(BROKEN)
         val name = GroupCredentials.cleanName(params["n"].orEmpty()).ifEmpty { "Our group" }
-        GroupCredentials(groupId, key, name)
+        Invite(
+            group = GroupCredentials(groupId, key, name),
+            serverUrl = params["s"]?.let { SyncServerAddress.normalize(it) },
+        )
     }
 
     private val INVITE = Regex("$SCHEME:\\S+")

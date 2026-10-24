@@ -32,6 +32,8 @@ import dev.quinton.goa.feature.board.BoardHero
 import dev.quinton.goa.feature.board.boardHeroes
 import dev.quinton.goa.feature.board.hero
 import dev.quinton.goa.feature.board.play.game.PlayAnnouncement
+import dev.quinton.goa.feature.board.play.review.ReviewKeeper
+import dev.quinton.goa.feature.board.play.review.ReviewUi
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.choiceFor
@@ -157,6 +159,8 @@ class PuzzleViewModel internal constructor(
     /** The nudge that comes by itself after a while without progress. */
     private var idle: Job? = null
 
+    private val review = ReviewKeeper()
+
     private class Replay(val steps: List<ReplayStep>, val afterSolve: Boolean, var index: Int = 0)
 
     private class ReplayStep(val view: GameView, val decision: Decision?, val choice: Choice?, val lines: List<String>)
@@ -265,6 +269,11 @@ class PuzzleViewModel internal constructor(
             PuzzleAction.Flip -> {
                 bottomTeam = bottomTeam.opponent
                 refresh()
+            }
+
+            is PuzzleAction.Review -> {
+                val turns = (uiState.value as? PuzzleUiState.Ready)?.puzzle?.review?.turns
+                if (review.handle(action.action, turns)) refresh()
             }
         }
     }
@@ -417,6 +426,7 @@ class PuzzleViewModel internal constructor(
         busy = true
         viewModelScope.launch {
             withContext(engine) { s.undo() }
+            review.reset()
             phase = PuzzlePhase.SOLVING
             miss = null
             moved = false
@@ -437,6 +447,7 @@ class PuzzleViewModel internal constructor(
         viewModelScope.launch {
             val fresh = withContext(engine) { runCatching { s.restart() }.getOrNull() }
             if (fresh != null) session = fresh
+            review.reset()
             phase = PuzzlePhase.SOLVING
             miss = null
             moved = false
@@ -580,7 +591,12 @@ class PuzzleViewModel internal constructor(
         return base.copy(heroes = base.heroes.map { hero -> own[hero.heroId] ?: hero })
     }
 
-    private class Snapshot(val pending: Decision?, val view: GameView, val events: List<GameEvent>)
+    private class Snapshot(
+        val pending: Decision?,
+        val view: GameView,
+        val events: List<GameEvent>,
+        val review: ReviewUi? = null,
+    )
 
     /** Rebuilds what the screen shows from the session (on [engine]) and the screen's own state. */
     private suspend fun publish() {
@@ -588,7 +604,11 @@ class PuzzleViewModel internal constructor(
         val puzzle = info ?: return
         val board = map ?: return
         val r = replay
-        val snapshot = withContext(engine) { Snapshot(s.game.pending, openView(s.game), s.game.events.toList()) }
+        val snapshot = withContext(engine) {
+            // A puzzle's hands are open: the review sees every seat.
+            val seats = s.game.setup.seats.map { it.heroId }.toSet()
+            Snapshot(s.game.pending, openView(s.game), s.game.events.toList(), review.build(s.game, seats))
+        }
         val live = interim
         val step = r?.steps?.getOrNull(r.index)
         val table = if (step != null) replayTable(board, step) else liveTable(board, snapshot)
@@ -616,6 +636,7 @@ class PuzzleViewModel internal constructor(
                 next = next,
                 busy = busy,
                 announcement = announcement,
+                review = snapshot.review,
             ),
         )
     }

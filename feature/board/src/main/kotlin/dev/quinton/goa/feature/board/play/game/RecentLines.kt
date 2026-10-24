@@ -37,7 +37,8 @@ fun recentSince(events: List<GameEvent>, from: Int, heroIds: Set<String>, max: I
     )
 }
 
-private fun important(event: GameEvent, heroIds: Set<String>): Boolean = when (event) {
+/** A line a player must not miss: a hero defeated, a Life counter spent, a push, a level up, the Minion Battle. */
+internal fun important(event: GameEvent, heroIds: Set<String>): Boolean = when (event) {
     is GameEvent.Defeated -> event.unitId in heroIds
     is GameEvent.LifeSpent, is GameEvent.LanePushed, is GameEvent.LevelledUp, is GameEvent.GameOver -> true
     is GameEvent.Note -> event.text.startsWith(MINION_BATTLE)
@@ -45,7 +46,7 @@ private fun important(event: GameEvent, heroIds: Set<String>): Boolean = when (e
 }
 
 /** The pity coins of a round, one line: "Wasp, Arien and Brogan gain 1 coin each (pity coin)." */
-private fun merged(events: List<GameEvent>): List<GameEvent> {
+internal fun merged(events: List<GameEvent>): List<GameEvent> {
     val out = ArrayList<GameEvent>()
     var i = 0
     while (i < events.size) {
@@ -65,7 +66,7 @@ private fun merged(events: List<GameEvent>): List<GameEvent> {
     return out
 }
 
-private const val FACEDOWN = "plays a card facedown."
+internal const val FACEDOWN = "plays a card facedown."
 private const val PITY = "(pity coin)."
 private const val MINION_BATTLE = "Minion Battle"
 private const val EARLIER = 2

@@ -226,7 +226,7 @@ The **replay** panel has Back / Next arrows around "SOLUTION · STEP n OF m", th
 bronze ring (filled when solved); Continue is a secondary-container card (all solved: the seal).
 
 ### Card focus (selecting and reading cards; `feature/board/ui/cards`)
-One viewer for every card the board screens show: the cards a question offers (play, discard,
+One viewer for every card the board screens show (the Game state review's too): the cards a question offers (play, discard,
 retrieve, defend with, upgrade, keep), the "Asked by" card, your hand, a hero's played, resolved and
 discarded cards, a puzzle replay's card, and the sandbox's "Read the cards".
 - **First tap** on a thumbnail: the card grows out of it (scale and translate from the thumbnail's

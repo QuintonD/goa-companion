@@ -147,6 +147,9 @@ fun CardFocusHost(state: CardFocusState) {
 private val OnScrim = Color(0xFFE8E2D6)
 private val ScrimColor = Color(0xFF04080D)
 
+/** The dark theme's bronze: the light theme's is too dark on the scrim. */
+private val BronzeOnScrim = Color(0xFFC9A35B)
+
 @Composable
 private fun FocusOverlay(state: CardFocusState, request: CardFocusRequest) {
     val scope = rememberCoroutineScope()
@@ -355,7 +358,7 @@ private fun TopBar(request: CardFocusRequest, index: Int, onClose: () -> Unit, r
                 Text(
                     it.uppercase(),
                     style = GoaTextStyles.overline,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = BronzeOnScrim,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -385,7 +388,7 @@ private fun PageDots(count: Int, index: Int) {
                     .height(6.dp)
                     .width(if (i == index) 16.dp else 6.dp)
                     .background(
-                        if (i == index) MaterialTheme.colorScheme.primary else OnScrim.copy(alpha = 0.45f),
+                        if (i == index) BronzeOnScrim else OnScrim.copy(alpha = 0.45f),
                         CircleShape,
                     ),
             )

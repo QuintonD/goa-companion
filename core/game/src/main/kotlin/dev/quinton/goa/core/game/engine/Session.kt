@@ -9,6 +9,7 @@ import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.GameSetup
 import dev.quinton.goa.core.game.GameView
 import dev.quinton.goa.core.game.SavedGame
+import dev.quinton.goa.core.game.TurnReview
 import dev.quinton.goa.core.model.match.Team
 import kotlin.random.Random
 import kotlinx.serialization.Serializable
@@ -63,6 +64,9 @@ class EngineSession internal constructor(
     private var partial: List<GameEvent> = emptyList()
     private var eventsCache: List<GameEvent>? = null
 
+    /** States kept at turn boundaries for [review] and [positionAt] (ADR-037), newest first. */
+    private var marks: Chain<Mark>? = null
+
     override val pending: Decision? get() = pendingDecision
 
     override val events: List<GameEvent>
@@ -89,6 +93,7 @@ class EngineSession internal constructor(
     internal var haltWhen: ((GameState) -> Boolean)? = null
 
     internal fun start(): EngineSession {
+        for (m in Mark.initial(checkpoint)) marks = Chain.push(marks, m)
         advance()
         return this
     }
@@ -127,15 +132,23 @@ class EngineSession internal constructor(
     }
 
     private fun commit(work: GameState, g: Game) {
+        val from = checkpoint.step
         work.decisions += g.asked
         checkpoint = work
         display = work
         for (e in g.events) committed = Chain.push(committed, e)
         partial = emptyList()
         segment = ArrayList()
+        Mark.after(from, work, committed?.size ?: 0)?.let { marks = Chain.push(marks, it) }
     }
 
     override fun view(seat: String?): GameView = Views.build(data, setup, display, seat)
+
+    override fun review(viewers: Set<String>): List<TurnReview> =
+        Review.turns(data, setup, Chain.toList(marks), events, display, viewers)
+
+    override fun positionAt(round: Int, turn: Int, viewers: Set<String>): GameView? =
+        Review.start(Chain.toList(marks), round, turn)?.let { Views.merged(data, setup, it, viewers) }
 
     override fun answer(decisionId: Long, choice: Choice): AnswerResult {
         val p = pendingDecision ?: return AnswerResult.Rejected("The game is over")
@@ -166,6 +179,7 @@ class EngineSession internal constructor(
         f.history = history
         f.committed = committed
         f.partial = partial
+        f.marks = marks
         f.haltWhen = haltWhen
         // The checkpoint is never mutated in place (each run works on a copy), so sharing it is safe.
         return f
@@ -184,6 +198,7 @@ class EngineSession internal constructor(
         f.history = history
         f.committed = committed
         f.partial = partial
+        f.marks = marks
         f.haltWhen = haltWhen
         return f
     }
@@ -220,6 +235,7 @@ class EngineSession internal constructor(
         history = replay.history
         committed = replay.committed
         partial = replay.partial
+        marks = replay.marks
         eventsCache = null
         return true
     }

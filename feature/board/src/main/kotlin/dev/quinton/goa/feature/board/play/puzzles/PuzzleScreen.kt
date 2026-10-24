@@ -73,6 +73,9 @@ import dev.quinton.goa.feature.board.board.BoardSheet
 import dev.quinton.goa.feature.board.board.SheetTitle
 import dev.quinton.goa.feature.board.map.MapViewport
 import dev.quinton.goa.feature.board.play.game.PlaySheet
+import dev.quinton.goa.feature.board.play.review.ReviewButton
+import dev.quinton.goa.feature.board.play.review.ReviewOpenEffect
+import dev.quinton.goa.feature.board.play.review.ReviewSheet
 import dev.quinton.goa.feature.board.play.table.DecisionPanel
 import dev.quinton.goa.feature.board.play.table.EventLog
 import dev.quinton.goa.feature.board.play.table.GameTable
@@ -120,6 +123,7 @@ fun PuzzleScreen(
         modifier = modifier,
         actions = {
             if (puzzle != null) {
+                ReviewButton(onClick = { sheet = PlaySheet.Review() })
                 IconButton(onClick = { sheet = PlaySheet.Log }) {
                     Icon(Icons.AutoMirrored.Outlined.FormatListBulleted, contentDescription = "Puzzle log")
                 }
@@ -192,6 +196,7 @@ fun PuzzleScreen(
             }
         }
     }
+    ReviewOpenEffect(sheet) { onAction(PuzzleAction.Review(it)) }
     if (puzzle != null) {
         when (val open = sheet) {
             PlaySheet.Log -> BoardSheet(onDismiss = { sheet = null }) {
@@ -207,6 +212,11 @@ fun PuzzleScreen(
                     HeroDetail(puzzle.table, open.heroId, focus)
                 }
             }
+
+            is PlaySheet.Review ->
+                ReviewSheet(puzzle.table, puzzle.review, open, {
+                    sheet = it
+                }, { onAction(PuzzleAction.Review(it)) }, focus, puzzle = true)
 
             null -> Unit
         }

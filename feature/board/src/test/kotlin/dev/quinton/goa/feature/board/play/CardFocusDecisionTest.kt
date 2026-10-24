@@ -55,6 +55,11 @@ class CardFocusDecisionTest {
     private val all = setOf("arien", "brogan", "wasp", "tigerclaw")
     private val actions = mutableListOf<GameAction>()
 
+    /** What the person did (the review sheet's open / closed reports aside). */
+    private fun record(action: GameAction) {
+        if (action !is GameAction.Review) actions += action
+    }
+
     private fun sessionAt(kind: DecisionKind): FakeGameSession {
         val session = fakeFactory().newGame(fakeSetup(humans = all)) as FakeGameSession
         repeat(80) {
@@ -91,7 +96,7 @@ class CardFocusDecisionTest {
 
     private var state by mutableStateOf<PlayUi?>(null)
 
-    private fun show(kind: DecisionKind, onAction: (GameAction) -> Unit = { actions += it }): PlayUi {
+    private fun show(kind: DecisionKind, onAction: (GameAction) -> Unit = { record(it) }): PlayUi {
         val p = play(sessionAt(kind))
         state = p
         compose.setContent {
@@ -161,7 +166,7 @@ class CardFocusDecisionTest {
     fun `a Coach nudge intercepts the second tap as it does the Confirm button`() {
         lateinit var p: PlayUi
         p = show(DecisionKind.CHOOSE_CARD) { action ->
-            actions += action
+            record(action)
             // As the ViewModel does: the answer goes to the coach first, who nudges.
             if (action is GameAction.Answer) {
                 state = p.copy(

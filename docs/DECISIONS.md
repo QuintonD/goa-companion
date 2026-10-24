@@ -809,3 +809,89 @@ which was checked on the deployed relay; 600/min overall). Token and revision ar
 group's lock before the body is read, so a doomed upload costs nothing. Deployed on oldboi as
 container `goa-relay` (read-only root, uid 10001, data in `/var/lib/goa-relay`,
 `restart: unless-stopped`); Funnel on port 8443 was enabled the same day.
+
+**Addendum (2026-10-25, Android client, `feature/sync-client`):**
+- *Ported from `feature/hub-sync-android`:* the OkHttp client (whole-call timeout, redirects refused
+  so the bearer never follows one, no logging/cache/cookies, cancelled with the coroutine), the
+  WorkManager scheduler and worker, the Group screen card, the Players tab dot, the network
+  security configs and the address normalizer, renamed "sync server" (`SyncServer*`). The hub's
+  server-side merge (`POST /api/v1/sync`), `h=` invite field and App Links are not ported.
+- *Token:* `SyncServerToken` = base64url-no-pad(HKDF-SHA256(group key, groupId UTF-8,
+  `goa-relay/token/v1`, 32)); `SyncServerTest` asserts SYNC-SERVER.md's vector (groupId
+  `8c4f2b1e-…`, token `dFROVzWT…IQTI`, hash `cfb03117…9e25`) and a second one (key 0x00..0x1f,
+  groupId `6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d` → `3LzQ_IsXcyHp8SiAV9FGqdB_TQmU1C8PXkjjvBbDTIA`),
+  both also computed independently with Python's hmac/hashlib.
+- *Same merge as a sync file:* the fetched document goes through `SyncRepository.apply` (re-read and
+  merge in one transaction), so Nearby, sync files and the server share one write path. "Content
+  differs" compares canonical `SyncDocument`s (`SyncMerge.normalize(remote)` vs the merge), never
+  bytes, so a fresh envelope salt or `createdAt` doesn't cause an upload. A merge that fails
+  `SyncValidation` is never uploaded: every phone would refuse the whole document.
+- *Conditional GET:* after each success `group_sync` keeps the rev and the SHA-256 of the canonical
+  document both sides then held. When this phone's data still hashes the same, the GET carries
+  `If-None-Match: "<rev>"` and a `304` ends the sync (nothing new on either side); any local change
+  means a plain GET, so a change is never skipped.
+- *412:* three tries in one sync, then "Other phones kept syncing" (waits for the next trigger).
+  Statuses: 401 wrong key; GET 404 = no document; any other 4xx (or a PUT 404) = no sync server at
+  that address; 413 too big (also checked before sending, 8 MiB); 429/5xx/IO/timeout transient (the
+  worker retries with exponential backoff from 30 s, eight attempts); a 200 without `ETag` is not
+  trusted. `Retry-After` (seconds, or an HTTP date) on 429/503 is honoured: when it is longer than
+  the next backoff, the worker queues a fresh run with that initial delay behind itself (APPEND on
+  the unique work, so the current run succeeds) instead of `Result.retry()`. Error bodies are read
+  only for a 503: `{"error":"relay_full"}` (the group cap) becomes `SERVER_FULL`, "The sync server
+  is full", retried no sooner than its `Retry-After` (3600 s) and flagged with the Players dot,
+  since only the server's owner can fix it. Version gaps come from `SyncFileException.version`
+  (new, nullable), not message text.
+- *Address:* BuildConfig `SYNC_SERVER_URL` from the Gradle property `goa.syncServer` (default in
+  `gradle.properties`), bound as `SyncServerDefaults` in `app`. A per-group override and an on/off
+  switch live in `group_sync`; the override is stored only when it differs from the default, and
+  an invite carries `s=` only then and only while this phone's server sync is switched on. Re-joining the same group by an invite without `s=` keeps the
+  override; another group starts from the default with a clean status. Release builds accept only
+  https; debug also `http://10.0.2.2|localhost|127.0.0.1`.
+- *Triggers:* the activity coming on screen (`MainActivity` lifecycle; at most once a minute, so a
+  rotation doesn't sync) and every 5 min while visible, 15 s after the last change (Room
+  invalidation tracker on the synced tables + rating constants), hourly with a network constraint,
+  "Sync now" (no network constraint, so the outcome shows), and a new server or group.
+- *One Sync now:* with the server switched on, the Group screen's primary Sync now and the Players
+  tab's sync icon queue a server sync (`SyncServerControl`, core:data, bound to the scheduler);
+  Nearby moves to a secondary "Sync at the table (no internet)". Without a server nothing changes.
+  The card has no button of its own.
+- *Joining:* with a server switched on, joining queues the sync on the same unique work
+  (`syncAndWatch`: no network constraint, expedited on API 31+ where no foreground service is
+  needed, never retried) and the ViewModel only watches its `WorkInfo`; leaving the screen stops
+  the watching, not the sync. The worker reports `synced` and a summary of what arrived in its
+  output data. Only when data arrived does the Nearby first sync stay closed; nothing on the server
+  yet, or the server unreachable: the Nearby first sync opens as before.
+- *Manifest:* `INTERNET` declared; Google's datatransport logger (code scanner) stays off by
+  removing its `CctBackendFactory` registration; WorkManager's startup initializer, foreground
+  service and `FOREGROUND_SERVICE` removed (WorkManager starts from `GoaApplication` with Hilt).
+- `SyncDocument.VERSION` unchanged (no synced type changed).
+
+## ADR-037 — Game-state review: the game so far, built by the engine from its own views (2026-10-25)
+**Context:** The owner: "For puzzles and playing the game it is important to let players review the
+game state e.g. what cards have been played." The game screen had a text log and a per-hero sheet, but
+no view of the cards each hero played turn by turn, the round's state at a glance, or earlier boards.
+The log's words could be parsed for some of it, but a card swapped, flipped facedown or played as a
+second card (Emmitt) would be wrong or missing, and nothing there guarantees hidden information.
+**Decision:**
+1. **Engine contract** (additive, core/game/CONTRACT-CHANGES.md): `GameSession.review(viewers)` returns a
+   `TurnReview` per turn (each hero's card at the reveal in acting order, the turn's events, the end of
+   round) and `positionAt(round, turn, viewers)` the board at a turn's start; `GameView.actedThisTurn`.
+   `EngineSession` keeps references to committed checkpoints at turn boundaries (they are never
+   mutated, so this costs a pointer per boundary and nothing on the AI's forks) and builds every card
+   through `Views`, the same code as the live table. So the review cannot show more than the viewer saw
+   then (p.4: played cards hidden until the reveal; hands, tucked items and facedown cards hidden).
+   `ReviewTest` proves it: no card id outside what the viewer's live views ever showed, and identical
+   reviews for games that differ only in hidden cards or in which card was tucked.
+2. **Viewers** merge like the screens' views: the person's heroes in play; every seat in a puzzle (its
+   hands are open, PRODUCT §10).
+3. **UI** (`feature/board` `play/review/`): a top-bar Game state action opens a full-height sheet with
+   Now and Turns tabs and a read-only rewound board; the ViewModels build the review on the engine thread
+   only while the sheet is open. Card taps go through one `onOpenCard(cards, index)` callback (the card
+   sheet today) so a shared card viewer can replace it.
+4. **Rewind** shows the start of each turn only (the kept checkpoints), not every decision: turn starts
+   are where a player looks back, and finer steps would mean replaying or keeping many more states.
+**Consequences:** A long game keeps about three states per turn in memory (a few MB at worst); they are
+not saved (replay rebuilds them). The rulebook forbids notes at the table (p.4 Table Talk), and the
+history of earlier rounds is more than a player would remember; it is the log's own content (already
+shown) and the Expert AI remembers cards shown since each level up, so it is offered as a learning aid;
+the owner may want a switch to hide earlier rounds for "table rules" play.

@@ -218,6 +218,11 @@ class PlayersScreenshotTest {
 
     @Test fun leaderboardLight() = shot(ThemeMode.LIGHT) { Home(PlayersTab.PLAYERS) }
 
+    /** The sync server needs a person (ADR-036): a quiet dot on the sync icon. */
+    @Test fun leaderboardServerAttentionLight() = shot(ThemeMode.LIGHT) {
+        Home(PlayersTab.PLAYERS, Shots.players.copy(inGroup = true, serverNeedsAttention = true))
+    }
+
     /** Group sync: this phone's player wears "You" and the top bar opens their page. */
     @Test fun leaderboardWithYouLight() = shot(ThemeMode.LIGHT) {
         val players = Shots.players

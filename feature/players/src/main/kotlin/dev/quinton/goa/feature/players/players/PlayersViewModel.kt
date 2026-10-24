@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.GroupRepository
 import dev.quinton.goa.core.data.PlayerRepository
+import dev.quinton.goa.core.data.SyncServerControl
 import dev.quinton.goa.core.data.rating.RatingsSnapshot
 import dev.quinton.goa.core.data.rating.RatingsSnapshotRepository
 import dev.quinton.goa.core.model.player.Player
@@ -46,9 +47,16 @@ data class PlayersUiState(
     val meId: String? = null,
     /** The phone is in a sync group: the sync action opens the sync sheet directly. */
     val inGroup: Boolean = false,
+    /** The last sync with the group's sync server failed for a reason a person must fix (ADR-036). */
+    val serverNeedsAttention: Boolean = false,
+    /** In a group with a sync server switched on: the sync icon syncs through it (ADR-036). */
+    val serverSyncOn: Boolean = false,
 ) {
     val isEmpty: Boolean get() = !loading && ranked.isEmpty() && unrated.isEmpty() && archived.isEmpty()
 }
+
+/** The sync icon's server state: switched on, and a problem a person must fix. */
+private data class ServerFlags(val on: Boolean, val attention: Boolean)
 
 const val TREND_GAMES = 5
 
@@ -58,6 +66,7 @@ class PlayersViewModel @Inject constructor(
     players: PlayerRepository,
     ratings: RatingsSnapshotRepository,
     groups: GroupRepository,
+    private val serverSync: SyncServerControl = SyncServerControl.Off,
 ) : ViewModel() {
     private val showArchived = MutableStateFlow(false)
 
@@ -74,11 +83,19 @@ class PlayersViewModel @Inject constructor(
         ratings.observeSnapshot(),
         showArchived,
         me,
-    ) { list, snapshot, archivedVisible, (meId, inGroup) ->
-        leaderboard(list, snapshot, archivedVisible, meId).copy(inGroup = inGroup)
+        groups.state.map {
+            val attention = it.server.error?.problem?.needsAttention == true
+            ServerFlags(on = it.serverSyncOn, attention = it.serverSyncOn && attention)
+        }.distinctUntilChanged(),
+    ) { list, snapshot, archivedVisible, (meId, inGroup), server ->
+        val board = leaderboard(list, snapshot, archivedVisible, meId)
+        board.copy(inGroup = inGroup, serverNeedsAttention = server.attention, serverSyncOn = server.on)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlayersUiState())
 
     fun toggleArchived() = showArchived.update { !it }
+
+    /** The sync icon with a server: sync through it now. */
+    fun syncWithServer() = serverSync.syncNow()
 
     companion object {
         fun leaderboard(
