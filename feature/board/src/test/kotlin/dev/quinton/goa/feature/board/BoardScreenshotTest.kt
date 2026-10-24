@@ -395,7 +395,7 @@ class BoardScreenshotTest {
             onTap = vm::tap,
             onBack = {},
             initialOverlay = overlay,
-            initialCollapsed = collapsed,
+            initialPanelHidden = collapsed,
         )
     }
 
@@ -530,11 +530,28 @@ class BoardScreenshotTest {
         }
     }
 
-    /** The selection panel folded to its header: the map gets the room. */
+    /** The selection panel hidden to its peek bar: the whole board in view, the overlays on it. */
     @Test
     fun boardCollapsedPanelDark() = boardViewModel().let { vm ->
         capture(ThemeMode.DARK, before = { selectedHero(vm) }) { Board(vm, collapsed = true) }
     }
+
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun boardPanelHiddenLandscapeDark() = boardViewModel().let { vm ->
+        capture(ThemeMode.DARK, before = { selectedHero(vm) }) { Board(vm, collapsed = true) }
+    }
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun boardPanelHiddenW384LightFontScale2() = boardViewModel().let { vm ->
+        capture(ThemeMode.LIGHT, 2f, before = { selectedHero(vm) }) { Board(vm, collapsed = true) }
+    }
+
+    /** The compact top bar in landscape with large text: it grows to fit the title, no more. */
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun boardTopBarLandscapeLightFontScale2() = capture(ThemeMode.LIGHT, 2f) { Board(remember { boardViewModel() }) }
 
     /** Pushing into a Throne Zone: that team wins (p.8). */
     @Test

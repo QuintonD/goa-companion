@@ -781,6 +781,18 @@ Tailscale Funnel on port 8443 (443 stays the owner's tailnet-only service). Near
 wiped loses nothing: the next phone to sync re-uploads the merged log. Whoever runs the server can
 see group sizes and sync times, never content. A `SyncDocument.VERSION` bump still needs every phone
 updated before they sync again.
+**Addendum (server as built, 2026-10-25):** `server/relay/` is a standalone Gradle build (its own
+copy of the wrapper, versions pinned locally: Kotlin 2.4.21, Ktor 3.6.0 on CIO, kotlinx.serialization,
+slf4j-simple) so the root Android build and the relay never constrain each other, and the Docker
+image builds from that directory alone. Beyond the original contract it adds, all documented in
+SYNC-SERVER.md: an optional `304` for `GET` with `If-None-Match: "<rev>"`, `If-Match: *`, a cap on
+registered groups (`GOA_RELAY_MAX_GROUPS`, default 200; a first upload past it gets `503`) so an open
+trust-on-first-use endpoint can't fill the disk, and a published token test vector. Rate limits are
+token buckets (60/min per client keyed on the last `X-Forwarded-For` hop, which Tailscale adds and
+which was checked on the deployed relay; 600/min overall). Token and revision are checked under the
+group's lock before the body is read, so a doomed upload costs nothing. Deployed on oldboi as
+container `goa-relay` (read-only root, uid 10001, data in `/var/lib/goa-relay`,
+`restart: unless-stopped`); Funnel on port 8443 was enabled the same day.
 
 ## ADR-037 — Game-state review: the game so far, built by the engine from its own views (2026-10-25)
 **Context:** The owner: "For puzzles and playing the game it is important to let players review the
