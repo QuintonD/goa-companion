@@ -49,7 +49,15 @@ class SnorriTest {
             d.expect(DecisionKind.CHOOSE_OPTION, "snorri")
             assertThat(d.d.options).hasSize(left)
             // Horn below slot 1, then the first rune offered each time.
-            d.answer(if (left == 4) d.d.options.first { (it as Choice.Option).label == "Horn" } else d.d.options.first())
+            d.answer(
+                if (left ==
+                    4
+                ) {
+                    d.d.options.first { (it as Choice.Option).label == "Horn" }
+                } else {
+                    d.d.options.first()
+                },
+            )
         }
         val runes = SnorriHero.placedRunes(
             dev.quinton.goa.core.game.engine.Game(
@@ -333,7 +341,10 @@ class SnorriTest {
         val d = pos {
             clearMinions()
             turn = turnOf(Rune.HORN)
-            hero("snorri", Team.BLUE, Hex(1, -2)) { played("snorri-red-2a"); runes(*order) }
+            hero("snorri", Team.BLUE, Hex(1, -2)) {
+                played("snorri-red-2a")
+                runes(*order)
+            }
             hero("wasp", Team.RED, Hex(-5, -4))
             minion(Team.RED, MinionType.MELEE, Hex(3, -2)) // 2 away
             minion(Team.RED, MinionType.MELEE, Hex(4, -5))
@@ -348,7 +359,10 @@ class SnorriTest {
         val e = pos {
             clearMinions()
             turn = turnOf(Rune.ANVIL)
-            hero("snorri", Team.BLUE, Hex(1, -2)) { played("snorri-red-2a"); runes(*order) }
+            hero("snorri", Team.BLUE, Hex(1, -2)) {
+                played("snorri-red-2a")
+                runes(*order)
+            }
             hero("wasp", Team.RED, Hex(-5, -4))
             minion(Team.RED, MinionType.MELEE, Hex(3, -2))
             minion(Team.RED, MinionType.MELEE, Hex(4, -5))
@@ -362,7 +376,10 @@ class SnorriTest {
         val d = pos {
             clearMinions()
             turn = turnOf(Rune.AXE)
-            hero("snorri", Team.BLUE, Hex(1, -2)) { played("snorri-red-3a"); runes(*order) }
+            hero("snorri", Team.BLUE, Hex(1, -2)) {
+                played("snorri-red-3a")
+                runes(*order)
+            }
             hero("wasp", Team.RED, Hex(2, -2)) { hand("wasp-blue-1") }
             hero("xargatha", Team.RED, Hex(0, -2)) { hand("xargatha-blue-1") }
             minion(Team.RED, MinionType.MELEE, Hex(1, -1))
@@ -402,7 +419,10 @@ class SnorriTest {
         val e = pos {
             clearMinions()
             turn = turnOf(Rune.HORN)
-            hero("snorri", Team.BLUE, Hex(1, -2)) { played("snorri-red-3a"); runes(*order) }
+            hero("snorri", Team.BLUE, Hex(1, -2)) {
+                played("snorri-red-3a")
+                runes(*order)
+            }
             hero("wasp", Team.RED, Hex(-5, -4))
             minion(Team.RED, MinionType.MELEE, Hex(3, -2))
             minion(Team.RED, MinionType.MELEE, Hex(4, -5))
@@ -438,7 +458,10 @@ class SnorriTest {
         val d = pos {
             clearMinions()
             turn = turnOf(Rune.HORN)
-            hero("snorri", Team.BLUE, Hex(1, -2)) { played("snorri-red-2b"); runes(*order) }
+            hero("snorri", Team.BLUE, Hex(1, -2)) {
+                played("snorri-red-2b")
+                runes(*order)
+            }
             hero("wasp", Team.RED, Hex(-5, -4))
             minion(Team.RED, MinionType.MELEE, Hex(4, -2))
             minion(Team.BLUE, MinionType.MELEE, Hex(-1, -5))
@@ -455,7 +478,10 @@ class SnorriTest {
         val d = pos {
             clearMinions()
             turn = turnOf(Rune.AXE)
-            hero("snorri", Team.BLUE, Hex(1, -2)) { played("snorri-red-2b"); runes(*order) }
+            hero("snorri", Team.BLUE, Hex(1, -2)) {
+                played("snorri-red-2b")
+                runes(*order)
+            }
             hero("wasp", Team.RED, Hex(4, -3)) { hand() } // adjacent to the target, no cards
             minion(Team.RED, MinionType.MELEE, Hex(4, -2))
             minion(Team.BLUE, MinionType.MELEE, Hex(-1, -5))
@@ -472,7 +498,10 @@ class SnorriTest {
         val d = pos {
             clearMinions()
             turn = turnOf(Rune.BIRD)
-            hero("snorri", Team.BLUE, Hex(1, -2)) { played("snorri-red-3b"); runes(*order) }
+            hero("snorri", Team.BLUE, Hex(1, -2)) {
+                played("snorri-red-3b")
+                runes(*order)
+            }
             hero("wasp", Team.RED, Hex(-5, -4))
             minion(Team.RED, MinionType.MELEE, Hex(4, -2))
             minion(Team.RED, MinionType.MELEE, Hex(3, -2))
@@ -484,7 +513,10 @@ class SnorriTest {
         val e = pos {
             clearMinions()
             turn = turnOf(Rune.AXE)
-            hero("snorri", Team.BLUE, Hex(1, -2)) { played("snorri-red-3b"); runes(*order) }
+            hero("snorri", Team.BLUE, Hex(1, -2)) {
+                played("snorri-red-3b")
+                runes(*order)
+            }
             hero("wasp", Team.RED, Hex(-5, -4))
             minion(Team.RED, MinionType.MELEE, Hex(4, -2))
             minion(Team.RED, MinionType.MELEE, Hex(3, -2))
@@ -510,7 +542,8 @@ class SnorriTest {
             phase = PositionPhase.Resolving(next = "wasp")
         }
 
-    private fun blocked(d: dev.quinton.goa.core.game.Driver) = d.s.events.filterIsInstance<GameEvent.Defended>().last().success
+    private fun blocked(d: dev.quinton.goa.core.game.Driver) =
+        d.s.events.filterIsInstance<GameEvent.Defended>().last().success
 
     @Test
     fun `Oath of Endurance - horn blocks a basic attack, not a non-basic one`() {
@@ -542,7 +575,10 @@ class SnorriTest {
         val d = pos {
             clearMinions()
             turn = turnOf(Rune.AXE)
-            hero("snorri", Team.BLUE, Hex(1, -2)) { hand("snorri-green-1"); runes(*order) }
+            hero("snorri", Team.BLUE, Hex(1, -2)) {
+                hand("snorri-green-1")
+                runes(*order)
+            }
             hero("wasp", Team.RED, Hex(2, -2)) { played("wasp-gold") }
             hero("xargatha", Team.RED, Hex(0, -2)) { played("xargatha-gold") }
             phase = PositionPhase.Resolving(next = "wasp")
@@ -612,10 +648,16 @@ class SnorriTest {
 
     @Test
     fun `Runetrap - an enemy hero in radius discards a card of the active rune's colour`() {
-        for ((rune, card) in listOf(Rune.HORN to "wasp-green-1", Rune.AXE to "wasp-silver", Rune.ANVIL to "wasp-blue-1")) {
+        for ((rune, card) in listOf(
+            Rune.HORN to "wasp-green-1",
+            Rune.AXE to "wasp-silver",
+            Rune.ANVIL to "wasp-blue-1",
+        )) {
             val d = trap("snorri-green-2b", rune)
             d.action("snorri", ActionType.PRIMARY)
-            com.google.common.truth.Truth.assertWithMessage(d.log()).that(d.zoneOf("wasp", card)).isEqualTo(Zone.DISCARD)
+            com.google.common.truth.Truth.assertWithMessage(
+                d.log(),
+            ).that(d.zoneOf("wasp", card)).isEqualTo(Zone.DISCARD)
             assertThat(d.hero("wasp").cards.count { it.zone == Zone.DISCARD }).isEqualTo(1)
         }
     }
@@ -651,7 +693,10 @@ class SnorriTest {
     private fun surrounded(card: String, rune: Rune) = pos {
         clearMinions()
         turn = turnOf(rune)
-        hero("snorri", Team.BLUE, Hex(1, -2)) { played(card); runes(*order) }
+        hero("snorri", Team.BLUE, Hex(1, -2)) {
+            played(card)
+            runes(*order)
+        }
         hero("wasp", Team.RED, Hex(-5, -4))
         for (h in listOf(Hex(2, -2), Hex(2, -3), Hex(0, -2), Hex(0, -1), Hex(1, -1))) {
             minion(Team.RED, MinionType.MELEE, h)
@@ -678,7 +723,10 @@ class SnorriTest {
         val e = pos {
             clearMinions()
             turn = turnOf(Rune.ANVIL)
-            hero("snorri", Team.BLUE, Hex(1, -2)) { played("snorri-blue-2a"); runes(*order) }
+            hero("snorri", Team.BLUE, Hex(1, -2)) {
+                played("snorri-blue-2a")
+                runes(*order)
+            }
             hero("wasp", Team.RED, Hex(2, -2)) { played("wasp-gold") }
             phase = PositionPhase.Resolving(next = "snorri")
         }
@@ -694,7 +742,10 @@ class SnorriTest {
             val d = pos {
                 clearMinions()
                 turn = turnOf(rune)
-                hero("snorri", Team.BLUE, Hex(-1, -2)) { played("snorri-blue-3a"); runes(*order) }
+                hero("snorri", Team.BLUE, Hex(-1, -2)) {
+                    played("snorri-blue-3a")
+                    runes(*order)
+                }
                 hero("wasp", Team.RED, Hex(-5, -4))
                 phase = PositionPhase.Resolving(next = "snorri")
             }
@@ -710,7 +761,10 @@ class SnorriTest {
         val e = pos {
             clearMinions()
             turn = turnOf(Rune.ANVIL)
-            hero("snorri", Team.BLUE, Hex(1, -2)) { played("snorri-blue-3a"); runes(*order) }
+            hero("snorri", Team.BLUE, Hex(1, -2)) {
+                played("snorri-blue-3a")
+                runes(*order)
+            }
             hero("wasp", Team.RED, Hex(2, -2)) { played("wasp-gold") }
             phase = PositionPhase.Resolving(next = "snorri")
         }
@@ -749,7 +803,10 @@ class SnorriTest {
         val d = pos {
             clearMinions()
             turn = turnOf(Rune.ANVIL)
-            hero("snorri", Team.BLUE, Hex(1, -2)) { played("snorri-blue-2b"); runes(*order) }
+            hero("snorri", Team.BLUE, Hex(1, -2)) {
+                played("snorri-blue-2b")
+                runes(*order)
+            }
             hero("arien", Team.BLUE, Hex(3, -2)) { hand("arien-gold") } // the other basic cards are discarded
             hero("wasp", Team.RED, Hex(-5, -4))
             phase = PositionPhase.Resolving(next = "snorri")
@@ -766,7 +823,10 @@ class SnorriTest {
         val d = pos {
             clearMinions()
             turn = turnOf(Rune.ANVIL)
-            hero("snorri", Team.BLUE, Hex(1, -2)) { played("snorri-blue-2b"); runes(*order) }
+            hero("snorri", Team.BLUE, Hex(1, -2)) {
+                played("snorri-blue-2b")
+                runes(*order)
+            }
             hero("arien", Team.BLUE, Hex(-4, -2))
             hero("wasp", Team.RED, Hex(2, -2))
             phase = PositionPhase.Resolving(next = "snorri")
@@ -779,7 +839,10 @@ class SnorriTest {
         val d = pos {
             clearMinions()
             turn = turnOf(Rune.BIRD)
-            hero("snorri", Team.BLUE, Hex(1, -2)) { played("snorri-blue-3b"); runes(*order) }
+            hero("snorri", Team.BLUE, Hex(1, -2)) {
+                played("snorri-blue-3b")
+                runes(*order)
+            }
             hero("arien", Team.BLUE, Hex(3, -2)) {
                 level = 2
                 hand("arien-red-2a", "arien-gold")
@@ -813,15 +876,20 @@ internal object Batch7Games {
             val others = reference.shuffled(rng)
             val coin = if (rng.nextBoolean()) Team.RED else Team.BLUE
             val heroTeam = if (rng.nextBoolean()) Team.RED else Team.BLUE
-            fun seat(id: String, team: Team) = dev.quinton.goa.core.game.SeatSetup(id, team, dev.quinton.goa.core.game.Controller.Human)
+            fun seat(
+                id: String,
+                team: Team,
+            ) = dev.quinton.goa.core.game.SeatSetup(id, team, dev.quinton.goa.core.game.Controller.Human)
             val seats = when (i % 3) {
                 0 -> listOf(seat(hero, heroTeam), seat(others[0], heroTeam.opponent))
+
                 1 -> listOf(
                     seat(hero, heroTeam),
                     seat(others[0], heroTeam),
                     seat(others[1], heroTeam.opponent),
                     seat(others[2], heroTeam.opponent),
                 )
+
                 else -> listOf(
                     seat(others[0], heroTeam.opponent),
                     seat(hero, heroTeam),
@@ -829,7 +897,13 @@ internal object Batch7Games {
                     seat(others[2], heroTeam),
                 )
             }.sortedBy { if (it.team == Team.RED) 0 else 1 }
-            val map = if (i % 5 == 4) dev.quinton.goa.core.game.TestData.RIVER else dev.quinton.goa.core.game.TestData.FOREST
+            val map = if (i % 5 ==
+                4
+            ) {
+                dev.quinton.goa.core.game.TestData.RIVER
+            } else {
+                dev.quinton.goa.core.game.TestData.FOREST
+            }
             val setup = dev.quinton.goa.core.game.GameSetup(map, seats, tieBreaker = coin)
             val s = ANY_HERO_ENGINE.newGame(setup) as dev.quinton.goa.core.game.engine.EngineSession
             val player = dev.quinton.goa.core.game.RandomPlayer(seed * 1000 + i)

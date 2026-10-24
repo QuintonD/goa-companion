@@ -79,7 +79,10 @@ class IgnatiaTest {
         val blue = pos {
             clearMinions()
             tieBreaker = Team.BLUE
-            hero("ignatia", Team.RED, me) { handicap = true; played("ignatia-handicap") }
+            hero("ignatia", Team.RED, me) {
+                handicap = true
+                played("ignatia-handicap")
+            }
             hero("arien", Team.BLUE, Hex(2, -2)) { hand("arien-blue-1") }
             hero("brogan", Team.BLUE, Hex(3, -2)) { hand("brogan-blue-1") }
             phase = PositionPhase.Resolving(next = "ignatia")
@@ -89,7 +92,10 @@ class IgnatiaTest {
         val orange = pos {
             clearMinions()
             tieBreaker = Team.RED
-            hero("ignatia", Team.RED, me) { handicap = true; played("ignatia-handicap") }
+            hero("ignatia", Team.RED, me) {
+                handicap = true
+                played("ignatia-handicap")
+            }
             hero("arien", Team.BLUE, Hex(2, -2)) { hand("arien-blue-1") }
             hero("brogan", Team.BLUE, Hex(3, -2)) { hand("brogan-blue-1") }
             phase = PositionPhase.Resolving(next = "ignatia")
@@ -416,7 +422,7 @@ class IgnatiaTest {
     // ---- Chaos Incarnate (Ultimate) --------------------------------------------------------------
 
     @Test
-    fun `Chaos Incarnate - after a primary action, may flip the coin, then may perform it again on different targets`() {
+    fun `Chaos Incarnate - after a primary action, may flip the coin, then may perform it again`() {
         val d = ig("ignatia-gold", Team.BLUE, ultimate = true) {
             hero("arien", Team.BLUE, Hex(4, -2)) { hand("arien-blue-1") }
             minion(Team.BLUE, MinionType.MELEE, Hex(0, -2))

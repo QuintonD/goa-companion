@@ -102,7 +102,9 @@ object IgnatiaHero : HeroModule {
         // Crack of Doom: "{tiebreaker_blue}: Target a unit adjacent to you. {tiebreaker_orange}: Target a
         // unit at maximum range."
         val adjacent = { a: ActionScope, id: String -> a.isAdjacent(id) }
-        val maxRange = { a: ActionScope, id: String -> a.inRange(id) && a.g.distance(a.pos, a.g.posOf(id)!!) == a.range }
+        val maxRange = { a: ActionScope, id: String ->
+            a.inRange(id) && a.g.distance(a.pos, a.g.posOf(id)!!) == a.range
+        }
         val doomLabels = "Target a unit adjacent to you" to "Target a unit at maximum range"
         r.card("ignatia-red-2b", Bolt(adjacent, maxRange, doomLabels))
         // Imminent Eruption: "{tiebreaker_blue}: Target a unit adjacent to you. May repeat once on a
@@ -160,7 +162,9 @@ object IgnatiaHero : HeroModule {
             val ok = Side.entries.filter { possible(this, it) }
             when (ok.size) {
                 0 -> coin
+
                 1 -> ok.single()
+
                 else -> {
                     val i = chooseOption(
                         "Equilibrium: apply either text (the coin shows ${coin.label})",
@@ -200,12 +204,14 @@ object IgnatiaHero : HeroModule {
             // "May repeat once on a different hero." / "May repeat once on a minion." (p.10: optional)
             when (if (side == Side.BLUE) blueRepeat else orangeRepeat) {
                 Repeat.NONE -> Unit
+
                 Repeat.DIFFERENT_HERO -> {
                     val filter = { id: String -> a.g.isHero(id) }
                     if (a.g.unitsOnBoard().any { a.isEnemy(it) && filter(it) && it !in a.targets && a.canTarget(it) }) {
                         a.repeat(differentTarget = true, filter = filter, prompt = "Repeat once on a different hero?")
                     }
                 }
+
                 Repeat.MINION -> {
                     val filter = { id: String -> a.g.isMinion(id) }
                     if (a.g.unitsOnBoard().any { a.isEnemy(it) && filter(it) && a.canTarget(it) }) {
@@ -219,13 +225,20 @@ object IgnatiaHero : HeroModule {
     // ---- skills --------------------------------------------------------------------------------
 
     private class Path(private val n: Int) : CardScript {
-        private val labels = "Move up to $n spaces in a straight line, Magma behind you" to "Place up to $n Magma tokens in radius"
+        private val labels =
+            "Move up to $n spaces in a straight line, Magma behind you" to "Place up to $n Magma tokens in radius"
 
         private fun emptyInRadius(a: ActionScope) = a.g.within(a.pos, a.radius).filter { a.g.isEmpty(it) }
 
         override fun primary(a: ActionScope) {
             val side = a.side({ s, sd ->
-                if (sd == Side.BLUE) s.canMoveOther(s.heroId, 1, n, straightLine = true) else emptyInRadius(s).isNotEmpty()
+                if (sd ==
+                    Side.BLUE
+                ) {
+                    s.canMoveOther(s.heroId, 1, n, straightLine = true)
+                } else {
+                    emptyInRadius(s).isNotEmpty()
+                }
             }, labels)
             if (side == Side.BLUE) {
                 // "Move up to N spaces in a straight line."
@@ -268,12 +281,24 @@ object IgnatiaHero : HeroModule {
         }
 
         override fun primary(a: ActionScope) {
-            val side = a.side({ s, sd -> if (sd == Side.BLUE) heroes(s).isNotEmpty() else minions(s).isNotEmpty() }, labels)
+            val side = a.side({ s, sd ->
+                if (sd ==
+                    Side.BLUE
+                ) {
+                    heroes(s).isNotEmpty()
+                } else {
+                    minions(s).isNotEmpty()
+                }
+            }, labels)
             if (side == Side.BLUE) {
-                val v = a.chooseUnit(labels.first, heroes(a)) ?: a.fizzle("no enemy hero in radius next to a token or a minion")
+                val v =
+                    a.chooseUnit(labels.first, heroes(a))
+                        ?: a.fizzle("no enemy hero in radius next to a token or a minion")
                 if (orDefeated) a.discardOrDefeat(v) else a.discardIfAble(v)
             } else {
-                val m = a.chooseUnit(labels.second, minions(a)) ?: a.fizzle("no enemy minion in radius next to an enemy hero")
+                val m =
+                    a.chooseUnit(labels.second, minions(a))
+                        ?: a.fizzle("no enemy minion in radius next to an enemy hero")
                 a.target(m)
                 if (defeat) a.g.defeatMinion(m, a.heroId) else a.g.removeMinion(m)
             }

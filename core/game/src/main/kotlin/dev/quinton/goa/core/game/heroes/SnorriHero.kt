@@ -169,7 +169,8 @@ object SnorriHero : HeroModule {
         val out = LinkedHashSet<Rune>()
         base?.let { out += it }
         val h = g.hero(holder)
-        val mastery = performer == holder && h.at != null && h.cards.any { it.id == ULTIMATE && it.zone == Zone.ULTIMATE }
+        val mastery =
+            performer == holder && h.at != null && h.cards.any { it.id == ULTIMATE && it.zone == Zone.ULTIMATE }
         if (!mastery) return out
         val inactive = Rune.entries.filter { it in placed.values && it != base }
         if (inactive.isEmpty()) return out
@@ -334,7 +335,10 @@ object SnorriHero : HeroModule {
             // {rune_axe}: "An enemy hero who was adjacent to the target discards a card, or is defeated."
             if (Rune.AXE in runes) {
                 val victims = adjacentBefore.filter { a.g.posOf(it) != null && a.canTarget(it) }
-                val v = a.chooseUnit("An enemy hero who was adjacent to the target discards a card, or is defeated", victims)
+                val v = a.chooseUnit(
+                    "An enemy hero who was adjacent to the target discards a card, or is defeated",
+                    victims,
+                )
                 if (v != null) a.discardOrDefeat(v)
             }
         }
@@ -367,9 +371,15 @@ object SnorriHero : HeroModule {
         }
 
         private fun blocks(rune: Rune, attack: AttackInfo): Boolean = when (rune) {
-            Rune.HORN -> attack.basic // "Block a basic attack"
-            Rune.AXE -> !attack.ranged // "Block a non-ranged attack"
-            Rune.BIRD -> attack.ranged // "Block a ranged attack"
+            Rune.HORN -> attack.basic
+
+            // "Block a basic attack"
+            Rune.AXE -> !attack.ranged
+
+            // "Block a non-ranged attack"
+            Rune.BIRD -> attack.ranged
+
+            // "Block a ranged attack"
             Rune.ANVIL -> !attack.basic // "Block a non-basic attack"
         }
     }
@@ -471,8 +481,9 @@ object SnorriHero : HeroModule {
             val resolved = h.cards.filter { it.zone == Zone.RESOLVED }.sortedBy { it.slot }.map { it.id }
             val hand = h.cards.filter { it.zone == Zone.HAND }.map { it.id }
             if (resolved.isEmpty() || hand.isEmpty()) return
-            val r = a.chooseCard("You may swap a resolved card with a card in hand", resolved, optional = true, chooser = f)
-                ?: return
+            val r =
+                a.chooseCard("You may swap a resolved card with a card in hand", resolved, optional = true, chooser = f)
+                    ?: return
             val c = a.chooseCard("Swap it with a card in your hand", hand, chooser = f)!!
             a.g.swapCards(f, r, c)
         }

@@ -294,6 +294,9 @@ interface Behavior {
     /** The token kind actually placed when [byHeroId] places [kind] (NebKher: "place Illusion tokens instead"). */
     fun tokenKind(g: Game, src: Src, kind: String, byHeroId: String?): String? = null
 
+    /** A [kind] marker [fromHeroId] would give [heroId] is not given (NebKher: "skip giving markers"). Any. */
+    fun forbidsMarker(g: Game, src: Src, heroId: String, kind: String, fromHeroId: String?): Boolean = false
+
     /** Extra Life counters spent for a defeat (Bounty). Summed. */
     fun extraLifeCost(g: Game, src: Src, q: LifeQuery): Int = 0
 

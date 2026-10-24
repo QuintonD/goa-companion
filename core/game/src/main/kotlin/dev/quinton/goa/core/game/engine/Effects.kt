@@ -122,8 +122,16 @@ fun Game.activeCards(owner: String): List<String> =
 
 // ---- markers ---------------------------------------------------------------------------------
 
-/** Give [heroId] a marker (p.18 "Markers"). One marker of a kind per giver: giving it again moves it. */
+/**
+ * Give [heroId] a marker (p.18 "Markers"). One marker of a kind per giver: giving it again moves it.
+ * When a behaviour forbids it (NebKher: "skip giving markers") nothing changes and the returned
+ * marker is not on any hero.
+ */
 fun Game.giveMarker(heroId: String, kind: String, from: String?, persistent: Boolean = false): Marker {
+    if (sources().any { (b, s) -> b.forbidsMarker(this, s, heroId, kind, from) }) {
+        note("${heroName(heroId)} is not given the ${kind.removePrefix("marker_").replace('_', ' ')} marker.")
+        return Marker(kind, from, persistent)
+    }
     for (h in state.heroes) h.markers.removeAll { it.kind == kind && it.from == from }
     val m = Marker(kind, from, persistent)
     hero(heroId).markers += m
