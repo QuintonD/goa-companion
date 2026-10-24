@@ -95,6 +95,8 @@ class HeroState(
     val counters: MutableMap<String, Int> = LinkedHashMap(),
     var levelledThisRound: Boolean = false,
     val handicap: Boolean = false,
+    /** Items that are not this hero's cards ("Use any spare card from the box", Dodger): one stat each. */
+    val spareItems: MutableList<dev.quinton.goa.core.model.catalog.Stat> = ArrayList(),
 ) {
     fun card(id: String): CardInst? = cards.firstOrNull { it.id == id }
 
@@ -111,7 +113,7 @@ class HeroState(
         id, team, seat, at, level, coins,
         cards.mapTo(ArrayList(cards.size)) { it.copy() },
         markers.mapTo(ArrayList(markers.size)) { it.copy() },
-        LinkedHashMap(vars), LinkedHashMap(counters), levelledThisRound, handicap,
+        LinkedHashMap(vars), LinkedHashMap(counters), levelledThisRound, handicap, ArrayList(spareItems),
     )
 }
 

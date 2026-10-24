@@ -327,6 +327,31 @@ fun Game.defeatHero(heroId: String, byHero: String?) {
 }
 
 /**
+ * Spend Life counters by card text ("that hero spends 1 additional Life counter", Ursafar's Tear);
+ * spending the last one loses (p.13).
+ */
+fun Game.spendLife(team: Team, n: Int, why: String = "") {
+    if (n <= 0) return
+    val left = maxOf(0, (state.lifeCounters[team] ?: 0) - n)
+    state.lifeCounters[team] = left
+    val tail = if (why.isEmpty()) "" else " ($why)"
+    val s = if (n == 1) "" else "s"
+    emit(GameEvent.LifeSpent(team, n, left, "${Game.teamName(team)} spends $n Life counter$s$tail ($left left)."))
+    if (left ==
+        0
+    ) {
+        win(team.opponent, WinReason.LIFE_COUNTERS, "${Game.teamName(team)} has spent its last Life counter.")
+    }
+}
+
+/** "Your team regains 1 spent Life counter" (Gydion's Energy Drain), never above [max]. */
+fun Game.regainLife(team: Team, n: Int, max: Int) {
+    val now = state.lifeCounters[team] ?: 0
+    state.lifeCounters[team] = minOf(max, now + n)
+    note("${Game.teamName(team)} regains ${minOf(max, now + n) - now} Life counter(s).")
+}
+
+/**
  * p.7 "Hero Respawn": "you may choose to respawn on any empty Spawn point in your Throne Zone …
  * If no empty Spawn points are available, respawn in the nearest empty space, adjacent to a Spawn
  * point in your Throne Zone" ([BoardRules.heroRespawn]).

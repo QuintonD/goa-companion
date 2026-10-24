@@ -72,9 +72,10 @@ object Views {
             active = c.id in active,
             slot = if (c.zone == Zone.RESOLVED) c.slot else null,
         )
-        val played = h.cards.firstOrNull { it.zone == Zone.PLAYED }?.let { c ->
+        val playedCards = h.cards.filter { it.zone == Zone.PLAYED }.map { c ->
             if (own || state.revealed) view(c) else CardView(null, facedown = true)
         }
+        val played = playedCards.firstOrNull()
         return HeroView(
             heroId = h.id,
             team = h.team,
@@ -85,6 +86,7 @@ object Views {
             hand = if (own) h.cards.filter { it.zone == Zone.HAND }.map { it.id } else null,
             handCount = h.cards.count { it.zone == Zone.HAND },
             played = played,
+            alsoPlayed = playedCards.drop(1),
             resolved = h.cards.filter { it.zone == Zone.RESOLVED }.sortedBy { it.slot }.map(::view),
             discard = h.cards.filter { it.zone == Zone.DISCARD }.sortedBy { it.stamp }.map(::view),
             items = h.cards.filter { it.zone == Zone.ITEM }.map { it.id },

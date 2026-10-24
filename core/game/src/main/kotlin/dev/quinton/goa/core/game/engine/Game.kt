@@ -63,6 +63,25 @@ class Game internal constructor(
     /** The hero performing the innermost action, if any. */
     val actor: String? get() = actors.lastOrNull()
 
+    /** The actions being performed, innermost last (an Ultimate's hook may ask what is being done). */
+    internal val actions: ArrayList<ActionScope> = ArrayList()
+
+    /** The innermost action being performed (its card, type, targets so far), if any. */
+    fun currentAction(): ActionScope? = actions.lastOrNull()
+
+    /**
+     * Run [block] as an action of [heroId] (effects "while an enemy hero is performing an action" see
+     * it as the actor): e.g. Whisper's "that hero performs a movement action on the card they defended with".
+     */
+    fun <T> asActor(heroId: String, block: () -> T): T {
+        actors += heroId
+        try {
+            return block()
+        } finally {
+            actors.removeAt(actors.lastIndex)
+        }
+    }
+
     // ---- decisions ---------------------------------------------------------------------------
 
     /**
@@ -83,6 +102,7 @@ class Game internal constructor(
         check(options.isNotEmpty()) { "Decision without options: $prompt" }
         if (auto && options.size == 1) return options.single()
         if (mode == RunMode.PROBE) throw ProbeHit()
+        val asker = controllerOf(seat)
         val index = asked
         if (index < answers.size) {
             asked++
@@ -90,8 +110,15 @@ class Game internal constructor(
             if (lenient != null && given !in options) return options[lenient.nextInt(options.size)]
             return given
         }
-        val team = teamOf(seat) ?: Team.RED
-        throw Suspend(Decision(state.decisions + index, seat, team, kind, prompt, sourceCardId, options, context))
+        val team = teamOf(asker) ?: Team.RED
+        throw Suspend(Decision(state.decisions + index, asker, team, kind, prompt, sourceCardId, options, context))
+    }
+
+    /** The hero who makes [seat]'s choices now: itself, unless an effect says otherwise (Hanu's Ultimate). */
+    fun controllerOf(seat: String): String {
+        if (state.hero(seat) == null) return seat
+        for ((b, s) in sources()) b.controls(this, s, seat)?.let { return it }
+        return seat
     }
 
     /**

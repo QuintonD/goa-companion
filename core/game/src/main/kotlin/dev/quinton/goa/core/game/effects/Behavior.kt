@@ -288,6 +288,12 @@ interface Behavior {
     /** A different limit for "choose one / up to N times" (Misa, Whisper, Mortimer Ultimates). Highest wins. */
     fun choiceLimit(g: Game, src: Src, q: ChoiceQuery): Int? = null
 
+    /** The hero who answers [heroId]'s decisions now (Hanu's Ultimate); first source wins. */
+    fun controls(g: Game, src: Src, heroId: String): String? = null
+
+    /** The token kind actually placed when [byHeroId] places [kind] (NebKher: "place Illusion tokens instead"). */
+    fun tokenKind(g: Game, src: Src, kind: String, byHeroId: String?): String? = null
+
     /** Extra Life counters spent for a defeat (Bounty). Summed. */
     fun extraLifeCost(g: Game, src: Src, q: LifeQuery): Int = 0
 

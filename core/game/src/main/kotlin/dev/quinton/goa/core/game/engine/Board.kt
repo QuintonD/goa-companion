@@ -39,7 +39,17 @@ fun Game.isObstacle(hex: Hex, moverId: String? = null): Boolean {
     val occ = occupant(hex)
     if (occ != null && occ != moverId) return true
     val q = SpaceQuery(hex, moverId, actor)
-    return sources().any { (b, s) -> b.countsAsObstacle(this, s, q) }
+    return sources().any { (b, s) -> b.countsAsObstacle(this, s, q) } || !canInteract(hex)
+}
+
+/**
+ * Whether the current actor may interact with [hex] ("as if they did not exist": NebKher's Crack in
+ * Reality). Spaces it may not interact with are obstacles to it and their units can't be targeted.
+ */
+fun Game.canInteract(hex: Hex, actorId: String? = actor): Boolean {
+    val a = actorId ?: return true
+    val q = dev.quinton.goa.core.game.effects.InteractQuery(a, hex)
+    return sources().none { (b, s) -> b.forbidsInteraction(this, s, q) }
 }
 
 /** p.17 "Empty": a space with no obstacles. */
@@ -136,7 +146,8 @@ private fun Game.passable(hex: Hex, mover: String, mode: PassMode): Boolean = wh
             val occ = occupant(hex)
             val blockedByOccupant = occ != null && occ != mover && state.piece(occ)?.passable != true
             !blockedByOccupant &&
-                !sources().any { (b, s) -> b.countsAsObstacle(this, s, SpaceQuery(hex, mover, actor)) }
+                !sources().any { (b, s) -> b.countsAsObstacle(this, s, SpaceQuery(hex, mover, actor)) } &&
+                canInteract(hex)
         }
     }
 }
@@ -254,7 +265,10 @@ fun Game.move(
         if (optional || spec.min <= 0) return emptyList()
         fizzle("${name(spec.unitId)} cannot move ${spec.min} spaces")
     }
-    val path = if (spec.stepwise) {
+    // Tokens units may move through and that do something (Min's mines): the mover picks the path.
+    val pathMatters = spec.stepwise ||
+        state.pieces.any { p -> p.passable && p.at?.let { distance(it, start) <= spec.max + 1 } == true }
+    val path = if (pathMatters) {
         stepwiseMove(spec, chooser, prompt, optional || spec.min <= 0, sourceCardId)
     } else {
         val stay = optional || spec.min <= 0
@@ -480,7 +494,8 @@ fun Game.removePiece(id: String) {
  * the same type from the board, if able"). [takeFrom] picks which board token to recycle when the
  * supply is empty (null = fail).
  */
-fun Game.placeToken(kind: String, owner: String?, to: Hex, takeFrom: String? = null): String? {
+fun Game.placeToken(placed: String, owner: String?, to: Hex, takeFrom: String? = null): String? {
+    val kind = sources().firstNotNullOfOrNull { (b, s) -> b.tokenKind(this, s, placed, actor) } ?: placed
     val tk = data.registry.tokenKind(kind)
     val label = tk?.label ?: kind
     val onBoard = state.pieces.filter { it.kind == kind && it.at != null && (owner == null || it.owner == owner) }

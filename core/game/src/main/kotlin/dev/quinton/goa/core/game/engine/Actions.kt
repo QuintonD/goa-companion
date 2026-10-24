@@ -186,11 +186,16 @@ class ActionScope internal constructor(
      * icon", p.11), a Movement action. Call it from the script when the text says "after movement" /
      * "before or after movement"; otherwise the engine calls it after the text.
      */
-    fun movementAction(): List<Hex> {
+    fun movementAction(
+        bonus: Int = 0,
+        ignoreObstacles: Boolean = false,
+        straightLine: Boolean = false,
+        stepwise: Boolean = false,
+    ): List<Hex> {
         if (movementDone) return emptyList()
         movementDone = true
-        val n = value(Stat.MOVEMENT) ?: 0
-        return g.movementMoves(heroId, n, cardId)
+        val n = (value(Stat.MOVEMENT) ?: 0) + bonus
+        return g.movementMoves(heroId, n, cardId, ignoreObstacles, straightLine, stepwise)
     }
 
     /**
@@ -393,6 +398,7 @@ fun Game.performAction(
     val scope = ActionScope(this, heroId, cardId, kind, primary, isRepeat, excluded, only, repeatFilter)
     val basic = isBasic(cardId)
     actors += heroId
+    actions += scope
     var defeated = false
     try {
         trigger(Trigger.BeforeAction(heroId, cardId, kind, primary, basic))
@@ -426,6 +432,7 @@ fun Game.performAction(
         defeated = true
     } finally {
         actors.removeAt(actors.lastIndex)
+        actions.removeAt(actions.lastIndex)
     }
     if (defeated) return null
     trigger(Trigger.AfterAction(heroId, cardId, kind, primary, basic, isRepeat, scope.targets.toList()))
@@ -445,7 +452,15 @@ fun Game.performPrimary(heroId: String, cardId: String, excluded: Set<String> = 
  * A Movement action of up to [value] spaces (p.11): limits are "only checked at the start of the
  * movement action"; through empty spaces only (or ignoring obstacles when an effect allows).
  */
-fun Game.movementMoves(heroId: String, value: Int, cardId: String?): List<Hex> {
+@Suppress("LongParameterList")
+fun Game.movementMoves(
+    heroId: String,
+    value: Int,
+    cardId: String?,
+    ignoreObstacles: Boolean = false,
+    straightLine: Boolean = false,
+    stepwise: Boolean = false,
+): List<Hex> {
     if (!actionAllowed(heroId, cardId, ActionKind.MOVEMENT, false)) {
         note("${heroName(heroId)} cannot perform a movement action.")
         return emptyList()
@@ -454,7 +469,15 @@ fun Game.movementMoves(heroId: String, value: Int, cardId: String?): List<Hex> {
     val n = if (cap != null) minOf(cap, value) else value
     if (n <= 0) return emptyList()
     return move(
-        MoveSpec(heroId, 0, n, movementAction = true),
+        MoveSpec(
+            heroId,
+            0,
+            n,
+            straightLine,
+            movementAction = true,
+            ignoreObstacles = ignoreObstacles,
+            stepwise = stepwise,
+        ),
         heroId,
         "Move up to $n space${if (n == 1) "" else "s"}",
         optional = true,

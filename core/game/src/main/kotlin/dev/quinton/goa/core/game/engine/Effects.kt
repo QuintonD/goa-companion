@@ -152,7 +152,7 @@ fun Game.printedValue(unitId: String, cardId: String, stat: Stat): Int? {
 /** Item bonus on [stat] for [heroId] (p.16: +1 per matching item; doubled by some effects). */
 fun Game.itemBonus(heroId: String, stat: Stat): Int {
     val h = state.hero(heroId) ?: return 0
-    val items = h.cards.count { it.zone == Zone.ITEM && card(it.id).item == stat }
+    val items = h.cards.count { it.zone == Zone.ITEM && card(it.id).item == stat } + h.spareItems.count { it == stat }
     if (items == 0) return 0
     val mult = sources().maxOfOrNull { (b, s) -> b.itemMultiplier(this, s, heroId) } ?: 1
     return items * maxOf(1, mult)
@@ -221,6 +221,7 @@ fun Game.canTarget(
     val basic = cardId?.let { isBasic(it) } ?: false
     val q = AffectQuery(targetId, actorId, kind, primary, basic, cardId, ranged)
     if (isImmune(q, ignoreHeavyImmunity, ignoreImmunity)) return false
+    posOf(targetId)?.let { if (!canInteract(it, actorId)) return false }
     return sources().none { (b, s) -> b.forbidsTarget(this, s, q) }
 }
 

@@ -304,6 +304,10 @@ enum class WinReason {
     /** The other team spent its last Life counter (p.13). */
     @SerialName("life_counters")
     LIFE_COUNTERS,
+
+    /** A card says so ("you alone win the game": Cutter; "your team wins the game": Gydion's Wish). */
+    @SerialName("card_text")
+    CARD_TEXT,
 }
 
 /** A card as a viewer may see it: [cardId] null when it is facedown/hidden to this viewer. */
@@ -331,6 +335,8 @@ data class HeroView(
     val handCount: Int,
     /** This turn's played card: hidden until the reveal unless it is the viewer's. */
     val played: CardView?,
+    /** More played cards this turn, when an effect allows it (Emmitt's Ultimate); same hiding as [played]. */
+    val alsoPlayed: List<CardView> = emptyList(),
     /** Resolved cards on the dashboard's Turn slots, turn 1..4 (open information). */
     val resolved: List<CardView>,
     val discard: List<CardView>,
