@@ -4,6 +4,8 @@ Design notes for the chess-style puzzles of `PuzzleBook`. Each concept is a posi
 (`PuzzleGoal`), the intended line with the opponents' best replies, the tempting wrong tries,
 three nudges and the end explanation. Encoding agents build the position in code and let the
 solver prove it; a concept that does not survive is fixed or cut. 60 are offered so 10 can go.
+How to encode one: [ENCODING.md](ENCODING.md); where each stands: [STATUS.md](STATUS.md). A concept
+changed while encoding carries an "Encoded as" line saying what changed and why.
 
 Sources used: the pinned 2nd-printing rulebook (printed pages, `p.N` = PDF page − 1), the card
 texts and values in `app/src/main/assets/catalog/heroes/<hero>.json` (ids quoted exactly), the
@@ -358,6 +360,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** The Range value on a card can be modified by its text (the "+" sign, p.9, p.13); Long Thrust grows by one for each enemy unit adjacent to Xargatha — minions and heroes alike (p.19 Unit). A hero with no cards in hand cannot defend (p.13).
 - **Rules:** p.9 Range; p.13 Attacking a hero; p.19 Unit.
 - **Risk:** none.
+- **Encoded as p14 (changed, 2026-10-24):** Tigerclaw is not playable yet, and his part is only "a Blue hero with no cards three spaces away", so **Brogan** (Blue, L1, played `brogan-green-1` (6), resolved gold/red-1/blue-1, discard silver, hand none) stands at (1,−5) instead; Wasp (Red) stays idle. Same lesson, same numbers; the solver finds Brogan as the only winning target.
 
 ### C15 — Quickdraw
 - **Theme:** card conditions ("played an attack card this turn"); defence totals with modifiers. **Difficulty:** 1. **Heroes:** Sabina; Arien, Wasp (Tigerclaw idle).
@@ -409,6 +412,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** A push moves the target directly away as far as it can, possibly less than the full distance (p.18); Kinetic Repulse then makes a hero stopped by an obstacle discard (Wasp FAQ: "cannot be pushed the full distance … forced to discard"). Terrain is an obstacle (p.19). The push also lands him next to Xargatha, who acts before him (p.7).
 - **Rules:** p.7 initiative; p.18 Push; p.19 Terrain; FAQ Wasp (Kinetic Repulse).
 - **Risk:** none.
+- **Encoded as p17 (changed, 2026-10-24):** as written the puzzle is a click-through under the engine: Wasp's only real action is Kinetic Repulse, Arien the only adjacent enemy, Xargatha's only target Arien, so answering the first option at every decision wins. It now **starts at the play-a-card step** (turn 4, `PlayCards(fromSeat = 1)`): Arien is seated first and has already played `arien-green-1` (his kept card `arien-blue-2a` is known); **Wasp holds `wasp-red-1` Shock and `wasp-blue-2b` Kinetic Repulse** (resolved gold, silver, green-1), **Xargatha holds `xargatha-red-1` Threatening Slash and `xargatha-silver` Siren's Call** (resolved gold, green-1, blue-1); Brogan has no cards (passes). Solution: Kinetic Repulse + Threatening Slash, then the concept's line. New wrong tries: **Shock** (the obvious attack: Arien defends with Expert Duelist and loses it, but stays two spaces from Xargatha), **Repulse + Siren's Call** (Siren's Call at 3 comes after Arien's 4 and is no attack), Repulse then a Movement action. Same lesson (the push into the wall both strips the card and brings him into reach), now with a real choice; the solver proves only this pair of cards wins.
 
 ### C18 — Runecaster at Maximum Range
 - **Theme:** "maximum range" targeting; After the attack on a neighbour. **Difficulty:** 1. **Heroes:** Snorri; Dodger, Wasp (Garrus idle).
@@ -704,6 +708,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** A hero off the board may respawn on any empty Spawn point of its Throne Zone before acting (p.7). Mad Dash's move is mandatory and exactly 2 spaces (p.11), so the start square decides everything. Defeating the last enemy minion in the BZ pushes the Lane immediately (p.8).
 - **Rules:** p.7 Hero Respawn; p.8 Push the Lane, Triggering a Push; p.11 Movement in the card text.
 - **Risk:** none.
+- **Encoded as p34 (changed, 2026-10-24):** two changes, neither touching the idea. (1) The idle Tigerclaw (Blue, already resolved) is replaced by **Xargatha**, also idle. (2) The whole position is **rotated to Blue's side** of the map, `(q, r) → (3 − q, −7 − r)` (Forgotten Island is symmetric under this half turn): Brogan is Blue and respawns in the Blue Throne Zone; Wasp is his idle teammate at (9,−6); Arien (5,−4) and Xargatha (6,−7) are Red; Red's only minion, a melee, stands at (7,−4); Blue melee (8,−6), (11,−8), Blue ranged (9,−9); BZ `lane-1-3`, 2 Wave counters, Life Red 3 / Blue 2, coin Red. The answer is the far spawn point **(8,−2)**; (9,−4) is the closest, (11,−6) the northern one. Why rotate: on Red's side the right spawn point (−5,−5) is the first space in the engine's canonical order (row, then column), so "first option everywhere" solved it; on Blue's side the answer is the last of the three.
 
 ### C35 — Onslaught's Forced Step
 - **Theme:** "if able" makes a step optional only when impossible — Onslaught's move is mandatory; a survival square you can only enter by killing. **Difficulty:** 2. **Heroes:** Brogan; Xargatha, Swift (Wasp idle).
@@ -756,6 +761,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** A Poison marker lowers the hero's Initiative, Attack and Defense values (card text; Tigerclaw FAQ: values can drop and are resolved normally), so Arien's 8 is a 7 and the coin never comes into it (p.7). A hero with one card left must play it (p.7), leaving him nothing to defend with (p.13).
 - **Rules:** p.7 Play one card, Check the initiative, Tied Initiative; p.13 Attacking a hero; p.18 Markers.
 - **Risk:** none (the "play a card" starting step must be supported by the puzzle builder).
+- **Encoding note (2026-10-24):** blocked on Tigerclaw: the Poison marker's rules will be a behaviour of `TigerclawHero` (not written yet), and he is seated. The builder supports the play step (`PlayCards`); seat Wasp before Arien (or give Arien his forced card as already played), else the answer key refuses a card choice made after an opponent's facedown one (ENCODING.md "Hidden information").
 
 ### C38 — Strip the Silver
 - **Theme:** an enemy Active effect (Bolster) protecting the last minion; same-team order. **Difficulty:** 2. **Heroes:** Wasp, Swift; Brogan, Dodger.

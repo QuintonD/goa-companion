@@ -11,6 +11,7 @@ other branches should know are listed too.
 | `CardView.slot: Int? = null` | The Turn slot 1..4 of a resolved card | p.7 "Place your resolved card on the current Turn slot": the UI draws the dashboard slots; the order of `HeroView.resolved` alone loses which turns were skipped |
 | `WinReason.CARD_TEXT` (`"card_text"`) | A win a card's text declares | Cutter's A Fistful of Coins ("you alone win the game"), Gydion's Wish ("your team wins the game") |
 | `HeroView.alsoPlayed: List<CardView> = emptyList()` | Further played cards this turn, hidden like `played` | Emmitt's Ultimate lets him play two cards |
+| `PuzzleInfo.intro: String = ""` | What the player knows that the board doesn't show (cards played facedown, opponents' hands, who acts next) | Puzzles treat hands as open information; the play view hides them |
 
 ## Behaviour of the existing contract (no type change)
 
@@ -44,3 +45,23 @@ other branches should know are listed too.
   (`dev.quinton.goa.core.game.position`) for positions (puzzles, tests, "play from here").
 - `EngineSession.state` (read-only view of the engine state, for the AI's evaluation and puzzles)
   and `EngineSession.forkSession()` (a fork typed as `EngineSession`).
+- **Puzzles** (`dev.quinton.goa.core.game.puzzles`, core/game/puzzles/ENCODING.md): the app builds
+  `EnginePuzzleBook(engine)` (a `PuzzleBook`); `start(id)` returns an `EnginePuzzleSession`
+  (a `PuzzleSession`). A puzzle is listed once every hero it seats is playable.
+- Internal helpers on `EngineSession` for the puzzle solver (additive, `internal`, 2026-10-24):
+  `checkpointState` and `stepAnswers` (the position key), `haltWhen` (stop the game before a step
+  whose start state matches: `pending` becomes null, as at the end of a game; copied by forks), and
+  `forkForAnswer()` (a fork that shares the displayed state because it is answered at once).
+
+## Puzzle behaviour (no type change)
+
+- **`PuzzleInfo.id`** is `p` + the concept number of core/game/puzzles/CONCEPTS.md (`p01`…`p60`),
+  so encoders working in parallel never collide; at most 50 are shipped. **`PuzzleInfo.number`** is
+  set by the book: the place in its list (difficulty, then id) among the playable puzzles.
+- **A puzzle game stops at its deadline**: `PuzzleSession.game.pending` is null once the turn (or
+  round) of the goal is over, whether the goal was met or not; `status` says which.
+- **Answer through `PuzzleSession.answer`**, never `game.answer`: the runtime answers every other
+  seat at once. `game.view(seat)` of an opponent shows that opponent's hand: puzzles treat hands as
+  open information (CONCEPTS.md conventions).
+- `PuzzleSession.bestChoice()` is null after a miss (undo first) and on decisions that are not the
+  player's.
