@@ -321,3 +321,8 @@ What each hero needs beyond plain actions, and the framework pieces that cover i
 - `Game.primaryPossible(hero, card, excluded, repeatFilter)`: the probe takes the same target limits
   as `performAction`, for a primary performed by another text with limits (Swift's Backup "you cannot
   target minions", Bullet Time's "not the same enemy hero twice"). Both default to none.
+
+### Tali (hero batch 3)
+
+- `Game.clearableTokens(hero, card)`: the Clear action (p.13) offers, and is offered for, only adjacent
+  tokens the hero may target, so tokens immune to it (Venerated Totem: "immune to enemy actions") stay.

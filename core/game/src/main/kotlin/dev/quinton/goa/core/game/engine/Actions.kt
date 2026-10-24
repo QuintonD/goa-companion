@@ -346,7 +346,7 @@ fun Game.actionOptions(heroId: String, cardId: String): List<ActionType> {
     }
     val hasAttack = card.primary == PrimaryAction.ATTACK || SecondaryAction.ATTACK in card.secondary
     val pos = hero(heroId).at
-    if (hasAttack && pos != null && tokensAdjacentTo(pos).isNotEmpty() &&
+    if (hasAttack && pos != null && clearableTokens(heroId, cardId).isNotEmpty() &&
         actionAllowed(heroId, cardId, ActionKind.CLEAR, false)
     ) {
         out += ActionType.CLEAR
@@ -536,11 +536,19 @@ fun Game.fastTravel(heroId: String, cardId: String?, optional: Boolean = false) 
     }
 }
 
+/**
+ * Tokens adjacent to [heroId] that a Clear action may remove: p.18 "Immune": an immune token "is not
+ * affected by your actions" (Tali's Venerated Totem: "Totem tokens are immune to enemy actions").
+ */
+fun Game.clearableTokens(heroId: String, cardId: String?): List<String> {
+    val pos = hero(heroId).at ?: return emptyList()
+    return tokensAdjacentTo(pos).filter { canTarget(it, heroId, ActionKind.CLEAR, cardId, primary = false) }
+}
+
 /** p.13 Clear: "you may remove any number of tokens adjacent to you". */
 fun Game.clear(heroId: String, cardId: String?) {
     while (true) {
-        val pos = hero(heroId).at ?: return
-        val tokens = tokensAdjacentTo(pos)
+        val tokens = clearableTokens(heroId, cardId)
         if (tokens.isEmpty()) return
         val opts = tokens.map { Choice.Token(it) as Choice } + Choice.Decline("Stop clearing")
         val c = ask(heroId, DecisionKind.CHOOSE_TOKEN, "Remove an adjacent token", opts, cardId, auto = false)
