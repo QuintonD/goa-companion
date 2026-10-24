@@ -675,3 +675,30 @@ and the sync file stay, and the manifest still removes `INTERNET` until a featur
 - Synced data stays last-writer-wins by `updatedAt` (ADR-025); a server copy joins the same merge.
 - The hub branches (ADR-030: "the group's own hub is the only server") carry their own version of
   the offline rule; reconcile it with this ADR when they merge.
+
+## ADR-035 — Play the game: a full rules engine, AI opponents and puzzles (2026-10-24)
+**Context:** The owner asked to learn by playing: expand the board so the real game can be played
+against the computer at several difficulty levels, plus 50 difficult chess-style puzzles ("get to
+victory or make the best move") with gentle nudges that can be switched off and an explanation at
+the end. Until now a full rules engine was a non-goal (ADR-033: "measure, never play").
+**Decision:**
+1. **Engine** in a new pure-Kotlin module `:core:game` (no `android.*`), on top of
+   `core:domain/board` geometry. Every rule of the pinned rulebook's turn, action, combat, minion,
+   push, end-of-round and level-up sections; card text beats the rules (p.3). Deterministic: no
+   randomness after setup. Every choice is a `Decision` with a finite option list, so humans, the AI
+   and the puzzle solver all answer the same questions. Card effects are Kotlin scripts per card,
+   interpreted from the verbatim card text, FAQ rulings (source 3) and the rulebook; the community
+   engine `goa2-backend` (source 7, no licence) is a cross-check for interpretations only, never
+   copied. A hero is playable only when every card of it has a tested implementation.
+2. **Public contract** `core/game/.../GameApi.kt` (setup, decisions, choices, views that respect
+   hidden information p.4, events, sessions, AI, coach, puzzles). Changes are additive; anything
+   else is recorded in `core/game/CONTRACT-CHANGES.md`.
+3. **AI** never reads hidden cards: it searches on determinized copies (`GameSession.determinize`).
+   Four levels (Easy, Normal, Hard, Expert) trade search time for strength.
+4. **Puzzles** are positions built in code with a goal, nudges (gentle → strong) and an
+   explanation; a solver proves each one against the best replies and accepts any winning line.
+5. **Play and puzzles live in `:feature:board`**, beside the sandbox; games in progress and puzzle
+   progress are local (DataStore), not synced and not in the backup file.
+**Consequences:** PRODUCT's "no full rules engine" non-goal is gone. Rules accuracy now covers ~630
+card texts: every card needs a test, and each hero batch gets an independent rules audit before it
+is offered. Hidden-information rules bind the AI, not just the UI.
