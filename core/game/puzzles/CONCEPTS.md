@@ -280,6 +280,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Phantasmal Warrior's "Before the attack" moves an Illusion token (in range) up to 1 space to a space adjacent to an enemy hero in range, then targets that hero; the token moves like a unit (p.11 Movement in the card text) into an empty space. Range 5 reaches Dodger exactly (p.9). With no card in hand she cannot defend (p.13).
 - **Rules:** p.9 Range; p.11 Movement in the card text; p.13 Attacking a hero; p.19 Tokens.
 - **Risk:** none.
+- **Encoded as p09 (2026-10-24):** as written. Phantasmal Warrior's bullet is not asked (no enemy unit is adjacent to NebKher, so only the first can be done); the Illusion beside Wasp is listed first. Both (1,−5) and (1,−4) win.
 
 ### C10 — Shotgun Splash
 - **Theme:** "Before the attack" hits a hero next to the real target. **Difficulty:** 1. **Heroes:** Swift; Wasp, Brogan (Arien idle).
@@ -314,6 +315,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** "Any board space without a full grid outline counts as terrain … including the water spaces surrounding the board" (p.19), so a hero on the edge is adjacent to terrain. Seismic Slam's discard-or-be-defeated defeats a hero with no cards (p.17 If able). Wasp's lowest tier is II → 2 Life counters (p.13).
 - **Rules:** p.13 When a hero is defeated; p.17 If able; p.19 Terrain.
 - **Risk:** none.
+- **Encoded as p11 (changed, 2026-10-24):** as written Seismic Slam had one legal target (Wasp) and the first option won. **Dodger now stands at (4,−6)**, still adjacent to Mrak and now also next to the terrain at (5,−6), so the Slam has an obvious target by the rocks (one counter) and the winning one by the water. Dodger is seated before Wasp.
 
 ### C12 — Fast Travel Within the Zone
 - **Theme:** Fast Travel (same zone; blocked zones); "use your gold to Fast Travel". **Difficulty:** 1. **Heroes:** Xargatha; Brogan, Swift (Dodger idle).

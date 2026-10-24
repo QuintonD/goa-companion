@@ -18,5 +18,7 @@ object Puzzles {
         P05BeatTheDrum,
         P06TheHandsOfTheClock,
         P07RangedAtPointBlank,
+        P09PhantomAtFiveSpaces,
+        P11ByTheWatersEdge,
     )
 }
