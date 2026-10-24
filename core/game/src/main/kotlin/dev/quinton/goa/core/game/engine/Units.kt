@@ -125,7 +125,9 @@ fun Game.pushLane(lane: String, winner: Team, collect: MutableList<WinClaim>? = 
     respawnWave(lane, next)
     // p.20 Zone count. At the end of the round both Lanes push "simultaneously" (p.20), so the count
     // waits until both pushes are done ([countZonesAfterPushes]).
-    if (doubleLane && collect == null && state.lastWaveFlipped.isNotEmpty()) zoneCount()?.let { claim(claims, null, it) }
+    if (doubleLane && collect == null && state.lastWaveFlipped.isNotEmpty()) {
+        zoneCount()?.let { claim(claims, null, it) }
+    }
 }
 
 /** p.20: the Zone count after the end-of-round pushes of a double-lane map, made once for both Lanes. */

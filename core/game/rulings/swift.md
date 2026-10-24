@@ -19,12 +19,20 @@ Readings of Swift's cards (`catalog/heroes/swift.json`) beyond the plain text, i
    performed. Backup's "you cannot target minions" is part of that check (an attack card whose only
    targets are minions cannot be performed through Backup). Tests "Reload - a facedown …", "Backup - …".
 3. **Shotgun / Super-Shotgun, "Before the attack: An enemy hero adjacent to the target discards a
-   card, if able / , or is defeated".** p.17 "If Able": a sentence ending with "if able" is
-   non-mandatory as a whole, so Shotgun attacks even with no enemy hero next to the target. Super-
-   Shotgun's sentence has no "if able" and no "up to" (compare Arien's "Up to 1 enemy hero … discards a
-   card, or is defeated"), so it is mandatory (p.10 "all other steps are mandatory"): with no
-   targetable enemy hero next to the target the action stops before the attack. **Disagreement:**
-   goa2-backend makes that step optional for Super-Shotgun too. Tests "Super-Shotgun - …".
+   card, if able / , or is defeated".** The enemy hero is a target that must be found for both cards;
+   "if able" makes only Shotgun's discard optional. With no targetable enemy hero next to the target
+   the action stops before the attack (p.10). Sources: goa2-faq (Gydion, Energy Drain, the same
+   sentence shape): "you need to be able to target a hero first. 'If able' after a comma makes the
+   preceding step non-mandatory (p. 17), so it only applies to the 'discard' step"; p.10's example of
+   this sentence ("You choose one enemy hero in radius to target, then that hero chooses a card to
+   discard, if they have one"); and the card texts themselves — Gydion's Burning Hands says "Before
+   the attack: **Up to 1** enemy hero adjacent to the target discards a card, if able", which would
+   not need "Up to 1" if "if able" already made the hero optional. **Other reading (the hero batch's
+   first version, changed by the rules audit 2026-10-24):** p.17 "If a sentence ends with this
+   keyword, the clause preceding the keyword is non-mandatory" read as the whole sentence, so Shotgun
+   attacks with no enemy hero next to the target. The FAQ is ranked above the rulebook text for this
+   project and matches the printed "Up to 1" wording elsewhere, so it is kept. goa2-backend makes the
+   step optional for both cards. RULINGS 51. Tests "Shotgun - …", "Super-Shotgun - …".
 4. **[APP] Bullet Time, "you cannot target the same enemy hero twice in the same turn this way".** The
    extra primary action may not target any enemy hero Swift's actions already targeted this turn
    (the resolved card's own action, and actions it performed, e.g. Reload! performing a red card).
