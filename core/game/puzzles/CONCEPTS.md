@@ -137,6 +137,18 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Dangerous Current's "Before the attack" text resolves before the target is hit (p.14 order step 1, p.17) and reaches the 2 spaces in a straight line behind the target, whatever stands between — there are no line-of-sight rules (p.3, p.9). Wasp has no card left, so "discards a card, or is defeated" defeats her. A defeated hero's team spends Life counters equal to her lowest card tier (p.13); Red had one left, so the game ends immediately.
 - **Rules:** p.3 Line of sight; p.9 Range/Radius; p.13 When a hero is defeated; p.14 Attack/Defense detailed order; p.17 Before the attack, If able.
 - **Risk:** none ("directly behind" = continuing the line from Arien through the target, the card's own wording).
+- **Encoded as p01 (hardened 2026-10-24, changed):** the reviewers found every hero level 1 in round 3
+  and a single choice between two minions. Now round 3, turn 4, all four heroes level 2, and Red needs
+  **two** defeats (Red 2 Life counters, Blue 3). Brogan (Blue, L2, item `brogan-blue-2b`) at (2,−8) has
+  played `brogan-blue-2a` Mighty Punch (9) and acts first; Arien (L2, `arien-blue-2b` Attack item, hand
+  `arien-blue-2a`) at (0,−5) follows with Dangerous Current (6 + 1). Wasp (L2, `wasp-red-2b` Defense item,
+  hand Lift Up) at (1,−6), guarded by Red melee (0,−6) and (2,−6) and next to the Blue heavy (2,−7):
+  5 + 1 + 2 − 1 = 7, a tie that holds. Xargatha (L2, no cards) at (3,−5), already two spaces behind the
+  space east of Arien, past a Blue melee at (2,−5). Answer: Brogan moves to (1,−7) and pushes Wasp 1
+  space SE to (1,−5) (5 + 1 + 1 − 1 = 6); Arien targets Wasp, Xargatha behind is defeated, then Wasp
+  falls. Wrong tries refuted: punching the Red minion (0,−6) off Wasp (she falls where she stands, but
+  nobody is behind her: one counter), pushing Wasp 2 spaces. Solver: one winning option at every decision
+  (4 moves, 2 push targets, 3 distances, 2 attack targets).
 
 ### C02 — Worth Two Counters
 - **Theme:** Life counters by lowest tier; Block cards only stop their attack type. **Difficulty:** 1. **Heroes:** Garrus; Brogan, Wasp.
