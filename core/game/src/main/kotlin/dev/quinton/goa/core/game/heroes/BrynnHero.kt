@@ -2,6 +2,7 @@ package dev.quinton.goa.core.game.heroes
 
 import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.game.effects.CardScript
+import dev.quinton.goa.core.game.effects.Displacement
 import dev.quinton.goa.core.game.effects.HeroModule
 import dev.quinton.goa.core.game.effects.Registry
 import dev.quinton.goa.core.game.effects.canMoveOther
@@ -19,6 +20,7 @@ import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.engine.adjacentAttackTarget
 import dev.quinton.goa.core.game.engine.attack
 import dev.quinton.goa.core.game.engine.attackTarget
+import dev.quinton.goa.core.game.engine.canDisplace
 import dev.quinton.goa.core.game.engine.canSwap
 import dev.quinton.goa.core.game.engine.inRange
 import dev.quinton.goa.core.game.engine.isAdjacent
@@ -151,8 +153,10 @@ object BrynnHero : HeroModule {
                 "Move an enemy minion in radius 1 space",
                 "Move an enemy hero in radius who is adjacent to 3 or more obstacles 1 space",
             )
+                // A unit Brynn may not move (Brogan's Bulwark) is not offered: the move of 1 space is mandatory.
             fun candidates(i: Int) = a.unitsWithin(a.radius).filter { id ->
-                a.isEnemy(id) && id !in a.targets && a.canTarget(id) && bullets[i](id) && a.canMoveOther(id, 1)
+                a.isEnemy(id) && id !in a.targets && a.canTarget(id) && bullets[i](id) &&
+                    a.g.canDisplace(id, Displacement.MOVE, a.heroId) && a.canMoveOther(id, 1)
             }
             // "Choose up to two times, on different targets" (p.10: a single action; any order, a bullet
             // may be chosen again; "up to": none at all is allowed).

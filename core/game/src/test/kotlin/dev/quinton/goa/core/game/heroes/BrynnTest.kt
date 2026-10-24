@@ -148,6 +148,23 @@ class BrynnTest {
     }
 
     @Test
+    fun `Decoy - a minion Brynn may not move (Bulwark) is not offered`() {
+        val d = pos {
+            clearMinions()
+            hero("brynn", Team.RED, Hex(1, -5)) { played("brynn-silver") }
+            // Bulwark: "This turn: You and friendly units in radius cannot be moved … by enemy heroes."
+            hero("brogan", Team.BLUE, Hex(3, -5)) { resolved(1, "brogan-silver") }
+            effect("brogan", "brogan-silver", Timing.THIS_TURN, ActionKind.SKILL)
+            minion(Team.BLUE, MinionType.MELEE, Hex(2, -5)) // next to Brogan: protected
+            minion(Team.RED, MinionType.MELEE, Hex(-1, -2))
+            phase = PositionPhase.Resolving(next = "brynn")
+        }
+        // The only enemy minion in radius cannot be moved, and Brogan has fewer than 3 obstacles next to
+        // him: nothing can be moved, so Decoy has no Primary action (its moves are mandatory).
+        assertThat(d.actions()).doesNotContain(ActionType.PRIMARY)
+    }
+
+    @Test
     fun `Decoy - with no enemy minion or qualifying hero in radius there is no Primary action`() {
         val d = pos {
             clearMinions()
