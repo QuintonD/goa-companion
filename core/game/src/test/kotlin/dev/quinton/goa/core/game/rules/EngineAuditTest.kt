@@ -215,8 +215,10 @@ class EngineAuditTest {
             phase = PositionPhase.Resolving(next = "dodger")
         }
         s.action("dodger", ActionType.PRIMARY)
-        assertThat(s.texts()).contains("Dodger swaps two hidden cards.")
-        assertThat(s.texts().none { "Littlefinger" in it || "Shield of Decay" in it }).isTrue()
+        // Facedown is not a swapped card state (RULINGS 51): Shield of Decay leaves the hand for a faceup
+        // Turn slot (public, named); the facedown card goes to hand and stays unnamed.
+        assertThat(s.texts()).contains("Dodger swaps a hidden card and Shield of Decay.")
+        assertThat(s.texts().none { "Littlefinger" in it }).isTrue()
     }
 
     private companion object {
