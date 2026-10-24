@@ -22,5 +22,15 @@ object Puzzles {
         P11ByTheWatersEdge,
         P13EmptyTheSpawnPoint,
         P15Quickdraw,
+        P31KnifeOfTheLivingDead,
+        P32FightAsOne,
+        P33EvenABlockedShotPushes,
+        P36WhoGoesFirst,
+        P37ThePoisonedClock,
+        P41TheDuelistsOath,
+        P43CountTheMinions,
+        P45TheLesserEvil,
+        P46HurryUp,
+        P47SwoopIn,
     )
 }
