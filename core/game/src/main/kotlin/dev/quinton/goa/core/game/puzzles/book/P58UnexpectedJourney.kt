@@ -22,32 +22,33 @@ object P58UnexpectedJourney : Puzzle() {
         id = "p58",
         number = 58,
         title = "Unexpected Journey",
-        difficulty = 3,
+        difficulty = 2,
         theme = "Swaps, immunity and blocking",
-        heroes = listOf("hanu", "wuk", "brogan", "xargatha"),
+        heroes = listOf("hanu", "wuk", "xargatha", "brogan"),
         goal = PuzzleGoal.Survive(Deadline.END_OF_TURN, "Survive this turn: neither Hanu nor Wuk may be defeated."),
-        intro = "Round 4, turn 4. Hanu has played Unexpected Journey and acts next. Wuk has acted and has " +
-            "no cards left, so he can't defend. After Hanu, Brogan acts (Mad Dash, 8 with his Initiative " +
-            "item), then Xargatha (Threatening Slash, 7).",
+        intro = "Round 4, turn 4. Hanu has played Unexpected Journey (11 with his Initiative item) and acts " +
+            "next. Then Xargatha acts (Long Thrust, 9), then Brogan (Mad Dash, 8): both have an Initiative " +
+            "item. Wuk has already acted; his hand is empty.",
         nudges = listOf(
-            "Wuk can't defend: take away every way to reach him.",
-            "Hanu is blocking Brogan's charge. If he leaves, someone must take his place.",
-            "Swap with Xargatha.",
+            "Long Thrust's range is 1, plus 1 for each enemy unit next to Xargatha. Who is next to her now?",
+            "Swapping two pieces that stand side by side leaves them side by side.",
+            "Swap with Brogan.",
         ),
-        explanation = "A swap is neither movement nor placement: the two pieces just change places (p.19 " +
-            "Swap). Xargatha lands on Hanu's space, 2 spaces from both Wuk and Hanu, and Threatening Slash " +
-            "only hits adjacent units. She also becomes the wall: Brogan's only charge to Wuk runs 2 " +
-            "spaces through that very space, and Mad Dash needs exactly 2 empty spaces in a straight line " +
-            "(p.11; Brogan FAQ); his other lines end far from Wuk and Hanu. Swapping with Brogan, walking " +
-            "away or holding leaves Xargatha next to Wuk. At the end of the turn the two swap back (card " +
-            "text; p.17 End of Turn).",
+        explanation = "Wuk has no card, so any attack that reaches him defeats him (p.13). There are two " +
+            "threats. From where he stands, Brogan's Mad Dash runs two spaces to a space next to Wuk (p.11). " +
+            "Xargatha's Long Thrust has Range 1, +1 for each enemy unit adjacent to her (card text): 2 with " +
+            "Hanu beside her, and Wuk is two spaces away. Swapping with Xargatha (p.19 Swap) fixes neither: " +
+            "she and Hanu stay side by side, Wuk is still two from her, and Brogan still runs. Walking away " +
+            "shortens her range but leaves Brogan's runs open, or puts Hanu next to her again. Swap with " +
+            "Brogan: Hanu lands on his space, away from Xargatha, whose range drops to 1, and Brogan, now on " +
+            "Hanu's old space, has no run that ends next to Wuk or Hanu. He is immune this turn, and at the end " +
+            "of the turn the two swap back (card text; p.17 End of Turn). One swap can take away two threats.",
         rules = listOf(
+            "p.9 Range",
             "p.11 Movement in the Card Text",
             "p.13 Attacking a Hero",
             "p.17 End of Turn",
-            "p.18 Immune, Obstacle",
             "p.19 Swap",
-            "Brogan FAQ: Mad Dash",
         ),
     )
 
@@ -60,22 +61,35 @@ object P58UnexpectedJourney : Puzzle() {
         clearMinions()
         lifeCounters(Team.RED, 3)
         lifeCounters(Team.BLUE, 3)
-        hero("hanu", Team.BLUE, Hex(2, -7)) {
+        hero("hanu", Team.BLUE, Hex(0, -4)) {
+            level = 2
             played("hanu-blue-1")
             resolved(1, "hanu-gold")
             resolved(2, "hanu-silver")
-            resolved(3, "hanu-red-1")
-            hand("hanu-green-1")
+            resolved(3, "hanu-green-1")
+            hand("hanu-red-2b")
+            items("hanu-red-2a")
         }
-        hero("wuk", Team.BLUE, Hex(1, -5)) {
+        hero("wuk", Team.BLUE, Hex(0, -6)) {
+            level = 2
             resolved(1, "wuk-silver")
             resolved(2, "wuk-red-1")
-            resolved(3, "wuk-green-1")
+            resolved(3, "wuk-green-2a")
             resolved(4, "wuk-gold")
             discard("wuk-blue-1")
             hand()
+            items("wuk-green-2b")
         }
-        hero("brogan", Team.RED, Hex(2, -8)) {
+        hero("xargatha", Team.RED, Hex(1, -5)) {
+            level = 2
+            played("xargatha-red-2b")
+            resolved(1, "xargatha-gold")
+            resolved(2, "xargatha-silver")
+            resolved(3, "xargatha-green-1")
+            hand("xargatha-blue-1")
+            items("xargatha-red-2a")
+        }
+        hero("brogan", Team.RED, Hex(-1, -4)) {
             level = 2
             played("brogan-red-1")
             resolved(1, "brogan-gold")
@@ -84,30 +98,26 @@ object P58UnexpectedJourney : Puzzle() {
             hand("brogan-blue-2b")
             items("brogan-blue-2a")
         }
-        hero("xargatha", Team.RED, Hex(2, -5)) {
-            played("xargatha-red-1")
-            resolved(1, "xargatha-gold")
-            resolved(2, "xargatha-silver")
-            resolved(3, "xargatha-green-1")
-            hand("xargatha-blue-1")
-        }
-        minion(Team.RED, MinionType.MELEE, Hex(0, -6))
+        minion(Team.RED, MinionType.MELEE, Hex(-1, -3))
         minion(Team.RED, MinionType.HEAVY, Hex(1, 0))
-        minion(Team.BLUE, MinionType.MELEE, Hex(3, -1))
-        minion(Team.BLUE, MinionType.HEAVY, Hex(5, -8))
+        minion(Team.BLUE, MinionType.MELEE, Hex(3, -6))
+        minion(Team.BLUE, MinionType.HEAVY, Hex(2, -7))
         phase = PositionPhase.Resolving(next = "hanu")
     }
 
-    override val solution = listOf(action(ActionType.PRIMARY), hero("xargatha"))
+    override val solution = listOf(action(ActionType.PRIMARY), hero("brogan"))
 
     override val nudgedMoves = solution
 
     override val wrongTries = listOf(
         WrongTry(
-            "Swap with Brogan: Xargatha stays next to Wuk, and Brogan charges from Hanu's space",
-            listOf(action(ActionType.PRIMARY), hero("brogan")),
+            "Swap with Xargatha: she stays next to Hanu, and from his old space Wuk is still in her range 2",
+            listOf(action(ActionType.PRIMARY), hero("xargatha")),
         ),
-        WrongTry("Walk away: Xargatha stays next to Wuk", listOf(action(ActionType.MOVEMENT))),
-        WrongTry("Hold: Xargatha stays next to Wuk", listOf(action(ActionType.HOLD))),
+        WrongTry(
+            "Walk away: Brogan's runs stay open, or Hanu ends beside Xargatha again",
+            listOf(action(ActionType.MOVEMENT)),
+        ),
+        WrongTry("Hold: Xargatha's range 2 reaches Wuk", listOf(action(ActionType.HOLD))),
     )
 }
