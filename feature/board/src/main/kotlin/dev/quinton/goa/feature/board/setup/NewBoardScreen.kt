@@ -210,13 +210,13 @@ private fun NewBoardContent(
                         latest?.let {
                             LatestCard(it, { onSetUpLatest(it) }, onEdit = { onAction(NewBoardAction.Use(it)) })
                         }
-                        Teams(state, onAction)
+                        Teams(state.picker, onAction)
                     }
                     SetUpBar(state, onAction, onSetUp)
                 }
                 Column(Modifier.weight(0.58f).fillMaxHeight()) {
                     search(Modifier.padding(start = Spacing.sm, end = Spacing.screen))
-                    HeroGrid(shown, state, onAction, large, start = Spacing.sm, end = Spacing.screen)
+                    HeroGrid(shown, state.picker, onAction, large, start = Spacing.sm, end = Spacing.screen)
                 }
             }
         } else {
@@ -231,10 +231,10 @@ private fun NewBoardContent(
                             LatestCard(it, { onSetUpLatest(it) }, onEdit = { onAction(NewBoardAction.Use(it)) })
                         }
                     },
-                    other = { Teams(state, onAction) },
+                    other = { Teams(state.picker, onAction) },
                 )
                 search(Modifier.padding(horizontal = Spacing.screen))
-                HeroGrid(shown, state, onAction, large, start = Spacing.screen, end = Spacing.screen)
+                HeroGrid(shown, state.picker, onAction, large, start = Spacing.screen, end = Spacing.screen)
                 SetUpBar(state, onAction, onSetUp)
             }
         }
@@ -246,7 +246,7 @@ private fun NewBoardContent(
  * measured; only the shown one is placed, so only it draws, takes touches and is heard).
  */
 @Composable
-private fun OneOf(
+internal fun OneOf(
     first: Boolean,
     one: @Composable () -> Unit,
     other: @Composable () -> Unit,
@@ -263,379 +263,6 @@ private fun OneOf(
 }
 
 private enum class OneOfSlot { ONE, OTHER }
-
-/**
- * The heroes to pick from. In portrait the columns are chosen so every hero fits without
- * scrolling ([heroGridColumns]); with large text, fewer and bigger tiles that scroll.
- */
-@Composable
-private fun ColumnScope.HeroGrid(
-    shown: List<BoardHero>,
-    state: NewBoardUiState.Ready,
-    onAction: (NewBoardAction) -> Unit,
-    large: Boolean,
-    start: Dp,
-    end: Dp,
-) {
-    val density = LocalDensity.current
-    val label = with(density) { MaterialTheme.typography.labelSmall.lineHeight.toDp() } + LABEL_GAP
-    BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-        if (large) {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(TILE_LARGE),
-                contentPadding = PaddingValues(start = start, end = end, bottom = Spacing.md),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                heroTiles(shown, state, onAction, pad = 0.dp)
-            }
-        } else {
-            // Each cell is its tile plus half the gap on every side, all of it the tap target: a
-            // 42 dp portrait still takes a 48 dp tap.
-            val half = TILE_GAP / 2
-            val extra = if (state.ownedOnly) OWNED_ROW + Spacing.sm else 0.dp
-            val columns = heroGridColumns(
-                count = shown.size.coerceAtLeast(1),
-                width = (maxWidth - start - end + TILE_GAP).value,
-                height = (maxHeight - Spacing.md).value,
-                label = label.value,
-                spacing = 0f,
-                extra = extra.value,
-                minTile = (TILE_MIN + TILE_GAP).value,
-                maxTile = (TILE_MAX + TILE_GAP).value,
-            )
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(columns),
-                contentPadding = PaddingValues(start = start - half, end = end - half, bottom = Spacing.md),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                heroTiles(shown, state, onAction, pad = half)
-            }
-        }
-    }
-}
-
-private fun LazyGridScope.heroTiles(
-    heroes: List<BoardHero>,
-    state: NewBoardUiState.Ready,
-    onAction: (NewBoardAction) -> Unit,
-    pad: Dp,
-) {
-    items(heroes, key = { it.id }) { hero -> HeroTile(hero, state, onAction, pad) }
-    if (heroes.isEmpty()) {
-        item(key = "none", span = { GridItemSpan(maxLineSpan) }) {
-            Text(
-                "No hero matches this search.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(Spacing.lg),
-            )
-        }
-    }
-    if (state.ownedOnly) {
-        item(key = "owned", span = { GridItemSpan(maxLineSpan) }) {
-            val all = state.form.showAll
-            TextButton(
-                onClick = { onAction(NewBoardAction.ShowAll(!all)) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            ) {
-                Text(
-                    if (all) "Only heroes you own" else "Show all heroes (${state.hiddenHeroes} you don't own)",
-                    textAlign = TextAlign.Center,
-                )
-            }
-        }
-    }
-}
-
-/** "Adding to": the team the next tapped hero joins. */
-@Composable
-private fun TeamSwitch(filling: Team, onPick: (Team) -> Unit) {
-    SingleChoiceSegmentedButtonRow(Modifier.semantics { contentDescription = "Adding to" }) {
-        Team.entries.forEachIndexed { i, team ->
-            val color = teamColor(team)
-            SegmentedButton(
-                selected = filling == team,
-                onClick = { onPick(team) },
-                shape = SegmentedButtonDefaults.itemShape(i, Team.entries.size),
-                icon = { TeamMark(team, markSize = 10.dp) },
-                colors = SegmentedButtonDefaults.colors(
-                    activeContainerColor = color.copy(alpha = 0.18f),
-                    activeBorderColor = color,
-                    activeContentColor = MaterialTheme.colorScheme.onSurface,
-                    inactiveContainerColor = MaterialTheme.colorScheme.surface,
-                    inactiveBorderColor = GoaTheme.colors.engravedBorder,
-                ),
-                modifier = Modifier
-                    .heightIn(min = 48.dp)
-                    .semantics { stateDescription = if (filling == team) "Next pick" else "" },
-            ) {
-                Text(BoardText.team(team), maxLines = 1)
-            }
-        }
-    }
-}
-
-@Composable
-private fun Teams(state: NewBoardUiState.Ready, onAction: (NewBoardAction) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Team.entries.forEach { team -> TeamRow(state, team, onAction) }
-    }
-}
-
-/** One team's heroes in pick order; tap the row to pick for this team next. */
-@Composable
-private fun TeamRow(state: NewBoardUiState.Ready, team: Team, onAction: (NewBoardAction) -> Unit) {
-    val color = teamColor(team)
-    val filling = state.form.filling == team
-    val heroes = state.team(team)
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = if (filling) color.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(if (filling) 2.dp else 1.dp, if (filling) color else GoaTheme.colors.engravedBorder),
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 52.dp)
-            .selectable(selected = filling, role = Role.RadioButton) { onAction(NewBoardAction.Fill(team)) }
-            .semantics { stateDescription = if (filling) "Next pick" else "" },
-    ) {
-        Row(Modifier.padding(start = Spacing.md, end = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-            TeamMark(team, markSize = scaledIconSize(11.dp))
-            Spacer(Modifier.width(Spacing.xs))
-            Text(
-                BoardText.team(team),
-                style = MaterialTheme.typography.titleSmall,
-                color = color,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.widthIn(min = 40.dp),
-            )
-            Spacer(Modifier.width(Spacing.xs))
-            if (heroes.isEmpty()) {
-                Text(
-                    if (filling) "Tap heroes below" else "Tap here to pick for ${BoardText.team(team)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-            } else {
-                // Every pick stays in sight: the chips share the row, a long name gives way first.
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f).padding(vertical = Spacing.xs),
-                ) {
-                    heroes.forEachIndexed { index, hero ->
-                        key(hero.id) {
-                            SlotChip(hero, team, index, heroes.size, state, onAction, Modifier.weight(1f, fill = false))
-                        }
-                    }
-                }
-            }
-            // Spelled out while the team is empty; once it has heroes the border marks it (and the
-            // "Adding to" switch), so the words never push a pick out of the row.
-            if (filling && heroes.isEmpty() && LocalDensity.current.fontScale <= LARGE_FONT) {
-                Text(
-                    "Next pick",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = color,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    modifier = Modifier.padding(start = Spacing.xs),
-                )
-            }
-        }
-    }
-}
-
-/** A hero in a team: its pick number and name; tap for Move earlier / later, Switch team, Remove. */
-@Composable
-private fun SlotChip(
-    hero: BoardHero,
-    team: Team,
-    index: Int,
-    count: Int,
-    state: NewBoardUiState.Ready,
-    onAction: (NewBoardAction) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var menu by remember { mutableStateOf(false) }
-    val color = teamColor(team)
-    Box(modifier) {
-        Surface(
-            onClick = { menu = true },
-            shape = RoundedCornerShape(50),
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, color.copy(alpha = 0.8f)),
-            modifier = Modifier
-                .heightIn(min = 40.dp)
-                .semantics { contentDescription = "Pick ${index + 1}: ${hero.name}. Change" },
-        ) {
-            Row(
-                Modifier.padding(start = 4.dp, end = Spacing.sm, top = 3.dp, bottom = 3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                HeroPortrait(
-                    hero.id,
-                    hero.portrait,
-                    null,
-                    Modifier.size(scaledIconSize(30.dp, maxScale = 1.4f)).border(1.5.dp, color, CircleShape),
-                    shape = CircleShape,
-                    framed = false,
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    "${index + 1}",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = color,
-                    fontWeight = FontWeight.Bold,
-                )
-                Spacer(Modifier.width(Spacing.xs))
-                Text(
-                    hero.name,
-                    style = MaterialTheme.typography.labelLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-            if (index > 0) {
-                DropdownMenuItem(
-                    text = { Text("Move earlier") },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Outlined.ArrowBack, null) },
-                    onClick = {
-                        menu = false
-                        onAction(NewBoardAction.Reorder(hero.id, -1))
-                    },
-                )
-            }
-            if (index < count - 1) {
-                DropdownMenuItem(
-                    text = { Text("Move later") },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Outlined.ArrowForward, null) },
-                    onClick = {
-                        menu = false
-                        onAction(NewBoardAction.Reorder(hero.id, 1))
-                    },
-                )
-            }
-            if (state.form.team(team.opponent).size < NewBoardUiState.MAX_PER_TEAM) {
-                DropdownMenuItem(
-                    text = { Text("Move to ${BoardText.team(team.opponent)}") },
-                    leadingIcon = { Icon(Icons.Outlined.SwapHoriz, null) },
-                    onClick = {
-                        menu = false
-                        onAction(NewBoardAction.SwitchTeam(hero.id))
-                    },
-                )
-            }
-            DropdownMenuItem(
-                text = { Text("Remove") },
-                leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },
-                onClick = {
-                    menu = false
-                    onAction(NewBoardAction.Remove(hero.id))
-                },
-            )
-        }
-    }
-}
-
-@Composable
-private fun HeroTile(hero: BoardHero, state: NewBoardUiState.Ready, onAction: (NewBoardAction) -> Unit, pad: Dp) {
-    val team = when (hero.id) {
-        in state.form.red -> Team.RED
-        in state.form.blue -> Team.BLUE
-        else -> null
-    }
-    val pick = team?.let { state.form.team(it).indexOf(hero.id) + 1 }
-    val filling = state.form.filling
-    val full = team == null && state.full
-    val description = when {
-        team != null -> "${hero.name}, ${BoardText.team(team)} pick $pick"
-        else -> hero.name
-    }
-    val action = when {
-        team != null -> "Remove from ${BoardText.team(team)}"
-        full -> null
-        state.form.team(filling).size < NewBoardUiState.MAX_PER_TEAM -> "Add to ${BoardText.team(filling)}"
-        else -> "Add to ${BoardText.team(filling.opponent)}"
-    }
-    val color = team?.let { teamColor(it) }
-    // The whole cell, name and [pad] included, takes the tap: small tiles stay easy to hit.
-    Column(
-        Modifier
-            .clip(MaterialTheme.shapes.medium)
-            .clickable(enabled = action != null) { onAction(NewBoardAction.Tap(hero.id)) }
-            .padding(pad)
-            .clearAndSetSemantics {
-                contentDescription = description
-                if (action != null) {
-                    onClick(label = action) {
-                        onAction(NewBoardAction.Tap(hero.id))
-                        true
-                    }
-                }
-            },
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            color = MaterialTheme.colorScheme.surface,
-            border = color?.let { BorderStroke(2.dp, it) },
-            modifier = Modifier.fillMaxWidth().aspectRatio(1f),
-        ) {
-            Box {
-                HeroPortrait(hero.id, hero.portrait, null, Modifier.fillMaxSize())
-                if (team != null && pick != null && color != null) {
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = MaterialTheme.colorScheme.background.copy(alpha = 0.9f),
-                        border = BorderStroke(1.dp, color),
-                        modifier = Modifier.align(Alignment.TopStart).padding(3.dp),
-                    ) {
-                        Row(
-                            Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            TeamMark(team, markSize = 8.dp)
-                            Spacer(Modifier.width(2.dp))
-                            Text(
-                                "$pick",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = color,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        // Shrinks to fit a small tile rather than cutting the name ("Silverarrow", not "Silvera…").
-        val style = MaterialTheme.typography.labelSmall
-        BasicText(
-            hero.name,
-            style = style.copy(
-                textAlign = TextAlign.Center,
-                letterSpacing = 0.sp,
-                color = if (action == null && team == null) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-            ),
-            // One line that may wrap, and Clip: a name too wide then overflows the line and the size
-            // steps down until it fits (an ellipsis or no wrapping would count as fitting).
-            maxLines = 1,
-            overflow = TextOverflow.Clip,
-            autoSize = TextAutoSize.StepBased(minFontSize = LABEL_MIN, maxFontSize = style.fontSize),
-            modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
-        )
-    }
-}
 
 /** The map ("Map: Forgotten Island ▾", a menu of the bundled maps) and Set up. */
 @Composable
@@ -783,13 +410,5 @@ private fun SourceRow(source: LineupSource, onClick: () -> Unit) {
     }
 }
 
-/** Portrait tiles: as big as fits, between these; with the gap around it a tile is at least a 48 dp tap. */
-private val TILE_MIN = 42.dp
-private val TILE_MAX = 64.dp
-private val TILE_GAP = 6.dp
-private val LABEL_GAP = 2.dp
-private val LABEL_MIN = 7.sp
-private val OWNED_ROW = 48.dp
-private val TILE_LARGE = 104.dp
 private const val LARGE_FONT = 1.3f
 private const val SHEET_HEIGHT = 0.9f

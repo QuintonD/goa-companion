@@ -82,6 +82,9 @@ sealed interface NewBoardUiState {
 
         val full: Boolean get() = form.red.size >= MAX_PER_TEAM && form.blue.size >= MAX_PER_TEAM
 
+        /** The teams and hero grid (shared with New game). */
+        val picker: LineupPicker get() = LineupPicker(form, heroes, heroById, hiddenHeroes, ownedOnly)
+
         /** The newest draft or match: "Set up" on it is one tap. */
         val latest: LineupSource? get() = sources.firstOrNull()
     }
