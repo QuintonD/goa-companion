@@ -315,3 +315,10 @@ What each hero needs beyond plain actions, and the framework pieces that cover i
   script; the engine treats `HeroState.at` as the body that acts.
 - NebKher performing another hero's card runs that card's script with NebKher as `heroId`; scripts
   should use `a.heroId`/`a.hero` (never a hard-coded hero id) for "you".
+
+### Tigerclaw
+
+- `ActionScope.attack(noPrimaryDefense = true)` ("the target cannot perform a primary action to
+  defend", Backstab with a Ballista): `Combat.defend` leaves out of the defender's options every card
+  whose Defense action is its Primary action (Defense and Defense/Skill cards, p.14); cards with a
+  secondary Defense action still defend. `TigerclawTest` "Backstab with a Ballista".
