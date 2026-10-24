@@ -254,6 +254,7 @@ fun Game.resolveCard(heroId: String) {
             return
         }
     }
+    trigger(Trigger.ChoosingAction(heroId, cardId))
     val answer = askAlways(heroId, DecisionKind.CHOOSE_ACTION, "Choose an action for ${cardName(cardId)}", cardId) {
         actionOptions(heroId, cardId).map { Choice.Action(it) }
     } as Choice.Action

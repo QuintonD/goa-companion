@@ -192,11 +192,23 @@ object WidgetHero : HeroModule {
             // "If Pyro is in play, move both yourself and Pyro up to 2 spaces, in any order."
             val order = a.chooseOption("Who moves first?", listOf("You first", "Pyro first"))
             if (order == 0) {
-                a.g.move(MoveSpec(a.heroId, 0, 2), a.heroId, "Move up to 2 spaces", optional = true, sourceCardId = a.cardId)
+                a.g.move(
+                    MoveSpec(a.heroId, 0, 2),
+                    a.heroId,
+                    "Move up to 2 spaces",
+                    optional = true,
+                    sourceCardId = a.cardId,
+                )
                 a.movePyroUpTo(2)
             } else {
                 a.movePyroUpTo(2)
-                a.g.move(MoveSpec(a.heroId, 0, 2), a.heroId, "Move up to 2 spaces", optional = true, sourceCardId = a.cardId)
+                a.g.move(
+                    MoveSpec(a.heroId, 0, 2),
+                    a.heroId,
+                    "Move up to 2 spaces",
+                    optional = true,
+                    sourceCardId = a.cardId,
+                )
             }
         }
 
@@ -239,7 +251,10 @@ object WidgetHero : HeroModule {
                     HexGrid.inStraightLine(from, a.g.posOf(id)!!) && a.canTarget(id)
             }
             if (victims.isEmpty()) a.fizzle("no enemy hero in range of Pyro and in a straight line from it")
-            val v = a.chooseUnit("An enemy hero in range of Pyro, in a straight line from it, discards a card", victims)!!
+            val v = a.chooseUnit(
+                "An enemy hero in range of Pyro, in a straight line from it, discards a card",
+                victims,
+            )!!
             if (orDefeated) a.discardOrDefeat(v) else a.discardIfAble(v)
         }
     }
@@ -268,7 +283,13 @@ object WidgetHero : HeroModule {
             // Safe Landing: "You may move Pyro in range 1 space."
             if (moveFirst) {
                 a.pyroWithin(a.range)?.let { p ->
-                    a.g.move(MoveSpec(p.id, 1, 1), a.heroId, "You may move Pyro 1 space", optional = true, sourceCardId = a.cardId)
+                    a.g.move(
+                        MoveSpec(p.id, 1, 1),
+                        a.heroId,
+                        "You may move Pyro 1 space",
+                        optional = true,
+                        sourceCardId = a.cardId,
+                    )
                 }
             }
             // "Swap Pyro in range with yourself or with a friendly hero in range."
@@ -307,7 +328,12 @@ object WidgetHero : HeroModule {
             val uAt = a.g.posOf(u)!!
             val all = plans(a, pAt, u)
             fun end(from: Hex, dir: Int, n: Int) = a.g.straightLineFrom(from, dir, n).last()
-            val pyroEnd = a.chooseSpace("Move Pyro 2 or 3 spaces in a straight line", all.map { end(pAt, it.dir, it.k) })!!
+            val pyroEnd = a.chooseSpace(
+                "Move Pyro 2 or 3 spaces in a straight line",
+                all.map {
+                    end(pAt, it.dir, it.k)
+                },
+            )!!
             val withPyro = all.filter { end(pAt, it.dir, it.k) == pyroEnd }
             val unitEnd = a.chooseSpace(
                 "Move ${a.g.name(u)} 2 or 3 spaces in the same direction",
@@ -366,7 +392,15 @@ object WidgetHero : HeroModule {
          * empty), [filled] its new one.
          */
         @Suppress("LongParameterList")
-        private fun lineOk(a: ActionScope, mover: String, start: Hex, dir: Int, n: Int, vacated: Hex?, filled: Hex?): Boolean {
+        private fun lineOk(
+            a: ActionScope,
+            mover: String,
+            start: Hex,
+            dir: Int,
+            n: Int,
+            vacated: Hex?,
+            filled: Hex?,
+        ): Boolean {
             val line = a.g.straightLineFrom(start, dir, n)
             for ((i, h) in line.withIndex()) {
                 val free = when (h) {

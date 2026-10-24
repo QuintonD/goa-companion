@@ -137,7 +137,10 @@ class SetupTest {
 
     @Test
     fun `only complete heroes are playable`() {
-        assertThat(engine.playableHeroes).containsExactly("arien", "brogan", "wasp", "xargatha")
+        // Playable = complete (hero batches add theirs); the four first-game heroes always are.
+        val complete = dev.quinton.goa.core.game.heroes.Heroes.all.filter { it.complete }.map { it.heroId }
+        assertThat(engine.playableHeroes).containsExactlyElementsIn(complete)
+        assertThat(engine.playableHeroes).containsAtLeast("arien", "brogan", "wasp", "xargatha")
         val setup = TestData.firstGame().let {
             it.copy(
                 seats =

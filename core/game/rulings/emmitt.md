@@ -35,8 +35,8 @@ tests: `heroes/EmmittTest.kt`.
    away and back did not remain; a hero who was off the board at the start of the turn did not remain.
    Reason: "remained" says it never left. **Disagreement:** goa2-backend compares the two positions
    only (leaving and returning counts as remaining). Engine: Emmitt's hero rule records displacements
-   in `TurnRecord.notes`. Known limit: Razzle's acting-figure bookkeeping (rulings/razzle.md) is not a
-   displacement but changes which space the id `razzle` names.
+   in `TurnRecord.notes`. Known limit: with Razzle, the per-id record does not follow her acting-figure
+   bookkeeping (rulings/razzle.md 13).
 8. **"who has already resolved a card this turn"** — the hero's card was put on its Turn slot this
    turn (p.7 "Resolve Your Card"), so a hero still to act does not qualify.
 9. **Back to the Future — place bullet.** A unit in range (never Emmitt himself: goa2-faq "Can my hero

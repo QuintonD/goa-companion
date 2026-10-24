@@ -5,6 +5,8 @@ import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.game.engine.ActionKind
+import dev.quinton.goa.core.game.engine.Timing
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.heroes.batch6.RandomGames
 import dev.quinton.goa.core.game.pos
@@ -32,6 +34,7 @@ class EmmittTest {
             hero("arien", Team.BLUE, Hex(-1, -5)) { hand("arien-blue-1", "arien-red-1") }
             minion(Team.BLUE, MinionType.MELEE, Hex(2, -2))
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))
+            minion(Team.RED, MinionType.MELEE, Hex(4, -7)) // no Lane push when a Blue minion falls
             phase = PositionPhase.Resolving(next = "emmitt")
         }
         d.action("emmitt", ActionType.PRIMARY)
@@ -76,6 +79,7 @@ class EmmittTest {
             hero("arien", Team.BLUE, Hex(-1, -5))
             minion(Team.BLUE, MinionType.MELEE, Hex(2, -2))
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))
+            minion(Team.RED, MinionType.MELEE, Hex(4, -7)) // no Lane push when a Blue minion falls
             phase = PositionPhase.Resolving(next = "emmitt")
         }
         assertThat(d.actions()).doesNotContain(ActionType.PRIMARY)
@@ -149,7 +153,11 @@ class EmmittTest {
         val to = t.at
         d.token(t.id)
         assertThat(d.at("emmitt")).isEqualTo(to)
-        assertThat(d.texts().any { it.startsWith("Emmitt defends with Unstable Timeline") && "Defended" in it }).isTrue()
+        assertThat(
+            d.texts().any {
+                it.startsWith("Emmitt defends with Unstable Timeline") && "Defended" in it
+            },
+        ).isTrue()
     }
 
     // ---- Temporal Punch / Slam / Judgment (red) ------------------------------------------------
@@ -206,6 +214,7 @@ class EmmittTest {
             hero("arien", Team.BLUE, Hex(3, -2)) // in radius
             minion(Team.BLUE, MinionType.MELEE, Hex(2, -2)) // the target
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))
+            minion(Team.RED, MinionType.MELEE, Hex(4, -7)) // no Lane push when a Blue minion falls
             phase = PositionPhase.Resolving(next = "emmitt")
         }
         d.action("emmitt", ActionType.PRIMARY)
@@ -236,6 +245,7 @@ class EmmittTest {
             hero("arien", Team.BLUE, Hex(3, -2))
             minion(Team.BLUE, MinionType.MELEE, Hex(2, -2))
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))
+            minion(Team.RED, MinionType.MELEE, Hex(4, -7)) // no Lane push when a Blue minion falls
             phase = PositionPhase.Resolving(next = "emmitt")
         }
         d.action("emmitt", ActionType.PRIMARY)
@@ -608,6 +618,130 @@ class EmmittTest {
         d.decline()
         d.play("arien", "arien-gold")
         assertThat(d.d.kind).isEqualTo(DecisionKind.CHOOSE_ACTION)
+    }
+
+    // ---- immunity, items, Active effect duration -----------------------------------------------
+
+    @Test
+    fun `Temporal Punch - the defender adds their Initiative items (p16)`() {
+        val d = pos {
+            clearMinions()
+            hero("emmitt", Team.RED, Hex(1, -2)) { played("emmitt-red-1") } // Attack 9
+            hero("arien", Team.BLUE, Hex(2, -2)) {
+                hand("arien-red-1") // Initiative 8
+                items("arien-blue-2a") // +1 Initiative
+            }
+            phase = PositionPhase.Resolving(next = "emmitt")
+        }
+        d.action("emmitt", ActionType.PRIMARY)
+        d.defend("arien-red-1")
+        assertThat(d.at("arien")).isEqualTo(Hex(2, -2))
+        val defended = d.s.events.filterIsInstance<dev.quinton.goa.core.game.GameEvent.Defended>().single()
+        assertThat(defended.total).isEqualTo(9)
+    }
+
+    @Test
+    fun `Temporal Punch - a hero immune to attack actions can't be targeted, Time Snare still can (p18)`() {
+        fun build(card: String, init: String) = pos {
+            clearMinions()
+            hero("emmitt", Team.RED, Hex(1, -2)) { played(card) }
+            hero("arien", Team.BLUE, Hex(2, -2)) {
+                played(init)
+                discard("arien-blue-2a")
+                hand("arien-gold", "arien-silver")
+            }
+            // Expert Duelist, used against another attacker: immune to Emmitt's attack actions this turn.
+            effect("arien", "arien-blue-2a", Timing.THIS_TURN, ActionKind.DEFENSE, data = mapOf("attacker" to "wasp"))
+            phase = PositionPhase.Resolving(next = "emmitt")
+        }
+        assertThat(build("emmitt-red-1", "arien-green-1").actions()).doesNotContain(ActionType.PRIMARY)
+        // Time Snare is a skill: the attack immunity does not protect Arien (Initiative 10, resolves first).
+        val d = pos {
+            clearMinions()
+            hero("emmitt", Team.RED, Hex(1, -2)) { played("emmitt-blue-1") }
+            hero("arien", Team.BLUE, Hex(2, -2)) {
+                played("arien-blue-2b")
+                discard("arien-blue-2a")
+                hand("arien-gold", "arien-silver")
+            }
+            effect("arien", "arien-blue-2a", Timing.THIS_TURN, ActionKind.DEFENSE, data = mapOf("attacker" to "wasp"))
+            phase = PositionPhase.Resolving()
+        }
+        d.action("arien", ActionType.HOLD)
+        d.action("emmitt", ActionType.PRIMARY)
+        d.expect(DecisionKind.CHOOSE_CARD, "arien")
+    }
+
+    @Test
+    fun `Reverse Time - cancelled when Emmitt is defeated before next turn (p17)`() {
+        val d = pos {
+            clearMinions()
+            hero("emmitt", Team.RED, Hex(1, -2)) {
+                played("emmitt-gold") // init 11
+                hand()
+            }
+            hero("wasp", Team.RED, Hex(-1, -5)) { hand("wasp-red-1", "wasp-gold") }
+            hero("arien", Team.BLUE, Hex(1, -1)) {
+                played("arien-red-1") // init 8, next to Emmitt
+                hand("arien-blue-1")
+            }
+            hero("brogan", Team.BLUE, Hex(4, -5)) { hand("brogan-green-1") }
+            phase = PositionPhase.Resolving(next = "emmitt")
+        }
+        d.action("emmitt", ActionType.PRIMARY)
+        d.defend("arien-blue-1") // Defense 5 against Attack 4
+        assertThat(d.s.state.effects.map { it.cardId }).contains("emmitt-gold")
+        d.action("arien", ActionType.PRIMARY) // Emmitt, with no card in hand, is defeated
+        assertThat(d.at("emmitt")).isNull()
+        assertThat(d.s.state.effects.map { it.cardId }).doesNotContain("emmitt-gold")
+        // Turn 2: normal order, Wasp 8 before Brogan 6.
+        d.expect(DecisionKind.PLAY_CARD, "emmitt")
+        d.answer(Choice.Pass)
+        d.play("wasp", "wasp-red-1")
+        d.expect(DecisionKind.PLAY_CARD, "arien")
+        d.answer(Choice.Pass)
+        d.play("brogan", "brogan-green-1")
+        d.expect(DecisionKind.CHOOSE_ACTION, "wasp")
+    }
+
+    @Test
+    fun `Future Proof - the immunity ends with the turn (p19 This turn)`() {
+        val d = pos {
+            clearMinions()
+            hero("emmitt", Team.RED, Hex(-1, -2)) {
+                played("emmitt-green-3b")
+                hand()
+            }
+            hero("wasp", Team.RED, Hex(3, -2)) { hand("wasp-green-1", "wasp-red-1") }
+            hero("arien", Team.BLUE, Hex(2, -2)) {
+                played("arien-red-1")
+                hand("arien-gold")
+            }
+            phase = PositionPhase.Resolving(next = "emmitt")
+        }
+        d.action("emmitt", ActionType.PRIMARY)
+        assertThat(d.actions()).doesNotContain(ActionType.PRIMARY)
+        d.action("arien", ActionType.HOLD)
+        d.answer(Choice.Pass) // Emmitt has no card
+        d.play("wasp", "wasp-green-1")
+        d.play("arien", "arien-gold")
+        d.action("arien", ActionType.PRIMARY)
+        d.expect(DecisionKind.DEFEND, "wasp")
+    }
+
+    @Test
+    fun `Unstable Timeline - a Radius item widens where the tokens may go (p16)`() {
+        val d = pos {
+            clearMinions()
+            hero("emmitt", Team.RED, Hex(1, -2)) {
+                played("emmitt-silver") // radius 4 + 1 (Time Warp as an item)
+                items("emmitt-blue-3b")
+            }
+            hero("arien", Team.BLUE, Hex(-5, -4))
+            phase = PositionPhase.Resolving(next = "emmitt")
+        }
+        d.action("emmitt", ActionType.PRIMARY)
+        assertThat(d.spaces().maxOf { HexGrid.distance(it, Hex(1, -2)) }).isEqualTo(5)
     }
 
     // ---- random games ---------------------------------------------------------------------------

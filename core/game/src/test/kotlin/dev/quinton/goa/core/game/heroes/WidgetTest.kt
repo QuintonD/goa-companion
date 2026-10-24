@@ -5,6 +5,8 @@ import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.game.engine.ActionKind
+import dev.quinton.goa.core.game.engine.Timing
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.heroes.batch6.RandomGames
 import dev.quinton.goa.core.game.pos
@@ -101,6 +103,7 @@ class WidgetTest {
             hero("arien", Team.BLUE, Hex(-1, -5))
             minion(Team.BLUE, MinionType.MELEE, Hex(2, -2))
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))
+            minion(Team.RED, MinionType.MELEE, Hex(4, -7)) // no Lane push when a Blue minion falls
             phase = PositionPhase.Resolving(next = "widget")
         }
         assertThat(d.actions()).doesNotContain(ActionType.PRIMARY)
@@ -232,6 +235,7 @@ class WidgetTest {
             hero("arien", Team.BLUE, Hex(-1, -5))
             minion(Team.BLUE, MinionType.MELEE, Hex(2, -2))
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))
+            minion(Team.RED, MinionType.MELEE, Hex(4, -7)) // no Lane push when a Blue minion falls
             token(pyro, Hex(-1, -2), owner = "widget")
             phase = PositionPhase.Resolving(next = "widget")
         }
@@ -252,6 +256,7 @@ class WidgetTest {
             hero("arien", Team.BLUE, Hex(-1, -5))
             minion(Team.BLUE, MinionType.MELEE, Hex(2, -2))
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))
+            minion(Team.RED, MinionType.MELEE, Hex(4, -7)) // no Lane push when a Blue minion falls
             phase = PositionPhase.Resolving(next = "widget")
         }
         d.action("widget", ActionType.PRIMARY)
@@ -268,6 +273,7 @@ class WidgetTest {
                 hero("arien", Team.BLUE, Hex(-5, -4))
                 minion(Team.BLUE, MinionType.MELEE, Hex(2, -2))
                 minion(Team.BLUE, MinionType.MELEE, Hex(4, -4))
+                minion(Team.RED, MinionType.MELEE, Hex(4, -7)) // no Lane push when a Blue minion falls
                 token(pyro, Hex(1, -5), owner = "widget")
                 phase = PositionPhase.Resolving(next = "widget")
             }
@@ -286,6 +292,7 @@ class WidgetTest {
             hero("arien", Team.BLUE, Hex(-1, -5))
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -2)) // adjacent to Pyro only
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))
+            minion(Team.RED, MinionType.MELEE, Hex(4, -7)) // no Lane push when a Blue minion falls
             token(pyro, Hex(3, -2), owner = "widget")
             phase = PositionPhase.Resolving(next = "widget")
         }
@@ -308,6 +315,7 @@ class WidgetTest {
             hero("arien", Team.BLUE, Hex(-1, -5))
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -2))
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))
+            minion(Team.RED, MinionType.MELEE, Hex(4, -7)) // no Lane push when a Blue minion falls
             token(pyro, Hex(3, -2), owner = "widget")
             phase = PositionPhase.Resolving(next = "widget")
         }
@@ -325,6 +333,7 @@ class WidgetTest {
             hero("arien", Team.BLUE, Hex(-1, -5))
             minion(Team.BLUE, MinionType.MELEE, Hex(0, -2))
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))
+            minion(Team.RED, MinionType.MELEE, Hex(4, -7)) // no Lane push when a Blue minion falls
             token(pyro, Hex(3, -2), owner = "widget") // 4 away
             phase = PositionPhase.Resolving(next = "widget")
         }
@@ -341,6 +350,7 @@ class WidgetTest {
             hero("arien", Team.BLUE, Hex(-1, -5))
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -2))
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))
+            minion(Team.RED, MinionType.MELEE, Hex(4, -7)) // no Lane push when a Blue minion falls
             token(pyro, Hex(3, -2), owner = "widget")
             phase = PositionPhase.Resolving(next = "widget")
         }
@@ -555,6 +565,7 @@ class WidgetTest {
             hero("arien", Team.BLUE, Hex(-5, -4))
             minion(Team.BLUE, MinionType.MELEE, Hex(2, -2)) // east of Pyro
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))
+            minion(Team.RED, MinionType.MELEE, Hex(4, -7)) // no Lane push when a Blue minion falls
             token(pyro, Hex(1, -2), owner = "widget")
             phase = PositionPhase.Resolving(next = "widget")
         }
@@ -577,6 +588,7 @@ class WidgetTest {
             hero("arien", Team.BLUE, Hex(-5, -4))
             minion(Team.BLUE, MinionType.MELEE, Hex(3, -5)) // east of Pyro
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -2))
+            minion(Team.RED, MinionType.MELEE, Hex(4, -7)) // no Lane push when a Blue minion falls
             token(pyro, Hex(2, -5), owner = "widget")
             phase = PositionPhase.Resolving(next = "widget")
         }
@@ -597,6 +609,7 @@ class WidgetTest {
             hero("arien", Team.BLUE, Hex(-5, -4))
             minion(Team.BLUE, MinionType.MELEE, Hex(1, -2))
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))
+            minion(Team.RED, MinionType.MELEE, Hex(4, -7)) // no Lane push when a Blue minion falls
             token(pyro, Hex(0, -2), owner = "widget")
             token("token_rock", Hex(2, -2))
             phase = PositionPhase.Resolving(next = "widget")
@@ -674,6 +687,54 @@ class WidgetTest {
         d.action("widget", ActionType.FAST_TRAVEL)
         d.space(d.spaces().first())
         assertThat(d.pending!!.kind).isNotEqualTo(DecisionKind.CHOOSE_CARD)
+    }
+
+    // ---- immunity and items ----------------------------------------------------------------------
+
+    @Test
+    fun `Fiery Breath - a Range item counts, from Pyro (p16)`() {
+        val d = pos {
+            clearMinions()
+            hero("widget", Team.RED, Hex(-1, -5)) {
+                played("widget-green-1") // Range 2 + 1 (Airborne Assault as an item)
+                items("widget-red-3b")
+            }
+            hero("xargatha", Team.BLUE, Hex(4, -2)) { hand("xargatha-gold", "xargatha-silver") } // 3 from Pyro
+            token(pyro, Hex(1, -2), owner = "widget")
+            phase = PositionPhase.Resolving(next = "widget")
+        }
+        d.action("widget", ActionType.PRIMARY)
+        d.expect(DecisionKind.CHOOSE_CARD, "xargatha")
+    }
+
+    @Test
+    fun `Fiery Breath - an enemy hero immune to Widget's actions can't be chosen (p18)`() {
+        val d = pos {
+            clearMinions()
+            hero("widget", Team.RED, Hex(-1, -5)) { played("widget-green-1") }
+            hero("arien", Team.BLUE, Hex(3, -2)) { hand("arien-gold", "arien-silver") } // in Pyro's line
+            // Emmitt's Future Proof: friendly heroes in his radius are immune to enemy actions this turn.
+            hero("emmitt", Team.BLUE, Hex(4, -5)) { resolved(1, "emmitt-green-3b") }
+            token(pyro, Hex(1, -2), owner = "widget")
+            effect("emmitt", "emmitt-green-3b", Timing.THIS_TURN, ActionKind.SKILL)
+            phase = PositionPhase.Resolving(next = "widget")
+        }
+        assertThat(d.actions()).doesNotContain(ActionType.PRIMARY)
+    }
+
+    @Test
+    fun `Gnaw - a heavy minion with friendly minions in the Battle Zone is immune (p13)`() {
+        val d = pos {
+            clearMinions()
+            hero("widget", Team.RED, Hex(1, -2)) { played("widget-green-3b") }
+            hero("arien", Team.BLUE, Hex(-5, -4))
+            minion(Team.BLUE, MinionType.HEAVY, Hex(4, -3)) // adjacent to Pyro, in range
+            minion(Team.BLUE, MinionType.MELEE, Hex(-1, -2)) // not adjacent to Pyro: guards the heavy
+            minion(Team.RED, MinionType.MELEE, Hex(4, -7))
+            token(pyro, Hex(4, -2), owner = "widget")
+            phase = PositionPhase.Resolving(next = "widget")
+        }
+        assertThat(d.actions()).doesNotContain(ActionType.PRIMARY)
     }
 
     // ---- random games ---------------------------------------------------------------------------

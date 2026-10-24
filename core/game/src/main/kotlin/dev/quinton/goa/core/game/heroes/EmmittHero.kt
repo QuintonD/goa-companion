@@ -81,8 +81,18 @@ object EmmittHero : HeroModule {
         r.card("emmitt-red-3b", Flashback(tokens = 2))
         // Time Walk / Fast Forward: "Move an enemy hero in range, who remained in the same space since
         // the last turn, 2 spaces in a straight line."
-        r.card("emmitt-green-1", script { if (!timeWalk(this)) fizzle("no enemy hero that remained in place can be moved") })
-        r.card("emmitt-green-2a", script { if (!timeWalk(this)) fizzle("no enemy hero that remained in place can be moved") })
+        r.card(
+            "emmitt-green-1",
+            script {
+                if (!timeWalk(this)) fizzle("no enemy hero that remained in place can be moved")
+            },
+        )
+        r.card(
+            "emmitt-green-2a",
+            script {
+                if (!timeWalk(this)) fizzle("no enemy hero that remained in place can be moved")
+            },
+        )
         // Time Snare / Time Trap: "An enemy hero in range who has already resolved a card this turn
         // discards a card, if able." Time Bomb: "… discards a card, or is defeated."
         r.card("emmitt-blue-1", script { timeSnare(this, orDefeated = false) })
@@ -108,7 +118,9 @@ object EmmittHero : HeroModule {
         r.card("emmitt-purple-4", AlternativeTimelines)
     }
 
-    private fun script(primary: ActionScope.() -> Unit): CardScript = dev.quinton.goa.core.game.effects.script(primary = primary)
+    private fun script(primary: ActionScope.() -> Unit): CardScript = dev.quinton.goa.core.game.effects.script(
+        primary = primary,
+    )
 
     // ---- shared clauses --------------------------------------------------------------------------
 
@@ -213,7 +225,10 @@ object EmmittHero : HeroModule {
 
     private fun completable(g: Game, candidates: List<Hex>, placed: List<Hex>, need: Int): Boolean {
         if (need == 0) return true
-        return candidates.any { c -> c !in placed && spaced(g, placed, c) && completable(g, candidates, placed + c, need - 1) }
+        return candidates.any { c ->
+            c !in placed && spaced(g, placed, c) &&
+                completable(g, candidates, placed + c, need - 1)
+        }
     }
 
     private fun glitchSpaces(g: Game, heroId: String, radius: Int): List<Hex> {
@@ -266,7 +281,9 @@ object EmmittHero : HeroModule {
 
     private const val GLITCH_SUPPLY = 3
 
-    private fun glitchTokens(g: Game): List<String> = g.state.pieces.filter { it.kind == GLITCH && it.at != null }.map { it.id }
+    private fun glitchTokens(g: Game): List<String> = g.state.pieces.filter {
+        it.kind == GLITCH && it.at != null
+    }.map { it.id }
 
     /** "End of turn: Remove all Glitch tokens." */
     private object RemoveGlitches : Behavior {
@@ -353,8 +370,12 @@ object EmmittHero : HeroModule {
             placeGlitches(a.g, a.heroId, a.radius, tokens, a.cardId)
             a.activeEffect(Timing.END_OF_TURN)
             // "if you do, up to 1 enemy hero in radius swaps with a Glitch token of their choice."
-            val heroes = a.enemyHeroesInRange(a.radius).filter { h -> glitchTokens(a.g).any { a.g.canSwap(h, it, a.heroId) } }
-            val h = a.chooseUnit("Up to 1 enemy hero in radius swaps with a Glitch token", heroes, optional = true) ?: return
+            val heroes = a.enemyHeroesInRange(a.radius).filter { h ->
+                glitchTokens(a.g).any { a.g.canSwap(h, it, a.heroId) }
+            }
+            val h =
+                a.chooseUnit("Up to 1 enemy hero in radius swaps with a Glitch token", heroes, optional = true)
+                    ?: return
             a.target(h)
             val tok = a.chooseToken(
                 "Choose the Glitch token you swap with",
@@ -370,18 +391,39 @@ object EmmittHero : HeroModule {
     private object BackToTheFuture : CardScript {
         override fun primary(a: ActionScope) {
             val placeable = placeTargets(a)
-            val walkable = a.enemyHeroesInRange().any { remained(a.g, it) && a.canMoveOther(it, 2, straightLine = true) }
+            val walkable = a.enemyHeroesInRange().any {
+                remained(a.g, it) && a.canMoveOther(it, 2, straightLine = true)
+            }
             val bullets = buildList {
-                if (placeable.isNotEmpty()) add(Choice.Option(0, "Place a unit in range where it was at the start of this turn"))
-                if (walkable) add(Choice.Option(1, "Move an enemy hero who remained in place 2 spaces in a straight line"))
+                if (placeable.isNotEmpty()) {
+                    add(
+                        Choice.Option(0, "Place a unit in range where it was at the start of this turn"),
+                    )
+                }
+                if (walkable) {
+                    add(
+                        Choice.Option(1, "Move an enemy hero who remained in place 2 spaces in a straight line"),
+                    )
+                }
             }
             if (bullets.isEmpty()) a.fizzle("neither option can be done")
-            val pick = a.g.ask(a.heroId, DecisionKind.CHOOSE_OPTION, "Back to the Future: choose one", bullets, a.cardId)
+            val pick = a.g.ask(
+                a.heroId,
+                DecisionKind.CHOOSE_OPTION,
+                "Back to the Future: choose one",
+                bullets,
+                a.cardId,
+            )
             if ((pick as Choice.Option).index == 1) {
                 timeWalk(a)
                 return
             }
-            val u = a.target(a.chooseUnit("Place a unit in range into the space where it was at the start of this turn", placeable)!!)
+            val u = a.target(
+                a.chooseUnit(
+                    "Place a unit in range into the space where it was at the start of this turn",
+                    placeable,
+                )!!,
+            )
             a.g.place(u, a.g.state.turnRecord.startPositions.getValue(u)!!, a.heroId)
         }
 
@@ -395,7 +437,14 @@ object EmmittHero : HeroModule {
     private object FutureProof : CardScript {
         override fun primary(a: ActionScope) {
             val bullets = buildList {
-                if (capsuleHeroes(a).isNotEmpty()) add(Choice.Option(0, "You and friendly heroes in radius may retrieve cards discarded this turn"))
+                if (capsuleHeroes(
+                        a,
+                    ).isNotEmpty()
+                ) {
+                    add(
+                        Choice.Option(0, "You and friendly heroes in radius may retrieve cards discarded this turn"),
+                    )
+                }
                 add(Choice.Option(1, "This turn: friendly heroes in radius are immune to enemy actions"))
             }
             val pick = a.g.ask(a.heroId, DecisionKind.CHOOSE_OPTION, "Future Proof: choose one", bullets, a.cardId)
@@ -417,8 +466,19 @@ object EmmittHero : HeroModule {
         override fun primary(a: ActionScope) {
             val swappers = cardSwapTargets(a)
             val bullets = buildList {
-                if (timeLoopTargets(a).isNotEmpty()) add(Choice.Option(0, "Swap with an enemy hero in range who has already resolved a card"))
-                if (swappers.isNotEmpty()) add(Choice.Option(1, "An enemy hero in range swaps their unresolved card with a resolved one"))
+                if (timeLoopTargets(
+                        a,
+                    ).isNotEmpty()
+                ) {
+                    add(
+                        Choice.Option(0, "Swap with an enemy hero in range who has already resolved a card"),
+                    )
+                }
+                if (swappers.isNotEmpty()) {
+                    add(
+                        Choice.Option(1, "An enemy hero in range swaps their unresolved card with a resolved one"),
+                    )
+                }
             }
             if (bullets.isEmpty()) a.fizzle("neither option can be done")
             val pick = a.g.ask(a.heroId, DecisionKind.CHOOSE_OPTION, "Time Warp: choose one", bullets, a.cardId)
@@ -426,12 +486,18 @@ object EmmittHero : HeroModule {
                 timeLoop(a)
                 return
             }
-            val v = a.target(a.chooseUnit("An enemy hero in range swaps their unresolved card with a resolved one", swappers)!!)
+            val v = a.target(
+                a.chooseUnit("An enemy hero in range swaps their unresolved card with a resolved one", swappers)!!,
+            )
             val h = a.g.heroBodyOf(v)!!
             val hero = a.g.hero(h)
             val unresolved = hero.cards.first { it.zone == Zone.PLAYED }.id
             val resolved = hero.cards.filter { it.zone == Zone.RESOLVED }.sortedBy { it.slot }.map { it.id }
-            val c = a.chooseCard("Choose one of your resolved cards to swap with your unresolved card", resolved, chooser = h)!!
+            val c = a.chooseCard(
+                "Choose one of your resolved cards to swap with your unresolved card",
+                resolved,
+                chooser = h,
+            )!!
             a.g.swapCards(h, unresolved, c)
             // The swapped-in card is now this turn's played card ([APP] rulings/emmitt.md).
             if (a.g.isAttackCard(h, c)) a.g.state.turnRecord.playedAttack += h

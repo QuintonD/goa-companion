@@ -12,10 +12,12 @@ import dev.quinton.goa.core.game.SeatSetup
 import dev.quinton.goa.core.game.TestData
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.Game
+import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.RunMode
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.model.match.Team
 import kotlin.random.Random
+import kotlinx.serialization.json.Json
 
 /**
  * Random-legal full games seating [hero] against the four reference heroes (brief "Done means" 3):
@@ -24,6 +26,9 @@ import kotlin.random.Random
  */
 object RandomGames {
     private val reference = listOf("wasp", "xargatha", "arien", "brogan")
+    private val json = Json { allowStructuredMapKeys = true }
+
+    private fun snap(s: EngineSession) = json.encodeToString(GameState.serializer(), s.state)
 
     fun play(hero: String, games: Int, seed: Long, maxPlayed: (String) -> Int = { 1 }): Map<String, Int> {
         val engine = ANY_HERO_ENGINE
@@ -34,12 +39,17 @@ object RandomGames {
             val coin = if (rng.nextBoolean()) Team.RED else Team.BLUE
             val heroTeam = if (rng.nextBoolean()) Team.RED else Team.BLUE
             val seats = when (rng.nextInt(4)) {
-                0 -> listOf(SeatSetup(hero, heroTeam, Controller.Human), SeatSetup(others[0], heroTeam.opponent, Controller.Human))
+                0 -> listOf(
+                    SeatSetup(hero, heroTeam, Controller.Human),
+                    SeatSetup(others[0], heroTeam.opponent, Controller.Human),
+                )
+
                 1 -> listOf(
                     SeatSetup(hero, heroTeam, Controller.Human, handicap = true),
                     SeatSetup(others[0], heroTeam, Controller.Human, handicap = true),
                     SeatSetup(others[1], heroTeam.opponent, Controller.Human),
                 )
+
                 else -> listOf(
                     SeatSetup(hero, heroTeam, Controller.Human),
                     SeatSetup(others[0], heroTeam, Controller.Human),
@@ -49,7 +59,8 @@ object RandomGames {
             }
             val map = if (seats.size == 4 && rng.nextInt(3) == 0) TestData.RIVER else TestData.FOREST
             val length = if (rng.nextInt(4) == 0) GameLength.LONG else GameLength.QUICK
-            val setup = GameSetup(map, seats.sortedBy { if (it.team == Team.RED) 0 else 1 }, length = length, tieBreaker = coin)
+            // Seat order: Red first (pick order per team).
+            val setup = GameSetup(map, seats.sortedBy { it.team != Team.RED }, length = length, tieBreaker = coin)
             val s = engine.newGame(setup) as EngineSession
             val player = RandomPlayer(seed * 1000 + i)
             var n = 0
@@ -67,6 +78,11 @@ object RandomGames {
             val v = s.view(null)
             assertThat(v.winner).isNotNull()
             stats.merge(v.winReason!!.name, 1, Int::plus)
+            // Determinism: replaying the saved answers gives the same final state.
+            if (i % 10 == 0) {
+                val back = engine.restore(s.save()) as EngineSession
+                assertWithMessage("replay of game $i").that(snap(back)).isEqualTo(snap(s))
+            }
         }
         return stats
     }
