@@ -40,5 +40,15 @@ object Puzzles {
         P23LiftUpIntoTheLine,
         P25ColdSnap,
         P35OnslaughtsForcedStep,
+        P48NecromancyAtTheBell,
+        P49PreyDrivesDilemma,
+        P50ShootPushScoot,
+        P52BattleFury,
+        P54ChaosIncarnate,
+        P56PileOnTheFreshWave,
+        P57TurnedToStone,
+        P58UnexpectedJourney,
+        P59MindGrip,
+        P60HoldMySake,
     )
 }
