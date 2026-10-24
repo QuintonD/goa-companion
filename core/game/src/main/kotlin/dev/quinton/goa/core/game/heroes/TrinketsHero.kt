@@ -264,7 +264,8 @@ object TrinketsHero : HeroModule {
                     a.g.canSwap(a.heroId, id, a.heroId)
             }
             val places = if (placeBullet && a.g.canPlace(a.heroId, a.heroId)) {
-                a.g.within(tp, r).filter { it != a.pos && a.g.isEmpty(it) }
+                // Empty for Trinkets herself (p.18 "Place"; Spinning Blade's spaces count as obstacles for her).
+                a.g.within(tp, r).filter { it != a.pos && a.g.isEmpty(it, a.heroId) }
             } else {
                 emptyList()
             }

@@ -7,9 +7,11 @@ import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.Driver
+import dev.quinton.goa.core.game.engine.ActionKind
 import dev.quinton.goa.core.game.engine.Game
 import dev.quinton.goa.core.game.engine.PieceState
 import dev.quinton.goa.core.game.engine.RunMode
+import dev.quinton.goa.core.game.engine.Timing
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.engine.isTerrain
 import dev.quinton.goa.core.game.heroes.brynn.RandomGames
@@ -387,6 +389,26 @@ class TrinketsTest {
         for (h in d.spaces()) assertThat(HexGrid.distance(h, Hex(3, -2))).isIn(1..2)
         d.space(3, -1)
         assertThat(d.at("trinkets")).isEqualTo(Hex(3, -1))
+    }
+
+    @Test
+    fun `Perfected Design - a space that counts as an obstacle for Trinkets (Spinning Blade) is not offered`() {
+        val d = pos {
+            clearMinions()
+            hero("trinkets", Team.RED, Hex(1, -2)) { played("trinkets-green-3a") }
+            // Takahide's Spinning Blade: "Empty spaces adjacent to you count as obstacles for enemy units."
+            hero("takahide", Team.BLUE, Hex(4, -2)) { resolved(1, "takahide-red-2b") }
+            effect("takahide", "takahide-red-2b", Timing.THIS_TURN, ActionKind.ATTACK)
+            turret(Hex(3, -2))
+            phase = PositionPhase.Resolving(next = "trinkets")
+        }
+        d.action("trinkets", ActionType.PRIMARY)
+        d.option(1)
+        val nextToTakahide = HexGrid.neighbors(Hex(4, -2)).toSet()
+        assertThat(d.spaces()).isNotEmpty()
+        assertThat(d.spaces().intersect(nextToTakahide)).isEmpty()
+        d.space(2, -1)
+        assertThat(d.at("trinkets")).isEqualTo(Hex(2, -1))
     }
 
     // ---- Disruptor Jolt / Disruptor Pulse / Disruptor Grid (blue) -------------------------------------

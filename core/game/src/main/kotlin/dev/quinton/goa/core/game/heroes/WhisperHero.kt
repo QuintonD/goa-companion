@@ -251,10 +251,14 @@ object WhisperHero : HeroModule {
         override fun primary(a: ActionScope) {
             val g = a.g
             // "Place yourself into an empty minion spawn point in range in the battle zone" (Creeping Shadow:
-            // "or into a space in range adjacent to such a spawn point").
+            // "or into a space in range adjacent to such a spawn point"). The space must be empty for Whisper
+            // too (p.18 "Place"): Takahide's Spinning Blade makes empty spaces count as obstacles for enemy units.
             val spaces = g.within(a.pos, a.range).filter { h ->
-                g.emptyMinionSpawnInBattleZone(h) ||
-                    (nextTo && g.isEmpty(h) && HexGrid.neighbors(h).any { g.emptyMinionSpawnInBattleZone(it) })
+                g.isEmpty(h, a.heroId) &&
+                    (
+                        g.emptyMinionSpawnInBattleZone(h) ||
+                            (nextTo && HexGrid.neighbors(h).any { g.emptyMinionSpawnInBattleZone(it) })
+                        )
             }
             if (spaces.isEmpty() || !g.canPlace(a.heroId, a.heroId)) a.fizzle("no empty minion spawn point in range")
             val h = a.chooseSpace("Place yourself into a space in range", spaces)!!

@@ -361,6 +361,23 @@ class WhisperTest {
         assertThat(d.spaces()).containsAtLeast(Hex(0, -6), Hex(-1, -6), Hex(0, -5))
     }
 
+    @Test
+    fun `Shadow Step - a spawn point that counts as an obstacle for Whisper (Spinning Blade) is not offered`() {
+        val d = pos {
+            clearMinions()
+            hero("whisper", Team.RED, Hex(-1, -5)) { played("whisper-green-1") }
+            // Takahide's Spinning Blade: "Empty spaces adjacent to you count as obstacles for enemy units."
+            hero("takahide", Team.BLUE, Hex(0, -2)) { resolved(1, "takahide-red-2b") }
+            effect("takahide", "takahide-red-2b", Timing.THIS_TURN, ActionKind.ATTACK)
+            phase = PositionPhase.Resolving(next = "whisper")
+        }
+        d.action("whisper", ActionType.PRIMARY)
+        // (0,-3) is next to Takahide: not empty for Whisper, so he cannot be placed there (p.18 "Place").
+        assertThat(d.spaces()).containsExactly(Hex(0, -6), Hex(1, -6), Hex(1, -4), Hex(2, -7))
+        d.space(1, -4)
+        assertThat(d.at("whisper")).isEqualTo(Hex(1, -4))
+    }
+
     // ---- Cruel Twist / Sealed Fate (green alternates) -------------------------------------------
 
     private fun twist(card: String) = pos {
