@@ -12,7 +12,12 @@ reading the card text and FAQ leave open. Code: `heroes/TrinketsHero.kt`; tests:
    token (Clear does not remove it, tokens' end-of-round removal does not touch it), of no team, never a
    unit or token for other cards ("a unit or a token"), but an obstacle (Grappling Bolt, Brynn's count)
    and terrain. Placing it needs an empty space (p.18 "Place"), so its own current space is not offered.
-   Source: Trinkets FAQ. `TrinketsTest` "The Turret - …", "Rapid Redeployment - FAQ - a single Turret …".
+   Source: Trinkets FAQ. A hero performing one of her cards (NebKher's Mind Grip) uses and places *the*
+   Turret: designer, BGG 3485218 ("No he places *the* turret"; "all Trinket's card texts refer to *the*
+   turret, not *a* turret. Nothing in the text prevents Neb from using it, as long as the turret is on the
+   board"). (Rules audit: before, the Turret was looked up by the performing hero, so NebKher made a second
+   one.) `TrinketsTest` "The Turret - …", "Rapid Redeployment - FAQ - a single Turret …", "The Turret -
+   designer - NebKher performing Salvage Parts uses the one Turret".
 2. **All Turret cards — "in range / in radius of the Turret".** Measured from the Turret's space with the
    card's own Range or Radius value (items and the Ultimate included), independently of the range from
    Trinkets (FAQ: "measuring the range of both of these independently"). Without the Turret on the board
@@ -38,13 +43,24 @@ reading the card text and FAQ leave open. Code: `heroes/TrinketsHero.kt`; tests:
    Primary action (as Xargatha's Fresh Converts). The swap is with any unit or token (either team) in
    radius of the Turret that she may target and swap; never the Turret itself (not a unit or token).
    Early Prototype removes the Turret only after a swap was made (p.10: "then" follows a mandatory step).
-   Perfected Design's placement is into an empty space in radius of the Turret. `TrinketsTest`
+   Perfected Design's placement is into a space in radius of the Turret that is empty for Trinkets (a space
+   that counts as an obstacle for enemy units, Takahide's Spinning Blade, is not offered; rules audit). `TrinketsTest`
    "Early Prototype - …", "Perfected Design - …".
 8. **Disruptor Jolt / Pulse / Grid — "Before any enemy hero in radius of the Turret performs a primary
    action".** **[APP]** Before each primary action an enemy hero performs while this effect is in force:
    a repeat is a separate action (p.10 "Treat each instance of repeat as a separate action", as RULINGS
-   39), and a primary action performed through another card's text counts too; not a Defense action
-   (p.14: "A Defense action is different from all other actions", a response to an attack). The radius
+   39), and a primary action performed through another card's text counts too, and so does a **primary
+   Defense action** (defending with a card whose Primary action is Defense, or with a Defense/Skill card):
+   the hero discards after revealing and discarding its defense card, before that card's text (p.14 step 4).
+   *Reason:* the rulebook calls it a primary action — p.14 "since Defense is the Primary action of
+   'Vampiric Shield', the card text is applied", quick reference "Defense Action … Primary: Same as above,
+   and, in addition, apply the card text", "Defense/Skill … perform either Defense or a Skill as a primary
+   action". The other reading (no Defense action, p.14 "A Defense action is different from all other
+   actions") was the engine's before the rules audit; that sentence introduces specific differences (not on
+   a played card, not counted in the one card per turn) and does not say a Defense action is not a
+   primary action. No designer ruling found (BGG searched 2026-10-24; a strategy writer, Cryomancy, BGG
+   3611965, reads it as here: "primary defense actions … also count as primary actions for the purpose of
+   triggering this blue"). A secondary Defense action is not a primary action. The radius
    is checked from where the hero stands then. The hero is affected unless immune to Trinkets' skill
    effects (p.18). "If they discard a card, deactivate this effect": the effect ends after a discard;
    a hero with no card discards nothing (Jolt, Pulse) or is defeated (Grid), and the effect stays.
@@ -72,6 +88,6 @@ reading the card text and FAQ leave open. Code: `heroes/TrinketsHero.kt`; tests:
 
 | Topic | goa2-backend | Engine |
 |-------|--------------|--------|
-| Disruptor timing | Checked by `ResolveCardStep` before the primary action of a resolved card | Before every primary action, repeats and primaries performed by other cards included (ruling 8) |
+| Disruptor timing | Checked by `ResolveCardStep` before the primary action of a resolved card | Before every primary action, repeats, primaries performed by other cards and primary Defense actions included (ruling 8) |
 | Barrier supply | 3 tokens | Not limited: the count is not in the pinned sources |
 | Turret | Unique non-unit, non-token board entity; repositioned when placed again | Same |

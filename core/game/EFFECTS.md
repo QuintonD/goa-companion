@@ -370,7 +370,9 @@ What each hero needs beyond plain actions, and the framework pieces that cover i
 defend (p.14: discarding it is "to perform its Defense action"), after the card is discarded and before
 its Defense text; `primary` is true only when the card's Defense text applies (Primary Defense or
 Defense/Skill). Before, only cards with Defense text fired it. Hooks meaning "before a primary action"
-must check `primary`. A defender defeated during its own Defense action now ends that defense (the attack
+must check `primary`; a primary Defense action is a primary action (p.14, quick reference "Defense Action …
+Primary"), so Trinkets' Disruptor sees it — exclude `ActionKind.DEFENSE` only when the text is about actions a
+hero chooses on its turn. A defender defeated during its own Defense action now ends that defense (the attack
 result is "defeated") instead of escaping as `ActorDefeated`. Used by Silverarrow's Wild Hunt ("Each time
 before you perform an action"); test `SilverarrowTest` "Wild Hunt - also before a Defense action".
 

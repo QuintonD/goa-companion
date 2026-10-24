@@ -201,6 +201,32 @@ class TrinketsTest {
     }
 
     @Test
+    fun `The Turret - designer - NebKher performing Salvage Parts uses the one Turret`() {
+        // Designer, BGG 3485218: "No he places *the* turret"; "all Trinket's card texts refer to *the* turret,
+        // not *a* turret. Nothing in the text prevents Neb from using it, as long as the turret is on the board."
+        val d = pos {
+            clearMinions()
+            turn = 2
+            hero("nebkher", Team.BLUE, Hex(1, -2)) { played("nebkher-gold") } // Mind Grip
+            hero("trinkets", Team.RED, Hex(4, -2)) { resolved(1, "trinkets-silver") } // previous Turn slot
+            turret(Hex(3, -3))
+            minion(Team.RED, MinionType.MELEE, Hex(-1, -6))
+            minion(Team.BLUE, MinionType.MELEE, Hex(4, -6))
+            phase = PositionPhase.Resolving(next = "nebkher")
+        }
+        d.action("nebkher", ActionType.PRIMARY)
+        d.action("nebkher", ActionType.PRIMARY) // Salvage Parts' Primary action, performed by NebKher
+        // The Turret is on the board, so the "Remove the Turret" bullets are possible too.
+        assertThat(d.expect(DecisionKind.CHOOSE_OPTION, "nebkher").options.filterIsInstance<Choice.Option>())
+            .hasSize(3)
+        d.option(0) // Place the Turret into a space adjacent to you
+        val to = d.spaces().first()
+        d.space(to)
+        assertThat(turrets(d).map { it.at }).containsExactly(to) // moved, not a second Turret
+        assertThat(HexGrid.distance(to, Hex(1, -2))).isEqualTo(1)
+    }
+
+    @Test
     fun `Salvage Parts - without a Turret only the placing bullet is possible`() {
         val d = salvage(withTurret = false)
         d.action("trinkets", ActionType.PRIMARY)
@@ -454,6 +480,36 @@ class TrinketsTest {
         d.action("arien", ActionType.MOVEMENT)
         d.expect(DecisionKind.CHOOSE_SPACE, "arien")
         assertThat(d.zoneOf("arien", "arien-gold")).isEqualTo(Zone.HAND)
+    }
+
+    private fun disruptorDefense() = pos {
+        clearMinions()
+        hero("trinkets", Team.RED, Hex(1, -2)) { resolved(1, "trinkets-blue-1") }
+        effect("trinkets", "trinkets-blue-1", Timing.THIS_TURN, ActionKind.SKILL)
+        hero("xargatha", Team.RED, Hex(4, -1)) { played("xargatha-gold") } // Cleave, Attack 4
+        hero("arien", Team.BLUE, Hex(4, -2)) { hand("arien-blue-1", "arien-gold") } // next to the Turret
+        turret(Hex(3, -2))
+        phase = PositionPhase.Resolving(next = "xargatha")
+    }
+
+    @Test
+    fun `Disruptor Jolt - a primary Defense action is a primary action - discard before its text`() {
+        // p.14: "since Defense is the Primary action of 'Vampiric Shield', the card text is applied"; quick
+        // reference: "Defense Action … Primary: Same as above, and, in addition, apply the card text".
+        val d = disruptorDefense()
+        d.action("xargatha", ActionType.PRIMARY)
+        d.defend("arien-blue-1") // Aspiring Duelist: Defense is its Primary action
+        assertThat(d.zoneOf("arien", "arien-gold")).isEqualTo(Zone.DISCARD) // the only other card: no question
+        assertThat(d.s.state.effects.none { it.owner == "trinkets" }).isTrue() // deactivated
+    }
+
+    @Test
+    fun `Disruptor Jolt - a secondary Defense action is not a primary action`() {
+        val d = disruptorDefense()
+        d.action("xargatha", ActionType.PRIMARY)
+        d.defend("arien-gold") // Noble Blade: Defense is a secondary action
+        assertThat(d.zoneOf("arien", "arien-blue-1")).isEqualTo(Zone.HAND)
+        assertThat(d.s.state.effects.any { it.owner == "trinkets" }).isTrue()
     }
 
     @Test
