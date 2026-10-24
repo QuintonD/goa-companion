@@ -10,6 +10,11 @@ import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.DraftRecordRepository
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.MatchRepository
+import dev.quinton.goa.core.data.game.GameEntry
+import dev.quinton.goa.core.data.game.SavedGameRepository
+import dev.quinton.goa.core.data.game.StoredGame
+import dev.quinton.goa.core.game.Controller
+import dev.quinton.goa.core.game.GameFactoryProvider
 import dev.quinton.goa.core.model.board.SavedBoard
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.Team
@@ -29,6 +34,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -48,6 +54,23 @@ data class BoardRowUi(
     fun team(team: Team): List<BoardHero> = if (team == Team.RED) red else blue
 }
 
+/** A game against the computer in progress (or finished, until its result is left). */
+@Immutable
+data class GameRowUi(
+    val id: String,
+    val red: List<BoardHero>,
+    val blue: List<BoardHero>,
+    /** The heroes the player controls. */
+    val you: List<BoardHero>,
+    val round: Int,
+    val turn: Int,
+    val updatedAt: Long,
+    val finished: Boolean,
+    val winner: Team?,
+    /** Why it can't be resumed (unreadable, other rules): offered for deletion. */
+    val problem: String? = null,
+)
+
 sealed interface BoardsUiState {
     data object Loading : BoardsUiState
 
@@ -61,6 +84,8 @@ sealed interface BoardsUiState {
         val now: Long,
         val latest: LineupSource? = null,
         val unreadable: Boolean = false,
+        /** Games against the computer, most recently played first. */
+        val games: List<GameRowUi> = emptyList(),
     ) : BoardsUiState
 }
 
@@ -78,6 +103,8 @@ class BoardsViewModel internal constructor(
     matchRepository: MatchRepository,
     private val clock: EditClock,
     private val restoreScope: CoroutineScope,
+    private val gameRepository: SavedGameRepository,
+    provider: GameFactoryProvider,
 ) : ViewModel() {
     @Inject constructor(
         catalogRepository: CatalogRepository,
@@ -86,6 +113,8 @@ class BoardsViewModel internal constructor(
         draftRepository: DraftRecordRepository,
         matchRepository: MatchRepository,
         clock: EditClock,
+        gameRepository: SavedGameRepository,
+        provider: GameFactoryProvider,
     ) : this(
         catalogRepository,
         mapRepository,
@@ -94,6 +123,8 @@ class BoardsViewModel internal constructor(
         matchRepository,
         clock,
         CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        gameRepository,
+        provider,
     )
 
     private val newId: () -> String = { UUID.randomUUID().toString() }
@@ -107,14 +138,22 @@ class BoardsViewModel internal constructor(
         matchRepository.observeMatches().catch { emit(emptyList()) },
     ) { drafts, matches -> drafts to matches }
 
+    /** Saved games and the engine version they must have been saved with (null: the engine didn't load). */
+    private val games = combine(
+        gameRepository.games.catch { emit(emptyList()) },
+        flow<Int?> { emit(provider.get().engineVersion) }.catch { emit(null) },
+    ) { games, version -> games to version }
+
     val uiState: StateFlow<BoardsUiState> = combine(
         catalogRepository.catalog.catch { emit(Catalog.EMPTY) },
         mapRepository.maps.catch { emit(emptyList()) },
         boards,
         latest,
-    ) { catalog, maps, (boards, unreadable), (drafts, matches) ->
+        games,
+    ) { catalog, maps, (boards, unreadable), (drafts, matches), (games, version) ->
         val heroes = catalog.boardHeroes()
         BoardsUiState.Ready(
+            games = games.map { gameRow(it, version, heroes) },
             boards = boards.map { board ->
                 val map = maps.firstOrNull { it.id == board.state.mapId }
                 BoardRowUi(
@@ -170,7 +209,32 @@ class BoardsViewModel internal constructor(
         }
     }
 
+    /** Deletes a saved game (one that can't be resumed, or one the player gives up). */
+    fun deleteGame(id: String) {
+        restoreScope.launch { gameRepository.delete(id) }
+    }
+
+    private fun gameRow(entry: GameEntry, version: Int?, heroes: Map<String, BoardHero>): GameRowUi {
+        val game = entry as? StoredGame
+            ?: return GameRowUi(entry.id, emptyList(), emptyList(), emptyList(), 0, 0, 0L, false, null, UNREADABLE)
+        val seats = game.game.setup.seats
+        return GameRowUi(
+            id = game.id,
+            red = seats.filter { it.team == Team.RED }.map { heroes.hero(it.heroId) },
+            blue = seats.filter { it.team == Team.BLUE }.map { heroes.hero(it.heroId) },
+            you = seats.filter { it.controller == Controller.Human }.map { heroes.hero(it.heroId) },
+            round = game.round,
+            turn = game.turn,
+            updatedAt = game.updatedAt,
+            finished = game.finished,
+            winner = game.winner,
+            problem = OTHER_RULES.takeIf { version != null && game.game.engineVersion != version },
+        )
+    }
+
     internal companion object {
+        const val UNREADABLE = "This saved game can't be read."
+        const val OTHER_RULES = "Saved with another version of the rules: it can't be resumed."
         const val MAX_NAME = 60
         private const val STOP_TIMEOUT_MS = 5_000L
 

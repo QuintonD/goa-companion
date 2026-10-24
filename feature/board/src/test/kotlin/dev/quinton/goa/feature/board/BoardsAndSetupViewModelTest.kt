@@ -7,6 +7,17 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.BoardRepository
 import dev.quinton.goa.core.data.EditClock
+import dev.quinton.goa.core.data.game.SavedGameRepository
+import dev.quinton.goa.core.data.game.StoredGame
+import dev.quinton.goa.core.data.game.UnreadableGame
+import dev.quinton.goa.core.game.AiLevel
+import dev.quinton.goa.core.game.Controller
+import dev.quinton.goa.core.game.GameFactory
+import dev.quinton.goa.core.game.GameFactoryProvider
+import dev.quinton.goa.core.game.GameSession
+import dev.quinton.goa.core.game.GameSetup
+import dev.quinton.goa.core.game.SavedGame
+import dev.quinton.goa.core.game.SeatSetup
 import dev.quinton.goa.core.model.board.BoardLineup
 import dev.quinton.goa.core.model.board.BoardState
 import dev.quinton.goa.core.model.board.SavedBoard
@@ -26,6 +37,7 @@ import dev.quinton.goa.core.testing.FakeBoardRepository
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
+import dev.quinton.goa.core.testing.FakeSavedGameRepository
 import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.core.testing.TestCatalog
 import dev.quinton.goa.feature.board.list.BoardsUiState
@@ -115,8 +127,82 @@ class BoardsAndSetupViewModelTest {
         updatedAt = updatedAt,
     )
 
-    private fun boardsViewModel(repo: BoardRepository, restoreScope: CoroutineScope = CoroutineScope(dispatcher)) =
-        BoardsViewModel(catalog, maps, repo, drafts, matches, EditClock { 99L }, restoreScope)
+    private fun boardsViewModel(
+        repo: BoardRepository,
+        restoreScope: CoroutineScope = CoroutineScope(dispatcher),
+        games: SavedGameRepository = FakeSavedGameRepository(),
+        engineVersion: Int? = null,
+    ) = BoardsViewModel(
+        catalog,
+        maps,
+        repo,
+        drafts,
+        matches,
+        EditClock { 99L },
+        restoreScope,
+        games,
+        GameFactoryProvider { engineVersion?.let(::VersionOnly) ?: error("No engine in this test") },
+    )
+
+    /** A factory that only knows its engine version (the Boards list needs nothing else). */
+    private class VersionOnly(override val engineVersion: Int) : GameFactory {
+        override val playableHeroes: Set<String> = emptySet()
+        override val playableMaps: List<String> = emptyList()
+
+        override fun newGame(setup: GameSetup): GameSession = error("not in this test")
+
+        override fun restore(saved: SavedGame): GameSession = error("not in this test")
+    }
+
+    private fun storedGame(id: String, version: Int, updatedAt: Long) = StoredGame(
+        id = id,
+        game = SavedGame(
+            engineVersion = version,
+            setup = GameSetup(
+                mapId = TestMap.map.id,
+                seats = listOf(
+                    SeatSetup("test-hero-1", Team.RED, Controller.Human),
+                    SeatSetup("test-hero-2", Team.BLUE, Controller.Ai(AiLevel.EASY)),
+                ),
+                tieBreaker = Team.RED,
+            ),
+            payload = "{}",
+        ),
+        createdAt = 1L,
+        updatedAt = updatedAt,
+        round = 2,
+        turn = 3,
+    )
+
+    @Test
+    fun `games against the computer are listed newest first, unreadable and other-rules ones say why`() =
+        runTest(dispatcher) {
+            val games = FakeSavedGameRepository(
+                listOf(
+                    storedGame("old", 1, 10L),
+                    storedGame("new", 1, 20L),
+                    storedGame("other", 0, 30L),
+                    UnreadableGame("bad"),
+                ),
+            )
+            val vm = boardsViewModel(FakeBoardRepository(), games = games, engineVersion = 1)
+            vm.uiState.test {
+                var ready = ready(BoardsUiState.Ready::class.java) as BoardsUiState.Ready
+                assertThat(ready.games.map { it.id }).containsExactly("other", "new", "old", "bad").inOrder()
+                val row = ready.games[1]
+                assertThat(row.problem).isNull()
+                assertThat(row.round to row.turn).isEqualTo(2 to 3)
+                assertThat(row.you.map { it.id }).containsExactly("test-hero-1")
+                assertThat(row.red.map { it.id }).containsExactly("test-hero-1")
+                assertThat(row.blue.map { it.id }).containsExactly("test-hero-2")
+                assertThat(ready.games[0].problem).isEqualTo(BoardsViewModel.OTHER_RULES)
+                assertThat(ready.games[3].problem).isEqualTo(BoardsViewModel.UNREADABLE)
+                vm.deleteGame("bad")
+                ready = awaitItem() as BoardsUiState.Ready
+                assertThat(ready.games.map { it.id }).doesNotContain("bad")
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
 
     @Test
     fun `boards list newest first with map and line-up, rename, duplicate, delete and undo`() = runTest(dispatcher) {

@@ -56,6 +56,7 @@ import dev.quinton.goa.core.designsystem.theme.Motion
 import dev.quinton.goa.core.navigation.BoardRoute
 import dev.quinton.goa.core.navigation.DraftBoardRoute
 import dev.quinton.goa.core.navigation.NavSheet
+import dev.quinton.goa.core.navigation.PlayRoute
 import dev.quinton.goa.core.navigation.SyncFileImportRoute
 import dev.quinton.goa.core.navigation.TimerRoute
 import dev.quinton.goa.core.navigation.TopLevelTab
@@ -167,10 +168,10 @@ fun GoaApp(
     val top = entries.indexOfLast { it.metadata[NavSheet.KEY] != true }
         .let { navigator.currentStack.getOrNull(it) ?: navigator.currentStack.lastOrNull() }
     val onRunningTimer = navigator.currentTab == TopLevelTab.TIMER && top == TimerRoute
-    // The running timer, the draft board and a sandbox board are full-screen table tools: no tab
+    // The running timer, the draft board, a sandbox board and a game are full-screen table tools: no tab
     // bar to mis-tap next to Next, a pick or the map. System back leaves them (timer → Heroes,
     // draft board → draft setup, board → where it was opened from).
-    val fullScreenTool = top == DraftBoardRoute || top is BoardRoute
+    val fullScreenTool = top == DraftBoardRoute || top is BoardRoute || top is PlayRoute
     val showBottomBar = !(onRunningTimer && session.active) && !fullScreenTool
     val showTimerBar = session.active && !onRunningTimer && !fullScreenTool
     KeepScreenOnWhile(session == SessionState.RUNNING && showTimerBar)

@@ -17,11 +17,21 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.data.EditClock
+import dev.quinton.goa.core.data.game.GameEntry
+import dev.quinton.goa.core.data.game.StoredGame
+import dev.quinton.goa.core.data.game.UnreadableGame
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.board.BoardGeometry
 import dev.quinton.goa.core.domain.board.BoardRules
 import dev.quinton.goa.core.domain.board.BoardSetup
 import dev.quinton.goa.core.domain.board.HexGrid
+import dev.quinton.goa.core.game.AiLevel
+import dev.quinton.goa.core.game.Controller
+import dev.quinton.goa.core.game.GameFactoryProvider
+import dev.quinton.goa.core.game.GameSetup
+import dev.quinton.goa.core.game.SavedGame
+import dev.quinton.goa.core.game.SeatSetup
+import dev.quinton.goa.core.game.engine.GameEngine
 import dev.quinton.goa.core.model.board.BoardLineup
 import dev.quinton.goa.core.model.board.HeroPiece
 import dev.quinton.goa.core.model.board.MinionPiece
@@ -45,6 +55,7 @@ import dev.quinton.goa.core.testing.FakeBoardRepository
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
+import dev.quinton.goa.core.testing.FakeSavedGameRepository
 import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.feature.board.board.AddContent
 import dev.quinton.goa.feature.board.board.BoardAction
@@ -84,6 +95,7 @@ class BoardScreenshotTest {
 
     private val catalog = bundledCatalog
     private val maps = bundledMaps
+    private val engine by lazy { GameEngine(catalog, maps) }
     private val lineup = BoardLineup(red = listOf("arien", "brogan"), blue = listOf("wasp", "tigerclaw"))
     private val now = LocalDateTime.of(2026, 10, 19, 15, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
@@ -140,8 +152,31 @@ class BoardScreenshotTest {
         return { "p${++n}" }
     }
 
+    /** A game against the computer in progress (only its listing matters here). */
+    private fun gameInProgress() = StoredGame(
+        id = "g1",
+        game = SavedGame(
+            engineVersion = engine.engineVersion,
+            setup = GameSetup(
+                mapId = "forgotten-island",
+                seats = listOf(
+                    SeatSetup("wasp", Team.RED, Controller.Human),
+                    SeatSetup("xargatha", Team.RED, Controller.Ai(AiLevel.NORMAL)),
+                    SeatSetup("arien", Team.BLUE, Controller.Ai(AiLevel.NORMAL)),
+                    SeatSetup("brogan", Team.BLUE, Controller.Ai(AiLevel.NORMAL)),
+                ),
+                tieBreaker = Team.RED,
+            ),
+            payload = "{}",
+        ),
+        createdAt = now - 3 * HOUR,
+        updatedAt = now - HOUR / 2,
+        round = 2,
+        turn = 3,
+    )
+
     @Composable
-    private fun Boards(boards: List<SavedBoard>, withDraft: Boolean = true) {
+    private fun Boards(boards: List<SavedBoard>, withDraft: Boolean = true, games: List<GameEntry> = emptyList()) {
         val vm =
             remember {
                 BoardsViewModel(
@@ -151,6 +186,8 @@ class BoardScreenshotTest {
                     if (withDraft) drafts else FakeDraftRecordRepository(),
                     if (withDraft) matches else FakeMatchRepository(),
                     EditClock { now },
+                    FakeSavedGameRepository(games),
+                    GameFactoryProvider { engine },
                 )
             }
         val state by vm.uiState.collectAsState()
@@ -166,23 +203,31 @@ class BoardScreenshotTest {
         )
     }
 
-    /** No boards and no draft yet (the list opens on New board when empty; this shows after deleting all). */
+    /** No boards and no draft yet: Play against the computer and Puzzles still lead the list. */
     @Test fun boardsEmptyDark() = capture(ThemeMode.DARK) { Boards(emptyList(), withDraft = false) }
 
     /** No boards, but a finished draft: its line-up is one tap away. */
     @Test fun boardsEmptyLight() = capture(ThemeMode.LIGHT) { Boards(emptyList()) }
 
-    @Test fun boardsDark() = capture(ThemeMode.DARK) { Boards(savedBoards()) }
+    @Test fun boardsDark() = capture(ThemeMode.DARK) { Boards(savedBoards(), games = listOf(gameInProgress())) }
 
-    @Test fun boardsLight() = capture(ThemeMode.LIGHT) { Boards(savedBoards()) }
+    @Test fun boardsLight() = capture(ThemeMode.LIGHT) { Boards(savedBoards(), games = listOf(gameInProgress())) }
 
     @Config(qualifiers = "w384dp-h832dp-xxhdpi")
     @Test
-    fun boardsW384DarkFontScale2() = capture(ThemeMode.DARK, 2f) { Boards(savedBoards()) }
+    fun boardsW384DarkFontScale2() =
+        capture(ThemeMode.DARK, 2f) { Boards(savedBoards(), games = listOf(gameInProgress())) }
 
     @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
     @Test
-    fun boardsLandscapeDark() = capture(ThemeMode.DARK) { Boards(savedBoards()) }
+    fun boardsLandscapeDark() = capture(ThemeMode.DARK) { Boards(savedBoards(), games = listOf(gameInProgress())) }
+
+    /** A saved game of other rules: it says why it can't be resumed and offers Delete. */
+    @Test
+    fun boardsGameOtherRulesLight() = capture(ThemeMode.LIGHT) {
+        val stale = gameInProgress().let { it.copy(game = it.game.copy(engineVersion = it.game.engineVersion + 1)) }
+        Boards(emptyList(), withDraft = false, games = listOf(stale, UnreadableGame("g2")))
+    }
 
     // ---- New board -----------------------------------------------------------------------
 

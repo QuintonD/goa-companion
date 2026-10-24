@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.board.list
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,10 +34,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -52,6 +55,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
@@ -67,6 +71,8 @@ import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardHero
@@ -75,8 +81,9 @@ import dev.quinton.goa.feature.board.setup.LatestCard
 import dev.quinton.goa.feature.board.setup.LineupSource
 
 /**
- * Saved boards, newest change first, under the latest draft's or match's line-up (Set up in one
- * tap), and "New board".
+ * Boards: "Play against the computer" (New game, and the games in progress to resume), Puzzles,
+ * then the sandbox's saved boards, newest change first, under the latest draft's or match's line-up
+ * (Set up in one tap), and "New board". Shown even with no boards yet.
  */
 @Composable
 fun BoardsScreen(
@@ -89,6 +96,9 @@ fun BoardsScreen(
     onDelete: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onNewGame: () -> Unit = {},
+    onResume: (String) -> Unit = {},
+    onDeleteGame: (String) -> Unit = {},
 ) {
     var renaming by rememberSaveable { mutableStateOf<String?>(null) }
     val ready = state as? BoardsUiState.Ready
@@ -109,35 +119,10 @@ fun BoardsScreen(
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            when {
-                ready == null -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-
-                ready.boards.isEmpty() -> Column(Modifier.fillMaxSize()) {
-                    ready.latest?.let {
-                        LatestCard(it, { onSetUp(it) }, Modifier.padding(Spacing.screen))
-                    }
-                    Box(Modifier.weight(1f).fillMaxWidth()) {
-                        EmptyState(
-                            icon = Icons.Outlined.Hexagon,
-                            title = "No boards yet",
-                            message = if (ready.unreadable) {
-                                "The saved boards couldn't be read."
-                            } else {
-                                "Set up any line-up on the real map and see who can reach whom."
-                            },
-                            modifier = Modifier.align(Alignment.Center),
-                            action = {
-                                Button(onClick = onNew, modifier = Modifier.heightIn(min = 52.dp)) {
-                                    Icon(Icons.Outlined.Add, contentDescription = null)
-                                    Spacer(Modifier.width(Spacing.sm))
-                                    Text("New board")
-                                }
-                            },
-                        )
-                    }
-                }
-
-                else -> LazyColumn(
+            if (ready == null) {
+                CircularProgressIndicator(Modifier.align(Alignment.Center))
+            } else {
+                LazyColumn(
                     contentPadding = PaddingValues(
                         start = Spacing.screen,
                         end = Spacing.screen,
@@ -147,8 +132,23 @@ fun BoardsScreen(
                     verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     modifier = Modifier.fillMaxSize(),
                 ) {
+                    item(key = "play") {
+                        PlayCard(ready.games, ready.now, onNewGame, onResume, onDeleteGame)
+                    }
+                    item(key = "puzzles") { PuzzlesCard() }
+                    item(key = "boards-title") {
+                        Text(
+                            "SANDBOX BOARDS",
+                            style = GoaTextStyles.overline,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = Spacing.sm).semantics { heading() },
+                        )
+                    }
                     ready.latest?.let { latest ->
                         item(key = "latest") { LatestCard(latest, { onSetUp(latest) }) }
+                    }
+                    if (ready.boards.isEmpty()) {
+                        item(key = "empty") { NoBoards(ready.unreadable, onNew) }
                     }
                     items(ready.boards, key = { it.id }) { board ->
                         BoardRow(
@@ -174,6 +174,158 @@ fun BoardsScreen(
             },
             onDismiss = { renaming = null },
         )
+    }
+}
+
+/** No sandbox boards yet: what one is for, and New board. */
+@Composable
+private fun NoBoards(unreadable: Boolean, onNew: () -> Unit) {
+    GoaCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text("No boards yet", style = MaterialTheme.typography.titleMedium)
+            Text(
+                if (unreadable) {
+                    "The saved boards couldn't be read."
+                } else {
+                    "Set up any line-up on the real map and see who can reach whom."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Button(onClick = onNew, modifier = Modifier.heightIn(min = 52.dp)) {
+                Icon(Icons.Outlined.Add, contentDescription = null)
+                Spacer(Modifier.width(Spacing.sm))
+                Text("New board")
+            }
+        }
+    }
+}
+
+/**
+ * Play against the computer: what it is, New game, and each saved game (Resume; one that can't be
+ * resumed says why and offers Delete).
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PlayCard(
+    games: List<GameRowUi>,
+    now: Long,
+    onNewGame: () -> Unit,
+    onResume: (String) -> Unit,
+    onDelete: (String) -> Unit,
+) {
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text(
+                "PLAY AGAINST THE COMPUTER",
+                style = GoaTextStyles.overline,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.semantics { heading() },
+            )
+            Text(
+                "Learn by playing the real game: the app runs every rule and explains each question; " +
+                    "the computer plays the other heroes, from Easy to Expert.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Button(onClick = onNewGame, modifier = Modifier.heightIn(min = 52.dp)) {
+                Icon(Icons.Outlined.Add, contentDescription = null)
+                Spacer(Modifier.width(Spacing.sm))
+                Text("New game")
+            }
+            games.forEach { game -> GameRow(game, now, onResume, onDelete) }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun GameRow(game: GameRowUi, now: Long, onResume: (String) -> Unit, onDelete: (String) -> Unit) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            Modifier.padding(start = Spacing.md, top = Spacing.sm, bottom = Spacing.sm, end = Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f).semantics(mergeDescendants = true) {}) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    itemVerticalAlignment = Alignment.CenterVertically,
+                ) {
+                    LineupHeroes(Team.RED, game.red, size = 24.dp)
+                    if (game.red.isNotEmpty() && game.blue.isNotEmpty()) {
+                        Text(
+                            "vs",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    LineupHeroes(Team.BLUE, game.blue, size = 24.dp)
+                }
+                val status = when {
+                    game.problem != null -> game.problem
+                    game.finished -> "Game over" + (game.winner?.let { " · ${BoardText.team(it)} won" } ?: "")
+                    else -> "Round ${game.round} · Turn ${game.turn}"
+                }
+                Text(
+                    status,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (game.problem !=
+                        null
+                    ) {
+                        GoaTheme.colors.unverified
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+                if (game.problem == null) {
+                    Text(
+                        listOfNotNull(
+                            game.you.takeIf { it.isNotEmpty() }?.joinToString(", ", prefix = "You: ") { it.name },
+                            BoardText.changed(game.updatedAt, now).replace("Changed", "Played"),
+                        ).joinToString(" · "),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            if (game.problem == null) {
+                FilledTonalButton(onClick = { onResume(game.id) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(if (game.finished) "Result" else "Resume")
+                }
+            }
+            IconButton(onClick = { onDelete(game.id) }) {
+                Icon(Icons.Outlined.DeleteOutline, contentDescription = "Delete this game")
+            }
+        }
+    }
+}
+
+/** Puzzles: coming soon (ADR-035). */
+@Composable
+private fun PuzzlesCard() {
+    GoaCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            Modifier.semantics(mergeDescendants = true) {},
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            Text("PUZZLES · COMING SOON", style = GoaTextStyles.overline, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Difficult puzzles in the style of chess tactics: a position, a goal, one way to make it.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
