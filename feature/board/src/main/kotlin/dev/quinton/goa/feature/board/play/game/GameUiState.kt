@@ -7,6 +7,8 @@ import dev.quinton.goa.core.game.CoachNote
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.WinReason
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.feature.board.play.review.ReviewAction
+import dev.quinton.goa.feature.board.play.review.ReviewUi
 import dev.quinton.goa.feature.board.play.table.LogLine
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
@@ -93,6 +95,8 @@ data class PlayUi(
     val message: String? = null,
     val messageId: Long = 0,
     val recentStrong: Set<Int> = emptySet(),
+    /** The game-state review, while its sheet is open (ADR-037). */
+    val review: ReviewUi? = null,
 )
 
 /** Why there is no game to show. */
@@ -144,4 +148,7 @@ sealed interface GameAction {
     data object Rematch : GameAction
 
     data class MessageShown(val id: Long) : GameAction
+
+    /** The game-state review: opened, closed, a board rewound. */
+    data class Review(val action: ReviewAction) : GameAction
 }

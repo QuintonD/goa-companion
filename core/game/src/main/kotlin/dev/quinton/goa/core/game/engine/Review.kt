@@ -38,9 +38,12 @@ internal class Mark(val kind: Kind, val state: GameState, val events: Int) {
         /** The marks of a game's (or position's) start state. */
         fun initial(state: GameState): List<Mark> = when {
             state.step == Step.TURN_START -> listOf(Mark(Kind.TURN_START, state, 0))
+
             state.step >= Step.EOR_EFFECTS && state.step != Step.GAME_OVER ->
                 listOf(Mark(Kind.POSITION, state, 0), Mark(Kind.ROUND_END, state, 0))
+
             state.revealed -> listOf(Mark(Kind.POSITION, state, 0), Mark(Kind.REVEALED, state, 0))
+
             else -> listOf(Mark(Kind.POSITION, state, 0))
         }
     }
@@ -100,7 +103,10 @@ internal object Review {
             val revealAt = reveal?.events
             val eorAt = roundEnd?.events
             val turnEnd = eorAt ?: end
-            fun slice(from: Int, to: Int) = events.subList(from.coerceIn(0, events.size), to.coerceIn(from, events.size))
+            fun slice(
+                from: Int,
+                to: Int,
+            ) = events.subList(from.coerceIn(0, events.size), to.coerceIn(from, events.size))
             val state = start.state
             return TurnReview(
                 round = state.round,

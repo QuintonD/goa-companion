@@ -203,7 +203,17 @@ class ReviewTest {
     @Test
     fun `restore, fork and undo keep the history`() {
         val setup = TestData.firstGame().let {
-            it.copy(seats = it.seats.map { s -> if (s.team == Team.BLUE) s.copy(controller = Controller.Ai(AiLevel.EASY)) else s })
+            it.copy(
+                seats = it.seats.map { s ->
+                    if (s.team ==
+                        Team.BLUE
+                    ) {
+                        s.copy(controller = Controller.Ai(AiLevel.EASY))
+                    } else {
+                        s
+                    }
+                },
+            )
         }
         val s = TestData.engine.newGame(setup) as EngineSession
         playOut(s, RandomPlayer(3), maxDecisions = 120)

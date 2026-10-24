@@ -31,6 +31,8 @@ import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardHero
 import dev.quinton.goa.feature.board.boardHeroes
+import dev.quinton.goa.feature.board.play.review.ReviewKeeper
+import dev.quinton.goa.feature.board.play.review.ReviewUi
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.choiceFor
@@ -191,6 +193,7 @@ class GameViewModel internal constructor(
         selected = null
         nudge = null
         points = null
+        review.reset()
         humanAnswered = !fresh && canUndo(game)
         shownEvents = withContext(engine) { game.events.size }
         answeredAt = withContext(engine) { turnStart(game.events) }
@@ -198,6 +201,8 @@ class GameViewModel internal constructor(
         publish()
         drive()
     }
+
+    private val review = ReviewKeeper()
 
     /** Where the current turn's events begin (after a restore or take back, "since your last answer"). */
     private fun turnStart(events: List<GameEvent>): Int =
@@ -238,6 +243,11 @@ class GameViewModel internal constructor(
             is GameAction.MessageShown -> if (action.id == messageId) {
                 message = null
                 viewModelScope.launch { publish() }
+            }
+
+            is GameAction.Review -> {
+                val turns = (uiState.value as? GameUiState.Playing)?.play?.review?.turns
+                if (review.handle(action.action, turns)) viewModelScope.launch { publish() }
             }
         }
     }
@@ -399,6 +409,7 @@ class GameViewModel internal constructor(
             selected = null
             nudge = null
             thinking = false
+            review.reset()
             humanAnswered = canUndo(game)
             shownEvents = withContext(engine) { game.events.size }
             answeredAt = withContext(engine) { turnStart(game.events) }
@@ -612,7 +623,9 @@ class GameViewModel internal constructor(
         val game = session ?: return
         val board = map ?: return
         val inProgress = progress ?: return
-        val snapshot = withContext(engine) { Snapshot(game.pending, mergedView(game), game.events.toList()) }
+        val snapshot = withContext(engine) {
+            Snapshot(game.pending, mergedView(game), game.events.toList(), review.build(game, humans))
+        }
         val decision = snapshot.pending
         val view = snapshot.view
         val status = when {
@@ -662,12 +675,18 @@ class GameViewModel internal constructor(
                     announcement = announcement,
                     message = message,
                     messageId = messageId,
+                    review = snapshot.review,
                 ),
             )
         }
     }
 
-    private class Snapshot(val pending: Decision?, val view: GameView, val events: List<GameEvent>)
+    private class Snapshot(
+        val pending: Decision?,
+        val view: GameView,
+        val events: List<GameEvent>,
+        val review: ReviewUi? = null,
+    )
 
     /**
      * What the person may see: the view of their first hero, with each other hero they control
