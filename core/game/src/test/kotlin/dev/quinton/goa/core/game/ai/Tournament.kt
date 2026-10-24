@@ -23,6 +23,9 @@ object Tournament {
         val heroGames = sortedMapOf<String, Int>()
         val heroWins = sortedMapOf<String, Int>()
 
+        /** One line per game: line-up, the side level a played, the winner and how. */
+        val lines = ArrayList<String>()
+
         val games: Int get() = aWins + bWins + draws
         val rate: Double get() = (aWins + 0.5 * draws) / games
 
@@ -144,6 +147,8 @@ object Tournament {
                 val reason = r.session.view(null).winReason?.name ?: "UNFINISHED"
                 score.reasons[reason] = (score.reasons[reason] ?: 0) + 1
                 score.rounds += r.rounds
+                score.lines += "${red.joinToString("+")} vs ${blue.joinToString("+")}: $a ${if (aRed[i]) "Red" else "Blue"}, " +
+                    "${if (w == null) "draw" else if (aWon) "$a won" else "$b won"} by $reason in round ${r.rounds}"
             }
         } finally {
             pool.shutdown()

@@ -30,6 +30,10 @@ class TournamentTest {
             }
             println("TOURNAMENT $score in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
             if (mixed != null) println("TOURNAMENT by hero ($a): ${score.byHero()}")
+            // AI_GAMES=<hero>: every game with that hero seated (or "all").
+            System.getenv("AI_GAMES")?.let { h ->
+                score.lines.filter { h == "all" || h in it.substringBefore(":") }.forEach { println("TOURNAMENT   $it") }
+            }
         }
     }
 }
