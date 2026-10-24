@@ -90,7 +90,9 @@ object Views {
             resolved = h.cards.filter { it.zone == Zone.RESOLVED }.sortedBy { it.slot }.map(::view),
             discard = h.cards.filter { it.zone == Zone.DISCARD }.sortedBy { it.stamp }.map(::view),
             items = if (own) h.cards.filter { it.zone == Zone.ITEM }.map { it.id } else emptyList(),
-            itemStats = h.cards.filter { it.zone == Zone.ITEM }.mapNotNull { g.card(it.id).item } + h.spareItems,
+            // Sorted: the deck order of the tucked cards would tell which colour each item came from.
+            itemStats = (h.cards.filter { it.zone == Zone.ITEM }.mapNotNull { g.card(it.id).item } + h.spareItems)
+                .sortedBy { it.ordinal },
             ultimate = h.cards.any { it.zone == Zone.ULTIMATE },
             markers = h.markers.map { MarkerView(it.kind, it.from) },
             activeEffects = active.toList(),

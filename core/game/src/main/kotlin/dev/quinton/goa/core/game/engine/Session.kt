@@ -73,6 +73,9 @@ class EngineSession internal constructor(
     /** The state shown now (tests, the AI's evaluation, puzzles). Treat as read-only. */
     val state: GameState get() = display
 
+    /** The engine data this session runs on (the AI's evaluation reads card data and maps from it). */
+    internal val engineData: EngineData get() = data
+
     /** The state at the start of the current step (puzzle solver's transposition key). Read-only. */
     internal val checkpointState: GameState get() = checkpoint
 
@@ -185,9 +188,19 @@ class EngineSession internal constructor(
         return f
     }
 
-    override fun determinize(viewer: Team, seed: Long): GameSession {
+    override fun determinize(viewer: Team, seed: Long): GameSession = determinizeWith(
+        viewer,
+        seed,
+        Determinizer.Options(),
+    )
+
+    /**
+     * [determinize] with the AI's refinements ([Determinizer.Options]: public card memory, an opponent
+     * model for unrevealed played cards, human teammates' facedown cards). Same no-leak guarantee.
+     */
+    fun determinizeWith(viewer: Team, seed: Long, options: Determinizer.Options): EngineSession {
         val rng = Random(seed)
-        val base = Determinizer.sample(data, checkpoint, viewer, rng)
+        val base = Determinizer.sample(data, checkpoint, viewer, rng, options)
         val f = EngineSession(data, setup, base, Random(seed xor 0x5DEECE66DL))
         f.segment = ArrayList(segment)
         f.advance()

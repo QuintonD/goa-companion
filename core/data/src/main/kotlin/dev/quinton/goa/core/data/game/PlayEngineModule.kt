@@ -16,6 +16,8 @@ import dev.quinton.goa.core.game.GameFactory
 import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.GameSetup
 import dev.quinton.goa.core.game.SavedGame
+import dev.quinton.goa.core.game.ai.AiCoach
+import dev.quinton.goa.core.game.ai.AiPlayers as GameAiPlayers
 import dev.quinton.goa.core.game.engine.GameEngine
 import javax.inject.Singleton
 import kotlin.random.Random
@@ -40,8 +42,8 @@ fun interface AiPlayers {
  * Screens get the factory through a `Provider` and only on `Dispatchers.Default`, so a provider that
  * waits for the catalog and maps to load never blocks the main thread.
  *
- * Until the engine, its AI and its coach are offered, the placeholders below seat no hero: the app
- * says play is coming soon.
+ * The engine, its AI levels and its coach are bound below; the placeholders after the module remain
+ * for builds and tests without them.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -52,13 +54,17 @@ internal object PlayEngineModule {
         // Screens ask for the factory on Dispatchers.Default only (see above), never on the main thread.
         runBlocking { GameEngine(catalog.catalog.first(), maps.maps.first()) }
 
+    /** The four levels of core/game/ai (AI.md); one player per request, seeded per level. */
     @Provides
     @Singleton
-    fun ai(): AiPlayers = AiPlayers { RandomLegalAi() }
+    fun ai(): AiPlayers = AiPlayers { level -> GameAiPlayers.forLevel(level, AI_SEED + level.ordinal) }
 
+    /** The coach analyses on the game factory's engine (it replays saves for the turning points). */
     @Provides
     @Singleton
-    fun coach(): Coach = QuietCoach
+    fun coach(factory: GameFactory): Coach = AiCoach(factory)
+
+    private const val AI_SEED = 0x60A_2026L
 }
 
 /** No hero is playable yet: New game and the Boards entry show "coming soon". */
@@ -72,7 +78,7 @@ internal object ComingSoonGameFactory : GameFactory {
     override fun restore(saved: SavedGame): GameSession = error("Play against the computer is not in this build yet")
 }
 
-/** Stand-in until the AI levels are bound: a seeded random legal option. */
+/** Stand-in AI (tests, builds without the engine): a seeded random legal option. */
 internal class RandomLegalAi(private val random: Random = Random(0)) : AiPlayer {
     override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice =
         decision.options.random(random)

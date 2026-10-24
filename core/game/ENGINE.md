@@ -14,6 +14,7 @@ in [RULINGS.md](RULINGS.md); contract changes in [CONTRACT-CHANGES.md](CONTRACT-
 | `core.game.effects` | The authoring framework: `Behavior` (hooks), `CardScript`/`HeroModule`/`Registry`, `Helpers.kt` |
 | `core.game.heroes` | One `HeroModule` per hero (`<Hero>Hero.kt`) and `Heroes.all` |
 | `core.game.position` | `PositionBuilder` / `position { }` |
+| `core.game.ai` | The computer opponents (`AiPlayers`) and the coach (`AiCoach`): [ai/AI.md](ai/AI.md) |
 | `core.game.puzzles` | Puzzle solver, answer keys, runtime (`PuzzleBook`, `PuzzleSession`) and `book/` (one file per puzzle): [puzzles/ENCODING.md](puzzles/ENCODING.md) |
 
 ## State
@@ -76,12 +77,16 @@ Rules for code that runs inside a step (scripts included):
 - `undoToLastHumanDecision()`: replays the history up to the last answer of a `Controller.Human`
   seat; that decision is pending again.
 - `determinize(team, seed)` (`Determinizer`): from the checkpoint, for every hero of the other team,
-  hidden cards (hand, deck, the facedown played card before the reveal, facedown resolved/discarded
-  cards) swap identities within their colour and Tier, then hand and played card are dealt again
-  from the hand pool; the other team's facedown tokens shuffle kinds. Positions are canonicalised
-  first and stamps cleared, so the sample depends only on public information and the seed
-  (`SessionTest`, `PropertyTest`). The step is then re-run with the given answers in *lenient* mode:
-  an answer that no longer fits the sampled state is replaced by a seeded option.
+  an *upgrade history* consistent with its level, item icons and faceup cards is drawn (item card
+  ids are private), its kept cards and the hidden basics are dealt to the hidden places (hand,
+  facedown cards, the unrevealed played card), then hand and played card are dealt again from the
+  hand pool; heroes outside the one-card-per-colour shape swap hidden identities within colour and
+  Tier instead; the other team's facedown tokens shuffle kinds. Places are canonicalised first and
+  hand stamps cleared, so the sample depends only on public information and the seed
+  (`SessionTest`, `PropertyTest`, `ai/NoPeekingTest`). `determinizeWith(team, seed, options)` adds the
+  AI's opponent model, card memory and hidden teammate plays (`ai/AI.md`). The step is then re-run
+  with the given answers in *lenient* mode: an answer that no longer fits the sampled state is
+  replaced by a seeded option.
 
 ## Views and events
 
@@ -135,5 +140,6 @@ hook code guards every clause of a card with an early return. Everything else is
 | `SessionTest` | Decision ids, rejected answers, save/restore mid-card and mid-defense, fork, undo, determinize |
 | `PropertyTest` | 1 200 random games (1v1, 2v1 Handicap, 2v2 Quick/Long, double lane): invariants at every decision; determinism; save/restore and fork equivalence; determinize |
 | `BenchmarkTest` | Games per second |
+| `ai/*Test` | The computer opponents and the coach: level ladder, no peeking, every decision kind, timings ([ai/AI.md](ai/AI.md)) |
 | `puzzles/PuzzleBookTest` | Every bundled puzzle: proof, answer key up to date, solution, nudges, wrong tries, first-option and "show me" lines, answer times |
 | `puzzles/PuzzleSolverTest` | Solver, goals, deadline halt, runtime and answer-key rules on small positions |
