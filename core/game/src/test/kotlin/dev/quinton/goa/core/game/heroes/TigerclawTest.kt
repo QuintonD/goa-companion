@@ -22,7 +22,9 @@ import org.junit.Test
 
 /** Tigerclaw the Cutpurse: every card, clause by clause (text from `catalog/heroes/tigerclaw.json`), with the FAQ. */
 class TigerclawTest {
-    private fun game(d: dev.quinton.goa.core.game.Driver) = Game(ANY_HERO_ENGINE.data, d.s.state, emptyList(), RunMode.PROBE)
+    private fun game(
+        d: dev.quinton.goa.core.game.Driver,
+    ) = Game(ANY_HERO_ENGINE.data, d.s.state, emptyList(), RunMode.PROBE)
 
     // ---- Blink Strike (gold) / Nimble Strike (Handicap) ---------------------------------------
 
@@ -467,7 +469,7 @@ class TigerclawTest {
     }
 
     @Test
-    fun `Evade - Block a ranged attack, you may move 1 space and retrieve your resolved or discarded basic skill card`() {
+    fun `Evade - Block a ranged attack, may move 1 space and retrieve your resolved or discarded basic skill`() {
         val d = pos {
             clearMinions()
             turn = 2

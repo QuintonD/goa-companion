@@ -145,7 +145,8 @@ class CombatTest {
         assertThat(p.context.defensePreview["dodger-blue-2a"]).isEqualTo(7)
         d.card("dodger-blue-2a")
         assertThat(d.texts()).contains(
-            "Dodger defends with Vampiric Shield: Defense 4 + 2 (card text) + 1 (adjacent friendly heavy minion) = 7. Defended.",
+            "Dodger defends with Vampiric Shield: Defense 4 + 2 (card text) + 1 (adjacent friendly heavy minion) = 7." +
+                " Defended.",
         )
     }
 

@@ -179,7 +179,14 @@ object DodgerHero : HeroModule {
             val plan = if (plans.size == 1) {
                 plans.single().second
             } else {
-                plans[a.chooseOption(if (both) "Choose one, or both" else "Choose one", plans.map { it.first })!!].second
+                plans[
+                    a.chooseOption(
+                        if (both) "Choose one, or both" else "Choose one",
+                        plans.map {
+                            it.first
+                        },
+                    )!!,
+                ].second
             }
             var first: String? = null
             for (bullet in plan) {
@@ -197,7 +204,9 @@ object DodgerHero : HeroModule {
         }
 
         private fun targets(a: ActionScope, bullet: Int, exclude: String?): Set<String> =
-            a.unitsWithin(maxOf(1, a.range)).filter { a.isEnemy(it) && a.canTarget(it) && valid(a, bullet, exclude)(it) }
+            a.unitsWithin(maxOf(1, a.range)).filter {
+                a.isEnemy(it) && a.canTarget(it) && valid(a, bullet, exclude)(it)
+            }
                 .toSet()
 
         private fun bulletAttack(a: ActionScope, bullet: Int, exclude: String?): String? {
@@ -272,14 +281,20 @@ object DodgerHero : HeroModule {
                 val spaces = g.within(a.pos, reach).filter { h ->
                     g.isEmpty(h) && (
                         g.tide(a.heroId) ||
-                            (g.zoneOf(h) == zone && g.geo.spaces[h]?.spawn?.let { it.team == team && it.kind.minion != null } == true)
+                            (
+                                g.zoneOf(h) == zone &&
+                                    g.geo.spaces[h]?.spawn?.let { it.team == team && it.kind.minion != null } == true
+                                )
                         )
                 }
                 if (spaces.isEmpty()) continue
                 for (type in MinionType.entries) {
                     val kind = SpawnKind.entries.first { it.minion == type }
                     val points = g.geo.minionSpawns(zone).count { it.spawn?.team == team && it.spawn?.kind == kind }
-                    val present = g.state.minions.count { it.lane == lane && it.team == team && it.type == type && it.at != null }
+                    val present = g.state.minions.count {
+                        it.lane == lane && it.team == team && it.type == type &&
+                            it.at != null
+                    }
                     if (points > present) options += Triple(lane, type, spaces)
                 }
             }
@@ -320,7 +335,8 @@ object DodgerHero : HeroModule {
         override val behavior: Behavior = object : Behavior {
             private fun applies(g: Game, src: Src, unitId: String): Boolean {
                 val owner = src.owner ?: return false
-                return g.isHero(unitId) && g.isEnemy(owner, unitId) && g.inRadiusOf(src, unitId) && g.affectedBy(src, unitId)
+                return g.isHero(unitId) && g.isEnemy(owner, unitId) && g.inRadiusOf(src, unitId) &&
+                    g.affectedBy(src, unitId)
             }
 
             override fun statDelta(g: Game, src: Src, q: StatQuery): Int =

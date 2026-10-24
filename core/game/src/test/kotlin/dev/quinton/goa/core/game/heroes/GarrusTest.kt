@@ -56,7 +56,7 @@ class GarrusTest {
     // ---- Chilling Howl (silver) ----------------------------------------------------------------
 
     @Test
-    fun `Chilling Howl - you may discard a resolved card, this round enemy heroes in radius move at most 2, no fast travel`() {
+    fun `Chilling Howl - discard a resolved card, enemy heroes in radius move at most 2, no fast travel`() {
         val d = pos {
             clearMinions()
             turn = 2
@@ -153,7 +153,7 @@ class GarrusTest {
     // ---- Blunt Force / Send Flying (red alternates) --------------------------------------------
 
     @Test
-    fun `Blunt Force - after the attack you may move 1 space next to an enemy hero, then push it 3 ignoring obstacles`() {
+    fun `Blunt Force - you may move 1 space next to an enemy hero, then push it 3 ignoring obstacles`() {
         val d = pos {
             clearMinions()
             hero("garrus", Team.BLUE, Hex(1, -2)) { played("garrus-red-2b") }

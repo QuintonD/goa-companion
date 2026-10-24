@@ -123,8 +123,14 @@ object MisaHero : HeroModule {
             if (defeatOk) plans += "Defeat a minion adjacent to you" to listOf(DEFEAT)
             // Power Overwhelming: "you may choose two different options instead, in any order."
             if (a.choiceLimit(1) >= 2) {
-                if (placeOk) plans += "Both: place yourself, then defeat a minion adjacent to you" to listOf(PLACE, DEFEAT)
-                if (defeatOk) plans += "Both: defeat a minion adjacent to you, then place yourself" to listOf(DEFEAT, PLACE)
+                if (placeOk) {
+                    plans +=
+                        "Both: place yourself, then defeat a minion adjacent to you" to listOf(PLACE, DEFEAT)
+                }
+                if (defeatOk) {
+                    plans +=
+                        "Both: defeat a minion adjacent to you, then place yourself" to listOf(DEFEAT, PLACE)
+                }
             }
             if (plans.isEmpty()) a.fizzle("no option can be done")
             val plan = if (plans.size == 1) {
@@ -247,10 +253,16 @@ object MisaHero : HeroModule {
                 val units = passed.filter { a.g.canPlace(it, a.heroId) }
                 val free = HexGrid.neighbors(a.pos).filter { a.g.isEmpty(it) }
                 if (units.isEmpty() || free.isEmpty()) return
-                val u = a.chooseUnit("You may place an enemy unit you moved through next to you", units, optional = true)
-                    ?: return
+                val u =
+                    a.chooseUnit("You may place an enemy unit you moved through next to you", units, optional = true)
+                        ?: return
                 a.target(u)
-                val h = a.chooseSpace("Place ${a.g.name(u)} into a space adjacent to you", free.filter { a.g.isEmpty(it, u) })!!
+                val h = a.chooseSpace(
+                    "Place ${a.g.name(u)} into a space adjacent to you",
+                    free.filter {
+                        a.g.isEmpty(it, u)
+                    },
+                )!!
                 a.g.place(u, h, a.heroId)
             } else {
                 // "an enemy hero you moved through discards a card, if able."

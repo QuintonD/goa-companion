@@ -158,7 +158,11 @@ class DodgerTest {
         d.defend("brogan-blue-1") // 5 against 5
         // Brogan now has a card in the discard, but the second target must be different.
         d.expect(DecisionKind.DEFEND, "arien")
-        assertThat(d.s.events.filterIsInstance<GameEvent.Attacked>().map { it.targetId }).containsExactly("brogan", "arien")
+        assertThat(
+            d.s.events.filterIsInstance<GameEvent.Attacked>().map {
+                it.targetId
+            },
+        ).containsExactly("brogan", "arien")
     }
 
     @Test
@@ -218,7 +222,7 @@ class DodgerTest {
     // ---- Dark / Darker / Darkest Ritual (green) ------------------------------------------------
 
     @Test
-    fun `Dark Ritual and Darker Ritual - 2 or more empty spawn points in radius in the battle zone, gain 1 (2) coins`() {
+    fun `Dark Ritual and Darker Ritual - 2 or more empty spawn points in radius, gain 1 (2) coins`() {
         for ((card, coins) in listOf("dodger-green-1" to 1, "dodger-green-2a" to 2)) {
             val d = pos {
                 clearMinions()
@@ -265,7 +269,7 @@ class DodgerTest {
     // ---- Necromancy / Necromastery (green alternates) ------------------------------------------
 
     @Test
-    fun `Necromancy - FAQ - respawn a removed friendly minion of any type directly onto an adjacent friendly spawn point`() {
+    fun `Necromancy - FAQ - a removed minion of any type, onto an adjacent friendly spawn point`() {
         val d = pos {
             clearMinions()
             hero("dodger", Team.RED, Hex(1, -2)) { played("dodger-green-2b") }
@@ -440,7 +444,7 @@ class DodgerTest {
     }
 
     @Test
-    fun `Tide of Darkness - Necromancy respawns into any empty adjacent space, then the minion returns to the battle zone`() {
+    fun `Tide of Darkness - Necromancy into any empty adjacent space, the minion then returns`() {
         val d = pos {
             clearMinions()
             battleZone("lane-1", "lane-1-1")

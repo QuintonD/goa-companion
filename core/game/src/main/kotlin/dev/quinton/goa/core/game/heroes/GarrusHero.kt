@@ -111,7 +111,8 @@ object GarrusHero : HeroModule {
                     ?.let { a.g.discard(a.heroId, it) }
             }
             if (a.hero.at == null) return
-            // "This round: Enemy heroes in radius cannot fast travel, or move more than 2 spaces with a movement action."
+            // "This round: Enemy heroes in radius cannot fast travel, or move more than 2 spaces with a movement
+            // action."
             a.activeEffect(Timing.THIS_ROUND)
         }
 
@@ -232,11 +233,13 @@ object GarrusHero : HeroModule {
                 (if (enemy) a.isEnemy(id) else a.isFriendly(id)) && a.canTarget(id) &&
                     a.canMoveOther(id, 1, endFilter = endFor(id))
             }
-            if (units.isEmpty()) a.fizzle(if (enemy) "no enemy unit in range can move farther" else "no friendly unit in range can move closer")
-            val u = a.chooseUnit(
-                if (enemy) "Move an enemy unit in range 1 space farther away" else "Move a friendly unit in range 1 space closer",
-                units,
-            )!!
+            val what = if (enemy) {
+                "an enemy unit in range 1 space farther away"
+            } else {
+                "a friendly unit in range 1 space closer"
+            }
+            if (units.isEmpty()) a.fizzle("cannot move $what")
+            val u = a.chooseUnit("Move $what", units)!!
             a.moveOther(u, 1, endFilter = endFor(u))
             // "May repeat once (up to two times)." Each repeat may pick any unit, the same one included.
             if (repeats > 0) a.repeat(times = repeats)

@@ -34,22 +34,26 @@ internal fun batch1RandomGames(hero: String, games: Int = 120, seed: Long = 1) {
         val mine = if (rng.nextBoolean()) Team.RED else Team.BLUE
         val setup = when (i % 5) {
             0 -> GameSetup(TestData.FOREST, listOf(seat(hero, mine), seat(o[0], mine.opponent)), tieBreaker = coin)
+
             1 -> GameSetup(
                 TestData.FOREST,
                 listOf(seat(hero, mine, true), seat(o[0], mine, true), seat(o[1], mine.opponent)),
                 tieBreaker = coin,
             )
+
             2 -> GameSetup(
                 TestData.FOREST,
                 listOf(seat(hero, mine), seat(o[0], mine), seat(o[1], mine.opponent), seat(o[2], mine.opponent)),
                 length = GameLength.LONG,
                 tieBreaker = coin,
             )
+
             3 -> GameSetup(
                 TestData.RIVER,
                 listOf(seat(hero, mine), seat(o[0], mine), seat(o[1], mine.opponent), seat(o[2], mine.opponent)),
                 tieBreaker = coin,
             )
+
             else -> GameSetup(
                 TestData.FOREST,
                 listOf(seat(o[0], mine), seat(hero, mine), seat(o[1], mine.opponent), seat(o[2], mine.opponent)),

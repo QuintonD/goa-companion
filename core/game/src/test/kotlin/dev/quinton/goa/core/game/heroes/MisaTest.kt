@@ -282,7 +282,7 @@ class MisaTest {
     // ---- Sudden Breeze / Gust of Wind / Crushing Squall (blue) ---------------------------------
 
     @Test
-    fun `Sudden Breeze - move up to 3 in a straight line through obstacles, may place an enemy unit moved through next to you`() {
+    fun `Sudden Breeze - up to 3 straight through obstacles, may place an enemy unit passed next to you`() {
         val d = pos {
             clearMinions()
             hero("misa", Team.BLUE, Hex(1, -2)) { played("misa-blue-1") }
@@ -339,7 +339,7 @@ class MisaTest {
     // ---- Power Overwhelming (Ultimate) ---------------------------------------------------------
 
     @Test
-    fun `Power Overwhelming - choose two different options in any order, and placing yourself makes an adjacent enemy hero discard`() {
+    fun `Power Overwhelming - choose two options in any order, placing yourself makes an adjacent enemy discard`() {
         val d = pos {
             clearMinions()
             hero("misa", Team.BLUE, Hex(1, -2)) {

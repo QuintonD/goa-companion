@@ -59,7 +59,7 @@ object TigerclawHero : HeroModule {
     override val heroId: String = "tigerclaw"
     override val complete: Boolean = true
 
-    /** The Poison marker ({marker_poison}); its strength (1 or 2) is in [dev.quinton.goa.core.game.engine.Marker.data]. */
+    /** The Poison marker ({marker_poison}); its strength (1 or 2) is in the marker's data. */
     const val POISON: String = "marker_poison"
     private const val STRENGTH = "n"
 
@@ -224,7 +224,10 @@ object TigerclawHero : HeroModule {
     private class Poison(private val strength: Int) : CardScript {
         override fun primary(a: ActionScope) {
             // "Give a hero in range a Poison marker." Any hero (the text does not say enemy), never you (p.10).
-            val heroes = a.unitsWithin(a.range).filter { a.g.isHero(it) && a.g.heroBodyOf(it) != a.heroId && a.canTarget(it) }
+            val heroes = a.unitsWithin(a.range).filter {
+                a.g.isHero(it) && a.g.heroBodyOf(it) != a.heroId &&
+                    a.canTarget(it)
+            }
             if (heroes.isEmpty()) a.fizzle("no hero in range")
             val v = a.target(a.chooseUnit("Give a hero in range a Poison marker", heroes)!!)
             // One Poison marker: giving it again moves it (Game.giveMarker).
@@ -267,12 +270,19 @@ object TigerclawHero : HeroModule {
             val g = d.g
             // "You may move 1 space."
             if (move && g.canMove(MoveSpec(d.heroId, 1, 1))) {
-                g.move(MoveSpec(d.heroId, 1, 1), d.heroId, "You may move 1 space", optional = true, sourceCardId = d.cardId)
+                g.move(
+                    MoveSpec(d.heroId, 1, 1),
+                    d.heroId,
+                    "You may move 1 space",
+                    optional = true,
+                    sourceCardId = d.cardId,
+                )
             }
             // "You may retrieve your resolved or discarded basic skill card."
             if (retrieveBasicSkill) {
                 val cards = d.hero.cards.filter {
-                    (it.zone == Zone.RESOLVED || it.zone == Zone.DISCARD) && g.isBasic(it.id) && g.isSkillCard(d.heroId, it.id)
+                    (it.zone == Zone.RESOLVED || it.zone == Zone.DISCARD) && g.isBasic(it.id) &&
+                        g.isSkillCard(d.heroId, it.id)
                 }.map { it.id }
                 if (cards.isNotEmpty()) {
                     val c = g.ask(
@@ -300,7 +310,8 @@ object TigerclawHero : HeroModule {
     private object CloakAndDaggers : CardScript {
         override val hasPrimary: Boolean get() = false
 
-        private val REPEATABLE = setOf(ActionKind.ATTACK, ActionKind.SKILL, ActionKind.MOVEMENT, ActionKind.FAST_TRAVEL, ActionKind.CLEAR)
+        private val REPEATABLE =
+            setOf(ActionKind.ATTACK, ActionKind.SKILL, ActionKind.MOVEMENT, ActionKind.FAST_TRAVEL, ActionKind.CLEAR)
 
         override val behavior: Behavior = object : Behavior {
             override fun on(g: Game, src: Src, t: Trigger) {
@@ -329,7 +340,14 @@ object TigerclawHero : HeroModule {
 
         /** Skip the question when the repeat could not do anything at all. */
         @Suppress("LongParameterList")
-        private fun worthAsking(g: Game, owner: String, cardId: String, t: Trigger.AfterAction, at: Hex, excluded: Set<String>) =
+        private fun worthAsking(
+            g: Game,
+            owner: String,
+            cardId: String,
+            t: Trigger.AfterAction,
+            at: Hex,
+            excluded: Set<String>,
+        ) =
             when {
                 t.primary -> g.primaryPossible(owner, cardId)
                 t.kind == ActionKind.ATTACK -> g.secondaryAttackTargets(owner, cardId).any { it !in excluded }

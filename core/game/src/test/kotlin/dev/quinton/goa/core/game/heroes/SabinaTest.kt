@@ -305,7 +305,7 @@ class SabinaTest {
     // ---- Steady Advance / Unwavering Resolve (blue alternates) ---------------------------------
 
     @Test
-    fun `Steady Advance - FAQ - two friendly minions in radius (presence, an immune heavy counts), retrieve, then move 1`() {
+    fun `Steady Advance - FAQ - two friendly minions in radius (an immune heavy counts), retrieve, move 1`() {
         val d = pos {
             clearMinions()
             hero("sabina", Team.BLUE, Hex(1, -2)) {
