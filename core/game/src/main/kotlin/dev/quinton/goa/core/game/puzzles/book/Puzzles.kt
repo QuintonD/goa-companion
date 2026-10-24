@@ -12,5 +12,9 @@ object Puzzles {
         P14LongThrust,
         P17IntoTheWall,
         P34RespawnWhereItCounts,
+        P38StripTheSilver,
+        P39StaticBarrier,
+        P40CarryAway,
+        P42TheCourteousTrap,
     )
 }
