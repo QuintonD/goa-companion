@@ -122,3 +122,25 @@ Additive; a `Coach` that implements neither new method behaves as before.
 - `AiCoach` behaviour: `prepare` runs the analysis `nudge` ran, without the choice; `nudge(analysis, …)`
   plays out only the person's choice when the pruning had left it out (same seeds and samples,
   appended last as before), then judges and explains as before.
+
+## 2026-10-25 (game-state review, `feature/play-review`, ADR-037)
+
+Additive; defaults keep other `GameSession` implementations (test fakes) compiling.
+
+- `GameSession.review(viewers: Set<String>): List<TurnReview>` (default empty): the game so far turn by
+  turn, the turn being played last. `TurnReview` (`round`, `turn`, `plays`, `opening`, `events`,
+  `endOfRound`, `finished`, `hasStart`, `fromPosition`) and `TurnPlay` (`heroId`, `team`, `card`,
+  `alsoPlayed`, `initiative`, `resolved`). `plays` are each hero's card as the viewers saw it just after
+  the reveal, in acting order; empty before the reveal.
+- `GameSession.positionAt(round, turn, viewers): GameView?` (default null): the board at the start of
+  that turn (or a built position's start inside it) as the viewers saw it then.
+- `viewers` merge like the app's views: each viewer as it sees itself, everyone else as the first viewer
+  in seat order sees them; empty = spectator. The play screen passes the person's heroes, a puzzle every
+  seat (its hands are open).
+- `GameView.actedThisTurn: List<String> = emptyList()`: after the reveal, the heroes who have resolved
+  their card this turn, in order (`TurnRecord.resolved`).
+- Behaviour: `EngineSession` keeps references to committed checkpoints at turn boundaries (turn start,
+  just after the reveal, round end; a built position's start state) and builds every card of the review
+  through `Views` on them, so it can never name more than the live view did. Forks, `restore` and
+  `undoToLastHumanDecision` carry or rebuild them; `determinize` copies start empty. Nothing is saved:
+  the history is rebuilt by the replay.

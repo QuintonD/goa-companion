@@ -781,3 +781,33 @@ Tailscale Funnel on port 8443 (443 stays the owner's tailnet-only service). Near
 wiped loses nothing: the next phone to sync re-uploads the merged log. Whoever runs the server can
 see group sizes and sync times, never content. A `SyncDocument.VERSION` bump still needs every phone
 updated before they sync again.
+
+## ADR-037 — Game-state review: the game so far, built by the engine from its own views (2026-10-25)
+**Context:** The owner: "For puzzles and playing the game it is important to let players review the
+game state e.g. what cards have been played." The game screen had a text log and a per-hero sheet, but
+no view of the cards each hero played turn by turn, the round's state at a glance, or earlier boards.
+The log's words could be parsed for some of it, but a card swapped, flipped facedown or played as a
+second card (Emmitt) would be wrong or missing, and nothing there guarantees hidden information.
+**Decision:**
+1. **Engine contract** (additive, core/game/CONTRACT-CHANGES.md): `GameSession.review(viewers)` returns a
+   `TurnReview` per turn (each hero's card at the reveal in acting order, the turn's events, the end of
+   round) and `positionAt(round, turn, viewers)` the board at a turn's start; `GameView.actedThisTurn`.
+   `EngineSession` keeps references to committed checkpoints at turn boundaries (they are never
+   mutated, so this costs a pointer per boundary and nothing on the AI's forks) and builds every card
+   through `Views`, the same code as the live table. So the review cannot show more than the viewer saw
+   then (p.4: played cards hidden until the reveal; hands, tucked items and facedown cards hidden).
+   `ReviewTest` proves it: no card id outside what the viewer's live views ever showed, and identical
+   reviews for games that differ only in hidden cards or in which card was tucked.
+2. **Viewers** merge like the screens' views: the person's heroes in play; every seat in a puzzle (its
+   hands are open, PRODUCT §10).
+3. **UI** (`feature/board` `play/review/`): a top-bar Game state action opens a full-height sheet with
+   Now and Turns tabs and a read-only rewound board; the ViewModels build the review on the engine thread
+   only while the sheet is open. Card taps go through one `onOpenCard(cards, index)` callback (the card
+   sheet today) so a shared card viewer can replace it.
+4. **Rewind** shows the start of each turn only (the kept checkpoints), not every decision: turn starts
+   are where a player looks back, and finer steps would mean replaying or keeping many more states.
+**Consequences:** A long game keeps about three states per turn in memory (a few MB at worst); they are
+not saved (replay rebuilds them). The rulebook forbids notes at the table (p.4 Table Talk), and the
+history of earlier rounds is more than a player would remember; it is the log's own content (already
+shown) and the Expert AI remembers cards shown since each level up, so it is offered as a learning aid;
+the owner may want a switch to hide earlier rounds for "table rules" play.
