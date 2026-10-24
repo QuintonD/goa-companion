@@ -989,6 +989,13 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.9 Range; p.10 Making choices; p.13 When a hero is defeated; p.18 Place; p.19 Straight line.
 - **Risk:** "you alone win the game" treated as a team win (`WinGame`). Cutter can hold 10 coins at level 7 because levels are bought only at the end of a round (p.8, p.15).
 - **Encoded as p44 (changed):** Blue's melee minion moved from (1,−4) to (1,−5), so (1,−1) is the only Snipe square in Cutter's radius: as written (1,−5) was the first placement option and taking the first option everywhere solved it. The last nudge names Wasp, not the square. Wasp's level-4 cards: resolved Magnetic Dagger, Static Barrier, Electrocute, Kinetic Repulse discarded; items Charged Boomerang, Telekinesis, Control Gravity (none touches the numbers used). Engine: Cutter's "alone wins" is a team win (rulings/cutter.md 8).
+- **Hardened as p44 (2026-10-24):** legality: round 6, not 5 (Cutter at level 7 with 10 unspent coins
+  needs the rounds); Swift L3 (Pin Down, Delayed Jump; items Mark for Death = Initiative, so Snipe shows 9,
+  and Assault Jump = Attack) and Dodger L3 (Burning Skull, Darker Ritual; items Finger of Death =
+  Initiative, Necromancy = Attack): no level 1 in round 6. Harder: Dodger at level 3 is still Tier I (one
+  Life counter) while Wasp at level 4 is Tier II, so the player must know the p.13 table, not just compare
+  levels. The rest as before: Wasp is the target, and (1,−1) is the only one of 27 placement spaces that
+  wins.
 
 ### C45 — The Lesser Evil
 - **Theme:** opponent's choice as a fork (Last Push or Life counters). **Difficulty:** 3. **Heroes:** Whisper, Tigerclaw; Xargatha, Wasp.
