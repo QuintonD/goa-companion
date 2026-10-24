@@ -1262,6 +1262,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Rules:** p.7 Resolve your card; p.10 Swap a card; p.11 Movement in the card text.
 - **Risk:** none.
 - **Encoded as p60 (2026-10-24):** as in the concept (Wasp idle with `wasp-green-1` played). Takahide and Brogan are both player seats, so Brogan's swap is the player's choice; both Mad Dash lines win.
+- **Hardened (2026-10-24, changed):** the intro gave the answer away (Mad Dash in the discard, Dodger cardless), Takahide was level 5 in round 4 and the others level 1. Now **round 5, turn 3**: Takahide (Blue, L5; two Attack items: Hold my Saké 5) at (4,−3) acts at 12; **Brogan** (Blue, L3: Bolster played at 6 with his Initiative item, Onslaught in hand, **Mad Dash in the discard** from an earlier defence) at (1,−2); **Dodger** (Red, L4; two Defense items) at (3,−3), next to Takahide, has played Necromancy (3) and **keeps Vampiric Shield**: 4 + 2 (the empty spawn points (3,−4) and (2,−3)) + 2 + 1 (the Red melee minion at (4,−4), also next to Takahide) = 9. Wasp (Red, L3) acted at 13. No attack of Brogan's beats her, even with that minion gone and Brogan landing on a spawn point (6 = 6). Solution: **Hold my Saké on Dodger herself** (5 cannot win, but she must discard her only card), then Brogan swaps in **Mad Dash from the discard** (8) and runs to her. Traps: the minion; Onslaught (12, adjacent only); keeping Bolster. Grade 2.
 
 ---
 

@@ -11,6 +11,7 @@ import dev.quinton.goa.core.game.puzzles.Moves.card
 import dev.quinton.goa.core.game.puzzles.Moves.decline
 import dev.quinton.goa.core.game.puzzles.Moves.hero
 import dev.quinton.goa.core.game.puzzles.Moves.space
+import dev.quinton.goa.core.game.puzzles.Moves.unitAt
 import dev.quinton.goa.core.game.puzzles.Puzzle
 import dev.quinton.goa.core.game.puzzles.WrongTry
 import dev.quinton.goa.core.model.board.Hex
@@ -25,41 +26,48 @@ object P60HoldMySake : Puzzle() {
         id = "p60",
         number = 60,
         title = "Hold My Saké",
-        difficulty = 3,
+        difficulty = 2,
         theme = "Card states: a discarded card comes back",
         heroes = listOf("takahide", "brogan", "dodger", "wasp"),
         goal = PuzzleGoal.DefeatHero("dodger", Deadline.END_OF_TURN, "Defeat Dodger this turn."),
-        intro = "Round 4, turn 3. Takahide has played Hold my Saké and acts next. Brogan has played Shield; " +
-            "he keeps Onslaught in hand, and Mad Dash is in his discard. Dodger has played Dark Ritual " +
-            "(initiative 3) and has no cards left.",
+        intro = "Round 5, turn 3. Takahide has played Hold my Saké (12) and acts next. Brogan has played " +
+            "Bolster (6 with his Initiative item), Dodger Necromancy (3). Wasp has already acted.",
         nudges = listOf(
-            "Brogan's best card for this is already in his discard pile.",
-            "Hold my Saké reaches into the discard too.",
-            "Hit the minion with Hold my Saké, then let Brogan swap Shield for Mad Dash from his discard.",
+            "Work out Dodger's Defense against Brogan's attacks, spawn points and minions included. Can any " +
+            "attack of his beat it?",
+            "A hero who defends discards the card she defends with. Hold my Saké can also reach into a discard pile.",
+            "Hold my Saké on Dodger herself, then swap Mad Dash from Brogan's discard for Bolster.",
         ),
-        explanation = "When two cards are swapped, all their states are swapped (p.10 Swap a Card): the " +
-            "discarded Mad Dash becomes Brogan's played, unresolved card and Shield goes to the discard. Mad " +
-            "Dash then resolves at its own Initiative, 7, before Dodger's 3 (p.7): Brogan charges 2 spaces " +
-            "in a straight line to a space next to Dodger and attacks (p.11). She has no card, so she is " +
-            "defeated (p.13). Onslaught from his hand would act sooner (11), but it only hits an adjacent " +
-            "unit, and Dodger is 2 spaces away; keeping Shield does nothing to her. A discarded card is not " +
-            "gone for the round: a swap can put it back into play.",
+        explanation = "Dodger keeps Vampiric Shield: 4, +2 because two empty spawn points lie within 2 of her " +
+            "in the Battle Zone (card text), +2 for her Defense items, +1 for the friendly melee minion beside " +
+            "her (p.14): 9. No attack of Brogan's beats that: even with that minion defeated and Brogan landing " +
+            "on one of those spawn points, she holds 6 against Mad Dash's 6. So Takahide attacks Dodger " +
+            "herself: 3 + 2 = 5 cannot beat her, but to survive she must discard her " +
+            "only card (p.14). After the attack, Hold my Saké lets a friendly hero swap his unresolved card with " +
+            "one in his hand or his discard (card text); swapped cards swap all their states (p.10), so Mad " +
+            "Dash, discarded earlier this round, becomes Brogan's unresolved card and acts at 7 + 1 = 8, before " +
+            "Dodger's 3 (p.7). It runs two spaces in a straight line to a space next to her (p.11), and with no " +
+            "card she is defeated (p.13). Onslaught from his hand acts sooner but only hits an adjacent unit; " +
+            "keeping Bolster does nothing to her. An attack you cannot win can still empty a hand.",
         rules = listOf(
             "p.7 Check the Initiative",
             "p.10 Swap a Card",
             "p.11 Movement in the Card Text",
             "p.13 Attacking a Hero",
+            "p.14 Defense Total, Minion Defense Modifiers",
         ),
     )
 
     override val playerSeats = setOf("takahide", "brogan")
 
     override fun PositionBuilder.setUp() {
-        round = 4
+        round = 5
         turn = 3
         tieBreaker = Team.RED
         clearMinions()
-        hero("takahide", Team.BLUE, Hex(0, -4)) {
+        lifeCounters(Team.RED, 3)
+        lifeCounters(Team.BLUE, 3)
+        hero("takahide", Team.BLUE, Hex(4, -3)) {
             level = 5
             played("takahide-red-3a")
             resolved(1, "takahide-gold")
@@ -68,27 +76,33 @@ object P60HoldMySake : Puzzle() {
             items("takahide-red-2b", "takahide-red-3b", "takahide-green-2a", "takahide-blue-2a")
         }
         hero("brogan", Team.BLUE, Hex(1, -2)) {
-            played("brogan-green-1")
+            level = 3
+            played("brogan-green-2a")
             resolved(1, "brogan-silver")
-            resolved(2, "brogan-blue-1")
+            resolved(2, "brogan-blue-2b")
             hand("brogan-gold")
             discard("brogan-red-1")
+            items("brogan-green-2b", "brogan-blue-2a")
         }
         hero("dodger", Team.RED, Hex(3, -3)) {
-            played("dodger-green-1")
+            level = 4
+            played("dodger-green-2b")
             resolved(1, "dodger-gold")
             resolved(2, "dodger-silver")
-            discard("dodger-red-1", "dodger-blue-1")
-            hand()
+            discard("dodger-red-2a")
+            hand("dodger-blue-2a")
+            items("dodger-red-2b", "dodger-green-2a", "dodger-blue-2b")
         }
         hero("wasp", Team.RED, Hex(4, -7)) {
-            played("wasp-green-1")
+            level = 3
             resolved(1, "wasp-gold")
-            resolved(2, "wasp-silver")
-            hand("wasp-red-1", "wasp-blue-1")
+            resolved(2, "wasp-red-2a")
+            resolved(3, "wasp-silver")
+            hand("wasp-green-2a", "wasp-blue-1")
+            items("wasp-red-2b", "wasp-green-2b")
         }
-        minion(Team.RED, MinionType.RANGED, Hex(0, -3))
         minion(Team.RED, MinionType.MELEE, Hex(4, -4))
+        minion(Team.RED, MinionType.MELEE, Hex(0, -6))
         minion(Team.RED, MinionType.HEAVY, Hex(1, 0))
         minion(Team.BLUE, MinionType.MELEE, Hex(2, -1))
         minion(Team.BLUE, MinionType.MELEE, Hex(3, -1))
@@ -96,25 +110,29 @@ object P60HoldMySake : Puzzle() {
         phase = PositionPhase.Resolving(next = "takahide")
     }
 
-    // Hold my Saké's only target (the Red ranged minion) is not asked; ending on (3,-2) neither is Dodger.
     override val solution = listOf(
         action(ActionType.PRIMARY),
+        hero("dodger"),
         hero("brogan"),
         card("brogan-red-1"),
         action(ActionType.PRIMARY),
         space(3, -2),
     )
 
-    override val nudgedMoves = solution.take(3)
+    override val nudgedMoves = solution.take(4)
 
     override val wrongTries = listOf(
         WrongTry(
-            "Swap in Onslaught: it acts at 11 but only hits adjacent units",
-            listOf(action(ActionType.PRIMARY), hero("brogan"), card("brogan-gold")),
+            "Defeat the minion beside Dodger: she still holds, 6 at worst against 6",
+            listOf(action(ActionType.PRIMARY), unitAt(4, -4)),
         ),
         WrongTry(
-            "No swap: Shield does nothing to Dodger",
-            listOf(action(ActionType.PRIMARY), hero("brogan"), decline()),
+            "Dodger discards, then Onslaught: it acts at 12 but only hits an adjacent unit",
+            listOf(action(ActionType.PRIMARY), hero("dodger"), hero("brogan"), card("brogan-gold")),
+        ),
+        WrongTry(
+            "Dodger discards, but Brogan keeps Bolster",
+            listOf(action(ActionType.PRIMARY), hero("dodger"), hero("brogan"), decline()),
         ),
     )
 }
