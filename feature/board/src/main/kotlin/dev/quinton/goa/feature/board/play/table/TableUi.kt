@@ -24,11 +24,12 @@ import dev.quinton.goa.feature.board.hero
 import dev.quinton.goa.feature.board.play.PlayText
 
 /**
- * Everything the game table draws (the game screen's, and the puzzles' later). [view] is what the
- * person at the phone may see (p.4): their own heroes' hands, everyone's open information.
- * [decision] is the pending question; [asking] = it is theirs to answer (else the computer is
- * choosing, or the game is waiting for others). [selected] is the option they tapped but have not
- * confirmed yet.
+ * Everything the game table draws (the game screen's and the puzzles'). [view] is what the person
+ * at the phone may see (p.4): their own heroes' hands, everyone's open information (a puzzle shows
+ * every hand: its hands are open). [decision] is the pending question; [asking] = it is theirs to
+ * answer (else the computer is choosing, or the game is waiting for others). [selected] is the
+ * option they tapped but have not confirmed yet, or a puzzle replay's move. [hint] is the option a
+ * puzzle's last nudge points at (drawn apart from the selection).
  */
 @Immutable
 data class TableUi(
@@ -42,6 +43,7 @@ data class TableUi(
     val asking: Boolean = false,
     val selected: Choice? = null,
     val bottomTeam: Team = Team.RED,
+    val hint: Choice? = null,
 ) {
     val geometry: BoardGeometry get() = BoardGeometry.of(map)
 
@@ -111,6 +113,15 @@ data class TableUi(
 
     /** The path the engine will use to reach [hex], when the decision gives one (keys "q,r"). */
     fun pathTo(hex: Hex): List<Hex> = decision?.context?.paths?.get("${hex.q},${hex.r}").orEmpty()
+
+    /** Where [hint] is on the board, when it is a space, a unit or a token. */
+    val hintAt: Hex?
+        get() = when (val h = hint) {
+            is Choice.Space -> h.hex
+            is Choice.Unit -> at(h.unitId)
+            is Choice.Token -> at(h.tokenId)
+            else -> null
+        }
 
     /** The unit the question is about (the one moving, the attack target…). */
     val subject: String? get() = decision?.context?.subjectId
