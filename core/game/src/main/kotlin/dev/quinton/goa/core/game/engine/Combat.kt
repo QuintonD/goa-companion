@@ -189,6 +189,7 @@ private fun Game.previewDefense(
     info: AttackInfo,
     fromInitiative: Boolean,
     noPrimary: Boolean,
+    minion: List<Term>,
 ): Int? {
     val card = card(cardId)
     if (card.block) return null
@@ -198,18 +199,23 @@ private fun Game.previewDefense(
         val textual =
             (card.primary == PrimaryAction.DEFENSE || card.primary == PrimaryAction.DEFENSE_SKILL) && !noPrimary
         if (textual) data.registry.script(cardId)?.defense(scope)
-        copy.defenseTotal(heroId, cardId, info, scope, fromInitiative).first
+        copy.defenseTotal(heroId, cardId, scope, fromInitiative, minion, info.attackerId).first
     } catch (_: ControlSignal) {
         null
     }
 }
 
+/**
+ * Step 5: the Defense total. [minion] are the minion defense modifiers calculated at step 2, before
+ * the Defense text (p.14 order), so a Defense text that moves the defender doesn't change them.
+ */
 private fun Game.defenseTotal(
     heroId: String,
     cardId: String,
-    info: AttackInfo,
     scope: DefenseScope,
     fromInitiative: Boolean,
+    minion: List<Term>,
+    attackerId: String,
 ): Pair<Int, List<Term>> {
     val terms = ArrayList<Term>()
     val stat = if (fromInitiative) Stat.INITIATIVE else Stat.DEFENSE
@@ -220,10 +226,9 @@ private fun Game.defenseTotal(
     val delta = statDelta(dev.quinton.goa.core.game.effects.StatQuery(heroId, stat, cardId, ActionKind.DEFENSE))
     if (delta != 0) terms += Term(delta, "effects")
     if (scope.bonus != 0) terms += Term(scope.bonus, "card text")
-    val at = posOf(info.targetId) ?: hero(heroId).at
-    if (!scope.ignoreMinionModifiers && at != null) terms += minionTerms(at, hero(heroId).team, info.attackerId)
+    if (!scope.ignoreMinionModifiers) terms += minion
     for ((b, s) in sources()) {
-        val v = b.defenseBonus(this, s, heroId, info.attackerId)
+        val v = b.defenseBonus(this, s, heroId, attackerId)
         if (v != 0) terms += Term(v, "effects")
     }
     return terms.sumOf { it.value } to terms
@@ -244,7 +249,9 @@ internal fun Game.defend(
 ): AttackResult {
     val h = hero(defender)
     val at = posOf(info.targetId)!!
-    val modifier = minionModifier(at, h.team, info.attackerId)
+    // Step 2: "Calculate minion defense modifier", before the defender reveals a card.
+    val minion = minionTerms(at, h.team, info.attackerId)
+    val modifier = minion.sumOf { it.value }
     val cards = defenseCards(defender)
     if (cards.isEmpty()) {
         note("${heroName(defender)} has no card to defend with.")
@@ -261,7 +268,9 @@ internal fun Game.defend(
                 attackerId = info.attackerId,
                 attackTotal = info.total,
                 rangedAttack = info.ranged,
-                defensePreview = cards.associateWith { previewDefense(defender, it, info, fromInitiative, noPrimary) },
+                defensePreview = cards.associateWith {
+                    previewDefense(defender, it, info, fromInitiative, noPrimary, minion)
+                },
                 minionModifier = modifier,
                 subjectId = info.targetId,
             )
@@ -294,7 +303,7 @@ internal fun Game.defend(
             actors.removeAt(actors.lastIndex)
         }
     }
-    val (total, terms) = defenseTotal(defender, cardId, info, scope, fromInitiative)
+    val (total, terms) = defenseTotal(defender, cardId, scope, fromInitiative, minion, info.attackerId)
     val success = if (card.block) scope.blocked == true else total >= info.total
     val how = if (card.block) {
         if (success) "Blocked" else "The Block fails"
