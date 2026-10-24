@@ -50,5 +50,15 @@ object Puzzles {
         P58UnexpectedJourney,
         P59MindGrip,
         P60HoldMySake,
+        P16GetOverHere,
+        P18RunecasterAtMaximumRange,
+        P21ChargeOntoTheSpawnPoint,
+        P22ChangeOfPlans,
+        P24ReverseTime,
+        P26BloodFuryToTheThrone,
+        P27RainOfArrows,
+        P28AngryStampede,
+        P29ThreatenTheGuards,
+        P30ThreeObstacles,
     )
 }
