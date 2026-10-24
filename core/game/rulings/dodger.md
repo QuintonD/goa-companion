@@ -55,5 +55,8 @@ card text and FAQ are silent and the engine takes the reading closest to the tex
 
 ## Disagreements with goa2-backend (cross-check only)
 
-None found on these readings; goa2-backend also treats the Respawn steps per FAQ (any type, onto a spawn
-point). Not compared in detail: how it tracks "originally in play in this wave".
+None found. goa2-backend picks the spawn point first and takes the minion from that Lane's minions that
+are off the board ("lane-bound limbo supply"), which gives the same choices as ruling 6; its Tide of
+Darkness likewise makes every space a friendly spawn point in the Battle Zone for Dodger's own actions,
+her Defense text included, and "empty" is read from the point of view of Dodger performing the action
+(another hero's "counts as obstacles" effect that applies to her action applies to her count too).
