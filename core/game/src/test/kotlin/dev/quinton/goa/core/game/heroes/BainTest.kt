@@ -329,7 +329,7 @@ class BainTest {
     }
 
     @Test
-    fun `Close Call, Narrow Escape, Perfect Getaway - designer - a hero in play is not Bain - his own marker does not block`() {
+    fun `Close Call, Narrow Escape, Perfect Getaway - designer - Bain holding the marker himself does not block`() {
         // Designer, BGG 3676852: "Narrow Escape cannot be used by Bain to block an attack if Bain himself has the
         // marker. Otherwise the card would say '...If you, or a hero in play...'." (p.10)
         for (card in listOf("bain-green-1", "bain-green-2a", "bain-green-3a")) {

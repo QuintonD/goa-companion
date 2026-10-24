@@ -117,7 +117,8 @@ object UrsafarHero : HeroModule {
     }
 
     /** p.17: an Active effect begins with a bold keyword ("This round:", "Next turn:", …). */
-    private val ACTIVE_KEYWORD = Regex("""\*\*(This turn|This round|Next turn|End of turn|End of round)\b""", RegexOption.IGNORE_CASE)
+    private val ACTIVE_KEYWORD =
+        Regex("""\*\*(This turn|This round|Next turn|End of turn|End of round)\b""", RegexOption.IGNORE_CASE)
 
     private fun hasActiveEffectText(text: String?): Boolean = text != null && ACTIVE_KEYWORD.containsMatchIn(text)
 

@@ -158,7 +158,8 @@ object BrynnHero : HeroModule {
                 "Move an enemy minion in radius 1 space",
                 "Move an enemy hero in radius who is adjacent to 3 or more obstacles 1 space",
             )
-                // A unit Brynn may not move (Brogan's Bulwark) is not offered: the move of 1 space is mandatory.
+
+            // A unit Brynn may not move (Brogan's Bulwark) is not offered: the move of 1 space is mandatory.
             fun candidates(i: Int) = a.unitsWithin(a.radius).filter { id ->
                 a.isEnemy(id) && id !in a.targets && a.canTarget(id) && bullets[i](id) &&
                     a.g.canDisplace(id, Displacement.MOVE, a.heroId) && a.canMoveOther(id, 1)
