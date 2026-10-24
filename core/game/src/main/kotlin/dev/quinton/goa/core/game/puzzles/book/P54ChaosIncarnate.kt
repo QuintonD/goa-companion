@@ -3,11 +3,13 @@ package dev.quinton.goa.core.game.puzzles.book
 import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.PuzzleGoal
 import dev.quinton.goa.core.game.PuzzleInfo
+import dev.quinton.goa.core.game.heroes.IgnatiaHero
 import dev.quinton.goa.core.game.position.PositionBuilder
 import dev.quinton.goa.core.game.position.PositionPhase
 import dev.quinton.goa.core.game.puzzles.Moves.action
 import dev.quinton.goa.core.game.puzzles.Moves.decline
 import dev.quinton.goa.core.game.puzzles.Moves.hero
+import dev.quinton.goa.core.game.puzzles.Moves.unitAt
 import dev.quinton.goa.core.game.puzzles.Moves.yes
 import dev.quinton.goa.core.game.puzzles.Puzzle
 import dev.quinton.goa.core.game.puzzles.WrongTry
@@ -25,91 +27,107 @@ object P54ChaosIncarnate : Puzzle() {
         title = "Chaos Incarnate",
         difficulty = 3,
         theme = "The Tie Breaker coin as card text",
-        heroes = listOf("ignatia", "xargatha", "tigerclaw", "brogan"),
+        heroes = listOf("ignatia", "brogan", "tigerclaw", "xargatha"),
         goal = PuzzleGoal.WinGame("Win the game this turn."),
-        intro = "Round 6, turn 4. Ignatia (level 8, Chaos Incarnate unlocked) has played Chaos Bolt and " +
-            "acts next. The Tie Breaker coin shows Blue. Tigerclaw has no cards left; Xargatha has played " +
-            "Charm and keeps Stone Gaze. Blue has one Life counter left.",
+        intro = "Round 6, turn 4. Ignatia (level 8, Chaos Incarnate unlocked) has played Violent Conflagration " +
+            "(12 with her Initiative items) and acts next. Brogan has played Furious Charge, Xargatha Deadly " +
+            "Swipe: both 8. Tigerclaw has already acted. The Magma token is Ignatia's. Blue has one Life counter left.",
         nudges = listOf(
-            "The face of the Tie Breaker coin decides what Chaos Bolt may target.",
-            "Your Ultimate turns the coin over, and gives you a second shot.",
-            "Bolt the adjacent minion, flip the coin, bolt again and pick Tigerclaw.",
+            "Brogan and Xargatha are tied. Who acts first, and does that have to stay so?",
+            "Chaos Incarnate's flip turns the coin for the rest of the turn, not just for Ignatia's card.",
+            "Defeat the minion next to Xargatha, and leave the coin as it is.",
         ),
-        explanation = "Chaos Bolt applies the text matching the coin's face when it is performed (card " +
-            "reminder): with Blue's face up it can only target a minion adjacent to Ignatia. Chaos Incarnate " +
-            "lets her flip the coin after that first primary action and perform it again on different " +
-            "targets (Ultimate text; p.16): now Red's face is up, and the bolt targets a hero in range 3. " +
-            "Xargatha defends with Stone Gaze (Defense 5 against Attack 2 + 1 item = 3), but Tigerclaw has no " +
-            "card left, so he is defeated (p.13) and Blue spends its last Life counter. Without the flip there " +
-            "is no second shot, and the minion is all Ignatia can hit.",
+        explanation = "Violent Conflagration applies the text of the face the Tie Breaker coin shows (card " +
+            "reminder). It shows Red, the orange gear: defeat an enemy minion in radius adjacent to an enemy hero. " +
+            "The minion beside Xargatha is the one to take: it gives her +1 Defense (p.14) and it blocks Brogan's " +
+            "only charge at her. Then decline the flip. Brogan and Xargatha are tied at 8; between teams the " +
+            "coin decides (p.7), and Red's side up means Brogan acts first: Furious Charge runs three spaces " +
+            "north-west to the minion's old space (p.11) and attacks with 7 + 1 = 8, while Petrifying Stare " +
+            "defends only 6 + 1 = 7. Xargatha falls and Blue spends its last Life counter (p.13). The tempting " +
+            "line flips the coin for a second blast: with Blue's side up the text makes Xargatha, next to the " +
+            "Magma token, discard her last card. But the flipped coin now gives the tie to Blue: Xargatha acts " +
+            "before Brogan and walks out of reach. The flip that powers Ignatia's Ultimate is the same coin that " +
+            "orders a tie: a second action can cost you the turn.",
         rules = listOf(
             "p.5 Tie Breaker coin",
+            "p.7 Tied Initiative",
+            "p.11 Movement in the Card Text",
             "p.13 Attacking a Hero, When a Hero is Defeated",
-            "p.14 Defense",
+            "p.14 Minion Defense Modifiers",
             "p.16 The Ultimate",
         ),
     )
 
-    override val playerSeats = setOf("ignatia")
+    override val playerSeats = setOf("ignatia", "brogan")
 
     override fun PositionBuilder.setUp() {
         round = 6
         turn = 4
-        tieBreaker = Team.BLUE
+        tieBreaker = Team.RED
         clearMinions()
-        lifeCounters(Team.RED, 3)
+        wavesLeft("lane-1", 1)
+        lifeCounters(Team.RED, 2)
         lifeCounters(Team.BLUE, 1)
-        hero("ignatia", Team.RED, Hex(2, -2)) {
+        hero("ignatia", Team.RED, Hex(1, -6)) {
             ultimate()
-            played("ignatia-gold")
-            resolved(1, "ignatia-red-3b")
-            resolved(2, "ignatia-green-3b")
-            resolved(3, "ignatia-blue-3a")
+            played("ignatia-blue-3a")
+            resolved(1, "ignatia-gold")
+            resolved(2, "ignatia-green-3a")
+            resolved(3, "ignatia-red-3a")
             hand("ignatia-silver")
-            items("ignatia-red-2a", "ignatia-red-3a", "ignatia-green-2a", "ignatia-green-3a", "ignatia-blue-2a")
+            items("ignatia-red-2a", "ignatia-red-3b", "ignatia-green-2b", "ignatia-green-3b", "ignatia-blue-2b")
             items("ignatia-blue-3b")
         }
-        hero("xargatha", Team.BLUE, Hex(4, -5)) {
-            played("xargatha-green-1")
-            resolved(1, "xargatha-gold")
-            resolved(2, "xargatha-silver")
-            resolved(3, "xargatha-red-1")
-            hand("xargatha-blue-1")
-        }
-        hero("tigerclaw", Team.BLUE, Hex(0, -3)) {
-            resolved(1, "tigerclaw-silver")
-            resolved(2, "tigerclaw-red-1")
-            resolved(3, "tigerclaw-green-1")
-            resolved(4, "tigerclaw-gold")
-            discard("tigerclaw-blue-1")
-            hand()
-        }
-        hero("brogan", Team.RED, Hex(-1, -1)) {
+        hero("brogan", Team.RED, Hex(3, -2)) {
+            level = 5
+            played("brogan-red-3a")
             resolved(1, "brogan-gold")
             resolved(2, "brogan-silver")
-            resolved(3, "brogan-red-1")
-            resolved(4, "brogan-green-1")
-            hand("brogan-blue-1")
+            resolved(3, "brogan-green-2a")
+            hand("brogan-blue-2a")
+            items("brogan-red-2b", "brogan-red-3b", "brogan-green-2b", "brogan-blue-2b")
         }
-        minion(Team.BLUE, MinionType.MELEE, Hex(2, -1))
+        hero("tigerclaw", Team.BLUE, Hex(0, -4)) {
+            level = 4
+            resolved(1, "tigerclaw-silver")
+            resolved(2, "tigerclaw-red-2b")
+            resolved(3, "tigerclaw-green-2a")
+            resolved(4, "tigerclaw-gold")
+            hand("tigerclaw-blue-2b")
+            items("tigerclaw-red-2a", "tigerclaw-green-2b", "tigerclaw-blue-2a")
+        }
+        hero("xargatha", Team.BLUE, Hex(3, -6)) {
+            level = 4
+            played("xargatha-red-2a")
+            resolved(1, "xargatha-gold")
+            resolved(2, "xargatha-silver")
+            resolved(3, "xargatha-green-2b")
+            hand("xargatha-blue-2a")
+            items("xargatha-red-2b", "xargatha-green-2a", "xargatha-blue-2b")
+        }
+        token(IgnatiaHero.MAGMA, Hex(3, -7), owner = "ignatia")
         minion(Team.BLUE, MinionType.MELEE, Hex(1, -4))
+        minion(Team.BLUE, MinionType.MELEE, Hex(3, -5))
         minion(Team.BLUE, MinionType.HEAVY, Hex(2, -7))
         minion(Team.RED, MinionType.MELEE, Hex(0, -6))
+        minion(Team.RED, MinionType.MELEE, Hex(-2, 1))
         minion(Team.RED, MinionType.HEAVY, Hex(1, 0))
         phase = PositionPhase.Resolving(next = "ignatia")
     }
 
-    // The first bolt's only target (the adjacent Blue minion) is not asked.
-    override val solution = listOf(action(ActionType.PRIMARY), yes(), yes(), hero("tigerclaw"))
+    // Brogan's one charge (three spaces north-west) is not asked; Xargatha is then his only target.
+    override val solution = listOf(action(ActionType.PRIMARY), unitAt(3, -5), decline(), action(ActionType.PRIMARY))
 
-    override val nudgedMoves = solution
+    override val nudgedMoves = solution.take(3)
 
     override val wrongTries = listOf(
-        WrongTry("Keep the coin: no second shot", listOf(action(ActionType.PRIMARY), decline())),
-        WrongTry("Flip the coin but don't bolt again", listOf(action(ActionType.PRIMARY), yes(), decline())),
         WrongTry(
-            "Bolt Xargatha the second time: she defends with Stone Gaze",
-            listOf(action(ActionType.PRIMARY), yes(), yes(), hero("xargatha")),
+            "Defeat the minion next to Tigerclaw: Xargatha keeps her +1 and Brogan has no charge",
+            listOf(action(ActionType.PRIMARY), unitAt(1, -4)),
+        ),
+        WrongTry(
+            "Flip the coin for a second blast: Xargatha discards, but now she wins the tie and walks away",
+            listOf(action(ActionType.PRIMARY), unitAt(3, -5), yes()),
         ),
     )
 }
