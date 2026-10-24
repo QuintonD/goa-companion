@@ -32,5 +32,13 @@ object Puzzles {
         P45TheLesserEvil,
         P46HurryUp,
         P47SwoopIn,
+        P08WalkThePlank,
+        P10ShotgunSplash,
+        P12FastTravelWithinTheZone,
+        P19SmokeOnTheLine,
+        P20ClearTheSmoke,
+        P23LiftUpIntoTheLine,
+        P25ColdSnap,
+        P35OnslaughtsForcedStep,
     )
 }

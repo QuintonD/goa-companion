@@ -262,6 +262,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** A push moves the target in a straight line directly away from the pusher, as far as possible up to the distance chosen (p.18 Push); obstacles and terrain stop it. `red-side` is a separate Zone even though it is a thin strip, so Wasp ends in another Zone and the card's second clause applies; with no card to discard she is defeated (p.17 If able).
 - **Rules:** p.18 Push; p.19 Zone, Terrain; p.13 When a hero is defeated.
 - **Risk:** "pushed into another zone" read as "ends the push in a different Zone than it started" (unambiguous here).
+- **Encoded as p08 (2026-10-24):** as in the concept (Swift idle, resolved). The solver confirms Wasp as the only winning hero and 2, 3 or 4 as the winning distances; pushing Dodger, pushing Wasp 1 and the minion bullet are refuted.
 
 ### C09 — Phantom at Five Spaces
 - **Theme:** targeting conditions; moving a token before the attack. **Difficulty:** 1. **Heroes:** NebKher; Dodger, Wasp (Garrus idle).
@@ -298,6 +299,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** "Before the attack" text is applied at the very beginning, before the target defends or is removed (p.14, p.17), so the blast reaches the hero next to the minion. Wasp's lowest tier is II, so her defeat spends 2 Life counters (p.13) — the game ends at once.
 - **Rules:** p.13 When a hero is defeated; p.14 Attack/Defense detailed order; p.17 Before the attack.
 - **Risk:** `RISKY` (only for the wrong try): with no enemy hero adjacent to the target, the mandatory "Before the attack" step cannot be completed; read literally (p.10) the action stops. The intended line does not depend on it.
+- **Encoded as p10 (2026-10-24):** as in the concept. Under the engine (rulings/swift.md 3) Super-Shotgun's "Before the attack" step is mandatory, so shooting Brogan stops before the attack (no enemy hero next to him); the explanation says so. The melee at (0,−2) is the only winning target.
 
 ### C11 — By the Water's Edge
 - **Theme:** terrain adjacency (the water ring counts); Life counters by tier. **Difficulty:** 1. **Heroes:** Mrak; Wasp, Dodger (Tigerclaw idle).
@@ -333,6 +335,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Fast Travel replaces a whole Movement action, whatever its value, and may land on any empty space of the same Zone or an adjacent Zone, provided neither the Zone you leave nor the one you enter holds an enemy hero or minion (p.11; the Arien example allows the own Zone). Swift in `blue-throne` and the minions in `lane-1-2` close those Zones, but `blue-side` itself is long and empty.
 - **Rules:** p.11 Fast Travel; p.13 Ranged attacks.
 - **Risk:** none.
+- **Encoded as p12 (2026-10-24):** as in the concept (hands: Brogan `brogan-silver`, Swift `swift-blue-1`, Dodger `dodger-blue-1`). The solver's winning Fast Travel spaces are exactly the ten listed; Hold, a Movement action and Fast Travel to (2,2) are refuted.
 
 ### C13 — Empty the Spawn Point
 - **Theme:** coins; "empty spawn point" conditions; initiative between teammates. **Difficulty:** 1. **Heroes:** Tigerclaw, Dodger; Arien (Wasp idle).
@@ -457,6 +460,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** The Smoke bomb blocks targeting along a straight line through its space (card text); a placement needs an empty space within the card's radius (p.18 Place, p.9). Wasp's Charged Boomerang can only target units not in a straight line from her (card text, p.19 Straight line), so the minion is already safe from her. If Blue's last minion fell, the Lane would push at once and the last Wave counter would end the game (p.8).
 - **Rules:** p.8 Triggering a Push; p.9 Radius; p.18 Place; p.19 Straight line, Tokens.
 - **Risk:** none.
+- **Encoded as p19 (2026-10-24):** as in the concept (Swift hand `swift-blue-1`, Wasp hand `wasp-blue-1`). (3,−5) is the only winning space of 29. Wrong try (1) of the concept is not testable ((4,−5) is not offered: out of radius); the tested tries are smoke at (0,−5) (the first option) and Hold.
 
 ### C20 — Clear the Smoke
 - **Theme:** the Clear action (replaces an Attack); tokens on the line. **Difficulty:** 1. **Heroes:** Brogan, Swift; Wuk (Min idle).
@@ -474,6 +478,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** You may perform one Clear secondary action instead of your entire Attack action, removing any number of tokens adjacent to you (p.13; p.19 Tokens). With the Smoke bomb gone nothing stops Swift targeting along the line. Brogan's 11 acts before Swift's 8 (p.7).
 - **Rules:** p.7 initiative; p.13 Clear action; p.19 Tokens.
 - **Risk:** none.
+- **Encoded as p20 (2026-10-24):** as in the concept (Swift hand `swift-blue-1`, Wuk resolved gold/silver/red-1, discard blue-1; Min resolved all four). Clear asks which adjacent token to remove (with "Stop clearing"); the stored line is Clear, the Smoke bomb, Snipe.
 
 ---
 
@@ -529,6 +534,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Lift Up moves the unit 1 space without changing its distance to Wasp, and its repeat must use the same target (card text, Wasp FAQ). Snipe needs a target at maximum range and in a straight line (p.9, p.19). Wasp at 10 acts before Swift at 8, who acts before Dodger at 3 (p.7).
 - **Rules:** p.7 initiative; p.9 Range; p.10 Repeat; p.11 Movement in the card text; p.19 Straight line.
 - **Risk:** none.
+- **Encoded as p23 (changed, 2026-10-24):** the concept's "the only same-distance step is (4,−7)" is wrong: (3,−5) is also 2 from Wasp (a dead end: its only same-distance step leads back). With the concept's coordinates the engine lists the right step first, so the first option at every decision won; the position is turned half a turn ((q,r) → (3−q, −7−r)) with the teams swapped (Wasp and Swift Blue at (1,−1) and (−1,−3), Dodger Red at (−1,−1), Brogan Red idle at (4,−7)), so the dead-end step (0,−2) comes first and the winning line is (−1,0) then (−1,1). Both wrong tries (the dead end; one step only) are refuted.
 
 ### C24 — Reverse Time
 - **Theme:** an initiative-reversing "Next turn" effect; choosing your card when the enemy's card is forced. **Difficulty:** 2. **Heroes:** Wuk, Emmitt; Tigerclaw, Dodger.
@@ -564,6 +570,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** An adjacent friendly melee minion gives +1 Defense (p.14) and equal totals defend. Cold Snap moves each enemy unit 1 space "if able" — a unit that would enter terrain simply stays (p.17 If able, p.19 Terrain), which splits Wasp from her guard and opens Brogan's straight run (p.11).
 - **Rules:** p.11 Movement in the card text; p.14 Minion defense modifiers; p.17 If able; p.19 Terrain.
 - **Risk:** `RISKY` (low): the order in which Cold Snap moves several units is not specified. The intended direction (SE) gives the same result in every order; the alternative where order matters (NE) fails in every order too.
+- **Encoded as p25 (2026-10-24):** as in the concept. South-east is the only winning direction (engine order of the Cold Snap moves: units blocked by another moving enemy still move, rulings/tali.md 4); east, north-east, north-west, west and a Movement action are refuted.
 
 ### C26 — Blood Fury to the Throne
 - **Theme:** pushing the lane mid-turn into the enemy Throne; heavy immunity; a repeat that depends on the enemy's discard. **Difficulty:** 2. **Heroes:** Whisper; Xargatha, Arien (Tigerclaw idle).
@@ -750,6 +757,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** "If able" makes a step optional only when it cannot be done; otherwise the movement is mandatory (p.17 If able; Brogan FAQ "Brogan must move into the space"). Snipe needs exactly 4 in a straight line (p.19), Threatening Slash an adjacent target (p.13).
 - **Rules:** p.10 Mandatory steps; p.13 Non-ranged attacks; p.17 If able; p.19 Straight line.
 - **Risk:** none.
+- **Encoded as p35 (2026-10-24):** as in the concept (Wasp idle; Swift hand `swift-blue-1`). M2 at (−1,−1) is the only winning target; M1, Xargatha, a Movement action and Hold are refuted.
 
 ### C36 — Who Goes First?
 - **Theme:** same-team and cross-team ties; the coin flips after the first player of the favoured team. **Difficulty:** 2. **Heroes:** Tigerclaw, Dodger; Wasp (Arien idle).
