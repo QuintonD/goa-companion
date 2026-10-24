@@ -783,10 +783,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** In a cross-team tie the team shown on the coin acts first and picks which of its tied heroes goes; that player then flips the coin (p.7), so the next tie falls to the other team. Teammates choose their order without discussing reasons (p.4, p.7).
 - **Rules:** p.4 Table talk; p.7 Tied Initiative.
 - **Risk:** none.
-- **Encoded as p36 (2026-10-24):** as in the concept; Dodger is seated before Tigerclaw, so the team's
-  "who acts first?" lists her first. Tigerclaw's discard is `tigerclaw-blue-1`. The solver accepts any
-  Tigerclaw action that ends away from Wasp (Movement, or Combat Reflexes with a step); Wasp's best reply
-  is then to move. Wrong tries tested: Dodger first; Tigerclaw first but Hold.
+- **Encoded as p36 (changed, hardening 2026-10-24):** first encoded as in the concept; the review found Arien at level 1 in round 3 (impossible) and the puzzle binary (Tigerclaw first, then almost anything won). New position: **four cards tied at 9**, every hero level 2: Dodger (Red, Finger of Death `red-2a`, holds Shield of Decay, Defense item `red-2b`) at (0,−3); Tigerclaw (Red, Combat Reflexes `red-2a`, no cards, discard `blue-1`) at (2,−6); Wasp (Blue, Electrocute `red-2a`, holds Lift Up) at (1,−6), beside Tigerclaw; **Arien** (Blue, Rogue Wave `red-2b` 8 + Initiative item `red-2a` = 9, ranged, range 2, holds Aspiring Duelist) at (−1,−4), two from Dodger; **Blue melee (1,−4) beside Dodger** (her Shield is 3 + 1 − 1 = 3 against Rogue Wave's 4); Red melee (4,−2), Red heavy (1,0), Blue heavy (3,−1); coin Red; Life 3/3. Order is Red, Blue (Blue's pick), Red, Blue. Dodger first: Wasp defeats Tigerclaw. Tigerclaw first and running: Blue sends Arien, who defeats Dodger. Answer: **Tigerclaw first, Combat Reflexes stepping south-east to (2,−5)** (away from Wasp, 3 from Arien) **and defeating the minion**: Dodger then defends at 3 + 1 + 2 (two empty spawn points) = 6. 1 of 6 steps wins; Dodger's later move is free. Wrong tries: Dodger first; Tigerclaw runs; the step to (1,−5) beside Wasp; no step.
 
 ### C37 — The Poisoned Clock
 - **Theme:** markers that change initiative and defence; Block cards only stop one attack type; choosing your card when the enemy's is forced. **Difficulty:** 2. **Heroes:** Wasp; Arien (Tigerclaw, Brogan idle).
