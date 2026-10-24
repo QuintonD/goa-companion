@@ -280,7 +280,7 @@ class WaspTest {
         // The third move has a single possible space here, so it is made without a question.
         if (d.d.kind == DecisionKind.CHOOSE_SPACE) d.space(d.spaces().first())
         assertThat(d.pending?.kind).isNotEqualTo(DecisionKind.CONFIRM)
-        assertThat(d.texts().count { "Rock moves 1 space" in it }).isEqualTo(3)
+        assertThat(d.texts().count { "Wasp moves Rock 1 space" in it }).isEqualTo(3)
     }
 
     // ---- Telekinesis / Mass Telekinesis (green alternates) ------------------------------------
