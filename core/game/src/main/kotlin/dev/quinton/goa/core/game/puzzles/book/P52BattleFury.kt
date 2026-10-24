@@ -9,7 +9,7 @@ import dev.quinton.goa.core.game.position.PositionPhase
 import dev.quinton.goa.core.game.puzzles.Moves.action
 import dev.quinton.goa.core.game.puzzles.Moves.card
 import dev.quinton.goa.core.game.puzzles.Moves.decline
-import dev.quinton.goa.core.game.puzzles.Moves.space
+import dev.quinton.goa.core.game.puzzles.Moves.hero
 import dev.quinton.goa.core.game.puzzles.Moves.yes
 import dev.quinton.goa.core.game.puzzles.Puzzle
 import dev.quinton.goa.core.game.puzzles.WrongTry
@@ -25,29 +25,31 @@ object P52BattleFury : Puzzle() {
         id = "p52",
         number = 52,
         title = "Battle Fury",
-        difficulty = 3,
+        difficulty = 2,
         theme = "An Ultimate that turns a discard into an action",
-        heroes = listOf("garrus", "tigerclaw", "wasp", "arien"),
+        heroes = listOf("garrus", "wasp", "tigerclaw", "arien"),
         goal = PuzzleGoal.DefeatHero("tigerclaw", Deadline.END_OF_TURN, "Defeat Tigerclaw this turn."),
-        intro = "Round 4, turn 3. Garrus (level 8, Battle Fury unlocked) has played Chilling Howl and acts " +
-            "first. He resolved Angry Strike and Hunt Down earlier this round; his discard pile is empty. " +
-            "Tigerclaw has played Sidestep (12 with his Initiative item) and keeps Backstab.",
+        intro = "Round 6, turn 4. Garrus (level 8, Battle Fury unlocked) has played Chilling Howl (13) and acts " +
+            "next; his discard pile is empty. Tigerclaw has played Sidestep (12 with his Initiative item) and " +
+            "keeps Backstab. Wasp and Arien have already acted.",
         nudges = listOf(
-            "Your Ultimate can give you a second action. What sets it off?",
-            "Chilling Howl lets you throw away a card you have already used.",
-            "Discard Hunt Down with Chilling Howl, then perform it.",
+            "Chilling Howl can throw away one of the cards Garrus has already used, and Battle Fury plays it again.",
+            "Work out each card's Attack total, items and card text included, against Tigerclaw's whole Defense.",
+            "Discard Angry Strike with Chilling Howl, then perform it on Tigerclaw.",
         ),
-        explanation = "Chilling Howl's first sentence lets Garrus discard one of his resolved cards, and Battle " +
-            "Fury then lets him perform that card's primary action (Ultimate text; p.16). Angry Strike would " +
-            "need an adjacent target, and there is none. Hunt Down's first bullet needs a card in the " +
-            "discard: Hunt Down itself is there now, so Garrus moves up to 3 spaces to Tigerclaw and attacks " +
-            "with 4 + 3 Attack items = 7 (p.16 Item Bonus). Backstab defends with 5 + 1 = 6, not enough " +
-            "(p.14). Acting at 14, Garrus goes before Tigerclaw's 12 (p.7); skip the discard and Tigerclaw " +
-            "walks away.",
+        explanation = "Chilling Howl lets Garrus discard one of his resolved cards, and Battle Fury then lets him " +
+            "perform that card's primary action (Ultimate text; p.16). Acting at 13, he goes before Tigerclaw's " +
+            "12 (p.7). Tigerclaw defends with Backstab: 5 + 1 for his Defense item + 1 for the friendly melee " +
+            "minion beside him = 7 (p.14). Hunt Down, the obvious charge, hits with 4 + 3 Attack items = 7 (p.16 " +
+            "Item Bonus): not enough, a tie defends. Angry Strike adds +1 for every card in Garrus's discard, and " +
+            "once Chilling Howl has discarded it, it counts itself: 4 + 1 + 3 = 8, and Tigerclaw falls (p.13). " +
+            "Terrify only moves enemies away. When a card's text counts the discard pile, count it at the moment the " +
+            "attack is made.",
         rules = listOf(
             "p.7 Check the Initiative",
             "p.10 Discard a Card",
-            "p.14 Defense",
+            "p.13 Attacking a Hero",
+            "p.14 Defense Total, Minion Defense Modifiers",
             "p.16 Item Bonus, The Ultimate",
         ),
     )
@@ -55,69 +57,78 @@ object P52BattleFury : Puzzle() {
     override val playerSeats = setOf("garrus")
 
     override fun PositionBuilder.setUp() {
-        round = 4
-        turn = 3
+        round = 6
+        turn = 4
         tieBreaker = Team.BLUE
         clearMinions()
+        wavesLeft("lane-1", 1)
+        lifeCounters(Team.RED, 2)
+        lifeCounters(Team.BLUE, 2)
         hero("garrus", Team.BLUE, Hex(0, -4)) {
             ultimate()
             played("garrus-silver")
             resolved(1, "garrus-gold")
             resolved(2, "garrus-red-3a")
-            hand("garrus-green-3a", "garrus-blue-3a")
-            items("garrus-red-2b", "garrus-red-3b", "garrus-green-2b", "garrus-green-3b")
+            resolved(3, "garrus-blue-3a")
+            hand("garrus-green-3a")
+            items("garrus-red-2a", "garrus-red-3b", "garrus-green-2b", "garrus-green-3b")
             items("garrus-blue-2b", "garrus-blue-3b")
         }
-        hero("tigerclaw", Team.RED, Hex(3, -6)) {
-            level = 3
+        // Wasp, Garrus and Arien all showed 13: the Red side of the coin let Wasp act first and was flipped;
+        // Blue then chose Arien before Garrus.
+        hero("wasp", Team.RED, Hex(0, -5)) {
+            level = 4
+            resolved(1, "wasp-gold")
+            resolved(2, "wasp-red-2a")
+            resolved(3, "wasp-green-2a")
+            resolved(4, "wasp-silver")
+            hand("wasp-blue-2a")
+            items("wasp-red-2b", "wasp-green-2b", "wasp-blue-2b")
+        }
+        hero("tigerclaw", Team.RED, Hex(1, -5)) {
+            level = 4
             played("tigerclaw-blue-2a")
             resolved(1, "tigerclaw-gold")
-            resolved(2, "tigerclaw-green-1")
-            discard("tigerclaw-silver")
+            resolved(2, "tigerclaw-silver")
+            resolved(3, "tigerclaw-green-2b")
             hand("tigerclaw-red-2b")
-            items("tigerclaw-red-2a", "tigerclaw-blue-2b")
-        }
-        hero("wasp", Team.RED, Hex(4, -2)) {
-            resolved(1, "wasp-gold")
-            resolved(2, "wasp-silver")
-            resolved(3, "wasp-green-1")
-            hand("wasp-red-1", "wasp-blue-1")
+            items("tigerclaw-red-2a", "tigerclaw-green-2a", "tigerclaw-blue-2b")
         }
         hero("arien", Team.BLUE, Hex(-1, -1)) {
+            level = 4
             resolved(1, "arien-gold")
-            resolved(2, "arien-silver")
-            resolved(3, "arien-green-1")
-            hand("arien-red-1", "arien-blue-1")
+            resolved(2, "arien-red-2a")
+            resolved(3, "arien-green-2a")
+            resolved(4, "arien-silver")
+            hand("arien-blue-2a")
+            items("arien-red-2b", "arien-green-2b", "arien-blue-2b")
         }
-        minion(Team.RED, MinionType.MELEE, Hex(0, -6))
-        minion(Team.RED, MinionType.MELEE, Hex(2, -3))
+        minion(Team.RED, MinionType.MELEE, Hex(1, -6))
+        minion(Team.RED, MinionType.MELEE, Hex(-2, 1))
         minion(Team.RED, MinionType.HEAVY, Hex(1, 0))
-        minion(Team.BLUE, MinionType.MELEE, Hex(1, -4))
+        minion(Team.BLUE, MinionType.MELEE, Hex(2, -1))
+        minion(Team.BLUE, MinionType.MELEE, Hex(3, -1))
         minion(Team.BLUE, MinionType.HEAVY, Hex(2, -7))
         phase = PositionPhase.Resolving(next = "garrus")
     }
 
-    // Any of the four spaces next to Tigerclaw wins: (3,-7), (2,-6), (2,-5), (3,-5).
-    override val solution = listOf(action(ActionType.PRIMARY), card("garrus-red-3a"), yes(), space(2, -5))
+    override val solution =
+        listOf(action(ActionType.PRIMARY), card("garrus-gold"), yes(), hero("tigerclaw"))
 
-    override val nudgedMoves = solution.take(3)
+    override val nudgedMoves = solution
 
     override val wrongTries = listOf(
         WrongTry(
-            "Discard Angry Strike: it has no adjacent target",
-            listOf(action(ActionType.PRIMARY), card("garrus-gold")),
+            "Discard Hunt Down and charge: 7 against Backstab's 7, a tie that defends",
+            listOf(action(ActionType.PRIMARY), card("garrus-red-3a")),
         ),
         WrongTry(
-            "Discard nothing: Tigerclaw acts at 12 and escapes",
+            "Discard Terrify: it moves enemies but never attacks",
+            listOf(action(ActionType.PRIMARY), card("garrus-blue-3a")),
+        ),
+        WrongTry(
+            "Discard nothing: Tigerclaw acts at 12 and walks away",
             listOf(action(ActionType.PRIMARY), decline()),
-        ),
-        WrongTry(
-            "Discard Hunt Down but don't perform it",
-            listOf(action(ActionType.PRIMARY), card("garrus-red-3a"), decline()),
-        ),
-        WrongTry(
-            "Perform Hunt Down but stop short of Tigerclaw",
-            listOf(action(ActionType.PRIMARY), card("garrus-red-3a"), yes(), space(1, -5)),
         ),
     )
 }
