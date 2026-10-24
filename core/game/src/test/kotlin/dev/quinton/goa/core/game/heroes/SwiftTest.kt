@@ -303,7 +303,7 @@ class SwiftTest {
     }
 
     @Test
-    fun `Shotgun - with no enemy hero next to the target the attack still happens`() {
+    fun `Shotgun - with no enemy hero next to the target the action stops before the attack (RULINGS 53)`() {
         lateinit var target: String
         val d = pos {
             clearMinions()
@@ -314,12 +314,14 @@ class SwiftTest {
             minion(Team.RED, MinionType.MELEE, Hex(-1, -5))
             phase = PositionPhase.Resolving(next = "swift")
         }
-        d.action("swift", ActionType.PRIMARY)
-        assertThat(d.s.state.minion(target)).isNull()
+        // goa2-faq (Energy Drain): "you need to be able to target a hero first"; "if able" covers the discard.
+        // With the only target taken automatically, nothing can be done: the Primary action is not offered.
+        assertThat(d.actions()).doesNotContain(ActionType.PRIMARY)
+        assertThat(d.s.state.minion(target)).isNotNull()
     }
 
     @Test
-    fun `Shotgun - an enemy hero immune to Swift's attack actions is not chosen to discard`() {
+    fun `Shotgun - an enemy hero immune to Swift's attack actions can't be chosen, so the action stops`() {
         lateinit var target: String
         val d = pos {
             clearMinions()
@@ -335,9 +337,9 @@ class SwiftTest {
             effect("arien", "arien-blue-2a", Timing.THIS_TURN, ActionKind.DEFENSE, data = mapOf("attacker" to "wasp"))
             phase = PositionPhase.Resolving(next = "swift")
         }
-        d.action("swift", ActionType.PRIMARY)
+        assertThat(d.actions()).doesNotContain(ActionType.PRIMARY)
         assertThat(d.zoneOf("arien", "arien-gold")).isEqualTo(Zone.HAND)
-        assertThat(d.s.state.minion(target)).isNull()
+        assertThat(d.s.state.minion(target)).isNotNull()
     }
 
     @Test

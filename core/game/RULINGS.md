@@ -38,9 +38,16 @@ Each ruling names the code and the test that pins it.
    point"); p.19's "remove the token first" is applied to minions respawning on a push (p.8).
 8. **A defeated hero's unresolved card** goes to the current Turn slot ("it is resolved, without
    performing an action", p.13); that hero does not act this turn.
-9. **[APP] Same-team order of simultaneous effects (p.17).** Across teams the coin's team goes
-   first (no flip); within a team the engine uses seat order instead of asking the team each
-   time. `Game.orderedHeroes`, `Flow.orderedEffects`.
+9. **Order of simultaneous effects (p.17):** "use the same method as when resolving tied
+   initiative (See page 7), but do not flip the Tie Breaker coin". Timed effects that apply at the
+   same moment (End of turn, End of round, Next turn after playing cards): the coin's team first;
+   within a team the team decides (p.7 "they have to decide which one of them will act first"):
+   with two or more of one team's effects due, its first seat is asked (`CHOOSE_OPTION`; the owner
+   when they are all one hero's). Each effect is looked up again before it applies, so one cancelled
+   by an earlier one (its owner defeated, p.13; its card changed state, p.17) does not apply.
+   `Flow.applyDue`; `EngineAuditTest`. **[APP]** Hooks reacting to one event (triggers,
+   replacements, queries) still run in seat order within a team: which of them would do something is
+   only known by running them, so asking would mean a question at every event.
 
 ## Actions, movement, placement
 
@@ -77,7 +84,11 @@ Each ruling names the code and the test that pins it.
     attack" text the target is checked again (still an enemy on the board, not immune, adjacent for
     a non-ranged attack, matching the card's targeting); if not, there is no attack, no defense,
     and "After the attack" text is not applied (it applies "after the target either defends, or
-    is defeated and removed", p.13, and neither happens). `CardRulesTest`.
+    is defeated and removed", p.13, and p.17 "After the Attack": "Apply this text after the target of
+    your attack defends or is removed" — neither happens). Rules audit (2026-10-24) re-read: the
+    other reading (After text always applies once Before text did) has no source; Brogan's Mad Dash
+    reminder "If you cannot make this move, you cannot attack" and the FAQ's "fizzle" both treat an
+    attack that never reaches its target as not happening. Kept. `CardRulesTest`.
 19. **A ranged card's attack is ranged even on an adjacent target** (p.9: "Ranged primary actions
     have the word Ranged next to their type"): Brogan's Throwing Axe bullet 1 can be blocked by
     "Block a ranged attack". `BroganTest`.
@@ -105,7 +116,9 @@ Each ruling names the code and the test that pins it.
 26. **[APP] Mid-turn pushes count minions displaced out of the Battle Zone** during the action: the
     last enemy minion "in the Battle Zone" is the last one of that Lane on the board, because
     displacement "has no impact" (p.18) and a push "can never be triggered by moving, pushing, or
-    swapping a minion" (p.8). `MinionsTest`.
+    swapping a minion" (p.8). For the same reason step 3's "Remove all minions in the previous Battle
+    Zone" removes a Lane minion displaced out of it during the action too (it would otherwise walk
+    into the new Battle Zone as a minion more than its Spawn points). `MinionsTest`, `EngineAuditTest`.
 27. **Minions outside the Battle Zone go back after every action** (p.18 "after you perform an
     action"): after each hero action (Hold included), after End of turn and End of round effects.
     Ties are the minion's team's (`MINION_RETURN`), the coin's team first.
@@ -124,11 +137,16 @@ Each ruling names the code and the test that pins it.
     he would be removed, the removals stop and his team loses the push. A team whose real minions are
     all removed but whose Brogan survives the battle still has a "minion" and is not pushed (the
     card makes him one during the battle, and its second clause says when the push is lost).
-32. **[APP] Double lane (p.20).** Each Lane pushes on its own; end-of-round pushes of both Lanes
-    are resolved together, and if both teams would win at once the pushes are undone (minions,
-    Battle Zones and Wave counters as before the push). After the last Wave counter on either Lane
-    flips, the team with more Zones between its Throne and both Battle Zones wins; on a tie play
-    continues and the count is made again after every push. (The rulebook has no draw.)
+32. **Double lane (p.20).** Each Lane pushes on its own; end-of-round pushes of both Lanes are
+    resolved together ("Minion Battles in each of the two Battle Zones are resolved separately, but
+    happen simultaneously"), and if both teams would win at once the pushes are undone ([APP]
+    minions, Battle Zones and Wave counters as before the push). After the last Wave counter on
+    either Lane flips, the team with more Zones between its Throne and both Battle Zones wins; at the
+    end of the round the count is made once, after both Lanes' pushes. On a tie no one wins and play
+    continues; the count is made again after every later push. Designer (Arty, BGG thread 3499394,
+    2025-04-21): "So if there is a tie after the last wave counter is flipped, no one wins and the
+    game continues until a single push in one lane happens to break it." — "…or a life-counter
+    victory happens first." `Units.pushLane`, `Units.countZonesAfterPushes`; `EngineAuditTest`.
 33. **[APP] Counters outside the rulebook table:** a double-lane map with fewer than 6 heroes uses
     the 6–8 player row (6 Life counters); a single-lane game with 7+ heroes uses the 6-player row.
 
@@ -154,6 +172,18 @@ Each ruling names the code and the test that pins it.
     2888636, confirm it for Lesser Evil / Greater Good, where the enemy hero chooses). A bullet that can
     start but stops later (a move, then no target) is offered. No general designer ruling was found
     (BGG searched 2026-10-24); goa2-backend offers every bullet.
+53. **"X discards a card, if able" needs an X (p.17 "If Able", p.10).** The sentence's subject is a
+    target to find; "if able" makes only the discard optional. goa2-faq (Gydion, Energy Drain): "you
+    need to be able to target a hero first. 'If able' after a comma makes the preceding step
+    non-mandatory (p. 17), so it only applies to the 'discard' step"; p.10: "You choose one enemy hero
+    in radius to target, then that hero chooses a card to discard, if they have one." No such hero:
+    the step can't be done (as a first instruction the Primary action is not offered, ruling 4); a
+    hero with no card: nothing happens and the text goes on. "If able, …" at the start of a sentence
+    makes the whole sentence optional. EFFECTS.md "Mandatory and optional steps".
+54. **The log never names a hidden card (p.4).** Discarding, retrieving or swapping a facedown card
+    (or a card that is hidden before and after a swap, e.g. hand and a facedown slot) says "a facedown
+    card" / "two hidden cards"; a facedown token is "A facedown token". `Cards.isPublic`;
+    `EngineAuditTest`.
 
 ## The four first-game heroes
 

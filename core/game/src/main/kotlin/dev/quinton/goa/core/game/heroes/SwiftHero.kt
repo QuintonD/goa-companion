@@ -220,19 +220,17 @@ object SwiftHero : HeroModule {
     private class Shotgun(private val orDefeated: Boolean) : CardScript {
         override fun primary(a: ActionScope) {
             val t = a.attackTarget("Target a unit in range") { a.inRange(it) } ?: return
-            // "Before the attack: An enemy hero adjacent to the target discards a card, if able." "If able"
-            // ends the sentence, so the whole step is optional (p.17); "or is defeated" has no such word,
-            // so with no enemy hero next to the target the action stops here (p.10; rulings/swift.md 3).
+            // "Before the attack: An enemy hero adjacent to the target discards a card, if able / , or is
+            // defeated." The enemy hero is a target to find: "if able" makes only the discard optional
+            // (goa2-faq, Energy Drain; RULINGS 53), so with no enemy hero next to the target the action
+            // stops here, for both cards (p.10; rulings/swift.md 3).
             val tPos = a.g.posOf(t)!!
             val victims = a.g.unitsAdjacentTo(tPos).filter { id ->
                 id != t && a.g.isHero(id) && a.isEnemy(id) && a.canTarget(id)
             }
-            if (victims.isEmpty()) {
-                if (orDefeated) a.fizzle("no enemy hero adjacent to the target")
-            } else {
-                val v = a.chooseUnit("An enemy hero adjacent to the target discards a card", victims)!!
-                if (orDefeated) a.discardOrDefeat(v) else a.discardIfAble(v)
-            }
+            if (victims.isEmpty()) a.fizzle("no enemy hero adjacent to the target")
+            val v = a.chooseUnit("An enemy hero adjacent to the target discards a card", victims)!!
+            if (orDefeated) a.discardOrDefeat(v) else a.discardIfAble(v)
             a.attack(t, valid = { a.inRange(it) })
         }
     }

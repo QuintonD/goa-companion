@@ -170,7 +170,8 @@ class Game internal constructor(
         state.minion(id)?.let { return "${teamName(it.team)} ${minionName(it.type)} minion" }
         state.piece(id)?.let { piece ->
             piece.heroBody?.let { return heroName(it) }
-            return piece.label
+            // A facedown token's kind is hidden from the other team (p.4), and the log is everyone's.
+            return if (piece.faceDown) "A facedown token" else piece.label
         }
         return id
     }

@@ -220,12 +220,10 @@ object UrsafarHero : HeroModule {
     private class Sniff(private val orDefeated: Boolean) : CardScript {
         override fun primary(a: ActionScope) {
             if (!a.enraged()) return
-            // "an enemy hero in range discards a card, if able (or is defeated)" — Ursafar picks the hero.
+            // "an enemy hero in range discards a card, if able (or is defeated)" — Ursafar picks the hero; the
+            // hero must be found, "if able" covers only the discard (RULINGS 53, rulings/ursafar.md 7).
             val victims = a.unitsWithin(a.range).filter { a.g.isHero(it) && a.isEnemy(it) && a.canTarget(it) }
-            if (victims.isEmpty()) {
-                if (orDefeated) a.fizzle("no enemy hero in range")
-                return
-            }
+            if (victims.isEmpty()) a.fizzle("no enemy hero in range")
             val v = a.chooseUnit("An enemy hero in range discards a card", victims)!!
             if (orDefeated) a.discardOrDefeat(v) else a.discardIfAble(v)
         }

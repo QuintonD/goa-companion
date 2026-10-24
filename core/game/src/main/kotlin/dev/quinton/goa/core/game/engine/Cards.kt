@@ -113,7 +113,9 @@ fun Game.discard(heroId: String, cardId: String, allowReplacement: Boolean = tru
     val fromResolved = inst.zone == Zone.RESOLVED
     moveCard(heroId, actual, Zone.DISCARD)
     state.turnRecord.discarded.getOrPut(heroId) { ArrayList() } += actual
-    emit(GameEvent.CardsChanged(heroId, "${heroName(heroId)} discards ${cardName(actual)}."))
+    // "Discarded cards are open information" (p.10), unless the card is facedown (hidden, p.10).
+    val what = if (inst.faceDown) "a facedown card" else cardName(actual)
+    emit(GameEvent.CardsChanged(heroId, "${heroName(heroId)} discards $what."))
     trigger(Trigger.CardDiscarded(heroId, actual, fromResolved))
     return actual
 }
@@ -154,8 +156,23 @@ fun Game.forceDiscard(
 
 /** p.10 "Retrieve a Card": take one of your cards back into your hand. */
 fun Game.retrieve(heroId: String, cardId: String) {
+    // A facedown card was hidden information and goes to the hand, which is hidden too (p.4, p.10).
+    val hidden = hero(heroId).card(cardId)?.let { !isPublic(it) } ?: true
     moveCard(heroId, cardId, Zone.HAND)
-    emit(GameEvent.CardsChanged(heroId, "${heroName(heroId)} retrieves ${cardName(cardId)}."))
+    val what = if (hidden) "a facedown card" else cardName(cardId)
+    emit(GameEvent.CardsChanged(heroId, "${heroName(heroId)} retrieves $what."))
+}
+
+/**
+ * p.4 "Hidden Information": anyone may read "unresolved cards, resolved cards, and discarded cards";
+ * cards in hand or deck and "any facedown cards" are hidden (event text never names them); a played
+ * card is facedown until the reveal (p.7).
+ */
+internal fun Game.isPublic(c: CardInst): Boolean = when (c.zone) {
+    Zone.PLAYED -> state.revealed && !c.faceDown
+    Zone.RESOLVED, Zone.DISCARD -> !c.faceDown
+    Zone.ULTIMATE -> true
+    else -> false
 }
 
 /**
@@ -194,9 +211,13 @@ fun Game.swapCards(heroId: String, a: String, b: String, keepEffects: Boolean = 
     ca.stamp = stamp()
     cb.stamp = stamp()
     touch()
-    fun named(c: CardInst): String =
-        if (hiddenBefore.getValue(c.id) && isHiddenCard(c)) "a hidden card" else cardName(c.id)
-    emit(GameEvent.CardsChanged(heroId, text ?: "${heroName(heroId)} swaps ${named(ca)} and ${named(cb)}."))
+    // A card hidden both before and after the swap is never named (p.4, RULINGS 51/54).
+    fun hidden(c: CardInst): Boolean = hiddenBefore.getValue(c.id) && isHiddenCard(c)
+    val names = when {
+        hidden(ca) && hidden(cb) -> "two hidden cards"
+        else -> listOf(ca, cb).joinToString(" and ") { if (hidden(it)) "a hidden card" else cardName(it.id) }
+    }
+    emit(GameEvent.CardsChanged(heroId, text ?: "${heroName(heroId)} swaps $names."))
 }
 
 /** A card other seats cannot see (p.4: hands and decks; p.10: facedown cards). */

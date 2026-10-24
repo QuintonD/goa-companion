@@ -312,6 +312,22 @@ class UrsafarTest {
     }
 
     @Test
+    fun `Sniff Out - enraged with no enemy hero in range, the Primary action is not offered (RULINGS 53)`() {
+        val d = pos {
+            clearMinions()
+            turn = 2
+            hero("ursafar", Team.RED, Hex(1, -2)) {
+                clawsResolved()
+                played("ursafar-green-1") // Range 2
+            }
+            hero("arien", Team.BLUE, Hex(4, -5)) { hand("arien-gold") } // 3 away
+            enragedByClaws()
+            phase = PositionPhase.Resolving(next = "ursafar")
+        }
+        assertThat(d.actions()).doesNotContain(ActionType.PRIMARY)
+    }
+
+    @Test
     fun `Eyes on the Prey - not enraged - nothing`() {
         val d = pos {
             clearMinions()
