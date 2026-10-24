@@ -99,6 +99,9 @@ class Batch3GamesTest {
     private fun games(hero: String, n: Int, seed: Long) {
         if (!playable(hero)) return
         val rng = Random(seed)
+        val start = System.nanoTime()
+        var decisions = 0L
+        var checkNanos = 0L
         repeat(n) { i ->
             val setup = setup(rng, hero)
             val s = engine.newGame(setup) as EngineSession
@@ -107,6 +110,15 @@ class Batch3GamesTest {
             while (true) {
                 val d = s.pending ?: break
                 check(s)
+                if (k == 150 + 7 * i) { // once per game, at a different point each time
+                    val t0 = System.nanoTime()
+                    // Hidden information (Min's facedown mines among it) samples without breaking the game.
+                    val det = s.determinize(d.team, k.toLong()) as EngineSession
+                    check(det)
+                    val restored = engine.restore(s.save()) as EngineSession
+                    assertThat(restored.pending).isEqualTo(s.pending)
+                    checkNanos += System.nanoTime() - t0
+                }
                 assertThat(d.options).isNotEmpty()
                 assertThat(d.options.distinct()).hasSize(d.options.size)
                 val r = s.answer(d.id, player.choose(d))
@@ -115,7 +127,11 @@ class Batch3GamesTest {
                 assertWithMessage("game did not end: $setup").that(k).isLessThan(30_000)
             }
             assertThat(s.view(null).winner).isNotNull()
+            decisions += k
         }
+        val secs = (System.nanoTime() - start) / 1e9
+        val checks = checkNanos / 1e9
+        println("BATCH3 $hero: $n games, $decisions decisions in ${"%.1f".format(secs)} s (checks ${"%.1f".format(checks)} s)")
     }
 
     @Test

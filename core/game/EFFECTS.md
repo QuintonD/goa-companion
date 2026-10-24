@@ -326,3 +326,10 @@ What each hero needs beyond plain actions, and the framework pieces that cover i
 
 - `Game.clearableTokens(hero, card)`: the Clear action (p.13) offers, and is offered for, only adjacent
   tokens the hero may target, so tokens immune to it (Venerated Totem: "immune to enemy actions") stay.
+
+### Min (hero batch 3)
+
+- `Game.push`: a passable piece in the line (Min's mines, "units may move through them") is pushed
+  through, as p.18 says for obstacles that "can be moved through"; the push still ends on an empty
+  space and counts as stopped by an obstacle when it falls short. The path (and `Trigger.Moved`)
+  includes the spaces passed.
