@@ -67,7 +67,6 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.data.game.AiPace
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
-import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.teamColor
@@ -85,11 +84,13 @@ import dev.quinton.goa.feature.board.play.table.DecisionPanel
 import dev.quinton.goa.feature.board.play.table.EventLog
 import dev.quinton.goa.feature.board.play.table.GameTable
 import dev.quinton.goa.feature.board.play.table.HeroDetail
+import dev.quinton.goa.feature.board.play.table.PeekConfirm
 import dev.quinton.goa.feature.board.play.table.RecentEvents
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.YourHand
+import dev.quinton.goa.feature.board.ui.BoardScaffold
 
 /** The sheets the game opens (hoisted so screenshots can open one). */
 sealed interface PlaySheet {
@@ -116,6 +117,7 @@ fun GameScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     initialSheet: PlaySheet? = null,
+    initialPanelHidden: Boolean = false,
 ) {
     val play = (state as? GameUiState.Playing)?.play
     var sheet by remember { mutableStateOf(initialSheet) }
@@ -134,7 +136,7 @@ fun GameScreen(
     // The title shortens to fit beside the three actions: on a phone in portrait "R2 · Turn 3",
     // with large text "R2 · T3" (the HUD and TalkBack say it in full).
     val room = LocalConfiguration.current.screenWidthDp / androidx.compose.ui.platform.LocalDensity.current.fontScale
-    GoaScreen(
+    BoardScaffold(
         title = when {
             play == null -> "Play"
             play.over != null -> "Game over"
@@ -195,6 +197,13 @@ fun GameScreen(
                             },
                             onHero = { sheet = PlaySheet.Hero(it) },
                             onFlip = { onAction(GameAction.Flip) },
+                            peek = gamePeek(state.play),
+                            peekTrailing = {
+                                if (state.play.status is TurnStatus.YourTurn && state.play.nudge == null) {
+                                    PeekConfirm(state.play.table, state.play.busy) { onAction(GameAction.Answer(it)) }
+                                }
+                            },
+                            initialPanelHidden = initialPanelHidden,
                         ) {
                             Panel(state.play, onAction, onCard = { sheet = PlaySheet.Card(it.id) })
                         }

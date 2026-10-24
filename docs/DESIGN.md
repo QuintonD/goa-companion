@@ -111,6 +111,28 @@ icon, phase, "Round · Turn" context, tabular clock in tide teal; dim when pause
 overtime; tap returns to the timer). The Meta tab defaults to a compact sortable hero table
 (48 dp rows, sort chips; Pick/Ban columns drop at large font) with a Table/Cards switch.
 
+### Board screens' frame (sandbox, game, puzzle)
+The three map screens share two pieces of chrome in `feature/board/ui/` so the map gets the screen.
+**Compact top bar** (`BoardScaffold`): `GoaScreen`'s look (canvas colour, engraved rule, back arrow,
+Cinzel title) at 48 dp with an 18 sp title in portrait and 40 dp with a 16 sp title in landscape; it
+grows only when large text needs one line of the title. Icons keep 48 dp touch targets, overlapping
+the bar's visible height. The content keeps clear of a display cutout the app shell left (landscape).
+Other screens keep `GoaScreen`. **Hideable panel** (`HideablePanel`): shown, the panel (bottom in
+portrait, end side in landscape) opens under a 40 dp strip with a drag handle and Hide (chevron down;
+chevron toward the edge in landscape; "Hide panel"); drag the strip down (sideways in landscape) to
+hide. Hidden, it leaves a **peek bar**: one line across the bottom in portrait (56 dp; in landscape a
+248 dp card at the bottom end, text on up to three lines over the buttons, so the map, limited by its
+height there, keeps its size) with what the panel holds ("✋ ● Wasp · Lane Zone 3 · 3 spaces from
+Wasp"), a filled Confirm when a space or piece tapped on the map answers the question, and Show
+(chevron up; "Show panel"); tap it or drag it up to show the panel. A question waiting for the person
+gives the peek a teal border and a teal tap mark (TalkBack: "Your move"), and the peek is a polite
+live region, so a new question is heard while the panel is hidden. Hiding fits the whole board into
+the larger view once, unless the person has pinched or panned since the view was last framed; the
+Fit button then reads "Zoom to the lane". While hidden the map no longer zooms to each question (the
+whole board is in view), and the game hides the hero strip and the puzzle's goal banner (back with the
+panel), keeping the HUD pill. Hidden or shown is kept per screen (`rememberSaveable`) and survives
+rotation.
+
 ### Board (sandbox, ADR-033)
 The map is drawn by the app, never from the map art: pointy-top hexes turned in 30° steps so the
 Lane runs up the screen in portrait (the bottom team's Throne Zone at the bottom; "Flip" swaps) and
@@ -136,8 +158,9 @@ are onSurface), Fast Travel = bronze hatching,
 Range = violet inner outline, Radius = three dots; where a piece should go (a waiting minion's
 targets, a minion's way back to its Battle Zone) = dashed teal outline; the selected piece = bright
 outline on a dark halo; Measure = bronze line (dashed when not in a straight line). The selection
-panel sits at the bottom in portrait (max half the height, collapsible) and on the right in
-landscape. The board opens on the Lane between the hero spawn areas with both teams' heroes in
+panel sits at the bottom in portrait (max half the height) and on the right in landscape, and hides
+like the game's panel (see **Board screens' frame** below); hidden, its peek bar shows the piece
+(token, name, Zone) with Deselect. The board opens on the Lane between the hero spawn areas with both teams' heroes in
 view, hexes about 38 dp across (down to 32 dp to fit the Lane's length; the map's sides are what
 gets cropped; a double-lane map on its whole region); the view zooms and pans so the selected piece
 and what its overlays reach stay in sight and tappable, clear of the panel, the tools and the
@@ -167,7 +190,8 @@ turn pips: done filled, current ringed, later hollow; the Tie Breaker coin as th
 shape on a bronze ring) and the hero strip, one chip per hero (portrait ringed in team colour,
 shape, name, Lv, coins, cards in hand); after the reveal the strip is in initiative order, numbered,
 with each played card's initiative, and the acting hero's chip has a bronze border and "· Now".
-**Panel** (bottom, max 56 % in portrait; right side in landscape): the header names the deciding
+**Panel** (bottom, max 56 % in portrait; right side in landscape; hides to its peek bar, see
+**Board screens' frame**): the header names the deciding
 hero and the kind in the team's colour ("◆ ARIEN · DEFEND"), the prompt in titleMedium (a live
 region), and "Asked by <card>" with a thumbnail (tap to read it). Cards are official images: the hand
 as 84 dp cards, the chosen one raised with a teal border and a tick, its values and text under it;

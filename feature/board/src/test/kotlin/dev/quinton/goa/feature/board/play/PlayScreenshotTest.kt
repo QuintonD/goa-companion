@@ -190,7 +190,7 @@ class PlayScreenshotTest {
     )
 
     @Composable
-    private fun Game(play: PlayUi, sheet: PlaySheet? = null) {
+    private fun Game(play: PlayUi, sheet: PlaySheet? = null, hidden: Boolean = false) {
         GameScreen(
             state = GameUiState.Playing(play),
             onAction = {},
@@ -200,6 +200,7 @@ class PlayScreenshotTest {
             onDone = {},
             onBack = {},
             initialSheet = sheet,
+            initialPanelHidden = hidden,
         )
     }
 
@@ -279,6 +280,27 @@ class PlayScreenshotTest {
     @Test
     fun tableChooseSpaceLight() = capture(ThemeMode.LIGHT) {
         Game(remember { at(DecisionKind.CHOOSE_SPACE) { s -> s.pending!!.options.last() } })
+    }
+
+    // ---- The panel hidden: the whole board, the question in the peek bar ------------------
+
+    /** A move with the panel hidden: the whole board, the tapped space confirmed from the peek bar. */
+    @Test
+    fun tablePanelHiddenDark() = capture(ThemeMode.DARK) {
+        Game(remember { at(DecisionKind.CHOOSE_SPACE) { s -> s.pending!!.options.last() } }, hidden = true)
+    }
+
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun tablePanelHiddenLandscapeDark() = capture(ThemeMode.DARK) {
+        Game(remember { at(DecisionKind.CHOOSE_SPACE) { s -> s.pending!!.options.last() } }, hidden = true)
+    }
+
+    /** Large text: the question still one line in the peek bar. */
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun tablePanelHiddenW384LightFontScale2() = capture(ThemeMode.LIGHT, 2f) {
+        Game(remember { at(DecisionKind.CHOOSE_ACTION, 3) }, hidden = true)
     }
 
     @Test
