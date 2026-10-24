@@ -1018,6 +1018,16 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
   Tigerclaw resolved `gold`, `silver`, hand `green-1`, `blue-1`; Xargatha resolved `gold`, `red-1`,
   discard `silver`, item `blue-2b`; Wasp resolved `gold`, `silver`, hand `red-1`, `blue-1`. Both of
   Xargatha's bullets are refuted by the solver. Wrong tries tested: Lesser Evil on Wasp, Movement.
+- **Hardened as p45 (2026-10-24, changed):** legality: Whisper, Tigerclaw, Wasp and Xargatha all L3 in
+  round 5 (Whisper keeps Blood Fury, items Sprouts of Panic = Initiative and Sanguine Path = Defense, so
+  Lesser Evil shows 11; Tigerclaw keeps Combat Reflexes (9) and Poisoned Dagger, items Backstab = Defense,
+  Pick Pocket = Attack). Harder: Wasp now also holds a single card (Control Gravity), so "the one-card
+  hero" no longer names the target; Red has two minions, both next to Whisper, at (1,−2) and (3,−3);
+  Tigerclaw (0,−1) plays Combat Reflexes (move 1 before the attack), which reaches Xargatha (−1,−1) and the
+  minion (1,−2) but neither Wasp (4,−4) nor the minion (3,−3). Lesser Evil on Wasp: she discards out of
+  reach. On Xargatha both bullets lose: discarding leaves her to Tigerclaw; giving up a minion (the
+  solver's reply) makes Whisper choose — take (3,−3), the one Tigerclaw can't reach — and Tigerclaw must
+  then take Red's last minion (push, last Wave counter), not Xargatha (Petrifying Stare 6 + 1 holds 5).
 
 ### C46 — Hurry Up!
 - **Theme:** changing a teammate's initiative; a tie on the coin; the opponent's blocking reply. **Difficulty:** 3. **Heroes:** Hanu, Brogan; Tigerclaw, Xargatha.
