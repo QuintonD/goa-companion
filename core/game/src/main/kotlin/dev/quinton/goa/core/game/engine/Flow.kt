@@ -93,8 +93,7 @@ private fun Game.reveal() {
     emit(GameEvent.CardsRevealed(played, "Cards revealed: $text."))
     for (e in orderedEffects()) {
         if (e.timing == Timing.NEXT_TURN_AFTER_PLAYING && !e.spent && e.round == state.round && e.turn == state.turn - 1) {
-            e.spent = true
-            data.registry.behavior(e.key ?: e.cardId)?.applyTimed(this, srcOf(e))
+            applyTimed(e)
         }
     }
     trigger(Trigger.CardsRevealed)
@@ -148,6 +147,15 @@ private fun Game.resolveNext() {
         state.step = Step.END_OF_TURN
         return
     }
+    // A built position may name who acts next (PositionBuilder "acting"); used once.
+    state.vars.remove(NEXT_ACTOR)?.let { forced ->
+        if (unresolvedCard(forced) != null) {
+            resolveCard(forced)
+            state.acting = null
+            if (state.heroes.none { unresolvedCard(it.id) != null }) state.step = Step.END_OF_TURN
+            return
+        }
+    }
     val reversed = lowerActsFirst()
     val best = if (reversed) ranked.minOf { it.second } else ranked.maxOf { it.second }
     val tied = ranked.filter { it.second == best }.map { it.first }
@@ -170,6 +178,9 @@ private fun Game.resolveNext() {
     state.acting = null
     if (state.heroes.none { unresolvedCard(it.id) != null }) state.step = Step.END_OF_TURN
 }
+
+/** [GameState.vars] key: the hero a built position makes act next. */
+const val NEXT_ACTOR: String = "position.nextActor"
 
 /** p.7 "Hero Respawn", "Perform One Action", "Resolve Your Card". */
 fun Game.resolveCard(heroId: String) {
@@ -198,7 +209,7 @@ fun Game.resolveCard(heroId: String) {
     val options = actionOptions(heroId, cardId)
     val answer = ask(
         heroId, DecisionKind.CHOOSE_ACTION, "Choose an action for ${cardName(cardId)}",
-        options.map { Choice.Action(it) }, cardId,
+        options.map { Choice.Action(it) }, cardId, auto = false,
     ) as Choice.Action
     val kind = when (answer.action) {
         ActionType.PRIMARY -> primaryKind(card(cardId))
@@ -242,9 +253,7 @@ private fun Game.finishCard(heroId: String, cardId: String, playedBefore: List<S
 private fun Game.endOfTurn() {
     for (e in orderedEffects()) {
         if (e.timing == Timing.END_OF_TURN && !e.spent && e.round == state.round && e.turn == state.turn) {
-            e.spent = true
-            touch()
-            data.registry.behavior(e.key ?: e.cardId)?.applyTimed(this, srcOf(e))
+            applyTimed(e)
         }
     }
     trigger(Trigger.TurnEnding)
@@ -274,9 +283,7 @@ private fun Game.endOfRoundEffects() {
     emit(GameEvent.Note("End of round ${state.round}."))
     for (e in orderedEffects()) {
         if (e.timing == Timing.END_OF_ROUND && !e.spent && e.round == state.round) {
-            e.spent = true
-            touch()
-            data.registry.behavior(e.key ?: e.cardId)?.applyTimed(this, srcOf(e))
+            applyTimed(e)
         }
     }
     trigger(Trigger.RoundEnding)

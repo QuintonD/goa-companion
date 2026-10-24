@@ -22,16 +22,38 @@ import dev.quinton.goa.core.model.match.Team
 fun Game.trigger(t: Trigger) {
     for ((b, s) in sources().toList()) {
         if (!stillInForce(s)) continue
-        b.on(this, s, t)
+        hook(s) { b.on(this, s, t) }
         if (state.winner != null) throw GameEnded()
     }
+}
+
+/**
+ * Run a behaviour's text: a mandatory step it cannot do stops that text only (p.10), never the action
+ * or step around it.
+ */
+inline fun Game.hook(src: Src?, block: () -> Unit) {
+    try {
+        block()
+    } catch (f: Fizzle) {
+        note("${src?.cardId?.let { cardName(it) } ?: src?.key ?: "An effect"} stops: ${f.message}.")
+    }
+}
+
+/** Apply a timed Active effect's text once ("End of turn:", "End of round:", "after playing cards", p.17–18). */
+fun Game.applyTimed(e: ActiveEffect) {
+    e.spent = true
+    touch()
+    val b = data.registry.behavior(e.key ?: e.cardId) ?: return
+    val s = srcOf(e)
+    hook(s) { b.applyTimed(this, s) }
 }
 
 /** Ask the behaviours whether [r] is replaced; the first that handles it wins. */
 fun Game.replacement(r: Replacement): ReplacementResult {
     for ((b, s) in sources().toList()) {
         if (!stillInForce(s)) continue
-        val res = b.replace(this, s, r)
+        var res = ReplacementResult()
+        hook(s) { res = b.replace(this, s, r) }
         if (res.handled) return res
     }
     return ReplacementResult()
