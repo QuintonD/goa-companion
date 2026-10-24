@@ -765,3 +765,19 @@ tap's own response, and the look has usually finished while the person thought. 
 and its search cancelled when the question is answered, on take back, rematch, Coach off, deleting
 the game and leaving. Same seed, same nudge: `CoachAheadTest` compares both ways on every answer of
 a game.
+
+## ADR-036 — A sync server on the owner's machine: an encrypted mailbox, phones do the work (2026-10-25)
+**Context:** The owner set up a home server (`oldboi`, Ubuntu, on their tailnet) and asked for it to
+act as the app's sync server, keeping as much processing on the phones as possible. An earlier,
+unmerged line (`feature/web-hub`, ADR-030 there) built a full Kotlin hub that merges server-side and
+renders a web app; that puts the group key and the rules on the server, the opposite of this ask.
+**Decision:** A relay that stores one sealed blob per group and nothing else (protocol in
+[SYNC-SERVER.md](SYNC-SERVER.md)): phones fetch, open, merge (`SyncMerge`), apply, seal and upload
+with optimistic concurrency (`ETag`/`If-Match`); the server sees ciphertext, a group id and a token
+hash. The Android client reuses `feature/hub-sync-android`'s plumbing (OkHttp, WorkManager, Group
+screen status) against this protocol. Hosting: Docker on oldboi bound to loopback, published by
+Tailscale Funnel on port 8443 (443 stays the owner's tailnet-only service). Nearby sync stays.
+**Consequences:** No server-side web app for iPhones (the hub line stays unmerged). A server that is
+wiped loses nothing: the next phone to sync re-uploads the merged log. Whoever runs the server can
+see group sizes and sync times, never content. A `SyncDocument.VERSION` bump still needs every phone
+updated before they sync again.
