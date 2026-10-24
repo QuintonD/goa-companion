@@ -20,5 +20,7 @@ object Puzzles {
         P07RangedAtPointBlank,
         P09PhantomAtFiveSpaces,
         P11ByTheWatersEdge,
+        P13EmptyTheSpawnPoint,
+        P15Quickdraw,
     )
 }

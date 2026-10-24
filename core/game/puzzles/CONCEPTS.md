@@ -351,6 +351,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** An empty spawn point is one in a space with no obstacle (p.17), and Dodger's card counts only those in the current BZ (Dodger FAQ). Minions are worth 2 coins, a level-2 hero 2 coins plus 1 assist coin (p.13). Tigerclaw's 9 resolves before Dodger's 3, so the spawn point is empty when the Ritual checks.
 - **Rules:** p.7 initiative; p.13 coins; p.17 Empty.
 - **Risk:** none.
+- **Encoded as p13 (2026-10-24):** as written (Arien: level 2, `arien-red-2a` in the discard, item `arien-red-2b`). After the attack, staying put or stepping to (3,−6) or (1,−5) all win; only (1,−4) loses.
 
 ### C14 — Long Thrust
 - **Theme:** range set by card text (enemy units adjacent to you). **Difficulty:** 1. **Heroes:** Xargatha; Tigerclaw, Arien (Wasp idle).
@@ -386,6 +387,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Quickdraw's bonus checks what the target *played* this turn, whatever action they took and even if the card is resolved (Sabina FAQ). Defence totals add minion modifiers (p.14), and equal totals defend (p.14).
 - **Rules:** p.14 Defense total, Minion defense modifiers; FAQ Sabina.
 - **Risk:** none.
+- **Encoded as p15 (changed, 2026-10-24):** a position can't record that a hero *resolved* an attack card this turn (`PositionBuilder` marks "played an attack card" only for an unresolved played card). Arien has instead **played `arien-red-1` Dangerous Current (8), not yet resolved**, tied with Sabina at 8 with the **coin showing Red** (Sabina acts first, p.7), resolved gold, green-1, blue-1, hand `arien-silver`. The Sabina FAQ covers both cases. Wasp is seated before Arien.
 
 ### C16 — Get Over Here!
 - **Theme:** moving an enemy hero; "no obstacles between" for a straight-line effect. **Difficulty:** 1. **Heroes:** Bain, Xargatha; Dodger, Wasp.
