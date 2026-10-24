@@ -95,6 +95,7 @@ fun BoardsScreen(
     modifier: Modifier = Modifier,
     onPlay: () -> Unit = {},
     onResume: () -> Unit = {},
+    onPuzzles: () -> Unit = {},
 ) {
     var renaming by rememberSaveable { mutableStateOf<String?>(null) }
     val ready = state as? BoardsUiState.Ready
@@ -125,6 +126,7 @@ fun BoardsScreen(
                         onPlay,
                         onResume,
                         Modifier.padding(horizontal = Spacing.screen).padding(top = Spacing.lg),
+                        onPuzzles = onPuzzles,
                     )
                     ready.latest?.let {
                         LatestCard(it, { onSetUp(it) }, Modifier.padding(Spacing.screen))
@@ -160,7 +162,7 @@ fun BoardsScreen(
                     verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    item(key = "play") { PlayHub(ready.play, ready.now, onPlay, onResume) }
+                    item(key = "play") { PlayHub(ready.play, ready.now, onPlay, onResume, onPuzzles = onPuzzles) }
                     item(key = "boards") {
                         Text(
                             "BOARDS",

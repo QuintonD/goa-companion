@@ -40,7 +40,8 @@ import dev.quinton.goa.feature.board.BoardText
 
 /**
  * Learning by playing (ADR-035), above the boards: a game in progress to resume, "Play against the
- * computer" (coming soon until heroes are playable) and Puzzles (coming soon).
+ * computer" (coming soon until heroes are playable) and Puzzles ("N of M solved"; coming soon until
+ * a puzzle's heroes are playable).
  */
 @Composable
 internal fun PlayHub(
@@ -49,6 +50,7 @@ internal fun PlayHub(
     onPlay: () -> Unit,
     onResume: () -> Unit,
     modifier: Modifier = Modifier,
+    onPuzzles: () -> Unit = {},
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         play.resume?.let { ResumeCard(it, now, onResume) }
@@ -63,12 +65,17 @@ internal fun PlayHub(
             enabled = play.available,
             onClick = onPlay,
         )
+        val puzzles = play.puzzles
         EntryCard(
             icon = Icons.Outlined.Extension,
             title = "Puzzles",
-            text = "Coming soon: hard positions to solve, with gentle nudges and the rule behind each answer.",
-            enabled = false,
-            onClick = {},
+            text = if (puzzles != null) {
+                "${puzzles.solved} of ${puzzles.total} solved · hard positions, gentle nudges, the rule behind each answer."
+            } else {
+                "Coming soon: hard positions to solve, with gentle nudges and the rule behind each answer."
+            },
+            enabled = puzzles != null,
+            onClick = onPuzzles,
         )
     }
 }

@@ -18,13 +18,16 @@ import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.GameSaveRepository
+import dev.quinton.goa.core.data.PuzzleProgressRepository
 import dev.quinton.goa.core.data.game.StoredGame
+import dev.quinton.goa.core.data.puzzle.PuzzleProgress
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.board.BoardGeometry
 import dev.quinton.goa.core.domain.board.BoardRules
 import dev.quinton.goa.core.domain.board.BoardSetup
 import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.game.GameFactory
+import dev.quinton.goa.core.game.PuzzleBook
 import dev.quinton.goa.core.model.board.BoardLineup
 import dev.quinton.goa.core.model.board.HeroPiece
 import dev.quinton.goa.core.model.board.MinionPiece
@@ -49,6 +52,7 @@ import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
 import dev.quinton.goa.core.testing.FakeGameSaveRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
+import dev.quinton.goa.core.testing.FakePuzzleProgressRepository
 import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.feature.board.board.AddContent
 import dev.quinton.goa.feature.board.board.BoardAction
@@ -152,6 +156,8 @@ class BoardScreenshotTest {
         withDraft: Boolean = true,
         games: GameSaveRepository = FakeGameSaveRepository(),
         engine: GameFactory? = null,
+        puzzles: PuzzleBook? = null,
+        puzzleProgress: PuzzleProgressRepository? = null,
     ) {
         val vm =
             remember {
@@ -165,6 +171,8 @@ class BoardScreenshotTest {
                     CoroutineScope(Dispatchers.Unconfined),
                     games,
                     engine?.let { e -> { e } },
+                    puzzles?.let { b -> { b } },
+                    puzzleProgress,
                 )
             }
         val state by vm.uiState.collectAsState()
@@ -208,6 +216,19 @@ class BoardScreenshotTest {
                 FakeGameSaveRepository(StoredGame.Saved(dev.quinton.goa.feature.board.play.fakeInProgress(factory)))
             }
         Boards(emptyList(), games = games, engine = factory)
+    }
+
+    /** Puzzles are playable: the entry says how many are solved and opens the list. */
+    @Test
+    fun boardsPuzzlesDark() = capture(ThemeMode.DARK) {
+        val factory = remember { dev.quinton.goa.feature.board.play.fakeFactory() }
+        val book = dev.quinton.goa.feature.board.play.puzzles.realPuzzleBook
+        val progress = remember {
+            FakePuzzleProgressRepository(
+                book.puzzles.take(1).associate { it.id to PuzzleProgress(solved = true, solvedAt = 1, attempts = 1) },
+            )
+        }
+        Boards(emptyList(), engine = factory, puzzles = book, puzzleProgress = progress)
     }
 
     /** No boards, but a finished draft: its line-up is one tap away. */
