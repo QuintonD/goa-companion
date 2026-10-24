@@ -325,7 +325,17 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** A push moves the target in a straight line directly away from the pusher, as far as possible up to the distance chosen (p.18 Push); obstacles and terrain stop it. `red-side` is a separate Zone even though it is a thin strip, so Wasp ends in another Zone and the card's second clause applies; with no card to discard she is defeated (p.17 If able).
 - **Rules:** p.18 Push; p.19 Zone, Terrain; p.13 When a hero is defeated.
 - **Risk:** "pushed into another zone" read as "ends the push in a different Zone than it started" (unambiguous here).
-- **Encoded as p08 (2026-10-24):** as in the concept (Swift idle, resolved). The solver confirms Wasp as the only winning hero and 2, 3 or 4 as the winning distances; pushing Dodger, pushing Wasp 1 and the minion bullet are refuted.
+- **Encoded as p08 (hardened 2026-10-24, changed):** the reviewers found Swift's Steam Jump (9)
+  resolved before Cutter (12), every hero level 1 in round 4, and pushes of 2, 3 and 4 all winning. Now
+  round 3, turn 4, all level 2, and **Swift plays**: Cutter (Blue, L2, item `cutter-red-2b`) at (0,−3)
+  with Walk the Plank (12) and Swift (Blue, L2, item `swift-red-2a`) at (0,−8) with Bounce (12) are
+  tied on one team, so the player decides who acts first (p.7). Wasp (Red, L2, no cards) at (0,−4):
+  straight away from Cutter (NW) lie (0,−5), (0,−6), (0,−7) of the middle Zone, then (0,−8) of the side
+  strip, where Swift stands. Dodger (Red, L2, hand Shield of Decay) at (−1,−3): one push W puts her in
+  `lane-1-1`. Answer: Swift first, Bounce off the line ((2,−8), (2,−10) or (−2,−6)), then Walk the
+  Plank on Wasp, exactly 4 spaces. Wrong tries refuted: Cutter first (Swift blocks the end of the line),
+  Swift bouncing SE down the line to (0,−6), pushing Dodger (she discards), pushing Wasp 3. Solver: one
+  winning option at every decision but Swift's landing (3 of 4).
 
 ### C09 — Phantom at Five Spaces
 - **Theme:** targeting conditions; moving a token before the attack. **Difficulty:** 1. **Heroes:** NebKher; Dodger, Wasp (Garrus idle).
