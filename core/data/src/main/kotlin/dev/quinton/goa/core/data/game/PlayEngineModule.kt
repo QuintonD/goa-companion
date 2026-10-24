@@ -55,6 +55,7 @@ internal object PlayEngineModule {
 
 /** No hero is playable yet: New game and the Boards entry show "coming soon". */
 internal object ComingSoonGameFactory : GameFactory {
+    override val engineVersion: Int = 0
     override val playableHeroes: Set<String> = emptySet()
     override val playableMaps: List<String> = emptyList()
 
