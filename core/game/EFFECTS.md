@@ -281,7 +281,7 @@ What each hero needs beyond plain actions, and the framework pieces that cover i
 | Dodger | Empty spawn points in the Battle Zone, respawn friendly minions (any type, FAQ), −Attack effects, cannot repeat, "gain an Attack item" from the box; Ultimate: every space counts as Battle Zone with a friendly spawn point while she acts | `isEmptySpawnPoint`, `isInBattleZone`, `canRespawnMinion`/`respawnMinion`, `statDelta`, `forbidsRepeat`, `hero.spareItems`; Ultimate in her own helpers |
 | Emmitt | Reverse initiative next turn (ignores immunity), Glitch tokens and swap with one the enemy picks, defend with Initiative, "remained in the same space since the last turn", "already resolved a card this turn", place a unit where it started this turn, retrieve cards discarded this turn, swap an unresolved card with a resolved one; Ultimate: play two cards, retrieve one after the reveal | `reversesInitiative`, `placeToken` + `chooseToken(chooser)`, `attack(defenseFromInitiative)`, `turnRecord.startPositions/resolved/discarded`, `swapCards`, `extraCardsToPlay` + `CardsRevealed`; `HeroView.alsoPlayed` |
 | Garrus | +1 Attack per discarded card, move enemy "farther away", friendly "closer", This round movement cap 2; Ultimate: after a resolved card is discarded, perform its primary | `discardPile`, `moveOther(endFilter)`, `movementCap`, `CardDiscarded(fromResolved)` + `performPrimary` |
-| Gydion | Spellbook of 22 spell cards (extras, start in `Zone.EXTRA` tag `box`), casting = performing a spell card's action, spells removed faceup, Sunburst/Dimension Door grow per removed spell, Wish wins after three casts, regain a Life counter | `moveCard` + `tag` (`spellbook`, `removed`), `performAction(gydion, spellId, kind, primary = true)`, `win(CARD_TEXT)`, `regainLife`; spells have their own `values` |
+| ★ Gydion | Spellbook of 22 spell cards (extras, start in `Zone.EXTRA` tag `box`), casting = performing a spell card's action, spells removed faceup, Sunburst/Dimension Door grow per removed spell, Wish wins after three casts, regain a Life counter | `moveCard` + `tag` (`spellbook`, `removed`), `performAction(gydion, spellId, kind, primary = true)`, `win(CARD_TEXT)`, `regainLife`; spells have their own `values` |
 | Hanu | Set a card's printed Initiative to 11 until it resolves, swap and immunity then swap back at End of turn regardless of immunity, swap two friendly units, move two heroes the same distance and direction; Ultimate: choose another hero's next action | `printedValue`, `immune`, `END_OF_TURN` + `canTarget(ignoreImmunity)`, `swap`, `controls` |
 | Ignatia | Text by the Tie Breaker coin, flip it, Magma tokens on spaces moved through, Equilibrium choice; Ultimate: flip the coin and repeat with new targets | `state.tieBreaker`, path from `moveSelf`, `placeToken`, `AfterAction` + `performAction(isRepeat, excluded)` |
 | Min | Smoke bomb blocks targeting in a straight line, swap with it to block, facedown mines units may move through (triggered when an enemy hero moves through), Death Grenade at End of turn, double item bonuses, Tier II card as a permanent item, apply another red card's After the attack text; Ultimate: repeat attacks on a different target | `forbidsTarget`, `TokenKind(passable)`, `faceDown`, `Moved` (path; the engine asks paths step by step near such tokens), `END_OF_TURN`, `itemMultiplier`, `moveCard(ITEM)`, shared After-the-attack functions in your file, `AfterAction` + `performAction(isRepeat)` |
@@ -295,7 +295,7 @@ What each hero needs beyond plain actions, and the framework pieces that cover i
 | Silverarrow | Fast Travel inside an attack, This round ignore obstacles on movement actions, End of turn discards; Ultimate: before each action may move 2 straight | `fastTravel(optional = true)`, `passMode(movementAction)`, `END_OF_TURN`, `BeforeAction` |
 | Snorri | Rune markers under Turn slots (not removed at end of round or on defeat), "a rune is active" by current turn, rune-dependent Blocks and immunity, swap resolved and hand cards; Ultimate: a second active rune for each action | `giveMarker(persistent = true)` + `marker.data`, `state.turn`, `d.block`, `immune`, `swapCards` |
 | Swift | Perform the rightmost resolved card's primary, Bounce repeat when already resolved, coins when enemy minions in radius are defeated next turn, End of turn placement; Ultimate: after resolving a basic card perform its primary (not the same enemy hero twice a turn) | `resolvedCards().last()` + `performPrimary`, `NEXT_TURN` + `MinionDefeated(at)`, `END_OF_TURN`, `CardResolved` + `turnRecord.notes` |
-| Takahide | Three golds (two start in the deck), swap a gold with a deck gold (facedown when resolved/discarded), friendly heroes swap their unresolved card with a hand card, empty spaces count as obstacles for enemy units, Handicap is silver and has no Block condition; Ultimate: return silver, take two golds | `StartingCards`/`Setup` already deal the golds, `swapCards`, `turnFaceDown`, `countsAsObstacle(mover)`, `UltimateUnlock` |
+| ★ Takahide | Three golds (two start in the deck), swap a gold with a deck gold (facedown when resolved/discarded), friendly heroes swap their unresolved card with a hand card, empty spaces count as obstacles for enemy units, Handicap is silver and has no Block condition; Ultimate: return silver, take two golds | `StartingCards`/`Setup` already deal the golds, `swapCards`, `turnFaceDown`, `countsAsObstacle(mover)`, `UltimateUnlock` |
 | Tali | Ice tokens (−1 Initiative to adjacent enemy heroes), Totem replaces a minion's defeat and is immune, "if this card is not in the discard", a friend names a colour, perform the primary of a discarded card; Ultimate: after a basic attack defeats a minion, a discard of a chosen colour | piece `statDelta`, `replace(MinionDefeat)` → `PREVENTED` + `removePiece`, piece `immune`, `chooseOption(chooser = friend)`, `performPrimary`, `MinionDefeated` + `currentAction()` |
 | Tigerclaw | Move 2 straight through an enemy unit then target it, take coins, Poison marker (−1/−2 Initiative, Attack, Defense), Blocks with attacker discards, the target cannot defend with a primary action; Ultimate: repeat basic actions | `moveSelf(straightLine, ignoreObstacles, endFilter)` + path, `takeCoins`, marker `statDelta`, `d.block`, `attack(noPrimaryDefense)`, `AfterAction` + `performAction(isRepeat)` |
 | Trinkets | The Turret (not a token, an obstacle, stays between rounds), range "of both you and the Turret", Disruptor before enemy primary actions, Barrier tokens give defense, remove the Turret; Ultimate +1 Range and Radius | `PieceState(token = false, removeAtEndOfRound = false)`, `BeforeAction(primary)` + `forceDiscard`, `defenseBonus`, `statDelta` |
@@ -315,3 +315,29 @@ What each hero needs beyond plain actions, and the framework pieces that cover i
   script; the engine treats `HeroState.at` as the body that acts.
 - NebKher performing another hero's card runs that card's script with NebKher as `heroId`; scripts
   should use `a.heroId`/`a.hero` (never a hard-coded hero id) for "you".
+- Hero random games: `heroes/gydion/HeroRandomGames` (test source) plays seeded random games seating
+  one hero against the four reference heroes with `PropertyTest`'s invariants, the Life counter check
+  relaxed for Gydion's team (never above the starting count). Other hero agents may reuse it.
+
+### Gydion
+
+- Spells are the hero JSON `extras`, always in `Zone.EXTRA`; `CardInst.tag` is `box` (not added yet —
+  the spellbook starts empty), `spellbook` or `removed` (faceup). `heroes/gydion/Spellbook` holds the
+  rules: `castOneOf(a, spells)` for a card's "Cast …" text, `cast(g, caster, spell)` (remove, then the
+  caster performs the spell's action with `performAction(caster, spellId, kind, primary = true)`; the
+  spell's owner is found from the card, so NebKher's Mind Grip casts from Gydion's spellbook),
+  `castable` (in the spellbook, allowed, first instruction possible: `primaryPossible`), `addAll`.
+  Public counters `spellbook`, `spellsRemoved`, `wishCasts` on Gydion's `HeroView.counters`.
+- `PositionBuilder.HeroBuilder.extra(vararg cardIds, tag)` places extras in a tagged place (positions
+  and puzzles with a prepared spellbook); extras are now placed before the purple-card rule, so Gydion's
+  purple Wish spell is never taken for the Ultimate or put in the deck.
+
+### Takahide
+
+- No shared change. The gold swaps are p.10 swaps written in `TakahideHero` (`swapStates`) so the log
+  never names a card that stays hidden (hand, deck, a new facedown card); `UltimateUnlock` does Ready for
+  War once at level 8.
+- Spinning Blade / Blade Helix make empty spaces obstacles for enemy units only (`countsAsObstacle`
+  with the mover): build placement and respawn options with `isEmpty(hex, unit)`, not `isEmpty(hex)`,
+  or `g.place` (which checks with the unit) rejects the space. Known gap: hero respawn and minion
+  respawn by card text check `isEmpty(hex)` without the unit, so they ignore those spaces.
