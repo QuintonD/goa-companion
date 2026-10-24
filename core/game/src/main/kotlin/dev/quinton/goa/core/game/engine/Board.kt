@@ -522,6 +522,22 @@ fun Game.placeToken(placed: String, owner: String?, to: Hex, takeFrom: String? =
     return piece.id
 }
 
+/**
+ * p.19 "Spawn": like Place, but from the supply; "If a unit Spawns in a Spawn Point covered by a
+ * token, remove the token first, then spawn the unit." [piece] must not be on the board yet; it is
+ * added to the state. Spaces to offer: empty spaces, and spawn points holding a token.
+ */
+fun Game.spawnPiece(piece: PieceState, to: Hex) {
+    occupant(to)?.let { occ -> if (isSpawnPoint(to) && state.piece(occ)?.token == true) removePiece(occ) }
+    if (state.pieces.none { it.id == piece.id }) state.pieces += piece
+    piece.at = null
+    touch()
+    place(piece.id, to)
+}
+
+fun Game.canSpawnInto(hex: Hex): Boolean =
+    isEmpty(hex) || (isSpawnPoint(hex) && occupant(hex)?.let { state.piece(it)?.token } == true)
+
 /** Throne Zones and Spawn points (p.6, p.19). */
 fun Game.isSpawnPoint(hex: Hex): Boolean = geo.spaces[hex]?.spawn != null
 

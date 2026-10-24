@@ -80,7 +80,10 @@ class EngineSession internal constructor(
 
     private fun advance() {
         eventsCache = null
+        var steps = 0
         while (true) {
+            // A round has well under a thousand steps without a question; more means a flow bug.
+            check(++steps < MAX_STEPS_WITHOUT_DECISION) { "The game made no progress (step ${checkpoint.step})" }
             val work = checkpoint.copy()
             val g = Game(data, work, segment, RunMode.NORMAL, lenient)
             try {
@@ -174,6 +177,8 @@ class EngineSession internal constructor(
     }
 
     companion object {
+        private const val MAX_STEPS_WITHOUT_DECISION = 10_000
+
         internal val JSON = Json {
             ignoreUnknownKeys = true
             allowStructuredMapKeys = true

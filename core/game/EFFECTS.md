@@ -126,7 +126,8 @@ optional, straightLine, ignoreObstacles, stepwise, endFilter)`, `moveOther(id, �
   `move(MoveSpec, chooser, prompt, optional)` (returns the path), `setPos` (bookkeeping only),
   `fastTravelDestinations`, `canFastTravel`, `fastTravel`, `place`, `canPlace`, `swap`, `canSwap`,
   `push(target, from, spaces, ignoreObstacles)` → `PushResult(moved, stoppedByObstacle, to)`,
-  `removePiece`, `placeToken(kind, owner, hex, takeFrom)`, `isSpawnPoint`, `isMinionSpawnPoint`,
+  `removePiece`, `placeToken(kind, owner, hex, takeFrom)`, `spawnPiece(piece, hex)` / `canSpawnInto`
+  (p.19 Spawn: a token on a spawn point is removed first), `isSpawnPoint`, `isMinionSpawnPoint`,
   `isEmptySpawnPoint`, `throneZone`, `canInteract`, `distance`.
 - **Cards** — `moveCard(hero, card, zone, slot, keepEffects)`, `hand`, `discardPile`,
   `resolvedCards` (slot order: last = rightmost), `unresolvedCard`, `cardTypeOf`, `cardColorOf`,
