@@ -154,6 +154,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** A defeated hero's team spends Life counters equal to that hero's lowest card tier, not one per hero (p.13): level 4 means tier II, so Wasp costs Red 2 counters while Brogan (level 3, tier I) costs 1. A Block card defends only when its condition is met; otherwise the defender is defeated (p.14). Chase's movement needs at least one card in your discard (card text), which Garrus has.
 - **Rules:** p.13 Attacking a hero, When a hero is defeated, level/tier table; p.14 Block.
 - **Risk:** none.
+- **Encoded as p02 (2026-10-24):** as written (Brogan's items `brogan-red-2b`, `brogan-green-2a`; Wasp's `wasp-red-2b`, `wasp-blue-2b`, `wasp-green-2b`). The solver finds (2,−5) and (2,−6) as the winning spaces of Chase's move; Chase's second option, or its first without moving, leaves only Brogan to hit.
 
 ### C03 — Melee First, Then the Heavy
 - **Theme:** Heavy Minion Immunity; Last Push. **Difficulty:** 1. **Heroes:** Snorri; Xargatha (Garrus, Tigerclaw idle).
@@ -171,6 +172,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** As long as a friendly non-heavy minion is in the BZ the heavy minion is Immune and cannot be targeted (p.13). Defeating the melee lifts that, and the axe rune's repeat (a new instance of the attack, p.10) can then take the heavy. When the last enemy minion in the BZ is defeated the Lane is pushed immediately (p.8), and flipping the last Wave counter ends the game for the team that won the push (p.3, p.8).
 - **Rules:** p.8 Push the Lane, Triggering a Push; p.10 Repeat; p.13 Heavy Minion Immunity.
 - **Risk:** none.
+- **Encoded as p03 (2026-10-24):** as written; Garrus and Tigerclaw (both playable now) sit idle. Rune markers carry their Turn slot (`marker_rune_axe` under slot 4). After the axe repeat the heavy minion is the only target, so the line is Primary, the melee minion, Yes.
 
 ### C04 — Price on Her Head
 - **Theme:** Life counters (Bounty marker); initiative order between teammates. **Difficulty:** 1. **Heroes:** Bain, Brogan; Dodger, Xargatha.
@@ -188,6 +190,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Bain acts at 11, before Brogan's 7, so the marker is in place when Dodger falls (p.7 initiative order). "A hero with the Bounty marker spends 1 additional Life counter when defeated" (card text), on top of the lowest-tier counters (p.13). The bounty is given after Bain's own attack resolves, so he needs some adjacent target.
 - **Rules:** p.7 Check the initiative; p.10 Mandatory steps; p.13 When a hero is defeated.
 - **Risk:** none.
+- **Encoded as p04 (2026-10-24):** as written. Xargatha is seated before Dodger. As the concept says, any adjacent target works for Bain (the solver accepts the ranged minion or Xargatha); the Bounty must go to Dodger, and Brogan's dash may end at (3,−2) or (3,−4).
 
 ### C05 — Beat the Drum
 - **Theme:** coins and assist coins; "friendly" never includes you. **Difficulty:** 1. **Heroes:** Tigerclaw, Brogan; Arien (Wasp idle).
@@ -205,6 +208,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Defeating a hero pays its level to the attacker and assist coins equal to its lowest tier to each teammate (p.13). War Drummer gives 3 instead of 1 once any hero was defeated this round, and it acts at initiative 5, after Hit and Run at 9 (p.7). Its target must be another hero in range when it resolves, so Tigerclaw's optional after-attack step matters.
 - **Rules:** p.7 initiative; p.10 Mandatory and optional steps; p.13 coins table; p.17 Friendly.
 - **Risk:** `GainCoins` counts the team total (convention); Tigerclaw alone gains 5.
+- **Encoded as p05 (2026-10-24):** as written (Brogan's item `brogan-green-2a`, Arien's `arien-red-2b`). Winning steps after the attack: (2,−6) or (2,−5).
 
 ### C06 — The Hands of the Clock
 - **Theme:** defending with initiative (Temporal Punch); choosing the target. **Difficulty:** 1. **Heroes:** Emmitt; Wuk, Tigerclaw (Sabina idle).
@@ -222,6 +226,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Temporal Punch replaces the Defense value of the defender's card and items with its Initiative value; minion defence modifiers still apply (card reminder). Wuk's whole deck is slow (initiative stat 1), Tigerclaw's gold card is the fastest in his deck, so the "weak" defender is the safe one this time. The defender always chooses the best card (p.14).
 - **Rules:** p.14 Defense action, Defense total, Minion defense modifiers; p.13 When a hero is defeated.
 - **Risk:** none.
+- **Encoded as p06 (2026-10-24):** as written; Tigerclaw is seated before Wuk, so the tempting target is listed first.
 
 ### C07 — Ranged at Point Blank
 - **Theme:** Block: which attack is ranged; defend with the right card. **Difficulty:** 1. **Heroes:** Tigerclaw; Sabina, Brogan.
@@ -239,6 +244,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** An attack is ranged when its primary action says "Ranged", whatever its range; Point Blank Shot has Range 1, so it can only reach adjacent targets but is still ranged (p.9, faq-common-J6uK9mGB). Parry blocks only non-ranged attacks; Block cards succeed only when their condition is met (p.14). Each attack is defended with a separate card from hand (p.14), so the order of use matters.
 - **Rules:** p.9 Ranged/Non-ranged; p.13 Attack action; p.14 Defense action, Block.
 - **Risk:** none.
+- **Encoded as p07 (changed, 2026-10-24):** as written the first option at every decision won (Combat Reflexes, the first card in catalog order, is right against the first attack, then Parry against Brogan). Tigerclaw now holds **`tigerclaw-red-2b` Backstab (Defense 5) and `tigerclaw-blue-2a` Sidestep (Block a ranged attack)**, with the items `tigerclaw-red-2a` (+1 Initiative) and `tigerclaw-blue-2b` (+1 Defense). Same lesson: Sidestep blocks the point-blank shot, Backstab 5 + 1 = 6 holds Brogan's 6; Backstab first leaves Sidestep against a non-ranged attack. Sidestep's optional step is free (every choice survives). Wasp's idle hand: `wasp-green-1`, `wasp-blue-1`.
 
 ### C08 — Walk the Plank
 - **Theme:** pushing across a zone border; zones you might not notice. **Difficulty:** 1. **Heroes:** Cutter; Wasp, Dodger (Swift idle).
@@ -274,6 +280,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Phantasmal Warrior's "Before the attack" moves an Illusion token (in range) up to 1 space to a space adjacent to an enemy hero in range, then targets that hero; the token moves like a unit (p.11 Movement in the card text) into an empty space. Range 5 reaches Dodger exactly (p.9). With no card in hand she cannot defend (p.13).
 - **Rules:** p.9 Range; p.11 Movement in the card text; p.13 Attacking a hero; p.19 Tokens.
 - **Risk:** none.
+- **Encoded as p09 (2026-10-24):** as written. Phantasmal Warrior's bullet is not asked (no enemy unit is adjacent to NebKher, so only the first can be done); the Illusion beside Wasp is listed first. Both (1,−5) and (1,−4) win.
 
 ### C10 — Shotgun Splash
 - **Theme:** "Before the attack" hits a hero next to the real target. **Difficulty:** 1. **Heroes:** Swift; Wasp, Brogan (Arien idle).
@@ -308,6 +315,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** "Any board space without a full grid outline counts as terrain … including the water spaces surrounding the board" (p.19), so a hero on the edge is adjacent to terrain. Seismic Slam's discard-or-be-defeated defeats a hero with no cards (p.17 If able). Wasp's lowest tier is II → 2 Life counters (p.13).
 - **Rules:** p.13 When a hero is defeated; p.17 If able; p.19 Terrain.
 - **Risk:** none.
+- **Encoded as p11 (changed, 2026-10-24):** as written Seismic Slam had one legal target (Wasp) and the first option won. **Dodger now stands at (4,−6)**, still adjacent to Mrak and now also next to the terrain at (5,−6), so the Slam has an obvious target by the rocks (one counter) and the winning one by the water. Dodger is seated before Wasp.
 
 ### C12 — Fast Travel Within the Zone
 - **Theme:** Fast Travel (same zone; blocked zones); "use your gold to Fast Travel". **Difficulty:** 1. **Heroes:** Xargatha; Brogan, Swift (Dodger idle).
@@ -343,6 +351,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** An empty spawn point is one in a space with no obstacle (p.17), and Dodger's card counts only those in the current BZ (Dodger FAQ). Minions are worth 2 coins, a level-2 hero 2 coins plus 1 assist coin (p.13). Tigerclaw's 9 resolves before Dodger's 3, so the spawn point is empty when the Ritual checks.
 - **Rules:** p.7 initiative; p.13 coins; p.17 Empty.
 - **Risk:** none.
+- **Encoded as p13 (2026-10-24):** as written (Arien: level 2, `arien-red-2a` in the discard, item `arien-red-2b`). After the attack, staying put or stepping to (3,−6) or (1,−5) all win; only (1,−4) loses.
 
 ### C14 — Long Thrust
 - **Theme:** range set by card text (enemy units adjacent to you). **Difficulty:** 1. **Heroes:** Xargatha; Tigerclaw, Arien (Wasp idle).
@@ -378,6 +387,7 @@ FAQ rulings (each hero JSON's `faq`, and `faqs/common.json` of the goa2-faq sour
 - **Explanation:** Quickdraw's bonus checks what the target *played* this turn, whatever action they took and even if the card is resolved (Sabina FAQ). Defence totals add minion modifiers (p.14), and equal totals defend (p.14).
 - **Rules:** p.14 Defense total, Minion defense modifiers; FAQ Sabina.
 - **Risk:** none.
+- **Encoded as p15 (changed, 2026-10-24):** a position can't record that a hero *resolved* an attack card this turn (`PositionBuilder` marks "played an attack card" only for an unresolved played card). Arien has instead **played `arien-red-1` Dangerous Current (8), not yet resolved**, tied with Sabina at 8 with the **coin showing Red** (Sabina acts first, p.7), resolved gold, green-1, blue-1, hand `arien-silver`. The Sabina FAQ covers both cases. Wasp is seated before Arien.
 
 ### C16 — Get Over Here!
 - **Theme:** moving an enemy hero; "no obstacles between" for a straight-line effect. **Difficulty:** 1. **Heroes:** Bain, Xargatha; Dodger, Wasp.
