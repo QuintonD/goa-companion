@@ -89,7 +89,9 @@ import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -317,17 +319,20 @@ private fun FocusLayout(
     actions: FocusActions,
 ) {
     val large = LocalDensity.current.fontScale > LARGE_FONT_SCALE
+    // Spell cards are landscape (CardShape.kt): each card keeps its own aspect inside the stage.
+    val aspects = remember(request) { request.cards.map { cardAspect(it.card) } }
+    val wide = aspects.any { it > 1f }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight
         val details: @Composable (Modifier) -> Unit = { m ->
             FocusDetails(request, state.index, motion.reveal.value, actions.confirm, landscape, m)
         }
         if (landscape) {
-            val cardHeight = maxHeight - Spacing.lg * 2
-            val cardWidth = minOf(cardHeight * CARD_ASPECT, maxWidth * LANDSCAPE_CARD_SHARE)
-            val stage = cardWidth + PEEK * 2
+            val share = if (wide) LANDSCAPE_WIDE_CARD_SHARE else LANDSCAPE_CARD_SHARE
+            val frame = stageFrame(aspects, maxWidth * share, maxHeight - Spacing.lg * 2)
+            val stage = frame.width + PEEK * 2
             Row(Modifier.fillMaxSize()) {
-                CardStage(state, request, pager, motion, actions, cardWidth, Modifier.width(stage).fillMaxHeight())
+                CardStage(state, request, pager, motion, actions, frame, Modifier.width(stage).fillMaxHeight())
                 Column(Modifier.weight(1f).fillMaxHeight().padding(end = Spacing.md)) {
                     // The height is what the words lack here: a 48 dp header, the panel to the bottom edge.
                     TopBar(request, state.index, actions.close, motion.reveal.value, height = TOP_BAR_LANDSCAPE)
@@ -336,7 +341,7 @@ private fun FocusLayout(
             }
         } else {
             val share = if (large) PORTRAIT_CARD_SHARE_LARGE else PORTRAIT_CARD_SHARE
-            val cardWidth = minOf(maxWidth - PEEK * 2, (maxHeight - TOP_BAR) * share * CARD_ASPECT)
+            val frame = stageFrame(aspects, maxWidth - PEEK * 2, (maxHeight - TOP_BAR) * share)
             Column(Modifier.fillMaxSize()) {
                 TopBar(request, state.index, actions.close, motion.reveal.value)
                 CardStage(
@@ -345,13 +350,22 @@ private fun FocusLayout(
                     pager,
                     motion,
                     actions,
-                    cardWidth,
-                    Modifier.fillMaxWidth().height(cardWidth / CARD_ASPECT + Spacing.lg),
+                    frame,
+                    Modifier.fillMaxWidth().height(frame.height + Spacing.lg),
                 )
                 details(Modifier.weight(1f).fillMaxWidth())
             }
         }
     }
+}
+
+/**
+ * The stage's page: as wide as the widest card and as tall as the tallest, each card the largest it
+ * can be inside [maxWidth] × [maxHeight] at its own aspect (a portrait deck card, a landscape spell).
+ */
+private fun stageFrame(aspects: List<Float>, maxWidth: Dp, maxHeight: Dp): DpSize {
+    val sizes = aspects.ifEmpty { listOf(CARD_ASPECT) }.map { fitCard(it, maxWidth, maxHeight) }
+    return DpSize(sizes.maxOf { it.width }, sizes.maxOf { it.height })
 }
 
 /** × to close, what is asked (or the viewer's title) and "Card 2 of 4", on the scrim. */
@@ -422,7 +436,7 @@ private fun CardStage(
     pager: PagerState,
     motion: FocusMotion,
     actions: FocusActions,
-    cardWidth: Dp,
+    frame: DpSize,
     modifier: Modifier,
 ) {
     val density = LocalDensity.current
@@ -448,7 +462,7 @@ private fun CardStage(
         ),
         contentAlignment = Alignment.Center,
     ) {
-        val side = ((maxWidth - cardWidth) / 2).coerceAtLeast(0.dp)
+        val side = ((maxWidth - frame.width) / 2).coerceAtLeast(0.dp)
         HorizontalPager(
             state = pager,
             key = { request.cards[it].key },
@@ -458,7 +472,11 @@ private fun CardStage(
             userScrollEnabled = !state.closing && !motion.confirming,
             modifier = Modifier.fillMaxWidth(),
         ) { page ->
-            FocusPage(state, request, pager, page, motion, actions, cardWidth)
+            Box(Modifier.size(frame), contentAlignment = Alignment.Center) {
+                val item = request.cards[page]
+                val size = fitCard(cardAspect(item.card), frame.width, frame.height)
+                FocusPage(state, request, pager, page, motion, actions, size)
+            }
         }
     }
 }
@@ -471,7 +489,7 @@ private fun FocusPage(
     page: Int,
     motion: FocusMotion,
     actions: FocusActions,
-    cardWidth: Dp,
+    size: DpSize,
 ) {
     val item = request.cards[page]
     val current = page == state.index
@@ -535,8 +553,8 @@ private fun FocusPage(
     }
     Box(
         Modifier
-            .width(cardWidth)
-            .aspectRatio(CARD_ASPECT)
+            .width(size.width)
+            .aspectRatio(cardAspect(item.card))
             .then(semantics)
             .onGloballyPositioned { if (page == state.index) motion.target = it.boundsInWindow() }
             .clickable(interaction, indication = null) {
@@ -554,7 +572,7 @@ private fun FocusPage(
                     val t = motion.reveal.value
                     val offset = abs((pager.currentPage - page) + pager.currentPageOffsetFraction).coerceIn(0f, 1f)
                     transformOrigin = TransformOrigin.Center
-                    shape = RoundedCornerShape(cardWidth * CORNER)
+                    shape = RoundedCornerShape(min(size.width, size.height) * CORNER)
                     clip = true
                     if (page == state.index) {
                         val grow = motion.exitKind == null || motion.exitKind == FocusExit.SHRINK
@@ -587,7 +605,8 @@ private fun FocusPage(
                     }
                 },
         ) {
-            TableCard(item.card, width = cardWidth)
+            // TableCard's width is a portrait card's; a landscape spell keeps the height (CardShape.kt).
+            TableCard(item.card, width = if (item.card.isSpell) size.height * CARD_ASPECT else size.width)
             if (!item.enabled) NotAnOption(Modifier.align(Alignment.Center))
             item.verdict?.let { VerdictBadge(it, Modifier.align(Alignment.TopEnd).padding(Spacing.sm)) }
             if (current && motion.seal.value > 0f) ConfirmSeal(motion.seal.value, Modifier.align(Alignment.Center))
@@ -671,6 +690,9 @@ private const val SCRIM_ALPHA = 0.93f
 private const val PORTRAIT_CARD_SHARE = 0.52f
 private const val PORTRAIT_CARD_SHARE_LARGE = 0.38f
 private const val LANDSCAPE_CARD_SHARE = 0.4f
+
+/** A landscape spell card takes more of a landscape screen's width (it is short: room is left above). */
+private const val LANDSCAPE_WIDE_CARD_SHARE = 0.55f
 private const val ENTER_SCALE = 0.86f
 private const val NEIGHBOUR_SCALE = 0.93f
 private const val NEIGHBOUR_ALPHA = 0.55f

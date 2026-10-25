@@ -60,6 +60,13 @@ class TokenKind(
     val passable: Boolean = false,
 )
 
+/**
+ * A place a hero's extra cards can be in ([dev.quinton.goa.core.game.engine.Zone.EXTRA], named by
+ * `CardInst.tag`), and whether every seat may see which cards are there ([open]) or only the hero's
+ * own seat, everyone else seeing the count (p.4 "Hidden Information"). E.g. Gydion's spellbook.
+ */
+class ExtraPlace(val tag: String, val open: Boolean)
+
 /** Everything the hero modules register. Built once per engine; read-only afterwards. */
 class Registry {
     private val cards = HashMap<String, CardScript>()
@@ -67,6 +74,7 @@ class Registry {
     private val tokens = HashMap<String, TokenKind>()
     private val heroRules = HashMap<String, Behavior>()
     private val modules = LinkedHashMap<String, HeroModule>()
+    private val extraPlaces = HashMap<String, List<ExtraPlace>>()
 
     fun card(cardId: String, script: CardScript) {
         check(cardId !in cards) { "Card $cardId registered twice" }
@@ -88,6 +96,16 @@ class Registry {
     fun heroRule(heroId: String, behavior: Behavior) {
         heroRules[heroId] = behavior
     }
+
+    /**
+     * The places [heroId]'s extra cards can be in, in the order the views list them. A tag the hero
+     * uses without declaring it here is shown as a hidden place (count only).
+     */
+    fun extraPlaces(heroId: String, vararg places: ExtraPlace) {
+        extraPlaces[heroId] = places.toList()
+    }
+
+    fun extraPlaces(heroId: String): List<ExtraPlace> = extraPlaces[heroId].orEmpty()
 
     fun module(module: HeroModule) {
         modules[module.heroId] = module

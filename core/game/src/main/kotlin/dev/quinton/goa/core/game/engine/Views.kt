@@ -2,6 +2,7 @@ package dev.quinton.goa.core.game.engine
 
 import dev.quinton.goa.core.game.CardView
 import dev.quinton.goa.core.game.Controller
+import dev.quinton.goa.core.game.ExtraPlaceView
 import dev.quinton.goa.core.game.GamePhase
 import dev.quinton.goa.core.game.GameSetup
 import dev.quinton.goa.core.game.GameView
@@ -118,6 +119,27 @@ object Views {
             activeEffects = active.toList(),
             counters = LinkedHashMap(h.counters),
             initiative = if (state.revealed) g.initiativeOf(h.id) else null,
+            extras = extras(g, h, own),
         )
+    }
+
+    /**
+     * The hero's extra cards by place ([dev.quinton.goa.core.game.effects.ExtraPlace]): every place the
+     * hero declares (also when empty), then any other tag in use. Ids in the hero JSON's `extras` order;
+     * a place that is not open names its cards to the hero's own seat only (Gydion's spellbook:
+     * "Only Gydion can look at the cards in the spellbook"), everyone else sees the count.
+     */
+    private fun extras(g: Game, h: HeroState, own: Boolean): List<ExtraPlaceView> {
+        val cards = h.cards.filter { it.zone == Zone.EXTRA }
+        if (cards.isEmpty()) return emptyList()
+        val declared = g.data.registry.extraPlaces(h.id)
+        val order = g.data.catalog.hero(h.id)?.extras.orEmpty().withIndex().associate { (i, c) -> c.id to i }
+        val declaredTags = declared.map { it.tag }
+        val tags = declaredTags + (cards.map { it.tag.orEmpty() }.distinct() - declaredTags.toSet())
+        return tags.map { tag ->
+            val open = declared.firstOrNull { it.tag == tag }?.open == true
+            val ids = cards.filter { it.tag.orEmpty() == tag }.map { it.id }.sortedBy { order[it] ?: Int.MAX_VALUE }
+            ExtraPlaceView(place = tag, count = ids.size, cardIds = ids.takeIf { open || own }, open = open)
+        }
     }
 }

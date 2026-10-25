@@ -18,7 +18,12 @@ data class BoardHero(
     val cards: List<Card>,
     /** The product the hero comes in: the pickers list owned products' heroes (Settings). */
     val product: String = "",
+    /** Cards outside the deck the hero's cards use (Gydion's 22 spell cards), in the catalog's order. */
+    val extras: List<Card> = emptyList(),
 ) {
+    /** The deck, then the extras: every card the board can measure with (a spell has its own values). */
+    val measurable: List<Card> get() = cards + extras
+
     companion object {
         fun of(hero: Hero) = BoardHero(
             id = hero.id,
@@ -28,6 +33,7 @@ data class BoardHero(
             verified = hero.verified,
             cards = deckOrder(hero.cards),
             product = hero.product,
+            extras = hero.extras,
         )
 
         fun unknown(id: String) = BoardHero(id, "Unknown hero", "", null, verified = false, cards = emptyList())

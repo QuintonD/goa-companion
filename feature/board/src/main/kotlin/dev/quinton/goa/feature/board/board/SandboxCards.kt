@@ -28,7 +28,7 @@ import dev.quinton.goa.feature.board.ui.cards.rememberCardFocusState
  */
 @Composable
 internal fun ReadCardsButton(hero: BoardHero, chosenId: String?, onMeasure: (String) -> Unit) {
-    val cards: List<Card> = hero.cards
+    val cards: List<Card> = hero.measurable
     if (cards.isEmpty()) return
     val focus = rememberCardFocusState()
     TextButton(
