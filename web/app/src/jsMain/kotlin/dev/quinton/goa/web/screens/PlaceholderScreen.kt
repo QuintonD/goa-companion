@@ -19,8 +19,6 @@ enum class Placeholder(val icon: String, val what: String) {
     BOARDS("board", "The real map with heroes, minions and tokens"),
     BOARD("board", "The board"),
     PLAY("play", "The real game against computer opponents, with an optional Coach"),
-    PUZZLES("puzzle", "Difficult solver-proven positions with nudges"),
-    PUZZLE("puzzle", "A puzzle"),
     RULES("rules", "The level & defeat ladder and the quick-reference topics"),
     TIMER("nav_timer", "Phase countdowns built for the table"),
     DRAFT("nav_draft", "Pick/ban drafting that feeds a match record"),

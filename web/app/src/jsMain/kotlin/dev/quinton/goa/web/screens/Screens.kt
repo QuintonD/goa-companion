@@ -1,6 +1,7 @@
 package dev.quinton.goa.web.screens
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.nav.Route
 import dev.quinton.goa.web.ui.EmptyState
@@ -42,9 +43,9 @@ fun ScreenFor(route: Route) {
 
         is Route.NewGame -> PlaceholderScreen("New game", Placeholder.PLAY)
 
-        Route.Puzzles -> PlaceholderScreen("Puzzles", Placeholder.PUZZLES)
+        Route.Puzzles -> dev.quinton.goa.web.play.puzzles.PuzzleListScreen()
 
-        is Route.Puzzle -> PlaceholderScreen("Puzzle", Placeholder.PUZZLE)
+        is Route.Puzzle -> key(route.puzzleId) { dev.quinton.goa.web.play.puzzles.PuzzleScreen(route.puzzleId) }
 
         // Shared
         Route.Rules -> PlaceholderScreen("Rules", Placeholder.RULES)
