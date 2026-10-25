@@ -56,7 +56,9 @@ class WhoAreYouViewModel @Inject constructor(
         }
     }
 
-    fun onNameChange(name: String) = form.update { it.copy(newName = name.take(WhoAreYouText.MAX_NAME), nameError = null) }
+    fun onNameChange(name: String) = form.update {
+        it.copy(newName = name.take(WhoAreYouText.MAX_NAME), nameError = null)
+    }
 
     /** Adds this phone's owner as a new player (unless the name is taken) and picks them. */
     fun createMe() {

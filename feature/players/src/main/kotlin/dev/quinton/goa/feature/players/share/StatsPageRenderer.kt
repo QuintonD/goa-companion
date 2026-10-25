@@ -212,7 +212,9 @@ object StatsPageRenderer {
         section("group", "Group")
         meta.night?.let { night ->
             val nightDate = DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault())
-            raw("<h3>Last game night · ").text(night.date.toJavaLocalDate().format(nightDate)).raw("</h3>\n<div class=\"card\">")
+            raw(
+                "<h3>Last game night · ",
+            ).text(night.date.toJavaLocalDate().format(nightDate)).raw("</h3>\n<div class=\"card\">")
             raw("<p class=\"line\"><span>").text(plural(night.matches, "match", "matches")).raw("</span>")
             raw("<span class=\"num\"><span class=\"red\">◆ Red ").text(night.redWins.toString()).raw("</span>")
             raw(" · <span class=\"blue\">● Blue ").text(night.blueWins.toString()).raw("</span></span></p>\n")

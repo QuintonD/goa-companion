@@ -137,7 +137,14 @@ class MatchLogViewModel @Inject constructor(
             catalog: Catalog,
             changes: Map<String, MatchRatingChange>,
             today: LocalDate = LocalDate.now(),
-        ): List<MatchGroup> = MatchRows.group(matches, players, catalog, changes, PhoneDateLabels, today.toKotlinLocalDate())
+        ): List<MatchGroup> = MatchRows.group(
+            matches,
+            players,
+            catalog,
+            changes,
+            PhoneDateLabels,
+            today.toKotlinLocalDate(),
+        )
 
         fun Match.toRow(players: Map<String, Player>, catalog: Catalog, change: MatchRatingChange?): MatchRowUi =
             with(MatchRows) { toRow(players, catalog, change, PhoneDateLabels) }

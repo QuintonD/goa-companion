@@ -56,7 +56,11 @@ class LiveRelayInteropTest {
         val clock = EditClock { System.currentTimeMillis() }
         val db = GoaDatabase.inMemory(ApplicationProvider.getApplicationContext(), AndroidSQLiteDriver())
         val groups = DataStoreGroupRepository(
-            GroupSyncStore(PreferenceDataStoreFactory.create(produceFile = { File(tmp.newFolder(), "g.preferences_pb") })),
+            GroupSyncStore(
+                PreferenceDataStoreFactory.create(produceFile = {
+                    File(tmp.newFolder(), "g.preferences_pb")
+                }),
+            ),
             SyncServerDefaults(value("url"), allowLocalHttp = true),
         )
         val players = RoomPlayerRepository(db, clock)
@@ -66,7 +70,13 @@ class LiveRelayInteropTest {
         val server = OkHttpSyncServerRepository(groups, sync, db, elo, clock, SyncServerHttpClient.create())
 
         suspend fun join() = groups.join(
-            GroupCredentials(value("groupId"), value("keyHex").chunked(2).map { it.toInt(16).toByte() }.toByteArray(), "Live"),
+            GroupCredentials(
+                value("groupId"),
+                value("keyHex").chunked(2).map {
+                    it.toInt(16).toByte()
+                }.toByteArray(),
+                "Live",
+            ),
         )
 
         suspend fun syncNow() = withContext(Dispatchers.IO) { server.sync() }
@@ -97,9 +107,29 @@ class LiveRelayInteropTest {
             phone.players.upsert(Player("live-${name.lowercase()}", name, 0xFF3FC1B0, i, createdAt = now + i))
         }
         val ids = listOf("live-ann", "live-bob", "live-cid", "live-dee")
-        phone.matches.upsert(match("live-1", ids.take(2), ids.drop(2), listOf("arien", "brogan", "wasp", "sabina"), Team.RED, now))
-        phone.matches.upsert(match("live-2", listOf(ids[0], ids[2]), listOf(ids[1], ids[3]), listOf("misa", "dodger", "tigerclaw", "xargatha"), Team.BLUE, now + day))
-        phone.matches.upsert(match("live-3", listOf(ids[0], ids[3]), listOf(ids[1], ids[2]), listOf("whisper", "ursafar", "arien", "brogan"), Team.RED, now + 2 * day))
+        phone.matches.upsert(
+            match("live-1", ids.take(2), ids.drop(2), listOf("arien", "brogan", "wasp", "sabina"), Team.RED, now),
+        )
+        phone.matches.upsert(
+            match(
+                "live-2",
+                listOf(ids[0], ids[2]),
+                listOf(ids[1], ids[3]),
+                listOf("misa", "dodger", "tigerclaw", "xargatha"),
+                Team.BLUE,
+                now + day,
+            ),
+        )
+        phone.matches.upsert(
+            match(
+                "live-3",
+                listOf(ids[0], ids[3]),
+                listOf(ids[1], ids[2]),
+                listOf("whisper", "ursafar", "arien", "brogan"),
+                Team.RED,
+                now + 2 * day,
+            ),
+        )
         val result = phone.syncNow()
         assertThat(result).isInstanceOf(SyncServerResult.Synced::class.java)
         assertThat((result as SyncServerResult.Synced).uploaded).isTrue()

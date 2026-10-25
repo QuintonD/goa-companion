@@ -63,7 +63,11 @@ class PlayerDetailViewModel @AssistedInject constructor(
             outcome.value = when (val result = merges.merge(playerId, intoId)) {
                 PlayerMergeResult.Merged -> MergeOutcome.Merged(intoId, people[intoId]?.name.orEmpty())
 
-                is PlayerMergeResult.PlayedTogether -> PlayerDetail.playedTogether(result.matches, people, PhoneDateLabels)
+                is PlayerMergeResult.PlayedTogether -> PlayerDetail.playedTogether(
+                    result.matches,
+                    people,
+                    PhoneDateLabels,
+                )
 
                 PlayerMergeResult.NotPossible -> null
             }
