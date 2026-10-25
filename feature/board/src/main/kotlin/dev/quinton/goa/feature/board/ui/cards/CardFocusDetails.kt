@@ -165,8 +165,9 @@ private fun DetailsContent(item: FocusCard, context: String?, landscape: Boolean
     item.verdict?.let { VerdictLine(it) }
     if (!item.enabled) ReasonLine(item.reason ?: "This card can't be chosen for this question.")
     item.notes.forEach { note ->
-        if (note.item != null) {
-            ItemLine(note.item, note.text)
+        val stat = note.item
+        if (stat != null) {
+            ItemLine(stat, note.text)
         } else {
             Text(note.text, style = MaterialTheme.typography.bodyMedium)
         }
@@ -211,7 +212,7 @@ private fun VerdictLine(verdict: CardVerdict) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics(mergeDescendants = true) {}) {
         if (verdict.holds != null) {
             Icon(
-                if (verdict.holds) Icons.Outlined.CheckCircle else Icons.Outlined.ErrorOutline,
+                if (verdict.holds == true) Icons.Outlined.CheckCircle else Icons.Outlined.ErrorOutline,
                 null,
                 tint = color,
                 modifier = Modifier.size(scaledIconSize(20.dp, 1.3f)),

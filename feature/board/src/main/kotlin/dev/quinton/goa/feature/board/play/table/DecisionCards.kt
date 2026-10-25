@@ -73,63 +73,6 @@ import dev.quinton.goa.feature.board.ui.cards.isSpell
  * its Confirm button) answers; back or an upward swipe returns with nothing chosen.
  */
 
-/** A card a question shows: the answer it is ([choice] null = shown but not an option). */
-internal data class OfferedCard(val card: Card, val choice: Choice.Card?)
-
-/**
- * The cards a card question shows, in order: its options; when they are all in the deciding hero's
- * hand, the whole hand, the cards it doesn't offer shown but marked (so "discard an attack card"
- * shows the rest of the hand too).
- */
-internal fun offeredCards(table: TableUi): List<OfferedCard> {
-    val decision = table.decision ?: return emptyList()
-    val options = table.cardOptions
-    val byId = options.associateBy { it.cardId }
-    val hand = table.decider?.hand
-    val wholeHand =
-        hand != null && decision.kind != DecisionKind.KEEP_UPGRADE && decision.kind != DecisionKind.DEFEND &&
-            options.isNotEmpty() && options.all { it.cardId in hand } && hand.size > options.size
-    val ids = if (wholeHand) hand.orEmpty() else options.map { it.cardId }
-    return ids.mapNotNull { id -> table.card(id)?.let { OfferedCard(it, byId[id]) } }
-}
-
-/** What confirming [card] does, as the button and the hint say it. */
-internal fun cardAction(decision: Decision, card: Card): String = when (decision.kind) {
-    DecisionKind.PLAY_CARD -> "Play ${card.name} facedown"
-    DecisionKind.DEFEND -> "Defend with ${card.name}"
-    DecisionKind.UPGRADE_CARD -> "Upgrade ${card.name}"
-    DecisionKind.KEEP_UPGRADE -> "Keep ${card.name}"
-    else -> "${cardVerb(decision.prompt)} ${card.name}"
-}
-
-/** The question's own verb when it is one ("You may discard an attack card" → Discard), else Choose. */
-internal fun cardVerb(prompt: String): String {
-    // Gydion's cards: "Choose and cast one spell in the spellbook" (the spell is cast once chosen).
-    if (prompt.startsWith("Choose and cast")) return "Cast"
-    val first = prompt.removePrefix("You may ").substringBefore(' ').lowercase()
-    return VERBS[first] ?: "Choose"
-}
-
-private val VERBS = mapOf(
-    "discard" to "Discard",
-    "retrieve" to "Retrieve",
-    "swap" to "Swap",
-    "take" to "Take",
-    // Find Familiar: "You may remove up to three other spell cards from the spellbook faceup."
-    "remove" to "Remove",
-)
-
-/** Why a card the question doesn't offer can't be chosen. */
-private fun notOffered(kind: DecisionKind): String = when (kind) {
-    DecisionKind.PLAY_CARD -> "This card can't be played now."
-    DecisionKind.UPGRADE_CARD -> "This card can't be upgraded now."
-    else -> "This question doesn't offer this card."
-}
-
-/** The viewer's title for a question: "Wasp · Card". */
-internal fun focusTitle(table: TableUi, decision: Decision): String =
-    listOfNotNull(table.decider?.let { table.hero(it.heroId).name }, kindTitle(decision.kind)).joinToString(" · ")
-
 /** Opens [offered] in the viewer at [index], confirming answers [onAnswer]. */
 private fun openOffered(
     focus: CardFocusState,
@@ -151,49 +94,6 @@ private fun openOffered(
         ),
         title = focusTitle(table, decision),
         owner = decision.id,
-    )
-}
-
-/** A card of a play / discard / upgrade / keep question in the viewer, with what choosing it means. */
-private fun focusCard(table: TableUi, offered: OfferedCard): FocusCard {
-    val decision = table.decision
-    val card = offered.card
-    val notes = mutableListOf<CardNote>()
-    var related = emptyList<Card>()
-    var relatedLabel: String? = null
-    when (decision?.kind) {
-        DecisionKind.KEEP_UPGRADE -> {
-            // p.15: the card kept goes to hand, the other is tucked as an item.
-            notes += CardNote("${card.name} goes to your hand.")
-            table.cardOptions.firstOrNull { it.cardId != card.id }?.let { table.card(it.cardId) }?.let { other ->
-                other.item?.let {
-                    notes += CardNote("${other.name} becomes an item: +1 ${PlayText.stat(it)} (p.16)", it)
-                }
-            }
-        }
-
-        DecisionKind.UPGRADE_CARD -> {
-            val next = upgradesOf(table, card)
-            if (next.size == 2 && offered.choice != null) {
-                related = next
-                relatedLabel = "${card.name} is replaced by one of these: you keep one, the other becomes an item " +
-                    "(p.15, p.16)."
-            }
-        }
-
-        DecisionKind.PLAY_CARD -> if (table.decider?.at == null && offered.choice != null) {
-            notes += CardNote("You are off the board: when this card resolves you may respawn, then act with it (p.7).")
-        }
-
-        else -> Unit
-    }
-    return FocusCard(
-        card = card,
-        enabled = offered.choice != null,
-        reason = if (offered.choice == null) decision?.kind?.let(::notOffered) else null,
-        notes = notes,
-        related = related,
-        relatedLabel = relatedLabel,
     )
 }
 
@@ -502,25 +402,6 @@ private fun AttackHeader(
             }
         }
     }
-}
-
-/** A defense card's line: its Defense (or Block) and the verdict. */
-internal data class DefenseLine(val detail: String, val verdict: CardVerdict, val total: Int? = null)
-
-internal fun defenseLine(total: Int?, blocks: Boolean?, attack: Int?): DefenseLine {
-    val verdict = defenseVerdict(total, blocks, attack)
-    val label = when (verdict) {
-        true -> if (blocks == true) "Blocks" else "Holds"
-        false -> "Falls"
-        null -> "Decided by its text"
-    }
-    val detail = when (blocks) {
-        true -> "Block: stops this attack whatever its value"
-        false -> "Block: not against this attack"
-        null -> total?.let { "Defense $it" } ?: "Defense decided while it resolves"
-    }
-    val against = if (blocks == null && total != null && attack != null) "$detail against Attack $attack" else detail
-    return DefenseLine(detail, CardVerdict(verdict, label, against), total.takeIf { blocks == null })
 }
 
 /** One hand card to defend with: the official card, the verdict under it, the total when it differs. */

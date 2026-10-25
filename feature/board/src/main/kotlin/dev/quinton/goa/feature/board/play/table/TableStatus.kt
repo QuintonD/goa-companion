@@ -213,26 +213,6 @@ fun HeroStrip(table: TableUi, onHero: (String) -> Unit, modifier: Modifier = Mod
     }
 }
 
-/** What TalkBack hears for a hero's chip (full or compact). */
-private fun spokenChip(table: TableUi, hero: HeroView, place: Int?): String {
-    val info = table.hero(hero.heroId)
-    val acting = table.view.acting == hero.heroId
-    val played = table.card(hero.played?.cardId)?.takeIf { hero.played?.facedown != true }
-    return buildList {
-        add(info.name)
-        add(BoardText.team(hero.team))
-        add(table.controllerLabel(hero))
-        if (acting) add("acting now")
-        place?.let { add("${PlayText.ordinal(it)} in initiative order") }
-        (hero.initiative ?: played?.initiative)?.let { add("played initiative $it") }
-        add("level ${hero.level}")
-        add(BoardText.count(hero.coins, "coin"))
-        add("${BoardText.count(hero.handCount, "card")} in hand")
-        if (cardDown(table, hero)) add("card played facedown")
-        if (hero.at == null) add("off the board")
-    }.joinToString(", ")
-}
-
 @Composable
 private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () -> Unit) {
     val info = table.hero(hero.heroId)
@@ -384,10 +364,6 @@ private fun CompactHeroChip(table: TableUi, hero: HeroView, place: Int?, onClick
         }
     }
 }
-
-/** Before the reveal: the hero has played its card facedown (p.7); which card stays hidden. */
-private fun cardDown(table: TableUi, hero: HeroView): Boolean =
-    table.view.phase == GamePhase.PLAY_CARDS && hero.played != null
 
 private val COMPACT_CHIP = 48.dp
 private val COMPACT_PORTRAIT = 38.dp
@@ -574,7 +550,7 @@ internal fun CardRow(
     title: String,
     slots: Boolean = false,
 ) {
-    val captions = cards.map { caption(it, slots) }
+    val captions = cards.map { cardCaption(it, slots) }
     val open = cards.indices.filter { !cards[it].facedown && table.card(cards[it].cardId) != null }
     val viewable = open.map { i ->
         val card = table.card(cards[i].cardId)!!
@@ -594,9 +570,6 @@ internal fun CardRow(
 internal fun CardRow(cards: List<CardView>, table: TableUi, onCard: (Card) -> Unit, slots: Boolean = false) {
     ThumbRow(cards, table, slots, origin = { Modifier }, onOpen = { _, card -> onCard(card) })
 }
-
-private fun caption(view: CardView, slots: Boolean): String =
-    listOfNotNull(view.slot?.takeIf { slots }?.let { "Turn $it" }, "Active".takeIf { view.active }).joinToString(" · ")
 
 @Composable
 private fun ThumbRow(
@@ -636,7 +609,7 @@ private fun ThumbRow(
                 ) {
                     TableCard(card, width = 64.dp)
                 }
-                val caption = caption(view, slots)
+                val caption = cardCaption(view, slots)
                 if (caption.isNotEmpty()) {
                     Text(
                         caption,
@@ -648,14 +621,5 @@ private fun ThumbRow(
         }
     }
 }
-
-/**
- * The hero's counters for the number row, without those the extra cards' section already counts
- * (Gydion's "spellbook" and "spellsRemoved" are its groups' counts, ADR-040); "wishCasts" stays.
- */
-internal fun shownCounters(hero: HeroView): Map<String, Int> =
-    if (hero.extras.isEmpty()) hero.counters else hero.counters.filterKeys { it !in EXTRAS_COUNTERS }
-
-private val EXTRAS_COUNTERS = setOf("spellbook", "spellsRemoved")
 
 private const val OFF_BOARD_ALPHA = 0.45f

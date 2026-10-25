@@ -9,7 +9,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 
 /** [NewGameForm] in the SavedStateHandle, as JSON (the coin is never kept: it is flipped again). */
-internal object NewGameForms {
+object NewGameForms {
     private val json = Json { ignoreUnknownKeys = true }
 
     @Serializable

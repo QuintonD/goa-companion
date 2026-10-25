@@ -297,15 +297,6 @@ private fun LineupBar(state: NewGameUiState.Ready, onAction: (NewGameAction) -> 
     }
 }
 
-/** 2v2 is the rulebook's standard; 1v1 is allowed but not its way (p.20). */
-internal fun lineupNote(red: Int, blue: Int): String = when {
-    red == 0 && blue == 0 -> "Pick heroes for both teams. Two each is the rulebook's standard."
-    red != blue -> "Both teams need the same number of heroes."
-    red == 1 -> "Allowed, but not the rulebook's way: with two players, each controls two heroes (p.20)."
-    red == 2 -> "The rulebook's standard game."
-    else -> "${red * 2} heroes on the board."
-}
-
 // ---- Step 2: options ---------------------------------------------------------------------
 
 @OptIn(ExperimentalLayoutApi::class)

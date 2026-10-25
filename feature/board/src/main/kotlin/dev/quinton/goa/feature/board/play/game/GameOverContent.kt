@@ -281,7 +281,3 @@ private fun HeroResultRow(play: PlayUi, result: HeroResult, onHero: (String) -> 
         }
     }
 }
-
-/** "Round 3, turn 4: The other team pushed the lane." → "The other team pushed the lane." */
-internal fun withoutWhen(text: String): String =
-    text.replaceFirst(Regex("^Round \\d+, turn \\d+: "), "").replaceFirstChar { it.uppercase() }
