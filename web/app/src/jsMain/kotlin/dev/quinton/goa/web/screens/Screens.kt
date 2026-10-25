@@ -3,6 +3,9 @@ package dev.quinton.goa.web.screens
 import androidx.compose.runtime.Composable
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.nav.Route
+import dev.quinton.goa.web.trivia.TriviaHomeScreen
+import dev.quinton.goa.web.trivia.TriviaLeaderboardScreen
+import dev.quinton.goa.web.trivia.TriviaQuizScreen
 import dev.quinton.goa.web.ui.EmptyState
 import dev.quinton.goa.web.ui.GoaButton
 import dev.quinton.goa.web.ui.Screen
@@ -21,7 +24,11 @@ fun ScreenFor(route: Route) {
 
         is Route.CardViewer -> PlaceholderScreen("Card", Placeholder.CARD_VIEWER)
 
-        is Route.Trivia -> PlaceholderScreen("Card trivia", Placeholder.TRIVIA)
+        is Route.Trivia -> TriviaHomeScreen(route.heroId)
+
+        is Route.TriviaQuiz -> TriviaQuizScreen(route)
+
+        Route.TriviaLeaderboard -> TriviaLeaderboardScreen()
 
         Route.Boards -> PlaceholderScreen(
             "Board",

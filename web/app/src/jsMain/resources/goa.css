@@ -649,3 +649,347 @@ code {
   .goa-topbar-actions .collapsible { display: none; }
   .goa-topbar-actions .more-only { display: inline-flex; }
 }
+
+/* ---------- W1 trivia (card trivia: home, quiz, leaderboard; ADR-028, ADR-032) ---------- */
+/* Card colours (core:designsystem GoaColors.card*), per theme. */
+:root, :root[data-theme="dark"] {
+  --card-gold: #D9B44A; --card-silver: #B8C2CC; --card-red: #E26459;
+  --card-green: #6CC27A; --card-blue: #5E9BE6; --card-purple: #B18CE0;
+}
+:root[data-theme="light"] {
+  --card-gold: #8A6A12; --card-silver: #56616C; --card-red: #B83A30;
+  --card-green: #2E7A3C; --card-blue: #2C63B0; --card-purple: #6B45A0;
+}
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] {
+    --card-gold: #8A6A12; --card-silver: #56616C; --card-red: #B83A30;
+    --card-green: #2E7A3C; --card-blue: #2C63B0; --card-purple: #6B45A0;
+  }
+}
+
+/* Avatars, medallions, tags */
+.goa-trivia-avatar {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 50%;
+  color: var(--player, var(--on-surface-variant));
+  border: 2px solid currentColor;
+  background: radial-gradient(color-mix(in srgb, currentColor 26%, transparent), color-mix(in srgb, currentColor 8%, transparent));
+}
+.goa-trivia-avatar .goa-icon { width: 22px; height: 22px; }
+.goa-trivia-avatar.small { width: 32px; height: 32px; border-width: 1.5px; }
+.goa-trivia-avatar.small .goa-icon { width: 18px; height: 18px; }
+.goa-trivia-avatar.guest { color: var(--on-surface-variant); border-width: 1.5px; background: color-mix(in srgb, var(--on-surface-variant) 8%, transparent); }
+.goa-trivia-initial { font: 700 1.05rem/1 var(--font-display); }
+.goa-trivia-you {
+  flex: none; padding: 2px var(--sp-sm); border-radius: 10px;
+  background: var(--secondary-container); color: var(--on-secondary-container);
+}
+.goa-trivia-unverified {
+  flex: none; padding: 1px var(--sp-sm); border-radius: 10px;
+  border: 1px solid var(--unverified); color: var(--unverified);
+}
+.goa-trivia-medallion {
+  flex: none; display: inline-block; overflow: hidden; border-radius: 50%;
+  border: 1px solid var(--engraved);
+  background: radial-gradient(circle at 50% 35%, var(--surface-high), var(--medallion));
+}
+.goa-trivia-medallion img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.goa-trivia-medallion.small { width: 24px; height: 24px; }
+.goa-trivia-medallion.medium { width: 32px; height: 32px; }
+.goa-trivia-medallion.large { width: 44px; height: 44px; }
+
+/* Mastery bar and legend: learned = teal, learning = bronze, new = the empty track. */
+.goa-trivia-bar {
+  display: flex; gap: 2px; height: 10px; border-radius: 5px; overflow: hidden;
+  background: color-mix(in srgb, var(--on-surface-variant) 18%, transparent);
+}
+.goa-trivia-bar.thin { height: 4px; border-radius: 2px; }
+.goa-trivia-bar > div { flex-basis: 0; min-width: 0; }
+.goa-trivia-bar > .learned { background: var(--secondary); }
+.goa-trivia-bar > .learning { background: var(--primary); }
+.goa-trivia-legend { display: flex; flex-wrap: wrap; gap: var(--sp-xs) var(--sp-lg); }
+.goa-trivia-legend-item { display: inline-flex; align-items: center; gap: 6px; color: var(--on-surface-variant); }
+.goa-trivia-legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.goa-trivia-legend-dot.learned { background: var(--secondary); }
+.goa-trivia-legend-dot.learning { background: var(--primary); }
+.goa-trivia-legend-dot.new { background: color-mix(in srgb, var(--on-surface-variant) 45%, transparent); }
+
+/* A card's colour, kind and hero */
+.goa-trivia-dot {
+  flex: none; width: 12px; height: 12px; border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--on-surface) 25%, transparent);
+  background: var(--on-surface-variant);
+}
+.goa-trivia-dot.gold { background: var(--card-gold); }
+.goa-trivia-dot.silver { background: var(--card-silver); }
+.goa-trivia-dot.red { background: var(--card-red); }
+.goa-trivia-dot.green { background: var(--card-green); }
+.goa-trivia-dot.blue { background: var(--card-blue); }
+.goa-trivia-dot.purple { background: var(--card-purple); }
+.goa-trivia-kind { display: flex; align-items: center; gap: var(--sp-sm); color: var(--on-surface-variant); }
+.goa-trivia-heroline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-xs) var(--sp-sm); }
+.goa-trivia-card-name { margin: var(--sp-sm) 0 var(--sp-xs); overflow-wrap: break-word; }
+
+/* ---- Home ---- */
+.goa-trivia-home { container: trivia-home / inline-size; }
+.goa-trivia-home > p { margin: 0; }
+.goa-trivia-playing, .goa-trivia-scope, .goa-trivia-switch-row, .goa-trivia-hero-row, .goa-trivia-pick, .goa-trivia-rank {
+  display: flex; align-items: center; width: 100%; gap: var(--sp-md);
+  border: 0; background: none; color: inherit; text-align: left; font: inherit; cursor: pointer;
+}
+.goa-trivia-playing {
+  min-height: 64px; padding: var(--sp-md) var(--sp-lg);
+  border: 1px solid var(--engraved); border-radius: var(--radius-card); background: var(--surface);
+}
+.goa-trivia-playing:active, .goa-trivia-scope:active, .goa-trivia-hero-row:active:not(:disabled),
+.goa-trivia-pick:active, .goa-trivia-rank:active { background: color-mix(in srgb, var(--on-surface) 8%, var(--surface)); }
+.goa-trivia-playing-text, .goa-trivia-scope-text, .goa-trivia-switch-text, .goa-trivia-pick-text {
+  flex: 1; min-width: 0; display: flex; flex-direction: column;
+}
+.goa-trivia-playing-name, .goa-trivia-pick-title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-xs) var(--sp-sm); overflow-wrap: anywhere; }
+.goa-trivia-caret { color: var(--on-surface-variant); }
+.goa-trivia-note { margin: var(--sp-sm) 0 0; }
+.goa-trivia-home > .goa-card { margin-top: var(--sp-md); }
+.goa-trivia-overall { display: flex; flex-direction: column; gap: var(--sp-sm); }
+.goa-trivia-overall > p { margin: 0; }
+.goa-trivia-overall .goa-trivia-bar { margin-top: var(--sp-sm); }
+.goa-trivia-setup { display: flex; flex-direction: column; gap: var(--sp-lg); }
+.goa-trivia-setup-group > h3 { margin: 0 0 var(--sp-xs); }
+.goa-trivia-setup-group > p { margin-top: var(--sp-xs); }
+.goa-trivia-scope {
+  min-height: 56px; padding: var(--sp-md) var(--sp-lg);
+  border: 1px solid var(--engraved); border-radius: var(--radius-card); background: var(--surface);
+}
+.goa-trivia-switch-row { min-height: 56px; padding: var(--sp-xs) 0; }
+.goa-trivia-switch-row:disabled { cursor: default; }
+.goa-trivia-switch-row:disabled .t-title-small { color: var(--on-surface-variant); }
+.goa-trivia-switch {
+  flex: none; position: relative; width: 52px; height: 32px; border-radius: 16px;
+  border: 2px solid var(--on-surface-variant); background: var(--surface-high);
+  transition: background-color var(--dur-short);
+}
+.goa-trivia-switch::after {
+  content: ""; position: absolute; top: 6px; left: 6px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--on-surface-variant); transition: transform var(--dur-short) var(--ease-emphasized);
+}
+.goa-trivia-switch-row[aria-checked="true"] .goa-trivia-switch { background: var(--secondary); border-color: var(--secondary); }
+.goa-trivia-switch-row[aria-checked="true"] .goa-trivia-switch::after { transform: translateX(20px) scale(1.5); background: var(--on-secondary); }
+.goa-trivia-switch-row:disabled .goa-trivia-switch { opacity: 0.38; }
+.goa-trivia-caption { margin: calc(-1 * var(--sp-xs)) 0 var(--sp-xs); }
+.goa-trivia-heroes { list-style: none; margin: 0 calc(-1 * var(--sp-screen)); padding: 0; }
+.goa-trivia-hero-row { min-height: 60px; padding: var(--sp-sm) var(--sp-screen); }
+.goa-trivia-hero-row:disabled { cursor: default; }
+.goa-trivia-hero-row > .goa-trivia-medallion { width: 44px; height: 44px; }
+.goa-trivia-hero-row > .goa-icon { color: var(--on-surface-variant); }
+.goa-trivia-hero-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.goa-trivia-hero-head { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-trivia-hero-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The pinned start bar: always in reach above the tab bar, however far the list is scrolled. */
+.goa-trivia-startbar {
+  position: sticky; z-index: 5;
+  bottom: calc(var(--tabbar-height) + var(--safe-bottom));
+  margin: var(--sp-lg) calc(-1 * (var(--sp-screen) + var(--safe-right))) calc(-1 * var(--sp-xl)) calc(-1 * (var(--sp-screen) + var(--safe-left)));
+  padding: var(--sp-md) calc(var(--sp-screen) + var(--safe-right)) var(--sp-md) calc(var(--sp-screen) + var(--safe-left));
+  background: var(--bg);
+  display: flex; flex-direction: column; gap: var(--sp-sm);
+}
+.goa-trivia-startbar::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--engraved) 20%, var(--engraved) 80%, transparent);
+}
+.goa-trivia-startbar-text > p { margin: 0; }
+.goa-trivia-startbar-text > p + p { margin-top: var(--sp-xs); }
+.goa-trivia-startbar-buttons { display: flex; gap: var(--sp-sm); }
+.goa-trivia-startbar-buttons > .goa-button { flex: 1 1 0; min-height: 52px; white-space: nowrap; }
+.goa-trivia-challenge-line.in-list { display: none; margin-top: var(--sp-sm); }
+/* Large text or a narrow screen: the buttons stack and the explanation moves up into the list. */
+@container trivia-home (max-width: 20rem) {
+  .goa-trivia-startbar-buttons { flex-direction: column-reverse; }
+  .goa-trivia-challenge-line.in-bar { display: none; }
+  .goa-trivia-challenge-line.in-list { display: block; }
+}
+/* Landscape / wide: text and buttons side by side, so the list keeps its room. */
+@container trivia-home (min-width: 560px) {
+  .goa-trivia-startbar { flex-direction: row; align-items: center; gap: var(--sp-lg); }
+  .goa-trivia-startbar-text { flex: 1; min-width: 0; }
+  .goa-trivia-startbar-buttons { flex: none; }
+  .goa-trivia-startbar-buttons > .goa-button { flex: none; min-width: 160px; }
+}
+
+/* Sheets: who is playing, heroes to quiz */
+.goa-trivia-picks { display: flex; flex-direction: column; margin: var(--sp-sm) calc(-1 * var(--sp-lg)) 0; }
+.goa-trivia-pick { min-height: 60px; padding: var(--sp-sm) var(--sp-lg); }
+.goa-trivia-pick + .goa-trivia-pick { box-shadow: inset 0 1px 0 var(--outline-variant); }
+.goa-trivia-radio {
+  flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--on-surface-variant);
+}
+.goa-trivia-pick[aria-checked="true"] .goa-trivia-radio { border-color: var(--secondary); box-shadow: inset 0 0 0 4px var(--surface), inset 0 0 0 10px var(--secondary); }
+.goa-trivia-check {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 4px; border: 2px solid var(--on-surface-variant);
+}
+.goa-trivia-pick[aria-checked="true"] .goa-trivia-check { background: var(--secondary); border-color: var(--secondary); color: var(--on-secondary); }
+.goa-trivia-check .goa-icon { width: 16px; height: 16px; }
+.goa-trivia-all-icon { flex: none; width: 32px; display: inline-flex; justify-content: center; color: var(--primary); }
+.goa-trivia-add { margin-top: var(--sp-lg); display: flex; flex-direction: column; gap: var(--sp-xs); }
+.goa-trivia-add-row { display: flex; gap: var(--sp-sm); align-items: center; }
+.goa-trivia-add-row > .goa-trivia-input { flex: 1; min-width: 0; }
+.goa-trivia-input {
+  min-height: var(--tap); padding: 10px var(--sp-md);
+  border: 1px solid var(--outline-variant); border-radius: 10px;
+  background: var(--surface); color: var(--on-surface);
+  font-size: max(1rem, 16px); /* 16 px or more: iOS Safari does not zoom into the field */
+}
+.goa-trivia-input:focus { border-color: var(--secondary); outline: none; }
+.goa-trivia-input.search { width: 100%; border-radius: 22px; margin-top: var(--sp-xs); }
+.goa-trivia-picker-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-sm); }
+.goa-trivia-picker-head > p { margin: 0; }
+
+/* ---- Quiz ---- */
+.goa-trivia-end {
+  min-width: var(--tap); min-height: var(--tap); padding: 0 var(--sp-md);
+  border: 0; border-radius: 22px; background: none; color: var(--on-banner); cursor: pointer;
+}
+.goa-trivia-end:active { background: rgba(169, 203, 224, 0.16); }
+.goa-trivia-quiz { display: flex; flex-direction: column; gap: var(--sp-lg); }
+.goa-trivia-quiz-question { display: flex; flex-direction: column; gap: var(--sp-lg); }
+.goa-trivia-quiz-answers { display: flex; flex-direction: column; gap: var(--sp-sm); container: trivia-quiz / inline-size; }
+.goa-trivia-quiz-header { display: flex; flex-direction: column; gap: var(--sp-xs); }
+.goa-trivia-quiz-header > p { margin: 0; }
+.goa-trivia-quiz-header > .goa-progress { margin-top: var(--sp-xs); }
+.goa-trivia-quiz-count { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-sm); flex-wrap: wrap; }
+.goa-trivia-ask { margin: var(--sp-sm) 0 0; text-align: center; color: var(--primary); overflow-wrap: anywhere; }
+.goa-trivia-duel-ask > h2 { margin: 0; }
+.goa-trivia-duel-ask > p { margin: var(--sp-xs) 0 0; }
+.goa-trivia-choices { display: grid; gap: var(--sp-sm); }
+.goa-trivia-choices.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.goa-trivia-choices.recall { grid-template-columns: repeat(auto-fill, minmax(max(64px, 3.5rem), 1fr)); }
+.goa-trivia-choice {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  min-height: 64px; padding: var(--sp-sm) 26px;
+  border: 1px solid color-mix(in srgb, var(--primary) 55%, transparent); border-radius: var(--radius-card);
+  background: var(--surface); color: var(--on-surface); cursor: pointer;
+  font: 500 2rem/2.5rem var(--font-body); font-variant-numeric: tabular-nums lining-nums; white-space: nowrap;
+}
+.goa-trivia-choices.recall .goa-trivia-choice { padding: var(--sp-sm) 4px; font-size: 1.5rem; }
+.goa-trivia-choices.four .goa-trivia-choice { min-height: 76px; }
+.goa-trivia-choice.tie { font: 600 1rem/1.5rem var(--font-body); min-height: 56px; width: 100%; white-space: normal; }
+.goa-trivia-choice:active:not(:disabled) { background: color-mix(in srgb, var(--primary) 14%, var(--surface)); }
+.goa-trivia-choice:disabled, .goa-trivia-duel-tile:disabled { cursor: default; }
+.goa-trivia-choice.right, .goa-trivia-duel-tile.right { background: var(--secondary-container); color: var(--on-secondary-container); border: 2px solid var(--secondary); }
+.goa-trivia-choice.wrong, .goa-trivia-duel-tile.wrong { background: var(--error-container); color: var(--on-error-container); border: 2px solid var(--error); }
+.goa-trivia-choice.other { color: var(--on-surface-variant); border-color: var(--engraved); }
+.goa-trivia-badge {
+  position: absolute; top: 4px; right: 4px; width: 18px; height: 18px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center; color: var(--surface);
+}
+.goa-trivia-badge .goa-icon { width: 13px; height: 13px; }
+.goa-trivia-badge.right { background: var(--secondary); }
+.goa-trivia-badge.wrong { background: var(--error); }
+.goa-trivia-duel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-sm); }
+@container trivia-quiz (max-width: 20rem) { .goa-trivia-duel { grid-template-columns: 1fr; } }
+.goa-trivia-duel-tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-xs);
+  min-height: 140px; padding: var(--sp-md); text-align: left;
+  border: 1px solid color-mix(in srgb, var(--primary) 55%, transparent); border-radius: var(--radius-card);
+  background: var(--surface); color: var(--on-surface); cursor: pointer; font: inherit;
+}
+.goa-trivia-duel-tile.other { border-color: var(--engraved); }
+.goa-trivia-duel-tile .goa-trivia-card-name { margin: var(--sp-xs) 0 0; overflow-wrap: anywhere; }
+.goa-trivia-duel-value { display: inline-flex; align-items: center; gap: var(--sp-xs); margin-top: var(--sp-sm); font-variant-numeric: tabular-nums; }
+.goa-trivia-mark { display: inline-flex; }
+.goa-trivia-mark.right { color: var(--secondary); }
+.goa-trivia-mark.wrong { color: var(--error); }
+.goa-trivia-duel-tile.right .goa-trivia-mark.right, .goa-trivia-duel-tile.wrong .goa-trivia-mark.wrong { color: inherit; }
+.goa-trivia-reveal { display: flex; flex-direction: column; gap: var(--sp-lg); }
+.goa-trivia-feedback { display: flex; align-items: center; gap: var(--sp-md); margin: var(--sp-sm) 0 0; }
+.goa-trivia-feedback:empty { margin: 0; }
+.goa-trivia-feedback-mark {
+  flex: none; width: 28px; height: 28px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.goa-trivia-feedback-mark.right { color: var(--verified); background: color-mix(in srgb, var(--verified) 16%, transparent); }
+.goa-trivia-feedback-mark.wrong { color: var(--error); background: color-mix(in srgb, var(--error) 16%, transparent); }
+.goa-trivia-scans { display: flex; justify-content: center; gap: var(--sp-sm); }
+.goa-trivia-scans.two > img { flex: 1 1 0; min-width: 0; }
+.goa-trivia-scan {
+  display: block; width: auto; max-width: min(100%, 300px);
+  max-height: max(160px, calc(100dvh - 260px - var(--safe-top) - var(--safe-bottom)));
+  aspect-ratio: 729 / 1026; object-fit: contain; border-radius: 12px;
+}
+.goa-trivia-scans.two > .goa-trivia-scan { width: 100%; height: auto; }
+/* Next pinned at the bottom (the quiz is full screen: no tab bar under it). */
+.goa-trivia-nextbar {
+  position: sticky; bottom: 0; z-index: 5;
+  margin: var(--sp-lg) calc(-1 * (var(--sp-screen) + var(--safe-right))) calc(-1 * var(--sp-xl)) calc(-1 * (var(--sp-screen) + var(--safe-left)));
+  padding: var(--sp-md) calc(var(--sp-screen) + var(--safe-right)) calc(var(--sp-md) + var(--safe-bottom)) calc(var(--sp-screen) + var(--safe-left));
+  background: var(--bg);
+  animation: goa-trivia-fade var(--dur-short) var(--ease-decelerate);
+}
+.goa-trivia-nextbar::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--engraved) 20%, var(--engraved) 80%, transparent);
+}
+.goa-trivia-nextbar > .goa-button { min-height: 56px; font-size: 1rem; }
+@keyframes goa-trivia-fade { from { opacity: 0; } to { opacity: 1; } }
+/* Landscape phone: the question on the left, the answers and the scan on the right. */
+@media (orientation: landscape) and (min-width: 600px) {
+  .goa-trivia-quiz { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: var(--sp-xl); }
+  .goa-trivia-scan { max-height: max(160px, calc(100dvh - 200px)); }
+}
+
+/* Summary */
+.goa-trivia-summary { display: flex; flex-direction: column; gap: var(--sp-lg); }
+.goa-trivia-summary > .goa-section-header { margin-bottom: 0; }
+.goa-trivia-score { display: flex; flex-direction: column; gap: var(--sp-xs); padding: var(--sp-sm); }
+.goa-trivia-score > p, .goa-trivia-score > h2 { margin: 0; }
+.goa-trivia-score > p:empty { display: none; }
+.goa-trivia-standing { color: var(--secondary); }
+.goa-trivia-metrics { display: flex; flex-wrap: wrap; gap: var(--sp-md) var(--sp-xl); margin-top: var(--sp-md); }
+.goa-trivia-metric { display: flex; flex-direction: column; }
+.goa-trivia-metric-value { color: var(--secondary); }
+.goa-trivia-actions { display: flex; flex-direction: column; gap: var(--sp-sm); }
+.goa-trivia-actions > .goa-button { min-height: 52px; font-size: 1rem; }
+.goa-trivia-misses { display: flex; flex-direction: column; gap: var(--sp-sm); }
+.goa-trivia-misses > .goa-card + .goa-card { margin-top: 0; }
+.goa-trivia-miss > p { margin: var(--sp-xs) 0; }
+.goa-trivia-miss .goa-trivia-card-name { margin: var(--sp-xs) 0 0; }
+.goa-trivia-miss-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-xs) var(--sp-sm); margin-top: var(--sp-sm); color: var(--on-surface-variant); }
+.goa-trivia-miss-value { display: inline-flex; align-items: center; gap: 2px; color: var(--on-surface); }
+
+/* ---- Leaderboard ---- */
+.goa-trivia-tabs { display: flex; margin: calc(-1 * var(--sp-lg)) calc(-1 * var(--sp-screen)) 0; box-shadow: inset 0 -1px 0 var(--outline-variant); }
+.goa-trivia-tab {
+  flex: 1; min-height: 48px; border: 0; background: none; cursor: pointer;
+  color: var(--on-surface-variant); box-shadow: inset 0 -3px 0 transparent;
+}
+.goa-trivia-tab[aria-selected="true"] { color: var(--primary); box-shadow: inset 0 -3px 0 var(--primary); }
+.goa-trivia-board-head { padding: var(--sp-md) 0; }
+.goa-trivia-board-head > p { margin: var(--sp-xs) 0 0; }
+.goa-trivia-board { list-style: none; margin: 0 calc(-1 * var(--sp-screen)); padding: 0; container: trivia-board / inline-size; }
+.goa-trivia-board > li + li .goa-trivia-rank { box-shadow: inset 0 1px 0 var(--outline-variant); }
+.goa-trivia-rank { min-height: 72px; padding: var(--sp-sm) var(--sp-screen); }
+.goa-trivia-rank > .goa-trivia-avatar { width: 44px; height: 44px; }
+.goa-trivia-rank-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.goa-trivia-rank-name { overflow-wrap: anywhere; }
+.goa-trivia-rank-main { flex: none; min-width: 48px; display: flex; flex-direction: column; align-items: flex-end; font-weight: 600; }
+.goa-trivia-rank-main.first { color: var(--primary); }
+.goa-trivia-place {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 28px; height: 28px; padding: 0 4px; border-radius: 14px; font-weight: 700;
+  background: var(--surface-high); color: var(--on-surface-variant);
+}
+.goa-trivia-place.podium { background: color-mix(in srgb, var(--primary) 22%, transparent); color: var(--primary); }
+.goa-trivia-place.first { background: var(--primary); color: var(--on-primary); }
+/* Large text: no room for a column on the right; the figure moves under the name. */
+@container trivia-board (max-width: 22rem) {
+  .goa-trivia-rank { flex-wrap: wrap; }
+  .goa-trivia-rank-main { flex-direction: row; gap: var(--sp-xs); align-items: baseline; width: 100%; padding-left: calc(28px + 44px + 2 * var(--sp-md)); }
+}
+.goa-trivia-rounds-head { display: flex; align-items: center; gap: var(--sp-md); margin-bottom: var(--sp-sm); }
+.goa-trivia-rounds { list-style: none; margin: 0; padding: 0; }
+.goa-trivia-round { padding: var(--sp-sm) 0; box-shadow: inset 0 1px 0 var(--outline-variant); }
+.goa-trivia-round-line { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-trivia-round-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.goa-trivia-remove.goa-button { color: var(--error); padding-left: 0; margin-top: var(--sp-xs); }

@@ -44,9 +44,9 @@ val webAssets: TaskProvider<Sync> = tasks.register<Sync>("webAssets") {
 
 /**
  * The UI icons as inline SVG markup (`IconMarkup.kt`), generated from the SVG files: the web-only
- * icons in `src/jsMain/resources/icons` and the tab icons in `design/icons`. Inline SVG tints with
- * `currentColor`, needs no request and has no first-paint gap (CSS masks on the sticky/fixed bars
- * weren't repainted by WebKit once they loaded).
+ * icons in `src/jsMain/resources/icons`, the tab icons in `design/icons` and the player crests in
+ * `design/avatars`. Inline SVG tints with `currentColor`, needs no request and has no first-paint
+ * gap (CSS masks on the sticky/fixed bars weren't repainted by WebKit once they loaded).
  */
 abstract class GenerateIconMarkup : DefaultTask() {
     @get:InputFiles
@@ -81,6 +81,8 @@ abstract class GenerateIconMarkup : DefaultTask() {
 val iconMarkup = tasks.register<GenerateIconMarkup>("iconMarkup") {
     icons.from(fileTree("src/jsMain/resources/icons") { include("*.svg") })
     icons.from(fileTree(rootProject.file("design/icons")) { include("nav_*.svg") })
+    // The 24 player crests (Player.avatarId), tinted with the player's colour like Android's PlayerAvatar.
+    icons.from(fileTree(rootProject.file("design/avatars")) { include("crest_*.svg") })
     output.set(layout.buildDirectory.dir("generated/iconMarkup"))
 }
 

@@ -53,6 +53,34 @@ sealed interface Route {
         override val parent get() = Catalog
     }
 
+    /**
+     * A trivia round (ADR-028) or the Challenge (ADR-032): the shared `TriviaQuizRequest` in the URL,
+     * so a reload or a home-screen relaunch reopens the same quiz. Full screen: no tab bar beside the
+     * answer buttons.
+     */
+    data class TriviaQuiz(
+        val config: String,
+        val factKeys: List<String> = emptyList(),
+        val challenge: Boolean = false,
+    ) :
+        Route {
+        override val path get() = buildString {
+            append("trivia/quiz?config=").append(Routes.encode(config))
+            if (factKeys.isNotEmpty()) append("&facts=").append(Routes.encode(factKeys.joinToString(",")))
+            if (challenge) append("&challenge=1")
+        }
+        override val tab get() = Tab.HEROES
+        override val parent get() = Trivia()
+        override val showsTabBar get() = false
+    }
+
+    /** The trivia leaderboard (ADR-032): Challenge and Practice boards from the group's rounds. */
+    data object TriviaLeaderboard : Route {
+        override val path = "trivia/leaderboard"
+        override val tab get() = Tab.HEROES
+        override val parent get() = Trivia()
+    }
+
     data object Boards : Route {
         override val path = "boards"
         override val tab get() = Tab.HEROES
@@ -175,7 +203,7 @@ object Routes {
         if (parts.any { it.isEmpty() }) return Route.NotFound(raw)
         return when (parts.first()) {
             "heroes" -> heroes(parts, raw)
-            "trivia" -> if (parts.size == 1) Route.Trivia(query["hero"]?.takeIf { it.isNotEmpty() }) else null
+            "trivia" -> trivia(parts, query)
             "boards" -> oneOrTwo(parts, Route.Boards) { Route.Board(it) }
             "play" -> Route.Play.takeIf { parts.size == 1 }
             "puzzles" -> oneOrTwo(parts, Route.Puzzles) { Route.Puzzle(it) }
@@ -199,6 +227,22 @@ object Routes {
         parts.size == 2 -> Route.HeroDetail(parts[1])
         parts.size == 4 && parts[2] == "cards" -> Route.CardViewer(parts[1], parts[3])
         else -> Route.NotFound(raw)
+    }
+
+    private fun trivia(parts: List<String>, query: Map<String, String>): Route? = when {
+        parts.size == 1 -> Route.Trivia(query["hero"]?.takeIf { it.isNotEmpty() })
+
+        parts.size == 2 && parts[1] == "leaderboard" -> Route.TriviaLeaderboard
+
+        parts.size == 2 && parts[1] == "quiz" -> query["config"]?.let { config ->
+            Route.TriviaQuiz(
+                config = config,
+                factKeys = query["facts"].orEmpty().split(',').filter { it.isNotEmpty() },
+                challenge = query["challenge"] == "1",
+            )
+        }
+
+        else -> null
     }
 
     private fun settings(parts: List<String>): Route? = when {
