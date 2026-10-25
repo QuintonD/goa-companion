@@ -117,8 +117,9 @@ private fun LadderCard(onClick: () -> Unit) {
             Span({ classes("t-body-medium", "c-variant") }) {
                 Text("Life counters, coins and assist coins per level, level costs and card Tiers")
             }
+            // Under the text, not beside it: beside it squeezes the text on an iPhone SE.
+            Span({ classes("goa-rules-ladder-tag") }) { PageTag(RulesText.LADDER_PAGES) }
         }
-        PageTag(RulesText.LADDER_PAGES)
     }
 }
 

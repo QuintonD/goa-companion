@@ -667,10 +667,11 @@ code {
 }
 .goa-rules-search input::placeholder { color: var(--on-surface-variant); }
 .goa-rules-search input::-webkit-search-cancel-button { display: none; }
-.goa-rules-ladder-card { display: flex; align-items: center; gap: var(--sp-md); font: inherit; min-height: 88px; }
+.goa-card.goa-rules-ladder-card { display: flex; align-items: center; gap: var(--sp-md); font: inherit; min-height: 88px; }
 .goa-rules-ladder-icon { flex: none; color: var(--primary); display: flex; }
 .goa-rules-ladder-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .goa-rules-ladder-title { color: var(--on-surface); }
+.goa-rules-ladder-tag { margin-top: var(--sp-xs); }
 .goa-rules-topic-title { font: 600 1.125rem/1.5rem var(--font-body); }
 .goa-rules-footnote { margin: var(--sp-lg) 0 var(--sp-xl); }
 .goa-rules-page {
@@ -749,7 +750,7 @@ code {
 .goa-rules-number { display: flex; flex-direction: column; align-items: center; text-align: center; }
 .goa-rules-number-text { display: flex; flex-direction: column; }
 .goa-rules-digit { font: 600 2.5rem/2.75rem var(--font-body); font-variant-numeric: tabular-nums lining-nums; color: var(--on-surface); }
-@container rules-result (max-width: 22rem) {
+@container rules-result (max-width: 18rem) {
   /* Large text: one number per line, its labels beside it. */
   .goa-rules-numbers { grid-template-columns: 1fr; }
   .goa-rules-number { flex-direction: row; text-align: left; gap: var(--sp-md); }
@@ -760,7 +761,7 @@ code {
   border: 1px solid var(--engraved); border-radius: var(--radius-card);
 }
 .goa-rules-ladder-table { width: 100%; border-collapse: collapse; }
-.goa-rules-ladder-table th, .goa-rules-ladder-table td { min-width: 3.125rem; padding: var(--sp-xs) 2px; text-align: center; }
+.goa-rules-ladder-table th, .goa-rules-ladder-table td { min-width: 2.5rem; padding: var(--sp-xs) 1px; text-align: center; }
 .goa-rules-ladder-table thead th {
   font: 500 0.6875rem/1rem var(--font-body); color: var(--on-surface-variant); white-space: pre-line; vertical-align: bottom;
 }

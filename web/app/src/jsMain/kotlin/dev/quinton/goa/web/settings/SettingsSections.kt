@@ -184,7 +184,12 @@ private fun SwitchRow(
                 attr("role", "switch")
                 checked(checked)
                 if (!enabled) disabled()
-                onChange { onChange(it.value) }
+                onChange { event ->
+                    // Shown as stored until the change is saved: a refused change (e.g. no product
+                    // left) must not leave the native control in the other state.
+                    event.target.checked = checked
+                    onChange(event.value)
+                }
             }
         }
     }
@@ -207,7 +212,11 @@ private fun ProductRow(product: ProductOption, enabled: Boolean, onToggle: () ->
                 classes("goa-settings-check")
                 checked(product.owned)
                 if (!enabled) disabled()
-                onChange { onToggle() }
+                onChange { event ->
+                    // The last owned product can't be unticked: keep showing the stored state.
+                    event.target.checked = product.owned
+                    onToggle()
+                }
             }
         }
     }
