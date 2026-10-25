@@ -29,6 +29,8 @@ Ten features, offline-first, pass-and-play on one phone at the table:
 10. **Puzzles** — 50 difficult solver-proven positions with switchable nudges and an explanation
    at the end (ADR-035).
 
+iPhones use the same app as a PWA on GitHub Pages (`web/`, ADR-043).
+
 Details and acceptance criteria: [docs/PRODUCT.md](docs/PRODUCT.md).
 
 ## Read before you work
@@ -83,6 +85,11 @@ ADR-038) and run one build at a time.
 .\gradlew.bat lintDebug detekt ktlintCheck
 .\gradlew.bat connectedDebugAndroidTest  # end-to-end UI tests (orchestrator, clean data per test)
 .\gradlew.bat :app:assembleRelease        # signed release APK (needs keystore.properties, see README)
+.\gradlew.bat :web:app:jsBrowserDevelopmentRun  # web app dev server (ADR-043)
+.\gradlew.bat :web:app:site              # deployable web app in web/app/build/site (what Pages serves)
+.\gradlew.bat :web:app:jsTest :web:app:detekt :web:app:ktlintCheck  # web unit tests + lint
+.\gradlew.bat :web:app:webE2e            # Playwright, WebKit iPhone 15 + Chromium Pixel 7 (npm ci in web/e2e once;
+                                         #   PLAYWRIGHT_BROWSERS_PATH=D:\.playwright, npm_config_cache=D:\.npm-cache)
 ```
 
 A change is done when build, unit tests, lint and screenshot checks pass. Run the

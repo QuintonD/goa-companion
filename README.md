@@ -2,7 +2,7 @@
 
 An Android companion for the Guards of Atlantis II board game: hero catalog, phase
 timer, friends and Elo tracking, a pick/ban drafting system, a rules reference and phone-to-phone
-group sync.
+group sync, plus the same app as a web app for iPhones (see "Web app" below).
 
 Non-commercial. Not affiliated with Wolff Designa. Official game content and art belong to
 them; a public release with them bundled needs their permission (ADR-034).
@@ -54,6 +54,32 @@ End-to-end tests (`connectedDebugAndroidTest`) don't fit on oldboi: the headless
 emulator (`goa-emulator start`, capped at 4.5 GB) boots and passes `AppSmokeTest` through `goa-e2e`
 (adb + orchestrator, no Gradle beside it), but its process grows past the cap in the next class and
 the kernel kills it. Run them on Megalithic or the phone.
+
+## Web app: the same app for iPhones (ADR-043)
+
+Friends on iPhones (or any browser) use **https://quintond.github.io/goa-companion/**: open it in
+Safari, then Share → **Add to Home Screen**. After the first visit it works offline; Settings →
+Offline → "Download everything" keeps every card scan and portrait on the phone too (≈ 34 MB).
+
+Run it locally (PowerShell, Gradle env vars as above):
+
+```powershell
+.\gradlew.bat :web:app:jsBrowserDevelopmentRun   # dev server with reload: http://localhost:8080/
+.\gradlew.bat :web:app:site                      # the deployable site: web\app\build\site
+cd web\e2e; npm ci; node serve.mjs              # the built site as on Pages: http://localhost:4173/goa-companion/
+```
+
+The dev server has no service worker (no offline, no update prompt); `serve.mjs` serves the real
+build under `/goa-companion/` like GitHub Pages. Tests: `.\gradlew.bat :web:app:jsTest` (unit) and,
+in `web\e2e` with `PLAYWRIGHT_BROWSERS_PATH=D:\.playwright`, `npx playwright install webkit chromium`
+once, then `npx playwright test` (or `.\gradlew.bat :web:app:webE2e`); review screenshots land in
+`D:\.goa-qa\web\shots`.
+
+**Deploy:** pushing to `main` runs `.github/workflows/web-pages.yml` (when the web, core, catalog
+assets or build files changed): unit tests, lint, the site, Playwright on WebKit and Chromium, then
+GitHub Pages. "Run workflow" on the Actions tab deploys by hand. Pull requests run the same checks
+without deploying. Open copies pick up a deploy the next time they are opened ("A new version of
+the app is ready — Reload").
 
 ## Sharing with the play group
 

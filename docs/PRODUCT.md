@@ -537,7 +537,23 @@ with the sync group), Group sync, export/import, About/credits.
   (ADR-034).
 - Online play and pass-and-play between several humans on opposing teams in Play (9); one human
   team per game.
-- iOS; tablet-first layouts (phone-first; tablets must not break).
+- A native iOS app: iPhones use the web app instead (below). Tablet-first layouts (phone-first;
+  tablets must not break).
+
+## iPhone via the web app (ADR-043)
+Friends on iPhones open `https://quintond.github.io/goa-companion/` in Safari and "Add to Home
+Screen". It is the same app (the same Kotlin rules, the same catalog JSON and official images, the
+same look), with the same tabs and screens as on Android.
+- Works offline after the first visit (the app and all hero and rules data); card scans and art are
+  kept as they are opened, or all at once with Settings > Offline > "Download everything" (progress,
+  storage used). A new version never reloads the app by itself: "A new version is ready — Reload".
+- Every screen has an address (`#/heroes/arien`) that survives reload and the Home Screen; the
+  browser's Back and Safari's swipe walk the app; the top bar's Back goes up.
+- Dark by default with Light and System in Settings, iOS text size respected, safe areas (notch,
+  home indicator), 44 pt tap targets, VoiceOver landmarks and headings.
+- Group sync through the group's relay (ADR-036), not Nearby (Safari has no Bluetooth). Safari may
+  clear a website's data after 7 days unused unless it is on the Home Screen; the app says so, and
+  the group's sync is the backup.
 
 ## Open questions (owner to decide)
 - Which printing the group plays (data targets the 2nd printing / upgrade kit; a 3rd printing

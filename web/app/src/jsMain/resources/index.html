@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="goa-build" content="__GOA_BUILD__">
+  <meta name="goa-version" content="__GOA_VERSION__">
+  <title>Atlantis Companion</title>
+  <meta name="description" content="A companion for Guards of Atlantis II: heroes and cards, phase timer, draft, players and Elo, rules reference, card trivia, board, play against the computer and puzzles.">
+  <meta name="theme-color" content="#26496A">
+  <meta name="color-scheme" content="dark light">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Atlantis">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/brand_mark.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/app-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preload" href="fonts/inter_regular.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="fonts/cinzel_bold.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="goa.css">
+  <script>
+    // Theme before first paint (no flash): the in-app choice, else dark like the Android app.
+    (function () {
+      var mode = "dark";
+      try { mode = localStorage.getItem("goa.theme") || "dark"; } catch (e) {}
+      if (mode !== "light" && mode !== "system") mode = "dark";
+      document.documentElement.setAttribute("data-theme", mode);
+    })();
+  </script>
+</head>
+<body>
+  <div id="root">
+    <div class="goa-state" role="status" style="min-height:100dvh">
+      <img src="icons/brand_mark.svg" alt="" width="72" height="72">
+      <p class="t-title-large" style="color:var(--on-surface)">Atlantis Companion</p>
+      <div class="goa-spinner" aria-label="Loading"></div>
+    </div>
+  </div>
+  <noscript>
+    <p style="padding:1rem">Atlantis Companion needs JavaScript. In Safari, turn it on in Settings &gt; Safari &gt; Advanced.</p>
+  </noscript>
+  <script src="app.js"></script>
+</body>
+</html>

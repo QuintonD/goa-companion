@@ -24,7 +24,8 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
-        // Kotlin/JS toolchain (ADR-043): Node.js and Yarn distributions, nothing else.
+        // Kotlin/JS toolchain for the web app (ADR-043). FAIL_ON_PROJECT_REPOS forbids the Kotlin
+        // plugin adding these itself, so its download URLs are unset in the root build script.
         ivy("https://nodejs.org/dist/") {
             name = "Node.js distributions"
             patternLayout { artifact("v[revision]/[artifact](-v[revision]-[classifier]).[ext]") }
@@ -64,3 +65,4 @@ include(":feature:sync")
 include(":feature:trivia")
 include(":feature:board")
 include(":tools:catalog-import")
+include(":web:app")
