@@ -75,6 +75,24 @@ test("the ladder gives the picked level's numbers from the p.13 table", async ({
   check();
 });
 
+test("the timer's ladder page (#/levels) quotes only the match's heroes' cards and links to all rules", async ({ page }, info) => {
+  const check = watchErrors(page);
+  await open(page, "#/levels?heroes=bain,arien");
+  await expect(title(page)).toHaveText("Levels & defeats");
+  await expect(page.getByText("Cards in this match that change this")).toBeVisible();
+  await expect(page.getByText("Bain · Dead or Alive")).toBeVisible();
+  await page.getByRole("radio", { name: "Level 1" }).click();
+  await expect(page.getByRole("group", { name: /^Level 1 hero defeated/ })).toHaveAttribute(
+    "aria-label",
+    /spends 1 Life counter\./,
+  );
+  await shot(page, info, "w1-levels-page");
+  await expectNoHorizontalOverflow(page);
+  await page.getByRole("button", { name: "All rules" }).click();
+  await expect(title(page)).toHaveText("Rules");
+  check();
+});
+
 test("rules search filters topics, keeps the ladder for ladder words, and survives Back", async ({ page }) => {
   const check = watchErrors(page);
   await open(page, "#/rules");
