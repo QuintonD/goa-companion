@@ -429,11 +429,32 @@ opponents (and teammates) at four levels. One phone, one human team.
   screenshots of the sheet (Gydion's player and an opponent, before Prepare Spells, light/dark, 384 dp
   at font scale 2, landscape), the cast question and a spell in the card focus viewer (portrait,
   landscape, short landscape, font scale 2); every bundled card scan matches the shape it is drawn at.
+- **The turn at a glance** (ADR-041): after the reveal the hero strip becomes the played cards
+  themselves, in the order the heroes act (p.7): each official card with its initiative as it counts,
+  the hero's portrait, name and team shape, and DONE / NOW / NEXT / PASS on the card (words, not colour
+  alone), the action a done hero chose, ties ("=11"), Emmitt's second card, a hero off the board; tap a
+  card to read it, long-press for the hero. It stays at the top with the panel hidden and in landscape.
+  The acting hero carries a "NOW" tag on the map. The panel says the moments: "All cards revealed ·
+  Wasp acts first" (ties: who decides, p.7), "Turn 1 is over" with that turn's cards, "End of round"
+  with its steps (p.8), "Round 1 is over · Red won the push · Arien reached level 2". Hidden
+  information stays hidden (p.4): before the reveal only a card back shows who has played; a card
+  resolved facedown stays facedown. **Done when:** unit tests build the track and the moments from the
+  engine's view (order, done/now/next, ties in one team and across teams, a pass, a card that left the
+  table, Emmitt's second card, a hero defeated mid-turn, a facedown card, turn and round over); screenshots
+  right after the reveal, mid-turn, panel hidden, landscape, light, 384 dp at font scale 2, a turn and a
+  round over, a track card in the viewer.
+- **The card is the content** (ADR-041): a question asked by a card shows that card large beside its
+  answers (the action chips carry the game's icon and the card's value; only rules no card prints are
+  added: Fast Travel's condition, Hold, Clear, that only the primary applies the text); Defend shows the
+  attacker's card and the hand's cards with Holds / Falls under each; two or three cards to choose are
+  shown larger (Keep's two next-Tier cards side by side); the computer's move shows its card. The panel
+  repeats no log line the table already shows (the reveal, the action chosen, a move); the log sheet has
+  them all. With large text the card goes above its answers.
 - **See the whole board:** the panel (questions, the computer's move, the coach) hides to a
   one-line peek bar that still says what is asked ("● Arien · Choose an action for Dangerous
   Current", teal when it waits for you; a new question is announced by TalkBack). The map fits the
-  whole board (unless you had moved it), only the round at a glance stays at the top (the hero strip
-  returns with the panel), and a space or piece tapped on the map is answered with Confirm in the
+  whole board (unless you had moved it), only the round at a glance and, after the reveal, the turn
+  track stay at the top (the hero strip returns with the panel), and a space or piece tapped on the map is answered with Confirm in the
   peek bar, without opening the panel. Show (or a tap on the peek bar, or dragging it up) brings the
   panel back. In landscape the side panel hides to a small card at the bottom end; while it is shown,
   the heroes are portraits beside the round at a glance (a tap still opens each one) and a puzzle's

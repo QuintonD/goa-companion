@@ -35,18 +35,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -277,8 +280,9 @@ private fun TapHint(text: String) {
 
 /**
  * The cards in a row: the whole hand in view (five cards after a level up) shrinking to fit, down to
- * a size still easy to tap; only beyond that does the row scroll. Each one is a TalkBack node that
- * opens the viewer; one the question doesn't offer is dimmed and marked.
+ * a size still easy to tap; only beyond that does the row scroll. Few cards are shown larger (two
+ * cards to keep side by side, up to 140 dp), so the card itself is what is read (ADR-041). Each one
+ * is a TalkBack node that opens the viewer; one the question doesn't offer is dimmed and marked.
  */
 @Composable
 private fun OfferedRow(
@@ -294,7 +298,7 @@ private fun OfferedRow(
         // A landscape spell card (Gydion) is as tall as the others and about twice as wide (CardShape.kt).
         val units = offered.sumOf { cardAspect(it.card) / CARD_ASPECT.toDouble() }.toFloat().coerceAtLeast(1f)
         val min = if (offered.any { it.card.isSpell }) MIN_SPELL_CARD else MIN_HAND_CARD
-        val width = ((maxWidth - Spacing.sm * (n - 1)) / units).coerceIn(min, HAND_CARD)
+        val width = ((maxWidth - Spacing.sm * (n - 1)) / units).coerceIn(min, largestCard(n))
         Row(
             Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -356,10 +360,11 @@ private fun OfferedThumb(
 // ---- Defense (p.14) ---------------------------------------------------------------------
 
 /**
- * Attacked: the attacker and the Attack total, each hand card's Defense total (the engine's
- * preview: card value, items, minion modifiers, text bonuses it can compute) marked "Holds" or
- * "Falls" in words and an icon, never colour alone; "Don't defend". Tap a card to see it large
- * with its verdict, tap it again to defend with it; "Don't defend" is chosen, then confirmed.
+ * Attacked: the attacker's card with the Attack total, then the hand's cards themselves (their
+ * Defense is printed on them), each with the verdict under it: "Holds" or "Falls" in words and an
+ * icon (never colour alone) and the Defense total when items or minions change it; "Don't defend".
+ * Tap a card to see it large with its verdict, tap it again to defend with it; "Don't defend" is
+ * chosen, then confirmed.
  */
 @Composable
 internal fun DefensePanel(
@@ -378,7 +383,7 @@ internal fun DefensePanel(
         attacker?.let { "$it attacks" },
         context.rangedAttack?.let { if (it) "ranged" else "melee" },
     ).joinToString(" · ").ifEmpty { "Attacked" }
-    AttackHeader(heading, attack, context.minionModifier)
+    AttackHeader(heading, attack, context.minionModifier, table.sourceCard, decision.prompt, focus)
     val offered = table.cardOptions.mapNotNull { choice -> table.card(choice.cardId)?.let { OfferedCard(it, choice) } }
     val rows = offered.map { item ->
         val id = item.card.id
@@ -395,12 +400,21 @@ internal fun DefensePanel(
     if (offered.isNotEmpty()) TapHint("Tap a card to see it large; tap it again to defend with it.")
     val focusCards = offered.mapIndexed { i, item -> FocusCard(item.card, verdict = rows[i].verdict) }
     val summary = listOfNotNull(heading, attack?.let { "Attack $it" }).joinToString(" · ")
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        offered.forEachIndexed { i, item ->
-            DefenseRow(item.card, rows[i], focus) {
-                openOffered(focus, table, offered, i, onAnswer, context = summary, cards = focusCards)
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val n = offered.size.coerceAtLeast(1)
+        val width = ((maxWidth - Spacing.sm * (n - 1)) / n).coerceIn(MIN_HAND_CARD, HAND_CARD)
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            offered.forEachIndexed { i, item ->
+                DefenseCard(item.card, rows[i], width, focus) {
+                    openOffered(focus, table, offered, i, onAnswer, context = summary, cards = focusCards)
+                }
             }
         }
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         table.buttonOptions.forEach { choice ->
             DeclineRow(table.label(choice), choice == table.selected) { onSelect(choice) }
         }
@@ -420,28 +434,68 @@ internal fun DefensePanel(
     }
 }
 
+/**
+ * The attack: the attacker's card (tap to read it), who attacks and how, the Attack total, and the
+ * minion defense modifier counted. It carries the question for TalkBack (a polite live region).
+ */
 @Composable
-private fun AttackHeader(heading: String, attack: Int?, minionModifier: Int?) {
+private fun AttackHeader(
+    heading: String,
+    attack: Int?,
+    minionModifier: Int?,
+    card: Card?,
+    prompt: String,
+    focus: CardFocusState,
+) {
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.errorContainer,
-        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.padding(Spacing.md)) {
-            Text(
-                heading,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onErrorContainer,
-            )
-            Text(
-                attack?.let { "Attack $it" } ?: "Attack decided by the card",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onErrorContainer,
-                fontWeight = FontWeight.Bold,
-            )
-            minionModifier?.takeIf { it != 0 }?.let { m ->
+        Row(Modifier.padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+            if (card != null) {
+                Surface(
+                    onClick = { focus.show(listOf(card), title = "Attacking card") },
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier
+                        .cardFocusOrigin(focus, card.id)
+                        .clearAndSetSemantics {
+                            contentDescription = "Attacking card: ${spokenCard(card)}"
+                            role = Role.Button
+                            onClick(label = "Read the card") {
+                                focus.show(listOf(card), title = "Attacking card")
+                                true
+                            }
+                        },
+                ) { TableCard(card, width = ATTACK_CARD) }
+                Spacer(Modifier.width(Spacing.md))
+            }
+            Column(
+                Modifier.weight(1f).semantics(mergeDescendants = true) {
+                    liveRegion = LiveRegionMode.Polite
+                    contentDescription = prompt
+                },
+            ) {
                 Text(
-                    "Minion defense modifier ${if (m > 0) "+$m" else "$m"} is counted below (p.14).",
+                    heading,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+                Text(
+                    attack?.let { "Attack $it" } ?: "Attack decided by the card",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    fontWeight = FontWeight.Bold,
+                )
+                minionModifier?.takeIf { it != 0 }?.let { m ->
+                    Text(
+                        "Minion defense modifier ${if (m > 0) "+$m" else "$m"} is counted below (p.14).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                    )
+                }
+                Text(
+                    "Discard a card to defend",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onErrorContainer,
                 )
@@ -451,7 +505,7 @@ private fun AttackHeader(heading: String, attack: Int?, minionModifier: Int?) {
 }
 
 /** A defense card's line: its Defense (or Block) and the verdict. */
-internal data class DefenseLine(val detail: String, val verdict: CardVerdict)
+internal data class DefenseLine(val detail: String, val verdict: CardVerdict, val total: Int? = null)
 
 internal fun defenseLine(total: Int?, blocks: Boolean?, attack: Int?): DefenseLine {
     val verdict = defenseVerdict(total, blocks, attack)
@@ -466,20 +520,20 @@ internal fun defenseLine(total: Int?, blocks: Boolean?, attack: Int?): DefenseLi
         null -> total?.let { "Defense $it" } ?: "Defense decided while it resolves"
     }
     val against = if (blocks == null && total != null && attack != null) "$detail against Attack $attack" else detail
-    return DefenseLine(detail, CardVerdict(verdict, label, against))
+    return DefenseLine(detail, CardVerdict(verdict, label, against), total.takeIf { blocks == null })
 }
 
+/** One hand card to defend with: the official card, the verdict under it, the total when it differs. */
 @Composable
-private fun DefenseRow(card: Card, line: DefenseLine, focus: CardFocusState, onOpen: () -> Unit) {
+private fun DefenseCard(card: Card, line: DefenseLine, width: Dp, focus: CardFocusState, onOpen: () -> Unit) {
+    val printed = card.values.defense
+    val changed = line.total != null && line.total != printed
     val spoken = listOf(card.name, line.detail, line.verdict.label).joinToString(", ")
-    Surface(
-        onClick = onOpen,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
         modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
+            .width(width)
             .clearAndSetSemantics {
                 contentDescription = spoken
                 role = Role.Button
@@ -489,26 +543,27 @@ private fun DefenseRow(card: Card, line: DefenseLine, focus: CardFocusState, onO
                 }
             },
     ) {
-        Row(
-            Modifier.padding(horizontal = Spacing.sm, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TableCard(card, Modifier.cardFocusOrigin(focus, card.id), width = 34.dp)
-            Spacer(Modifier.width(Spacing.sm))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    card.name,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+        Surface(
+            onClick = onOpen,
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+            modifier = Modifier.cardFocusOrigin(focus, card.id),
+        ) { TableCard(card, width = width) }
+        Verdict(line.verdict.holds, line.verdict.label)
+        if (changed) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    GameIcons.defense.vector,
+                    null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(scaledIconSize(12.dp, 1.3f)),
                 )
                 Text(
-                    line.detail,
-                    style = MaterialTheme.typography.bodySmall,
+                    " ${line.total}",
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Verdict(line.verdict.holds, line.verdict.label)
         }
     }
 }
@@ -527,15 +582,16 @@ private fun Verdict(verdict: Boolean?, text: String) {
                 if (verdict) Icons.Outlined.CheckCircle else Icons.Outlined.ErrorOutline,
                 null,
                 tint = color,
-                modifier = Modifier.size(scaledIconSize(18.dp, 1.3f)),
+                modifier = Modifier.size(scaledIconSize(16.dp, 1.3f)),
             )
-            Spacer(Modifier.width(4.dp))
+            Spacer(Modifier.width(3.dp))
         }
         Text(
             text,
             style = if (verdict == null) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelLarge,
             color = color,
             fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
         )
     }
 }
@@ -566,8 +622,16 @@ private fun DeclineRow(label: String, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
+/** The largest a card in a row of [n] grows: few cards are shown large enough to read. */
+private fun largestCard(n: Int): Dp = when {
+    n <= 2 -> 140.dp
+    n == 3 -> 110.dp
+    else -> HAND_CARD
+}
+
 private val HAND_CARD = 84.dp
 private val MIN_HAND_CARD = 60.dp
+private val ATTACK_CARD = 56.dp
 
 /** A row with spells: a landscape card this tall (≈ 90 × 62 dp) is still easy to tap and read. */
 private val MIN_SPELL_CARD = 44.dp

@@ -38,6 +38,7 @@ import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.choiceFor
 import dev.quinton.goa.feature.board.play.table.logLines
+import dev.quinton.goa.feature.board.play.table.turnLog
 import javax.inject.Provider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -669,6 +670,8 @@ class PuzzleViewModel internal constructor(
             selected = selected?.takeIf { it in options },
             bottomTeam = bottomTeam,
             hint = hint?.takeIf { it in options },
+            // While the replies are narrated the board is the one after the player's move: no later events.
+            turnLog = if (live == null) turnLog(snapshot.events) else emptyList(),
         )
     }
 

@@ -53,8 +53,9 @@ class PlayFlowTest {
                 hasClickAction() and isEnabled(),
         )
 
-        // The computer plays its three cards, then all four are revealed together (p.7).
-        rule.waitFor(hasText("Cards revealed:", substring = true), timeout = GAME_TIMEOUT)
+        // The computer plays its three cards, then all four are revealed together (p.7): the turn
+        // track shows the played cards in acting order (ADR-041).
+        rule.waitFor(hasContentDescription("1st to act", substring = true), timeout = GAME_TIMEOUT)
         // After the reveal someone acts: Wasp is asked, or a computer hero is choosing.
         rule.waitUntilOrDump("the first card resolves", GAME_TIMEOUT) {
             rule.exists(hasText("WASP · ACTION", substring = true)) ||

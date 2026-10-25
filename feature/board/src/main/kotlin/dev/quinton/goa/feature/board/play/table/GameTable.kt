@@ -57,6 +57,7 @@ import dev.quinton.goa.feature.board.ui.FitWhileHidden
 import dev.quinton.goa.feature.board.ui.HideablePanel
 import dev.quinton.goa.feature.board.ui.PanelCover
 import dev.quinton.goa.feature.board.ui.PanelPeek
+import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import kotlinx.coroutines.launch
 
 /**
@@ -85,6 +86,7 @@ fun GameTable(
     peek: PanelPeek = PanelPeek(""),
     peekTrailing: (@Composable () -> Unit)? = null,
     initialPanelHidden: Boolean = false,
+    focus: CardFocusState? = null,
     panel: @Composable ColumnScope.() -> Unit,
 ) {
     var hidden by rememberSaveable { mutableStateOf(initialPanelHidden) }
@@ -135,12 +137,18 @@ fun GameTable(
                 Modifier.onSizeChanged { topHeight = it.height + with(density) { Spacing.sm.roundToPx() } },
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
-                // Panel hidden: the board unobstructed; the heroes come back with the panel (one tap).
+                // After the reveal the turn's cards stay in view, the panel shown or hidden (ADR-041);
+                // before it, the hero strip comes back with the panel (one tap).
+                val track = table.track
                 if (landscape && !hidden) {
-                    TableTopRow(table, onHero)
+                    TableTopRow(table, onHero, focus = focus)
                 } else {
                     TableHud(table)
-                    if (!hidden) HeroStrip(table, onHero)
+                    if (track != null) {
+                        TurnTrackRow(table, track, onHero, focus = focus, compact = hidden)
+                    } else if (!hidden) {
+                        HeroStrip(table, onHero)
+                    }
                 }
                 if (!hidden) banner?.invoke(landscape)
             }
@@ -183,17 +191,27 @@ fun GameTable(
 
 /**
  * Landscape: the round at a glance and the heroes as portraits on one row (the portraits scroll
- * if they don't fit beside it).
+ * if they don't fit beside it); after the reveal, the turn's cards in their place.
  */
 @Composable
-internal fun TableTopRow(table: TableUi, onHero: (String) -> Unit, modifier: Modifier = Modifier) {
+internal fun TableTopRow(
+    table: TableUi,
+    onHero: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    focus: CardFocusState? = null,
+) {
     Row(
         modifier,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         TableHud(table, compact = true)
-        HeroStrip(table, onHero, Modifier.weight(1f, fill = false), compact = true)
+        val track = table.track
+        if (track != null) {
+            TurnTrackRow(table, track, onHero, Modifier.weight(1f, fill = false), focus = focus, compact = true)
+        } else {
+            HeroStrip(table, onHero, Modifier.weight(1f, fill = false), compact = true)
+        }
     }
 }
 

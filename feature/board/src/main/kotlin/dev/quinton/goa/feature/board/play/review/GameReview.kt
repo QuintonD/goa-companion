@@ -92,6 +92,7 @@ import dev.quinton.goa.feature.board.play.table.TableHud
 import dev.quinton.goa.feature.board.play.table.TableTopRow
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.figureOf
+import dev.quinton.goa.feature.board.play.table.shownCounters
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.play.table.ultimateCard
 
@@ -411,7 +412,7 @@ private fun HeroCard(table: TableUi, hero: HeroView, onCard: OpenCard, puzzle: B
                 Fact("Coins", "${hero.coins}")
                 Fact("In hand", "${hero.handCount}")
                 if (hero.ultimate) Fact("Ultimate", "Unlocked")
-                hero.counters.forEach { (name, value) -> Fact(PlayText.counter(name), "$value") }
+                shownCounters(hero).forEach { (name, value) -> Fact(PlayText.counter(name), "$value") }
                 if (hero.itemStats.isNotEmpty()) {
                     Column(
                         Modifier.semantics(mergeDescendants = true) {

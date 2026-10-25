@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.board.play.game
 
+import dev.quinton.goa.feature.board.play.table.MomentKind
 import dev.quinton.goa.feature.board.play.table.questionPeek
 import dev.quinton.goa.feature.board.ui.PanelPeek
 
@@ -16,11 +17,17 @@ internal fun gamePeek(play: PlayUi): PanelPeek {
         is TurnStatus.Computer -> {
             val hero = table.heroView(status.heroId)
             val name = table.hero(status.heroId).name
-            PanelPeek(
-                text = if (status.thinking) "thinking…" else "the computer is choosing",
-                label = name,
-                team = hero?.team,
-            )
+            // Right after the reveal the peek says who acts first (the cards are on the turn track).
+            val revealed = table.moment?.takeIf { it.kind == MomentKind.REVEALED }
+            if (revealed != null) {
+                PanelPeek(revealed.text, label = revealed.title)
+            } else {
+                PanelPeek(
+                    text = if (status.thinking) "thinking…" else "the computer is choosing",
+                    label = name,
+                    team = hero?.team,
+                )
+            }
         }
 
         is TurnStatus.Waiting -> PanelPeek("Your card is down · waiting for the others to play (p.7)")

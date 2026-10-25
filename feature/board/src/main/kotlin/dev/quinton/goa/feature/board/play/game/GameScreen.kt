@@ -58,9 +58,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -74,6 +77,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.Controller
+import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.board.BoardSheet
 import dev.quinton.goa.feature.board.board.SheetTitle
@@ -87,15 +91,18 @@ import dev.quinton.goa.feature.board.play.table.DecisionPanel
 import dev.quinton.goa.feature.board.play.table.EventLog
 import dev.quinton.goa.feature.board.play.table.GameTable
 import dev.quinton.goa.feature.board.play.table.HeroDetail
+import dev.quinton.goa.feature.board.play.table.MomentCard
 import dev.quinton.goa.feature.board.play.table.PeekConfirm
 import dev.quinton.goa.feature.board.play.table.RecentEvents
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.YourHand
+import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.ui.BoardScaffold
 import dev.quinton.goa.feature.board.ui.cards.CardFocusHost
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
+import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
 import dev.quinton.goa.feature.board.ui.cards.rememberCardFocusState
 
 /** The sheets the game opens (hoisted so screenshots can open one). */
@@ -213,6 +220,7 @@ fun GameScreen(
                                 }
                             },
                             initialPanelHidden = initialPanelHidden,
+                            focus = focus,
                         ) {
                             Panel(state.play, onAction, focus)
                         }
@@ -353,18 +361,21 @@ private fun GameMenu(
     }
 }
 
-/** The panel's content: a nudge, the question, the computer's move or the wait, the reveal, your hand. */
+/**
+ * The panel's content: a nudge, the moment the table is at (the reveal, a turn or round over), the
+ * question, the computer's move or the wait, what happened that the board doesn't show, your hand.
+ * The turn's cards themselves are on the turn track at the top (ADR-041).
+ */
 @Composable
 private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focus: CardFocusState) {
     val table = play.table
     val nudge = play.nudge
+    val moment = table.moment.takeIf { nudge == null }
+    if (moment != null) MomentCard(moment, table, focus = focus)
     when {
         nudge != null -> CoachNudge(nudge, onAction)
 
         play.status is TurnStatus.YourTurn -> {
-            if (play.reveal.isNotEmpty() && table.decision?.kind != dev.quinton.goa.core.game.DecisionKind.PLAY_CARD) {
-                RevealLine(table, play.reveal)
-            }
             DecisionPanel(
                 table,
                 onSelect = { onAction(GameAction.Select(it)) },
@@ -375,10 +386,7 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
             if (play.busy && play.coach) CoachLooking()
         }
 
-        play.status is TurnStatus.Computer -> {
-            ComputerMove(table, play.status)
-            if (play.reveal.isNotEmpty()) Reveal(table, play.reveal)
-        }
+        play.status is TurnStatus.Computer -> ComputerMove(table, play.status, focus)
 
         play.status is TurnStatus.Waiting -> Waiting(table, play.status)
 
@@ -460,16 +468,17 @@ private fun CoachLooking() {
     }
 }
 
-/** The computer is choosing for one of its heroes; "thinking…" once it takes a while. */
+/**
+ * The computer is choosing for one of its heroes ("thinking…" once it takes a while), with the card
+ * it is resolving beside it (tap to read it).
+ */
 @Composable
-private fun ComputerMove(table: TableUi, status: TurnStatus.Computer) {
+private fun ComputerMove(table: TableUi, status: TurnStatus.Computer, focus: CardFocusState) {
     val hero = table.heroView(status.heroId)
     val info = table.hero(status.heroId)
     val level = (hero?.controller as? Controller.Ai)?.level
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-    ) {
+    val card = table.sourceCard ?: hero?.played?.takeIf { !it.facedown }?.cardId?.let(table::card)
+    Row(verticalAlignment = Alignment.CenterVertically) {
         HeroPortrait(
             status.heroId,
             info.portrait,
@@ -485,7 +494,7 @@ private fun ComputerMove(table: TableUi, status: TurnStatus.Computer) {
             framed = false,
         )
         Spacer(Modifier.width(Spacing.md))
-        Column(Modifier.weight(1f)) {
+        Column(Modifier.weight(1f).semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) {
             Text(
                 "COMPUTER${level?.let { " · ${PlayText.level(it).uppercase()}" }.orEmpty()}",
                 style = GoaTextStyles.overline,
@@ -499,6 +508,23 @@ private fun ComputerMove(table: TableUi, status: TurnStatus.Computer) {
             table.decision?.prompt?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
+        if (card != null && table.decision?.kind != DecisionKind.PLAY_CARD) {
+            Spacer(Modifier.width(Spacing.sm))
+            Surface(
+                onClick = { focus.show(listOf(card), title = info.name) },
+                shape = RoundedCornerShape(6.dp),
+                modifier = Modifier
+                    .cardFocusOrigin(focus, "computer/${card.id}")
+                    .clearAndSetSemantics {
+                        contentDescription = "${info.name}'s card: ${spokenCard(card)}"
+                        role = Role.Button
+                        onClick(label = "Read the card") {
+                            focus.show(listOf(card), title = info.name)
+                            true
+                        }
+                    },
+            ) { TableCard(card, width = 56.dp) }
         }
     }
     if (status.thinking) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -527,54 +553,6 @@ private fun Waiting(table: TableUi, status: TurnStatus.Waiting) {
         }
         CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
     }
-}
-
-/** The reveal (p.7): every played card with its initiative, highest first. */
-@Composable
-private fun Reveal(table: TableUi, reveal: List<RevealedCard>) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text("CARDS REVEALED · p.7", style = GoaTextStyles.overline, color = MaterialTheme.colorScheme.primary)
-        Row(
-            Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            reveal.forEach { shown ->
-                val hero = table.heroView(shown.heroId)
-                val card = table.card(shown.cardId)
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.clearAndSetSemantics {
-                        contentDescription = "${table.hero(shown.heroId).name}: " +
-                            (card?.let { "${it.name}, initiative ${shown.initiative ?: "none"}" } ?: "no card")
-                    },
-                ) {
-                    TableCard(card, width = 56.dp)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        hero?.let { TeamMark(it.team, markSize = 8.dp) }
-                        Spacer(Modifier.width(3.dp))
-                        Text(table.hero(shown.heroId).name, style = MaterialTheme.typography.labelSmall, maxLines = 1)
-                    }
-                    shown.initiative?.let {
-                        Text(
-                            "Initiative $it",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-/** The reveal in one line, while the person answers. */
-@Composable
-private fun RevealLine(table: TableUi, reveal: List<RevealedCard>) {
-    Text(
-        "Revealed: " + reveal.joinToString(" · ") { "${table.hero(it.heroId).name} ${it.initiative ?: "–"}" },
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
 }
 
 @Composable

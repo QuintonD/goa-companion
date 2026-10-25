@@ -96,6 +96,32 @@ class PlayPanelTextTest {
     }
 
     @Test
+    fun theSpellbookCountsAreNotRepeatedBesideItsSection() {
+        val gydion = dev.quinton.goa.core.game.HeroView(
+            heroId = "gydion",
+            team = Team.RED,
+            controller = dev.quinton.goa.core.game.Controller.Human,
+            at = null,
+            level = 1,
+            coins = 0,
+            hand = null,
+            handCount = 5,
+            played = null,
+            resolved = emptyList(),
+            discard = emptyList(),
+            items = emptyList(),
+            ultimate = false,
+            counters = mapOf("spellbook" to 19, "spellsRemoved" to 3, "wishCasts" to 1),
+        )
+        // Without the section (no extras in the view) the counts are the only place they show.
+        assertEquals(gydion.counters, dev.quinton.goa.feature.board.play.table.shownCounters(gydion))
+        val withBook = gydion.copy(
+            extras = listOf(dev.quinton.goa.core.game.ExtraPlaceView("spellbook", 19, null, false)),
+        )
+        assertEquals(mapOf("wishCasts" to 1), dev.quinton.goa.feature.board.play.table.shownCounters(withBook))
+    }
+
+    @Test
     fun aMissingAttackIsExplainedAndTheAskingCardsReachIsSaid() {
         val dagger = Card(
             id = "wasp-gold",
