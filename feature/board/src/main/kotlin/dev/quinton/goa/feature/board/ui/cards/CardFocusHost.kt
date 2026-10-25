@@ -65,6 +65,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
@@ -217,6 +218,22 @@ private fun FocusOverlay(state: CardFocusState, request: CardFocusRequest) {
                 .background(ScrimColor.copy(alpha = scrimAlpha))
                 .clickable(remember { MutableInteractionSource() }, indication = null) { state.close() },
         )
+        // The screen's top bar sits right under the viewer's header: the scrim turns opaque there,
+        // fading out below the header, so its icons don't show through behind the title.
+        val topShade = with(density) { WindowInsets.safeDrawing.getTop(this).toDp() } + TOP_BAR + Spacing.lg
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(topShade)
+                .clearAndSetSemantics {}
+                .background(
+                    Brush.verticalGradient(
+                        0f to ScrimColor.copy(alpha = scrimAlpha / SCRIM_ALPHA),
+                        TOP_SHADE_SOLID to ScrimColor.copy(alpha = scrimAlpha / SCRIM_ALPHA),
+                        1f to Color.Transparent,
+                    ),
+                ),
+        )
         Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             FocusLayout(state, request, pager, motion, actions)
         }
@@ -312,8 +329,9 @@ private fun FocusLayout(
             Row(Modifier.fillMaxSize()) {
                 CardStage(state, request, pager, motion, actions, cardWidth, Modifier.width(stage).fillMaxHeight())
                 Column(Modifier.weight(1f).fillMaxHeight().padding(end = Spacing.md)) {
-                    TopBar(request, state.index, actions.close, motion.reveal.value)
-                    details(Modifier.weight(1f).fillMaxWidth().padding(bottom = Spacing.md))
+                    // The height is what the words lack here: a 48 dp header, the panel to the bottom edge.
+                    TopBar(request, state.index, actions.close, motion.reveal.value, height = TOP_BAR_LANDSCAPE)
+                    details(Modifier.weight(1f).fillMaxWidth().padding(bottom = Spacing.sm))
                 }
             }
         } else {
@@ -338,11 +356,11 @@ private fun FocusLayout(
 
 /** × to close, what is asked (or the viewer's title) and "Card 2 of 4", on the scrim. */
 @Composable
-private fun TopBar(request: CardFocusRequest, index: Int, onClose: () -> Unit, reveal: Float) {
+private fun TopBar(request: CardFocusRequest, index: Int, onClose: () -> Unit, reveal: Float, height: Dp = TOP_BAR) {
     Row(
         Modifier
             .fillMaxWidth()
-            .height(TOP_BAR)
+            .height(height)
             .graphicsLayer { alpha = reveal },
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -664,6 +682,10 @@ private const val SHAKE_MS = 45
 private const val CORNER = 0.05f
 private const val MAX_DOTS = 8
 private val TOP_BAR = 56.dp
+private val TOP_BAR_LANDSCAPE = 48.dp
+
+/** The share of the top shade that is fully opaque (the header), before it fades out. */
+private const val TOP_SHADE_SOLID = 0.7f
 private val PEEK = 36.dp
 private val PAGE_GAP = 10.dp
 private val FLY_DISTANCE = 96.dp

@@ -238,7 +238,11 @@ discarded cards, a puzzle replay's card, and the sandbox's "Read the cards".
   against Attack 6", also as a pill on the card's corner), why a card isn't an option, what choosing it
   means (Keep: "… goes to your hand", "… becomes an item: +1 Defense (p.16)"; Upgrade: the two cards of
   the next Tier with their item stats), the printed values, the text verbatim, its item stat.
-  Landscape: the card on the left at full height, title and panel on the right.
+  Landscape: the card on the left at full height; on the right a 48 dp header and the panel down to
+  the bottom edge, with the tier beside the name, tighter spacing, the card text in bodyMedium and no
+  "Swipe up…" line, so on a phone held sideways the card's text shows without scrolling. The details
+  scroll in both orientations, with a fade at the bottom while there is more. The scrim turns opaque
+  behind the header (fading out just below it), so the screen's top bar never shows through.
 - **Second tap** on the focused card confirms: a press (scale 0.93, 90 ms), a bouncy settle with a teal
   tick seal, the phone's Confirm haptic, then the answer goes out and the card fades away. The panel
   ends with "Tap the card again to discard Magnetic Dagger" (teal, touch icon) over a filled button

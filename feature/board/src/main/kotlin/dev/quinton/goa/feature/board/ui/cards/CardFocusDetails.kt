@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.board.ui.cards
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -35,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -88,12 +91,12 @@ internal fun FocusDetails(
         Column {
             Box(Modifier.weight(1f)) {
                 Crossfade(index, animationSpec = tween(Motion.SHORT_MS), label = "card details") { shown ->
-                    request.cards.getOrNull(shown)?.let { DetailsBody(it, request.selection?.context) }
+                    request.cards.getOrNull(shown)?.let { DetailsBody(it, request.selection?.context, landscape) }
                 }
             }
             val selection = request.selection
             if (selection != null) {
-                ConfirmBar(item, selection.action(item.card), request.canConfirm, onConfirm)
+                ConfirmBar(item, selection.action(item.card), request.canConfirm, onConfirm, landscape)
             } else {
                 ViewHint(request.cards.size > 1)
             }
@@ -101,65 +104,101 @@ internal fun FocusDetails(
     }
 }
 
+/**
+ * Scrolls; a fade at the bottom says there is more. In landscape (a phone's height is what is short)
+ * the tier sits beside the name and the padding is tighter, so the card's text shows without scrolling.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DetailsBody(item: FocusCard, context: String?) {
-    val card = item.card
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        context?.let {
-            Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun DetailsBody(item: FocusCard, context: String?, landscape: Boolean) {
+    val scroll = rememberScrollState()
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(scroll)
+                .padding(horizontal = Spacing.lg, vertical = if (landscape) Spacing.sm else Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(if (landscape) Spacing.xs else Spacing.sm),
+        ) {
+            DetailsContent(item, context, landscape)
         }
-        Column {
-            Text(card.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
-            Text(
-                listOfNotNull("${tierLabel(card)} ${cardColorName(card.color)}", item.caption).joinToString(" · "),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        if (scroll.canScrollForward) {
+            val surface = MaterialTheme.colorScheme.surface
+            Box(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(MORE_FADE)
+                    .background(Brush.verticalGradient(listOf(surface.copy(alpha = 0f), surface))),
             )
         }
-        item.verdict?.let { VerdictLine(it) }
-        if (!item.enabled) ReasonLine(item.reason ?: "This card can't be chosen for this question.")
-        item.notes.forEach { note ->
-            if (note.item != null) {
-                ItemLine(note.item, note.text)
-            } else {
-                Text(note.text, style = MaterialTheme.typography.bodyMedium)
-            }
-        }
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            card.initiative?.let { ValueChip(GameIcons.initiative, "Initiative $it") }
-            card.values.attack?.let { ValueChip(GameIcons.attack, "Attack $it") }
-            card.values.defense?.let { ValueChip(GameIcons.defense, "Defense $it") }
-            card.values.movement?.let { ValueChip(GameIcons.movement, "Movement $it") }
-            card.values.range?.let { ValueChip(GameIcons.range, "Range $it") }
-            card.values.radius?.let { ValueChip(GameIcons.radius, "Radius $it") }
-        }
-        if (item.related.isNotEmpty()) Related(item)
-        if (card.text.isNotBlank()) {
-            Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-            ) {
-                CardTextView(
-                    card.text,
-                    style = MaterialTheme.typography.bodyLarge,
-                    iconTint = cardColor(card.color),
-                    modifier = Modifier.fillMaxWidth().padding(Spacing.md),
-                )
-            }
-        }
-        card.item?.let { stat -> ItemLine(stat, "As an item: +1 ${PlayText.stat(stat)} (p.16)") }
     }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun DetailsContent(item: FocusCard, context: String?, landscape: Boolean) {
+    val card = item.card
+    context?.let {
+        Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    val tier = listOfNotNull("${tierLabel(card)} ${cardColorName(card.color)}", item.caption).joinToString(" · ")
+    if (landscape) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text(
+                card.name,
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.alignByBaseline().semantics { heading() },
+            )
+            Text(
+                tier,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.alignByBaseline(),
+            )
+        }
+    } else {
+        Column {
+            Text(card.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+            Text(tier, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+    item.verdict?.let { VerdictLine(it) }
+    if (!item.enabled) ReasonLine(item.reason ?: "This card can't be chosen for this question.")
+    item.notes.forEach { note ->
+        if (note.item != null) {
+            ItemLine(note.item, note.text)
+        } else {
+            Text(note.text, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        card.initiative?.let { ValueChip(GameIcons.initiative, "Initiative $it") }
+        card.values.attack?.let { ValueChip(GameIcons.attack, "Attack $it") }
+        card.values.defense?.let { ValueChip(GameIcons.defense, "Defense $it") }
+        card.values.movement?.let { ValueChip(GameIcons.movement, "Movement $it") }
+        card.values.range?.let { ValueChip(GameIcons.range, "Range $it") }
+        card.values.radius?.let { ValueChip(GameIcons.radius, "Radius $it") }
+    }
+    if (item.related.isNotEmpty()) Related(item)
+    if (card.text.isNotBlank()) {
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+        ) {
+            CardTextView(
+                card.text,
+                style = if (landscape) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
+                iconTint = cardColor(card.color),
+                modifier = Modifier.fillMaxWidth().padding(if (landscape) Spacing.sm else Spacing.md),
+            )
+        }
+    }
+    card.item?.let { stat -> ItemLine(stat, "As an item: +1 ${PlayText.stat(stat)} (p.16)") }
 }
 
 /** The verdict in words with its icon, and why ("Defense 7 against Attack 6"). */
@@ -236,7 +275,7 @@ private fun RelatedCard(card: Card) {
 
 /** "Tap the card again to discard Magnetic Dagger", and the same as a button (TalkBack, switch access). */
 @Composable
-private fun ConfirmBar(item: FocusCard, action: String, canConfirm: Boolean, onConfirm: () -> Unit) {
+private fun ConfirmBar(item: FocusCard, action: String, canConfirm: Boolean, onConfirm: () -> Unit, landscape: Boolean) {
     HorizontalDivider(color = GoaTheme.colors.engravedBorder)
     Column(
         Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
@@ -274,8 +313,8 @@ private fun ConfirmBar(item: FocusCard, action: String, canConfirm: Boolean, onC
                 textAlign = TextAlign.Center,
             )
         }
-        // Large text: the card and its words need the room; × still says how to close.
-        if (LocalDensity.current.fontScale <= LARGE_FONT_SCALE) {
+        // Large text or landscape: the card and its words need the room; × still says how to close.
+        if (!landscape && LocalDensity.current.fontScale <= LARGE_FONT_SCALE) {
             Text(
                 "Swipe up or go back to choose nothing.",
                 style = MaterialTheme.typography.bodySmall,
@@ -309,4 +348,5 @@ private fun ViewHint(many: Boolean) {
 }
 
 private val RELATED_CARD = 72.dp
+private val MORE_FADE = 24.dp
 private const val CLOSE_HINT = "Swipe up or go back to close."
