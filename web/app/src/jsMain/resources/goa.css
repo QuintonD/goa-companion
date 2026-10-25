@@ -1,0 +1,651 @@
+/*
+ * Guards of Atlantis companion, web app stylesheet (ADR-043, "Web shell (F2)").
+ * The "Steel and bronze" design system of docs/DESIGN.md (ADR-042) as CSS custom properties.
+ * Every colour comes from a token below; components only use var(--…). Contrast of each pair is
+ * the Android app's (ContrastTest): change a token here only together with core:designsystem.
+ *
+ * Theme: <html data-theme="dark|light|system">, set before first paint by index.html.
+ * Like Android (dp for layout, sp for text): layout sizes are px, text sizes rem, so iOS Dynamic
+ * Type / the browser's text size grow the words, not the margins. Rows and bars that hold text use
+ * min-height so they grow with it.
+ */
+
+/* ---------- Fonts (OFL, copied from core/designsystem at build time) ---------- */
+@font-face { font-family: "Cinzel"; src: url("fonts/cinzel_regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Cinzel"; src: url("fonts/cinzel_semibold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Cinzel"; src: url("fonts/cinzel_bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("fonts/inter_regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("fonts/inter_medium.ttf") format("truetype"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("fonts/inter_semibold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("fonts/inter_bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Crimson Pro"; src: url("fonts/crimson_regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Crimson Pro"; src: url("fonts/crimson_italic.ttf") format("truetype"); font-weight: 400; font-style: italic; font-display: swap; }
+/* Bold keywords use the semibold cut, as on Android (Crimson's bold is too heavy small). */
+@font-face { font-family: "Crimson Pro"; src: url("fonts/crimson_semibold.ttf") format("truetype"); font-weight: 600 700; font-display: swap; }
+
+/* ---------- Tokens ---------- */
+:root {
+  --font-display: "Cinzel", "Times New Roman", serif;
+  --font-body: "Inter", -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-printed: "Crimson Pro", Georgia, serif;
+
+  /* 4 px grid (Spacing) */
+  --sp-xs: 4px;
+  --sp-sm: 8px;
+  --sp-md: 12px;
+  --sp-lg: 16px;
+  --sp-xl: 24px;
+  --sp-xxl: 32px;
+  --sp-screen: 16px;
+
+  /* Shape */
+  --radius-chip: 10px;
+  --radius-card: 12px;
+  --radius-sheet: 28px;
+  --tap: 44px; /* 44 pt minimum tap target */
+
+  /* Motion (Motion tokens) */
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --ease-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --dur-short: 200ms;
+  --dur-medium: 250ms;
+  --dur-long: 300ms;
+
+  /* Safe areas (viewport-fit=cover) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --content-max: 720px;
+  --tabbar-height: calc(44px + 1rem); /* pill + paddings, plus one label line */
+
+  /* Constant in both themes: the steel banner and the parchment's ink. */
+  --banner-highlight: #A9CBE0;
+  --banner-shadow: #0A1622;
+  --on-banner: #F3F6F9;
+  --on-banner-variant: #C9D8E4;
+  --on-parchment: #231C14;
+  --parchment-ink: #8A3F18;
+}
+
+/* Dark ("Steel and bronze", the default: table lighting) */
+:root, :root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0B1622;
+  --surface: #122334;
+  --surface-high: #1A2E44;
+  --on-surface: #E8E2D6;
+  --on-surface-variant: #A9B4C2;
+  --primary: #C9A35B;
+  --on-primary: #0B1622;
+  --primary-container: #3D3018;
+  --on-primary-container: #F0DDB0;
+  --secondary: #3FC1B0;
+  --on-secondary: #0B1622;
+  --secondary-container: #123F3B;
+  --on-secondary-container: #BDEFE7;
+  --error: #FF6B6B;
+  --on-error: #0B1622;
+  --error-container: #4D1C1C;
+  --on-error-container: #FFD9D6;
+  --team-red: #E26459;
+  --team-blue: #4F8FE0;
+  --verified: #3FC1B0;
+  --unverified: #E8B04A;
+  --engraved: rgba(201, 163, 91, 0.30);
+  --bronze-glow: rgba(201, 163, 91, 0.18);
+  --outline-variant: rgba(169, 180, 194, 0.30);
+  --medallion: #07101A;
+  --banner-top: #26496A;
+  --banner-bottom: #152C42;
+  --heading: #E39B5F;
+  --parchment: #D9D2C1;
+  --on-parchment-variant: #54483A;
+  --parchment-edge: #8C826E;
+  --scrim: rgba(3, 8, 13, 0.62);
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #F4EFE6;
+  --surface: #FFFFFF;
+  --surface-high: #EDE5D6;
+  --on-surface: #1A1F26;
+  --on-surface-variant: #4A5563;
+  --primary: #84662A;
+  --on-primary: #FFFFFF;
+  --primary-container: #F1E2C0;
+  --on-primary-container: #3A2A08;
+  --secondary: #1B786B;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #CDEDE7;
+  --on-secondary-container: #0B3B34;
+  --error: #B3261E;
+  --on-error: #FFFFFF;
+  --error-container: #F9DEDC;
+  --on-error-container: #410E0B;
+  --team-red: #B83A30;
+  --team-blue: #2C63B0;
+  --verified: #1B786B;
+  --unverified: #8A5A00;
+  --engraved: rgba(132, 102, 42, 0.30);
+  --bronze-glow: rgba(132, 102, 42, 0.14);
+  --outline-variant: rgba(74, 85, 99, 0.30);
+  --medallion: #E6DCC8;
+  --banner-top: #2E5C7E;
+  --banner-bottom: #1D3E57;
+  --heading: #9A4A1F;
+  --parchment: #EEE8DA;
+  --on-parchment-variant: #5A4E3E;
+  --parchment-edge: #B9AE98;
+  --scrim: rgba(11, 22, 34, 0.45);
+  --shadow: 0 8px 24px rgba(26, 31, 38, 0.18);
+}
+
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] {
+    color-scheme: light;
+    --bg: #F4EFE6;
+    --surface: #FFFFFF;
+    --surface-high: #EDE5D6;
+    --on-surface: #1A1F26;
+    --on-surface-variant: #4A5563;
+    --primary: #84662A;
+    --on-primary: #FFFFFF;
+    --primary-container: #F1E2C0;
+    --on-primary-container: #3A2A08;
+    --secondary: #1B786B;
+    --on-secondary: #FFFFFF;
+    --secondary-container: #CDEDE7;
+    --on-secondary-container: #0B3B34;
+    --error: #B3261E;
+    --on-error: #FFFFFF;
+    --error-container: #F9DEDC;
+    --on-error-container: #410E0B;
+    --team-red: #B83A30;
+    --team-blue: #2C63B0;
+    --verified: #1B786B;
+    --unverified: #8A5A00;
+    --engraved: rgba(132, 102, 42, 0.30);
+    --bronze-glow: rgba(132, 102, 42, 0.14);
+    --outline-variant: rgba(74, 85, 99, 0.30);
+    --medallion: #E6DCC8;
+    --banner-top: #2E5C7E;
+    --banner-bottom: #1D3E57;
+    --heading: #9A4A1F;
+    --parchment: #EEE8DA;
+    --on-parchment-variant: #5A4E3E;
+    --parchment-edge: #B9AE98;
+    --scrim: rgba(11, 22, 34, 0.45);
+    --shadow: 0 8px 24px rgba(26, 31, 38, 0.18);
+  }
+}
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  /* iOS: follow Dynamic Type (Settings > Display > Text Size) like Android's font scale. */
+  font: -apple-system-body;
+  font-family: var(--font-body);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  background: var(--bg);
+  /* Status bar area above the banner (black-translucent) shows the banner colour while bouncing. */
+  background-image: linear-gradient(var(--banner-top), var(--banner-top));
+  background-size: 100% calc(var(--safe-top) + 1px);
+  background-repeat: no-repeat;
+  -webkit-tap-highlight-color: transparent;
+}
+@supports not (font: -apple-system-body) {
+  html { font-size: 100%; }
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  color: var(--on-surface);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.5;
+  letter-spacing: 0.03125rem;
+  overscroll-behavior-y: none;
+}
+html.goa-locked, html.goa-locked body { overflow: hidden; }
+
+img { max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; letter-spacing: inherit; }
+a { color: var(--primary); }
+:focus-visible { outline: 2px solid var(--secondary); outline-offset: 2px; }
+/* Titles take focus after a navigation for VoiceOver; that needs no ring. */
+.goa-topbar-title:focus, .goa-sheet:focus, .goa-dialog:focus { outline: none; }
+.goa-visually-hidden {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+}
+
+/* ---------- Type scale (GoaTypography / GoaTextStyles) ---------- */
+.t-display-small { font: 600 2.25rem/2.75rem var(--font-display); letter-spacing: 0; }
+.t-headline-small { font: 600 1.5rem/2rem var(--font-display); letter-spacing: 0; }
+.t-title-large { font: 600 1.375rem/1.75rem var(--font-display); letter-spacing: 0.03rem; }
+.t-title-medium { font: 600 1rem/1.5rem var(--font-body); letter-spacing: 0.01rem; }
+.t-title-small { font: 600 0.875rem/1.25rem var(--font-body); letter-spacing: 0.006rem; }
+.t-body-large { font: 400 1rem/1.5rem var(--font-body); letter-spacing: 0.03rem; }
+.t-body-medium { font: 400 0.875rem/1.25rem var(--font-body); letter-spacing: 0.016rem; }
+.t-body-small { font: 400 0.75rem/1rem var(--font-body); letter-spacing: 0.025rem; }
+.t-label-large { font: 500 0.875rem/1.25rem var(--font-body); letter-spacing: 0.006rem; }
+.t-label-medium { font: 500 0.75rem/1rem var(--font-body); letter-spacing: 0.03rem; }
+.t-overline { font: 700 0.75rem/1rem var(--font-display); letter-spacing: 0.09rem; text-transform: uppercase; }
+.t-section-head { font: 700 1rem/1.375rem var(--font-display); letter-spacing: 0.04rem; color: var(--heading); }
+.t-banner-title { font: 700 1.3125rem/1.75rem var(--font-display); letter-spacing: 0.05rem; }
+.t-printed { font: 400 1.125rem/1.5625rem var(--font-printed); letter-spacing: 0.006rem; }
+.t-printed-small { font: 400 1rem/1.375rem var(--font-printed); }
+.t-numeric, .t-timer, .t-timer-small { font-variant-numeric: tabular-nums lining-nums; }
+.t-numeric { font: 500 0.875rem/1.25rem var(--font-body); font-variant-numeric: tabular-nums lining-nums; }
+.t-timer { font: 600 6rem/6.5rem var(--font-body); letter-spacing: -0.125rem; font-variant-numeric: tabular-nums lining-nums; }
+.t-timer-small { font: 500 2rem/2.5rem var(--font-body); letter-spacing: -0.03rem; font-variant-numeric: tabular-nums lining-nums; }
+.c-variant { color: var(--on-surface-variant); }
+.c-primary { color: var(--primary); }
+.c-heading { color: var(--heading); }
+.c-error { color: var(--error); }
+.c-team-red { color: var(--team-red); }
+.c-team-blue { color: var(--team-blue); }
+
+/* ---------- Icons: inline SVG (IconMarkup), tinted with currentColor ---------- */
+.goa-icon {
+  display: inline-block;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  line-height: 0;
+}
+.goa-icon > svg { width: 100%; height: 100%; display: block; }
+.goa-icon.small { width: 20px; height: 20px; }
+.goa-icon.large { width: 48px; height: 48px; }
+
+/* ---------- App frame ---------- */
+#root { min-height: 100dvh; }
+.goa-app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+.goa-app.has-tabbar { padding-bottom: calc(var(--tabbar-height) + var(--safe-bottom)); }
+.goa-app:not(.has-tabbar) { padding-bottom: var(--safe-bottom); }
+
+.goa-screen { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.goa-content {
+  flex: 1;
+  width: 100%;
+  max-width: calc(var(--content-max) + var(--safe-left) + var(--safe-right));
+  margin: 0 auto;
+  padding: var(--sp-lg) calc(var(--sp-screen) + var(--safe-right)) var(--sp-xl) calc(var(--sp-screen) + var(--safe-left));
+}
+.goa-content.flush { padding-left: var(--safe-left); padding-right: var(--safe-right); max-width: none; }
+.goa-stack > * + * { margin-top: var(--sp-md); }
+
+/* Steel banner top bar (GoaScreen / SteelBanner) */
+.goa-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: var(--safe-top) var(--safe-right) 0 var(--safe-left);
+  color: var(--on-banner);
+  background:
+    linear-gradient(90deg, transparent, rgba(169, 203, 224, 0.10) 50%, transparent) top / 100% 50% no-repeat,
+    linear-gradient(var(--banner-top), var(--banner-bottom));
+  box-shadow:
+    inset 0 1px 0 rgba(169, 203, 224, 0.45),
+    0 1px 0 var(--banner-shadow);
+}
+.goa-topbar::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -2px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(201, 163, 91, 0.15), rgba(201, 163, 91, 0.75), rgba(201, 163, 91, 0.15));
+}
+.goa-topbar-row {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  max-width: calc(var(--content-max) + 96px);
+  margin: 0 auto;
+  padding: 0 var(--sp-xs);
+  gap: var(--sp-xs);
+}
+.goa-topbar-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0 var(--sp-md);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.goa-topbar .goa-icon-button { color: var(--on-banner-variant); }
+.goa-topbar .goa-icon-button.nav { color: var(--on-banner); }
+.goa-topbar-row > .goa-icon-button.nav + .goa-topbar-title { padding-left: var(--sp-xs); }
+.goa-topbar-actions { display: flex; align-items: center; }
+
+/* Bottom tab bar (GoaBottomBar) */
+.goa-tabbar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--safe-right) var(--safe-bottom) var(--safe-left);
+  background: var(--surface);
+}
+.goa-tabbar::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 163, 91, 0.35) 20%, rgba(201, 163, 91, 0.35) 80%, transparent);
+}
+.goa-tabbar-inner { display: flex; width: 100%; max-width: 576px; }
+.goa-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: var(--tabbar-height);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 2px 4px;
+  border: 0;
+  background: none;
+  color: var(--on-surface-variant);
+  text-decoration: none;
+  font: 500 0.75rem/1rem var(--font-body);
+  letter-spacing: 0.03rem;
+  cursor: pointer;
+}
+.goa-tab-pill {
+  display: flex; align-items: center; justify-content: center;
+  width: 64px; height: 32px; border-radius: 16px;
+}
+.goa-tab[aria-current="page"] { color: var(--primary); font-weight: 600; }
+.goa-tab[aria-current="page"] .goa-tab-pill { background: color-mix(in srgb, var(--primary) 18%, transparent); }
+.goa-tab-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Buttons ---------- */
+.goa-icon-button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; min-width: var(--tap); min-height: var(--tap);
+  padding: 0; border: 0; border-radius: 50%;
+  background: none; color: inherit; cursor: pointer;
+  text-decoration: none;
+}
+.goa-icon-button:active { background: rgba(169, 203, 224, 0.16); }
+
+.goa-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-sm);
+  min-height: var(--tap);
+  padding: 10px 24px;
+  border: 1px solid transparent;
+  border-radius: 22px;
+  font: 500 0.875rem/1.25rem var(--font-body);
+  letter-spacing: 0.006rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: filter var(--dur-short), background-color var(--dur-short);
+}
+.goa-button .goa-icon { width: 18px; height: 18px; }
+.goa-button.filled { background: var(--primary); color: var(--on-primary); }
+.goa-button.tonal { background: var(--primary-container); color: var(--on-primary-container); }
+.goa-button.outlined { background: transparent; color: var(--primary); border-color: var(--engraved); }
+.goa-button.text { background: transparent; color: var(--primary); padding-left: var(--sp-md); padding-right: var(--sp-md); }
+.goa-button.danger { background: var(--error); color: var(--on-error); }
+.goa-button.block { display: flex; width: 100%; }
+.goa-button:active:not(:disabled) { filter: brightness(1.12); }
+.goa-button:disabled { opacity: 0.38; cursor: default; }
+.goa-button-row { display: flex; flex-wrap: wrap; gap: var(--sp-sm); justify-content: flex-end; }
+
+/* ---------- Chips (FilterChipRow / GoaFilterChip) ---------- */
+.goa-chip-row {
+  display: flex; gap: var(--sp-sm); overflow-x: auto;
+  padding: 2px 0; margin: 0 calc(-1 * var(--sp-screen));
+  padding-left: var(--sp-screen); padding-right: var(--sp-screen);
+  scrollbar-width: none;
+}
+.goa-chip-row::-webkit-scrollbar { display: none; }
+.goa-chip-row.wrap { flex-wrap: wrap; overflow: visible; margin: 0; padding-left: 0; padding-right: 0; }
+.goa-chip {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 32px;
+  padding: 6px 14px;
+  border: 1px solid var(--engraved);
+  border-radius: var(--radius-chip);
+  background: transparent;
+  color: var(--on-surface-variant);
+  font: 500 0.875rem/1.25rem var(--font-body);
+  cursor: pointer;
+  position: relative;
+}
+/* A 44 pt hit area around a 32 px chip. */
+.goa-chip::after { content: ""; position: absolute; inset: -6px 0; }
+.goa-chip[aria-pressed="true"], .goa-chip[aria-checked="true"] {
+  background: var(--secondary-container); color: var(--on-secondary-container); border-color: transparent;
+}
+.goa-chip .goa-icon { width: 18px; height: 18px; }
+
+/* Segmented control (theme selector etc.) */
+.goa-segmented { display: flex; border: 1px solid var(--engraved); border-radius: 22px; overflow: hidden; }
+.goa-segmented > button {
+  flex: 1 1 0; min-height: var(--tap); padding: 8px 12px;
+  border: 0; border-left: 1px solid var(--engraved); background: transparent;
+  color: var(--on-surface); font: 500 0.875rem/1.25rem var(--font-body); cursor: pointer;
+}
+.goa-segmented > button:first-child { border-left: 0; }
+.goa-segmented > button[aria-checked="true"] { background: var(--secondary-container); color: var(--on-secondary-container); }
+
+/* ---------- Surfaces ---------- */
+.goa-card {
+  position: relative;
+  border: 1px solid var(--engraved);
+  border-radius: var(--radius-card);
+  background: linear-gradient(var(--bronze-glow), transparent 40px), var(--surface);
+  padding: var(--sp-lg);
+}
+.goa-card + .goa-card { margin-top: var(--sp-md); }
+.goa-card.flush { padding: var(--sp-xs) 0; overflow: hidden; }
+.goa-card.clickable { cursor: pointer; display: block; width: 100%; text-align: left; color: inherit; text-decoration: none; }
+
+.goa-section-header { display: flex; align-items: center; gap: var(--sp-md); margin: var(--sp-xl) 0 var(--sp-sm); }
+.goa-section-header:first-child { margin-top: var(--sp-sm); }
+.goa-section-header h2 { margin: 0; }
+.goa-section-header::after {
+  content: ""; flex: 1; height: 1px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--heading) 55%, transparent), transparent);
+}
+
+.goa-parchment {
+  background: var(--parchment); color: var(--on-parchment);
+  border: 1px solid var(--parchment-edge); border-radius: 8px;
+  padding: var(--sp-md) var(--sp-lg);
+}
+
+/* List rows */
+.goa-list { list-style: none; margin: 0; padding: 0; }
+.goa-row {
+  display: flex; align-items: center; gap: var(--sp-lg);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--sp-sm) var(--sp-lg);
+  border: 0; background: none; color: inherit;
+  text-align: left; text-decoration: none;
+}
+.goa-list > li + li > .goa-row { box-shadow: inset 0 1px 0 var(--outline-variant); }
+a.goa-row, button.goa-row { cursor: pointer; }
+a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--on-surface) 8%, transparent); }
+.goa-row-leading { flex: none; display: flex; align-items: center; justify-content: center; color: var(--primary); }
+.goa-row-text { flex: 1; min-width: 0; }
+.goa-row-title { display: block; overflow-wrap: break-word; }
+.goa-row-subtitle { display: block; color: var(--on-surface-variant); overflow-wrap: break-word; }
+.goa-row-trailing { flex: none; color: var(--on-surface-variant); display: flex; align-items: center; gap: var(--sp-xs); }
+
+/* Linear progress */
+.goa-progress { height: 6px; border-radius: 3px; background: var(--surface-high); overflow: hidden; }
+.goa-progress > div { height: 100%; background: var(--secondary); border-radius: inherit; transition: width var(--dur-medium) linear; }
+.goa-progress.indeterminate > div { width: 35%; animation: goa-indeterminate 1.2s var(--ease-emphasized) infinite; }
+@keyframes goa-indeterminate { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+
+/* ---------- Empty / loading / error states ---------- */
+.goa-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; gap: var(--sp-sm);
+  min-height: 50dvh; padding: var(--sp-xl) var(--sp-lg);
+}
+.goa-state .goa-icon { color: var(--primary); margin-bottom: var(--sp-sm); }
+.goa-state h2 { margin: 0; }
+.goa-state p { margin: 0; max-width: 448px; color: var(--on-surface-variant); }
+.goa-state .goa-button { margin-top: var(--sp-md); }
+.goa-spinner {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 3px solid var(--surface-high); border-top-color: var(--secondary);
+  animation: goa-spin 0.9s linear infinite;
+}
+@keyframes goa-spin { to { transform: rotate(360deg); } }
+.goa-skeleton {
+  border-radius: var(--radius-card);
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-high) 50%, var(--surface) 100%) 0 0 / 200% 100%;
+  animation: goa-shimmer 1.4s linear infinite;
+}
+@keyframes goa-shimmer { to { background-position: -200% 0; } }
+
+/* ---------- Sheets and dialogs ---------- */
+.goa-scrim {
+  position: fixed; inset: 0; z-index: 50;
+  background: var(--scrim);
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: goa-fade-in var(--dur-medium) var(--ease-decelerate);
+}
+.goa-scrim.center { align-items: center; padding: var(--sp-lg); }
+@keyframes goa-fade-in { from { opacity: 0; } }
+.goa-sheet {
+  position: relative;
+  width: 100%; max-width: 640px;
+  max-height: calc(100dvh - var(--safe-top) - 40px);
+  display: flex; flex-direction: column;
+  background: var(--surface);
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  border: 1px solid var(--engraved); border-bottom: 0;
+  box-shadow: var(--shadow);
+  padding-bottom: var(--safe-bottom);
+  animation: goa-sheet-in var(--dur-long) var(--ease-decelerate);
+  touch-action: pan-y;
+}
+@keyframes goa-sheet-in { from { transform: translateY(100%); } }
+.goa-sheet-handle {
+  flex: none; display: flex; justify-content: center; padding: var(--sp-md) 0 var(--sp-xs);
+  touch-action: none; cursor: grab;
+}
+.goa-sheet-handle::before { content: ""; width: 36px; height: 4px; border-radius: 2px; background: var(--on-surface-variant); opacity: 0.5; }
+.goa-sheet-header { flex: none; display: flex; align-items: center; gap: var(--sp-sm); padding: 0 var(--sp-sm) 0 calc(var(--sp-xl) + var(--safe-left)); }
+.goa-sheet-header h2 { flex: 1; margin: 0; }
+.goa-sheet-body {
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: var(--sp-sm) calc(var(--sp-xl) + var(--safe-right)) var(--sp-xl) calc(var(--sp-xl) + var(--safe-left));
+}
+.goa-dialog {
+  width: 100%; max-width: 480px; max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px);
+  display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--engraved);
+  border-radius: var(--radius-sheet); box-shadow: var(--shadow);
+  padding: var(--sp-xl) var(--sp-xl) var(--sp-lg);
+  animation: goa-dialog-in var(--dur-medium) var(--ease-decelerate);
+}
+@keyframes goa-dialog-in { from { opacity: 0; transform: scale(0.94); } }
+.goa-dialog h2 { margin: 0 0 var(--sp-md); }
+.goa-dialog-body { overflow-y: auto; overscroll-behavior: contain; color: var(--on-surface-variant); }
+.goa-dialog .goa-button-row { margin-top: var(--sp-lg); }
+
+/* ---------- Snackbar and the update prompt ---------- */
+.goa-snackbar-host {
+  position: fixed; left: 0; right: 0; z-index: 40;
+  bottom: calc(var(--safe-bottom) + var(--sp-md));
+  display: flex; justify-content: center; pointer-events: none;
+  padding: 0 calc(var(--sp-md) + var(--safe-right)) 0 calc(var(--sp-md) + var(--safe-left));
+}
+.goa-app.has-tabbar .goa-snackbar-host { bottom: calc(var(--tabbar-height) + var(--safe-bottom) + var(--sp-sm)); }
+.goa-snackbar {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: var(--sp-sm);
+  width: 100%; max-width: 576px; min-height: 48px;
+  padding: var(--sp-xs) var(--sp-xs) var(--sp-xs) var(--sp-lg);
+  border-radius: 8px;
+  background: var(--on-surface); color: var(--bg);
+  box-shadow: var(--shadow);
+  animation: goa-snack-in var(--dur-medium) var(--ease-decelerate);
+}
+@keyframes goa-snack-in { from { opacity: 0; transform: translateY(16px); } }
+.goa-snackbar-text { flex: 1; min-width: 0; padding: var(--sp-sm) 0; }
+.goa-snackbar .goa-button.text { color: color-mix(in srgb, var(--primary) 55%, var(--bg)); }
+:root[data-theme="dark"] .goa-snackbar .goa-button.text { color: #84662A; }
+.goa-snackbar .goa-icon-button { color: inherit; }
+
+/* ---------- Brand header (About) ---------- */
+.goa-brand { display: flex; flex-direction: column; align-items: center; gap: var(--sp-sm); padding: var(--sp-xl) 0 var(--sp-lg); text-align: center; }
+.goa-brand img { width: 88px; height: 88px; }
+.goa-brand h1 { margin: var(--sp-sm) 0 0; }
+.goa-pre {
+  white-space: pre-wrap; overflow-wrap: anywhere; letter-spacing: 0;
+  font: 400 0.75rem/1.125rem ui-monospace, Menlo, Consolas, monospace;
+  color: var(--on-surface);
+}
+
+/* ---------- Placeholder hero list (catalog seam demo) ---------- */
+.goa-hero-avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, var(--surface-high), var(--medallion));
+  border: 1px solid var(--engraved);
+  object-fit: contain; padding: 4px;
+}
+.goa-hero-portrait {
+  display: block; width: 100%; max-width: 320px; aspect-ratio: 1; margin: 0 auto;
+  border-radius: var(--radius-card); border: 1px solid var(--engraved);
+  background: var(--medallion); object-fit: cover;
+}
+
+/* Bigger type: stack rows that would otherwise squeeze (font scale > 1.3 on Android). */
+@media (max-width: 22rem) {
+  .goa-button-row { justify-content: stretch; }
+  .goa-button-row > .goa-button { flex: 1 1 auto; }
+}
+
+/* ---------- Small helpers ---------- */
+.goa-inline { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-inline > p { margin: 0; }
+.goa-card-title { margin: 0 0 var(--sp-sm); }
+.goa-stack > p, .goa-stack > h3 { margin: 0; }
+code {
+  font: 400 0.8125em/1.4 ui-monospace, Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+  background: var(--surface-high); border-radius: 4px; padding: 0 0.25em;
+}
+
+/* Markdown tables (official/SOURCES.md) as one block per row: they never fit a phone as columns. */
+.goa-md-table { display: flex; flex-direction: column; gap: var(--sp-sm); margin: var(--sp-sm) 0 var(--sp-lg); }
+.goa-md-row { border: 1px solid var(--outline-variant); border-radius: 8px; padding: var(--sp-sm) var(--sp-md); }
+.goa-md-cell { display: flex; flex-direction: column; overflow-wrap: break-word; min-width: 0; }
+.goa-md-cell + .goa-md-cell { margin-top: 2px; }
+.goa-md-label { font-weight: 600; }
+.goa-md-value a { overflow-wrap: anywhere; }
+
+/* Top-bar actions that move into "More" when the bar is narrow or the text is large (Android: compact). */
+.goa-topbar-row { container: topbar / inline-size; }
+.goa-topbar-actions .more-only { display: none; }
+@container topbar (max-width: 21rem) {
+  .goa-topbar-actions .collapsible { display: none; }
+  .goa-topbar-actions .more-only { display: inline-flex; }
+}
