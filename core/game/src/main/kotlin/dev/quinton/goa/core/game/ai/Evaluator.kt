@@ -46,6 +46,8 @@ internal data class EvalKnobs(
     val killTempo: Double = 5.0,
     /** Worth of the cards in hand per point of their rating. */
     val handRating: Double = 0.12,
+    /** An enemy hero plays one card a turn: its cards' threats add up to at most one card's chance. */
+    val oneCardPerTurn: Boolean = false,
     /** A multiplier per [Term] (missing = 1.0): what the self-play fit of AI.md "Evaluation" tunes. */
     val scales: Map<Term, Double> = emptyMap(),
 )
@@ -300,6 +302,9 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
         val nextSet = hero.defenseNext
         for ((e, list) in threats) {
             val d = HexGrid.distance(e.at!!, at)
+            // Per enemy and turn: it plays one card, so its cards' chances add up to at most one card's
+            // (knobs.oneCardPerTurn), instead of each card being a separate chance.
+            val sums = DoubleArray(4)
             for (t in list) {
                 if (d > t.reach) continue
                 val set = if (t.now) nowSet else nextSet
@@ -310,7 +315,21 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
                     !t.p.ranged && set.blocksMelee -> false
                     else -> t.attackTotal > set.total(mod)
                 }
-                if (kills) noKill *= 1 - t.weight else noHit *= 1 - t.weight
+                if (knobs.oneCardPerTurn) {
+                    sums[(if (t.now) 0 else 2) + if (kills) 0 else 1] += t.weight
+                } else if (kills) {
+                    noKill *= 1 - t.weight
+                } else {
+                    noHit *= 1 - t.weight
+                }
+            }
+            if (knobs.oneCardPerTurn) {
+                val now = list.firstOrNull { it.now }?.weight ?: 0.0
+                val next = list.firstOrNull { !it.now }?.weight ?: 0.0
+                val killNow = min(now, sums[0])
+                val killNext = min(next, sums[2])
+                noKill *= (1 - killNow) * (1 - killNext)
+                noHit *= (1 - min(now - killNow, sums[1])) * (1 - min(next - killNext, sums[3]))
             }
         }
         val pKill = min(0.9, 1 - noKill)

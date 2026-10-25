@@ -78,6 +78,7 @@ class ExperimentTest {
                 "horizon" -> p.copy(playHorizon = Horizon.valueOf(v))
                 "otherHorizon" -> p.copy(otherHorizon = Horizon.valueOf(v))
                 "nearest" -> p.copy(knobs = kn.copy(nearestThreatOnly = v.toBoolean()))
+                "oneCard" -> p.copy(knobs = kn.copy(oneCardPerTurn = v.toBoolean()))
                 "next" -> p.copy(knobs = kn.copy(nextTurnThreat = v.toDouble()))
                 "pieces" -> p.copy(knobs = kn.copy(pieces = v.toDouble()))
                 "presence" -> p.copy(knobs = kn.copy(presencePerSpace = v.toDouble()))
