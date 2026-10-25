@@ -30,6 +30,7 @@
     "tokens"
   ],
   "portrait": "official/heroes/trinkets/portrait.webp",
+  "symbol": "official/heroes/trinkets/symbol.webp",
   "printing": 2,
   "cards": [
     {

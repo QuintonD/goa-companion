@@ -29,6 +29,7 @@
     "damager"
   ],
   "portrait": "official/heroes/misa/portrait.webp",
+  "symbol": "official/heroes/misa/symbol.webp",
   "printing": 2,
   "cards": [
     {

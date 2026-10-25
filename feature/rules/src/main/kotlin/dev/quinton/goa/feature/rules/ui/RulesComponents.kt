@@ -57,9 +57,12 @@ import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.core.model.rules.RulesExcerpt
 import dev.quinton.goa.feature.rules.RulesText
 
-/** Rules text is read at arm's length across the table: larger than body text, generous leading. */
+/**
+ * Rules text is read at arm's length across the table: larger than body text, generous leading, in
+ * the printed face (Crimson Pro, the rulebook's Minion look) because every excerpt is verbatim.
+ */
 @Composable
-internal fun readingStyle(): TextStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 28.sp)
+internal fun readingStyle(): TextStyle = GoaTextStyles.printed.copy(fontSize = 20.sp, lineHeight = 28.sp)
 
 /** One printed line of an excerpt: a paragraph, a bullet item or a numbered item. */
 internal sealed interface ExcerptLine {
@@ -107,10 +110,11 @@ internal fun ExcerptBlock(excerpt: RulesExcerpt, modifier: Modifier = Modifier, 
     Column(modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             excerpt.heading?.let { heading ->
+                // As the rulebook sets its heads: copper small caps.
                 Text(
                     heading,
-                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 24.sp),
-                    color = MaterialTheme.colorScheme.primary,
+                    style = GoaTextStyles.sectionHead.copy(fontSize = 18.sp, lineHeight = 24.sp),
+                    color = GoaTheme.colors.heading,
                     modifier = Modifier.weight(1f).semantics { heading() },
                 )
             } ?: Box(Modifier.weight(1f))
@@ -121,7 +125,7 @@ internal fun ExcerptBlock(excerpt: RulesExcerpt, modifier: Modifier = Modifier, 
                 Modifier
                     .width(3.dp)
                     .fillMaxHeight()
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.45f), RoundedCornerShape(2.dp)),
+                    .background(GoaTheme.colors.heading.copy(alpha = 0.5f), RoundedCornerShape(2.dp)),
             )
             Column(Modifier.padding(start = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 excerptLines(excerpt.text).forEach { line -> ExcerptLineText(line, style) }
@@ -148,8 +152,8 @@ private val TableCellPadding = Spacing.sm
 @Composable
 private fun ExcerptTable(table: List<List<String>>, style: TextStyle) {
     val header = table.first()
-    val bodyStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = style.fontWeight)
-    val headerStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+    val bodyStyle = GoaTextStyles.printed.copy(fontWeight = style.fontWeight)
+    val headerStyle = GoaTextStyles.printed.copy(fontWeight = FontWeight.Bold)
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     // Measured width, not BoxWithConstraints: the excerpt sits in an intrinsic-height row.

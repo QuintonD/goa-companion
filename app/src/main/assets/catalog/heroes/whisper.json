@@ -30,6 +30,7 @@
     "pusher"
   ],
   "portrait": "official/heroes/whisper/portrait.webp",
+  "symbol": "official/heroes/whisper/symbol.webp",
   "printing": 2,
   "cards": [
     {

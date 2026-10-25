@@ -7,11 +7,14 @@ downloads in their own directory):
 Inputs (from github.com/google/fonts, see third_party/ASSETS.md for the pinned commit):
     <download-dir>/Cinzel-VF.ttf   = ofl/cinzel/Cinzel[wght].ttf
     <download-dir>/Inter-VF.ttf    = ofl/inter/Inter[opsz,wght].ttf
+    <download-dir>/CrimsonPro-VF.ttf        = ofl/crimsonpro/CrimsonPro[wght].ttf
+    <download-dir>/CrimsonPro-Italic-VF.ttf = ofl/crimsonpro/CrimsonPro-Italic[wght].ttf
+A family whose input is missing is skipped (so one family can be rebuilt on its own).
 
-Outputs: cinzel_{regular,semibold,bold}.ttf and inter_{regular,medium,semibold,bold}.ttf,
-subset to Latin + punctuation/symbols with every OpenType layout feature kept (tnum, etc.).
-Neither font declares a Reserved Font Name, so modified (instanced/subset) copies may keep
-their names under OFL-1.1.
+Outputs: cinzel_{regular,semibold,bold}.ttf, inter_{regular,medium,semibold,bold}.ttf and
+crimson_{regular,semibold,italic}.ttf, subset to Latin + punctuation/symbols with every OpenType
+layout feature kept (tnum, etc.). None of the fonts declares a Reserved Font Name, so modified
+(instanced/subset) copies may keep their names under OFL-1.1.
 """
 
 import os
@@ -23,6 +26,9 @@ from fontTools.varLib import instancer
 
 CINZEL = {"regular": 400, "semibold": 600, "bold": 700}
 INTER = {"regular": 400, "medium": 500, "semibold": 600, "bold": 700}
+# Crimson Pro: the printed voice (card text, rulebook excerpts), an open Minion look-alike.
+CRIMSON = {"regular": 400, "semibold": 600}
+CRIMSON_ITALIC = {"italic": 400}
 
 UNICODES = (
     list(range(0x0020, 0x007F))
@@ -57,8 +63,18 @@ def build(src, family, weights, out_dir, extra_axes):
 def main():
     src_dir, out_dir = sys.argv[1], sys.argv[2]
     os.makedirs(out_dir, exist_ok=True)
-    build(os.path.join(src_dir, "Cinzel-VF.ttf"), "cinzel", CINZEL, out_dir, {})
-    build(os.path.join(src_dir, "Inter-VF.ttf"), "inter", INTER, out_dir, {"opsz": 14})
+    jobs = [
+        ("Cinzel-VF.ttf", "cinzel", CINZEL, {}),
+        ("Inter-VF.ttf", "inter", INTER, {"opsz": 14}),
+        ("CrimsonPro-VF.ttf", "crimson", CRIMSON, {}),
+        ("CrimsonPro-Italic-VF.ttf", "crimson", CRIMSON_ITALIC, {}),
+    ]
+    for file, family, weights, extra in jobs:
+        src = os.path.join(src_dir, file)
+        if os.path.isfile(src):
+            build(src, family, weights, out_dir, extra)
+        else:
+            print("skipped (missing)", src)
 
 
 if __name__ == "__main__":

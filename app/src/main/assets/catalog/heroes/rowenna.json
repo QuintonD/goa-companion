@@ -32,6 +32,7 @@
     "tactician"
   ],
   "portrait": "official/heroes/rowenna/portrait.webp",
+  "symbol": "official/heroes/rowenna/symbol.webp",
   "printing": 2,
   "cards": [
     {

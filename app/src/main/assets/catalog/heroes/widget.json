@@ -33,6 +33,7 @@
     "damager"
   ],
   "portrait": "official/heroes/widget/portrait.webp",
+  "symbol": "official/heroes/widget/symbol.webp",
   "printing": 2,
   "cards": [
     {

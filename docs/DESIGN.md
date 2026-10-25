@@ -1,8 +1,47 @@
 # Design
 
-## Direction: "Sunken bronze"
-Deep-ocean dark UI with weathered bronze accents and luminous teal highlights — ancient,
-tactile, premium. Dark theme is the default (table lighting); light theme fully supported.
+## Direction: "Steel and bronze" — the game's own look (ADR-042)
+The app is styled on the official graphics and leans on them wherever they serve the player: the
+cards are shown as the cards, heroes as their art and deck symbols, the board as its printed
+symbols. Dark theme is the default (table lighting); light theme fully supported. Replaces "Sunken
+bronze" (deep-ocean dark with bronze and teal), which stays as the canvas and the accents.
+
+**Taken from the official look** (rulebook pages, card scans, card backs; ADR-042):
+- **Steel banner** — the rulebook's page banner (steel-blue band with metallic edging) is every top
+  bar (`GoaScreen`, the board screens' compact bar): a steel-blue gradient, a bright steel edge on
+  top, a dark edge and a bronze hairline below, the title in engraved Cinzel caps in light steel.
+  It stays dark steel in the light theme too, as on the page.
+- **Copper small-caps heads** — the rulebook sets its section heads ("Place the Board", "Minion
+  Battle") in small caps in a copper red. `SectionHeader`, the catalog's `SectionTitle` and the
+  rules excerpts' printed headings do the same: Cinzel (whose lower case are small caps) in
+  `heading` copper, with a fading copper rule.
+- **The cards as printed** — card scans are the deck display, the viewer and the answer
+  (`CardScan`: printed-card corners, a dark edge, a soft shadow); text the game prints (card text,
+  rulebook excerpts) is set in a Minion look-alike (Crimson Pro) and card text sits on the cards'
+  **parchment** text box (`ParchmentPanel`, `PrintedCardText`).
+- **Deck symbols** — each hero's emblem from their card backs (`HeroSymbol`) beside the hero's
+  name on the hero page, on catalog tiles and rows, and in the draft's hero peek.
+- **Item icons** (the sketched icons at the foot of every card) where an item's stat is explained,
+  the **Spawn point symbols** (hero gear/star, minion symbols) on the map, and the **Tie Breaker
+  coin**'s faces on the draft's coin.
+
+**Where we deviate, and why:**
+- **Dark canvas, not the white page.** The rulebook is white paper; at a dim table a white screen
+  glares and drains the battery. Dark navy stays the default canvas; light theme is a warm off-white.
+- **Contrast.** Every pair is checked to WCAG (≥ 4.5:1 text), which the print doesn't need: the
+  copper is lighter in the dark theme (`#E39B5F`) than the print's, the parchment dimmer (`#D9D2C1`).
+- **Legibility at phone size.** The official item icons are grey sketches and the minion Spawn
+  symbols of one team differ too little to tell apart at board size, so card text keeps the app's
+  inline vector icons (`GameIcons`), minion pieces keep their original type glyphs, and a minion
+  Spawn point gets a small outlined type mark (team shape + type glyph) on the printed symbol.
+- **Spawn points stay markings.** On the table they are printed under the pieces; on a phone, a
+  full-colour symbol reads as a unit, so they are faded, partly desaturated and smaller than a piece. Card names
+  are repeated under a scan only while the scan is too small to read them (under 140 dp wide).
+- **No commercial fonts.** Modesto and Minion are licensed fonts; Cinzel (Copperplate/Trajan
+  caps) and Crimson Pro (a Minion look-alike) are OFL and stand in for them. Inter stays for the
+  app's own words, so verbatim game text (Crimson) and our text (Inter) look different.
+- **Team is never colour alone.** The official red/blue (copper gear / ice star) is kept, and the
+  ◆/● shape marks stay wherever a team is shown.
 
 ## Tokens (`core:designsystem`)
 | Token | Dark | Light | Use |
@@ -23,6 +62,14 @@ tactile, premium. Dark theme is the default (table lighting); light theme fully 
 | engravedBorder | bronze 30 % | bronze 30 % | card/chip borders (decorative) |
 | bronzeGlow | bronze 18 % | bronze 14 % | top sheen of frames/cards (decorative) |
 | medallion | `#07101A` | `#E6DCC8` | bottom shade behind art/sigils (decorative) |
+| bannerTop → bannerBottom | `#26496A` → `#152C42` | `#2E5C7E` → `#1D3E57` | steel banner (top bars) |
+| onBanner / onBannerVariant | `#F3F6F9` / `#C9D8E4` | same | banner title / banner icons |
+| bannerHighlight / bannerShadow | `#A9CBE0` / `#0A1622` | same | banner edges (decorative) |
+| heading | `#E39B5F` | `#9A4A1F` | copper section heads |
+| parchment | `#D9D2C1` | `#EEE8DA` | card-text box |
+| onParchment / onParchmentVariant | `#231C14` / `#54483A` | `#231C14` / `#5A4E3E` | printed text / reminders on parchment |
+| parchmentInk | `#8A3F18` | same | inline game icons on parchment |
+| parchmentEdge | `#8C826E` | `#B9AE98` | parchment border (decorative) |
 
 **Player palette** (`PlayerColors`, 10 swatches). `Player.color` stores the dark tone;
 `playerColor(argb)` draws the theme tone, so names and crests read in both themes:
@@ -60,8 +107,19 @@ Contrast checks added 2026-10-17 (WCAG ratio vs background / surface / surfaceHi
   or surface; on surfaceHigh pair it with the shape mark.
 - onSurfaceVariant on surfaceHigh: 6.6 (dark) / 6.1 (light).
 
-- **Type:** display = Cinzel (titles, headlines, `GoaTextStyles.overline` section caps),
-  body/UI = Inter. Static instances in `core/designsystem/src/main/res/font/`, licences in
+Contrast checks added 2026-10-25 (ADR-042), enforced by `ContrastTest` (core:designsystem), which
+fails the build when a token change breaks one:
+- onBanner on bannerTop / bannerBottom: dark 8.6 / 13.2, light 6.6 / 10.3; onBannerVariant: dark
+  6.4 / 9.8, light 4.9 / 7.7.
+- heading (copper) on background / surface / surfaceHigh: dark 7.9 / 6.9 / 6.0, light 5.4 / 6.2 / 5.0.
+- On parchment: onParchment 11.2 (dark) / 13.8 (light); onParchmentVariant 5.9 / 6.6; parchmentInk
+  5.0 / 6.1.
+- onSurface and onSurfaceVariant on background, surface and surfaceHigh, both themes (as above).
+
+- **Type:** display = Cinzel (titles, headlines, `GoaTextStyles.bannerTitle` on the steel banner,
+  `GoaTextStyles.sectionHead` copper small-caps heads, `overline` caps), body/UI = Inter, printed
+  = Crimson Pro (`GoaTextStyles.printed` 18 sp, `printedSmall` 16 sp: card text, rulebook excerpts;
+  the rules pages read it at 20 sp). Static instances in `core/designsystem/src/main/res/font/`, licences in
   `third_party/` (see `third_party/ASSETS.md`). Numbers use tabular figures:
   `GoaTextStyles.timerDigits` (96 sp), `timerDigitsSmall` (32 sp), `numeric` (14 sp), all
   `tnum, lnum`. `formatDuration`/`DurationText` give `m:ss` / `h:mm:ss` with spoken descriptions.
@@ -77,7 +135,9 @@ Contrast checks added 2026-10-17 (WCAG ratio vs background / surface / surfaceHi
   table becomes one block per row when a word would otherwise break mid-word.
 
 ## Components (`core:designsystem/component`)
-`GoaScreen` (title bar + engraved rule, optional snackbar host) · `GoaCard` · `SectionHeader` ·
+`GoaScreen` (steel-banner title bar, optional snackbar host) · `SteelBanner` / `Modifier.steelBanner`
+(the banner for a bar of one's own: the board screens) · `GoaCard` · `SectionHeader` (copper
+small caps + fading rule) ·
 `StatBar` (1..8 base→max) · `FilterChipRow` / `GoaFilterChip` · `VerifiedBadge` /
 `UnverifiedBadge` · `CardColorDot` · `ConfirmDialog` · `DurationText` · `EmptyState` ·
 `HeroPortrait` (bronze double frame, inner gradient, sigil fallback; `framed = false` for the
@@ -87,9 +147,23 @@ fallback) · `PlayerAvatar` (crest in player colour, initial fallback) · `TeamB
 gallery screenshot test (`GalleryScreenshotTest`) shows them all, dark/light, font scale 1 and 2.
 `cardtext/CardTextView` renders printed card text (inline `GameIcons`, italic reminders, bold
 keywords) for the card viewer and the board.
+**Official art** (`component/OfficialArt.kt`, ADR-042): `OfficialArt` (paths of the item icons,
+Spawn point symbols and Tie Breaker faces) · `HeroSymbol` (a hero's deck symbol in its own
+colours, the sigil while loading or without one) · `CardScan` (a card scan as it lies on the table,
+with a designed fallback; one TalkBack node with the card's values and text) · `ParchmentPanel` /
+`PrintedCardText` (printed text on the card's parchment, in Crimson Pro) · `OfficialIcon` ·
+`rememberOfficialBitmap` (for canvases). The gallery's `officialArt*` screenshots show them all.
 
 ## Key screens
-Catalog grid → Hero detail · Timer (full-screen, giant ring countdown, phase chip with
+Catalog grid (tiles carry the deck symbol at the portrait's corner) → Hero detail (the deck
+symbol beside the name; the **Deck** is the official card scans in a grid by colour, in tier order
+(I, II A, II B, III A, III B), as many columns of at least 100 dp as fit (three on a phone held
+upright, a colour's five in a row held sideways; wider with large text), each named under it only
+while it is too small to read its printed name, plus what the card doesn't print (where Takahide's
+golds start, what a Handicap card stands in for); tap = the card viewer; Gydion's spellbook the same
+with its landscape pages two to a row) · Card viewer (the scan large; under it only what the card
+doesn't print — the Handicap basis, what its item icon gives, with the official icon — and "Read the
+card as text", which shows the values and the text on parchment) · Timer (full-screen, giant ring countdown, phase chip with
 "Previous phase" beside it, turn/round pips; bottom controls are Pause and Next only; a running
 Hurry up is pinned above them (under the dial in landscape); landscape puts the dial on the left half; paused = blinking
 digits and a large "PAUSED" label; the **round view** alternative lists the whole round under
@@ -113,8 +187,8 @@ overtime; tap returns to the timer). The Meta tab defaults to a compact sortable
 
 ### Board screens' frame (sandbox, game, puzzle)
 The three map screens share two pieces of chrome in `feature/board/ui/` so the map gets the screen.
-**Compact top bar** (`BoardScaffold`): `GoaScreen`'s look (canvas colour, engraved rule, back arrow,
-Cinzel title) at 48 dp with an 18 sp title in portrait and 40 dp with a 16 sp title in landscape; it
+**Compact top bar** (`BoardScaffold`): `GoaScreen`'s look (the steel banner, back arrow, Cinzel
+title in light steel) at 48 dp with an 18 sp title in portrait and 40 dp with a 16 sp title in landscape; it
 grows only when large text needs one line of the title. A title too long for one line (a board named
 after its line-up, "Arien, Brogan, Xargatha vs Wasp, Tigerclaw, Sabina") takes two lines at 13 sp
 within the same height, portrait and landscape; with large text, where two lines would not fit, it is
@@ -149,9 +223,15 @@ One ring of water hexes (the terrain around the board, p.19) is drawn faintly ar
 Red/Blue Throne) float at a fixed size outside the zoom, so they stay readable; they sit just
 outside their Zone's edge, under every piece and overlay, and take the first of their places that
 is in view and covers no piece, highlighted space, Measure line or map button; with none free they
-hide. **Original glyphs** (masters `design/board/glyph_*.svg`, path data mirrored in
-`ui/BoardGlyphs.kt`): crown = hero Spawn point, sword = melee, arrow = ranged, shield = heavy.
-Spawn points draw the glyph on the team's shape outline (◆ Red / ● Blue). Pieces: heroes are the
+hide. **Spawn points** are the rulebook's printed symbols (p.6, `rememberSpawnArt`), drawn as markings on
+the board, never as units: faded (50 %) and partly desaturated toward the Zone fill, 1.0 u across,
+inside a piece's disc, so a minion or hero standing on one hides it completely (an occupied Spawn
+point shows only its piece) and the pieces stay the most prominent thing on any space. A hero Spawn
+point is Red's gear or Blue's star; a minion Spawn point carries at its lower right the type's
+original glyph in a thin outline of the team's shape (◆ Red / ● Blue), no solid badge (the printed
+symbols of one team are too alike at ~38 dp to tell the types apart; TalkBack names the Spawn point).
+Until the symbols load, the original glyph on the team's shape outline. **Original glyphs** (masters `design/board/glyph_*.svg`, path data mirrored in
+`ui/BoardGlyphs.kt`): crown = hero, sword = melee, arrow = ranged, shield = heavy. Pieces: heroes are the
 official portrait in a team-coloured ring, minions a team disc with the glyph, tokens a stone square
 with the label; heroes and minions carry the team's shape at the bottom right, so team is never
 colour alone. **Overlays** each have a pattern as well as a colour, and the switch that turns one on
@@ -340,7 +420,9 @@ Two kinds of asset (ADR-006, ADR-034):
 
 **Official game assets** — allowed for game content.
 - Card images (photographed full cards), card artwork used as hero portraits, card text and
-  game iconography (action/stat icons), imported from the sources in DOMAIN.md. Stored under
+  game iconography, imported from the sources in DOMAIN.md: hero deck symbols (source 1's logos,
+  each checked against its card back), the item icons (source 1), and the hero/minion Spawn point
+  symbols and Tie Breaker coin faces extracted from the pinned rulebook PDF (ADR-042). Stored under
   `app/src/main/assets/official/`, every file listed with its source in `official/SOURCES.md`.
 - Card text contains inline icon tokens; render them with matching vector icons (redrawn
   originals in the game's icon style if no clean official vector exists).
@@ -351,8 +433,8 @@ Two kinds of asset (ADR-006, ADR-034):
 - App icon: adaptive icon (trident-and-shield sigil on a deep-ocean gradient) plus themed
   monochrome layer.
 - UI icons not in Material Symbols, frames, backgrounds, empty-state illustrations.
-- Hero **sigils**: small geometric emblems per hero (24-unit grid, 2-unit stroke) used for
-  compact chips, draft tiles and as the fallback when official art is missing.
+- Hero **sigils**: small geometric emblems per hero (24-unit grid, 2-unit stroke), now only the
+  fallback when official art (portrait, deck symbol) is missing or still loading.
 - Player avatars: 24 original abstract crests, colour-tinted by player colour.
 - Pipeline (as built): hand-authored SVG in `design/` → `python -P -E design/tools/svg2vd.py`
   → `core/designsystem/src/main/res/drawable/` (and `app/.../drawable/ic_launcher_*`). The

@@ -35,6 +35,7 @@
     "healer"
   ],
   "portrait": "official/heroes/wuk/portrait.webp",
+  "symbol": "official/heroes/wuk/symbol.webp",
   "printing": 2,
   "cards": [
     {

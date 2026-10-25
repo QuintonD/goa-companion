@@ -124,7 +124,7 @@ internal val HeroRole.label: String
 
 /** One of a hero's starting cards, for the draft's hero peek. */
 @Immutable
-data class CardInfo(val name: String, val color: CardColor, val tier: Int?)
+data class CardInfo(val name: String, val color: CardColor, val tier: Int?, val image: String? = null)
 
 /**
  * The five starting cards (RB p.6, Hero Setup), selected from the catalog by [StartingCards]:
@@ -132,7 +132,7 @@ data class CardInfo(val name: String, val color: CardColor, val tier: Int?)
  * (Takahide's extra golds) are left out, since card text overrides the rulebook (RB p.3).
  */
 internal fun startingCards(hero: Hero): List<CardInfo> =
-    StartingCards.of(hero).map { CardInfo(it.name, it.color, it.tier) }
+    StartingCards.of(hero).map { CardInfo(it.name, it.color, it.tier, it.image) }
 
 /** Display data for one hero; unknown ids render as "Unknown hero" (ARCHITECTURE.md). */
 @Immutable
@@ -141,6 +141,8 @@ data class HeroInfo(
     val name: String,
     val title: String = "",
     val portrait: String? = null,
+    /** The deck symbol (official, ADR-042); null for unknown heroes. */
+    val symbol: String? = null,
     val complexity: Int? = null,
     val known: Boolean = true,
     val roles: List<HeroRole> = emptyList(),
@@ -153,6 +155,7 @@ data class HeroInfo(
             name = hero.name,
             title = hero.title,
             portrait = hero.portrait,
+            symbol = hero.symbol,
             complexity = hero.complexity,
             roles = hero.roles,
             stats = hero.stats,

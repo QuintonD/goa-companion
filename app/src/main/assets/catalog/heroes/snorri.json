@@ -32,6 +32,7 @@
     "healer"
   ],
   "portrait": "official/heroes/snorri/portrait.webp",
+  "symbol": "official/heroes/snorri/symbol.webp",
   "printing": 2,
   "cards": [
     {

@@ -55,6 +55,11 @@ data class Hero(
     val stats: HeroStats = HeroStats(),
     val roles: List<Role> = emptyList(),
     val portrait: String? = null,
+    /**
+     * The hero's deck symbol (the emblem on their card backs and dashboard), an asset path like
+     * `official/heroes/arien/symbol.webp`; null when no source passed the card-back check (ADR-042).
+     */
+    val symbol: String? = null,
     val printing: Int,
     val cards: List<Card>,
     val handicap: Card? = null,

@@ -30,6 +30,7 @@
     "melee"
   ],
   "portrait": "official/heroes/razzle/portrait.webp",
+  "symbol": "official/heroes/razzle/symbol.webp",
   "printing": 2,
   "cards": [
     {

@@ -53,7 +53,11 @@ class Output(private val assetsDir: File) {
         return version
     }
 
-    fun writeSources(result: ImportResult, documents: List<PinnedDocument> = emptyList()) {
+    fun writeSources(
+        result: ImportResult,
+        documents: List<PinnedDocument> = emptyList(),
+        rulebookImages: Pair<PinnedDocument, List<RulebookImage>>? = null,
+    ) {
         val sb = StringBuilder()
         sb.appendLine("# Official assets — sources")
         sb.appendLine()
@@ -61,7 +65,15 @@ class Output(private val assetsDir: File) {
         sb.appendLine("private, non-commercial build only (ADR-006). Each file was downscaled and re-encoded as")
         sb.appendLine(
             "WebP q${ImageIo.QUALITY} (cards ≤ ${ImageIo.CARD_MAX_EDGE} px, " +
-                "portraits ≤ ${ImageIo.PORTRAIT_MAX_EDGE} px on the long edge).",
+                "portraits ≤ ${ImageIo.PORTRAIT_MAX_EDGE} px, deck symbols ≤ $SYMBOL_MAX_EDGE px, " +
+                "item icons ≤ $ITEM_ICON_MAX_EDGE px on the long edge; rulebook graphics at their own size).",
+        )
+        sb.appendLine()
+        sb.appendLine(
+            "Deck symbols (`official/heroes/<id>/symbol.webp`) are source 1's hero logos, each accepted only",
+        )
+        sb.appendLine(
+            "when it matches its own hero's card back best among all card backs (REPORT.md, \"Deck symbols\").",
         )
         sb.appendLine()
         sb.appendLine("| Source | Commit |")
@@ -84,6 +96,19 @@ class Output(private val assetsDir: File) {
         sb.appendLine("|---|---|")
         result.assetSources.toSortedMap().forEach { (out, src) ->
             sb.appendLine("| `$out` | ${src.source.rawUrl(src.path)} |")
+        }
+        if (rulebookImages != null) {
+            val (doc, images) = rulebookImages
+            sb.appendLine()
+            sb.appendLine(
+                "Graphics extracted from the rulebook PDF (SHA-256 `${doc.sha256}`), by PDF page and image object:",
+            )
+            sb.appendLine()
+            sb.appendLine("| File | Page (printed) | PDF page · object | What |")
+            sb.appendLine("|---|---|---|---|")
+            images.sortedBy { it.out }.forEach {
+                sb.appendLine("| `${it.out}` | p.${it.printedPage} | ${it.pdfPage} · ${it.obj} | ${it.what} |")
+            }
         }
         File(assetsDir, "official").mkdirs()
         File(assetsDir, "official/SOURCES.md").writeText(sb.toString())
@@ -113,6 +138,7 @@ class ReportWriter(
         crossCheckGaps()
         missingFields()
         images()
+        deckSymbols()
         printedMarks()
         notRepresentable()
         file.writeText(sb.toString())
@@ -257,6 +283,26 @@ class ReportWriter(
             line("- `$h` ${m.art} ← ${m.scan.substringAfterLast('/')} (confidence ${"%.2f".format(m.confidence)})")
         }
         result.reports.flatMap { r -> r.notes.map { "`${r.heroId}`: $it" } }.forEach { line("- $it") }
+        line()
+    }
+
+    private fun deckSymbols() {
+        val checks = result.symbolChecks
+        line("## Deck symbols")
+        line(
+            "Source 1's logo for each hero against every hero's card back (last scan in source 2): accepted when its",
+        )
+        line(
+            "own card back is the nearest, by a margin of at least ${DeckSymbols.MIN_MARGIN}× over the next. " +
+                "${checks.count { it.pass }} of ${checks.size} accepted.",
+        )
+        val failed = checks.filterNot { it.pass }
+        if (failed.isEmpty()) line("\nNone rejected.")
+        failed.forEach {
+            line("- `${it.heroId}`: nearest card back `${it.nearest}`, margin ${"%.2f".format(it.margin)} (no symbol)")
+        }
+        val lowest = checks.filter { it.pass }.minByOrNull { it.margin }
+        if (lowest != null) line("\nLowest accepted margin: `${lowest.heroId}` ${"%.2f".format(lowest.margin)}.")
         line()
     }
 

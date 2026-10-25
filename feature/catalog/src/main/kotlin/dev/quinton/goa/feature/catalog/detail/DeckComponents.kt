@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -35,6 +36,7 @@ import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -43,6 +45,7 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
@@ -50,6 +53,9 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcon
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
+import dev.quinton.goa.core.designsystem.cardtext.cardTextAnnotated
+import dev.quinton.goa.core.designsystem.component.CARD_ASPECT
+import dev.quinton.goa.core.designsystem.component.CardScan
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -208,8 +214,9 @@ internal fun DeckGroupSection(group: DeckGroup, onCardClick: (Card) -> Unit, mod
             )
         }
         if (group.kind == DeckGroupKind.BASIC) MultipleGoldNote(group.cards)
-        val fullWidth = group.kind == DeckGroupKind.ULTIMATE
-        group.rows.forEach { row -> TierRowView(row, group.kind, fullWidth, onCardClick) }
+        // The cards themselves, in tier order (I, II A, II B, III A, III B): each scan prints its
+        // tier numeral, so the grid doesn't repeat it.
+        DeckCardGrid(group.cards, onCardClick)
     }
 }
 
@@ -265,7 +272,110 @@ internal fun ExtrasSection(layout: DeckLayout, onCardClick: (Card) -> Unit, modi
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.xs).semantics { heading() },
             )
-            CardTileGrid(row.cards, columns = 2, onCardClick = onCardClick, showText = spellbook)
+            DeckCardGrid(
+                row.cards,
+                onCardClick,
+                aspect = if (spellbook) SPELL_ASPECT else CARD_ASPECT,
+                minWidth = if (spellbook) SPELL_MIN_WIDTH else CARD_MIN_WIDTH,
+            )
+        }
+    }
+}
+
+/** Width ÷ height of a spellbook page scan (landscape, about 737 × 510). */
+private const val SPELL_ASPECT = 737f / 510f
+private val CARD_MIN_WIDTH = 100.dp
+private val SPELL_MIN_WIDTH = 150.dp
+
+/**
+ * The official card scans in a grid: as many columns of at least [minWidth] as fit (three on a
+ * phone held upright, a whole colour's five in a row on a wider screen), each card with its name
+ * under it. The scan is the card (its values and text are printed on it); TalkBack hears the
+ * card's full summary and text, and a tap opens the card viewer. A card without a scan shows the
+ * designed tile instead.
+ */
+@Composable
+internal fun DeckCardGrid(
+    cards: List<Card>,
+    onCardClick: (Card) -> Unit,
+    modifier: Modifier = Modifier,
+    isHandicap: Boolean = false,
+    aspect: Float = CARD_ASPECT,
+    minWidth: Dp = CARD_MIN_WIDTH,
+) {
+    // Large text: wider cards, so a caption never breaks a word and the printed name reads.
+    val scaledMin = minWidth * LocalDensity.current.fontScale.coerceIn(1f, MAX_WIDTH_SCALE)
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val gap = Spacing.sm
+        val columns = ((maxWidth + gap) / (scaledMin + gap)).toInt().coerceIn(1, MAX_COLUMNS)
+        val cardWidth = (maxWidth - gap * (columns - 1)) / columns
+        // From this width the name printed on the scan is readable: no caption repeats it.
+        val showName = cardWidth < NAME_PRINTED_WIDTH
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            cards.chunked(columns).forEach { chunk ->
+                Row(horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.Top) {
+                    chunk.forEach { card ->
+                        DeckCard(card, isHandicap, aspect, showName, onClick = {
+                            onCardClick(card)
+                        }, Modifier.weight(1f))
+                    }
+                    repeat(columns - chunk.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
+        }
+    }
+}
+
+private const val MAX_COLUMNS = 6
+private const val MAX_WIDTH_SCALE = 1.6f
+private val NAME_PRINTED_WIDTH = 140.dp
+
+@Composable
+private fun DeckCard(
+    card: Card,
+    isHandicap: Boolean,
+    aspect: Float,
+    showName: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier,
+) {
+    if (card.image == null) {
+        CardTile(card, onClick = onClick, isHandicap = isHandicap, modifier = modifier.heightIn(min = 96.dp))
+        return
+    }
+    val summary = card.spokenSummary(isHandicap) + card.text.takeIf { it.isNotBlank() }?.let {
+        ". " + cardTextAnnotated(it, Color.Unspecified).text
+    }.orEmpty()
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        CardScan(
+            image = card.image,
+            contentDescription = summary,
+            onClick = onClick,
+            aspect = aspect,
+            modifier = Modifier.fillMaxWidth(),
+        ) {}
+        // A small card's printed name is too small to read, so it is repeated under it; anything the
+        // card doesn't print (where a basic card starts, what a Handicap card stands in for) follows.
+        val note = (if (isHandicap) card.handicapBasis() else null) ?: card.startsIn()
+        if (showName) {
+            Text(
+                card.name,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = Spacing.xs).clearAndSetSemantics {},
+            )
+        }
+        if (note != null) {
+            Text(
+                note,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.secondary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = if (showName) 0.dp else Spacing.xs).clearAndSetSemantics {},
+            )
         }
     }
 }
@@ -282,22 +392,7 @@ private fun extraRowTitle(row: TierRow): String {
     return "$name · ${row.cards.size}"
 }
 
-@Composable
-private fun TierRowView(row: TierRow, kind: DeckGroupKind, fullWidth: Boolean, onCardClick: (Card) -> Unit) {
-    val tier = row.tier
-    if (tier != null && kind != DeckGroupKind.ULTIMATE) {
-        Text(
-            "Tier ${tierNumeral(tier)}",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.xs),
-        )
-    }
-    CardTileGrid(row.cards, columns = if (fullWidth) 1 else 2, onCardClick = onCardClick, showText = fullWidth)
-    Spacer(Modifier.height(Spacing.sm))
-}
-
-/** Tiles in fixed columns so tiers line up into an upgrade tree. */
+/** Designed tiles (cards without a scan) in fixed columns so tiers line up into an upgrade tree. */
 @Composable
 internal fun CardTileGrid(
     cards: List<Card>,

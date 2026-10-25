@@ -29,6 +29,7 @@
     "tactician"
   ],
   "portrait": "official/heroes/swift/portrait.webp",
+  "symbol": "official/heroes/swift/symbol.webp",
   "printing": 2,
   "cards": [
     {

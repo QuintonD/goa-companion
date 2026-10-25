@@ -33,6 +33,7 @@
     "tactician"
   ],
   "portrait": "official/heroes/mrak/portrait.webp",
+  "symbol": "official/heroes/mrak/symbol.webp",
   "printing": 2,
   "cards": [
     {

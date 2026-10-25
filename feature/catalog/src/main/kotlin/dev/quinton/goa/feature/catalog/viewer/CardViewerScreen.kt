@@ -19,8 +19,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -38,6 +40,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -63,11 +67,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
-import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcon
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
+import dev.quinton.goa.core.designsystem.cardtext.cardTextAnnotated
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.OfficialArt
+import dev.quinton.goa.core.designsystem.component.OfficialIcon
+import dev.quinton.goa.core.designsystem.component.PrintedCardText
 import dev.quinton.goa.core.designsystem.component.assetUrl
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -75,6 +82,7 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.feature.catalog.detail.printedValues
+import dev.quinton.goa.feature.catalog.detail.spokenSummary
 import dev.quinton.goa.feature.catalog.ui.blockMarkerLabel
 import dev.quinton.goa.feature.catalog.ui.handicapBasis
 import dev.quinton.goa.feature.catalog.ui.kindLabel
@@ -117,7 +125,7 @@ fun CardViewerScreen(state: CardViewerUiState, onBack: () -> Unit, modifier: Mod
             ) { padding ->
                 Column(Modifier.fillMaxSize().padding(padding)) {
                     PagerHeader(state, pager)
-                    CardPager(state, pager, textOnly)
+                    CardPager(state, pager, textOnly, onShowText = { textOnly = true })
                 }
             }
         }
@@ -172,7 +180,7 @@ private fun PagerHeader(state: CardViewerUiState.Ready, pager: PagerState) {
 }
 
 @Composable
-private fun CardPager(state: CardViewerUiState.Ready, pager: PagerState, textOnly: Boolean) {
+private fun CardPager(state: CardViewerUiState.Ready, pager: PagerState, textOnly: Boolean, onShowText: () -> Unit) {
     val scope = rememberCoroutineScope()
     val zoomStates = remember(state.cards) { state.cards.associate { it.id to ZoomState() } }
     val currentZoom = zoomStates[state.cards.getOrNull(pager.currentPage)?.id]
@@ -201,12 +209,13 @@ private fun CardPager(state: CardViewerUiState.Ready, pager: PagerState, textOnl
             isHandicap = state.isHandicap(card),
             textOnly = textOnly,
             zoom = zoomStates.getValue(card.id),
+            onShowText = onShowText,
         )
     }
 }
 
 @Composable
-private fun CardPage(card: Card, isHandicap: Boolean, textOnly: Boolean, zoom: ZoomState) {
+private fun CardPage(card: Card, isHandicap: Boolean, textOnly: Boolean, zoom: ZoomState, onShowText: () -> Unit) {
     val hasImage = card.image != null
     var imageFailed by remember(card.id) { mutableStateOf(false) }
     val showsDesigned = !hasImage || imageFailed
@@ -226,17 +235,22 @@ private fun CardPage(card: Card, isHandicap: Boolean, textOnly: Boolean, zoom: Z
                 if (showsDesigned) {
                     DesignedCard(card, isHandicap, Modifier.fillMaxWidth())
                 } else {
-                    OfficialCardImage(card, zoom, onError = { imageFailed = true })
+                    OfficialCardImage(card, isHandicap, zoom, onError = { imageFailed = true })
                 }
             }
         }
         Spacer(Modifier.height(Spacing.lg))
-        CardDetails(
-            card,
-            isHandicap = isHandicap,
-            includeText = !showsDesigned,
-            modifier = Modifier.widthIn(max = MAX_CARD_WIDTH),
-        )
+        if (textOnly || showsDesigned) {
+            CardDetails(
+                card,
+                isHandicap = isHandicap,
+                includeText = !showsDesigned,
+                modifier = Modifier.widthIn(max = MAX_CARD_WIDTH),
+            )
+        } else {
+            // The scan shows its values and text: under it only what the card doesn't print.
+            NotOnTheCard(card, isHandicap, onShowText, Modifier.widthIn(max = MAX_CARD_WIDTH))
+        }
         Spacer(Modifier.height(Spacing.xl))
     }
 }
@@ -246,7 +260,7 @@ private fun CardPage(card: Card, isHandicap: Boolean, textOnly: Boolean, zoom: Z
  * pages landscape), so no page shows empty bands around the image.
  */
 @Composable
-private fun OfficialCardImage(card: Card, zoom: ZoomState, onError: () -> Unit) {
+private fun OfficialCardImage(card: Card, isHandicap: Boolean, zoom: ZoomState, onError: () -> Unit) {
     val path = card.image ?: return
     var aspect by remember(card.id) { mutableFloatStateOf(CARD_ASPECT) }
     Box(
@@ -258,7 +272,10 @@ private fun OfficialCardImage(card: Card, zoom: ZoomState, onError: () -> Unit) 
     ) {
         SubcomposeAsyncImage(
             model = assetUrl(path),
-            contentDescription = "Card image: ${card.name}",
+            contentDescription = card.spokenSummary(isHandicap) +
+                card.text.takeIf {
+                    it.isNotBlank()
+                }?.let { ". " + cardTextAnnotated(it, Color.Unspecified).text }.orEmpty(),
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize(),
             loading = {
@@ -350,7 +367,40 @@ private fun CardDetails(card: Card, isHandicap: Boolean, includeText: Boolean, m
             DetailRow("Item") { IconLabel(GameIcons.item, MaterialTheme.colorScheme.secondary, "+1 ${stat.label}") }
         }
         if (includeText && card.text.isNotBlank()) {
-            CardTextView(card.text, iconTint = accent, modifier = Modifier.padding(top = Spacing.xs))
+            PrintedCardText(card.text, Modifier.fillMaxWidth().padding(top = Spacing.xs))
+        }
+    }
+}
+
+/**
+ * Under a card scan: what the card doesn't print or doesn't explain (which basic card a Handicap
+ * card stands in for, what its item icon gives, p.16), and the way to read it as text.
+ */
+@Composable
+private fun NotOnTheCard(card: Card, isHandicap: Boolean, onShowText: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        val handicapBasis = if (isHandicap) card.handicapBasis() else null
+        if (handicapBasis != null) {
+            Text(handicapBasis, style = MaterialTheme.typography.bodyMedium)
+        }
+        card.item?.let { stat ->
+            Row(
+                Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OfficialIcon(OfficialArt.itemIcon(stat), Modifier.size(width = 40.dp, height = 30.dp))
+                Spacer(Modifier.width(Spacing.sm))
+                Text(
+                    "As an item: +1 ${stat.label} (the icon at the foot of the card, p.16)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        OutlinedButton(onClick = onShowText, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            Icon(Icons.AutoMirrored.Outlined.Article, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(Spacing.sm))
+            Text("Read the card as text")
         }
     }
 }

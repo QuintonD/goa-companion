@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.board.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -37,7 +36,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.quinton.goa.core.designsystem.component.EngravedRule
+import dev.quinton.goa.core.designsystem.component.steelBanner
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
 
 /**
  * The frame of a board screen (the sandbox, a game, a puzzle): [GoaScreen]'s look with a compact
@@ -99,9 +99,10 @@ private fun BoardTopBar(title: String, onBack: () -> Unit, actions: @Composable 
     // Large text may need more than the bar's height: one line of the title plus a little air.
     val textHeight = with(density) { oneLine.lineHeight.toDp() } + TITLE_AIR
     val height: Dp = maxOf(bar, textHeight)
+    // GoaScreen's steel banner (the rulebook's page banner), compact.
     Column(
         Modifier
-            .background(MaterialTheme.colorScheme.background)
+            .steelBanner(GoaTheme.colors, MaterialTheme.colorScheme.primary)
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)),
     ) {
         Row(
@@ -111,7 +112,7 @@ private fun BoardTopBar(title: String, onBack: () -> Unit, actions: @Composable 
                 .padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+            CompositionLocalProvider(LocalContentColor provides GoaTheme.colors.onBanner) {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
@@ -127,11 +128,10 @@ private fun BoardTopBar(title: String, onBack: () -> Unit, actions: @Composable 
                         .semantics { heading() },
                 )
             }
-            CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant) {
+            CompositionLocalProvider(LocalContentColor provides GoaTheme.colors.onBannerVariant) {
                 actions()
             }
         }
-        EngravedRule()
     }
 }
 
