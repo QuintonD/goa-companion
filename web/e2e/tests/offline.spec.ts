@@ -36,7 +36,7 @@ test("Download everything puts every image on the device", async ({ page, contex
   await page.reload();
   await expect(page.getByText(/Last downloaded/)).toBeVisible();
   await page.goto("./#/heroes/widget");
-  await expect.poll(() => imageLoaded(page, "Widget portrait")).toBe(true);
+  await expect.poll(() => imageLoaded(page, "Widget artwork")).toBe(true);
   await context.setOffline(false);
 });
 
