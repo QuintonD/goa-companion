@@ -35,6 +35,7 @@ import java.net.InetAddress
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
@@ -630,6 +631,10 @@ class SyncServerRepositoryTest {
     fun changesToSyncedDataAreSignalled() = runTest {
         withContext(Dispatchers.Default) {
             repository.localChanges.test {
+                // Room registers the invalidation observer after collection starts, asynchronously
+                // (no initial emission to wait for): a write before that is never signalled, which is
+                // what made this test fail when run with the rest of the class.
+                delay(OBSERVER_SETTLE_MS)
                 players.upsert(player("ann"))
                 awaitItem()
                 players.upsert(player("bob"))
@@ -663,3 +668,6 @@ class SyncServerRepositoryTest {
         assertThat(RoomSyncRepository(db, elo, clock).export()).isEqualTo(expected)
     }
 }
+
+/** Time for Room to register a flow's invalidation observer (real time: Dispatchers.Default). */
+private const val OBSERVER_SETTLE_MS = 500L
