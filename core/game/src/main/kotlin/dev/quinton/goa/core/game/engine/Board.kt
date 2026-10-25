@@ -650,8 +650,13 @@ fun Game.spawnPiece(piece: PieceState, to: Hex) {
     place(piece.id, to)
 }
 
-fun Game.canSpawnInto(hex: Hex): Boolean =
-    isEmpty(hex) || (isSpawnPoint(hex) && occupant(hex)?.let { state.piece(it)?.token } == true)
+/**
+ * Whether a unit can spawn into [hex]. [asUnit] is a unit on the same side as the one spawning (its
+ * hero, when the piece isn't on the board yet): a space that counts as an obstacle for that side's
+ * units (Takahide's Blade) is not empty for it either, and [place] would refuse it.
+ */
+fun Game.canSpawnInto(hex: Hex, asUnit: String? = null): Boolean =
+    isEmpty(hex, asUnit) || (isSpawnPoint(hex) && occupant(hex)?.let { state.piece(it)?.token } == true)
 
 /** Throne Zones and Spawn points (p.6, p.19). */
 fun Game.isSpawnPoint(hex: Hex): Boolean = geo.spaces[hex]?.spawn != null

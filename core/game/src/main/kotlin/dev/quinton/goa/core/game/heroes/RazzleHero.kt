@@ -264,7 +264,7 @@ object RazzleHero : HeroModule {
             var left = SUPPLY - doubles(a.g, a.heroId).size
             while (left > 0) {
                 val me = a.hero.at ?: return
-                val spaces = a.g.within(me, a.radius).filter { a.g.canSpawnInto(it) }
+                val spaces = a.g.within(me, a.radius).filter { a.g.canSpawnInto(it, a.heroId) }
                 val h =
                     a.chooseSpace("Spawn another one of you in radius (up to $left more)", spaces, optional = true)
                         ?: return

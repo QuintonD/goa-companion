@@ -7,7 +7,9 @@ import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.Driver
 import dev.quinton.goa.core.game.GameEvent
+import dev.quinton.goa.core.game.engine.ActionKind
 import dev.quinton.goa.core.game.engine.PieceState
+import dev.quinton.goa.core.game.engine.Timing
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.heroes.batch6.RandomGames
 import dev.quinton.goa.core.game.pos
@@ -72,6 +74,31 @@ class RazzleTest {
             assertThat(g.teamOf(p.id)).isEqualTo(Team.RED)
         }
         assertThat(d.pending!!.kind).isEqualTo(DecisionKind.PLAY_CARD)
+    }
+
+    @Test
+    fun `Stunt Doubles - a space that counts as an obstacle for Razzle is not offered (Takahide's blade)`() {
+        lateinit var m: String
+        val d = pos {
+            clearMinions()
+            hero("razzle", Team.RED, Hex(1, -2)) { played("razzle-gold") } // radius 1
+            hero("takahide", Team.BLUE, Hex(2, -3)) { resolved(1, "takahide-red-2b") }
+            m = minion(Team.BLUE, MinionType.MELEE, Hex(2, -2))
+            minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))
+            minion(Team.RED, MinionType.MELEE, Hex(4, -7))
+            turn = 2
+            // Spinning Blade: empty spaces adjacent to Takahide count as obstacles for enemy units.
+            effect("takahide", "takahide-red-2b", Timing.THIS_TURN, ActionKind.ATTACK)
+            phase = PositionPhase.Resolving(next = "razzle")
+        }
+        d.action("razzle", ActionType.PRIMARY)
+        d.unit(m)
+        d.expect(DecisionKind.CHOOSE_SPACE, "razzle")
+        // (2,-2), emptied by the attack, is next to Takahide: an obstacle for Razzle, so not empty for her.
+        assertThat(d.spaces()).doesNotContain(Hex(2, -2))
+        assertThat(d.spaces()).contains(Hex(1, -1))
+        d.space(1, -1)
+        assertThat(doubles(d).map { it.at }).containsExactly(Hex(1, -1))
     }
 
     @Test
