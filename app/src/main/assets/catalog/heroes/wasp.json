@@ -29,6 +29,7 @@
     "sniper"
   ],
   "portrait": "official/heroes/wasp/portrait.webp",
+  "symbol": "official/heroes/wasp/symbol.webp",
   "printing": 2,
   "cards": [
     {

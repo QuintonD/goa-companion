@@ -17,6 +17,8 @@ data class ImportResult(
     val unknownIcons: Set<String>,
     /** Output asset path (relative to `assets/`) → source file it was made from. */
     val assetSources: Map<String, AssetSource>,
+    /** Each source-1 logo checked against the card backs (ADR-042); a passing one is the hero's symbol. */
+    val symbolChecks: List<DeckSymbols.Check> = emptyList(),
 )
 
 data class AssetSource(val source: PinnedSource, val path: String, val maxEdge: Int)
@@ -94,13 +96,33 @@ class Importer(lock: SourcesLock, private val cache: SourceCache, private val ov
         val imported = data.soaHeroes.map { importHero(it, data, withImages) }
         val order = PRODUCTS.map { it.id }
         val sorted = imported.sortedWith(compareBy({ order.indexOf(it.first.product) }, { it.first.id }))
+        val symbolChecks = checkSymbols(data)
+        val passed = symbolChecks.filter { it.pass }.map { it.heroId }.toSet()
+        passed.forEach { id ->
+            assets[symbolPath(id)] = AssetSource(soa, logoPath(id), SYMBOL_MAX_EDGE)
+        }
+        ITEM_ICONS.forEach { (stat, file) ->
+            val path = "src/lib/images/$file"
+            if (path in data.soaPaths) assets[itemIconPath(stat)] = AssetSource(soa, path, ITEM_ICON_MAX_EDGE)
+        }
         return ImportResult(
-            heroes = sorted.map { it.first },
+            heroes = sorted.map { (hero, _) -> hero.copy(symbol = symbolPath(hero.id).takeIf { hero.id in passed }) },
             products = PRODUCTS,
             reports = sorted.map { it.second },
             unknownIcons = unknownIcons,
             assetSources = assets,
+            symbolChecks = symbolChecks,
         )
+    }
+
+    private fun logoPath(heroId: String) = "src/lib/images/logos/$heroId.png"
+
+    /** Every source-1 logo against every hero's card back (the last scan in source 2). */
+    private fun checkSymbols(data: SourceData): List<DeckSymbols.Check> {
+        val logos = data.soaHeroes.map { it.id }.filter { logoPath(it) in data.soaPaths }
+            .associateWith { ImageIo.load(cache.file(soa, logoPath(it))) }
+        val backs = data.scans.mapValues { (_, scans) -> ImageIo.load(cache.file(dm, scans.maxBy { it.first }.second)) }
+        return DeckSymbols.check(logos, backs)
     }
 
     private fun loadSources(): SourceData {
@@ -386,7 +408,11 @@ class Importer(lock: SourcesLock, private val cache: SourceCache, private val ov
 
 /** Writes images, deleting stale outputs; re-encodes only when the source or settings changed. */
 class AssetWriter(private val assetsDir: File, private val cache: SourceCache, private val manifestFile: File) {
-    fun write(assets: Map<String, AssetSource>): Int {
+    /**
+     * [extracted]: images that aren't files in a pinned repo (the rulebook's graphics, already
+     * extracted to the cache) → (manifest key naming their origin, the extracted file, max edge).
+     */
+    fun write(assets: Map<String, AssetSource>, extracted: Map<String, ExtractedAsset> = emptyMap()): Int {
         val manifest = if (manifestFile.isFile) {
             manifestFile.readLines().filter { '\t' in it }.associate {
                 it.substringBefore('\t') to
@@ -406,8 +432,17 @@ class AssetWriter(private val assetsDir: File, private val cache: SourceCache, p
             }
             synchronized(next) { next[out] = key }
         }
+        extracted.forEach { (out, e) ->
+            val key = "${e.key}|q${ImageIo.QUALITY}|${e.maxEdge}"
+            val target = File(assetsDir, out)
+            if (!(target.isFile && manifest[out] == key)) {
+                ImageIo.writeWebp(e.file, target, e.maxEdge)
+                encoded++
+            }
+            next[out] = key
+        }
         // Remove generated images that are no longer produced.
-        listOf("official/cards", "official/heroes").map {
+        (listOf("official/cards", "official/heroes") + UI_ASSET_DIRS).map {
             File(assetsDir, it)
         }.filter { it.isDirectory }.forEach { dir ->
             dir.walkTopDown().filter { it.isFile && it.extension == "webp" }.forEach { f ->
@@ -419,3 +454,6 @@ class AssetWriter(private val assetsDir: File, private val cache: SourceCache, p
         return encoded
     }
 }
+
+/** An image made from a pinned document rather than a repo file (see [AssetWriter.write]). */
+data class ExtractedAsset(val key: String, val file: File, val maxEdge: Int)
