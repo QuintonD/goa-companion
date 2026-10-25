@@ -11,10 +11,6 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.json.Json
 
 /**
  * Puzzle progress in `datastore/puzzle_progress` (ADR-035), one JSON object of puzzle id to
@@ -36,29 +32,6 @@ internal class DataStorePuzzleProgressRepository @Inject constructor(
     }
 
     override suspend fun reset() = store.update { null }
-}
-
-/** The stored document. Lenient, so a newer build's extra fields don't lose the progress. */
-internal object PuzzleProgressJson {
-    private val json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-    }
-    private val serializer = MapSerializer(String.serializer(), PuzzleProgress.serializer())
-
-    fun encode(progress: Map<String, PuzzleProgress>): String = json.encodeToString(serializer, progress)
-
-    fun decode(stored: String?): Map<String, PuzzleProgress> = if (stored == null) {
-        emptyMap()
-    } else {
-        try {
-            json.decodeFromString(serializer, stored)
-        } catch (_: SerializationException) {
-            emptyMap()
-        } catch (_: IllegalArgumentException) {
-            emptyMap()
-        }
-    }
 }
 
 /** Puzzle progress (ADR-035; owner: board). */
