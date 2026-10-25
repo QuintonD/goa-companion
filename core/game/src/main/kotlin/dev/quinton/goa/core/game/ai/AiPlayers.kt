@@ -137,7 +137,6 @@ object AiPlayers {
             knobs = TUNED, modelPlays = true, memory = true, greedySelf = true,
             budgetMs = 4000, greedyTeam = true, greedyEnemies = true,
         )
-
     }
 }
 
