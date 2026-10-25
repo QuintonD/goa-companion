@@ -2,10 +2,13 @@ package dev.quinton.goa.core.model.player
 
 /**
  * The player palette and crest count, shared by the phone (core:designsystem `PlayerColors`,
- * `PlayerCrests`) and the web app, so a player added on either gets the same look.
+ * `PlayerCrests`) and the web app, so a player added on either gets the same look (ADR-043).
  */
 object PlayerPalette {
-    /** One swatch: [argb] is the value stored in [Player.color] (the dark-theme tone). */
+    /**
+     * One swatch: [argb] is the value stored in [Player.color] and the tone drawn in the dark theme,
+     * [lightArgb] the tone drawn in the light theme.
+     */
     data class Swatch(val name: String, val argb: Long, val lightArgb: Long)
 
     /** Ten colours readable in both themes (docs/DESIGN.md). */
@@ -22,8 +25,14 @@ object PlayerPalette {
         Swatch("Lime", 0xFFAECF55, 0xFF55691A),
     )
 
-    /** How many original crests there are; [Player.avatarId] indexes them. */
+    /** How many original crests there are (`design/avatars/crest_NN.svg`); [Player.avatarId] indexes them. */
     const val CREST_COUNT = 24
+
+    /**
+     * Palette colours for players added in a hurry (the draft's quick add), minus Coral and Sky: next
+     * to the Red and Blue team colours they read as a team.
+     */
+    val quickAdd: List<Swatch> = all.filter { it.name != "Coral" && it.name != "Sky" }
 
     /** Suggested colour for the n-th new player (cycles through the palette). */
     fun default(index: Int): Swatch = all[index.mod(all.size)]

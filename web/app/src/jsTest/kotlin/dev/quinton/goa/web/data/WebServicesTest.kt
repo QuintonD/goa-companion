@@ -1,5 +1,6 @@
 package dev.quinton.goa.web.data
 
+import dev.quinton.goa.web.draft.WebDraftSetupPrefill
 import dev.quinton.goa.web.storage.MemoryKeyValueStore
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
@@ -14,6 +15,7 @@ class WebServicesTest {
         val services = WebServices(MemoryKeyValueStore())
 
         assertIs<WebCatalogRepository>(services.content.catalog)
+        assertIs<WebDraftSetupPrefill>(services.table.draftSetupPrefill)
     }
 
     @Test
@@ -22,9 +24,6 @@ class WebServicesTest {
 
         val failures = listOf(
             "W2" to assertFailsWith<NotImplementedError> { services.group.matches.observeMatches() },
-            "W3" to assertFailsWith<NotImplementedError> {
-                services.table.draftSetupPrefill.prefill(emptyList(), emptyList(), null, false)
-            },
             "W4" to assertFailsWith<NotImplementedError> { services.play.boardMaps.maps },
         )
 

@@ -551,6 +551,10 @@ same look), with the same tabs and screens as on Android.
   browser's Back and Safari's swipe walk the app; the top bar's Back goes up.
 - Dark by default with Light and System in Settings, iOS text size respected, safe areas (notch,
   home indicator), 44 pt tap targets, VoiceOver landmarks and headings.
+- The Timer and Draft tabs work as on Android. The running timer keeps the screen on (Screen Wake
+  Lock; where the browser can't, it asks to set Auto-Lock to Never, because a locked iPhone can't
+  sound the timer) and catches up when the screen comes back; cues sound after the first tap and
+  the screen flashes where a phone would vibrate. A draft or a timer in progress survives a reload.
 - Group sync through the group's relay (ADR-036), not Nearby (Safari has no Bluetooth). Safari may
   clear a website's data after 7 days unused unless it is on the Home Screen; the app says so, and
   the group's sync is the backup.

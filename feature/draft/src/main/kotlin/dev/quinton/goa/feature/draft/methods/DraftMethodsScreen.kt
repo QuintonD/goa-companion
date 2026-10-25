@@ -46,8 +46,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.core.domain.draft.MethodOrigin
-import dev.quinton.goa.core.domain.draft.PoolRule
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
 import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
 
@@ -199,14 +197,7 @@ private fun MethodCard(row: MethodRow, actions: MethodsActions, onDelete: (() ->
         Column(Modifier.fillMaxWidth().padding(Spacing.lg)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(method.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-                Badge(
-                    when {
-                        row.isDefault -> "Default"
-                        method.origin == MethodOrigin.RULEBOOK -> "Rulebook"
-                        method.origin == MethodOrigin.HOUSE -> "House"
-                        else -> "Custom"
-                    },
-                )
+                Badge(row.badge)
             }
             Spacer(Modifier.height(Spacing.xs))
             Text(
@@ -215,11 +206,12 @@ private fun MethodCard(row: MethodRow, actions: MethodsActions, onDelete: (() ->
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(Spacing.sm))
-            Text(poolText(method.pool) + heroesText(row.preview), style = MaterialTheme.typography.labelLarge)
+            Text(row.poolLine, style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(Spacing.sm))
+            val previewError = row.preview.error
             when {
-                row.preview.error != null -> Text(
-                    row.preview.error,
+                previewError != null -> Text(
+                    previewError,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -287,19 +279,3 @@ private fun Badge(text: String) {
         )
     }
 }
-
-internal fun poolText(pool: PoolRule): String = when (pool) {
-    PoolRule.All -> "Pool: every eligible hero"
-
-    is PoolRule.Random -> "Pool: ${pool.size} at random"
-
-    is PoolRule.SeatsPlus -> when (pool.extra) {
-        0 -> "Pool: one per hero seat"
-        else -> "Pool: heroes in play + ${pool.extra} revealed"
-    }
-
-    is PoolRule.DealPerSeat -> "Pool: ${pool.perSeat} dealt to each seat"
-}
-
-private fun heroesText(preview: SequencePreview): String =
-    if (preview.error == null && preview.heroesNeeded > 0) " · needs ${preview.heroesNeeded}" else ""

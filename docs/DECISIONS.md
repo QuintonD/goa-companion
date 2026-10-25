@@ -1275,3 +1275,50 @@ About on the web, with the phone's logic moved into the shared core (parity rule
 - **Found on the way:** WebKit reports a first install's worker as "installed" after it has claimed
   the page, so the shell showed "A new version of the app is ready" on a first visit;
   `ServiceWorkerClient` now decides "update" when the new worker is found.
+
+**Addendum (Table: draft and phase timer, W3, 2026-10-25):**
+**Decision:** The web app's Timer and Draft tabs are the phone's, screen for screen, built on the
+same Kotlin. Where the decisions were the web's own:
+1. **The words and numbers are shared, not copied.** What the phone's view models computed for
+   these screens moved to `core:domain`'s commonMain, keeping their packages so the Android diff
+   stays small (`dev.quinton.goa.feature.timer…`, `…feature.draft…` now also live in core:domain):
+   `TimerText`, the timer's UI state and `TimerUiMapper` (+ the start card, pending matches, the
+   logged mode), `RunningTimerUi` (from app), `TonightTurn`, `TimerCommand` + `TimerSessions` (what a
+   command does, the duration written to a linked match), `PresetEdits` + the preset screens' states,
+   `MatchSetupPresenter` + its UI types; the draft's `DraftProgress`/`MethodLibrary` and their stored
+   format `DraftStorage`, `SetupForm` (+ its edits) and `DraftSetupPresenter`, `HeroInfo`/`StepToken`
+   and the labels (`DraftText`), `PoolView`/`BoardUiState` and `DraftBoardText` (banners, refusals,
+   undo), the method list and editor states. The Android view models call them; `@Immutable` was
+   dropped (strong skipping makes it moot). `TablePresentationParityTest` (commonTest) runs the
+   presenters over the shipped rules data on the JVM and on Node and checks the transcripts hash
+   alike. The player palette's values moved to `core:model` (`PlayerPalette`; `PlayerColors` reads it).
+2. **The web timer's clock is wall time that never steps back**, not `performance.now()`: Safari's
+   monotonic clock stops while the iPhone sleeps, so a locked phone would lose the time it was dark.
+   The snapshot's wall anchor still rebases it after a reload (no boot count on the web).
+3. **No background alerts on the web.** A page can't run while the iPhone is locked, so the
+   running timer holds a Screen Wake Lock (feature-detected, on by default, "Let the screen sleep" in
+   its menu; a note says to set Auto-Lock to Never where the browser refuses) and, back on the page,
+   catches up (auto-advance included) and says "A phase ended while the screen was off". Cue tones
+   are Web Audio, unlocked by the first tap; the Haptics setting flashes the screen's edge instead
+   (no vibration for web pages). The preset's volume-key control has no web equivalent and is not
+   shown (the field is kept).
+4. **State that must survive Safari putting the page away is stored at once** in IndexedDB under
+   `table/` in the phone's formats (`TimerJson`, `DraftStorage`): presets, the session, the setup
+   form, the draft in progress, the group's methods — and tonight's turn length, which the phone
+   keeps in memory (Safari reloads pages it put away far more often than Android kills a process).
+   The draft's step timer counts from when the step began, not from ticks.
+5. **The shell knows about a running timer** (`TimerShell`): it hides the tab bar on the running
+   timer, shows the "timer running" bar on the other tabs and opens the Timer tab on a cold start,
+   as the phone does. Pinned footers (Next, Start timer, Set up match) publish their height so
+   snackbars show above them. The service worker client decided "update" at the first install's
+   `installed` event, which WebKit can deliver after the page is claimed: a first visit said "A new
+   version of the app is ready"; it now decides when the install starts.
+6. **Screens other streams own** that the table tools open are routes here with placeholder
+   screens until they land: `MatchEdit` (Log result, W2), `PlayerEdit` (new player profile, W2),
+   `LevelLadder` (W1), `NewBoard` (Try on the board, W4), with Android's parameters. Player avatars
+   here are the initial in the player's palette colour (W2's crests can replace them). On merging
+   with W1, `LevelLadder` (`#/levels?heroes=…`) became W1's ladder as a page (`LevelLadderScreen`,
+   the same body as the Rules screen's sheet), and the two `PlayerPalette`s became one
+   (`PlayerPalette.Swatch`, `quickAdd`, `forNew`, `CREST_COUNT`).
+**Consequences:** Android behaviour is unchanged (its tests and screenshots pass as before); the web
+can't sound a phase end while the iPhone is locked, which the timer says where it matters.

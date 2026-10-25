@@ -5,11 +5,20 @@ import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.catalog.CardViewerScreen
 import dev.quinton.goa.web.catalog.CatalogScreen
 import dev.quinton.goa.web.catalog.HeroDetailScreen
+import dev.quinton.goa.web.draft.DraftBoardScreen
+import dev.quinton.goa.web.draft.DraftMethodEditScreen
+import dev.quinton.goa.web.draft.DraftMethodsScreen
+import dev.quinton.goa.web.draft.DraftSetupScreen
 import dev.quinton.goa.web.nav.Route
+import dev.quinton.goa.web.rules.LevelLadderScreen
 import dev.quinton.goa.web.rules.RulesScreen
 import dev.quinton.goa.web.rules.RulesTopicScreen
 import dev.quinton.goa.web.settings.AboutScreen
 import dev.quinton.goa.web.settings.SettingsScreen
+import dev.quinton.goa.web.timer.MatchSetupScreen
+import dev.quinton.goa.web.timer.PresetEditScreen
+import dev.quinton.goa.web.timer.PresetsScreen
+import dev.quinton.goa.web.timer.TimerScreen
 import dev.quinton.goa.web.trivia.TriviaHomeScreen
 import dev.quinton.goa.web.trivia.TriviaLeaderboardScreen
 import dev.quinton.goa.web.trivia.TriviaQuizScreen
@@ -59,15 +68,36 @@ fun ScreenFor(route: Route) {
 
         is Route.RulesTopic -> RulesTopicScreen(route.topicId)
 
+        is Route.LevelLadder -> LevelLadderScreen(route.heroIds)
+
         Route.Settings -> SettingsScreen()
 
         Route.About -> AboutScreen()
 
-        // Timer tab
-        Route.Timer -> PlaceholderScreen("Timer", Placeholder.TIMER, settingsAction = true)
+        // Timer tab (W3 table)
+        Route.Timer -> TimerScreen()
 
-        // Draft tab
-        Route.Draft -> PlaceholderScreen("Draft", Placeholder.DRAFT, settingsAction = true)
+        is Route.MatchSetup -> MatchSetupScreen(route)
+
+        Route.TimerPresets -> PresetsScreen()
+
+        is Route.TimerPresetEdit -> PresetEditScreen(route.presetId)
+
+        // Draft tab (W3 table)
+        Route.Draft -> DraftSetupScreen()
+
+        Route.DraftBoard -> DraftBoardScreen()
+
+        Route.DraftMethods -> DraftMethodsScreen()
+
+        is Route.DraftMethodEdit -> DraftMethodEditScreen(route.methodId)
+
+        // Opened by the table tools, built by other streams (W2 matches and players, W4 board)
+        is Route.MatchEdit -> PlaceholderScreen("Match", Placeholder.MATCH_EDIT)
+
+        is Route.PlayerEdit -> PlaceholderScreen("Player", Placeholder.PLAYER_EDIT)
+
+        is Route.NewBoard -> PlaceholderScreen("Board", Placeholder.BOARD)
 
         // Players tab
         Route.Players -> PlaceholderScreen(

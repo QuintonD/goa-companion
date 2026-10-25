@@ -17,6 +17,7 @@ import dev.quinton.goa.web.ui.BottomSheet
 import dev.quinton.goa.web.ui.ButtonKind
 import dev.quinton.goa.web.ui.GoaButton
 import dev.quinton.goa.web.ui.LoadContent
+import dev.quinton.goa.web.ui.Screen
 import dev.quinton.goa.web.ui.SectionHeader
 import dev.quinton.goa.web.ui.rememberLoad
 import kotlinx.coroutines.CancellationException
@@ -66,10 +67,41 @@ internal data class Ladder(
  * matter, the full p.13/p.15 table, the rules behind it (verbatim) and the cards that change it
  * (verbatim). [heroIds] are the current match's heroes (their cards only); empty = every hero.
  * [showRulesLink] offers "All rules" (off when opened from the Rules screen). Open it from any
- * screen (the timer's Level Up step does on the phone).
+ * screen (the Rules screen does; the timer opens the [LevelLadderScreen] page).
  */
 @Composable
 fun LevelLadderSheet(heroIds: List<String> = emptyList(), showRulesLink: Boolean = true, onDismiss: () -> Unit) {
+    val router = LocalServices.current.router
+    BottomSheet("Levels & defeats", onDismiss = onDismiss) {
+        LevelLadderBody(
+            heroIds,
+            onOpenRules = if (showRulesLink) {
+                {
+                    onDismiss()
+                    router.navigate(Route.Rules)
+                }
+            } else {
+                null
+            },
+        )
+    }
+}
+
+/**
+ * The same ladder as a page, for [Route.LevelLadder] (`#/levels?heroes=…`): the running timer's
+ * "Levels & defeats" and Level Up step open it with the match's heroes, and Back returns to the
+ * timer. A page rather than a sheet so the address survives a reload (Android: `LevelLadderRoute`).
+ */
+@Composable
+fun LevelLadderScreen(heroIds: List<String>) {
+    val router = LocalServices.current.router
+    Screen("Levels & defeats") {
+        LevelLadderBody(heroIds, onOpenRules = { router.navigate(Route.Rules) })
+    }
+}
+
+@Composable
+private fun LevelLadderBody(heroIds: List<String>, onOpenRules: (() -> Unit)?) {
     val services = LocalServices.current
     val loaded = rememberLoad(heroIds) {
         val reference = services.data.content.rulesReference.load()
@@ -83,21 +115,7 @@ fun LevelLadderSheet(heroIds: List<String> = emptyList(), showRulesLink: Boolean
         }
         Ladder.of(reference.ladder, catalog, heroIds)
     }
-    BottomSheet("Levels & defeats", onDismiss = onDismiss) {
-        LoadContent(loaded, "Couldn't load the rules") { ladder ->
-            LadderContent(
-                ladder,
-                onOpenRules = if (showRulesLink) {
-                    {
-                        onDismiss()
-                        services.router.navigate(Route.Rules)
-                    }
-                } else {
-                    null
-                },
-            )
-        }
-    }
+    LoadContent(loaded, "Couldn't load the rules") { ladder -> LadderContent(ladder, onOpenRules) }
 }
 
 @Composable

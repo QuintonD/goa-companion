@@ -49,7 +49,6 @@ import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.draft.DraftEngine
-import dev.quinton.goa.core.domain.draft.DraftError
 import dev.quinton.goa.core.domain.draft.DraftSession
 import dev.quinton.goa.core.domain.draft.SeatAssignment
 import dev.quinton.goa.core.model.match.Team
@@ -117,11 +116,7 @@ private fun CompletionList(
                     modifier = Modifier.semantics { heading() },
                 )
                 Text(
-                    when (session.seatLock) {
-                        null -> "Tap two heroes on the same team to swap who plays them."
-                        DraftError.PlayerDraftFixed -> "Everyone plays the hero chosen for them."
-                        else -> "Everyone plays the hero they picked from their own hand."
-                    },
+                    DraftBoardText.completionHint(session),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -184,10 +179,9 @@ private fun CompletionActions(
             OutlinedButton(
                 onClick = {
                     // Pick order per team: the board's opening places heroes in that order (p.20).
-                    val picks = session.picks
                     actions.tryOnBoard(
-                        red = picks.filter { it.team == Team.RED }.map { it.heroId },
-                        blue = picks.filter { it.team == Team.BLUE }.map { it.heroId },
+                        red = DraftBoardText.lineUp(session, Team.RED),
+                        blue = DraftBoardText.lineUp(session, Team.BLUE),
                     )
                 },
                 contentPadding = PaddingValues(horizontal = Spacing.sm),

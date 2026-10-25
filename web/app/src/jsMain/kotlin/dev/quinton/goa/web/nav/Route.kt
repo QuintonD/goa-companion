@@ -87,6 +87,21 @@ sealed interface Route {
         override val parent get() = Catalog
     }
 
+    /**
+     * A new board with the opening position for a line-up (W4's screen; a finished draft opens it with
+     * "Try on the board"): hero ids per team in pick order. As Android's `BoardRoute(red, blue)`.
+     */
+    data class NewBoard(val red: List<String>, val blue: List<String>) : Route {
+        override val path
+            get() = "boards/$NEW" + Routes.query(
+                "red" to red.takeIf { it.isNotEmpty() }?.joinToString(","),
+                "blue" to blue.takeIf { it.isNotEmpty() }?.joinToString(","),
+            )
+        override val tab: Tab? = null
+        override val parent get() = Boards
+        override val showsTabBar get() = false
+    }
+
     data class Board(val boardId: String) : Route {
         override val path get() = "boards/${Routes.encode(boardId)}"
         override val tab get() = Tab.HEROES
@@ -126,6 +141,18 @@ sealed interface Route {
         override val parent get() = Rules
     }
 
+    /**
+     * The level & defeat ladder (W1's rules reference; the running timer opens it on Level Up).
+     * [heroIds] are the heroes in play: their cards that change Life counters or defeat rewards are
+     * quoted. Empty = all heroes. As Android's `LevelLadderRoute`.
+     */
+    data class LevelLadder(val heroIds: List<String> = emptyList()) : Route {
+        override val path get() = "levels" +
+            Routes.query("heroes" to heroIds.takeIf { it.isNotEmpty() }?.joinToString(","))
+        override val tab: Tab? = null
+        override val parent get() = Rules
+    }
+
     data object Settings : Route {
         override val path = "settings"
         override val tab: Tab? = null
@@ -145,11 +172,61 @@ sealed interface Route {
         override val parent: Route? = null
     }
 
+    /**
+     * Match setup (mode, counters, Tie Breaker coin) for a pending match ([matchId]) or a fresh one.
+     * [rematchOf] + [rematchKind] (a `RematchKind` name) set up a rematch instead, saved as a match
+     * only when its timer starts.
+     */
+    data class MatchSetup(
+        val matchId: String? = null,
+        val rematchOf: String? = null,
+        val rematchKind: String? = null,
+    ) : Route {
+        override val path
+            get() = "timer/setup" + Routes.query("match" to matchId, "rematch" to rematchOf, "kind" to rematchKind)
+        override val tab get() = Tab.TIMER
+        override val parent get() = Timer
+    }
+
+    data object TimerPresets : Route {
+        override val path = "timer/presets"
+        override val tab get() = Tab.TIMER
+        override val parent get() = Timer
+    }
+
+    /** A preset's editor; null [presetId] = a new preset. */
+    data class TimerPresetEdit(val presetId: String? = null) : Route {
+        override val path get() = "timer/presets/" + (presetId?.let(Routes::encode) ?: NEW)
+        override val tab get() = Tab.TIMER
+        override val parent get() = TimerPresets
+    }
+
     // Draft tab
     data object Draft : Route {
         override val path = "draft"
         override val tab get() = Tab.DRAFT
         override val parent: Route? = null
+    }
+
+    /** The draft in progress (bans and picks, pass-and-play): a full-screen table tool. */
+    data object DraftBoard : Route {
+        override val path = "draft/board"
+        override val tab get() = Tab.DRAFT
+        override val parent get() = Draft
+        override val showsTabBar get() = false
+    }
+
+    data object DraftMethods : Route {
+        override val path = "draft/methods"
+        override val tab get() = Tab.DRAFT
+        override val parent get() = Draft
+    }
+
+    /** A draft method's editor; null [methodId] = a new method (a built-in opens as a copy). */
+    data class DraftMethodEdit(val methodId: String? = null) : Route {
+        override val path get() = "draft/methods/" + (methodId?.let(Routes::encode) ?: NEW)
+        override val tab get() = Tab.DRAFT
+        override val parent get() = DraftMethods
     }
 
     // Players tab
@@ -169,6 +246,43 @@ sealed interface Route {
         override val path = "matches"
         override val tab get() = Tab.PLAYERS
         override val parent get() = Players
+    }
+
+    /**
+     * The match editor (W2's screen; W3 opens it from the timer). [matchId] null = a new match;
+     * [prefillDurationMin] / [prefillMode] (a `GameMode` serial name) pre-fill a new one from a
+     * finished timer session. [result] opens the focused "Who won?" layout. [prefillPlayedAt] (epoch
+     * ms, the session's start) dates a new or pending match. [newMatchId] is the id a new match is
+     * saved under (the timer reserves one so it can tell when the result was saved). As Android's
+     * `MatchEditRoute`.
+     */
+    data class MatchEdit(
+        val matchId: String? = null,
+        val prefillDurationMin: Int? = null,
+        val prefillMode: String? = null,
+        val result: Boolean = false,
+        val prefillPlayedAt: Long? = null,
+        val newMatchId: String? = null,
+    ) : Route {
+        override val path
+            get() = "matches/" + (matchId?.let(Routes::encode) ?: NEW) + Routes.query(
+                "result" to if (result) "1" else null,
+                "duration" to prefillDurationMin?.toString(),
+                "mode" to prefillMode,
+                "playedAt" to prefillPlayedAt?.toString(),
+                "newId" to newMatchId,
+            )
+
+        // Opened from the Timer tab (Log result) and the match log: stays on the tab that opened it.
+        override val tab: Tab? = null
+        override val parent get() = Matches
+    }
+
+    /** A player profile's editor (W2's screen; the draft opens it for a new player). */
+    data class PlayerEdit(val playerId: String? = null) : Route {
+        override val path get() = playerId?.let { "players/${Routes.encode(it)}/edit" } ?: "players/$NEW"
+        override val tab: Tab? = null
+        override val parent get() = playerId?.let { PlayerDetail(it) } ?: Players
     }
 
     data object Meta : Route {
@@ -191,6 +305,9 @@ sealed interface Route {
     }
 }
 
+/** The path segment that means "a new one" (`#/timer/presets/new`); never an id. */
+private const val NEW = "new"
+
 /** Parses and formats the `#/…` hash. Pure, so it is unit-tested without a browser. */
 object Routes {
     /** The route for [hash] (`#/heroes/arien`, `/heroes/arien` or `heroes/arien`); empty = Heroes. */
@@ -203,16 +320,15 @@ object Routes {
         if (parts.any { it.isEmpty() }) return Route.NotFound(raw)
         return when (parts.first()) {
             "heroes" -> heroes(parts, raw)
-            "trivia" -> trivia(parts, query)
-            "boards" -> oneOrTwo(parts, Route.Boards) { Route.Board(it) }
+            "trivia", "levels", "boards" -> queried(parts, query)
             "play" -> Route.Play.takeIf { parts.size == 1 }
             "puzzles" -> oneOrTwo(parts, Route.Puzzles) { Route.Puzzle(it) }
             "rules" -> oneOrTwo(parts, Route.Rules) { Route.RulesTopic(it) }
             "settings" -> settings(parts)
-            "timer" -> Route.Timer.takeIf { parts.size == 1 }
-            "draft" -> Route.Draft.takeIf { parts.size == 1 }
-            "players" -> oneOrTwo(parts, Route.Players) { Route.PlayerDetail(it) }
-            "matches" -> Route.Matches.takeIf { parts.size == 1 }
+            "timer" -> timer(parts, query)
+            "draft" -> draft(parts)
+            "players" -> players(parts)
+            "matches" -> matches(parts, query)
             "meta" -> Route.Meta.takeIf { parts.size == 1 }
             "group" -> Route.Group.takeIf { parts.size == 1 }
             else -> null
@@ -229,6 +345,22 @@ object Routes {
         else -> Route.NotFound(raw)
     }
 
+    /**
+     * The screens whose address carries a query: trivia (`?hero=`, a quiz's request), the level ladder
+     * (`?heroes=`), a new board's line-up (`?red=&blue=`).
+     */
+    private fun queried(parts: List<String>, query: Map<String, String>): Route? = when (parts.first()) {
+        "trivia" -> trivia(parts, query)
+
+        "levels" -> Route.LevelLadder(query.list("heroes")).takeIf { parts.size == 1 }
+
+        else -> if (parts.getOrNull(1) == NEW && parts.size == 2) {
+            Route.NewBoard(query.list("red"), query.list("blue"))
+        } else {
+            oneOrTwo(parts, Route.Boards) { Route.Board(it) }
+        }
+    }
+
     private fun trivia(parts: List<String>, query: Map<String, String>): Route? = when {
         parts.size == 1 -> Route.Trivia(query["hero"]?.takeIf { it.isNotEmpty() })
 
@@ -237,12 +369,71 @@ object Routes {
         parts.size == 2 && parts[1] == "quiz" -> query["config"]?.let { config ->
             Route.TriviaQuiz(
                 config = config,
-                factKeys = query["facts"].orEmpty().split(',').filter { it.isNotEmpty() },
+                factKeys = query.list("facts"),
                 challenge = query["challenge"] == "1",
             )
         }
 
         else -> null
+    }
+
+    private fun timer(parts: List<String>, query: Map<String, String>): Route? = when {
+        parts.size == 1 -> Route.Timer
+
+        parts.size == 2 && parts[1] == "setup" -> Route.MatchSetup(
+            query.value("match"),
+            query.value("rematch"),
+            query.value("kind"),
+        )
+
+        parts.size == 2 && parts[1] == "presets" -> Route.TimerPresets
+
+        parts.size == 3 && parts[1] == "presets" -> Route.TimerPresetEdit(parts[2].takeIf { it != NEW })
+
+        else -> null
+    }
+
+    private fun draft(parts: List<String>): Route? = when {
+        parts.size == 1 -> Route.Draft
+        parts.size == 2 && parts[1] == "board" -> Route.DraftBoard
+        parts.size == 2 && parts[1] == "methods" -> Route.DraftMethods
+        parts.size == 3 && parts[1] == "methods" -> Route.DraftMethodEdit(parts[2].takeIf { it != NEW })
+        else -> null
+    }
+
+    private fun players(parts: List<String>): Route? = when {
+        parts.size == 1 -> Route.Players
+        parts.size == 2 && parts[1] == NEW -> Route.PlayerEdit()
+        parts.size == 2 -> Route.PlayerDetail(parts[1])
+        parts.size == 3 && parts[2] == "edit" -> Route.PlayerEdit(parts[1])
+        else -> null
+    }
+
+    private fun matches(parts: List<String>, query: Map<String, String>): Route? = when (parts.size) {
+        1 -> Route.Matches
+
+        2 -> Route.MatchEdit(
+            matchId = parts[1].takeIf { it != NEW },
+            prefillDurationMin = query.value("duration")?.toIntOrNull(),
+            prefillMode = query.value("mode"),
+            result = query["result"] == "1",
+            prefillPlayedAt = query.value("playedAt")?.toLongOrNull(),
+            newMatchId = query.value("newId"),
+        )
+
+        else -> null
+    }
+
+    private fun Map<String, String>.value(key: String): String? = this[key]?.takeIf { it.isNotEmpty() }
+
+    private fun Map<String, String>.list(key: String): List<String> =
+        this[key].orEmpty().split(',').filter { it.isNotEmpty() }
+
+    /** `?a=1&b=2` from the non-null pairs (empty when none), values percent-encoded. */
+    fun query(vararg pairs: Pair<String, String?>): String {
+        val present = pairs.filter { it.second != null }
+        if (present.isEmpty()) return ""
+        return "?" + present.joinToString("&") { (k, v) -> "$k=${encode(v!!)}" }
     }
 
     private fun settings(parts: List<String>): Route? = when {
