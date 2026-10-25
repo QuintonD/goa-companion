@@ -820,4 +820,3 @@ internal fun startNote(state: TriviaHomeUiState.Ready): String? = TriviaText.sta
 
 /** From this width the start bar puts its text and button side by side. */
 private val WIDE_START_BAR = 560.dp
-

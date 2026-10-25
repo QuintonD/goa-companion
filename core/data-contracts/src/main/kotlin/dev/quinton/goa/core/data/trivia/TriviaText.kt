@@ -174,7 +174,8 @@ object TriviaText {
         }${spokenUnverified(card.heroVerified)}"
 
     /** "Arien's Mad Dash", and ", unverified data" when the hero's data isn't verified. */
-    fun spokenOwned(card: TriviaCardUi): String = "${card.heroName}'s ${card.name}${spokenUnverified(card.heroVerified)}"
+    fun spokenOwned(card: TriviaCardUi): String =
+        "${card.heroName}'s ${card.name}${spokenUnverified(card.heroVerified)}"
 
     /**
      * When the player isn't this device's "You": whose learning progress this is. Null when they

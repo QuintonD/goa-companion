@@ -67,7 +67,7 @@ data class PlayerRoundsUi(val player: Player, val isMe: Boolean, val rounds: Lis
 sealed interface TriviaLeaderboardUiState {
     data object Loading : TriviaLeaderboardUiState
 
-        data class Ready(
+    data class Ready(
         val tab: LeaderboardTab,
         val period: LeaderboardPeriod,
         val challenge: List<LeaderboardRowUi>,
@@ -287,9 +287,9 @@ class TriviaLeaderboardModel(
         val score = "${round.correct}/${round.questions}"
         val date = dates.short(round.playedAt)
         // A Challenge's time as the board ranks it (tenths); a practice round's to the second.
-        val time = if (challenge) TriviaText.answerTime(round.answerMillis) else TriviaText.roundTime(round.answerMillis)
-        val spokenTime =
-            if (challenge) TriviaText.spokenAnswerTime(round.answerMillis) else TriviaText.spokenRoundTime(round.answerMillis)
+        val ms = round.answerMillis
+        val time = if (challenge) TriviaText.answerTime(ms) else TriviaText.roundTime(ms)
+        val spokenTime = if (challenge) TriviaText.spokenAnswerTime(ms) else TriviaText.spokenRoundTime(ms)
         val detail = listOf(time, "best streak ${round.bestStreak}", date).joinToString(" · ")
         return RoundUi(
             id = round.id,
