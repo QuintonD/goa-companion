@@ -2,6 +2,7 @@ package dev.quinton.goa.relay
 
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -48,6 +49,7 @@ fun Application.relayModule(
         call.response.header("X-Content-Type-Options", "nosniff")
         call.response.header(HttpHeaders.CacheControl, "no-store")
         call.response.header("X-Robots-Tag", "noindex")
+        allowOrigin(call, config.corsOrigins)
         try {
             proceed()
         } finally {
@@ -60,6 +62,13 @@ fun Application.relayModule(
     }
 
     intercept(ApplicationCallPipeline.Plugins) {
+        // CORS preflights touch no data and carry no token: answered before the rate limiter, so a
+        // browser's sync isn't refused for asking permission first.
+        if (call.request.httpMethod == HttpMethod.Options) {
+            call.preflight(config.corsOrigins)
+            finish()
+            return@intercept
+        }
         val wait = limiter.acquire(clientKey(call))
         if (wait != null) {
             call.response.header(HttpHeaders.RetryAfter, wait.toString())
@@ -198,6 +207,48 @@ internal fun clientKey(call: ApplicationCall): String {
         ?.lastOrNull { it.isNotEmpty() }
     return forwarded ?: call.request.local.remoteAddress
 }
+
+/**
+ * CORS for the web app (ADR-043): a browser page on an allowed origin (`GOA_RELAY_CORS_ORIGINS`,
+ * default the GitHub Pages site) may read the relay's answers, every status included, so it sees
+ * 401/412/429 and their `ETag`/`Retry-After` like a phone does. Other origins get no CORS headers
+ * (the browser then hides the answer). No cookies are involved: the token travels in
+ * `Authorization`, so `Access-Control-Allow-Credentials` is never sent.
+ */
+private fun allowOrigin(call: ApplicationCall, allowed: Set<String>) {
+    val origin = call.request.headers[HttpHeaders.Origin] ?: return
+    call.response.header(HttpHeaders.Vary, HttpHeaders.Origin)
+    if (origin !in allowed) return
+    call.response.header(HttpHeaders.AccessControlAllowOrigin, origin)
+    call.response.header(HttpHeaders.AccessControlExposeHeaders, CORS_EXPOSED)
+}
+
+/**
+ * Answers an `OPTIONS` request: `204` with the allowed methods and headers for a preflight from an
+ * allowed origin asking for GET or PUT with the protocol's headers on a relay path; `403` otherwise.
+ */
+private suspend fun ApplicationCall.preflight(allowed: Set<String>) {
+    val origin = request.headers[HttpHeaders.Origin]
+    val method = request.headers[HttpHeaders.AccessControlRequestMethod]?.trim()
+    val headers = request.headers[HttpHeaders.AccessControlRequestHeaders].orEmpty()
+        .split(',').map { it.trim().lowercase() }.filter { it.isNotEmpty() }
+    val ok = origin != null && origin in allowed && method in CORS_METHODS &&
+        CORS_REQUEST_HEADERS.containsAll(headers) && template(request.path()) != "(other)"
+    if (!ok) return error(HttpStatusCode.Forbidden, "cors_refused")
+    response.header(HttpHeaders.Vary, "${HttpHeaders.AccessControlRequestMethod}, ${HttpHeaders.AccessControlRequestHeaders}")
+    response.header(HttpHeaders.AccessControlAllowMethods, CORS_METHODS.joinToString(", "))
+    response.header(HttpHeaders.AccessControlAllowHeaders, CORS_ALLOWED_HEADERS)
+    response.header(HttpHeaders.AccessControlMaxAge, CORS_MAX_AGE_SECONDS)
+    respondBytes(ByteArray(0), status = HttpStatusCode.NoContent)
+}
+
+private val CORS_METHODS = listOf("GET", "PUT")
+private const val CORS_ALLOWED_HEADERS = "Authorization, If-Match, If-None-Match, Content-Type"
+private val CORS_REQUEST_HEADERS = CORS_ALLOWED_HEADERS.split(", ").map { it.lowercase() }.toSet()
+private const val CORS_EXPOSED = "ETag, Retry-After"
+
+/** WebKit caps a cached preflight at 10 minutes; asking for longer gains nothing. */
+private const val CORS_MAX_AGE_SECONDS = "600"
 
 internal fun template(path: String): String = when {
     path == "/v1/health" -> path

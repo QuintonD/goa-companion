@@ -41,6 +41,12 @@ Test vector (asserted by `server/relay`'s `RelayTokenTest`; the Android side sho
 | `GET /v1/groups/{groupId}/document` | `200` body = sealed bytes, `ETag: "<rev>"`, `Content-Type: application/vnd.dev.quinton.goa.sync` · `404` no document for this group (also when the group was never registered, whatever the token) · `401` registered group, wrong or missing token · `304` (optional) when the request carries `If-None-Match: "<rev>"` naming the current rev |
 | `PUT /v1/groups/{groupId}/document` with `If-None-Match: *` (first upload) or `If-Match: "<rev>"` | `201` (first) / `200`, `ETag: "<newRev>"` · `412` the stored rev isn't the one named (or a document exists for `If-None-Match: *`) · `428` neither header · `401` wrong or missing token · `413` body over 8 MiB · `400` empty body · `503` + `Retry-After: 3600` a first upload while the relay is full (`GOA_RELAY_MAX_GROUPS`) |
 
+**Browsers** (the web app, ADR-043) call the relay from `https://quintond.github.io`
+(`GOA_RELAY_CORS_ORIGINS`): answers to an allowed `Origin` carry `Access-Control-Allow-Origin` and
+expose `ETag` and `Retry-After`; `OPTIONS` preflights for `GET`/`PUT` with `Authorization`,
+`If-Match`, `If-None-Match`, `Content-Type` get `204` (cached 10 min), others `403`. Headers only:
+the protocol is the same for phones and browsers.
+
 Any route: `429` when rate limited (`Retry-After` seconds), `503` while the store is unavailable
 (`Retry-After: 30`). Error bodies are small JSON (`{"error":"precondition_failed"}`); clients go by
 the status code. `If-Match: *` (any existing document) is accepted too. Checks run in this order:
@@ -75,6 +81,6 @@ builds on a machine without the Android SDK). Storage under `GOA_RELAY_DATA` (de
 recovery. Writes are atomic (temp file, fsync, rename) under a per-group lock, `meta.json` last.
 Listens on `127.0.0.1:8787` by default; deployed with Docker (`deploy/relay/`; inside the container it
 binds `0.0.0.0` and is published on host loopback only), published by Tailscale Funnel on 8443.
-Rate limits: token buckets of 60 requests/min per client (the last `X-Forwarded-For` hop, else the
+CORS preflights are answered before the rate limiter. Rate limits: token buckets of 60 requests/min per client (the last `X-Forwarded-For` hop, else the
 peer) and 600/min overall. At most 200 groups (`GOA_RELAY_MAX_GROUPS`) may register. Build, run and
 operations: [server/relay/README.md](../server/relay/README.md).

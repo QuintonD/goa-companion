@@ -52,6 +52,8 @@ writable, `no-new-privileges`, all capabilities dropped, 512 MiB memory cap, hea
 ```sh
 curl -s http://127.0.0.1:8787/v1/health                      # on oldboi
 curl -s https://oldboi.taila4d38d.ts.net:8443/v1/health       # anywhere
+# CORS for the web app (ADR-043): expect 204 with Access-Control-Allow-Origin
+curl -si -X OPTIONS -H 'Origin: https://quintond.github.io' -H 'Access-Control-Request-Method: PUT'   -H 'Access-Control-Request-Headers: authorization,if-match,content-type'   https://oldboi.taila4d38d.ts.net:8443/v1/groups/00000000-0000-0000-0000-000000000000/document
 docker ps --filter name=goa-relay                             # STATUS ... (healthy)
 ```
 
