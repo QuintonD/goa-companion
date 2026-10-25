@@ -1196,3 +1196,41 @@ Node. Stream notes for the web: `D:\.goa-qa\web\F1-api.md`.
 - **Known gaps.** No iOS launch images (iOS shows the background colour); Playwright's WebKit is not
   Safari on an iPhone, so a device pass is still due; push notifications and Wake Lock are left to
   the streams that need them (feature-detected).
+
+**Addendum (Data contracts, F3, 2026-10-25):**
+**Decision:** The web implements the **same repository interfaces** as the phone. They move from
+`core:data` into a new multiplatform module **`:core:data-contracts`** (jvm + js), keeping the
+package `dev.quinton.goa.core.data`, so no Android import changed; `core:data` depends on it with
+`api` and still implements it over Room, DataStore and OkHttp.
+1. **What moved** (`git mv`): `Repositories.kt` (every contract + `GroupState`, `ServerSyncState`,
+   `SyncedPhone`, `EditClock`), `SyncServerContracts.kt`, `rating/RatingContracts.kt` (+
+   `StampedEloConfigStore`), `game/GameInProgress.kt`, `puzzle/PuzzleProgress.kt`; and the pure logic
+   the web must not write twice: `ReplayRatingsRepository` (ratings, meta and group stats replayed
+   from the log), `PlayerNames` (+ `find`, the lookup `findByName` ran inline), `PlayerMergeRules`
+   (the merge check `RoomPlayerRepository.merge` ran inline), and the stored formats `EloConfigJson`,
+   `TriviaJson`, `GameJson`, `PuzzleProgressJson`. `SyncDataPort`, `SyncApplyResult` and `SyncDevice`
+   (named by `SyncRepository`/`GroupRepository`) moved to core:domain's commonMain; the Nearby
+   protocol stays JVM-only. Room/DataStore/OkHttp code (`Room*Repository`, `LocalSyncData`,
+   `DataStoreGroupRepository`, `OkHttpSyncServerRepository`) stays: it mixes storage with its rules,
+   and the stream that ports it moves the pure part (the relay algorithm first).
+2. **No `javax.inject` in shared code.** `ReplayRatingsRepository` lost `@Inject`/`@Singleton`
+   and is bound by a `@Provides @Singleton` in `PlayersDataModule` (same single instance, same
+   scope and dispatcher qualifiers, which stay in core:data). `EditClock.System` is
+   `System.currentTimeMillis()` on the JVM (expect/actual) and `Date.now()` in the browser. Android
+   behaviour is unchanged: the same code runs, only from another module.
+3. **Fakes are shared too.** The in-memory fakes and `TestCatalog` move to `:core:data-testing`
+   (KMP, package `dev.quinton.goa.core.testing`), re-exported by `core:testing`, so the web's tests
+   use the phone's fakes. `ReplayRatingsRepositoryTest` became a `commonTest` (JVM and Node).
+4. **On the web,** `AppServices.data` (`WebServices`) holds one holder per stream, each in a file
+   only that stream edits (`ContentData`, `GroupData`, `TableData`, `PlayData`), so four parallel
+   branches never conflict; contracts not built yet are stubs that throw `NotImplementedError("Wn:
+   …")` when used, never at start-up. The catalog is `WebCatalogRepository` (the bundled JSON,
+   heroes fetched in parallel, parsed by the phone's strict `CatalogFiles.load`; a failed fetch is an
+   error with Try again rather than the phone's empty catalog, because offline-before-cached is
+   normal on the web). F2's placeholder `CatalogSource`/`WebCatalogIndex`/`WebHero` are gone.
+**Consequences:** `web/app` depends on `core:model`, `core:domain`, `core:data-contracts`;
+`core:game` arrives transitively (`GameInProgress` wraps `SavedGame`) but Kotlin/JS keeps only
+reachable code: the production `app.js` grew from 985 330 to 1 027 094 bytes (+4 %; gzip 276 847 →
+287 897, +11 KB) with the real catalog model and its serializers, and carries none of the engine
+(no `dev.quinton.goa.core.game` names in the bundle); the engine goes in the Worker. A new
+operation on a contract is added to the interface with an implementation on both platforms.
