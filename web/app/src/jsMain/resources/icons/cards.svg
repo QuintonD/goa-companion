@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <title>Cards: two cards fanned</title>
-  <rect x="3" y="6" width="10" height="14" rx="1.5" transform="rotate(-8 8 13)"/>
-  <rect x="11" y="4" width="10" height="14" rx="1.5" transform="rotate(8 16 11)"/>
+  <title>Cards in hand: two cards fanned</title>
+  <path d="M4.2 7.4l7.9-1.1 1.9 13.8-7.9 1.1z"/>
+  <path d="M12.6 5.6l6.9-1 1.6 11.4-6.6 1"/>
 </svg>

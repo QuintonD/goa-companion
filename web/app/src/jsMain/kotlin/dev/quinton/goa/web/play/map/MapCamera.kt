@@ -109,6 +109,8 @@ class MapCamera {
     }
 
     private fun reframe() {
+        // A new size or inset re-frames at once: an animation towards the old frame stops here.
+        animation++
         when (mode) {
             ViewMode.LANE -> lane?.let { applyLane(it) } ?: applyFit()
             ViewMode.FIT -> applyFit()
@@ -172,8 +174,9 @@ class MapCamera {
     suspend fun animateFit() {
         val z = fitZoom(fullMap()).coerceIn(minZoom, maxZoom)
         userMoved = false
-        animateTo(z, centerOn(fullMap().center, z))
+        // The mode first, so a resize while it animates (a panel hiding) re-frames to the same view.
         mode = ViewMode.FIT
+        animateTo(z, centerOn(fullMap().center, z))
     }
 
     /** Animated: the Lane between the hero spawn areas, hexes comfortably large. */
@@ -181,8 +184,8 @@ class MapCamera {
         val region = lane ?: return animateFit()
         val z = laneZoom(region)
         userMoved = false
-        animateTo(z, clampPan(centerOn(region.center, z), z))
         mode = ViewMode.LANE
+        animateTo(z, clampPan(centerOn(region.center, z), z))
     }
 
     /** Map units → screen px. */
