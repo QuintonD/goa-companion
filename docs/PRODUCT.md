@@ -178,7 +178,8 @@ and **through the group's sync server** whenever a phone has internet (ADR-036).
 - **Group:** "Start a group" (name) creates the group and its key; "Invite a friend" shows a QR
   code (and "Share as text", which sends the invite with what to do with it); a friend's phone
   joins by scanning it (Google's code scanner, no camera permission) or pasting the invite (or the
-  whole message it came in). Leave group keeps all data.
+  whole message it came in; the dialog says both ways, and Join stays in view above the keyboard).
+  Leave group keeps all data.
 - **Join flow:** install → Group sync → scan → the first sync starts right away → "Which player
   are you?" (pick yourself, or add yourself: this is how a friend adds themself as a player).
   Your player shows "You" in the Players list, and the Players tab's top bar opens your page.
