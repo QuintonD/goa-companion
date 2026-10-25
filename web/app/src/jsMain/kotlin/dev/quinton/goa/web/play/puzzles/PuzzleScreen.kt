@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.feature.board.map.HexLayout
 import dev.quinton.goa.feature.board.map.MapOrientation
+import dev.quinton.goa.feature.board.play.game.PlaySheet
 import dev.quinton.goa.feature.board.play.puzzles.NoPuzzle
 import dev.quinton.goa.feature.board.play.puzzles.PuzzleAction
 import dev.quinton.goa.feature.board.play.puzzles.PuzzlePhase
@@ -22,9 +23,22 @@ import dev.quinton.goa.feature.board.play.review.ReviewAction
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.nav.Route
-import dev.quinton.goa.web.play.map.MapCamera
-import dev.quinton.goa.web.play.ui.PlayScaffold
-import dev.quinton.goa.web.play.ui.landscapeQuery
+import dev.quinton.goa.web.play.cards.CardFocusHost
+import dev.quinton.goa.web.play.cards.CardFocusState
+import dev.quinton.goa.web.play.cards.CardImage
+import dev.quinton.goa.web.play.game.PeekConfirm
+import dev.quinton.goa.web.play.table.Announce
+import dev.quinton.goa.web.play.table.DecisionPanel
+import dev.quinton.goa.web.play.table.EventLog
+import dev.quinton.goa.web.play.table.GameReviewSheet
+import dev.quinton.goa.web.play.table.GameTableView
+import dev.quinton.goa.web.play.table.HeroDetail
+import dev.quinton.goa.web.play.table.MomentCard
+import dev.quinton.goa.web.play.table.Quiet
+import dev.quinton.goa.web.play.table.RecentEvents
+import dev.quinton.goa.web.play.table.YourHand
+import dev.quinton.goa.web.play.table.rememberLandscape
+import dev.quinton.goa.web.play.table.rememberTableCamera
 import dev.quinton.goa.web.ui.BottomSheet
 import dev.quinton.goa.web.ui.ButtonKind
 import dev.quinton.goa.web.ui.EmptyState
@@ -46,17 +60,6 @@ import org.jetbrains.compose.web.dom.P
 import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
 import org.jetbrains.compose.web.dom.Ul
-
-/** The sheets a puzzle opens over its table. */
-private sealed interface PuzzleSheet {
-    data object Menu : PuzzleSheet
-
-    data object Log : PuzzleSheet
-
-    data object Review : PuzzleSheet
-
-    data class Hero(val heroId: String) : PuzzleSheet
-}
 
 /**
  * One puzzle (PRODUCT §10), as on the phone: the game table with the goal under the top row; in the
@@ -113,69 +116,74 @@ fun PuzzleScreen(puzzleId: String) {
 
 @Composable
 private fun PuzzleTable(puzzle: PuzzleUi, controller: PuzzleController) {
-    val router = LocalServices.current.router
-    var sheet by remember { mutableStateOf<PuzzleSheet?>(null) }
+    var sheet by remember { mutableStateOf<PlaySheet?>(null) }
+    var menu by remember { mutableStateOf(false) }
     var shown by remember { mutableStateOf(true) }
-    val camera = remember { MapCamera() }
-    val landscape = landscapeQuery()
+    val camera = rememberTableCamera()
+    val focus = remember { CardFocusState() }
+    val landscape = rememberLandscape()
     val table = puzzle.table
-    val layout = remember(table.map, table.bottomTeam, landscape) {
-        HexLayout(table.map, if (landscape) MapOrientation.LANDSCAPE else MapOrientation.PORTRAIT, table.bottomTeam)
-    }
     val onAction = controller::onAction
-    LaunchedEffect(sheet is PuzzleSheet.Review) {
-        onAction(PuzzleAction.Review(ReviewAction.Open(sheet is PuzzleSheet.Review)))
-    }
-    PlayScaffold(
+    GameTableView(
         title = "Puzzle ${puzzle.info.number}",
         actions = {
-            IconButton("article", "Game state", { sheet = PuzzleSheet.Review })
-            IconButton("list", "Puzzle log", { sheet = PuzzleSheet.Log })
-            IconButton("more", "More options", { sheet = PuzzleSheet.Menu })
+            IconButton("article", "Game state", {
+                sheet = PlaySheet.Review()
+                onAction(PuzzleAction.Review(ReviewAction.Open(true)))
+            })
+            IconButton("list", "Puzzle log", { sheet = PlaySheet.Log })
+            IconButton("more", "More options", { menu = true })
         },
+        table = table,
+        camera = camera,
+        focus = focus,
+        onTap = { tap ->
+            if (!controller.tap(tap) && tap is TableTap.Piece && table.heroView(tap.pieceId) != null) {
+                sheet = PlaySheet.Hero(tap.pieceId)
+            }
+        },
+        onHero = { sheet = PlaySheet.Hero(it) },
+        onFlip = { onAction(PuzzleAction.Flip) },
         panelShown = shown,
         onPanelShown = { shown = it },
         peek = puzzlePeek(puzzle),
         peekActions = {
             if (puzzle.phase == PuzzlePhase.SOLVING && puzzle.replay == null) {
-                PeekConfirm(puzzle) { onAction(PuzzleAction.Answer(it)) }
+                PeekConfirm(table, puzzle.busy) { onAction(PuzzleAction.Answer(it)) }
             }
         },
-        top = {
-            TableTop(table) { sheet = PuzzleSheet.Hero(it) }
-            if (shown) GoalBanner(puzzle.info.goal.text, puzzle.playing, compact = landscape)
-        },
-        map = {
-            TableMap(
-                table = table,
-                layout = layout,
-                camera = camera,
-                onTap = { tap ->
-                    val chose = controller.tap(tap)
-                    if (!chose && tap is TableTap.Piece && table.heroView(tap.pieceId) != null) {
-                        sheet = PuzzleSheet.Hero(tap.pieceId)
-                    }
-                    chose
-                },
-                onFit = {},
-            )
-        },
-        panel = { PuzzlePanel(puzzle, onAction) },
-        panelLabel = "Puzzle",
-    )
-    puzzle.announcement?.let { said ->
-        Div({
-            classes("goa-visually-hidden")
-            attr("aria-live", "polite")
-        }) { Text(said.text) }
-    }
+        banner = { GoalBanner(puzzle.info.goal.text, puzzle.playing, compact = landscape) },
+    ) { PuzzlePanel(puzzle, onAction, focus) }
+    Announce(puzzle.announcement?.text)
     when (val open = sheet) {
-        PuzzleSheet.Menu -> PuzzleMenu(puzzle, onAction, onDismiss = { sheet = null })
-        PuzzleSheet.Log -> LogSheet(puzzle) { sheet = null }
-        PuzzleSheet.Review -> ReviewSheetHost(puzzle, onAction) { sheet = null }
-        is PuzzleSheet.Hero -> HeroSheetHost(puzzle, open.heroId) { sheet = null }
+        PlaySheet.Log -> BottomSheet("Puzzle log", onDismiss = { sheet = null }) {
+            Quiet("Every event, newest at the bottom.")
+            EventLog(puzzle.log)
+        }
+
+        is PlaySheet.Hero -> BottomSheet(table.hero(open.heroId).name, onDismiss = { sheet = null }) {
+            Quiet("Every hand is open in a puzzle.")
+            HeroDetail(table, open.heroId, focus)
+        }
+
+        is PlaySheet.Review -> GameReviewSheet(
+            table = table,
+            review = puzzle.review,
+            tab = open.tab,
+            onTab = { sheet = PlaySheet.Review(it) },
+            onAction = { onAction(PuzzleAction.Review(it)) },
+            onDismiss = {
+                sheet = null
+                onAction(PuzzleAction.Review(ReviewAction.Open(false)))
+            },
+            focus = focus,
+            puzzle = true,
+        )
+
         null -> Unit
     }
+    if (menu) PuzzleMenu(puzzle, onAction, onDismiss = { menu = false })
+    CardFocusHost(focus)
 }
 
 @Composable
@@ -238,18 +246,18 @@ private fun PuzzleMenu(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit, onDis
 
 /** The panel's content for where the puzzle stands. */
 @Composable
-private fun PuzzlePanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
+private fun PuzzlePanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit, focus: CardFocusState) {
     val replay = puzzle.replay
     Div({ classes("goa-puzzle-panel") }) {
         when {
-            replay != null -> ReplayPanel(puzzle, onAction)
+            replay != null -> ReplayPanel(puzzle, onAction, focus)
 
             puzzle.phase == PuzzlePhase.SOLVED -> SolvedPanel(puzzle, onAction)
 
             puzzle.phase == PuzzlePhase.REPLYING -> puzzle.replying?.let { replying ->
                 Div({ attr("aria-live", "polite") }) {
                     P({ classes("t-overline", "c-primary") }) { Text(replying.title) }
-                    RecentLines(replying.lines)
+                    RecentEvents(replying.lines)
                     LinearProgress(null, "The other side is answering")
                 }
             }
@@ -259,7 +267,7 @@ private fun PuzzlePanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
                 puzzle.nudge?.let {
                     NudgeCard(it, { onAction(PuzzleAction.Nudge) }, { onAction(PuzzleAction.DismissNudge) })
                 }
-                RecentLines(puzzle.recent)
+                RecentEvents(puzzle.recent)
             }
 
             else -> {
@@ -268,13 +276,16 @@ private fun PuzzlePanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
                 puzzle.nudge?.let {
                     NudgeCard(it, { onAction(PuzzleAction.Nudge) }, { onAction(PuzzleAction.DismissNudge) })
                 }
-                TableQuestion(
+                puzzle.table.moment?.let { MomentCard(it, puzzle.table, focus) }
+                DecisionPanel(
                     puzzle.table,
-                    busy = puzzle.busy,
                     onSelect = { onAction(PuzzleAction.Select(it)) },
                     onAnswer = { onAction(PuzzleAction.Answer(it)) },
+                    focus = focus,
+                    busy = puzzle.busy,
                 )
-                RecentLines(puzzle.recent.takeLast(2))
+                RecentEvents(puzzle.recent.takeLast(2))
+                if (!puzzle.table.handDecision) YourHand(puzzle.table, focus)
             }
         }
     }
@@ -357,7 +368,7 @@ private fun SolvedPanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
 
 /** The solution on the board, step by step: Back / Next, the move outlined, what happened; then why. */
 @Composable
-private fun ReplayPanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
+private fun ReplayPanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit, focus: CardFocusState) {
     val replay = puzzle.replay ?: return
     Div({ classes("goa-puzzle-replay-head") }) {
         IconButton("back", "Step back", { if (!replay.first) onAction(PuzzleAction.ReplayBack) })
@@ -366,11 +377,13 @@ private fun ReplayPanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
     }
     val card = (puzzle.table.selected as? Choice.Card)?.let { puzzle.table.card(it.cardId) }
     Div({ classes("goa-puzzle-replay-move") }) {
-        card?.image?.let { image ->
-            org.jetbrains.compose.web.dom.Img(image, alt = card.name) {
+        if (card != null) {
+            Button({
                 classes("goa-puzzle-replay-card")
-                attr("loading", "lazy")
-            }
+                attr("type", "button")
+                attr("aria-label", "${card.name}. Look at the card")
+                onClick { focus.show(listOf(card), title = "Solution · step ${replay.index + 1}") }
+            }) { CardImage(card, REPLAY_CARD_PX) }
         }
         P({
             classes("t-title-medium")
@@ -380,7 +393,7 @@ private fun ReplayPanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
     }
     if (replay.lines.isNotEmpty()) {
         P({ classes("t-overline", "c-variant") }) { Text(if (replay.first) "Before it" else "What happened") }
-        RecentLines(replay.lines)
+        RecentEvents(replay.lines)
     } else if (replay.first && puzzle.info.intro.isNotBlank()) {
         P({ classes("t-body-small", "c-variant") }) { Text(puzzle.info.intro) }
     }
@@ -393,52 +406,4 @@ private fun ReplayPanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
     Explanation(puzzle.info)
 }
 
-/** The latest lines, newest last. */
-@Composable
-internal fun RecentLines(lines: List<String>) {
-    if (lines.isEmpty()) return
-    Ul({ classes("goa-puzzle-recent", "t-body-medium") }) {
-        lines.forEachIndexed { i, line ->
-            Li({ if (i == lines.lastIndex) classes("newest") }) { Text(line) }
-        }
-    }
-}
-
-@Composable
-private fun LogSheet(puzzle: PuzzleUi, onDismiss: () -> Unit) {
-    BottomSheet("Puzzle log", onDismiss = onDismiss) {
-        P({ classes("t-body-small", "c-variant") }) { Text("Every event, newest at the bottom.") }
-        Ul({ classes("goa-puzzle-log") }) {
-            puzzle.log.forEach { line ->
-                Li({ if (line.heading) classes("heading", "t-overline", "c-primary") else classes("t-body-medium") }) {
-                    Text(line.text)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReviewSheetHost(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit, onDismiss: () -> Unit) {
-    BottomSheet("Game state", onDismiss = onDismiss) {
-        val review = puzzle.review
-        if (review == null) {
-            LoadingState("Reading the game so far")
-        } else {
-            InterimReview(puzzle, review) { onAction(PuzzleAction.Review(it)) }
-        }
-    }
-}
-
-@Composable
-private fun HeroSheetHost(puzzle: PuzzleUi, heroId: String, onDismiss: () -> Unit) {
-    BottomSheet(puzzle.table.hero(heroId).name, onDismiss = onDismiss) {
-        InterimHeroDetail(puzzle.table, heroId)
-    }
-}
-
-/** H3 helper for the interim parts. */
-@Composable
-internal fun Heading(text: String) {
-    H3({ classes("t-section-head") }) { Text(text) }
-}
+private const val REPLAY_CARD_PX = 40

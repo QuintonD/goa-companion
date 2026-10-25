@@ -1240,18 +1240,7 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
 .goa-puzzle-replay-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-xs); }
 .goa-puzzle-replay-head p { text-align: center; flex: 1; }
 .goa-puzzle-replay-move { display: flex; align-items: center; gap: var(--sp-sm); }
-.goa-puzzle-replay-card { width: 40px; height: auto; border-radius: 4px; flex: none; }
-.goa-puzzle-recent { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; color: var(--on-surface-variant); }
-.goa-puzzle-recent li.newest { color: var(--on-surface); }
-.goa-puzzle-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-xs); }
-.goa-puzzle-log li.heading { margin-top: var(--sp-md); }
-.goa-puzzle-strip { display: flex; gap: var(--sp-xs); overflow-x: auto; padding: var(--sp-xs) var(--sp-sm); flex: none; scrollbar-width: none; }
-.goa-puzzle-strip-hero {
-  display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 var(--sp-md); flex: none;
-  border-radius: 999px; border: 1px solid var(--outline-variant); background: var(--surface); color: var(--on-surface);
-  font: 500 0.8125rem/1rem var(--font-body);
-}
-.goa-puzzle-question { display: flex; flex-direction: column; gap: var(--sp-sm); }
+.goa-puzzle-replay-card { flex: none; padding: 0; border: 0; background: none; cursor: pointer; min-width: var(--tap); min-height: var(--tap); display: inline-flex; align-items: center; justify-content: center; }
 
 /* ---------- Small helpers ---------- */
 .goa-inline { display: flex; align-items: center; gap: var(--sp-sm); }
