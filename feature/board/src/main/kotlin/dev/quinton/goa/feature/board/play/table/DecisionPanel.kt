@@ -137,30 +137,11 @@ fun DecisionPanel(
     }
 }
 
-/** How the panel lays out a question: the cards it offers, or the asking card beside the answers. */
-internal enum class PanelLayout { CARDS, CARD_BESIDE, PLAIN }
-
-internal fun panelLayout(kind: DecisionKind, hasSource: Boolean): PanelLayout = when (kind) {
-    DecisionKind.PLAY_CARD, DecisionKind.DEFEND, DecisionKind.CHOOSE_CARD,
-    DecisionKind.UPGRADE_CARD, DecisionKind.KEEP_UPGRADE,
-    -> PanelLayout.CARDS
-
-    else -> if (hasSource) PanelLayout.CARD_BESIDE else PanelLayout.PLAIN
-}
-
 private fun hasBoardOptions(table: TableUi) = table.spaceOptions.isNotEmpty() || table.pieceOptions.isNotEmpty()
 
 @Composable
 private fun Footnote(text: String) {
     Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-}
-
-/** The card attacks (an Attack value), but neither its attack nor its Attack primary is offered. */
-internal fun attackMissing(card: Card?, options: List<Choice>): Boolean {
-    if (card?.values?.attack == null) return false
-    val actions = options.filterIsInstance<Choice.Action>().map { it.action }
-    val primaryAttacks = card.primary == PrimaryAction.ATTACK && ActionType.PRIMARY in actions
-    return ActionType.ATTACK !in actions && !primaryAttacks
 }
 
 /**
@@ -235,35 +216,6 @@ private fun AskedBy(card: Card, decision: Decision, focus: CardFocusState) {
             }
         }
     }
-}
-
-/** "Radius 2" / "Range 3" when the question speaks of the asking card's radius or range. */
-internal fun sourceReach(prompt: String, card: Card): String? {
-    val text = prompt.lowercase()
-    return listOfNotNull(
-        card.values.radius?.takeIf { "radius" in text }?.let { "Radius $it" },
-        card.values.range?.takeIf { "range" in text }?.let { "Range $it" },
-    ).joinToString(" · ").ifEmpty { null }
-}
-
-/** A short name for each kind of question, for the header. */
-fun kindTitle(kind: DecisionKind): String = when (kind) {
-    DecisionKind.PLAY_CARD -> "Play a card"
-    DecisionKind.ACT_FIRST -> "Initiative tie"
-    DecisionKind.RESPAWN -> "Respawn"
-    DecisionKind.CHOOSE_ACTION -> "Action"
-    DecisionKind.CHOOSE_SPACE -> "Space"
-    DecisionKind.CHOOSE_UNIT -> "Unit"
-    DecisionKind.CHOOSE_TOKEN -> "Token"
-    DecisionKind.CHOOSE_CARD -> "Card"
-    DecisionKind.DEFEND -> "Defend"
-    DecisionKind.CHOOSE_OPTION -> "Choose one"
-    DecisionKind.CONFIRM -> "Optional"
-    DecisionKind.CHOOSE_NUMBER -> "Number"
-    DecisionKind.REMOVE_MINION -> "Minion Battle"
-    DecisionKind.MINION_RETURN -> "Minion back"
-    DecisionKind.UPGRADE_CARD -> "Level up"
-    DecisionKind.KEEP_UPGRADE -> "Level up"
 }
 
 /**
@@ -555,47 +507,7 @@ private fun ActionChip(table: TableUi, action: ActionType, busy: Boolean, onClic
     }
 }
 
-/** An action chip's words: the action and the card's value for it ("Attack 6", "Movement 4", "Hold"). */
-internal fun actionLabel(action: ActionType, card: Card?): String = when (action) {
-    ActionType.PRIMARY -> {
-        val value = when (card?.primary) {
-            PrimaryAction.ATTACK -> card.values.attack
-            PrimaryAction.MOVEMENT -> card.values.movement
-            else -> null
-        }
-        listOfNotNull(PlayText.primary(card?.primary), value?.toString()).joinToString(" ")
-    }
-
-    else -> PlayText.action(action, card)
-}
-
-/** The rule an action follows that its card doesn't print, in a few words with the page; else null. */
-internal fun actionRule(action: ActionType): String? = when (action) {
-    ActionType.FAST_TRAVEL -> "To your Zone or an adjacent one, no enemy hero or minion in either (p.11)"
-    ActionType.HOLD -> "Do nothing (p.12)"
-    ActionType.CLEAR -> "Instead of attacking: remove adjacent tokens (p.13)"
-    else -> null
-}
-
 // ---- Cards ------------------------------------------------------------------------------
-
-/** The cards of the next Tier in [card]'s colour (p.15): what upgrading it offers. */
-internal fun upgradesOf(table: TableUi, card: Card): List<Card> {
-    val tier = card.tier ?: return emptyList()
-    return table.cards.values
-        .filter { it.heroId == card.heroId && it.color == card.color && it.tier == tier + 1 }
-        .sortedBy { it.id }
-}
-
-/** Defense succeeds when its total is at least the Attack (p.14). */
-fun holds(defense: Int?, attack: Int?): Boolean? = if (defense == null || attack == null) null else defense >= attack
-
-/**
- * Whether a defense card stops the attack: a Block by its condition when the engine settles it
- * ([blocks], p.14 "regardless of the attack value"), else its Defense total against the Attack;
- * null when only resolving it tells.
- */
-fun defenseVerdict(total: Int?, blocks: Boolean?, attack: Int?): Boolean? = blocks ?: holds(total, attack)
 
 private const val MAX_SPACE_CHIPS = 6
 private const val BESIDE_SHARE = 0.36f

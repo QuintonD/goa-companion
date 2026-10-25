@@ -67,9 +67,6 @@ import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.ui.cards.cardAspect
 import dev.quinton.goa.feature.board.ui.cards.cardWidth
 
-/** Official card scans are 729 × 1026. */
-internal const val CARD_ASPECT = 729f / 1026f
-
 /**
  * A card as it lies on the table: the official card image (`file:///android_asset/official/…`), or
  * a designed face with its name and initiative when there is no image; [card] null = facedown (the
@@ -172,18 +169,6 @@ private fun CardFace(card: Card, modifier: Modifier = Modifier) {
         )
     }
 }
-
-/** What TalkBack reads for a card: name, tier and colour, initiative, values. */
-fun spokenCard(card: Card): String = buildList {
-    add(card.name)
-    add(cardKindLabel(card))
-    card.initiative?.let { add("Initiative $it") }
-    card.values.attack?.let { add("Attack $it") }
-    card.values.defense?.let { add("Defense $it") }
-    card.values.movement?.let { add("Movement $it") }
-    card.values.range?.let { add("Range $it") }
-    card.values.radius?.let { add("Radius $it") }
-}.joinToString(", ")
 
 /** A card's printed value with its icon ("Attack 3"), as the card focus viewer lists them. */
 @Composable

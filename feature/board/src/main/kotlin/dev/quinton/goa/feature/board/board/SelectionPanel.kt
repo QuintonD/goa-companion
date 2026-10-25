@@ -716,30 +716,3 @@ internal fun Note(text: String, modifier: Modifier = Modifier) {
         modifier = modifier.padding(vertical = Spacing.xs),
     )
 }
-
-/** "Basic Gold", "Tier II Red"; a spell card "Gold spell", "Tier II Red spell", "Purple spell" (Wish). */
-internal fun cardKindLabel(card: Card): String = if (card.isSpell) {
-    listOfNotNull(
-        card.tier?.takeIf { it in 1..3 }?.let { "Tier ${tierNumeral(it)}" },
-        cardColorName(card.color),
-        "spell",
-    ).joinToString(" ")
-} else {
-    "${tierLabel(card)} ${cardColorName(card.color)}"
-}
-
-/** "Basic", "Tier I", "Tier II", "Tier III", "Ultimate"; a spell card "Spell", "Tier II spell". */
-internal fun tierLabel(card: Card): String = when {
-    // Spellbook pages carry their printed spell level, null for the gold cantrips (catalog Card.tier).
-    card.isSpell -> card.tier?.takeIf { it in 1..3 }?.let { "Tier ${tierNumeral(it)} spell" } ?: "Spell"
-
-    card.color == CardColor.GOLD || card.color == CardColor.SILVER -> "Basic"
-
-    card.color == CardColor.PURPLE || card.tier == ULTIMATE_TIER -> "Ultimate"
-
-    else -> card.tier?.let { tier -> "Tier ${tierNumeral(tier)}" } ?: "Other"
-}
-
-private fun tierNumeral(tier: Int): String = listOf("I", "II", "III", "IV").getOrElse(tier - 1) { tier.toString() }
-
-private const val ULTIMATE_TIER = 4

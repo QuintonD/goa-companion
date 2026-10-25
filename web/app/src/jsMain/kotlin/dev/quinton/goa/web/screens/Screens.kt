@@ -39,9 +39,9 @@ fun ScreenFor(route: Route) {
 
         is Route.OpenBoard -> PlaceholderScreen("Board", Placeholder.BOARD)
 
-        Route.Play -> PlaceholderScreen("Play", Placeholder.PLAY)
+        Route.Play -> dev.quinton.goa.web.play.game.GameScreen()
 
-        is Route.NewGame -> PlaceholderScreen("New game", Placeholder.PLAY)
+        is Route.NewGame -> dev.quinton.goa.web.play.game.NewGameScreen(route)
 
         Route.Puzzles -> dev.quinton.goa.web.play.puzzles.PuzzleListScreen()
 

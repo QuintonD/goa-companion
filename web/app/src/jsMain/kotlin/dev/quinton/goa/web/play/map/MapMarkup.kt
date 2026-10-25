@@ -231,7 +231,7 @@ fun marksMarkup(layout: HexLayout, marks: List<HexMark>, lines: List<MapLine>): 
         val c = layout.center(m.hex)
         append("<polygon class=\"o-move\" points=\"${hexPoints(layout, m.hex, 0.9f)}\"/>")
         m.number?.let {
-            append("<text class=\"o-move-n\" x=\"${n(c.x)}\" y=\"${n(c.y)}\">$it</text>")
+            append("<text class=\"o-move-n\" transform=\"translate(${n(c.x)} ${n(c.y)}) scale(0.078)\">$it</text>")
         }
     }
     each(MarkStyle.TARGET) { m ->

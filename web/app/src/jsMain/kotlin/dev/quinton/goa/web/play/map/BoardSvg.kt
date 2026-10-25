@@ -16,6 +16,7 @@ import dev.quinton.goa.feature.board.map.HexLayout
 import dev.quinton.goa.feature.board.map.MapPoint
 import dev.quinton.goa.feature.board.map.MapRect
 import kotlin.math.exp
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import kotlinx.browser.window
 import kotlinx.coroutines.launch
@@ -237,7 +238,11 @@ private fun org.jetbrains.compose.web.dom.ElementScope<org.w3c.dom.svg.SVGElemen
             is PieceLook.Hero -> {
                 Circle(0, 0, r, { classes("p-halo") })
                 Circle(0, 0, r * 0.82f, { classes("p-medallion") })
-                SvgText(look.initials, 0, 0, { classes("p-initials") })
+                // Text at 10 px scaled down: WebKit's minimum font size would blow up a 0.5 px font.
+                SvgText(look.initials, 0, 0, {
+                    classes("p-initials")
+                    attr("transform", "scale(0.05)")
+                })
                 if (look.portrait != null) {
                     Image(look.portrait, {
                         attr("x", n(-r * 0.8f))
@@ -275,7 +280,8 @@ private fun org.jetbrains.compose.web.dom.ElementScope<org.w3c.dom.svg.SVGElemen
                 val em = tokenEm(words) * PIECE_SIZE
                 SvgText(words, 0, 0, {
                     classes("p-token-label")
-                    attr("font-size", n(em))
+                    attr("font-size", "10")
+                    attr("transform", "scale(${n4(em / 10f)})")
                 })
             }
         }
@@ -508,6 +514,8 @@ private const val TOKEN_WIDTH = 0.66f
 private const val CHAR_EM = 0.66f
 private const val MIN_EM = 0.14f
 private const val MAX_EM = 0.27f
+
+private fun n4(value: Float): String = ((value * 10_000f).roundToInt() / 10_000.0).toString()
 
 /** sqrt(3): a hex's width across its flats, in corner radii. */
 val SQRT3: Float = sqrt(3f)

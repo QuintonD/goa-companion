@@ -14,15 +14,6 @@ import dev.quinton.goa.feature.board.play.table.CARD_ASPECT
  * cards it keeps the row's height (so it is wider). CardShapeTest checks every bundled scan.
  */
 
-/** Gydion's spell card scans are 737 × 510 (official/SOURCES.md). */
-internal const val LANDSCAPE_CARD_ASPECT = 737f / 510f
-
-/** A spell card of a hero's spellbook (Gydion's 22): printed landscape. */
-internal val Card.isSpell: Boolean get() = id.startsWith("$heroId-spell-")
-
-/** Width / height of [card]'s scan; a facedown card (null) is a portrait card back. */
-internal fun cardAspect(card: Card?): Float = if (card?.isSpell == true) LANDSCAPE_CARD_ASPECT else CARD_ASPECT
-
 /**
  * How wide [card] is when it lies among portrait cards [portraitWidth] wide: the same height, so a
  * landscape card is about twice as wide.
