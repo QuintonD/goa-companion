@@ -56,8 +56,9 @@ fun TeamBadge(team: Team, showLabel: Boolean = true, extraClass: String? = null)
 fun teamClass(team: Team): String = if (team == Team.RED) "red" else "blue"
 
 /**
- * A player's crest: their initial in their palette colour (the colour's dark tone in the dark theme,
- * its light tone in the light one; goa.css picks). Decorative: the name is always next to it.
+ * A player's crest in their palette colour (the colour's dark tone in the dark theme, its light tone
+ * in the light one; goa.css picks), or their initial without a crest, as Android's `PlayerAvatar`.
+ * Decorative: the name is always next to it.
  */
 @Composable
 fun PlayerAvatar(player: Player?, size: Int = AVATAR) {
@@ -75,7 +76,18 @@ fun PlayerAvatar(player: Player?, size: Int = AVATAR) {
             }
         }
     }) {
-        Text(player?.name?.trim()?.take(1)?.uppercase()?.ifEmpty { "?" } ?: "?")
+        val crest = player?.avatarId?.takeIf { it in 0 until PlayerPalette.CREST_COUNT }
+        if (crest != null) {
+            Span({
+                classes("goa-table-avatar-crest")
+                style {
+                    property("width", "${size * AVATAR_CREST}px")
+                    property("height", "${size * AVATAR_CREST}px")
+                }
+            }) { Icon("crest_" + crest.toString().padStart(2, '0')) }
+        } else {
+            Text(player?.name?.trim()?.take(1)?.uppercase()?.ifEmpty { "?" } ?: "?")
+        }
     }
 }
 
@@ -415,3 +427,4 @@ private external class ResizeObserver(callback: (dynamic, dynamic) -> Unit) {
 
 private const val AVATAR = 40
 private const val AVATAR_TEXT = 0.42
+private const val AVATAR_CREST = 0.56
