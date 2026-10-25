@@ -142,7 +142,7 @@ private fun LazyListScope.ladderContent(
 }
 
 @Composable
-private fun compactReading() = MaterialTheme.typography.bodyLarge
+private fun compactReading() = GoaTextStyles.printed
 
 private const val LEVELS_PER_ROW = 4
 

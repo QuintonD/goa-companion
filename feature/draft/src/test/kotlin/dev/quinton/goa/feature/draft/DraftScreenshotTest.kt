@@ -3,7 +3,9 @@ package dev.quinton.goa.feature.draft
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.draft.DraftCommand
 import dev.quinton.goa.core.domain.draft.DraftEngine
@@ -20,7 +22,9 @@ import dev.quinton.goa.core.domain.teams.PlayerDraftSession
 import dev.quinton.goa.core.domain.teams.SeatLayouts
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.testing.BundledAssetImages
 import dev.quinton.goa.core.testing.TestCatalog
+import dev.quinton.goa.core.testing.bundledHero
 import dev.quinton.goa.feature.draft.board.BoardActions
 import dev.quinton.goa.feature.draft.board.BoardLocal
 import dev.quinton.goa.feature.draft.board.BoardUiState
@@ -41,7 +45,9 @@ import dev.quinton.goa.feature.draft.setup.SetupStage
 import dev.quinton.goa.feature.draft.setup.TeamMode
 import dev.quinton.goa.feature.draft.setup.previewSetupState
 import dev.quinton.goa.feature.draft.ui.HeroInfo
+import dev.quinton.goa.feature.draft.ui.HeroPeekSheet
 import dev.quinton.goa.feature.draft.ui.PreviewData
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -59,11 +65,30 @@ class DraftScreenshotTest {
     private val heroes = TestCatalog.heroes.associate { it.id to HeroInfo.of(it) }
     private val players = PreviewData.players.associateBy { it.id }
 
+    @Before fun images() = BundledAssetImages.install(ApplicationProvider.getApplicationContext())
+
     private fun capture(theme: ThemeMode = ThemeMode.DARK, fontScale: Float = 1f, content: @Composable () -> Unit) {
         if (fontScale != 1f) RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent { GoaTheme(themeMode = theme) { content() } }
+        compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledAssetImages.idle }
         compose.onRoot().captureRoboImage()
     }
+
+    /** The hero peek (a sheet: its own window) for a bundled hero: deck symbol, starting cards as scans. */
+    private fun capturePeek(theme: ThemeMode = ThemeMode.DARK, fontScale: Float = 1f) {
+        if (fontScale != 1f) RuntimeEnvironment.setFontScale(fontScale)
+        val hero = HeroInfo.of(bundledHero("arien"))
+        compose.setContent { GoaTheme(themeMode = theme) { HeroPeekSheet(hero, onDismiss = {}, onOpenHero = {}) } }
+        compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledAssetImages.idle }
+        compose.waitForIdle()
+        captureScreenRoboImage()
+    }
+
+    @Test fun heroPeekDark() = capturePeek()
+
+    @Test fun heroPeekLight() = capturePeek(ThemeMode.LIGHT)
+
+    @Test fun heroPeekFontScale2() = capturePeek(fontScale = 2f)
 
     private fun session(choices: Int, seconds: Int? = 30, method: DraftMethod = PreviewData.pattern): DraftSession {
         val ids = PreviewData.players.map { it.id }
@@ -233,3 +258,5 @@ class DraftScreenshotTest {
         )
     }
 }
+
+private const val IMAGE_TIMEOUT_MS = 10_000L

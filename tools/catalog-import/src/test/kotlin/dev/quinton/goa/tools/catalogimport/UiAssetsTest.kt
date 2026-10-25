@@ -64,13 +64,23 @@ class UiAssetsTest {
             shapes.keys.associateWith(::logo),
             shapes.keys.associateWith(::back),
         )
-        assertThat(checks.map { it.heroId to it.nearest }).containsExactly("disc" to "disc", "bar" to "bar", "cross" to "cross")
+        assertThat(checks.map { it.heroId to it.nearest }).containsExactly(
+            "disc" to "disc",
+            "bar" to "bar",
+            "cross" to "cross",
+        )
         assertThat(checks.all { it.pass }).isTrue()
     }
 
     @Test
     fun `a logo whose card back is missing is not accepted`() {
-        val checks = DeckSymbols.check(mapOf("disc" to logo("disc")), mapOf("bar" to back("bar"), "cross" to back("cross")))
+        val checks = DeckSymbols.check(
+            mapOf("disc" to logo("disc")),
+            mapOf(
+                "bar" to back("bar"),
+                "cross" to back("cross"),
+            ),
+        )
         assertThat(checks.single().pass).isFalse()
     }
 

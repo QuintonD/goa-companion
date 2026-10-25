@@ -278,4 +278,3 @@ object DeckSymbols {
     private const val PARCHMENT_SPREAD = 28
     private const val CHROMA_SCALE = 40.0
 }
-

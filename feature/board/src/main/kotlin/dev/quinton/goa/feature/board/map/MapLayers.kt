@@ -40,6 +40,7 @@ import dev.quinton.goa.feature.board.ui.drawSpawn
 import dev.quinton.goa.feature.board.ui.drawTerrain
 import dev.quinton.goa.feature.board.ui.drawWaterCell
 import dev.quinton.goa.feature.board.ui.hexPath
+import dev.quinton.goa.feature.board.ui.rememberSpawnArt
 import kotlin.math.roundToInt
 
 /*
@@ -53,7 +54,8 @@ import kotlin.math.roundToInt
  */
 @Composable
 internal fun MapBase(map: BoardMap, battleZones: Set<String>, layout: MapLayout, unit: Float, palette: BoardPalette) {
-    val draw = remember(map, battleZones, layout, unit, palette) {
+    val art = rememberSpawnArt()
+    val draw = remember(map, battleZones, layout, unit, palette, art) {
         Modifier.drawWithCache {
             val geometry = BoardGeometry.of(map)
             val laneIndex = map.lanes.flatMap { lane -> lane.zones.mapIndexed { i, zone -> zone to i } }.toMap()
@@ -102,7 +104,7 @@ internal fun MapBase(map: BoardMap, battleZones: Set<String>, layout: MapLayout,
                 terrain.forEach { (c, m, seed) -> drawTerrain(c, m, unit, palette, seed) }
                 drawPath(borders, palette.zoneBorder, style = border)
                 drawPath(battleBorders, palette.battleBorder, style = battle)
-                spawns.forEach { (spawn, at) -> drawSpawn(spawn, at, unit, palette) }
+                spawns.forEach { (spawn, at) -> drawSpawn(spawn, at, unit, palette, art[spawn]) }
             }
         }
     }

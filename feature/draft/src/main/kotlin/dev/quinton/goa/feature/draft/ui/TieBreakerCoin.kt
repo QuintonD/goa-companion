@@ -27,6 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.component.OfficialArt
+import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.model.match.Team
 
@@ -103,12 +105,20 @@ private fun CoinFace(team: Team?, mirrored: Boolean, size: Dp) {
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = team?.let { teamGlyph(it) } ?: "?",
-                    color = accent,
-                    fontSize = (size.value * 0.34f).sp,
-                    fontWeight = FontWeight.Bold,
-                )
+                if (team != null) {
+                    // The coin's printed face (rulebook p.5): Red's gear, Blue's star. The source is
+                    // small (76 px), so it is shown at under half the coin rather than blown up.
+                    OfficialIcon(OfficialArt.tieBreaker(team), Modifier.size(size * FACE_FRACTION)) {
+                        Text(teamGlyph(team), color = accent, fontSize = (size.value * 0.3f).sp)
+                    }
+                } else {
+                    Text(
+                        text = "?",
+                        color = accent,
+                        fontSize = (size.value * 0.34f).sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
                 Text(
                     text = team?.let { teamName(it).uppercase() } ?: "TIE BREAKER",
                     style = MaterialTheme.typography.labelLarge,
@@ -118,3 +128,5 @@ private fun CoinFace(team: Team?, mirrored: Boolean, size: Dp) {
         }
     }
 }
+
+private const val FACE_FRACTION = 0.44f

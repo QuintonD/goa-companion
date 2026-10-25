@@ -67,6 +67,7 @@ import dev.quinton.goa.core.designsystem.component.ComplexityStars
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -201,7 +202,7 @@ private fun LazyListScope.heroDetailContent(
                         modifier = Modifier.padding(bottom = Spacing.sm),
                     )
                 }
-                CardTileGrid(listOf(handicap), columns = 2, onCardClick = onCardClick, isHandicap = true)
+                DeckCardGrid(listOf(handicap), onCardClick, isHandicap = true)
             }
         }
     }
@@ -275,13 +276,26 @@ private fun HeroHeader(hero: Hero, productName: String) {
             )
         }
         Column(Modifier.padding(horizontal = Spacing.screen).padding(top = Spacing.xs)) {
-            Text(hero.name, style = MaterialTheme.typography.headlineMedium)
-            Text(
-                hero.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontStyle = FontStyle.Italic,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(hero.name, style = MaterialTheme.typography.headlineMedium)
+                    Text(
+                        hero.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontStyle = FontStyle.Italic,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                // The deck symbol, as on the back of the hero's cards and their dashboard (p.6).
+                if (hero.symbol != null) {
+                    HeroSymbol(
+                        hero.id,
+                        hero.symbol,
+                        modifier = Modifier.padding(start = Spacing.sm).size(scaledIconSize(HEADER_SYMBOL, 1.4f)),
+                        contentDescription = "${hero.name}'s deck symbol",
+                    )
+                }
+            }
             if (hero.aliases.isNotEmpty()) {
                 Text(
                     "Also known as ${hero.aliases.joinToString()}",
@@ -584,5 +598,6 @@ private fun SourcesBlock(hero: Hero) {
 }
 
 private val HEADER_ART_HEIGHT = 280.dp
+private val HEADER_SYMBOL = 64.dp
 private const val MOTION_MS = 250
 private const val MAX_PILOTS = 3

@@ -1,7 +1,12 @@
 package dev.quinton.goa.feature.board.ui
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
@@ -12,12 +17,17 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import dev.quinton.goa.core.designsystem.component.OfficialArt
+import dev.quinton.goa.core.designsystem.component.rememberOfficialBitmap
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.board.SpawnKind
 import dev.quinton.goa.core.model.board.SpawnPoint
 import dev.quinton.goa.core.model.match.Team
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -98,11 +108,30 @@ fun hexCorners(center: Offset, radius: Float, rotation: Float = 0f): List<Offset
 }
 
 /**
- * A printed Spawn point: the team's shape as a thin outline, the kind's glyph inside, in the team's
- * colour ([u] = px per hex radius).
+ * A printed Spawn point ([u] = px per hex radius). With the official symbol ([art], rulebook p.6):
+ * a hero Spawn point is Red's gear or Blue's star as printed (the shapes tell the teams apart);
+ * a minion Spawn point is the printed symbol with a badge in the
+ * team's shape (◆ Red / ● Blue) carrying the type's glyph, since the printed symbols of one team
+ * differ too little to tell melee from ranged from heavy at board size. Without it (not loaded
+ * yet): the team's shape as a thin outline with the kind's glyph inside, in the team's colour.
  */
-fun DrawScope.drawSpawn(spawn: SpawnPoint, center: Offset, u: Float, palette: BoardPalette) {
+fun DrawScope.drawSpawn(spawn: SpawnPoint, center: Offset, u: Float, palette: BoardPalette, art: ImageBitmap? = null) {
     val color = palette.team(spawn.team)
+    if (art != null) {
+        val side = u * if (spawn.kind == SpawnKind.HERO) HERO_SPAWN_SIDE else MINION_SPAWN_SIDE
+        drawImage(
+            art,
+            dstOffset = IntOffset((center.x - side / 2f).roundToInt(), (center.y - side / 2f).roundToInt()),
+            dstSize = IntSize(side.roundToInt(), side.roundToInt()),
+            filterQuality = FilterQuality.Medium,
+        )
+        if (spawn.kind != SpawnKind.HERO) {
+            val badge = Offset(center.x + u * BADGE_OFFSET, center.y + u * BADGE_OFFSET)
+            drawTeamMark(spawn.team, badge, u * BADGE_SIZE, color, halo = palette.halo)
+            drawGlyph(BoardGlyph.of(spawn.kind), badge, u * BADGE_SIZE * 0.62f, palette.onTeam)
+        }
+        return
+    }
     val r = u * 0.56f
     val stroke = Stroke(width = u * 0.07f, join = StrokeJoin.Round)
     if (spawn.team == Team.RED) {
@@ -120,6 +149,37 @@ fun DrawScope.drawSpawn(spawn: SpawnPoint, center: Offset, u: Float, palette: Bo
         drawCircle(color.copy(alpha = 0.85f), radius = r * 0.86f, center = center, style = stroke)
     }
     drawGlyph(BoardGlyph.of(spawn.kind), center, u * 0.58f, color)
+}
+
+private const val HERO_SPAWN_SIDE = 1.45f
+private const val MINION_SPAWN_SIDE = 1.5f
+private const val BADGE_OFFSET = 0.45f
+private const val BADGE_SIZE = 0.62f
+
+/** The official Spawn point symbols (rulebook p.6) as bitmaps for the map canvas. */
+@Immutable
+class SpawnArt internal constructor(private val images: Map<SpawnPoint, ImageBitmap>) {
+    operator fun get(spawn: SpawnPoint): ImageBitmap? = images[spawn]
+
+    /** True once every symbol has loaded (a map drawn before then uses the original glyphs). */
+    val complete: Boolean get() = images.size == ALL_SPAWNS.size
+}
+
+private val ALL_SPAWNS: List<SpawnPoint> = Team.entries.flatMap { team ->
+    SpawnKind.entries.map { SpawnPoint(team, it) }
+}
+
+private fun SpawnPoint.artPath(): String = when (val minion = kind.minion) {
+    null -> OfficialArt.heroSpawn(team)
+    else -> OfficialArt.minionSpawn(minion, team)
+}
+
+/** Loads the eight official Spawn point symbols; drawn as they arrive. */
+@Composable
+fun rememberSpawnArt(): SpawnArt {
+    val loaded = ALL_SPAWNS.map { it to rememberOfficialBitmap(it.artPath()) }
+    val images = loaded.mapNotNull { (spawn, bitmap) -> bitmap?.let { spawn to it } }
+    return remember(images) { SpawnArt(images.toMap()) }
 }
 
 /** Printed terrain: a dark rock with faceted top, original (no map art is used). */

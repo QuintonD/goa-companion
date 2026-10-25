@@ -72,7 +72,9 @@ class Output(private val assetsDir: File) {
         sb.appendLine(
             "Deck symbols (`official/heroes/<id>/symbol.webp`) are source 1's hero logos, each accepted only",
         )
-        sb.appendLine("when it matches its own hero's card back best among all card backs (REPORT.md, \"Deck symbols\").")
+        sb.appendLine(
+            "when it matches its own hero's card back best among all card backs (REPORT.md, \"Deck symbols\").",
+        )
         sb.appendLine()
         sb.appendLine("| Source | Commit |")
         sb.appendLine("|---|---|")
