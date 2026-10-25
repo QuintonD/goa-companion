@@ -47,8 +47,9 @@ the status code. `If-Match: *` (any existing document) is accepted too. Checks r
 group id (400), token present (401), precondition header (428), declared size (413), then under the
 group's lock token and revision (401/412), then the body as received (413/400).
 `rev` is a positive integer, `1` for the first document, +1 per accepted PUT. Bodies are opaque to
-the server: today they are `SyncCodec.encodeFile(doc, group, createdAt)` (a JSON envelope sealed with
-a key derived from the group key), and the server must not depend on that.
+the server: today they are `SyncCodec.encodeFile(doc, group, createdAt, withGroupName = false)` (a JSON
+envelope sealed with a key derived from the group key; in clear only the group id, document version,
+time, salt and an empty group name), and the server must not depend on that.
 
 ## Phone algorithm (one sync)
 

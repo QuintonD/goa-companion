@@ -129,7 +129,7 @@ internal class OkHttpSyncServerRepository @Inject constructor(
             }
             // Never upload what every phone would refuse to open: it would stop the whole group.
             SyncValidation.problem(merged)?.let { throw Failure(SyncServerProblem.INVALID_DATA, "$LOCAL_FIX\n$it") }
-            val body = SyncCodec.encodeFile(merged, group, createdAt = clock.now())
+            val body = SyncCodec.encodeFile(merged, group, createdAt = clock.now(), withGroupName = false)
             if (body.size > MAX_UPLOAD_BYTES) throw Failure(SyncServerProblem.TOO_BIG, TOO_BIG)
             when (val stored = store(url, token, body, remote?.rev)) {
                 is Stored.Saved -> {

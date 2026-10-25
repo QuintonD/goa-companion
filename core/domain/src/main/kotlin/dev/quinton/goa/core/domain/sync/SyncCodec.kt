@@ -64,18 +64,23 @@ object SyncCodec {
         return doc
     }
 
-    /** "Share sync file": [doc] sealed with a key derived from [group]'s key and a fresh salt. */
+    /**
+     * "Share sync file": [doc] sealed with a key derived from [group]'s key and a fresh salt. The
+     * group's name rides in clear only when [withGroupName] (a shared file names its group so a
+     * stranger's phone can say which one to join); uploads to the sync server leave it out (ADR-036).
+     */
     fun encodeFile(
         doc: SyncDocument,
         group: GroupCredentials,
         createdAt: Long,
         random: SecureBytes = SecureBytes.System,
+        withGroupName: Boolean = true,
     ): ByteArray {
         val salt = random.next(SALT_BYTES)
         val sealed = SyncCrypto.seal(fileKey(group, salt), encode(doc), fileAad(group.groupId, doc.version), random)
         val envelope = FileEnvelope(
             groupId = group.groupId,
-            groupName = group.name,
+            groupName = if (withGroupName) group.name else "",
             documentVersion = doc.version,
             createdAt = createdAt,
             salt = b64(salt),

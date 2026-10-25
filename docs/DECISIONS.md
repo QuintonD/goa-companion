@@ -865,6 +865,10 @@ container `goa-relay` (read-only root, uid 10001, data in `/var/lib/goa-relay`,
   removing its `CctBackendFactory` registration; WorkManager's startup initializer, foreground
   service and `FOREGROUND_SERVICE` removed (WorkManager starts from `GoaApplication` with Hilt).
 - `SyncDocument.VERSION` unchanged (no synced type changed).
+**Note (hands-on, 2026-10-25):** the sync file envelope carried the group's name in clear; uploads to
+the server now leave it empty (`encodeFile(withGroupName = false)`), so the server sees only the group
+id, version, time and ciphertext. Shared sync files keep the name (a stranger's phone says which group
+to join).
 
 ## ADR-037 — Game-state review: the game so far, built by the engine from its own views (2026-10-25)
 **Context:** The owner: "For puzzles and playing the game it is important to let players review the

@@ -254,6 +254,7 @@ class SyncServerRepositoryTest {
         assertThat(relay.stored().matches.map { it.id }).containsExactly("p1")
         assertThat(relay.stored().players).hasSize(4)
         assertThat(String(relay.blob!!)).doesNotContain("Ann")
+        assertThat(String(relay.blob!!)).doesNotContain(group.name) // the name stays on the phones
         assertThat(relay.tokenHash).isEqualTo(sha256(SyncServerToken.derive(group)))
         val state = groups.state.first().server
         assertThat(state.syncedAt).isEqualTo(now)
