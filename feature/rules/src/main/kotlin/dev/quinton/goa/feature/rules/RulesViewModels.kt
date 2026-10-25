@@ -10,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.domain.rules.DefeatExceptions
 import dev.quinton.goa.core.domain.rules.RulesSearch
+import dev.quinton.goa.core.domain.rules.RulesText
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.rules.LevelLadder
 import dev.quinton.goa.core.model.rules.RulesReference

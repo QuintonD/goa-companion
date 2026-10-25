@@ -655,6 +655,8 @@ backup import or resurrects a deleted board. `lane` has a default and boards are
 `SyncDocument` bump; the backup round-trips it.
 
 ## ADR-034 — No privacy or offline rule: the app may go online and be published (2026-10-19)
+**Status:** In force; the public release it left open happened in ADR-043 (the web app on public GitHub
+Pages, with the official assets published and attributed in `official/SOURCES.md`).
 **Context:** Two rules have bounded every choice so far: "keep it private" (ADR-006 and its
 addendum: no public remote, no public APK, shared only by a private Drive link) and "the app is
 offline" (no `INTERNET` permission, no server; ADR-002, ADR-025, ADR-027). The owner lifted both

@@ -6,6 +6,10 @@ import dev.quinton.goa.web.catalog.CardViewerScreen
 import dev.quinton.goa.web.catalog.CatalogScreen
 import dev.quinton.goa.web.catalog.HeroDetailScreen
 import dev.quinton.goa.web.nav.Route
+import dev.quinton.goa.web.rules.RulesScreen
+import dev.quinton.goa.web.rules.RulesTopicScreen
+import dev.quinton.goa.web.settings.AboutScreen
+import dev.quinton.goa.web.settings.SettingsScreen
 import dev.quinton.goa.web.ui.EmptyState
 import dev.quinton.goa.web.ui.GoaButton
 import dev.quinton.goa.web.ui.Screen
@@ -44,9 +48,9 @@ fun ScreenFor(route: Route) {
         is Route.Puzzle -> PlaceholderScreen("Puzzle", Placeholder.PUZZLE)
 
         // Shared
-        Route.Rules -> PlaceholderScreen("Rules", Placeholder.RULES)
+        Route.Rules -> RulesScreen()
 
-        is Route.RulesTopic -> PlaceholderScreen("Rules", Placeholder.RULES)
+        is Route.RulesTopic -> RulesTopicScreen(route.topicId)
 
         Route.Settings -> SettingsScreen()
 

@@ -1,4 +1,4 @@
-package dev.quinton.goa.web.screens
+package dev.quinton.goa.web.settings
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -10,6 +10,7 @@ import dev.quinton.goa.web.pwa.BuildInfo
 import dev.quinton.goa.web.ui.BodyText
 import dev.quinton.goa.web.ui.BottomSheet
 import dev.quinton.goa.web.ui.GoaCard
+import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.ListRow
 import dev.quinton.goa.web.ui.LoadContent
 import dev.quinton.goa.web.ui.MarkdownBlocks
@@ -20,10 +21,12 @@ import dev.quinton.goa.web.ui.SimpleMarkdown
 import dev.quinton.goa.web.ui.rememberLoad
 import org.jetbrains.compose.web.dom.Div
 import org.jetbrains.compose.web.dom.H1
+import org.jetbrains.compose.web.dom.H2
 import org.jetbrains.compose.web.dom.H3
 import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.P
 import org.jetbrains.compose.web.dom.Pre
+import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
 
 /** Community projects whose published data informed the catalog import (as on Android's About). */
@@ -67,12 +70,24 @@ fun AboutScreen() {
                 },
             )
         }
+        GoaCard {
+            Div({ classes("goa-inline", "goa-settings-notice-row") }) {
+                Span({ classes("c-primary") }) { Icon("info") }
+                Div({ classes("goa-stack") }) {
+                    H2({ classes("t-title-medium") }) { Text("A free fan companion") }
+                    BodyText(
+                        "Made by a player for their play group and shared publicly, free of charge. " +
+                            "Not sold and no ads.",
+                    )
+                }
+            }
+        }
         SectionHeader("Game content")
         GoaCard {
             Div({ classes("goa-stack") }) {
                 BodyText(
-                    "Guards of Atlantis II, its heroes, card text, card images and artwork are by Wolff Designa. " +
-                        "They appear here for non-commercial play by fans of the game.",
+                    "Guards of Atlantis II, its heroes, card text, card images and artwork are by Wolff Designa, " +
+                        "who keep all rights to them. They appear here for non-commercial play by fans of the game.",
                 )
                 P({ classes("t-body-medium") }) { Text("Not affiliated with or endorsed by Wolff Designa.") }
             }

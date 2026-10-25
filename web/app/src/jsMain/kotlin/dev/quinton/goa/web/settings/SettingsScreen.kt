@@ -1,4 +1,4 @@
-package dev.quinton.goa.web.screens
+package dev.quinton.goa.web.settings
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import dev.quinton.goa.web.AppServices
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.nav.Route
 import dev.quinton.goa.web.pwa.AssetManifest
@@ -40,9 +41,10 @@ import org.jetbrains.compose.web.dom.P
 import org.jetbrains.compose.web.dom.Text
 
 /**
- * Settings: the theme, the web app's offline copy ("Download everything for offline", storage used
- * and whether the browser may clear it), updates, About. Streams add their own sections (timer
- * sounds, rating constants, puzzle nudges) as on Android.
+ * Settings, as on the phone (feature:settings): Appearance, Collection, At the table, Learning, Game
+ * setup and Data, plus the web app's own Offline card (download everything, storage, whether the
+ * browser may clear it) and updates. The values live in [dev.quinton.goa.core.data.SettingsRepository]
+ * (IndexedDB); the theme in [dev.quinton.goa.web.ui.ThemeController] (read before the first paint).
  */
 @Composable
 fun SettingsScreen() {
@@ -51,14 +53,18 @@ fun SettingsScreen() {
         SectionHeader("Appearance")
         GoaCard {
             H3({ classes("t-title-medium", "goa-card-title") }) { Text("Theme") }
-            Segmented(
-                label = "Theme",
-                options = ThemeMode.entries,
-                selected = services.theme.mode,
-                optionLabel = { it.label },
-                onSelect = services.theme::select,
-            )
+            BodyText("Dark is easiest on the eyes at the table.")
+            Div({ classes("goa-settings-choice") }) {
+                Segmented(
+                    label = "Theme",
+                    options = ThemeMode.entries,
+                    selected = services.theme.mode,
+                    optionLabel = { it.label },
+                    onSelect = services.theme::select,
+                )
+            }
         }
+        AppSettingsSections()
         SectionHeader("Offline")
         OfflineCard()
         SectionHeader("App")
@@ -77,13 +83,13 @@ fun SettingsScreen() {
                     onClick = { checkForUpdate(services) },
                     trailing = "Check for update",
                 )
-                ListRow("About", leadingIcon = "info", route = Route.About)
+                ListRow("About", subtitle = "Version, credits and licences", leadingIcon = "info", route = Route.About)
             }
         }
     }
 }
 
-private fun checkForUpdate(services: dev.quinton.goa.web.AppServices) {
+private fun checkForUpdate(services: AppServices) {
     val sw = services.serviceWorker
     when {
         BuildInfo.isDev -> services.messages.show("Updates come with the published site, not the dev server.")

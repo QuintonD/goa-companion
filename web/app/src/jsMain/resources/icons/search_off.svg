@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <title>Nothing found: magnifier with a cross</title>
-  <circle cx="11" cy="11" r="6.5"/>\n  <path d="M16 16l4.5 4.5M8.8 8.8l4.4 4.4M13.2 8.8l-4.4 4.4"/>
+  <title>Search off: a magnifier with a stroke through it</title>
+  <circle cx="10.5" cy="10.5" r="6"/>
+  <path d="M15 15l5.5 5.5M3.5 3.5l17 17"/>
 </svg>
