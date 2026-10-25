@@ -13,7 +13,8 @@ object WebSyncDefaults {
 
     fun forThisPage(): SyncServerDefaults = SyncServerDefaults(DEFAULT_URL, allowLocalHttp = pageIsLocal())
 
-    private fun pageIsLocal(): Boolean =
-        js("typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')")
-            as Boolean
+    private fun pageIsLocal(): Boolean {
+        val host = js("typeof location !== 'undefined' ? location.hostname : ''") as String
+        return host == "localhost" || host == "127.0.0.1"
+    }
 }

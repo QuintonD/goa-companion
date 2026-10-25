@@ -38,7 +38,11 @@ import kotlinx.coroutines.test.runTest
  * (opaque blob, rev, token hash, `If-Match` / `If-None-Match`).
  */
 class WebRelaySyncTest {
-    private class Answer(override val code: Int, val headers: Map<String, String> = emptyMap(), val bytes: ByteArray = ByteArray(0)) :
+    private class Answer(
+        override val code: Int,
+        val headers: Map<String, String> = emptyMap(),
+        val bytes: ByteArray = ByteArray(0),
+    ) :
         RelayResponse {
         override fun header(name: String): String? = headers.entries.firstOrNull { it.key.equals(name, true) }?.value
 
@@ -81,8 +85,11 @@ class WebRelaySyncTest {
             val ifMatch = request.headers["If-Match"]
             return when {
                 token == null || (tokenHash != null && !tokenOk) -> Answer(401)
+
                 request.headers["If-None-Match"] == "*" && blob != null -> Answer(412)
+
                 ifMatch != null && ifMatch != "\"$rev\"" -> Answer(412)
+
                 else -> {
                     blob = request.body
                     rev++

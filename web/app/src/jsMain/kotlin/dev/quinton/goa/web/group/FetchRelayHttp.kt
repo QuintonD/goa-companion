@@ -18,7 +18,7 @@ import kotlinx.coroutines.await
  * all read as unreachable.
  */
 class FetchRelayHttp(private val timeoutMs: Int = DEFAULT_TIMEOUT_MS) : RelayHttp {
-    @Suppress("TooGenericExceptionCaught") // fetch rejects with plain JS errors
+    @Suppress("TooGenericExceptionCaught", "ThrowsCount") // fetch rejects with plain JS errors
     override suspend fun <T> exchange(request: RelayRequest, read: suspend (RelayResponse) -> T): T {
         if (request.url.startsWith("http:") && pageIsHttps()) {
             throw RelayNetworkException(RelayNetworkFailure.HTTPS_ONLY)
@@ -89,7 +89,9 @@ class FetchRelayHttp(private val timeoutMs: Int = DEFAULT_TIMEOUT_MS) : RelayHtt
         return init
     }
 
-    private fun pageIsHttps(): Boolean = js("typeof location !== 'undefined' && location.protocol === 'https:'") as Boolean
+    private fun pageIsHttps(): Boolean = js(
+        "typeof location !== 'undefined' && location.protocol === 'https:'",
+    ) as Boolean
 
     companion object {
         /** OkHttp's call timeout on the phone is 90 s with 30 s per read; one bound here. */

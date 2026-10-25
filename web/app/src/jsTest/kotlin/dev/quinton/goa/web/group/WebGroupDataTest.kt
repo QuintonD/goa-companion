@@ -195,7 +195,9 @@ class WebGroupDataTest {
         val ann = Browser()
         val bob = Browser()
         val cid = Browser()
-        listOf(ann, bob, cid).forEach { b -> listOf("ann", "bob", "cid", "dee").forEach { b.players.upsert(player(it)) } }
+        listOf(ann, bob, cid).forEach { b ->
+            listOf("ann", "bob", "cid", "dee").forEach { b.players.upsert(player(it)) }
+        }
         ann.matches.upsert(match("a1", listOf("ann", "bob"), listOf("cid", "dee"), playedAt = 10))
         bob.now = 1_200
         bob.matches.upsert(match("b1", listOf("ann", "cid"), listOf("bob", "dee"), playedAt = 20, winner = Team.BLUE))
@@ -230,7 +232,12 @@ class WebGroupDataTest {
         exchange(bob, ann)
         listOf(ann, bob).forEach { b ->
             assertEquals(listOf("a-r1"), b.rounds.observeRounds().first().map { it.id })
-            assertEquals(listOf(DeletionKind.TRIVIA_ROUND to "b-r1"), b.sync.export().deletions.map { it.kind to it.id })
+            assertEquals(
+                listOf(DeletionKind.TRIVIA_ROUND to "b-r1"),
+                b.sync.export().deletions.map {
+                    it.kind to it.id
+                },
+            )
         }
     }
 

@@ -26,7 +26,7 @@ object WebCryptoCipher : SyncCipher {
         return iv + bytes(sealed)
     }
 
-    @Suppress("TooGenericExceptionCaught") // WebCrypto rejects with a plain DOMException (OperationError)
+    @Suppress("TooGenericExceptionCaught", "ThrowsCount") // WebCrypto rejects with a plain DOMException
     override suspend fun open(key: ByteArray, sealed: ByteArray, aad: ByteArray): ByteArray {
         if (sealed.size < SyncCipher.IV_BYTES + SyncCipher.TAG_BYTES) throw SyncCryptoException("Sealed data too short")
         val iv = sealed.copyOfRange(0, SyncCipher.IV_BYTES)

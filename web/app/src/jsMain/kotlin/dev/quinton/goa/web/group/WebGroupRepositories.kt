@@ -203,7 +203,10 @@ class WebTriviaRoundRepository(private val docs: GroupDocumentStore, private val
                 doc.triviaRounds.firstOrNull { it.id == round.id }?.updatedAt,
                 doc.deletedAt(DeletionKind.TRIVIA_ROUND, round.id),
             )
-            Change(doc.copy(triviaRounds = doc.triviaRounds.replacing(round.copy(updatedAt = stamp), TriviaRound::id)), Unit)
+            Change(
+                doc.copy(triviaRounds = doc.triviaRounds.replacing(round.copy(updatedAt = stamp), TriviaRound::id)),
+                Unit,
+            )
         }
     }
 
@@ -245,13 +248,20 @@ class WebEloConfigRepository(private val docs: GroupDocumentStore, private val c
     override suspend fun reset() {
         docs.update { doc ->
             Change(
-                doc.copy(eloConfig = StampedEloConfig(EloConfig.DEFAULT, EditStamp.next(clock.now(), doc.eloConfig.updatedAt))),
+                doc.copy(
+                    eloConfig = StampedEloConfig(
+                        EloConfig.DEFAULT,
+                        EditStamp.next(clock.now(), doc.eloConfig.updatedAt),
+                    ),
+                ),
                 Unit,
             )
         }
     }
 
-    override suspend fun stamped(): StampedEloConfig = docs.current().eloConfig.let { it.copy(config = it.config.sanitized()) }
+    override suspend fun stamped(): StampedEloConfig = docs.current().eloConfig.let {
+        it.copy(config = it.config.sanitized())
+    }
 
     override suspend fun applySynced(config: StampedEloConfig) {
         docs.update { doc -> Change(doc.copy(eloConfig = config.copy(config = config.config.sanitized())), Unit) }

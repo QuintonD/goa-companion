@@ -1,6 +1,7 @@
 package dev.quinton.goa.web.group
 
 import kotlin.js.Promise
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
@@ -44,11 +45,27 @@ private class BrowserTabChannel(private val name: String) : TabChannel {
         val acquired = CompletableDeferred<Unit>()
         var release: () -> Unit = {}
         val held = Promise<Unit> { resolve, _ -> release = { resolve(Unit) } }
-        manager.request(name) {
-            acquired.complete(Unit)
-            held
+        val options: dynamic = js("({})")
+        // A tab that never lets go (frozen in the background) must not stop this one for good.
+        if (js("typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'") as Boolean) {
+            options.signal = js("AbortSignal.timeout(5000)")
         }
-        acquired.await()
+        val request = manager.request(name, options) {
+            // Nobody waits any more (cancelled): give the lock back at once.
+            if (!acquired.complete(Unit)) release()
+            held
+        }.unsafeCast<Promise<Any?>>()
+        request.catch {
+            // Timed out waiting for another tab: go ahead without the lock rather than hang.
+            acquired.complete(Unit)
+        }
+        try {
+            acquired.await()
+        } catch (e: CancellationException) {
+            acquired.cancel()
+            release()
+            throw e
+        }
         try {
             return block()
         } finally {
@@ -66,6 +83,7 @@ private class BrowserTabChannel(private val name: String) : TabChannel {
     }
 }
 
+@Suppress("UnusedParameter") // read by the js() below
 private fun openChannel(channelName: String): dynamic {
     if (!(js("typeof BroadcastChannel !== 'undefined'") as Boolean)) return null
     val channel: dynamic = js("new BroadcastChannel(channelName)")

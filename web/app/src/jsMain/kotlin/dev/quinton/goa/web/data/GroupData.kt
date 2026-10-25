@@ -47,6 +47,9 @@ class GroupData(
     http: RelayHttp = FetchRelayHttp(),
     tabs: Boolean = true,
 ) {
+    /** Plain HTTP to a test relay on this machine is allowed (the page itself is local). */
+    val allowLocalHttp: Boolean = defaults.allowLocalHttp
+
     private val docs = GroupDocumentStore(
         services.store.scoped("group/"),
         if (tabs) TabChannel.browser("goa-group-document") else TabChannel.None,
@@ -94,7 +97,8 @@ class GroupData(
     val syncServer: SyncServerRepository =
         RelaySyncRepository(groupStore, sync, docs.changes, services.clock, http, WebCryptoCipher)
 
-    val syncServerControl: SyncServerControl = WebSyncServerControl(group, syncServer, services.scope, services.clock::now)
+    val syncServerControl: SyncServerControl =
+        WebSyncServerControl(group, syncServer, services.scope, services.clock::now)
 
     /** Starts automatic server sync (app open, back on screen, after changes); once, from `main()`. */
     fun start() = (syncServerControl as WebSyncServerControl).start()

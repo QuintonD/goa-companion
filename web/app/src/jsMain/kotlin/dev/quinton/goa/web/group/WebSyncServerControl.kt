@@ -81,8 +81,13 @@ class WebSyncServerControl(
         onScreen(browser.visible())
     }
 
-    /** The page came on screen ([shown]) or left it: coming back syncs, at most once a minute. */
+    /**
+     * The page came on screen ([shown]) or left it: coming back syncs, at most once a minute.
+     * Showing an already shown page (iOS sends `pageshow` right after the first `visibilitychange`
+     * check) changes nothing, so the first sync isn't cancelled before it starts.
+     */
     fun onScreen(shown: Boolean) {
+        if (shown && visible?.isActive == true) return
         visible?.cancel()
         visible = null
         if (!shown) return
@@ -133,8 +138,14 @@ class WebSyncServerControl(
             }
         }
         when (val next = SyncServerRetry.decide(result, attempt, watched)) {
-            SyncServerRetry.Next.Retry -> enqueue(SyncServerRetry.backoffSeconds(attempt) * MILLIS, attempt = attempt + 1)
+            SyncServerRetry.Next.Retry -> enqueue(
+                SyncServerRetry.backoffSeconds(attempt) * MILLIS,
+                attempt =
+                    attempt + 1,
+            )
+
             is SyncServerRetry.Next.RetryAfter -> enqueue(next.seconds * MILLIS, attempt = attempt + 1)
+
             SyncServerRetry.Next.Done, SyncServerRetry.Next.Fail -> Unit
         }
         return result
@@ -175,7 +186,9 @@ interface BrowserSignals {
     fun onOnline(listener: () -> Unit)
 
     object Live : BrowserSignals {
-        override fun visible(): Boolean = js("typeof document === 'undefined' || document.visibilityState !== 'hidden'") as Boolean
+        override fun visible(): Boolean = js(
+            "typeof document === 'undefined' || document.visibilityState !== 'hidden'",
+        ) as Boolean
 
         override fun online(): Boolean = js("typeof navigator === 'undefined' || navigator.onLine !== false") as Boolean
 
