@@ -95,9 +95,9 @@ class SyncServerSchedulerTest {
         it.state == WorkInfo.State.ENQUEUED
     }
 
-    /** CoroutineWorker runs on its own threads: wait for the run to settle. */
+    /** CoroutineWorker runs on its own threads: wait for the run to settle (a full gate is slow). */
     private fun settled(id: UUID, done: (WorkInfo) -> Boolean = { it.state.isFinished }): WorkInfo {
-        repeat(200) {
+        repeat(POLLS) {
             val info = workManager.getWorkInfoById(id).get()!!
             if (done(info)) return info
             Thread.sleep(25)
@@ -275,7 +275,7 @@ class SyncServerSchedulerTest {
 
     /** The retry queued behind a finished run shows up once that run has settled. */
     private fun settledPending(): WorkInfo {
-        repeat(200) {
+        repeat(POLLS) {
             pending().firstOrNull()?.let { return it }
             Thread.sleep(25)
         }
@@ -345,4 +345,9 @@ class SyncServerSchedulerTest {
 
     private fun failed(problem: SyncServerProblem, retryAfter: Long? = null) =
         SyncServerResult.Failed(SyncServerError(problem, problem.name, 1, retryAfter))
+
+    private companion object {
+        // 25 ms each: 20 s before a test gives up.
+        const val POLLS = 800
+    }
 }
