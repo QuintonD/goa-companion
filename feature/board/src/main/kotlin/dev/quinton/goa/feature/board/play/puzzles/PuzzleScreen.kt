@@ -172,7 +172,7 @@ fun PuzzleScreen(
                         },
                         onHero = { sheet = PlaySheet.Hero(it) },
                         onFlip = { onAction(PuzzleAction.Flip) },
-                        banner = { GoalBanner(p.info.goal.text, p.playing) },
+                        banner = { compact -> GoalBanner(p.info.goal.text, p.playing, compact = compact) },
                         peek = puzzlePeek(p),
                         peekTrailing = {
                             if (p.phase == PuzzlePhase.SOLVING && p.replay == null) {

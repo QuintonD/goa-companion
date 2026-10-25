@@ -423,7 +423,9 @@ opponents (and teammates) at four levels. One phone, one human team.
   whole board (unless you had moved it), only the round at a glance stays at the top (the hero strip
   returns with the panel), and a space or piece tapped on the map is answered with Confirm in the
   peek bar, without opening the panel. Show (or a tap on the peek bar, or dragging it up) brings the
-  panel back. In landscape the side panel hides to a small card at the bottom end.
+  panel back. In landscape the side panel hides to a small card at the bottom end; while it is shown,
+  the heroes are portraits beside the round at a glance (a tap still opens each one) and a puzzle's
+  goal is one line, so a phone held sideways keeps most of its map.
 - **Pacing:** each computer action is shown for a moment (Slow / Normal / Fast); "thinking…" when
   it takes long. Take back undoes your last choice (counted in the summary).
 - **Coach** (on/off, also in-game): before a clearly worse choice, a gentle nudge ("Coach: Wasp's

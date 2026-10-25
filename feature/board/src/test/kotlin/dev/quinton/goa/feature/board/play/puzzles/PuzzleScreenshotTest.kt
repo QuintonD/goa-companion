@@ -162,6 +162,15 @@ class PuzzleScreenshotTest {
     @Test
     fun puzzleStartLandscapeDark() = shot(ThemeMode.DARK, needs = listOf("p01")) { start() }
 
+    /**
+     * A phone held sideways once its bars and cutout are taken (S25-sized, hands-on 2026-10-25), the
+     * panel shown: the heroes as portraits beside the round at a glance and the goal on one line, so
+     * most of the map stays in view.
+     */
+    @Config(qualifiers = "w800dp-h330dp-land-xxhdpi")
+    @Test
+    fun puzzleStartLandscapeShortLight() = shot(ThemeMode.LIGHT, needs = listOf("p01")) { start() }
+
     /** The panel hidden: the whole board, the question in the peek bar. */
     @Test fun puzzlePanelHiddenDark() = shot(ThemeMode.DARK, needs = listOf("p01"), hidden = true) { start() }
 

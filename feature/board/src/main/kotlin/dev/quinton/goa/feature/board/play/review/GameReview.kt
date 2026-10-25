@@ -88,6 +88,7 @@ import dev.quinton.goa.feature.board.play.table.HeroStrip
 import dev.quinton.goa.feature.board.play.table.ItemIcon
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableHud
+import dev.quinton.goa.feature.board.play.table.TableTopRow
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.figureOf
 import dev.quinton.goa.feature.board.play.table.spokenCard
@@ -823,8 +824,12 @@ private fun Rewind(table: TableUi, rewind: RewindUi, onAction: (ReviewAction) ->
                 Modifier.fillMaxWidth().padding(Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
-                TableHud(then)
-                HeroStrip(then, onHero = {})
+                if (landscape) {
+                    TableTopRow(then, onHero = {})
+                } else {
+                    TableHud(then)
+                    HeroStrip(then, onHero = {})
+                }
             }
         }
     }

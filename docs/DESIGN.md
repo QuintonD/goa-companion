@@ -190,6 +190,10 @@ turn pips: done filled, current ringed, later hollow; the Tie Breaker coin as th
 shape on a bronze ring) and the hero strip, one chip per hero (portrait ringed in team colour,
 shape, name, Lv, coins, cards in hand); after the reveal the strip is in initiative order, numbered,
 with each played card's initiative, and the acting hero's chip has a bronze border and "· Now".
+In landscape with the panel shown (a phone's height is what the map lacks) the strip is portraits
+only, 48 dp discs on the HUD's row (team ring and shape, the order badge, a bronze ring while acting;
+TalkBack hears the full chip; a tap opens the hero), and the HUD's items sit closer; the side panel
+takes 42 % of the width (at most 400 dp).
 **Panel** (bottom, max 56 % in portrait; right side in landscape; hides to its peek bar, see
 **Board screens' frame**): the header names the deciding
 hero and the kind in the team's colour ("◆ ARIEN · DEFEND"), the prompt in titleMedium (a live
@@ -210,7 +214,8 @@ reuses New board's picker; heroes not yet playable are veiled and marked "Later"
 
 ### Puzzles (ADR-035, PRODUCT §10)
 The puzzle screen is the game table (above) plus: the **goal banner** floating under the hero strip
-(surface at 94 %, bronze border, flag icon, goal in titleSmall, "You play …" under it); the panel opens
+(surface at 94 %, bronze border, flag icon, goal in titleSmall, "You play …" under it; in landscape one
+line, "goal · You play …", with a chevron to open it in full when it is cut); the panel opens
 with "PUZZLE n OF m", the **difficulty mark** (three small hexes, filled up to the level, and the
 word Hard / Harder / Hardest: shape and word, never colour alone), the title in Cinzel and the theme,
 then "What you know" (surfaceVariant, folds to one line). A **nudge** is a secondary-container card

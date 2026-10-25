@@ -232,6 +232,13 @@ class PlayScreenshotTest {
     @Test
     fun tablePlayCardLandscapeDark() = capture(ThemeMode.DARK) { Game(remember { playCard() }) }
 
+    /** Sideways on an S25-sized phone (bars and cutout taken), mid-turn: the top keeps to one row. */
+    @Config(qualifiers = "w800dp-h330dp-land-xxhdpi")
+    @Test
+    fun tableChooseActionLandscapeShortDark() = capture(ThemeMode.DARK) {
+        Game(remember { at(DecisionKind.CHOOSE_ACTION, 3) })
+    }
+
     /** Simultaneous play: your card is down (shown to you only), the computer still chooses. */
     @Test
     fun tableWaitingDark() = capture(ThemeMode.DARK) {
