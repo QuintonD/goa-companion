@@ -255,6 +255,13 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   words), Defend with the attacker's card and Holds / Falls under each hand card, no log lines
   repeated in the panel — 2026-10-25, Play / Puzzle screenshots re-recorded and looked at. JVM only
 - [ ] On the S25 Ultra: a full round against the computer, panel shown and hidden, TalkBack on the track
+- [x] Hands-on fixes (`fix/v07-handson`, ADR-041 §5–6, ADR-042): a printed action that isn't offered
+  says why in one line from the engine (`DecisionContext.unavailable`: Gydion's empty spellbook, an
+  Attack with no target, Movement or a Skill forbidden by an enemy card, a played Defense card); the
+  card focus viewer keeps only what the card doesn't print, with "Read the card as text" collapsed and
+  the card larger; the Tie Breaker coin is the official face in the HUD and New game's coin flip —
+  2026-10-25, `UnavailableActionsTest` (7, incl. no-peeking), `PlayPanelTextTest`, spellbook / play /
+  puzzle / review screenshots re-recorded and looked at. JVM only
 
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
