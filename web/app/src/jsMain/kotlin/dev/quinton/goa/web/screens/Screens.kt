@@ -24,20 +24,13 @@ fun ScreenFor(route: Route) {
 
         is Route.Trivia -> PlaceholderScreen("Card trivia", Placeholder.TRIVIA)
 
-        Route.Boards -> PlaceholderScreen(
-            "Board",
-            Placeholder.BOARDS,
-            links = listOf(
-                PlaceholderLink("Play against the computer", "play", Route.Play),
-                PlaceholderLink("Puzzles", "puzzle", Route.Puzzles),
-            ),
-        )
+        Route.Boards -> dev.quinton.goa.web.play.board.BoardsScreen()
 
-        is Route.Board -> dev.quinton.goa.web.play.board.BoardPreviewScreen()
+        is Route.Board -> dev.quinton.goa.web.play.board.BoardScreen(route.boardId)
 
-        is Route.NewBoard -> PlaceholderScreen("New board", Placeholder.BOARD)
+        is Route.NewBoard -> dev.quinton.goa.web.play.board.NewBoardScreen(route)
 
-        is Route.OpenBoard -> PlaceholderScreen("Board", Placeholder.BOARD)
+        is Route.OpenBoard -> dev.quinton.goa.web.play.board.OpenBoardScreen(route)
 
         Route.Play -> dev.quinton.goa.web.play.game.GameScreen()
 

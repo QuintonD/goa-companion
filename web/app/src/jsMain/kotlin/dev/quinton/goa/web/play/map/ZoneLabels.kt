@@ -43,8 +43,8 @@ internal fun ZoneLabels(scene: MapScene, camera: MapCamera, bottomTeam: Team, bu
             }
             val inView = x >= view.left + MARGIN && y >= view.top + MARGIN && x + w <= view.right - MARGIN &&
                 y + h <= view.bottom - MARGIN
-            // The map buttons (Fit, Flip) sit in the top right corner, as on the phone.
-            val underButtons = x + w > camera.width - BUTTONS_WIDTH && y < BUTTONS_HEIGHT
+            // The map buttons (Fit, Flip) in the top right corner, as on the phone.
+            val underButtons = x + w > view.right - BUTTONS_W && y < view.top + BUTTONS_H
             val clear = inView && !underButtons && busyPoints.none { p ->
                 p.x > x - hexPx && p.x < x + w + hexPx && p.y > y - hexPx && p.y < y + h + hexPx
             }
@@ -131,5 +131,5 @@ private const val MARK_PX = 12f
 private const val PAD_PX = 16f
 private const val LABEL_PX = 16f
 private const val BUSY_REACH = 0.8f
-private const val BUTTONS_WIDTH = 72f
-private const val BUTTONS_HEIGHT = 124f
+private const val BUTTONS_W = 64f
+private const val BUTTONS_H = 124f

@@ -16,8 +16,6 @@ import dev.quinton.goa.web.ui.Screen
 enum class Placeholder(val icon: String, val what: String) {
     CARD_VIEWER("nav_heroes", "Card scans with their text"),
     TRIVIA("trivia", "A quiz on the numbers printed on every hero's cards"),
-    BOARDS("board", "The real map with heroes, minions and tokens"),
-    BOARD("board", "The board"),
     PLAY("play", "The real game against computer opponents, with an optional Coach"),
     RULES("rules", "The level & defeat ladder and the quick-reference topics"),
     TIMER("nav_timer", "Phase countdowns built for the table"),

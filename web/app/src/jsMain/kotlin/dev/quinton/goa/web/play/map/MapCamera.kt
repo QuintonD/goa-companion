@@ -97,6 +97,8 @@ class MapCamera {
             userMoved = false
             if (mode == ViewMode.MOVED) mode = ViewMode.LANE
         }
+        // A new size wins over an easing still running toward the old one (a panel closing mid-Fit).
+        animation++
         reframe()
     }
 
@@ -108,6 +110,7 @@ class MapCamera {
         endInset = end
         topInset = top
         if (layout == null) return
+        animation++
         reframe()
         if (grew && mode == ViewMode.MOVED) pan = fillPan(pan, zoom)
     }
@@ -172,6 +175,16 @@ class MapCamera {
     private fun centerOn(map: MapPoint, z: Float): ScreenPoint {
         val c = visible.center
         return ScreenPoint(c.x - map.x * unit * z, c.y - map.y * unit * z)
+    }
+
+    /**
+     * The whole map at once, and kept so when the view's size changes next (a panel hiding: the
+     * fit follows the room it leaves rather than easing toward the old size).
+     */
+    fun fit() {
+        animation++
+        userMoved = false
+        if (layout != null) applyFit() else mode = ViewMode.FIT
     }
 
     /** Animated: the whole map. */
