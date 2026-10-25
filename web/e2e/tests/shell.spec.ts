@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { expectNoHorizontalOverflow, open, title, watchErrors } from "./helpers";
+import { expectNoHorizontalOverflow, open, shot, title, watchErrors } from "./helpers";
 
 // Every destination of the shell (ADR-043): its title, no console errors, no sideways scrolling.
 const destinations: [hash: string, title: string][] = [
@@ -118,7 +118,7 @@ test("the theme choice is kept across a reload", async ({ page }) => {
   await expect(page.getByRole("radio", { name: "Light" })).toHaveAttribute("aria-checked", "true");
 });
 
-test("the More sheet opens, and closes with its button and with Escape", async ({ page }) => {
+test("the More sheet opens, and closes with its button and with Escape", async ({ page }, info) => {
   // Large text: Board and Card trivia move from the top bar into More (as on Android).
   await open(page, "#/heroes");
   await page.evaluate(() => (document.documentElement.style.fontSize = "200%"));
@@ -128,6 +128,8 @@ test("the More sheet opens, and closes with its button and with Escape", async (
   await more.click();
   const sheet = page.getByRole("dialog", { name: "More" });
   await expect(sheet).toBeVisible();
+  await page.waitForTimeout(400);
+  await shot(page, info, "sheet-more-text200-dark");
   await sheet.getByRole("button", { name: "Close" }).click();
   await expect(sheet).toBeHidden();
   await more.click();

@@ -1,8 +1,8 @@
 // Serves the built site (web/app/build/site, or GOA_SITE_DIR) under /goa-companion/ like GitHub
 // Pages does, for Playwright and for trying the production build locally:
 //   node serve.mjs            → http://localhost:4173/goa-companion/
-// Test hook: POST /__bump makes sw.js differ (a comment), as a new deploy would, so the update
-// prompt can be tested without building twice.
+// Test hook: a `goa-deploy=<n>` cookie makes sw.js differ (a comment), as a new deploy would, so
+// the update prompt can be tested without building twice and without touching other tests.
 import { createServer } from "node:http";
 import { createReadStream, statSync } from "node:fs";
 import { extname, join, normalize, resolve, sep } from "node:path";
@@ -13,7 +13,6 @@ const here = fileURLToPath(new URL(".", import.meta.url));
 const root = resolve(process.env.GOA_SITE_DIR ?? join(here, "..", "app", "build", "site"));
 const port = Number(process.env.GOA_PORT ?? 4173);
 const base = "/goa-companion/";
-let bump = 0;
 
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -31,11 +30,6 @@ const types = {
 
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${port}`);
-  if (req.method === "POST" && url.pathname === "/__bump") {
-    bump++;
-    res.writeHead(204).end();
-    return;
-  }
   if (url.pathname === base.slice(0, -1)) {
     res.writeHead(301, { location: base }).end();
     return;
@@ -60,8 +54,9 @@ createServer(async (req, res) => {
   }
   // GitHub Pages: max-age=600 on everything; the service worker must cope with it.
   const headers = { "content-type": types[extname(file)] ?? "application/octet-stream", "cache-control": "max-age=600" };
-  if (rel === "sw.js" && bump > 0) {
-    const body = (await readFile(file, "utf8")) + `\n// test deploy ${bump}\n`;
+  const deploy = /(?:^|;\s*)goa-deploy=(\w+)/.exec(req.headers.cookie ?? "")?.[1];
+  if (rel === "sw.js" && deploy) {
+    const body = (await readFile(file, "utf8")) + `\n// test deploy ${deploy}\n`;
     res.writeHead(200, headers).end(body);
     return;
   }
