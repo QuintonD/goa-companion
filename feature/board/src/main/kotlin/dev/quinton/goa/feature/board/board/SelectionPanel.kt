@@ -85,6 +85,7 @@ import dev.quinton.goa.feature.board.hero
 import dev.quinton.goa.feature.board.ui.BoardPalette
 import dev.quinton.goa.feature.board.ui.PieceToken
 import dev.quinton.goa.feature.board.ui.boardPalette
+import dev.quinton.goa.feature.board.ui.cards.isSpell
 import dev.quinton.goa.feature.board.ui.drawFastTravelCell
 import dev.quinton.goa.feature.board.ui.drawMovementCell
 import dev.quinton.goa.feature.board.ui.drawRadiusCell
@@ -270,7 +271,7 @@ private fun HeroMeasures(
     val overlay = state.overlay ?: OverlayUi(OverlaySettings())
     val card = overlay.card
     Overline("Card")
-    CardStrip(hero.cards, card?.id) { onAction(BoardAction.ChooseCard(it)) }
+    CardStrip(hero.measurable, card?.id) { onAction(BoardAction.ChooseCard(it)) }
     ReadCardsButton(hero, card?.id) { onAction(BoardAction.ChooseCard(it)) }
     if (card == null) {
         Note("Pick a card to see where it reaches: its Movement, Range and Radius.")
@@ -502,9 +503,7 @@ private fun CardChip(card: Card, selected: Boolean, onClick: () -> Unit) {
     val spoken = buildString {
         append(card.name)
         append(", ")
-        append(tierLabel(card))
-        append(" ")
-        append(cardColorName(card.color))
+        append(cardKindLabel(card))
         card.initiative?.let { append(", Initiative $it") }
     }
     Surface(
@@ -718,14 +717,29 @@ internal fun Note(text: String, modifier: Modifier = Modifier) {
     )
 }
 
-/** "Basic", "Tier I", "Tier II", "Tier III", "Ultimate". */
+/** "Basic Gold", "Tier II Red"; a spell card "Gold spell", "Tier II Red spell", "Purple spell" (Wish). */
+internal fun cardKindLabel(card: Card): String = if (card.isSpell) {
+    listOfNotNull(
+        card.tier?.takeIf { it in 1..3 }?.let { "Tier ${tierNumeral(it)}" },
+        cardColorName(card.color),
+        "spell",
+    ).joinToString(" ")
+} else {
+    "${tierLabel(card)} ${cardColorName(card.color)}"
+}
+
+/** "Basic", "Tier I", "Tier II", "Tier III", "Ultimate"; a spell card "Spell", "Tier II spell". */
 internal fun tierLabel(card: Card): String = when {
+    // Spellbook pages carry their printed spell level, null for the gold cantrips (catalog Card.tier).
+    card.isSpell -> card.tier?.takeIf { it in 1..3 }?.let { "Tier ${tierNumeral(it)} spell" } ?: "Spell"
+
     card.color == CardColor.GOLD || card.color == CardColor.SILVER -> "Basic"
 
     card.color == CardColor.PURPLE || card.tier == ULTIMATE_TIER -> "Ultimate"
 
-    else -> card.tier?.let { tier -> "Tier " + listOf("I", "II", "III").getOrElse(tier - 1) { tier.toString() } }
-        ?: "Other"
+    else -> card.tier?.let { tier -> "Tier ${tierNumeral(tier)}" } ?: "Other"
 }
+
+private fun tierNumeral(tier: Int): String = listOf("I", "II", "III", "IV").getOrElse(tier - 1) { tier.toString() }
 
 private const val ULTIMATE_TIER = 4

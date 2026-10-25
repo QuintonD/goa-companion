@@ -145,3 +145,21 @@ Additive; defaults keep other `GameSession` implementations (test fakes) compili
   through `Views` on them, so it can never name more than the live view did. Forks, `restore` and
   `undoToLastHumanDecision` carry or rebuild them; `determinize` copies start empty. Nothing is saved:
   the history is rebuilt by the replay.
+
+## 2026-10-25 (Gydion's spellbook in play, `feature/v07-spellbook`, ADR-040)
+
+Additive; a hero without extras gets `extras = emptyList()`, so other `GameSession` implementations and
+saves are unaffected (views are rebuilt, never saved).
+
+- `HeroView.extras: List<ExtraPlaceView> = emptyList()`: the hero's extra cards (hero JSON `extras`) by
+  place. `ExtraPlaceView(place, count, cardIds, open)`: `cardIds` in the hero JSON's `extras` order, or
+  null when the place is hidden from this viewer; `count` is always public. Gydion's places, in this
+  order: `spellbook` (not open: named to Gydion's own seat only, not to teammates nor to a spectator —
+  Prepare Spells "Only Gydion can look at the cards in the spellbook"), `removed` (open: cast, or removed
+  by Find Familiar, "remove it from the spellbook faceup"), `box` (open: not added yet; the game starts
+  with an empty spellbook, designer on BGG 3491113). Every declared place is listed, also when empty.
+- Engine side: `ExtraPlace(tag, open)` and `Registry.extraPlaces(heroId, vararg places)` (a hero module
+  declares its places; a tag used without being declared is listed as hidden). Built in `Views`, so the
+  live table, `merged` views, `review`/`positionAt` (ADR-037) and puzzles show the same visibility.
+  `ExtrasViewTest` checks it, with a no-peeking test (two games differing only in the spellbook's spells
+  look the same to every other seat, live and in the review).

@@ -55,15 +55,17 @@ import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.CardColorDot
 import dev.quinton.goa.core.designsystem.component.assetUrl
 import dev.quinton.goa.core.designsystem.component.cardColor
-import dev.quinton.goa.core.designsystem.component.cardColorName
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.Stat
+import dev.quinton.goa.feature.board.board.cardKindLabel
 import dev.quinton.goa.feature.board.board.tierLabel
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.ui.cards.cardAspect
+import dev.quinton.goa.feature.board.ui.cards.cardWidth
 
 /** Official card scans are 729 × 1026. */
 internal const val CARD_ASPECT = 729f / 1026f
@@ -71,15 +73,16 @@ internal const val CARD_ASPECT = 729f / 1026f
 /**
  * A card as it lies on the table: the official card image (`file:///android_asset/official/…`), or
  * a designed face with its name and initiative when there is no image; [card] null = facedown (the
- * back, original art). Decorative for TalkBack: the caller describes it.
+ * back, original art). Decorative for TalkBack: the caller describes it. [width] is a portrait card's:
+ * a landscape card (Gydion's spells) keeps the same height and is wider ([cardWidth]), never squeezed.
  */
 @Composable
 fun TableCard(card: Card?, modifier: Modifier = Modifier, width: Dp = 76.dp) {
     val shape = RoundedCornerShape(width * 0.08f)
     Box(
         modifier
-            .width(width)
-            .aspectRatio(CARD_ASPECT)
+            .width(cardWidth(card, width))
+            .aspectRatio(cardAspect(card))
             .clip(shape)
             .clearAndSetSemantics {},
     ) {
@@ -173,7 +176,7 @@ private fun CardFace(card: Card, modifier: Modifier = Modifier) {
 /** What TalkBack reads for a card: name, tier and colour, initiative, values. */
 fun spokenCard(card: Card): String = buildList {
     add(card.name)
-    add("${tierLabel(card)} ${cardColorName(card.color)}")
+    add(cardKindLabel(card))
     card.initiative?.let { add("Initiative $it") }
     card.values.attack?.let { add("Attack $it") }
     card.values.defense?.let { add("Defense $it") }

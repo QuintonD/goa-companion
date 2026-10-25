@@ -930,3 +930,81 @@ smoke checks; the full `connectedDebugAndroidTest` run stays on Megalithic or th
 **Consequences:** Either machine can build and publish an update that installs over the other's. One
 Gradle build at a time on oldboi, always through `goa-gradle`; it is slower than Megalithic. Megalithic
 keeps everything until the owner decides to clear it.
+
+## ADR-040 — Gydion's spellbook at the game table (2026-10-25)
+**Context:** The owner: "Missing the spell cards for gideon". The catalog has Gydion's 22 spell cards
+(hero JSON `extras`, landscape scans) and the engine plays them, but at the table a Gydion player saw
+only counters ("Spellbook 19 · Spells removed 3"): not which spells were in the spellbook, which were
+cast, or which Prepare Spells would add. Card images drawn in a portrait frame shrank a landscape spell
+to a strip with empty bands, in the cast question and the card focus viewer alike.
+**Decision:** The engine's views carry a hero's extra cards by place: `HeroView.extras:
+List<ExtraPlaceView>` (`place`, `count`, `cardIds`, `open`), built in `Views` from `Zone.EXTRA` and
+`CardInst.tag`, so the live table, merged views, the Game state review (ADR-037) and puzzles share one
+visibility. A hero module declares its places (`Registry.extraPlaces`, `ExtraPlace(tag, open)`); a place
+that is not open names its cards to the hero's own seat only. Gydion: `spellbook` (not open — Prepare
+Spells: "Only Gydion can look at the cards in the spellbook", so not even a teammate, p.4), `removed`
+(open — "remove it from the spellbook faceup"), `box` (open — the spell cards are public components;
+the game starts with an empty spellbook, designer on BGG 3491113). The engine still keeps no hidden
+information here (rulings/gydion.md 3: the spellbook's contents follow from the removed and unadded
+spells); the views follow the card's words. The UI (`play/table/SpellbookSection.kt`) shows the groups
+as the official images on the hero sheet and the review's Now tab; the cast question shows the spells
+as cards ("Cast Magic Missile"). Card shape: the catalog has no orientation field, so
+`ui/cards/CardShape.kt` takes the spellbook id scheme (`<hero>-spell-…`, the importer's
+`CardMapping.spellId`) as landscape and `CardShapeTest` checks every bundled scan against it; a
+landscape card keeps a row's height and is wider, and the card focus viewer sizes each card at its own
+aspect. The board sandbox lists Gydion's spells after his deck to measure with (his deck cards carry no
+Movement, Range or Radius of their own). An unlocked Ultimate is shown as its card (p.16: it lies
+faceup on the dashboard).
+**Alternatives:** an orientation field in the catalog measured by the importer (touches the import
+pipeline and every hero JSON for one hero; the test guards the id rule instead); measuring each image
+when it loads (the card would jump in size as it grows out of its thumbnail); Gydion-named view fields
+(a future hero with extras would need another contract change); the spellbook open to all since it is
+derivable (the card says only Gydion looks).
+**Consequences:** Additive contract change (CONTRACT-CHANGES.md); old saves load unchanged (views are
+rebuilt, never saved). A future hero with extras declares its places and, if its scans are landscape,
+extends the shape rule (CardShapeTest fails until it does). The hero chip shows no spellbook count (the
+strip is S3's and has no room; the counts are on the sheet).
+
+## ADR-041 — The game table after the reveal: a turn track of the played cards, and the card as the panel's content (2026-10-25)
+**Context:** The owner: "We are still missing a clear indication of the game state after everyone has
+played their cards", and "in the board game we don't need to rewrite text that is clearly displayed on
+the card, rather we just need to improve how we serve and show the cards". After the reveal the panel
+said "Revealed: Wasp 10 · Tigerclaw 9 · …" in one grey line, and once the next question came the
+table no longer showed which card each hero played, who had resolved, who acts now and next. The
+choose-action panel restated the rules beside big buttons ("Movement 4 — Move up to this many
+spaces (p.11)") and the panel repeated the log ("Wasp chooses movement…").
+**Decision:**
+1. **Turn track, built from the engine's view.** `TurnTrack.kt` maps `GameView` (`initiativeOrder` =
+   the unresolved heroes in acting order, `acting`, `actedThisTurn`, `HeroView.played` / `alsoPlayed`
+   / `resolved` / `initiative`) and the current turn's events (`CardsRevealed` for the order and
+   initiatives at the reveal, `ActionChosen`, `Defeated`) to slots: DONE (the card on this turn's slot,
+   so a card resolved facedown stays facedown), NOW, NEXT, LATER, PASSED (no card), SKIPPED (revealed
+   but neither resolved nor still to resolve: discarded unresolved, p.10). Ties are marked among the
+   heroes still to act (the acting hero's tie is settled). No engine field was added: everything is in
+   the views and the events, which are what the person may see (p.4) and the log's own content.
+   `TableUi.turnLog` carries the events of the latest two turns (both view models pass it).
+2. **Cards as the strip** (`TurnTrackView.kt`): the official card scans with the initiative badge over
+   the printed number, the portrait, name and team shape, and the state as a word on a band across the
+   card's foot, never colour alone. It replaces the hero strip from the reveal to the end of the turn,
+   and unlike the strip it stays when the panel is hidden (compact), because the turn's state is what a
+   player looks for with the whole board in view. Tap = the card focus viewer over the turn's cards;
+   long press = the hero (the strip's old tap); TalkBack has both. A "NOW" tag marks the acting hero's
+   piece on the map (fixed size, outside the zoom).
+3. **Moments in words** (`tableMoment`): state-derived, not timed (no toast to miss, nothing a test
+   clock can skip): the reveal until the first hero chooses an action (who acts first, p.7 ties), the
+   end of a round while its steps run (p.8), a turn over with its cards on their slots, a round over
+   with its push and level ups, until the person has played their card. Shown at the top of the panel
+   (a polite live region) and in the hidden panel's peek while the computer acts.
+4. **The card is the panel's content.** A question asked by a card shows the official card beside its
+   answers; action chips carry the game's icon and the card's value, and only rules no card prints
+   (Fast Travel's condition, Hold, Clear, primary-only text) in a few words with the page. Tap targets
+   over the card's printed action icons were considered and rejected: the scans differ in crop and the
+   icon column's position, so the hit areas would not be reliable. Defend shows the attacker's card and
+   the hand's cards with the verdict under each; few cards are shown larger; the computer's move shows
+   its card. `panelWorthy` keeps out of the panel the log lines the table already shows (the reveal, the
+   action chosen, moves); the log sheet keeps every line.
+**Consequences:** the top of the portrait table is about 40 dp taller after the reveal (cards with names
+instead of chips); the map's inset follows it. Level, coins and hand size are on the strip before the
+reveal and in the hero sheet (long press) during the turn. The scripted test game (`FakeGame`) now
+reports `actedThisTurn`, the engine's shrinking `initiativeOrder` and `initiative`, and plays cards in
+its skipped-to turn 4. Large text puts the asking card above its answers.

@@ -342,7 +342,8 @@ Life counters).
   Normal · Tokens · Ignore all" for cards that move through tokens or ignore obstacles, p.18, and "In
   a straight line", p.19), Fast Travel (p.11: own or adjacent Zone, no enemy hero or minion in
   either), Range and Radius (from the card's values, ± for items; the water around the board counts,
-  p.19), and the card's text quoted; "Read the cards" shows the hero's cards large in the card focus viewer (§9), swiping between them, and a second tap measures with the one on show. A minion or token selected: Movement N with a stepper; a minion
+  p.19), and the card's text quoted (Gydion's spell cards come after his deck: his deck cards cast
+  spells, so the spells carry the Movement, Range and Radius to measure); "Read the cards" shows the hero's cards large in the card focus viewer (§9), swiping between them, and a second tap measures with the one on show. A minion or token selected: Movement N with a stepper; a minion
   outside its Battle Zone shows where it goes back to (p.18, bound to its Lane, p.20). "Measure": tap
   any space of the board to read its distance in spaces and whether it lies in a straight line. The
   view zooms and pans so the selection and what it reaches stay in sight, hexes big enough to tap.
@@ -418,11 +419,42 @@ opponents (and teammates) at four levels. One phone, one human team.
   then leaves the game for Boards. Tap a card to read it in the card focus viewer, over the sheet. Only open information (p.4): built by the engine from its own
   views, never from the log's words. Note: the rulebook forbids taking notes at the table (p.4 Table
   Talk); the history is the log's own content, offered as a learning aid (ADR-037).
+- **Gydion's spellbook** (ADR-040; hero sheet, Game state's Now tab, puzzles): the official spell cards,
+  landscape as printed, in three groups — in the spellbook (Prepare Spells: "Only Gydion can look at the
+  cards in the spellbook": named to Gydion's player only, everyone else sees how many), cast (removed
+  faceup: everyone), not yet added (everyone; the game starts with an empty spellbook). Tap a spell to
+  read it large. "Choose and cast one spell" offers the spells as landscape cards ("Cast Magic
+  Missile"). An unlocked Ultimate shows as its card. **Done when:** an engine test shows two games that
+  differ only in the spellbook's spells look the same to every other seat, live and in the review;
+  screenshots of the sheet (Gydion's player and an opponent, before Prepare Spells, light/dark, 384 dp
+  at font scale 2, landscape), the cast question and a spell in the card focus viewer (portrait,
+  landscape, short landscape, font scale 2); every bundled card scan matches the shape it is drawn at.
+- **The turn at a glance** (ADR-041): after the reveal the hero strip becomes the played cards
+  themselves, in the order the heroes act (p.7): each official card with its initiative as it counts,
+  the hero's portrait, name and team shape, and DONE / NOW / NEXT / PASS on the card (words, not colour
+  alone), the action a done hero chose, ties ("=11"), Emmitt's second card, a hero off the board; tap a
+  card to read it, long-press for the hero. It stays at the top with the panel hidden and in landscape.
+  The acting hero carries a "NOW" tag on the map. The panel says the moments: "All cards revealed ·
+  Wasp acts first" (ties: who decides, p.7), "Turn 1 is over" with that turn's cards, "End of round"
+  with its steps (p.8), "Round 1 is over · Red won the push · Arien reached level 2". Hidden
+  information stays hidden (p.4): before the reveal only a card back shows who has played; a card
+  resolved facedown stays facedown. **Done when:** unit tests build the track and the moments from the
+  engine's view (order, done/now/next, ties in one team and across teams, a pass, a card that left the
+  table, Emmitt's second card, a hero defeated mid-turn, a facedown card, turn and round over); screenshots
+  right after the reveal, mid-turn, panel hidden, landscape, light, 384 dp at font scale 2, a turn and a
+  round over, a track card in the viewer.
+- **The card is the content** (ADR-041): a question asked by a card shows that card large beside its
+  answers (the action chips carry the game's icon and the card's value; only rules no card prints are
+  added: Fast Travel's condition, Hold, Clear, that only the primary applies the text); Defend shows the
+  attacker's card and the hand's cards with Holds / Falls under each; two or three cards to choose are
+  shown larger (Keep's two next-Tier cards side by side); the computer's move shows its card. The panel
+  repeats no log line the table already shows (the reveal, the action chosen, a move); the log sheet has
+  them all. With large text the card goes above its answers.
 - **See the whole board:** the panel (questions, the computer's move, the coach) hides to a
   one-line peek bar that still says what is asked ("● Arien · Choose an action for Dangerous
   Current", teal when it waits for you; a new question is announced by TalkBack). The map fits the
-  whole board (unless you had moved it), only the round at a glance stays at the top (the hero strip
-  returns with the panel), and a space or piece tapped on the map is answered with Confirm in the
+  whole board (unless you had moved it), only the round at a glance and, after the reveal, the turn
+  track stay at the top (the hero strip returns with the panel), and a space or piece tapped on the map is answered with Confirm in the
   peek bar, without opening the panel. Show (or a tap on the peek bar, or dragging it up) brings the
   panel back. In landscape the side panel hides to a small card at the bottom end; while it is shown,
   the heroes are portraits beside the round at a glance (a tap still opens each one) and a puzzle's

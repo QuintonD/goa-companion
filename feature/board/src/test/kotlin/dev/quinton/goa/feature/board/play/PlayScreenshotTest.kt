@@ -53,6 +53,7 @@ import dev.quinton.goa.feature.board.play.game.PlaySheet
 import dev.quinton.goa.feature.board.play.game.PlayUi
 import dev.quinton.goa.feature.board.play.game.RevealedCard
 import dev.quinton.goa.feature.board.play.game.TurnStatus
+import dev.quinton.goa.feature.board.play.game.panelWorthy
 import dev.quinton.goa.feature.board.play.game.recentSince
 import dev.quinton.goa.feature.board.play.setup.Control
 import dev.quinton.goa.feature.board.play.setup.NewGameAction
@@ -61,6 +62,7 @@ import dev.quinton.goa.feature.board.play.setup.NewGameStep
 import dev.quinton.goa.feature.board.play.setup.NewGameViewModel
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.logLines
+import dev.quinton.goa.feature.board.play.table.turnLog
 import dev.quinton.goa.feature.board.setup.NewBoardAction
 import kotlin.random.Random
 import org.junit.Before
@@ -156,6 +158,7 @@ class PlayScreenshotTest {
             asking = session.pending?.seat in humans,
             selected = selected,
             bottomTeam = bottom,
+            turnLog = turnLog(session.events),
         )
 
     private fun reveal(events: List<GameEvent>): List<RevealedCard> {
@@ -180,7 +183,7 @@ class PlayScreenshotTest {
         recent = if (status == TurnStatus.YourTurn) {
             recentSince(session.events, 0, session.setup.seats.map { it.heroId }.toSet()).lines
         } else {
-            session.events.takeLast(4).map { it.text }
+            session.events.filter(::panelWorthy).takeLast(4).map { it.text }
         },
         log = logLines(session.events),
         coach = true,
@@ -274,6 +277,99 @@ class PlayScreenshotTest {
                 val s = sessionAt(DecisionKind.CHOOSE_ACTION, humans = setOf("arien"))
                 play(s, setOf("arien"), status = TurnStatus.Computer("wasp"))
             },
+        )
+    }
+
+    // ---- The turn at a glance (ADR-041) -----------------------------------------------------
+
+    /** Right after the reveal with the panel hidden: the turn's cards stay in view, Wasp acting. */
+    @Test
+    fun tableRevealHiddenDark() = capture(ThemeMode.DARK) {
+        Game(
+            remember {
+                val s = sessionAt(DecisionKind.CHOOSE_ACTION, humans = setOf("arien"))
+                play(s, setOf("arien"), status = TurnStatus.Computer("wasp"))
+            },
+            hidden = true,
+        )
+    }
+
+    /** Large text, mid-turn: two cards done, Arien acting, Brogan next. */
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun tableMidTurnW384DarkFontScale2() = capture(ThemeMode.DARK, 2f) {
+        Game(remember { at(DecisionKind.CHOOSE_ACTION, 3) }, hidden = true)
+    }
+
+    /** A card on the turn track tapped: Wasp's card large, "Wasp · Done · Movement · Initiative 10". */
+    @Test
+    fun tableTrackFocusDark() {
+        val play = at(DecisionKind.CHOOSE_ACTION, 3)
+        capture(ThemeMode.DARK, before = { tapCard("1st to act, Wasp") }, screen = true) { Game(play) }
+    }
+
+    /** A tie in one team (turn 4): Wasp done, Arien and Brogan tied on 11 and asked who goes first. */
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun tableActFirstLandscapeDark() = capture(ThemeMode.DARK) { Game(remember { at(DecisionKind.ACT_FIRST) }) }
+
+    /**
+     * The turn is over: the next turn starts with everyone playing a card, the cards of the turn just
+     * over on their Turn slots in the panel. The scripted game skips from turn 1 to turn 4, so this
+     * is round 2's first question shown as turn 2 of round 1, with the view the engine gives then.
+     */
+    @Test
+    fun tableTurnOverDark() = capture(ThemeMode.DARK) { Game(remember { turnOver() }) }
+
+    @Test fun tableTurnOverLight() = capture(ThemeMode.LIGHT) { Game(remember { turnOver() }) }
+
+    /** A new round: who won the push, who levelled up, then the first card of the round. */
+    @Test
+    fun tableRoundOverDark() = capture(ThemeMode.DARK) { Game(remember { at(DecisionKind.PLAY_CARD, 5) }) }
+
+    private fun turnOver(): PlayUi {
+        val s = sessionAt(DecisionKind.PLAY_CARD, 5)
+        val p = play(s)
+        val turn1 = mapOf(
+            "wasp" to "wasp-blue-1",
+            "tigerclaw" to "tigerclaw-red-1",
+            "arien" to "arien-red-1",
+            "brogan" to "brogan-red-1",
+        )
+        val hand = listOf("arien-gold", "arien-silver", "arien-green-1", "arien-blue-1")
+        val view = p.table.view.copy(
+            round = 1,
+            turn = 2,
+            heroes = p.table.view.heroes.map { h ->
+                h.copy(
+                    level = 1,
+                    resolved = listOf(dev.quinton.goa.core.game.CardView(turn1.getValue(h.heroId), slot = 1)),
+                    hand = if (h.heroId == "arien") hand else h.hand?.let { it.take(4) },
+                    handCount = 4,
+                    markers = emptyList(),
+                    activeEffects = emptyList(),
+                    items = emptyList(),
+                )
+            },
+        )
+        val log = listOf(
+            GameEvent.TurnStarted(1, 1, "Turn 1 of round 1."),
+            GameEvent.CardsRevealed(
+                linkedMapOf(
+                    "wasp" to "wasp-blue-1",
+                    "tigerclaw" to "tigerclaw-red-1",
+                    "arien" to "arien-red-1",
+                    "brogan" to "brogan-red-1",
+                ),
+                "Cards are revealed.",
+            ),
+            GameEvent.TurnStarted(1, 2, "Turn 2 of round 1."),
+        )
+        val decision = s.pending!!.copy(options = hand.map { Choice.Card(it) })
+        return p.copy(
+            table = p.table.copy(view = view, decision = decision, turnLog = log),
+            recent = listOf("Arien attacks Tigerclaw with Attack 6.", "Tigerclaw is defeated by Arien."),
+            recentStrong = setOf(1),
         )
     }
 

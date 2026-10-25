@@ -8,6 +8,7 @@ import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.GamePhase
 import dev.quinton.goa.core.game.GameView
 import dev.quinton.goa.core.game.HeroView
@@ -31,7 +32,8 @@ import dev.quinton.goa.feature.board.play.PlayText
  * every hand: its hands are open). [decision] is the pending question; [asking] = it is theirs to
  * answer (else the computer is choosing, or the game is waiting for others). [selected] is the
  * option they tapped but have not confirmed yet, or a puzzle replay's move. [hint] is the option a
- * puzzle's last nudge points at (drawn apart from the selection).
+ * puzzle's last nudge points at (drawn apart from the selection). [turnLog] is the events of the
+ * latest two turns ([turnLog]): the turn track and the table's moments read them (ADR-041).
  */
 @Immutable
 data class TableUi(
@@ -46,7 +48,14 @@ data class TableUi(
     val selected: Choice? = null,
     val bottomTeam: Team = Team.RED,
     val hint: Choice? = null,
+    val turnLog: List<GameEvent> = emptyList(),
 ) {
+    /** After the reveal: every played card in acting order, with who is done, acting and next (ADR-041). */
+    val track: TurnTrack? by lazy { turnTrack(view, turnLog) { card(it)?.initiative } }
+
+    /** The transition the table is at (the reveal, a turn or round over), in words. */
+    val moment: TableMoment? by lazy { tableMoment(view, turnLog, track, { hero(it).name }, mine) }
+
     val geometry: BoardGeometry get() = BoardGeometry.of(map)
 
     fun hero(id: String): BoardHero = heroes.hero(id)

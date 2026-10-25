@@ -55,6 +55,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.CardView
+import dev.quinton.goa.core.game.GamePhase
 import dev.quinton.goa.core.game.HeroView
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.match.Team
@@ -227,6 +228,7 @@ private fun spokenChip(table: TableUi, hero: HeroView, place: Int?): String {
         add("level ${hero.level}")
         add(BoardText.count(hero.coins, "coin"))
         add("${BoardText.count(hero.handCount, "card")} in hand")
+        if (cardDown(table, hero)) add("card played facedown")
         if (hero.at == null) add("off the board")
     }.joinToString(", ")
 }
@@ -320,6 +322,8 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
                     (hero.initiative ?: played?.initiative)?.let {
                         Stat(dev.quinton.goa.core.designsystem.cardtext.GameIcons.initiative.vector, "$it")
                     }
+                    // Before the reveal: whose card is down already (p.7: played facedown, unseen).
+                    if (cardDown(table, hero)) TableCard(null, width = 10.dp)
                 }
             }
         }
@@ -376,9 +380,14 @@ private fun CompactHeroChip(table: TableUi, hero: HeroView, place: Int?, onClick
                 }
             }
             Box(Modifier.align(Alignment.BottomEnd).padding(2.dp)) { TeamMark(hero.team, markSize = 9.dp) }
+            if (cardDown(table, hero)) TableCard(null, Modifier.align(Alignment.TopEnd), width = 11.dp)
         }
     }
 }
+
+/** Before the reveal: the hero has played its card facedown (p.7); which card stays hidden. */
+private fun cardDown(table: TableUi, hero: HeroView): Boolean =
+    table.view.phase == GamePhase.PLAY_CARDS && hero.played != null
 
 private val COMPACT_CHIP = 48.dp
 private val COMPACT_PORTRAIT = 38.dp
@@ -454,7 +463,7 @@ internal fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState, m
             Fact("In hand", "${hero.handCount}")
             if (hero.ultimate) Fact("Ultimate", "Active")
             if (hero.at == null) Fact("Board", "Off the board")
-            hero.counters.forEach { (name, value) -> Fact(PlayText.counter(name), "$value") }
+            shownCounters(hero).forEach { (name, value) -> Fact(PlayText.counter(name), "$value") }
         }
         if (hero.items.isNotEmpty()) {
             Section("Items · p.16")
@@ -498,6 +507,13 @@ internal fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState, m
             Section("Discarded")
             CardRow(hero.discard, table, focus, "${info.name} · Discarded")
         }
+        // The unlocked Ultimate is a faceup card on the dashboard (p.16): show it, not only "Active".
+        ultimateCard(table, hero)?.let { card ->
+            Section("Ultimate · p.16")
+            CardRow(listOf(CardView(card.id)), table, focus, "${info.name} · Ultimate")
+        }
+        // Gydion's spellbook (ADR-040): SpellbookSection.kt.
+        ExtrasSection(table, hero, focus)
         val hand = hero.hand
         if (hand != null && heroId in table.mine) {
             Section("Your hand")
@@ -632,5 +648,14 @@ private fun ThumbRow(
         }
     }
 }
+
+/**
+ * The hero's counters for the number row, without those the extra cards' section already counts
+ * (Gydion's "spellbook" and "spellsRemoved" are its groups' counts, ADR-040); "wishCasts" stays.
+ */
+internal fun shownCounters(hero: HeroView): Map<String, Int> =
+    if (hero.extras.isEmpty()) hero.counters else hero.counters.filterKeys { it !in EXTRAS_COUNTERS }
+
+private val EXTRAS_COUNTERS = setOf("spellbook", "spellsRemoved")
 
 private const val OFF_BOARD_ALPHA = 0.45f

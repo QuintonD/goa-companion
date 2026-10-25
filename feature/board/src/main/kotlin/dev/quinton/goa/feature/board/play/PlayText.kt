@@ -127,22 +127,6 @@ object PlayText {
         ActionType.HOLD -> "Hold"
     }
 
-    /** What an action does, one line (p.11–p.13). */
-    fun actionNote(action: ActionType): String = when (action) {
-        ActionType.PRIMARY -> "The card's text applies (p.7)."
-
-        ActionType.MOVEMENT -> "Move up to this many spaces (p.11)."
-
-        ActionType.FAST_TRAVEL ->
-            "To an empty space of your Zone or an adjacent one, with no enemy hero or minion in either (p.11)."
-
-        ActionType.ATTACK -> "Attack with this card's Attack value (p.13)."
-
-        ActionType.CLEAR -> "Remove any number of adjacent tokens (p.13)."
-
-        ActionType.HOLD -> "Do nothing (p.12)."
-    }
-
     /** A plain button label for the choices the board and card pickers don't show. */
     fun button(choice: Choice): String = when (choice) {
         is Choice.Option -> choice.label

@@ -360,6 +360,11 @@ What each hero needs beyond plain actions, and the framework pieces that cover i
   spell's owner is found from the card, so NebKher's Mind Grip casts from Gydion's spellbook),
   `castable` (in the spellbook, allowed, first instruction possible: `primaryPossible`), `addAll`.
   Public counters `spellbook`, `spellsRemoved`, `wishCasts` on Gydion's `HeroView.counters`.
+- The views list the spells by place in `HeroView.extras` (ADR-040): `GydionHero` declares its places
+  with `r.extraPlaces(heroId, ExtraPlace(SPELLBOOK, open = false), ExtraPlace(REMOVED, open = true),
+  ExtraPlace(BOX, open = true))`; `Views` names the cards of a place that is not open to the hero's own
+  seat only ("Only Gydion can look at the cards in the spellbook"), every other seat gets the count. A
+  future hero with extras declares its places the same way (an undeclared tag is shown as hidden).
 - `PositionBuilder.HeroBuilder.extra(vararg cardIds, tag)` places extras in a tagged place (positions
   and puzzles with a prepared spellbook); extras are now placed before the purple-card rule, so Gydion's
   purple Wish spell is never taken for the Ultimate or put in the deck.

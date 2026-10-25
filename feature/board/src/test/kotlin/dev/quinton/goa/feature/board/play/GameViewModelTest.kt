@@ -121,7 +121,11 @@ class GameViewModelTest {
         advanceTimeBy(20)
         assertThat(ai.calls).isEqualTo(4)
         assertThat(vm.play.status).isEqualTo(TurnStatus.Computer("wasp"))
-        assertThat(vm.play.recent.last()).contains("Wasp chooses movement")
+        // The action shows on Wasp's card on the turn track; the panel doesn't repeat the log (ADR-041).
+        val track = vm.play.table.track!!
+        assertThat(track.acting?.heroId).isEqualTo("wasp")
+        assertThat(track.acting?.action).isEqualTo(dev.quinton.goa.core.game.ActionType.MOVEMENT)
+        assertThat(vm.play.recent.none { "chooses movement" in it }).isTrue()
     }
 
     @Test
