@@ -51,10 +51,10 @@ enum class AiLevel(
     NORMAL(4),
 
     @SerialName("hard")
-    HARD(6),
+    HARD(7),
 
     @SerialName("expert")
-    EXPERT(8),
+    EXPERT(9),
     ;
 
     companion object {

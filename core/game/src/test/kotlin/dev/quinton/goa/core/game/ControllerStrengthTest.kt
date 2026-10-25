@@ -13,12 +13,12 @@ class ControllerStrengthTest {
     fun `a save from before the slider carries only the level and loads as that level's strength`() {
         val old = """{"heroId":"wasp","team":"blue","controller":{"type":"ai","level":"hard"}}"""
         val seat = json.decodeFromString(SeatSetup.serializer(), old)
-        assertThat(seat.controller).isEqualTo(Controller.Ai(AiLevel.HARD, 6))
+        assertThat(seat.controller).isEqualTo(Controller.Ai(AiLevel.HARD, 7))
         val strengths = AiLevel.entries.map { level ->
             val c = """{"type":"ai","level":"${level.name.lowercase()}"}"""
             (json.decodeFromString(Controller.serializer(), c) as Controller.Ai).strength
         }
-        assertThat(strengths).containsExactly(2, 4, 6, 8).inOrder()
+        assertThat(strengths).containsExactly(2, 4, 7, 9).inOrder()
     }
 
     @Test

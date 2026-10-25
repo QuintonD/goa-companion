@@ -44,7 +44,7 @@ object PlayText {
     fun strengthSpoken(strength: Int): String =
         "Strength $strength of ${AiStrength.MAX}, ${level(AiLevel.of(strength))}"
 
-    /** A computer seat's band and strength, "Hard 6". */
+    /** A computer seat's band and strength, "Hard 7". */
     fun strength(computer: Controller.Ai): String = "${level(AiLevel.of(computer.strength))} ${computer.strength}"
 
     fun controller(controller: Controller): String = when (controller) {

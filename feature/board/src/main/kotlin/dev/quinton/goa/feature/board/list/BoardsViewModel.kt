@@ -64,7 +64,7 @@ data class BoardRowUi(
 data class ResumeUi(
     val red: List<BoardHero>,
     val blue: List<BoardHero>,
-    /** "You play Arien · Computer: Hard 6". */
+    /** "You play Arien · Computer: Hard 7". */
     val summary: String,
     val savedAt: Long,
     /** The save can't be read: opening it offers to delete it. */

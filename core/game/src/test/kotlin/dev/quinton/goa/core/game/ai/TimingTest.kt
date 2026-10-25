@@ -18,7 +18,7 @@ class TimingTest {
     fun `decision times per level`() {
         val games = System.getenv("AI_TIMING_GAMES")?.toIntOrNull() ?: 2
         val strengths = System.getenv("AI_TIMING_STRENGTHS")?.split(",")?.map { it.trim().toInt() }
-            ?: listOf(2, 4, 6, 8, 10)
+            ?: listOf(2, 4, 7, 9, 10)
         val lineups = AiHarness.mixedLineups(games)
         for (strength in strengths) {
             val budget = AiPlayers.profile(strength).budgetMs
