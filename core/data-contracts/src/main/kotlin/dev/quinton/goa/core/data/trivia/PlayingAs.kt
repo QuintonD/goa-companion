@@ -1,6 +1,5 @@
-package dev.quinton.goa.feature.trivia
+package dev.quinton.goa.core.data.trivia
 
-import androidx.compose.runtime.Immutable
 import dev.quinton.goa.core.data.GroupRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.TriviaProgressRepository
@@ -15,10 +14,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 /**
- * Who the next trivia round is played as (ADR-032), with this phone's "You" and the players to
+ * Who the next trivia round is played as (ADR-032), with this device's "You" and the players to
  * pick from. [player] null = Guest (not on the leaderboard).
  */
-@Immutable
 data class PlayingAsState(
     val player: Player?,
     /**
@@ -26,13 +24,13 @@ data class PlayingAsState(
      * none is set or that player is archived.
      */
     val me: Player?,
-    /** Active players to pick from, this phone's "You" first, then by name. */
+    /** Active players to pick from, this device's "You" first, then by name. */
     val players: List<Player>,
 ) {
     val isGuest: Boolean get() = player == null
 
     /**
-     * Learning progress is this phone's (ADR-028): a round moves it only when played as this
+     * Learning progress is this device's (ADR-028): a round moves it only when played as this
      * phone's "You", or by anyone (Guest included) while no "You" is set.
      */
     val movesProgress: Boolean get() = me == null || player?.id == me.id
@@ -43,7 +41,7 @@ data class PlayingAsState(
         /**
          * The resolution rule (PRODUCT §7): the last pick on this phone ([stored], a player id
          * already resolved through merges, or [TriviaProgressRepository.GUEST]) if it is an
-         * active player or Guest; else this phone's "You" if active; else Guest.
+         * active player or Guest; else this device's "You" if active; else Guest.
          */
         fun resolve(stored: String?, me: Player?, active: List<Player>): PlayingAsState {
             val byId = active.associateBy { it.id }
@@ -65,7 +63,7 @@ data class PlayingAsState(
  * [PlayingAsState] right now, read once (a quiz is played as whoever was picked when it opened).
  * Plain reads in turn, so a store that answers at once (as the fakes do) needs no dispatch.
  */
-internal suspend fun currentPlayingAs(
+suspend fun currentPlayingAs(
     players: PlayerRepository,
     groups: GroupRepository,
     progress: TriviaProgressRepository,
@@ -82,7 +80,7 @@ internal suspend fun currentPlayingAs(
 
 /** [PlayingAsState] as it changes: the stored pick, "You" and the player list. */
 @OptIn(ExperimentalCoroutinesApi::class)
-internal fun playingAs(
+fun playingAs(
     players: PlayerRepository,
     groups: GroupRepository,
     progress: TriviaProgressRepository,

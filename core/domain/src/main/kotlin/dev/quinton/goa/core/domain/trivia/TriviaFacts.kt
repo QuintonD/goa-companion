@@ -138,6 +138,16 @@ object TriviaFacts {
     ): List<TriviaFact> = heroIds.distinct().mapNotNull(catalog::hero).flatMap { of(it, stats, groups) }
 
     /**
+     * Every fact key that can be stored for [heroIds]' deck cards (each card and stat, printed or
+     * not): what "reset these heroes' progress" forgets. Taken from the cards in [catalog], since a
+     * card id need not start with its hero's id. Heroes not in the catalog have none.
+     */
+    fun keysOf(catalog: Catalog, heroIds: Collection<String>): Set<String> =
+        heroIds.mapNotNull(catalog::hero).flatMap { it.cards }
+            .flatMap { card -> TriviaStat.entries.map { TriviaFact.keyOf(card.id, it) } }
+            .toSet()
+
+    /**
      * Every value each stat takes anywhere in [catalog]'s deck cards, ascending: the answer buttons
      * of a Recall question and the pool distractors are drawn from.
      */

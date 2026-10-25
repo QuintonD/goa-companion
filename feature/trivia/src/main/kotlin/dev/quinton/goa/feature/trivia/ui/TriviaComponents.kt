@@ -28,14 +28,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.data.trivia.TriviaCardUi
+import dev.quinton.goa.core.data.trivia.TriviaText
 import dev.quinton.goa.core.designsystem.component.CardColorDot
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.trivia.MasterySummary
-import dev.quinton.goa.feature.trivia.TriviaCardUi
-import dev.quinton.goa.feature.trivia.TriviaText
 
 /** Learned = tide teal, learning = bronze, new = the empty track. */
 @Composable
@@ -154,15 +154,12 @@ internal fun HeroLine(card: TriviaCardUi, modifier: Modifier = Modifier, portrai
 }
 
 /** ", unverified data" after a card or hero TalkBack names, when its data isn't verified. */
-internal fun spokenUnverified(verified: Boolean): String = if (verified) "" else ", $UNVERIFIED_SPOKEN"
+internal fun spokenUnverified(verified: Boolean): String = TriviaText.spokenUnverified(verified)
 
-internal const val UNVERIFIED_SPOKEN = "unverified data"
+internal const val UNVERIFIED_SPOKEN = TriviaText.UNVERIFIED_SPOKEN
 
 /** "Mad Dash, Arien's Red · Tier II Attack card": how TalkBack names a card. */
-internal fun spokenCard(card: TriviaCardUi): String =
-    "${card.name}, ${card.heroName}'s ${
-        listOfNotNull(card.label.replace(" · ", " ").ifEmpty { null }, card.primary ?: "card").joinToString(" ")
-    }${spokenUnverified(card.heroVerified)}"
+internal fun spokenCard(card: TriviaCardUi): String = TriviaText.spokenCard(card)
 
 @Composable
 internal fun SetupLabel(text: String, modifier: Modifier = Modifier) {

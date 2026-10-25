@@ -63,6 +63,11 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.data.trivia.HeroProgressUi
+import dev.quinton.goa.core.data.trivia.PlayingAsState
+import dev.quinton.goa.core.data.trivia.TriviaHomeAction
+import dev.quinton.goa.core.data.trivia.TriviaHomeUiState
+import dev.quinton.goa.core.data.trivia.TriviaText
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.EngravedRule
@@ -80,8 +85,6 @@ import dev.quinton.goa.core.domain.trivia.AnswerStyle
 import dev.quinton.goa.core.domain.trivia.CardGroup
 import dev.quinton.goa.core.domain.trivia.TriviaConfig
 import dev.quinton.goa.core.domain.trivia.TriviaStat
-import dev.quinton.goa.feature.trivia.PlayingAsState
-import dev.quinton.goa.feature.trivia.TriviaText
 import dev.quinton.goa.feature.trivia.ui.MasteryBar
 import dev.quinton.goa.feature.trivia.ui.MasteryLegend
 import dev.quinton.goa.feature.trivia.ui.SetupLabel
@@ -334,7 +337,7 @@ private fun HomeColumn(
 @Composable
 private fun PlayingAsRow(playing: PlayingAsState, onClick: () -> Unit, modifier: Modifier) {
     val name = playing.player?.name ?: "Guest"
-    val isMe = playing.player != null && playing.player.id == playing.me?.id
+    val isMe = playing.player?.let { it.id == playing.me?.id } == true
     val subtitle = when {
         playing.isGuest -> "Not on the leaderboard"
         else -> "Rounds go on the leaderboard"
@@ -405,10 +408,7 @@ private fun PlayingAsRow(playing: PlayingAsState, onClick: () -> Unit, modifier:
  * the row's own line). Null when they are, or when no "You" is set (then anyone's rounds teach this
  * phone).
  */
-internal fun playingAsNote(playing: PlayingAsState): String? {
-    val me = playing.me ?: return null
-    return if (playing.player?.id == me.id) null else "Learning progress on this phone stays ${me.name}'s."
-}
+internal fun playingAsNote(playing: PlayingAsState): String? = TriviaText.playingAsNote(playing)
 
 @Composable
 private fun OverallCard(state: TriviaHomeUiState.Ready, modifier: Modifier) {
@@ -706,7 +706,7 @@ private fun ChallengeButton(onChallenge: () -> Unit, modifier: Modifier) {
     }
 }
 
-internal const val CHALLENGE_LINE = "Challenge: 20 questions on every hero — scores go on the leaderboard."
+internal const val CHALLENGE_LINE = TriviaText.CHALLENGE_LINE
 
 /**
  * "Card trivia" must never be clipped (S25 Ultra: 384 dp wide). The title is measured; when it and
@@ -816,35 +816,8 @@ private fun HeroProgressRow(hero: HeroProgressUi, onClick: () -> Unit) {
  * quiz's own scope (chosen heroes, owned heroes or every hero) and names that scope, so it is true
  * as written.
  */
-internal fun startNote(state: TriviaHomeUiState.Ready): String? {
-    val setup = state.setup
-    val total = state.selection.total
-    return when {
-        total == 0 -> {
-            val groups = or(CardGroup.entries.filter { it in setup.groups }.map(TriviaText::group))
-            val stats = or(TriviaStat.entries.filter { it in setup.stats }.map(TriviaText::stat))
-            val scope = when {
-                setup.heroIds.size == 1 -> " of the chosen hero"
-                setup.heroIds.isNotEmpty() -> " of the chosen heroes"
-                state.ownedOnly -> " of the heroes you own"
-                else -> ""
-            }
-            "No $groups card$scope prints $stats. Add a number or more cards."
-        }
-
-        setup.length != TriviaConfig.ENDLESS && total < setup.length ->
-            "Only ${TriviaText.count(total, "number")} for ${setup.length} questions, so some come up more than once."
-
-        else -> null
-    }
-}
+internal fun startNote(state: TriviaHomeUiState.Ready): String? = TriviaText.startNote(state)
 
 /** From this width the start bar puts its text and button side by side. */
 private val WIDE_START_BAR = 560.dp
 
-/** "Tier I, Tier II or Ultimate". */
-private fun or(items: List<String>): String = when (items.size) {
-    0 -> ""
-    1 -> items.single()
-    else -> items.dropLast(1).joinToString(", ") + " or " + items.last()
-}

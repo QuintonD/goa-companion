@@ -5,8 +5,7 @@ import dev.quinton.goa.core.data.TriviaProgressRepository
 import dev.quinton.goa.core.datastore.trivia.TriviaProgressStore
 import dev.quinton.goa.core.domain.trivia.FactProgress
 import dev.quinton.goa.core.domain.trivia.TriviaConfig
-import dev.quinton.goa.core.domain.trivia.TriviaFact
-import dev.quinton.goa.core.domain.trivia.TriviaStat
+import dev.quinton.goa.core.domain.trivia.TriviaFacts
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
@@ -61,10 +60,7 @@ internal class DataStoreTriviaProgressRepository internal constructor(
             return
         }
         // The heroes' facts by their cards in the catalog: card ids need not start with the hero id.
-        val catalog = catalogRepository.catalog.first()
-        val keys = heroIds.mapNotNull(catalog::hero).flatMap { it.cards }
-            .flatMap { card -> TriviaStat.entries.map { TriviaFact.keyOf(card.id, it) } }
-            .toSet()
+        val keys = TriviaFacts.keysOf(catalogRepository.catalog.first(), heroIds)
         if (keys.isEmpty()) return
         withContext(computeDispatcher) {
             store.updateProgress { stored ->
