@@ -17,6 +17,7 @@ import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.core.model.player.PlayerPalette
 import dev.quinton.goa.feature.players.common.formatDelta
 import dev.quinton.goa.feature.players.common.formatRating
 import dev.quinton.goa.feature.players.common.heroName
@@ -47,6 +48,7 @@ import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconButton
 import dev.quinton.goa.web.ui.IconSize
 import dev.quinton.goa.web.ui.LoadingState
+import dev.quinton.goa.web.ui.PlayerAvatar
 import dev.quinton.goa.web.ui.Screen
 import dev.quinton.goa.web.ui.SectionHeader
 import kotlin.js.Date
@@ -276,7 +278,7 @@ fun MatchEditScreen(matchId: String?, resultFirst: Boolean) {
                     if (trimmed.isNotEmpty()) {
                         scope.launch {
                             val all = group.players.observePlayers(includeArchived = true).first()
-                            val (color, crest) = PlayerPalette.suggestion(all)
+                            val (color, crest) = PlayerPalette.forNew(all)
                             // A known name (archived included) picks that player instead of creating a second one.
                             val player = group.players.ensurePlayer(
                                 Player(

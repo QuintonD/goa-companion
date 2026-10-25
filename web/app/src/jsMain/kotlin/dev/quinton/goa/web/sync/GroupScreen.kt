@@ -25,7 +25,6 @@ import dev.quinton.goa.web.AppServices
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.group.WebCryptoCipher
 import dev.quinton.goa.web.nav.Route
-import dev.quinton.goa.web.players.PlayerAvatar
 import dev.quinton.goa.web.players.SwitchRow
 import dev.quinton.goa.web.players.TextField
 import dev.quinton.goa.web.rememberRetained
@@ -38,6 +37,7 @@ import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconSize
 import dev.quinton.goa.web.ui.ListRow
 import dev.quinton.goa.web.ui.LoadingState
+import dev.quinton.goa.web.ui.PlayerAvatar
 import dev.quinton.goa.web.ui.RowList
 import dev.quinton.goa.web.ui.Screen
 import dev.quinton.goa.web.ui.SectionHeader

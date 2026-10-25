@@ -650,6 +650,24 @@ code {
   .goa-topbar-actions .more-only { display: inline-flex; }
 }
 
+/* ---------- Player avatars (ui/PlayerAvatar.kt; every stream) ---------- */
+/* Player colours: the stored dark tone, its light-theme tone (PlayerColors), picked by theme. */
+.goa-pc { --pc: var(--pc-d, var(--on-surface-variant)); }
+:root[data-theme="light"] .goa-pc { --pc: var(--pc-l, var(--on-surface-variant)); }
+@media (prefers-color-scheme: light) { :root[data-theme="system"] .goa-pc { --pc: var(--pc-l, var(--on-surface-variant)); } }
+
+.goa-avatar {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%;
+  color: var(--pc); border: 2px solid var(--pc);
+  background: radial-gradient(circle, color-mix(in srgb, var(--pc) 26%, transparent), color-mix(in srgb, var(--pc) 8%, transparent));
+}
+.goa-avatar .goa-icon { width: var(--crest); height: var(--crest); }
+.goa-avatar-initial { font-family: var(--font-display); font-weight: 700; line-height: 1; }
+.goa-avatar.guest {
+  --pc: var(--on-surface-variant); border-width: 1.5px;
+  background: color-mix(in srgb, var(--on-surface-variant) 8%, transparent);
+}
+
 /* ---------- W1 catalog: Heroes tab, hero page, card viewer ---------- */
 /* Card colours (core:designsystem GoaColors.card*): accents only, never text on their own. */
 :root, :root[data-theme="dark"] {
@@ -1204,18 +1222,6 @@ code {
 /* The card colours (--card-*) are defined with the catalog above. */
 
 /* Avatars, medallions, tags */
-.goa-trivia-avatar {
-  flex: none; display: inline-flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; border-radius: 50%;
-  color: var(--player, var(--on-surface-variant));
-  border: 2px solid currentColor;
-  background: radial-gradient(color-mix(in srgb, currentColor 26%, transparent), color-mix(in srgb, currentColor 8%, transparent));
-}
-.goa-trivia-avatar .goa-icon { width: 22px; height: 22px; }
-.goa-trivia-avatar.small { width: 32px; height: 32px; border-width: 1.5px; }
-.goa-trivia-avatar.small .goa-icon { width: 18px; height: 18px; }
-.goa-trivia-avatar.guest { color: var(--on-surface-variant); border-width: 1.5px; background: color-mix(in srgb, var(--on-surface-variant) 8%, transparent); }
-.goa-trivia-initial { font: 700 1.05rem/1 var(--font-display); }
 .goa-trivia-you {
   flex: none; padding: 2px var(--sp-sm); border-radius: 10px;
   background: var(--secondary-container); color: var(--on-secondary-container);
@@ -1510,7 +1516,6 @@ code {
 .goa-trivia-board { list-style: none; margin: 0 calc(-1 * var(--sp-screen)); padding: 0; container: trivia-board / inline-size; }
 .goa-trivia-board > li + li .goa-trivia-rank { box-shadow: inset 0 1px 0 var(--outline-variant); }
 .goa-trivia-rank { min-height: 72px; padding: var(--sp-sm) var(--sp-screen); }
-.goa-trivia-rank > .goa-trivia-avatar { width: 44px; height: 44px; }
 .goa-trivia-rank-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .goa-trivia-rank-name { overflow-wrap: anywhere; }
 .goa-trivia-rank-main { flex: none; min-width: 48px; display: flex; flex-direction: column; align-items: flex-end; font-weight: 600; }
@@ -1698,18 +1703,6 @@ code {
 .goa-table-footer-row > .goa-button { flex: 1 1 140px; }
 
 /* Avatars and hero art */
-.goa-table-avatar {
-  flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%;
-  color: var(--pc-dark, var(--on-surface-variant)); border: 2px solid currentColor;
-  background: radial-gradient(color-mix(in srgb, currentColor 26%, transparent), color-mix(in srgb, currentColor 8%, transparent));
-  font-family: var(--font-display); font-weight: 700; line-height: 1;
-}
-.goa-table-avatar-crest { display: flex; }
-.goa-table-avatar-crest > .goa-icon { width: 100%; height: 100%; }
-:root[data-theme="light"] .goa-table-avatar { color: var(--pc-light, var(--on-surface-variant)); }
-@media (prefers-color-scheme: light) {
-  :root[data-theme="system"] .goa-table-avatar { color: var(--pc-light, var(--on-surface-variant)); }
-}
 .goa-table-art {
   position: relative; display: block; overflow: hidden; border-radius: 10px;
   background: linear-gradient(var(--surface-high), var(--medallion)); border: 1px solid var(--engraved);
@@ -2388,18 +2381,6 @@ code {
 }
 
 /* ---------- group (W2): players, matches, meta, group sync ---------- */
-/* Player colours: the stored dark tone, its light-theme tone (PlayerColors), picked by theme. */
-.goa-w2-pc { --pc: var(--pc-d, var(--on-surface-variant)); }
-:root[data-theme="light"] .goa-w2-pc { --pc: var(--pc-l, var(--on-surface-variant)); }
-@media (prefers-color-scheme: light) { :root[data-theme="system"] .goa-w2-pc { --pc: var(--pc-l, var(--on-surface-variant)); } }
-
-.goa-w2-avatar {
-  flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%;
-  color: var(--pc); border: 2px solid var(--pc);
-  background: radial-gradient(circle, color-mix(in srgb, var(--pc) 26%, transparent), color-mix(in srgb, var(--pc) 8%, transparent));
-}
-.goa-w2-avatar .goa-icon { width: var(--crest); height: var(--crest); }
-.goa-w2-monogram { font: 700 1rem/1 var(--font-display); }
 .goa-w2-hero {
   flex: none; display: inline-flex; align-items: center; justify-content: center; overflow: hidden;
   border-radius: 8px; background: var(--medallion); border: 1px solid var(--engraved);

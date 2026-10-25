@@ -31,6 +31,7 @@ import dev.quinton.goa.web.ui.ChipRow
 import dev.quinton.goa.web.ui.EmptyState
 import dev.quinton.goa.web.ui.GoaButton
 import dev.quinton.goa.web.ui.GoaCard
+import dev.quinton.goa.web.ui.GuestAvatar
 import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconButton
 import dev.quinton.goa.web.ui.IconLink
@@ -38,6 +39,7 @@ import dev.quinton.goa.web.ui.IconSize
 import dev.quinton.goa.web.ui.ListRow
 import dev.quinton.goa.web.ui.Load
 import dev.quinton.goa.web.ui.LoadingState
+import dev.quinton.goa.web.ui.PlayerAvatar
 import dev.quinton.goa.web.ui.RowList
 import dev.quinton.goa.web.ui.Screen
 import dev.quinton.goa.web.ui.SectionHeader

@@ -22,7 +22,6 @@ import dev.quinton.goa.feature.draft.ui.teamLabel
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.nav.Route
 import dev.quinton.goa.web.table.HeroArt
-import dev.quinton.goa.web.table.PlayerAvatar
 import dev.quinton.goa.web.table.TableFooter
 import dev.quinton.goa.web.table.teamClass
 import dev.quinton.goa.web.ui.AlertDialog
@@ -32,6 +31,7 @@ import dev.quinton.goa.web.ui.Chip
 import dev.quinton.goa.web.ui.GoaButton
 import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconSize
+import dev.quinton.goa.web.ui.PlayerAvatar
 import org.jetbrains.compose.web.attributes.ButtonType
 import org.jetbrains.compose.web.attributes.disabled
 import org.jetbrains.compose.web.attributes.type

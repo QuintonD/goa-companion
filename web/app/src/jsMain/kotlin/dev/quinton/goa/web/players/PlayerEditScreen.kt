@@ -8,15 +8,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.core.model.player.PlayerPalette
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.rememberRetained
 import dev.quinton.goa.web.ui.ButtonKind
+import dev.quinton.goa.web.ui.CrestNames
 import dev.quinton.goa.web.ui.EmptyState
 import dev.quinton.goa.web.ui.GoaButton
 import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.LoadingState
+import dev.quinton.goa.web.ui.PlayerAvatar
 import dev.quinton.goa.web.ui.Screen
 import dev.quinton.goa.web.ui.SectionHeader
+import dev.quinton.goa.web.ui.argbCss
 import kotlin.js.Date
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -35,7 +39,7 @@ private class PlayerForm {
     var original by mutableStateOf<Player?>(null)
     var notFound by mutableStateOf(false)
     var name by mutableStateOf("")
-    var color by mutableStateOf(PlayerPalette.all.first().dark)
+    var color by mutableStateOf(PlayerPalette.all.first().argb)
     var avatarId by mutableStateOf(0)
     var nameError by mutableStateOf<String?>(null)
     var saving by mutableStateOf(false)
@@ -64,7 +68,7 @@ fun PlayerEditScreen(playerId: String?) {
             playerId != null -> form.notFound = true
 
             else -> {
-                val (color, crest) = PlayerPalette.suggestion(all)
+                val (color, crest) = PlayerPalette.forNew(all)
                 form.color = color
                 form.avatarId = crest
             }
@@ -135,18 +139,18 @@ fun PlayerEditScreen(playerId: String?) {
                     attr("aria-label", "Colour")
                 }) {
                     PlayerPalette.all.forEach { swatch ->
-                        val selected = swatch.dark == form.color
+                        val selected = swatch.argb == form.color
                         Button({
                             type(ButtonType.Button)
-                            classes("goa-w2-swatch", "goa-w2-pc")
+                            classes("goa-w2-swatch", "goa-pc")
                             attr("role", "radio")
                             attr("aria-checked", selected.toString())
                             attr("aria-label", swatch.name)
                             style {
-                                property("--pc-d", PlayerPalette.css(swatch.dark))
-                                property("--pc-l", PlayerPalette.css(swatch.light))
+                                property("--pc-d", argbCss(swatch.argb))
+                                property("--pc-l", argbCss(swatch.lightArgb))
                             }
-                            onClick { form.color = swatch.dark }
+                            onClick { form.color = swatch.argb }
                         }) { if (selected) Icon("check") }
                     }
                 }
@@ -156,7 +160,7 @@ fun PlayerEditScreen(playerId: String?) {
                     attr("role", "radiogroup")
                     attr("aria-label", "Crest")
                 }) {
-                    PlayerPalette.crestNames.forEachIndexed { id, crestName ->
+                    CrestNames.forEachIndexed { id, crestName ->
                         val selected = id == form.avatarId
                         Button({
                             type(ButtonType.Button)

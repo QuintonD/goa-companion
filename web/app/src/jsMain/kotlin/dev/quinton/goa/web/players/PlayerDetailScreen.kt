@@ -30,6 +30,7 @@ import dev.quinton.goa.web.ui.GoaCard
 import dev.quinton.goa.web.ui.IconLink
 import dev.quinton.goa.web.ui.ListRow
 import dev.quinton.goa.web.ui.LoadingState
+import dev.quinton.goa.web.ui.PlayerAvatar
 import dev.quinton.goa.web.ui.RowList
 import dev.quinton.goa.web.ui.Screen
 import dev.quinton.goa.web.ui.SectionHeader

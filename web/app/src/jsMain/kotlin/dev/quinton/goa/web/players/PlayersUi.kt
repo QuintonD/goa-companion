@@ -3,7 +3,6 @@ package dev.quinton.goa.web.players
 import androidx.compose.runtime.Composable
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
-import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.feature.players.common.DateLabels
 import dev.quinton.goa.feature.players.common.formatDelta
 import dev.quinton.goa.feature.players.common.label
@@ -84,83 +83,6 @@ object WebDateLabels : DateLabels {
         return o
     }
 }
-
-/**
- * The player palette (core/designsystem `PlayerColors`, docs/DESIGN.md): the stored `Player.color`
- * is the dark-theme tone; each swatch has a light-theme tone readable on light surfaces.
- */
-object PlayerPalette {
-    class Swatch(val name: String, val dark: Long, val light: Long)
-
-    val all: List<Swatch> = listOf(
-        Swatch("Tide teal", 0xFF3FC1B0, 0xFF186E62),
-        Swatch("Bronze", 0xFFD9B44A, 0xFF7A5E24),
-        Swatch("Coral", 0xFFEE7F6F, 0xFFB23F2F),
-        Swatch("Sky", 0xFF62A8F2, 0xFF2A62AE),
-        Swatch("Amethyst", 0xFFB892E6, 0xFF6B45A0),
-        Swatch("Kelp", 0xFF6CC27A, 0xFF2A7037),
-        Swatch("Rose", 0xFFEE85B8, 0xFFA83A70),
-        Swatch("Ember", 0xFFEE9A52, 0xFF9A4E0E),
-        Swatch("Pearl", 0xFFC3CCD6, 0xFF56616C),
-        Swatch("Lime", 0xFFAECF55, 0xFF55691A),
-    )
-
-    /** The 24 crests' heraldic names (`PlayerCrests.names`). */
-    val crestNames: List<String> = listOf(
-        "Double chevron", "Lozenge", "Three bezants", "Four-pointed star", "Key", "Crescent",
-        "Sun", "Waves", "Mount", "Cross pattée", "Saltire", "Tower",
-        "Crown", "Anchor", "Leaf", "Hourglass", "Thunderbolt", "Quatrefoil",
-        "Three rings", "Arrowhead", "Hexagon", "Pall", "Chequy", "Frost star",
-    )
-
-    fun find(argb: Long): Swatch? = all.firstOrNull { it.dark == argb || it.light == argb }
-
-    /** A new player's colour and crest, as the phone picks them: the first unused colour, crest by count. */
-    fun suggestion(existing: List<Player>): Pair<Long, Int> {
-        val used = existing.map { it.color }.toSet()
-        val color = (all.firstOrNull { it.dark !in used } ?: all[existing.size.mod(all.size)]).dark
-        return color to existing.size % crestNames.size
-    }
-
-    fun css(argb: Long): String = "#" + (argb and 0xFFFFFF).toString(16).padStart(6, '0')
-}
-
-/** Sets the player's colour tones for CSS (`--pc` picks the theme's one, see goa.css "group (W2)"). */
-private fun org.jetbrains.compose.web.attributes.AttrsScope<*>.playerColor(argb: Long?) {
-    classes("goa-w2-pc")
-    if (argb == null) return
-    val swatch = PlayerPalette.find(argb)
-    style {
-        property("--pc-d", PlayerPalette.css(swatch?.dark ?: argb))
-        property("--pc-l", PlayerPalette.css(swatch?.light ?: argb))
-    }
-}
-
-/** The player's crest in their colour, in a ring (`PlayerAvatar`); a monogram without a crest. */
-@Composable
-fun PlayerAvatar(player: Player?, size: Int = 40) {
-    Span({
-        classes("goa-w2-avatar")
-        playerColor(player?.color)
-        attr("aria-hidden", "true")
-        style {
-            property("width", "${size}px")
-            property("height", "${size}px")
-            property("--crest", "${(size * CREST_SCALE).roundToInt()}px")
-        }
-    }) {
-        val crest = player?.avatarId?.takeIf { it in PlayerPalette.crestNames.indices }
-        if (crest != null) {
-            Icon("crest_" + crest.toString().padStart(2, '0'))
-        } else {
-            Span({ classes("goa-w2-monogram") }) {
-                Text(player?.name?.trim()?.take(1)?.uppercase()?.ifEmpty { "?" } ?: "?")
-            }
-        }
-    }
-}
-
-private const val CREST_SCALE = 0.56
 
 /** Team identity is never colour alone: ◆ Red / ● Blue (docs/DESIGN.md). */
 @Composable

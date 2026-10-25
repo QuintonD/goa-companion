@@ -6,8 +6,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.model.match.Team
-import dev.quinton.goa.core.model.player.Player
-import dev.quinton.goa.core.model.player.PlayerPalette
 import dev.quinton.goa.feature.draft.ui.StepToken
 import dev.quinton.goa.feature.draft.ui.spoken
 import dev.quinton.goa.feature.draft.ui.teamGlyph
@@ -54,45 +52,6 @@ fun TeamBadge(team: Team, showLabel: Boolean = true, extraClass: String? = null)
 
 /** The CSS class that colours text and borders for [team]. */
 fun teamClass(team: Team): String = if (team == Team.RED) "red" else "blue"
-
-/**
- * A player's crest in their palette colour (the colour's dark tone in the dark theme, its light tone
- * in the light one; goa.css picks), or their initial without a crest, as Android's `PlayerAvatar`.
- * Decorative: the name is always next to it.
- */
-@Composable
-fun PlayerAvatar(player: Player?, size: Int = AVATAR) {
-    val swatch = player?.let { PlayerPalette.find(it.color) }
-    Span({
-        classes("goa-table-avatar")
-        attr("aria-hidden", "true")
-        style {
-            property("width", "${size}px")
-            property("height", "${size}px")
-            property("font-size", "${size * AVATAR_TEXT}px")
-            if (player != null) {
-                property("--pc-dark", argbCss(swatch?.argb ?: player.color))
-                property("--pc-light", argbCss(swatch?.lightArgb ?: player.color))
-            }
-        }
-    }) {
-        val crest = player?.avatarId?.takeIf { it in 0 until PlayerPalette.CREST_COUNT }
-        if (crest != null) {
-            Span({
-                classes("goa-table-avatar-crest")
-                style {
-                    property("width", "${size * AVATAR_CREST}px")
-                    property("height", "${size * AVATAR_CREST}px")
-                }
-            }) { Icon("crest_" + crest.toString().padStart(2, '0')) }
-        } else {
-            Text(player?.name?.trim()?.take(1)?.uppercase()?.ifEmpty { "?" } ?: "?")
-        }
-    }
-}
-
-/** `#RRGGBB` for a stored ARGB colour. */
-fun argbCss(argb: Long): String = "#" + (argb and 0xFFFFFF).toString(16).padStart(6, '0')
 
 /**
  * Official hero art in our frame (`official/heroes/<id>/portrait.webp`), lazy-loaded; while it
@@ -424,7 +383,3 @@ private external class ResizeObserver(callback: (dynamic, dynamic) -> Unit) {
 
     fun disconnect()
 }
-
-private const val AVATAR = 40
-private const val AVATAR_TEXT = 0.42
-private const val AVATAR_CREST = 0.56

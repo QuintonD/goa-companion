@@ -10,17 +10,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.data.GroupState
 import dev.quinton.goa.core.model.player.Player
+import dev.quinton.goa.core.model.player.PlayerPalette
 import dev.quinton.goa.feature.sync.me.WhoAreYouText
 import dev.quinton.goa.web.AppServices
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.nav.Route
-import dev.quinton.goa.web.players.PlayerAvatar
-import dev.quinton.goa.web.players.PlayerPalette
 import dev.quinton.goa.web.players.TextField
 import dev.quinton.goa.web.ui.GoaButton
 import dev.quinton.goa.web.ui.GoaCard
 import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.ListRow
+import dev.quinton.goa.web.ui.PlayerAvatar
 import dev.quinton.goa.web.ui.RowList
 import dev.quinton.goa.web.ui.Screen
 import dev.quinton.goa.web.ui.SectionHeader
@@ -102,7 +102,7 @@ fun WhoAreYouScreen() {
                         return@launch
                     }
                     val all = group.players.observePlayers(includeArchived = true).first()
-                    val (color, crest) = PlayerPalette.suggestion(all)
+                    val (color, crest) = PlayerPalette.forNew(all)
                     val player = Player(Uuid.random().toString(), name, color, crest, createdAt = Date.now().toLong())
                     group.players.upsert(player)
                     group.group.setMe(player.id)

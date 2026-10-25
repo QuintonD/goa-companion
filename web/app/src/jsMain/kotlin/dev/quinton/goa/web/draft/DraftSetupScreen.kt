@@ -37,7 +37,6 @@ import dev.quinton.goa.web.AppServices
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.nav.Route
 import dev.quinton.goa.web.table.InfoCard
-import dev.quinton.goa.web.table.PlayerAvatar
 import dev.quinton.goa.web.table.RadioCard
 import dev.quinton.goa.web.table.RadioGroup
 import dev.quinton.goa.web.table.SectionCard
@@ -62,6 +61,7 @@ import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconButton
 import dev.quinton.goa.web.ui.IconLink
 import dev.quinton.goa.web.ui.LoadingState
+import dev.quinton.goa.web.ui.PlayerAvatar
 import dev.quinton.goa.web.ui.Screen
 import dev.quinton.goa.web.ui.Segmented
 import kotlin.js.Date

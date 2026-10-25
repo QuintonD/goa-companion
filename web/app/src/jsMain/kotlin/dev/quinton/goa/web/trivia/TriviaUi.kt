@@ -11,10 +11,10 @@ import dev.quinton.goa.core.data.trivia.TriviaText
 import dev.quinton.goa.core.domain.trivia.MasterySummary
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.player.Player
-import dev.quinton.goa.core.model.player.PlayerPalette
 import dev.quinton.goa.web.LocalServices
-import dev.quinton.goa.web.ui.Icon
-import dev.quinton.goa.web.ui.IconSize
+import dev.quinton.goa.web.ui.AVATAR_SIZE
+import dev.quinton.goa.web.ui.GuestAvatar
+import dev.quinton.goa.web.ui.PlayerAvatar
 import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -78,54 +78,11 @@ internal fun rememberTriviaGroup(): TriviaGroupAccess {
     return remember { TriviaGroupAccess(group.players, group.group, group.triviaRounds) }
 }
 
-/** The tone a stored player colour is drawn with in the current theme (Android's `playerColor`). */
-@Composable
-private fun playerTone(argb: Long): String {
-    val dark = LocalServices.current.theme.isDark
-    val swatch = PlayerPalette.find(argb)
-    val tone = when {
-        swatch == null -> argb
-        dark -> swatch.argb
-        else -> swatch.lightArgb
-    }
-    return "#" + (tone and RGB_MASK).toString(HEX).padStart(RGB_DIGITS, '0')
-}
-
-/** A player's crest in their colour on a tinted disc, or their initial without a crest. */
-@Composable
-internal fun PlayerAvatar(player: Player, small: Boolean = false) {
-    val tone = playerTone(player.color)
-    Span({
-        classes("goa-trivia-avatar")
-        if (small) classes("small")
-        attr("aria-hidden", "true")
-        style { property("--player", tone) }
-    }) {
-        val crest = player.avatarId.takeIf { it in 0 until PlayerPalette.CREST_COUNT }
-        if (crest != null) {
-            Icon("crest_" + crest.toString().padStart(2, '0'))
-        } else {
-            Span({ classes("goa-trivia-initial") }) {
-                Text(player.name.trim().take(1).uppercase().ifEmpty { "?" })
-            }
-        }
-    }
-}
-
-/** A neutral silhouette for Guest: no colour, no crest, nobody in particular. */
-@Composable
-internal fun GuestAvatar(small: Boolean = false) {
-    Span({
-        classes("goa-trivia-avatar", "guest")
-        if (small) classes("small")
-        attr("aria-hidden", "true")
-    }) { Icon("person", IconSize.SMALL) }
-}
-
 /** Whoever is playing: their crest, or the Guest silhouette. */
 @Composable
 internal fun PlayingAvatar(player: Player?, small: Boolean = false) {
-    if (player == null) GuestAvatar(small) else PlayerAvatar(player, small)
+    val size = if (small) SMALL_AVATAR else AVATAR_SIZE
+    if (player == null) GuestAvatar(size) else PlayerAvatar(player, size)
 }
 
 /** Marks this device's own player, as on the Players tab. */
@@ -237,6 +194,5 @@ internal fun HeroLine(card: TriviaCardUi, small: Boolean = false) {
 }
 
 private const val GRACE_MS = 10_000
-private const val RGB_MASK = 0xFFFFFFL
-private const val HEX = 16
-private const val RGB_DIGITS = 6
+
+private const val SMALL_AVATAR = 32

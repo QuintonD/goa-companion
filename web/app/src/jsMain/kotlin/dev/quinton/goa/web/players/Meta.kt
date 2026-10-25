@@ -28,6 +28,7 @@ import dev.quinton.goa.web.ui.GoaButton
 import dev.quinton.goa.web.ui.GoaCard
 import dev.quinton.goa.web.ui.LinearProgress
 import dev.quinton.goa.web.ui.LoadingState
+import dev.quinton.goa.web.ui.PlayerAvatar
 import dev.quinton.goa.web.ui.SectionHeader
 import dev.quinton.goa.web.ui.Segmented
 import kotlin.math.roundToInt

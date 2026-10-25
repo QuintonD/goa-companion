@@ -30,6 +30,7 @@ import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconSize
 import dev.quinton.goa.web.ui.Load
 import dev.quinton.goa.web.ui.LoadingState
+import dev.quinton.goa.web.ui.PlayerAvatar
 import dev.quinton.goa.web.ui.Screen
 import dev.quinton.goa.web.ui.rememberLoad
 import kotlinx.browser.document
@@ -237,7 +238,7 @@ private fun RankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
         onClick { onClick() }
     }) {
         PlaceBadge(row.place, row.tied)
-        PlayerAvatar(row.player)
+        PlayerAvatar(row.player, size = RANK_AVATAR)
         Span({ classes("goa-trivia-rank-body") }) {
             Span({ classes("goa-trivia-pick-title") }) {
                 Span({ classes("goa-trivia-rank-name", "t-title-medium") }) { Text(row.player.name) }
@@ -325,3 +326,6 @@ private fun RoundRow(round: RoundUi, onRemove: () -> Unit) {
 }
 
 private const val PODIUM = 3
+
+/** The leaderboard rows' avatars: a touch larger than a list row's. */
+private const val RANK_AVATAR = 44

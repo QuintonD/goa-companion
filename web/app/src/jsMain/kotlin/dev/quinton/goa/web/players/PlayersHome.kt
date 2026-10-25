@@ -26,6 +26,7 @@ import dev.quinton.goa.web.ui.IconButton
 import dev.quinton.goa.web.ui.IconLink
 import dev.quinton.goa.web.ui.IconSize
 import dev.quinton.goa.web.ui.LoadingState
+import dev.quinton.goa.web.ui.PlayerAvatar
 import dev.quinton.goa.web.ui.RouteLink
 import dev.quinton.goa.web.ui.Screen
 import org.jetbrains.compose.web.attributes.ButtonType
