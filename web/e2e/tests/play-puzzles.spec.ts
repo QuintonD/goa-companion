@@ -1,7 +1,7 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { expectNoHorizontalOverflow, open, watchErrors } from "./helpers";
+import { expectNoHorizontalOverflow, open, waitForServiceWorker, watchErrors } from "./helpers";
 
 // Puzzles (PRODUCT §10) on the web: the list, a puzzle with its goal, nudges and the solution
 // replayed. Review screenshots go to D:\.goa-qa\web\shots-w4 (GOA_SHOTS_DIR overrides).
@@ -82,4 +82,16 @@ test("puzzles: progress is remembered across a reload", async ({ page }) => {
   await expect(page.getByText("Solution seen").first()).toBeVisible({ timeout: 30_000 });
   await page.reload();
   await expect(page.getByText("Solution seen").first()).toBeVisible({ timeout: 30_000 });
+});
+
+test("puzzles: the engine worker starts offline after the first visit", async ({ page, context }) => {
+  await open(page, "#/puzzles");
+  await waitForServiceWorker(page);
+  await expect(page.getByText(/of \d+ solved/i)).toBeVisible({ timeout: 30_000 });
+  await context.setOffline(true);
+  await page.reload();
+  // A fresh page: a new worker reads the catalog and maps through the service worker.
+  await page.goto("./#/puzzles/p02");
+  await expect(page.getByRole("button", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
+  await context.setOffline(false);
 });
