@@ -1318,7 +1318,8 @@ same Kotlin. Where the decisions were the web's own:
    `LevelLadder` (W1), `NewBoard` (Try on the board, W4), with Android's parameters. Player avatars
    here are the initial in the player's palette colour (W2's crests can replace them). On merging
    with W1, `LevelLadder` (`#/levels?heroes=…`) became W1's ladder as a page (`LevelLadderScreen`,
-   the same body as the Rules screen's sheet), and the two `PlayerPalette`s became one
-   (`PlayerPalette.Swatch`, `quickAdd`, `forNew`, `CREST_COUNT`).
+   the same body as the Rules screen's sheet), Settings → Game setup opens the timer presets and
+   draft methods, and the two `PlayerPalette`s became one (`PlayerPalette.Swatch`, `quickAdd`,
+   `forNew`, `CREST_COUNT`).
 **Consequences:** Android behaviour is unchanged (its tests and screenshots pass as before); the web
 can't sound a phase end while the iPhone is locked, which the timer says where it matters.
