@@ -5,6 +5,7 @@ import dev.quinton.goa.core.domain.board.BoardGeometry
 import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.game.CardView
 import dev.quinton.goa.core.game.Choice
+import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GamePhase
@@ -51,6 +52,16 @@ data class TableUi(
     fun hero(id: String): BoardHero = heroes.hero(id)
 
     fun heroView(id: String): HeroView? = view.heroes.firstOrNull { it.heroId == id }
+
+    /**
+     * Who plays [hero], in words: "You" for the person's heroes; a puzzle's other side (seated as
+     * human in the engine, its replies come from the solver) is "The other side", not "You".
+     */
+    fun controllerLabel(hero: HeroView): String = when {
+        hero.heroId in mine -> "You"
+        hero.controller == Controller.Human -> "The other side"
+        else -> PlayText.controller(hero.controller)
+    }
 
     fun card(id: String?): Card? = id?.let(cards::get)
 

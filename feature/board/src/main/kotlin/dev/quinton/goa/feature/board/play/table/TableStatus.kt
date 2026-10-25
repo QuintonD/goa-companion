@@ -211,7 +211,7 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
     val spoken = buildList {
         add(info.name)
         add(BoardText.team(hero.team))
-        add(PlayText.controller(hero.controller))
+        add(table.controllerLabel(hero))
         if (acting) add("acting now")
         place?.let { add("${PlayText.ordinal(it)} in initiative order") }
         (hero.initiative ?: played?.initiative)?.let { add("played initiative $it") }
@@ -363,7 +363,7 @@ internal fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState, m
                     TeamMark(hero.team, markSize = 10.dp)
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        "${BoardText.team(hero.team)} · ${PlayText.controller(hero.controller)}",
+                        "${BoardText.team(hero.team)} · ${table.controllerLabel(hero)}",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
