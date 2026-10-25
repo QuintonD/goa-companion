@@ -5,8 +5,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.web.LocalServices
-import dev.quinton.goa.web.data.WebHero
 import dev.quinton.goa.web.nav.Route
 import dev.quinton.goa.web.ui.BottomSheet
 import dev.quinton.goa.web.ui.ButtonKind
@@ -21,6 +21,7 @@ import dev.quinton.goa.web.ui.RowList
 import dev.quinton.goa.web.ui.Screen
 import dev.quinton.goa.web.ui.SectionHeader
 import dev.quinton.goa.web.ui.rememberLoad
+import kotlinx.coroutines.flow.first
 import org.jetbrains.compose.web.dom.Div
 import org.jetbrains.compose.web.dom.H2
 import org.jetbrains.compose.web.dom.Img
@@ -28,16 +29,16 @@ import org.jetbrains.compose.web.dom.P
 import org.jetbrains.compose.web.dom.Text
 
 /*
- * PLACEHOLDER (catalog stream replaces): the Heroes tab as a plain list read through the
- * CatalogSource seam, so the shell's routing, deep links and offline caching are exercised with
- * the real catalog JSON and images.
+ * PLACEHOLDER (W1 content replaces): the Heroes tab as a plain list of the catalog, read through
+ * the shared CatalogRepository (core:model types, the phone's strict loader), so the shell's
+ * routing, deep links and offline caching are exercised with the real catalog JSON and images.
  */
 
 /** Heroes tab: the top bar has the Android app's actions (Rules, Board, Card trivia, Settings). */
 @Composable
 fun CatalogScreen() {
     val services = LocalServices.current
-    val heroes = rememberLoad(Unit) { services.catalog.heroes() }
+    val heroes = rememberLoad(Unit) { services.data.content.catalog.catalog.first().heroes }
     var more by remember { mutableStateOf(false) }
     Screen("Heroes", actions = { CatalogActions(onMore = { more = true }) }) {
         LoadContent(heroes, "Couldn't load the heroes") { list ->
@@ -80,7 +81,7 @@ private fun CatalogActions(onMore: () -> Unit) {
 }
 
 @Composable
-private fun HeroSymbol(hero: WebHero) {
+private fun HeroSymbol(hero: Hero) {
     val symbol = hero.symbol
     if (symbol != null) {
         Img(symbol, alt = "") {
@@ -97,7 +98,7 @@ private fun HeroSymbol(hero: WebHero) {
 @Composable
 fun HeroDetailScreen(heroId: String) {
     val services = LocalServices.current
-    val hero = rememberLoad(heroId) { services.catalog.hero(heroId) }
+    val hero = rememberLoad(heroId) { services.data.content.catalog.catalog.first().hero(heroId) }
     Screen("Hero") {
         LoadContent(hero, "Couldn't load this hero") { found ->
             if (found == null) {
@@ -109,7 +110,7 @@ fun HeroDetailScreen(heroId: String) {
             } else {
                 found.portrait?.let { Img(it, alt = "${found.name} portrait") { classes("goa-hero-portrait") } }
                 H2({ classes("t-headline-small") }) { Text(found.name) }
-                found.title?.let { P({ classes("t-body-large", "c-variant") }) { Text(it) } }
+                P({ classes("t-body-large", "c-variant") }) { Text(found.title) }
                 EmptyState("nav_heroes", "Coming to the web app", "Stats, abilities and the deck as card scans.")
             }
         }

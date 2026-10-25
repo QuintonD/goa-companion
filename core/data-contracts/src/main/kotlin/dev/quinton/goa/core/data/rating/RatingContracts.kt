@@ -5,6 +5,7 @@ import dev.quinton.goa.core.domain.meta.HeroPilots
 import dev.quinton.goa.core.domain.meta.MetaReport
 import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.domain.rating.RatingsResult
+import dev.quinton.goa.core.domain.sync.StampedEloConfig
 import kotlinx.coroutines.flow.Flow
 
 /** Everything derived from the match log in one consistent snapshot. */
@@ -44,4 +45,15 @@ interface EloConfigRepository {
     suspend fun update(transform: (EloConfig) -> EloConfig)
 
     suspend fun reset()
+}
+
+/**
+ * The group's rating constants with their change time (ADR-025): ratings must match on every
+ * phone, so the constants travel with group sync and the later change wins.
+ */
+interface StampedEloConfigStore {
+    suspend fun stamped(): StampedEloConfig
+
+    /** Stores constants received from the group, keeping their change time (no new stamp). */
+    suspend fun applySynced(config: StampedEloConfig)
 }

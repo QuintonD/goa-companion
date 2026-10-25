@@ -3,6 +3,8 @@ package dev.quinton.goa.core.data.game
 import dev.quinton.goa.core.game.SavedGame
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
 
 /** How long each computer action stays on screen before the next one (PRODUCT §9 "Pacing"). */
 @Serializable
@@ -42,4 +44,25 @@ sealed interface StoredGame {
 
     /** Corrupt, or written by a build this one can't read. Never a crash: the app offers to delete it. */
     data object Unreadable : StoredGame
+}
+
+/**
+ * The stored game in progress (the phone's DataStore, the web app's IndexedDB). Lenient, so a newer
+ * build's extra fields don't lose the game; a document that can't be read is [StoredGame.Unreadable].
+ */
+object GameJson {
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
+
+    fun encode(game: GameInProgress): String = json.encodeToString(GameInProgress.serializer(), game)
+
+    fun decode(stored: String): StoredGame = try {
+        StoredGame.Saved(json.decodeFromString(GameInProgress.serializer(), stored))
+    } catch (_: SerializationException) {
+        StoredGame.Unreadable
+    } catch (_: IllegalArgumentException) {
+        StoredGame.Unreadable
+    }
 }

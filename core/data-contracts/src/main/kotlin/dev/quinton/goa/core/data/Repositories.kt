@@ -211,7 +211,8 @@ fun interface EditClock {
     fun now(): Long
 
     companion object {
-        val System = EditClock { java.lang.System.currentTimeMillis() }
+        /** The device's clock: `System.currentTimeMillis()` on the phone, `Date.now()` in the browser. */
+        val System = EditClock { epochMillis() }
     }
 }
 

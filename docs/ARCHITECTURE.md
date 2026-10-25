@@ -23,9 +23,9 @@ Older Now-in-Android code breaks under AGP 9 as-is. Don't apply `org.jetbrains.k
 (Kotlin is built in); configure via `kotlin { compilerOptions {} }`. `CommonExtension` has no
 type parameters and `BaseExtension` casts throw; use `androidComponents { onVariants {} }`.
 `resValues` is off by default. R8 keep rules are stricter (`-keep class A` no longer keeps
-constructors). The shared core (`core:model`, `core:domain`, `core:game`) is Kotlin
-Multiplatform (`goa.kmp.library`, jvm + js, ADR-043); the Android modules consume its `jvm`
-variant like any JVM library. `tools:catalog-import` stays `kotlin("jvm")`.
+constructors). The shared core (`core:model`, `core:domain`, `core:game`, `core:data-contracts`,
+`core:data-testing`) is Kotlin Multiplatform (`goa.kmp.library`, jvm + js, ADR-043); the Android
+modules consume its `jvm` variant like any JVM library. `tools:catalog-import` stays `kotlin("jvm")`.
 
 ### Shared core: jvm + js (ADR-043)
 The web app runs the same rules as the phone, compiled to JavaScript. To let the branches that edit
@@ -52,6 +52,20 @@ or `HashSet` where order matters (JVM and JS order them differently); `mutableMa
 keep insertion order on both. How the web consumes the core: `D:\.goa-qa\web\F1-api.md` (stream
 notes) and ADR-043.
 
+**Data contracts (`core:data-contracts`, ADR-043 F3).** The repository interfaces every screen reads
+through (`Repositories.kt`, `SyncServerContracts.kt`, `rating/RatingContracts.kt`), their pure types
+(`GroupState`, `ServerSyncState`, `SyncedPhone`, `EditClock`, `GameInProgress`/`StoredGame`,
+`PuzzleProgress`, `RatingsSnapshot`, `SyncServerError`, …) and the implementations that are pure
+logic over other contracts: `ReplayRatingsRepository` (ratings, meta and group stats replayed from
+the match log), `PlayerNames` and `PlayerMergeRules` (unique names, when two players may merge), and
+the stored formats `EloConfigJson`, `TriviaJson`, `GameJson`, `PuzzleProgressJson`. Package
+`dev.quinton.goa.core.data`, as before the move, so no Android import changed; `core:data` re-exports
+it (`api`) and implements the rest over Room/DataStore/OkHttp, binding the moved classes with
+`@Provides` (no `javax.inject` in shared code). The web app implements the same interfaces over
+IndexedDB (`web/app/.../data/WebServices.kt`). `core:data-testing` holds the in-memory fakes and
+`TestCatalog` (package `dev.quinton.goa.core.testing`), re-exported by `core:testing`, so the phone's
+and the web's tests use the same fakes.
+
 ## Modules
 ```
 app/                     # Application, MainActivity, Navigation 3 back stack + entry provider, DI root,
@@ -68,6 +82,10 @@ core/game/               # KMP jvm+js: the rules engine (ADR-035): GameApi.kt co
                          #   flow, board/combat/minion rules, views, determinize), effects/ (hooks for card
                          #   scripts), heroes/ (one module per hero), position/ (PositionBuilder); see
                          #   core/game/ENGINE.md, EFFECTS.md, RULINGS.md
+core/data-contracts/     # KMP jvm+js (ADR-043 F3): the repository interfaces + their pure types and logic
+                         #   (ReplayRatingsRepository, PlayerNames, PlayerMergeRules, stored-format codecs);
+                         #   package dev.quinton.goa.core.data; implemented by core:data and by web/app
+core/data-testing/       # KMP jvm+js: in-memory fakes of the contracts + TestCatalog (re-exported by core:testing)
 core/data/               # repositories; catalog and board-map loaders; JSON/Room <-> model; export/import;
                          #   game/ (ADR-035): the game in progress (DataStoreGameSaveRepository) and
                          #   PlayEngineModule, the one place GameFactory, the AI per level, the Coach and the
@@ -80,7 +98,7 @@ core/datastore/          # settings, persisted timer state, trivia progress, boa
 core/designsystem/       # theme, tokens, components, icons, sigils; cardtext/ (CardTextView, GameIcons:
                          #   card text with inline game icons, shared by the catalog and the board);
                          #   component/OfficialArt (deck symbols, card scans, parchment, board symbols)
-core/testing/            # fakes, fixtures, test rules
+core/testing/            # Android test helpers (BundledAssets for screenshots) + core:data-testing's fakes
 core/navigation/         # Navigation 3 keys for every screen + Navigator (ADR-010), NavSheet metadata
 feature/catalog/
 feature/timer/           # timer UI, TimerScheduler (alarms), notification, receivers
@@ -113,7 +131,8 @@ tools/catalog-import/    # JVM CLI (reuses core:model): sources.lock.json, overr
                          #   --maps-only: board maps (catalog/maps) + overlay check images in cache/maps
 web/app/                 # Kotlin/JS + Compose HTML PWA (ADR-043): nav/ (hash Router), ui/ (design system,
                          #   goa.css), storage/ (KeyValueStore on IndexedDB), pwa/ (service worker client,
-                         #   offline download), data/ (CatalogSource seam), screens/; resources/ (index.html,
+                         #   offline download), data/ (WebServices: the contracts per stream, stubs in
+                         #   data/stub/; WebCatalogRepository), screens/; resources/ (index.html,
                          #   goa.css, sw.js, manifest, icons). Catalog, images, fonts copied in at build time
 web/e2e/                 # Playwright tests of the built site (WebKit iPhone 15, Chromium Pixel 7), serve.mjs
 server/relay/            # NOT in the root build: standalone Gradle build (own wrapper + pinned catalog), the Ktor
@@ -298,8 +317,16 @@ Kotlin (once they target JS, F1) under a DOM UI in Compose HTML; rules never liv
 - **Shell.** `Main.kt` renders `App()`: the current route's screen (`screens/Screens.kt`, one
   composition per history entry), the bottom `TabBar` (Heroes, Timer, Draft, Players, as on
   Android; hidden for full-screen table tools via `Route.showsTabBar`) and snackbars, including the
-  service worker's "new version — Reload". `AppServices` (router, catalog, store, theme, messages,
+  service worker's "new version — Reload". `AppServices` (router, store, data, theme, messages,
   service worker, offline) is handed down as `LocalServices`, the web's stand-in for Hilt.
+- **Data.** `AppServices.data` is `WebServices`: the web's implementations of `core:data-contracts`,
+  one holder per stream in its own file (`ContentData` W1: catalog, settings, trivia progress, rules
+  reference; `GroupData` W2: players, matches, drafts, trivia rounds, Elo constants, ratings, group,
+  sync; `TableData` W3: draft and timer; `PlayData` W4: maps, boards, game save, puzzle progress,
+  the engine worker). Screens read `services.data.group.matches`, never storage directly. The
+  catalog is `WebCatalogRepository`: the bundled JSON fetched (heroes in parallel) and parsed by the
+  phone's strict `CatalogFiles.load`. Contracts a stream hasn't built yet are stubs that throw
+  `NotImplementedError("Wn: …")` when used.
 - **Navigation.** `nav/Route.kt` lists every screen with its hash (`#/heroes/arien`), tab and parent;
   `Router` keeps History API entries (Back/Forward and swipe-back work like a website, the top bar's
   Back is Up), each tab's last screen, scroll per entry and per screen, and `rememberRetained` state.
@@ -321,6 +348,7 @@ Kotlin (once they target JS, F1) under a DOM UI in Compose HTML; rules never liv
 | core:game | Rule tests by rulebook page (setup, turn, movement, combat, minions, end of round, card rules), one test class per hero following each card clause by clause, session tests (save/restore mid-card, fork, undo, determinize), property tests over 1 200 random games, a games-per-second benchmark (core/game/ENGINE.md "Tests") |
 | core:domain | Unit + property tests (Elo maths, draft legality for every method/player count, timer with fake clock) |
 | Shared core on JVM and JS (ADR-043) | `commonTest`, run by `allTests` on the JVM and on Node: `DomainParityTest` / `GameParityTest` hash a transcript of each engine's output (Elo + meta + group stats on a seeded log, every bundled draft method, seeded trivia, merges of random phones, the timer, the shipped catalog decoded strictly, a seeded random game, a seeded AI game, one puzzle per difficulty solved, every answer key loading and fitting its position) and must match the hash the JVM produced; `SyncVectorsTest` (FIPS/RFC vectors, the relay token vectors, the phones' JSON), `SyncCodecParityTest` (envelope, errors, invites, server addresses). JVM only: `SharedSyncJvmTest` (shared hashes vs javax.crypto, `FormUrl` vs java.net, `UriHost` vs `java.net.URI` on a fuzz corpus, `SyncCipherConformance` on `JvmSyncCipher`, the old code's file bytes), `PortableMathTest` (bit for bit `StrictMath.exp`) |
+| core:data-contracts | `commonTest` on the JVM and Node: `ReplayRatingsRepositoryTest` (recompute on log/config change, unknown heroes, one consistent snapshot, shared between collectors) with `core:data-testing`'s fakes |
 | core:data | Catalog validation (schema, unique IDs, asset paths exist, every hero has a full deck), export/import round-trip |
 | core:database | Room in-memory tests; migration tests for every schema bump (v1 → v2: `matches.tie_breaker`; v2 → v3: `updated_at` backfill, `deletions`, `player_merges`; v3 → v4: `trivia_rounds`) |
 | Group sync | `core:domain`: merge properties (commutative, associative, idempotent, convergence, identical ratings), examples (ties, tombstones, merge chains and cycles, unknown heroes), crypto/codec (RFC 5869 vector, tamper, other group), protocol over the in-memory transport (host + 3, drops mid-upload and mid-download, wrong key, relay, Nearby unavailable). `core:data`: real Room phones syncing (game night, deletions, duplicates, trivia rounds), stamping, backup v5; the sync server client against a fake relay on MockWebServer (every branch and status, `SyncServerRepositoryTest`) and its `group_sync` state. `core:domain`: the token's fixed vector. `feature:sync`: VM tests, screenshots, `SyncServerSchedulerTest` on WorkManager's test driver. Real Nearby: two physical phones only |
@@ -329,7 +357,7 @@ Kotlin (once they target JS, F1) under a DOM UI in Compose HTML; rules never liv
 | Play UI | `feature:board` test sources only: `FakeGameSession`, a scripted 2v2 on Forgotten Island that asks every `DecisionKind` (never shipped); `GameViewModelTest` (answers, AI pacing on a test dispatcher, take back, Coach nudge shown/skipped, the Coach's look ahead used at once and cancelled on take back and Coach off, save/restore, corrupt and incompatible saves, game over, rematch), `NewGameViewModelTest`; `PlayScreenshotTest` (the table in every decision kind, New game, game over) |
 | UI | Roborazzi (`recordRoborazziDebug` / `verifyRoborazziDebug`), light/dark × font scale 1.0/2.0 |
 | End to end | `app/src/androidTest` (`connectedDebugAndroidTest`): real Hilt graph and bundled catalog, a scripted game night (`GameNight`: House draft → setup → timer round → "Who won?" → rating changes → ratings/meta), a rematch night (`RematchTimerFlowTest`: logged match → Rematch "Same seats" → setup → timer with the rules sheet, rules screen and a notification tap back to the Timer tab → second result), catalog, players, double pilot, settings, card trivia and the trivia Challenge → leaderboard (`TriviaChallengeFlowTest`), the board sandbox (`BoardFlowTest`: House draft → Try on the board → move a hero to the space named 1 space from it → Boards), and ATF accessibility checks on every main screen. Runs through the AndroidX Test Orchestrator with `clearPackageData`, so each test starts from a fresh install |
-| Web app | `:web:app:jsTest` (Node/Mocha): routes, router (Up vs Back, tabs, scroll, retained state), the IndexedDB store on `fake-indexeddb`, offline planning, the Markdown reader. `web/e2e` (Playwright, WebKit "iPhone 15" + Chromium "Pixel 7") against the built site under `/goa-companion/`: every destination without console errors or sideways scrolling, tabs, deep link across reload, Back/Forward, scroll restoration, theme, sheets, offline reload, the full offline download, the update prompt; review screenshots in `D:\.goa-qa\web\shots` |
+| Web app | `:web:app:jsTest` (Node/Mocha): routes, router (Up vs Back, tabs, scroll, retained state), the IndexedDB store on `fake-indexeddb`, offline planning, the Markdown reader, the catalog read from the shipped files exactly as the phone reads it (`WebCatalogRepositoryTest`: same strict result, offline then Try again, one fetch, an unknown key fails), stubs that never break start-up and name their stream (`WebServicesTest`). `web/e2e` (Playwright, WebKit "iPhone 15" + Chromium "Pixel 7") against the built site under `/goa-companion/`: every destination without console errors or sideways scrolling, tabs, deep link across reload, Back/Forward, scroll restoration, theme, sheets, offline reload, the full offline download, the update prompt; review screenshots in `D:\.goa-qa\web\shots` |
 | Device | Manual smoke checklist on S25 Ultra per milestone (timer: lock screen, Doze, reboot); the web app on an iPhone (Safari tab and Home Screen) |
 
 ## Data files

@@ -15,8 +15,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
 
 /**
  * The game in progress in `datastore/games` (ADR-035), one JSON document. Reading never fails: a
@@ -42,24 +40,6 @@ internal class DataStoreGameSaveRepository internal constructor(
     }
 
     override suspend fun clear() = store.clear()
-}
-
-/** The stored document. Lenient, so a newer build's extra fields don't lose the game. */
-internal object GameJson {
-    private val json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-    }
-
-    fun encode(game: GameInProgress): String = json.encodeToString(GameInProgress.serializer(), game)
-
-    fun decode(stored: String): StoredGame = try {
-        StoredGame.Saved(json.decodeFromString(GameInProgress.serializer(), stored))
-    } catch (_: SerializationException) {
-        StoredGame.Unreadable
-    } catch (_: IllegalArgumentException) {
-        StoredGame.Unreadable
-    }
 }
 
 /** Saved games against the computer (ADR-035; owner: board). */

@@ -1,7 +1,6 @@
 package dev.quinton.goa.core.data.rating
 
 import app.cash.turbine.test
-import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.model.catalog.Catalog
@@ -18,6 +17,12 @@ import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
 import dev.quinton.goa.core.testing.TestCatalog
+import kotlin.math.abs
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -27,11 +32,14 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
-import org.junit.Test
 
 private const val LAG_MS = 100L
 
+/** Shared code: runs on the JVM and on Node (the web app replays the log with this same class). */
 class ReplayRatingsRepositoryTest {
+    private fun assertNear(expected: Double, actual: Double) =
+        assertTrue(abs(expected - actual) < 1e-9, "expected $expected, was $actual")
+
     private fun match(id: String, playedAt: Long, winner: Team = Team.RED) = Match(
         id = id,
         createdAt = playedAt,
@@ -61,11 +69,11 @@ class ReplayRatingsRepositoryTest {
         val matches = FakeMatchRepository()
         val repo = repository(matches)
         repo.observePlayerRatings().test {
-            assertThat(awaitItem()).isEmpty()
+            assertTrue(awaitItem().isEmpty())
             matches.upsert(match("m1", 1))
-            assertThat(awaitItem().getValue("ann").value).isWithin(1e-9).of(1220.0)
+            assertNear(1220.0, awaitItem().getValue("ann").value)
             matches.delete("m1")
-            assertThat(awaitItem()).isEmpty()
+            assertTrue(awaitItem().isEmpty())
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -94,9 +102,9 @@ class ReplayRatingsRepositoryTest {
             catalog = catalog,
         )
         val snapshot = repo.observeSnapshot().first()
-        assertThat(snapshot.ratings.heroes.keys).containsExactly("h1", "h2")
-        assertThat(snapshot.ratings.players.keys).containsExactly("ann", "bob", "cid")
-        assertThat(snapshot.meta.usage().keys).doesNotContain("h-new")
+        assertEquals(setOf("h1", "h2"), snapshot.ratings.heroes.keys)
+        assertEquals(setOf("ann", "bob", "cid"), snapshot.ratings.players.keys)
+        assertFalse("h-new" in snapshot.meta.usage().keys)
     }
 
     @Test
@@ -105,11 +113,11 @@ class ReplayRatingsRepositoryTest {
         val config = FakeEloConfigRepository()
         val repo = repository(matches, config = config)
         repo.observeSnapshot().test {
-            assertThat(awaitItem().ratings.player("ann").value).isWithin(1e-9).of(1220.0)
+            assertNear(1220.0, awaitItem().ratings.player("ann").value)
             config.update { it.copy(kProvisional = 10.0) }
             val next = awaitItem()
-            assertThat(next.config.kProvisional).isEqualTo(10.0)
-            assertThat(next.ratings.player("ann").value).isWithin(1e-9).of(1205.0)
+            assertEquals(10.0, next.config.kProvisional)
+            assertNear(1205.0, next.ratings.player("ann").value)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -131,12 +139,12 @@ class ReplayRatingsRepositoryTest {
             ),
         )
         val repo = repository(matches, drafts)
-        assertThat(repo.observePlayerHistory("ann").first().map { it.matchId }).containsExactly("m1", "m2").inOrder()
-        assertThat(repo.observeHeroHistory("h2").first()).hasSize(2)
+        assertEquals(listOf("m1", "m2"), repo.observePlayerHistory("ann").first().map { it.matchId })
+        assertEquals(2, repo.observeHeroHistory("h2").first().size)
         val usage = repo.observeHeroUsage().first()
-        assertThat(usage.getValue("h1").matches).isEqualTo(2)
-        assertThat(usage.getValue("h9").banRate).isEqualTo(1.0)
-        assertThat(repo.observeHeroRatings().first().keys).containsExactly("h1", "h2")
+        assertEquals(2, usage.getValue("h1").matches)
+        assertEquals(1.0, usage.getValue("h9").banRate)
+        assertEquals(setOf("h1", "h2"), repo.observeHeroRatings().first().keys)
     }
 
     @Test
@@ -146,17 +154,17 @@ class ReplayRatingsRepositoryTest {
         val repo = repository(matches)
         repo.observeSnapshot().test {
             val first = awaitItem()
-            assertThat(first.ratings.replayOrder).hasSize(1)
-            assertThat(first.meta.totalMatches).isEqualTo(1)
+            assertEquals(1, first.ratings.replayOrder.size)
+            assertEquals(1, first.meta.totalMatches)
             matches.upsert(match("m2", 2))
             matches.upsert(match("m3", 3, Team.BLUE))
             val seen = mutableListOf(first)
             while (seen.last().ratings.replayOrder.size < 3 || seen.last().meta.totalMatches < 3) seen += awaitItem()
             // Never N+1-match ratings next to N-match meta (or the other way round).
-            seen.forEach { assertThat(it.meta.totalMatches).isEqualTo(it.ratings.replayOrder.size) }
+            seen.forEach { assertEquals(it.ratings.replayOrder.size, it.meta.totalMatches) }
             cancelAndIgnoreRemainingEvents()
         }
-        assertThat(matches.readers).isEqualTo(1)
+        assertEquals(1, matches.readers)
     }
 
     /** Each new collector sees updates [LAG_MS] later than the previous one. */
@@ -175,10 +183,10 @@ class ReplayRatingsRepositoryTest {
         val matches = FakeMatchRepository((1L..3L).map { match("m$it", it) })
         val repo = repository(matches)
         val pilots = repo.observeHeroPilots("h1").first()
-        assertThat(pilots).isEqualTo(repo.observeSnapshot().first().meta.pilots("h1"))
-        assertThat(pilots.best.single().playerId).isEqualTo("ann")
-        assertThat(pilots.best.single().record.games).isEqualTo(3)
-        assertThat(repo.observeHeroPilots("nobody").first().all).isEmpty()
+        assertEquals(repo.observeSnapshot().first().meta.pilots("h1"), pilots)
+        assertEquals("ann", pilots.best.single().playerId)
+        assertEquals(3, pilots.best.single().record.games)
+        assertTrue(repo.observeHeroPilots("nobody").first().all.isEmpty())
     }
 
     @Test
@@ -190,6 +198,6 @@ class ReplayRatingsRepositoryTest {
             )
         val a = repo.observeSnapshot().first()
         val b = repo.observeSnapshot().first()
-        assertThat(a).isSameInstanceAs(b)
+        assertSame(a, b)
     }
 }
