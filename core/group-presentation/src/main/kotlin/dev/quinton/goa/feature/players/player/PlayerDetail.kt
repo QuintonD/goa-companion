@@ -150,7 +150,11 @@ object PlayerDetail {
     }
 
     /** "Merge into…" refused: one line per match the two played in (date and teams), oldest first. */
-    fun playedTogether(matches: List<Match>, people: Map<String, Player>, labels: DateLabels): MergeOutcome.PlayedTogether =
+    fun playedTogether(
+        matches: List<Match>,
+        people: Map<String, Player>,
+        labels: DateLabels,
+    ): MergeOutcome.PlayedTogether =
         MergeOutcome.PlayedTogether(
             matches.sortedBy { it.playedAt }.map { m ->
                 fun side(team: Team) = m.team(team).map { people[it.playerId]?.name ?: "Unknown player" }

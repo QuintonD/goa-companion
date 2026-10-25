@@ -77,6 +77,13 @@ data class MatchEditUiState(
     fun heroOption(id: String?): HeroOption? = id?.let { heroId -> heroes.firstOrNull { it.id == heroId } }
 }
 
+/** Filters heroes by name or title, case-insensitive (the hero picker's search). */
+fun List<HeroOption>.search(query: String): List<HeroOption> {
+    val q = query.trim()
+    if (q.isEmpty()) return this
+    return filter { it.name.contains(q, ignoreCase = true) || it.title.contains(q, ignoreCase = true) }
+}
+
 /** The match editor's rules, shared by the phone and the web app (ADR-043). */
 object MatchEditing {
     const val MAX_TEXT = 60
@@ -118,7 +125,9 @@ object MatchEditing {
     fun winner(form: MatchForm, team: Team): MatchForm = form.copy(winner = team, status = MatchStatus.COMPLETED)
 
     /** Moves every seat to the other team (and flips the winner) — for "we logged the colours backwards". */
-    fun swapTeams(form: MatchForm): MatchForm = form.copy(red = form.blue, blue = form.red, winner = form.winner?.opponent)
+    fun swapTeams(
+        form: MatchForm,
+    ): MatchForm = form.copy(red = form.blue, blue = form.red, winner = form.winner?.opponent)
 
     /**
      * A new result (new match, pending → completed, or the "Who won?" flow) shows what it changed;
@@ -156,5 +165,4 @@ object MatchEditing {
             rematchOptions = rematchOptions(match),
         )
     }
-
 }
