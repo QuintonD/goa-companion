@@ -66,8 +66,58 @@ sealed interface Route {
         override val showsTabBar get() = false
     }
 
+    /**
+     * Choosing a new board's line-up and map; [red]/[blue] pre-fill the teams (hero ids in pick order),
+     * e.g. from a draft or a match (Android's NewBoardRoute).
+     */
+    data class NewBoard(
+        val red: List<String> = emptyList(),
+        val blue: List<String> = emptyList(),
+        val mapId: String? = null,
+    ) : Route {
+        override val path get() = "boards/new" +
+            Routes.query("red" to red.joinToString(","), "blue" to blue.joinToString(","), "map" to mapId)
+        override val tab get() = Tab.HEROES
+        override val parent get() = Boards
+    }
+
+    /**
+     * Opens the board of a line-up in one tap ("Try on the board", "Open on the board"): creates it at
+     * the opening on [mapId] (null = the default map for that many heroes), or reopens an untouched
+     * board of the same line-up and map, then stands in for that board (Android's BoardRoute with no id).
+     * [matchId]: the line-up is that logged match's (in its draft's pick order when it came from one).
+     */
+    data class OpenBoard(
+        val red: List<String> = emptyList(),
+        val blue: List<String> = emptyList(),
+        val mapId: String? = null,
+        val name: String? = null,
+        val matchId: String? = null,
+    ) : Route {
+        override val path get() = "boards/open" + Routes.query(
+            "red" to red.joinToString(","),
+            "blue" to blue.joinToString(","),
+            "map" to mapId,
+            "name" to name,
+            "match" to matchId,
+        )
+        override val tab get() = Tab.HEROES
+        override val parent get() = Boards
+        override val showsTabBar get() = false
+    }
+
+    /** The game against the computer in progress (this browser's): the table, then the game-over summary. */
     data object Play : Route {
         override val path = "play"
+        override val tab get() = Tab.HEROES
+        override val parent get() = Boards
+        override val showsTabBar get() = false
+    }
+
+    /** Setting up a game against the computer; [red]/[blue] pre-fill the teams (e.g. after a game). */
+    data class NewGame(val red: List<String> = emptyList(), val blue: List<String> = emptyList()) : Route {
+        override val path get() = "play/new" +
+            Routes.query("red" to red.joinToString(","), "blue" to blue.joinToString(","))
         override val tab get() = Tab.HEROES
         override val parent get() = Boards
     }
@@ -176,8 +226,8 @@ object Routes {
         return when (parts.first()) {
             "heroes" -> heroes(parts, raw)
             "trivia" -> if (parts.size == 1) Route.Trivia(query["hero"]?.takeIf { it.isNotEmpty() }) else null
-            "boards" -> oneOrTwo(parts, Route.Boards) { Route.Board(it) }
-            "play" -> Route.Play.takeIf { parts.size == 1 }
+            "boards" -> boards(parts, query)
+            "play" -> play(parts, query)
             "puzzles" -> oneOrTwo(parts, Route.Puzzles) { Route.Puzzle(it) }
             "rules" -> oneOrTwo(parts, Route.Rules) { Route.RulesTopic(it) }
             "settings" -> settings(parts)
@@ -199,6 +249,50 @@ object Routes {
         parts.size == 2 -> Route.HeroDetail(parts[1])
         parts.size == 4 && parts[2] == "cards" -> Route.CardViewer(parts[1], parts[3])
         else -> Route.NotFound(raw)
+    }
+
+    private fun boards(parts: List<String>, query: Map<String, String>): Route? = when {
+        parts.size == 1 -> Route.Boards
+
+        parts.size == 2 && parts[1] == "new" -> Route.NewBoard(
+            ids(query["red"]),
+            ids(query["blue"]),
+            query["map"].orNull(),
+        )
+
+        parts.size == 2 && parts[1] == "open" -> Route.OpenBoard(
+            ids(query["red"]),
+            ids(query["blue"]),
+            query["map"].orNull(),
+            query["name"].orNull(),
+            query["match"].orNull(),
+        )
+
+        parts.size == 2 -> Route.Board(parts[1])
+
+        else -> null
+    }
+
+    private fun play(parts: List<String>, query: Map<String, String>): Route? = when {
+        parts.size == 1 -> Route.Play
+        parts.size == 2 && parts[1] == "new" -> Route.NewGame(ids(query["red"]), ids(query["blue"]))
+        else -> null
+    }
+
+    /** Hero ids in a query value, comma-separated ("arien,brogan"). */
+    private fun ids(value: String?): List<String> = value.orEmpty().split(',').filter { it.isNotEmpty() }
+
+    private fun String?.orNull(): String? = this?.takeIf { it.isNotEmpty() }
+
+    /** A query string ("?red=a,b&map=x") of the pairs with a value; empty when none has one. */
+    fun query(vararg pairs: Pair<String, String?>): String {
+        val kept = pairs.filter { !it.second.isNullOrEmpty() }
+        return if (kept.isEmpty()) {
+            ""
+        } else {
+            "?" +
+                kept.joinToString("&") { (k, v) -> "$k=${encode(v!!).replace("%2C", ",")}" }
+        }
     }
 
     private fun settings(parts: List<String>): Route? = when {

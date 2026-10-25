@@ -134,6 +134,7 @@ fun GoaButton(
  * A screen: the steel-banner top bar (title in engraved Cinzel caps, Back when there is somewhere to
  * go Up to, [actions] on the right) over the content. Sets the document title.
  * [flush]: content spans the full width without screen padding (maps, the table).
+ * [fill]: the screen is the window's height and never scrolls (the board, the game table, a puzzle).
  */
 @Composable
 fun Screen(
@@ -141,11 +142,16 @@ fun Screen(
     actions: @Composable () -> Unit = {},
     flush: Boolean = false,
     showBack: Boolean? = null,
+    fill: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val router = LocalServices.current.router
     SideEffect { document.title = "$title · Atlantis Companion" }
-    Div({ classes("goa-screen") }) {
+    Div({
+        classes("goa-screen")
+        // A board: exactly the window's height (compact title bar), the content lays itself out.
+        if (fill) classes("fill")
+    }) {
         Header({ classes("goa-topbar") }) {
             Div({ classes("goa-topbar-row") }) {
                 if (showBack ?: router.canGoBack) {
