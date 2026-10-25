@@ -53,7 +53,15 @@ class SettingsDataSourceTest {
             assertThat(last.puzzleNudges).isTrue()
             ds.update { it.copy(puzzleNudges = false) }
             assertThat(awaitItem().puzzleNudges).isFalse()
+            ds.update { it.copy(computerStrength = 8) }
+            assertThat(awaitItem().computerStrength).isEqualTo(8)
         }
+    }
+
+    @Test fun outOfRangeComputerStrengthFallsBackToDefault() = runTest {
+        val store = source()
+        store.edit { it[SettingsDataSource.Keys.COMPUTER_STRENGTH] = 42 }
+        assertThat(SettingsDataSource(store).settings.first().computerStrength).isEqualTo(5)
     }
 
     @Test fun unknownThemeFallsBackToDefault() = runTest {

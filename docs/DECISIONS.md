@@ -943,8 +943,9 @@ evaluation's weights were set by hand.
   `PlayEngineModule`'s factory takes the strength (seeded per strength).
 - **UI:** New game's level switch becomes a Material 3 slider with a tick per step, the value and band
   above it ("7 · Hard"), Gentler / Stronger under the ends and the band's note under it (1 and 10 have
-  their own); TalkBack reads "Computer strength, Strength 7 of 10, Hard". Default 5 (the screen did
-  not remember the level between games, so it doesn't remember the strength either). Advanced: one
+  their own); TalkBack reads "Computer strength, Strength 7 of 10, Hard". Default 5; after that a
+  new game starts at the strength of the last game started (`AppSettings.computerStrength`, a device
+  setting; a form restored after process death keeps its own). Advanced: one
   slider per computer seat. The strength shows wherever the level did ("Computer · Hard 8").
 - **Evaluation:** the score is a sum of named terms with scales. Fitted to self-play outcomes
   (logistic regression, `FitTest`), a hero's static exposure said almost nothing about who wins; the

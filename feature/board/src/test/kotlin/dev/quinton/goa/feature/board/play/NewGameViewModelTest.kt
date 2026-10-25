@@ -10,6 +10,7 @@ import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.GameFactory
 import dev.quinton.goa.core.game.GameLength
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.navigation.NewGameRoute
 import dev.quinton.goa.core.testing.FakeBoardMapRepository
 import dev.quinton.goa.core.testing.FakeCatalogRepository
@@ -54,6 +55,7 @@ class NewGameViewModelTest {
     private fun TestScope.viewModel(
         engine: GameFactory = factory,
         route: NewGameRoute = NewGameRoute(),
+        settings: FakeSettingsRepository = FakeSettingsRepository(),
     ) = NewGameViewModel(
         route,
         SavedStateHandle(),
@@ -61,7 +63,7 @@ class NewGameViewModelTest {
         FakeBoardMapRepository(bundledMaps),
         FakeDraftRecordRepository(),
         FakeMatchRepository(),
-        FakeSettingsRepository(),
+        settings,
         saves,
         { engine },
         EditClock { 7L },
@@ -121,6 +123,22 @@ class NewGameViewModelTest {
             "wasp" to Controller.Ai(AiLevel.EXPERT, 9),
             "tigerclaw" to Controller.Ai(AiLevel.EXPERT, 9),
         ).inOrder()
+    }
+
+    @Test
+    fun `a new game starts at the strength of the last game started`() = runTest(dispatcher) {
+        val settings = FakeSettingsRepository(AppSettings(computerStrength = 7))
+        val route = NewGameRoute(red = listOf("arien", "brogan"), blue = listOf("wasp", "tigerclaw"))
+        val vm = viewModel(route = route, settings = settings)
+        assertThat(vm.ready.form.strength).isEqualTo(7)
+        vm.onAction(NewGameAction.SetStrength(3))
+        // Moving the slider alone doesn't change the remembered strength; starting the game does.
+        assertThat(settings.state.value.computerStrength).isEqualTo(7)
+        vm.onAction(NewGameAction.FlipCoin)
+        assertThat(vm.start()).isTrue()
+        assertThat(settings.state.value.computerStrength).isEqualTo(3)
+        val next = viewModel(route = route, settings = settings).uiState.first { it is NewGameUiState.Ready }
+        assertThat((next as NewGameUiState.Ready).form.strength).isEqualTo(3)
     }
 
     @Test

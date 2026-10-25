@@ -385,7 +385,7 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
 - **New game** (from Boards): a line-up as on New board (alternate picks, "Use a draft or match");
   only heroes whose every card the engine implements and tests can be seated, the rest show as
   coming later. Pick the hero(es) you control (one, or your whole team); every other seat is the
-  computer at a **strength** from 1 to 10 on a slider (default 5, ADR-039), shown with its band:
+  computer at a **strength** from 1 to 10 on a slider (5 the first time, then the strength of the last game started; ADR-039), shown with its band:
   1–3 **Easy** (makes visible mistakes, plays fast; 1 is a gentle first game), 4–6 **Normal**
   (sensible, few mistakes, from 5 a short look-ahead), 7–8 **Hard** (plans the turn against what you
   might have played), 9–10 **Expert** (searches longest, remembers the cards you have shown; 10 is
