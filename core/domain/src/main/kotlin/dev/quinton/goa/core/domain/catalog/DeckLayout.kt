@@ -1,4 +1,4 @@
-package dev.quinton.goa.feature.catalog.model
+package dev.quinton.goa.core.domain.catalog
 
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
@@ -34,9 +34,7 @@ data class DeckLayout(
      * Extra cards by tier (untiered first, Ultimate last): Gydion's spellbook reads cantrips
      * (gold, no tier), Tier I, II, III, then Wish. Source order is kept within a tier.
      */
-    val extraRows: List<TierRow> = extras.groupBy { it.tier }
-        .toSortedMap(nullsFirst())
-        .map { (tier, cards) -> TierRow(tier, cards) }
+    val extraRows: List<TierRow> = byTier(extras)
 
     /** Every extra is a spellbook page (IDs `<hero>-spell-…`), so the section is the spellbook. */
     val extrasAreSpellbook: Boolean
@@ -54,15 +52,18 @@ data class DeckLayout(
                 if (cards.isEmpty()) return@mapNotNull null
                 val rows = when (kind) {
                     DeckGroupKind.BASIC -> listOf(TierRow(null, cards.sortedBy { it.color != CardColor.GOLD }))
-
-                    else -> cards.groupBy { it.tier }
-                        .toSortedMap(nullsFirst())
-                        .map { (tier, tierCards) -> TierRow(tier, tierCards) }
+                    else -> byTier(cards)
                 }
                 DeckGroup(kind, rows)
             }
             return DeckLayout(groups = groups, handicap = hero.handicap, extras = hero.extras)
         }
+
+        /** Rows by tier, untiered first; source order within a tier. */
+        private fun byTier(cards: List<Card>): List<TierRow> = cards.groupBy { it.tier }
+            .entries
+            .sortedWith(compareBy(nullsFirst()) { it.key })
+            .map { (tier, tierCards) -> TierRow(tier, tierCards) }
 
         private fun groupOf(card: Card): DeckGroupKind = when (card.color) {
             CardColor.GOLD, CardColor.SILVER -> DeckGroupKind.BASIC

@@ -5,12 +5,12 @@ import androidx.compose.ui.text.font.FontWeight
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.cardtext.cardTextAnnotated
+import dev.quinton.goa.core.domain.catalog.spokenSummary
 import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.core.model.catalog.CardValues
 import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.testing.TestCatalog
 import dev.quinton.goa.feature.catalog.detail.printedValues
-import dev.quinton.goa.feature.catalog.detail.spokenSummary
 import org.junit.Test
 
 class CardTextRenderingTest {

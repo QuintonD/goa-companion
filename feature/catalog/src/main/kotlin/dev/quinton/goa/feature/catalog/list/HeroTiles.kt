@@ -42,63 +42,21 @@ import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.complexityName
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.catalog.model.AttackStyle
-import dev.quinton.goa.feature.catalog.model.CatalogSort
-import dev.quinton.goa.feature.catalog.model.HeroListItem
-import dev.quinton.goa.feature.catalog.model.MatchField
+import dev.quinton.goa.core.domain.catalog.AttackStyle
+import dev.quinton.goa.core.domain.catalog.CatalogSort
+import dev.quinton.goa.core.domain.catalog.HeroListItem
+import dev.quinton.goa.core.domain.catalog.MatchField
+import dev.quinton.goa.core.domain.catalog.elo
+import dev.quinton.goa.core.domain.catalog.label
+import dev.quinton.goa.core.domain.catalog.matchHint
+import dev.quinton.goa.core.domain.catalog.metricLine
+import dev.quinton.goa.core.domain.catalog.percent
+import dev.quinton.goa.core.domain.catalog.plural
+import dev.quinton.goa.core.domain.catalog.rangedLabel
+import dev.quinton.goa.core.domain.catalog.spokenLabel
+import dev.quinton.goa.core.domain.catalog.traitsLine
 import dev.quinton.goa.feature.catalog.ui.MetaPill
 import dev.quinton.goa.feature.catalog.ui.UnverifiedBadge
-import dev.quinton.goa.feature.catalog.ui.elo
-import dev.quinton.goa.feature.catalog.ui.label
-import dev.quinton.goa.feature.catalog.ui.percent
-import dev.quinton.goa.feature.catalog.ui.plural
-
-/** Official roles only ("Disabler · Pusher"); ranged is shown separately so it never reads as a role. */
-internal fun HeroListItem.traitsLine(): String = hero.roles.joinToString(" · ") { it.label }
-
-/** "Ranged" when most of the hero's Attack cards are ranged — an app-derived trait, not a role. */
-internal val HeroListItem.rangedLabel: String?
-    get() = if (attackStyle == AttackStyle.RANGED) "Ranged" else null
-
-/** Secondary line shown when sorting by a stat: "Elo 1268 · 9 games" or "64% wins · 11 games". */
-internal fun HeroListItem.metricLine(sort: CatalogSort): String? = when (sort) {
-    CatalogSort.ELO -> rating?.takeIf { it.games > 0 }
-        ?.let { "Elo ${elo(it.value)} · ${plural(it.games, "game")}${if (it.provisional) " · provisional" else ""}" }
-        ?: "No rated games"
-
-    CatalogSort.WIN_RATE -> usage?.takeIf { it.matches > 0 }
-        ?.let { "${percent(it.winRate)} wins · ${plural(it.matches, "game")}" }
-        ?: "No games logged"
-
-    else -> null
-}
-
-/** Why a search matched when it wasn't the name: "Card: Tidal Blast". */
-internal fun HeroListItem.matchHint(): String? {
-    val hit = hit ?: return null
-    return when (hit.field) {
-        MatchField.CARD_NAME -> hit.card?.let { "Card: ${it.name}" }
-        MatchField.CARD_TEXT -> hit.card?.let { "Card text: ${it.name}" }
-        MatchField.ALIAS -> "Matches an alias"
-        else -> null
-    }
-}
-
-/**
- * What a screen reader says for a tile or row, in reading order: "Arien, the Tidemaster.
- * Complexity 1 of 4, Challenging. Tactician · Disabler. Core. Ranged. …". Set on the tile itself
- * so a tile cut off at the edge of the screen (its texts scrolled out of view) is still labelled.
- */
-internal fun HeroListItem.spokenLabel(sort: CatalogSort): String = listOfNotNull(
-    "${hero.name}, ${hero.title}",
-    hero.complexity?.let { c -> "Complexity $c of 4" + (complexityName(c)?.let { ", $it" } ?: "") },
-    traitsLine().ifEmpty { null },
-    productName,
-    rangedLabel,
-    if (hero.verified) null else "Unverified data",
-    metricLine(sort),
-    matchHint(),
-).joinToString(". ")
 
 /**
  * Compact grid tile (three per row on a phone): short portrait with stars, then name, title,

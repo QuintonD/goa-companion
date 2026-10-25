@@ -1,12 +1,10 @@
-package dev.quinton.goa.feature.catalog.ui
+package dev.quinton.goa.core.domain.catalog
 
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.core.model.catalog.Role
 import dev.quinton.goa.core.model.catalog.Stat
-import dev.quinton.goa.feature.catalog.model.tierNumeral
-import java.util.Locale
 import kotlin.math.roundToInt
 
 /** Official role names (rulebook terminology). */
@@ -121,6 +119,6 @@ fun Card.kindLabel(isHandicap: Boolean = false): String {
 /** "57%" — whole percent, for win/pick/ban rates in 0..1. */
 fun percent(rate: Double): String = "${(rate * 100).roundToInt()}%"
 
-fun elo(value: Double): String = String.format(Locale.ROOT, "%d", value.roundToInt())
+fun elo(value: Double): String = value.roundToInt().toString()
 
 fun plural(count: Int, one: String, many: String = "${one}s"): String = "$count ${if (count == 1) one else many}"

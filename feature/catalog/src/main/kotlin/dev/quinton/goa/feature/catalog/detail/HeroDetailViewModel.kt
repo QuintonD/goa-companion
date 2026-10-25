@@ -10,13 +10,13 @@ import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.RatingsRepository
 import dev.quinton.goa.core.data.rating.HeroPilotsRepository
+import dev.quinton.goa.core.domain.catalog.DeckLayout
+import dev.quinton.goa.core.domain.catalog.HeroLogSummary
 import dev.quinton.goa.core.domain.meta.HeroPilots
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.rating.HeroUsage
 import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.navigation.HeroDetailRoute
-import dev.quinton.goa.feature.catalog.model.DeckLayout
-import dev.quinton.goa.feature.catalog.model.HeroLogSummary
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch

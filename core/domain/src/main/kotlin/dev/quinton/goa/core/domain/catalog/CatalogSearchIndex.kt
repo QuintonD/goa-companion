@@ -1,10 +1,9 @@
-package dev.quinton.goa.feature.catalog.model
+package dev.quinton.goa.core.domain.catalog
 
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.core.model.catalog.Hero
-import java.text.Normalizer
 
 /** Where a search token matched, strongest first. */
 enum class MatchField(val weight: Int) {
@@ -194,7 +193,7 @@ class CatalogSearchIndex(heroes: List<Hero>) {
         private val Whitespace = Regex("\\s+")
 
         /** Lower-case, accent-free, with typographic quotes folded to ASCII. */
-        fun normalize(text: String): String = Normalizer.normalize(text, Normalizer.Form.NFD)
+        fun normalize(text: String): String = decomposeCanonical(text)
             .replace(Diacritics, "")
             .replace('’', '\'')
             .replace('‘', '\'')

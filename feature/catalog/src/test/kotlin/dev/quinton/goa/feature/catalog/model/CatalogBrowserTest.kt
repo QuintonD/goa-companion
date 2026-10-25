@@ -1,6 +1,17 @@
 package dev.quinton.goa.feature.catalog.model
 
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.domain.catalog.AttackProfile
+import dev.quinton.goa.core.domain.catalog.AttackStyle
+import dev.quinton.goa.core.domain.catalog.CatalogBrowser
+import dev.quinton.goa.core.domain.catalog.CatalogFilter
+import dev.quinton.goa.core.domain.catalog.CatalogSearchIndex
+import dev.quinton.goa.core.domain.catalog.CatalogSort
+import dev.quinton.goa.core.domain.catalog.HeroListItem
+import dev.quinton.goa.core.domain.catalog.MatchField
+import dev.quinton.goa.core.domain.catalog.attackProfile
+import dev.quinton.goa.core.domain.catalog.attackStyle
+import dev.quinton.goa.core.domain.catalog.visibleProducts
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.catalog.PrimaryAction
