@@ -23,6 +23,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -38,7 +42,9 @@ import dev.quinton.goa.core.designsystem.component.EngravedRule
 /**
  * The frame of a board screen (the sandbox, a game, a puzzle): [GoaScreen]'s look with a compact
  * title bar, so the map gets the height. 48 dp with an 18 sp title in portrait, 40 dp with a 16 sp
- * title in landscape, where height is scarcest; it grows only when large text needs it. Icons keep
+ * title in landscape, where height is scarcest; it grows only when large text needs it. A title too
+ * long for one line ("Arien, Brogan, Xargatha vs Wasp, Tigerclaw, Sabina") takes two lines at a
+ * smaller size (13 sp) inside the same height; TalkBack hears it whole. Icons keep
  * their 48 dp touch targets, overlapping the bar's visible height. The content keeps clear of a
  * display cutout the app shell left (landscape, the camera side).
  *
@@ -75,14 +81,24 @@ internal fun isLandscape(): Boolean {
 private fun BoardTopBar(title: String, onBack: () -> Unit, actions: @Composable RowScope.() -> Unit) {
     val landscape = isLandscape()
     val base = MaterialTheme.typography.titleLarge
-    val style = if (landscape) {
+    val bar = if (landscape) LANDSCAPE_BAR else PORTRAIT_BAR
+    val oneLine = if (landscape) {
         base.copy(fontSize = 16.sp, lineHeight = 20.sp)
     } else {
         base.copy(fontSize = 18.sp, lineHeight = 24.sp)
     }
+    val small = base.copy(fontSize = 13.sp, lineHeight = 16.sp)
+    val density = LocalDensity.current
+    // Too long for one line: two smaller ones, when they fit the bar (not with large text, where
+    // the bar would have to grow; the title is cut there and TalkBack still hears it whole).
+    val twoFit = with(density) { small.lineHeight.toDp() } * 2 + TWO_LINE_AIR <= bar
+    var tooLong by remember(title, landscape) { mutableStateOf(false) }
+    val twoLines = tooLong && twoFit
+    val style = if (twoLines) small else oneLine
+    val lines = if (twoLines) 2 else 1
     // Large text may need more than the bar's height: one line of the title plus a little air.
-    val textHeight = with(LocalDensity.current) { style.lineHeight.toDp() } + TITLE_AIR
-    val height: Dp = maxOf(if (landscape) LANDSCAPE_BAR else PORTRAIT_BAR, textHeight)
+    val textHeight = with(density) { oneLine.lineHeight.toDp() } + TITLE_AIR
+    val height: Dp = maxOf(bar, textHeight)
     Column(
         Modifier
             .background(MaterialTheme.colorScheme.background)
@@ -102,8 +118,9 @@ private fun BoardTopBar(title: String, onBack: () -> Unit, actions: @Composable 
                 Text(
                     text = title,
                     style = style,
-                    maxLines = 1,
+                    maxLines = lines,
                     overflow = TextOverflow.Ellipsis,
+                    onTextLayout = { if (!tooLong && it.hasVisualOverflow) tooLong = true },
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = 4.dp, end = 4.dp)
@@ -121,3 +138,4 @@ private fun BoardTopBar(title: String, onBack: () -> Unit, actions: @Composable 
 private val PORTRAIT_BAR = 48.dp
 private val LANDSCAPE_BAR = 40.dp
 private val TITLE_AIR = 8.dp
+private val TWO_LINE_AIR = 4.dp
