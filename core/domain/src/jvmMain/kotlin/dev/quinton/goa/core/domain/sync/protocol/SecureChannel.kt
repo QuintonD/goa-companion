@@ -13,12 +13,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 
-/**
- * A phone taking part in a sync: its stable install id, the name other phones see and its app
- * version (phones on different versions may know different heroes, so their hero ratings differ).
- */
-data class SyncDevice(val deviceId: String, val name: String, val appVersion: String? = null)
-
 /** Why a sync with one phone (or the whole session) stopped. */
 enum class SyncFailure {
     /** A stage took longer than its [SyncTimeouts] allowance. */

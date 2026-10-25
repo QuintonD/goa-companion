@@ -18,20 +18,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
-/**
- * What a sync needs from the phone's storage: its data, and merging a received document in.
- * [apply] must merge with the phone's *current* data and write the result in one transaction, so
- * a phone that drops out mid-sync is left exactly as it was.
- */
-interface SyncDataPort {
-    suspend fun export(): SyncDocument
-
-    suspend fun apply(incoming: SyncDocument): SyncApplyResult
-}
-
-/** The phone's data after a merge ([document], canonical) and what the merge changed on it. */
-data class SyncApplyResult(val document: SyncDocument, val changes: SyncChanges)
-
 enum class PeerStage { VERIFYING, RECEIVING, READY, SENDING, CONFIRMING, DONE, FAILED }
 
 /** One joined phone as the host sees it. */
