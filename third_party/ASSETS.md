@@ -32,6 +32,13 @@ hero's name and title.
 | Bottom-bar icons, brand mark | `design/icons/*.svg` | `core/designsystem/src/main/res/drawable/ic_*.xml` |
 | App icon (foreground, background, monochrome) | `design/brand/ic_launcher_*.svg` | `app/src/main/res/drawable/ic_launcher_*.xml` |
 
+## Web app libraries (code, ADR-043)
+
+The web app bundles two npm libraries for invite QR codes; their licences ship in the site as
+`licenses/` files, copied from `third_party/web/`:
+qrcode-generator 2.0.4 (Kazuhiko Arase, MIT, `MIT-qrcode-generator.txt`) draws the codes and jsQR
+1.4.0 (Apache-2.0, `Apache-2.0-jsQR.txt`) reads them from the camera.
+
 ## Material Symbols
 
 UI icons from `androidx.compose.material:material-icons-extended` (Apache 2.0, Google).

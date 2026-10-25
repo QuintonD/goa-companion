@@ -36,6 +36,11 @@ val webAssets: TaskProvider<Sync> = tasks.register<Sync>("webAssets") {
         include("OFL-*.txt")
         into("licenses")
     }
+    // The web app's own libraries (invite QR codes, W2): their licences ship beside the fonts'.
+    from(rootProject.file("third_party/web")) {
+        include("*.txt")
+        into("licenses")
+    }
     from(rootProject.file("design/icons")) {
         include("nav_*.svg", "brand_mark.svg")
         into("icons")
