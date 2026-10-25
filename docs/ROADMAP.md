@@ -232,6 +232,29 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] New game: the strength slider (per seat under Advanced), "Computer · Hard 8" wherever the level
   showed — 2026-10-25, slider screenshots portrait / landscape / light / W384 font scale 2. JVM only
 - [ ] On the S25 Ultra: strength 10's think time per card play (budget 4 s), the slider with TalkBack
+- [x] A new game starts at the strength of the last game started (`AppSettings.computerStrength`) —
+  2026-10-25, `NewGameViewModelTest`, `SettingsDataSourceTest`. JVM only
+
+## M16 — Gydion's spellbook at the game table (ADR-040)
+- [x] Contract: `HeroView.extras` (places with ids, hidden ones null), built in `Views` so review and
+  rewind show the same; the spellbook only to Gydion's own seat (Prepare Spells), cast spells and the
+  box open — 2026-10-25, `ExtrasViewTest` (no-peeking, live and review)
+- [x] Hero sheet / review / puzzles: a Spellbook section of the official landscape spell cards (in your
+  spellbook / cast / not yet added), the cast question as landscape cards ("Cast Magic Missile"), card
+  focus keeps each card's shape (`CardShape`, checked against every bundled image), the unlocked
+  Ultimate as its card, the sandbox's card strip includes the spells — 2026-10-25,
+  `SpellbookScreenshotTest` (14), `SpellbookSectionTest`, `CardShapeTest`. JVM only
+- [ ] On the S25 Ultra: a Gydion game, casting from the book, the spellbook sheet in landscape
+
+## M17 — The table after the reveal: turn track and the card as the content (ADR-041)
+- [x] Turn track: after the reveal the strip is the played cards in acting order with DONE / NOW / NEXT /
+  PASS / OUT bands (never colour alone), ties, Emmitt's second card, facedown cards kept facedown;
+  "NOW" over the acting hero on the map; moments for the reveal, turn over and round over; stays with
+  the panel hidden and in landscape — 2026-10-25, `TurnTrackTest` (11), table screenshots
+- [x] Decision panel: the asking card large beside compact action chips (only rules no card prints in
+  words), Defend with the attacker's card and Holds / Falls under each hand card, no log lines
+  repeated in the panel — 2026-10-25, Play / Puzzle screenshots re-recorded and looked at. JVM only
+- [ ] On the S25 Ultra: a full round against the computer, panel shown and hidden, TalkBack on the track
 
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)

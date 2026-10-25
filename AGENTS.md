@@ -25,7 +25,7 @@ Ten features, offline-first, pass-and-play on one phone at the table:
 8. **Board sandbox** — the real map with heroes, minions and tokens: set up an opening for a
    line-up in two taps, move pieces, and see movement, Fast Travel, range and distance (ADR-033).
 9. **Play against the computer** — the real game with every rule run by the `:core:game` engine,
-   computer opponents at four levels and an optional Coach (ADR-035).
+   computer opponents at a strength from 1 to 10 (ADR-039) and an optional Coach (ADR-035).
 10. **Puzzles** — 50 difficult solver-proven positions with switchable nudges and an explanation
    at the end (ADR-035).
 
