@@ -1264,8 +1264,8 @@ logic run in the browser as **shared code**, not ports.
    replaces the address at once. No compatibility cost: every app's `parseInvite` already finds a
    `goa-sync:` invite inside any text, so phones that predate this read the new codes. The share
    message carries the link too. The web reads codes with the camera (`getUserMedia` + jsQR, Apache-2.0;
-   Safari has no BarcodeDetector) and draws them with qrcode-generator (MIT); both ship in `app.js`
-   with their notices in `app.js.LICENSE.txt`.
+   Safari has no BarcodeDetector) and draws them with qrcode-generator (MIT); both ship in `app.js`,
+   their licences in the site's `licenses/` (from `third_party/web/`).
 5. **Relay CORS:** `server/relay` allows `GOA_RELAY_CORS_ORIGINS` (default
    `https://quintond.github.io`): `Access-Control-Allow-Origin` on every answer to that origin, errors
    and 429s included, exposing `ETag` and `Retry-After`; preflights for GET/PUT with the protocol's
