@@ -185,8 +185,8 @@ overtime; tap returns to the timer). The Meta tab defaults to a compact sortable
 
 ### Board screens' frame (sandbox, game, puzzle)
 The three map screens share two pieces of chrome in `feature/board/ui/` so the map gets the screen.
-**Compact top bar** (`BoardScaffold`): `GoaScreen`'s look (canvas colour, engraved rule, back arrow,
-Cinzel title) at 48 dp with an 18 sp title in portrait and 40 dp with a 16 sp title in landscape; it
+**Compact top bar** (`BoardScaffold`): `GoaScreen`'s look (the steel banner, back arrow, Cinzel
+title in light steel) at 48 dp with an 18 sp title in portrait and 40 dp with a 16 sp title in landscape; it
 grows only when large text needs one line of the title. A title too long for one line (a board named
 after its line-up, "Arien, Brogan, Xargatha vs Wasp, Tigerclaw, Sabina") takes two lines at 13 sp
 within the same height, portrait and landscape; with large text, where two lines would not fit, it is

@@ -206,6 +206,21 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   (INTERNET present, `CctBackendFactory` absent, HTTPS-only config)
 - [ ] Two physical phones (S25 Ultra + one more) syncing through the server; Doze and the hourly sync
 
+## M14 — Styled on the official look (ADR-042)
+- [x] Official graphics through the importer (`UiAssets.kt`): 32 deck symbols (each matched to its own
+  card back, lowest margin 1.42), 6 item icons, 8 Spawn point symbols and both Tie Breaker faces
+  from the pinned rulebook PDF by page and object; all in `official/SOURCES.md` — 2026-10-25,
+  `UiAssetsTest`, `CatalogValidationTest` (symbol per hero, every file listed)
+- [x] The look: steel-banner top bars, copper small-caps heads, Crimson Pro for printed text, card
+  text on parchment; `ContrastTest` on every new pair — 2026-10-25
+- [x] Show the cards: the hero page's Deck as card scans (by colour and tier), lean card viewer
+  ("Read the card as text"), draft peek's starting cards as scans, deck symbols on hero page /
+  catalog / peek, rules excerpts in the printed face, the coin's printed faces, official Spawn point
+  symbols on the board — 2026-10-25, `OfficialDeckScreenshotTest`, gallery `officialArt*`, every
+  affected screenshot re-recorded and looked at. JVM only
+- [ ] On the S25 Ultra: card scans and symbols at real density, banner under the status bar, TalkBack on
+  a deck card (reads values and full text)
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check
