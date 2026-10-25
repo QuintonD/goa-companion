@@ -242,7 +242,8 @@ object WukHero : HeroModule {
 
     private class Toss(private val repeat: Boolean) : CardScript {
         override fun primary(a: ActionScope) {
-            fun spaces(t: String) = a.g.within(a.pos, a.range).filter { it != a.g.posOf(t) && a.g.isEmpty(it) }
+            // Empty for the unit placed (p.18 "Place"; Takahide's blades make spaces obstacles to enemy units).
+            fun spaces(t: String) = a.g.within(a.pos, a.range).filter { it != a.g.posOf(t) && a.g.isEmpty(it, t) }
             // "a token, or an enemy unit, adjacent to you" — any token; never a friendly unit.
             val objects = (a.unitsWithin(1).filter { a.isEnemy(it) } + a.tokensWithin(1)).filter {
                 a.canTarget(it) && a.g.canPlace(it, a.heroId) && spaces(it).isNotEmpty()

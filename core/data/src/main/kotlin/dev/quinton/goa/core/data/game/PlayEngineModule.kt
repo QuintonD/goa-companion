@@ -19,16 +19,19 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
-/** The computer players, one per level (ADR-035). */
+/** The computer players, one per strength 1..10 (ADR-035, ADR-039). */
 fun interface AiPlayers {
-    fun forLevel(level: AiLevel): AiPlayer
+    fun forStrength(strength: Int): AiPlayer
+
+    /** A level alone (a save from before the slider) plays as its anchor strength. */
+    fun forLevel(level: AiLevel): AiPlayer = forStrength(level.strength)
 }
 
 /**
- * The play engine's entry points (ADR-035): the rules engine as the game factory, the four computer
- * levels, the coach and the puzzle book, all on one engine. Screens get them through a `Provider` and
- * only on `Dispatchers.Default`, so waiting for the catalog and maps to load never blocks the main
- * thread.
+ * The play engine's entry points (ADR-035): the rules engine as the game factory, the computer
+ * players by strength (ADR-039), the coach and the puzzle book, all on one engine. Screens get them
+ * through a `Provider` and only on `Dispatchers.Default`, so waiting for the catalog and maps to load
+ * never blocks the main thread.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -39,10 +42,10 @@ internal object PlayEngineModule {
         // Screens ask for the factory on Dispatchers.Default only (see above), never on the main thread.
         runBlocking { GameEngine(catalog.catalog.first(), maps.maps.first()) }
 
-    /** The four levels of core/game/ai (AI.md); one player per request, seeded per level. */
+    /** The ten strengths of core/game/ai (AI.md); one player per request, seeded per strength. */
     @Provides
     @Singleton
-    fun ai(): AiPlayers = AiPlayers { level -> GameAiPlayers.forLevel(level, AI_SEED + level.ordinal) }
+    fun ai(): AiPlayers = AiPlayers { strength -> GameAiPlayers.forStrength(strength, AI_SEED + strength) }
 
     /** The coach analyses on the game factory's engine (it replays saves for the turning points). */
     @Provides

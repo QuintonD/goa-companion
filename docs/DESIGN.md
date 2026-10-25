@@ -320,7 +320,8 @@ minion modifier counted and "Discard a card to defend" (it carries the prompt fo
 hand's cards themselves with the verdict under each in words with an icon ("✓ Holds" teal, "! Falls"
 red, "Decided by its text" grey) and the Defense total with a shield when items or minions change
 the printed value; "Don't defend" is chosen then confirmed. Declines and Pass are outlined. With large
-text the asking card goes above the answers. The computer's move shows its portrait, level and prompt
+text the asking card goes above the answers. The computer's move shows its portrait, band and strength
+("COMPUTER · HARD 7") and prompt
 and the card it resolves (56 dp, tap to read), a linear progress bar once it is "thinking…". Under
 the question, the lines of what happened that the table doesn't show (an attack, a defense, a defeat,
 coins, a push…), not the reveal, the action chosen or a move (the track and the board show those);
@@ -328,7 +329,13 @@ the log sheet keeps every line. The coach's nudge is a secondary-container card 
 (outlined) and "Rethink" (filled). Game over leads with "You won" / "The computer won" in a card
 bordered in the winner's colour, the rulebook reason, each hero's results, then the coach's turning
 points by round and turn. New game reuses New board's picker; heroes not yet playable are veiled and
-marked "Later".
+marked "Later". **Computer strength** (ADR-039) is a Material 3 slider, 1 to 10 with a tick per step
+(default 5), the value and its band above it in the primary colour ("7 · Hard"; bands 1–3 Easy, 4–6
+Normal, 7–8 Hard, 9–10 Expert), "Gentler" and "Stronger" under the ends, and the band's one-line note
+under that (1 and 10 have their own); TalkBack reads "Computer strength, Strength 7 of 10, Hard".
+Under "Advanced: a strength per seat" each computer hero gets the same slider with its name and value
+on one line and no end labels. The computer's strength also shows wherever its level did ("Computer ·
+Hard 7": the hero sheet, game over, the resume line on Boards).
 **Spellbook** (Gydion, ADR-040; `play/table/SpellbookSection.kt`): the hero sheet and the review's Now
 tab show a SPELLBOOK section after the discard, in the engine's order: "In your spellbook · 19" (the
 spell cards, for Gydion's player only), "Cast · removed faceup · 3" (everyone), "Not yet added · 22"

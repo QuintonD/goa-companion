@@ -502,8 +502,8 @@ class GameViewModel internal constructor(
     }
 
     private suspend fun computerAnswers(game: GameSession, decision: Decision) {
-        val level = game.setup.seats.firstOrNull { it.heroId == decision.seat }?.controller as? Controller.Ai
-        val player = ai.forLevel(level?.level ?: AiLevel.NORMAL)
+        val computer = game.setup.seats.firstOrNull { it.heroId == decision.seat }?.controller as? Controller.Ai
+        val player = ai.forStrength(computer?.strength ?: AiLevel.NORMAL.strength)
         thinking = false
         publish()
         // "Thinking…" once the computer takes a while.

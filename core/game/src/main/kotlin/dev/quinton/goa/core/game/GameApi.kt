@@ -34,20 +34,47 @@ enum class GameLength {
     LONG,
 }
 
-/** How strong a computer-controlled hero plays. Easy makes visible mistakes; Expert searches hardest. */
+/**
+ * The named band of a computer player's strength (ADR-039): Easy makes visible mistakes; Expert
+ * searches hardest. The player picks a [strength][AiStrength] from 1 to 10; the band is its word
+ * ("6 · Hard"). Each band's [strength] is the one a save made before the slider loads as.
+ */
 @Serializable
-enum class AiLevel {
+enum class AiLevel(
+    /** The strength this level stood for before the slider (ADR-039): an old save's level loads as it. */
+    val strength: Int,
+) {
     @SerialName("easy")
-    EASY,
+    EASY(2),
 
     @SerialName("normal")
-    NORMAL,
+    NORMAL(6),
 
     @SerialName("hard")
-    HARD,
+    HARD(8),
 
     @SerialName("expert")
-    EXPERT,
+    EXPERT(10),
+    ;
+
+    companion object {
+        /** The band a strength belongs to: 1–3 Easy, 4–6 Normal, 7–8 Hard, 9–10 Expert. */
+        fun of(strength: Int): AiLevel = when (AiStrength.coerce(strength)) {
+            in 1..3 -> EASY
+            in 4..6 -> NORMAL
+            in 7..8 -> HARD
+            else -> EXPERT
+        }
+    }
+}
+
+/** The computer's strength scale (ADR-039): 1 (a true first game) to 10 (as strong as a phone allows). */
+object AiStrength {
+    const val MIN: Int = 1
+    const val MAX: Int = 10
+    const val DEFAULT: Int = 5
+
+    fun coerce(strength: Int): Int = strength.coerceIn(MIN, MAX)
 }
 
 /** Who answers a seat's decisions. */
@@ -57,9 +84,16 @@ sealed interface Controller {
     @SerialName("human")
     data object Human : Controller
 
+    /**
+     * A computer seat. [strength] (1..10) is what plays; [level] is its band, kept for the words
+     * ("Hard") and for saves made before the slider, which carry only the level and load as its
+     * [AiLevel.strength] (ADR-039). Build one with `Controller.Ai(strength)`.
+     */
     @Serializable
     @SerialName("ai")
-    data class Ai(val level: AiLevel) : Controller
+    data class Ai(val level: AiLevel, val strength: Int = level.strength) : Controller {
+        constructor(strength: Int) : this(AiLevel.of(strength), AiStrength.coerce(strength))
+    }
 }
 
 /** One hero at the table. Seats are listed in pick order per team: the opening places them in it. */

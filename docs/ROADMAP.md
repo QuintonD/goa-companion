@@ -221,6 +221,18 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] On the S25 Ultra: card scans and symbols at real density, banner under the status bar, TalkBack on
   a deck card (reads values and full text)
 
+## M15 — A stronger computer and a strength slider (ADR-039)
+- [x] Contract: `Controller.Ai.strength` 1–10, old saves load as Easy 2 / Normal 6 / Hard 8 / Expert 10;
+  `AiPlayers.forStrength`; the factory takes the strength — 2026-10-25, `ControllerStrengthTest`,
+  `NewGameFormsTest`, NoPeeking and DecisionKinds over all ten strengths
+- [x] The tuned evaluation (exposure × 0.3, opportunity × 2), fitted to self-play outcomes and measured
+  59–64% over the old Normal / Hard / Expert; ten profiles, every adjacent step above 50% with its
+  95% interval on held-out line-ups (AI.md "Measured strength"); two engine placement crashes found by
+  the tournaments fixed — 2026-10-25, `LevelLadderTest`, `TimingTest` (10: 514 ms p95 on the desktop)
+- [x] New game: the strength slider (per seat under Advanced), "Computer · Hard 8" wherever the level
+  showed — 2026-10-25, slider screenshots portrait / landscape / light / W384 font scale 2. JVM only
+- [ ] On the S25 Ultra: strength 10's think time per card play (budget 4 s), the slider with TalkBack
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check

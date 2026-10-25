@@ -2,6 +2,7 @@ package dev.quinton.goa.core.game.ai
 
 import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.AiPlayer
+import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
@@ -11,54 +12,129 @@ import dev.quinton.goa.core.game.engine.EngineSession
 import kotlin.random.Random
 
 /**
- * The computer opponents (ADR-035, PRODUCT §9, core/game/ai/AI.md). One engine with switches per
- * level (STRATEGY.md §4): Easy plays from static heuristics with human-looking slips; Normal plays
- * each option out to the end of the action (cards: the turn) against the most likely enemy plays;
- * Hard samples the enemies' hidden cards from an opponent model and plays the whole turn out for each;
- * Expert samples more, plays every hero's later choices in a playout by one-ply search, remembers
- * every card shown since an enemy's last level up, and mixes between near-equal plays so it is hard
- * to read.
+ * The computer opponents (ADR-035, ADR-039, PRODUCT §9, core/game/ai/AI.md). One engine with
+ * switches per strength, 1 to 10 (STRATEGY.md §4): 1–4 play from static heuristics with
+ * human-looking slips (fewer as the strength grows); from 5 each option is played out against the
+ * enemies' likely plays, with longer playouts, more samples, less noise and smarter playouts at
+ * every step up; 9 and 10 remember every card shown since an enemy's last level up, and 10 plays
+ * every hero's later choices in a playout by one-ply search. The four named levels are the bands of
+ * [AiLevel]; a level alone (a save from before the slider) plays as its [AiLevel.strength].
  *
  * Deterministic for a seed (answers depend on the seed, the decision id and the seat), except that a
- * wall-clock cap (the phone budget) may end a search early on a slow device; [timeCap] = false
- * removes it.
+ * wall-clock cap (the phone budget) may end a search early on a slow device; [deterministic] removes it.
  */
 object AiPlayers {
-    fun forLevel(level: AiLevel, seed: Long): AiPlayer = SearchAi(level, profile(level), seed, timeCap = true)
+    fun forStrength(strength: Int, seed: Long): AiPlayer = player(strength, seed, timeCap = true)
 
     /** Same, without the wall-clock cap: fully reproducible (tests, tournaments). */
-    fun deterministic(level: AiLevel, seed: Long): AiPlayer = SearchAi(level, profile(level), seed, timeCap = false)
+    fun deterministic(strength: Int, seed: Long): AiPlayer = player(strength, seed, timeCap = false)
 
-    internal fun profile(level: AiLevel): LevelProfile = when (level) {
-        AiLevel.EASY -> LevelProfile(
+    fun forLevel(level: AiLevel, seed: Long): AiPlayer = forStrength(level.strength, seed)
+
+    fun deterministic(level: AiLevel, seed: Long): AiPlayer = deterministic(level.strength, seed)
+
+    private fun player(strength: Int, seed: Long, timeCap: Boolean): AiPlayer {
+        val s = AiStrength.coerce(strength)
+        return SearchAi(AiLevel.of(s), profile(s), seed, timeCap)
+    }
+
+    internal fun profile(level: AiLevel): LevelProfile = profile(level.strength)
+
+    /**
+     * The evaluation the searching strengths (4 and up) use: a hero's exposure counts 0.3 of its
+     * hand-made weight and its minion opportunities twice (fitted to self-play outcomes and measured,
+     * AI.md "Evaluation" and "What changed in v0.7").
+     */
+    internal val TUNED: EvalKnobs = EvalKnobs(scales = mapOf(Term.EXPOSURE to 0.3, Term.OPPORTUNITY to 2.0))
+
+    /** What each strength does (AI.md "Strengths"); the measured ladder is in AI.md. */
+    @Suppress("CyclomaticComplexMethod", "LongMethod", "MagicNumber")
+    internal fun profile(strength: Int): LevelProfile = when (AiStrength.coerce(strength)) {
+        // A true first game: looks at the nearest enemy only, forgets minion modifiers most of the
+        // time it moves, and often picks the second or third best option.
+        1 -> LevelProfile(
+            staticOnly = true, playSamples = 1, otherSamples = 1,
+            playHorizon = Horizon.ACTION, otherHorizon = Horizon.ACTION, candidates = 1,
+            temperature = 2.0, maxGap = 6.0, slipRate = 0.16, risk = 0.0,
+            knobs = EvalKnobs(nearestThreatOnly = true, nextTurnThreat = 0.08),
+            modelPlays = false, memory = false, greedySelf = false, budgetMs = 50, blindRate = 0.7,
+        )
+
+        // Easy, as before the slider.
+        2 -> LevelProfile(
             staticOnly = true, playSamples = 1, otherSamples = 1,
             playHorizon = Horizon.ACTION, otherHorizon = Horizon.ACTION, candidates = 1,
             temperature = 1.2, maxGap = 4.0, slipRate = 0.08, risk = 0.0,
             knobs = EvalKnobs(nearestThreatOnly = true, nextTurnThreat = 0.12),
-            modelPlays = false, memory = false, greedySelf = false, budgetMs = 50,
+            modelPlays = false, memory = false, greedySelf = false, budgetMs = 50, blindRate = 0.4,
         )
 
-        AiLevel.NORMAL -> LevelProfile(
+        // Between Easy and the careful player: still the nearest enemy only, fewer slips.
+        3 -> LevelProfile(
+            staticOnly = true, playSamples = 1, otherSamples = 1,
+            playHorizon = Horizon.ACTION, otherHorizon = Horizon.ACTION, candidates = 1,
+            temperature = 0.9, maxGap = 3.0, slipRate = 0.05, risk = 0.0,
+            knobs = EvalKnobs(nearestThreatOnly = true, nextTurnThreat = 0.15),
+            modelPlays = false, memory = false, greedySelf = false, budgetMs = 50, blindRate = 0.25,
+        )
+
+        // Static rules of thumb like Easy, but it sees every enemy and rarely slips.
+        4 -> LevelProfile(
+            staticOnly = true, playSamples = 1, otherSamples = 1,
+            playHorizon = Horizon.ACTION, otherHorizon = Horizon.ACTION, candidates = 1,
+            temperature = 0.6, maxGap = 2.0, slipRate = 0.03, risk = 0.0,
+            knobs = EvalKnobs(nextTurnThreat = 0.18),
+            modelPlays = true, memory = false, greedySelf = false, budgetMs = 50, blindRate = 0.1,
+        )
+
+        // The first that looks ahead: its three likeliest options played out once, against uniform
+        // guesses of the enemies' cards, chosen loosely.
+        5 -> LevelProfile(
+            staticOnly = false, playSamples = 1, otherSamples = 1,
+            playHorizon = Horizon.TURN, otherHorizon = Horizon.ACTION, candidates = 3,
+            temperature = 1.0, maxGap = 3.0, slipRate = 0.0, risk = 0.0,
+            knobs = TUNED, modelPlays = false, memory = false, greedySelf = false, budgetMs = 200,
+        )
+
+        // Normal: each option played out once, a move to the end of its action.
+        6 -> LevelProfile(
             staticOnly = false, playSamples = 1, otherSamples = 1,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.ACTION, candidates = 6,
             temperature = 0.6, maxGap = 1.5, slipRate = 0.0, risk = 0.0,
-            knobs = EvalKnobs(), modelPlays = true, memory = false, greedySelf = false, budgetMs = 300,
+            knobs = TUNED, modelPlays = true, memory = false, greedySelf = false, budgetMs = 300,
         )
 
-        AiLevel.HARD -> LevelProfile(
+        // Every choice played out to the end of the turn (the biggest single step, AI.md).
+        7 -> LevelProfile(
+            staticOnly = false, playSamples = 1, otherSamples = 1,
+            playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 6,
+            temperature = 0.5, maxGap = 1.3, slipRate = 0.0, risk = 0.0,
+            knobs = TUNED, modelPlays = true, memory = false, greedySelf = false, budgetMs = 500,
+        )
+
+        // Hard: six guesses of the enemies' hidden cards, risk-averse card plays.
+        8 -> LevelProfile(
             staticOnly = false, playSamples = 6, otherSamples = 2,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 8,
             temperature = 0.25, maxGap = 0.8, slipRate = 0.0, risk = 0.3,
-            knobs = EvalKnobs(), modelPlays = true, memory = false, greedySelf = false, budgetMs = 1500,
+            knobs = TUNED, modelPlays = true, memory = false, greedySelf = false, budgetMs = 1500,
         )
 
-        // Playouts to the end of the next turn measured worse than to the end of this one (AI.md):
-        // Expert spends its time on more samples and on smarter playouts for every hero instead.
-        AiLevel.EXPERT -> LevelProfile(
+        // Expert's samples and memory; only its own later choices in a playout are searched.
+        9 -> LevelProfile(
             staticOnly = false, playSamples = 16, otherSamples = 6,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 10,
             temperature = 0.15, maxGap = 0.6, slipRate = 0.0, risk = 0.0,
-            knobs = EvalKnobs(), modelPlays = true, memory = true, greedySelf = true,
+            knobs = TUNED, modelPlays = true, memory = true, greedySelf = true, budgetMs = 3000,
+        )
+
+        // Expert. Playouts to the end of the next turn measured worse than to the end of this one
+        // (AI.md): it spends its time on more samples and on smarter playouts for every hero instead.
+        else -> LevelProfile(
+            staticOnly = false, playSamples = 16, otherSamples = 6,
+            playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 10,
+            temperature = 0.15, maxGap = 0.6, slipRate = 0.0, risk = 0.0,
+            knobs = TUNED, modelPlays = true, memory = true, greedySelf = true,
             budgetMs = 4000, greedyTeam = true, greedyEnemies = true,
         )
     }
@@ -101,8 +177,9 @@ internal class SearchAi(
 
     /** Easy, and the fallback of every level: static scores on one determinized copy. */
     private fun staticChoice(es: EngineSession, d: Decision, rng: Random): Choice {
-        // Easy forgets the minion defense modifiers 40% of the time when it moves (STRATEGY §4.2).
-        val blindNow = profile.staticOnly && d.kind == DecisionKind.CHOOSE_SPACE && rng.nextDouble() < 0.4
+        // The static strengths forget the minion defense modifiers some of the time when they move (STRATEGY §4.2).
+        val blindNow =
+            profile.staticOnly && d.kind == DecisionKind.CHOOSE_SPACE && rng.nextDouble() < profile.blindRate
         val s = searcher(es.engineData, blindNow)
         val det = s.determinize(es, d, rng.nextLong())
         val dp = det.pending
