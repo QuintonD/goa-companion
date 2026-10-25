@@ -15,6 +15,7 @@ import dev.quinton.goa.core.model.player.PlayerPalette
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconSize
+import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,8 +31,10 @@ import org.jetbrains.compose.web.dom.Text
 
 /**
  * A scope for a screen's shared model (the phone's `viewModelScope`): lives while the screen is
- * shown, cancelled when it goes. A failure in one of its jobs (a storage error) is reported through
- * [onError] instead of taking the app down.
+ * shown and is cancelled [GRACE_MS] after it goes, so a write the model launched as the screen was
+ * left ("Start quiz" saves the setup, then the quiz opens) still lands, as it does on the phone
+ * where the ViewModel outlives the tap. A failure in one of its jobs (a storage error) is reported
+ * through [onError] instead of taking the app down.
  */
 @Composable
 internal fun rememberScreenScope(onError: (Throwable) -> Unit = {}): CoroutineScope {
@@ -43,7 +46,7 @@ internal fun rememberScreenScope(onError: (Throwable) -> Unit = {}): CoroutineSc
             },
         )
     }
-    DisposableEffect(scope) { onDispose { scope.cancel() } }
+    DisposableEffect(scope) { onDispose { window.setTimeout({ scope.cancel() }, GRACE_MS) } }
     return scope
 }
 
@@ -233,6 +236,7 @@ internal fun HeroLine(card: TriviaCardUi, small: Boolean = false) {
     }
 }
 
+private const val GRACE_MS = 10_000
 private const val RGB_MASK = 0xFFFFFFL
 private const val HEX = 16
 private const val RGB_DIGITS = 6

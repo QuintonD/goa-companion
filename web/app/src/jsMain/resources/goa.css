@@ -809,6 +809,10 @@ code {
   .goa-trivia-challenge-line.in-bar { display: none; }
   .goa-trivia-challenge-line.in-list { display: block; }
 }
+/* A short screen (a phone in landscape): pinned, the bar would leave the list a sliver; it ends the page instead. */
+@media (max-height: 500px) {
+  .goa-trivia-startbar { position: static; }
+}
 /* Landscape / wide: text and buttons side by side, so the list keeps its room. */
 @container trivia-home (min-width: 560px) {
   .goa-trivia-startbar { flex-direction: row; align-items: center; gap: var(--sp-lg); }
@@ -977,7 +981,7 @@ code {
 .goa-trivia-rank-main.first { color: var(--primary); }
 .goa-trivia-place {
   flex: none; display: inline-flex; align-items: center; justify-content: center;
-  min-width: 28px; height: 28px; padding: 0 4px; border-radius: 14px; font-weight: 700;
+  min-width: max(28px, 1.75rem); min-height: max(28px, 1.75rem); padding: 0 4px; border-radius: 999px; font-weight: 700;
   background: var(--surface-high); color: var(--on-surface-variant);
 }
 .goa-trivia-place.podium { background: color-mix(in srgb, var(--primary) 22%, transparent); color: var(--primary); }

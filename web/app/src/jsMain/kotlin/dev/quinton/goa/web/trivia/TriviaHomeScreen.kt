@@ -95,7 +95,7 @@ fun TriviaHomeScreen(heroId: String?) {
     val group = rememberTriviaGroup()
     var attempt by remember { mutableStateOf(0) }
     val scope = rememberScreenScope { services.messages.show("Couldn't save that. Try again.") }
-    val model = remember(attempt) {
+    val model = remember(heroId, attempt) {
         TriviaHomeModel(
             scope,
             heroId,
@@ -275,8 +275,10 @@ private fun PlayingAsRow(playing: PlayingAsState, onClick: () -> Unit) {
         PlayingAvatar(player)
         Span({ classes("goa-trivia-playing-text") }) {
             Span({ classes("goa-trivia-playing-name") }) {
-                Span({ classes("t-title-medium") }) { Text("Playing as $name") }
-                Span({ classes("goa-trivia-caret") }) { Text("▾") }
+                Span({ classes("t-title-medium") }) {
+                    Text("Playing as $name")
+                    Span({ classes("goa-trivia-caret") }) { Text(" ▾") }
+                }
                 if (isMe) YouTag()
             }
             Span({ classes("t-body-small", "c-variant") }) { Text(subtitle) }

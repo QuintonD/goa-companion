@@ -403,11 +403,19 @@ private fun Reveal(state: TriviaQuizUiState.Playing) {
     }
 }
 
-/** Scrolls so the end of [element] sits above the pinned Next bar, unless the page is being touched. */
+/**
+ * Scrolls so the end of [element] sits above the pinned Next bar, but never so far that the
+ * feedback line ("Not quite. …") goes under the top bar: on a short screen (landscape) the words
+ * come first, the scan below them.
+ */
 private fun scrollToEnd(element: HTMLElement) {
     val bar = (document.querySelector(".goa-trivia-nextbar") as? HTMLElement)?.offsetHeight ?: 0
+    val topBar = (document.querySelector(".goa-topbar") as? HTMLElement)?.offsetHeight ?: 0
+    val feedback = document.querySelector(".goa-trivia-feedback") as? HTMLElement
     val bottom = element.getBoundingClientRect().bottom + window.scrollY
-    val target = bottom + bar + SCROLL_MARGIN - window.innerHeight
+    val keepFeedback = feedback?.let { it.getBoundingClientRect().top + window.scrollY - topBar - SCROLL_MARGIN }
+    val wanted = bottom + bar + SCROLL_MARGIN - window.innerHeight
+    val target = if (keepFeedback == null) wanted else minOf(wanted, keepFeedback)
     if (target > window.scrollY) {
         val options: dynamic = js("({})")
         options.top = target
