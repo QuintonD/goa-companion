@@ -3,8 +3,6 @@ package dev.quinton.goa.web.catalog
 import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.testing.TestCatalog
-import dev.quinton.goa.web.data.WebServices
-import dev.quinton.goa.web.storage.MemoryKeyValueStore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
@@ -39,9 +37,8 @@ class CatalogBrowseTest {
 
     @Test
     fun personalStatsFromAStreamNotBuiltYetFallBackInsteadOfBreakingTheHeroPage() = runTest {
-        // W2's ratings are a stub that throws when called: the catalog still shows, without stats.
-        val services = WebServices(MemoryKeyValueStore())
-        val ratings = optional(emptyMap()) { services.group.ratings.observeHeroRatings() }.toList()
+        // A stream's stub throws when called (`data/stub`): the catalog still shows, without stats.
+        val ratings = optional(emptyMap<String, Int>()) { throw NotImplementedError("W4: not yet") }.toList()
 
         assertEquals(listOf(emptyMap(), emptyMap()), ratings)
     }
