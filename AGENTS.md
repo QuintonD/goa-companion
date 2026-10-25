@@ -67,13 +67,17 @@ Details and acceptance criteria: [docs/PRODUCT.md](docs/PRODUCT.md).
 ## Commands (once M0 lands)
 
 Windows (PowerShell) uses `.\gradlew.bat`; POSIX uses `./gradlew`. C: is nearly full, so set
-`GRADLE_USER_HOME=D:\.gradle-home` and `TMP`/`TEMP=D:\.tmp-build` first (ADR-010).
+`GRADLE_USER_HOME=D:\.gradle-home` and `TMP`/`TEMP=D:\.tmp-build` first (ADR-010). The Linux
+server `oldboi` (`~/goa-companion`) is a second build machine with the same SDK and signing key;
+there, use `goa-gradle <tasks>` instead of `./gradlew` (memory-capped; README "Build on oldboi",
+ADR-038) and run one build at a time.
 
 ```
 .\gradlew.bat :tools:catalog-import:run  # rebuild catalog JSON + images from pinned sources
 .\gradlew.bat :tools:catalog-import:run --args="--rules-only"  # rules-reference.json vs the pinned rulebook
 .\gradlew.bat assembleDebug            # build
-.\gradlew.bat testDebugUnitTest        # JVM unit tests (domain, data, VM)
+.\gradlew.bat testDebugUnitTest        # JVM unit tests of the Android modules (data, VM, screens)
+.\gradlew.bat :core:model:test :core:domain:test :core:game:test :tools:catalog-import:test  # pure-Kotlin modules
 .\gradlew.bat verifyRoborazziDebug     # screenshot regression
 .\gradlew.bat lintDebug detekt ktlintCheck
 .\gradlew.bat connectedDebugAndroidTest  # end-to-end UI tests (orchestrator, clean data per test)

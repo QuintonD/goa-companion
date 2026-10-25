@@ -899,3 +899,30 @@ not saved (replay rebuilds them). The rulebook forbids notes at the table (p.4 T
 history of earlier rounds is more than a player would remember; it is the log's own content (already
 shown) and the Expert AI remembers cards shown since each level up, so it is offered as a learning aid;
 the owner may want a switch to hide earlier rounds for "table rules" play.
+
+## ADR-038 — oldboi is a second build machine (2026-10-25)
+**Context:** The owner asked to move the project from the Windows PC (`Megalithic`) to the home server
+`oldboi` (Ubuntu 26.04, x86_64, 8 cores, 7.6 GB RAM, KVM), which already runs the sync relay (ADR-036)
+and T3 Code, keeping Megalithic intact until oldboi is proven.
+**Decision:** oldboi gets the same toolchain: OpenJDK 21 (the build ran on the Studio JBR 21 so far,
+ADR-010), the Android SDK in `~/Android/Sdk` (platform 37.0, build-tools 37.0.0 and 36.1.0, NDK
+28.2.13676358 — AGP 9.4.1's default, which strips the native libraries from dependencies; without it
+the APK is 600 KB larger), the release keystore in `~/.goa-signing/` (mode 600), the catalog-import
+cache, and a headless `goa_api36` emulator. Builds run through `goa-gradle` (`~/.local/bin`), which
+starts `./gradlew` in a `systemd-run --user --scope` with MemoryHigh 4G / MemoryMax 5G / swap 2G, and
+`~/.gradle/gradle.properties` allows 2 workers: the first full check run (4 workers, uncapped, each
+Robolectric JVM up to 2 GB) filled RAM and swap and the OOM killer took Claude Desktop and T3 Code.
+The checkout fetches through the read-only deploy key and pushes through `gh` (HTTPS). `gradlew` is now
+committed as executable. Claude Code and T3 Code run there with this repo registered as a project.
+**Verification:** 0.6.0 (`8f9d36f7`) built on oldboi has the same 1,009 entries with the same CRCs as
+the APK Megalithic published, an identical zip body and central directory, and the same signing
+certificate (SHA-256 `076d927e…24ee95`); only the signing block's bytes differ. On oldboi, through
+`goa-gradle`: all 3,163 JVM tests pass (Android modules plus `core:model`/`domain`/`game` and
+`catalog-import`), `verifyRoborazziDebug` finds no screenshot differences, and lint, detekt and ktlint
+are clean. Non-interactive ssh has no locale, which made Java write ASCII-only file names (the test
+report for "Hold My Saké" failed), so `~/.goa-env` sets `LANG=C.UTF-8`. systemd-oomd watches the
+user session (memory pressure over 50% for 20 s kills the busiest cgroup), so builds from other
+projects on oldboi have to take turns with this one.
+**Consequences:** Either machine can build and publish an update that installs over the other's. One
+Gradle build at a time on oldboi, always through `goa-gradle`; it is slower than Megalithic. Megalithic
+keeps everything until the owner decides to clear it.

@@ -6,9 +6,12 @@ description: Full verification gate for the Guards of Atlantis companion app. Us
 # Ship check
 
 Run from the project root and report each result honestly (pass / fail / skipped + why).
+On oldboi use `goa-gradle <tasks>` in place of `.\gradlew.bat` (memory cap, ADR-038).
 
 1. `.\gradlew.bat assembleDebug`
-2. `.\gradlew.bat testDebugUnitTest`
+2. `.\gradlew.bat testDebugUnitTest :core:model:test :core:domain:test :core:game:test :tools:catalog-import:test`
+   — `testDebugUnitTest` covers only the Android modules; the pure-Kotlin ones (the rules engine
+   included) run under `test`.
 3. `.\gradlew.bat lintDebug detekt ktlintCheck`
 4. `.\gradlew.bat verifyRoborazziDebug` — if baselines changed intentionally, re-record with
    `recordRoborazziDebug` and say which screens changed.

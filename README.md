@@ -27,6 +27,29 @@ prompt, then run the `adb install` line above (or copy the APK to the phone and 
 The debug build (`.\gradlew.bat :app:installDebug`) installs side by side as
 `dev.quinton.goa.debug` with its own separate data.
 
+## Build on oldboi (Linux, ADR-038)
+
+The home server `oldboi` (`ssh quinton@oldboi`) builds the same signed APK. The checkout is
+`~/goa-companion`; `~/.goa-env` (sourced by `~/.bashrc`, `~/.profile` and `goa-gradle`) sets
+`ANDROID_HOME` (`~/Android/Sdk`), `JAVA_HOME` (OpenJDK 21), `~/.local/bin` on the PATH and a UTF-8
+`LANG` (without one, a non-interactive ssh session makes Java write ASCII-only file names and the
+test report for puzzle "Hold My Saké" fails); `local.properties`, `keystore.properties` and the
+catalog-import cache are in place (all gitignored).
+
+```bash
+cd ~/goa-companion && git pull --ff-only
+goa-gradle :app:assembleRelease     # app/build/outputs/apk/release/app-release.apk
+```
+
+It has 7.6 GB of RAM shared with the sync relay, T3 Code and Claude, and an uncapped test run once
+got them OOM-killed. So build with `goa-gradle <tasks>` (`~/.local/bin`): it runs `./gradlew` in a
+memory-capped cgroup (4 GB soft, 5 GB hard), and `~/.gradle/gradle.properties` keeps Gradle to 2
+workers. Run one build at a time there (other projects build on oldboi too); systemd-oomd kills
+the busiest cgroup when the session's memory pressure stays over 50% for 20 s, so two builds at once
+usually ends with one of them killed. Fetch goes through the read-only deploy key, push through
+`gh` (HTTPS); `gh release` works for publishing. The emulator `goa_api36` runs headless
+(`emulator -avd goa_api36 -no-window -gpu swiftshader_indirect`).
+
 ## Sharing with the play group
 
 Share the signed release APK with your group through a link (Google Drive works).
@@ -106,6 +129,8 @@ Release builds are signed with a private key kept **outside** the repo:
 - Keystore: `D:\.goa-signing\goa-release.jks`
 - Passwords: `D:\.goa-signing\keystore.properties` (a copy sits in the repo root as
   `keystore.properties`, which git ignores)
+- On oldboi: the same two files in `~/.goa-signing/` (mode 600), and `~/goa-companion/keystore.properties`
+  pointing at it. Both machines sign with the same key (certificate SHA-256 `076d927e…24ee95`).
 
 Keep a copy of both files somewhere safe. Android only installs an update over the existing
 app if it is signed with the same key. Without it you would have to uninstall first, which
