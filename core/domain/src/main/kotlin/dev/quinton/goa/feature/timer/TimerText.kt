@@ -17,10 +17,14 @@ object TimerText {
     private const val ACTION_HINT =
         "The highest initiative not yet resolved goes next. No strategy talk: only state preferences, no reasons."
 
-    fun stepTitle(step: TimerStep): String = when {
-        step.endStep != null && step.phase != null -> "${step.phase!!.name} · ${step.endStep!!.title}"
-        step.endStep != null -> step.endStep!!.title
-        else -> step.phase?.name.orEmpty()
+    fun stepTitle(step: TimerStep): String {
+        val end = step.endStep
+        val phase = step.phase
+        return when {
+            end != null && phase != null -> "${phase.name} · ${end.title}"
+            end != null -> end.title
+            else -> phase?.name.orEmpty()
+        }
     }
 
     /** Where in the round this step sits, e.g. "Turn 3 of 4" or "End of round · step 5 of 6". */
@@ -51,7 +55,7 @@ object TimerText {
         val totalSeconds = if (roundUp) (millis + 999) / 1000 else millis / 1000
         val minutes = totalSeconds / 60
         val seconds = totalSeconds % 60
-        return "%d:%02d".format(minutes, seconds)
+        return "$minutes:${seconds.toString().padStart(2, '0')}"
     }
 
     /** "1:30" → "1 minute 30 seconds" for TalkBack. */

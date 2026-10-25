@@ -4,7 +4,6 @@ import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.quinton.goa.core.datastore.timer.TimerStateStore
 import dev.quinton.goa.core.domain.setup.MatchRules
-import dev.quinton.goa.core.domain.timer.PhaseKind
 import dev.quinton.goa.core.domain.timer.TimerJson
 import dev.quinton.goa.core.domain.timer.TimerPreset
 import dev.quinton.goa.core.domain.timer.TimerPresetCatalog
@@ -50,9 +49,6 @@ class AndroidTimerAssets @Inject constructor(@ApplicationContext private val con
     }
 }
 
-/** "Tonight" turn length for one preset, used by the next start without editing the preset. */
-data class TonightTurn(val presetId: String, val seconds: Int)
-
 /**
  * Presets (user-saved, seeded from the bundled defaults) and the persisted session snapshot.
  * Presets are fully editable; "restore defaults" brings back any bundled preset that was removed.
@@ -76,27 +72,11 @@ class TimerRepository @Inject constructor(
 
     /** Sets tonight's turn length for [presetId]; null (or the preset's own length) clears it. */
     suspend fun setTonightTurn(presetId: String, seconds: Int?) {
-        val preset = preset(presetId)
-        val own = preset?.phases?.firstOrNull { it.enabled && it.kind == PhaseKind.TURN }?.seconds
-        tonight.value = when {
-            seconds == null || preset == null || seconds == own -> null
-            else -> TonightTurn(presetId, seconds)
-        }
+        tonight.value = TonightTurn.of(preset(presetId), seconds)
     }
 
     /** [preset] with tonight's turn length applied, if one is set for it. */
-    fun withTonight(preset: TimerPreset): TimerPreset {
-        val override = tonight.value?.takeIf { it.presetId == preset.id } ?: return preset
-        return preset.copy(
-            phases = preset.phases.map { phase ->
-                if (phase.kind == PhaseKind.TURN && phase.seconds != null) {
-                    phase.copy(seconds = override.seconds, cues = phase.cues.filter { it < override.seconds })
-                } else {
-                    phase
-                }
-            },
-        )
-    }
+    fun withTonight(preset: TimerPreset): TimerPreset = TonightTurn.apply(preset, tonight.value)
 
     /** Writes tonight's turn length into the preset itself and clears the override. */
     suspend fun saveTonightToPreset() {

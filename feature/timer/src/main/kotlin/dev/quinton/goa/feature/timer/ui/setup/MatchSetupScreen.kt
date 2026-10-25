@@ -258,11 +258,7 @@ private fun PlayersCard(state: MatchSetupUiState, onPlayers: (Int) -> Unit) {
                 Column(Modifier.weight(1f)) {
                     Text("${state.players} players", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        when {
-                            state.seatsSource != null -> state.seatsSource
-                            state.recommended -> "Recommended count"
-                            else -> "Supported: ${state.playerRange.first} to ${state.playerRange.last}"
-                        },
+                        state.playersHint,
                         style = MaterialTheme.typography.bodySmall,
                         color = with(MaterialTheme.colorScheme) {
                             if (state.recommended) secondary else onSurfaceVariant
@@ -376,8 +372,9 @@ private fun ModeCard(mode: ModeOptionUi, selected: Boolean, onClick: () -> Unit)
                         Badge(it, if (it == "Required") colors.primary else colors.secondary)
                     }
                 }
-                if (mode.reason != null) {
-                    Text(mode.reason, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                val reason = mode.reason
+                if (reason != null) {
+                    Text(reason, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
                 } else {
                     Text(
                         "${mode.waves} · ${mode.life}",
@@ -411,10 +408,7 @@ private fun CountersBoard(counters: CountersUi) {
             Text("Life counters per team", style = MaterialTheme.typography.titleSmall)
             val life = counters.lifePerTeam
             if (life == null) {
-                Note(
-                    "Not specified by the rulebook for ${counters.largerTeamHeroes + counters.smallerTeamHeroes} " +
-                        "heroes in a single lane. Consider Double lane or check the rulebook.",
-                )
+                Note(counters.lifeNotSpecified)
             } else {
                 Team.entries.forEach { team ->
                     TokenRow(
@@ -428,35 +422,8 @@ private fun CountersBoard(counters: CountersUi) {
                 }
             }
             counters.houseRuleNote?.let { HouseRuleNote(it) }
-            val seatsLine = buildList {
-                if (counters.redHeroes != null && counters.blueHeroes != null) {
-                    add("Red ${counters.redHeroes} · Blue ${counters.blueHeroes} heroes")
-                } else {
-                    add("${counters.largerTeamHeroes} vs ${counters.smallerTeamHeroes} heroes")
-                }
-                if (counters.handicapHeroes > 0) {
-                    add(
-                        if (counters.handicapHeroes ==
-                            1
-                        ) {
-                            "1 Handicap card"
-                        } else {
-                            "${counters.handicapHeroes} Handicap cards"
-                        },
-                    )
-                }
-                if (counters.doublePilots > 0) {
-                    add(
-                        if (counters.doublePilots == 1) {
-                            "1 player controls 2 heroes"
-                        } else {
-                            "${counters.doublePilots} players control 2 heroes each"
-                        },
-                    )
-                }
-            }
             Text(
-                seatsLine.joinToString(" · "),
+                counters.seatsLine,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -603,7 +570,7 @@ private fun TieBreakerCard(state: MatchSetupUiState, actions: SetupActions) {
             )
             Spacer(Modifier.height(Spacing.md))
             Text(
-                coinMessage(state),
+                state.coinMessage,
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
@@ -637,19 +604,6 @@ private fun TieBreakerCard(state: MatchSetupUiState, actions: SetupActions) {
             Spacer(Modifier.height(Spacing.md))
             RulesNoteBlock("How the coin is used", state.tieBreakerRule)
         }
-    }
-}
-
-private fun coinMessage(state: MatchSetupUiState): String {
-    val coin = state.tieBreaker ?: return "Flip the coin and place it, result side up, by the board."
-    val side = teamName(coin)
-    return when (state.coinSource) {
-        CoinSource.DRAFT -> "$side is already showing from the draft. Leave the coin as it is."
-
-        CoinSource.MATCH -> "$side is showing, as recorded for this match. Leave the coin as it is."
-
-        CoinSource.HERE, CoinSource.NONE ->
-            if (state.coinPlaced) "$side is showing (corrected)." else "$side is showing. Place the coin by the board."
     }
 }
 

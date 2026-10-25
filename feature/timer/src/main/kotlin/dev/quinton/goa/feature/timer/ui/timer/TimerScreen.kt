@@ -116,10 +116,13 @@ fun TimerRoute(
 
 @Composable
 fun TimerScreen(state: TimerUiState, actions: TimerActions) {
+    val active = state.active
+    val summary = state.summary
+    val start = state.start
     when {
-        state.active != null -> ActiveTimer(state.active, actions)
-        state.summary != null -> MatchSummary(state.summary, actions)
-        state.start != null -> TimerStart(state.start, actions)
+        active != null -> ActiveTimer(active, actions)
+        summary != null -> MatchSummary(summary, actions)
+        start != null -> TimerStart(start, actions)
         else -> GoaScreen(title = "Timer") { }
     }
 }

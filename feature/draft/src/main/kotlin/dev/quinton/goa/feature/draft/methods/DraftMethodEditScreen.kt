@@ -55,8 +55,6 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.draft.StepSpec
 import dev.quinton.goa.core.domain.draft.TeamSlot
-import dev.quinton.goa.core.domain.draft.ban
-import dev.quinton.goa.core.domain.draft.pick
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.feature.draft.ui.SectionCard
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
@@ -208,11 +206,7 @@ private fun PoolCard(state: MethodEditUiState, actions: MethodEditActions) {
         if (state.poolKind != PoolKind.ALL) {
             Row(Modifier.padding(top = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    when (state.poolKind) {
-                        PoolKind.RANDOM -> "Heroes in the pool"
-                        PoolKind.SEATS_PLUS -> "Extra heroes revealed"
-                        else -> "Heroes dealt to each seat"
-                    },
+                    state.poolValueLabel,
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f),
                 )
@@ -259,7 +253,7 @@ private fun StepsCard(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 modifier = Modifier.padding(top = Spacing.sm),
             ) {
-                listOf(ban(TeamSlot.A), pick(TeamSlot.A), ban(TeamSlot.B), pick(TeamSlot.B)).forEach { spec ->
+                MethodEdits.ADDABLE.forEach { spec ->
                     AssistChip(
                         onClick = { actions.addStep(section, spec) },
                         label = { Text("${actionName(spec.action)} ${spec.team.name}") },
@@ -374,8 +368,9 @@ private fun PreviewCard(state: MethodEditUiState, actions: MethodEditActions) {
             }
         }
         Spacer(Modifier.width(Spacing.sm))
-        if (preview.error != null) {
-            Text(preview.error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+        val previewError = preview.error
+        if (previewError != null) {
+            Text(previewError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
         } else {
             SequenceStrip(preview.tokens, modifier = Modifier.padding(top = Spacing.sm))
             if (preview.heroesNeeded > 0) {

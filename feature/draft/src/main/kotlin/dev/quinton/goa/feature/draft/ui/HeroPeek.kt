@@ -44,7 +44,6 @@ import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.StatBar
 import dev.quinton.goa.core.designsystem.component.cardColor
-import dev.quinton.goa.core.designsystem.component.cardColorName
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -193,16 +192,6 @@ private fun StartingCardScans(cards: List<CardInfo>) {
             }
         }
     }
-}
-
-/** "Gold · Basic", "Red · Tier I". */
-internal fun cardKind(card: CardInfo): String = when {
-    card.tier == null && (card.color == CardColor.GOLD || card.color == CardColor.SILVER) ->
-        "${cardColorName(card.color)} · Basic"
-
-    card.tier != null -> "${cardColorName(card.color)} · Tier ${"I".repeat(card.tier.coerceIn(1, 3))}"
-
-    else -> cardColorName(card.color)
 }
 
 /** A hero's roles as small outlined labels. */

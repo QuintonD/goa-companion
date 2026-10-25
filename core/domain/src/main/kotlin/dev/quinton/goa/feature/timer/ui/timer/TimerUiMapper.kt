@@ -1,18 +1,25 @@
 package dev.quinton.goa.feature.timer.ui.timer
 
+import dev.quinton.goa.core.domain.setup.MatchRules
+import dev.quinton.goa.core.domain.setup.MatchSetup
 import dev.quinton.goa.core.domain.timer.MatchDuration
+import dev.quinton.goa.core.domain.timer.PhaseKind
 import dev.quinton.goa.core.domain.timer.PhaseScope
 import dev.quinton.goa.core.domain.timer.RoundSection
+import dev.quinton.goa.core.domain.timer.TimerPreset
 import dev.quinton.goa.core.domain.timer.TimerReadout
 import dev.quinton.goa.core.domain.timer.TimerSnapshot
 import dev.quinton.goa.core.domain.timer.TimerStatus
 import dev.quinton.goa.core.domain.timer.TimerStep
 import dev.quinton.goa.core.model.catalog.Catalog
+import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Match
+import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.feature.timer.TimerText
+import dev.quinton.goa.feature.timer.data.TonightTurn
 
 /** Seat names for the linked match (null when no match or no seats). */
 data class MatchSeats(val match: Match, val seats: List<SeatInfo>)
@@ -21,11 +28,15 @@ data class SeatInfo(
     val heroName: String,
     val heroId: String?,
     val portrait: String?,
-    val team: dev.quinton.goa.core.model.match.Team,
+    val team: Team,
     val playerName: String?,
 )
 
-internal object TimerUiMapper {
+/**
+ * Builds the timer's UI state from a snapshot and its readout (pure; shared by the phone and the
+ * web app, ADR-043 "Table, W3"). The words are chosen with care: change them here only.
+ */
+object TimerUiMapper {
     fun seats(match: Match, catalog: Catalog?, players: List<Player>): List<SeatInfo> = match.participants.map { p ->
         val hero = p.heroId?.let { id -> catalog?.heroes?.firstOrNull { it.id == id } }
         val player = players.firstOrNull { it.id == p.playerId }
@@ -212,6 +223,79 @@ internal object TimerUiMapper {
         }
     }
 
+    /** A preset as the Timer tab and Match setup list it. */
+    fun presetOption(preset: TimerPreset): PresetOption = PresetOption(
+        id = preset.id,
+        name = preset.name,
+        summary = TimerText.presetSummary(preset),
+        usesActionTimer = preset.phases.any { it.enabled && it.kind == PhaseKind.ACTION },
+    )
+
+    /**
+     * The Timer tab before a session starts. [tonight] is tonight's turn length, if one is set;
+     * [seats] the heroes at the table (sizes the per-hero Action timer).
+     */
+    fun start(
+        presets: List<TimerPreset>,
+        selectedId: String,
+        pending: List<PendingMatchItem>,
+        seats: Int,
+        tonight: TonightTurn?,
+    ): StartUiState {
+        val own = presets.firstOrNull { it.id == selectedId }
+            ?.phases?.firstOrNull { it.enabled && it.kind == PhaseKind.TURN }?.seconds
+        return StartUiState(
+            tonight = own?.let { TonightUi(tonight?.takeIf { t -> t.presetId == selectedId }?.seconds ?: it, it) },
+            presets = presets.map(::presetOption),
+            selectedPresetId = selectedId,
+            pendingMatches = pending,
+            seats = seats,
+        )
+    }
+
+    /** Pending matches on the Timer tab, newest first. [since] formats a set-up time ("5:06 PM"). */
+    fun pendingMatches(matches: List<Match>, catalog: Catalog?, since: (Long) -> String): List<PendingMatchItem> =
+        matches.filter { it.status == MatchStatus.PENDING }
+            .sortedByDescending { it.createdAt }
+            .map { pendingItem(it, catalog, since) }
+
+    /** A pending match: mode and size, each team's heroes, and "Pending since …" ([since] formats the time). */
+    fun pendingItem(match: Match, catalog: Catalog?, since: (Long) -> String): PendingMatchItem {
+        val seats = match.participants.size
+        val players = match.playerIds.size
+        val title = buildString {
+            append(TimerText.modeLabel(match.mode))
+            if (seats > 0) append(" · $seats heroes")
+            if (players in 1 until seats) append(", $players players")
+        }
+
+        fun heroes(team: Team): String? = match.participants
+            .filter { it.team == team }
+            .map { seat ->
+                seat.heroId?.let { id -> catalog?.heroes?.firstOrNull { it.id == id }?.name ?: id }
+                    ?: "Hero not picked"
+            }
+            .takeIf { it.isNotEmpty() }
+            ?.joinToString(", ")
+        return PendingMatchItem(
+            id = match.id,
+            title = title,
+            subtitle = "Pending since ${since(match.createdAt)}",
+            red = heroes(Team.RED),
+            blue = heroes(Team.BLUE),
+        )
+    }
+
+    /** The session's mode if the rules allow it for its number of heroes (Action slots = seats). */
+    fun legalMode(s: TimerSnapshot, rules: MatchRules): GameMode? {
+        val mode = s.mode ?: return null
+        val option = MatchSetup(rules).modeOptions(s.actionSlots).firstOrNull { it.mode == mode }
+        return mode.takeIf { option?.available == true }
+    }
+
+    /** A mode's serial name ("quick", "double_lane"), as a new match's prefill carries it. */
+    fun serialName(mode: GameMode): String = GameMode.serializer().descriptor.getElementName(mode.ordinal)
+
     fun summary(s: TimerSnapshot, r: TimerReadout): SummaryUiState {
         val minutes = durationMinutes(r.matchElapsedMillis)
         return SummaryUiState(
@@ -229,6 +313,12 @@ internal object TimerUiMapper {
 
     fun humanDuration(millis: Long): String {
         val minutes = durationMinutes(millis)
-        return if (minutes < 60) "$minutes min" else "${minutes / 60} h ${"%02d".format(minutes % 60)} min"
+        return if (minutes <
+            60
+        ) {
+            "$minutes min"
+        } else {
+            "${minutes / 60} h ${(minutes % 60).toString().padStart(2, '0')} min"
+        }
     }
 }

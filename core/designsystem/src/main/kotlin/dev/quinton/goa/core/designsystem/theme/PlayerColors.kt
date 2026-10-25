@@ -5,6 +5,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import dev.quinton.goa.core.model.player.PlayerPalette
 
 /**
  * One swatch of the player palette. [argb] is the value stored in `Player.color` (it equals the
@@ -17,18 +18,8 @@ data class PlayerColor(val name: String, val argb: Long, val dark: Color, val li
 
 /** The player editor's palette: 10 colours readable in both themes. */
 object PlayerColors {
-    val all: List<PlayerColor> = listOf(
-        swatch("Tide teal", 0xFF3FC1B0, 0xFF186E62),
-        swatch("Bronze", 0xFFD9B44A, 0xFF7A5E24),
-        swatch("Coral", 0xFFEE7F6F, 0xFFB23F2F),
-        swatch("Sky", 0xFF62A8F2, 0xFF2A62AE),
-        swatch("Amethyst", 0xFFB892E6, 0xFF6B45A0),
-        swatch("Kelp", 0xFF6CC27A, 0xFF2A7037),
-        swatch("Rose", 0xFFEE85B8, 0xFFA83A70),
-        swatch("Ember", 0xFFEE9A52, 0xFF9A4E0E),
-        swatch("Pearl", 0xFFC3CCD6, 0xFF56616C),
-        swatch("Lime", 0xFFAECF55, 0xFF55691A),
-    )
+    /** The palette's values live in core:model ([PlayerPalette]), shared with the web app. */
+    val all: List<PlayerColor> = PlayerPalette.all.map { swatch(it.name, it.dark, it.light) }
 
     /** Suggested colour for the n-th new player (cycles through the palette). */
     fun default(index: Int): PlayerColor = all[Math.floorMod(index, all.size)]
