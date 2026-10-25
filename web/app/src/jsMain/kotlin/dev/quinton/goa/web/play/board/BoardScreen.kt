@@ -179,7 +179,7 @@ private fun BoardContent(state: BoardUiState.Ready, controller: BoardController,
     // The panel hidden to see the whole board: fit it, unless the person moved the view.
     val peeking = hidden && selected != null
     LaunchedEffect(peeking) {
-        if (peeking && !camera.userMoved && camera.unit > 0f) camera.animateFit()
+        if (peeking && !camera.userMoved && camera.unit > 0f) camera.fit()
     }
 
     PlayScaffold(

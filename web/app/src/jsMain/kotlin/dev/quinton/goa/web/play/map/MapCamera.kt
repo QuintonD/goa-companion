@@ -171,6 +171,16 @@ class MapCamera {
         return ScreenPoint(c.x - map.x * unit * z, c.y - map.y * unit * z)
     }
 
+    /**
+     * The whole map at once, and kept so when the view's size changes next (a panel hiding: the
+     * fit follows the room it leaves rather than easing toward the old size).
+     */
+    fun fit() {
+        animation++
+        userMoved = false
+        if (layout != null) applyFit() else mode = ViewMode.FIT
+    }
+
     /** Animated: the whole map. */
     suspend fun animateFit() {
         val z = fitZoom(fullMap()).coerceIn(minZoom, maxZoom)
