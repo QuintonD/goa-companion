@@ -113,7 +113,7 @@ fun ScreenFor(route: Route) {
 
         Route.Matches -> PlayersHomeScreen(PlayersTab.MATCHES)
 
-        is Route.MatchEdit -> MatchEditScreen(route.matchId, route.result)
+        is Route.MatchEdit -> MatchEditScreen(route)
 
         Route.Meta -> PlayersHomeScreen(PlayersTab.META)
 

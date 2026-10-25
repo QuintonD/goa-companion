@@ -561,9 +561,10 @@ same look), with the same tabs and screens as on Android.
   clear a website's data after 7 days unused unless it is on the Home Screen; the app says so, and
   the group's sync is the backup.
 - **Players tab (W2):** the same leaderboard, player pages (rating chart, best heroes, head to head,
-  teammates, archive, Merge into…), match log (by day, undo, Who won?, Rematch → Draft again), the
-  match editor and its saved-result summary, Meta and Settings → Ratings as on Android, built by the
-  same shared code (`core:group-presentation`), so the numbers and words match the phones'.
+  teammates, archive, Merge into…), match log (by day, undo, Who won?, Resume, Rematch → Match setup
+  or Draft again), the match editor and its saved-result summary, Meta and Settings → Ratings as on
+  Android, built by the same shared code (`core:group-presentation`), so the numbers and words match
+  the phones'.
 - **Joining from an iPhone:** the invite QR code (on Android and on the web) is a link,
   `https://quintond.github.io/goa-companion/#join=goa-sync:1?…`, with the invite in the part of the
   address a browser never sends anywhere. The iPhone's Camera opens the web app, which asks "Join

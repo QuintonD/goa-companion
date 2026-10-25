@@ -2,6 +2,7 @@ package dev.quinton.goa.feature.players.match
 
 import dev.quinton.goa.core.domain.rating.RatingsResult
 import dev.quinton.goa.core.model.catalog.Catalog
+import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
@@ -106,6 +107,15 @@ object MatchEditing {
 
     /** [millis] rounded down to the minute (the editor shows no seconds). */
     fun toMinute(millis: Long): Long = millis - millis % MINUTE_MS
+
+    /**
+     * [GameMode] by its serial name ("quick", "long", "double_lane"), or null if unknown: the timer's
+     * "Log result" pre-fills a new match's mode with it.
+     */
+    fun gameModeOrNull(serialName: String?): GameMode? {
+        val descriptor = GameMode.serializer().descriptor
+        return GameMode.entries.firstOrNull { descriptor.getElementName(it.ordinal) == serialName }
+    }
 
     /** Digits only; values above [MAX_DURATION_MIN] are capped as you type. */
     fun duration(form: MatchForm, text: String): MatchForm {

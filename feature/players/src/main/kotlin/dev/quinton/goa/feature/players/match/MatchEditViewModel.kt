@@ -139,7 +139,7 @@ class MatchEditViewModel @AssistedInject constructor(
                     // A new match may be pre-filled (e.g. by the timer's "Log result"); bad values are ignored.
                     val form = MatchForm(
                         playedAt = route.prefillPlayedAt?.let(::toMinute)?.coerceAtMost(now()) ?: now(),
-                        mode = gameModeOrNull(route.prefillMode) ?: GameMode.QUICK,
+                        mode = MatchEditing.gameModeOrNull(route.prefillMode) ?: GameMode.QUICK,
                         duration = MatchForm.durationText(route.prefillDurationMin),
                         red = List(2) { SeatDraft(key()) },
                         blue = List(2) { SeatDraft(key()) },
@@ -273,14 +273,6 @@ class MatchEditViewModel @AssistedInject constructor(
             matches.delete(original.id)
             recentlyDeleted.put(original)
             edit.update { it?.copy(finished = true) }
-        }
-    }
-
-    private companion object {
-        /** [GameMode] by its serial name ("quick", "long", "double_lane"), or null if unknown. */
-        fun gameModeOrNull(serialName: String?): GameMode? {
-            val descriptor = GameMode.serializer().descriptor
-            return GameMode.entries.firstOrNull { descriptor.getElementName(it.ordinal) == serialName }
         }
     }
 }

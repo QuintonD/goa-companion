@@ -13,6 +13,7 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.players.common.formatDelta
 import dev.quinton.goa.feature.players.common.label
 import dev.quinton.goa.feature.players.match.MatchLogUiState
+import dev.quinton.goa.feature.players.match.MatchNav
 import dev.quinton.goa.feature.players.match.MatchRowUi
 import dev.quinton.goa.feature.players.match.RematchOption
 import dev.quinton.goa.feature.players.match.Rematches
@@ -93,28 +94,27 @@ fun MatchLogContent(state: MatchLogUiState, presenter: PlayersPresenter) {
 private const val FLASH_MS = 2_000L
 
 /**
- * A rematch from the log or a saved result. "Draft again" fills the draft setup with the same
- * players and teams and opens the Draft tab. The other kinds continue in Match setup, which the
- * web app doesn't have yet (W3): they say so instead of failing.
+ * A rematch from the log or a saved result, as the phone's `MatchLogViewModel.rematch`: "Draft again"
+ * fills the draft setup with the same players and teams and opens the Draft tab; the other kinds
+ * continue in Match setup on the Timer tab (the rematch is saved only when its timer starts).
  */
 fun rematch(services: AppServices, matchId: String, kind: RematchKind?) {
     services.data.scope.launch {
         val source = services.data.group.matches.observeMatch(matchId).first() ?: return@launch
         if (kind == null) {
-            try {
-                Rematches.redraft(source, services.data.table.draftSetupPrefill)
-                services.router.navigate(Route.Draft)
-            } catch (_: NotImplementedError) {
-                services.messages.show("Drafting again isn't in the web app yet. Open the Draft tab to start one.")
-            }
+            Rematches.redraft(source, services.data.table.draftSetupPrefill)
+            services.router.navigate(Route.Draft)
         } else {
-            services.messages.show(MATCH_SETUP_LATER)
+            when (val nav = Rematches.start(source, kind)) {
+                is MatchNav.OpenRematch -> services.router.navigate(
+                    Route.MatchSetup(rematchOf = nav.sourceId, rematchKind = nav.kind.name),
+                )
+
+                else -> Unit
+            }
         }
     }
 }
-
-internal const val MATCH_SETUP_LATER =
-    "Match setup isn't in the web app yet: set the seats up on the Timer tab when it arrives, or use the phone app."
 
 /**
  * One match in a list (MatchCard). Without [presenter] (a player's page) there is no delete.
@@ -166,7 +166,8 @@ fun MatchCard(
                     services.router.navigate(Route.MatchEdit(match.id, result = true))
                 }, ButtonKind.TONAL, "g_trophy")
                 GoaButton("Resume: setup & timer", {
-                    services.messages.show(MATCH_SETUP_LATER)
+                    // A pending match continues in Match setup, then the timer (MatchNav.OpenSetup).
+                    services.router.navigate(Route.MatchSetup(matchId = match.id))
                 }, ButtonKind.OUTLINED, "g_play")
             }
         }

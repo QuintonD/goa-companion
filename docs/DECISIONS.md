@@ -1364,9 +1364,16 @@ logic run in the browser as **shared code**, not ports.
    minute, every 5 minutes on screen, 15 s after changes, Sync now, joining, `SyncServerRetry`); no
    hourly background sync. iOS sends `pageshow` right after the first visibility check: a page that
    is already shown ignores it, or the opening sync would be cancelled before it starts.
+7. **On merging with W1 and W3:** the stubs are gone; the draft's quick add and "Draft again", the
+   trivia leaderboard and "Playing as", the hero page's pilots and the catalog's ratings read the real
+   repositories. Rematches (Same teams, Swap sides) and "Resume: setup & timer" open W3's Match setup
+   (`#/timer/setup?rematch=…&kind=…`, `?match=…`) as on the phone; the match editor takes the timer's
+   "Log result" pre-fill (mode, duration, the session's start, the reserved id), with the mode parsed
+   by `MatchEditing.gameModeOrNull` (moved from the phone's view model). W2's own palette copy became
+   core:model's `PlayerPalette` (`forNew`, the phone's choice), and the three `PlayerAvatar`s (players,
+   trivia, table) became one, `web/ui/PlayerAvatar.kt`.
 **Consequences:** Not ported (owner to decide): the backup screen (the relay and sync files are the
-web's backup), "Share stats page", Match setup rematches and "Resume: setup & timer" (they need W3's
-Match setup; the web says so), "Open on the board" (W4). Production `app.js` is 2 351 212 bytes
+web's backup), "Share stats page", "Open on the board" (W4). Production `app.js` is 2 351 212 bytes
 (gzip 633 963, from 287 897 after F3): the Players and Group screens (~330 KB minified Compose HTML),
 @js-joda (kotlinx-datetime's time zones, ~190 KB, needed by the game-night stats), jsQR (~127 KB) and
 the sync code; lazy-loading jsQR would save ~35 KB gzip and is left for when bundle size matters.

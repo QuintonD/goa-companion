@@ -111,11 +111,15 @@ private fun now(): Long = MatchEditing.toMinute(Date.now().toLong())
 /**
  * Log, edit or record the result of a match (MatchEditScreen): when and where, the teams and their
  * seats, the result, details; the shared MatchForm, MatchValidation and MatchEditing rules. A new
- * result shows what it changed (the saved-result summary) instead of closing.
+ * result shows what it changed (the saved-result summary) instead of closing. The timer's "Log
+ * result" pre-fills a new match (mode, duration, the session's start) and reserves its id
+ * ([Route.MatchEdit.newMatchId]); a pending match is dated from the session's start, as on the phone.
  */
 @OptIn(ExperimentalUuidApi::class)
 @Composable
-fun MatchEditScreen(matchId: String?, resultFirst: Boolean) {
+fun MatchEditScreen(route: Route.MatchEdit) {
+    val matchId = route.matchId
+    val resultFirst = route.result
     val services = LocalServices.current
     val group = services.data.group
     val presenter = remember { playersPresenter(services) }
@@ -129,7 +133,11 @@ fun MatchEditScreen(matchId: String?, resultFirst: Boolean) {
                 val loaded = MatchForm.from(existing, editor::key)
                 // A game that just ended: a pending match becomes a result.
                 val pending = existing.status == MatchStatus.PENDING
-                val form = loaded.copy(status = if (pending && resultFirst) MatchStatus.COMPLETED else loaded.status)
+                val form = loaded.copy(
+                    status = if (pending && resultFirst) MatchStatus.COMPLETED else loaded.status,
+                    playedAt = route.prefillPlayedAt?.takeIf { pending }?.let(MatchEditing::toMinute)
+                        ?: loaded.playedAt,
+                )
                 editor.original = existing
                 editor.form = form
                 editor.initialForm = form
@@ -138,9 +146,11 @@ fun MatchEditScreen(matchId: String?, resultFirst: Boolean) {
             matchId != null -> editor.notFound = true
 
             else -> {
+                // A new match may be pre-filled (the timer's "Log result"); bad values are ignored.
                 val form = MatchForm(
-                    playedAt = now(),
-                    mode = GameMode.QUICK,
+                    playedAt = route.prefillPlayedAt?.let(MatchEditing::toMinute)?.coerceAtMost(now()) ?: now(),
+                    mode = MatchEditing.gameModeOrNull(route.prefillMode) ?: GameMode.QUICK,
+                    duration = MatchForm.durationText(route.prefillDurationMin),
                     red = List(2) { SeatDraft(editor.key()) },
                     blue = List(2) { SeatDraft(editor.key()) },
                 )
@@ -197,7 +207,7 @@ fun MatchEditScreen(matchId: String?, resultFirst: Boolean) {
         scope.launch {
             val original = editor.original
             val match = editor.form.toMatch(
-                id = original?.id ?: Uuid.random().toString(),
+                id = original?.id ?: route.newMatchId ?: Uuid.random().toString(),
                 createdAt = original?.createdAt ?: Date.now().toLong(),
                 draftId = original?.draftId,
             ).copy(tieBreaker = original?.tieBreaker) // Not edited here; keep the coin from setup.
