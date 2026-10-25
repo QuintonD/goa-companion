@@ -2,6 +2,9 @@ package dev.quinton.goa.web.screens
 
 import androidx.compose.runtime.Composable
 import dev.quinton.goa.web.LocalServices
+import dev.quinton.goa.web.catalog.CardViewerScreen
+import dev.quinton.goa.web.catalog.CatalogScreen
+import dev.quinton.goa.web.catalog.HeroDetailScreen
 import dev.quinton.goa.web.nav.Route
 import dev.quinton.goa.web.ui.EmptyState
 import dev.quinton.goa.web.ui.GoaButton
@@ -19,7 +22,7 @@ fun ScreenFor(route: Route) {
 
         is Route.HeroDetail -> HeroDetailScreen(route.heroId)
 
-        is Route.CardViewer -> PlaceholderScreen("Card", Placeholder.CARD_VIEWER)
+        is Route.CardViewer -> CardViewerScreen(route.heroId, route.cardId)
 
         is Route.Trivia -> PlaceholderScreen("Card trivia", Placeholder.TRIVIA)
 

@@ -22,7 +22,7 @@ plugins {
  * The game data, official images, fonts and shared icons come from the Android app's files at build
  * time (single source of truth, never committed twice): catalog JSON and `official/` from
  * `app/src/main/assets`, fonts from `core/designsystem`, their licences from `third_party/fonts`,
- * the tab and brand icons from `design/icons`.
+ * the tab and brand icons from `design/icons`, the hero sigils from `design/sigils`.
  */
 val webAssets: TaskProvider<Sync> = tasks.register<Sync>("webAssets") {
     description = "Copies the catalog, official images, fonts, licences and shared icons into the web app."
@@ -39,6 +39,11 @@ val webAssets: TaskProvider<Sync> = tasks.register<Sync>("webAssets") {
     from(rootProject.file("design/icons")) {
         include("nav_*.svg", "brand_mark.svg")
         into("icons")
+    }
+    // The hero sigils (original art): a hero's emblem while its portrait loads or when it can't.
+    from(rootProject.file("design/sigils")) {
+        include("*.svg")
+        into("sigils")
     }
 }
 

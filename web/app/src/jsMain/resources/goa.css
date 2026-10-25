@@ -649,3 +649,389 @@ code {
   .goa-topbar-actions .collapsible { display: none; }
   .goa-topbar-actions .more-only { display: inline-flex; }
 }
+
+/* ---------- W1 catalog: Heroes tab, hero page, card viewer ---------- */
+/* Card colours (core:designsystem GoaColors.card*): accents only, never text on their own. */
+:root, :root[data-theme="dark"] {
+  --card-gold: #D9B44A; --card-silver: #B8C2CC; --card-red: #E26459;
+  --card-green: #6CC27A; --card-blue: #5E9BE6; --card-purple: #B18CE0;
+}
+:root[data-theme="light"] {
+  --card-gold: #8A6A12; --card-silver: #56616C; --card-red: #B83A30;
+  --card-green: #2E7A3C; --card-blue: #2C63B0; --card-purple: #6B45A0;
+}
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] {
+    --card-gold: #8A6A12; --card-silver: #56616C; --card-red: #B83A30;
+    --card-green: #2E7A3C; --card-blue: #2C63B0; --card-purple: #6B45A0;
+  }
+}
+.cc-gold { --cc: var(--card-gold); }
+.cc-silver { --cc: var(--card-silver); }
+.cc-red { --cc: var(--card-red); }
+.cc-green { --cc: var(--card-green); }
+.cc-blue { --cc: var(--card-blue); }
+.cc-purple { --cc: var(--card-purple); }
+.cc-other { --cc: var(--on-surface-variant); }
+
+.t-label-small { font: 500 0.6875rem/1rem var(--font-body); letter-spacing: 0.03rem; }
+.t-headline-medium { font: 600 1.75rem/2.25rem var(--font-display); letter-spacing: 0; }
+.goa-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.c-primary { color: var(--primary); }
+
+/* The hero page names the hero in the top bar only once the big name has scrolled away. */
+.goa-topbar-title { transition: opacity var(--dur-short); }
+.goa-title-hidden .goa-topbar-title { opacity: 0; }
+
+/* Search field (iOS: 16 px text, or Safari zooms in on focus) */
+.goa-search { position: relative; display: flex; align-items: center; }
+.goa-search-input {
+  width: 100%; min-height: 48px; margin: 0;
+  padding: 10px 48px 10px 44px;
+  border: 1px solid var(--outline-variant); border-radius: 24px;
+  background: var(--surface); color: var(--on-surface);
+  -webkit-appearance: none; appearance: none;
+}
+.goa-search-input::placeholder { color: var(--on-surface-variant); opacity: 1; }
+.goa-search-input::-webkit-search-cancel-button, .goa-search-input::-webkit-search-decoration { -webkit-appearance: none; display: none; }
+.goa-search-input:focus { outline: 2px solid var(--primary); outline-offset: -1px; border-color: transparent; }
+.goa-search-icon { position: absolute; left: 14px; display: flex; color: var(--on-surface-variant); pointer-events: none; }
+.goa-search .goa-search-clear { position: absolute; right: 0; color: var(--on-surface-variant); }
+
+.goa-catalog-controls { margin-top: var(--sp-sm); padding-top: 4px; padding-bottom: 4px; }
+.goa-chip.active, .goa-chip.goa-chip-input {
+  background: color-mix(in srgb, var(--primary) 20%, transparent); color: var(--on-surface); border-color: transparent;
+}
+.goa-chip.active .goa-icon, .goa-chip.goa-chip-input .goa-icon { color: var(--primary); }
+.goa-catalog-summary { margin: var(--sp-sm) 0; }
+.goa-results-header { display: flex; align-items: baseline; gap: var(--sp-sm); margin: var(--sp-md) 0 var(--sp-sm); }
+
+/* Hero art: the sigil while the portrait loads, or when it can't */
+.goa-hero-art { position: relative; overflow: hidden; background: linear-gradient(var(--surface-high), var(--medallion)); }
+.goa-hero-art > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--dur-medium); }
+.goa-hero-art.loaded > img { opacity: 1; }
+.goa-hero-art > .goa-sigil { position: absolute; inset: 22%; }
+.goa-sigil {
+  display: block; background: var(--primary);
+  -webkit-mask: var(--sigil) center / contain no-repeat; mask: var(--sigil) center / contain no-repeat;
+}
+.goa-hero-symbol { display: block; object-fit: contain; }
+
+/* Hero grid: three tiles across a phone, two at large text (Android: 110 dp cells, 150 dp above 1.3x) */
+.goa-hero-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(110px, 6.875rem, 150px), 1fr)); gap: var(--sp-sm); }
+.goa-hero-grid > div, .goa-hero-list > div, .goa-card-results > div { min-width: 0; }
+.goa-hero-tile {
+  display: flex; flex-direction: column; height: 100%;
+  border: 1px solid var(--engraved); border-radius: var(--radius-card);
+  background: var(--surface); color: inherit; text-decoration: none; overflow: hidden;
+}
+.goa-hero-tile:active, .goa-hero-row:active, .goa-card-result:active { filter: brightness(1.12); }
+.goa-hero-tile-art { position: relative; aspect-ratio: 1.3; }
+.goa-hero-tile-art > .goa-hero-art { position: absolute; inset: 0; }
+.goa-hero-tile-art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 55%, var(--surface)); pointer-events: none; }
+.goa-hero-tile-stars { position: absolute; left: var(--sp-sm); bottom: var(--sp-xs); z-index: 1; line-height: 0; }
+.goa-hero-symbol.tile { position: absolute; right: var(--sp-xs); bottom: 2px; width: 30px; height: 30px; z-index: 1; }
+.goa-hero-tile-badge { position: absolute; top: var(--sp-xs); right: var(--sp-xs); z-index: 1; }
+.goa-hero-tile-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 2px var(--sp-sm) var(--sp-sm); }
+.goa-hero-tile-name {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+  overflow-wrap: break-word;
+}
+.goa-hero-tile-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.goa-hero-traits {
+  margin: 2px 0 0; color: var(--secondary);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.goa-pills { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-xs); margin-top: var(--sp-xs); min-width: 0; }
+.goa-pill {
+  max-width: 100%; padding: 2px 6px;
+  border: 1px solid var(--engraved); border-radius: 6px;
+  color: var(--on-surface-variant);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.goa-pill.primary { color: var(--primary); }
+.goa-hero-metric { margin: var(--sp-xs) 0 0; color: var(--primary); font-weight: 600; }
+.goa-hero-hint { display: flex; align-items: flex-start; gap: 4px; margin: var(--sp-xs) 0 0; }
+.goa-hero-hint .goa-icon { width: 14px; height: 14px; margin-top: 1px; }
+
+/* Compact list */
+.goa-hero-list { display: flex; flex-direction: column; gap: var(--sp-xs); }
+.goa-hero-row {
+  display: flex; align-items: center; gap: var(--sp-md);
+  min-height: 64px; padding: 6px var(--sp-sm);
+  border: 1px solid var(--engraved); border-radius: var(--radius-card);
+  background: var(--surface); color: inherit; text-decoration: none;
+}
+.goa-hero-row-art { position: relative; flex: none; width: 54px; height: 54px; }
+.goa-hero-art.row { width: 48px; height: 48px; border-radius: 8px; }
+.goa-hero-symbol.row { position: absolute; right: 0; bottom: 0; width: 24px; height: 24px; }
+.goa-hero-row-text { flex: 1; min-width: 0; }
+.goa-hero-row-names { display: flex; align-items: baseline; gap: 6px; min-width: 0; margin: 0; }
+.goa-hero-row-names > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.goa-hero-row-names > span:first-child { flex: none; max-width: 70%; }
+.goa-hero-row .goa-pills { margin-top: 2px; }
+.goa-hero-row .goa-hero-traits { -webkit-line-clamp: 1; }
+.goa-hero-row-chevron { flex: none; display: flex; }
+
+/* Stars, badges, initiative */
+.goa-stars { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 1px; }
+.goa-star { display: inline-block; width: 12px; height: 12px; line-height: 0; color: color-mix(in srgb, var(--on-surface-variant) 45%, transparent); }
+.goa-star.on { color: var(--primary); }
+.goa-star > svg, .goa-unverified-icon > svg, .goa-gameicon > svg { width: 100%; height: 100%; display: block; }
+.goa-stars-name { margin-left: 6px; color: var(--primary); }
+.goa-unverified {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px var(--sp-sm);
+  border: 1px solid color-mix(in srgb, var(--unverified) 60%, transparent); border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent); color: var(--unverified); white-space: nowrap;
+}
+.goa-unverified.compact { padding: 1px 6px; }
+.goa-unverified-icon { display: inline-block; width: 14px; height: 14px; line-height: 0; }
+.goa-initiative {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 28px; min-height: 28px; padding: 0 4px; border-radius: 999px;
+  border: 1.5px solid var(--cc); background: color-mix(in srgb, var(--cc) 16%, transparent);
+  color: var(--on-surface); font-weight: 700;
+}
+.goa-initiative.large { min-width: 48px; min-height: 48px; }
+
+/* Card search results */
+.goa-card-results { display: flex; flex-direction: column; gap: var(--sp-xs); }
+.goa-card-result {
+  display: flex; align-items: flex-start; gap: var(--sp-sm);
+  min-height: 56px; padding: var(--sp-sm) var(--sp-md) var(--sp-sm) calc(var(--sp-md) + 4px);
+  border: 1px solid var(--engraved); border-radius: var(--radius-card);
+  background: linear-gradient(90deg, var(--cc) 4px, transparent 4px), var(--surface);
+  color: inherit; text-decoration: none;
+}
+.goa-card-result-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.goa-card-result-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+
+/* Card text with inline game icons */
+.goa-cardtext p { margin: 0; }
+.goa-cardtext p + p { margin-top: 0.4em; }
+.goa-cardtext.clamped { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; margin-top: 2px; }
+.goa-gameicon {
+  display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -0.22em; line-height: 0;
+  color: var(--cc, var(--primary));
+}
+.goa-gameicon.primary { color: var(--primary); }
+.goa-parchment .goa-gameicon { color: var(--parchment-ink); }
+.goa-reminder { color: var(--on-surface-variant); }
+.goa-parchment .goa-reminder { color: var(--on-parchment-variant); }
+.goa-parchment .goa-cardtext b { font-weight: 600; }
+
+/* Hero page */
+.goa-hero-art.header {
+  height: 280px;
+  margin: calc(-1 * var(--sp-lg)) calc(-1 * (var(--sp-screen) + var(--safe-right))) 0 calc(-1 * (var(--sp-screen) + var(--safe-left)));
+}
+.goa-hero-art.header::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 45%, var(--bg)); }
+.goa-hero-art.header > .goa-sigil { inset: 25% 35%; }
+.goa-hero-header-text { display: flex; align-items: center; gap: var(--sp-sm); margin-top: var(--sp-xs); }
+.goa-hero-header-names { flex: 1; min-width: 0; }
+.goa-hero-header-names .goa-hero-name { margin: 0; overflow-wrap: break-word; }
+.goa-hero-header-title { margin: 0; font-style: italic; }
+.goa-hero-symbol.header { flex: none; width: clamp(64px, 4rem, 90px); height: clamp(64px, 4rem, 90px); }
+.goa-hero-header > p { margin: 2px 0 0; }
+.goa-hero-header-pills { margin-top: var(--sp-md); gap: var(--sp-sm); }
+.goa-hero-header .goa-star { width: 18px; height: 18px; }
+.goa-hero-roles { margin-top: var(--sp-md); gap: var(--sp-sm); }
+.goa-role { padding: 6px var(--sp-md); border-radius: 999px; background: color-mix(in srgb, var(--secondary) 12%, transparent); color: var(--secondary); }
+.goa-verified { display: inline-flex; align-items: center; gap: 4px; color: var(--secondary); }
+.goa-verified .goa-icon { width: 16px; height: 16px; }
+.goa-catalog-section { display: flex; align-items: center; gap: var(--sp-sm); margin: var(--sp-xl) 0 var(--sp-sm); color: var(--heading); font-weight: 700; }
+.goa-catalog-section::before { content: ""; flex: none; width: 3px; height: 18px; border-radius: 2px; background: var(--heading); }
+.goa-catalog-section > span:first-child { flex: 1; }
+.goa-catalog-section > span + span { font-family: var(--font-body); }
+.goa-hero-page section > p { margin: 0 0 var(--sp-sm); }
+
+.goa-profile { display: flex; flex-direction: column; gap: var(--sp-md); }
+.goa-profile-head { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-profile-head > span:nth-child(2) { flex: 1; }
+.goa-profile-value { font-weight: 700; }
+.goa-profile-segments { display: flex; gap: 3px; margin-top: 6px; }
+.goa-profile-segment { flex: 1; height: 10px; border-radius: 3px; background: var(--surface-high); }
+.goa-profile-segment.base { background: var(--primary); }
+.goa-profile-segment.conditional { background: color-mix(in srgb, var(--primary) 30%, transparent); box-shadow: inset 0 0 0 1px var(--primary); }
+.goa-profile-scale { display: flex; justify-content: space-between; gap: var(--sp-sm); }
+.goa-profile-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.goa-profile-swatch { width: 14px; height: 8px; border-radius: 2px; background: var(--primary); }
+.goa-profile-swatch.conditional { background: color-mix(in srgb, var(--primary) 30%, transparent); box-shadow: inset 0 0 0 1px var(--primary); margin-left: var(--sp-sm); }
+
+.goa-hero-stats p { margin: 0; }
+.goa-hero-stats p + p { margin-top: var(--sp-xs); }
+.goa-metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(84px, 6rem, 170px), 1fr)); gap: var(--sp-md) var(--sp-lg); }
+.goa-metric { display: flex; flex-direction: column; min-width: 0; }
+.goa-pilots-title { margin: var(--sp-lg) 0 0; }
+.goa-pilot { display: flex; align-items: center; gap: var(--sp-md); min-height: 48px; padding-top: var(--sp-sm); }
+.goa-pilot-rank { width: 24px; flex: none; }
+.goa-pilot-avatar {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--primary-container); color: var(--on-primary-container);
+}
+.goa-pilot-name { flex: 1; min-width: 0; overflow-wrap: break-word; }
+.goa-pilot-record { display: flex; flex-direction: column; align-items: flex-end; }
+
+/* The deck: card scans in a grid, the name under a scan too small to read it */
+.goa-deck-group-title { display: flex; align-items: center; gap: var(--sp-sm); margin: var(--sp-lg) 0 var(--sp-sm); }
+.goa-deck-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cc); }
+.goa-deck-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(100px, 6.25rem, 160px), 1fr)); gap: var(--sp-md) var(--sp-sm); }
+.goa-deck-grid.spell { grid-template-columns: repeat(auto-fill, minmax(clamp(150px, 9.375rem, 240px), 1fr)); }
+.goa-deck-card { display: flex; flex-direction: column; align-items: center; min-width: 0; container-type: inline-size; }
+.goa-scan {
+  display: block; width: 100%; border-radius: 6px; overflow: hidden;
+  background: var(--medallion); border: 1px solid rgba(10, 22, 34, 0.55);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.goa-scan > img { display: block; width: 100%; height: auto; }
+.goa-deck-card-name {
+  margin-top: var(--sp-xs); text-align: center; color: var(--on-surface);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+@container (min-width: 140px) { .goa-deck-card-name { display: none; } }
+.goa-deck-card-note { margin-top: 2px; text-align: center; color: var(--secondary); }
+.goa-card-tile {
+  display: flex; width: 100%; min-height: 96px; height: 100%;
+  border: 1px solid var(--engraved); border-left: 4px solid var(--cc); border-radius: var(--radius-card);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cc) 14%, transparent), var(--surface) 60%), var(--surface);
+  color: inherit; text-decoration: none;
+}
+.goa-card-tile-body { display: flex; flex-direction: column; gap: 2px; width: 100%; min-width: 0; padding: var(--sp-sm) var(--sp-sm) var(--sp-sm) 10px; }
+.goa-card-tile-head { display: flex; align-items: flex-start; gap: var(--sp-xs); }
+.goa-card-tile-head > span:first-child { flex: 1; min-width: 0; overflow-wrap: break-word; }
+.goa-card-tile-action { display: inline-flex; align-items: center; gap: 4px; }
+.accent-text { color: var(--cc); }
+.goa-card-tile-values { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin-top: auto; padding-top: 6px; }
+.goa-value { display: inline-flex; align-items: center; gap: 2px; font-weight: 600; }
+.goa-value .goa-gameicon { color: var(--on-surface-variant); }
+.goa-marker {
+  display: inline-flex; align-items: center; gap: 2px; padding: 1px 4px; border-radius: 4px;
+  background: color-mix(in srgb, var(--secondary) 14%, transparent); color: var(--secondary);
+}
+.goa-marker .goa-gameicon { color: var(--secondary); }
+.goa-extra-row-title { margin: var(--sp-md) 0 var(--sp-xs); }
+.goa-learn-numbers { margin-top: var(--sp-lg); }
+
+.goa-faq { border: 1px solid var(--engraved); border-radius: var(--radius-card); background: var(--surface); }
+.goa-faq + .goa-faq { margin-top: var(--sp-sm); }
+.goa-faq-question {
+  display: flex; align-items: center; gap: var(--sp-md);
+  width: 100%; min-height: 56px; padding: var(--sp-md) var(--sp-lg);
+  border: 0; background: none; color: inherit; text-align: left; cursor: pointer;
+}
+.goa-faq-question > .goa-icon { color: var(--primary); }
+.goa-faq-question > span.t-title-small { flex: 1; min-width: 0; }
+.goa-faq-chevron { display: flex; transition: transform var(--dur-medium) var(--ease-emphasized); }
+.goa-faq.open .goa-faq-chevron { transform: rotate(180deg); }
+.goa-faq-answer { padding: 0 var(--sp-lg) var(--sp-lg) 52px; animation: goa-fade-in var(--dur-medium) var(--ease-decelerate); }
+.goa-faq-answer p { margin: 0; }
+.goa-faq-answer p + p { margin-top: var(--sp-sm); }
+.goa-lore { margin: 0; padding-left: var(--sp-md); border-left: 2px solid color-mix(in srgb, var(--primary) 50%, transparent); font-style: italic; color: var(--on-surface-variant); }
+.goa-source { margin-bottom: var(--sp-sm); }
+.goa-source p { margin: 0; }
+.goa-source a { color: var(--primary); overflow-wrap: anywhere; }
+.goa-source-notice { margin: var(--sp-sm) 0 0; }
+
+/* Filter and sort sheets */
+.goa-filter-clear { display: flex; justify-content: flex-end; margin: calc(-1 * var(--sp-sm)) calc(-1 * var(--sp-md)) 0 0; }
+.goa-filter-group h3 { margin: var(--sp-md) 0 var(--sp-xs); }
+.goa-filter-group p { margin: 0 0 var(--sp-sm); }
+.goa-filter-group .goa-chip-row { row-gap: var(--sp-md); }
+.goa-chip-stars { display: inline-flex; line-height: 0; }
+.goa-chip-stars .goa-star { width: 14px; height: 14px; }
+.goa-filter-divider { height: 1px; margin-top: var(--sp-lg); background: var(--outline-variant); }
+.goa-switch-row { display: flex; align-items: center; gap: var(--sp-md); min-height: 64px; cursor: pointer; }
+.goa-switch-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.goa-switch {
+  flex: none; position: relative; width: 52px; height: 32px; margin: 0;
+  -webkit-appearance: none; appearance: none; cursor: pointer;
+  border: 2px solid var(--on-surface-variant); border-radius: 16px; background: var(--surface-high);
+  transition: background-color var(--dur-short), border-color var(--dur-short);
+}
+.goa-switch::before {
+  content: ""; position: absolute; top: 50%; left: 6px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--on-surface-variant); transform: translateY(-50%);
+  transition: left var(--dur-short) var(--ease-emphasized), width var(--dur-short), height var(--dur-short);
+}
+.goa-switch:checked { background: var(--primary); border-color: var(--primary); }
+.goa-switch:checked::before { left: 22px; width: 24px; height: 24px; background: var(--on-primary); }
+.goa-switch:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.goa-sheet-footer {
+  position: sticky; bottom: calc(-1 * var(--sp-xl)); z-index: 1;
+  margin: var(--sp-lg) calc(-1 * var(--sp-xl)) calc(-1 * var(--sp-xl));
+  padding: var(--sp-md) var(--sp-xl) calc(var(--sp-md) + var(--safe-bottom));
+  background: var(--surface); border-top: 1px solid var(--outline-variant);
+}
+.goa-radio-list { display: flex; flex-direction: column; }
+.goa-radio-row {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-md);
+  min-height: 52px; padding: 0 var(--sp-sm); border: 0; border-radius: 8px;
+  background: none; color: inherit; text-align: left; cursor: pointer;
+}
+.goa-radio-row[aria-checked="true"] { color: var(--primary); font-weight: 600; }
+.goa-radio-row:active { background: color-mix(in srgb, var(--on-surface) 8%, transparent); }
+
+/* Card viewer: one card per page, swiped with native scroll snapping */
+.goa-pager-head { display: flex; align-items: center; gap: var(--sp-xs); margin: calc(-1 * var(--sp-sm)) 0 var(--sp-sm); }
+.goa-pager-head .goa-icon-button.hidden { visibility: hidden; }
+.goa-pager-caption { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.goa-kind { color: var(--cc); font-weight: 700; margin: 0; }
+.goa-pager {
+  display: flex; align-items: flex-start;
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory; scrollbar-width: none;
+  margin: 0 calc(-1 * (var(--sp-screen) + var(--safe-right))) 0 calc(-1 * (var(--sp-screen) + var(--safe-left)));
+}
+.goa-pager::-webkit-scrollbar { display: none; }
+.goa-pager.zoomed { overflow-x: hidden; }
+.goa-pager-page {
+  flex: 0 0 100%; min-width: 0; scroll-snap-align: center; scroll-snap-stop: always;
+  padding: 0 calc(var(--sp-screen) + var(--safe-right)) var(--sp-sm) calc(var(--sp-screen) + var(--safe-left));
+}
+.goa-card-page { display: flex; flex-direction: column; gap: var(--sp-lg); max-width: 480px; margin: 0 auto; }
+.goa-zoom { position: relative; width: fit-content; max-width: 100%; margin: 0 auto; border-radius: 16px; overflow: hidden; background: var(--medallion); }
+.goa-zoom > img {
+  display: block; width: auto; height: auto; max-width: 100%;
+  /* The whole card on screen, also in landscape: between the top bar with the pager's header and the tab bar. */
+  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - var(--tabbar-height) - 152px);
+  min-height: 200px;
+  touch-action: pan-x pan-y; transform-origin: center;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.goa-zoom.spell > img { max-height: none; }
+.goa-pager.zoomed .goa-zoom > img { touch-action: none; }
+.goa-zoom-hint {
+  position: absolute; right: var(--sp-sm); bottom: var(--sp-sm); display: flex; padding: 4px;
+  border-radius: 50%; background: rgba(7, 16, 26, 0.55); color: #F3F6F9; pointer-events: none;
+}
+.goa-not-on-card { display: flex; flex-direction: column; gap: var(--sp-md); }
+.goa-not-on-card p { margin: 0; }
+.goa-item-note { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-item-note img { flex: none; width: 40px; height: 30px; object-fit: contain; }
+.goa-card-details { display: flex; flex-direction: column; gap: var(--sp-md); }
+.goa-card-details .goa-parchment { margin-top: var(--sp-xs); }
+.goa-detail-row { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-detail-label { flex: 0 0 40%; min-width: 0; }
+.goa-detail-value { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--sp-md); }
+.goa-icon-label { display: inline-flex; align-items: center; gap: 4px; }
+.goa-icon-label .goa-gameicon { color: var(--on-surface-variant); }
+.goa-icon-label .goa-gameicon.accent { color: var(--cc); }
+.goa-icon-label.secondary, .goa-icon-label.secondary .goa-gameicon { color: var(--secondary); }
+.goa-designed-card {
+  display: flex; flex-direction: column; gap: var(--sp-lg); padding: var(--sp-lg);
+  border: 2px solid color-mix(in srgb, var(--cc) 80%, transparent); border-radius: 20px;
+  background: linear-gradient(color-mix(in srgb, var(--cc) 28%, transparent), color-mix(in srgb, var(--cc) 4%, transparent) 45%), var(--surface);
+}
+.goa-designed-head { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-designed-head > div:first-child { flex: 1; min-width: 0; }
+.goa-designed-head p { margin: 0; overflow-wrap: break-word; }
+.goa-designed-values { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-sm) var(--sp-lg); }
+.goa-designed-primary {
+  display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%;
+  background: color-mix(in srgb, var(--cc) 18%, transparent); border: 1px solid var(--cc); font-size: 28px;
+}
+.goa-designed-text { padding: var(--sp-md); border-radius: 12px; background: color-mix(in srgb, var(--bg) 55%, transparent); }
+@media (orientation: landscape) and (max-height: 500px) {
+  .goa-hero-art.header { height: 200px; }
+}

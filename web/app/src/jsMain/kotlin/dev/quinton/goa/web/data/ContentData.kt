@@ -4,6 +4,7 @@ import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.data.TriviaProgressRepository
 import dev.quinton.goa.core.model.rules.RulesReference
+import dev.quinton.goa.web.catalog.CatalogBrowse
 import dev.quinton.goa.web.data.stub.W1RulesReferenceStub
 import dev.quinton.goa.web.data.stub.W1TriviaProgressStub
 import dev.quinton.goa.web.settings.WebSettingsRepository
@@ -21,6 +22,9 @@ fun interface RulesReferenceSource {
 @Suppress("UnusedPrivateProperty", "unused")
 class ContentData(private val services: WebServices) {
     val catalog: CatalogRepository = WebCatalogRepository()
+
+    /** The Heroes tab's search index, search, filters and sort (page lifetime). */
+    val browse: CatalogBrowse = CatalogBrowse(catalog)
 
     val settings: SettingsRepository = WebSettingsRepository(services.store.scoped("content/"))
 
