@@ -64,14 +64,32 @@ object GroupInvite {
 
     fun format(invite: Invite): String = format(invite.group, invite.serverUrl)
 
+    /** The web app (ADR-043); an invite link opens it straight into joining the group. */
+    const val WEB_APP_URL = "https://quintond.github.io/goa-companion/"
+
+    /** The fragment before the invite in a [link]. */
+    const val JOIN_FRAGMENT = "join="
+
     /**
-     * The invite as a message for the share sheet: what to do with it, then the invite on its own
-     * line. [parse] finds the invite inside the whole message, so a friend can paste all of it.
+     * [invite] (a [format]ted invite) as a link to the web app: `WEB_APP_URL#join=goa-sync:1?…`.
+     * The invite rides in the fragment, which a browser never sends to any server, so an iPhone's
+     * Camera opens the web app ready to join; every app's [parse] still finds the invite inside it,
+     * so the phones' scanners read the same QR code.
+     */
+    fun link(invite: String): String = "$WEB_APP_URL#$JOIN_FRAGMENT$invite"
+
+    fun link(group: GroupCredentials, serverUrl: String? = null): String = link(format(group, serverUrl))
+
+    /**
+     * The invite as a message for the share sheet: what to do with it, then the invite as a [link]
+     * on its own line. [parse] finds the invite inside the whole message, so a friend can paste all
+     * of it; on an iPhone or a computer the link opens the web app.
      */
     fun shareText(group: GroupCredentials, serverUrl: String? = null): String =
-        "Join “${group.name}” in the Guards of Atlantis companion: install the app, open Settings → " +
-            "Group sync and paste this whole message under “Join a group”. It's the key to the group's " +
-            "data, so only send it to the group.\n\n${format(group, serverUrl)}"
+        "Join “${group.name}” in the Guards of Atlantis companion. On Android: install the app, open " +
+            "Settings → Group sync and paste this whole message under “Join a group”. On an iPhone or a " +
+            "computer: open the link. It's the key to the group's data, so only send it to the group." +
+            "\n\n${link(group, serverUrl)}"
 
     /** The group in [text] (an invite, or a message containing one), or a user-readable error. */
     fun parse(text: String): Result<GroupCredentials> = parseInvite(text).map { it.group }

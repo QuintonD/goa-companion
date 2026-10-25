@@ -120,6 +120,12 @@ class SyncCodecParityTest {
         val parsed = GroupInvite.parseInvite("Join us!\n\n$invite\n").getOrThrow()
         assertEquals(group, parsed.group)
         assertEquals("https://oldboi.example:8443", parsed.serverUrl)
+        // The QR code is a link to the web app with the invite in the fragment; every parser reads it.
+        val link = GroupInvite.link(invite)
+        assertEquals("https://quintond.github.io/goa-companion/#join=$invite", link)
+        assertEquals(parsed, GroupInvite.parseInvite(link).getOrThrow())
+        assertEquals(parsed, GroupInvite.parseInvite(GroupInvite.shareText(group, parsed.serverUrl)).getOrThrow())
+        assertTrue(GroupInvite.link(group) in GroupInvite.shareText(group))
         val unicode = GroupCredentials(group.groupId, group.key, "Café ♛ 日本 + 100%")
         assertEquals(unicode, GroupInvite.parse(GroupInvite.format(unicode)).getOrThrow())
         assertTrue("n=Caf%C3%A9%20%E2%99%9B%20%E6%97%A5%E6%9C%AC%20%2B%20100%25" in GroupInvite.format(unicode))
