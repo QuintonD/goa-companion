@@ -343,16 +343,21 @@ class SyncServerRepositoryTest {
         // This phone changed: a plain GET (304 would hide nothing, but the change must go up).
         now += 1_000
         matches.upsert(match("p1", listOf("ann"), listOf("bob")))
+        // Each sync's own first GET, by position from where it started: on a loaded machine a slow
+        // request may be retried, so absolute indices into the log are not stable.
+        val beforeMine = relay.requests.size
         val mine = syncNow() as SyncServerResult.Synced
         assertThat(mine.uploaded).isTrue()
-        assertThat(relay.requests[2].headers["If-None-Match"]).isNull()
+        assertThat(relay.requests.drop(beforeMine).first { it.method == "GET" }.headers["If-None-Match"]).isNull()
         assertThat(relay.stored().matches.map { it.id }).containsExactly("p1")
 
         // Another phone changed the server's copy: the conditional GET gets the new document.
         val x1 = SyncDocument(matches = listOf(match("x1", listOf("cid"), listOf("dee"))))
         relay.seed(SyncMerge.merge(relay.stored(), x1))
+        val beforeTheirs = relay.requests.size
         val theirs = syncNow() as SyncServerResult.Synced
-        assertThat(relay.requests[4].headers["If-None-Match"]).isEqualTo("\"2\"")
+        assertThat(relay.requests.drop(beforeTheirs).first { it.method == "GET" }.headers["If-None-Match"])
+            .isEqualTo("\"2\"")
         assertThat(theirs.changes.matchesAdded).isEqualTo(1)
         assertThat(theirs.uploaded).isFalse()
         assertThat(localMatches()).containsExactly("p1", "x1")
