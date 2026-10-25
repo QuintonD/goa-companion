@@ -17,7 +17,7 @@ import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.data.game.GameInProgress
 import dev.quinton.goa.core.data.game.StoredGame
-import dev.quinton.goa.core.game.AiLevel
+import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.GameFactory
 import dev.quinton.goa.core.game.GameLength
@@ -72,9 +72,10 @@ data class NewGameForm(
     val step: NewGameStep = NewGameStep.LINEUP,
     /** null = the default: your whole first team (one hero in 1v1). */
     val control: Control? = null,
-    val level: AiLevel = AiLevel.NORMAL,
-    /** Advanced: a level per computer seat, overriding [level]. */
-    val seatLevels: Map<String, AiLevel> = emptyMap(),
+    /** The computer's strength, 1..10 (ADR-039). */
+    val strength: Int = AiStrength.DEFAULT,
+    /** Advanced: a strength per computer seat, overriding [strength]. */
+    val seatStrengths: Map<String, Int> = emptyMap(),
     val advanced: Boolean = false,
     val length: GameLength = GameLength.QUICK,
     val mapId: String? = null,
@@ -85,7 +86,7 @@ data class NewGameForm(
 
 /** One computer seat in the advanced list. */
 @Immutable
-data class AiSeatUi(val hero: BoardHero, val team: Team, val level: AiLevel)
+data class AiSeatUi(val hero: BoardHero, val team: Team, val strength: Int)
 
 sealed interface NewGameUiState {
     data object Loading : NewGameUiState
@@ -128,9 +129,9 @@ sealed interface NewGameAction {
 
     data class SetControl(val control: Control) : NewGameAction
 
-    data class SetLevel(val level: AiLevel) : NewGameAction
+    data class SetStrength(val strength: Int) : NewGameAction
 
-    data class SetSeatLevel(val heroId: String, val level: AiLevel) : NewGameAction
+    data class SetSeatStrength(val heroId: String, val strength: Int) : NewGameAction
 
     data class SetAdvanced(val open: Boolean) : NewGameAction
 
@@ -148,8 +149,8 @@ sealed interface NewGameAction {
 
 /**
  * New game against the computer (PRODUCT §9): the line-up as on New board (alternate picks, "Use a
- * draft or match"; only playable heroes can be seated), then who you control, the computer's level
- * (one for all, or per seat), Quick or Long, the map, Coach; the app flips the Tie Breaker coin and
+ * draft or match"; only playable heroes can be seated), then who you control, the computer's
+ * strength 1–10 (one for all, or per seat, ADR-039), Quick or Long, the map, Coach; the app flips the Tie Breaker coin and
  * [start] creates and saves the game.
  */
 @HiltViewModel(assistedFactory = NewGameViewModel.Factory::class)
@@ -294,9 +295,10 @@ class NewGameViewModel internal constructor(
 
         is NewGameAction.SetControl -> form.copy(control = action.control)
 
-        is NewGameAction.SetLevel -> form.copy(level = action.level, seatLevels = emptyMap())
+        is NewGameAction.SetStrength -> form.copy(strength = AiStrength.coerce(action.strength), seatStrengths = emptyMap())
 
-        is NewGameAction.SetSeatLevel -> form.copy(seatLevels = form.seatLevels + (action.heroId to action.level))
+        is NewGameAction.SetSeatStrength ->
+            form.copy(seatStrengths = form.seatStrengths + (action.heroId to AiStrength.coerce(action.strength)))
 
         is NewGameAction.SetAdvanced -> form.copy(advanced = action.open)
 
@@ -324,7 +326,7 @@ class NewGameViewModel internal constructor(
             controller = if (controls(control, heroId, team)) {
                 Controller.Human
             } else {
-                Controller.Ai(ready.form.seatLevels[heroId] ?: ready.form.level)
+                Controller.Ai(ready.form.seatStrengths[heroId] ?: ready.form.strength)
             },
         )
         return GameSetup(
@@ -376,7 +378,7 @@ class NewGameViewModel internal constructor(
             if (control == null) return emptyList()
             return Team.entries.flatMap { team ->
                 form.lineup.team(team).filterNot { controls(control, it, team) }.map { id ->
-                    AiSeatUi(heroes.hero(id), team, form.seatLevels[id] ?: form.level)
+                    AiSeatUi(heroes.hero(id), team, form.seatStrengths[id] ?: form.strength)
                 }
             }
         }

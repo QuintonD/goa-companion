@@ -5,6 +5,7 @@ import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.game.StoredGame
 import dev.quinton.goa.core.game.AiLevel
+import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.GameFactory
 import dev.quinton.goa.core.game.GameLength
@@ -93,7 +94,7 @@ class NewGameViewModelTest {
     }
 
     @Test
-    fun `you play your whole team or one hero, the rest are the computer at the chosen levels`() = runTest(dispatcher) {
+    fun `you play your whole team or one hero, the rest are the computer at the chosen strengths`() = runTest(dispatcher) {
         val vm = viewModel(route = NewGameRoute(red = listOf("arien", "brogan"), blue = listOf("wasp", "tigerclaw")))
         val ready = vm.ready
         assertThat(ready.controls.first()).isEqualTo(Control.WholeTeam(Team.RED))
@@ -102,8 +103,9 @@ class NewGameViewModelTest {
 
         vm.onAction(NewGameAction.Step(NewGameStep.OPTIONS))
         vm.onAction(NewGameAction.SetControl(Control.Hero("arien")))
-        vm.onAction(NewGameAction.SetLevel(AiLevel.EXPERT))
-        vm.onAction(NewGameAction.SetSeatLevel("brogan", AiLevel.EASY))
+        assertThat(vm.ready.form.strength).isEqualTo(AiStrength.DEFAULT)
+        vm.onAction(NewGameAction.SetStrength(9))
+        vm.onAction(NewGameAction.SetSeatStrength("brogan", 1))
         vm.onAction(NewGameAction.SetLength(GameLength.LONG))
         assertThat(vm.setup()).isNull() // the coin isn't flipped yet
         vm.onAction(NewGameAction.FlipCoin)
@@ -113,9 +115,9 @@ class NewGameViewModelTest {
         assertThat(setup.length).isEqualTo(GameLength.LONG)
         assertThat(setup.seats.map { it.heroId to it.controller }).containsExactly(
             "arien" to Controller.Human,
-            "brogan" to Controller.Ai(AiLevel.EASY),
-            "wasp" to Controller.Ai(AiLevel.EXPERT),
-            "tigerclaw" to Controller.Ai(AiLevel.EXPERT),
+            "brogan" to Controller.Ai(AiLevel.EASY, 1),
+            "wasp" to Controller.Ai(AiLevel.EXPERT, 9),
+            "tigerclaw" to Controller.Ai(AiLevel.EXPERT, 9),
         ).inOrder()
     }
 
@@ -160,7 +162,7 @@ class NewGameViewModelTest {
         val ready = boards.uiState.first { it is dev.quinton.goa.feature.board.list.BoardsUiState.Ready }
             as dev.quinton.goa.feature.board.list.BoardsUiState.Ready
         assertThat(ready.play.available).isTrue()
-        assertThat(ready.play.resume?.summary).isEqualTo("You play Arien · Computer: Hard")
+        assertThat(ready.play.resume?.summary).isEqualTo("You play Arien · Computer: Hard 6")
         assertThat(ready.play.resume?.red?.map { it.id }).containsExactly("arien", "brogan").inOrder()
 
         val unreadable = BoardsViewModel.resumeOf(StoredGame.Unreadable, emptyMap())

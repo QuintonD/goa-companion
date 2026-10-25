@@ -465,7 +465,7 @@ private fun CoachLooking() {
 private fun ComputerMove(table: TableUi, status: TurnStatus.Computer) {
     val hero = table.heroView(status.heroId)
     val info = table.hero(status.heroId)
-    val level = (hero?.controller as? Controller.Ai)?.level
+    val computer = hero?.controller as? Controller.Ai
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
@@ -487,7 +487,7 @@ private fun ComputerMove(table: TableUi, status: TurnStatus.Computer) {
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
             Text(
-                "COMPUTER${level?.let { " · ${PlayText.level(it).uppercase()}" }.orEmpty()}",
+                "COMPUTER${computer?.let { " · ${PlayText.strength(it).uppercase()}" }.orEmpty()}",
                 style = GoaTextStyles.overline,
                 color = MaterialTheme.colorScheme.primary,
             )

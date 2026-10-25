@@ -64,7 +64,7 @@ data class BoardRowUi(
 data class ResumeUi(
     val red: List<BoardHero>,
     val blue: List<BoardHero>,
-    /** "You play Arien · Computer: Hard". */
+    /** "You play Arien · Computer: Hard 6". */
     val summary: String,
     val savedAt: Long,
     /** The save can't be read: opening it offers to delete it. */
@@ -278,16 +278,13 @@ class BoardsViewModel internal constructor(
             is StoredGame.Saved -> {
                 val seats = stored.game.game.setup.seats
                 val mine = seats.filter { it.controller == Controller.Human }.map { heroes.hero(it.heroId).name }
-                val levels = seats.mapNotNull { (it.controller as? Controller.Ai)?.level }.distinct()
+                val levels = seats.mapNotNull { it.controller as? Controller.Ai }.map(PlayText::strength).distinct()
                 ResumeUi(
                     red = seats.filter { it.team == Team.RED }.map { heroes.hero(it.heroId) },
                     blue = seats.filter { it.team == Team.BLUE }.map { heroes.hero(it.heroId) },
                     summary = listOfNotNull(
                         "You play ${mine.joinToString(" and ")}".takeIf { mine.isNotEmpty() },
-                        levels.takeIf { it.isNotEmpty() }?.let { l ->
-                            "Computer: " +
-                                l.joinToString(", ") { PlayText.level(it) }
-                        },
+                        levels.takeIf { it.isNotEmpty() }?.let { "Computer: " + it.joinToString(", ") },
                     ).joinToString(" · "),
                     savedAt = stored.game.game.savedAt,
                 )

@@ -10,8 +10,10 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
@@ -598,10 +600,10 @@ class PlayScreenshotTest {
     ).also { vm ->
         vm.onAction(NewGameAction.Step(NewGameStep.OPTIONS))
         vm.onAction(NewGameAction.SetControl(Control.Hero("arien")))
-        vm.onAction(NewGameAction.SetLevel(AiLevel.HARD))
+        vm.onAction(NewGameAction.SetStrength(AiLevel.HARD.strength))
         if (advanced) {
             vm.onAction(NewGameAction.SetAdvanced(true))
-            vm.onAction(NewGameAction.SetSeatLevel("brogan", AiLevel.EASY))
+            vm.onAction(NewGameAction.SetSeatStrength("brogan", 2))
         }
     }
 
@@ -630,6 +632,29 @@ class PlayScreenshotTest {
     @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
     @Test
     fun newGameOptionsLandscapeLight() = capture(ThemeMode.LIGHT) { NewGame(remember { options() }) }
+
+    /** The strength sliders (ADR-039), scrolled into view: the main one and one per computer seat. */
+    private fun strengthInView() = compose.onNodeWithContentDescription("Wasp's strength").performScrollTo()
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun newGameStrengthW384DarkFontScale2() = capture(ThemeMode.DARK, 2f, before = ::strengthInView) {
+        NewGame(remember { options(advanced = true) })
+    }
+
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun newGameStrengthLandscapeLight() = capture(ThemeMode.LIGHT, before = ::strengthInView) {
+        NewGame(remember { options(advanced = true).also { it.onAction(NewGameAction.SetSeatStrength("wasp", 10)) } })
+    }
+
+    /** Strength 1, the gentlest, says so. */
+    @Test
+    fun newGameStrengthGentlestLight() = capture(ThemeMode.LIGHT, before = {
+        compose.onNodeWithContentDescription("Computer strength").performScrollTo()
+    }) {
+        NewGame(remember { options().also { it.onAction(NewGameAction.SetStrength(1)) } })
+    }
 
     /** The app flipped the Tie Breaker coin: what it decides, then Start. */
     @Test
