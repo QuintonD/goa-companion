@@ -178,7 +178,8 @@ and **through the group's sync server** whenever a phone has internet (ADR-036).
 - **Group:** "Start a group" (name) creates the group and its key; "Invite a friend" shows a QR
   code (and "Share as text", which sends the invite with what to do with it); a friend's phone
   joins by scanning it (Google's code scanner, no camera permission) or pasting the invite (or the
-  whole message it came in). Leave group keeps all data.
+  whole message it came in; the dialog says both ways, and Join stays in view above the keyboard).
+  Leave group keeps all data.
 - **Join flow:** install → Group sync → scan → the first sync starts right away → "Which player
   are you?" (pick yourself, or add yourself: this is how a friend adds themself as a player).
   Your player shows "You" in the Players list, and the Players tab's top bar opens your page.
@@ -413,7 +414,8 @@ opponents (and teammates) at four levels. One phone, one human team.
   your own hand — and **Turns** — every turn so far, newest first, each hero's card at the reveal in the
   order they acted (facedown cards stay hidden), the turn's lines not to miss with the rest behind
   "Show all", the end of each round, and **Board**: the start of any earlier turn, read only, as you
-  saw it then. Tap a card to read it in the card focus viewer, over the sheet. Only open information (p.4): built by the engine from its own
+  saw it then. Back steps out one level at a time: from a turn's board to Turns, then closes the sheet,
+  then leaves the game for Boards. Tap a card to read it in the card focus viewer, over the sheet. Only open information (p.4): built by the engine from its own
   views, never from the log's words. Note: the rulebook forbids taking notes at the table (p.4 Table
   Talk); the history is the log's own content, offered as a learning aid (ADR-037).
 - **See the whole board:** the panel (questions, the computer's move, the coach) hides to a
@@ -422,7 +424,9 @@ opponents (and teammates) at four levels. One phone, one human team.
   whole board (unless you had moved it), only the round at a glance stays at the top (the hero strip
   returns with the panel), and a space or piece tapped on the map is answered with Confirm in the
   peek bar, without opening the panel. Show (or a tap on the peek bar, or dragging it up) brings the
-  panel back. In landscape the side panel hides to a small card at the bottom end.
+  panel back. In landscape the side panel hides to a small card at the bottom end; while it is shown,
+  the heroes are portraits beside the round at a glance (a tap still opens each one) and a puzzle's
+  goal is one line, so a phone held sideways keeps most of its map.
 - **Pacing:** each computer action is shown for a moment (Slow / Normal / Fast); "thinking…" when
   it takes long. Take back undoes your last choice (counted in the summary).
 - **Coach** (on/off, also in-game): before a clearly worse choice, a gentle nudge ("Coach: Wasp's

@@ -64,7 +64,9 @@ import kotlinx.coroutines.launch
  * landscape), the round at a glance and every hero's status floating at the top, Fit and Flip at
  * the right, and [panel] (the question, the computer's move, the coach…) at the bottom in portrait
  * or on the right in landscape. The map frames the Lane between them and brings the spaces asked
- * for into view. [banner] (a puzzle's goal) floats under the hero strip, and the map keeps clear of it.
+ * for into view. [banner] (a puzzle's goal) floats under the hero strip, and the map keeps clear of it;
+ * it is told to be compact (one line) in landscape, where the map has little height. There the hero
+ * strip is portraits only, beside the round at a glance, so the top keeps to about two rows.
  *
  * The panel hides ([HideablePanel]) to show the whole board: then it is [peek]'s one line (with
  * [peekTrailing], e.g. Confirm), only the round at a glance stays at the top, and the map fits the
@@ -79,7 +81,7 @@ fun GameTable(
     onHero: (String) -> Unit,
     onFlip: () -> Unit,
     modifier: Modifier = Modifier,
-    banner: (@Composable () -> Unit)? = null,
+    banner: (@Composable (compact: Boolean) -> Unit)? = null,
     peek: PanelPeek = PanelPeek(""),
     peekTrailing: (@Composable () -> Unit)? = null,
     initialPanelHidden: Boolean = false,
@@ -133,12 +135,14 @@ fun GameTable(
                 Modifier.onSizeChanged { topHeight = it.height + with(density) { Spacing.sm.roundToPx() } },
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
-                TableHud(table)
                 // Panel hidden: the board unobstructed; the heroes come back with the panel (one tap).
-                if (!hidden) {
-                    HeroStrip(table, onHero)
-                    banner?.invoke()
+                if (landscape && !hidden) {
+                    TableTopRow(table, onHero)
+                } else {
+                    TableHud(table)
+                    if (!hidden) HeroStrip(table, onHero)
                 }
+                if (!hidden) banner?.invoke(landscape)
             }
             Column(Modifier.align(Alignment.End), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 if (viewport.isFit) {
@@ -174,6 +178,22 @@ fun GameTable(
                 content = panel,
             )
         }
+    }
+}
+
+/**
+ * Landscape: the round at a glance and the heroes as portraits on one row (the portraits scroll
+ * if they don't fit beside it).
+ */
+@Composable
+internal fun TableTopRow(table: TableUi, onHero: (String) -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TableHud(table, compact = true)
+        HeroStrip(table, onHero, Modifier.weight(1f, fill = false), compact = true)
     }
 }
 
@@ -282,5 +302,5 @@ fun TableUi.choiceFor(tap: TableTap): Choice? = when (tap) {
 
 private const val RECENT = 4
 private val SIDE_PANEL = 400.dp
-private const val SIDE_SHARE = 0.46f
+private const val SIDE_SHARE = 0.42f
 private const val PANEL_SHARE = 0.56f

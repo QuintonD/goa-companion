@@ -232,6 +232,13 @@ class PlayScreenshotTest {
     @Test
     fun tablePlayCardLandscapeDark() = capture(ThemeMode.DARK) { Game(remember { playCard() }) }
 
+    /** Sideways on an S25-sized phone (bars and cutout taken), mid-turn: the top keeps to one row. */
+    @Config(qualifiers = "w800dp-h330dp-land-xxhdpi")
+    @Test
+    fun tableChooseActionLandscapeShortDark() = capture(ThemeMode.DARK) {
+        Game(remember { at(DecisionKind.CHOOSE_ACTION, 3) })
+    }
+
     /** Simultaneous play: your card is down (shown to you only), the computer still chooses. */
     @Test
     fun tableWaitingDark() = capture(ThemeMode.DARK) {
@@ -432,6 +439,26 @@ class PlayScreenshotTest {
     @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
     @Test
     fun tableCardFocusLandscapeDark() = focusedDiscard(ThemeMode.DARK)
+
+    /**
+     * A phone held sideways once the status bar, the gesture bar and the camera cutout are taken
+     * (S25-sized, hands-on 2026-10-25): the card's text still shows beside the card, without scrolling.
+     */
+    @Config(qualifiers = "w800dp-h330dp-land-xxhdpi")
+    @Test
+    fun tableCardFocusLandscapeShortDark() = focusedDiscard(ThemeMode.DARK)
+
+    /** Play a card sideways on a short screen: a Tier I card, its caption, the text and Play facedown. */
+    @Config(qualifiers = "w800dp-h330dp-land-xxhdpi")
+    @Test
+    fun tablePlayCardFocusLandscapeShortLight() {
+        val play = at(DecisionKind.PLAY_CARD)
+        capture(ThemeMode.LIGHT, before = {
+            tapCard(play.table.card(play.table.cardOptions[1].cardId)!!.name)
+        }, screen = true) {
+            Game(play)
+        }
+    }
 
     /** Defend: the card large with its verdict on its corner and "Defense 3 against Attack 6". */
     @Test

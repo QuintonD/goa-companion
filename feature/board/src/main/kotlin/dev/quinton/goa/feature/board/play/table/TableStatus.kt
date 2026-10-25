@@ -73,7 +73,7 @@ private const val TURNS = 4
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun TableHud(table: TableUi, modifier: Modifier = Modifier) {
+fun TableHud(table: TableUi, modifier: Modifier = Modifier, compact: Boolean = false) {
     val view = table.view
     val waves = table.map.lanes.map { lane -> BoardText.lane(table.map, lane.id) to (view.wavesLeft[lane.id] ?: 0) }
     val spoken = buildList {
@@ -94,7 +94,8 @@ fun TableHud(table: TableUi, modifier: Modifier = Modifier) {
     ) {
         FlowRow(
             Modifier.padding(horizontal = Spacing.sm, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            // Compact (landscape, beside the heroes' portraits): the same, closer together.
+            horizontalArrangement = Arrangement.spacedBy(if (compact) Spacing.sm else Spacing.md),
             verticalArrangement = Arrangement.spacedBy(4.dp),
             itemVerticalAlignment = Alignment.CenterVertically,
         ) {
@@ -182,9 +183,14 @@ internal fun TieBreakerMark(team: Team, size: Dp = 20.dp) {
  * Before the reveal in team order; after it in initiative order, numbered, with the initiative of
  * the card played (the initiative order strip). The acting hero's chip is outlined in bronze and
  * marked "Now". Tap a chip for the hero's cards and markers.
+ *
+ * [compact] (a phone held sideways with the panel shown, where the map has little height): each
+ * hero is just its ringed portrait with the order badge, the acting one in a bronze ring, so the
+ * strip fits beside the round at a glance; a tap still opens everything about the hero, and TalkBack
+ * hears the whole chip.
  */
 @Composable
-fun HeroStrip(table: TableUi, onHero: (String) -> Unit, modifier: Modifier = Modifier) {
+fun HeroStrip(table: TableUi, onHero: (String) -> Unit, modifier: Modifier = Modifier, compact: Boolean = false) {
     val order = table.initiativeOrder
     val heroes = if (order.isNotEmpty()) {
         order.mapNotNull(table::heroView) + table.view.heroes.filter { it.heroId !in order }
@@ -197,18 +203,21 @@ fun HeroStrip(table: TableUi, onHero: (String) -> Unit, modifier: Modifier = Mod
     ) {
         heroes.forEach { hero ->
             val place = order.indexOf(hero.heroId).takeIf { it >= 0 }?.plus(1)
-            HeroChip(table, hero, place, onClick = { onHero(hero.heroId) })
+            if (compact) {
+                CompactHeroChip(table, hero, place, onClick = { onHero(hero.heroId) })
+            } else {
+                HeroChip(table, hero, place, onClick = { onHero(hero.heroId) })
+            }
         }
     }
 }
 
-@Composable
-private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () -> Unit) {
+/** What TalkBack hears for a hero's chip (full or compact). */
+private fun spokenChip(table: TableUi, hero: HeroView, place: Int?): String {
     val info = table.hero(hero.heroId)
-    val color = teamColor(hero.team)
     val acting = table.view.acting == hero.heroId
     val played = table.card(hero.played?.cardId)?.takeIf { hero.played?.facedown != true }
-    val spoken = buildList {
+    return buildList {
         add(info.name)
         add(BoardText.team(hero.team))
         add(table.controllerLabel(hero))
@@ -220,6 +229,15 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
         add("${BoardText.count(hero.handCount, "card")} in hand")
         if (hero.at == null) add("off the board")
     }.joinToString(", ")
+}
+
+@Composable
+private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () -> Unit) {
+    val info = table.hero(hero.heroId)
+    val color = teamColor(hero.team)
+    val acting = table.view.acting == hero.heroId
+    val played = table.card(hero.played?.cardId)?.takeIf { hero.played?.facedown != true }
+    val spoken = spokenChip(table, hero, place)
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
@@ -307,6 +325,63 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
         }
     }
 }
+
+/** A hero as its portrait only: team ring, order badge, a bronze ring while it acts. */
+@Composable
+private fun CompactHeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () -> Unit) {
+    val info = table.hero(hero.heroId)
+    val acting = table.view.acting == hero.heroId
+    val spoken = spokenChip(table, hero, place)
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+        border = BorderStroke(
+            if (acting) 2.dp else 1.dp,
+            if (acting) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder,
+        ),
+        modifier = Modifier
+            .size(COMPACT_CHIP)
+            .clearAndSetSemantics {
+                contentDescription = spoken
+                role = Role.Button
+                onClick(label = "Read about ${info.name}") {
+                    onClick()
+                    true
+                }
+            },
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            HeroPortrait(
+                hero.heroId,
+                info.portrait,
+                null,
+                Modifier
+                    .size(COMPACT_PORTRAIT)
+                    .border(2.dp, teamColor(hero.team), CircleShape)
+                    .alpha(if (hero.at == null) OFF_BOARD_ALPHA else 1f),
+                shape = CircleShape,
+                framed = false,
+            )
+            if (place != null) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.background,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.align(Alignment.TopStart).size(16.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("$place", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            Box(Modifier.align(Alignment.BottomEnd).padding(2.dp)) { TeamMark(hero.team, markSize = 9.dp) }
+        }
+    }
+}
+
+private val COMPACT_CHIP = 48.dp
+private val COMPACT_PORTRAIT = 38.dp
 
 @Composable
 private fun Stat(icon: ImageVector?, text: String) {

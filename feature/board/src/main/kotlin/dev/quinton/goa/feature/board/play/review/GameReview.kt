@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.board.play.review
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -87,6 +88,7 @@ import dev.quinton.goa.feature.board.play.table.HeroStrip
 import dev.quinton.goa.feature.board.play.table.ItemIcon
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableHud
+import dev.quinton.goa.feature.board.play.table.TableTopRow
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.figureOf
 import dev.quinton.goa.feature.board.play.table.spokenCard
@@ -758,9 +760,15 @@ private fun Lines(lines: List<ReviewLine>, startOpen: Boolean, what: String) {
 
 // ---- Rewind --------------------------------------------------------------------------------
 
-/** The board at the start of an earlier turn, read only, with the heroes as they stood then. */
+/**
+ * The board at the start of an earlier turn, read only, with the heroes as they stood then. System
+ * back returns to the Turns list (one level, like the arrow), not past it: the sheet's own back
+ * handler would close the whole review, so the next press would leave the game.
+ */
 @Composable
 private fun Rewind(table: TableUi, rewind: RewindUi, onAction: (ReviewAction) -> Unit) {
+    // Registered inside the sheet's window after the sheet's own callback, so it is asked first.
+    BackHandler { onAction(ReviewAction.CloseRewind) }
     val then = TableUi(
         map = table.map,
         view = rewind.view,
@@ -816,8 +824,12 @@ private fun Rewind(table: TableUi, rewind: RewindUi, onAction: (ReviewAction) ->
                 Modifier.fillMaxWidth().padding(Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
-                TableHud(then)
-                HeroStrip(then, onHero = {})
+                if (landscape) {
+                    TableTopRow(then, onHero = {})
+                } else {
+                    TableHud(then)
+                    HeroStrip(then, onHero = {})
+                }
             }
         }
     }

@@ -115,7 +115,10 @@ overtime; tap returns to the timer). The Meta tab defaults to a compact sortable
 The three map screens share two pieces of chrome in `feature/board/ui/` so the map gets the screen.
 **Compact top bar** (`BoardScaffold`): `GoaScreen`'s look (canvas colour, engraved rule, back arrow,
 Cinzel title) at 48 dp with an 18 sp title in portrait and 40 dp with a 16 sp title in landscape; it
-grows only when large text needs one line of the title. Icons keep 48 dp touch targets, overlapping
+grows only when large text needs one line of the title. A title too long for one line (a board named
+after its line-up, "Arien, Brogan, Xargatha vs Wasp, Tigerclaw, Sabina") takes two lines at 13 sp
+within the same height, portrait and landscape; with large text, where two lines would not fit, it is
+cut with an ellipsis (TalkBack reads it whole). Icons keep 48 dp touch targets, overlapping
 the bar's visible height. The content keeps clear of a display cutout the app shell left (landscape).
 Other screens keep `GoaScreen`. **Hideable panel** (`HideablePanel`): shown, the panel (bottom in
 portrait, end side in landscape) opens under a 40 dp strip with a drag handle and Hide (chevron down;
@@ -190,6 +193,10 @@ turn pips: done filled, current ringed, later hollow; the Tie Breaker coin as th
 shape on a bronze ring) and the hero strip, one chip per hero (portrait ringed in team colour,
 shape, name, Lv, coins, cards in hand); after the reveal the strip is in initiative order, numbered,
 with each played card's initiative, and the acting hero's chip has a bronze border and "· Now".
+In landscape with the panel shown (a phone's height is what the map lacks) the strip is portraits
+only, 48 dp discs on the HUD's row (team ring and shape, the order badge, a bronze ring while acting;
+TalkBack hears the full chip; a tap opens the hero), and the HUD's items sit closer; the side panel
+takes 42 % of the width (at most 400 dp).
 **Panel** (bottom, max 56 % in portrait; right side in landscape; hides to its peek bar, see
 **Board screens' frame**): the header names the deciding
 hero and the kind in the team's colour ("◆ ARIEN · DEFEND"), the prompt in titleMedium (a live
@@ -210,7 +217,8 @@ reuses New board's picker; heroes not yet playable are veiled and marked "Later"
 
 ### Puzzles (ADR-035, PRODUCT §10)
 The puzzle screen is the game table (above) plus: the **goal banner** floating under the hero strip
-(surface at 94 %, bronze border, flag icon, goal in titleSmall, "You play …" under it); the panel opens
+(surface at 94 %, bronze border, flag icon, goal in titleSmall, "You play …" under it; in landscape one
+line, "goal · You play …", with a chevron to open it in full when it is cut); the panel opens
 with "PUZZLE n OF m", the **difficulty mark** (three small hexes, filled up to the level, and the
 word Hard / Harder / Hardest: shape and word, never colour alone), the title in Cinzel and the theme,
 then "What you know" (surfaceVariant, folds to one line). A **nudge** is a secondary-container card
@@ -238,7 +246,11 @@ discarded cards, a puzzle replay's card, and the sandbox's "Read the cards".
   against Attack 6", also as a pill on the card's corner), why a card isn't an option, what choosing it
   means (Keep: "… goes to your hand", "… becomes an item: +1 Defense (p.16)"; Upgrade: the two cards of
   the next Tier with their item stats), the printed values, the text verbatim, its item stat.
-  Landscape: the card on the left at full height, title and panel on the right.
+  Landscape: the card on the left at full height; on the right a 48 dp header and the panel down to
+  the bottom edge, with the tier beside the name, tighter spacing, the card text in bodyMedium and no
+  "Swipe up…" line, so on a phone held sideways the card's text shows without scrolling. The details
+  scroll in both orientations, with a fade at the bottom while there is more. The scrim turns opaque
+  behind the header (fading out just below it), so the screen's top bar never shows through.
 - **Second tap** on the focused card confirms: a press (scale 0.93, 90 ms), a bouncy settle with a teal
   tick seal, the phone's Confirm haptic, then the answer goes out and the card fades away. The panel
   ends with "Tap the card again to discard Magnetic Dagger" (teal, touch icon) over a filled button

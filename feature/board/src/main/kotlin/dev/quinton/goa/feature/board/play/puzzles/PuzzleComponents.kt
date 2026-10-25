@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material3.Icon
@@ -27,7 +30,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -41,8 +48,13 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
@@ -85,44 +97,94 @@ fun DifficultyMark(level: Int, modifier: Modifier = Modifier, showLabel: Boolean
     }
 }
 
-/** The goal, floating under the hero strip: what to achieve and who the player controls. */
+/**
+ * The goal, floating under the hero strip: what to achieve and who the player controls. [compact]
+ * (landscape, where the map has little height): one line, who you play after the goal; when it
+ * doesn't fit, a tap opens it in full and another folds it again.
+ */
 @Composable
-fun GoalBanner(goal: String, playing: List<String>, modifier: Modifier = Modifier) {
+fun GoalBanner(goal: String, playing: List<String>, modifier: Modifier = Modifier, compact: Boolean = false) {
     val you = if (playing.isEmpty()) "" else "You play ${PuzzleText.names(playing)}"
     // The goal already ends with a full stop ("Win the game this turn."): TalkBack read "turn.. You".
     val spoken = listOf("Goal: ${goal.trimEnd('.')}.", you).joinToString(" ").trim()
+    var open by rememberSaveable { mutableStateOf(false) }
+    var cut by remember { mutableStateOf(false) }
+    val tappable = compact && (cut || open)
+    val toggleLabel = if (open) "Fold the goal" else "Show the whole goal"
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)),
         modifier = modifier
             .fillMaxWidth()
-            .clearAndSetSemantics { contentDescription = spoken },
+            .then(if (tappable) Modifier.clickable(onClickLabel = toggleLabel) { open = !open } else Modifier)
+            .clearAndSetSemantics {
+                contentDescription = spoken
+                if (tappable) {
+                    onClick(label = toggleLabel) {
+                        open = !open
+                        true
+                    }
+                }
+            },
     ) {
         Row(
-            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            Modifier.padding(horizontal = Spacing.md, vertical = if (compact) Spacing.xs else Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 Icons.Outlined.Flag,
                 null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(scaledIconSize(20.dp, 1.4f)),
+                modifier = Modifier.size(scaledIconSize(if (compact) 18.dp else 20.dp, 1.4f)),
             )
             Spacer(Modifier.width(Spacing.sm))
-            Column(Modifier.weight(1f)) {
-                Text(goal, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                if (you.isNotEmpty()) {
-                    Text(
-                        you,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+            if (compact && !open) {
+                FoldedGoal(goal, you, onCut = { cut = it }, modifier = Modifier.weight(1f))
+            } else {
+                Column(Modifier.weight(1f)) {
+                    Text(goal, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    if (you.isNotEmpty()) {
+                        Text(
+                            you,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
+            }
+            if (tappable) {
+                Icon(
+                    if (open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                    null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(scaledIconSize(18.dp, 1.4f)),
+                )
             }
         }
     }
 }
+
+/** The goal and who you play on one line; [onCut] says whether it had to be shortened. */
+@Composable
+private fun FoldedGoal(goal: String, you: String, onCut: (Boolean) -> Unit, modifier: Modifier) {
+    val quiet = MaterialTheme.typography.labelMedium.toSpanStyle().copy(
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Text(
+        buildAnnotatedString {
+            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(goal) }
+            if (you.isNotEmpty()) withStyle(quiet) { append(GOAL_GAP + you) }
+        },
+        style = MaterialTheme.typography.titleSmall,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        onTextLayout = { onCut(it.hasVisualOverflow) },
+        modifier = modifier,
+    )
+}
+
+private const val GOAL_GAP = "  ·  "
 
 /**
  * A gentle nudge (not a dialog): "Nudge 2 of 3", the text, the option it points at once it is the

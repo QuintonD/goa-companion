@@ -5,8 +5,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -102,6 +107,22 @@ class SyncScreenshotTest {
     @Test fun groupJoinedDarkFontScale2() = shot(fontScale = 2f) { Group(joined) }
 
     @Test fun inviteDialogDark() = screen { Group(joined, invite = true) }
+
+    /**
+     * Pasting an invite with the keyboard up (hands-on 2026-10-25: Join was under the keyboard). The
+     * room the keyboard leaves on a phone is a short window here: Join must be on screen once the
+     * field has the invite.
+     */
+    @Config(qualifiers = "w411dp-h420dp-xxhdpi")
+    @Test
+    fun groupPasteInviteShortDark() {
+        setContent(ThemeMode.DARK, 1f) { Group(noGroup) }
+        compose.onNode(hasSetTextAction() and hasText("Or paste an invite"))
+            .performTextInput("Join “Friday nights” in Atlantis Companion: goa1-abc")
+        compose.waitForIdle()
+        compose.onNode(hasText("Join") and hasClickAction()).assertIsDisplayed()
+        compose.onRoot().captureRoboImage()
+    }
 
     private val session = SyncSessionUiState(groupName = "Friday nights", deviceName = "Ann")
     private val peers = listOf(

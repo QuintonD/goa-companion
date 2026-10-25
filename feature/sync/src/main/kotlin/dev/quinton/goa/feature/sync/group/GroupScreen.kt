@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.sync.group
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -8,15 +9,21 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -43,6 +50,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,9 +58,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -120,6 +130,9 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
     Column(
         Modifier
             .fillMaxSize()
+            // The keyboard shrinks the scrolling area (the insets the scaffold padded aren't counted twice).
+            .consumeWindowInsets(padding)
+            .imePadding()
             .verticalScroll(rememberScrollState())
             .padding(padding)
             .padding(horizontal = Spacing.screen, vertical = Spacing.lg),
@@ -156,7 +169,8 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                 },
             )
             Text(
-                "On a phone that's already in the group: Group sync → Invite. Scan its QR code here.",
+                "On a phone that's already in the group: Group sync → Invite. Scan its QR code here, or paste " +
+                    "the invite it shared as text.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -167,25 +181,15 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                 Text("Scan invite QR code")
             }
             Spacer(Modifier.size(Spacing.md))
-            OutlinedTextField(
-                value = invite,
-                onValueChange = {
+            PasteInvite(
+                invite = invite,
+                onInvite = {
                     invite = it
                     actions.onClearJoinError()
                 },
-                label = { Text("Or paste an invite") },
-                singleLine = true,
-                isError = state.joinError != null,
-                supportingText = state.joinError?.let { { Text(it) } },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-                keyboardActions = KeyboardActions(onGo = { actions.onPaste(invite) }),
-                modifier = Modifier.fillMaxWidth(),
+                error = state.joinError,
+                onJoin = { actions.onPaste(invite) },
             )
-            TextButton(
-                onClick = { actions.onPaste(invite) },
-                enabled = invite.isNotBlank(),
-                modifier = Modifier.heightIn(min = 48.dp),
-            ) { Text("Join") }
         }
         GoaCard(Modifier.fillMaxWidth()) {
             Text(
@@ -417,6 +421,38 @@ private fun LinkRow(icon: ImageVector, title: String, subtitle: String, enabled:
     }
 }
 
+/**
+ * The invite field and Join. While the field has focus both stay in view above the keyboard
+ * (pasting an invite used to leave Join under it).
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun PasteInvite(invite: String, onInvite: (String) -> Unit, error: String?, onJoin: () -> Unit) {
+    val requester = remember { BringIntoViewRequester() }
+    var focused by remember { mutableStateOf(false) }
+    val keyboard = WindowInsets.ime.getBottom(LocalDensity.current)
+    // Again as the keyboard slides in (the space shrinks while it does) and as the text changes.
+    LaunchedEffect(focused, keyboard, invite, error) { if (focused) requester.bringIntoView() }
+    Column(Modifier.fillMaxWidth().bringIntoViewRequester(requester)) {
+        OutlinedTextField(
+            value = invite,
+            onValueChange = onInvite,
+            label = { Text("Or paste an invite") },
+            singleLine = true,
+            isError = error != null,
+            supportingText = error?.let { { Text(it) } },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+            keyboardActions = KeyboardActions(onGo = { onJoin() }),
+            modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
+        )
+        TextButton(
+            onClick = onJoin,
+            enabled = invite.isNotBlank(),
+            modifier = Modifier.heightIn(min = 48.dp),
+        ) { Text("Join") }
+    }
+}
+
 /** The invite QR code, big and on white (scanners need the contrast), with what to do on the other phone. */
 @Composable
 fun InviteDialog(state: GroupUiState, onShare: () -> Unit, onDismiss: () -> Unit) {
@@ -446,8 +482,9 @@ fun InviteDialog(state: GroupUiState, onShare: () -> Unit, onDismiss: () -> Unit
                     )
                 }
                 Text(
-                    "On your friend's phone: install the app, open Settings → Group sync → Scan invite QR code. " +
-                        "Anyone with this code can join, so only show it at the table.",
+                    "On your friend's phone: install the app, open Settings → Group sync → Scan invite QR code, " +
+                        "or share it as text and paste it on the other phone. Anyone with this code can join, so " +
+                        "only show it at the table or send it to the group.",
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Start,
                 )
