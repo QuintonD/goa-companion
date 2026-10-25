@@ -37,7 +37,12 @@ private val DataSourceCredits = listOf(
     "guards-of-atlantis-ii-data (colefin8)" to "Card values cross-check",
 )
 
-private data class FontCredit(val family: String, val copyright: String, val file: String)
+private data class FontCredit(
+    val family: String,
+    val copyright: String,
+    val file: String,
+    val licence: String = "SIL Open Font License 1.1",
+)
 
 /** The bundled fonts (OFL 1.1); their licence texts are copied from `third_party/fonts/` at build time. */
 private val FontCredits = listOf(
@@ -132,12 +137,24 @@ fun AboutScreen() {
                 FontCredits.forEach { font ->
                     ListRow(
                         font.family,
-                        subtitle = "SIL Open Font License 1.1 · ${font.copyright}",
+                        subtitle = "${font.licence} · ${font.copyright}",
                         leadingIcon = "article",
                         trailing = "View",
                         onClick = { sheet = AboutSheet.License(font) },
                     )
                 }
+            }
+        }
+        SectionHeader("Icons")
+        GoaCard(flush = true) {
+            RowList {
+                ListRow(
+                    IconCredit.family,
+                    subtitle = "${IconCredit.licence} · the game icons in card text",
+                    leadingIcon = "article",
+                    trailing = "View",
+                    onClick = { sheet = AboutSheet.License(IconCredit) },
+                )
             }
         }
     }
@@ -151,6 +168,10 @@ fun AboutScreen() {
         null -> Unit
     }
 }
+
+/** The glyphs of the game icons in card text, as on Android (material-icons-extended), Apache 2.0. */
+private val IconCredit =
+    FontCredit("Material Icons", "Copyright Google LLC", "LICENSE-Apache-2.0.txt", "Apache License 2.0")
 
 @Composable
 private fun SourcesDocument() {

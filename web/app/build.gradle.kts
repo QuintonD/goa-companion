@@ -36,6 +36,11 @@ val webAssets: TaskProvider<Sync> = tasks.register<Sync>("webAssets") {
         include("OFL-*.txt")
         into("licenses")
     }
+    // The licence of the Material icon glyphs in card text (`icons/game_*.svg`).
+    from(rootProject.file("third_party/icons")) {
+        include("LICENSE-*.txt")
+        into("licenses")
+    }
     from(rootProject.file("design/icons")) {
         include("nav_*.svg", "brand_mark.svg")
         into("icons")

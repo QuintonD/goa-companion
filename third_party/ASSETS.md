@@ -36,6 +36,15 @@ hero's name and title.
 
 UI icons from `androidx.compose.material:material-icons-extended` (Apache 2.0, Google).
 
+The web app (ADR-043) draws the same game-icon glyphs in card text from SVG copies:
+`web/app/src/jsMain/resources/icons/game_<token>.svg`, taken unchanged from the npm package
+`@material-design-icons/svg` 0.14.15 (`filled/` and `outlined/`, the same Material Icons set; each
+file's `<title>` names its source glyph), except `game_attack.svg`, the app's own sword
+(`GameIcons.Sword`). Licence text: [`icons/LICENSE-Apache-2.0.txt`](icons/LICENSE-Apache-2.0.txt),
+shown in the web app's About → Icons. The web app's other UI icons are original
+(`web/app/src/jsMain/resources/icons/*.svg`, 24-unit grid, 2-unit stroke); it also bundles the
+hero sigils from `design/sigils/` as the fallback for hero art.
+
 ## Sounds (original, made for this app)
 
 | Asset | Master | Generated |
