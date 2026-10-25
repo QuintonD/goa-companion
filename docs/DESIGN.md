@@ -214,6 +214,21 @@ coach's nudge is a secondary-container card with "Choose anyway" (outlined) and 
 Game over leads with "You won" / "The computer won" in a card bordered in the winner's colour, the
 rulebook reason, each hero's results, then the coach's turning points by round and turn. New game
 reuses New board's picker; heroes not yet playable are veiled and marked "Later".
+**Spellbook** (Gydion, ADR-040; `play/table/SpellbookSection.kt`): the hero sheet and the review's Now
+tab show a SPELLBOOK section after the discard, in the engine's order: "In your spellbook · 19" (the
+spell cards, for Gydion's player only), "Cast · removed faceup · 3" (everyone), "Not yet added · 22"
+(only before the first Prepare Spells, with "Prepare Spells adds every spell card to the spellbook.").
+Anyone else sees "In the spellbook · 19" and "Facedown: only Gydion can look at the cards in the
+spellbook." (a puzzle, whose hands are open, says "Open in this puzzle."). The cards are the official
+landscape scans in a grid as wide as the sheet (columns of at least 104 dp, at most 4); the images are
+the content, no card text retyped. A tap opens the card focus viewer among that group. Cantrip's
+"Choose and cast one spell" offers the spells as landscape cards that share the row's height
+(shrinking down to 44 dp-wide equivalents to fit three), "tap it again to cast it", "Cast Magic
+Missile". An unlocked Ultimate shows as its card ("ULTIMATE · p.16"), as it lies faceup on the
+dashboard. **Card shape:** deck cards are portrait scans (729 × 1026), spell cards landscape (737 ×
+510); `ui/cards/CardShape.kt` decides by the catalog id (`<hero>-spell-…`) and `CardShapeTest` checks
+every bundled scan. A landscape card is never put in a portrait frame: in a row it keeps the row's
+height and is about twice as wide (`TableCard`'s `width` is a portrait card's).
 
 ### Puzzles (ADR-035, PRODUCT §10)
 The puzzle screen is the game table (above) plus: the **goal banner** floating under the hero strip
@@ -260,6 +275,10 @@ discarded cards, a puzzle replay's card, and the sandbox's "Read the cards".
   button reads "Not an option". While the game is busy the button reads "Wait…".
 - **Swipe sideways** on the card for the others (a pager, neighbours peeking at 93 % scale and 55 %
   alpha, snapping); tap a neighbour to go to it.
+- **Landscape cards** (Gydion's spells) keep their aspect: in portrait the card is the screen's width
+  (minus the peeking neighbours) and short, leaving the panel more room; in landscape it may take 55 %
+  of the width instead of 40 %. A mixed set (a deck card and a spell) shares one stage as wide as the
+  widest card and as tall as the tallest, each card centred at its own largest size.
 - **Close with nothing chosen:** the system back gesture (predictive: the card shrinks up to 14 % and
   drifts away from the edge as you drag, springs back if you cancel), an upward swipe or fling on the
   card (it flies up), a tap on the scrim, or ×. A downward drag only gives a little and springs back.

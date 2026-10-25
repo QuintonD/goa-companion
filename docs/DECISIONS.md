@@ -930,3 +930,37 @@ smoke checks; the full `connectedDebugAndroidTest` run stays on Megalithic or th
 **Consequences:** Either machine can build and publish an update that installs over the other's. One
 Gradle build at a time on oldboi, always through `goa-gradle`; it is slower than Megalithic. Megalithic
 keeps everything until the owner decides to clear it.
+
+## ADR-040 — Gydion's spellbook at the game table (2026-10-25)
+**Context:** The owner: "Missing the spell cards for gideon". The catalog has Gydion's 22 spell cards
+(hero JSON `extras`, landscape scans) and the engine plays them, but at the table a Gydion player saw
+only counters ("Spellbook 19 · Spells removed 3"): not which spells were in the spellbook, which were
+cast, or which Prepare Spells would add. Card images drawn in a portrait frame shrank a landscape spell
+to a strip with empty bands, in the cast question and the card focus viewer alike.
+**Decision:** The engine's views carry a hero's extra cards by place: `HeroView.extras:
+List<ExtraPlaceView>` (`place`, `count`, `cardIds`, `open`), built in `Views` from `Zone.EXTRA` and
+`CardInst.tag`, so the live table, merged views, the Game state review (ADR-037) and puzzles share one
+visibility. A hero module declares its places (`Registry.extraPlaces`, `ExtraPlace(tag, open)`); a place
+that is not open names its cards to the hero's own seat only. Gydion: `spellbook` (not open — Prepare
+Spells: "Only Gydion can look at the cards in the spellbook", so not even a teammate, p.4), `removed`
+(open — "remove it from the spellbook faceup"), `box` (open — the spell cards are public components;
+the game starts with an empty spellbook, designer on BGG 3491113). The engine still keeps no hidden
+information here (rulings/gydion.md 3: the spellbook's contents follow from the removed and unadded
+spells); the views follow the card's words. The UI (`play/table/SpellbookSection.kt`) shows the groups
+as the official images on the hero sheet and the review's Now tab; the cast question shows the spells
+as cards ("Cast Magic Missile"). Card shape: the catalog has no orientation field, so
+`ui/cards/CardShape.kt` takes the spellbook id scheme (`<hero>-spell-…`, the importer's
+`CardMapping.spellId`) as landscape and `CardShapeTest` checks every bundled scan against it; a
+landscape card keeps a row's height and is wider, and the card focus viewer sizes each card at its own
+aspect. The board sandbox lists Gydion's spells after his deck to measure with (his deck cards carry no
+Movement, Range or Radius of their own). An unlocked Ultimate is shown as its card (p.16: it lies
+faceup on the dashboard).
+**Alternatives:** an orientation field in the catalog measured by the importer (touches the import
+pipeline and every hero JSON for one hero; the test guards the id rule instead); measuring each image
+when it loads (the card would jump in size as it grows out of its thumbnail); Gydion-named view fields
+(a future hero with extras would need another contract change); the spellbook open to all since it is
+derivable (the card says only Gydion looks).
+**Consequences:** Additive contract change (CONTRACT-CHANGES.md); old saves load unchanged (views are
+rebuilt, never saved). A future hero with extras declares its places and, if its scans are landscape,
+extends the shape rule (CardShapeTest fails until it does). The hero chip shows no spellbook count (the
+strip is S3's and has no room; the counts are on the sheet).
