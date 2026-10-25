@@ -271,6 +271,7 @@ private fun HeroMeasures(
     val card = overlay.card
     Overline("Card")
     CardStrip(hero.cards, card?.id) { onAction(BoardAction.ChooseCard(it)) }
+    ReadCardsButton(hero, card?.id) { onAction(BoardAction.ChooseCard(it)) }
     if (card == null) {
         Note("Pick a card to see where it reaches: its Movement, Range and Radius.")
     } else {

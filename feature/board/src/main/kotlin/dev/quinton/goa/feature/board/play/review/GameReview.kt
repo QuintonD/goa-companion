@@ -113,7 +113,7 @@ fun GameReviewContent(
     onTab: (ReviewTab) -> Unit,
     /**
      * Opens [cards] (the face-up cards of the row tapped) at [index]: one callback, so the screen
-     * decides how a card is read (the card sheet today).
+     * decides how a card is read (the card focus viewer, view only).
      */
     onOpenCard: (cards: List<Card>, index: Int) -> Unit,
     onAction: (ReviewAction) -> Unit,

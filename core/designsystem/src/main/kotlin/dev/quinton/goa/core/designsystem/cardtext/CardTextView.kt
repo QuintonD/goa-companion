@@ -50,7 +50,10 @@ private fun AnnotatedString.Builder.appendSegments(segments: List<CardText.Segme
             }
 
             is CardText.Segment.Reminder -> withStyle(SpanStyle(fontStyle = FontStyle.Italic, color = reminderColor)) {
-                append("(${segment.value})")
+                // A reminder can name an icon too ("(Skill {skill} is an action type.)").
+                append("(")
+                appendSegments(CardText.parse(segment.value), reminderColor)
+                append(")")
             }
 
             is CardText.Segment.Strong -> withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {

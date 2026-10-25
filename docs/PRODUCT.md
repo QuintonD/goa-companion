@@ -341,7 +341,7 @@ Life counters).
   Normal · Tokens · Ignore all" for cards that move through tokens or ignore obstacles, p.18, and "In
   a straight line", p.19), Fast Travel (p.11: own or adjacent Zone, no enemy hero or minion in
   either), Range and Radius (from the card's values, ± for items; the water around the board counts,
-  p.19), and the card's text quoted. A minion or token selected: Movement N with a stepper; a minion
+  p.19), and the card's text quoted; "Read the cards" shows the hero's cards large in the card focus viewer (§9), swiping between them, and a second tap measures with the one on show. A minion or token selected: Movement N with a stepper; a minion
   outside its Battle Zone shows where it goes back to (p.18, bound to its Lane, p.20). "Measure": tap
   any space of the board to read its distance in spaces and whether it lies in a straight line. The
   view zooms and pans so the selection and what it reaches stay in sight, hexes big enough to tap.
@@ -395,6 +395,16 @@ opponents (and teammates) at four levels. One phone, one human team.
   says what is asked and which card asks it; every option is shown on the board or as a button;
   the log narrates every event (TalkBack reads it). The computer never sees hidden cards (p.4):
   it plans on guesses consistent with what is face up.
+- **Choosing and reading cards** (card focus, DESIGN "Card focus"): the first tap on a card zooms it
+  large enough to read the printed card, with its values, verbatim text and what the question says
+  about it (Holds / Falls with the Defense against the Attack, what keeping or upgrading it means, why
+  a card isn't an option); a second tap on it, or its button ("Discard Magnetic Dagger"), answers,
+  with a press-and-tick animation and a haptic tick; swiping sideways goes through the other cards;
+  back (the edge swipe, predictive), an upward swipe, the scrim or × return with nothing chosen. A
+  hand card the question doesn't offer is shown dimmed and can't be chosen. The answer goes through
+  the Coach exactly as a button's does. The same viewer, without the button, reads any card on the
+  table: your hand, a hero's played, resolved and discarded cards, the card that asks. TalkBack: Select,
+  Next card, Previous card, Close. Portrait and landscape, font scale 2, light and dark.
 - **Game state** (a top-bar action, one tap; also on puzzles): a full-height sheet with **Now** — Life
   and Wave counters, pushes won, minions per team in the Battle Zone, the Tie Breaker coin, who has
   acted this turn, who acts now and next (before the reveal: who has played facedown); every hero by
@@ -403,7 +413,7 @@ opponents (and teammates) at four levels. One phone, one human team.
   your own hand — and **Turns** — every turn so far, newest first, each hero's card at the reveal in the
   order they acted (facedown cards stay hidden), the turn's lines not to miss with the rest behind
   "Show all", the end of each round, and **Board**: the start of any earlier turn, read only, as you
-  saw it then. Tap a card to read it. Only open information (p.4): built by the engine from its own
+  saw it then. Tap a card to read it in the card focus viewer, over the sheet. Only open information (p.4): built by the engine from its own
   views, never from the log's words. Note: the rulebook forbids taking notes at the table (p.4 Table
   Talk); the history is the log's own content, offered as a learning aid (ADR-037).
 - **See the whole board:** the panel (questions, the computer's move, the coach) hides to a
@@ -431,8 +441,12 @@ opponents (and teammates) at four levels. One phone, one human team.
   test; random full games over every
   playable hero keep the invariants (one obstacle per space, cards conserved, deterministic,
   save/restore and fork identical); each level beats the one below it over a seeded tournament;
-  the table has screenshots for every decision kind (light/dark, font scale 2, 384 dp, landscape);
-  an end-to-end test plays a game to its end.
+  the table has screenshots for every decision kind (light/dark, font scale 2, 384 dp, landscape)
+  and of the card focus viewer (choosing in portrait, landscape, light, font scale 2; defending with
+  the verdict; playing; upgrading; reading the hand); UI tests prove a first tap answers nothing, a
+  second answers with that card, back and an upward swipe answer nothing, a swipe moves to the next
+  card, a card that isn't an option can't be chosen, and the accessibility actions; an end-to-end test
+  plays a game to its end.
 
 ### 10. Puzzles (ADR-035)
 Fifty difficult puzzles in the style of chess tactics: a position, a goal ("Defeat Brogan this
@@ -445,7 +459,7 @@ turn", "Push the lane before the round ends", "Survive this turn"), one way (or 
 - **Solving:** the game table with the goal banner floating under the hero strip ("Win the game this
   turn." · "You play Wasp and Xargatha"); in the panel the number, difficulty, title and theme, "What
   you know" (the intro: what the board doesn't show; it folds after the first move), then the
-  question. Every hero's hand is open (tap a hero). The other side answers at once with its best
+  question, card questions answered with the card focus viewer (§9). Every hero's hand is open (tap a hero). The other side answers at once with its best
   reply; its replies are narrated line by line ("Arien answers") over the board as it was after your
   move, then the board catches up. A move that loses the forced line says so gently, with the reason
   taken from what followed where it can ("Not quite — that lets Arien defend with Aspiring

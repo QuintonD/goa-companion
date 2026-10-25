@@ -3,11 +3,19 @@ package dev.quinton.goa.feature.board.play.review
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.espresso.Espresso
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.settings.AppSettings
@@ -32,6 +40,8 @@ import dev.quinton.goa.feature.board.play.puzzles.PuzzleViewModel
 import dev.quinton.goa.feature.board.play.puzzles.choiceOf
 import dev.quinton.goa.feature.board.play.puzzles.puzzleFile
 import dev.quinton.goa.feature.board.play.puzzles.realPuzzleBook
+import dev.quinton.goa.feature.board.ui.cards.CARD_TAG
+import dev.quinton.goa.feature.board.ui.cards.CONFIRM_TAG
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -106,6 +116,35 @@ class ReviewScreenshotTest {
     private fun game(mode: ThemeMode, tab: ReviewTab, fontScale: Float = 1f, rewind: Pair<Int, Int>? = null) {
         val play = midGame(rewind)
         capture(mode, fontScale) { Game(play, tab) }
+    }
+
+    /**
+     * A card tapped in the review opens the card focus viewer over the sheet, view only; back returns
+     * to the review.
+     */
+    @Test
+    fun reviewCardFocusDark() {
+        val play = midGame()
+        compose.setContent { GoaTheme(themeMode = ThemeMode.DARK) { Game(play, ReviewTab.NOW) } }
+        compose.waitForIdle()
+        val look = SemanticsMatcher("opens a card") {
+            it.config.getOrNull(SemanticsActions.OnClick)?.label == "Look at the card"
+        }
+        // The first card shown in the review sheet (the panel's hand, in the screen's window, is under it).
+        val nodes = compose.onAllNodes(look).fetchSemanticsNodes()
+        val inSheet = nodes.indexOfFirst { it.root != nodes.first().root && !it.boundsInRoot.isEmpty }
+        compose.onAllNodes(look)[inSheet].performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag(CARD_TAG).assertExists()
+        compose.onNodeWithTag(CONFIRM_TAG).assertDoesNotExist()
+        compose.onNodeWithText("GAME STATE").assertExists()
+        compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledImages.idle }
+        compose.waitForIdle()
+        captureScreenRoboImage()
+        Espresso.pressBack()
+        compose.waitForIdle()
+        compose.onNodeWithTag(CARD_TAG).assertDoesNotExist()
+        compose.onAllNodes(look)[inSheet].assertExists()
     }
 
     @Test fun reviewNowDark() = game(ThemeMode.DARK, ReviewTab.NOW)

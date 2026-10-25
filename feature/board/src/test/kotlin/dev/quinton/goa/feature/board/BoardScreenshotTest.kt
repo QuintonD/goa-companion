@@ -11,11 +11,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.GameSaveRepository
 import dev.quinton.goa.core.data.PuzzleProgressRepository
@@ -102,6 +106,7 @@ class BoardScreenshotTest {
     private fun capture(
         mode: ThemeMode,
         fontScale: Float = 1f,
+        screen: Boolean = false,
         before: () -> Unit = {
         },
         content: @Composable () -> Unit,
@@ -117,7 +122,7 @@ class BoardScreenshotTest {
         compose.waitForIdle()
         compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledImages.idle }
         compose.waitForIdle()
-        compose.onRoot().captureRoboImage()
+        if (screen) captureScreenRoboImage() else compose.onRoot().captureRoboImage()
     }
 
     // ---- Boards --------------------------------------------------------------------------
@@ -435,6 +440,16 @@ class BoardScreenshotTest {
     @Test
     fun boardHeroOverlaysLandscapeDark() = boardViewModel().let { vm ->
         capture(ThemeMode.DARK, before = { selectedHero(vm) }) { Board(vm) }
+    }
+
+    /** "Read the cards": the card measured with, large in the card focus viewer, "Measure with …". */
+    @Test
+    fun boardReadCardsDark() = boardViewModel().let { vm ->
+        capture(ThemeMode.DARK, screen = true, before = {
+            selectedHero(vm)
+            compose.waitForIdle()
+            compose.onNodeWithText("Read the cards").performScrollTo().performClick()
+        }) { Board(vm) }
     }
 
     /** Fast Travel from the opening: Arien's own and adjacent Zones, none with an enemy. */

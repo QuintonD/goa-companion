@@ -194,11 +194,13 @@ with each played card's initiative, and the acting hero's chip has a bronze bord
 **Board screens' frame**): the header names the deciding
 hero and the kind in the team's colour ("◆ ARIEN · DEFEND"), the prompt in titleMedium (a live
 region), and "Asked by <card>" with a thumbnail (tap to read it). Cards are official images: the hand
-as 84 dp cards, the chosen one raised with a teal border and a tick, its values and text under it;
-Keep shows each card's item stat (backpack + stat icon). **Defend** is an error-container panel with
+as 84 dp cards (shrinking to 60 dp to fit five), a hand card the question doesn't offer dimmed with a
+block icon, and a teal "Tap a card to see it large; tap it again to …" line; a tap opens the **card
+focus** viewer (below), which answers. Keep shows each card's item stat (backpack + stat icon).
+**Defend** is an error-container panel with
 the attacker and the Attack total, then one row per hand card with its Defense total and the verdict
 in words with an icon ("✓ Holds" teal, "! Falls" red, "Decided by its text" grey): never colour
-alone. Actions are primary-container buttons with one line on what each does (p.11–p.13);
+alone; a row opens the card focus viewer, "Don't defend" is chosen then confirmed. Actions are primary-container buttons with one line on what each does (p.11–p.13);
 declines and Pass are outlined. The computer's move shows its portrait, level and prompt, a linear
 progress bar once it is "thinking…"; the reveal shows every card with hero and initiative; the
 coach's nudge is a secondary-container card with "Choose anyway" (outlined) and "Rethink" (filled).
@@ -222,6 +224,41 @@ points, drawn in code, opening out once with emphasised deceleration), then WHY 
 The **replay** panel has Back / Next arrows around "SOLUTION · STEP n OF m", the move in titleMedium
 (its card beside it), WHAT HAPPENED, and the explanation below. The list's numbers are Cinzel in a
 bronze ring (filled when solved); Continue is a secondary-container card (all solved: the seal).
+
+### Card focus (selecting and reading cards; `feature/board/ui/cards`)
+One viewer for every card the board screens show (the Game state review's too): the cards a question offers (play, discard,
+retrieve, defend with, upgrade, keep), the "Asked by" card, your hand, a hero's played, resolved and
+discarded cards, a puzzle replay's card, and the sandbox's "Read the cards".
+- **First tap** on a thumbnail: the card grows out of it (scale and translate from the thumbnail's
+  bounds, 340 ms emphasised deceleration) into a large card over a near-black scrim (93 %, the same in
+  both themes; light text on it). Portrait: × with the question's title ("WASP · CARD", bronze overline)
+  and "Card 2 of 4" with page dots on the scrim, the card about half the height (38 % above font scale
+  1.3), then a surface panel (28 dp top corners) with the question's context ("Discard a card", "Arien
+  attacks · melee · Attack 6"), the name in Cinzel, tier and colour, the verdict ("! Falls · Defense 2
+  against Attack 6", also as a pill on the card's corner), why a card isn't an option, what choosing it
+  means (Keep: "… goes to your hand", "… becomes an item: +1 Defense (p.16)"; Upgrade: the two cards of
+  the next Tier with their item stats), the printed values, the text verbatim, its item stat.
+  Landscape: the card on the left at full height, title and panel on the right.
+- **Second tap** on the focused card confirms: a press (scale 0.93, 90 ms), a bouncy settle with a teal
+  tick seal, the phone's Confirm haptic, then the answer goes out and the card fades away. The panel
+  ends with "Tap the card again to discard Magnetic Dagger" (teal, touch icon) over a filled button
+  saying the same ("Discard Magnetic Dagger", "Play Shock facedown", "Defend with …", "Upgrade …",
+  "Keep …", "Measure with …"), and "Swipe up or go back to choose nothing." A card that isn't an
+  option is veiled with a "Not an option" pill; a tap on it shakes it with the Reject haptic; its
+  button reads "Not an option". While the game is busy the button reads "Wait…".
+- **Swipe sideways** on the card for the others (a pager, neighbours peeking at 93 % scale and 55 %
+  alpha, snapping); tap a neighbour to go to it.
+- **Close with nothing chosen:** the system back gesture (predictive: the card shrinks up to 14 % and
+  drifts away from the edge as you drag, springs back if you cancel), an upward swipe or fling on the
+  card (it flies up), a tap on the scrim, or ×. A downward drag only gives a little and springs back.
+- **View only** (no question): the same viewer without the button; "Swipe sideways for the other cards;
+  swipe up or go back to close."
+- **TalkBack:** each thumbnail is one node ("Look at the card"); the focused card is one node with its
+  values, verdict or reason and "card 2 of 4", its click action named after the choice, and custom
+  actions Select, Next card, Previous card, Close; the Confirm button and × are ordinary buttons.
+- It is its own full-screen window (a dialog without the platform dim or window animation), so it shows
+  above the panel, a hidden panel's peek bar and sheets alike. One `CardFocusState` per screen
+  (`rememberCardFocusState()`, `CardFocusHost(state)`); `open(cards, index, selection)` or `show(cards)`.
 
 ## Asset policy
 Two kinds of asset (ADR-006, ADR-034):

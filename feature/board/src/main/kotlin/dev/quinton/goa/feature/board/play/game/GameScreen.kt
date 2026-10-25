@@ -83,7 +83,6 @@ import dev.quinton.goa.feature.board.play.review.ReviewButton
 import dev.quinton.goa.feature.board.play.review.ReviewOpenEffect
 import dev.quinton.goa.feature.board.play.review.ReviewSheet
 import dev.quinton.goa.feature.board.play.review.ReviewTab
-import dev.quinton.goa.feature.board.play.table.CardDetail
 import dev.quinton.goa.feature.board.play.table.DecisionPanel
 import dev.quinton.goa.feature.board.play.table.EventLog
 import dev.quinton.goa.feature.board.play.table.GameTable
@@ -95,14 +94,15 @@ import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.YourHand
 import dev.quinton.goa.feature.board.ui.BoardScaffold
+import dev.quinton.goa.feature.board.ui.cards.CardFocusHost
+import dev.quinton.goa.feature.board.ui.cards.CardFocusState
+import dev.quinton.goa.feature.board.ui.cards.rememberCardFocusState
 
 /** The sheets the game opens (hoisted so screenshots can open one). */
 sealed interface PlaySheet {
     data object Log : PlaySheet
 
     data class Hero(val heroId: String) : PlaySheet
-
-    data class Card(val cardId: String, val back: PlaySheet? = null) : PlaySheet
 
     /** The game-state review (ADR-037). */
     data class Review(val tab: ReviewTab = ReviewTab.NOW) : PlaySheet
@@ -132,6 +132,7 @@ fun GameScreen(
     var ending by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     val viewport = remember { MapViewport() }
+    val focus = rememberCardFocusState()
     KeepScreenOn(play != null && play.over == null)
     val message = play?.message
     LaunchedEffect(play?.messageId) {
@@ -213,7 +214,7 @@ fun GameScreen(
                             },
                             initialPanelHidden = initialPanelHidden,
                         ) {
-                            Panel(state.play, onAction, onCard = { sheet = PlaySheet.Card(it.id) })
+                            Panel(state.play, onAction, focus)
                         }
                     }
                     // TalkBack hears what just happened.
@@ -242,29 +243,18 @@ fun GameScreen(
             is PlaySheet.Hero -> BoardSheet(onDismiss = { sheet = null }) {
                 Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
                     SheetTitle(play.table.hero(open.heroId).name, "Open information (p.4)", onDone = { sheet = null })
-                    HeroDetail(play.table, open.heroId, onCard = { sheet = PlaySheet.Card(it.id, back = open) })
-                }
-            }
-
-            is PlaySheet.Card -> BoardSheet(onDismiss = { sheet = null }) {
-                val card = play.table.card(open.cardId)
-                Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
-                    SheetTitle(
-                        card?.name ?: "Card",
-                        null,
-                        onDone = { sheet = open.back },
-                    )
-                    if (card != null) CardDetail(card)
+                    HeroDetail(play.table, open.heroId, focus)
                 }
             }
 
             is PlaySheet.Review -> ReviewSheet(play.table, play.review, open, {
                 sheet = it
-            }, { onAction(GameAction.Review(it)) })
+            }, { onAction(GameAction.Review(it)) }, focus)
 
             null -> Unit
         }
     }
+    CardFocusHost(focus)
     if (ending) {
         ConfirmDialog(
             title = "End this game?",
@@ -365,11 +355,7 @@ private fun GameMenu(
 
 /** The panel's content: a nudge, the question, the computer's move or the wait, the reveal, your hand. */
 @Composable
-private fun ColumnScope.Panel(
-    play: PlayUi,
-    onAction: (GameAction) -> Unit,
-    onCard: (dev.quinton.goa.core.model.catalog.Card) -> Unit,
-) {
+private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focus: CardFocusState) {
     val table = play.table
     val nudge = play.nudge
     when {
@@ -383,7 +369,7 @@ private fun ColumnScope.Panel(
                 table,
                 onSelect = { onAction(GameAction.Select(it)) },
                 onAnswer = { onAction(GameAction.Answer(it)) },
-                onCard = onCard,
+                focus = focus,
                 busy = play.busy,
             )
             if (play.busy && play.coach) CoachLooking()
@@ -406,7 +392,7 @@ private fun ColumnScope.Panel(
 
         else -> RecentEvents(play.recent)
     }
-    if (!table.handDecision && nudge == null) YourHand(table, onCard)
+    if (!table.handDecision && nudge == null) YourHand(table, focus)
 }
 
 /** A gentle nudge before a clearly worse choice: never blocks, never chooses for you. */
