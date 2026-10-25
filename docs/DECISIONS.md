@@ -1236,3 +1236,42 @@ reachable code: the production `app.js` grew from 985 330 to 1 027 094 bytes (+4
 287 897, +11 KB) with the real catalog model and its serializers, and carries none of the engine
 (no `dev.quinton.goa.core.game` names in the bundle); the engine goes in the Worker. A new
 operation on a contract is added to the interface with an implementation on both platforms.
+
+**Addendum (Content, W1, 2026-10-25):** The hero catalog, rules reference, card trivia, Settings and
+About on the web, with the phone's logic moved into the shared core (parity rule):
+- **Moved to commonMain, Android calls it from there.** core:domain `catalog/`: feature:catalog's
+  model (`CatalogBrowser`, `CatalogSearchIndex`, `DeckLayout`, `HeroLogSummary`, the labels) plus
+  what its ViewModel and screens computed inline (`catalogResults`, filter chips, profile bars, the
+  spoken card summary, the Handicap/spellbook/gold notes, `CardIcons` = the words TalkBack says for
+  card icons, pinned to `GameIcons` by a test). core:domain `rules/RulesText` (topic and ladder
+  wording, spoken rows) and `settings/ProductOwnership` (the collection rules). core:data-contracts
+  `trivia/` (`TriviaHomeModel`, `TriviaQuizModel`, `TriviaLeaderboardModel`, `TriviaText`,
+  `PlayingAsState`; the Android ViewModels are thin wrappers), `TriviaFacts.keysOf` (the reset rule
+  of both progress stores) and core:model `PlayerPalette` (PlayerColors derives from it).
+  `CatalogParityTest` hashes search, filters, sorts, deck layouts and every card's spoken summary
+  over the shipped catalog on the JVM and on Node; accent folding is the only platform call (NFD:
+  `java.text.Normalizer` / `String.normalize`).
+- **Catalog.** `CatalogBrowse` (in `ContentData`) holds the search index and the search, filters and
+  sort for the page's lifetime, like the phone's ViewModel while the tab is on the back stack. The
+  card viewer pages with native CSS scroll snapping (the iOS swipe, momentum included) and its own
+  pinch / double-tap zoom (`PinchZoom`; `touch-action: pan-x pan-y` keeps Safari's page zoom off the
+  scan); off-screen pages are `inert`. Card text draws the same Material glyphs as Android
+  (`icons/game_*.svg`, Apache 2.0, credited in About → Icons and `third_party/ASSETS.md`); hero
+  sigils are the fallback art when a portrait isn't cached offline. Data another stream owns
+  (ratings, pilots, players) is read through `optional(...)`, which falls back to "no games" when a
+  contract fails, so a hero page never breaks over personal stats. The hero's name sits in the top
+  bar for VoiceOver and is shown there once the big name has scrolled away (as on the phone).
+- **Rules, Settings, About.** The rules reference reads `rules-reference.json` with the phone's
+  parser; the Levels & defeats sheet is a public composable other screens can open. Settings is
+  `WebSettingsRepository` (the phone's `AppSettings` in IndexedDB; the theme stays in localStorage
+  for the first paint), Haptics is offered only where the browser can vibrate, and Game setup links
+  go to the tab roots until dedicated screens exist on the web. There is no Backup on the web.
+  `official/SOURCES.md` (importer template, `SourcesNoticeTest`) now describes a public, free,
+  non-commercial fan companion with all rights with Wolff Designa; ADR-034's status points here.
+- **Trivia.** `WebTriviaProgressRepository` keeps this browser's mastery, last setup and Playing-as
+  pick in the phone's `TriviaJson` format; rounds and players go through the group contracts and the
+  screens fall back to Guest / "isn't available" when those fail. The quiz is a full-screen route
+  (`#/trivia/quiz`), the leaderboard `#/trivia/leaderboard`.
+- **Found on the way:** WebKit reports a first install's worker as "installed" after it has claimed
+  the page, so the shell showed "A new version of the app is ready" on a first visit;
+  `ServiceWorkerClient` now decides "update" when the new worker is found.
