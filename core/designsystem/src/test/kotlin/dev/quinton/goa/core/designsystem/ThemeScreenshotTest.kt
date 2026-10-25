@@ -29,7 +29,7 @@ class ThemeScreenshotTest {
     private fun sample(mode: ThemeMode) {
         compose.setContent {
             GoaTheme(themeMode = mode) {
-                GoaScreen(title = "Sunken bronze", onBack = {}) { padding ->
+                GoaScreen(title = "Steel and bronze", onBack = {}) { padding ->
                     Column(Modifier.padding(padding).padding(Spacing.screen)) {
                         Text("Display", style = MaterialTheme.typography.headlineMedium)
                         Text("Body text on the app canvas.", style = MaterialTheme.typography.bodyLarge)

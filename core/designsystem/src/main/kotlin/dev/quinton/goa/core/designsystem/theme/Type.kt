@@ -5,15 +5,18 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.R
 
 /**
- * Display = Cinzel, body/UI = Inter (both OFL-1.1, static instances in `res/font`, licences in
- * `third_party/fonts/` and shown in About via [GoaFontLicenses]). [GoaFonts] is the single
- * switch point for the font families.
+ * Display = Cinzel (the rulebook's engraved caps; its lower case are small caps, like the rulebook's
+ * headings), body/UI = Inter, printed = Crimson Pro (an open Minion look-alike for text the game
+ * prints: card text, rulebook excerpts). All OFL-1.1, static instances in `res/font`, licences in
+ * `third_party/fonts/` and shown in About via [GoaFontLicenses]. [GoaFonts] is the single switch
+ * point for the font families.
  */
 object GoaFonts {
     val display: FontFamily = FontFamily(
@@ -26,6 +29,13 @@ object GoaFonts {
         Font(R.font.inter_medium, FontWeight.Medium),
         Font(R.font.inter_semibold, FontWeight.SemiBold),
         Font(R.font.inter_bold, FontWeight.Bold),
+    )
+    val printed: FontFamily = FontFamily(
+        Font(R.font.crimson_regular, FontWeight.Normal),
+        Font(R.font.crimson_italic, FontWeight.Normal, FontStyle.Italic),
+        Font(R.font.crimson_semibold, FontWeight.SemiBold),
+        // Bold keywords (`**This turn:**`) use the semibold cut: Crimson's bold is too heavy small.
+        Font(R.font.crimson_semibold, FontWeight.Bold),
     )
 }
 
@@ -44,6 +54,12 @@ val GoaFontLicenses: List<FontLicense> = listOf(
         copyright = "Copyright 2020 The Inter Project Authors",
         license = "SIL Open Font License 1.1",
         textRes = R.raw.license_ofl_inter,
+    ),
+    FontLicense(
+        family = "Crimson Pro",
+        copyright = "Copyright 2018 The Crimson Pro Project Authors",
+        license = "SIL Open Font License 1.1",
+        textRes = R.raw.license_ofl_crimson,
     ),
 )
 
@@ -106,6 +122,30 @@ object GoaTextStyles {
 
     /** Small engraved caps for section overlines ("ROSTER", "OWNED PRODUCTS"). */
     val overline: TextStyle = display(12, 16, FontWeight.Bold, 1.5)
+
+    /**
+     * Section heads as the rulebook sets them: Cinzel in title case, whose lower case are small
+     * caps ("Place the Board"). Coloured with `GoaTheme.colors.heading` (copper).
+     */
+    val sectionHead: TextStyle = display(16, 22, FontWeight.Bold, 0.6)
+
+    /** Top-bar titles on the steel banner (Cinzel, engraved caps). */
+    val bannerTitle: TextStyle = display(21, 28, FontWeight.Bold, 0.8)
+
+    /**
+     * Text the game prints (card text, rulebook excerpts), in Crimson Pro: slightly larger than
+     * Inter body text, as a serif needs at the same reading distance.
+     */
+    val printed: TextStyle = TextStyle(
+        fontFamily = GoaFonts.printed,
+        fontWeight = FontWeight.Normal,
+        fontSize = 18.sp,
+        lineHeight = 25.sp,
+        letterSpacing = 0.1.sp,
+    )
+
+    /** [printed] for denser places (tiles, sheets). */
+    val printedSmall: TextStyle = printed.copy(fontSize = 16.sp, lineHeight = 22.sp)
 }
 
 /** Alias for the brief: `GoaTypography.TimerDigits`-style access from features. */

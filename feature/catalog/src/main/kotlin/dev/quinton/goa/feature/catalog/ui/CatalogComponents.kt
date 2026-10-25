@@ -118,9 +118,13 @@ fun InitiativeBadge(initiative: Int?, modifier: Modifier = Modifier, accent: Col
     }
 }
 
-/** Section heading with a short bronze rule, announced as a heading by TalkBack. */
+/**
+ * Section heading as the rulebook sets its heads: Cinzel small caps in copper after a short copper
+ * bar, announced as a heading by TalkBack.
+ */
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier, trailing: (@Composable () -> Unit)? = null) {
+    val copper = GoaTheme.colors.heading
     Row(
         modifier.padding(top = Spacing.xl, bottom = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -129,12 +133,13 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier, trailing: (@Compos
             Modifier
                 .size(width = 3.dp, height = 18.dp)
                 .clip(RoundedCornerShape(2.dp))
-                .background(MaterialTheme.colorScheme.primary),
+                .background(copper),
         )
         Spacer(Modifier.width(Spacing.sm))
         Text(
             text,
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            color = copper,
             modifier = Modifier.weight(1f).semantics { heading() },
         )
         trailing?.invoke()

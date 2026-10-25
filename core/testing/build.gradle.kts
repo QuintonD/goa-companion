@@ -10,4 +10,6 @@ dependencies {
     api(libs.truth)
     api(libs.turbine)
     api(libs.kotlinx.coroutines.test)
+    // BundledAssetImages: official images for screenshot tests.
+    implementation(libs.coil.compose)
 }

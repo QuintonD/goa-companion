@@ -162,12 +162,13 @@ fun StatBar(label: String, range: StatRange?, modifier: Modifier = Modifier, sca
     StatBar(label = label, base = range?.base, max = range?.max, modifier = modifier, scale = scale)
 
 /**
- * Engraved section overline: Cinzel caps in bronze with a fading rule. Marked as a heading for
- * TalkBack. [trailing] holds an optional action (e.g. "See all").
+ * Section head as the rulebook sets them: Cinzel small caps in copper ("Place the Board", p.5),
+ * then a fading copper rule. Marked as a heading for TalkBack. [trailing] holds an optional
+ * action (e.g. "See all").
  */
 @Composable
 fun SectionHeader(title: String, modifier: Modifier = Modifier, trailing: (@Composable () -> Unit)? = null) {
-    val primary = MaterialTheme.colorScheme.primary
+    val copper = GoaTheme.colors.heading
     Row(
         modifier
             .fillMaxWidth()
@@ -175,9 +176,9 @@ fun SectionHeader(title: String, modifier: Modifier = Modifier, trailing: (@Comp
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = title.uppercase(),
-            style = GoaTextStyles.overline,
-            color = primary,
+            text = title,
+            style = GoaTextStyles.sectionHead,
+            color = copper,
             modifier = Modifier.semantics { heading() },
         )
         Spacer(Modifier.width(Spacing.md))
@@ -185,7 +186,7 @@ fun SectionHeader(title: String, modifier: Modifier = Modifier, trailing: (@Comp
             Modifier
                 .weight(1f)
                 .height(1.dp)
-                .background(Brush.horizontalGradient(listOf(primary.copy(alpha = 0.45f), Color.Transparent))),
+                .background(Brush.horizontalGradient(listOf(copper.copy(alpha = 0.5f), Color.Transparent))),
         )
         if (trailing != null) {
             Spacer(Modifier.width(Spacing.sm))

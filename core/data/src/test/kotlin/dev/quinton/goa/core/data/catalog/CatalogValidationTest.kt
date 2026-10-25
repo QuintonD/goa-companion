@@ -213,7 +213,9 @@ class CatalogValidationTest {
 
     @Test
     fun `every referenced asset exists and every bundled image is referenced`() {
-        val referenced = heroes.flatMap { hero -> listOfNotNull(hero.portrait) + hero.allCards.mapNotNull { it.image } }
+        val referenced = heroes.flatMap { hero ->
+            listOfNotNull(hero.portrait, hero.symbol) + hero.allCards.mapNotNull { it.image }
+        }
         referenced.forEach { path ->
             assertWithMessage(path).that(RepoAssets.file(path).isFile).isTrue()
             assertWithMessage(path).that(path).endsWith(".webp")
@@ -227,9 +229,20 @@ class CatalogValidationTest {
     }
 
     @Test
+    fun `every official file is listed in SOURCES_md`() {
+        val sources = RepoAssets.file("official/SOURCES.md").readText()
+        RepoAssets.file("official").walkTopDown().filter { it.isFile && it.extension == "webp" }.forEach { f ->
+            val path = f.relativeTo(RepoAssets.assetsDir).invariantSeparatorsPath
+            assertWithMessage(path).that(sources).contains("`$path`")
+        }
+    }
+
+    @Test
     fun `every hero has a portrait and every card an image`() {
         heroes.forEach { hero ->
             assertWithMessage(hero.id).that(hero.portrait).isEqualTo("official/heroes/${hero.id}/portrait.webp")
+            // The deck symbol passed the card-back check (REPORT.md "Deck symbols", ADR-042).
+            assertWithMessage(hero.id).that(hero.symbol).isEqualTo("official/heroes/${hero.id}/symbol.webp")
             hero.allCards.forEach { assertWithMessage(it.id).that(it.image).isEqualTo("official/cards/${it.id}.webp") }
         }
     }

@@ -1008,3 +1008,59 @@ instead of chips); the map's inset follows it. Level, coins and hand size are on
 reveal and in the hero sheet (long press) during the turn. The scripted test game (`FakeGame`) now
 reports `actedThisTurn`, the engine's shrinking `initiativeOrder` and `initiative`, and plays cards in
 its skipped-to turn 4. Large text puts the asking card above its answers.
+
+## ADR-042 — Styled on the official look: the cards as the cards, the rulebook's banner and heads (2026-10-25)
+**Context:** The owner: "Lean on the original assets throughout the app, the app should be styled
+similarly, and only deviate where it clearly improves ui/ux. E.g. in the board game we dont need to
+rewrite text that is clearly displayed on the card, rather we just need to improve how we serve and
+show the cards to the user." The app's look ("Sunken bronze") was original throughout; the hero page
+restated every card as a text tile ("Card RED-2A · Skill · 3+ · Ranged · +1 Attack").
+**Decision:**
+1. **Official graphics come in through the importer**, never by hand, each listed in
+   `official/SOURCES.md` with its source (`tools/catalog-import`, `UiAssets.kt`):
+   - **Deck symbols** — source 1's hero logos (`src/lib/images/logos/<id>.png`, ≤ 256 px). Accepted
+     only when, against all 32 card backs (source 2's last scan per hero), the logo's own card back
+     is the nearest by ≥ 1.3× (cropped to the symbol, brightness standardised plus colour, 12×12
+     grid; the logo's dark outline eroded first). All 32 pass, lowest margin 1.42 (Xargatha); the
+     card back for Arien also matches the dashboard on rulebook p.6. `Hero.symbol` (null when a
+     logo fails), REPORT.md "Deck symbols".
+   - **Item icons** — source 1's `item_*.png` (the sketched icons at the foot of every card; checked
+     by eye against the scans' item slot).
+   - **Board symbols** from the pinned rulebook PDF (SHA-256 pinned), by PDF page and image object
+     with their pixel size checked: hero Spawn points (Red's gear, Blue's star) and the six minion
+     Spawn point symbols (printed p.6, "Place Hero Miniatures" / "Place Minion Miniatures", in the
+     captions' order Ranged, Melee, Heavy), and both faces of the Tie Breaker coin (p.5). PDFBox
+     extracts them with their soft masks (transparency).
+   - **Licences:** the community repos have no licence and the content is Wolff Designa's, like the
+     card scans and portraits already bundled (ADR-006, ADR-034): fine for our builds, a public
+     release needs permission. The rulebook graphics are Wolff Designa's own, same terms.
+2. **The look** (docs/DESIGN.md "Steel and bronze"): the rulebook's steel-blue banner is every top
+   bar (both themes); section heads are copper Cinzel small caps like the rulebook's; text the game
+   prints (card text, rulebook excerpts) is set in **Crimson Pro** (OFL, an open Minion look-alike;
+   Modesto and Minion are commercial) and card text sits on the cards' parchment. Cinzel stays as
+   the Copperplate/Modesto stand-in, Inter for the app's own words. New tokens are checked by
+   `ContrastTest`.
+3. **Show the cards, don't restate them.** The hero page's Deck is the card scans in a grid by colour
+   and tier (tap = viewer); the card viewer shows the scan and, under it, only what the card doesn't
+   print (the Handicap basis, what its item icon gives) with "Read the card as text" for the values
+   and text; the draft's hero peek shows the five starting cards as scans. The data stays for search,
+   filters and TalkBack: each scan is one node reading the card's values and full text. Trivia asks
+   about printed numbers, so its question stays text (the scan would answer it) and the answer shows
+   the scan (as it already did).
+4. **Deck symbols** where a hero is named: hero page header, catalog tiles and rows, draft peek. The
+   original sigils remain only as the fallback.
+5. **The board** draws the official Spawn point symbols as markings under the pieces: faded and
+   partly desaturated toward the Zone fill and smaller than a piece (a piece on one hides it), so
+   empty Spawn points never read as units (integrator review: full-colour symbols at piece size did).
+   Hero Spawn points are the gear/star (shape tells the teams apart); minion Spawn points add a thin
+   outlined team shape with the type's original glyph, because the printed symbols of one team are
+   too alike at ~38 dp hexes to tell melee, ranged and heavy apart. Minion pieces keep their original team disc and
+   type glyph for the same reason. The board screens' compact top bar takes the steel banner.
+**Deviations kept on purpose:** dark canvas by default (table lighting, not the white page); lighter
+copper and dimmer parchment in the dark theme for contrast; the app's vector icons inside card text
+(the official item icons are grey sketches that vanish at text size and can't take a tint); card
+names repeated under a scan only while it is under 140 dp wide.
+**Consequences:** the catalog's `dataVersion` is 4 (`symbol` added to every hero file). 48 small
+images added (≈ 420 KB). Every screen's screenshots changed (banner, heads); the game table (S3's
+play/table) inherits banner, heads and tokens without layout changes. `core:testing` gained
+`BundledAssetImages`/`bundledHero` for screenshot tests that show official images.

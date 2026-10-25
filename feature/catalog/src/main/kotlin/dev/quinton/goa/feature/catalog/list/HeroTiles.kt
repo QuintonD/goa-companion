@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ComplexityStars
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.complexityName
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -139,6 +140,14 @@ internal fun HeroGridTile(item: HeroListItem, sort: CatalogSort, onClick: () -> 
                 starSize = 12.dp,
                 modifier = Modifier.align(Alignment.BottomStart).padding(start = Spacing.sm, bottom = Spacing.xs),
             )
+            // The deck symbol (the hero's card backs), as players know the hero at the table.
+            if (hero.symbol != null) {
+                HeroSymbol(
+                    hero.id,
+                    hero.symbol,
+                    Modifier.align(Alignment.BottomEnd).padding(end = Spacing.xs, bottom = 2.dp).size(GRID_SYMBOL),
+                )
+            }
             if (!hero.verified) {
                 UnverifiedBadge(compact = true, modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.xs))
             }
@@ -228,13 +237,18 @@ internal fun HeroListRow(item: HeroListItem, sort: CatalogSort, onClick: () -> U
             Modifier.heightIn(min = 64.dp).padding(horizontal = Spacing.sm, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            HeroPortrait(
-                heroId = hero.id,
-                portrait = hero.portrait,
-                contentDescription = null,
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.size(48.dp),
-            )
+            Box {
+                HeroPortrait(
+                    heroId = hero.id,
+                    portrait = hero.portrait,
+                    contentDescription = null,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.padding(end = 6.dp, bottom = 6.dp).size(48.dp),
+                )
+                if (hero.symbol != null) {
+                    HeroSymbol(hero.id, hero.symbol, Modifier.align(Alignment.BottomEnd).size(LIST_SYMBOL))
+                }
+            }
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Row(verticalAlignment = Alignment.Bottom) {
@@ -287,3 +301,6 @@ internal fun HeroListRow(item: HeroListItem, sort: CatalogSort, onClick: () -> U
 
 /** Width / height: a short portrait so three rows of tiles fit on a phone screen. */
 private const val PORTRAIT_RATIO = 1.3f
+
+private val GRID_SYMBOL = 30.dp
+private val LIST_SYMBOL = 24.dp

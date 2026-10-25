@@ -48,9 +48,19 @@ fun main(args: Array<String>) {
     val version = output.writeCatalog(result)
     if (withImages) {
         val manifest = File(toolDir, "cache/assets-manifest.tsv")
-        val encoded = AssetWriter(assetsDir, cache, manifest).write(result.assetSources)
-        output.writeSources(result, lock.documents)
-        println("Images: ${result.assetSources.size} total, $encoded re-encoded")
+        val rulebook = lock.document("rulebook")
+        val pdf = cache.document(rulebook)
+        val pdfImages = RulebookImages.extract(pdf, cache.output("documents/rulebook/${rulebook.sha256}-images"))
+        val extracted = pdfImages.entries.associate { (spec, file) ->
+            spec.out to ExtractedAsset(
+                key = "rulebook@${rulebook.sha256}:p${spec.pdfPage}/obj${spec.obj}",
+                file = file,
+                maxEdge = RULEBOOK_IMAGE_MAX_EDGE,
+            )
+        }
+        val encoded = AssetWriter(assetsDir, cache, manifest).write(result.assetSources, extracted)
+        output.writeSources(result, lock.documents, rulebook to pdfImages.keys.toList())
+        println("Images: ${result.assetSources.size + extracted.size} total, $encoded re-encoded")
     }
     ReportWriter(result, version, lock, overrides).write(File(toolDir, "REPORT.md"))
     importMaps(lock, cache, overrides, assetsDir, File(toolDir, "REPORT.md"))
