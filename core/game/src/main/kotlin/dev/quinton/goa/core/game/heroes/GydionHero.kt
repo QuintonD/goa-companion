@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.game.heroes
 
 import dev.quinton.goa.core.game.effects.CardScript
+import dev.quinton.goa.core.game.effects.ExtraPlace
 import dev.quinton.goa.core.game.effects.HeroModule
 import dev.quinton.goa.core.game.effects.Registry
 import dev.quinton.goa.core.game.engine.ActionScope
@@ -83,6 +84,15 @@ object GydionHero : HeroModule {
         // The Archwizard (Ultimate): "Whenever you would add cards to the spellbook, you may cast the
         // "Wish" spell in the spellbook instead." (Applied in Prepare Spells, the only card that adds.)
         r.card(Spellbook.ULTIMATE, Archwizard)
+        // Where the spell cards can be (Prepare Spells): the views list them in this order. The spell
+        // cards are public components and the removed ones lie faceup; "Only Gydion can look at the
+        // cards in the spellbook" (rulings/gydion.md 3).
+        r.extraPlaces(
+            heroId,
+            ExtraPlace(Spellbook.SPELLBOOK, open = false),
+            ExtraPlace(Spellbook.REMOVED, open = true),
+            ExtraPlace(Spellbook.BOX, open = true),
+        )
 
         GydionSpells.register(r)
     }
