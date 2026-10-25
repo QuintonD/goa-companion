@@ -20,8 +20,8 @@ import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.domain.rules.RulesText
 import dev.quinton.goa.core.model.rules.RulesTopic
-import dev.quinton.goa.feature.rules.RulesText
 import dev.quinton.goa.feature.rules.RulesTopicUiState
 
 /** One quick-reference topic: an optional labelled summary, then the verbatim rulebook passages. */

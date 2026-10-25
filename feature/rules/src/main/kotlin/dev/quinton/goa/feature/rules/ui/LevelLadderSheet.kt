@@ -52,11 +52,11 @@ import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.rules.LadderLookup
+import dev.quinton.goa.core.domain.rules.RulesText
 import dev.quinton.goa.core.model.rules.LevelLadder
 import dev.quinton.goa.core.model.rules.LevelRow
 import dev.quinton.goa.feature.rules.ExceptionCardUi
 import dev.quinton.goa.feature.rules.LadderUiState
-import dev.quinton.goa.feature.rules.RulesText
 
 /**
  * "Levels & defeats": pick the defeated hero's level for the three numbers that matter, the full
@@ -202,7 +202,7 @@ private fun DefeatResult(row: LevelRow) {
             .background(colors.secondary.copy(alpha = 0.10f), MaterialTheme.shapes.medium)
             .border(1.dp, colors.secondary.copy(alpha = 0.5f), MaterialTheme.shapes.medium)
             .padding(Spacing.lg)
-            .clearAndSetSemantics { contentDescription = spokenDefeat(row) },
+            .clearAndSetSemantics { contentDescription = RulesText.spokenDefeat(row) },
     ) {
         Text(
             "Level ${row.level} hero defeated · lowest card Tier ${RulesText.roman(row.lowestTier)}",
@@ -261,16 +261,7 @@ private fun NumberLabels(label: String, detail: String, align: TextAlign) {
     )
 }
 
-private val headers =
-    listOf(
-        "Level",
-        "Lowest\nTier",
-        "Coins\n(Defeat)",
-        "Assist\nCoins",
-        "Life\ncounters",
-        "Next\nlevel\ncost",
-        "Max\nTier",
-    )
+private val headers = RulesText.LADDER_HEADERS
 
 private val MIN_CELL = 50.dp
 
@@ -307,7 +298,7 @@ private fun LadderTable(ladder: LevelLadder, selected: Int?, onSelect: (Int) -> 
                         .clickable(onClickLabel = "Show level ${row.level}") { onSelect(row.level) }
                         .padding(horizontal = Spacing.xs)
                         .heightIn(min = 40.dp)
-                        .clearAndSetSemantics { contentDescription = spokenRow(row, next) },
+                        .clearAndSetSemantics { contentDescription = RulesText.spokenLadderRow(row, next) },
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Cell("${row.level}", cell, bold = true)
@@ -334,22 +325,6 @@ private fun Cell(text: String, width: Dp, bold: Boolean = false) {
         modifier = Modifier.width(width),
     )
 }
-
-internal fun spokenRow(row: LevelRow, next: Int?): String = buildString {
-    append("Level ${row.level}. Lowest card Tier ${row.lowestTier}. ")
-    append("Defeat: ${RulesText.count(row.defeatCoins, "coin")}, ")
-    append("${RulesText.count(row.assistCoins, "assist coin")}, ")
-    append("team spends ${RulesText.count(row.lifeCounters, "Life counter")}. ")
-    append(if (next != null) "Next level costs ${RulesText.count(next, "coin")}. " else "Top level. ")
-    append(row.maxTier?.let { "Max card Tier $it." } ?: "")
-}
-
-/** The defeat result for TalkBack, with singular and plural counts. */
-internal fun spokenDefeat(row: LevelRow): String =
-    "Level ${row.level} hero defeated, lowest card Tier ${row.lowestTier}. " +
-        "Their team spends ${RulesText.count(row.lifeCounters, "Life counter")}. " +
-        "The hero who defeated them collects ${RulesText.count(row.defeatCoins, "coin")}. " +
-        "That hero's friendly heroes collect ${RulesText.count(row.assistCoins, "assist coin")}."
 
 @Composable
 private fun ExceptionCard(card: ExceptionCardUi) {

@@ -53,9 +53,10 @@ import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.domain.rules.ExcerptLine
+import dev.quinton.goa.core.domain.rules.RulesText
 import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.core.model.rules.RulesExcerpt
-import dev.quinton.goa.feature.rules.RulesText
 
 /**
  * Rules text is read at arm's length across the table: larger than body text, generous leading, in
@@ -63,28 +64,6 @@ import dev.quinton.goa.feature.rules.RulesText
  */
 @Composable
 internal fun readingStyle(): TextStyle = GoaTextStyles.printed.copy(fontSize = 20.sp, lineHeight = 28.sp)
-
-/** One printed line of an excerpt: a paragraph, a bullet item or a numbered item. */
-internal sealed interface ExcerptLine {
-    val text: String
-
-    data class Paragraph(override val text: String) : ExcerptLine
-
-    data class Bullet(override val text: String) : ExcerptLine
-
-    data class Numbered(val number: String, override val text: String) : ExcerptLine
-}
-
-private val numbered = Regex("^(\\d+)\\.\\s+(.*)$")
-
-internal fun excerptLines(text: String): List<ExcerptLine> = text.split('\n').filter { it.isNotBlank() }.map { line ->
-    val match = numbered.find(line)
-    when {
-        line.startsWith("• ") -> ExcerptLine.Bullet(line.removePrefix("• "))
-        match != null -> ExcerptLine.Numbered(match.groupValues[1], match.groupValues[2])
-        else -> ExcerptLine.Paragraph(line)
-    }
-}
 
 /** "p. 7" in a small bronze-outlined tag; TalkBack reads "rulebook page 7". */
 @Composable
@@ -128,7 +107,7 @@ internal fun ExcerptBlock(excerpt: RulesExcerpt, modifier: Modifier = Modifier, 
                     .background(GoaTheme.colors.heading.copy(alpha = 0.5f), RoundedCornerShape(2.dp)),
             )
             Column(Modifier.padding(start = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                excerptLines(excerpt.text).forEach { line -> ExcerptLineText(line, style) }
+                RulesText.excerptLines(excerpt.text).forEach { line -> ExcerptLineText(line, style) }
                 if (excerpt.table.isNotEmpty()) ExcerptTable(excerpt.table, style)
             }
         }
@@ -136,10 +115,6 @@ internal fun ExcerptBlock(excerpt: RulesExcerpt, modifier: Modifier = Modifier, 
 }
 
 private const val FIRST_COLUMN_WEIGHT = 1.4f
-
-/** TalkBack reads each body row with its column names: "6-8 Players, Wave Counters 2 x 7, …". */
-private fun spokenRow(header: List<String>, row: List<String>): String =
-    row.mapIndexed { c, cell -> if (c == 0) cell else "${header.getOrElse(c) { "" }} $cell" }.joinToString(", ")
 
 private val TableCellPadding = Spacing.sm
 
@@ -179,7 +154,7 @@ private fun ExcerptTable(table: List<List<String>>, style: TextStyle) {
         if (fits) {
             Column(Modifier.fillMaxWidth()) {
                 table.forEachIndexed { i, row ->
-                    val spoken = if (i == 0) header.joinToString(", ") else spokenRow(header, row)
+                    val spoken = if (i == 0) header.joinToString(", ") else RulesText.spokenTableRow(header, row)
                     Row(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = spoken }) {
                         row.forEachIndexed { c, cell ->
                             Text(
@@ -200,7 +175,7 @@ private fun ExcerptTable(table: List<List<String>>, style: TextStyle) {
                     Column(
                         Modifier
                             .fillMaxWidth()
-                            .clearAndSetSemantics { contentDescription = spokenRow(header, row) }
+                            .clearAndSetSemantics { contentDescription = RulesText.spokenTableRow(header, row) }
                             .padding(horizontal = TableCellPadding, vertical = Spacing.xs),
                     ) {
                         Text(row.firstOrNull().orEmpty(), style = headerStyle)
@@ -273,7 +248,7 @@ internal fun cardTextAnnotated(text: String, reminderColor: Color): AnnotatedStr
                     if (icon == null) {
                         append(segment.name.replace('_', ' '))
                     } else {
-                        val spoken = spokenIconLabel(icon.second, segments.getOrNull(index + 1))
+                        val spoken = RulesText.spokenIconLabel(icon.second, segments.getOrNull(index + 1))
                         appendInlineContent(ICON_PREFIX + segment.name, alternateText = spoken)
                     }
                 }
@@ -293,15 +268,6 @@ internal fun cardTextAnnotated(text: String, reminderColor: Color): AnnotatedStr
         }
     }
     append(CardText.parse(text))
-}
-
-/**
- * TalkBack text for an inline icon: blank when the printed word right after it already names it
- * ("{life} Life counter" is read once). Inline content needs non-empty alternate text.
- */
-internal fun spokenIconLabel(label: String, next: CardText.Segment?): String {
-    val following = (next as? CardText.Segment.Text)?.value?.trimStart().orEmpty()
-    return if (following.startsWith(label, ignoreCase = true)) " " else label
 }
 
 @Composable

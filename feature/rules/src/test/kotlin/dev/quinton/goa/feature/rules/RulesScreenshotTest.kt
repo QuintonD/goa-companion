@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.rules.DefeatExceptions
+import dev.quinton.goa.core.domain.rules.RulesText
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.feature.rules.ui.ExcerptBlock
 import dev.quinton.goa.feature.rules.ui.LevelLadderSheet
