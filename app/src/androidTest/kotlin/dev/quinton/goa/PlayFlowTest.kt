@@ -43,9 +43,11 @@ class PlayFlowTest {
         rule.waitForText("shows", substring = true)
         rule.tapText("Start the game")
 
-        // Turn 1: Wasp's hand as cards; choose one, then "Play … facedown".
+        // Turn 1: Wasp's hand as cards; the first tap opens the card focus viewer (it answers
+        // nothing), then its "Play … facedown" button plays the card.
         rule.waitFor(hasText("Play a card facedown"), timeout = GAME_TIMEOUT)
-        rule.tap(hasClickLabel("Choose"))
+        rule.tap(hasClickLabel("Look at the card"))
+        rule.waitForText("Card 1 of", substring = true)
         rule.tap(
             hasText("facedown", substring = true) and hasText("Play ", substring = true) and
                 hasClickAction() and isEnabled(),
