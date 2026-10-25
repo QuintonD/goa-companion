@@ -89,13 +89,15 @@ fun DifficultyMark(level: Int, modifier: Modifier = Modifier, showLabel: Boolean
 @Composable
 fun GoalBanner(goal: String, playing: List<String>, modifier: Modifier = Modifier) {
     val you = if (playing.isEmpty()) "" else "You play ${PuzzleText.names(playing)}"
+    // The goal already ends with a full stop ("Win the game this turn."): TalkBack read "turn.. You".
+    val spoken = listOf("Goal: ${goal.trimEnd('.')}.", you).joinToString(" ").trim()
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)),
         modifier = modifier
             .fillMaxWidth()
-            .clearAndSetSemantics { contentDescription = "Goal: $goal. $you" },
+            .clearAndSetSemantics { contentDescription = spoken },
     ) {
         Row(
             Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),

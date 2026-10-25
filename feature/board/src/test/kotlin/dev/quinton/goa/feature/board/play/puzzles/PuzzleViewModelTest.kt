@@ -85,6 +85,17 @@ class PuzzleViewModelTest {
     }
 
     @Test
+    fun `only the heroes you play are called You, the rest are the other side`() = runTest(dispatcher) {
+        // Hands-on 2026-10-25: puzzle 1 called Xargatha "Red · You" (the engine seats both sides as human).
+        val table = viewModel(first()).ui().table
+        table.view.heroes.forEach { hero ->
+            val expected = if (hero.heroId in table.mine) "You" else "The other side"
+            assertThat(table.controllerLabel(hero)).isEqualTo(expected)
+        }
+        assertThat(table.view.heroes.map { it.heroId }.toSet()).isNotEqualTo(table.mine)
+    }
+
+    @Test
     fun `every listed puzzle is solved with its stored line, and the solve is saved`() = runTest(dispatcher) {
         assumeTrue(book.puzzles.isNotEmpty())
         book.puzzles.forEach { info ->

@@ -379,7 +379,7 @@ private fun HeroCard(table: TableUi, hero: HeroView, onCard: OpenCard, puzzle: B
                     )
                     Text(
                         listOfNotNull(
-                            if (hero.heroId in table.mine) "You" else PlayText.controller(hero.controller),
+                            table.controllerLabel(hero),
                             when {
                                 acting -> "Acting now"
                                 hero.at == null -> "Off the board"
