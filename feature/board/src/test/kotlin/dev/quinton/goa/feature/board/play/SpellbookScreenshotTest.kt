@@ -175,6 +175,22 @@ class SpellbookScreenshotTest {
     /** Before Prepare Spells: an empty spellbook, all 22 spell cards not yet added. */
     @Test fun spellbookSheetUnpreparedLight() = sheet(ThemeMode.LIGHT, prepared = false)
 
+    // ---- Cantrip before Prepare Spells: only Hold, and why (ADR-041) -------------------------
+
+    /** The engine's reason under Hold: "Its Skill can't start: the spellbook is empty until …". */
+    private fun emptyBook(mode: ThemeMode, fontScale: Float = 1f) =
+        capture(mode, fontScale) { Game(play(session(prepared = false), "gydion")) }
+
+    @Test fun spellbookEmptyActionDark() = emptyBook(ThemeMode.DARK)
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun spellbookEmptyActionW384LightFontScale2() = emptyBook(ThemeMode.LIGHT, 2f)
+
+    @Config(qualifiers = "w800dp-h330dp-land-xxhdpi")
+    @Test
+    fun spellbookEmptyActionLandscapeShortLight() = emptyBook(ThemeMode.LIGHT)
+
     // ---- Choose and cast one spell (Cantrip) ------------------------------------------------
 
     @Test fun spellbookCastDark() = capture(ThemeMode.DARK) { Game(play(casting(), "gydion")) }
