@@ -22,6 +22,7 @@ import dev.quinton.goa.core.data.GroupRepository
 import dev.quinton.goa.core.data.SyncServerControl
 import dev.quinton.goa.core.data.SyncServerOutcome
 import dev.quinton.goa.core.data.SyncServerRepository
+import dev.quinton.goa.core.data.sync.SyncServerRetry
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -149,7 +150,7 @@ class SyncServerScheduler @Inject constructor(
         const val NOW = "server-sync"
         const val HOURLY = "server-sync-hourly"
         const val AFTER_CHANGE_SECONDS = 15L
-        const val BACKOFF_SECONDS = 30L
+        const val BACKOFF_SECONDS = SyncServerRetry.BACKOFF_SECONDS
         const val VISIBLE_MINUTES = 5L
         private const val SCREEN_GAP_MS = 60_000L
         private const val COALESCE_MS = 1_000L
