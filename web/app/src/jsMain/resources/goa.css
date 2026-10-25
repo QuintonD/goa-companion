@@ -731,7 +731,7 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
 .o-hatch { stroke: var(--primary); stroke-opacity: 0.85; stroke-width: 0.07; }
 .o-move { fill: var(--map-movement); fill-opacity: 0.34; stroke: var(--map-movement); stroke-width: 0.06; }
 .o-move-n {
-  fill: var(--on-surface); font: 700 0.78px var(--font-body); text-anchor: middle; dominant-baseline: central;
+  fill: var(--on-surface); font: 700 10px var(--font-body); text-anchor: middle; dominant-baseline: central;
 }
 .o-target-fill { fill: var(--secondary); fill-opacity: 0.22; }
 .o-target { fill: none; stroke: var(--secondary); stroke-width: 0.12; stroke-dasharray: 0.28 0.18; stroke-linejoin: round; }
@@ -754,7 +754,7 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
 @media (prefers-reduced-motion: reduce) { .goa-piece { transition: none; } }
 .p-halo { fill: var(--map-halo); }
 .p-medallion { fill: var(--medallion); }
-.p-initials { fill: var(--primary); font: 700 0.5px var(--font-display); text-anchor: middle; dominant-baseline: central; }
+.p-initials { fill: var(--primary); font: 700 10px var(--font-display); text-anchor: middle; dominant-baseline: central; }
 .p-ring { fill: none; stroke-width: 0.146; }
 .p-inner { fill: none; stroke: var(--map-halo); stroke-opacity: 0.35; stroke-width: 0.036; }
 .p-glyph { fill: var(--map-on-team); }
@@ -1088,6 +1088,7 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
 .goa-lineup-hero .goa-icon-button { width: 40px; height: 44px; min-width: 40px; }
 .goa-filling { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-sm); margin: var(--sp-sm) 0; }
 .goa-filling .goa-segmented { flex: 0 0 auto; }
+.goa-filling .goa-segment { display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
 .goa-segment.red[aria-checked="true"] { background: color-mix(in srgb, var(--team-red) 22%, transparent); color: var(--on-surface); }
 .goa-segment.blue[aria-checked="true"] { background: color-mix(in srgb, var(--team-blue) 22%, transparent); color: var(--on-surface); }
 .goa-search { flex: 1 1 8rem; min-width: 0; min-height: var(--tap); padding: 0 var(--sp-md); border-radius: 22px; border: 1px solid var(--engraved); background: var(--surface); color: var(--on-surface); font: 400 1rem/1.5rem var(--font-body); }
@@ -1097,7 +1098,7 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
 .goa-grid-hero.later .goa-grid-name { color: var(--on-surface-variant); }
 .goa-grid-name { font: 500 0.6875rem/0.875rem var(--font-body); text-align: center; overflow-wrap: anywhere; }
 .goa-later { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); padding: 0 5px; border-radius: 6px; background: var(--bg); color: var(--on-surface-variant); font: 700 0.625rem/0.875rem var(--font-body); }
-.goa-step-bar { position: sticky; bottom: 0; padding: var(--sp-sm) 0 var(--sp-md); background: linear-gradient(transparent, var(--bg) 30%); display: flex; flex-direction: column; gap: var(--sp-xs); }
+.goa-step-bar { position: sticky; bottom: calc(var(--tabbar-height) + var(--safe-bottom)); padding: var(--sp-sm) 0 var(--sp-md); background: linear-gradient(transparent, var(--bg) 30%); display: flex; flex-direction: column; gap: var(--sp-xs); }
 .goa-step-bar p { margin: 0; text-align: center; }
 .goa-source-row { display: flex; flex-direction: column; align-items: flex-start; width: 100%; min-height: 56px; padding: var(--sp-sm) var(--sp-md); margin-bottom: var(--sp-sm); border-radius: 12px; border: 1px solid var(--engraved); background: var(--surface); color: var(--on-surface); text-align: left; cursor: pointer; }
 .goa-source-row .goa-table-overline { margin: 0; }

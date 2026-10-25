@@ -12,6 +12,8 @@ import dev.quinton.goa.core.game.TurnPlay
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
+import dev.quinton.goa.feature.board.map.HexLayout
+import dev.quinton.goa.feature.board.map.MapOrientation
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.play.review.ReviewAction
 import dev.quinton.goa.feature.board.play.review.ReviewLine
@@ -24,6 +26,7 @@ import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.web.play.cards.CardFocusState
 import dev.quinton.goa.web.play.cards.CardImage
 import dev.quinton.goa.web.play.map.MapCamera
+import dev.quinton.goa.web.play.map.MapScene
 import dev.quinton.goa.web.play.ui.TeamMark
 import dev.quinton.goa.web.ui.BottomSheet
 import dev.quinton.goa.web.ui.ButtonKind
@@ -413,7 +416,10 @@ private fun Rewind(table: TableUi, rewind: RewindUi, onAction: (ReviewAction) ->
         hint = null,
         turnLog = emptyList(),
     )
-    val scene = rememberTableScene(shown, landscape = false)
+    // The whole map (no Lane framing): the heroes may stand anywhere at that turn's start.
+    val layout =
+        remember(shown.map, shown.bottomTeam) { HexLayout(shown.map, MapOrientation.PORTRAIT, shown.bottomTeam) }
+    val scene = remember(layout, rewind.view) { MapScene(shown.map, layout, shown.battleZones, lane = null) }
     val camera = remember(rewind.round, rewind.turn) { MapCamera() }
     Div({ classes("goa-rewind-head") }) {
         GoaButton("Back to the game state", { onAction(ReviewAction.CloseRewind) }, ButtonKind.TEXT, icon = "back")

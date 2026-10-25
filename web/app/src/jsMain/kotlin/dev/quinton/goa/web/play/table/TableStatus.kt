@@ -25,7 +25,6 @@ import dev.quinton.goa.feature.board.play.table.slotCaption
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.play.table.spokenChip
 import dev.quinton.goa.feature.board.play.table.spokenSlot
-import dev.quinton.goa.feature.board.play.table.stateWord
 import dev.quinton.goa.feature.board.play.table.ultimateCard
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
 import dev.quinton.goa.web.play.cards.CardFocusState
@@ -530,6 +529,3 @@ fun EventLog(lines: List<LogLine>) {
         }
     }
 }
-
-/** "Done", "Now" … for screens that list a slot in words. */
-fun slotWord(slot: TrackSlot): String = stateWord(slot.state)

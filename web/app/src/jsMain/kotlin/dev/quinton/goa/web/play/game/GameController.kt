@@ -12,7 +12,6 @@ import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.GameSetup
 import dev.quinton.goa.core.game.GameView
 import dev.quinton.goa.core.game.SavedGame
-import dev.quinton.goa.core.game.TurnReview
 import dev.quinton.goa.core.model.board.BoardMap
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.Catalog
@@ -37,7 +36,6 @@ import dev.quinton.goa.feature.board.play.game.revealOf
 import dev.quinton.goa.feature.board.play.game.turnStart
 import dev.quinton.goa.feature.board.play.game.turnStatus
 import dev.quinton.goa.feature.board.play.review.ReviewKeeper
-import dev.quinton.goa.feature.board.play.review.pushesWon
 import dev.quinton.goa.feature.board.play.review.reviewUi
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
@@ -604,10 +602,4 @@ class GameController(
             ),
         )
     }
-
-    /** The review's history (for tests and the screen): the engine's turns, or null while closed. */
-    internal val reviewTurns: List<TurnReview>? get() = reviewData?.reviews
-
-    /** Lane pushes won so far, from the log (the review's Now tab while its history loads). */
-    internal val pushes: Map<Team, Int> get() = pushesWon(events)
 }

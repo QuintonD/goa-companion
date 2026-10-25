@@ -67,7 +67,11 @@ fun DecisionPanel(
     val decision = table.decision ?: return
     val source = table.sourceCard
     val layout = panelLayout(decision.kind, source != null)
-    Div({ classes("goa-decision") }) {
+    Div({
+        classes("goa-decision")
+        // The question's id: a new question is a new panel (tests wait for it to change).
+        attr("data-decision", decision.id.toString())
+    }) {
         PromptHeader(
             table,
             decision,

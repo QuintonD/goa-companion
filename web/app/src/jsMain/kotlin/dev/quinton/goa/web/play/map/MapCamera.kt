@@ -87,8 +87,12 @@ class MapCamera {
         this.laneMayCrop = laneMayCrop
         width = w
         height = h
+        val oldUnit = unit
         unit = minOf(w / layout.width, h / layout.height)
+        // A view the person (or a reveal) moved keeps its scale on screen when the map is resized.
+        if (sameLayout && mode == ViewMode.MOVED && oldUnit > 0f) zoom *= oldUnit / unit
         maxZoom = (MAX_HEX / (2f * unit)).coerceAtLeast(MIN_MAX_ZOOM)
+        if (zoom > maxZoom) zoom = maxZoom
         if (!sameLayout) {
             userMoved = false
             if (mode == ViewMode.MOVED) mode = ViewMode.LANE

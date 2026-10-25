@@ -61,7 +61,8 @@ fun GameTableView(
     }
     // Bring what is asked for into view: the options, the unit they are about, the highlights.
     val decision = table.decision
-    LaunchedEffect(decision?.id, table.asking, camera.unit > 0f, hidden) {
+    // Again when the map's size changes (the turn track appears, the panel grows): as the phone does on its insets.
+    LaunchedEffect(decision?.id, table.asking, camera.width, camera.height, hidden) {
         if (decision == null || camera.unit == 0f) return@LaunchedEffect
         if (hidden && !camera.userMoved) return@LaunchedEffect
         if (decision.kind == DecisionKind.PLAY_CARD && !table.asking) return@LaunchedEffect

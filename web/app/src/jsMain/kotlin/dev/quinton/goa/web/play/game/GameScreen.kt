@@ -278,39 +278,37 @@ fun PeekConfirm(table: TableUi, busy: Boolean, onAnswer: (Choice) -> Unit) {
 private fun Panel(play: PlayUi, onAction: (GameAction) -> Unit, focus: CardFocusState) {
     val table = play.table
     val nudge = play.nudge
+    val status = play.status
     table.moment.takeIf { nudge == null }?.let { MomentCard(it, table, focus) }
-    when (val status = play.status) {
-        else -> when {
-            nudge != null -> CoachNudge(nudge, onAction)
+    when {
+        nudge != null -> CoachNudge(nudge, onAction)
 
-            status is TurnStatus.YourTurn -> {
-                DecisionPanel(
-                    table,
-                    onSelect = { onAction(GameAction.Select(it)) },
-                    onAnswer = { onAction(GameAction.Answer(it)) },
-                    focus = focus,
-                    busy = play.busy,
-                )
-                if (play.busy &&
-                    play.coach
-                ) {
-                    P({ classes("t-body-small", "goa-quiet", "goa-busy-line") }) { Text("Coach is looking…") }
-                }
-            }
-
-            status is TurnStatus.Computer -> ComputerMove(table, status, focus)
-
-            status is TurnStatus.Waiting -> Waiting(table, status)
-
-            else -> Unit
+        status is TurnStatus.YourTurn -> {
+            DecisionPanel(
+                table,
+                onSelect = { onAction(GameAction.Select(it)) },
+                onAnswer = { onAction(GameAction.Answer(it)) },
+                focus = focus,
+                busy = play.busy,
+            )
+            if (play.busy && play.coach) CoachLooking()
         }
+
+        status is TurnStatus.Computer -> ComputerMove(table, status, focus)
+
+        status is TurnStatus.Waiting -> Waiting(table, status)
+
+        else -> Unit
     }
-    if (nudge ==
-        null
-    ) {
-        RecentEvents(play.recent, if (play.status is TurnStatus.YourTurn) play.recentStrong else emptySet())
+    if (nudge == null) {
+        RecentEvents(play.recent, if (status is TurnStatus.YourTurn) play.recentStrong else emptySet())
+        if (!table.handDecision) YourHand(table, focus)
     }
-    if (!table.handDecision && nudge == null) YourHand(table, focus)
+}
+
+@Composable
+private fun CoachLooking() {
+    P({ classes("t-body-small", "goa-quiet", "goa-busy-line") }) { Text("Coach is looking…") }
 }
 
 /** A gentle nudge before a clearly worse choice: never blocks, never chooses for you. */
