@@ -3,7 +3,7 @@
 ## Stack (versions verified 2026-10-17 — re-check for patches at M0, then pin)
 | Concern | Choice |
 |---------|--------|
-| Language / build | Kotlin 2.4.21 (AGP built-in Kotlin), AGP 9.4.1, Gradle 9.8.1, Java 17 bytecode on JBR 21 (ADR-010) |
+| Language / build | Kotlin 2.4.21 (AGP built-in Kotlin), AGP 9.4.1, Gradle 9.8.1, Java 17 bytecode on JBR 21 (ADR-010); the shared core is Kotlin Multiplatform jvm + js, its JS tests on Node 24 downloaded by the Kotlin plugin (ADR-043) |
 | SDK | minSdk 26, compileSdk **37**, targetSdk **37** (set explicitly) |
 | UI | Jetpack Compose, Material 3 (custom theme), **Navigation 3** 1.2 (`navigation3-runtime/ui`, `lifecycle-viewmodel-navigation3`, `@Serializable` keys) |
 | DI | Hilt 2.60.x via **KSP** (no kapt — it doesn't work with AGP 9 built-in Kotlin) |
@@ -12,7 +12,7 @@
 | Async | Coroutines + Flow; `StateFlow<UiState>` per screen |
 | Charts | Vico 3.x (`compose`, `compose-m3`) |
 | Images | Coil 3 — `AsyncImage(model = "file:///android_asset/official/…")` |
-| Group sync | Google Nearby Connections 19.5.1 (`P2P_STAR`), Google code scanner 16.1.0 (invite QR, no CAMERA permission), ZXing core 3.5.4 (draws the QR), `javax.crypto` only (ADR-025); sync server client: OkHttp 5.5 + WorkManager 2.12 with Hilt workers (ADR-036) |
+| Group sync | Google Nearby Connections 19.5.1 (`P2P_STAR`), Google code scanner 16.1.0 (invite QR, no CAMERA permission), ZXing core 3.5.4 (draws the QR), `javax.crypto` only (ADR-025; SHA-256/HMAC/HKDF are shared plain Kotlin and AES-GCM a platform `SyncCipher` since ADR-043); sync server client: OkHttp 5.5 + WorkManager 2.12 with Hilt workers (ADR-036) |
 | Quality | Android Lint, ktlint (`org.jlleitschuh.gradle.ktlint`), detekt 2.0 (`dev.detekt`, alpha — see ADR-008), Roborazzi, JUnit + Turbine + Truth |
 
 Pin versions in `gradle/libs.versions.toml`; never inline a version in a module build file.
@@ -22,19 +22,48 @@ Older Now-in-Android code breaks under AGP 9 as-is. Don't apply `org.jetbrains.k
 (Kotlin is built in); configure via `kotlin { compilerOptions {} }`. `CommonExtension` has no
 type parameters and `BaseExtension` casts throw; use `androidComponents { onVariants {} }`.
 `resValues` is off by default. R8 keep rules are stricter (`-keep class A` no longer keeps
-constructors). Pure JVM modules (`core:model`, `core:domain`) use `kotlin("jvm")`.
+constructors). The shared core (`core:model`, `core:domain`, `core:game`) is Kotlin
+Multiplatform (`goa.kmp.library`, jvm + js, ADR-043); the Android modules consume its `jvm`
+variant like any JVM library. `tools:catalog-import` stays `kotlin("jvm")`.
+
+### Shared core: jvm + js (ADR-043)
+The web app runs the same rules as the phone, compiled to JavaScript. To let the branches that edit
+these modules keep merging, the directories did not move: `src/main/kotlin` **is** `commonMain`,
+`src/test/kotlin` is `jvmTest` (the big JUnit 4 + Truth suites run on the JVM only), and
+`src/commonTest/kotlin` holds the parity tests that run on the JVM **and** on Node (`allTests`).
+What needs a platform lives in `src/jvmMain` / `src/jsMain`:
+
+| Module | jvmMain (Android) | jsMain (browser) | Why |
+|---|---|---|---|
+| core:domain | `SyncCrypto` (javax.crypto), `SyncCodec` + `JvmSyncCipher` (sync API over the shared `SyncFileCodec`), `sync/protocol/` (the Nearby protocol: `SecureChannel`, `SyncHost`, `SyncClient`), `SecureRandom` | `crypto.getRandomValues` | AES-GCM and gzip are platform code (WebCrypto is async, hence the `suspend` `SyncCipher`); Nearby doesn't exist on the web |
+| core:domain | `synchronizedOn` = `synchronized`, `concurrentMap` = `ConcurrentHashMap`, `monotonicNanos` = `System.nanoTime` | plain call, `HashMap`, `performance.now` | the phone's AI runs on several threads; a Web Worker on one |
+| core:domain | `jvmDoubleString` = `Double.toString` | Java's layout on JS digits | synced Doubles must be written as the phones write them (`CanonicalDoubleSerializer`, the merge tie-break) |
+| core:game | `ControlSignal` without stack traces | plain `RuntimeException` | the engine throws it for control flow |
+
+Shared code never uses `java.*`: dates are kotlinx-datetime (`GroupStats`, the validators),
+UUIDs `kotlin.uuid`, Base64 `kotlin.io.encoding`, URL encoding `FormUrl`, origins `UriHost`,
+SHA-256/HMAC/HKDF `SyncHash` (plain Kotlin, the same bytes as javax.crypto, `SharedSyncJvmTest`),
+`exp`/`10^x` in ratings and the AI `PortableMath` (fdlibm, the same bits on every platform;
+WebKit's `Math.exp` differs from V8's). Puzzle answer
+keys stay files under `core/game/src/main/resources`; `EmbedTextFiles` (build-logic) compiles them
+into `PuzzleKeyFiles`, so both platforms read them without a classpath. Never iterate a `HashMap`
+or `HashSet` where order matters (JVM and JS order them differently); `mutableMapOf`/`LinkedHashMap`
+keep insertion order on both. How the web consumes the core: `D:\.goa-qa\web\F1-api.md` (stream
+notes) and ADR-043.
 
 ## Modules
 ```
 app/                     # Application, MainActivity, Navigation 3 back stack + entry provider, DI root,
                          #   BottomSheetSceneStrategy (entries tagged NavSheet.metadata open as a sheet)
-build-logic/             # convention plugins (android-library, compose, feature, hilt, jvm-library)
-core/model/              # JVM: data classes (Hero, Card, Player, Match, DraftMethod…)
-core/domain/             # JVM: TimerEngine, EloCalculator, DraftEngine, MetaStats, MatchSetup, TriviaEngine,
+build-logic/             # convention plugins (android-library, compose, feature, hilt, jvm-library,
+                         #   kmp-library) and EmbedTextFiles (files → Kotlin source for shared code)
+core/model/              # KMP jvm+js: data classes (Hero, Card, Player, Match, DraftMethod…)
+core/domain/             # KMP jvm+js: TimerEngine, EloCalculator, DraftEngine, MetaStats, MatchSetup, TriviaEngine,
                          #   trivia/ TriviaChallenge + TriviaLeaderboard (derived, ADR-032),
-                         #   sync/ (SyncMerge, PlayerMerges, crypto, codec, SyncHost/SyncClient protocol);
-                         #   testFixtures: in-memory SyncTransport + data port
-core/game/               # JVM: the rules engine (ADR-035): GameApi.kt contract, engine/ (re-execution session,
+                         #   sync/ (SyncMerge, PlayerMerges, SyncHash, SyncFileCodec + SyncCipher, SyncVectors);
+                         #   jvmMain: SyncCrypto, SyncCodec, the Nearby protocol (SyncHost/SyncClient)
+core/domain-testfixtures/ # JVM: in-memory SyncTransport + data port (sources in core/domain/src/testFixtures)
+core/game/               # KMP jvm+js: the rules engine (ADR-035): GameApi.kt contract, engine/ (re-execution session,
                          #   flow, board/combat/minion rules, views, determinize), effects/ (hooks for card
                          #   scripts), heroes/ (one module per hero), position/ (PositionBuilder); see
                          #   core/game/ENGINE.md, EFFECTS.md, RULINGS.md
@@ -110,8 +139,11 @@ Features never depend on each other; cross-feature navigation goes through `app`
 - **Layers.** `core:domain/sync` is pure Kotlin: `SyncDocument` (version 2: players, matches,
   drafts, `triviaRounds`, `deletions`, `playerMerges`, stamped `EloConfig`), `SyncMerge`,
   `PlayerMerges`, `UnknownHeroes`,
-  `SyncValidation` (the backup import's rules), `SyncCrypto` (HKDF, HMAC-SHA256, AES-256-GCM),
-  `GroupInvite`, `SyncCodec` (gzip payloads, sealed sync file) and the protocol
+  `SyncValidation` (the backup import's rules), `SyncHash` (SHA-256, HMAC, HKDF in plain Kotlin),
+  `GroupInvite`, `SyncFileCodec` (gzip payloads, sealed sync file, over a platform `SyncCipher`)
+  and `SyncVectors`/`SyncCipherConformance` (bytes every cipher must reproduce), all shared with
+  the web app (ADR-043); JVM only: `SyncCrypto` (javax.crypto HKDF, HMAC-SHA256, AES-256-GCM),
+  `SyncCodec` (the same codec, synchronous, on `JvmSyncCipher`) and the protocol
   (`SyncHost`/`SyncClient` over `SyncTransport`/`SyncLink`). `core:data` owns
   `RoomSyncRepository` (export raw; `apply` = re-read, merge, write the difference in one write
   transaction, then the rating constants) and `DataStoreGroupRepository` (`datastore/group_sync`:
@@ -258,6 +290,7 @@ the draft setup for "Draft again".
 |-------|-------|
 | core:game | Rule tests by rulebook page (setup, turn, movement, combat, minions, end of round, card rules), one test class per hero following each card clause by clause, session tests (save/restore mid-card, fork, undo, determinize), property tests over 1 200 random games, a games-per-second benchmark (core/game/ENGINE.md "Tests") |
 | core:domain | Unit + property tests (Elo maths, draft legality for every method/player count, timer with fake clock) |
+| Shared core on JVM and JS (ADR-043) | `commonTest`, run by `allTests` on the JVM and on Node: `DomainParityTest` / `GameParityTest` hash a transcript of each engine's output (Elo + meta + group stats on a seeded log, every bundled draft method, seeded trivia, merges of random phones, the timer, the shipped catalog decoded strictly, a seeded random game, a seeded AI game, one puzzle per difficulty solved, every answer key loading and fitting its position) and must match the hash the JVM produced; `SyncVectorsTest` (FIPS/RFC vectors, the relay token vectors, the phones' JSON), `SyncCodecParityTest` (envelope, errors, invites, server addresses). JVM only: `SharedSyncJvmTest` (shared hashes vs javax.crypto, `FormUrl` vs java.net, `UriHost` vs `java.net.URI` on a fuzz corpus, `SyncCipherConformance` on `JvmSyncCipher`, the old code's file bytes), `PortableMathTest` (bit for bit `StrictMath.exp`) |
 | core:data | Catalog validation (schema, unique IDs, asset paths exist, every hero has a full deck), export/import round-trip |
 | core:database | Room in-memory tests; migration tests for every schema bump (v1 → v2: `matches.tie_breaker`; v2 → v3: `updated_at` backfill, `deletions`, `player_merges`; v3 → v4: `trivia_rounds`) |
 | Group sync | `core:domain`: merge properties (commutative, associative, idempotent, convergence, identical ratings), examples (ties, tombstones, merge chains and cycles, unknown heroes), crypto/codec (RFC 5869 vector, tamper, other group), protocol over the in-memory transport (host + 3, drops mid-upload and mid-download, wrong key, relay, Nearby unavailable). `core:data`: real Room phones syncing (game night, deletions, duplicates, trivia rounds), stamping, backup v5; the sync server client against a fake relay on MockWebServer (every branch and status, `SyncServerRepositoryTest`) and its `group_sync` state. `core:domain`: the token's fixed vector. `feature:sync`: VM tests, screenshots, `SyncServerSchedulerTest` on WorkManager's test driver. Real Nearby: two physical phones only |

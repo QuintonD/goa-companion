@@ -16,6 +16,7 @@ C: on the build PC is nearly full, so Gradle's caches live on D: (ADR-010):
 
 ```powershell
 $env:GRADLE_USER_HOME = "D:\.gradle-home"; $env:TMP = "D:\.tmp-build"; $env:TEMP = "D:\.tmp-build"
+$env:YARN_CACHE_FOLDER = "D:\.yarn-cache"   # Kotlin/JS (core tests on Node, the web app): ADR-043
 .\gradlew.bat :app:assembleRelease
 # APK: app\build\outputs\apk\release\app-release.apk
 adb install -r app\build\outputs\apk\release\app-release.apk
