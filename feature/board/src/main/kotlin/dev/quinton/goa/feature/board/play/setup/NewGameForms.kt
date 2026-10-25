@@ -59,7 +59,10 @@ internal object NewGameForms {
             step = s.step,
             control = s.controlHero?.let { Control.Hero(it) } ?: s.controlTeam?.let { Control.WholeTeam(it) },
             strength = AiStrength.coerce(s.strength ?: s.level?.strength ?: AiStrength.DEFAULT),
-            seatStrengths = s.seatLevels.mapValues { it.value.strength } + s.seatStrengths.mapValues { AiStrength.coerce(it.value) },
+            seatStrengths =
+                s.seatLevels.mapValues {
+                    it.value.strength
+                } + s.seatStrengths.mapValues { AiStrength.coerce(it.value) },
             advanced = s.advanced,
             length = s.length,
             mapId = s.mapId,

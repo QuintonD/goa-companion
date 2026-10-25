@@ -55,6 +55,10 @@ class ExperimentTest {
         @Suppress("CyclomaticComplexMethod")
         private fun override(p: LevelProfile, k: String, v: String): LevelProfile {
             val kn = p.knobs
+            // x<TERM>=<scale>, e.g. xEXPOSURE=0.8 (an [EvalKnobs.scales] entry).
+            if (k.startsWith("x")) {
+                return p.copy(knobs = kn.copy(scales = kn.scales + (Term.valueOf(k.drop(1)) to v.toDouble())))
+            }
             return when (k) {
                 "samples" -> p.copy(playSamples = v.toInt())
                 "other" -> p.copy(otherSamples = v.toInt())
@@ -83,12 +87,7 @@ class ExperimentTest {
                 "margin" -> p.copy(knobs = kn.copy(minionMargin = v.toDouble()))
                 "tempo" -> p.copy(knobs = kn.copy(killTempo = v.toDouble()))
                 "hand" -> p.copy(knobs = kn.copy(handRating = v.toDouble()))
-                // x<TERM>=<scale>, e.g. xEXPOSURE=0.8 (an [EvalKnobs.scales] entry).
-                else -> if (k.startsWith("x")) {
-                    p.copy(knobs = kn.copy(scales = kn.scales + (Term.valueOf(k.drop(1)) to v.toDouble())))
-                } else {
-                    error("Unknown override $k")
-                }
+                else -> error("Unknown override $k")
             }
         }
     }

@@ -150,8 +150,8 @@ sealed interface NewGameAction {
 /**
  * New game against the computer (PRODUCT §9): the line-up as on New board (alternate picks, "Use a
  * draft or match"; only playable heroes can be seated), then who you control, the computer's
- * strength 1–10 (one for all, or per seat, ADR-039), Quick or Long, the map, Coach; the app flips the Tie Breaker coin and
- * [start] creates and saves the game.
+ * strength 1–10 (one for all, or per seat, ADR-039), Quick or Long, the map, Coach; the app flips
+ * the Tie Breaker coin and [start] creates and saves the game.
  */
 @HiltViewModel(assistedFactory = NewGameViewModel.Factory::class)
 class NewGameViewModel internal constructor(
@@ -295,7 +295,10 @@ class NewGameViewModel internal constructor(
 
         is NewGameAction.SetControl -> form.copy(control = action.control)
 
-        is NewGameAction.SetStrength -> form.copy(strength = AiStrength.coerce(action.strength), seatStrengths = emptyMap())
+        is NewGameAction.SetStrength -> form.copy(
+            strength = AiStrength.coerce(action.strength),
+            seatStrengths = emptyMap(),
+        )
 
         is NewGameAction.SetSeatStrength ->
             form.copy(seatStrengths = form.seatStrengths + (action.heroId to AiStrength.coerce(action.strength)))

@@ -55,8 +55,9 @@ class FitTest {
         val lane = m[Term.LANE.ordinal]
         for (t in Term.entries) {
             val sd = kotlin.math.sqrt(train.map { it.terms[t.ordinal] }.let { v -> v.sumOf { it * it } / v.size })
+            val name = t.name.padEnd(14)
             println(
-                "FIT   ${t.name.padEnd(14)} m = ${"%8.4f".format(m[t.ordinal])}  m/k = ${"%6.2f".format(m[t.ordinal] / k)}" +
+                "FIT   $name m = ${"%8.4f".format(m[t.ordinal])}  m/k = ${"%6.2f".format(m[t.ordinal] / k)}" +
                     "  m/m(LANE) = ${"%6.2f".format(m[t.ordinal] / lane)}  rms ${"%6.2f".format(sd)}",
             )
         }

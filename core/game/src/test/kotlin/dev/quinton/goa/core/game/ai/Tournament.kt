@@ -120,10 +120,9 @@ object Tournament {
                     f.get()
                 } catch (e: java.util.concurrent.ExecutionException) {
                     val spec = specs[i / 2]
-                    throw IllegalStateException(
-                        "Game failed: ${spec.lineup}, coin ${spec.coin}, seed ${spec.seed}, $a ${if (aRed[i]) "Red" else "Blue"}",
-                        e.cause,
-                    )
+                    val side = if (aRed[i]) "Red" else "Blue"
+                    val game = "${spec.lineup}, coin ${spec.coin}, seed ${spec.seed}, $a $side"
+                    throw IllegalStateException("Game failed: $game", e)
                 }
                 when (aWon) {
                     null -> score.draws++

@@ -94,7 +94,9 @@ class NewGameViewModelTest {
     }
 
     @Test
-    fun `you play your whole team or one hero, the rest are the computer at the chosen strengths`() = runTest(dispatcher) {
+    fun `you play your whole team or one hero, the rest are the computer at the chosen strengths`() = runTest(
+        dispatcher,
+    ) {
         val vm = viewModel(route = NewGameRoute(red = listOf("arien", "brogan"), blue = listOf("wasp", "tigerclaw")))
         val ready = vm.ready
         assertThat(ready.controls.first()).isEqualTo(Control.WholeTeam(Team.RED))

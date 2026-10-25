@@ -83,6 +83,7 @@ internal class Evaluator(val data: EngineData, val knobs: EvalKnobs = EvalKnobs(
 
     companion object {
         const val WIN: Double = 1000.0
+
         /** A hero's own piece on the board: lasting beyond the round / for the rest of the round / near an enemy. */
         const val PIECE_LASTING: Double = 1.2
         const val PIECE_ROUND: Double = 0.8
@@ -501,7 +502,8 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
         laneTerms(t)
         t[Term.PIECES.ordinal] = pieceValueRed()
         t[Term.LIFE.ordinal] =
-            Evaluator.lifeValue(state.lifeCounters[Team.RED] ?: 0) - Evaluator.lifeValue(state.lifeCounters[Team.BLUE] ?: 0)
+            Evaluator.lifeValue(state.lifeCounters[Team.RED] ?: 0) -
+            Evaluator.lifeValue(state.lifeCounters[Team.BLUE] ?: 0)
         for (h in state.heroes) heroTerms(h, if (h.team == Team.RED) 1.0 else -1.0, t)
         return t
     }
