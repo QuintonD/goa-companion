@@ -51,10 +51,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.data.TriviaProgressRepository
+import dev.quinton.goa.core.data.trivia.PlayingAsState
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.player.Player
-import dev.quinton.goa.feature.trivia.PlayingAsState
 
 /** Why the Playing-as picker is open. */
 enum class PlayingAsPicker {

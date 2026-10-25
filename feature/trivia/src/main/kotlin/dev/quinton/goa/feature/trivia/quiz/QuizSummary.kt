@@ -34,13 +34,15 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.data.trivia.MissUi
+import dev.quinton.goa.core.data.trivia.TriviaCardUi
+import dev.quinton.goa.core.data.trivia.TriviaQuizUiState
+import dev.quinton.goa.core.data.trivia.TriviaText
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.trivia.TriviaCardUi
-import dev.quinton.goa.feature.trivia.TriviaText
 import dev.quinton.goa.feature.trivia.ui.CardKindLine
 import dev.quinton.goa.feature.trivia.ui.HeroLine
 import dev.quinton.goa.feature.trivia.ui.spokenUnverified
@@ -136,31 +138,13 @@ private fun SummaryActions(
 }
 
 /** Who is playing, on the quiz and its summary: "as Sam", or "as Guest · not on the leaderboard". */
-internal fun playingAsLine(playerName: String?): String =
-    if (playerName == null) "as Guest · not on the leaderboard" else "as $playerName"
+internal fun playingAsLine(playerName: String?): String = TriviaText.playingAsLine(playerName)
 
 /**
  * What a Challenge's summary says about the board: "2nd of 5 · your best 18/20", "New best! · 1st
  * of 3", why it isn't on it, or null while the place is still being worked out.
  */
-internal fun challengeLine(state: TriviaQuizUiState.Summary): String? {
-    val challenge = state.challenge ?: return null
-    return when {
-        !challenge.finished -> "Unfinished challenges don't go on the leaderboard."
-
-        // Guest: the "as Guest · not on the leaderboard" line above says it.
-        state.playerName == null -> null
-
-        else -> challenge.standing?.let { standing ->
-            val place = TriviaText.place(standing.place, standing.tied) + " of ${standing.of}"
-            if (challenge.newBest) {
-                "New best! · $place"
-            } else {
-                "$place · your best ${standing.best.correct}/${standing.best.questions}"
-            }
-        }
-    }
-}
+internal fun challengeLine(state: TriviaQuizUiState.Summary): String? = TriviaText.challengeLine(state)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -248,8 +232,7 @@ private fun Metric(value: String, label: String, spoken: String = "$label $value
 }
 
 /** "Arien's Mad Dash", and ", unverified data" when the hero's data isn't verified. */
-private fun spokenOwned(card: TriviaCardUi): String =
-    "${card.heroName}'s ${card.name}${spokenUnverified(card.heroVerified)}"
+private fun spokenOwned(card: TriviaCardUi): String = TriviaText.spokenOwned(card)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

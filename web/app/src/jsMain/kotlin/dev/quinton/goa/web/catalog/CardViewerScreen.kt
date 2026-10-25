@@ -163,7 +163,8 @@ private fun CardPager(deck: ViewerDeck, index: Int, textOnly: Boolean, onPage: (
                 attr("role", "group")
                 attr("aria-roledescription", "card")
                 attr("aria-label", "${i + 1} of ${deck.cards.size}: ${pageCard.name}")
-                if (i != index) attr("aria-hidden", "true")
+                // Off-screen pages are out of reach for VoiceOver and the keyboard (a swipe still scrolls).
+                if (i != index) attr("inert", "")
             }) {
                 // Neighbours render too (the swipe shows them); far pages stay empty until reached.
                 if (kotlin.math.abs(i - index) <= 1) {

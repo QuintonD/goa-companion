@@ -7,6 +7,11 @@ import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.TriviaProgressRepository
 import dev.quinton.goa.core.data.TriviaRoundRepository
+import dev.quinton.goa.core.data.trivia.QuizQuestionUi
+import dev.quinton.goa.core.data.trivia.TriviaHomeAction
+import dev.quinton.goa.core.data.trivia.TriviaHomeUiState
+import dev.quinton.goa.core.data.trivia.TriviaQuizUiState
+import dev.quinton.goa.core.data.trivia.TriviaText
 import dev.quinton.goa.core.domain.trivia.AnswerStyle
 import dev.quinton.goa.core.domain.trivia.CardGroup
 import dev.quinton.goa.core.domain.trivia.FactProgress
@@ -26,12 +31,8 @@ import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.core.testing.FakeTriviaProgressRepository
 import dev.quinton.goa.core.testing.FakeTriviaRoundRepository
 import dev.quinton.goa.core.testing.TestCatalog
-import dev.quinton.goa.feature.trivia.home.TriviaHomeAction
-import dev.quinton.goa.feature.trivia.home.TriviaHomeUiState
 import dev.quinton.goa.feature.trivia.home.TriviaHomeViewModel
 import dev.quinton.goa.feature.trivia.home.startNote
-import dev.quinton.goa.feature.trivia.quiz.QuizQuestionUi
-import dev.quinton.goa.feature.trivia.quiz.TriviaQuizUiState
 import dev.quinton.goa.feature.trivia.quiz.TriviaQuizViewModel
 import kotlin.random.Random
 import kotlinx.coroutines.CompletableDeferred

@@ -5,10 +5,10 @@ import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.data.TriviaProgressRepository
 import dev.quinton.goa.core.model.rules.RulesReference
 import dev.quinton.goa.web.catalog.CatalogBrowse
-import dev.quinton.goa.web.data.stub.W1TriviaProgressStub
 import dev.quinton.goa.web.rules.AssetRulesReferenceSource
 import dev.quinton.goa.web.settings.WebSettingsRepository
 import dev.quinton.goa.web.storage.scoped
+import dev.quinton.goa.web.trivia.WebTriviaProgressRepository
 
 /** The bundled rules reference (`catalog/rules-reference.json`), as on Android's feature:rules. */
 fun interface RulesReferenceSource {
@@ -28,7 +28,8 @@ class ContentData(private val services: WebServices) {
 
     val settings: SettingsRepository = WebSettingsRepository(services.store.scoped("content/"))
 
-    val triviaProgress: TriviaProgressRepository = W1TriviaProgressStub
+    val triviaProgress: TriviaProgressRepository =
+        WebTriviaProgressRepository(services.store.scoped("content/"), catalog)
 
     val rulesReference: RulesReferenceSource = AssetRulesReferenceSource()
 }

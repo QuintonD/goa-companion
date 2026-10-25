@@ -165,7 +165,7 @@ test("card viewer: next and previous, swipe, text only, double-tap zoom", async 
   await page.getByRole("button", { name: "Show card image" }).click();
   await expect(title(page)).toHaveText(cardTitle!);
   if (info.project.use.hasTouch) {
-    const img = page.locator(".goa-pager-page:not([aria-hidden]) .goa-zoom img");
+    const img = page.locator(".goa-pager-page:not([inert]) .goa-zoom img");
     const box = (await img.boundingBox())!;
     await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 3);
     await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 3);
