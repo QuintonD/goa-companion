@@ -1049,10 +1049,12 @@ restated every card as a text tile ("Card RED-2A · Skill · 3+ · Ranged · +1 
    the scan (as it already did).
 4. **Deck symbols** where a hero is named: hero page header, catalog tiles and rows, draft peek. The
    original sigils remain only as the fallback.
-5. **The board** draws the official Spawn point symbols: hero Spawn points as printed (gear/star:
-   shape tells the teams apart); minion Spawn points as printed with a badge in the team's shape
-   carrying the type's original glyph, because the printed symbols of one team are too alike at
-   ~38 dp hexes to tell melee, ranged and heavy apart. Minion pieces keep their original team disc and
+5. **The board** draws the official Spawn point symbols as markings under the pieces: faded and
+   partly desaturated toward the Zone fill and smaller than a piece (a piece on one hides it), so
+   empty Spawn points never read as units (integrator review: full-colour symbols at piece size did).
+   Hero Spawn points are the gear/star (shape tells the teams apart); minion Spawn points add a thin
+   outlined team shape with the type's original glyph, because the printed symbols of one team are
+   too alike at ~38 dp hexes to tell melee, ranged and heavy apart. Minion pieces keep their original team disc and
    type glyph for the same reason. The board screens' compact top bar takes the steel banner.
 **Deviations kept on purpose:** dark canvas by default (table lighting, not the white page); lighter
 copper and dimmer parchment in the dark theme for contrast; the app's vector icons inside card text

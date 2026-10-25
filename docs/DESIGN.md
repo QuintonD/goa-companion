@@ -33,7 +33,9 @@ bronze" (deep-ocean dark with bronze and teal), which stays as the canvas and th
 - **Legibility at phone size.** The official item icons are grey sketches and the minion Spawn
   symbols of one team differ too little to tell apart at board size, so card text keeps the app's
   inline vector icons (`GameIcons`), minion pieces keep their original type glyphs, and a minion
-  Spawn point gets a small badge (team shape + type glyph) over the printed symbol. Card names
+  Spawn point gets a small outlined type mark (team shape + type glyph) on the printed symbol.
+- **Spawn points stay markings.** On the table they are printed under the pieces; on a phone, a
+  full-colour symbol reads as a unit, so they are faded, partly desaturated and smaller than a piece. Card names
   are repeated under a scan only while the scan is too small to read them (under 140 dp wide).
 - **No commercial fonts.** Modesto and Minion are licensed fonts; Cinzel (Copperplate/Trajan
   caps) and Crimson Pro (a Minion look-alike) are OFL and stand in for them. Inter stays for the
@@ -221,11 +223,14 @@ One ring of water hexes (the terrain around the board, p.19) is drawn faintly ar
 Red/Blue Throne) float at a fixed size outside the zoom, so they stay readable; they sit just
 outside their Zone's edge, under every piece and overlay, and take the first of their places that
 is in view and covers no piece, highlighted space, Measure line or map button; with none free they
-hide. **Spawn points** are the rulebook's printed symbols (p.6, `rememberSpawnArt`): a hero Spawn point is
-Red's gear or Blue's star; a minion Spawn point the team's printed symbol with a badge in the team's
-shape (◆ Red / ● Blue) carrying the type's original glyph (the printed symbols of one team are too
-alike at ~38 dp to tell the types apart). Until the symbols load, the original glyph on the team's
-shape outline. **Original glyphs** (masters `design/board/glyph_*.svg`, path data mirrored in
+hide. **Spawn points** are the rulebook's printed symbols (p.6, `rememberSpawnArt`), drawn as markings on
+the board, never as units: faded (50 %) and partly desaturated toward the Zone fill, 1.0 u across,
+inside a piece's disc, so a minion or hero standing on one hides it completely (an occupied Spawn
+point shows only its piece) and the pieces stay the most prominent thing on any space. A hero Spawn
+point is Red's gear or Blue's star; a minion Spawn point carries at its lower right the type's
+original glyph in a thin outline of the team's shape (◆ Red / ● Blue), no solid badge (the printed
+symbols of one team are too alike at ~38 dp to tell the types apart; TalkBack names the Spawn point).
+Until the symbols load, the original glyph on the team's shape outline. **Original glyphs** (masters `design/board/glyph_*.svg`, path data mirrored in
 `ui/BoardGlyphs.kt`): crown = hero, sword = melee, arrow = ranged, shield = heavy. Pieces: heroes are the
 official portrait in a team-coloured ring, minions a team disc with the glyph, tokens a stone square
 with the label; heroes and minions carry the team's shape at the bottom right, so team is never
