@@ -81,6 +81,8 @@ abstract class GenerateIconMarkup : DefaultTask() {
 val iconMarkup = tasks.register<GenerateIconMarkup>("iconMarkup") {
     icons.from(fileTree("src/jsMain/resources/icons") { include("*.svg") })
     icons.from(fileTree(rootProject.file("design/icons")) { include("nav_*.svg") })
+    // The 24 player crests (Player.avatarId), as the phone draws them (W2).
+    icons.from(fileTree(rootProject.file("design/avatars")) { include("crest_*.svg") })
     output.set(layout.buildDirectory.dir("generated/iconMarkup"))
 }
 
@@ -112,6 +114,9 @@ kotlin {
                 implementation(projects.core.dataContracts)
                 // The Players and Group screens' rows and words, shared with the phone (W2).
                 implementation(projects.core.groupPresentation)
+                // Invite QR codes: draw (qrcode-generator, MIT) and read from the camera (jsQR, Apache-2.0).
+                implementation(npm("qrcode-generator", libs.versions.qrcodeGenerator.get()))
+                implementation(npm("jsqr", libs.versions.jsQr.get()))
                 implementation(libs.compose.runtime)
                 implementation(libs.compose.html.core)
                 implementation(libs.kotlinx.coroutines.core)

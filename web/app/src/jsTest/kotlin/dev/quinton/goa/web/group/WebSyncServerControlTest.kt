@@ -62,8 +62,13 @@ class WebSyncServerControlTest {
     private class Setup(scope: TestScope) {
         val signals = Signals()
         val server = Server()
-        val groups = PrefsGroupRepository(WebGroupPrefsStore(MemoryKeyValueStore()), SyncServerDefaults("https://relay.example.org"))
-        val control = WebSyncServerControl(groups, server, scope.backgroundScope, { scope.testScheduler.currentTime }, signals)
+        val groups =
+            PrefsGroupRepository(
+                WebGroupPrefsStore(MemoryKeyValueStore()),
+                SyncServerDefaults("https://relay.example.org"),
+            )
+        val control =
+            WebSyncServerControl(groups, server, scope.backgroundScope, { scope.testScheduler.currentTime }, signals)
     }
 
     @Test
@@ -112,7 +117,8 @@ class WebSyncServerControlTest {
     fun aTransientFailureRetriesWithBackoffAndNeverBeforeRetryAfter() = runTest {
         val s = Setup(this)
         s.groups.join(GroupCredentials.create("Friday"))
-        s.server.next = SyncServerResult.Failed(SyncServerError(SyncServerProblem.RATE_LIMITED, "busy", 0, retryAfterSeconds = 120))
+        s.server.next =
+            SyncServerResult.Failed(SyncServerError(SyncServerProblem.RATE_LIMITED, "busy", 0, retryAfterSeconds = 120))
         s.control.start()
         runCurrent()
         assertEquals(1, s.server.calls)

@@ -24,10 +24,6 @@ enum class Placeholder(val icon: String, val what: String) {
     RULES("rules", "The level & defeat ladder and the quick-reference topics"),
     TIMER("nav_timer", "Phase countdowns built for the table"),
     DRAFT("nav_draft", "Pick/ban drafting that feeds a match record"),
-    PLAYERS("nav_players", "Friends, Elo per player and per hero"),
-    MATCHES("list", "Every match your group logged"),
-    META("chart", "Win rates and the meta, from the match log"),
-    GROUP("sync", "Your group's match log, synced through the group's relay"),
 }
 
 data class PlaceholderLink(val title: String, val icon: String, val route: Route)

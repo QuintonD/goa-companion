@@ -3,6 +3,15 @@ package dev.quinton.goa.web.screens
 import androidx.compose.runtime.Composable
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.nav.Route
+import dev.quinton.goa.web.players.MatchEditScreen
+import dev.quinton.goa.web.players.PlayerDetailScreen
+import dev.quinton.goa.web.players.PlayerEditScreen
+import dev.quinton.goa.web.players.PlayersHomeScreen
+import dev.quinton.goa.web.players.PlayersTab
+import dev.quinton.goa.web.players.RatingSettingsScreen
+import dev.quinton.goa.web.sync.GroupScreen
+import dev.quinton.goa.web.sync.JoinLinkScreen
+import dev.quinton.goa.web.sync.WhoAreYouScreen
 import dev.quinton.goa.web.ui.EmptyState
 import dev.quinton.goa.web.ui.GoaButton
 import dev.quinton.goa.web.ui.Screen
@@ -55,25 +64,26 @@ fun ScreenFor(route: Route) {
         // Draft tab
         Route.Draft -> PlaceholderScreen("Draft", Placeholder.DRAFT, settingsAction = true)
 
-        // Players tab
-        Route.Players -> PlaceholderScreen(
-            "Players",
-            Placeholder.PLAYERS,
-            settingsAction = true,
-            links = listOf(
-                PlaceholderLink("Match log", "list", Route.Matches),
-                PlaceholderLink("Meta", "chart", Route.Meta),
-                PlaceholderLink("Group sync", "sync", Route.Group),
-            ),
-        )
+        // Players tab (group stream W2: players, matches, meta, group sync)
+        Route.Players -> PlayersHomeScreen(PlayersTab.PLAYERS)
 
-        is Route.PlayerDetail -> PlaceholderScreen("Player", Placeholder.PLAYERS)
+        is Route.PlayerDetail -> PlayerDetailScreen(route.playerId)
 
-        Route.Matches -> PlaceholderScreen("Match log", Placeholder.MATCHES)
+        is Route.PlayerEdit -> PlayerEditScreen(route.playerId)
 
-        Route.Meta -> PlaceholderScreen("Meta", Placeholder.META)
+        Route.Matches -> PlayersHomeScreen(PlayersTab.MATCHES)
 
-        Route.Group -> PlaceholderScreen("Group sync", Placeholder.GROUP)
+        is Route.MatchEdit -> MatchEditScreen(route.matchId, route.result)
+
+        Route.Meta -> PlayersHomeScreen(PlayersTab.META)
+
+        Route.RatingSettings -> RatingSettingsScreen()
+
+        Route.Group -> GroupScreen()
+
+        Route.WhoAreYou -> WhoAreYouScreen()
+
+        is Route.Join -> JoinLinkScreen(route.invite)
 
         is Route.NotFound -> NotFoundScreen()
     }

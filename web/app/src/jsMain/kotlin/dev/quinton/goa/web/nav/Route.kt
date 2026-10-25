@@ -155,6 +155,48 @@ sealed interface Route {
         override val parent get() = Players
     }
 
+    /** New player ([playerId] null) or edit one. */
+    data class PlayerEdit(val playerId: String? = null) : Route {
+        override val path get() = if (playerId == null) "players/new" else "players/${Routes.encode(playerId)}/edit"
+        override val tab get() = Tab.PLAYERS
+        override val parent get() = if (playerId == null) Players else PlayerDetail(playerId)
+    }
+
+    /** Log a match ([matchId] null), edit one, or [result]: the focused "Who won?" of a pending one. */
+    data class MatchEdit(val matchId: String? = null, val result: Boolean = false) : Route {
+        override val path get() = when {
+            matchId == null -> "matches/new"
+            result -> "matches/${Routes.encode(matchId)}?result=1"
+            else -> "matches/${Routes.encode(matchId)}"
+        }
+        override val tab get() = Tab.PLAYERS
+        override val parent get() = Matches
+    }
+
+    /** How ratings are calculated (Settings → Ratings on the phone). */
+    data object RatingSettings : Route {
+        override val path = "ratings"
+        override val tab: Tab? = null
+        override val parent get() = Meta
+    }
+
+    /** "Which player are you?" */
+    data object WhoAreYou : Route {
+        override val path = "group/me"
+        override val tab get() = Tab.PLAYERS
+        override val parent get() = Group
+    }
+
+    /**
+     * An invite link (`#join=goa-sync:1?…`, the QR code's link, `GroupInvite.link`): the Group screen
+     * takes the invite and asks first; the key never stays in the address bar or the history.
+     */
+    data class Join(val invite: String) : Route {
+        override val path get() = "join=$invite"
+        override val tab get() = Tab.PLAYERS
+        override val parent get() = Group
+    }
+
     /** A hash no screen answers to (an old bookmark): says so and offers the way home. */
     data class NotFound(val hash: String) : Route {
         override val path get() = hash
@@ -168,6 +210,11 @@ object Routes {
     /** The route for [hash] (`#/heroes/arien`, `/heroes/arien` or `heroes/arien`); empty = Heroes. */
     fun parse(hash: String): Route {
         val raw = hash.removePrefix("#").removePrefix("/").trimEnd('/')
+        // An invite link: everything after "join=" is the invite, kept exactly as written.
+        return if (raw.startsWith(JOIN)) Route.Join(raw.removePrefix(JOIN)) else parsePath(raw)
+    }
+
+    private fun parsePath(raw: String): Route {
         if (raw.isEmpty()) return Route.Catalog
         val path = raw.substringBefore('?')
         val query = parseQuery(raw.substringAfter('?', ""))
@@ -183,10 +230,11 @@ object Routes {
             "settings" -> settings(parts)
             "timer" -> Route.Timer.takeIf { parts.size == 1 }
             "draft" -> Route.Draft.takeIf { parts.size == 1 }
-            "players" -> oneOrTwo(parts, Route.Players) { Route.PlayerDetail(it) }
-            "matches" -> Route.Matches.takeIf { parts.size == 1 }
+            "players" -> players(parts)
+            "matches" -> matches(parts, query)
             "meta" -> Route.Meta.takeIf { parts.size == 1 }
-            "group" -> Route.Group.takeIf { parts.size == 1 }
+            "ratings" -> Route.RatingSettings.takeIf { parts.size == 1 }
+            "group" -> group(parts)
             else -> null
         } ?: Route.NotFound(raw)
     }
@@ -200,6 +248,29 @@ object Routes {
         parts.size == 4 && parts[2] == "cards" -> Route.CardViewer(parts[1], parts[3])
         else -> Route.NotFound(raw)
     }
+
+    private fun players(parts: List<String>): Route? = when {
+        parts.size == 1 -> Route.Players
+        parts.size == 2 && parts[1] == "new" -> Route.PlayerEdit()
+        parts.size == 2 -> Route.PlayerDetail(parts[1])
+        parts.size == 3 && parts[2] == "edit" -> Route.PlayerEdit(parts[1])
+        else -> null
+    }
+
+    private fun group(parts: List<String>): Route? = when {
+        parts.size == 1 -> Route.Group
+        parts.size == 2 && parts[1] == "me" -> Route.WhoAreYou
+        else -> null
+    }
+
+    private fun matches(parts: List<String>, query: Map<String, String>): Route? = when {
+        parts.size == 1 -> Route.Matches
+        parts.size == 2 && parts[1] == "new" -> Route.MatchEdit()
+        parts.size == 2 -> Route.MatchEdit(parts[1], result = query["result"] == "1")
+        else -> null
+    }
+
+    private const val JOIN = "join="
 
     private fun settings(parts: List<String>): Route? = when {
         parts.size == 1 -> Route.Settings

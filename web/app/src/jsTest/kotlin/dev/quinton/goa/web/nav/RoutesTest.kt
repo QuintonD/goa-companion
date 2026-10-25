@@ -27,6 +27,14 @@ class RoutesTest {
         Route.Matches,
         Route.Meta,
         Route.Group,
+        Route.PlayerEdit(),
+        Route.PlayerEdit("p-1"),
+        Route.MatchEdit(),
+        Route.MatchEdit("m-1"),
+        Route.MatchEdit("m-1", result = true),
+        Route.RatingSettings,
+        Route.WhoAreYou,
+        Route.Join("goa-sync:1?g=6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d&k=AAEC&n=Friday%20%26%20co"),
     )
 
     @Test
@@ -63,6 +71,16 @@ class RoutesTest {
         listOf("#/nope", "#/heroes/a/b", "#/heroes/a/cards", "#/settings/x", "#/timer/1", "#/players//x").forEach {
             assertIs<Route.NotFound>(Routes.parse(it), it)
         }
+    }
+
+    @Test
+    fun anInviteLinkOpensJoiningWithTheInviteUntouched() {
+        val invite = "goa-sync:1?g=6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d&k=AAEC&n=Friday%20%26%20co&s=https%3A%2F%2Fa.b"
+        // The QR code's link (GroupInvite.link) as an iPhone's Camera opens it.
+        assertEquals(Route.Join(invite), Routes.parse("#join=$invite"))
+        assertEquals(Route.Group, Route.Join(invite).parent)
+        assertEquals(Route.PlayerEdit("p-1"), Routes.parse("#/players/p-1/edit"))
+        assertEquals(Route.MatchEdit("m-1", result = true), Routes.parse("#/matches/m-1?result=1"))
     }
 
     @Test
