@@ -35,7 +35,7 @@ class TriviaFlowTest {
 
         // Home: overall progress and the setup.
         rule.waitForText("numbers learned", substring = true)
-        rule.waitForText("NEW QUIZ")
+        rule.waitForText("New quiz")
 
         // Heroes → only Arien.
         rule.tapDescription("Heroes: ", substring = true)
@@ -68,7 +68,7 @@ class TriviaFlowTest {
 
         // Back on the home (where it was scrolled to), the setup still quizzes Arien and the
         // round's card-number answers were saved: some numbers are now being learned.
-        rule.reveal(hasText("NEW QUIZ"))
+        rule.reveal(hasText("New quiz"))
         rule.reveal(hasContentDescription("Heroes: Arien", substring = true))
         val learningSome =
             !hasContentDescription("Learning: 0") and hasContentDescription("Learning: ", substring = true)
