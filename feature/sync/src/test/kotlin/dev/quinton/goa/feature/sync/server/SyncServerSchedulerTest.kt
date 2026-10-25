@@ -259,7 +259,8 @@ class SyncServerSchedulerTest {
         scheduler.syncNow()
         runCurrent()
 
-        val first = infos(SyncServerScheduler.NOW).first()
+        // On a busy machine the run may already have queued its retry: pick the run, not the retry.
+        val first = infos(SyncServerScheduler.NOW).first { it.initialDelayMillis == 0L }
         assertThat(settled(first.id).state).isEqualTo(WorkInfo.State.SUCCEEDED)
         val next = settledPending()
         assertThat(next.initialDelayMillis).isEqualTo(600_000)
