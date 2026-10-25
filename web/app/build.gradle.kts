@@ -43,6 +43,16 @@ val webAssets: TaskProvider<Sync> = tasks.register<Sync>("webAssets") {
 }
 
 /**
+ * The engine Web Worker's bundle (`:web:worker`, ADR-043 "Addendum (play, W4)"), served next to
+ * app.js: the game engine, the computer players and the puzzles run in it, never on the page's thread.
+ */
+val engineWorker: TaskProvider<Sync> = tasks.register<Sync>("engineWorker") {
+    description = "Copies the engine worker's production bundle into the web app."
+    from(project(":web:worker").tasks.named("jsBrowserDistribution")) { include("engine-worker.js") }
+    into(layout.buildDirectory.dir("generated/engineWorker"))
+}
+
+/**
  * The UI icons as inline SVG markup (`IconMarkup.kt`), generated from the SVG files: the web-only
  * icons in `src/jsMain/resources/icons` and the tab icons in `design/icons`. Inline SVG tints with
  * `currentColor`, needs no request and has no first-paint gap (CSS masks on the sticky/fixed bars
@@ -102,6 +112,7 @@ kotlin {
     sourceSets {
         jsMain {
             resources.srcDir(webAssets)
+            resources.srcDir(engineWorker)
             kotlin.srcDir(iconMarkup)
             dependencies {
                 // The shared core (ADR-043): the same models, rules and repository contracts as the
@@ -110,8 +121,13 @@ kotlin {
                 implementation(projects.core.model)
                 implementation(projects.core.domain)
                 implementation(projects.core.dataContracts)
+                // Play (W4): what the board, game and puzzle screens show (shared with the phone), and
+                // the messages to the engine worker. The engine itself runs in engine-worker.js.
+                implementation(projects.core.play)
+                implementation(projects.web.engine)
                 implementation(libs.compose.runtime)
                 implementation(libs.compose.html.core)
+                implementation(libs.compose.html.svg)
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.serialization.json)
             }

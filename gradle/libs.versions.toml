@@ -116,6 +116,7 @@ scrimage-core = { module = "com.sksamuel.scrimage:scrimage-core", version.ref = 
 scrimage-webp = { module = "com.sksamuel.scrimage:scrimage-webp", version.ref = "scrimage" }
 pdfbox = { module = "org.apache.pdfbox:pdfbox", version.ref = "pdfbox" }
 compose-html-core = { module = "org.jetbrains.compose.html:html-core", version.ref = "composeHtml" }
+compose-html-svg = { module = "org.jetbrains.compose.html:html-svg", version.ref = "composeHtml" }
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeHtml" }
 
 # build-logic

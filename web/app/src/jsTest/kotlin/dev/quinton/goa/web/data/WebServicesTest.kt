@@ -26,7 +26,6 @@ class WebServicesTest {
             "W3" to assertFailsWith<NotImplementedError> {
                 services.table.draftSetupPrefill.prefill(emptyList(), emptyList(), null, false)
             },
-            "W4" to assertFailsWith<NotImplementedError> { services.play.boardMaps.maps },
         )
 
         failures.forEach { (stream, error) ->
