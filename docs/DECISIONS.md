@@ -1234,3 +1234,51 @@ reachable code: the production `app.js` grew from 985 330 to 1 027 094 bytes (+4
 287 897, +11 KB) with the real catalog model and its serializers, and carries none of the engine
 (no `dev.quinton.goa.core.game` names in the bundle); the engine goes in the Worker. A new
 operation on a contract is added to the interface with an implementation on both platforms.
+
+**Addendum (Group, W2, 2026-10-25):**
+**Decision:** The web app is a full group member: the phone's sync, membership and Players-tab
+logic run in the browser as **shared code**, not ports.
+1. **Moved to shared code, Android pointed at it:** the relay algorithm (`RelaySyncRepository` in
+   `core:data-contracts`, over a small `RelayHttp` port; the phone's `OkHttpSyncServerRepository` is
+   now the OkHttp adapter and `SyncServerRepositoryTest` keeps guarding it), group membership
+   (`PrefsGroupRepository` over a `GroupPrefsStore`; `GroupSyncPrefs` moved to `core:model`), the
+   worker's retry rule (`SyncServerRetry`), and a new KMP module **`:core:group-presentation`** with
+   what the ViewModels of `feature:players`/`feature:sync` computed (leaderboard, player page, match
+   rows, meta board, match form/validation/editing rules, saved-result summary, rematch options,
+   rating settings definitions and words, Group screen state and messages, server card words). Its
+   packages are the features' own so Android imports didn't change; dates come from the platform
+   (`DateLabels`). `GroupPresentationParityTest` runs the builders on the JVM and on Node.
+2. **Storage:** the group's synced data is one canonical `SyncDocument` in IndexedDB
+   (`group/document`), the simplest model that keeps the phone's rules: every write re-reads,
+   applies (stamped with `EditStamp`, tombstones kept, merges resolved on read) and stores in one
+   step; tabs share a Web Lock (handed back if its waiter is cancelled; given up after 5 s rather than
+   hang) and a `BroadcastChannel`. An unreadable stored document is kept aside, never dropped.
+3. **Crypto:** `WebCryptoCipher` (WebCrypto AES-256-GCM, `CompressionStream` gzip) passes
+   `SyncCipherConformance`; the seal vector is byte-identical to `javax.crypto`'s, so what a browser
+   uploads the phones open. Proven live by `web/e2e/scripts/interop-live.mjs`: the phone's real stack
+   uploads to `server/relay` on this machine, WebKit opens it and shows the phone's exact ratings, logs
+   a match, and a fresh phone receives it and computes the same ratings.
+4. **Invite link:** the invite QR code (Android and web) is
+   `https://quintond.github.io/goa-companion/#join=goa-sync:1?…` (`GroupInvite.link`). The fragment
+   never leaves the device; an iPhone's Camera opens the web app, which always asks before joining and
+   replaces the address at once. No compatibility cost: every app's `parseInvite` already finds a
+   `goa-sync:` invite inside any text, so phones that predate this read the new codes. The share
+   message carries the link too. The web reads codes with the camera (`getUserMedia` + jsQR, Apache-2.0;
+   Safari has no BarcodeDetector) and draws them with qrcode-generator (MIT); both ship in `app.js`
+   with their notices in `app.js.LICENSE.txt`.
+5. **Relay CORS:** `server/relay` allows `GOA_RELAY_CORS_ORIGINS` (default
+   `https://quintond.github.io`): `Access-Control-Allow-Origin` on every answer to that origin, errors
+   and 429s included, exposing `ETag` and `Retry-After`; preflights for GET/PUT with the protocol's
+   four headers get 204 before the rate limiter. No protocol change; deployed to oldboi 2026-10-25.
+6. **Scheduling:** the phone's rules where a page can follow them (open/foreground at most once a
+   minute, every 5 minutes on screen, 15 s after changes, Sync now, joining, `SyncServerRetry`); no
+   hourly background sync. iOS sends `pageshow` right after the first visibility check: a page that
+   is already shown ignores it, or the opening sync would be cancelled before it starts.
+**Consequences:** Not ported (owner to decide): the backup screen (the relay and sync files are the
+web's backup), "Share stats page", Match setup rematches and "Resume: setup & timer" (they need W3's
+Match setup; the web says so), "Open on the board" (W4). Production `app.js` is 2 351 212 bytes
+(gzip 633 963, from 287 897 after F3): the Players and Group screens (~330 KB minified Compose HTML),
+@js-joda (kotlinx-datetime's time zones, ~190 KB, needed by the game-night stats), jsQR (~127 KB) and
+the sync code; lazy-loading jsQR would save ~35 KB gzip and is left for when bundle size matters.
+Playwright runs these tests with the service worker blocked: WebKit sends a controlled page's
+requests past Playwright's routes, which would let a test reach the production relay.

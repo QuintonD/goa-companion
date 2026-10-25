@@ -72,6 +72,22 @@ Triggers: the activity coming on screen, 15 s after the last write to synced dat
 hourly with a network constraint (WorkManager), and "Sync now". Only transient failures (no
 connection, timeout, 5xx, 429) retry with backoff; 401/412-exhausted/version/413 wait for a person.
 
+## Web app (ADR-043)
+
+The web app on `https://quintond.github.io` is a group member like a phone, running the **same
+code**: the algorithm above is `RelaySyncRepository` in `core:data-contracts` (shared; the phone's
+`OkHttpSyncServerRepository` is now OkHttp under it, the browser's `FetchRelayHttp` is `fetch` with
+`redirect: "manual"`, `credentials: "omit"`, `cache: "no-store"`), sealing with WebCrypto
+(`WebCryptoCipher`, held to `SyncCipherConformance`). Its triggers: the app opening or coming back
+on screen (at most once a minute), every 5 minutes on screen, 15 s after the last change, Sync now,
+joining; no hourly background sync (a closed page can't). Retries follow `SyncServerRetry`, the
+phone's. The relay answers it through CORS (above). A browser can't tell a refused connection from
+a CORS refusal or an untrusted certificate: all read "Can't reach the sync server".
+
+Invites: the QR code holds `https://quintond.github.io/goa-companion/#join=goa-sync:1?…`
+(`GroupInvite.link`); the fragment never reaches GitHub or the relay. Every app's parser finds the
+`goa-sync:` invite inside any text, so older phones scan it as before.
+
 ## Server
 
 `server/relay/` — Kotlin/JVM, Ktor (CIO), its own Gradle build (not part of the Android build, so it
