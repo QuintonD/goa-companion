@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.game.ai
 
+import dev.quinton.goa.core.domain.PortableMath
 import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.domain.synchronizedOn
 import dev.quinton.goa.core.game.engine.EngineData
@@ -18,7 +19,6 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.ZoneKind
 import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.match.Team
-import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.min
 
@@ -69,7 +69,8 @@ internal class Evaluator(val data: EngineData, val knobs: EvalKnobs = EvalKnobs(
         const val PIECE_NEAR: Double = 0.4
         const val PIECES_COUNTED: Int = 4
 
-        fun sigmoid(x: Double): Double = 1.0 / (1.0 + exp(-x))
+        // PortableMath: the same bits on a phone and in Safari, whose exp differs (ADR-043).
+        fun sigmoid(x: Double): Double = 1.0 / (1.0 + PortableMath.exp(-x))
 
         /**
          * A public hero counter's worth ([HeroState.counters], shown on the dashboard). The only

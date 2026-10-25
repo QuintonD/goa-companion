@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.game.ai
 
+import dev.quinton.goa.core.domain.PortableMath
 import dev.quinton.goa.core.domain.monotonicNanos
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Controller
@@ -10,7 +11,6 @@ import dev.quinton.goa.core.game.engine.Determinizer
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.model.match.Team
-import kotlin.math.exp
 import kotlin.math.sqrt
 import kotlin.random.Random
 
@@ -123,7 +123,7 @@ internal class Searcher(
         val ctx = ev.context(state)
         val scores = pool.map { static.playScore(ctx, heroId, Choice.Card(it)) }
         val best = scores.maxOrNull() ?: 0.0
-        val soft = scores.map { exp((it - best) / OPPONENT_TAU) }
+        val soft = scores.map { PortableMath.exp((it - best) / OPPONENT_TAU) }
         val sum = soft.sum()
         return soft.map { 0.85 * it / sum + 0.15 / pool.size }
     }
@@ -417,7 +417,8 @@ internal object Picker {
         if (temperature <= 0) return choices[order[0]]
         val best = values[order[0]]
         val pool = order.filter { values[it] >= best - maxGap }
-        val w = pool.map { exp((values[it] - best) / temperature) }
+        // PortableMath: the same weights on every platform, so a seeded pick is too (ADR-043).
+        val w = pool.map { PortableMath.exp((values[it] - best) / temperature) }
         var r = rng.nextDouble() * w.sum()
         for ((i, idx) in pool.withIndex()) {
             r -= w[i]
