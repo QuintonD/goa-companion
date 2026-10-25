@@ -40,6 +40,13 @@ object AiPlayers {
 
     internal fun profile(level: AiLevel): LevelProfile = profile(level.strength)
 
+    /**
+     * The evaluation the searching strengths (4 and up) use: a hero's exposure counts 0.3 of its
+     * hand-made weight and its minion opportunities twice (fitted to self-play outcomes and measured,
+     * AI.md "Evaluation" and "What changed in v0.7").
+     */
+    internal val TUNED: EvalKnobs = EvalKnobs(scales = mapOf(Term.EXPOSURE to 0.3, Term.OPPORTUNITY to 2.0))
+
     /** What each strength does (AI.md "Strengths"); the measured ladder is in AI.md. */
     @Suppress("CyclomaticComplexMethod", "LongMethod", "MagicNumber")
     internal fun profile(strength: Int): LevelProfile = when (AiStrength.coerce(strength)) {
@@ -76,14 +83,14 @@ object AiPlayers {
             staticOnly = false, playSamples = 1, otherSamples = 1,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.ACTION, candidates = 6,
             temperature = 0.6, maxGap = 1.5, slipRate = 0.0, risk = 0.0,
-            knobs = EvalKnobs(), modelPlays = true, memory = false, greedySelf = false, budgetMs = 300,
+            knobs = TUNED, modelPlays = true, memory = false, greedySelf = false, budgetMs = 300,
         )
 
         5 -> LevelProfile(
-            staticOnly = false, playSamples = 3, otherSamples = 1,
-            playHorizon = Horizon.TURN, otherHorizon = Horizon.ACTION, candidates = 7,
+            staticOnly = false, playSamples = 3, otherSamples = 2,
+            playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 7,
             temperature = 0.4, maxGap = 1.1, slipRate = 0.0, risk = 0.15,
-            knobs = EvalKnobs(), modelPlays = true, memory = false, greedySelf = false, budgetMs = 800,
+            knobs = TUNED, modelPlays = true, memory = false, greedySelf = false, budgetMs = 800,
         )
 
         // Hard.
@@ -91,14 +98,14 @@ object AiPlayers {
             staticOnly = false, playSamples = 6, otherSamples = 2,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 8,
             temperature = 0.25, maxGap = 0.8, slipRate = 0.0, risk = 0.3,
-            knobs = EvalKnobs(), modelPlays = true, memory = false, greedySelf = false, budgetMs = 1500,
+            knobs = TUNED, modelPlays = true, memory = false, greedySelf = false, budgetMs = 1500,
         )
 
         7 -> LevelProfile(
             staticOnly = false, playSamples = 10, otherSamples = 4,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 9,
             temperature = 0.2, maxGap = 0.7, slipRate = 0.0, risk = 0.15,
-            knobs = EvalKnobs(), modelPlays = true, memory = true, greedySelf = true, budgetMs = 2500,
+            knobs = TUNED, modelPlays = true, memory = false, greedySelf = true, budgetMs = 2500,
         )
 
         // Expert. Playouts to the end of the next turn measured worse than to the end of this one
@@ -107,23 +114,24 @@ object AiPlayers {
             staticOnly = false, playSamples = 16, otherSamples = 6,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 10,
             temperature = 0.15, maxGap = 0.6, slipRate = 0.0, risk = 0.0,
-            knobs = EvalKnobs(), modelPlays = true, memory = true, greedySelf = true,
+            knobs = TUNED, modelPlays = true, memory = true, greedySelf = true,
             budgetMs = 4000, greedyTeam = true, greedyEnemies = true,
         )
 
+        // With the tuned evaluation more samples and wider candidate lists pay again (AI.md).
         9 -> LevelProfile(
-            staticOnly = false, playSamples = 20, otherSamples = 8,
-            playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 12,
-            temperature = 0.1, maxGap = 0.5, slipRate = 0.0, risk = 0.0,
-            knobs = EvalKnobs(), modelPlays = true, memory = true, greedySelf = true,
+            staticOnly = false, playSamples = 20, otherSamples = 7,
+            playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 11,
+            temperature = 0.15, maxGap = 0.6, slipRate = 0.0, risk = 0.0,
+            knobs = TUNED, modelPlays = true, memory = true, greedySelf = true,
             budgetMs = 4000, greedyTeam = true, greedyEnemies = true,
         )
 
         else -> LevelProfile(
             staticOnly = false, playSamples = 24, otherSamples = 8,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 12,
-            temperature = 0.0, maxGap = 0.5, slipRate = 0.0, risk = 0.0,
-            knobs = EvalKnobs(), modelPlays = true, memory = true, greedySelf = true,
+            temperature = 0.15, maxGap = 0.6, slipRate = 0.0, risk = 0.0,
+            knobs = TUNED, modelPlays = true, memory = true, greedySelf = true,
             budgetMs = 4000, greedyTeam = true, greedyEnemies = true,
         )
     }

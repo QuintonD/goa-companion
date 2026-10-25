@@ -381,13 +381,16 @@ Life counters).
 
 ### 9. Play against the computer (ADR-035)
 Learn by playing: the real game on the board, with the app running every rule and computer
-opponents (and teammates) at four levels. One phone, one human team.
+opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
 - **New game** (from Boards): a line-up as on New board (alternate picks, "Use a draft or match");
   only heroes whose every card the engine implements and tests can be seated, the rest show as
   coming later. Pick the hero(es) you control (one, or your whole team); every other seat is the
-  computer at **Easy** (makes visible mistakes, plays fast), **Normal** (sensible, short look-ahead),
-  **Hard** (plans the turn against what you might have played) or **Expert** (searches longest),
-  one level for all or per seat. Quick or Long, a verified map (Forgotten Island default), Coach on
+  computer at a **strength** from 1 to 10 on a slider (default 5, ADR-039), shown with its band:
+  1–3 **Easy** (makes visible mistakes, plays fast; 1 is a gentle first game), 4–5 **Normal**
+  (sensible, short look-ahead), 6–7 **Hard** (plans the turn against what you might have played),
+  8–10 **Expert** (searches longest, remembers the cards you have shown; 10 is as strong as a phone
+  allows), one strength for all or per seat. A game saved before the slider plays its level as
+  Easy 2, Normal 4, Hard 6, Expert 8. Quick or Long, a verified map (Forgotten Island default), Coach on
   or off. The app flips the Tie Breaker coin. 2v2 is the rulebook's standard; 1v1 is offered,
   labelled as not the rulebook's way (p.20: two players each control two heroes).
 - **The game** follows the rulebook exactly: play a card facedown, reveal, initiative order (coin
@@ -476,7 +479,8 @@ opponents (and teammates) at four levels. One phone, one human team.
   dark, 384 dp at font scale 2, landscape, the rewound board); every rule above has a page-referenced
   test; random full games over every
   playable hero keep the invariants (one obstacle per space, cards conserved, deterministic,
-  save/restore and fork identical); each level beats the one below it over a seeded tournament;
+  save/restore and fork identical); each strength beats the one below it over a seeded tournament
+  (AI.md "Measured strength");
   the table has screenshots for every decision kind (light/dark, font scale 2, 384 dp, landscape)
   and of the card focus viewer (choosing in portrait, landscape, light, font scale 2; defending with
   the verdict; playing; upgrading; reading the hand); UI tests prove a first tap answers nothing, a
