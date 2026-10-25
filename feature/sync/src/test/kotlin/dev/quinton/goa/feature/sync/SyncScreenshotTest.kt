@@ -117,7 +117,8 @@ class SyncScreenshotTest {
     @Test
     fun groupPasteInviteShortDark() {
         setContent(ThemeMode.DARK, 1f) { Group(noGroup) }
-        compose.onNode(hasSetTextAction() and hasText("Or paste an invite")).performTextInput("Join “Friday nights” in Atlantis Companion: goa1-abc")
+        compose.onNode(hasSetTextAction() and hasText("Or paste an invite"))
+            .performTextInput("Join “Friday nights” in Atlantis Companion: goa1-abc")
         compose.waitForIdle()
         compose.onNode(hasText("Join") and hasClickAction()).assertIsDisplayed()
         compose.onRoot().captureRoboImage()

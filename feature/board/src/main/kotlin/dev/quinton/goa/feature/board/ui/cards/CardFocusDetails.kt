@@ -275,7 +275,13 @@ private fun RelatedCard(card: Card) {
 
 /** "Tap the card again to discard Magnetic Dagger", and the same as a button (TalkBack, switch access). */
 @Composable
-private fun ConfirmBar(item: FocusCard, action: String, canConfirm: Boolean, onConfirm: () -> Unit, landscape: Boolean) {
+private fun ConfirmBar(
+    item: FocusCard,
+    action: String,
+    canConfirm: Boolean,
+    onConfirm: () -> Unit,
+    landscape: Boolean,
+) {
     HorizontalDivider(color = GoaTheme.colors.engravedBorder)
     Column(
         Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
