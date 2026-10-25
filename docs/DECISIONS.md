@@ -1064,3 +1064,84 @@ names repeated under a scan only while it is under 140 dp wide.
 images added (≈ 420 KB). Every screen's screenshots changed (banner, heads); the game table (S3's
 play/table) inherits banner, heads and tokens without layout changes. `core:testing` gained
 `BundledAssetImages`/`bundledHero` for screenshot tests that show official images.
+
+## ADR-043 — The web app: a PWA for iPhones on GitHub Pages, running the same Kotlin (2026-10-25)
+**Context:** The owner: "Create a version accessible to someone on an iPhone. A webapp perhaps? Its
+fine to host it publically there is also a tabletopia version released publically. Alright let's
+move it to public and host it on github pages". The group's iPhone players can't run the Android app
+(ADR-027's stats page was the stopgap); the repo `QuintonD/goa-companion` is now public.
+**Decision:** (1) **A PWA, not native iOS**: friends open it in Safari and "Add to Home Screen"; it
+works offline after the first visit. (2) **One implementation of every rule**: `core:model`,
+`core:domain` and `core:game` become Kotlin Multiplatform (jvm + js) and the browser runs the same
+code (catalog models, Elo, meta, draft, timer, trivia, sync merge/validation, engine, AI, puzzles);
+the web layer never re-implements a rule. (3) **UI in Kotlin/JS + Compose HTML** (real DOM
+controls, so text input, scrolling and VoiceOver behave natively on iOS). (4) **Hosting: GitHub
+Pages** (`https://quintond.github.io/goa-companion/`), deployed by GitHub Actions; official card
+images and artwork are published with `official/SOURCES.md` attribution in About. (5) **Sync:** the
+browser is one more group member of the oldboi relay (ADR-036): fetch, open, merge, validate, seal,
+upload, byte-compatible with the phones; no Nearby on the web.
+**Supersedes** PRODUCT.md's iOS non-goal and, in part, ADR-030 (the hub line's server-side web app).
+**Consequences:** One ADR for the web round; each stream appends an "Addendum (stream)".
+
+**Addendum (Web shell, F2, 2026-10-25):**
+- **Stack.** `:web:app` is `kotlin("multiplatform")` with one `js(IR)` browser target (webpack,
+  `app.js` ≈ 950 KB minified, ≈ 250 KB gzipped). Compose HTML **1.12.2** (`html-core` + `runtime`,
+  the last stable release publishing html-core, built with Kotlin 2.3.20 and fine on 2.4.21); the
+  Kotlin compose compiler plugin is enough, the Compose Gradle plugin isn't applied. Node and Yarn
+  come from repositories declared in `settings.gradle.kts` (`FAIL_ON_PROJECT_REPOS` forbids the
+  Kotlin plugin adding its own; the root build unsets their download URLs); `kotlin-js-store/yarn.lock`
+  is committed. Unit tests run on Node/Mocha, IndexedDB through `fake-indexeddb`.
+- **Design system.** One static stylesheet (`goa.css`): `Tokens.kt`'s colours as CSS custom
+  properties for dark (default), light and "system" (`prefers-color-scheme`), chosen by
+  `<html data-theme>`; the in-app choice (Settings > Theme, as on Android) lives in `localStorage`
+  because index.html must apply it before the first paint. Sizes are rem and the root font is
+  `-apple-system-body`, so iOS Dynamic Type scales the app like Android's font scale; the top bar's
+  secondary actions move into "More" by container query when the bar is narrow or the text large.
+  Components are Kotlin (`web/.../ui`): steel-banner `Screen`, `TabBar`, `GoaCard`, `SectionHeader`,
+  `ListRow`, `Chip`, `Segmented`, buttons, `BottomSheet` (grab handle, drag down, scrim, Escape,
+  scroll lock, focus return), `AlertDialog`, snackbars, empty/loading/error states. Icons are inline
+  SVG tinted by `currentColor`, generated at build time (`:web:app:iconMarkup`) from the SVG files:
+  the tab icons in `design/icons`, web-only UI icons drawn in `web/app/src/jsMain/resources/icons`
+  (CSS-mask icons were tried first: WebKit didn't repaint them in the sticky/fixed bars once loaded).
+- **Routing.** Hash URLs (`#/heroes/arien`; Pages has no rewrites) that survive reload and the Home
+  Screen. Each navigation is a History API entry `{key, depth, tab}`, so the browser's Back and
+  Safari's swipe walk the app; the top bar's Back is "Up" (the previous screen when it is on the
+  same tab, else the screen's parent, so a cold deep link never leaves the app). Each tab reopens
+  where it was; the current tab returns to its root. Scroll positions are kept per entry and per
+  screen (lists reopen where they were); `rememberRetained` keeps a screen's state while its entry
+  exists. Screens reachable from several tabs (Settings, Rules) stay on the tab that opened them.
+  Home-screen apps get a left-edge swipe for Up (iOS gives standalone web apps none). After a
+  navigation, focus moves to the new title for VoiceOver.
+- **Service worker** (`sw.js`, plain JS). The shell and all catalog/rules JSON are precached on
+  install into `goa-shell-<build>`; a deploy is atomic and waits: the app shows "A new version of
+  the app is ready — Reload" and only switches when tapped (a game in progress is never reloaded
+  under the person). Images (`official/`) are cached on demand in `goa-images`, keyed
+  `path?v=<content hash>`, so a changed image is fetched again, stale ones are pruned on activation
+  and a full offline download survives deploys. Settings > Offline: "Download everything" (6 at a
+  time, progress, keeps running when leaving Settings), storage used (`navigator.storage.estimate`),
+  `navigator.storage.persist()` (also asked automatically when running from the Home Screen), and
+  the 7-day Safari eviction explained with the group relay as the backup. Not registered on the dev
+  server.
+- **Assets.** `:web:app:webAssets` copies `app/src/main/assets/{catalog,official}`, the fonts
+  (TTF, from `core/designsystem`), their OFL texts (`third_party/fonts`) and the shared icons at
+  build time (never committed twice). `:web:app:site` turns the production distribution into
+  `build/site`: drops source maps, stamps the build id (hash of every file) and version (the Android
+  `versionName`) into index.html and sw.js, writes `asset-manifest.json` (path, size, hash). Every
+  URL is relative, so the site works under `/goa-companion/`. App icons (180/192/512 + maskable) are
+  rendered from `design/brand` by `web/e2e/scripts/render-icons.mjs` and committed (our own art).
+- **Storage.** `KeyValueStore` (`suspend get/put/delete/keys`, `getJson/putJson`, `scoped("timer/")`)
+  over IndexedDB (`goa` / `kv`), reopened when Safari closes the connection; `MemoryKeyValueStore`
+  for tests. JSON decoding ignores unknown keys, so builds read each other's values.
+- **Catalog seam.** Until `core:model` has a JS target, `CatalogSource` decodes into local
+  placeholder types (`WebCatalogIndex`, `WebHero`); integration swaps them for core:model's.
+- **Pages pipeline.** `.github/workflows/web-pages.yml`: on pull requests touching the web or its
+  inputs, `jsTest`, detekt, ktlint, the site and Playwright; on `main` (same paths) and by hand, the
+  same and then `actions/deploy-pages`. Pages was enabled with build type "workflow" (2026-10-25).
+- **Browser tests.** `web/e2e` (Playwright): WebKit "iPhone 15" (our stand-in for iOS Safari) and
+  Chromium "Pixel 7" against the built site served under `/goa-companion/` by `serve.mjs` (Pages'
+  `max-age=600`). They walk every destination (no console errors, no sideways scrolling), tabs,
+  deep links across reload, Back/Forward, scroll restoration, the theme, sheets, offline reload,
+  the full download and the update prompt; review screenshots go to `D:\.goa-qa\web\shots`.
+- **Known gaps.** No iOS launch images (iOS shows the background colour); Playwright's WebKit is not
+  Safari on an iPhone, so a device pass is still due; push notifications and Wake Lock are left to
+  the streams that need them (feature-detected).

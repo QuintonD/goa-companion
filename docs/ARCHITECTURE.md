@@ -13,6 +13,7 @@
 | Charts | Vico 3.x (`compose`, `compose-m3`) |
 | Images | Coil 3 — `AsyncImage(model = "file:///android_asset/official/…")` |
 | Group sync | Google Nearby Connections 19.5.1 (`P2P_STAR`), Google code scanner 16.1.0 (invite QR, no CAMERA permission), ZXing core 3.5.4 (draws the QR), `javax.crypto` only (ADR-025); sync server client: OkHttp 5.5 + WorkManager 2.12 with Hilt workers (ADR-036) |
+| Web app (ADR-043) | Kotlin/JS (IR) + Compose HTML 1.12.2 (`html-core`, `runtime`), a PWA (service worker, IndexedDB) on GitHub Pages; Playwright (WebKit + Chromium) for browser tests |
 | Quality | Android Lint, ktlint (`org.jlleitschuh.gradle.ktlint`), detekt 2.0 (`dev.detekt`, alpha — see ADR-008), Roborazzi, JUnit + Turbine + Truth |
 
 Pin versions in `gradle/libs.versions.toml`; never inline a version in a module build file.
@@ -81,6 +82,11 @@ tools/catalog-import/    # JVM CLI (reuses core:model): sources.lock.json, overr
                          #   cache/ (gitignored), REPORT.md → writes assets/catalog + assets/official;
                          #   --rules-only: rules-reference drift check vs the pinned rulebook (PDFBox)
                          #   --maps-only: board maps (catalog/maps) + overlay check images in cache/maps
+web/app/                 # Kotlin/JS + Compose HTML PWA (ADR-043): nav/ (hash Router), ui/ (design system,
+                         #   goa.css), storage/ (KeyValueStore on IndexedDB), pwa/ (service worker client,
+                         #   offline download), data/ (CatalogSource seam), screens/; resources/ (index.html,
+                         #   goa.css, sw.js, manifest, icons). Catalog, images, fonts copied in at build time
+web/e2e/                 # Playwright tests of the built site (WebKit iPhone 15, Chromium Pixel 7), serve.mjs
 server/relay/            # NOT in the root build: standalone Gradle build (own wrapper + pinned catalog), the Ktor
                          #   (CIO) sync relay of ADR-036 / docs/SYNC-SERVER.md: one sealed blob per group,
                          #   ETag/If-Match, token-hash TOFU, never parses bodies. Docker deploy kit: deploy/relay/
@@ -253,6 +259,30 @@ the draft setup for "Draft again".
 - Phase-over alert after process death with auto-advance (force-stop is not representative:
   it drops alarms); Doze; reboot mid-phase; wall-clock change then reboot.
 
+## Web app (ADR-043)
+The same app for iPhones (and any browser): a PWA at `https://quintond.github.io/goa-companion/`,
+built from `:web:app` and published by `.github/workflows/web-pages.yml`. It runs the core modules'
+Kotlin (once they target JS, F1) under a DOM UI in Compose HTML; rules never live in the web layer.
+- **Shell.** `Main.kt` renders `App()`: the current route's screen (`screens/Screens.kt`, one
+  composition per history entry), the bottom `TabBar` (Heroes, Timer, Draft, Players, as on
+  Android; hidden for full-screen table tools via `Route.showsTabBar`) and snackbars, including the
+  service worker's "new version — Reload". `AppServices` (router, catalog, store, theme, messages,
+  service worker, offline) is handed down as `LocalServices`, the web's stand-in for Hilt.
+- **Navigation.** `nav/Route.kt` lists every screen with its hash (`#/heroes/arien`), tab and parent;
+  `Router` keeps History API entries (Back/Forward and swipe-back work like a website, the top bar's
+  Back is Up), each tab's last screen, scroll per entry and per screen, and `rememberRetained` state.
+- **Design system.** `goa.css` (tokens as CSS custom properties, dark/light/system by
+  `<html data-theme>`, rem sizes that follow iOS Dynamic Type) + Kotlin components in `ui/`
+  (`Screen`, `GoaCard`, `SectionHeader`, `ListRow`, `Chip`, `Segmented`, `GoaButton`, `BottomSheet`,
+  `AlertDialog`, `EmptyState`/`LoadingState`/`ErrorState`, `rememberLoad`). Icons are inline SVG generated from the SVG files (`:web:app:iconMarkup`).
+- **Offline.** `sw.js` precaches the shell and every JSON per build, caches images on demand by
+  content hash, and waits for "Reload" to switch builds. `pwa/OfflineAssets` downloads every image
+  with progress from `asset-manifest.json` (written by `:web:app:site`).
+- **Storage.** `storage/KeyValueStore` over IndexedDB; each stream keeps its data under its own prefix.
+- **Build.** `:web:app:webAssets` copies the bundled catalog, `official/` images, fonts, licences and
+  shared icons from the Android sources at build time; `:web:app:site` writes the deployable
+  `web/app/build/site` (stamped build id, asset manifest, no source maps).
+
 ## Testing strategy
 | Layer | Tests |
 |-------|-------|
@@ -266,7 +296,8 @@ the draft setup for "Draft again".
 | Play UI | `feature:board` test sources only: `FakeGameSession`, a scripted 2v2 on Forgotten Island that asks every `DecisionKind` (never shipped); `GameViewModelTest` (answers, AI pacing on a test dispatcher, take back, Coach nudge shown/skipped, the Coach's look ahead used at once and cancelled on take back and Coach off, save/restore, corrupt and incompatible saves, game over, rematch), `NewGameViewModelTest`; `PlayScreenshotTest` (the table in every decision kind, New game, game over) |
 | UI | Roborazzi (`recordRoborazziDebug` / `verifyRoborazziDebug`), light/dark × font scale 1.0/2.0 |
 | End to end | `app/src/androidTest` (`connectedDebugAndroidTest`): real Hilt graph and bundled catalog, a scripted game night (`GameNight`: House draft → setup → timer round → "Who won?" → rating changes → ratings/meta), a rematch night (`RematchTimerFlowTest`: logged match → Rematch "Same seats" → setup → timer with the rules sheet, rules screen and a notification tap back to the Timer tab → second result), catalog, players, double pilot, settings, card trivia and the trivia Challenge → leaderboard (`TriviaChallengeFlowTest`), the board sandbox (`BoardFlowTest`: House draft → Try on the board → move a hero to the space named 1 space from it → Boards), and ATF accessibility checks on every main screen. Runs through the AndroidX Test Orchestrator with `clearPackageData`, so each test starts from a fresh install |
-| Device | Manual smoke checklist on S25 Ultra per milestone (timer: lock screen, Doze, reboot) |
+| Web app | `:web:app:jsTest` (Node/Mocha): routes, router (Up vs Back, tabs, scroll, retained state), the IndexedDB store on `fake-indexeddb`, offline planning, the Markdown reader. `web/e2e` (Playwright, WebKit "iPhone 15" + Chromium "Pixel 7") against the built site under `/goa-companion/`: every destination without console errors or sideways scrolling, tabs, deep link across reload, Back/Forward, scroll restoration, theme, sheets, offline reload, the full offline download, the update prompt; review screenshots in `D:\.goa-qa\web\shots` |
+| Device | Manual smoke checklist on S25 Ultra per milestone (timer: lock screen, Doze, reboot); the web app on an iPhone (Safari tab and Home Screen) |
 
 ## Data files
 - `app/src/main/assets/catalog/index.json` — `dataVersion`, printing, product list, hero file list.
