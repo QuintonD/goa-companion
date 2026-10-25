@@ -126,25 +126,6 @@ internal fun SelectionPanel(
     }
 }
 
-/** The selected piece's name: the hero, the minion's type, or the token's label. */
-internal fun pieceTitle(state: BoardUiState.Ready, piece: BoardPiece): String = when (piece) {
-    is HeroPiece -> state.heroes.hero(piece.heroId).name
-    is MinionPiece -> BoardText.minion(piece.type)
-    is TokenPiece -> "Token: ${piece.label}"
-}
-
-/** Where the selected piece is: its Zone ("in the tray" while it waits) and Battle Zone. */
-internal fun pieceWhere(state: BoardUiState.Ready, piece: BoardPiece): String {
-    val zone = piece.at?.let { state.geometry.zoneOf(it) }
-    val battleLane = state.map.lanes.firstOrNull {
-        (state.board.state.battleZones[it.id] ?: it.startingBattleZone) == zone
-    }
-    return listOfNotNull(
-        if (piece.at == null) "in the tray" else BoardText.zone(state.map, zone),
-        battleLane?.let { BoardText.battleZone(state.map, it.id) },
-    ).joinToString(" · ")
-}
-
 @Composable
 private fun PanelHeader(
     state: BoardUiState.Ready,
@@ -158,23 +139,7 @@ private fun PanelHeader(
         is MinionPiece -> BoardText.minion(piece.type)
         is TokenPiece -> "Token: ${piece.label}"
     }
-    val zone = piece.at?.let { state.geometry.zoneOf(it) }
-    val team = when (piece) {
-        is HeroPiece -> piece.team
-        is MinionPiece -> piece.team
-        is TokenPiece -> piece.team
-    }
-    val battleLane = state.map.lanes.firstOrNull {
-        (state.board.state.battleZones[it.id] ?: it.startingBattleZone) == zone
-    }
-    // A minion on a double-lane map is bound to its Lane (p.20).
-    val boundTo = (piece as? MinionPiece)?.let { BoardText.lane(state.map, state.geometry.laneOf(it)) }
-    val subtitle = listOfNotNull(
-        team?.let { "${BoardText.team(it)} team" },
-        boundTo?.let { "$it minion" },
-        if (piece.at == null) "in the tray" else BoardText.zone(state.map, zone),
-        battleLane?.let { BoardText.battleZone(state.map, it.id) },
-    ).joinToString(" · ")
+    val subtitle = pieceSubtitle(state, piece)
     Row(
         Modifier
             .fillMaxWidth()
@@ -716,30 +681,3 @@ internal fun Note(text: String, modifier: Modifier = Modifier) {
         modifier = modifier.padding(vertical = Spacing.xs),
     )
 }
-
-/** "Basic Gold", "Tier II Red"; a spell card "Gold spell", "Tier II Red spell", "Purple spell" (Wish). */
-internal fun cardKindLabel(card: Card): String = if (card.isSpell) {
-    listOfNotNull(
-        card.tier?.takeIf { it in 1..3 }?.let { "Tier ${tierNumeral(it)}" },
-        cardColorName(card.color),
-        "spell",
-    ).joinToString(" ")
-} else {
-    "${tierLabel(card)} ${cardColorName(card.color)}"
-}
-
-/** "Basic", "Tier I", "Tier II", "Tier III", "Ultimate"; a spell card "Spell", "Tier II spell". */
-internal fun tierLabel(card: Card): String = when {
-    // Spellbook pages carry their printed spell level, null for the gold cantrips (catalog Card.tier).
-    card.isSpell -> card.tier?.takeIf { it in 1..3 }?.let { "Tier ${tierNumeral(it)} spell" } ?: "Spell"
-
-    card.color == CardColor.GOLD || card.color == CardColor.SILVER -> "Basic"
-
-    card.color == CardColor.PURPLE || card.tier == ULTIMATE_TIER -> "Ultimate"
-
-    else -> card.tier?.let { tier -> "Tier ${tierNumeral(tier)}" } ?: "Other"
-}
-
-private fun tierNumeral(tier: Int): String = listOf("I", "II", "III", "IV").getOrElse(tier - 1) { tier.toString() }
-
-private const val ULTIMATE_TIER = 4
