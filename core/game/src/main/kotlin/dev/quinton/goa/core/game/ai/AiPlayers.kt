@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.game.ai
 
+import dev.quinton.goa.core.domain.monotonicNanos
 import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.AiPlayer
 import dev.quinton.goa.core.game.Choice
@@ -87,7 +88,7 @@ internal class SearchAi(
         val es = session as? EngineSession ?: return Fallback.choose(decision)
         val rng = Random(Searcher.mix(seed, decision.id * 1_000_003L + decision.seat.hashCode()))
         val budget = if (decision.kind == DecisionKind.PLAY_CARD) profile.budgetMs else profile.budgetMs / 3
-        val deadline = if (timeCap) System.nanoTime() + budget * 1_000_000L else Long.MAX_VALUE
+        val deadline = if (timeCap) monotonicNanos() + budget * 1_000_000L else Long.MAX_VALUE
         if (profile.staticOnly) return staticChoice(es, decision, rng)
         val s = searcher(es.engineData)
         val a = s.analyze(es, decision, rng.nextLong(), cancelled, deadline) ?: return staticChoice(es, decision, rng)

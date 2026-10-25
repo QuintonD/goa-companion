@@ -183,7 +183,7 @@ private fun Game.straightReach(spec: MoveSpec, start: Hex, mode: PassMode, out: 
         val line = straightLineFrom(start, dir, spec.max)
         val blocked = line.indexOfFirst { !passable(it, spec.unitId, mode) }.let { if (it < 0) line.size else it }
         for (i in 0 until blocked) {
-            if (i + 1 >= spec.min && endOk(spec, line[i])) out.putIfAbsent(line[i], line.take(i + 1))
+            if (i + 1 >= spec.min && endOk(spec, line[i])) out.getOrPut(line[i]) { line.take(i + 1) }
         }
     }
 }
@@ -224,7 +224,7 @@ private fun Game.exactReach(spec: MoveSpec, start: Hex, mode: PassMode, out: Mut
     visited += start
     fun dfs(at: Hex, path: ArrayList<Hex>) {
         val k = path.size
-        if (k >= spec.min && endOk(spec, at)) out.putIfAbsent(at, ArrayList(path))
+        if (k >= spec.min && endOk(spec, at)) out.getOrPut(at) { ArrayList(path) }
         if (k == spec.max) return
         for (n in HexGrid.neighbors(at)) {
             if (n in visited || !passable(n, spec.unitId, mode)) continue

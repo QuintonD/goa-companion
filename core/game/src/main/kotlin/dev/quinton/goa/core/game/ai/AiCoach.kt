@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.game.ai
 
 import dev.quinton.goa.core.domain.board.HexGrid
+import dev.quinton.goa.core.domain.monotonicNanos
 import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Coach
@@ -20,6 +21,7 @@ import dev.quinton.goa.core.game.engine.SavedPayload
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.match.Team
+import kotlin.concurrent.Volatile
 import kotlin.math.abs
 
 /**
@@ -61,7 +63,7 @@ class AiCoach internal constructor(
         cancelled: () -> Boolean,
         mustInclude: Choice?,
     ): Analysis? {
-        val deadline = System.nanoTime() + profile.budgetMs * 1_000_000L
+        val deadline = monotonicNanos() + profile.budgetMs * 1_000_000L
         return searcher(es.engineData)
             .analyze(es, decision, Searcher.mix(seed, decision.id), cancelled, deadline, mustInclude = mustInclude)
     }

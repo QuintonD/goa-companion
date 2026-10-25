@@ -2,8 +2,9 @@ package dev.quinton.goa.core.domain.trivia
 
 import dev.quinton.goa.core.model.trivia.TriviaRound
 import dev.quinton.goa.core.model.trivia.TriviaRoundKind
-import java.time.Instant
-import java.time.ZoneId
+import kotlin.time.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * Rounds this app would never write (ADR-032). A received sync document or a backup file holding
@@ -38,5 +39,5 @@ object TriviaRoundValidation {
         }
 
     private fun dateOf(epochMillis: Long): String =
-        Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate().toString()
+        Instant.fromEpochMilliseconds(epochMillis).toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
 }

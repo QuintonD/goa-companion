@@ -16,8 +16,11 @@ import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.match.Team
 import kotlin.random.Random
 
-/** Control flow of a run (ENGINE.md "Re-execution"). Stack traces are off: these are not errors. */
-open class ControlSignal(message: String? = null) : RuntimeException(message, null, false, false)
+/**
+ * Control flow of a run (ENGINE.md "Re-execution"). Stack traces are off on the JVM: these are
+ * not errors (src/jvmMain, ADR-043).
+ */
+expect open class ControlSignal(message: String? = null) : RuntimeException
 
 /** A decision has no answer yet: the run stops here and the decision is pending. */
 class Suspend(val decision: Decision) : ControlSignal()

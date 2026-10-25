@@ -12,8 +12,10 @@ import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
-import java.time.LocalDate
-import java.time.ZoneOffset
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.UtcOffset
+import kotlinx.datetime.asTimeZone
 import org.junit.Test
 
 class GroupStatsTest {
@@ -37,7 +39,7 @@ class GroupStatsTest {
         match("pending", 1 * day + 4, null, red("ann", "a"), blue("bob", "b"), status = MatchStatus.PENDING),
     )
     private val ratings = EloCalculator.replay(log, EloConfig.DEFAULT)
-    private val report = GroupStats.compute(log, ratings, ZoneOffset.UTC, MetaConfig(minSample = 3))
+    private val report = GroupStats.compute(log, ratings, TimeZone.UTC, MetaConfig(minSample = 3))
 
     @Test fun winConditionMixCountsRatedMatchesOverallPerHeroAndPerWinner() {
         assertThat(report.winConditions.total).isEqualTo(4)
@@ -86,7 +88,7 @@ class GroupStatsTest {
         // Ann: W W L L → losing streak of 2; Bob: W W L W → no streak; Cid: L L W → none (1).
         assertThat(report.streaks).containsExactly(Streak("ann", won = false, length = 2))
         val night = report.lastNight!!
-        assertThat(night.date).isEqualTo(LocalDate.of(1970, 1, 2))
+        assertThat(night.date).isEqualTo(LocalDate(1970, 1, 2))
         assertThat(night.matchIds).containsExactly("m2", "m3", "m4").inOrder()
         assertThat(night.redWins).isEqualTo(1)
         assertThat(night.blueWins).isEqualTo(2)
@@ -102,7 +104,7 @@ class GroupStatsTest {
         match(id, at, Team.RED, red("ann", "a"), red("bob", "b"), blue("cid", "c"), blue("dee", "d"))
     }
 
-    private val sydney = ZoneOffset.ofHours(10)
+    private val sydney = UtcOffset(hours = 10).asTimeZone()
 
     /** Local midnight of 1970-01-05 in UTC+10, as epoch millis. */
     private val jan5 = 4 * day - 10 * hour
@@ -118,7 +120,7 @@ class GroupStatsTest {
         val night = GroupStats.compute(log, EloCalculator.replay(log, EloConfig.DEFAULT), sydney).lastNight!!
         assertThat(night.matchIds).containsExactly("n1", "n2", "n3", "n4").inOrder()
         // Dated by the evening it started, not the day after.
-        assertThat(night.date).isEqualTo(LocalDate.of(1970, 1, 4))
+        assertThat(night.date).isEqualTo(LocalDate(1970, 1, 4))
     }
 
     @Test fun aGapOfSixHoursStartsANewNight() {
@@ -131,7 +133,7 @@ class GroupStatsTest {
         val night = GroupStats.compute(log, EloCalculator.replay(log, EloConfig.DEFAULT), sydney).lastNight!!
         // 14:00 → 20:00 is exactly 6 hours: the evening is a new night, though on the same day.
         assertThat(night.matchIds).containsExactly("evening", "late").inOrder()
-        assertThat(night.date).isEqualTo(LocalDate.of(1970, 1, 5))
+        assertThat(night.date).isEqualTo(LocalDate(1970, 1, 5))
     }
 
     @Test fun anEmptyLogHasNoStats() {

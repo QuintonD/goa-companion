@@ -421,7 +421,7 @@ private fun Game.minionBattle() {
         // "As soon as one of the teams loses their last minion, the Lane is pushed" (step 3): the
         // loser has nothing left that counts as a minion in this battle and no minion in the Zone.
         val realLeft = state.minions.any { it.lane == lane && it.team == loser && it.at?.let(::zoneOf) == zone }
-        if (!replaced && left.isEmpty() && !realLeft) state.pushDue.putIfAbsent(lane, loser.opponent)
+        if (!replaced && left.isEmpty() && !realLeft) state.pushDue.getOrPut(lane) { loser.opponent }
     }
     state.step = Step.CLEANUP
 }

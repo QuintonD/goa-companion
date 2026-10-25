@@ -17,7 +17,7 @@ object UnknownHeroes {
         if (known.isEmpty()) return emptySet()
         val used = matches.flatMap { m -> m.participants.mapNotNull { it.heroId } } +
             drafts.flatMap { d -> d.steps.map { it.heroId } + d.pool }
-        return used.filterNot { it in known }.toSortedSet()
+        return used.filterNot { it in known }.sorted().toSet()
     }
 
     fun clear(match: Match, known: Set<String>): Match {

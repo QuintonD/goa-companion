@@ -2,38 +2,28 @@ package dev.quinton.goa.core.domain.sync
 
 import java.security.GeneralSecurityException
 import java.security.MessageDigest
-import java.security.SecureRandom
 import javax.crypto.AEADBadTagException
 import javax.crypto.Cipher
 import javax.crypto.Mac
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
-/** Fills a byte array with secure random bytes; injectable so protocol tests are reproducible. */
-fun interface SecureBytes {
-    fun next(size: Int): ByteArray
-
-    companion object {
-        val System = SecureBytes { size -> ByteArray(size).also { SecureRandom().nextBytes(it) } }
-    }
-}
-
-/** Data could not be decrypted: tampered with, or sealed with another key. */
-class SyncCryptoException(message: String, cause: Throwable? = null) : Exception(message, cause)
-
 /**
  * The few primitives group sync needs, from `javax.crypto` only (ADR-025): HKDF-SHA256 key
  * derivation, HMAC-SHA256 proofs and AES-256-GCM sealing. Keys are never used directly: each use
  * derives its own key from the group key with a distinct label.
+ *
+ * JVM only (ADR-043): the browser seals with WebCrypto through [SyncCipher]; [JvmSyncCipher] is
+ * this object behind that interface, and the shared vectors (SyncVectors) hold both to the same bytes.
  */
 object SyncCrypto {
-    const val KEY_BYTES = 32
+    const val KEY_BYTES = SyncKeys.KEY_BYTES
     const val NONCE_BYTES = 16
     private const val IV_BYTES = 12
     private const val TAG_BITS = 128
     private const val HMAC = "HmacSHA256"
 
-    fun newGroupKey(random: SecureBytes = SecureBytes.System): ByteArray = random.next(KEY_BYTES)
+    fun newGroupKey(random: SecureBytes = SecureBytes.System): ByteArray = SyncKeys.newGroupKey(random)
 
     /** RFC 5869 HKDF with SHA-256. */
     fun hkdf(ikm: ByteArray, salt: ByteArray, info: String, length: Int = KEY_BYTES): ByteArray {

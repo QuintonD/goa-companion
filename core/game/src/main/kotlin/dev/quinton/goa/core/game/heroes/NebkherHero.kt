@@ -50,6 +50,7 @@ import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.match.Team
+import kotlin.math.sign
 
 /**
  * NebKher the Harbinger. Card text quoted verbatim above each registration
@@ -592,13 +593,11 @@ object NebkherHero : HeroModule {
     private const val R = "r"
 
     /** Which side of the line through [c] along [axis] (0: r constant, 1: q + r constant, 2: q constant) [h] is on. */
-    fun sideOf(c: Hex, axis: Int, h: Hex): Int = Integer.signum(
-        when (axis) {
-            0 -> h.r - c.r
-            1 -> (h.q + h.r) - (c.q + c.r)
-            else -> h.q - c.q
-        },
-    )
+    fun sideOf(c: Hex, axis: Int, h: Hex): Int = when (axis) {
+        0 -> h.r - c.r
+        1 -> (h.q + h.r) - (c.q + c.r)
+        else -> h.q - c.q
+    }.sign
 
     private class Crack(private val withYou: Boolean) : CardScript {
         override fun primary(a: ActionScope) {

@@ -17,6 +17,6 @@ dependencies {
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
 
-    testImplementation(testFixtures(projects.core.domain))
+    testImplementation(projects.core.domainTestfixtures)
     testImplementation(libs.androidx.work.testing)
 }

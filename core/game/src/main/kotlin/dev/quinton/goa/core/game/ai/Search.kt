@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.game.ai
 
+import dev.quinton.goa.core.domain.monotonicNanos
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.Decision
@@ -144,7 +145,7 @@ internal class Searcher(
         val leaves = ArrayList<Leaf>()
         var done = 0
         var k = 0
-        while (k < samples && (k == 0 || !(cancelled() || System.nanoTime() > deadline))) {
+        while (k < samples && (k == 0 || !(cancelled() || monotonicNanos() > deadline))) {
             val det = determinize(es, d, mix(seed, k.toLong()))
             val dp = det.pending?.takeIf { it.seat == d.seat && it.kind == d.kind }
             if (dp != null) {

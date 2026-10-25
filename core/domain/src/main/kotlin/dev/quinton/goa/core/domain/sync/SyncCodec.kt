@@ -1,11 +1,7 @@
 package dev.quinton.goa.core.domain.sync
 
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.IOException
-import java.util.Base64
-import java.util.zip.GZIPInputStream
-import java.util.zip.GZIPOutputStream
+import kotlin.coroutines.cancellation.CancellationException
+import kotlin.io.encoding.Base64
 import kotlinx.serialization.Serializable
 
 /** Received sync data that can't be used; [message] is shown to the user. */
@@ -33,11 +29,13 @@ class SyncFileException(
 
 /**
  * Bytes for [SyncDocument]s: gzip'd [SyncJson] for the Nearby payloads, and an encrypted file for
- * the "Share sync file" fallback (ADR-025). Decoding always validates ([SyncValidation]).
+ * the "Share sync file" fallback and the sync server (ADR-025, ADR-036). Decoding always validates
+ * ([SyncValidation]). Shared by the phones and the browser (ADR-043): the platform only seals and
+ * gzips ([SyncCipher]); the Android app calls it through the synchronous `SyncCodec`.
  */
-object SyncCodec {
+object SyncFileCodec {
     /** Refuse to inflate more than this (a few thousand matches are a few MB). */
-    private const val MAX_PLAIN_BYTES = 32 * 1024 * 1024
+    const val MAX_PLAIN_BYTES = 32 * 1024 * 1024
 
     const val FILE_FORMAT = "goa-sync-file"
     const val FILE_EXTENSION = "goasync"
@@ -45,20 +43,24 @@ object SyncCodec {
     private const val FILE_VERSION = 1
     private const val SALT_BYTES = 16
 
-    fun encode(doc: SyncDocument): ByteArray = gzip(
-        SyncJson.encodeToString(SyncDocument.serializer(), doc).toByteArray(),
-    )
+    suspend fun encode(doc: SyncDocument, cipher: SyncCipher): ByteArray =
+        cipher.gzip(SyncJson.encodeToString(SyncDocument.serializer(), doc).encodeToByteArray())
 
     /** Inflates, parses and validates; throws [SyncFormatException]. */
-    @Suppress("ThrowsCount")
-    fun decode(bytes: ByteArray): SyncDocument {
+    @Suppress("ThrowsCount", "TooGenericExceptionCaught")
+    suspend fun decode(bytes: ByteArray, cipher: SyncCipher): SyncDocument {
+        val plain = try {
+            cipher.gunzip(bytes, MAX_PLAIN_BYTES)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw SyncFormatException("The sync data is damaged.", e)
+        }
         val doc = try {
-            SyncJson.decodeFromString(SyncDocument.serializer(), gunzip(bytes).toString(Charsets.UTF_8))
+            SyncJson.decodeFromString(SyncDocument.serializer(), plain.decodeToString())
         } catch (e: IllegalArgumentException) {
             // Includes SerializationException.
             throw SyncFormatException("This isn't group sync data.", e)
-        } catch (e: IOException) {
-            throw SyncFormatException("The sync data is damaged.", e)
         }
         SyncValidation.problem(doc)?.let { throw SyncFormatException(it) }
         return doc
@@ -69,15 +71,17 @@ object SyncCodec {
      * group's name rides in clear only when [withGroupName] (a shared file names its group so a
      * stranger's phone can say which one to join); uploads to the sync server leave it out (ADR-036).
      */
-    fun encodeFile(
+    suspend fun encodeFile(
         doc: SyncDocument,
         group: GroupCredentials,
         createdAt: Long,
+        cipher: SyncCipher,
         random: SecureBytes = SecureBytes.System,
         withGroupName: Boolean = true,
     ): ByteArray {
         val salt = random.next(SALT_BYTES)
-        val sealed = SyncCrypto.seal(fileKey(group, salt), encode(doc), fileAad(group.groupId, doc.version), random)
+        val iv = random.next(SyncCipher.IV_BYTES)
+        val sealed = cipher.seal(fileKey(group, salt), encode(doc, cipher), fileAad(group.groupId, doc.version), iv)
         val envelope = FileEnvelope(
             groupId = group.groupId,
             groupName = if (withGroupName) group.name else "",
@@ -86,14 +90,14 @@ object SyncCodec {
             salt = b64(salt),
             data = b64(sealed),
         )
-        return SyncJson.encodeToString(FileEnvelope.serializer(), envelope).toByteArray()
+        return SyncJson.encodeToString(FileEnvelope.serializer(), envelope).encodeToByteArray()
     }
 
     /** Opens a sync file for this phone's [group] (null = not in a group); throws [SyncFileException]. */
     @Suppress("ThrowsCount")
-    fun decodeFile(bytes: ByteArray, group: GroupCredentials?): SyncDocument {
+    suspend fun decodeFile(bytes: ByteArray, group: GroupCredentials?, cipher: SyncCipher): SyncDocument {
         val envelope = try {
-            SyncJson.decodeFromString(FileEnvelope.serializer(), bytes.toString(Charsets.UTF_8))
+            SyncJson.decodeFromString(FileEnvelope.serializer(), bytes.decodeToString())
                 .takeIf { it.format == FILE_FORMAT } ?: throw IllegalArgumentException("format")
         } catch (e: IllegalArgumentException) {
             throw SyncFileException(SyncFileProblem.NOT_A_SYNC_FILE, "This isn't a group sync file.", e)
@@ -102,7 +106,7 @@ object SyncCodec {
         requireNotNull(group)
         val plain = try {
             val salt = unb64(envelope.salt)
-            SyncCrypto.open(
+            cipher.open(
                 fileKey(group, salt),
                 unb64(envelope.data),
                 fileAad(envelope.groupId, envelope.documentVersion),
@@ -113,7 +117,7 @@ object SyncCodec {
             throw SyncFileException(SyncFileProblem.CANT_DECRYPT, CANT_OPEN, e)
         }
         return try {
-            decode(plain)
+            decode(plain, cipher)
         } catch (e: SyncFormatException) {
             throw SyncFileException(SyncFileProblem.INVALID, e.message.orEmpty(), e)
         }
@@ -153,31 +157,15 @@ object SyncCodec {
         "This file can't be opened: it was changed, or it was made with a different key for this group."
 
     private fun fileKey(group: GroupCredentials, salt: ByteArray) =
-        SyncCrypto.hkdf(group.key, salt, "goa-sync/file/v1|${group.groupId}")
+        SyncHash.hkdf(group.key, salt, "goa-sync/file/v1|${group.groupId}")
 
-    private fun fileAad(groupId: String, version: Int) = "goa-sync/file/v1|$groupId|$version".toByteArray()
+    private fun fileAad(groupId: String, version: Int) = "goa-sync/file/v1|$groupId|$version".encodeToByteArray()
 
-    private fun b64(bytes: ByteArray) = Base64.getEncoder().encodeToString(bytes)
+    private val BASE64 = Base64.Default.withPadding(Base64.PaddingOption.PRESENT_OPTIONAL)
 
-    private fun unb64(text: String) = Base64.getDecoder().decode(text)
+    private fun b64(bytes: ByteArray) = BASE64.encode(bytes)
 
-    private fun gzip(bytes: ByteArray): ByteArray = ByteArrayOutputStream().also { out ->
-        GZIPOutputStream(out).use { it.write(bytes) }
-    }.toByteArray()
-
-    private fun gunzip(bytes: ByteArray): ByteArray {
-        val out = ByteArrayOutputStream()
-        GZIPInputStream(ByteArrayInputStream(bytes)).use { input ->
-            val buffer = ByteArray(16 * 1024)
-            while (true) {
-                val read = input.read(buffer)
-                if (read < 0) break
-                out.write(buffer, 0, read)
-                if (out.size() > MAX_PLAIN_BYTES) throw IOException("Sync data too large")
-            }
-        }
-        return out.toByteArray()
-    }
+    private fun unb64(text: String) = BASE64.decode(text)
 
     @Serializable
     private data class FileEnvelope(

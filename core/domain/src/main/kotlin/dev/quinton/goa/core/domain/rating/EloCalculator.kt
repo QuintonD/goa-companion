@@ -1,12 +1,12 @@
 package dev.quinton.goa.core.domain.rating
 
+import dev.quinton.goa.core.domain.PortableMath
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Participant
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.model.rating.RatingPoint
-import kotlin.math.pow
 
 /**
  * Seat-based Elo with double piloting (docs/DOMAIN.md *Elo*, ADR-011). A pure, deterministic
@@ -37,7 +37,8 @@ object EloCalculator {
 
     /** Classic Elo expected score of a side with strength [own] against [opponent]. */
     fun expectedScore(own: Double, opponent: Double): Double =
-        1.0 / (1.0 + 10.0.pow((opponent - own) / EloConfig.SCALE))
+        // The same bits on every phone and in the browser (PortableMath), so replays agree everywhere.
+        1.0 / (1.0 + PortableMath.pow10((opponent - own) / EloConfig.SCALE))
 
     /** Why [match] would be skipped, or null if it is rated. */
     fun skipReason(match: Match): SkipReason? {

@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.game.ai
 
 import dev.quinton.goa.core.domain.board.HexGrid
+import dev.quinton.goa.core.domain.synchronizedOn
 import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.Game
 import dev.quinton.goa.core.game.engine.GameState
@@ -120,13 +121,12 @@ internal class MapInfo private constructor(g: Game) {
             .filter { geo.spaces[it]?.spawn != null }
     }
 
-    @Synchronized
-    fun distanceToZone(hex: Hex, zone: String): Int {
+    fun distanceToZone(hex: Hex, zone: String): Int = synchronizedOn(this) {
         val table = zoneDist.getOrPut(zone) {
             val targets = geo.zoneSpaces[zone].orEmpty()
             geo.spaces.keys.associateWith { h -> targets.minOfOrNull { HexGrid.distance(h, it) } ?: 0 }
         }
-        return table[hex] ?: targets(zone).minOfOrNull { HexGrid.distance(hex, it) } ?: 0
+        table[hex] ?: targets(zone).minOfOrNull { HexGrid.distance(hex, it) } ?: 0
     }
 
     private fun targets(zone: String): List<Hex> = geo.zoneSpaces[zone].orEmpty()
@@ -134,7 +134,7 @@ internal class MapInfo private constructor(g: Game) {
     companion object {
         private val cache = HashMap<String, MapInfo>()
 
-        fun of(g: Game): MapInfo = synchronized(cache) { cache.getOrPut(g.state.mapId) { MapInfo(g) } }
+        fun of(g: Game): MapInfo = synchronizedOn(cache) { cache.getOrPut(g.state.mapId) { MapInfo(g) } }
     }
 }
 

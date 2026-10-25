@@ -79,7 +79,7 @@ class Registry {
     fun card(cardId: String, script: CardScript) {
         check(cardId !in cards) { "Card $cardId registered twice" }
         cards[cardId] = script
-        script.behavior?.let { behaviors.putIfAbsent(cardId, it) }
+        script.behavior?.let { behaviors.getOrPut(cardId) { it } }
     }
 
     /** A behaviour under a key other than a card id: a token kind, a marker kind, a second effect of a card. */
