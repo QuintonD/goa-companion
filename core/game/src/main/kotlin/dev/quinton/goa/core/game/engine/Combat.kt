@@ -41,11 +41,17 @@ data class AttackResult(
  * heroes and minions"), not immune, matching [valid]. Mandatory unless [optional]: with no valid
  * target the action fizzles (p.10).
  */
-fun ActionScope.attackTarget(prompt: String, optional: Boolean = false, valid: (String) -> Boolean): String? {
+fun ActionScope.attackTarget(
+    prompt: String,
+    optional: Boolean = false,
+    none: String = "no target",
+    valid: (String) -> Boolean,
+): String? {
     val ids = g.unitsOnBoard().filter { g.isEnemy(heroId, it) && canTarget(it, ActionKind.ATTACK) && valid(it) }
     if (ids.isEmpty()) {
         if (optional) return null
-        fizzle("no target")
+        // [none] is the reason the action panel shows when the Primary action can't start (ADR-041).
+        fizzle(none)
     }
     val t = chooseUnit(prompt, ids, optional) ?: return null
     return target(t)
@@ -57,7 +63,7 @@ fun ActionScope.adjacentAttackTarget(
     optional: Boolean = false,
     extra: (String) -> Boolean = { true },
 ): String? =
-    attackTarget(prompt, optional) { id -> isAdjacent(id) && extra(id) }
+    attackTarget(prompt, optional, "no target adjacent to you") { id -> isAdjacent(id) && extra(id) }
 
 /** "Target a unit in range." (p.9: Range counts spaces, obstacles included; no line of sight). */
 fun ActionScope.rangedAttackTarget(
@@ -66,7 +72,7 @@ fun ActionScope.rangedAttackTarget(
     rangeValue: Int = range,
     extra: (String) -> Boolean = { true },
 ): String? =
-    attackTarget(prompt, optional) { id -> inRange(id, rangeValue) && extra(id) }
+    attackTarget(prompt, optional, "no target in range") { id -> inRange(id, rangeValue) && extra(id) }
 
 fun ActionScope.isAdjacent(id: String): Boolean {
     val me = hero.at ?: return false

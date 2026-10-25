@@ -29,7 +29,11 @@ class GameEnded : ControlSignal()
  * A mandatory step of the card text cannot be done (p.10 "Mandatory and Optional Steps": "stop
  * performing the action at that step, and skip any remaining steps").
  */
-class Fizzle(reason: String) : ControlSignal(reason)
+class Fizzle(
+    reason: String,
+    /** Where the reason comes from when it is not p.10 / the FAQ (a ruling: "designer, BGG 3491113"). */
+    val source: String? = null,
+) : ControlSignal(reason)
 
 /** Probe runs (is a Primary action possible at all?) stop at the first question. */
 internal class ProbeHit : ControlSignal()
@@ -153,7 +157,7 @@ class Game internal constructor(
     fun note(text: String) = emit(GameEvent.Note(text))
 
     /** Stop the current action: a mandatory step can't be done (p.10). */
-    fun fizzle(reason: String): Nothing = throw Fizzle(reason)
+    fun fizzle(reason: String, source: String? = null): Nothing = throw Fizzle(reason, source)
 
     // ---- lookups -----------------------------------------------------------------------------
 

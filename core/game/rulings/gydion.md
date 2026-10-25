@@ -13,7 +13,9 @@ besides the goa2-faq; the threads were read through `api.geekdo.com` on 2026-10-
    it (in `Zone.EXTRA`, tag `box`), so no spell can be cast until Prepare Spells has been performed.
    Reason: nothing puts them there; "you cannot access the spellbook (cast a spell), because cast is
    undefined until silver is played". Source: designer, BGG 3491113 ("If it doesn't say that spells
-   start in the spellbook, they don't"). Test: `Prepare Spells - the spellbook starts empty…`.
+   start in the spellbook, they don't"). Test: `Prepare Spells - the spellbook starts empty…`. The
+   action question says so ("Its Skill can't start: the spellbook is empty until Prepare Spells is
+   performed", ADR-041; `UnavailableActionsTest`).
 2. **"Add all spell cards".** Every spell card is added, those of Tiers Gydion has not reached and Wish
    included; removed ones come back. Source: designer, BGG 3491113 ("Silver adds **all** spells to your
    spell book. You simply cannot cast them until you get your higher tiered cards"). Test: `Prepare
