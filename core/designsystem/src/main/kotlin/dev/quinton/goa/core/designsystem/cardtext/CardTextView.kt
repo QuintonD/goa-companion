@@ -101,9 +101,9 @@ fun CardTextView(
     color: Color = LocalContentColor.current,
     iconTint: Color = MaterialTheme.colorScheme.primary,
     maxLines: Int = Int.MAX_VALUE,
+    reminderColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
-    val reminder = MaterialTheme.colorScheme.onSurfaceVariant
-    val annotated = remember(text, reminder) { cardTextAnnotated(text, reminder) }
+    val annotated = remember(text, reminderColor) { cardTextAnnotated(text, reminderColor) }
     Text(
         text = annotated,
         modifier = modifier,

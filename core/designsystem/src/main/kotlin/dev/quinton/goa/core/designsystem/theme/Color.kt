@@ -6,7 +6,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-/** "Sunken bronze" tokens from docs/DESIGN.md. Re-check contrast for any new pair. */
+/** "Steel and bronze" tokens from docs/DESIGN.md (ADR-042). Re-check contrast for any new pair. */
 internal object Tokens {
     val DarkBackground = Color(0xFF0B1622)
     val DarkSurface = Color(0xFF122334)
@@ -35,6 +35,27 @@ internal object Tokens {
     val LightError = Color(0xFFB3261E)
     val LightUnverified = Color(0xFF8A5A00)
     val LightMedallion = Color(0xFFE6DCC8)
+
+    // The rulebook's steel-blue banner (top bars), its copper small-caps headings and the cards'
+    // parchment text box (ADR-042). The banner stays dark steel in both themes, as on the page.
+    val DarkBannerTop = Color(0xFF26496A)
+    val DarkBannerBottom = Color(0xFF152C42)
+    val LightBannerTop = Color(0xFF2E5C7E)
+    val LightBannerBottom = Color(0xFF1D3E57)
+    val BannerHighlight = Color(0xFFA9CBE0)
+    val BannerShadow = Color(0xFF0A1622)
+    val OnBanner = Color(0xFFF3F6F9)
+    val OnBannerVariant = Color(0xFFC9D8E4)
+    val DarkHeading = Color(0xFFE39B5F)
+    val LightHeading = Color(0xFF9A4A1F)
+    val DarkParchment = Color(0xFFD9D2C1)
+    val LightParchment = Color(0xFFEEE8DA)
+    val OnParchment = Color(0xFF231C14)
+    val DarkOnParchmentVariant = Color(0xFF54483A)
+    val LightOnParchmentVariant = Color(0xFF5A4E3E)
+    val ParchmentInk = Color(0xFF8A3F18)
+    val DarkParchmentEdge = Color(0xFF8C826E)
+    val LightParchmentEdge = Color(0xFFB9AE98)
 }
 
 internal val DarkColors = darkColorScheme(
@@ -119,6 +140,25 @@ data class GoaExtendedColors(
     val bronzeGlow: Color = Tokens.DarkPrimary.copy(alpha = 0.18f),
     /** Deepest shade behind hero art / sigil medallions (decorative only). */
     val medallion: Color = Tokens.DarkMedallion,
+    /** Steel banner (top bars) gradient, top to bottom; [onBanner] text ≥ 5.7:1 on both stops. */
+    val bannerTop: Color = Tokens.DarkBannerTop,
+    val bannerBottom: Color = Tokens.DarkBannerBottom,
+    /** Bright steel edge along the banner's top, and its dark lower edge (decorative). */
+    val bannerHighlight: Color = Tokens.BannerHighlight,
+    val bannerShadow: Color = Tokens.BannerShadow,
+    val onBanner: Color = Tokens.OnBanner,
+    /** Banner icons and secondary text (≥ 4.9:1 on both themes' banner). */
+    val onBannerVariant: Color = Tokens.OnBannerVariant,
+    /** Copper section headings, the rulebook's small-caps heads (≥ 4.9:1 on background, surface, surfaceHigh). */
+    val heading: Color = Tokens.DarkHeading,
+    /** The cards' parchment text box: printed text (card text, rulebook excerpts) sits on it. */
+    val parchment: Color = Tokens.DarkParchment,
+    val onParchment: Color = Tokens.OnParchment,
+    /** Reminder text on parchment (≥ 5.8:1). */
+    val onParchmentVariant: Color = Tokens.DarkOnParchmentVariant,
+    /** Inline game icons on parchment (≥ 4.9:1). */
+    val parchmentInk: Color = Tokens.ParchmentInk,
+    val parchmentEdge: Color = Tokens.DarkParchmentEdge,
 )
 
 internal val DarkExtended = GoaExtendedColors(
@@ -135,6 +175,12 @@ internal val DarkExtended = GoaExtendedColors(
     unverified = Tokens.DarkUnverified,
     bronzeGlow = Tokens.DarkPrimary.copy(alpha = 0.18f),
     medallion = Tokens.DarkMedallion,
+    bannerTop = Tokens.DarkBannerTop,
+    bannerBottom = Tokens.DarkBannerBottom,
+    heading = Tokens.DarkHeading,
+    parchment = Tokens.DarkParchment,
+    onParchmentVariant = Tokens.DarkOnParchmentVariant,
+    parchmentEdge = Tokens.DarkParchmentEdge,
 )
 
 internal val LightExtended = GoaExtendedColors(
@@ -151,6 +197,12 @@ internal val LightExtended = GoaExtendedColors(
     unverified = Tokens.LightUnverified,
     bronzeGlow = Tokens.LightPrimary.copy(alpha = 0.14f),
     medallion = Tokens.LightMedallion,
+    bannerTop = Tokens.LightBannerTop,
+    bannerBottom = Tokens.LightBannerBottom,
+    heading = Tokens.LightHeading,
+    parchment = Tokens.LightParchment,
+    onParchmentVariant = Tokens.LightOnParchmentVariant,
+    parchmentEdge = Tokens.LightParchmentEdge,
 )
 
 val LocalGoaColors = staticCompositionLocalOf { DarkExtended }

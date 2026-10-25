@@ -10,11 +10,12 @@ Official game assets (card images, hero art) are tracked separately in
 |--------|-------|--------|---------|
 | Cinzel (Natanael Gama, The Cinzel Project Authors) | `core/designsystem/src/main/res/font/cinzel_{regular,semibold,bold}.ttf` | `github.com/google/fonts` @ `47d54ca1ebb14fd864695f1d39dc734f39017c33`, `ofl/cinzel/Cinzel[wght].ttf` (sha256 `f4d83d34…0f34`) | [`fonts/OFL-Cinzel.txt`](fonts/OFL-Cinzel.txt) |
 | Inter (Rasmus Andersson, The Inter Project Authors) | `core/designsystem/src/main/res/font/inter_{regular,medium,semibold,bold}.ttf` | same commit, `ofl/inter/Inter[opsz,wght].ttf` (sha256 `29160a80…9031`) | [`fonts/OFL-Inter.txt`](fonts/OFL-Inter.txt) |
+| Crimson Pro (Jacques Le Bailly, The Crimson Pro Project Authors) — the printed face (ADR-042) | `core/designsystem/src/main/res/font/crimson_{regular,semibold,italic}.ttf` | same commit, `ofl/crimsonpro/CrimsonPro[wght].ttf` (sha256 `16aa9fb7…af6a`) and `CrimsonPro-Italic[wght].ttf` (sha256 `a74dc11d…2559`) | [`fonts/OFL-CrimsonPro.txt`](fonts/OFL-CrimsonPro.txt) |
 
 The bundled files are **modified versions**: static instances (Cinzel wght 400/600/700; Inter
-wght 400/500/600/700 at opsz 14) subset to Latin, punctuation, arrows, maths and geometric
+wght 400/500/600/700 at opsz 14; Crimson Pro wght 400/600 and italic 400) subset to Latin, punctuation, arrows, maths and geometric
 shapes with all OpenType features kept (incl. `tnum`). Made with fontTools by
-`design/tools/instance_fonts.py`. Neither font declares a Reserved Font Name, so the family
+`design/tools/instance_fonts.py`. None of the fonts declares a Reserved Font Name, so the family
 names are kept. The licence texts are also bundled as `res/raw/license_ofl_*.txt` and shown in
 Settings → About → Fonts.
 
