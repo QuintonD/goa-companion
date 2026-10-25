@@ -37,6 +37,7 @@ import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.choiceFor
 import dev.quinton.goa.feature.board.play.table.logLines
+import dev.quinton.goa.feature.board.play.table.turnLog
 import javax.inject.Inject
 import javax.inject.Provider
 import kotlin.random.Random
@@ -649,12 +650,13 @@ class GameViewModel internal constructor(
             asking = decision != null && decision.seat in humans && nudge == null,
             selected = selected?.takeIf { decision != null && it in decision.options },
             bottomTeam = bottomTeam,
+            turnLog = turnLog(snapshot.events),
         )
         val over = if (status == TurnStatus.Over) gameOver(view, snapshot.events, inProgress, game) else null
         val recent = if (status == TurnStatus.YourTurn) {
             recentSince(snapshot.events, answeredAt, game.setup.seats.map { it.heroId }.toSet())
         } else {
-            RecentLines(snapshot.events.takeLast(RECENT).map { it.text })
+            RecentLines(snapshot.events.filter(::panelWorthy).takeLast(RECENT).map { it.text })
         }
         state.update {
             GameUiState.Playing(

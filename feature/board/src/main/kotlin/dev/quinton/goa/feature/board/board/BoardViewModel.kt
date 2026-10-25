@@ -342,7 +342,7 @@ class BoardViewModel internal constructor(
         action: BoardAction,
     ): OverlaySettings = when (action) {
         is BoardAction.ChooseCard -> {
-            val card = ready.selectedHero()?.cards?.firstOrNull { it.id == action.cardId }
+            val card = ready.selectedHero()?.measurable?.firstOrNull { it.id == action.cardId }
             // A newly chosen card shows what it has: its Movement, Range and Radius.
             settings.copy(
                 cardId = card?.id,
@@ -626,7 +626,7 @@ class BoardViewModel internal constructor(
                 }.orEmpty(),
             )
         }
-        val card = ready.heroes.hero(piece.heroId).cards.firstOrNull { it.id == settings.cardId }
+        val card = ready.heroes.hero(piece.heroId).measurable.firstOrNull { it.id == settings.cardId }
         val movementValue = card?.values?.movement?.plus(settings.movementBonus)
         val rangeValue = card?.values?.range?.plus(settings.rangeBonus)
         val radiusValue = card?.values?.radius?.plus(settings.radiusBonus)

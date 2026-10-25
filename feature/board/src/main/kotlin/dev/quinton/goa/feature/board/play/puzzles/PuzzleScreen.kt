@@ -80,6 +80,7 @@ import dev.quinton.goa.feature.board.play.table.DecisionPanel
 import dev.quinton.goa.feature.board.play.table.EventLog
 import dev.quinton.goa.feature.board.play.table.GameTable
 import dev.quinton.goa.feature.board.play.table.HeroDetail
+import dev.quinton.goa.feature.board.play.table.MomentCard
 import dev.quinton.goa.feature.board.play.table.PeekConfirm
 import dev.quinton.goa.feature.board.play.table.RecentEvents
 import dev.quinton.goa.feature.board.play.table.TableCard
@@ -180,6 +181,7 @@ fun PuzzleScreen(
                             }
                         },
                         initialPanelHidden = initialPanelHidden,
+                        focus = focus,
                     ) {
                         PuzzlePanel(p, onAction, onNext, onList, focus)
                     }
@@ -318,6 +320,7 @@ private fun ColumnScope.PuzzlePanel(
             PuzzleHeader(puzzle.info, puzzle.total)
             if (puzzle.info.intro.isNotBlank()) Intro(puzzle.info.intro, puzzle.introOpen, onAction)
             puzzle.nudge?.let { Nudge(it, onAction) }
+            puzzle.table.moment?.let { MomentCard(it, puzzle.table, focus = focus) }
             DecisionPanel(
                 puzzle.table,
                 onSelect = { onAction(PuzzleAction.Select(it)) },

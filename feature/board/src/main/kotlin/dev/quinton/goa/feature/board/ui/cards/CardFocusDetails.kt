@@ -51,13 +51,12 @@ import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.cardColor
-import dev.quinton.goa.core.designsystem.component.cardColorName
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Motion
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
-import dev.quinton.goa.feature.board.board.tierLabel
+import dev.quinton.goa.feature.board.board.cardKindLabel
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.play.table.ItemIcon
 import dev.quinton.goa.feature.board.play.table.ItemLine
@@ -142,7 +141,7 @@ private fun DetailsContent(item: FocusCard, context: String?, landscape: Boolean
     context?.let {
         Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
-    val tier = listOfNotNull("${tierLabel(card)} ${cardColorName(card.color)}", item.caption).joinToString(" · ")
+    val tier = listOfNotNull(cardKindLabel(card), item.caption).joinToString(" · ")
     if (landscape) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Text(

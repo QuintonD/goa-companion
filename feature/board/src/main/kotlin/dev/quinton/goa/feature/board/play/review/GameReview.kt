@@ -83,6 +83,7 @@ import dev.quinton.goa.feature.board.map.MapOrientation
 import dev.quinton.goa.feature.board.map.MapViewport
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.play.table.CardRow
+import dev.quinton.goa.feature.board.play.table.ExtrasSection
 import dev.quinton.goa.feature.board.play.table.GameMapView
 import dev.quinton.goa.feature.board.play.table.HeroStrip
 import dev.quinton.goa.feature.board.play.table.ItemIcon
@@ -91,7 +92,9 @@ import dev.quinton.goa.feature.board.play.table.TableHud
 import dev.quinton.goa.feature.board.play.table.TableTopRow
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.figureOf
+import dev.quinton.goa.feature.board.play.table.shownCounters
 import dev.quinton.goa.feature.board.play.table.spokenCard
+import dev.quinton.goa.feature.board.play.table.ultimateCard
 
 /** The review's two tabs. */
 enum class ReviewTab(val label: String) {
@@ -409,7 +412,7 @@ private fun HeroCard(table: TableUi, hero: HeroView, onCard: OpenCard, puzzle: B
                 Fact("Coins", "${hero.coins}")
                 Fact("In hand", "${hero.handCount}")
                 if (hero.ultimate) Fact("Ultimate", "Unlocked")
-                hero.counters.forEach { (name, value) -> Fact(PlayText.counter(name), "$value") }
+                shownCounters(hero).forEach { (name, value) -> Fact(PlayText.counter(name), "$value") }
                 if (hero.itemStats.isNotEmpty()) {
                     Column(
                         Modifier.semantics(mergeDescendants = true) {
@@ -440,6 +443,13 @@ private fun HeroCard(table: TableUi, hero: HeroView, onCard: OpenCard, puzzle: B
                 val effects = hero.activeEffects.map { CardView(it, active = true) }
                 CardRow(effects, table, opener(effects, table, onCard))
             }
+            ultimateCard(table, hero)?.let { card ->
+                Section("Ultimate")
+                val ultimate = listOf(CardView(card.id))
+                CardRow(ultimate, table, opener(ultimate, table, onCard))
+            }
+            // Gydion's spellbook (ADR-040), as the hero sheet shows it.
+            ExtrasSection(table, hero, onOpen = { cards, index, _ -> onCard(cards, index) })
             val tokens = view.pieces.filter { it.ownerHeroId == hero.heroId && figureOf(it) == null }
             if (hero.markers.isNotEmpty() || tokens.isNotEmpty()) {
                 Section("Markers and tokens")

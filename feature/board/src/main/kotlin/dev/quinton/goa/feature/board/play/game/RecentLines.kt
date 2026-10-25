@@ -10,22 +10,17 @@ data class RecentLines(val lines: List<String>, val strong: Set<Int> = emptySet(
  * the next question is theirs. Between two of their answers the computer may play a whole turn and
  * the end of round, so this keeps what a player must not miss — a hero defeated, a Life counter
  * spent, a push, a level up, the Minion Battle — and fills up with the latest lines, oldest first.
- * Round and turn headings (the title shows them) and "plays a card facedown" are left out; the
- * pity coins of one round are one line.
+ * Round and turn headings (the title shows them), "plays a card facedown", the reveal, the action
+ * chosen and moves (the turn track and the board show them, ADR-041) are left out; the pity coins
+ * of one round are one line.
  */
 fun recentSince(events: List<GameEvent>, from: Int, heroIds: Set<String>, max: Int = MAX_RECENT): RecentLines {
     val since = merged(
-        events.drop(from.coerceIn(0, events.size)).filterNot {
-            it is GameEvent.RoundStarted || it is GameEvent.TurnStarted ||
-                (it is GameEvent.Note && it.text.endsWith(FACEDOWN))
-        },
+        events.drop(from.coerceIn(0, events.size)).filter(::panelWorthy),
     )
     if (since.isEmpty()) {
         // Nothing new (a resumed game, a take back): the last lines before, so the panel isn't bare.
-        val before = events.take(from.coerceIn(0, events.size)).filterNot {
-            it is GameEvent.RoundStarted || it is GameEvent.TurnStarted ||
-                (it is GameEvent.Note && it.text.endsWith(FACEDOWN))
-        }
+        val before = events.take(from.coerceIn(0, events.size)).filter(::panelWorthy)
         return RecentLines(before.takeLast(EARLIER).map { it.text })
     }
     val important = since.indices.filter { important(since[it], heroIds) }.takeLast(max - 1)
@@ -35,6 +30,21 @@ fun recentSince(events: List<GameEvent>, from: Int, heroIds: Set<String>, max: I
         lines = kept.map { since[it].text },
         strong = kept.withIndex().filter { (_, i) -> i in important }.map { it.index }.toSet(),
     )
+}
+
+/**
+ * Whether the panel repeats an event's log line: not the headings (the title says them), not what the
+ * table itself shows (a card played facedown and the reveal on the turn track, the action chosen on
+ * its card there, a move on the board). The log sheet keeps every line.
+ */
+fun panelWorthy(event: GameEvent): Boolean = when (event) {
+    is GameEvent.RoundStarted, is GameEvent.TurnStarted, is GameEvent.CardsRevealed,
+    is GameEvent.ActionChosen, is GameEvent.Moved,
+    -> false
+
+    is GameEvent.Note -> !event.text.endsWith(FACEDOWN)
+
+    else -> true
 }
 
 /** A line a player must not miss: a hero defeated, a Life counter spent, a push, a level up, the Minion Battle. */
