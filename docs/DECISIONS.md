@@ -908,7 +908,7 @@ and T3 Code, keeping Megalithic intact until oldboi is proven.
 ADR-010), the Android SDK in `~/Android/Sdk` (platform 37.0, build-tools 37.0.0 and 36.1.0, NDK
 28.2.13676358 — AGP 9.4.1's default, which strips the native libraries from dependencies; without it
 the APK is 600 KB larger), the release keystore in `~/.goa-signing/` (mode 600), the catalog-import
-cache, and a headless `goa_api36` emulator. Builds run through `goa-gradle` (`~/.local/bin`), which
+cache, and a `goa_api36` emulator. Builds run through `goa-gradle` (`~/.local/bin`), which
 starts `./gradlew` in a `systemd-run --user --scope` with MemoryHigh 4G / MemoryMax 5G / swap 2G, and
 `~/.gradle/gradle.properties` allows 2 workers: the first full check run (4 workers, uncapped, each
 Robolectric JVM up to 2 GB) filled RAM and swap and the OOM killer took Claude Desktop and T3 Code.
@@ -923,6 +923,10 @@ are clean. Non-interactive ssh has no locale, which made Java write ASCII-only f
 report for "Hold My Saké" failed), so `~/.goa-env` sets `LANG=C.UTF-8`. systemd-oomd watches the
 user session (memory pressure over 50% for 20 s kills the busiest cgroup), so builds from other
 projects on oldboi have to take turns with this one.
+**End-to-end tests don't fit:** the headless emulator (software rendering of the 1344×2992 screen)
+exceeded a 4 GB cgroup with a 2 GB guest and 4.5 GB with a 1.5 GB guest, partway through
+`AccessibilityChecksTest`; only `AppSmokeTest` passed. `goa-emulator`/`goa-e2e` stay on oldboi for
+smoke checks; the full `connectedDebugAndroidTest` run stays on Megalithic or the phone.
 **Consequences:** Either machine can build and publish an update that installs over the other's. One
 Gradle build at a time on oldboi, always through `goa-gradle`; it is slower than Megalithic. Megalithic
 keeps everything until the owner decides to clear it.

@@ -47,8 +47,12 @@ memory-capped cgroup (4 GB soft, 5 GB hard), and `~/.gradle/gradle.properties` k
 workers. Run one build at a time there (other projects build on oldboi too); systemd-oomd kills
 the busiest cgroup when the session's memory pressure stays over 50% for 20 s, so two builds at once
 usually ends with one of them killed. Fetch goes through the read-only deploy key, push through
-`gh` (HTTPS); `gh release` works for publishing. The emulator `goa_api36` runs headless
-(`emulator -avd goa_api36 -no-window -gpu swiftshader_indirect`).
+`gh` (HTTPS); `gh release` works for publishing.
+
+End-to-end tests (`connectedDebugAndroidTest`) don't fit on oldboi: the headless `goa_api36`
+emulator (`goa-emulator start`, capped at 4.5 GB) boots and passes `AppSmokeTest` through `goa-e2e`
+(adb + orchestrator, no Gradle beside it), but its process grows past the cap in the next class and
+the kernel kills it. Run them on Megalithic or the phone.
 
 ## Sharing with the play group
 
