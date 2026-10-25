@@ -386,11 +386,11 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   only heroes whose every card the engine implements and tests can be seated, the rest show as
   coming later. Pick the hero(es) you control (one, or your whole team); every other seat is the
   computer at a **strength** from 1 to 10 on a slider (default 5, ADR-039), shown with its band:
-  1–3 **Easy** (makes visible mistakes, plays fast; 1 is a gentle first game), 4–5 **Normal**
-  (sensible, short look-ahead), 6–7 **Hard** (plans the turn against what you might have played),
-  8–10 **Expert** (searches longest, remembers the cards you have shown; 10 is as strong as a phone
-  allows), one strength for all or per seat. A game saved before the slider plays its level as
-  Easy 2, Normal 4, Hard 7, Expert 9. Quick or Long, a verified map (Forgotten Island default), Coach on
+  1–3 **Easy** (makes visible mistakes, plays fast; 1 is a gentle first game), 4–6 **Normal**
+  (sensible, few mistakes, from 5 a short look-ahead), 7–8 **Hard** (plans the turn against what you
+  might have played), 9–10 **Expert** (searches longest, remembers the cards you have shown; 10 is
+  as strong as a phone allows), one strength for all or per seat. A game saved before the slider
+  plays its level as Easy 2, Normal 6, Hard 8, Expert 10. Quick or Long, a verified map (Forgotten Island default), Coach on
   or off. The app flips the Tie Breaker coin. 2v2 is the rulebook's standard; 1v1 is offered,
   labelled as not the rulebook's way (p.20: two players each control two heroes).
 - **The game** follows the rulebook exactly: play a card facedown, reveal, initiative order (coin

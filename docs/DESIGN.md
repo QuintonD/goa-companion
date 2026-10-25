@@ -330,8 +330,8 @@ the log sheet keeps every line. The coach's nudge is a secondary-container card 
 bordered in the winner's colour, the rulebook reason, each hero's results, then the coach's turning
 points by round and turn. New game reuses New board's picker; heroes not yet playable are veiled and
 marked "Later". **Computer strength** (ADR-039) is a Material 3 slider, 1 to 10 with a tick per step
-(default 5), the value and its band above it in the primary colour ("7 · Hard"; bands 1–3 Easy, 4–5
-Normal, 6–7 Hard, 8–10 Expert), "Gentler" and "Stronger" under the ends, and the band's one-line note
+(default 5), the value and its band above it in the primary colour ("7 · Hard"; bands 1–3 Easy, 4–6
+Normal, 7–8 Hard, 9–10 Expert), "Gentler" and "Stronger" under the ends, and the band's one-line note
 under that (1 and 10 have their own); TalkBack reads "Computer strength, Strength 7 of 10, Hard".
 Under "Advanced: a strength per seat" each computer hero gets the same slider with its name and value
 on one line and no end labels. The computer's strength also shows wherever its level did ("Computer ·

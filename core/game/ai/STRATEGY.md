@@ -830,7 +830,7 @@ only when the evaluation does not drop. For "up to N" distances, prefer the exac
 ### 4.2 The four levels
 
 Since v0.7 (ADR-039) the player sets a strength from 1 to 10; the four levels below are its bands
-(1–3 Easy, 4–5 Normal, 6–7 Hard, 8–10 Expert) and the design they follow. What each step does and
+(1–3 Easy, 4–6 Normal, 7–8 Hard, 9–10 Expert) and the design they follow. What each step does and
 how it measures is in [AI.md](AI.md) "Strengths".
 
 | | Easy | Normal | Hard | Expert |

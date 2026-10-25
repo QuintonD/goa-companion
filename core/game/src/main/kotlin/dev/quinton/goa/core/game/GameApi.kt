@@ -48,21 +48,21 @@ enum class AiLevel(
     EASY(2),
 
     @SerialName("normal")
-    NORMAL(4),
+    NORMAL(6),
 
     @SerialName("hard")
-    HARD(7),
+    HARD(8),
 
     @SerialName("expert")
-    EXPERT(9),
+    EXPERT(10),
     ;
 
     companion object {
-        /** The band a strength belongs to: 1–3 Easy, 4–5 Normal, 6–7 Hard, 8–10 Expert. */
+        /** The band a strength belongs to: 1–3 Easy, 4–6 Normal, 7–8 Hard, 9–10 Expert. */
         fun of(strength: Int): AiLevel = when (AiStrength.coerce(strength)) {
             in 1..3 -> EASY
-            in 4..5 -> NORMAL
-            in 6..7 -> HARD
+            in 4..6 -> NORMAL
+            in 7..8 -> HARD
             else -> EXPERT
         }
     }

@@ -164,7 +164,7 @@ class NewGameViewModelTest {
         val ready = boards.uiState.first { it is dev.quinton.goa.feature.board.list.BoardsUiState.Ready }
             as dev.quinton.goa.feature.board.list.BoardsUiState.Ready
         assertThat(ready.play.available).isTrue()
-        assertThat(ready.play.resume?.summary).isEqualTo("You play Arien · Computer: Hard 7")
+        assertThat(ready.play.resume?.summary).isEqualTo("You play Arien · Computer: Hard 8")
         assertThat(ready.play.resume?.red?.map { it.id }).containsExactly("arien", "brogan").inOrder()
 
         val unreadable = BoardsViewModel.resumeOf(StoredGame.Unreadable, emptyMap())

@@ -23,7 +23,7 @@ class NewGameFormsTest {
     fun `a form kept before the slider reads its levels as their strengths`() {
         val old = """{"red":["arien"],"blue":["wasp","brogan"],"level":"expert","seatLevels":{"wasp":"easy"}}"""
         val form = NewGameForms.decode(old)!!
-        assertThat(form.strength).isEqualTo(9)
+        assertThat(form.strength).isEqualTo(10)
         assertThat(form.seatStrengths).containsExactly("wasp", 2)
         assertThat(NewGameForms.decode("""{"red":["arien"]}""")!!.strength).isEqualTo(AiStrength.DEFAULT)
     }

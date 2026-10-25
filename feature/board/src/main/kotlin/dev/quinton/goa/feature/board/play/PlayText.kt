@@ -32,7 +32,7 @@ object PlayText {
 
     fun levelNote(level: AiLevel): String = when (level) {
         AiLevel.EASY -> "Makes visible mistakes and plays fast. Good for learning the turn."
-        AiLevel.NORMAL -> "Plays sensibly and looks a short way ahead."
+        AiLevel.NORMAL -> "Plays sensibly with few mistakes, and from 5 looks a short way ahead."
         AiLevel.HARD -> "Plans the turn against what you might have played."
         AiLevel.EXPERT -> "Searches the longest and remembers the cards you have shown. Expect to be punished."
     }
@@ -44,7 +44,7 @@ object PlayText {
     fun strengthSpoken(strength: Int): String =
         "Strength $strength of ${AiStrength.MAX}, ${level(AiLevel.of(strength))}"
 
-    /** A computer seat's band and strength, "Hard 7". */
+    /** A computer seat's band and strength, "Hard 8". */
     fun strength(computer: Controller.Ai): String = "${level(AiLevel.of(computer.strength))} ${computer.strength}"
 
     fun controller(controller: Controller): String = when (controller) {

@@ -13,12 +13,12 @@ import kotlin.random.Random
 
 /**
  * The computer opponents (ADR-035, ADR-039, PRODUCT §9, core/game/ai/AI.md). One engine with
- * switches per strength, 1 to 10 (STRATEGY.md §4): 1–3 play from static heuristics with
- * human-looking slips (fewer as the strength grows); from 4 each option is played out against the
- * most likely enemy plays, with more samples, wider candidate lists, less noise and smarter playouts
- * at every step up; 8 and above remember every card shown since an enemy's last level up, 9 and 10
- * play every hero's later choices in a playout by one-ply search. The four named levels are the
- * bands of [AiLevel]; a level alone (a save from before the slider) plays as its [AiLevel.strength].
+ * switches per strength, 1 to 10 (STRATEGY.md §4): 1–4 play from static heuristics with
+ * human-looking slips (fewer as the strength grows); from 5 each option is played out against the
+ * enemies' likely plays, with longer playouts, more samples, less noise and smarter playouts at
+ * every step up; 9 and 10 remember every card shown since an enemy's last level up, and 10 plays
+ * every hero's later choices in a playout by one-ply search. The four named levels are the bands of
+ * [AiLevel]; a level alone (a save from before the slider) plays as its [AiLevel.strength].
  *
  * Deterministic for a seed (answers depend on the seed, the decision id and the seat), except that a
  * wall-clock cap (the phone budget) may end a search early on a slow device; [deterministic] removes it.
@@ -69,8 +69,17 @@ object AiPlayers {
             modelPlays = false, memory = false, greedySelf = false, budgetMs = 50, blindRate = 0.4,
         )
 
-        // Static rules of thumb like Easy, but it sees every enemy and rarely slips.
+        // Between Easy and the careful player: still the nearest enemy only, fewer slips.
         3 -> LevelProfile(
+            staticOnly = true, playSamples = 1, otherSamples = 1,
+            playHorizon = Horizon.ACTION, otherHorizon = Horizon.ACTION, candidates = 1,
+            temperature = 0.9, maxGap = 3.0, slipRate = 0.05, risk = 0.0,
+            knobs = EvalKnobs(nearestThreatOnly = true, nextTurnThreat = 0.15),
+            modelPlays = false, memory = false, greedySelf = false, budgetMs = 50, blindRate = 0.25,
+        )
+
+        // Static rules of thumb like Easy, but it sees every enemy and rarely slips.
+        4 -> LevelProfile(
             staticOnly = true, playSamples = 1, otherSamples = 1,
             playHorizon = Horizon.ACTION, otherHorizon = Horizon.ACTION, candidates = 1,
             temperature = 0.6, maxGap = 2.0, slipRate = 0.03, risk = 0.0,
@@ -78,8 +87,17 @@ object AiPlayers {
             modelPlays = true, memory = false, greedySelf = false, budgetMs = 50, blindRate = 0.1,
         )
 
+        // The first that looks ahead: its three likeliest options played out once, against uniform
+        // guesses of the enemies' cards, chosen loosely.
+        5 -> LevelProfile(
+            staticOnly = false, playSamples = 1, otherSamples = 1,
+            playHorizon = Horizon.TURN, otherHorizon = Horizon.ACTION, candidates = 3,
+            temperature = 1.0, maxGap = 3.0, slipRate = 0.0, risk = 0.0,
+            knobs = TUNED, modelPlays = false, memory = false, greedySelf = false, budgetMs = 200,
+        )
+
         // Normal: each option played out once, a move to the end of its action.
-        4 -> LevelProfile(
+        6 -> LevelProfile(
             staticOnly = false, playSamples = 1, otherSamples = 1,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.ACTION, candidates = 6,
             temperature = 0.6, maxGap = 1.5, slipRate = 0.0, risk = 0.0,
@@ -87,22 +105,15 @@ object AiPlayers {
         )
 
         // Every choice played out to the end of the turn (the biggest single step, AI.md).
-        5 -> LevelProfile(
+        7 -> LevelProfile(
             staticOnly = false, playSamples = 1, otherSamples = 1,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 6,
             temperature = 0.5, maxGap = 1.3, slipRate = 0.0, risk = 0.0,
             knobs = TUNED, modelPlays = true, memory = false, greedySelf = false, budgetMs = 500,
         )
 
-        6 -> LevelProfile(
-            staticOnly = false, playSamples = 2, otherSamples = 1,
-            playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 7,
-            temperature = 0.4, maxGap = 1.1, slipRate = 0.0, risk = 0.15,
-            knobs = TUNED, modelPlays = true, memory = false, greedySelf = false, budgetMs = 800,
-        )
-
         // Hard: six guesses of the enemies' hidden cards, risk-averse card plays.
-        7 -> LevelProfile(
+        8 -> LevelProfile(
             staticOnly = false, playSamples = 6, otherSamples = 2,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 8,
             temperature = 0.25, maxGap = 0.8, slipRate = 0.0, risk = 0.3,
@@ -110,7 +121,7 @@ object AiPlayers {
         )
 
         // Expert's samples and memory; only its own later choices in a playout are searched.
-        8 -> LevelProfile(
+        9 -> LevelProfile(
             staticOnly = false, playSamples = 16, otherSamples = 6,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 10,
             temperature = 0.15, maxGap = 0.6, slipRate = 0.0, risk = 0.0,
@@ -119,7 +130,7 @@ object AiPlayers {
 
         // Expert. Playouts to the end of the next turn measured worse than to the end of this one
         // (AI.md): it spends its time on more samples and on smarter playouts for every hero instead.
-        9 -> LevelProfile(
+        else -> LevelProfile(
             staticOnly = false, playSamples = 16, otherSamples = 6,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 10,
             temperature = 0.15, maxGap = 0.6, slipRate = 0.0, risk = 0.0,
@@ -127,14 +138,6 @@ object AiPlayers {
             budgetMs = 4000, greedyTeam = true, greedyEnemies = true,
         )
 
-        // Expert with half again the samples and wider candidate lists, inside the phone budget.
-        else -> LevelProfile(
-            staticOnly = false, playSamples = 24, otherSamples = 8,
-            playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 12,
-            temperature = 0.15, maxGap = 0.6, slipRate = 0.0, risk = 0.0,
-            knobs = TUNED, modelPlays = true, memory = true, greedySelf = true,
-            budgetMs = 4000, greedyTeam = true, greedyEnemies = true,
-        )
     }
 }
 

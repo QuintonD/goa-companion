@@ -13,12 +13,12 @@ class ControllerStrengthTest {
     fun `a save from before the slider carries only the level and loads as that level's strength`() {
         val old = """{"heroId":"wasp","team":"blue","controller":{"type":"ai","level":"hard"}}"""
         val seat = json.decodeFromString(SeatSetup.serializer(), old)
-        assertThat(seat.controller).isEqualTo(Controller.Ai(AiLevel.HARD, 7))
+        assertThat(seat.controller).isEqualTo(Controller.Ai(AiLevel.HARD, 8))
         val strengths = AiLevel.entries.map { level ->
             val c = """{"type":"ai","level":"${level.name.lowercase()}"}"""
             (json.decodeFromString(Controller.serializer(), c) as Controller.Ai).strength
         }
-        assertThat(strengths).containsExactly(2, 4, 7, 9).inOrder()
+        assertThat(strengths).containsExactly(2, 6, 8, 10).inOrder()
     }
 
     @Test
@@ -35,10 +35,10 @@ class ControllerStrengthTest {
     }
 
     @Test
-    fun `bands are 1-3 Easy, 4-5 Normal, 6-7 Hard, 8-10 Expert, and each level sits in its own band`() {
+    fun `bands are 1-3 Easy, 4-6 Normal, 7-8 Hard, 9-10 Expert, and each level sits in its own band`() {
         assertThat((1..10).map { AiLevel.of(it) }).containsExactly(
             AiLevel.EASY, AiLevel.EASY, AiLevel.EASY, AiLevel.NORMAL, AiLevel.NORMAL,
-            AiLevel.HARD, AiLevel.HARD, AiLevel.EXPERT, AiLevel.EXPERT, AiLevel.EXPERT,
+            AiLevel.NORMAL, AiLevel.HARD, AiLevel.HARD, AiLevel.EXPERT, AiLevel.EXPERT,
         ).inOrder()
         for (level in AiLevel.entries) assertThat(AiLevel.of(level.strength)).isEqualTo(level)
         // Out of range (a damaged save) is clamped, never a crash.
