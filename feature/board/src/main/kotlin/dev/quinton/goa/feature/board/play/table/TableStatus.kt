@@ -55,6 +55,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.CardView
+import dev.quinton.goa.core.game.GamePhase
 import dev.quinton.goa.core.game.HeroView
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.match.Team
@@ -227,6 +228,7 @@ private fun spokenChip(table: TableUi, hero: HeroView, place: Int?): String {
         add("level ${hero.level}")
         add(BoardText.count(hero.coins, "coin"))
         add("${BoardText.count(hero.handCount, "card")} in hand")
+        if (cardDown(table, hero)) add("card played facedown")
         if (hero.at == null) add("off the board")
     }.joinToString(", ")
 }
@@ -320,6 +322,8 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
                     (hero.initiative ?: played?.initiative)?.let {
                         Stat(dev.quinton.goa.core.designsystem.cardtext.GameIcons.initiative.vector, "$it")
                     }
+                    // Before the reveal: whose card is down already (p.7: played facedown, unseen).
+                    if (cardDown(table, hero)) TableCard(null, width = 10.dp)
                 }
             }
         }
@@ -376,9 +380,14 @@ private fun CompactHeroChip(table: TableUi, hero: HeroView, place: Int?, onClick
                 }
             }
             Box(Modifier.align(Alignment.BottomEnd).padding(2.dp)) { TeamMark(hero.team, markSize = 9.dp) }
+            if (cardDown(table, hero)) TableCard(null, Modifier.align(Alignment.TopEnd), width = 11.dp)
         }
     }
 }
+
+/** Before the reveal: the hero has played its card facedown (p.7); which card stays hidden. */
+private fun cardDown(table: TableUi, hero: HeroView): Boolean =
+    table.view.phase == GamePhase.PLAY_CARDS && hero.played != null
 
 private val COMPACT_CHIP = 48.dp
 private val COMPACT_PORTRAIT = 38.dp

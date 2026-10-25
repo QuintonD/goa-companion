@@ -106,12 +106,14 @@ class FakeGameSession(
                     played = h.played?.let { card ->
                         if (own || revealed) CardView(card) else CardView(null, facedown = true)
                     },
-                    resolved = h.resolved.mapIndexed { i, id -> CardView(id, slot = i + 1) },
+                    resolved = h.resolved.mapIndexed { i, id -> CardView(id, slot = h.slots.getOrElse(i) { i + 1 }) },
                     discard = h.discard.map { CardView(it) },
                     items = h.items,
                     ultimate = false,
                     markers = h.markers,
                     activeEffects = h.active,
+                    // As the engine: the initiative as it counts, after the reveal, while unresolved.
+                    initiative = h.played?.takeIf { s.phase == GamePhase.RESOLVE }?.let(::initiative),
                 )
             },
             minions = s.board.pieces.filterIsInstance<MinionPiece>().mapNotNull { m ->
@@ -122,8 +124,14 @@ class FakeGameSession(
             wavesLeft = mapOf(map.lanes.first().id to s.waves),
             lifeCounters = s.life,
             tieBreaker = s.coin,
-            initiativeOrder = s.order,
+            // As the engine: only the heroes with an unresolved card, in the order they will act.
+            initiativeOrder = if (s.phase == GamePhase.RESOLVE) {
+                s.order.filter { it !in s.acted && s.heroes.getValue(it).played != null }
+            } else {
+                emptyList()
+            },
             acting = s.acting,
+            actedThisTurn = if (s.phase == GamePhase.RESOLVE) s.acted.toList() else emptyList(),
             winner = s.winner,
             winReason = s.reason,
         ).let { view -> if (viewer == null) view.copy(heroes = view.heroes.map { it.copy(hand = null) }) else view }
@@ -201,6 +209,8 @@ class FakeGameSession(
         var coins: Int = 0,
         var played: String? = null,
         val resolved: MutableList<String> = mutableListOf(),
+        /** The Turn slot of each resolved card (the fake skips turns 2 and 3). */
+        val slots: MutableList<Int> = mutableListOf(),
         val discard: MutableList<String> = mutableListOf(),
         val items: MutableList<String> = mutableListOf(),
         var markers: List<MarkerView> = emptyList(),
@@ -215,6 +225,8 @@ class FakeGameSession(
         var phase: GamePhase = GamePhase.PLAY_CARDS,
         var order: List<String> = emptyList(),
         var acting: String? = null,
+        /** The heroes who resolved their card this turn, in order. */
+        val acted: MutableList<String> = mutableListOf(),
         var tokens: List<PieceView> = emptyList(),
         var immune: Set<String> = emptySet(),
         var waves: Int = 3,
@@ -294,17 +306,27 @@ class FakeGameSession(
         ).map { it.id }
         // As the engine does: in the order the cards will act.
         val played = s.order.associateWith { s.heroes.getValue(it).played }
-        emit(GameEvent.CardsRevealed(played, "Cards are revealed."))
+        emit(
+            GameEvent.CardsRevealed(
+                played,
+                "Cards are revealed.",
+                played.mapNotNull { (h, c) -> c?.let { h to initiative(it) } }.toMap(),
+            ),
+        )
+        s.acted.clear()
         s.acting = s.order.first()
     }
 
     /** The hero's card resolves (p.7): it goes to the next Turn slot; the next hero acts. */
     internal fun resolve(heroId: String) {
         val hero = s.heroes.getValue(heroId)
-        hero.played?.let { hero.resolved += it }
+        hero.played?.let {
+            hero.resolved += it
+            hero.slots += s.turn
+        }
         hero.played = null
-        val next = s.order.indexOf(heroId) + 1
-        s.acting = s.order.getOrNull(next)
+        s.acted += heroId
+        s.acting = s.order.firstOrNull { it !in s.acted && s.heroes.getValue(it).played != null }
     }
 
     internal fun name(id: String): String = NAMES[id] ?: s.board.pieces.firstOrNull { it.id == id }?.let { piece ->
@@ -635,11 +657,15 @@ class FakeGameSession(
                 decision(
                     "arien",
                     DecisionKind.ACT_FIRST,
-                    "Arien and Brogan tie on initiative 8: which of them acts first?",
+                    "Tied initiative: who acts first?",
                     listOf(Choice.Unit("arien"), Choice.Unit("brogan")),
                 )
             },
-            onAnswer = { _, choice -> emit(GameEvent.Note("${name((choice as Choice.Unit).unitId)} acts first.")) },
+            onAnswer = { st, choice ->
+                val first = (choice as Choice.Unit).unitId
+                st.acting = first
+                emit(GameEvent.Note("${name(first)} acts first."))
+            },
         ),
         Beat(
             prefer = { _, d -> d.options.first() },
@@ -659,6 +685,7 @@ class FakeGameSession(
         ),
         Beat(
             ask = { st ->
+                resolve("arien")
                 val spot = emptyNeighbours(at("brogan")!!).first()
                 st.tokens = listOf(PieceView("t1", "token_rock", "Rock", spot, ownerHeroId = null, team = null))
                 emit(GameEvent.Note("A Rock token stands next to Brogan."))
@@ -679,6 +706,8 @@ class FakeGameSession(
         ),
         Beat(
             ask = { st ->
+                // Brogan is done; Tigerclaw's card makes Wasp discard.
+                resolve("brogan")
                 decision(
                     "wasp",
                     DecisionKind.CHOOSE_CARD,
@@ -831,10 +860,11 @@ class FakeGameSession(
             },
         ),
         // ---- Round 2: Wasp attacks Arien, Arien defends; then the last Life counter goes.
-        playCard("arien", "arien-blue-1"),
-        playCard("brogan", "brogan-gold"),
+        // Shock (8) acts first, then Shield (6), Liquid Leap (4), Light-Fingered (2).
+        playCard("arien", "arien-green-1"),
+        playCard("brogan", "brogan-green-1"),
         playCard("wasp", "wasp-red-1"),
-        playCard("tigerclaw", "tigerclaw-gold"),
+        playCard("tigerclaw", "tigerclaw-green-1"),
         Beat(
             prefer = { _, _ -> Choice.Unit("arien") },
             ask = { st ->
@@ -892,12 +922,13 @@ class FakeGameSession(
         ),
         Beat(
             ask = { st ->
+                resolve("wasp")
                 decision(
                     "brogan",
                     DecisionKind.CHOOSE_ACTION,
-                    "Choose an action for Onslaught",
+                    "Choose an action for Shield",
                     listOf(Choice.Action(ActionType.PRIMARY), Choice.Action(ActionType.HOLD)),
-                    source = "brogan-gold",
+                    source = "brogan-green-1",
                 )
             },
             onAnswer = { st, _ ->
@@ -925,15 +956,45 @@ class FakeGameSession(
     private fun endTurn(st: State, nextTurn: Int) {
         if (st.turn == nextTurn) return
         st.heroes.values.forEach { h ->
-            h.played?.let { h.resolved += it }
+            h.played?.let {
+                h.resolved += it
+                h.slots += st.turn
+            }
             h.played = null
         }
         st.turn = nextTurn
-        st.order = listOf("arien", "brogan", "wasp", "tigerclaw")
-        st.acting = "arien"
-        st.phase = GamePhase.RESOLVE
         emit(GameEvent.Note("(Scripted test game: turns 2 and 3 are skipped.)"))
         emit(GameEvent.TurnStarted(1, nextTurn, "Turn $nextTurn of round 1."))
+        // Turn 4: Wasp's Static Barrier (13) acts first and is done; Arien's and Brogan's gold cards
+        // tie on 11 (one team: they choose, p.7); Tigerclaw's Light-Fingered (2) is last.
+        val plays = mapOf(
+            "wasp" to "wasp-silver",
+            "arien" to "arien-gold",
+            "brogan" to "brogan-gold",
+            "tigerclaw" to "tigerclaw-green-1",
+        )
+        plays.forEach { (id, card) ->
+            val h = st.heroes.getValue(id)
+            h.hand.remove(card)
+            h.played = card
+        }
+        st.order = listOf("wasp", "arien", "brogan", "tigerclaw")
+        st.phase = GamePhase.RESOLVE
+        st.acted.clear()
+        emit(
+            GameEvent.CardsRevealed(
+                st.order.associateWith { plays[it] },
+                "Cards are revealed.",
+                plays.mapValues { (_, c) -> initiative(c) },
+            ),
+        )
+        val wasp = st.heroes.getValue("wasp")
+        emit(GameEvent.ActionChosen("wasp", "wasp-silver", ActionType.HOLD, "Wasp chooses hold."))
+        wasp.resolved += "wasp-silver"
+        wasp.slots += nextTurn
+        wasp.played = null
+        st.acted += "wasp"
+        st.acting = null
     }
 
     private fun defeat(st: State, heroId: String, by: String) {

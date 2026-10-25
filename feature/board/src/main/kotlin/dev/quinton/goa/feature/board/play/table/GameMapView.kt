@@ -13,7 +13,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -35,6 +39,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -43,6 +48,8 @@ import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
@@ -162,7 +169,49 @@ fun GameMapView(
                 GamePieces(table, layout, unit, palette)
                 GameSpaceNodes(table, layout, viewport, onTap = { tap(it) })
             }
+            ActingTag(table, layout, viewport)
         }
+    }
+}
+
+/**
+ * "NOW" over the acting hero's piece, at a fixed size outside the zoom (ADR-041): with the bronze
+ * outline of its space it says on the map who is resolving a card. Map furniture: TalkBack hears
+ * "acting now" on the space.
+ */
+@Composable
+private fun ActingTag(table: TableUi, layout: MapLayout, viewport: MapViewport) {
+    val hex = table.view.acting?.let { id -> table.view.heroes.firstOrNull { it.heroId == id }?.at } ?: return
+    val density = LocalDensity.current
+    val gap = with(density) { 1.dp.toPx() }
+    Box(
+        Modifier
+            .layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
+                layout(constraints.maxWidth, constraints.maxHeight) {
+                    val at = viewport.mapToScreen(layout.center(hex))
+                    val radius = PIECE * viewport.scale / 2f
+                    val x = at.x - placeable.width / 2f
+                    val y = at.y - radius - placeable.height + gap
+                    if (x >= 0f && y >= 0f && x + placeable.width <= viewport.viewport.width) {
+                        placeable.place(x.roundToInt(), y.roundToInt())
+                    }
+                }
+            }
+            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
+            .padding(horizontal = 5.dp)
+            .clearAndSetSemantics {},
+    ) {
+        Text(
+            "NOW",
+            style = TextStyle(
+                fontSize = with(density) { 9.dp.toSp() },
+                fontWeight = FontWeight.Bold,
+                letterSpacing = with(density) { 0.5.dp.toSp() },
+            ),
+            color = MaterialTheme.colorScheme.onPrimary,
+            maxLines = 1,
+        )
     }
 }
 
