@@ -3,6 +3,8 @@ plugins {
 }
 
 dependencies {
+    // The screens' rows and words, shared with the web app (ADR-043).
+    implementation(projects.core.groupPresentation)
     // Group sync (ADR-025): Nearby Connections moves the data phone to phone; the Google code
     // scanner reads invite QR codes without the CAMERA permission; ZXing draws them.
     implementation(libs.play.services.nearby)

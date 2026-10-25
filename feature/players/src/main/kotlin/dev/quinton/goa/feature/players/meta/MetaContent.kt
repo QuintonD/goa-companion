@@ -70,6 +70,7 @@ import dev.quinton.goa.feature.players.common.winLoss
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt
+import kotlinx.datetime.toJavaLocalDate
 
 /** Callbacks of the Meta tab. */
 data class MetaActions(
@@ -184,7 +185,7 @@ private val NightDate = DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefau
 
 @Composable
 private fun GameNightCard(night: GameNightUi, streaks: List<StreakRow>) {
-    SectionHeader("Last game night · ${night.date.format(NightDate)}")
+    SectionHeader("Last game night · ${night.date.toJavaLocalDate().format(NightDate)}")
     EngravedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Row(
@@ -605,7 +606,9 @@ private fun HeroMetaItem(row: HeroMetaRow, rank: Int?) {
             Metric("Pick", formatPercent(meta.pickRate))
             Metric("Ban", meta.banRate?.let { formatPercent(it) } ?: "—")
             row.rating?.let { Metric("Hero Elo", formatRating(it.value)) }
-            if (row.bestPlayer != null && row.bestRecord != null) {
+            val bestPlayer = row.bestPlayer
+            val bestRecord = row.bestRecord
+            if (bestPlayer != null && bestRecord != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "Best",
@@ -613,10 +616,10 @@ private fun HeroMetaItem(row: HeroMetaRow, rank: Int?) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.width(Spacing.xs))
-                    PlayerAvatar(row.bestPlayer, size = 20.dp)
+                    PlayerAvatar(bestPlayer, size = 20.dp)
                     Spacer(Modifier.width(Spacing.xs))
                     Text(
-                        "${row.bestPlayer.name} ${winLoss(row.bestRecord.wins, row.bestRecord.games)}",
+                        "${bestPlayer.name} ${winLoss(bestRecord.wins, bestRecord.games)}",
                         style = MaterialTheme.typography.labelLarge,
                     )
                 }
