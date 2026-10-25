@@ -104,6 +104,12 @@ kotlin {
             resources.srcDir(webAssets)
             kotlin.srcDir(iconMarkup)
             dependencies {
+                // The shared core (ADR-043): the same models, rules and repository contracts as the
+                // phone. The engine (core:game) runs in a Web Worker; this bundle only keeps the
+                // engine types the contracts name and the screens use (Kotlin/JS drops the rest).
+                implementation(projects.core.model)
+                implementation(projects.core.domain)
+                implementation(projects.core.dataContracts)
                 implementation(libs.compose.runtime)
                 implementation(libs.compose.html.core)
                 implementation(libs.kotlinx.coroutines.core)
@@ -112,10 +118,18 @@ kotlin {
         }
         jsTest.dependencies {
             implementation(kotlin("test"))
+            // In-memory fakes of the contracts and the synthetic TestCatalog, shared with Android's tests.
+            implementation(projects.core.dataTesting)
             implementation(libs.kotlinx.coroutines.test)
             implementation(npm("fake-indexeddb", libs.versions.fakeIndexedDb.get()))
         }
     }
+}
+
+// Tests that read the shipped catalog find the repository through GOA_REPO_ROOT, like core's.
+val repoRoot: String = rootDir.absolutePath
+tasks.withType<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest>().configureEach {
+    environment("GOA_REPO_ROOT", repoRoot)
 }
 
 /**
