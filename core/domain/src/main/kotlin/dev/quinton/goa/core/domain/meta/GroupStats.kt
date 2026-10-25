@@ -7,9 +7,10 @@ import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
+import kotlin.time.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /** Two players and how [a] fared: against [b] (head-to-head) or with [b] (teammates). `a < b` by id. */
 data class PlayerPairStat(
@@ -103,7 +104,7 @@ object GroupStats {
     fun compute(
         matches: Collection<Match>,
         ratings: RatingsResult,
-        zone: ZoneId = ZoneId.systemDefault(),
+        zone: TimeZone = TimeZone.currentSystemDefault(),
         config: MetaConfig = MetaConfig(),
     ): GroupReport {
         val rated = matches.filter { EloCalculator.skipReason(it) == null }.sortedWith(EloCalculator.REPLAY_ORDER)
@@ -208,11 +209,11 @@ object GroupStats {
      * where no two consecutive matches are [NIGHT_GAP_MS] or more apart. A night that runs past
      * midnight stays one night; [GameNight.date] is the day it started.
      */
-    private fun lastNight(rated: List<Match>, ratings: RatingsResult, zone: ZoneId): GameNight? {
+    private fun lastNight(rated: List<Match>, ratings: RatingsResult, zone: TimeZone): GameNight? {
         var start = rated.lastIndex
         while (start > 0 && rated[start].playedAt - rated[start - 1].playedAt < NIGHT_GAP_MS) start--
         val night = rated.subList(start, rated.size)
-        val date = Instant.ofEpochMilli(night.first().playedAt).atZone(zone).toLocalDate()
+        val date = Instant.fromEpochMilliseconds(night.first().playedAt).toLocalDateTime(zone).date
         val movers = HashMap<String, Double>()
         for (m in night) {
             ratings.matchChanges[m.id]?.playerDeltas?.forEach { (p, d) -> movers[p] = (movers[p] ?: 0.0) + d }

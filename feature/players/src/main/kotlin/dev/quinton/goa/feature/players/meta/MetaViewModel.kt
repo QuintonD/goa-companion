@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.datetime.toJavaLocalDate
 
 data class HeroMetaRow(
     val heroId: String,
@@ -180,7 +181,7 @@ class MetaViewModel @Inject constructor(
                 largerTeam = meta.largerTeam,
                 night = group.lastNight?.let { night ->
                     GameNightUi(
-                        date = night.date,
+                        date = night.date.toJavaLocalDate(),
                         matches = night.matchIds.size,
                         redWins = night.redWins,
                         blueWins = night.blueWins,

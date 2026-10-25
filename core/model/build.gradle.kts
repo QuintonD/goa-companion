@@ -1,8 +1,13 @@
 plugins {
-    alias(libs.plugins.goa.jvm.library)
+    alias(libs.plugins.goa.kmp.library)
     alias(libs.plugins.kotlin.serialization)
 }
 
-dependencies {
-    api(libs.kotlinx.serialization.json)
+// Shared by the Android app (jvm) and the web app (js), ADR-043.
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            api(libs.kotlinx.serialization.json)
+        }
+    }
 }

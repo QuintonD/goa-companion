@@ -2,8 +2,9 @@ package dev.quinton.goa.core.domain.sync
 
 import dev.quinton.goa.core.domain.trivia.TriviaRoundValidation
 import dev.quinton.goa.core.model.match.Team
-import java.time.Instant
-import java.time.ZoneId
+import kotlin.time.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * The same validity rules as a backup import (BackupCodec): a received document that breaks one
@@ -65,5 +66,5 @@ object SyncValidation {
     private const val MAX_LISTED = 5
 
     private fun dateOf(epochMillis: Long): String =
-        Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate().toString()
+        Instant.fromEpochMilliseconds(epochMillis).toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
 }

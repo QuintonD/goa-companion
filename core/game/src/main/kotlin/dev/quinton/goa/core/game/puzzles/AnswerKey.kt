@@ -31,7 +31,7 @@ class AnswerKey(
         append("puzzle $puzzleId\n")
         append("engine $engineVersion\n")
         append("root $fingerprint\n")
-        for ((path, e) in entries.toSortedMap(PATH_ORDER)) {
+        for ((path, e) in entries.entries.sortedWith(compareBy(PATH_ORDER) { it.key })) {
             val p = path.ifEmpty { ROOT }
             when (e) {
                 is Wins -> append("P $p ${e.options.joinToString(",")}\n")
@@ -53,7 +53,10 @@ class AnswerKey(
                 if (it.isEmpty()) 0 else 1
         }, { it })
 
-        /** Where key files live on the classpath (`src/main/resources/` + this). */
+        /**
+         * Where key files live under `src/main/resources/`. They reach shared code as the generated
+         * `PuzzleKeyFiles` (core/game/build.gradle.kts), so the browser reads the same keys (ADR-043).
+         */
         const val RESOURCE_DIR: String = "dev/quinton/goa/core/game/puzzles/keys"
 
         fun pathOf(indices: List<Int>): String = indices.joinToString(".")
@@ -61,7 +64,8 @@ class AnswerKey(
         /** Identifies a starting position: the engine checkpoint and the answers inside its step. */
         fun fingerprint(node: Node): String {
             val seg = node.session.stepAnswers.joinToString("|").hashCode()
-            return "%016x%016x%08x".format(node.checkpointHash, node.checkpointHash2, seg)
+            return hex(node.checkpointHash.toULong(), 16) + hex(node.checkpointHash2.toULong(), 16) +
+                hex(seg.toUInt().toULong(), 8)
         }
 
         fun parse(text: String): AnswerKey {
@@ -95,10 +99,11 @@ class AnswerKey(
             return AnswerKey(id, version, root, entries)
         }
 
-        /** The stored key of [puzzleId], if there is one on the classpath. */
-        fun load(puzzleId: String): AnswerKey? =
-            AnswerKey::class.java.classLoader?.getResourceAsStream("$RESOURCE_DIR/$puzzleId.key")
-                ?.bufferedReader()?.use { parse(it.readText()) }
+        /** The stored key of [puzzleId], if there is one. */
+        fun load(puzzleId: String): AnswerKey? = PuzzleKeyFiles.text(puzzleId)?.let(::parse)
+
+        /** `%0{width}x`: lowercase hex, zero-padded. */
+        private fun hex(value: ULong, width: Int) = value.toString(16).padStart(width, '0')
 
         /**
          * Builds the key of [prepared] by solving every option at every player decision of every

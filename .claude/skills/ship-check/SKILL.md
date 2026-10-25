@@ -9,9 +9,11 @@ Run from the project root and report each result honestly (pass / fail / skipped
 On oldboi use `goa-gradle <tasks>` in place of `.\gradlew.bat` (memory cap, ADR-038).
 
 1. `.\gradlew.bat assembleDebug`
-2. `.\gradlew.bat testDebugUnitTest :core:model:test :core:domain:test :core:game:test :tools:catalog-import:test`
-   — `testDebugUnitTest` covers only the Android modules; the pure-Kotlin ones (the rules engine
-   included) run under `test`.
+2. `.\gradlew.bat testDebugUnitTest :core:model:allTests :core:domain:allTests :core:game:allTests :tools:catalog-import:test`
+   — `testDebugUnitTest` covers only the Android modules; the shared core (the rules engine
+   included, multiplatform since ADR-043) runs under `allTests`: its JVM suites (`jvmTest`, also
+   reachable as `test`) and the shared tests on Node (`jsNodeTest`), which hold the web app to the
+   phone's answers.
 3. `.\gradlew.bat lintDebug detekt ktlintCheck`
 4. `.\gradlew.bat verifyRoborazziDebug` — if baselines changed intentionally, re-record with
    `recordRoborazziDebug` and say which screens changed.

@@ -1,8 +1,13 @@
+// Doubles as the JVM writes them, so the browser's tie-break text is the phones' (ADR-043).
+@file:UseSerializers(CanonicalDoubleSerializer::class)
+
 package dev.quinton.goa.core.domain.rating
 
+import dev.quinton.goa.core.domain.sync.CanonicalDoubleSerializer
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.rating.Rating
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.UseSerializers
 
 /**
  * Every tunable constant of the seat-based Elo (docs/DOMAIN.md *Elo*, ADR-011). Editable under

@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.domain.board
 
+import dev.quinton.goa.core.domain.synchronizedOn
 import dev.quinton.goa.core.model.board.BoardLane
 import dev.quinton.goa.core.model.board.BoardMap
 import dev.quinton.goa.core.model.board.BoardSpace
@@ -92,7 +93,7 @@ class BoardGeometry private constructor(val map: BoardMap) {
         private val cache = HashMap<String, BoardGeometry>()
 
         /** The geometry of [map], built once per loaded map instance. */
-        fun of(map: BoardMap): BoardGeometry = synchronized(cache) {
+        fun of(map: BoardMap): BoardGeometry = synchronizedOn(cache) {
             cache[map.id]?.takeIf { it.map === map } ?: BoardGeometry(map).also { cache[map.id] = it }
         }
     }

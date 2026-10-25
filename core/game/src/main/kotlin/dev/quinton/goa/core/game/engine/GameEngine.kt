@@ -27,7 +27,9 @@ class GameEngine(
     override val engineVersion: Int get() = ENGINE_VERSION
 
     override val playableHeroes: Set<String> =
-        registry.heroModules.filter { it.complete && catalog.hero(it.heroId) != null }.map { it.heroId }.toSortedSet()
+        registry.heroModules.filter {
+            it.complete && catalog.hero(it.heroId) != null
+        }.map { it.heroId }.sorted().toSet()
 
     /** Verified maps, single lane first (DOMAIN.md "Board map JSON"). */
     override val playableMaps: List<String> =

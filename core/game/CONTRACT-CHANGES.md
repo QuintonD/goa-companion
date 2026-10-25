@@ -162,3 +162,26 @@ saves are unaffected (views are rebuilt, never saved).
   live table, `merged` views, `review`/`positionAt` (ADR-037) and puzzles show the same visibility.
   `ExtrasViewTest` checks it, with a no-peeking test (two games differing only in the spellbook's spells
   look the same to every other seat, live and in the review).
+
+## Multiplatform (ADR-043, feature/web-core)
+
+`GameApi.kt` is unchanged. The engine now compiles for the JVM (the app) and JavaScript (the web
+app's worker) from the same sources; what other branches should know:
+
+- Code in `src/main/kotlin` is shared: no `java.*`, no `System.nanoTime` (use
+  `dev.quinton.goa.core.domain.monotonicNanos`), no `synchronized`/`@Synchronized`/
+  `ConcurrentHashMap` (use `synchronizedOn`, `concurrentMap`), no `putIfAbsent`, `toSortedSet`,
+  `toSortedMap`, `String.format`, `Integer.*`. The JS compile (`:core:game:compileKotlinJs`) is what
+  catches them.
+- `ControlSignal` is an `expect` class (`src/jvmMain`: no stack traces, as before).
+- `GameEngine.playableHeroes` is a sorted `Set` built with `sorted().toSet()` (was a `TreeSet`;
+  same order and equality).
+- `AnswerKey.load` reads the generated `PuzzleKeyFiles` (from `src/main/resources/.../keys/*.key`,
+  regenerated on every build) instead of the classpath; `PuzzleBookTest` still rewrites the files.
+- `Evaluator.MapInfo.distanceToZone` locks with `synchronizedOn(this)` (was `@Synchronized`).
+- The AI's `exp` (Evaluator.sigmoid, the soft-max in Search and Picker) is `PortableMath.exp`
+  (fdlibm, the same bits on every platform; `kotlin.math.exp` differs between the JVM, Android and
+  Safari). Use it for any new floating-point function in the engine or AI.
+- Seeded AI games, random games and puzzle solutions give the same moves on the JVM and in JS
+  (`GameParityTest`, run by `:core:game:allTests`); keep new randomness on a seeded `kotlin.random.Random`
+  and never let `HashMap`/`HashSet` iteration order reach a decision.

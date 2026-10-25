@@ -1,6 +1,8 @@
 package dev.quinton.goa.core.game.ai
 
+import dev.quinton.goa.core.domain.PortableMath
 import dev.quinton.goa.core.domain.board.HexGrid
+import dev.quinton.goa.core.domain.synchronizedOn
 import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.Game
 import dev.quinton.goa.core.game.engine.GameState
@@ -17,7 +19,6 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.ZoneKind
 import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.match.Team
-import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.min
 
@@ -68,7 +69,8 @@ internal class Evaluator(val data: EngineData, val knobs: EvalKnobs = EvalKnobs(
         const val PIECE_NEAR: Double = 0.4
         const val PIECES_COUNTED: Int = 4
 
-        fun sigmoid(x: Double): Double = 1.0 / (1.0 + exp(-x))
+        // PortableMath: the same bits on a phone and in Safari, whose exp differs (ADR-043).
+        fun sigmoid(x: Double): Double = 1.0 / (1.0 + PortableMath.exp(-x))
 
         /**
          * A public hero counter's worth ([HeroState.counters], shown on the dashboard). The only
@@ -120,13 +122,12 @@ internal class MapInfo private constructor(g: Game) {
             .filter { geo.spaces[it]?.spawn != null }
     }
 
-    @Synchronized
-    fun distanceToZone(hex: Hex, zone: String): Int {
+    fun distanceToZone(hex: Hex, zone: String): Int = synchronizedOn(this) {
         val table = zoneDist.getOrPut(zone) {
             val targets = geo.zoneSpaces[zone].orEmpty()
             geo.spaces.keys.associateWith { h -> targets.minOfOrNull { HexGrid.distance(h, it) } ?: 0 }
         }
-        return table[hex] ?: targets(zone).minOfOrNull { HexGrid.distance(hex, it) } ?: 0
+        table[hex] ?: targets(zone).minOfOrNull { HexGrid.distance(hex, it) } ?: 0
     }
 
     private fun targets(zone: String): List<Hex> = geo.zoneSpaces[zone].orEmpty()
@@ -134,7 +135,7 @@ internal class MapInfo private constructor(g: Game) {
     companion object {
         private val cache = HashMap<String, MapInfo>()
 
-        fun of(g: Game): MapInfo = synchronized(cache) { cache.getOrPut(g.state.mapId) { MapInfo(g) } }
+        fun of(g: Game): MapInfo = synchronizedOn(cache) { cache.getOrPut(g.state.mapId) { MapInfo(g) } }
     }
 }
 

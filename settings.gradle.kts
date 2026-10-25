@@ -24,6 +24,19 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+        // Kotlin/JS toolchain (ADR-043): Node.js and Yarn distributions, nothing else.
+        ivy("https://nodejs.org/dist/") {
+            name = "Node.js distributions"
+            patternLayout { artifact("v[revision]/[artifact](-v[revision]-[classifier]).[ext]") }
+            metadataSources { artifact() }
+            content { includeModule("org.nodejs", "node") }
+        }
+        ivy("https://github.com/yarnpkg/yarn/releases/download") {
+            name = "Yarn distributions"
+            patternLayout { artifact("v[revision]/[artifact](-v[revision]).[ext]") }
+            metadataSources { artifact() }
+            content { includeModule("com.yarnpkg", "yarn") }
+        }
     }
 }
 
@@ -33,6 +46,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 include(":app")
 include(":core:model")
 include(":core:domain")
+include(":core:domain-testfixtures")
 include(":core:game")
 include(":core:data")
 include(":core:database")

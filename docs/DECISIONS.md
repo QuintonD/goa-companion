@@ -1064,3 +1064,63 @@ names repeated under a scan only while it is under 140 dp wide.
 images added (≈ 420 KB). Every screen's screenshots changed (banner, heads); the game table (S3's
 play/table) inherits banner, heads and tokens without layout changes. `core:testing` gained
 `BundledAssetImages`/`bundledHero` for screenshot tests that show official images.
+
+## ADR-043 — The web app: a PWA for iPhones, running the same Kotlin as the phones (2026-10-25)
+**Context:** The owner: "Create a version accessible to someone on an iPhone. A webapp perhaps? …
+Alright let's move it to public and host it on github pages". Friends with iPhones open a PWA in
+Safari ("Add to Home Screen"), offline after the first visit, hosted on GitHub Pages from the now
+public repository, syncing through the oldboi relay (ADR-036) as one more group member. This
+supersedes the iOS non-goal (docs/PRODUCT.md) and, in part, ADR-030 (the hub's web app). One
+implementation of every rule: the web runs the same Kotlin as the phone. Each stream appends its
+section below.
+
+### Shared core (F1)
+**Decision:** `core:model`, `core:domain` and `core:game` are Kotlin Multiplatform with a `jvm`
+and a `js` (IR; browser library + Node tests) target, through the `goa.kmp.library` convention
+plugin. The Android modules consume the `jvm` variant; nothing about the app changed.
+1. **No files moved.** `src/main/kotlin` is `commonMain`, `src/test/kotlin` is `jvmTest` (the
+   existing JUnit suites, unchanged and JVM-only), so branches editing the engine and AI still
+   merge. Platform code sits in `src/jvmMain` / `src/jsMain`; only the JVM-only sync files moved
+   there (`SyncCrypto`, the Nearby `sync/protocol/`). `:core:x:test` still runs the JVM suites (an
+   alias of `jvmTest`); `allTests` adds Node. `java-test-fixtures` can't live on a multiplatform
+   module, so the in-memory sync transport is `:core:domain-testfixtures` (same source directory).
+2. **Crypto stays on the platform; everything around it is shared.** AES-256-GCM and gzip are a
+   `suspend` `SyncCipher` (WebCrypto and `CompressionStream` are asynchronous; never AES in plain
+   Kotlin). The phone's implementation is `JvmSyncCipher` over the unchanged `SyncCrypto`; the
+   envelope, key derivation, labels, error mapping and validation are one shared `SyncFileCodec`,
+   which the phone's synchronous `SyncCodec` runs without suspending. SHA-256, HMAC and HKDF are
+   plain Kotlin (`SyncHash`), so the relay token, group tag and file key are derived by one
+   implementation everywhere (equal to javax.crypto on random inputs). `SyncVectors` pins the bytes
+   the old code produced (seal, sealed file, token vectors, the document's JSON) and
+   `SyncCipherConformance` checks any cipher against them: the browser's must pass it.
+3. **Determinism across platforms, found by the parity tests** (`commonTest`: each engine's output
+   hashed and compared with the JVM's on Node):
+   - *Elo* used `10.0.pow(x)`; the JVM's intrinsic and V8 differed in the last bit (ratings differed
+     at the 15th digit, and phones with different chips could too). Elo now uses `PortableMath.pow10`
+     (fdlibm `exp`, `+ - * /` only): the same bits on every phone and in every browser. Ratings move
+     by at most a few ulps (none for gaps under 200 points); every Elo test passed unchanged.
+   - *Synced Doubles* were written `1200` by Kotlin/JS and `1200.0` by the phones; the JSON text is
+     the merge tie-break, so `EloConfig` now writes Doubles with `CanonicalDoubleSerializer` (the
+     JVM's own `toString` on the phone: byte-identical output).
+   - `HashMap`/`HashSet` iteration differs between JVM and JS; the audit found none whose order
+     reaches an outcome (the game, AI, puzzles, drafts, trivia and merges hash alike on both).
+   - The AI's soft-max picks and evaluation sigmoid used `kotlin.math.exp`. WebKit's `Math.exp`
+     differs from V8's in the last bit for 9 % of inputs (18 716 of 200 000, Playwright WebKit vs
+     Node; `Math.pow` for 51), and Android's bionic differs from the JVM's intrinsic too, so a seeded
+     AI could pick differently in Safari than on a phone. The AI now uses `PortableMath.exp` (three
+     call sites in core/game/ai): seeded games at every level, Hard and Expert search included,
+     choose alike on the JVM and on Node (`GameParityTest`), and by construction in Safari.
+     Node runs the engine ≈3–4× slower than the JVM and Hard/Expert search ≈7× slower: the web
+     runs it in a Worker, and the wall-clock budgets make the strong levels search less there.
+4. **Resources** are embedded: the puzzle answer keys stay files (PuzzleBookTest rewrites them) and
+   `EmbedTextFiles` generates `PuzzleKeyFiles` from them for both platforms.
+5. **JVM-only API replacements in shared code:** java.time → kotlinx-datetime (`GameNight.date` is
+   now a `kotlinx.datetime.LocalDate`; the Meta screen converts it), UUID → `kotlin.uuid`,
+   java.util.Base64 → `kotlin.io.encoding`, URLEncoder/URLDecoder → `FormUrl`, `java.net.URI` →
+   `UriHost` (both held to java.net on a fuzz corpus), `String.format` → hex helpers,
+   `synchronized`/`ConcurrentHashMap`/`System.nanoTime` → `synchronizedOn`/`concurrentMap`/
+   `monotonicNanos`; `javax.inject` dropped from core:domain (unused).
+**Consequences:** Node (24) and Yarn are downloaded by the Kotlin Gradle plugin into
+`GRADLE_USER_HOME` through repositories declared in settings.gradle.kts; set `YARN_CACHE_FOLDER`
+off C:. The JVM suites are unchanged in number and result; `allTests` adds the shared tests on
+Node. Stream notes for the web: `D:\.goa-qa\web\F1-api.md`.

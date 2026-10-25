@@ -1,11 +1,11 @@
 package dev.quinton.goa.core.game.ai
 
+import dev.quinton.goa.core.domain.concurrentMap
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.core.model.catalog.SecondaryAction
 import dev.quinton.goa.core.model.catalog.Stat
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * What the AI's heuristics need to know about a card, read once from its printed values and text
@@ -78,7 +78,7 @@ internal class CardProfile(card: Card) {
     }
 
     companion object {
-        private val cache = ConcurrentHashMap<String, CardProfile>()
+        private val cache = concurrentMap<String, CardProfile>()
 
         fun of(card: Card): CardProfile = cache.getOrPut(card.id) { CardProfile(card) }
 

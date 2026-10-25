@@ -1,9 +1,7 @@
 package dev.quinton.goa.core.domain.sync
 
-import java.net.URLDecoder
-import java.net.URLEncoder
-import java.util.Base64
-import java.util.UUID
+import kotlin.io.encoding.Base64
+import kotlin.uuid.Uuid
 
 /**
  * A sync group: [groupId] (UUID), its 256-bit [key] and a display [name]. Only phones holding the
@@ -14,8 +12,8 @@ class GroupCredentials(val groupId: String, key: ByteArray, val name: String) {
 
     val key: ByteArray get() = secret.copyOf()
 
-    /** Non-secret tag in the Nearby endpoint name ([SyncCrypto.groupTag]). */
-    val tag: String get() = SyncCrypto.groupTag(groupId)
+    /** Non-secret tag in the Nearby endpoint name ([SyncHash.groupTag]). */
+    val tag: String get() = SyncHash.groupTag(groupId)
 
     fun withName(name: String) = GroupCredentials(groupId, secret, name)
 
@@ -31,7 +29,7 @@ class GroupCredentials(val groupId: String, key: ByteArray, val name: String) {
         const val MAX_NAME_LENGTH = 40
 
         fun create(name: String, random: SecureBytes = SecureBytes.System): GroupCredentials =
-            GroupCredentials(UUID.randomUUID().toString(), SyncCrypto.newGroupKey(random), cleanName(name))
+            GroupCredentials(Uuid.random().toString(), SyncKeys.newGroupKey(random), cleanName(name))
 
         fun cleanName(name: String): String = name.trim().replace(Regex("\\s+"), " ").take(MAX_NAME_LENGTH)
     }
@@ -54,7 +52,7 @@ object GroupInvite {
     private const val VERSION = "1"
 
     fun format(group: GroupCredentials, serverUrl: String? = null): String {
-        val key = Base64.getUrlEncoder().withoutPadding().encodeToString(group.key)
+        val key = URL_KEY.encode(group.key)
         val server = serverUrl?.let {
             requireNotNull(SyncServerAddress.normalize(it)) { "Not a server address: $it" }
         }
@@ -93,8 +91,8 @@ object GroupInvite {
             it.substringBefore('=') to decode(it.substringAfter('=', ""))
         }
         val groupId = params["g"]?.takeIf(::isUuid) ?: throw IllegalArgumentException(BROKEN)
-        val key = params["k"]?.let { runCatching { Base64.getUrlDecoder().decode(it) }.getOrNull() }
-            ?.takeIf { it.size == SyncCrypto.KEY_BYTES } ?: throw IllegalArgumentException(BROKEN)
+        val key = params["k"]?.let { runCatching { URL_KEY.decode(it) }.getOrNull() }
+            ?.takeIf { it.size == SyncKeys.KEY_BYTES } ?: throw IllegalArgumentException(BROKEN)
         val name = GroupCredentials.cleanName(params["n"].orEmpty()).ifEmpty { "Our group" }
         Invite(
             group = GroupCredentials(groupId, key, name),
@@ -106,10 +104,70 @@ object GroupInvite {
 
     private const val BROKEN = "This invite is incomplete. Scan the QR code again."
 
-    private fun isUuid(text: String) = runCatching { UUID.fromString(text).toString() == text }.getOrDefault(false)
+    /** base64url; written without padding, read with or without (as `java.util.Base64` did). */
+    private val URL_KEY = Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT_OPTIONAL)
 
-    // The String-charset overloads: the Charset ones need Android 13.
-    private fun encode(text: String) = URLEncoder.encode(text, "UTF-8").replace("+", "%20")
+    /** A canonical lowercase UUID, as `UUID.fromString(text).toString() == text` accepted. */
+    private fun isUuid(text: String) = runCatching { Uuid.parse(text).toString() == text }.getOrDefault(false)
 
-    private fun decode(text: String) = runCatching { URLDecoder.decode(text, "UTF-8") }.getOrDefault("")
+    private fun encode(text: String) = FormUrl.encode(text)
+
+    private fun decode(text: String) = runCatching { FormUrl.decode(text) }.getOrDefault("")
+}
+
+/**
+ * `application/x-www-form-urlencoded` as `java.net.URLEncoder`/`URLDecoder` do it with UTF-8, in
+ * shared code (ADR-043), so invites read and write the same on a phone and in the browser. [encode]
+ * writes a space as `%20` (never `+`), as invites always have.
+ */
+internal object FormUrl {
+    private const val HEX = "0123456789ABCDEF"
+
+    fun encode(text: String): String = buildString {
+        for (b in text.encodeToByteArray()) {
+            val c = (b.toInt() and 0xff).toChar()
+            when {
+                c in 'a'..'z' || c in 'A'..'Z' || c in '0'..'9' || c in ".-*_" -> append(c)
+
+                else -> {
+                    val v = b.toInt() and 0xff
+                    append('%').append(HEX[v ushr 4]).append(HEX[v and 0x0f])
+                }
+            }
+        }
+    }
+
+    /** Throws [IllegalArgumentException] for a broken `%` escape, like `URLDecoder`. */
+    fun decode(text: String): String {
+        val out = StringBuilder(text.length)
+        var i = 0
+        while (i < text.length) {
+            when (val c = text[i]) {
+                '+' -> {
+                    out.append(' ')
+                    i++
+                }
+
+                '%' -> {
+                    // Consecutive escapes are one UTF-8 byte sequence.
+                    val bytes = ArrayList<Byte>()
+                    while (i < text.length && text[i] == '%') {
+                        require(i + 3 <= text.length) { "Incomplete escape" }
+                        // Integer.parseInt's reading, as URLDecoder: "%+f" is 0x0f, "%-1" is refused.
+                        val v = text.substring(i + 1, i + 3).toIntOrNull(16)
+                        require(v != null && v >= 0) { "Illegal hex in escape" }
+                        bytes += v.toByte()
+                        i += 3
+                    }
+                    out.append(bytes.toByteArray().decodeToString())
+                }
+
+                else -> {
+                    out.append(c)
+                    i++
+                }
+            }
+        }
+        return out.toString()
+    }
 }

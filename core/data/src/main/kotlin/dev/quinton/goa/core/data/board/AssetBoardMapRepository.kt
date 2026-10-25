@@ -5,8 +5,8 @@ import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.quinton.goa.core.data.BoardMapRepository
 import dev.quinton.goa.core.data.catalog.CatalogAssets
-import dev.quinton.goa.core.data.catalog.CatalogLoader
 import dev.quinton.goa.core.model.board.BoardMap
+import dev.quinton.goa.core.model.catalog.CatalogFiles
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -17,30 +17,22 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
-
-/** Contents of `catalog/maps/index.json`: map ids in catalog order (the core single-lane map first). */
-@Serializable
-internal data class BoardMapIndex(val maps: List<String>)
 
 /**
  * Reads the bundled maps (`catalog/maps/index.json` + `catalog/maps/<id>.json`, written by
- * tools/catalog-import). Pure JVM so the validation tests run the same code. Strict like the hero
- * catalog ([CatalogLoader.json]): an unknown key means the importer and the app disagree.
+ * tools/catalog-import) with the shared [CatalogFiles] (ADR-043). Pure JVM so the validation tests
+ * run the same code. Strict like the hero catalog: an unknown key means the importer and the app
+ * disagree.
  */
 object BoardMapLoader {
-    const val INDEX_PATH = "catalog/maps/index.json"
+    const val INDEX_PATH = CatalogFiles.MAPS_INDEX_PATH
 
-    fun mapPath(id: String): String = "catalog/maps/$id.json"
+    fun mapPath(id: String): String = CatalogFiles.mapPath(id)
 
-    fun readIndex(assets: CatalogAssets): List<String> =
-        CatalogLoader.json.decodeFromString(BoardMapIndex.serializer(), assets.read(INDEX_PATH)).maps
+    fun readIndex(assets: CatalogAssets): List<String> = CatalogFiles.parseMapIndex(assets.read(INDEX_PATH))
 
-    fun readMap(assets: CatalogAssets, id: String): BoardMap =
-        CatalogLoader.json.decodeFromString(BoardMap.serializer(), assets.read(mapPath(id))).also {
-            require(it.id == id) { "${mapPath(id)} declares id '${it.id}'" }
-        }
+    fun readMap(assets: CatalogAssets, id: String): BoardMap = CatalogFiles.parseMap(id, assets.read(mapPath(id)))
 
     /**
      * Every map in index order. One map that fails to read is reported through [onError] and left

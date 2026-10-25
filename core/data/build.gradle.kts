@@ -17,7 +17,7 @@ dependencies {
     implementation(libs.okhttp)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(projects.core.testing)
-    testImplementation(testFixtures(projects.core.domain))
+    testImplementation(projects.core.domainTestfixtures)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.sqlite.framework)
