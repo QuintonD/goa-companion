@@ -60,6 +60,7 @@ import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
+import dev.quinton.goa.feature.board.ui.cards.isSpell
 
 /**
  * The question being asked and its answers, by kind (PRODUCT §9: "every question says what is
@@ -281,8 +282,11 @@ private fun CardBeside(
     val reach = table.decision?.let { sourceReach(it.prompt, card) }
     val big = LocalDensity.current.fontScale > LARGE_TEXT
     BoxWithConstraints(Modifier.fillMaxWidth()) {
+        // A spell (Gydion) is a landscape card, about twice as wide at the same height: it goes above.
+        val spell = card.isSpell
         val width = when {
             !large -> if (big) 56.dp else 72.dp
+            spell -> SPELL_BESIDE
             big -> (maxWidth * BESIDE_SHARE).coerceIn(84.dp, 112.dp)
             else -> (maxWidth * BESIDE_SHARE).coerceIn(96.dp, 150.dp)
         }
@@ -314,7 +318,7 @@ private fun CardBeside(
                 }
             }
         }
-        if (big && large) {
+        if (large && (big || spell)) {
             // Large text beside a card leaves the answers a word per line: the card goes above them.
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 shown()
@@ -595,4 +599,5 @@ fun defenseVerdict(total: Int?, blocks: Boolean?, attack: Int?): Boolean? = bloc
 
 private const val MAX_SPACE_CHIPS = 6
 private const val BESIDE_SHARE = 0.36f
+private val SPELL_BESIDE = 96.dp
 private const val LARGE_TEXT = 1.3f

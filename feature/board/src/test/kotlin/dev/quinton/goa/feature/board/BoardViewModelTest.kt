@@ -16,6 +16,9 @@ import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.board.SavedBoard
 import dev.quinton.goa.core.model.board.TokenPiece
+import dev.quinton.goa.core.model.catalog.Card
+import dev.quinton.goa.core.model.catalog.CardColor
+import dev.quinton.goa.core.model.catalog.CardValues
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.draft.DraftMethodKind
 import dev.quinton.goa.core.model.draft.DraftRecord
@@ -320,6 +323,36 @@ class BoardViewModelTest {
         }
         val vm = viewModel(BoardRoute(boardId = "anything"), repository = broken)
         assertThat((vm.uiState.value as BoardUiState.Missing).message).contains("couldn't be read")
+    }
+
+    @Test
+    fun `a hero's spell cards (extras) can be measured with, after the deck`() = runTest(dispatcher) {
+        // Gydion's deck cards cast spells and have no Range of their own; the spell card has it.
+        val spell = Card(
+            id = "test-hero-1-spell-zap",
+            heroId = "test-hero-1",
+            name = "Zap",
+            color = CardColor.GOLD,
+            values = CardValues(attack = 1, range = 3),
+        )
+        catalog.state.value = TestCatalog.catalog.copy(
+            heroes = TestCatalog.catalog.heroes.map {
+                if (it.id ==
+                    "test-hero-1"
+                ) {
+                    it.copy(extras = listOf(spell))
+                } else {
+                    it
+                }
+            },
+        )
+        val vm = viewModel()
+        val hero = vm.ready().hero("test-hero-1")
+        assertThat(vm.ready().heroes.getValue("test-hero-1").measurable.last()).isEqualTo(spell)
+        vm.onAction(BoardAction.Select(hero.id))
+        vm.onAction(BoardAction.ChooseCard(spell.id))
+        assertThat(vm.ready().overlay!!.card).isEqualTo(spell)
+        assertThat(vm.ready().overlay!!.range).isEqualTo(BoardRules.within(geometry, hero.at!!, 3))
     }
 
     @Test

@@ -21,8 +21,11 @@ besides the goa2-faq; the threads were read through `api.geekdo.com` on 2026-10-
 3. **[APP] "Only Gydion can look at the cards in the spellbook."** The engine keeps no hidden
    information here: the spellbook always holds every spell card except the ones removed faceup (public),
    so its contents follow from open information. Its counts are public dashboard counters
-   (`HeroView.counters`: `spellbook`, `spellsRemoved`, `wishCasts`). The play UI does not yet list which
-   spells are removed (`HeroView` has no field for extras): a follow-up for the UI contract.
+   (`HeroView.counters`: `spellbook`, `spellsRemoved`, `wishCasts`). The views still follow the card's
+   words (ADR-040): `HeroView.extras` names the spells in the spellbook to Gydion's own seat only (not to
+   a teammate, p.4 "Hidden Information"); the removed spells (faceup) and the ones never added (the
+   spell cards are public components, all of them listed in the box at the start) to every seat. Test:
+   `ExtrasViewTest`.
 4. **Casting.** *"As each spell is cast, remove it from the spellbook faceup. The action on the spell
    card is performed by the hero casting the spell."* The spell is removed first, then the caster
    performs the spell card's action as an action of its own type (Attack, Skill or Movement): its own

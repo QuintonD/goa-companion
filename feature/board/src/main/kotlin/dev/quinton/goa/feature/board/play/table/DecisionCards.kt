@@ -63,7 +63,9 @@ import dev.quinton.goa.feature.board.ui.cards.CardNote
 import dev.quinton.goa.feature.board.ui.cards.CardSelection
 import dev.quinton.goa.feature.board.ui.cards.CardVerdict
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
+import dev.quinton.goa.feature.board.ui.cards.cardAspect
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
+import dev.quinton.goa.feature.board.ui.cards.isSpell
 
 /*
  * Card questions (play, defend, discard, retrieve, upgrade, keep) answered with the card focus
@@ -102,11 +104,20 @@ internal fun cardAction(decision: Decision, card: Card): String = when (decision
 
 /** The question's own verb when it is one ("You may discard an attack card" → Discard), else Choose. */
 internal fun cardVerb(prompt: String): String {
+    // Gydion's cards: "Choose and cast one spell in the spellbook" (the spell is cast once chosen).
+    if (prompt.startsWith("Choose and cast")) return "Cast"
     val first = prompt.removePrefix("You may ").substringBefore(' ').lowercase()
     return VERBS[first] ?: "Choose"
 }
 
-private val VERBS = mapOf("discard" to "Discard", "retrieve" to "Retrieve", "swap" to "Swap", "take" to "Take")
+private val VERBS = mapOf(
+    "discard" to "Discard",
+    "retrieve" to "Retrieve",
+    "swap" to "Swap",
+    "take" to "Take",
+    // Find Familiar: "You may remove up to three other spell cards from the spellbook faceup."
+    "remove" to "Remove",
+)
 
 /** Why a card the question doesn't offer can't be chosen. */
 private fun notOffered(kind: DecisionKind): String = when (kind) {
@@ -284,7 +295,10 @@ private fun OfferedRow(
     val reason = table.decision?.kind?.let(::notOffered)
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val n = offered.size.coerceAtLeast(1)
-        val width = ((maxWidth - Spacing.sm * (n - 1)) / n).coerceIn(MIN_HAND_CARD, largestCard(n))
+        // A landscape spell card (Gydion) is as tall as the others and about twice as wide (CardShape.kt).
+        val units = offered.sumOf { cardAspect(it.card) / CARD_ASPECT.toDouble() }.toFloat().coerceAtLeast(1f)
+        val min = if (offered.any { it.card.isSpell }) MIN_SPELL_CARD else MIN_HAND_CARD
+        val width = ((maxWidth - Spacing.sm * (n - 1)) / units).coerceIn(min, largestCard(n))
         Row(
             Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -618,4 +632,7 @@ private fun largestCard(n: Int): Dp = when {
 private val HAND_CARD = 84.dp
 private val MIN_HAND_CARD = 60.dp
 private val ATTACK_CARD = 56.dp
+
+/** A row with spells: a landscape card this tall (≈ 90 × 62 dp) is still easy to tap and read. */
+private val MIN_SPELL_CARD = 44.dp
 private const val DIMMED = 0.45f

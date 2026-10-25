@@ -463,7 +463,7 @@ internal fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState, m
             Fact("In hand", "${hero.handCount}")
             if (hero.ultimate) Fact("Ultimate", "Active")
             if (hero.at == null) Fact("Board", "Off the board")
-            hero.counters.forEach { (name, value) -> Fact(PlayText.counter(name), "$value") }
+            shownCounters(hero).forEach { (name, value) -> Fact(PlayText.counter(name), "$value") }
         }
         if (hero.items.isNotEmpty()) {
             Section("Items · p.16")
@@ -507,6 +507,13 @@ internal fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState, m
             Section("Discarded")
             CardRow(hero.discard, table, focus, "${info.name} · Discarded")
         }
+        // The unlocked Ultimate is a faceup card on the dashboard (p.16): show it, not only "Active".
+        ultimateCard(table, hero)?.let { card ->
+            Section("Ultimate · p.16")
+            CardRow(listOf(CardView(card.id)), table, focus, "${info.name} · Ultimate")
+        }
+        // Gydion's spellbook (ADR-040): SpellbookSection.kt.
+        ExtrasSection(table, hero, focus)
         val hand = hero.hand
         if (hand != null && heroId in table.mine) {
             Section("Your hand")
@@ -641,5 +648,14 @@ private fun ThumbRow(
         }
     }
 }
+
+/**
+ * The hero's counters for the number row, without those the extra cards' section already counts
+ * (Gydion's "spellbook" and "spellsRemoved" are its groups' counts, ADR-040); "wishCasts" stays.
+ */
+internal fun shownCounters(hero: HeroView): Map<String, Int> =
+    if (hero.extras.isEmpty()) hero.counters else hero.counters.filterKeys { it !in EXTRAS_COUNTERS }
+
+private val EXTRAS_COUNTERS = setOf("spellbook", "spellsRemoved")
 
 private const val OFF_BOARD_ALPHA = 0.45f

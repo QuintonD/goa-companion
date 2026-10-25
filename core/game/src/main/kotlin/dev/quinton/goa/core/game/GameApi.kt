@@ -361,6 +361,33 @@ data class HeroView(
     val itemStats: List<dev.quinton.goa.core.model.catalog.Stat> = emptyList(),
     /** After the reveal, while its card is unresolved: the initiative as it counts (items, effects, p.7). */
     val initiative: Int? = null,
+    /**
+     * The hero's extra cards (the hero JSON's `extras`, e.g. Gydion's 22 spell cards) by the place
+     * they are in, in the order the hero declares its places; empty for a hero without extras. See
+     * [ExtraPlaceView] for who sees which cards.
+     */
+    val extras: List<ExtraPlaceView> = emptyList(),
+)
+
+/**
+ * One place a hero's extra cards can be in, as a viewer sees it. Gydion's (gydion-silver "Prepare
+ * Spells", rulings/gydion.md): [place] `box` (not added yet: the game starts with an empty spellbook,
+ * designer on BGG 3491113), `spellbook` ("Only Gydion can look at the cards in the spellbook"),
+ * `removed` (cast, or removed by Find Familiar: "remove it from the spellbook faceup").
+ */
+@Serializable
+data class ExtraPlaceView(
+    /** The hero-specific place name (`box`, `spellbook`, `removed` for Gydion). */
+    val place: String,
+    /** How many cards are there (always public). */
+    val count: Int,
+    /**
+     * The card ids there, in the hero JSON's `extras` order; null when hidden from this viewer (a
+     * place only the hero's own seat may look at: the spellbook, for every seat but Gydion's).
+     */
+    val cardIds: List<String>?,
+    /** True when every seat sees the cards in this place (faceup, public components). */
+    val open: Boolean,
 )
 
 @Serializable

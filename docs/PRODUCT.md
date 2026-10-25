@@ -342,7 +342,8 @@ Life counters).
   Normal · Tokens · Ignore all" for cards that move through tokens or ignore obstacles, p.18, and "In
   a straight line", p.19), Fast Travel (p.11: own or adjacent Zone, no enemy hero or minion in
   either), Range and Radius (from the card's values, ± for items; the water around the board counts,
-  p.19), and the card's text quoted; "Read the cards" shows the hero's cards large in the card focus viewer (§9), swiping between them, and a second tap measures with the one on show. A minion or token selected: Movement N with a stepper; a minion
+  p.19), and the card's text quoted (Gydion's spell cards come after his deck: his deck cards cast
+  spells, so the spells carry the Movement, Range and Radius to measure); "Read the cards" shows the hero's cards large in the card focus viewer (§9), swiping between them, and a second tap measures with the one on show. A minion or token selected: Movement N with a stepper; a minion
   outside its Battle Zone shows where it goes back to (p.18, bound to its Lane, p.20). "Measure": tap
   any space of the board to read its distance in spaces and whether it lies in a straight line. The
   view zooms and pans so the selection and what it reaches stay in sight, hexes big enough to tap.
@@ -418,6 +419,16 @@ opponents (and teammates) at four levels. One phone, one human team.
   then leaves the game for Boards. Tap a card to read it in the card focus viewer, over the sheet. Only open information (p.4): built by the engine from its own
   views, never from the log's words. Note: the rulebook forbids taking notes at the table (p.4 Table
   Talk); the history is the log's own content, offered as a learning aid (ADR-037).
+- **Gydion's spellbook** (ADR-040; hero sheet, Game state's Now tab, puzzles): the official spell cards,
+  landscape as printed, in three groups — in the spellbook (Prepare Spells: "Only Gydion can look at the
+  cards in the spellbook": named to Gydion's player only, everyone else sees how many), cast (removed
+  faceup: everyone), not yet added (everyone; the game starts with an empty spellbook). Tap a spell to
+  read it large. "Choose and cast one spell" offers the spells as landscape cards ("Cast Magic
+  Missile"). An unlocked Ultimate shows as its card. **Done when:** an engine test shows two games that
+  differ only in the spellbook's spells look the same to every other seat, live and in the review;
+  screenshots of the sheet (Gydion's player and an opponent, before Prepare Spells, light/dark, 384 dp
+  at font scale 2, landscape), the cast question and a spell in the card focus viewer (portrait,
+  landscape, short landscape, font scale 2); every bundled card scan matches the shape it is drawn at.
 - **See the whole board:** the panel (questions, the computer's move, the coach) hides to a
   one-line peek bar that still says what is asked ("● Arien · Choose an action for Dangerous
   Current", teal when it waits for you; a new question is announced by TalkBack). The map fits the
