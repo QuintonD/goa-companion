@@ -4,8 +4,8 @@ import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.data.TriviaProgressRepository
 import dev.quinton.goa.core.model.rules.RulesReference
-import dev.quinton.goa.web.data.stub.W1RulesReferenceStub
 import dev.quinton.goa.web.data.stub.W1TriviaProgressStub
+import dev.quinton.goa.web.rules.AssetRulesReferenceSource
 import dev.quinton.goa.web.settings.WebSettingsRepository
 import dev.quinton.goa.web.storage.scoped
 
@@ -26,5 +26,5 @@ class ContentData(private val services: WebServices) {
 
     val triviaProgress: TriviaProgressRepository = W1TriviaProgressStub
 
-    val rulesReference: RulesReferenceSource = W1RulesReferenceStub
+    val rulesReference: RulesReferenceSource = AssetRulesReferenceSource()
 }

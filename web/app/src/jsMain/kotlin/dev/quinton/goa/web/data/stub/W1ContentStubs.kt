@@ -1,10 +1,10 @@
+@file:Suppress("ktlint:standard:filename") // W1 trivia deletes this file with its stub
+
 package dev.quinton.goa.web.data.stub
 
 import dev.quinton.goa.core.data.TriviaProgressRepository
 import dev.quinton.goa.core.domain.trivia.FactProgress
 import dev.quinton.goa.core.domain.trivia.TriviaConfig
-import dev.quinton.goa.core.model.rules.RulesReference
-import dev.quinton.goa.web.data.RulesReferenceSource
 import kotlinx.coroutines.flow.Flow
 
 // W1 content (feature/web-content) replaces these in ContentData and deletes this file.
@@ -25,8 +25,4 @@ object W1TriviaProgressStub : TriviaProgressRepository {
     override val playingAs: Flow<String?> get() = notYet(W1, "TriviaProgressRepository")
 
     override suspend fun setPlayingAs(playerIdOrGuest: String) = notYet(W1, "TriviaProgressRepository")
-}
-
-object W1RulesReferenceStub : RulesReferenceSource {
-    override suspend fun load(): RulesReference = notYet(W1, "RulesReferenceSource")
 }
