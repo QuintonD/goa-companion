@@ -931,6 +931,42 @@ smoke checks; the full `connectedDebugAndroidTest` run stays on Megalithic or th
 Gradle build at a time on oldboi, always through `goa-gradle`; it is slower than Megalithic. Megalithic
 keeps everything until the owner decides to clear it.
 
+## ADR-039 — The computer's strength is a 1–10 slider; a tuned evaluation (2026-10-25)
+**Context:** The owner asked to "improve the ai and give the player a difficulty slider". The computer
+played at four levels (ADR-035); Expert beat Hard only 60–68%, more search bought little, and the
+evaluation's weights were set by hand.
+**Decision:**
+- **Contract (additive, CONTRACT-CHANGES.md):** `Controller.Ai` gains `strength: Int` (1..10,
+  `AiStrength`), defaulting to its level's `AiLevel.strength`, so a save that carries only the level
+  loads as Easy 2, Normal 6, Hard 8, Expert 10. `AiLevel` stays as the band, for the words: 1–3 Easy,
+  4–6 Normal, 7–8 Hard, 9–10 Expert (`AiLevel.of`). `AiPlayers.forStrength` / `deterministic(strength)`;
+  `PlayEngineModule`'s factory takes the strength (seeded per strength).
+- **UI:** New game's level switch becomes a Material 3 slider with a tick per step, the value and band
+  above it ("7 · Hard"), Gentler / Stronger under the ends and the band's note under it (1 and 10 have
+  their own); TalkBack reads "Computer strength, Strength 7 of 10, Hard". Default 5 (the screen did
+  not remember the level between games, so it doesn't remember the strength either). Advanced: one
+  slider per computer seat. The strength shows wherever the level did ("Computer · Hard 8").
+- **Evaluation:** the score is a sum of named terms with scales. Fitted to self-play outcomes
+  (logistic regression, `FitTest`), a hero's static exposure said almost nothing about who wins; the
+  searching strengths use exposure × 0.3 and minion opportunity × 2 (`TUNED`), which won 61% / 64% /
+  59% against the old Normal / Hard / Expert.
+- **Ten steps**, each adding one lever that measured, all on mirrored tournaments over all 32 heroes
+  (AI.md "Strengths", "Measured strength"): three static steps with fewer slips each (1 gentler than
+  the old Easy), a static player that sees every enemy, the first look-ahead, Normal, every choice
+  played to the end of the turn, Hard, Expert's samples and memory, Expert. Every adjacent pair's
+  rate is above 50% on line-ups not used for tuning (58.9% to 77.1% below the top step; the top step
+  (10 over 9) 55.7%, 50.7–60.6% over 384 games).
+**Alternatives:** interpolating the old knobs evenly between 2 / 4 / 6 / 8 (measured: steps of 47–55%
+between Hard and Expert, inverted pairs); more samples (24) and wider candidate lists above Expert,
+a longer horizon, no mixing, a sharper opponent model, played-out upgrade choices: all measured even
+or worse with Expert (AI.md "What changed in v0.7"), so 10 is Expert and the old levels moved up
+to the strengths their profiles measure at.
+**Consequences:** Every saved game against the computer keeps loading; its seats play the tuned
+evaluation (stronger than before at Normal, Hard and Expert; Easy unchanged). The coach (Hard
+analysis) uses the tuned evaluation. Device budgets are unchanged (Expert 4 s per card play at most;
+AI.md "Budgets"). The top end is flat: the next gains need a better evaluation of set-up heroes and
+round plans, not more search.
+
 ## ADR-040 — Gydion's spellbook at the game table (2026-10-25)
 **Context:** The owner: "Missing the spell cards for gideon". The catalog has Gydion's 22 spell cards
 (hero JSON `extras`, landscape scans) and the engine plays them, but at the table a Gydion player saw
