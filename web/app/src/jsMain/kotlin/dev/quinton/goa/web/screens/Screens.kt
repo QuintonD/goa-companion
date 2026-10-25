@@ -10,11 +10,20 @@ import dev.quinton.goa.web.draft.DraftMethodEditScreen
 import dev.quinton.goa.web.draft.DraftMethodsScreen
 import dev.quinton.goa.web.draft.DraftSetupScreen
 import dev.quinton.goa.web.nav.Route
+import dev.quinton.goa.web.players.MatchEditScreen
+import dev.quinton.goa.web.players.PlayerDetailScreen
+import dev.quinton.goa.web.players.PlayerEditScreen
+import dev.quinton.goa.web.players.PlayersHomeScreen
+import dev.quinton.goa.web.players.PlayersTab
+import dev.quinton.goa.web.players.RatingSettingsScreen
 import dev.quinton.goa.web.rules.LevelLadderScreen
 import dev.quinton.goa.web.rules.RulesScreen
 import dev.quinton.goa.web.rules.RulesTopicScreen
 import dev.quinton.goa.web.settings.AboutScreen
 import dev.quinton.goa.web.settings.SettingsScreen
+import dev.quinton.goa.web.sync.GroupScreen
+import dev.quinton.goa.web.sync.JoinLinkScreen
+import dev.quinton.goa.web.sync.WhoAreYouScreen
 import dev.quinton.goa.web.timer.MatchSetupScreen
 import dev.quinton.goa.web.timer.PresetEditScreen
 import dev.quinton.goa.web.timer.PresetsScreen
@@ -92,32 +101,29 @@ fun ScreenFor(route: Route) {
 
         is Route.DraftMethodEdit -> DraftMethodEditScreen(route.methodId)
 
-        // Opened by the table tools, built by other streams (W2 matches and players, W4 board)
-        is Route.MatchEdit -> PlaceholderScreen("Match", Placeholder.MATCH_EDIT)
-
-        is Route.PlayerEdit -> PlaceholderScreen("Player", Placeholder.PLAYER_EDIT)
-
+        // Opened by the table tools, built by another stream (W4 board)
         is Route.NewBoard -> PlaceholderScreen("Board", Placeholder.BOARD)
 
-        // Players tab
-        Route.Players -> PlaceholderScreen(
-            "Players",
-            Placeholder.PLAYERS,
-            settingsAction = true,
-            links = listOf(
-                PlaceholderLink("Match log", "list", Route.Matches),
-                PlaceholderLink("Meta", "chart", Route.Meta),
-                PlaceholderLink("Group sync", "sync", Route.Group),
-            ),
-        )
+        // Players tab (group stream W2: players, matches, meta, group sync)
+        Route.Players -> PlayersHomeScreen(PlayersTab.PLAYERS)
 
-        is Route.PlayerDetail -> PlaceholderScreen("Player", Placeholder.PLAYERS)
+        is Route.PlayerDetail -> PlayerDetailScreen(route.playerId)
 
-        Route.Matches -> PlaceholderScreen("Match log", Placeholder.MATCHES)
+        is Route.PlayerEdit -> PlayerEditScreen(route.playerId)
 
-        Route.Meta -> PlaceholderScreen("Meta", Placeholder.META)
+        Route.Matches -> PlayersHomeScreen(PlayersTab.MATCHES)
 
-        Route.Group -> PlaceholderScreen("Group sync", Placeholder.GROUP)
+        is Route.MatchEdit -> MatchEditScreen(route.matchId, route.result)
+
+        Route.Meta -> PlayersHomeScreen(PlayersTab.META)
+
+        Route.RatingSettings -> RatingSettingsScreen()
+
+        Route.Group -> GroupScreen()
+
+        Route.WhoAreYou -> WhoAreYouScreen()
+
+        is Route.Join -> JoinLinkScreen(route.invite)
 
         is Route.NotFound -> NotFoundScreen()
     }

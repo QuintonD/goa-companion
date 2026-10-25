@@ -77,6 +77,7 @@ import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.feature.sync.invite.InviteQr
 import dev.quinton.goa.feature.sync.server.SyncServerActions
 import dev.quinton.goa.feature.sync.server.SyncServerCard
@@ -457,7 +458,9 @@ private fun PasteInvite(invite: String, onInvite: (String) -> Unit, error: Strin
 @Composable
 fun InviteDialog(state: GroupUiState, onShare: () -> Unit, onDismiss: () -> Unit) {
     val invite = state.invite ?: return
-    val qr = remember(invite) { InviteQr.bitmap(invite) }
+    // A link to the web app with the invite in its fragment: the app's scanner finds the invite in
+    // it, and an iPhone's Camera opens the web app ready to join (ADR-043).
+    val qr = remember(invite) { InviteQr.bitmap(GroupInvite.link(invite)) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Invite to “${state.groupName}”") },
@@ -482,9 +485,10 @@ fun InviteDialog(state: GroupUiState, onShare: () -> Unit, onDismiss: () -> Unit
                     )
                 }
                 Text(
-                    "On your friend's phone: install the app, open Settings → Group sync → Scan invite QR code, " +
-                        "or share it as text and paste it on the other phone. Anyone with this code can join, so " +
-                        "only show it at the table or send it to the group.",
+                    "On your friend's phone: install the app, open Settings → Group sync → Scan invite QR code. " +
+                        "On an iPhone, point the Camera at it: it opens the web app, ready to join. Or share it " +
+                        "as text and paste it on the other phone. Anyone with this code can join, so only show " +
+                        "it at the table or send it to the group.",
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Start,
                 )

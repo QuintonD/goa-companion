@@ -1,55 +1,15 @@
 package dev.quinton.goa.feature.players.match
 
 import dev.quinton.goa.core.data.DraftSetupPrefill
-import dev.quinton.goa.core.domain.match.Rematch
 import dev.quinton.goa.core.domain.match.RematchKind
 import dev.quinton.goa.core.model.match.Match
-import dev.quinton.goa.core.model.match.Team
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** One choice in the Rematch sheet. [kind] null = redraft with the same players (opens the Draft tab). */
-data class RematchOption(val kind: RematchKind?, val title: String, val body: String, val unavailable: String? = null)
-
-/** Where a rematch or a pending match continues (wired to other tabs in `Entries.kt`). */
-sealed interface MatchNav {
-    /** Match setup for this pending match, then the timer. */
-    data class OpenSetup(val matchId: String) : MatchNav
-
-    /**
-     * Match setup for a rematch of [sourceId]. Nothing is saved yet: the rematch becomes a match
-     * when its timer starts, so backing out leaves no pending match behind.
-     */
-    data class OpenRematch(val sourceId: String, val kind: RematchKind) : MatchNav
-
-    /** The draft, to draft again with the same group. */
-    data object OpenDraft : MatchNav
-}
-
-fun rematchOptions(match: Match): List<RematchOption> = listOf(
-    RematchOption(
-        RematchKind.SAME_SEATS,
-        "Same seats",
-        "Same players, heroes and teams.",
-        Rematch.unavailable(match, RematchKind.SAME_SEATS),
-    ),
-    RematchOption(
-        RematchKind.SWAP_HEROES,
-        "Swap heroes",
-        "Players stay on their team; Red's heroes go to Blue and Blue's to Red.",
-        Rematch.unavailable(match, RematchKind.SWAP_HEROES),
-    ),
-    RematchOption(
-        RematchKind.SWAP_TEAMS,
-        "Swap sides",
-        "Everyone keeps their hero; Red plays Blue and Blue plays Red.",
-        Rematch.unavailable(match, RematchKind.SWAP_TEAMS),
-    ),
-    RematchOption(null, "Draft again", "The draft opens with the same players and teams; pick new heroes."),
-)
+// RematchOption, MatchNav and rematchOptions() are shared with the web app (core:group-presentation).
 
 /**
  * Starts a rematch: [start] checks it can be built and says where it continues (Match setup,
@@ -58,22 +18,9 @@ fun rematchOptions(match: Match): List<RematchOption> = listOf(
  */
 @Singleton
 class RematchLauncher @Inject constructor(private val draftSetup: DraftSetupPrefill) {
-    fun start(source: Match, kind: RematchKind): MatchNav? =
-        MatchNav.OpenRematch(source.id, kind).takeIf { Rematch.unavailable(source, kind) == null }
+    fun start(source: Match, kind: RematchKind): MatchNav? = Rematches.start(source, kind)
 
-    suspend fun redraft(source: Match) {
-        val red = source.team(Team.RED)
-        val blue = source.team(Team.BLUE)
-        val doublePilot = source.participants.groupingBy {
-            it.playerId
-        }.eachCount().filterValues { it > 1 }.keys.firstOrNull()
-        draftSetup.prefill(
-            red = red.map { it.playerId }.distinct(),
-            blue = blue.map { it.playerId }.distinct(),
-            doublePilot = doublePilot,
-            handicap = red.size != blue.size,
-        )
-    }
+    suspend fun redraft(source: Match) = Rematches.redraft(source, draftSetup)
 }
 
 /** The match just saved from the editor, so the match log can scroll to it. Process-scoped. */

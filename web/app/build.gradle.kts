@@ -41,6 +41,11 @@ val webAssets: TaskProvider<Sync> = tasks.register<Sync>("webAssets") {
         include("LICENSE-*.txt")
         into("licenses")
     }
+    // The web app's own libraries (invite QR codes, W2): their licences ship beside the fonts'.
+    from(rootProject.file("third_party/web")) {
+        include("*.txt")
+        into("licenses")
+    }
     from(rootProject.file("design/icons")) {
         include("nav_*.svg", "brand_mark.svg")
         into("icons")
@@ -122,6 +127,11 @@ kotlin {
                 implementation(projects.core.model)
                 implementation(projects.core.domain)
                 implementation(projects.core.dataContracts)
+                // The Players and Group screens' rows and words, shared with the phone (W2).
+                implementation(projects.core.groupPresentation)
+                // Invite QR codes: draw (qrcode-generator, MIT) and read from the camera (jsQR, Apache-2.0).
+                implementation(npm("qrcode-generator", libs.versions.qrcodeGenerator.get()))
+                implementation(npm("jsqr", libs.versions.jsQr.get()))
                 implementation(libs.compose.runtime)
                 implementation(libs.compose.html.core)
                 implementation(libs.kotlinx.coroutines.core)

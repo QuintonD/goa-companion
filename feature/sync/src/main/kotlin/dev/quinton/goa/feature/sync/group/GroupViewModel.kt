@@ -14,11 +14,8 @@ import dev.quinton.goa.core.domain.sync.GroupCredentials
 import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.core.domain.sync.SyncServerAddress
 import dev.quinton.goa.core.domain.sync.SyncValidation
-import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.feature.sync.PhoneName
-import dev.quinton.goa.feature.sync.SyncText
 import dev.quinton.goa.feature.sync.server.SyncServerText
-import dev.quinton.goa.feature.sync.server.SyncServerUi
 import dev.quinton.goa.feature.sync.share.SyncFiles
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
@@ -32,30 +29,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-data class PhoneRow(val name: String, val lastSynced: String)
-
-data class GroupUiState(
-    val loading: Boolean = true,
-    val groupName: String? = null,
-    /** The invite the QR code shows (`goa-sync:1?…`, with `&s=` for a group's own sync server). */
-    val invite: String? = null,
-    val me: Player? = null,
-    val deviceName: String = "",
-    val phones: List<PhoneRow> = emptyList(),
-    val lastSync: String? = null,
-    val players: Int = 0,
-    val matches: Int = 0,
-    val busy: Boolean = false,
-    /** Why an invite couldn't be used (shown under the paste field). */
-    val joinError: String? = null,
-    /** A one-off message for the snackbar. */
-    val message: String? = null,
-    /** The group's sync server and how its automatic sync went (ADR-036). */
-    val server: SyncServerUi = SyncServerUi(),
-) {
-    val inGroup: Boolean get() = groupName != null
-}
 
 sealed interface GroupEvent {
     /** Joined: run the first sync right away. */
@@ -98,39 +71,29 @@ class GroupViewModel @Inject constructor(
         local,
         serverSync.running,
     ) { group, people, log, l, serverRunning ->
-        val now = clock.now()
-        val me = people.firstOrNull { it.id == group.mePlayerId }
-        GroupUiState(
-            loading = false,
-            groupName = group.group?.name,
-            // The server travels in the invite only when this phone syncs through it and it isn't
-            // the app's built-in one.
-            invite = group.group?.let { GroupInvite.format(it, group.server.activeUrl.takeIf { group.server.custom }) },
-            me = me,
-            deviceName = me?.name ?: group.deviceName ?: phoneName.get(),
-            phones = group.phones.map { PhoneRow(it.name, SyncText.ago(it.lastSyncedAt, now)) },
-            // Any sync counts, face to face or through the server (hands-on: "last synced 6 days ago"
-            // under a server card saying "Synced just now").
-            lastSync = listOfNotNull(group.lastSyncAt, group.server.syncedAt).maxOrNull()
-                ?.let { SyncText.ago(it, now) },
-            players = people.count { !it.archived },
+        GroupText.state(
+            group = group,
+            people = people,
             matches = log.size,
+            serverRunning = serverRunning,
+            now = clock.now(),
+            deviceName = phoneName.get(),
             busy = l.busy,
             joinError = l.joinError,
             message = l.message,
-            server = SyncServerText.ui(group, serverRunning, now, l.addressError),
+            addressError = l.addressError,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GroupUiState())
 
     fun start(name: String) {
         val clean = GroupCredentials.cleanName(name)
         if (clean.isEmpty()) {
-            local.update { it.copy(message = "Give the group a name") }
+            local.update { it.copy(message = GroupText.GIVE_A_NAME) }
             return
         }
         viewModelScope.launch {
             groups.start(clean)
-            local.update { it.copy(message = "Group “$clean” started. Invite your friends with the QR code.") }
+            local.update { it.copy(message = GroupText.started(clean)) }
         }
     }
 
@@ -151,7 +114,7 @@ class GroupViewModel @Inject constructor(
                         if (!firstSyncFromServer(group.name)) events.send(GroupEvent.OpenFirstSync)
                     } else {
                         local.update {
-                            it.copy(joinError = null, message = "This phone is already in “${group.name}”.")
+                            it.copy(joinError = null, message = GroupText.alreadyIn(group.name))
                         }
                     }
                 }
@@ -172,17 +135,8 @@ class GroupViewModel @Inject constructor(
         } finally {
             local.update { it.copy(busy = false) }
         }
-        val received = outcome.received
-        val message = when {
-            !outcome.synced -> "Joined “$name”. The sync server can't help right now, so sync face to face."
-
-            received == null ->
-                "Joined “$name”. The sync server has nothing from the group yet, so sync face to face once."
-
-            else -> "Joined “$name”. From the sync server: $received."
-        }
-        local.update { it.copy(message = message) }
-        return outcome.synced && received != null
+        local.update { it.copy(message = GroupText.joinedThroughServer(name, outcome)) }
+        return outcome.synced && outcome.received != null
     }
 
     fun scanFailed(message: String) = local.update { it.copy(joinError = message) }
@@ -191,7 +145,7 @@ class GroupViewModel @Inject constructor(
         viewModelScope.launch {
             val name = groups.state.first().group?.name
             groups.leave()
-            local.update { it.copy(message = "Left “$name”. Everything you played stays on this phone.") }
+            local.update { it.copy(message = GroupText.left(name)) }
         }
     }
 
@@ -237,7 +191,7 @@ class GroupViewModel @Inject constructor(
             groups.setServerUrl(url)
             groups.setServerSyncEnabled(true)
             local.update {
-                it.copy(addressError = null, message = "Server saved. Syncing with ${SyncServerAddress.display(url)}…")
+                it.copy(addressError = null, message = GroupText.serverSaved(url))
             }
         }
     }
@@ -246,7 +200,7 @@ class GroupViewModel @Inject constructor(
     fun useDefaultServer() {
         viewModelScope.launch {
             groups.setServerUrl(null)
-            local.update { it.copy(addressError = null, message = "This group uses the app's sync server again.") }
+            local.update { it.copy(addressError = null, message = GroupText.USE_DEFAULT_SERVER) }
         }
     }
 

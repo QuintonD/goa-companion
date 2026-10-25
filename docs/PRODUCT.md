@@ -176,8 +176,10 @@ phones keep the same matches, players, drafts, deletions and rating constants by
 face at the table**, phone to phone over Bluetooth and Wi-Fi Direct (Google Nearby Connections),
 and **through the group's sync server** whenever a phone has internet (ADR-036). No accounts.
 - **Group:** "Start a group" (name) creates the group and its key; "Invite a friend" shows a QR
-  code (and "Share as text", which sends the invite with what to do with it); a friend's phone
-  joins by scanning it (Google's code scanner, no camera permission) or pasting the invite (or the
+  code (and "Share as text", which sends the invite with what to do with it); the code is a link
+  to the web app with the invite inside (ADR-043), so an iPhone's Camera opens the web app ready to
+  join; a friend's phone joins by scanning it (Google's code scanner, no camera permission) or
+  pasting the invite (or the
   whole message it came in; the dialog says both ways, and Join stays in view above the keyboard).
   Leave group keeps all data.
 - **Join flow:** install → Group sync → scan → the first sync starts right away → "Which player
@@ -558,6 +560,27 @@ same look), with the same tabs and screens as on Android.
 - Group sync through the group's relay (ADR-036), not Nearby (Safari has no Bluetooth). Safari may
   clear a website's data after 7 days unused unless it is on the Home Screen; the app says so, and
   the group's sync is the backup.
+- **Players tab (W2):** the same leaderboard, player pages (rating chart, best heroes, head to head,
+  teammates, archive, Merge into…), match log (by day, undo, Who won?, Rematch → Draft again), the
+  match editor and its saved-result summary, Meta and Settings → Ratings as on Android, built by the
+  same shared code (`core:group-presentation`), so the numbers and words match the phones'.
+- **Joining from an iPhone:** the invite QR code (on Android and on the web) is a link,
+  `https://quintond.github.io/goa-companion/#join=goa-sync:1?…`, with the invite in the part of the
+  address a browser never sends anywhere. The iPhone's Camera opens the web app, which asks "Join
+  “Friday nights”?" (never without asking: a link can come from anywhere) and removes the key from
+  the address at once. The web app can also scan a code with the camera or take a pasted invite; the
+  phones' scanners read the new code as before. Starting a group, inviting, Which player are you?,
+  sync files (the share sheet or a download, and a file picker) and Leave work as on Android.
+- **Sync on the web:** the phones' algorithm and words; it syncs when the app opens or comes back
+  on screen (at most once a minute), every 5 minutes while it stays on screen, 15 s after a change,
+  on Sync now and on joining. A page can't sync while closed, so there is no hourly background sync.
+- **Done when (W2):** WebCrypto passes the phones' published sync vectors byte for byte; the web's
+  repositories keep the phone's rules (`WebGroupDataTest`); the relay algorithm runs over the web's
+  storage (`WebRelaySyncTest`); in WebKit and Chromium a browser starts or joins a group, logs a
+  match that a second browser receives with the same ratings, and shows server problems in words
+  (`group.spec.ts`); and `scripts/interop-live.mjs` passes: phone → real relay → browser → relay →
+  phone with the same data and ratings. Not yet: an iPhone (Safari and Home Screen) and the
+  production relay with a real group.
 
 ## Open questions (owner to decide)
 - Which printing the group plays (data targets the 2nd printing / upgrade kit; a 3rd printing

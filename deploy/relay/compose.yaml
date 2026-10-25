@@ -19,6 +19,8 @@ services:
       # GOA_RELAY_MAX_GROUPS: "200"
       # GOA_RELAY_RATE_PER_CLIENT: "60"
       # GOA_RELAY_RATE_GLOBAL: "600"
+      # Browser origins allowed by CORS (the web app, ADR-043); default the GitHub Pages site.
+      # GOA_RELAY_CORS_ORIGINS: "https://quintond.github.io"
     volumes:
       # Ciphertext, token hashes and revision numbers only; back this directory up as is.
       - /var/lib/goa-relay:/var/lib/goa-relay

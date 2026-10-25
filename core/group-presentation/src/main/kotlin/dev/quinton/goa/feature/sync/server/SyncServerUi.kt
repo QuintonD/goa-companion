@@ -2,7 +2,7 @@ package dev.quinton.goa.feature.sync.server
 
 import dev.quinton.goa.core.data.GroupState
 import dev.quinton.goa.core.domain.sync.SyncServerAddress
-import dev.quinton.goa.feature.sync.SyncText
+import dev.quinton.goa.feature.sync.SyncWords
 
 /** The Sync server section of the Group screen (ADR-036). */
 data class SyncServerUi(
@@ -69,12 +69,12 @@ object SyncServerText {
                 when {
                     !server.enabled -> "Off"
                     syncing -> "Syncing…"
-                    syncedAt != null -> "Synced ${SyncText.ago(syncedAt, now)}"
+                    syncedAt != null -> "Synced ${SyncWords.ago(syncedAt, now)}"
                     else -> "Not synced yet"
                 }
             },
             error = error?.message,
-            errorAgo = error?.let { SyncText.ago(it.at, now) },
+            errorAgo = error?.let { SyncWords.ago(it.at, now) },
             retrying = error?.problem?.transient == true,
             addressError = addressError,
         )

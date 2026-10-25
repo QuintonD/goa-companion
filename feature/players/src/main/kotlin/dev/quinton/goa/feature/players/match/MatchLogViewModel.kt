@@ -10,15 +10,9 @@ import dev.quinton.goa.core.data.rating.RatingsSnapshotRepository
 import dev.quinton.goa.core.domain.match.RematchKind
 import dev.quinton.goa.core.domain.rating.MatchRatingChange
 import dev.quinton.goa.core.model.catalog.Catalog
-import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Match
-import dev.quinton.goa.core.model.match.MatchStatus
-import dev.quinton.goa.core.model.match.Team
-import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.core.model.player.Player
-import dev.quinton.goa.feature.players.common.Dates
-import dev.quinton.goa.feature.players.common.heroName
-import dev.quinton.goa.feature.players.common.playerName
+import dev.quinton.goa.feature.players.common.PhoneDateLabels
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,49 +28,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-
-/** One hero seat as shown in lists. */
-data class SeatUi(
-    val player: Player?,
-    val playerName: String,
-    val heroId: String?,
-    val heroName: String,
-    val portrait: String?,
-    val handicap: Boolean,
-    val doublePilot: Boolean,
-    /** Player-space rating change from this match (only on the pilot's first seat). */
-    val delta: Double? = null,
-)
-
-data class MatchRowUi(
-    val id: String,
-    val status: MatchStatus,
-    val winner: Team?,
-    val mode: GameMode,
-    val winCondition: WinCondition?,
-    val durationMin: Int?,
-    val map: String?,
-    val time: String,
-    val red: List<SeatUi>,
-    val blue: List<SeatUi>,
-    val notes: String,
-    /** Rematch choices for a completed match; empty otherwise. */
-    val rematchOptions: List<RematchOption> = emptyList(),
-)
-
-data class MatchGroup(val header: String, val matches: List<MatchRowUi>)
-
-data class MatchLogUiState(
-    val loading: Boolean = true,
-    val groups: List<MatchGroup> = emptyList(),
-    val total: Int = 0,
-    /** The match just deleted, offered for undo. */
-    val undo: Match? = null,
-    /** The match just saved in the editor: the list scrolls to it once. */
-    val highlightId: String? = null,
-) {
-    val isEmpty: Boolean get() = !loading && groups.isEmpty()
-}
+import kotlinx.datetime.toKotlinLocalDate
 
 /**
  * Holds the most recently deleted match so whichever screen is visible next (the log) can offer
@@ -185,52 +137,16 @@ class MatchLogViewModel @Inject constructor(
             catalog: Catalog,
             changes: Map<String, MatchRatingChange>,
             today: LocalDate = LocalDate.now(),
-        ): List<MatchGroup> = matches
-            .sortedWith(
-                compareByDescending<Match> {
-                    it.playedAt
-                }.thenByDescending { it.createdAt }.thenByDescending { it.id },
-            )
-            .groupBy { Dates.localDate(it.playedAt) }
-            .map { (_, dayMatches) ->
-                MatchGroup(
-                    header = Dates.dayHeader(dayMatches.first().playedAt, today),
-                    matches = dayMatches.map { it.toRow(players, catalog, changes[it.id]) },
-                )
-            }
+        ): List<MatchGroup> = MatchRows.group(
+            matches,
+            players,
+            catalog,
+            changes,
+            PhoneDateLabels,
+            today.toKotlinLocalDate(),
+        )
 
-        fun Match.toRow(players: Map<String, Player>, catalog: Catalog, change: MatchRatingChange?): MatchRowUi {
-            fun seats(team: Team): List<SeatUi> {
-                val seats = team(team)
-                val counts = seats.groupingBy { it.playerId }.eachCount()
-                val shownDelta = mutableSetOf<String>()
-                return seats.map { seat ->
-                    SeatUi(
-                        player = players[seat.playerId],
-                        playerName = players.playerName(seat.playerId),
-                        heroId = seat.heroId,
-                        heroName = catalog.heroName(seat.heroId),
-                        portrait = seat.heroId?.let { catalog.hero(it)?.portrait },
-                        handicap = seat.handicap,
-                        doublePilot = (counts[seat.playerId] ?: 0) > 1,
-                        delta = change?.playerDeltas?.get(seat.playerId)?.takeIf { shownDelta.add(seat.playerId) },
-                    )
-                }
-            }
-            return MatchRowUi(
-                id = id,
-                status = status,
-                winner = winner,
-                mode = mode,
-                winCondition = winCondition,
-                durationMin = durationMin,
-                map = map,
-                time = Dates.time(playedAt),
-                red = seats(Team.RED),
-                blue = seats(Team.BLUE),
-                notes = notes,
-                rematchOptions = if (status == MatchStatus.COMPLETED) rematchOptions(this) else emptyList(),
-            )
-        }
+        fun Match.toRow(players: Map<String, Player>, catalog: Catalog, change: MatchRatingChange?): MatchRowUi =
+            with(MatchRows) { toRow(players, catalog, change, PhoneDateLabels) }
     }
 }

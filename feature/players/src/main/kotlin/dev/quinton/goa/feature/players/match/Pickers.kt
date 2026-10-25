@@ -55,13 +55,6 @@ import dev.quinton.goa.feature.players.common.formatRating
 import dev.quinton.goa.feature.players.common.label
 import dev.quinton.goa.feature.players.player.MAX_NAME_LENGTH
 
-/** Filters heroes by name or title, case-insensitive. */
-fun List<HeroOption>.search(query: String): List<HeroOption> {
-    val q = query.trim()
-    if (q.isEmpty()) return this
-    return filter { it.name.contains(q, ignoreCase = true) || it.title.contains(q, ignoreCase = true) }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HeroPickerSheet(

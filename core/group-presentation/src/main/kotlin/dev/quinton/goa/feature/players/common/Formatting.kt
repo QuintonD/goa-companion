@@ -6,14 +6,9 @@ import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.core.model.player.Player
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
-import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlinx.datetime.LocalDate
 
 fun formatRating(value: Double): String = value.roundToInt().toString()
 
@@ -66,30 +61,17 @@ fun Catalog.heroName(heroId: String?): String = when (heroId) {
 
 fun Map<String, Player>.playerName(id: String): String = this[id]?.name ?: "Unknown player"
 
-object Dates {
-    private val zone: ZoneId get() = ZoneId.systemDefault()
-    private val dayFormat = DateTimeFormatter.ofPattern("EEE d MMM yyyy", Locale.getDefault())
-    private val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
-    private val shortDate = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
-    private val fileDate = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ROOT)
+/**
+ * Dates and times as this device writes them: the phone with `java.time` in its locale
+ * (`Dates`), the browser with `Intl` (ADR-043). The shared builders only group and label with it.
+ */
+interface DateLabels {
+    /** The calendar day [epochMillis] falls on, in this device's time zone. */
+    fun localDate(epochMillis: Long): LocalDate
 
-    fun localDate(epochMillis: Long): LocalDate = Instant.ofEpochMilli(epochMillis).atZone(zone).toLocalDate()
+    /** "Today", "Yesterday" or the day ("Sat 12 Oct 2026"). */
+    fun dayHeader(epochMillis: Long, today: LocalDate): String
 
-    /** "Today", "Yesterday" or "Sat 12 Oct 2026". */
-    fun dayHeader(epochMillis: Long, today: LocalDate = LocalDate.now(zone)): String {
-        val date = localDate(epochMillis)
-        return when (date) {
-            today -> "Today"
-            today.minusDays(1) -> "Yesterday"
-            else -> date.format(dayFormat)
-        }
-    }
-
-    fun day(epochMillis: Long): String = localDate(epochMillis).format(dayFormat)
-
-    fun time(epochMillis: Long): String = Instant.ofEpochMilli(epochMillis).atZone(zone).format(timeFormat)
-
-    fun short(epochMillis: Long): String = localDate(epochMillis).format(shortDate)
-
-    fun forFileName(epochMillis: Long): String = localDate(epochMillis).format(fileDate)
+    /** The time of day ("19:30"). */
+    fun time(epochMillis: Long): String
 }

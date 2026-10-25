@@ -297,6 +297,30 @@ sealed interface Route {
         override val parent get() = Players
     }
 
+    /** How ratings are calculated (Settings → Ratings on the phone). */
+    data object RatingSettings : Route {
+        override val path = "ratings"
+        override val tab: Tab? = null
+        override val parent get() = Meta
+    }
+
+    /** "Which player are you?" */
+    data object WhoAreYou : Route {
+        override val path = "group/me"
+        override val tab get() = Tab.PLAYERS
+        override val parent get() = Group
+    }
+
+    /**
+     * An invite link (`#join=goa-sync:1?…`, the QR code's link, `GroupInvite.link`): the Group screen
+     * takes the invite and asks first; the key never stays in the address bar or the history.
+     */
+    data class Join(val invite: String) : Route {
+        override val path get() = "join=$invite"
+        override val tab get() = Tab.PLAYERS
+        override val parent get() = Group
+    }
+
     /** A hash no screen answers to (an old bookmark): says so and offers the way home. */
     data class NotFound(val hash: String) : Route {
         override val path get() = hash
@@ -313,6 +337,11 @@ object Routes {
     /** The route for [hash] (`#/heroes/arien`, `/heroes/arien` or `heroes/arien`); empty = Heroes. */
     fun parse(hash: String): Route {
         val raw = hash.removePrefix("#").removePrefix("/").trimEnd('/')
+        // An invite link: everything after "join=" is the invite, kept exactly as written.
+        return if (raw.startsWith(JOIN)) Route.Join(raw.removePrefix(JOIN)) else parsePath(raw)
+    }
+
+    private fun parsePath(raw: String): Route {
         if (raw.isEmpty()) return Route.Catalog
         val path = raw.substringBefore('?')
         val query = parseQuery(raw.substringAfter('?', ""))
@@ -330,7 +359,8 @@ object Routes {
             "players" -> players(parts)
             "matches" -> matches(parts, query)
             "meta" -> Route.Meta.takeIf { parts.size == 1 }
-            "group" -> Route.Group.takeIf { parts.size == 1 }
+            "ratings" -> Route.RatingSettings.takeIf { parts.size == 1 }
+            "group" -> group(parts)
             else -> null
         } ?: Route.NotFound(raw)
     }
@@ -435,6 +465,14 @@ object Routes {
         if (present.isEmpty()) return ""
         return "?" + present.joinToString("&") { (k, v) -> "$k=${encode(v!!)}" }
     }
+
+    private fun group(parts: List<String>): Route? = when {
+        parts.size == 1 -> Route.Group
+        parts.size == 2 && parts[1] == "me" -> Route.WhoAreYou
+        else -> null
+    }
+
+    private const val JOIN = "join="
 
     private fun settings(parts: List<String>): Route? = when {
         parts.size == 1 -> Route.Settings

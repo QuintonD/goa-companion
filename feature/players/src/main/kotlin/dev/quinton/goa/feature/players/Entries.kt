@@ -43,6 +43,7 @@ import dev.quinton.goa.feature.players.match.MatchNav
 import dev.quinton.goa.feature.players.meta.MetaActions
 import dev.quinton.goa.feature.players.meta.MetaViewModel
 import dev.quinton.goa.feature.players.player.MergeOutcome
+import dev.quinton.goa.feature.players.player.PlayerDetail
 import dev.quinton.goa.feature.players.player.PlayerDetailActions
 import dev.quinton.goa.feature.players.player.PlayerDetailScreen
 import dev.quinton.goa.feature.players.player.PlayerDetailViewModel
@@ -73,7 +74,7 @@ fun EntryProviderScope<NavKey>.playersEntries(navigator: Navigator) {
             vm.mergeOutcomeShown()
             navigator.back()
             navigator.navigate(PlayerDetailRoute(merged.intoId))
-            navigator.showMessage("Merged into ${merged.intoName}. Sync to update the other phones.")
+            navigator.showMessage(PlayerDetail.mergedMessage(merged.intoName))
         }
         PlayerDetailScreen(
             state = state,

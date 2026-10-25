@@ -27,6 +27,7 @@ import org.w3c.dom.events.Event
 fun main() {
     val services = AppServices.create()
     services.serviceWorker.start()
+    services.data.group.start() // automatic sync with the group's relay (W2)
     document.getElementById("root")?.innerHTML = "" // the static splash in index.html
     renderComposable(rootElementId = "root") {
         CompositionLocalProvider(LocalServices provides services) { App() }

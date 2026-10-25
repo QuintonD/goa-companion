@@ -425,7 +425,7 @@ class ViewModelTests {
         log.uiState.test {
             var state = awaitItem()
             while (state.loading || state.undo == null) state = awaitItem()
-            assertThat(state.undo.id).isEqualTo("m05")
+            assertThat(state.undo?.id).isEqualTo("m05")
             log.undoDelete()
             state = awaitItem()
             while (state.undo != null || state.total != Fixtures.matches.size) state = awaitItem()

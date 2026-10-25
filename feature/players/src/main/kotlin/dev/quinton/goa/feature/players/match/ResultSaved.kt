@@ -108,9 +108,10 @@ fun ResultSavedContent(
                 }
             }
         }
-        if (state.ratingsReady && state.leaderName != null && state.leaderRating != null) {
+        val leaderRating = state.leaderRating
+        if (state.ratingsReady && state.leaderName != null && leaderRating != null) {
             Text(
-                "On top now: ${state.leaderName} · ${formatRating(state.leaderRating.value)} Elo",
+                "On top now: ${state.leaderName} · ${formatRating(leaderRating.value)} Elo",
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = Spacing.md),
