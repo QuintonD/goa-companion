@@ -386,9 +386,9 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
             if (play.busy && play.coach) CoachLooking()
         }
 
-        play.status is TurnStatus.Computer -> ComputerMove(table, play.status, focus)
+        play.status is TurnStatus.Computer -> ComputerMove(table, play.status as TurnStatus.Computer, focus)
 
-        play.status is TurnStatus.Waiting -> Waiting(table, play.status)
+        play.status is TurnStatus.Waiting -> Waiting(table, play.status as TurnStatus.Waiting)
 
         else -> Unit
     }

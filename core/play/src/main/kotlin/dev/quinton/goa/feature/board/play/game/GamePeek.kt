@@ -8,7 +8,7 @@ import dev.quinton.goa.feature.board.ui.PanelPeek
  * The game panel's one line while it is hidden: the coach's nudge, the person's question (or the
  * space or piece they tapped, to confirm), the computer choosing, or the wait for the reveal.
  */
-internal fun gamePeek(play: PlayUi): PanelPeek {
+fun gamePeek(play: PlayUi): PanelPeek {
     val table = play.table
     play.nudge?.let { return PanelPeek("Coach: ${it.note.text}", attention = true) }
     return when (val status = play.status) {

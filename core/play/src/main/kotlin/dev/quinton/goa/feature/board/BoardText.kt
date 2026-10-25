@@ -14,13 +14,13 @@ import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.Team
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
-import java.util.Locale
-import java.util.UUID
+import kotlin.time.Instant
+import kotlin.uuid.Uuid
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
+import kotlinx.datetime.toLocalDateTime
 
 /** Words the board screens share. Rulebook terms: Battle Zone, Throne Zone, Fast Travel, Spawn point. */
 object BoardText {
@@ -81,20 +81,21 @@ object BoardText {
         }
     }
 
-    private val time = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
-    private val day = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
-
-    /** "Changed today, 14:05", "Changed yesterday, 9:12", "Changed 12 Oct 2026". */
-    fun changed(epochMillis: Long, now: Long, zone: ZoneId = ZoneId.systemDefault()): String {
-        val at = Instant.ofEpochMilli(epochMillis).atZone(zone)
-        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-        val date: LocalDate = at.toLocalDate()
-        return when (date) {
-            today -> "Changed today, ${at.format(time)}"
-            today.minusDays(1) -> "Changed yesterday, ${at.format(time)}"
-            else -> "Changed ${at.format(day)}"
+    /**
+     * "Changed today, 14:05", "Changed yesterday, 9:12", "Changed 12 Oct 2026", in [zone]; [time]
+     * writes a time of day the platform's way (the phone's locale, the browser's).
+     */
+    fun changed(epochMillis: Long, now: Long, zone: TimeZone, time: (LocalDateTime) -> String): String {
+        val at = Instant.fromEpochMilliseconds(epochMillis).toLocalDateTime(zone)
+        val today = Instant.fromEpochMilliseconds(now).toLocalDateTime(zone).date
+        return when (at.date) {
+            today -> "Changed today, ${time(at)}"
+            today.minus(DatePeriod(days = 1)) -> "Changed yesterday, ${time(at)}"
+            else -> "Changed ${at.date.day} ${MONTHS[at.date.month.ordinal]} ${at.date.year}"
         }
     }
+
+    private val MONTHS = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 }
 
 /** A finished draft's picks per team, in pick order. */
@@ -131,7 +132,7 @@ private const val DOUBLE_LANE_HEROES = 8
  * A new piece id: a fresh UUID, never one used before on any board (an id reused after Remove would
  * let Undo, overlays or the tray mistake one piece for another).
  */
-fun newPieceId(): String = UUID.randomUUID().toString()
+fun newPieceId(): String = Uuid.random().toString()
 
 /**
  * Two positions with the same pieces on the same spaces and the same Battle Zones, whatever the

@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.board.play.game
 
-import androidx.compose.runtime.Immutable
 import dev.quinton.goa.core.data.game.AiPace
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.CoachNote
@@ -28,11 +27,9 @@ sealed interface TurnStatus {
 }
 
 /** A card shown at the reveal (p.7), with its initiative. [cardId] null = no card (a pass). */
-@Immutable
 data class RevealedCard(val heroId: String, val cardId: String?, val initiative: Int?)
 
 /** How one hero did, for the game-over summary (from the event log). */
-@Immutable
 data class HeroResult(
     val heroId: String,
     val team: Team,
@@ -46,7 +43,6 @@ data class HeroResult(
     val coins: Int,
 )
 
-@Immutable
 data class GameOverUi(
     val winner: Team,
     val reason: WinReason,
@@ -63,14 +59,11 @@ data class GameOverUi(
 )
 
 /** A nudge waiting on the person: Choose anyway answers [choice], Rethink goes back to the question. */
-@Immutable
 data class PendingNudge(val note: CoachNote, val choice: Choice, val choiceLabel: String)
 
 /** What TalkBack reads after something happens; [id] makes each one new. */
-@Immutable
 data class PlayAnnouncement(val text: String, val id: Long)
 
-@Immutable
 data class PlayUi(
     val table: TableUi,
     val status: TurnStatus,

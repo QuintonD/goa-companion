@@ -8,7 +8,7 @@ package dev.quinton.goa.feature.board.setup
  * when even the smallest tiles don't fit, the most columns at [minTile] (the grid then scrolls the
  * least). All sizes in the same unit (dp).
  */
-internal fun heroGridColumns(
+fun heroGridColumns(
     count: Int,
     width: Float,
     height: Float,

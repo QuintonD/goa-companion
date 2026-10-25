@@ -189,8 +189,8 @@ class GameViewModel internal constructor(
     private suspend fun start(game: GameSession, inProgress: GameInProgress, fresh: Boolean) {
         session = game
         progress = inProgress
-        humans = game.setup.seats.filter { it.controller == Controller.Human }.map { it.heroId }.toSet()
-        bottomTeam = game.setup.seats.firstOrNull { it.controller == Controller.Human }?.team ?: Team.RED
+        humans = game.setup.humans
+        bottomTeam = game.setup.humanTeam ?: Team.RED
         selected = null
         nudge = null
         points = null
@@ -198,16 +198,12 @@ class GameViewModel internal constructor(
         humanAnswered = !fresh && canUndo(game)
         shownEvents = withContext(engine) { game.events.size }
         answeredAt = withContext(engine) { turnStart(game.events) }
-        reveal = withContext(engine) { latestReveal(game.events) }
+        reveal = withContext(engine) { latestReveal(game.events) { cards[it]?.initiative } }
         publish()
         drive()
     }
 
     private val review = ReviewKeeper()
-
-    /** Where the current turn's events begin (after a restore or take back, "since your last answer"). */
-    private fun turnStart(events: List<GameEvent>): Int =
-        events.indexOfLast { it is GameEvent.TurnStarted || it is GameEvent.RoundStarted }.coerceAtLeast(0)
 
     /** Whether the person has an answer to take back: tried on a copy, so the game is untouched. */
     private suspend fun canUndo(game: GameSession): Boolean = withContext(engine) {
@@ -414,7 +410,7 @@ class GameViewModel internal constructor(
             humanAnswered = canUndo(game)
             shownEvents = withContext(engine) { game.events.size }
             answeredAt = withContext(engine) { turnStart(game.events) }
-            reveal = withContext(engine) { latestReveal(game.events) }
+            reveal = withContext(engine) { latestReveal(game.events) { cards[it]?.initiative } }
             update(publish = false) { it.copy(takeBacks = it.takeBacks + 1) }
             say("Took back your last choice.")
             save()
@@ -530,14 +526,7 @@ class GameViewModel internal constructor(
         save()
         publish()
         val pace = progress?.pace ?: AiPace.NORMAL
-        val hidden = decision.kind == DecisionKind.PLAY_CARD
-        delay(
-            when {
-                revealed -> pace.millis * REVEAL_FACTOR
-                hidden -> pace.millis / HIDDEN_FACTOR
-                else -> pace.millis
-            },
-        )
+        delay(GamePacing.after(pace, revealed, decision.kind))
     }
 
     private suspend fun finish(game: GameSession) {
@@ -566,7 +555,7 @@ class GameViewModel internal constructor(
         fresh.forEach { event ->
             when (event) {
                 is GameEvent.CardsRevealed -> {
-                    reveal = revealOf(event)
+                    reveal = revealOf(event) { cards[it]?.initiative }
                     revealed = true
                 }
 
@@ -578,24 +567,6 @@ class GameViewModel internal constructor(
         announce(fresh.joinToString(" ") { it.text })
         return revealed
     }
-
-    private fun latestReveal(events: List<GameEvent>): List<RevealedCard> {
-        val last = events.indexOfLast { it is GameEvent.CardsRevealed }
-        if (last < 0) return emptyList()
-        if (events.drop(last + 1).any {
-                it is GameEvent.TurnStarted || it is GameEvent.RoundStarted
-            }
-        ) {
-            return emptyList()
-        }
-        return revealOf(events[last] as GameEvent.CardsRevealed)
-    }
-
-    /** The engine lists the cards in the order they will act (initiative, ties by the coin, p.7). */
-    private fun revealOf(event: GameEvent.CardsRevealed): List<RevealedCard> = event.played
-        .map { (hero, card) ->
-            RevealedCard(hero, card, event.initiatives[hero] ?: card?.let(cards::get)?.initiative)
-        }
 
     private fun announce(text: String) {
         if (text.isBlank()) return
@@ -625,21 +596,11 @@ class GameViewModel internal constructor(
         val board = map ?: return
         val inProgress = progress ?: return
         val snapshot = withContext(engine) {
-            Snapshot(game.pending, mergedView(game), game.events.toList(), review.build(game, humans))
+            Snapshot(game.pending, game.mergedView(humans), game.events.toList(), review.build(game, humans))
         }
         val decision = snapshot.pending
         val view = snapshot.view
-        val status = when {
-            decision == null || view.phase == GamePhase.GAME_OVER -> TurnStatus.Over
-
-            decision.seat in humans -> TurnStatus.YourTurn
-
-            decision.kind == DecisionKind.PLAY_CARD &&
-                humans.all { h -> view.heroes.any { it.heroId == h && it.played != null } } ->
-                TurnStatus.Waiting(view.heroes.filter { it.heroId !in humans && it.played == null }.map { it.heroId })
-
-            else -> TurnStatus.Computer(decision.seat, thinking)
-        }
+        val status = turnStatus(decision, view, humans, thinking)
         val table = TableUi(
             map = board,
             view = view,
@@ -652,12 +613,12 @@ class GameViewModel internal constructor(
             bottomTeam = bottomTeam,
             turnLog = turnLog(snapshot.events),
         )
-        val over = if (status == TurnStatus.Over) gameOver(view, snapshot.events, inProgress, game) else null
-        val recent = if (status == TurnStatus.YourTurn) {
-            recentSince(snapshot.events, answeredAt, game.setup.seats.map { it.heroId }.toSet())
+        val over = if (status == TurnStatus.Over) {
+            gameOverUi(view, snapshot.events, game.setup, inProgress, points)
         } else {
-            RecentLines(snapshot.events.filter(::panelWorthy).takeLast(RECENT).map { it.text })
+            null
         }
+        val recent = recentLines(status, snapshot.events, answeredAt, game.setup.seats.map { it.heroId }.toSet())
         state.update {
             GameUiState.Playing(
                 PlayUi(
@@ -690,81 +651,14 @@ class GameViewModel internal constructor(
         val review: ReviewUi? = null,
     )
 
-    /**
-     * What the person may see: the view of their first hero, with each other hero they control
-     * as that hero sees itself (its hand and its played card). They play all of them.
-     */
-    private fun mergedView(game: GameSession): GameView {
-        val first = humans.firstOrNull() ?: return game.view(null)
-        val base = game.view(first)
-        if (humans.size == 1) return base
-        val own = humans.drop(1).associateWith { seat -> game.view(seat).heroes.firstOrNull { it.heroId == seat } }
-        return base.copy(heroes = base.heroes.map { hero -> own[hero.heroId] ?: hero })
-    }
-
-    private fun gameOver(
-        view: GameView,
-        events: List<GameEvent>,
-        inProgress: GameInProgress,
-        game: GameSession,
-    ): GameOverUi? {
-        val over = events.filterIsInstance<GameEvent.GameOver>().lastOrNull()
-        val winner = view.winner ?: over?.winner ?: return null
-        val reason = view.winReason ?: over?.reason ?: return null
-        val heroIds = game.setup.seats.map { it.heroId }.toSet()
-        val defeats = events.filterIsInstance<GameEvent.Defeated>()
-        val results = game.setup.seats.map { seat ->
-            val hero = view.heroes.firstOrNull { it.heroId == seat.heroId }
-            HeroResult(
-                heroId = seat.heroId,
-                team = seat.team,
-                controller = seat.controller,
-                level = hero?.level ?: 1,
-                heroDefeats = defeats.count { it.byHeroId == seat.heroId && it.unitId in heroIds },
-                minionDefeats = defeats.count { it.byHeroId == seat.heroId && it.unitId !in heroIds },
-                defeated = defeats.count { it.unitId == seat.heroId },
-                coins = events.filterIsInstance<GameEvent.CoinsGained>().filter {
-                    it.heroId == seat.heroId
-                }.sumOf { it.amount },
-            )
-        }
-        val yourTeam = game.setup.seats.firstOrNull { it.controller == Controller.Human }?.team
-        return GameOverUi(
-            winner = winner,
-            reason = reason,
-            youWon = winner == yourTeam,
-            rounds = view.round,
-            heroes = results,
-            takeBacks = inProgress.takeBacks,
-            nudges = inProgress.nudges,
-            rethinks = inProgress.rethinks,
-            turningPoints = points,
-            coach = inProgress.coach,
-        )
-    }
-
     override fun onCleared() {
         driver?.cancel()
         dropLookahead()
     }
 
     internal companion object {
-        /**
-         * The most an answer waits for the coach; then it goes through unnudged. The look ahead has
-         * usually finished while the person was thinking (it starts with the question), so this only
-         * covers an answer given within moments; 300 ms still reads as the tap's own response.
-         */
-        const val NUDGE_WAIT_MS = 300L
-
-        const val TURNING_POINTS_TIMEOUT_MS = 20_000L
-
-        /** "Thinking…" after this long. */
-        const val THINKING_MS = 700L
-
-        /** The reveal stays this many paces; a hidden card play (p.7) a fraction of one. */
-        const val REVEAL_FACTOR = 2L
-        const val HIDDEN_FACTOR = 4L
-
-        const val RECENT = 4
+        const val NUDGE_WAIT_MS = GamePacing.NUDGE_WAIT_MS
+        const val TURNING_POINTS_TIMEOUT_MS = GamePacing.TURNING_POINTS_TIMEOUT_MS
+        const val THINKING_MS = GamePacing.THINKING_MS
     }
 }

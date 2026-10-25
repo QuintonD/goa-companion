@@ -1,13 +1,11 @@
 package dev.quinton.goa.feature.board
 
-import androidx.compose.runtime.Immutable
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.catalog.Hero
 
 /** A catalog hero as the board screens show it. Ids missing from the catalog read "Unknown hero". */
-@Immutable
 data class BoardHero(
     val id: String,
     val name: String,

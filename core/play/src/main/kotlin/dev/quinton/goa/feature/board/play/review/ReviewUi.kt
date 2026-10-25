@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.board.play.review
 
-import androidx.compose.runtime.Immutable
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.GameView
@@ -12,11 +11,9 @@ import dev.quinton.goa.feature.board.play.game.important
 import dev.quinton.goa.feature.board.play.game.merged
 
 /** A log line of a turn in the review; [strong] = one not to miss (a defeat, a push, a level up…). */
-@Immutable
 data class ReviewLine(val text: String, val strong: Boolean = false)
 
 /** One turn in the review's history: the cards revealed and what happened (ADR-037). */
-@Immutable
 data class TurnUi(
     val round: Int,
     val turn: Int,
@@ -34,7 +31,6 @@ data class TurnUi(
 )
 
 /** The board at the start of an earlier turn, read only. */
-@Immutable
 data class RewindUi(
     val round: Int,
     val turn: Int,
@@ -49,7 +45,6 @@ data class RewindUi(
  * The game-state review (PRODUCT §9–10): the game so far, turn by turn, and the pushes each team
  * won, as the person may see them; the board of an earlier turn while [rewind] is open.
  */
-@Immutable
 data class ReviewUi(
     /** Oldest first; the turn being played last. */
     val turns: List<TurnUi>,
@@ -76,7 +71,7 @@ sealed interface ReviewAction {
  * The review's state in a screen's ViewModel: open or not, which board is rewound. [build] runs on
  * the engine thread (the session is not thread-safe).
  */
-internal class ReviewKeeper {
+class ReviewKeeper {
     var open = false
         private set
     private var rewind: Pair<Int, Int>? = null
@@ -114,31 +109,54 @@ internal class ReviewKeeper {
         rewind = null
     }
 
+    /** The turn whose starting board is shown (round to turn), if any. */
+    val rewindAt: Pair<Int, Int>? get() = rewind
+
     /** The review for [viewers], or null while closed. On the engine thread. */
     fun build(game: GameSession, viewers: Set<String>): ReviewUi? {
         if (!open) return null
-        val heroIds = game.setup.seats.map { it.heroId }.toSet()
-        val turns = game.review(viewers).map { it.toUi(heroIds) }
-        val events = game.events
-        val pushes = events.filterIsInstance<GameEvent.LanePushed>().groupingBy { it.winner }.eachCount()
-        val at = rewind
-        val kept = turns.filter { it.hasStart }
-        val index = kept.indexOfFirst { (it.round to it.turn) == at }
-        val shown = kept.getOrNull(index)
-        val view = shown?.let { game.positionAt(it.round, it.turn, viewers) }
-        return ReviewUi(
-            turns = turns,
-            pushes = pushes,
-            rewind = if (shown != null && view != null) {
-                RewindUi(shown.round, shown.turn, view, shown.fromPosition, index > 0, index < kept.lastIndex)
-            } else {
-                null
-            },
-        )
+        return reviewUi(
+            heroIds = game.setup.seats.map { it.heroId }.toSet(),
+            reviews = game.review(viewers),
+            pushes = pushesWon(game.events),
+            rewind = rewind,
+        ) { round, turn -> game.positionAt(round, turn, viewers) }
     }
 }
 
-internal fun TurnReview.toUi(heroIds: Set<String>): TurnUi = TurnUi(
+/** Lane pushes won per team so far, from the log. */
+fun pushesWon(events: List<GameEvent>): Map<Team, Int> =
+    events.filterIsInstance<GameEvent.LanePushed>().groupingBy { it.winner }.eachCount()
+
+/**
+ * The review from the engine's [reviews] (oldest first) and [pushes], with the board at the start
+ * of [rewind] (round to turn) when that turn's start is kept ([positionAt]). The phone builds it on
+ * the engine thread; the web app from what its engine worker sent.
+ */
+fun reviewUi(
+    heroIds: Set<String>,
+    reviews: List<TurnReview>,
+    pushes: Map<Team, Int>,
+    rewind: Pair<Int, Int>?,
+    positionAt: (round: Int, turn: Int) -> GameView?,
+): ReviewUi {
+    val turns = reviews.map { it.toUi(heroIds) }
+    val kept = turns.filter { it.hasStart }
+    val index = kept.indexOfFirst { (it.round to it.turn) == rewind }
+    val shown = kept.getOrNull(index)
+    val view = shown?.let { positionAt(it.round, it.turn) }
+    return ReviewUi(
+        turns = turns,
+        pushes = pushes,
+        rewind = if (shown != null && view != null) {
+            RewindUi(shown.round, shown.turn, view, shown.fromPosition, index > 0, index < kept.lastIndex)
+        } else {
+            null
+        },
+    )
+}
+
+fun TurnReview.toUi(heroIds: Set<String>): TurnUi = TurnUi(
     round = round,
     turn = turn,
     plays = plays,

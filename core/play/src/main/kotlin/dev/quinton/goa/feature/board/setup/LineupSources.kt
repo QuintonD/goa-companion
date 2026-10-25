@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.board.setup
 
-import androidx.compose.runtime.Immutable
 import dev.quinton.goa.core.model.board.BoardLineup
 import dev.quinton.goa.core.model.draft.DraftRecord
 import dev.quinton.goa.core.model.match.Match
@@ -19,7 +18,6 @@ enum class LineupSourceKind(val label: String) {
 }
 
 /** A line-up to fill both teams with in one tap. */
-@Immutable
 data class LineupSource(
     val key: String,
     val kind: LineupSourceKind,

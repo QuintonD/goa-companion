@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.board.play.puzzles
 
-import androidx.compose.runtime.Immutable
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.PuzzleInfo
 import dev.quinton.goa.feature.board.play.game.PlayAnnouncement
@@ -26,13 +25,11 @@ enum class PuzzlePhase {
 }
 
 /** A nudge on show: [level] of [total] (1-based), stronger each time; [hint] names the option it points at. */
-@Immutable
 data class NudgeUi(val text: String, val level: Int, val total: Int, val hint: String? = null) {
     val more: Boolean get() = level < total
 }
 
 /** The other side's replies after a move, one line at a time. */
-@Immutable
 data class ReplyingUi(val title: String, val lines: List<String>)
 
 /**
@@ -40,7 +37,6 @@ data class ReplyingUi(val title: String, val lines: List<String>)
  * [count]. A step shows the position before a move with the move outlined ([title] names it) and
  * what happened since the move before ([lines]); the last step is the position once the goal is met.
  */
-@Immutable
 data class ReplayUi(
     val index: Int,
     val count: Int,
@@ -55,7 +51,6 @@ data class ReplayUi(
     val first: Boolean get() = index == 0
 }
 
-@Immutable
 data class PuzzleUi(
     val info: PuzzleInfo,
     /** Puzzles in the book; [info] has its number among them. */

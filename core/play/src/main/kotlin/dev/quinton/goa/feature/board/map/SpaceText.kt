@@ -11,7 +11,7 @@ import dev.quinton.goa.feature.board.board.BoardUiState
 import dev.quinton.goa.feature.board.hero
 
 /** What TalkBack reads for a space, and what its click does. */
-internal object SpaceText {
+object SpaceText {
     fun describe(state: BoardUiState.Ready, hex: Hex, occupant: BoardPiece?): String {
         val map = state.map
         val space = state.geometry.spaces[hex]

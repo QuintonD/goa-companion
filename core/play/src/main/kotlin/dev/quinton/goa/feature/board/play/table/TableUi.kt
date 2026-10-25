@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.board.play.table
 
-import androidx.compose.runtime.Immutable
 import dev.quinton.goa.core.domain.board.BoardGeometry
 import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.game.CardView
@@ -35,7 +34,6 @@ import dev.quinton.goa.feature.board.play.PlayText
  * puzzle's last nudge points at (drawn apart from the selection). [turnLog] is the events of the
  * latest two turns ([turnLog]): the turn track and the table's moments read them (ADR-041).
  */
-@Immutable
 data class TableUi(
     val map: BoardMap,
     val view: GameView,
@@ -223,7 +221,7 @@ data class TableUi(
  * The hero a piece is another figure of (a unit the engine treats as that hero: Razzle's doubles,
  * kind `<hero>_double`), else null.
  */
-internal fun figureOf(piece: PieceView): String? =
+fun figureOf(piece: PieceView): String? =
     piece.ownerHeroId?.takeIf { piece.isUnit && piece.kind == "${it}_double" }
 
 /** A tap on the game map: a piece (by id) or a space. */

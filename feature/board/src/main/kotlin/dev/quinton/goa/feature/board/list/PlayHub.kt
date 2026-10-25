@@ -37,6 +37,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
+import dev.quinton.goa.feature.board.changedHere
 
 /**
  * Learning by playing (ADR-035), above the boards: a game in progress to resume, "Play against the
@@ -147,7 +148,7 @@ private fun ResumeCard(resume: ResumeUi, now: Long, onResume: () -> Unit) {
                     if (resume.savedAt >
                         0
                     ) {
-                        "GAME IN PROGRESS · ${BoardText.changed(
+                        "GAME IN PROGRESS · ${BoardText.changedHere(
                             resume.savedAt,
                             now,
                         ).removePrefix("Changed ").uppercase()}"

@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.board.board
 
-import androidx.compose.runtime.Immutable
 import dev.quinton.goa.core.domain.board.BoardGeometry
 import dev.quinton.goa.core.domain.board.BoardRules.MovePath
 import dev.quinton.goa.core.model.board.BoardMap
@@ -35,7 +34,6 @@ sealed interface NewPiece {
 }
 
 /** The overlay switches of one selected piece (kept per piece while the board is open). */
-@Immutable
 data class OverlaySettings(
     /** The hero's card being measured; null = none chosen yet. */
     val cardId: String? = null,
@@ -56,7 +54,6 @@ data class OverlaySettings(
 )
 
 /** What the overlays of the selected piece cover, worked out by `BoardRules` (never by card effects). */
-@Immutable
 data class OverlayUi(
     val settings: OverlaySettings,
     /** The chosen card (heroes only). */
@@ -81,23 +78,18 @@ data class OverlayUi(
 }
 
 /** A measured space: [distance] in spaces, obstacles counted (p.18); [straight] = in a straight line. */
-@Immutable
 data class MeasureUi(val target: Hex, val distance: Int, val straight: Boolean)
 
 /** A piece waiting in the tray, and the spaces it should go to (p.8: the nearest empty spaces of the Battle Zone). */
-@Immutable
 data class WaitingUi(val piece: BoardPiece, val targets: Set<Hex>)
 
 /** Pushing made the losing team's Throne Zone the Battle Zone: [winner] wins (p.8). */
-@Immutable
 data class ThroneCaptured(val winner: Team)
 
 /** A short message for the snackbar; [id] tells two equal messages apart. */
-@Immutable
 data class BoardHint(val text: String, val id: Long)
 
 /** What TalkBack reads after a change ("Brogan moved 2 spaces, to …"); [id] makes each one new. */
-@Immutable
 data class Announcement(val text: String, val id: Long)
 
 sealed interface BoardUiState {
@@ -106,7 +98,6 @@ sealed interface BoardUiState {
     /** The board was deleted, can't be read, or its map isn't bundled in this build. */
     data class Missing(val message: String) : BoardUiState
 
-    @Immutable
     data class Ready(
         val board: SavedBoard,
         val map: BoardMap,

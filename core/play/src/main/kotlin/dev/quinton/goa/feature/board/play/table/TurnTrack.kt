@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.board.play.table
 
-import androidx.compose.runtime.Immutable
 import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.CardView
 import dev.quinton.goa.core.game.GameEvent
@@ -45,7 +44,6 @@ enum class SlotState {
  * [action] is the action the hero chose (done, or acting and already chosen). [offBoard]: the hero
  * is not on the board (defeated); [defeated]: it was defeated during this turn.
  */
-@Immutable
 data class TrackSlot(
     val heroId: String,
     val team: Team,
@@ -60,7 +58,6 @@ data class TrackSlot(
 )
 
 /** The turn's cards in acting order: done first, then the acting hero, the next, the later ones, passes. */
-@Immutable
 data class TurnTrack(val round: Int, val turn: Int, val slots: List<TrackSlot>) {
     val acting: TrackSlot? get() = slots.firstOrNull { it.state == SlotState.NOW }
     val next: TrackSlot? get() = slots.firstOrNull { it.state == SlotState.NEXT }
@@ -84,13 +81,13 @@ fun turnLog(events: List<GameEvent>): List<GameEvent> {
 }
 
 /** The events since the current turn started (the last TurnStarted), or all of [log] when it has none. */
-internal fun currentTurn(log: List<GameEvent>): List<GameEvent> {
+fun currentTurn(log: List<GameEvent>): List<GameEvent> {
     val start = log.indexOfLast { it is GameEvent.TurnStarted }
     return if (start < 0) log else log.subList(start + 1, log.size)
 }
 
 /** The events of the turn before the current one (and the end of round after it), or empty. */
-internal fun previousTurn(log: List<GameEvent>): List<GameEvent> {
+fun previousTurn(log: List<GameEvent>): List<GameEvent> {
     val last = log.indexOfLast { it is GameEvent.TurnStarted }
     if (last < 0) return emptyList()
     val before = log.subList(0, last).indexOfLast { it is GameEvent.TurnStarted }
@@ -220,7 +217,6 @@ enum class MomentKind {
  * A moment of the turn the table states in words: [title] ("All cards revealed"), [text] ("Wasp acts
  * first"). [cards] are the cards of the turn just over (TURN_OVER), each on its hero's Turn slot.
  */
-@Immutable
 data class TableMoment(
     val kind: MomentKind,
     val title: String,

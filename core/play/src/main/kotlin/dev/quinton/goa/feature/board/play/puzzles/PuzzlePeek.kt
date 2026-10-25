@@ -7,7 +7,7 @@ import dev.quinton.goa.feature.board.ui.PanelPeek
  * The puzzle panel's one line while it is hidden: the question (or the space or piece tapped, to
  * confirm), the other side's latest reply, the miss, the seal, or the replay's step.
  */
-internal fun puzzlePeek(puzzle: PuzzleUi): PanelPeek {
+fun puzzlePeek(puzzle: PuzzleUi): PanelPeek {
     val replay = puzzle.replay
     return when {
         replay != null -> PanelPeek(

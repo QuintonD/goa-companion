@@ -48,7 +48,7 @@ fun panelWorthy(event: GameEvent): Boolean = when (event) {
 }
 
 /** A line a player must not miss: a hero defeated, a Life counter spent, a push, a level up, the Minion Battle. */
-internal fun important(event: GameEvent, heroIds: Set<String>): Boolean = when (event) {
+fun important(event: GameEvent, heroIds: Set<String>): Boolean = when (event) {
     is GameEvent.Defeated -> event.unitId in heroIds
     is GameEvent.LifeSpent, is GameEvent.LanePushed, is GameEvent.LevelledUp, is GameEvent.GameOver -> true
     is GameEvent.Note -> event.text.startsWith(MINION_BATTLE)
@@ -56,7 +56,7 @@ internal fun important(event: GameEvent, heroIds: Set<String>): Boolean = when (
 }
 
 /** The pity coins of a round, one line: "Wasp, Arien and Brogan gain 1 coin each (pity coin)." */
-internal fun merged(events: List<GameEvent>): List<GameEvent> {
+fun merged(events: List<GameEvent>): List<GameEvent> {
     val out = ArrayList<GameEvent>()
     var i = 0
     while (i < events.size) {
@@ -76,7 +76,7 @@ internal fun merged(events: List<GameEvent>): List<GameEvent> {
     return out
 }
 
-internal const val FACEDOWN = "plays a card facedown."
+const val FACEDOWN = "plays a card facedown."
 private const val PITY = "(pity coin)."
 private const val MINION_BATTLE = "Minion Battle"
 private const val EARLIER = 2
