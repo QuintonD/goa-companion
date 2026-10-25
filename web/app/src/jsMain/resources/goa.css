@@ -780,6 +780,301 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
   background: var(--primary); color: var(--on-primary); border-radius: 999px; padding: 0 5px;
 }
 
+/* The board sandbox (fork A): Boards, New board, the board's map chrome, selection panel and sheets. */
+.goa-board-muted { color: var(--on-surface-variant); }
+/* A fill screen is the window (fixed, not 100dvh: WebKit's emulated and iOS's dynamic heights disagree
+   with the visible area), stopping above the tab bar when the screen keeps it (New board). */
+.goa-app .goa-screen.fill { position: fixed; top: 0; left: 0; right: 0; bottom: var(--safe-bottom); height: auto; }
+.goa-app.has-tabbar .goa-screen.fill { bottom: calc(var(--tabbar-height) + var(--safe-bottom)); }
+.goa-board-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.goa-board-overline {
+  display: block; margin: var(--sp-md) 0 var(--sp-xs); color: var(--primary);
+  font: 600 0.6875rem/1rem var(--font-body); letter-spacing: 0.08em;
+}
+.goa-board-overline.teal { color: var(--secondary); margin-top: 0; }
+.goa-board-unverified {
+  display: inline-block; margin-left: var(--sp-sm); padding: 0 6px; border-radius: 999px; vertical-align: middle;
+  border: 1px solid var(--unverified); color: var(--unverified); font: 600 0.625rem/1rem var(--font-body);
+}
+.goa-board-disabled { opacity: 0.38; }
+
+/* Portraits and piece avatars */
+.goa-board-portrait {
+  position: relative; display: inline-flex; flex: none; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 50%; overflow: hidden;
+  background: linear-gradient(var(--surface-high), var(--medallion)); box-shadow: 0 0 0 2px var(--outline-variant);
+}
+.goa-board-portrait.small { width: 28px; height: 28px; }
+.goa-board-portrait.fill { width: 100%; height: 100%; box-shadow: none; }
+.goa-board-portrait.red { box-shadow: 0 0 0 2px var(--team-red); }
+.goa-board-portrait.blue { box-shadow: 0 0 0 2px var(--team-blue); }
+.goa-board-portrait > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.goa-board-initials { color: var(--primary); font: 700 0.75rem/1 var(--font-display); }
+.goa-board-minion {
+  display: inline-flex; flex: none; width: 28px; height: 28px; border-radius: 50%; align-items: center; justify-content: center;
+  color: var(--map-on-team); box-shadow: 0 0 0 2px var(--map-halo);
+}
+.goa-board-minion.red { background: var(--team-red); }
+.goa-board-minion.blue { background: var(--team-blue); border-radius: 50%; }
+.goa-board-minion svg { width: 20px; height: 20px; }
+.goa-board-token-avatar {
+  display: inline-flex; flex: none; width: 28px; height: 28px; border-radius: 6px; align-items: center; justify-content: center;
+  background: var(--map-token); color: var(--map-on-token); font: 700 0.625rem/1 var(--font-body);
+  border: 2px solid var(--map-halo);
+}
+.goa-board-token-avatar.red { border-color: var(--team-red); }
+.goa-board-token-avatar.blue { border-color: var(--team-blue); }
+
+/* Over the map: badge, tool banner, Fit / Flip, the tools */
+.goa-board-top {
+  position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: flex-start; gap: var(--sp-sm);
+  padding: var(--sp-sm) calc(var(--sp-sm) + var(--safe-right)) 0 calc(var(--sp-sm) + var(--safe-left)); pointer-events: none;
+}
+.goa-board-top-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-sm); align-items: flex-start; }
+.goa-board-top > * > * { pointer-events: auto; }
+.goa-board-badge {
+  display: inline-flex; align-items: center; gap: var(--sp-xs); padding: 4px 10px; border-radius: 999px;
+  background: var(--map-label-bg); border: 1px solid var(--unverified); color: var(--unverified);
+  font: 600 0.75rem/1rem var(--font-body);
+}
+.goa-board-map-buttons { display: flex; flex-direction: column; gap: var(--sp-sm); }
+.goa-icon-button.goa-board-map-button {
+  background: var(--map-label-bg); color: var(--on-surface); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--outline-variant);
+}
+.goa-board-banner {
+  display: flex; align-items: center; gap: var(--sp-sm); max-width: 100%;
+  padding: var(--sp-xs) var(--sp-xs) var(--sp-xs) var(--sp-md); border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--primary); box-shadow: var(--shadow);
+}
+.goa-board-banner-text { min-width: 0; }
+.goa-board-banner-text p { margin: 0; }
+.goa-board-banner .goa-board-overline { margin: 0; }
+.goa-board-bottom {
+  position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center;
+  gap: var(--sp-sm); padding: var(--sp-sm) calc(var(--sp-sm) + var(--safe-right)) var(--sp-sm) calc(var(--sp-sm) + var(--safe-left));
+  pointer-events: none;
+}
+.goa-board-bottom > * { pointer-events: auto; }
+.goa-board-tools {
+  display: flex; gap: var(--sp-xs); width: 100%; max-width: 480px; padding: var(--sp-xs);
+  background: var(--surface); border: 1px solid var(--outline-variant); border-radius: 18px; box-shadow: var(--shadow);
+}
+.goa-board-tool {
+  flex: 1 1 0; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border: 0; border-radius: 14px; background: none; color: var(--on-surface); cursor: pointer; padding: 4px;
+}
+.goa-board-tool:active { background: color-mix(in srgb, var(--on-surface) 10%, transparent); }
+.goa-board-tool .goa-icon { color: var(--primary); }
+
+/* The selection panel */
+.goa-board-panel-head { display: flex; align-items: center; gap: var(--sp-md); margin-bottom: var(--sp-sm); }
+.goa-board-panel-title { flex: 1; min-width: 0; }
+.goa-board-panel-title h2, .goa-board-panel-title p { margin: 0; }
+.goa-button.text.goa-board-read { display: flex; justify-content: flex-start; margin: var(--sp-xs) 0; padding-left: 0; }
+.goa-board-note { margin: var(--sp-xs) 0 var(--sp-sm); }
+.goa-board-cards {
+  display: flex; gap: var(--sp-sm); overflow-x: auto; padding: 2px 2px var(--sp-sm); scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.goa-board-cards::-webkit-scrollbar { display: none; }
+.goa-board-card {
+  --card-accent: var(--on-surface-variant);
+  flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left;
+  min-width: 104px; max-width: 168px; min-height: var(--tap); padding: 6px var(--sp-sm);
+  border: 1px solid var(--engraved); border-radius: 10px; background: var(--surface); color: var(--on-surface); cursor: pointer;
+  scroll-snap-align: start;
+}
+.goa-board-card.color-gold { --card-accent: #C9A35B; }
+.goa-board-card.color-silver { --card-accent: #A9B4C2; }
+.goa-board-card.color-red { --card-accent: var(--team-red); }
+.goa-board-card.color-green { --card-accent: #6FBF73; }
+.goa-board-card.color-blue { --card-accent: var(--team-blue); }
+.goa-board-card.color-purple { --card-accent: var(--map-range); }
+.goa-board-card[aria-checked="true"] {
+  border: 2px solid var(--card-accent); background: color-mix(in srgb, var(--card-accent) 16%, var(--surface));
+}
+.goa-board-card-kind { display: flex; align-items: center; gap: 6px; color: var(--on-surface-variant); font: 500 0.6875rem/1rem var(--font-body); }
+.goa-board-card-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--card-accent); box-shadow: 0 0 0 1px var(--outline-variant); }
+.goa-board-card-init { font-variant-numeric: tabular-nums; }
+.goa-board-card-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 0.875rem/1.25rem var(--font-body); }
+.goa-board-values { margin: var(--sp-xs) 0; }
+.goa-board-value-list { display: flex; flex-wrap: wrap; gap: var(--sp-xs) var(--sp-md); margin-top: 2px; }
+.goa-board-value { color: var(--on-surface-variant); font: 500 0.8125rem/1.25rem var(--font-body); }
+.goa-board-switch {
+  display: flex; align-items: center; gap: var(--sp-md); min-height: 56px; padding: var(--sp-xs) 0; cursor: pointer;
+}
+.goa-board-switch.disabled { opacity: 0.5; cursor: default; }
+.goa-board-switch-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.goa-board-swatch {
+  flex: none; width: 28px; height: 32px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  background: var(--map-lane-b);
+}
+.goa-board-swatch.movement { background: color-mix(in srgb, var(--map-movement) 45%, var(--map-lane-b)); box-shadow: inset 0 0 0 2px var(--map-movement); }
+.goa-board-swatch.fast {
+  background: repeating-linear-gradient(45deg, var(--primary) 0 2px, color-mix(in srgb, var(--primary) 14%, var(--map-lane-b)) 2px 6px);
+}
+.goa-board-swatch.range { background: radial-gradient(circle, transparent 38%, var(--map-range) 40% 48%, color-mix(in srgb, var(--map-range) 14%, var(--map-lane-b)) 50%); }
+.goa-board-swatch.radius {
+  background: radial-gradient(circle at 50% 22%, var(--on-surface) 2.5px, transparent 3px),
+    radial-gradient(circle at 25% 66%, var(--on-surface) 2.5px, transparent 3px),
+    radial-gradient(circle at 75% 66%, var(--on-surface) 2.5px, transparent 3px), var(--map-lane-b);
+}
+.goa-board-toggle {
+  appearance: none; -webkit-appearance: none; flex: none; position: relative; width: 52px; height: 32px; margin: 0;
+  border-radius: 16px; background: var(--surface-high); border: 2px solid var(--outline-variant); cursor: pointer;
+  transition: background-color var(--dur-short);
+}
+.goa-board-toggle::after {
+  content: ""; position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--on-surface-variant); transition: transform var(--dur-short) var(--ease-emphasized);
+}
+.goa-board-toggle:checked { background: var(--secondary); border-color: var(--secondary); }
+.goa-board-toggle:checked::after { transform: translateX(20px); background: var(--on-secondary); }
+.goa-board-toggle:disabled { cursor: default; }
+.goa-board-stepper { display: flex; align-items: center; gap: var(--sp-sm); margin: 0 0 var(--sp-xs) 40px; }
+.goa-board-stepper .goa-icon-button { border: 1px solid var(--engraved); width: var(--tap); height: var(--tap); font: 500 1.25rem/1 var(--font-body); }
+.goa-board-stepper .goa-icon-button:disabled { opacity: 0.38; }
+.goa-board-rules { margin: 0 0 var(--sp-xs) 40px; }
+.goa-board-rules > p { margin: 0 0 var(--sp-xs); }
+.goa-board-panel .goa-parchment p { margin: 0 0 var(--sp-xs); }
+
+/* Sheets and dialogs */
+.goa-board-row { display: flex; align-items: center; gap: var(--sp-md); margin: var(--sp-md) 0; }
+.goa-board-field { display: flex; flex-direction: column; gap: var(--sp-xs); margin: var(--sp-md) 0; }
+.goa-board-field input, .goa-board-search input {
+  min-height: var(--tap); padding: 10px 14px; border-radius: 12px; border: 1px solid var(--engraved);
+  background: var(--surface-high); color: var(--on-surface); font: 400 1rem/1.5rem var(--font-body); width: 100%;
+}
+.goa-board-field input:focus, .goa-board-search input:focus { outline: 2px solid var(--secondary); outline-offset: 0; }
+.goa-board-search { flex: 1; min-width: 0; margin: var(--sp-sm) 0; }
+.goa-board-push { display: flex; flex-wrap: wrap; gap: var(--sp-sm); margin: var(--sp-sm) 0 var(--sp-md); }
+.goa-button.goa-board-team-button.red { color: var(--team-red); border-color: var(--team-red); }
+.goa-button.goa-board-team-button.blue { color: var(--team-blue); border-color: var(--team-blue); }
+.goa-board-tray {
+  width: 100%; max-width: 560px; padding: var(--sp-md); margin-bottom: var(--sp-sm); border-radius: 18px;
+  background: var(--surface); border: 1px solid var(--secondary); box-shadow: var(--shadow);
+}
+.goa-play-panel .goa-board-tray { box-shadow: none; }
+.goa-board-tray p { margin: 0; }
+.goa-board-tray-pieces { display: flex; flex-wrap: wrap; gap: var(--sp-sm); margin-top: var(--sp-sm); }
+.goa-board-tray-piece {
+  display: inline-flex; align-items: center; gap: var(--sp-sm); min-height: var(--tap); padding: 4px 10px;
+  border: 1px solid var(--engraved); border-radius: 12px; background: var(--surface); color: var(--on-surface); cursor: pointer;
+}
+.goa-board-tray-piece[aria-checked="true"] { border: 2px solid var(--secondary); background: var(--secondary-container); }
+
+/* Boards: the play hub, the latest line-up, the boards */
+.goa-board-hub { display: flex; flex-direction: column; gap: var(--sp-sm); }
+.goa-board-entry {
+  display: flex; align-items: center; gap: var(--sp-md); width: 100%; min-height: 72px; padding: var(--sp-md);
+  border: 1px solid color-mix(in srgb, var(--primary) 60%, transparent); border-radius: var(--radius-card);
+  background: linear-gradient(var(--bronze-glow), transparent 40px), var(--surface); color: var(--on-surface);
+  text-align: left; cursor: pointer;
+}
+.goa-board-entry.coming { border-color: var(--engraved); color: var(--on-surface-variant); cursor: default; }
+.goa-board-entry-icon { flex: none; color: var(--primary); display: flex; }
+.goa-board-entry.coming .goa-board-entry-icon { color: var(--on-surface-variant); }
+.goa-board-entry-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.goa-board-resume, .goa-board-latest {
+  display: flex; align-items: center; gap: var(--sp-md); padding: var(--sp-md);
+  border: 1px solid color-mix(in srgb, var(--primary) 55%, transparent); border-radius: var(--radius-card); background: var(--surface);
+}
+.goa-board-resume { border: 2px solid var(--secondary); }
+.goa-board-resume-text, .goa-board-latest-text { flex: 1; min-width: 0; }
+.goa-board-resume-text p, .goa-board-latest-text p { margin: 2px 0 0; }
+.goa-board-resume .goa-board-overline, .goa-board-latest .goa-board-overline { margin-top: 0; }
+.goa-board-latest-buttons { display: flex; flex-direction: column; align-items: center; }
+.goa-board-lineup { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-xs) var(--sp-sm); margin-top: var(--sp-xs); }
+.goa-board-lineup-team { display: inline-flex; align-items: center; gap: 6px; }
+.goa-board-list { display: flex; flex-direction: column; gap: var(--sp-sm); }
+.goa-board-row-card {
+  display: flex; align-items: flex-start; border: 1px solid var(--engraved); border-radius: var(--radius-card);
+  background: linear-gradient(var(--bronze-glow), transparent 40px), var(--surface);
+}
+.goa-board-row-open {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: var(--sp-md) 0 var(--sp-md) var(--sp-lg);
+  border: 0; background: none; color: inherit; text-align: left; cursor: pointer;
+}
+.goa-board-row-open h2 { margin: 0; overflow-wrap: anywhere; }
+
+/* New board: teams, search and "Adding to", the hero grid, the map and Set up */
+.goa-board-new {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+  padding: var(--sp-sm) calc(var(--sp-screen) + var(--safe-right)) 0 calc(var(--sp-screen) + var(--safe-left));
+}
+.goa-board-new-side { flex: none; display: flex; flex-direction: column; }
+.goa-board-new-main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.goa-board-new-search { display: flex; align-items: center; gap: var(--sp-sm); flex-wrap: wrap; }
+.goa-board-switch-row { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-board-switch-row .goa-segmented > button { min-width: 64px; }
+.goa-board-teams { display: flex; flex-direction: column; gap: var(--sp-xs); }
+.goa-board-team { display: flex; align-items: center; gap: var(--sp-sm); padding: 2px var(--sp-xs); border-radius: 12px; border: 1px solid transparent; }
+.goa-board-team.filling { border-color: var(--secondary); background: color-mix(in srgb, var(--secondary) 8%, transparent); }
+.goa-board-team-label {
+  flex: none; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0;
+  min-width: 64px; min-height: var(--tap); padding: 0 var(--sp-xs); border: 0; background: none; color: var(--on-surface); cursor: pointer;
+}
+.goa-board-team-label > .goa-team-mark { margin-bottom: 2px; }
+.goa-board-team.red .goa-board-team-label { color: var(--team-red); }
+.goa-board-team.blue .goa-board-team-label { color: var(--team-blue); }
+.goa-board-next { color: var(--secondary); font: 600 0.625rem/0.875rem var(--font-body); letter-spacing: 0.04em; text-transform: uppercase; }
+.goa-board-slots { flex: 1; min-width: 0; display: flex; gap: var(--sp-xs); overflow-x: auto; scrollbar-width: none; }
+.goa-board-slot, .goa-board-slot-empty {
+  flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: var(--tap); padding: 4px 8px 4px 4px;
+  border: 1px solid var(--engraved); border-radius: 22px; background: var(--surface); color: var(--on-surface); cursor: pointer;
+  max-width: 132px;
+}
+.goa-board-slot-empty { border-style: dashed; color: var(--on-surface-variant); padding: 4px 12px; max-width: none; }
+.goa-board-slot-n { font: 700 0.75rem/1 var(--font-body); color: var(--on-surface-variant); }
+.goa-board-grid-box { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.goa-board-grid { display: grid; gap: 6px; align-content: start; }
+.goa-board-tile {
+  min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 0;
+  border: 0; background: none; color: var(--on-surface); cursor: pointer;
+}
+.goa-board-tile-art {
+  position: relative; width: 100%; max-width: 64px; aspect-ratio: 1; border-radius: 50%; overflow: hidden;
+  box-shadow: 0 0 0 1px var(--outline-variant);
+}
+.goa-board-tile.picked.red .goa-board-tile-art { box-shadow: 0 0 0 3px var(--team-red); }
+.goa-board-tile.picked.blue .goa-board-tile-art { box-shadow: 0 0 0 3px var(--team-blue); }
+.goa-board-tile.picked .goa-board-portrait > img { opacity: 0.55; }
+.goa-board-tile-pick {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font: 700 1.25rem/1 var(--font-body); color: #FFFFFF; text-shadow: 0 1px 3px #000;
+}
+.goa-board-tile.later { cursor: default; }
+.goa-board-tile.later .goa-board-tile-art > .goa-board-portrait { filter: grayscale(1) opacity(0.45); }
+.goa-board-tile-later {
+  position: absolute; left: 0; right: 0; bottom: 18%; text-align: center; font: 600 0.625rem/1 var(--font-body);
+  color: var(--on-surface); background: var(--map-label-bg);
+}
+.goa-board-tile { container-type: inline-size; }
+/* Names shrink rather than cut on a small tile ("Silverarrow", not "Silvera…"), as on the phone. */
+.goa-board-tile-name {
+  width: 100%; text-align: center; font: 500 min(0.6875rem, 17cqw)/1rem var(--font-body);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.goa-board-setup-bar {
+  flex: none; display: flex; align-items: center; gap: var(--sp-sm); padding: var(--sp-sm) 0 calc(var(--sp-sm) + var(--safe-bottom));
+  border-top: 1px solid var(--outline-variant);
+}
+.goa-board-setup-bar.wide { display: none; }
+.goa-board-map-pick {
+  flex: 1; min-width: 0; min-height: var(--tap); display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto;
+  align-items: center; text-align: left; padding: 2px var(--sp-sm); border: 0; background: none; color: var(--on-surface); cursor: pointer;
+}
+.goa-board-map-pick .goa-board-overline { margin: 0; grid-column: 1; }
+.goa-board-map-pick .goa-icon { grid-row: 1 / span 2; grid-column: 2; }
+@media (orientation: landscape) and (min-width: 560px) {
+  .goa-board-new { flex-direction: row; gap: var(--sp-lg); }
+  .goa-board-new-side { flex: 0 0 42%; min-height: 0; }
+  .goa-board-new-top { flex: 1; min-height: 0; overflow-y: auto; }
+  .goa-board-setup-bar.wide { display: flex; }
+  .goa-board-setup-bar.narrow { display: none; }
+}
+
 /* The board screens' frame (PlayScaffold): exactly the window, a compact title bar, the map and its panel. */
 .goa-screen.fill { height: calc(100dvh - var(--safe-bottom)); overflow: hidden; }
 .goa-screen.fill .goa-topbar-row { min-height: 48px; }

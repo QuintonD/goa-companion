@@ -93,6 +93,8 @@ class MapCamera {
             userMoved = false
             if (mode == ViewMode.MOVED) mode = ViewMode.LANE
         }
+        // A new size wins over an easing still running toward the old one (a panel closing mid-Fit).
+        animation++
         reframe()
     }
 
@@ -104,6 +106,7 @@ class MapCamera {
         endInset = end
         topInset = top
         if (layout == null) return
+        animation++
         reframe()
         if (grew && mode == ViewMode.MOVED) pan = fillPan(pan, zoom)
     }
