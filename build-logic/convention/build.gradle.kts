@@ -49,6 +49,10 @@ gradlePlugin {
             id = "goa.android.hilt"
             implementationClass = "AndroidHiltConventionPlugin"
         }
+        register("kmpLibrary") {
+            id = "goa.kmp.library"
+            implementationClass = "KmpLibraryConventionPlugin"
+        }
         register("jvmLibrary") {
             id = "goa.jvm.library"
             implementationClass = "JvmLibraryConventionPlugin"
