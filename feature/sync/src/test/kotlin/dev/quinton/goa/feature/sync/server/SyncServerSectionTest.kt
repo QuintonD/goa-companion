@@ -72,6 +72,23 @@ class SyncServerSectionTest {
         )
 
     @Test
+    fun theGroupCardsLastSyncedCountsAServerSync() = runTest {
+        // Hands-on 2026-10-25: the card said "last synced 6 days ago" (face to face) under a server
+        // card saying "Synced just now".
+        now = 7 * 24 * 60 * 60_000L
+        val faceToFace = now - 6 * 24 * 60 * 60_000L
+        val groups = FakeGroupRepository(
+            groupState().copy(lastSyncAt = faceToFace, server = withDefault.copy(syncedAt = now - 2 * 60_000)),
+        )
+        val vm = vm(groups)
+        backgroundScope.launch { vm.uiState.collect {} }
+        assertThat(vm.uiState.first { !it.loading }.lastSync).isEqualTo("2 min ago")
+
+        groups.current.value = groups.current.value.copy(server = withDefault)
+        assertThat(vm.uiState.first { it.lastSync != "2 min ago" }.lastSync).isEqualTo("6 days ago")
+    }
+
+    @Test
     fun theStatusLineFollowsTheLastSyncARunningOneAndErrors() = runTest {
         val groups = FakeGroupRepository(groupState().copy(server = withDefault.copy(syncedAt = now - 2 * 60_000)))
         val vm = vm(groups)

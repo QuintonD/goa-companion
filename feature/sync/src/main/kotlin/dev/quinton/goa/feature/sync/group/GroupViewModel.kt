@@ -109,7 +109,10 @@ class GroupViewModel @Inject constructor(
             me = me,
             deviceName = me?.name ?: group.deviceName ?: phoneName.get(),
             phones = group.phones.map { PhoneRow(it.name, SyncText.ago(it.lastSyncedAt, now)) },
-            lastSync = group.lastSyncAt?.let { SyncText.ago(it, now) },
+            // Any sync counts, face to face or through the server (hands-on: "last synced 6 days ago"
+            // under a server card saying "Synced just now").
+            lastSync = listOfNotNull(group.lastSyncAt, group.server.syncedAt).maxOrNull()
+                ?.let { SyncText.ago(it, now) },
             players = people.count { !it.archived },
             matches = log.size,
             busy = l.busy,
