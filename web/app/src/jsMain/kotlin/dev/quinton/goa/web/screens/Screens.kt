@@ -2,7 +2,15 @@ package dev.quinton.goa.web.screens
 
 import androidx.compose.runtime.Composable
 import dev.quinton.goa.web.LocalServices
+import dev.quinton.goa.web.draft.DraftBoardScreen
+import dev.quinton.goa.web.draft.DraftMethodEditScreen
+import dev.quinton.goa.web.draft.DraftMethodsScreen
+import dev.quinton.goa.web.draft.DraftSetupScreen
 import dev.quinton.goa.web.nav.Route
+import dev.quinton.goa.web.timer.MatchSetupScreen
+import dev.quinton.goa.web.timer.PresetEditScreen
+import dev.quinton.goa.web.timer.PresetsScreen
+import dev.quinton.goa.web.timer.TimerScreen
 import dev.quinton.goa.web.ui.EmptyState
 import dev.quinton.goa.web.ui.GoaButton
 import dev.quinton.goa.web.ui.Screen
@@ -49,11 +57,32 @@ fun ScreenFor(route: Route) {
 
         Route.About -> AboutScreen()
 
-        // Timer tab
-        Route.Timer -> PlaceholderScreen("Timer", Placeholder.TIMER, settingsAction = true)
+        // Timer tab (W3 table)
+        Route.Timer -> TimerScreen()
 
-        // Draft tab
-        Route.Draft -> PlaceholderScreen("Draft", Placeholder.DRAFT, settingsAction = true)
+        is Route.MatchSetup -> MatchSetupScreen(route)
+
+        Route.TimerPresets -> PresetsScreen()
+
+        is Route.TimerPresetEdit -> PresetEditScreen(route.presetId)
+
+        // Draft tab (W3 table)
+        Route.Draft -> DraftSetupScreen()
+
+        Route.DraftBoard -> DraftBoardScreen()
+
+        Route.DraftMethods -> DraftMethodsScreen()
+
+        is Route.DraftMethodEdit -> DraftMethodEditScreen(route.methodId)
+
+        // Opened by the table tools, built by other streams (W2 matches and players, W1 rules, W4 board)
+        is Route.MatchEdit -> PlaceholderScreen("Match", Placeholder.MATCH_EDIT)
+
+        is Route.PlayerEdit -> PlaceholderScreen("Player", Placeholder.PLAYER_EDIT)
+
+        is Route.LevelLadder -> PlaceholderScreen("Levels & defeats", Placeholder.LEVELS)
+
+        is Route.NewBoard -> PlaceholderScreen("Board", Placeholder.BOARD)
 
         // Players tab
         Route.Players -> PlaceholderScreen(

@@ -22,12 +22,13 @@ enum class Placeholder(val icon: String, val what: String) {
     PUZZLES("puzzle", "Difficult solver-proven positions with nudges"),
     PUZZLE("puzzle", "A puzzle"),
     RULES("rules", "The level & defeat ladder and the quick-reference topics"),
-    TIMER("nav_timer", "Phase countdowns built for the table"),
-    DRAFT("nav_draft", "Pick/ban drafting that feeds a match record"),
     PLAYERS("nav_players", "Friends, Elo per player and per hero"),
     MATCHES("list", "Every match your group logged"),
     META("chart", "Win rates and the meta, from the match log"),
     GROUP("sync", "Your group's match log, synced through the group's relay"),
+    MATCH_EDIT("list", "Log a match's result"),
+    PLAYER_EDIT("person", "A player's profile"),
+    LEVELS("rules", "The level & defeat ladder"),
 }
 
 data class PlaceholderLink(val title: String, val icon: String, val route: Route)
