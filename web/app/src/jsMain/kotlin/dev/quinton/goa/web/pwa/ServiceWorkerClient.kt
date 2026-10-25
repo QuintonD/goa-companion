@@ -68,9 +68,12 @@ class ServiceWorkerClient {
         if (reg.waiting != null && container.controller != null) updateReady = true
         reg.addEventListener("updatefound", { _: dynamic ->
             val installing = reg.installing
+            // An update only if a worker already controlled the page when this one started installing.
+            // Checked now, not at "installed": WebKit can deliver that event after the first worker has
+            // already claimed the page, which made a first visit say "A new version of the app is ready".
+            val update = container.controller != null
             installing?.addEventListener("statechange", { _: dynamic ->
-                // "installed" with a controller = an update (the first install has no controller).
-                if (installing.state == "installed" && container.controller != null) updateReady = true
+                if (installing.state == "installed" && update) updateReady = true
             })
         })
     }
