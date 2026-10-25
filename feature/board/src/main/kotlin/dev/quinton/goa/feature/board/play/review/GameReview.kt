@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.board.play.review
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -758,9 +759,15 @@ private fun Lines(lines: List<ReviewLine>, startOpen: Boolean, what: String) {
 
 // ---- Rewind --------------------------------------------------------------------------------
 
-/** The board at the start of an earlier turn, read only, with the heroes as they stood then. */
+/**
+ * The board at the start of an earlier turn, read only, with the heroes as they stood then. System
+ * back returns to the Turns list (one level, like the arrow), not past it: the sheet's own back
+ * handler would close the whole review, so the next press would leave the game.
+ */
 @Composable
 private fun Rewind(table: TableUi, rewind: RewindUi, onAction: (ReviewAction) -> Unit) {
+    // Registered inside the sheet's window after the sheet's own callback, so it is asked first.
+    BackHandler { onAction(ReviewAction.CloseRewind) }
     val then = TableUi(
         map = table.map,
         view = rewind.view,
