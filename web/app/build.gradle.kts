@@ -110,6 +110,8 @@ kotlin {
                 implementation(projects.core.model)
                 implementation(projects.core.domain)
                 implementation(projects.core.dataContracts)
+                // The Players and Group screens' rows and words, shared with the phone (W2).
+                implementation(projects.core.groupPresentation)
                 implementation(libs.compose.runtime)
                 implementation(libs.compose.html.core)
                 implementation(libs.kotlinx.coroutines.core)

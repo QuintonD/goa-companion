@@ -8,53 +8,94 @@ import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.RatingsRepository
 import dev.quinton.goa.core.data.SyncRepository
 import dev.quinton.goa.core.data.SyncServerControl
+import dev.quinton.goa.core.data.SyncServerDefaults
 import dev.quinton.goa.core.data.SyncServerRepository
 import dev.quinton.goa.core.data.TriviaRoundRepository
 import dev.quinton.goa.core.data.rating.EloConfigRepository
 import dev.quinton.goa.core.data.rating.HeroPilotsRepository
 import dev.quinton.goa.core.data.rating.RatingsSnapshotRepository
-import dev.quinton.goa.web.data.stub.W2DraftRecordStub
-import dev.quinton.goa.web.data.stub.W2EloConfigStub
-import dev.quinton.goa.web.data.stub.W2GroupStub
-import dev.quinton.goa.web.data.stub.W2MatchStub
-import dev.quinton.goa.web.data.stub.W2PlayerStub
-import dev.quinton.goa.web.data.stub.W2RatingsStub
-import dev.quinton.goa.web.data.stub.W2SyncStub
-import dev.quinton.goa.web.data.stub.W2TriviaRoundStub
+import dev.quinton.goa.core.data.rating.ReplayRatingsRepository
+import dev.quinton.goa.core.data.sync.PrefsGroupRepository
+import dev.quinton.goa.core.data.sync.RelayHttp
+import dev.quinton.goa.core.data.sync.RelaySyncRepository
+import dev.quinton.goa.web.group.FetchRelayHttp
+import dev.quinton.goa.web.group.GroupDocumentStore
+import dev.quinton.goa.web.group.TabChannel
+import dev.quinton.goa.web.group.WebCryptoCipher
+import dev.quinton.goa.web.group.WebDraftRecordRepository
+import dev.quinton.goa.web.group.WebEloConfigRepository
+import dev.quinton.goa.web.group.WebGroupPrefsStore
+import dev.quinton.goa.web.group.WebMatchRepository
+import dev.quinton.goa.web.group.WebPlayerRepository
+import dev.quinton.goa.web.group.WebSyncRepository
+import dev.quinton.goa.web.group.WebSyncServerControl
+import dev.quinton.goa.web.group.WebTriviaRoundRepository
+import dev.quinton.goa.web.storage.scoped
+import kotlinx.coroutines.Dispatchers
 
 /**
- * W2 group (feature/web-group): the group's synced data (players, match log, drafts, trivia rounds,
- * merges, rating constants; one `SyncDocument` in IndexedDB, writes stamped with
- * [WebServices.clock]), the ratings replayed from it, this browser's group membership and sync.
- * Owned by W2: only W2 edits this file ([WebServices]).
+ * W2 group: the group's synced data (players, match log, drafts, trivia rounds, merges, rating
+ * constants; one `SyncDocument` in IndexedDB under `group/`, writes stamped with
+ * [WebServices.clock]), the ratings replayed from it, this browser's group membership and its sync
+ * with the group's relay (the phone's algorithm, shared: `RelaySyncRepository`). Owned by W2: only
+ * W2 edits this file ([WebServices]). Nothing here touches storage or the network until used;
+ * `syncServerControl.start()` is called once by the app's `main()`.
  */
-@Suppress("UnusedPrivateProperty", "unused")
-class GroupData(private val services: WebServices) {
-    val players: PlayerRepository = W2PlayerStub
+class GroupData(
+    services: WebServices,
+    defaults: SyncServerDefaults = WebSyncDefaults.forThisPage(),
+    http: RelayHttp = FetchRelayHttp(),
+    tabs: Boolean = true,
+) {
+    private val docs = GroupDocumentStore(
+        services.store.scoped("group/"),
+        if (tabs) TabChannel.browser("goa-group-document") else TabChannel.None,
+    )
+    private val prefs = WebGroupPrefsStore(
+        services.store.scoped("group/"),
+        if (tabs) TabChannel.browser("goa-group-prefs") else TabChannel.None,
+    )
+    private val playerStore = WebPlayerRepository(docs, services.clock)
 
-    val playerMerges: PlayerMergeRepository = W2PlayerStub
+    val players: PlayerRepository = playerStore
 
-    val matches: MatchRepository = W2MatchStub
+    val playerMerges: PlayerMergeRepository = playerStore
 
-    val draftRecords: DraftRecordRepository = W2DraftRecordStub
+    val matches: MatchRepository = WebMatchRepository(docs, services.clock)
 
-    val triviaRounds: TriviaRoundRepository = W2TriviaRoundStub
+    val draftRecords: DraftRecordRepository = WebDraftRecordRepository(docs, services.clock)
 
-    val eloConfig: EloConfigRepository = W2EloConfigStub
+    val triviaRounds: TriviaRoundRepository = WebTriviaRoundRepository(docs, services.clock)
 
-    // One ReplayRatingsRepository(matches, draftRecords, eloConfig, services.content.catalog,
-    // services.scope, Dispatchers.Default) behind all three, as on the phone.
-    val ratings: RatingsRepository = W2RatingsStub
+    val eloConfig: EloConfigRepository = WebEloConfigRepository(docs, services.clock)
 
-    val ratingsSnapshot: RatingsSnapshotRepository = W2RatingsStub
+    // One replay behind all three, as on the phone.
+    private val replay = ReplayRatingsRepository(
+        matches,
+        draftRecords,
+        eloConfig,
+        services.content.catalog,
+        services.scope,
+        Dispatchers.Default,
+    )
 
-    val heroPilots: HeroPilotsRepository = W2RatingsStub
+    val ratings: RatingsRepository = replay
 
-    val group: GroupRepository = W2GroupStub
+    val ratingsSnapshot: RatingsSnapshotRepository = replay
 
-    val sync: SyncRepository = W2SyncStub
+    val heroPilots: HeroPilotsRepository = replay
 
-    val syncServer: SyncServerRepository = W2SyncStub
+    private val groupStore = PrefsGroupRepository(prefs, defaults)
 
-    val syncServerControl: SyncServerControl = W2SyncStub
+    val group: GroupRepository = groupStore
+
+    val sync: SyncRepository = WebSyncRepository(docs, services.clock)
+
+    val syncServer: SyncServerRepository =
+        RelaySyncRepository(groupStore, sync, docs.changes, services.clock, http, WebCryptoCipher)
+
+    val syncServerControl: SyncServerControl = WebSyncServerControl(group, syncServer, services.scope, services.clock::now)
+
+    /** Starts automatic server sync (app open, back on screen, after changes); once, from `main()`. */
+    fun start() = (syncServerControl as WebSyncServerControl).start()
 }
