@@ -498,6 +498,13 @@ internal fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState, m
             Section("Discarded")
             CardRow(hero.discard, table, focus, "${info.name} · Discarded")
         }
+        // The unlocked Ultimate is a faceup card on the dashboard (p.16): show it, not only "Active".
+        ultimateCard(table, hero)?.let { card ->
+            Section("Ultimate · p.16")
+            CardRow(listOf(CardView(card.id)), table, focus, "${info.name} · Ultimate")
+        }
+        // Gydion's spellbook (ADR-040): SpellbookSection.kt.
+        ExtrasSection(table, hero, focus)
         val hand = hero.hand
         if (hand != null && heroId in table.mine) {
             Section("Your hand")
