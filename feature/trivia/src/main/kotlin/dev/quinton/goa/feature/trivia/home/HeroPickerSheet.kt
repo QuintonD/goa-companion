@@ -44,11 +44,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.data.trivia.HeroOption
+import dev.quinton.goa.core.data.trivia.TriviaText
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.trivia.TriviaText
 
 /** Pick the heroes to quiz: all of them, or any you choose. Changes apply as you tap. */
 @OptIn(ExperimentalMaterial3Api::class)

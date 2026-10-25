@@ -21,7 +21,6 @@ class WebServicesTest {
         val services = WebServices(MemoryKeyValueStore())
 
         val failures = listOf(
-            "W1" to assertFailsWith<NotImplementedError> { services.content.settings.settings },
             "W2" to assertFailsWith<NotImplementedError> { services.group.matches.observeMatches() },
             "W3" to assertFailsWith<NotImplementedError> {
                 services.table.draftSetupPrefill.prefill(emptyList(), emptyList(), null, false)

@@ -1,6 +1,9 @@
 package dev.quinton.goa.feature.catalog.model
 
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.domain.catalog.CatalogSearchIndex
+import dev.quinton.goa.core.domain.catalog.MatchField
+import dev.quinton.goa.core.domain.catalog.MatchQuality
 import dev.quinton.goa.core.testing.TestCatalog
 import dev.quinton.goa.feature.catalog.Fixtures
 import org.junit.Test

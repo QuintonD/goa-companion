@@ -75,6 +75,8 @@ build-logic/             # convention plugins (android-library, compose, feature
 core/model/              # KMP jvm+js: data classes (Hero, Card, Player, Match, DraftMethod…)
 core/domain/             # KMP jvm+js: TimerEngine, EloCalculator, DraftEngine, MetaStats, MatchSetup, TriviaEngine,
                          #   trivia/ TriviaChallenge + TriviaLeaderboard (derived, ADR-032),
+                         #   catalog/ (the Heroes tab's search, filters, deck layout and card wording,
+                         #   CatalogSearchIndex + catalogResults + CardIcons; shared with the web, ADR-043 W1),
                          #   sync/ (SyncMerge, PlayerMerges, SyncHash, SyncFileCodec + SyncCipher, SyncVectors);
                          #   jvmMain: SyncCrypto, SyncCodec, the Nearby protocol (SyncHost/SyncClient)
 core/domain-testfixtures/ # JVM: in-memory SyncTransport + data port (sources in core/domain/src/testFixtures)
@@ -338,6 +340,14 @@ Kotlin (once they target JS, F1) under a DOM UI in Compose HTML; rules never liv
   content hash, and waits for "Reload" to switch builds. `pwa/OfflineAssets` downloads every image
   with progress from `asset-manifest.json` (written by `:web:app:site`).
 - **Storage.** `storage/KeyValueStore` over IndexedDB; each stream keeps its data under its own prefix.
+- **Content (W1).** `web/catalog/`: the Heroes tab, hero page and card viewer over core:domain's
+  `catalog/` (the phone's `CatalogViewModel` logic is `catalogResults`, the deck `DeckLayout`, the
+  spoken card `CardIcons`); `CatalogBrowse` (in `ContentData`) keeps the search index and the
+  search, filters and sort for the page's lifetime. Card text renders `game_<token>.svg` icons inline
+  (the Android glyphs, `third_party/ASSETS.md`); the viewer swipes with native CSS scroll snapping and
+  zooms with its own pinch/double-tap (`PinchZoom`). Data other streams own (ratings, pilots,
+  players) is read through `optional(...)`, which falls back when a contract fails. `web/rules/`,
+  `web/settings/` (settings, About) and `web/trivia/` complete the stream.
 - **Build.** `:web:app:webAssets` copies the bundled catalog, `official/` images, fonts, licences and
   shared icons from the Android sources at build time; `:web:app:site` writes the deployable
   `web/app/build/site` (stamped build id, asset manifest, no source maps).

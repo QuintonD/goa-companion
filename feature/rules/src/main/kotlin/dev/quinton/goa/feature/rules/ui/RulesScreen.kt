@@ -40,13 +40,9 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.rules.RulesText
+import dev.quinton.goa.core.domain.rules.RulesText
 import dev.quinton.goa.feature.rules.RulesUiState
 import dev.quinton.goa.feature.rules.TopicItem
-
-/** Words that find the level & defeat ladder from the search box. */
-private val ladderWords =
-    listOf("level", "defeat", "coin", "assist", "life", "counter", "spend", "tier", "cost", "upgrade", "ladder")
 
 /** Rules tab: the level & defeat ladder first, then searchable quick-reference topics. */
 @Composable
@@ -82,9 +78,7 @@ private fun RulesList(
     onOpenLadder: () -> Unit,
     onOpenTopic: (String) -> Unit,
 ) {
-    val words = state.query.lowercase().split(' ').filter { it.isNotBlank() }
-    val showLadder =
-        words.isEmpty() || words.all { word -> ladderWords.any { it.startsWith(word) || word.startsWith(it) } }
+    val showLadder = RulesText.showsLadder(state.query)
     LazyColumn(
         contentPadding = PaddingValues(horizontal = Spacing.screen, vertical = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -164,7 +158,7 @@ private fun LadderCard(onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            PageTag(listOf(13, 15, 23))
+            PageTag(RulesText.LADDER_PAGES)
         }
     }
 }

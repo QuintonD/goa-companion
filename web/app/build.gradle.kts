@@ -22,7 +22,7 @@ plugins {
  * The game data, official images, fonts and shared icons come from the Android app's files at build
  * time (single source of truth, never committed twice): catalog JSON and `official/` from
  * `app/src/main/assets`, fonts from `core/designsystem`, their licences from `third_party/fonts`,
- * the tab and brand icons from `design/icons`.
+ * the tab and brand icons from `design/icons`, the hero sigils from `design/sigils`.
  */
 val webAssets: TaskProvider<Sync> = tasks.register<Sync>("webAssets") {
     description = "Copies the catalog, official images, fonts, licences and shared icons into the web app."
@@ -36,17 +36,27 @@ val webAssets: TaskProvider<Sync> = tasks.register<Sync>("webAssets") {
         include("OFL-*.txt")
         into("licenses")
     }
+    // The licence of the Material icon glyphs in card text (`icons/game_*.svg`).
+    from(rootProject.file("third_party/icons")) {
+        include("LICENSE-*.txt")
+        into("licenses")
+    }
     from(rootProject.file("design/icons")) {
         include("nav_*.svg", "brand_mark.svg")
         into("icons")
+    }
+    // The hero sigils (original art): a hero's emblem while its portrait loads or when it can't.
+    from(rootProject.file("design/sigils")) {
+        include("*.svg")
+        into("sigils")
     }
 }
 
 /**
  * The UI icons as inline SVG markup (`IconMarkup.kt`), generated from the SVG files: the web-only
- * icons in `src/jsMain/resources/icons` and the tab icons in `design/icons`. Inline SVG tints with
- * `currentColor`, needs no request and has no first-paint gap (CSS masks on the sticky/fixed bars
- * weren't repainted by WebKit once they loaded).
+ * icons in `src/jsMain/resources/icons`, the tab icons in `design/icons` and the player crests in
+ * `design/avatars`. Inline SVG tints with `currentColor`, needs no request and has no first-paint
+ * gap (CSS masks on the sticky/fixed bars weren't repainted by WebKit once they loaded).
  */
 abstract class GenerateIconMarkup : DefaultTask() {
     @get:InputFiles
@@ -81,6 +91,8 @@ abstract class GenerateIconMarkup : DefaultTask() {
 val iconMarkup = tasks.register<GenerateIconMarkup>("iconMarkup") {
     icons.from(fileTree("src/jsMain/resources/icons") { include("*.svg") })
     icons.from(fileTree(rootProject.file("design/icons")) { include("nav_*.svg") })
+    // The 24 player crests (Player.avatarId), tinted with the player's colour like Android's PlayerAvatar.
+    icons.from(fileTree(rootProject.file("design/avatars")) { include("crest_*.svg") })
     output.set(layout.buildDirectory.dir("generated/iconMarkup"))
 }
 

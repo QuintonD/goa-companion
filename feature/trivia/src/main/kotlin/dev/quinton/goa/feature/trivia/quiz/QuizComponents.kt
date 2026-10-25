@@ -56,6 +56,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import dev.quinton.goa.core.data.trivia.QuizQuestionUi
+import dev.quinton.goa.core.data.trivia.TriviaCardUi
+import dev.quinton.goa.core.data.trivia.TriviaQuizUiState
+import dev.quinton.goa.core.data.trivia.TriviaText
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.assetUrl
@@ -65,8 +69,6 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.trivia.DuelPick
 import dev.quinton.goa.core.domain.trivia.TriviaAnswer
-import dev.quinton.goa.feature.trivia.TriviaCardUi
-import dev.quinton.goa.feature.trivia.TriviaText
 import dev.quinton.goa.feature.trivia.ui.CardKindLine
 import dev.quinton.goa.feature.trivia.ui.HeroLine
 import dev.quinton.goa.feature.trivia.ui.spokenCard

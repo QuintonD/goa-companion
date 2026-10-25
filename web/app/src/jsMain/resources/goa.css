@@ -649,3 +649,887 @@ code {
   .goa-topbar-actions .collapsible { display: none; }
   .goa-topbar-actions .more-only { display: inline-flex; }
 }
+
+/* ---------- W1 catalog: Heroes tab, hero page, card viewer ---------- */
+/* Card colours (core:designsystem GoaColors.card*): accents only, never text on their own. */
+:root, :root[data-theme="dark"] {
+  --card-gold: #D9B44A; --card-silver: #B8C2CC; --card-red: #E26459;
+  --card-green: #6CC27A; --card-blue: #5E9BE6; --card-purple: #B18CE0;
+}
+:root[data-theme="light"] {
+  --card-gold: #8A6A12; --card-silver: #56616C; --card-red: #B83A30;
+  --card-green: #2E7A3C; --card-blue: #2C63B0; --card-purple: #6B45A0;
+}
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] {
+    --card-gold: #8A6A12; --card-silver: #56616C; --card-red: #B83A30;
+    --card-green: #2E7A3C; --card-blue: #2C63B0; --card-purple: #6B45A0;
+  }
+}
+.cc-gold { --cc: var(--card-gold); }
+.cc-silver { --cc: var(--card-silver); }
+.cc-red { --cc: var(--card-red); }
+.cc-green { --cc: var(--card-green); }
+.cc-blue { --cc: var(--card-blue); }
+.cc-purple { --cc: var(--card-purple); }
+.cc-other { --cc: var(--on-surface-variant); }
+
+.t-label-small { font: 500 0.6875rem/1rem var(--font-body); letter-spacing: 0.03rem; }
+.t-headline-medium { font: 600 1.75rem/2.25rem var(--font-display); letter-spacing: 0; }
+.goa-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.c-primary { color: var(--primary); }
+
+/* The hero page names the hero in the top bar only once the big name has scrolled away. */
+.goa-topbar-title { transition: opacity var(--dur-short); }
+.goa-title-hidden .goa-topbar-title { opacity: 0; }
+
+/* Search field (iOS: 16 px text, or Safari zooms in on focus) */
+.goa-search { position: relative; display: flex; align-items: center; }
+.goa-search-input {
+  width: 100%; min-height: 48px; margin: 0;
+  padding: 10px 48px 10px 44px;
+  border: 1px solid var(--outline-variant); border-radius: 24px;
+  background: var(--surface); color: var(--on-surface);
+  -webkit-appearance: none; appearance: none;
+}
+.goa-search-input::placeholder { color: var(--on-surface-variant); opacity: 1; }
+.goa-search-input::-webkit-search-cancel-button, .goa-search-input::-webkit-search-decoration { -webkit-appearance: none; display: none; }
+.goa-search-input:focus { outline: 2px solid var(--primary); outline-offset: -1px; border-color: transparent; }
+.goa-search-icon { position: absolute; left: 14px; display: flex; color: var(--on-surface-variant); pointer-events: none; }
+.goa-search .goa-search-clear { position: absolute; right: 0; color: var(--on-surface-variant); }
+
+.goa-catalog-controls { margin-top: var(--sp-sm); padding-top: 4px; padding-bottom: 4px; }
+.goa-chip.active, .goa-chip.goa-chip-input {
+  background: color-mix(in srgb, var(--primary) 20%, transparent); color: var(--on-surface); border-color: transparent;
+}
+.goa-chip.active .goa-icon, .goa-chip.goa-chip-input .goa-icon { color: var(--primary); }
+.goa-catalog-summary { margin: var(--sp-sm) 0; }
+.goa-results-header { display: flex; align-items: baseline; gap: var(--sp-sm); margin: var(--sp-md) 0 var(--sp-sm); }
+
+/* Hero art: the sigil while the portrait loads, or when it can't */
+.goa-hero-art { position: relative; overflow: hidden; background: linear-gradient(var(--surface-high), var(--medallion)); }
+.goa-hero-art > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--dur-medium); }
+.goa-hero-art.loaded > img { opacity: 1; }
+.goa-hero-art > .goa-sigil { position: absolute; inset: 22%; }
+.goa-sigil {
+  display: block; background: var(--primary);
+  -webkit-mask: var(--sigil) center / contain no-repeat; mask: var(--sigil) center / contain no-repeat;
+}
+.goa-hero-symbol { display: block; object-fit: contain; }
+
+/* Hero grid: three tiles across a phone, two at large text (Android: 110 dp cells, 150 dp above 1.3x) */
+.goa-hero-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(110px, 6.875rem, 150px), 1fr)); gap: var(--sp-sm); }
+.goa-hero-grid > div, .goa-hero-list > div, .goa-card-results > div { min-width: 0; }
+.goa-hero-tile {
+  display: flex; flex-direction: column; height: 100%;
+  border: 1px solid var(--engraved); border-radius: var(--radius-card);
+  background: var(--surface); color: inherit; text-decoration: none; overflow: hidden;
+}
+.goa-hero-tile:active, .goa-hero-row:active, .goa-card-result:active { filter: brightness(1.12); }
+.goa-hero-tile-art { position: relative; aspect-ratio: 1.3; }
+.goa-hero-tile-art > .goa-hero-art { position: absolute; inset: 0; }
+.goa-hero-tile-art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 55%, var(--surface)); pointer-events: none; }
+.goa-hero-tile-stars { position: absolute; left: var(--sp-sm); bottom: var(--sp-xs); z-index: 1; line-height: 0; }
+.goa-hero-symbol.tile { position: absolute; right: var(--sp-xs); bottom: 2px; width: 30px; height: 30px; z-index: 1; }
+.goa-hero-tile-badge { position: absolute; top: var(--sp-xs); right: var(--sp-xs); z-index: 1; }
+.goa-hero-tile-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 2px var(--sp-sm) var(--sp-sm); }
+.goa-hero-tile-name {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+  overflow-wrap: break-word;
+}
+.goa-hero-tile-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.goa-hero-traits {
+  margin: 2px 0 0; color: var(--secondary);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.goa-pills { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-xs); margin-top: var(--sp-xs); min-width: 0; }
+.goa-pill {
+  max-width: 100%; padding: 2px 6px;
+  border: 1px solid var(--engraved); border-radius: 6px;
+  color: var(--on-surface-variant);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.goa-pill.primary { color: var(--primary); }
+.goa-hero-metric { margin: var(--sp-xs) 0 0; color: var(--primary); font-weight: 600; }
+.goa-hero-hint { display: flex; align-items: flex-start; gap: 4px; margin: var(--sp-xs) 0 0; }
+.goa-hero-hint .goa-icon { width: 14px; height: 14px; margin-top: 1px; }
+
+/* Compact list */
+.goa-hero-list { display: flex; flex-direction: column; gap: var(--sp-xs); }
+.goa-hero-row {
+  display: flex; align-items: center; gap: var(--sp-md);
+  min-height: 64px; padding: 6px var(--sp-sm);
+  border: 1px solid var(--engraved); border-radius: var(--radius-card);
+  background: var(--surface); color: inherit; text-decoration: none;
+}
+.goa-hero-row-art { position: relative; flex: none; width: 54px; height: 54px; }
+.goa-hero-art.row { width: 48px; height: 48px; border-radius: 8px; }
+.goa-hero-symbol.row { position: absolute; right: 0; bottom: 0; width: 24px; height: 24px; }
+.goa-hero-row-text { flex: 1; min-width: 0; }
+.goa-hero-row-names { display: flex; align-items: baseline; gap: 6px; min-width: 0; margin: 0; }
+.goa-hero-row-names > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.goa-hero-row-names > span:first-child { flex: none; max-width: 70%; }
+.goa-hero-row .goa-pills { margin-top: 2px; }
+.goa-hero-row .goa-hero-traits { -webkit-line-clamp: 1; }
+.goa-hero-row-chevron { flex: none; display: flex; }
+
+/* Stars, badges, initiative */
+.goa-stars { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 1px; }
+.goa-star { display: inline-block; width: 12px; height: 12px; line-height: 0; color: color-mix(in srgb, var(--on-surface-variant) 45%, transparent); }
+.goa-star.on { color: var(--primary); }
+.goa-star > svg, .goa-unverified-icon > svg, .goa-gameicon > svg { width: 100%; height: 100%; display: block; }
+.goa-stars-name { margin-left: 6px; color: var(--primary); }
+.goa-unverified {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px var(--sp-sm);
+  border: 1px solid color-mix(in srgb, var(--unverified) 60%, transparent); border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent); color: var(--unverified); white-space: nowrap;
+}
+.goa-unverified.compact { padding: 1px 6px; }
+.goa-unverified-icon { display: inline-block; width: 14px; height: 14px; line-height: 0; }
+.goa-initiative {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 28px; min-height: 28px; padding: 0 4px; border-radius: 999px;
+  border: 1.5px solid var(--cc); background: color-mix(in srgb, var(--cc) 16%, transparent);
+  color: var(--on-surface); font-weight: 700;
+}
+.goa-initiative.large { min-width: 48px; min-height: 48px; }
+
+/* Card search results */
+.goa-card-results { display: flex; flex-direction: column; gap: var(--sp-xs); }
+.goa-card-result {
+  display: flex; align-items: flex-start; gap: var(--sp-sm);
+  min-height: 56px; padding: var(--sp-sm) var(--sp-md) var(--sp-sm) calc(var(--sp-md) + 4px);
+  border: 1px solid var(--engraved); border-radius: var(--radius-card);
+  background: linear-gradient(90deg, var(--cc) 4px, transparent 4px), var(--surface);
+  color: inherit; text-decoration: none;
+}
+.goa-card-result-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.goa-card-result-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+
+/* Card text with inline game icons */
+.goa-cardtext p { margin: 0; }
+.goa-cardtext p + p { margin-top: 0.4em; }
+.goa-cardtext.clamped { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; margin-top: 2px; }
+.goa-gameicon {
+  display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -0.22em; line-height: 0;
+  color: var(--cc, var(--primary));
+}
+.goa-gameicon.primary { color: var(--primary); }
+.goa-parchment .goa-gameicon { color: var(--parchment-ink); }
+.goa-reminder { color: var(--on-surface-variant); }
+.goa-parchment .goa-reminder { color: var(--on-parchment-variant); }
+.goa-parchment .goa-cardtext b { font-weight: 600; }
+
+/* Hero page */
+.goa-hero-art.header {
+  height: 280px;
+  margin: calc(-1 * var(--sp-lg)) calc(-1 * (var(--sp-screen) + var(--safe-right))) 0 calc(-1 * (var(--sp-screen) + var(--safe-left)));
+}
+.goa-hero-art.header::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 45%, var(--bg)); }
+.goa-hero-art.header > .goa-sigil { inset: 25% 35%; }
+.goa-hero-header-text { display: flex; align-items: center; gap: var(--sp-sm); margin-top: var(--sp-xs); }
+.goa-hero-header-names { flex: 1; min-width: 0; }
+.goa-hero-header-names .goa-hero-name { margin: 0; overflow-wrap: break-word; }
+.goa-hero-header-title { margin: 0; font-style: italic; }
+.goa-hero-symbol.header { flex: none; width: clamp(64px, 4rem, 90px); height: clamp(64px, 4rem, 90px); }
+.goa-hero-header > p { margin: 2px 0 0; }
+.goa-hero-header-pills { margin-top: var(--sp-md); gap: var(--sp-sm); }
+.goa-hero-header .goa-star { width: 18px; height: 18px; }
+.goa-hero-roles { margin-top: var(--sp-md); gap: var(--sp-sm); }
+.goa-role { padding: 6px var(--sp-md); border-radius: 999px; background: color-mix(in srgb, var(--secondary) 12%, transparent); color: var(--secondary); }
+.goa-verified { display: inline-flex; align-items: center; gap: 4px; color: var(--secondary); }
+.goa-verified .goa-icon { width: 16px; height: 16px; }
+.goa-catalog-section { display: flex; align-items: center; gap: var(--sp-sm); margin: var(--sp-xl) 0 var(--sp-sm); color: var(--heading); font-weight: 700; }
+.goa-catalog-section::before { content: ""; flex: none; width: 3px; height: 18px; border-radius: 2px; background: var(--heading); }
+.goa-catalog-section > span:first-child { flex: 1; }
+.goa-catalog-section > span + span { font-family: var(--font-body); }
+.goa-hero-page section > p { margin: 0 0 var(--sp-sm); }
+
+.goa-profile { display: flex; flex-direction: column; gap: var(--sp-md); }
+.goa-profile-head { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-profile-head > span:nth-child(2) { flex: 1; }
+.goa-profile-value { font-weight: 700; }
+.goa-profile-segments { display: flex; gap: 3px; margin-top: 6px; }
+.goa-profile-segment { flex: 1; height: 10px; border-radius: 3px; background: var(--surface-high); }
+.goa-profile-segment.base { background: var(--primary); }
+.goa-profile-segment.conditional { background: color-mix(in srgb, var(--primary) 30%, transparent); box-shadow: inset 0 0 0 1px var(--primary); }
+.goa-profile-scale { display: flex; justify-content: space-between; gap: var(--sp-sm); }
+.goa-profile-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.goa-profile-swatch { width: 14px; height: 8px; border-radius: 2px; background: var(--primary); }
+.goa-profile-swatch.conditional { background: color-mix(in srgb, var(--primary) 30%, transparent); box-shadow: inset 0 0 0 1px var(--primary); margin-left: var(--sp-sm); }
+
+.goa-hero-stats p { margin: 0; }
+.goa-hero-stats p + p { margin-top: var(--sp-xs); }
+.goa-metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(84px, 6rem, 170px), 1fr)); gap: var(--sp-md) var(--sp-lg); }
+.goa-metric { display: flex; flex-direction: column; min-width: 0; }
+.goa-pilots-title { margin: var(--sp-lg) 0 0; }
+.goa-pilot { display: flex; align-items: center; gap: var(--sp-md); min-height: 48px; padding-top: var(--sp-sm); }
+.goa-pilot-rank { width: 24px; flex: none; }
+.goa-pilot-avatar {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--primary-container); color: var(--on-primary-container);
+}
+.goa-pilot-name { flex: 1; min-width: 0; overflow-wrap: break-word; }
+.goa-pilot-record { display: flex; flex-direction: column; align-items: flex-end; }
+
+/* The deck: card scans in a grid, the name under a scan too small to read it */
+.goa-deck-group-title { display: flex; align-items: center; gap: var(--sp-sm); margin: var(--sp-lg) 0 var(--sp-sm); }
+.goa-deck-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cc); }
+.goa-deck-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(100px, 6.25rem, 160px), 1fr)); gap: var(--sp-md) var(--sp-sm); }
+.goa-deck-grid.spell { grid-template-columns: repeat(auto-fill, minmax(clamp(150px, 9.375rem, 240px), 1fr)); }
+.goa-deck-card { display: flex; flex-direction: column; align-items: center; min-width: 0; container-type: inline-size; }
+.goa-scan {
+  display: block; width: 100%; border-radius: 6px; overflow: hidden;
+  background: var(--medallion); border: 1px solid rgba(10, 22, 34, 0.55);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.goa-scan > img { display: block; width: 100%; height: auto; }
+.goa-deck-card-name {
+  margin-top: var(--sp-xs); text-align: center; color: var(--on-surface);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+@container (min-width: 140px) { .goa-deck-card-name { display: none; } }
+.goa-deck-card-note { margin-top: 2px; text-align: center; color: var(--secondary); }
+.goa-card-tile {
+  display: flex; width: 100%; min-height: 96px; height: 100%;
+  border: 1px solid var(--engraved); border-left: 4px solid var(--cc); border-radius: var(--radius-card);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cc) 14%, transparent), var(--surface) 60%), var(--surface);
+  color: inherit; text-decoration: none;
+}
+.goa-card-tile-body { display: flex; flex-direction: column; gap: 2px; width: 100%; min-width: 0; padding: var(--sp-sm) var(--sp-sm) var(--sp-sm) 10px; }
+.goa-card-tile-head { display: flex; align-items: flex-start; gap: var(--sp-xs); }
+.goa-card-tile-head > span:first-child { flex: 1; min-width: 0; overflow-wrap: break-word; }
+.goa-card-tile-action { display: inline-flex; align-items: center; gap: 4px; }
+.accent-text { color: var(--cc); }
+.goa-card-tile-values { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin-top: auto; padding-top: 6px; }
+.goa-value { display: inline-flex; align-items: center; gap: 2px; font-weight: 600; }
+.goa-value .goa-gameicon { color: var(--on-surface-variant); }
+.goa-marker {
+  display: inline-flex; align-items: center; gap: 2px; padding: 1px 4px; border-radius: 4px;
+  background: color-mix(in srgb, var(--secondary) 14%, transparent); color: var(--secondary);
+}
+.goa-marker .goa-gameicon { color: var(--secondary); }
+.goa-extra-row-title { margin: var(--sp-md) 0 var(--sp-xs); }
+.goa-learn-numbers { margin-top: var(--sp-lg); }
+
+.goa-faq { border: 1px solid var(--engraved); border-radius: var(--radius-card); background: var(--surface); }
+.goa-faq + .goa-faq { margin-top: var(--sp-sm); }
+.goa-faq-question {
+  display: flex; align-items: center; gap: var(--sp-md);
+  width: 100%; min-height: 56px; padding: var(--sp-md) var(--sp-lg);
+  border: 0; background: none; color: inherit; text-align: left; cursor: pointer;
+}
+.goa-faq-question > .goa-icon { color: var(--primary); }
+.goa-faq-question > span.t-title-small { flex: 1; min-width: 0; }
+.goa-faq-chevron { display: flex; transition: transform var(--dur-medium) var(--ease-emphasized); }
+.goa-faq.open .goa-faq-chevron { transform: rotate(180deg); }
+.goa-faq-answer { padding: 0 var(--sp-lg) var(--sp-lg) 52px; animation: goa-fade-in var(--dur-medium) var(--ease-decelerate); }
+.goa-faq-answer p { margin: 0; }
+.goa-faq-answer p + p { margin-top: var(--sp-sm); }
+.goa-lore { margin: 0; padding-left: var(--sp-md); border-left: 2px solid color-mix(in srgb, var(--primary) 50%, transparent); font-style: italic; color: var(--on-surface-variant); }
+.goa-source { margin-bottom: var(--sp-sm); }
+.goa-source p { margin: 0; }
+.goa-source a { color: var(--primary); overflow-wrap: anywhere; }
+.goa-source-notice { margin: var(--sp-sm) 0 0; }
+
+/* Filter and sort sheets */
+.goa-filter-clear { display: flex; justify-content: flex-end; margin: calc(-1 * var(--sp-sm)) calc(-1 * var(--sp-md)) 0 0; }
+.goa-filter-group h3 { margin: var(--sp-md) 0 var(--sp-xs); }
+.goa-filter-group p { margin: 0 0 var(--sp-sm); }
+.goa-filter-group .goa-chip-row { row-gap: var(--sp-md); }
+.goa-chip-stars { display: inline-flex; line-height: 0; }
+.goa-chip-stars .goa-star { width: 14px; height: 14px; }
+.goa-filter-divider { height: 1px; margin-top: var(--sp-lg); background: var(--outline-variant); }
+.goa-switch-row { display: flex; align-items: center; gap: var(--sp-md); min-height: 64px; cursor: pointer; }
+.goa-switch-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.goa-switch {
+  flex: none; position: relative; width: 52px; height: 32px; margin: 0;
+  -webkit-appearance: none; appearance: none; cursor: pointer;
+  border: 2px solid var(--on-surface-variant); border-radius: 16px; background: var(--surface-high);
+  transition: background-color var(--dur-short), border-color var(--dur-short);
+}
+.goa-switch::before {
+  content: ""; position: absolute; top: 50%; left: 6px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--on-surface-variant); transform: translateY(-50%);
+  transition: left var(--dur-short) var(--ease-emphasized), width var(--dur-short), height var(--dur-short);
+}
+.goa-switch:checked { background: var(--primary); border-color: var(--primary); }
+.goa-switch:checked::before { left: 22px; width: 24px; height: 24px; background: var(--on-primary); }
+.goa-switch:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.goa-sheet-footer {
+  position: sticky; bottom: calc(-1 * var(--sp-xl)); z-index: 1;
+  margin: var(--sp-lg) calc(-1 * var(--sp-xl)) calc(-1 * var(--sp-xl));
+  padding: var(--sp-md) var(--sp-xl) calc(var(--sp-md) + var(--safe-bottom));
+  background: var(--surface); border-top: 1px solid var(--outline-variant);
+}
+.goa-radio-list { display: flex; flex-direction: column; }
+.goa-radio-row {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-md);
+  min-height: 52px; padding: 0 var(--sp-sm); border: 0; border-radius: 8px;
+  background: none; color: inherit; text-align: left; cursor: pointer;
+}
+.goa-radio-row[aria-checked="true"] { color: var(--primary); font-weight: 600; }
+.goa-radio-row:active { background: color-mix(in srgb, var(--on-surface) 8%, transparent); }
+
+/* Card viewer: one card per page, swiped with native scroll snapping */
+.goa-pager-head { display: flex; align-items: center; gap: var(--sp-xs); margin: calc(-1 * var(--sp-sm)) 0 var(--sp-sm); }
+.goa-pager-head .goa-icon-button.hidden { visibility: hidden; }
+.goa-pager-caption { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.goa-kind { color: var(--cc); font-weight: 700; margin: 0; }
+.goa-pager {
+  display: flex; align-items: flex-start;
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory; scrollbar-width: none;
+  margin: 0 calc(-1 * (var(--sp-screen) + var(--safe-right))) 0 calc(-1 * (var(--sp-screen) + var(--safe-left)));
+}
+.goa-pager::-webkit-scrollbar { display: none; }
+.goa-pager.zoomed { overflow-x: hidden; }
+.goa-pager-page {
+  flex: 0 0 100%; min-width: 0; scroll-snap-align: center; scroll-snap-stop: always;
+  padding: 0 calc(var(--sp-screen) + var(--safe-right)) var(--sp-sm) calc(var(--sp-screen) + var(--safe-left));
+}
+.goa-card-page { display: flex; flex-direction: column; gap: var(--sp-lg); max-width: 480px; margin: 0 auto; }
+.goa-zoom { position: relative; width: fit-content; max-width: 100%; margin: 0 auto; border-radius: 16px; overflow: hidden; background: var(--medallion); }
+.goa-zoom > img {
+  display: block; width: auto; height: auto; max-width: 100%;
+  /* The whole card on screen, also in landscape: between the top bar with the pager's header and the tab bar. */
+  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - var(--tabbar-height) - 152px);
+  min-height: 200px;
+  touch-action: pan-x pan-y; transform-origin: center;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.goa-zoom.spell > img { max-height: none; }
+.goa-pager.zoomed .goa-zoom > img { touch-action: none; }
+.goa-zoom-hint {
+  position: absolute; right: var(--sp-sm); bottom: var(--sp-sm); display: flex; padding: 4px;
+  border-radius: 50%; background: rgba(7, 16, 26, 0.55); color: #F3F6F9; pointer-events: none;
+}
+.goa-not-on-card { display: flex; flex-direction: column; gap: var(--sp-md); }
+.goa-not-on-card p { margin: 0; }
+.goa-item-note { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-item-note img { flex: none; width: 40px; height: 30px; object-fit: contain; }
+.goa-card-details { display: flex; flex-direction: column; gap: var(--sp-md); }
+.goa-card-details .goa-parchment { margin-top: var(--sp-xs); }
+.goa-detail-row { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-detail-label { flex: 0 0 40%; min-width: 0; }
+.goa-detail-value { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--sp-md); }
+.goa-icon-label { display: inline-flex; align-items: center; gap: 4px; }
+.goa-icon-label .goa-gameicon { color: var(--on-surface-variant); }
+.goa-icon-label .goa-gameicon.accent { color: var(--cc); }
+.goa-icon-label.secondary, .goa-icon-label.secondary .goa-gameicon { color: var(--secondary); }
+.goa-designed-card {
+  display: flex; flex-direction: column; gap: var(--sp-lg); padding: var(--sp-lg);
+  border: 2px solid color-mix(in srgb, var(--cc) 80%, transparent); border-radius: 20px;
+  background: linear-gradient(color-mix(in srgb, var(--cc) 28%, transparent), color-mix(in srgb, var(--cc) 4%, transparent) 45%), var(--surface);
+}
+.goa-designed-head { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-designed-head > div:first-child { flex: 1; min-width: 0; }
+.goa-designed-head p { margin: 0; overflow-wrap: break-word; }
+.goa-designed-values { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-sm) var(--sp-lg); }
+.goa-designed-primary {
+  display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%;
+  background: color-mix(in srgb, var(--cc) 18%, transparent); border: 1px solid var(--cc); font-size: 28px;
+}
+.goa-designed-text { padding: var(--sp-md); border-radius: 12px; background: color-mix(in srgb, var(--bg) 55%, transparent); }
+@media (orientation: landscape) and (max-height: 500px) {
+  .goa-hero-art.header { height: 200px; }
+}
+
+/* ---------- W1 rules & settings ---------- */
+/* Rules: search, the ladder card, topic rows */
+.goa-rules-search {
+  display: flex; align-items: center; gap: var(--sp-sm);
+  min-height: 52px; margin: var(--sp-sm) 0 var(--sp-md);
+  padding: 0 var(--sp-xs) 0 var(--sp-md);
+  border: 1px solid var(--engraved); border-radius: var(--radius-card);
+  background: var(--surface); color: var(--on-surface-variant);
+}
+.goa-rules-search:focus-within { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.goa-rules-search input {
+  flex: 1; min-width: 0; min-height: var(--tap);
+  border: 0; background: transparent; color: var(--on-surface); outline: none;
+  font-size: max(1rem, 16px); /* at least 16 px: iOS Safari won't zoom into the field */
+}
+.goa-rules-search input::placeholder { color: var(--on-surface-variant); }
+.goa-rules-search input::-webkit-search-cancel-button { display: none; }
+.goa-card.goa-rules-ladder-card { display: flex; align-items: center; gap: var(--sp-md); font: inherit; min-height: 88px; }
+.goa-rules-ladder-icon { flex: none; color: var(--primary); display: flex; }
+.goa-rules-ladder-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.goa-rules-ladder-title { color: var(--on-surface); }
+.goa-rules-ladder-tag { margin-top: var(--sp-xs); }
+.goa-rules-topic-title { font: 600 1.125rem/1.5rem var(--font-body); }
+.goa-rules-footnote { margin: var(--sp-lg) 0 var(--sp-xl); }
+.goa-rules-page {
+  flex: none; display: inline-block; white-space: nowrap;
+  font-size: 0.8125rem; color: var(--primary);
+  border: 1px solid var(--engraved); border-radius: 10px; padding: 2px var(--sp-sm);
+}
+
+/* A topic: verbatim excerpts in the printed face, larger for reading across the table */
+.goa-rules-topic > * + * { margin-top: var(--sp-lg); }
+.goa-rules-topic > p:first-child { margin: var(--sp-sm) 0 0; }
+.goa-rules-divider { height: 1px; background: var(--engraved); }
+.goa-rules-excerpt-head { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-rules-heading {
+  flex: 1; min-width: 0; margin: 0;
+  font: 700 1.125rem/1.5rem var(--font-display); letter-spacing: 0.04rem; color: var(--heading);
+}
+.goa-rules-spacer { flex: 1; }
+.goa-rules-quote {
+  margin-top: var(--sp-xs); padding-left: var(--sp-md);
+  border-left: 3px solid color-mix(in srgb, var(--heading) 50%, transparent);
+  color: var(--on-surface); overflow-wrap: break-word;
+}
+.goa-rules-reading { font: 400 1.25rem/1.75rem var(--font-printed); }
+.goa-rules-quote > * + * { margin-top: var(--sp-sm); }
+.goa-rules-quote p { margin: 0; }
+.goa-rules-items { list-style: none; margin: 0; padding: 0; }
+.goa-rules-items > li { position: relative; padding-left: 28px; }
+.goa-rules-items > li + li { margin-top: var(--sp-sm); }
+.goa-rules-items > li::before { content: attr(data-marker); position: absolute; left: 0; color: var(--primary); }
+.goa-rules-summary {
+  padding: var(--sp-md); border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--secondary) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--secondary) 35%, transparent);
+}
+.goa-rules-summary .t-overline { color: var(--secondary); }
+.goa-rules-summary p { margin: var(--sp-xs) 0 0; }
+
+/* Printed tables: columns while every word fits, a block per row at large text (rem follows Dynamic Type) */
+.goa-rules-table-wrap { container: rules-table / inline-size; }
+.goa-rules-table {
+  width: 100%; border-collapse: collapse; font: 400 1.125rem/1.5rem var(--font-printed);
+  border: 1px solid var(--engraved);
+}
+.goa-rules-table th, .goa-rules-table td { text-align: left; padding: var(--sp-xs) var(--sp-sm); vertical-align: top; }
+.goa-rules-table th { font-weight: 700; }
+.goa-rules-table tbody th { width: 34%; }
+.goa-rules-table-blocks { display: none; flex-direction: column; gap: var(--sp-sm); font: 400 1.125rem/1.5rem var(--font-printed); }
+.goa-rules-table-block { border: 1px solid var(--engraved); border-radius: 8px; padding: var(--sp-xs) var(--sp-sm); }
+@container rules-table (max-width: 21rem) {
+  .goa-rules-table { display: none; }
+  .goa-rules-table-blocks { display: flex; }
+}
+
+/* The level & defeat ladder (bottom sheet) */
+.goa-rules-ladder > * + * { margin-top: var(--sp-md); }
+.goa-rules-ladder > .goa-section-header { margin-top: var(--sp-xl); }
+.goa-rules-ladder-pages { display: flex; justify-content: flex-end; }
+.goa-rules-ladder > .goa-rules-picker-label { margin-top: 0; }
+.goa-rules-ladder > .goa-rules-levels { margin-top: var(--sp-sm); }
+.goa-rules-levels { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-sm); }
+.goa-rules-level {
+  min-height: 52px; border-radius: var(--radius-card);
+  border: 1px solid var(--engraved); background: var(--surface); color: var(--on-surface);
+  font: 600 1.5rem/1.75rem var(--font-body); font-variant-numeric: tabular-nums lining-nums; cursor: pointer;
+}
+.goa-rules-level[aria-checked="true"] { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.goa-rules-result {
+  padding: var(--sp-lg); border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--secondary) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--secondary) 50%, transparent);
+  container: rules-result / inline-size;
+}
+.goa-rules-result > p { margin: 0; }
+.goa-rules-numbers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-sm); margin-top: var(--sp-md); }
+.goa-rules-number { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.goa-rules-number-text { display: flex; flex-direction: column; }
+.goa-rules-digit { font: 600 2.5rem/2.75rem var(--font-body); font-variant-numeric: tabular-nums lining-nums; color: var(--on-surface); }
+@container rules-result (max-width: 18rem) {
+  /* Large text: one number per line, its labels beside it. */
+  .goa-rules-numbers { grid-template-columns: 1fr; }
+  .goa-rules-number { flex-direction: row; text-align: left; gap: var(--sp-md); }
+  .goa-rules-digit { min-width: 2ch; text-align: center; }
+}
+.goa-rules-ladder-table-wrap {
+  overflow-x: auto; overscroll-behavior-x: contain;
+  border: 1px solid var(--engraved); border-radius: var(--radius-card);
+}
+.goa-rules-ladder-table { width: 100%; border-collapse: collapse; }
+.goa-rules-ladder-table th, .goa-rules-ladder-table td { min-width: 2.5rem; padding: var(--sp-xs) 1px; text-align: center; }
+.goa-rules-ladder-table thead th {
+  font: 500 0.6875rem/1rem var(--font-body); color: var(--on-surface-variant); white-space: pre-line; vertical-align: bottom;
+}
+.goa-rules-ladder-table tbody td, .goa-rules-row-button {
+  font: 500 1.0625rem/1.5rem var(--font-body); font-variant-numeric: tabular-nums lining-nums; color: var(--on-surface);
+}
+.goa-rules-ladder-table tbody th { padding: 0; }
+.goa-rules-ladder-table tbody tr { cursor: pointer; }
+.goa-rules-ladder-table tbody tr + tr { box-shadow: inset 0 1px 0 var(--outline-variant); }
+.goa-rules-ladder-table tbody tr.selected { background: color-mix(in srgb, var(--secondary) 16%, transparent); }
+.goa-rules-row-button {
+  width: 100%; min-height: var(--tap); border: 0; background: none; cursor: pointer;
+  font-weight: 700; color: var(--primary);
+}
+.goa-rules-exception { padding: var(--sp-md); border-radius: var(--radius-card); background: var(--surface-high); }
+.goa-rules-exception h3, .goa-rules-exception p { margin: 0; }
+.goa-rules-exception .goa-rules-card-text { margin-top: var(--sp-xs); }
+.goa-rules-inline-icon { display: inline-flex; vertical-align: -0.2em; color: var(--primary); }
+.goa-rules-inline-icon .goa-icon { width: 1.15em; height: 1.15em; }
+.goa-rules-reminder { color: var(--on-surface-variant); }
+.goa-rules-all { margin-top: var(--sp-lg); }
+
+/* Settings: switch and checkbox rows (the whole row is the label: one big tap target) */
+.goa-settings-choice { margin-top: var(--sp-md); }
+.goa-settings-toggle { cursor: pointer; min-height: 64px; }
+.goa-settings-toggle.disabled { cursor: default; }
+.goa-settings-toggle.disabled .goa-row-text { opacity: 0.38; }
+.goa-settings-product { min-height: 56px; padding-left: calc(var(--sp-lg) + 24px + var(--sp-lg)); }
+.goa-settings-note { padding: 0 var(--sp-lg) var(--sp-md); }
+.goa-settings-switch {
+  appearance: none; -webkit-appearance: none; flex: none; margin: 0;
+  position: relative; width: 52px; height: 32px; border-radius: 16px;
+  background: var(--surface-high); border: 2px solid var(--on-surface-variant);
+  cursor: inherit; transition: background var(--dur-short), border-color var(--dur-short);
+}
+.goa-settings-switch::before {
+  content: ""; position: absolute; top: 50%; left: 6px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--on-surface-variant); transform: translateY(-50%);
+  transition: left var(--dur-short) var(--ease-emphasized), width var(--dur-short), height var(--dur-short);
+}
+.goa-settings-switch:checked { background: var(--primary); border-color: var(--primary); }
+.goa-settings-switch:checked::before { left: 22px; width: 24px; height: 24px; background: var(--on-primary); }
+.goa-settings-switch:disabled { opacity: 0.38; }
+.goa-settings-switch:focus-visible, .goa-settings-check:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.goa-settings-check {
+  flex: none; margin: 0 var(--sp-sm) 0 0; width: 22px; height: 22px;
+  accent-color: var(--primary); cursor: inherit;
+}
+.goa-settings-notice-row { align-items: flex-start; }
+.goa-settings-notice-row > .c-primary { display: flex; flex: none; }
+.goa-settings-notice-row h2 { margin: 0; }
+
+/* ---------- W1 trivia (card trivia: home, quiz, leaderboard; ADR-028, ADR-032) ---------- */
+/* The card colours (--card-*) are defined with the catalog above. */
+
+/* Avatars, medallions, tags */
+.goa-trivia-avatar {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 50%;
+  color: var(--player, var(--on-surface-variant));
+  border: 2px solid currentColor;
+  background: radial-gradient(color-mix(in srgb, currentColor 26%, transparent), color-mix(in srgb, currentColor 8%, transparent));
+}
+.goa-trivia-avatar .goa-icon { width: 22px; height: 22px; }
+.goa-trivia-avatar.small { width: 32px; height: 32px; border-width: 1.5px; }
+.goa-trivia-avatar.small .goa-icon { width: 18px; height: 18px; }
+.goa-trivia-avatar.guest { color: var(--on-surface-variant); border-width: 1.5px; background: color-mix(in srgb, var(--on-surface-variant) 8%, transparent); }
+.goa-trivia-initial { font: 700 1.05rem/1 var(--font-display); }
+.goa-trivia-you {
+  flex: none; padding: 2px var(--sp-sm); border-radius: 10px;
+  background: var(--secondary-container); color: var(--on-secondary-container);
+}
+.goa-trivia-unverified {
+  flex: none; padding: 1px var(--sp-sm); border-radius: 10px;
+  border: 1px solid var(--unverified); color: var(--unverified);
+}
+.goa-trivia-medallion {
+  flex: none; display: inline-block; overflow: hidden; border-radius: 50%;
+  border: 1px solid var(--engraved);
+  background: radial-gradient(circle at 50% 35%, var(--surface-high), var(--medallion));
+}
+.goa-trivia-medallion img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.goa-trivia-medallion.small { width: 24px; height: 24px; }
+.goa-trivia-medallion.medium { width: 32px; height: 32px; }
+.goa-trivia-medallion.large { width: 44px; height: 44px; }
+
+/* Mastery bar and legend: learned = teal, learning = bronze, new = the empty track. */
+.goa-trivia-bar {
+  display: flex; gap: 2px; height: 10px; border-radius: 5px; overflow: hidden;
+  background: color-mix(in srgb, var(--on-surface-variant) 18%, transparent);
+}
+.goa-trivia-bar.thin { height: 4px; border-radius: 2px; }
+.goa-trivia-bar > div { flex-basis: 0; min-width: 0; }
+.goa-trivia-bar > .learned { background: var(--secondary); }
+.goa-trivia-bar > .learning { background: var(--primary); }
+.goa-trivia-legend { display: flex; flex-wrap: wrap; gap: var(--sp-xs) var(--sp-lg); }
+.goa-trivia-legend-item { display: inline-flex; align-items: center; gap: 6px; color: var(--on-surface-variant); }
+.goa-trivia-legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.goa-trivia-legend-dot.learned { background: var(--secondary); }
+.goa-trivia-legend-dot.learning { background: var(--primary); }
+.goa-trivia-legend-dot.new { background: color-mix(in srgb, var(--on-surface-variant) 45%, transparent); }
+
+/* A card's colour, kind and hero */
+.goa-trivia-dot {
+  flex: none; width: 12px; height: 12px; border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--on-surface) 25%, transparent);
+  background: var(--on-surface-variant);
+}
+.goa-trivia-dot.gold { background: var(--card-gold); }
+.goa-trivia-dot.silver { background: var(--card-silver); }
+.goa-trivia-dot.red { background: var(--card-red); }
+.goa-trivia-dot.green { background: var(--card-green); }
+.goa-trivia-dot.blue { background: var(--card-blue); }
+.goa-trivia-dot.purple { background: var(--card-purple); }
+.goa-trivia-kind { display: flex; align-items: center; gap: var(--sp-sm); color: var(--on-surface-variant); }
+.goa-trivia-heroline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-xs) var(--sp-sm); }
+.goa-trivia-card-name { margin: var(--sp-sm) 0 var(--sp-xs); overflow-wrap: break-word; }
+
+/* ---- Home ---- */
+.goa-trivia-home { container: trivia-home / inline-size; }
+.goa-trivia-home > p { margin: 0; }
+.goa-trivia-playing, .goa-trivia-scope, .goa-trivia-switch-row, .goa-trivia-hero-row, .goa-trivia-pick, .goa-trivia-rank {
+  display: flex; align-items: center; width: 100%; gap: var(--sp-md);
+  border: 0; background: none; color: inherit; text-align: left; font: inherit; cursor: pointer;
+}
+.goa-trivia-playing {
+  min-height: 64px; padding: var(--sp-md) var(--sp-lg);
+  border: 1px solid var(--engraved); border-radius: var(--radius-card); background: var(--surface);
+}
+.goa-trivia-playing:active, .goa-trivia-scope:active, .goa-trivia-hero-row:active:not(:disabled),
+.goa-trivia-pick:active, .goa-trivia-rank:active { background: color-mix(in srgb, var(--on-surface) 8%, var(--surface)); }
+.goa-trivia-playing-text, .goa-trivia-scope-text, .goa-trivia-switch-text, .goa-trivia-pick-text {
+  flex: 1; min-width: 0; display: flex; flex-direction: column;
+}
+.goa-trivia-playing-name, .goa-trivia-pick-title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-xs) var(--sp-sm); overflow-wrap: anywhere; }
+.goa-trivia-caret { color: var(--on-surface-variant); }
+.goa-trivia-note { margin: var(--sp-sm) 0 0; }
+.goa-trivia-home > .goa-card { margin-top: var(--sp-md); }
+.goa-trivia-overall { display: flex; flex-direction: column; gap: var(--sp-sm); }
+.goa-trivia-overall > p { margin: 0; }
+.goa-trivia-overall .goa-trivia-bar { margin-top: var(--sp-sm); }
+.goa-trivia-setup { display: flex; flex-direction: column; gap: var(--sp-lg); }
+.goa-trivia-setup-group > h3 { margin: 0 0 var(--sp-xs); }
+.goa-trivia-setup-group > p { margin-top: var(--sp-xs); }
+.goa-trivia-scope {
+  min-height: 56px; padding: var(--sp-md) var(--sp-lg);
+  border: 1px solid var(--engraved); border-radius: var(--radius-card); background: var(--surface);
+}
+.goa-trivia-switch-row { min-height: 56px; padding: var(--sp-xs) 0; }
+.goa-trivia-switch-row:disabled { cursor: default; }
+.goa-trivia-switch-row:disabled .t-title-small { color: var(--on-surface-variant); }
+.goa-trivia-switch {
+  flex: none; position: relative; width: 52px; height: 32px; border-radius: 16px;
+  border: 2px solid var(--on-surface-variant); background: var(--surface-high);
+  transition: background-color var(--dur-short);
+}
+.goa-trivia-switch::after {
+  content: ""; position: absolute; top: 6px; left: 6px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--on-surface-variant); transition: transform var(--dur-short) var(--ease-emphasized);
+}
+.goa-trivia-switch-row[aria-checked="true"] .goa-trivia-switch { background: var(--secondary); border-color: var(--secondary); }
+.goa-trivia-switch-row[aria-checked="true"] .goa-trivia-switch::after { transform: translateX(20px) scale(1.5); background: var(--on-secondary); }
+.goa-trivia-switch-row:disabled .goa-trivia-switch { opacity: 0.38; }
+.goa-trivia-caption { margin: calc(-1 * var(--sp-xs)) 0 var(--sp-xs); }
+.goa-trivia-heroes { list-style: none; margin: 0 calc(-1 * var(--sp-screen)); padding: 0; }
+.goa-trivia-hero-row { min-height: 60px; padding: var(--sp-sm) var(--sp-screen); }
+.goa-trivia-hero-row:disabled { cursor: default; }
+.goa-trivia-hero-row > .goa-trivia-medallion { width: 44px; height: 44px; }
+.goa-trivia-hero-row > .goa-icon { color: var(--on-surface-variant); }
+.goa-trivia-hero-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.goa-trivia-hero-head { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-trivia-hero-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The pinned start bar: always in reach above the tab bar, however far the list is scrolled. */
+.goa-trivia-startbar {
+  position: sticky; z-index: 5;
+  bottom: calc(var(--tabbar-height) + var(--safe-bottom));
+  margin: var(--sp-lg) calc(-1 * (var(--sp-screen) + var(--safe-right))) calc(-1 * var(--sp-xl)) calc(-1 * (var(--sp-screen) + var(--safe-left)));
+  padding: var(--sp-md) calc(var(--sp-screen) + var(--safe-right)) var(--sp-md) calc(var(--sp-screen) + var(--safe-left));
+  background: var(--bg);
+  display: flex; flex-direction: column; gap: var(--sp-sm);
+}
+.goa-trivia-startbar::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--engraved) 20%, var(--engraved) 80%, transparent);
+}
+.goa-trivia-startbar-text > p { margin: 0; }
+.goa-trivia-startbar-text > p + p { margin-top: var(--sp-xs); }
+.goa-trivia-startbar-buttons { display: flex; gap: var(--sp-sm); }
+.goa-trivia-startbar-buttons > .goa-button { flex: 1 1 0; min-height: 52px; white-space: nowrap; }
+.goa-trivia-challenge-line.in-list { display: none; margin-top: var(--sp-sm); }
+/* Large text or a narrow screen: the buttons stack and the explanation moves up into the list. */
+@container trivia-home (max-width: 20rem) {
+  .goa-trivia-startbar-buttons { flex-direction: column-reverse; }
+  .goa-trivia-challenge-line.in-bar { display: none; }
+  .goa-trivia-challenge-line.in-list { display: block; }
+}
+/* A short screen (a phone in landscape): pinned, the bar would leave the list a sliver; it ends the page instead. */
+@media (max-height: 500px) {
+  .goa-trivia-startbar { position: static; }
+}
+/* Landscape / wide: text and buttons side by side, so the list keeps its room. */
+@container trivia-home (min-width: 560px) {
+  .goa-trivia-startbar { flex-direction: row; align-items: center; gap: var(--sp-lg); }
+  .goa-trivia-startbar-text { flex: 1; min-width: 0; }
+  .goa-trivia-startbar-buttons { flex: none; }
+  .goa-trivia-startbar-buttons > .goa-button { flex: none; min-width: 160px; }
+}
+
+/* Sheets: who is playing, heroes to quiz */
+.goa-trivia-picks { display: flex; flex-direction: column; margin: var(--sp-sm) calc(-1 * var(--sp-lg)) 0; }
+.goa-trivia-pick { min-height: 60px; padding: var(--sp-sm) var(--sp-lg); }
+.goa-trivia-pick + .goa-trivia-pick { box-shadow: inset 0 1px 0 var(--outline-variant); }
+.goa-trivia-radio {
+  flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--on-surface-variant);
+}
+.goa-trivia-pick[aria-checked="true"] .goa-trivia-radio { border-color: var(--secondary); box-shadow: inset 0 0 0 4px var(--surface), inset 0 0 0 10px var(--secondary); }
+.goa-trivia-check {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 4px; border: 2px solid var(--on-surface-variant);
+}
+.goa-trivia-pick[aria-checked="true"] .goa-trivia-check { background: var(--secondary); border-color: var(--secondary); color: var(--on-secondary); }
+.goa-trivia-check .goa-icon { width: 16px; height: 16px; }
+.goa-trivia-all-icon { flex: none; width: 32px; display: inline-flex; justify-content: center; color: var(--primary); }
+.goa-trivia-add { margin-top: var(--sp-lg); display: flex; flex-direction: column; gap: var(--sp-xs); }
+.goa-trivia-add-row { display: flex; gap: var(--sp-sm); align-items: center; }
+.goa-trivia-add-row > .goa-trivia-input { flex: 1; min-width: 0; }
+.goa-trivia-input {
+  min-height: var(--tap); padding: 10px var(--sp-md);
+  border: 1px solid var(--outline-variant); border-radius: 10px;
+  background: var(--surface); color: var(--on-surface);
+  font-size: max(1rem, 16px); /* 16 px or more: iOS Safari does not zoom into the field */
+}
+.goa-trivia-input:focus { border-color: var(--secondary); outline: none; }
+.goa-trivia-input.search { width: 100%; border-radius: 22px; margin-top: var(--sp-xs); }
+.goa-trivia-picker-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-sm); }
+.goa-trivia-picker-head > p { margin: 0; }
+
+/* ---- Quiz ---- */
+.goa-trivia-end {
+  min-width: var(--tap); min-height: var(--tap); padding: 0 var(--sp-md);
+  border: 0; border-radius: 22px; background: none; color: var(--on-banner); cursor: pointer;
+}
+.goa-trivia-end:active { background: rgba(169, 203, 224, 0.16); }
+.goa-trivia-quiz { display: flex; flex-direction: column; gap: var(--sp-lg); }
+.goa-trivia-quiz-question { display: flex; flex-direction: column; gap: var(--sp-lg); }
+.goa-trivia-quiz-answers { display: flex; flex-direction: column; gap: var(--sp-sm); container: trivia-quiz / inline-size; }
+.goa-trivia-quiz-header { display: flex; flex-direction: column; gap: var(--sp-xs); }
+.goa-trivia-quiz-header > p { margin: 0; }
+.goa-trivia-quiz-header > .goa-progress { margin-top: var(--sp-xs); }
+.goa-trivia-quiz-count { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-sm); flex-wrap: wrap; }
+.goa-trivia-ask { margin: var(--sp-sm) 0 0; text-align: center; color: var(--primary); overflow-wrap: anywhere; }
+.goa-trivia-duel-ask > h2 { margin: 0; }
+.goa-trivia-duel-ask > p { margin: var(--sp-xs) 0 0; }
+.goa-trivia-choices { display: grid; gap: var(--sp-sm); }
+.goa-trivia-choices.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.goa-trivia-choices.recall { grid-template-columns: repeat(auto-fill, minmax(max(64px, 3.5rem), 1fr)); }
+.goa-trivia-choice {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  min-height: 64px; padding: var(--sp-sm) 26px;
+  border: 1px solid color-mix(in srgb, var(--primary) 55%, transparent); border-radius: var(--radius-card);
+  background: var(--surface); color: var(--on-surface); cursor: pointer;
+  font: 500 2rem/2.5rem var(--font-body); font-variant-numeric: tabular-nums lining-nums; white-space: nowrap;
+}
+.goa-trivia-choices.recall .goa-trivia-choice { padding: var(--sp-sm) 4px; font-size: 1.5rem; }
+.goa-trivia-choices.four .goa-trivia-choice { min-height: 76px; }
+.goa-trivia-choice.tie { font: 600 1rem/1.5rem var(--font-body); min-height: 56px; width: 100%; white-space: normal; }
+.goa-trivia-choice:active:not(:disabled) { background: color-mix(in srgb, var(--primary) 14%, var(--surface)); }
+.goa-trivia-choice:disabled, .goa-trivia-duel-tile:disabled { cursor: default; }
+.goa-trivia-choice.right, .goa-trivia-duel-tile.right { background: var(--secondary-container); color: var(--on-secondary-container); border: 2px solid var(--secondary); }
+.goa-trivia-choice.wrong, .goa-trivia-duel-tile.wrong { background: var(--error-container); color: var(--on-error-container); border: 2px solid var(--error); }
+.goa-trivia-choice.other { color: var(--on-surface-variant); border-color: var(--engraved); }
+.goa-trivia-badge {
+  position: absolute; top: 4px; right: 4px; width: 18px; height: 18px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center; color: var(--surface);
+}
+.goa-trivia-badge .goa-icon { width: 13px; height: 13px; }
+.goa-trivia-badge.right { background: var(--secondary); }
+.goa-trivia-badge.wrong { background: var(--error); }
+.goa-trivia-duel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-sm); }
+@container trivia-quiz (max-width: 20rem) { .goa-trivia-duel { grid-template-columns: 1fr; } }
+.goa-trivia-duel-tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-xs);
+  min-height: 140px; padding: var(--sp-md); text-align: left;
+  border: 1px solid color-mix(in srgb, var(--primary) 55%, transparent); border-radius: var(--radius-card);
+  background: var(--surface); color: var(--on-surface); cursor: pointer; font: inherit;
+}
+.goa-trivia-duel-tile.other { border-color: var(--engraved); }
+.goa-trivia-duel-tile .goa-trivia-card-name { margin: var(--sp-xs) 0 0; overflow-wrap: anywhere; }
+.goa-trivia-duel-value { display: inline-flex; align-items: center; gap: var(--sp-xs); margin-top: var(--sp-sm); font-variant-numeric: tabular-nums; }
+.goa-trivia-mark { display: inline-flex; }
+.goa-trivia-mark.right { color: var(--secondary); }
+.goa-trivia-mark.wrong { color: var(--error); }
+.goa-trivia-duel-tile.right .goa-trivia-mark.right, .goa-trivia-duel-tile.wrong .goa-trivia-mark.wrong { color: inherit; }
+.goa-trivia-reveal { display: flex; flex-direction: column; gap: var(--sp-lg); }
+.goa-trivia-feedback { display: flex; align-items: center; gap: var(--sp-md); margin: var(--sp-sm) 0 0; }
+.goa-trivia-feedback:empty { margin: 0; }
+.goa-trivia-feedback-mark {
+  flex: none; width: 28px; height: 28px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.goa-trivia-feedback-mark.right { color: var(--verified); background: color-mix(in srgb, var(--verified) 16%, transparent); }
+.goa-trivia-feedback-mark.wrong { color: var(--error); background: color-mix(in srgb, var(--error) 16%, transparent); }
+.goa-trivia-scans { display: flex; justify-content: center; gap: var(--sp-sm); }
+.goa-trivia-scans.two > img { flex: 1 1 0; min-width: 0; }
+.goa-trivia-scan {
+  display: block; width: auto; max-width: min(100%, 300px);
+  max-height: max(160px, calc(100dvh - 260px - var(--safe-top) - var(--safe-bottom)));
+  aspect-ratio: 729 / 1026; object-fit: contain; border-radius: 12px;
+}
+.goa-trivia-scans.two > .goa-trivia-scan { width: 100%; height: auto; }
+/* Next pinned at the bottom (the quiz is full screen: no tab bar under it). */
+.goa-trivia-nextbar {
+  position: sticky; bottom: 0; z-index: 5;
+  margin: var(--sp-lg) calc(-1 * (var(--sp-screen) + var(--safe-right))) calc(-1 * var(--sp-xl)) calc(-1 * (var(--sp-screen) + var(--safe-left)));
+  padding: var(--sp-md) calc(var(--sp-screen) + var(--safe-right)) calc(var(--sp-md) + var(--safe-bottom)) calc(var(--sp-screen) + var(--safe-left));
+  background: var(--bg);
+  animation: goa-trivia-fade var(--dur-short) var(--ease-decelerate);
+}
+.goa-trivia-nextbar::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--engraved) 20%, var(--engraved) 80%, transparent);
+}
+.goa-trivia-nextbar > .goa-button { min-height: 56px; font-size: 1rem; }
+@keyframes goa-trivia-fade { from { opacity: 0; } to { opacity: 1; } }
+/* Landscape phone: the question on the left, the answers and the scan on the right. */
+@media (orientation: landscape) and (min-width: 600px) {
+  .goa-trivia-quiz { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: var(--sp-xl); }
+  .goa-trivia-scan { max-height: max(160px, calc(100dvh - 200px)); }
+}
+
+/* Summary */
+.goa-trivia-summary { display: flex; flex-direction: column; gap: var(--sp-lg); }
+.goa-trivia-summary > .goa-section-header { margin-bottom: 0; }
+.goa-trivia-score { display: flex; flex-direction: column; gap: var(--sp-xs); padding: var(--sp-sm); }
+.goa-trivia-score > p, .goa-trivia-score > h2 { margin: 0; }
+.goa-trivia-score > p:empty { display: none; }
+.goa-trivia-standing { color: var(--secondary); }
+.goa-trivia-metrics { display: flex; flex-wrap: wrap; gap: var(--sp-md) var(--sp-xl); margin-top: var(--sp-md); }
+.goa-trivia-metric { display: flex; flex-direction: column; }
+.goa-trivia-metric-value { color: var(--secondary); }
+.goa-trivia-actions { display: flex; flex-direction: column; gap: var(--sp-sm); }
+.goa-trivia-actions > .goa-button { min-height: 52px; font-size: 1rem; }
+.goa-trivia-misses { display: flex; flex-direction: column; gap: var(--sp-sm); }
+.goa-trivia-misses > .goa-card + .goa-card { margin-top: 0; }
+.goa-trivia-miss > p { margin: var(--sp-xs) 0; }
+.goa-trivia-miss .goa-trivia-card-name { margin: var(--sp-xs) 0 0; }
+.goa-trivia-miss-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-xs) var(--sp-sm); margin-top: var(--sp-sm); color: var(--on-surface-variant); }
+.goa-trivia-miss-value { display: inline-flex; align-items: center; gap: 2px; color: var(--on-surface); }
+
+/* ---- Leaderboard ---- */
+.goa-trivia-tabs { display: flex; margin: calc(-1 * var(--sp-lg)) calc(-1 * var(--sp-screen)) 0; box-shadow: inset 0 -1px 0 var(--outline-variant); }
+.goa-trivia-tab {
+  flex: 1; min-height: 48px; border: 0; background: none; cursor: pointer;
+  color: var(--on-surface-variant); box-shadow: inset 0 -3px 0 transparent;
+}
+.goa-trivia-tab[aria-selected="true"] { color: var(--primary); box-shadow: inset 0 -3px 0 var(--primary); }
+.goa-trivia-board-head { padding: var(--sp-md) 0; }
+.goa-trivia-board-head > p { margin: var(--sp-xs) 0 0; }
+.goa-trivia-board { list-style: none; margin: 0 calc(-1 * var(--sp-screen)); padding: 0; container: trivia-board / inline-size; }
+.goa-trivia-board > li + li .goa-trivia-rank { box-shadow: inset 0 1px 0 var(--outline-variant); }
+.goa-trivia-rank { min-height: 72px; padding: var(--sp-sm) var(--sp-screen); }
+.goa-trivia-rank > .goa-trivia-avatar { width: 44px; height: 44px; }
+.goa-trivia-rank-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.goa-trivia-rank-name { overflow-wrap: anywhere; }
+.goa-trivia-rank-main { flex: none; min-width: 48px; display: flex; flex-direction: column; align-items: flex-end; font-weight: 600; }
+.goa-trivia-rank-main.first { color: var(--primary); }
+.goa-trivia-place {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  min-width: max(28px, 1.75rem); min-height: max(28px, 1.75rem); padding: 0 4px; border-radius: 999px; font-weight: 700;
+  background: var(--surface-high); color: var(--on-surface-variant);
+}
+.goa-trivia-place.podium { background: color-mix(in srgb, var(--primary) 22%, transparent); color: var(--primary); }
+.goa-trivia-place.first { background: var(--primary); color: var(--on-primary); }
+/* Large text: no room for a column on the right; the figure moves under the name. */
+@container trivia-board (max-width: 22rem) {
+  .goa-trivia-rank { flex-wrap: wrap; }
+  .goa-trivia-rank-main { flex-direction: row; gap: var(--sp-xs); align-items: baseline; width: 100%; padding-left: calc(28px + 44px + 2 * var(--sp-md)); }
+}
+.goa-trivia-rounds-head { display: flex; align-items: center; gap: var(--sp-md); margin-bottom: var(--sp-sm); }
+.goa-trivia-rounds { list-style: none; margin: 0; padding: 0; }
+.goa-trivia-round { padding: var(--sp-sm) 0; box-shadow: inset 0 1px 0 var(--outline-variant); }
+.goa-trivia-round-line { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-trivia-round-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.goa-trivia-remove.goa-button { color: var(--error); padding-left: 0; margin-top: var(--sp-xs); }

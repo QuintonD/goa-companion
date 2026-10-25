@@ -14,14 +14,11 @@ import dev.quinton.goa.web.ui.Screen
  * ship: each stream replaces its own in `ScreenFor` and deletes its entry here.
  */
 enum class Placeholder(val icon: String, val what: String) {
-    CARD_VIEWER("nav_heroes", "Card scans with their text"),
-    TRIVIA("trivia", "A quiz on the numbers printed on every hero's cards"),
     BOARDS("board", "The real map with heroes, minions and tokens"),
     BOARD("board", "The board"),
     PLAY("play", "The real game against computer opponents, with an optional Coach"),
     PUZZLES("puzzle", "Difficult solver-proven positions with nudges"),
     PUZZLE("puzzle", "A puzzle"),
-    RULES("rules", "The level & defeat ladder and the quick-reference topics"),
     TIMER("nav_timer", "Phase countdowns built for the table"),
     DRAFT("nav_draft", "Pick/ban drafting that feeds a match record"),
     PLAYERS("nav_players", "Friends, Elo per player and per hero"),

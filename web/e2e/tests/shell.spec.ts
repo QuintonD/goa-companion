@@ -4,8 +4,8 @@ import { expectNoHorizontalOverflow, open, shot, title, watchErrors } from "./he
 // Every destination of the shell (ADR-043): its title, no console errors, no sideways scrolling.
 const destinations: [hash: string, title: string][] = [
   ["#/heroes", "Heroes"],
-  ["#/heroes/arien", "Hero"],
-  ["#/heroes/arien/cards/arien-gold", "Card"],
+  ["#/heroes/arien", "Arien"],
+  ["#/heroes/arien/cards/arien-gold", "Noble Blade"],
   ["#/rules", "Rules"],
   ["#/rules/movement", "Rules"],
   ["#/trivia", "Card trivia"],
@@ -38,7 +38,7 @@ test("the tab bar walks the four tabs and each remembers its screen", async ({ p
   const check = watchErrors(page);
   await open(page, "#/heroes");
   await page.getByRole("link", { name: /^Arien/ }).click();
-  await expect(title(page)).toHaveText("Hero");
+  await expect(title(page)).toHaveText("Arien");
   const tabs = page.getByRole("navigation", { name: "Main" });
   for (const [tab, name] of [["Timer", "Timer"], ["Draft", "Draft"], ["Players", "Players"]]) {
     await tabs.getByRole("button", { name: tab }).click();
@@ -47,7 +47,7 @@ test("the tab bar walks the four tabs and each remembers its screen", async ({ p
   }
   // Back on Heroes: the hero page it was on; tapping Heroes again goes to the list.
   await tabs.getByRole("button", { name: "Heroes" }).click();
-  await expect(title(page)).toHaveText("Hero");
+  await expect(title(page)).toHaveText("Arien");
   await tabs.getByRole("button", { name: "Heroes" }).click();
   await expect(title(page)).toHaveText("Heroes");
   await expect(page).toHaveURL(/#\/heroes$/);
@@ -86,7 +86,7 @@ test("a list keeps its scroll position when the person comes back", async ({ pag
   const before = await page.evaluate(() => window.scrollY);
   expect(before).toBeGreaterThan(100);
   await last.click();
-  await expect(title(page)).toHaveText("Hero");
+  await expect(title(page)).toHaveText("Widget");
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(5);
   // Up with the app's Back arrow, then the browser's Back from a second visit.
   await page.getByRole("button", { name: "Back" }).click();

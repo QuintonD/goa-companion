@@ -11,6 +11,10 @@ class RoutesTest {
         Route.CardViewer("arien", "arien-gold"),
         Route.Trivia(),
         Route.Trivia("tigerclaw"),
+        Route.TriviaQuiz("""{"stats":["initiative"],"length":10}"""),
+        Route.TriviaQuiz("{}", factKeys = listOf("arien-red-2/initiative", "brogan-gold/attack")),
+        Route.TriviaQuiz("{}", challenge = true),
+        Route.TriviaLeaderboard,
         Route.Boards,
         Route.Board("b1"),
         Route.Play,
@@ -77,5 +81,11 @@ class RoutesTest {
         assertEquals(null, Route.Settings.tab)
         assertEquals(null, Route.Rules.tab)
         assertEquals(listOf("Heroes", "Timer", "Draft", "Players"), Tab.entries.map { it.label })
+    }
+
+    @Test
+    fun aQuizWithoutItsSetupIsNotFound() {
+        assertIs<Route.NotFound>(Routes.parse("#/trivia/quiz"))
+        assertIs<Route.NotFound>(Routes.parse("#/trivia/nope"))
     }
 }

@@ -1,6 +1,8 @@
 package dev.quinton.goa.feature.catalog.model
 
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.domain.catalog.HeroLogSummary
+import dev.quinton.goa.core.domain.catalog.HeroPilotStat
 import dev.quinton.goa.core.domain.meta.HeroPilots
 import dev.quinton.goa.core.domain.meta.PlayerHeroStat
 import dev.quinton.goa.core.domain.rating.WinLoss

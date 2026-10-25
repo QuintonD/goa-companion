@@ -5,12 +5,13 @@ import androidx.compose.ui.text.font.FontWeight
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.cardtext.cardTextAnnotated
+import dev.quinton.goa.core.domain.catalog.CardIcons
+import dev.quinton.goa.core.domain.catalog.spokenSummary
 import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.core.model.catalog.CardValues
 import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.testing.TestCatalog
 import dev.quinton.goa.feature.catalog.detail.printedValues
-import dev.quinton.goa.feature.catalog.detail.spokenSummary
 import org.junit.Test
 
 class CardTextRenderingTest {
@@ -22,6 +23,16 @@ class CardTextRenderingTest {
             assertThat(icon?.label).isNotEmpty()
         }
         assertThat(GameIcons.forToken("not_an_icon")).isNull()
+    }
+
+    @Test
+    fun theSharedIconWordsAreThePhonesSoTheWebReadsCardsTheSame() {
+        CardText.ICONS.forEach { name -> assertThat(CardIcons.label(name)).isEqualTo(GameIcons.forToken(name)?.label) }
+        listOf(
+            "Gain 1 {coin}. Use {mystery_thing}.\n~(Reminder with {skill}.)",
+            "**This turn:** {life} Life counter, {fast_travel}.",
+            "{range} 2 ** literal",
+        ).forEach { text -> assertThat(CardIcons.spoken(text)).isEqualTo(cardTextAnnotated(text, Color.Gray).text) }
     }
 
     @Test

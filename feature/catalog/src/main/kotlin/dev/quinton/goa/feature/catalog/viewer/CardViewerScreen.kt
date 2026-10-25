@@ -79,14 +79,14 @@ import dev.quinton.goa.core.designsystem.component.assetUrl
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.domain.catalog.blockMarkerLabel
+import dev.quinton.goa.core.domain.catalog.handicapBasis
+import dev.quinton.goa.core.domain.catalog.kindLabel
+import dev.quinton.goa.core.domain.catalog.label
+import dev.quinton.goa.core.domain.catalog.spokenSummary
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.feature.catalog.detail.printedValues
-import dev.quinton.goa.feature.catalog.detail.spokenSummary
-import dev.quinton.goa.feature.catalog.ui.blockMarkerLabel
-import dev.quinton.goa.feature.catalog.ui.handicapBasis
-import dev.quinton.goa.feature.catalog.ui.kindLabel
-import dev.quinton.goa.feature.catalog.ui.label
 import kotlinx.coroutines.launch
 
 /** Official card image (or our designed card) per page; swipe between the hero's cards. */

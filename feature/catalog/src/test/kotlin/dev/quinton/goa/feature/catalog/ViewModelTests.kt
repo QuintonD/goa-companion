@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.domain.catalog.CatalogFilter
+import dev.quinton.goa.core.domain.catalog.CatalogSort
 import dev.quinton.goa.core.domain.meta.MetaStats
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.GameMode
@@ -29,8 +31,6 @@ import dev.quinton.goa.feature.catalog.list.CatalogAction
 import dev.quinton.goa.feature.catalog.list.CatalogLayout
 import dev.quinton.goa.feature.catalog.list.CatalogUiState
 import dev.quinton.goa.feature.catalog.list.CatalogViewModel
-import dev.quinton.goa.feature.catalog.model.CatalogFilter
-import dev.quinton.goa.feature.catalog.model.CatalogSort
 import dev.quinton.goa.feature.catalog.viewer.CardViewerUiState
 import dev.quinton.goa.feature.catalog.viewer.CardViewerViewModel
 import kotlinx.coroutines.test.runTest

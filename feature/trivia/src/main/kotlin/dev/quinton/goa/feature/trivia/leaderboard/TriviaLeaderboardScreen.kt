@@ -60,6 +60,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import dev.quinton.goa.core.data.trivia.LeaderboardRowUi
+import dev.quinton.goa.core.data.trivia.LeaderboardTab
+import dev.quinton.goa.core.data.trivia.PlayerRoundsUi
+import dev.quinton.goa.core.data.trivia.RoundUi
+import dev.quinton.goa.core.data.trivia.TriviaLeaderboardUiState
+import dev.quinton.goa.core.data.trivia.TriviaText
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
@@ -515,15 +521,9 @@ private fun RoundRow(round: RoundUi, onRemove: () -> Unit) {
     }
 }
 
-internal fun tabLabel(tab: LeaderboardTab): String = when (tab) {
-    LeaderboardTab.CHALLENGE -> "Challenge"
-    LeaderboardTab.PRACTICE -> "Practice"
-}
+internal fun tabLabel(tab: LeaderboardTab): String = TriviaText.tabLabel(tab)
 
-internal fun periodLabel(period: LeaderboardPeriod): String = when (period) {
-    LeaderboardPeriod.ALL_TIME -> "All time"
-    LeaderboardPeriod.LAST_30_DAYS -> "Last ${TriviaLeaderboard.RECENT_DAYS} days"
-}
+internal fun periodLabel(period: LeaderboardPeriod): String = TriviaText.periodLabel(period)
 
 private const val PODIUM = 3
 

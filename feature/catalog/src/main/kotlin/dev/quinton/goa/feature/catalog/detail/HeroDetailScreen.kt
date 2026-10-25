@@ -72,20 +72,22 @@ import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.domain.catalog.HANDICAP_EXPLANATION
+import dev.quinton.goa.core.domain.catalog.HeroPilotStat
+import dev.quinton.goa.core.domain.catalog.attackProfile
+import dev.quinton.goa.core.domain.catalog.complexityName
+import dev.quinton.goa.core.domain.catalog.elo
+import dev.quinton.goa.core.domain.catalog.handicapConflict
+import dev.quinton.goa.core.domain.catalog.label
+import dev.quinton.goa.core.domain.catalog.percent
+import dev.quinton.goa.core.domain.catalog.plural
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.catalog.Ruling
-import dev.quinton.goa.feature.catalog.model.HeroPilotStat
-import dev.quinton.goa.feature.catalog.model.attackProfile
 import dev.quinton.goa.feature.catalog.ui.MetaPill
 import dev.quinton.goa.feature.catalog.ui.SectionTitle
 import dev.quinton.goa.feature.catalog.ui.UnverifiedBadge
-import dev.quinton.goa.feature.catalog.ui.complexityName
-import dev.quinton.goa.feature.catalog.ui.elo
-import dev.quinton.goa.feature.catalog.ui.label
-import dev.quinton.goa.feature.catalog.ui.percent
-import dev.quinton.goa.feature.catalog.ui.plural
 
 @Composable
 fun HeroDetailScreen(
@@ -125,20 +127,6 @@ fun HeroDetailScreen(
             }
         }
     }
-}
-
-/**
- * Rulebook p.20 has the 3-player Handicap card replace "a gold card of one of those heroes", but a
- * Handicap card without a gold frame (Takahide's is silver, and he has three gold cards) leaves
- * open which card it replaces. Shown as unresolved; the app never picks an answer.
- */
-internal fun handicapConflict(hero: Hero, handicap: Card): String? {
-    if (handicap.color == CardColor.GOLD) return null
-    val golds = hero.cards.count { it.color == CardColor.GOLD }
-    val frame = handicap.color.label.lowercase()
-    val goldCards = if (golds > 1) " and ${hero.name} has $golds gold cards" else ""
-    return "Unresolved: rulebook p.20 says that with 3 players the Handicap card replaces a gold card, but this " +
-        "one has a $frame frame$goldCards. Neither the rulebook nor the card says which card it replaces."
 }
 
 private fun LazyListScope.heroDetailContent(
@@ -185,11 +173,7 @@ private fun LazyListScope.heroDetailContent(
             Column(padded) {
                 SectionTitle("Handicap")
                 Text(
-                    // Rulebook p.20.
-                    "A weaker version of a basic card (usually Gold). With 5, 7 or 9 players, every hero on the " +
-                        "larger team replaces one of its basic cards with it. With 3 players, the player controlling " +
-                        "two heroes replaces a gold card of one of them with it. In even-count games, the most " +
-                        "experienced players may use it to even out skill.",
+                    HANDICAP_EXPLANATION, // Rulebook p.20.
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = Spacing.sm),
