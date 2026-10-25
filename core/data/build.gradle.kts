@@ -9,6 +9,8 @@ dependencies {
     api(projects.core.domain)
     // Saved games and the play engine's bindings (ADR-035).
     api(projects.core.game)
+    // The repository interfaces and their pure parts, shared with the web app (ADR-043).
+    api(projects.core.dataContracts)
     implementation(projects.core.database)
     implementation(projects.core.datastore)
     implementation(libs.kotlinx.coroutines.android)

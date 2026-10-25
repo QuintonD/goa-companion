@@ -15,9 +15,6 @@ import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.rating.HeroUsage
 import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.model.rating.RatingPoint
-import javax.inject.Inject
-import javax.inject.Qualifier
-import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -30,14 +27,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.shareIn
 
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class RatingsScope
-
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class RatingsDispatcher
-
 /**
  * Ratings and meta stats derived by replaying the match log (ADR-003). The log arrives with merged
  * players resolved ([MatchRepository]); hero ids this catalog doesn't know count as Unknown hero.
@@ -45,16 +34,19 @@ annotation class RatingsDispatcher
  * config change, and the
  * latest snapshot is shared (memoised) by every collector for the life of the process.
  * A replay of 1,000 matches takes milliseconds (EloPropertiesTest).
+ *
+ * Shared by the phone (bound in core:data's PlayersDataModule, one per process) and the web app
+ * (ADR-043): both show the ratings this one replay computes. [scope] holds the shared snapshot for
+ * as long as the app runs; [dispatcher] is where the replay runs (off the phone's main thread).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-@Singleton
-internal class ReplayRatingsRepository @Inject constructor(
+class ReplayRatingsRepository(
     matchRepository: MatchRepository,
     draftRepository: DraftRecordRepository,
     configRepository: EloConfigRepository,
     catalogRepository: CatalogRepository,
-    @RatingsScope scope: CoroutineScope,
-    @RatingsDispatcher dispatcher: CoroutineDispatcher,
+    scope: CoroutineScope,
+    dispatcher: CoroutineDispatcher,
 ) : RatingsRepository, RatingsSnapshotRepository, HeroPilotsRepository {
     /**
      * Matches, drafts and config are each read through exactly one subscription, and the replay

@@ -6,6 +6,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.Multibinds
+import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.DraftRecordRepository
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.MatchRepository
@@ -18,11 +19,20 @@ import dev.quinton.goa.core.data.backup.RoomBackupRepository
 import dev.quinton.goa.core.data.match.RoomDraftRecordRepository
 import dev.quinton.goa.core.data.match.RoomMatchRepository
 import dev.quinton.goa.core.data.player.RoomPlayerRepository
+import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class RatingsScope
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class RatingsDispatcher
 
 /** Bindings for players, the match log, drafts, ratings and backup (owner: players). */
 @Module
@@ -52,6 +62,18 @@ internal interface PlayersDataModule {
     @Multibinds fun backupContributors(): Set<BackupContributor>
 
     companion object {
+        /** One replay per process, shared by every collector (ADR-003); the class lives in core:data-contracts. */
+        @Provides
+        @Singleton
+        fun replayRatings(
+            matches: MatchRepository,
+            drafts: DraftRecordRepository,
+            config: EloConfigRepository,
+            catalog: CatalogRepository,
+            @RatingsScope scope: CoroutineScope,
+            @RatingsDispatcher dispatcher: CoroutineDispatcher,
+        ): ReplayRatingsRepository = ReplayRatingsRepository(matches, drafts, config, catalog, scope, dispatcher)
+
         @Provides
         @Singleton
         @RatingsScope

@@ -11,7 +11,6 @@ import dev.quinton.goa.core.database.toModel
 import dev.quinton.goa.core.domain.sync.EditStamp
 import dev.quinton.goa.core.domain.sync.PlayerMerges
 import dev.quinton.goa.core.model.player.Player
-import dev.quinton.goa.core.model.sync.PlayerMerge
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -68,9 +67,8 @@ internal class RoomPlayerRepository @Inject constructor(
 
     /** Oldest match first, so a group that already has duplicates keeps using the original. */
     override suspend fun findByName(name: String): Player? {
-        val key = PlayerNames.key(name)
         val merges = PlayerMerges(dao.getMerges().map { it.toModel() })
-        return merges.visible(dao.getAll().map { it.toModel() }).firstOrNull { PlayerNames.key(it.name) == key }
+        return PlayerNames.find(dao.getAll().map { it.toModel() }, merges, name)
     }
 
     override suspend fun ensurePlayer(candidate: Player): Player = ensureLock.withLock {
@@ -85,25 +83,14 @@ internal class RoomPlayerRepository @Inject constructor(
 
     override suspend fun merge(fromId: String, toId: String): PlayerMergeResult = database.withWriteTransaction {
         val merges = PlayerMerges(dao.getMerges().map { it.toModel() })
-        val from = dao.get(fromId)
-        val to = dao.get(toId)
-        when {
-            from == null || to == null || fromId == toId -> PlayerMergeResult.NotPossible
-
-            fromId in merges.mergedAway || toId in merges.mergedAway -> PlayerMergeResult.NotPossible
-
-            else -> {
-                val matches = merges.resolve(database.matchDao().getAll().map { it.toModel() })
-                val conflicts = PlayerMerges.conflicts(fromId, toId, matches)
-                if (conflicts.isNotEmpty()) {
-                    PlayerMergeResult.PlayedTogether(conflicts)
-                } else {
-                    val previous = dao.getMerges().firstOrNull { it.fromId == fromId }?.mergedAt
-                    val merge = PlayerMerge(fromId, toId, EditStamp.next(clock.now(), previous))
-                    dao.upsertMerges(listOf(merge.toEntity()))
-                    PlayerMergeResult.Merged
-                }
-            }
+        val bothExist = dao.get(fromId) != null && dao.get(toId) != null
+        val result = PlayerMergeRules.check(fromId, toId, bothExist, merges) {
+            database.matchDao().getAll().map { it.toModel() }
         }
+        if (result == PlayerMergeResult.Merged) {
+            val previous = dao.getMerges().firstOrNull { it.fromId == fromId }?.mergedAt
+            dao.upsertMerges(listOf(PlayerMergeRules.merge(fromId, toId, clock.now(), previous).toEntity()))
+        }
+        result
     }
 }
