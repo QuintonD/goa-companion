@@ -1,7 +1,7 @@
 package dev.quinton.goa.core.game.ai
 
 import com.google.common.truth.Truth.assertThat
-import dev.quinton.goa.core.game.AiLevel
+import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.TestData
 import dev.quinton.goa.core.game.engine.EngineSession
@@ -16,7 +16,7 @@ import org.junit.Test
 /**
  * ADR-035 point 3: the AI never reads hidden cards. Two sessions that look the same to the deciding
  * seat but differ in the other team's hidden cards must get the same answer for the same seed, at
- * every level (STRATEGY.md §4.5 "No peeking").
+ * every strength 1–10 (STRATEGY.md §4.5 "No peeking"; ADR-039).
  */
 class NoPeekingTest {
     private fun assertSameChoice(a: EngineSession, b: EngineSession) {
@@ -27,10 +27,10 @@ class NoPeekingTest {
         assertThat(db.options).isEqualTo(da.options)
         // The test is only meaningful when the seat really sees the same game.
         assertThat(b.view(db.seat)).isEqualTo(a.view(da.seat))
-        for (level in AiLevel.entries) {
+        for (strength in AiStrength.MIN..AiStrength.MAX) {
             for (seed in 1L..3L) {
-                val ca = AiPlayers.deterministic(level, seed).choose(a, da)
-                val cb = AiPlayers.deterministic(level, seed).choose(b, db)
+                val ca = AiPlayers.deterministic(strength, seed).choose(a, da)
+                val cb = AiPlayers.deterministic(strength, seed).choose(b, db)
                 assertThat(cb).isEqualTo(ca)
             }
         }

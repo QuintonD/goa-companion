@@ -12,6 +12,7 @@ other branches should know are listed too.
 | `WinReason.CARD_TEXT` (`"card_text"`) | A win a card's text declares | Cutter's A Fistful of Coins ("you alone win the game"), Gydion's Wish ("your team wins the game") |
 | `HeroView.alsoPlayed: List<CardView> = emptyList()` | Further played cards this turn, hidden like `played` | Emmitt's Ultimate lets him play two cards |
 | `PuzzleInfo.intro: String = ""` | What the player knows that the board doesn't show (cards played facedown, opponents' hands, who acts next) | Puzzles treat hands as open information; the play view hides them |
+| `Controller.Ai.strength: Int = level.strength`, `Controller.Ai(strength)`; `AiLevel.strength` (2 / 4 / 6 / 8), `AiLevel.of(strength)`; `object AiStrength` (`MIN` 1, `MAX` 10, `DEFAULT` 5, `coerce`) | A computer seat plays at a strength 1–10; `level` stays as its band (1–3 Easy, 4–5 Normal, 6–7 Hard, 8–10 Expert) for the words. A save that carries only `level` loads as that level's strength | ADR-039: the difficulty slider. Build seats with `Controller.Ai(strength)`; read `strength` to play and `AiLevel.of(strength)` for the band's name |
 
 ## Behaviour of the existing contract (no type change)
 

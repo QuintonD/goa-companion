@@ -56,6 +56,8 @@ internal data class LevelProfile(
     val greedyEnemies: Boolean = false,
     /** Opaque choices ([Searcher.opaque]) inside playouts are answered one ply deep instead of statically. */
     val shallow: Boolean = true,
+    /** Static strengths: how often a move forgets the minion defense modifiers (STRATEGY §4.2). */
+    val blindRate: Double = 0.0,
 )
 
 /** One option's values over the samples (NaN where the option did not exist in a sample). */
