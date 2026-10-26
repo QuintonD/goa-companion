@@ -99,6 +99,7 @@ import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.YourHand
+import dev.quinton.goa.feature.board.play.table.isLevelUp
 import dev.quinton.goa.feature.board.play.table.spellbookUi
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.ui.BoardScaffold
@@ -381,7 +382,9 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
     val table = play.table
     val nudge = play.nudge
     val moment = table.moment.takeIf { nudge == null }
-    if (moment != null) MomentCard(moment, table, focus = focus)
+    // A level up's cards come before the round's summary (at large text it filled the panel).
+    val questionFirst = play.status is TurnStatus.YourTurn && isLevelUp(table)
+    if (moment != null && !questionFirst) MomentCard(moment, table, focus = focus)
     when {
         nudge != null -> CoachNudge(nudge, onAction)
 
@@ -402,6 +405,7 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
 
         else -> Unit
     }
+    if (moment != null && questionFirst) MomentCard(moment, table, focus = focus)
     when {
         nudge != null -> Unit
 

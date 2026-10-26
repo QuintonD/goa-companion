@@ -65,6 +65,7 @@ import dev.quinton.goa.feature.board.ui.cards.CardVerdict
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
 import dev.quinton.goa.feature.board.ui.cards.cardAspect
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
+import dev.quinton.goa.feature.board.ui.cards.cardWidth
 import dev.quinton.goa.feature.board.ui.cards.isSpell
 
 /*
@@ -169,7 +170,8 @@ private fun focusCard(table: TableUi, offered: OfferedCard): FocusCard {
     val notes = mutableListOf<CardNote>()
     when (decision?.kind) {
         DecisionKind.KEEP_UPGRADE -> {
-            // p.15: the card kept goes to hand, the other is tucked as an item.
+            // p.15: the card kept goes to hand, the other is tucked as an item (so this card's own
+            // item stat doesn't apply when it is kept: its line is left out, the row shows it).
             notes += CardNote("${card.name} goes to your hand.")
             table.cardOptions.firstOrNull { it.cardId != card.id }?.let { table.card(it.cardId) }?.let { other ->
                 other.item?.let {
@@ -193,8 +195,19 @@ private fun focusCard(table: TableUi, offered: OfferedCard): FocusCard {
             null
         },
         notes = notes,
+        itemLine = decision?.kind != DecisionKind.KEEP_UPGRADE,
     )
 }
+
+/**
+ * Keep (p.15) in the viewer: the two cards, each followed by the spells it names (NamedCards.kt), to
+ * read; a spell points back to the card that casts it, which is the answer.
+ */
+internal fun keepFocus(table: TableUi, offered: List<OfferedCard>): FocusPages =
+    FocusPages(offered.map { focusCard(table, it) }, offered.map { it.choice }).withNamed(
+        named = table::namedBy,
+        reason = { namer -> "${namer.card.name} casts this spell. Keep ${namer.card.name} to take it into your hand." },
+    )
 
 /** Closes the viewer when its question is gone; Confirm waits while the game is busy. */
 @Composable
@@ -222,7 +235,7 @@ internal fun HandPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardF
         )
     }
     val offered = offeredCards(table)
-    OfferedRow(table, offered, focus) { i -> openOffered(focus, table, offered, i, onAnswer) }
+    OfferedRow(table, offered, focus) { key -> openOffered(focus, table, offered, offered.indexOfKey(key), onAnswer) }
     if (offered.any { it.choice != null }) TapHint("Tap a card to see it large; tap it again to play it facedown.")
     if (table.buttonOptions.isNotEmpty()) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -243,8 +256,26 @@ internal fun CardPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardF
     val decision = table.decision ?: return
     FocusLifecycle(focus, decision, busy)
     val offered = offeredCards(table)
-    OfferedRow(table, offered, focus, keep = decision.kind == DecisionKind.KEEP_UPGRADE) { i ->
-        openOffered(focus, table, offered, i, onAnswer)
+    val keep = decision.kind == DecisionKind.KEEP_UPGRADE
+    if (keep) {
+        val pages = keepFocus(table, offered)
+        OfferedRow(table, offered, focus, keep = true) { key ->
+            focus.open(
+                pages.cards,
+                pages.indexOf(key),
+                selection = CardSelection(
+                    action = { cardAction(decision, it) },
+                    context = decision.prompt,
+                    onConfirm = { at -> pages.answers.getOrNull(at)?.let(onAnswer) },
+                ),
+                title = focusTitle(table, decision),
+                owner = decision.id,
+            )
+        }
+    } else {
+        OfferedRow(table, offered, focus) { key ->
+            openOffered(focus, table, offered, offered.indexOfKey(key), onAnswer)
+        }
     }
     if (offered.any { it.choice != null }) {
         val verb = when (decision.kind) {
@@ -285,11 +316,15 @@ internal fun TapHint(text: String) {
     }
 }
 
+private fun List<OfferedCard>.indexOfKey(key: String): Int = indexOfFirst { it.card.id == key }.coerceAtLeast(0)
+
 /**
  * The cards in a row: the whole hand in view (five cards after a level up) shrinking to fit, down to
  * a size still easy to tap; only beyond that does the row scroll. Few cards are shown larger (two
  * cards to keep side by side, up to 140 dp), so the card itself is what is read (ADR-041). Each one
  * is a TalkBack node that opens the viewer; one the question doesn't offer is dimmed and marked.
+ * Keeping (level up), each card shows the item it gives if not kept and the spells it casts.
+ * [onOpen] gets the key of the viewer page to open (the card's id, or a named spell's [namedKey]).
  */
 @Composable
 private fun OfferedRow(
@@ -297,7 +332,7 @@ private fun OfferedRow(
     offered: List<OfferedCard>,
     focus: CardFocusState,
     keep: Boolean = false,
-    onOpen: (Int) -> Unit,
+    onOpen: (String) -> Unit,
 ) {
     val reason = table.decision?.kind?.let(::notOffered)
     BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -310,8 +345,14 @@ private fun OfferedRow(
             Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            offered.forEachIndexed { i, item ->
-                OfferedThumb(item, width, keep, unavailableCardLine(table, item.card.id) ?: reason, focus) { onOpen(i) }
+            offered.forEach { item ->
+                val named = if (keep) table.namedBy(item.card) else emptyList()
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    OfferedThumb(item, width, keep, named, unavailableCardLine(table, item.card.id) ?: reason, focus) {
+                        onOpen(item.card.id)
+                    }
+                    NamedThumbs(FocusCard(item.card), named, width, focus, onOpen)
+                }
             }
         }
     }
@@ -322,6 +363,7 @@ private fun OfferedThumb(
     item: OfferedCard,
     width: Dp,
     keep: Boolean,
+    named: List<Card>,
     reason: String?,
     focus: CardFocusState,
     onOpen: () -> Unit,
@@ -331,8 +373,8 @@ private fun OfferedThumb(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier.clearAndSetSemantics {
-            contentDescription = spokenCard(card)
+        modifier = Modifier.width(cardWidth(card, width)).clearAndSetSemantics {
+            contentDescription = listOfNotNull(spokenCard(card), spokenNamed(named)).joinToString(", ")
             stateDescription = listOfNotNull(
                 if (keep) card.item?.let { "As an item: +1 ${PlayText.stat(it)}" } else null,
                 if (!offered) reason else null,
@@ -352,7 +394,7 @@ private fun OfferedThumb(
         ) {
             TableCard(card, width = width)
         }
-        if (keep) card.item?.let { ItemIcon(it, 14.dp) }
+        if (keep) card.item?.let { ItemCaption(it) }
         if (!offered) {
             Icon(
                 Icons.Outlined.Block,
