@@ -2,6 +2,7 @@ package dev.quinton.goa.web.nav
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 
 class RoutesTest {
@@ -67,7 +68,6 @@ class RoutesTest {
         Route.MatchEdit("m-1", result = true),
         Route.RatingSettings,
         Route.WhoAreYou,
-        Route.Join("goa-sync:1?g=6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d&k=AAEC&n=Friday%20%26%20co"),
     )
 
     @Test
@@ -126,7 +126,11 @@ class RoutesTest {
         val invite = "goa-sync:1?g=6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d&k=AAEC&n=Friday%20%26%20co&s=https%3A%2F%2Fa.b"
         // The QR code's link (GroupInvite.link) as an iPhone's Camera opens it.
         assertEquals(Route.Join(invite), Routes.parse("#join=$invite"))
+        assertEquals(Route.Join(invite), Routes.parse("#/join=$invite"))
         assertEquals(Route.Group, Route.Join(invite).parent)
+        // The invite carries the group key: its address is the Group screen's, never the invite.
+        assertEquals("#/group", Routes.hash(Route.Join(invite)))
+        assertFalse("goa-sync" in Route.Join(invite).toString())
         assertEquals(Route.PlayerEdit("p-1"), Routes.parse("#/players/p-1/edit"))
         assertEquals(Route.MatchEdit("m-1", result = true), Routes.parse("#/matches/m-1?result=1"))
     }

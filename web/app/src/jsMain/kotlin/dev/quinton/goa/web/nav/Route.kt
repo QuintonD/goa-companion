@@ -348,10 +348,14 @@ sealed interface Route {
 
     /**
      * An invite link (`#join=goa-sync:1?…`, the QR code's link, `GroupInvite.link`): the Group screen
-     * takes the invite and asks first; the key never stays in the address bar or the history.
+     * takes the invite and asks first. The invite carries the group key, so this route's address is
+     * the Group screen's: the router never writes the key into the address bar or the history (and
+     * index.html takes it out of the address before the app has even loaded, web review R2).
      */
     data class Join(val invite: String) : Route {
-        override val path get() = "join=$invite"
+        override val path get() = Group.path
+
+        override fun toString() = "Join(…)" // never the key, should a route ever be logged
         override val tab get() = Tab.PLAYERS
         override val parent get() = Group
     }

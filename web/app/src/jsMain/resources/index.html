@@ -2,6 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
+  <!-- __GOA_CSP__ : the site task (:web:app:site) puts the Content-Security-Policy here (ADR-043). -->
+  <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="goa-build" content="__GOA_BUILD__">
   <meta name="goa-version" content="__GOA_VERSION__">
@@ -22,8 +24,15 @@
   <link rel="preload" href="fonts/cinzel_bold.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="goa.css">
   <script>
-    // Theme before first paint (no flash): the in-app choice, else dark like the Android app.
     (function () {
+      // An invite link (#join=…, GroupInvite.link) carries the group's key: take it out of the address
+      // bar and this page's history entry before anything loads; the app reads it once (BrowserHistory).
+      var hash = location.hash;
+      if (/^#\/?join=/.test(hash)) {
+        window.goaInvite = hash;
+        try { history.replaceState(null, "", location.pathname + location.search + "#/group"); } catch (e) {}
+      }
+      // Theme before first paint (no flash): the in-app choice, else dark like the Android app.
       var mode = "dark";
       try { mode = localStorage.getItem("goa.theme") || "dark"; } catch (e) {}
       if (mode !== "light" && mode !== "system") mode = "dark";
