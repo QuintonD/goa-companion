@@ -36,6 +36,7 @@ fun EntryProviderScope<NavKey>.draftEntries(navigator: Navigator) {
             viewModel = hiltViewModel(),
             onBack = navigator::back,
             onOpenHero = { navigator.navigate(HeroDetailRoute(it)) },
+            onOpenSpellbook = { navigator.navigate(HeroDetailRoute(it, HeroDetailRoute.SPELLBOOK)) },
             onTryOnBoard = { red, blue -> navigator.navigate(BoardRoute(red = red, blue = blue)) },
             onFinished = { matchId, openMatchSetup ->
                 navigator.back()

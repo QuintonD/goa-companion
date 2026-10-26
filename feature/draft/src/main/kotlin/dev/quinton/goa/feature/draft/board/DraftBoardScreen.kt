@@ -166,6 +166,9 @@ interface BoardActions {
 
     fun openHero(heroId: String) {}
 
+    /** The hero's page at its spellbook (Gydion's 22 spell cards). */
+    fun openSpellbook(heroId: String) {}
+
     fun chooseHeroFor(playerId: String?) {}
 
     fun assignHero(heroId: String) {}
@@ -188,6 +191,7 @@ fun DraftBoardDestination(
     onOpenHero: (String) -> Unit,
     onFinished: (matchId: String, openMatchSetup: Boolean) -> Unit,
     onTryOnBoard: (red: List<String>, blue: List<String>) -> Unit = { _, _ -> },
+    onOpenSpellbook: (String) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(viewModel) {
@@ -217,6 +221,7 @@ fun DraftBoardDestination(
             override fun back() = onBack()
             override fun dismissMessage() = viewModel.dismissMessage()
             override fun openHero(heroId: String) = onOpenHero(heroId)
+            override fun openSpellbook(heroId: String) = onOpenSpellbook(heroId)
             override fun chooseHeroFor(playerId: String?) = viewModel.chooseHeroFor(playerId)
             override fun assignHero(heroId: String) = viewModel.assignHero(heroId)
             override fun clearHero(playerId: String) = viewModel.clearHero(playerId)
@@ -315,6 +320,11 @@ fun DraftBoardScreen(state: BoardUiState, actions: BoardActions) {
                 peek = null
                 actions.cancelConfirm()
                 actions.openHero(heroId)
+            },
+            onOpenSpellbook = { heroId ->
+                peek = null
+                actions.cancelConfirm()
+                actions.openSpellbook(heroId)
             },
         )
     }

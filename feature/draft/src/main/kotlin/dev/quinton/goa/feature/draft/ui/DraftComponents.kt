@@ -148,6 +148,8 @@ data class HeroInfo(
     val roles: List<HeroRole> = emptyList(),
     val stats: HeroStats = HeroStats(),
     val startingCards: List<CardInfo> = emptyList(),
+    /** Spell cards outside the deck (Gydion's spellbook, the hero JSON's `<hero>-spell-` extras). */
+    val spellCards: Int = 0,
 ) {
     companion object {
         fun of(hero: Hero) = HeroInfo(
@@ -160,6 +162,7 @@ data class HeroInfo(
             roles = hero.roles,
             stats = hero.stats,
             startingCards = startingCards(hero),
+            spellCards = hero.extras.count { it.id.startsWith("${hero.id}-spell-") },
         )
 
         fun unknown(id: String) = HeroInfo(id, "Unknown hero", known = false)
