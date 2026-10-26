@@ -14,8 +14,9 @@ import dev.quinton.goa.feature.board.board.cardKindLabel
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
+import dev.quinton.goa.feature.board.ui.cards.confirmHint
+import dev.quinton.goa.feature.board.ui.cards.confirmLabel
 import dev.quinton.goa.feature.board.ui.cards.focusHandicapBasis
-import dev.quinton.goa.feature.board.ui.cards.lowerFirst
 import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconSize
 import kotlinx.browser.document
@@ -268,21 +269,24 @@ private fun FocusOverlay(state: CardFocusState, request: CardFocusRequest) {
             if (selection != null) {
                 Div({ classes("goa-focus-confirm") }) {
                     val can = item.enabled && request.canConfirm
-                    if (item.enabled) {
-                        P({ classes("t-body-small", "goa-quiet") }) {
-                            Text("Tap the card again to ${lowerFirst(selection.action(item.card))}.")
-                        }
-                    }
+                    val action = selection.action(item.card)
+                    if (can) P({ classes("t-body-small", "goa-quiet") }) { Text(confirmHint(action)) }
                     Button({
                         classes("goa-button", "filled", "block")
                         attr("type", "button")
                         if (!can) attr("disabled", "")
                         onClick { state.confirm() }
-                    }) { Text(selection.action(item.card)) }
+                    }) { Text(confirmLabel(item, request.canConfirm, action)) }
                 }
-            } else if (request.cards.size > 1) {
+            } else {
                 P({ classes("t-body-small", "goa-quiet", "goa-focus-hint") }) {
-                    Text("Swipe for the other cards; swipe up or tap outside to close.")
+                    Text(
+                        if (request.cards.size > 1) {
+                            "Swipe for the other cards; swipe up or tap outside to close."
+                        } else {
+                            "Swipe up or tap outside to close."
+                        },
+                    )
                 }
             }
         }
@@ -371,13 +375,14 @@ private fun Value(text: String) {
     Span({ classes("goa-value", "t-label-large") }) { Text(text) }
 }
 
-/** A card's printed text, verbatim: one paragraph per line; a reminder line (`~`) in italics. */
+/**
+ * A card's printed text, verbatim, through the catalog's markup parser as the phone's `CardTextView`
+ * draws it: icons inline (spoken as their words), bold keywords bold, `~(…)` reminders in italics.
+ */
 @Composable
 fun CardText(text: String) {
-    Div({ classes("goa-card-text", "t-printed-small") }) {
-        text.split('\n').filter { it.isNotBlank() }.forEach { line ->
-            P({ if (line.startsWith("~")) classes("reminder") }) { Text(line.removePrefix("~")) }
-        }
+    Div({ classes("goa-card-text", "goa-parchment") }) {
+        dev.quinton.goa.web.catalog.CardTextView(text, "t-printed-small")
     }
 }
 

@@ -359,7 +359,7 @@ private fun ConfirmBar(
                 )
                 Spacer(Modifier.width(Spacing.xs))
                 Text(
-                    "Tap the card again to ${lowerFirst(action)}",
+                    confirmHint(action),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.secondary,
                 )
@@ -372,11 +372,7 @@ private fun ConfirmBar(
             modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).testTag(CONFIRM_TAG),
         ) {
             Text(
-                when {
-                    !item.enabled -> "Not an option"
-                    !canConfirm -> "Wait…"
-                    else -> action
-                },
+                confirmLabel(item, canConfirm, action),
                 textAlign = TextAlign.Center,
             )
         }
