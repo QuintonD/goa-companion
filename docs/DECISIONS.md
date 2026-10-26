@@ -1285,3 +1285,31 @@ level left it); a level with one card left to upgrade is still answered by the e
 shows the pair) and level 8 (the Ultimate) asks nothing, as before. Pass-and-play shows each question to
 the phone as every other question is shown. A puzzle that runs to the end of the round (p43, p48) can
 reach a level up when a hero gained the coins; it asks through the same panel (puzzle hands are open).
+
+**Extended after the hands-on pass (2026-10-26, `fix/v08-upgrade-polish`):**
+6. **The spells a card casts come with it.** For Gydion, Lesser Evocation vs Lesser Necromancy is
+   Burning Hands / Fireball vs Vampiric Touch / Create Undead; the rows showed only the deck cards. Each
+   card in the level-up rows (the hand card and both upgrades) and in the Keep row now has the spell
+   cards it names under it, small and landscape as printed, each tappable into the viewer; in the viewer
+   each card is followed by its spells as pages of their own ("A spell Lesser Evocation casts"; not
+   veiled, never an answer, "Go to" the card that is: the hand card when upgrading, the card itself when
+   keeping), and the card's sheet lists them small ("The spells it chooses from:"), a tap goes to one.
+   The link is the printed text and the catalog only (`NamedCards.kt`): a name the card puts in quotes
+   matched, by its letters and digits, to an extra card of the same hero ("Midas Touch" on the card is
+   the spell card "Midas' Touch"). `NamedCardsTest`: every quoted name on Gydion's 18 cards finds its
+   spell card, Tier I names one, Tier II two, Tier III three, and no other hero's card names an extra
+   card. Generic: any future card that names its hero's extra cards gets the same. Visibility as in 2:
+   only with the deciding hero's own question, and the spell cards themselves are the hero's printed
+   list (nothing says whether a spell is in the spellbook).
+7. **The card shrinks before a line is squeezed.** The viewer's portrait sheet is measured for every card
+   it holds (collapsed; the tallest counts, so the card keeps one size while swiping) and the card gets
+   what is left, up to its share and down to 30 % of the height (24 % above font scale 1.3); only then
+   does the sheet scroll. With large text a card an answer leads to says what to choose in the sheet
+   (it scrolls) and its bar is the button alone; the "Tap the card again to …" hint is left out (the
+   button says it). At Keep the card's own "As an item" line is left out: the note says what the other
+   card becomes, the row shows each card's item.
+8. **The question before the round's summary.** During the person's level up the end-of-round summary
+   follows the rows instead of preceding them (at font scale 2 it filled the panel).
+9. **Official item icons.** Item badges outside card text are the official icons the cards print (ADR-042;
+   the app's backpack-and-glyph badge only while one loads), under a card with the stat in words
+   ("+1 Initiative"), so the hourglass on the card is the hourglass under it.
