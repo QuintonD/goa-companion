@@ -450,7 +450,6 @@ object Routes {
      */
     private fun queried(parts: List<String>, query: Map<String, String>): Route? = when (parts.first()) {
         "trivia" -> trivia(parts, query)
-
         else -> Route.LevelLadder(query.list("heroes")).takeIf { parts.size == 1 }
     }
 

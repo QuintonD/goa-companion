@@ -252,6 +252,10 @@ fun MatchEditScreen(route: Route.MatchEdit) {
                 onSave = save,
                 onDelete = { confirmDelete = true },
                 onCancel = { if (unsaved) confirmDiscard = true else services.router.back() },
+                // From a drafted match the board places the heroes in the draft's pick order (W4).
+                onOpenBoard = { red, blue ->
+                    services.router.navigate(Route.OpenBoard(red, blue, matchId = route.matchId))
+                },
             )
         }
     }
@@ -347,6 +351,7 @@ private fun MatchFormContent(
     onSave: () -> Unit,
     onDelete: () -> Unit,
     onCancel: () -> Unit,
+    onOpenBoard: (red: List<String>, blue: List<String>) -> Unit,
 ) {
     val form = state.form
     Div({ classes("goa-w2-form") }) {
@@ -374,6 +379,14 @@ private fun MatchFormContent(
             StatusChoice(form, editor)
             if (form.status == MatchStatus.COMPLETED) WinnerAndCondition(state, editor, showHeader = true)
             DetailsSection(form, editor)
+        }
+        // As on the phone: a saved match with heroes opens on the board (the board sandbox, W4).
+        val boardRed = form.seats(Team.RED).mapNotNull { it.heroId }
+        val boardBlue = form.seats(Team.BLUE).mapNotNull { it.heroId }
+        if (!state.isNew && (boardRed.isNotEmpty() || boardBlue.isNotEmpty())) {
+            GoaButton("Open on the board", {
+                onOpenBoard(boardRed, boardBlue)
+            }, ButtonKind.OUTLINED, icon = "hexagon", block = true)
         }
         Div({ classes("goa-w2-spaced") }) {
             GoaButton(
