@@ -154,6 +154,26 @@ class PuzzleControllerTest {
         assertEquals(null, rig.puzzle.replay)
     }
 
+    /**
+     * p01's first step: Brogan may move to one of three spaces, all in Lane Zone 2 one space from
+     * him. VoiceOver read them (and a nudge's hint named them) as three identical "Lane Zone 2 ·
+     * 1 space from Brogan"; each must now say what stands beside it.
+     */
+    @Test
+    fun spacesThatReadAlikeSayWhatStandsBesideThem() = runTest {
+        val rig = Rig(this)
+        rig.controller.start()
+        rig.settle()
+        rig.controller.onAction(PuzzleAction.Answer(rig.best()))
+        rig.settle()
+        val table = rig.puzzle.table
+        val spaces = assertNotNull(table.decision).options.filterIsInstance<Choice.Space>()
+        assertTrue(spaces.size > 1, "a choice of spaces: ${table.decision?.options}")
+        val labels = spaces.map(table::label)
+        assertEquals(labels.size, labels.toSet().size, "labels must differ: $labels")
+        assertTrue(labels.any { it.contains("next to Wasp") }, labels.toString())
+    }
+
     private companion object {
         const val PUZZLE = "p01"
         const val NOW = 1_700_000_000_000L
