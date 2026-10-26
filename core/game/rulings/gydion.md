@@ -45,6 +45,10 @@ besides the goa2-faq; the threads were read through `api.geekdo.com` on 2026-10-
    A spell whose first step is optional ("If able", Suggestion) can always be cast. `Spellbook.castable`;
    tests `Cantrip - Choose and cast one…`, `Elementary Evocation - with no unit adjacent…`, `Energy Drain
    - FAQ…`. Disagreement: goa2-backend spends the spell, then offers the normal action menu.
+   [APP] Before the primary action is chosen, the action question says which spell(s) it will cast,
+   why not the others, and when only one can be cast its only target and whether it will do nothing
+   (Suggestion with no enemy hero able to move: still cast and removed, "If able") — `Spellbook.preview`,
+   ADR-040 extended; tests `GydionCastPreviewTest`.
 6. **[APP] No Hold, Clear or Fast Travel instead of a spell.** "The action on the spell card" is its
    printed action; Hold, Clear and Fast Travel are actions chosen for the played card (p.7, p.9), which
    is the Gydion card, not the spell. Disagreement: goa2-backend offers Hold/Clear on attack spells and

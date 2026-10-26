@@ -4,6 +4,7 @@ import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.DecisionContext
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameEvent
+import dev.quinton.goa.core.game.PrimaryPreview
 import dev.quinton.goa.core.game.UnavailableCard
 import dev.quinton.goa.core.game.WinReason
 import dev.quinton.goa.core.game.engine.ActionScope
@@ -13,7 +14,9 @@ import dev.quinton.goa.core.game.engine.HeroState
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.engine.actionAllowed
 import dev.quinton.goa.core.game.engine.cancelEffect
+import dev.quinton.goa.core.game.engine.capitalized
 import dev.quinton.goa.core.game.engine.performAction
+import dev.quinton.goa.core.game.engine.primaryCheck
 import dev.quinton.goa.core.game.engine.primaryKind
 import dev.quinton.goa.core.game.engine.primaryPossible
 import dev.quinton.goa.core.game.engine.primaryUnavailable
@@ -164,6 +167,37 @@ object Spellbook {
     }
 
     private const val PREPARE_SPELLS = "Prepare Spells"
+
+    /**
+     * What a card casting one of [spells] will do for [caster] now, before the player chooses its
+     * primary action (the action panel; ADR-040 extended after the hands-on pass): the spells it can
+     * cast ([castOneOf]'s options; one is cast with no question), why not each of the others, and when
+     * exactly one can be cast, that spell's only target and whether it will do nothing (an "If able"
+     * with nobody able, ruling 5: it is still cast and removed). The spell is probed as [cast] performs
+     * it, after leaving the spellbook. Open information only (see [whyNot]; the probe stops telling at
+     * any hidden card).
+     */
+    fun preview(g: Game, caster: String, spells: List<String>): PrimaryPreview {
+        val why = spells.associateWith { whyNot(g, caster, it) }
+        val available = spells.filter { why[it] == null }
+        val single = available.singleOrNull()
+        val probe = single?.let { spell ->
+            g.primaryCheck(caster, spell) { p -> owner(p, spell)?.let { setTag(p, it, spell, REMOVED) } }.probe
+        }
+        val noEffect = if (single != null && probe?.noEffect == true) {
+            val what = "${g.cardName(single)} will do nothing and is removed from the spellbook"
+            probe.nothingReason?.let { "${it.capitalized()}: $what." } ?: "${what.capitalized()}."
+        } else {
+            null
+        }
+        return PrimaryPreview(
+            cardIds = available,
+            unavailableCards = spells.mapNotNull { why[it] },
+            onlyTargetId = probe?.onlyTargetId,
+            noEffect = noEffect,
+            noEffectSource = noEffect?.let { PREPARE_SPELLS },
+        )
+    }
 
     /**
      * Why none of [spells] can be cast, as the player needs it at the table (the action panel shows

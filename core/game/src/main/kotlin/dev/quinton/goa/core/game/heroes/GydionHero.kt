@@ -5,6 +5,7 @@ import dev.quinton.goa.core.game.effects.ExtraPlace
 import dev.quinton.goa.core.game.effects.HeroModule
 import dev.quinton.goa.core.game.effects.Registry
 import dev.quinton.goa.core.game.engine.ActionScope
+import dev.quinton.goa.core.game.engine.Game
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.heroes.gydion.GydionSpells
 import dev.quinton.goa.core.game.heroes.gydion.Spellbook
@@ -102,6 +103,8 @@ object GydionHero : HeroModule {
         private val spells: List<String> = spells.toList()
 
         override fun primary(a: ActionScope) = Spellbook.castOneOf(a, spells)
+
+        override fun preview(g: Game, heroId: String, cardId: String) = Spellbook.preview(g, heroId, spells)
     }
 
     private object PrepareSpells : CardScript {

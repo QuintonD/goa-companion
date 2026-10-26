@@ -34,7 +34,7 @@ import dev.quinton.goa.core.game.engine.canSwap
 import dev.quinton.goa.core.game.engine.defeatHero
 import dev.quinton.goa.core.game.engine.defeatMinion
 import dev.quinton.goa.core.game.engine.gainCoins
-import dev.quinton.goa.core.game.engine.hand
+import dev.quinton.goa.core.game.engine.handSize
 import dev.quinton.goa.core.game.engine.inRange
 import dev.quinton.goa.core.game.engine.isAdjacent
 import dev.quinton.goa.core.game.engine.isBasic
@@ -139,7 +139,7 @@ internal object GydionSpells {
         // Power Word Kill (blue III, Radius 3): "Defeat an enemy hero in radius with no cards in hand."
         r.card(POWER_WORD_KILL, script { powerWordKill() })
         // Midas' Touch (blue II): "Gain 1 coin for every two other spell cards removed from the spellbook."
-        r.card(MIDAS_TOUCH, script { g.gainCoins(heroId, Spellbook.otherRemoved(g, cardId) / 2, "Midas' Touch") })
+        r.card(MIDAS_TOUCH, script { midasTouch() })
         // Disintegrate (blue II): "Remove a token or an enemy non-heavy minion adjacent to you."
         r.card(DISINTEGRATE, script { disintegrate() })
         // Polymorph (blue III, Radius 3): "Swap an enemy hero in radius with a token in radius or with an
@@ -308,7 +308,17 @@ internal object GydionSpells {
             isHero(id) && isEnemy(id) && canTarget(id) && g.canDisplace(id, Displacement.MOVE, heroId) &&
                 canMoveOther(id, 3, 3, straightLine = true)
         }
-        if (able.isEmpty()) return
+        if (able.isEmpty()) {
+            val any = unitsWithin(radius).any { isHero(it) && isEnemy(it) }
+            nothing(
+                if (any) {
+                    "no enemy hero in radius $radius can move 3 spaces in a straight line"
+                } else {
+                    "no enemy hero in radius $radius"
+                },
+            )
+            return
+        }
         val t = chooseUnit("An enemy hero in radius moves 3 spaces in a straight line", able)!!
         moveOther(t, 3, 3, straightLine = true)
     }
@@ -329,11 +339,20 @@ internal object GydionSpells {
     private fun ActionScope.powerWordKill() {
         // Checking a hero's hand is checking its status: it targets (goa2-faq common).
         val victims = unitsWithin(radius).filter { id ->
-            isHero(id) && isEnemy(id) && canTarget(id) && g.hand(g.heroBodyOf(id)!!).isEmpty()
+            isHero(id) && isEnemy(id) && canTarget(id) && g.handSize(g.heroBodyOf(id)!!) == 0
         }
         if (victims.isEmpty()) fizzle("no enemy hero in radius with no cards in hand")
         val v = target(chooseUnit("Defeat an enemy hero in radius with no cards in hand", victims)!!)
         g.defeatHero(g.heroBodyOf(v)!!, heroId)
+    }
+
+    private fun ActionScope.midasTouch() {
+        val coins = Spellbook.otherRemoved(g, cardId) / 2
+        if (coins == 0) {
+            nothing("fewer than two other spell cards are removed from the spellbook")
+            return
+        }
+        g.gainCoins(heroId, coins, "Midas' Touch")
     }
 
     private fun ActionScope.disintegrate() {

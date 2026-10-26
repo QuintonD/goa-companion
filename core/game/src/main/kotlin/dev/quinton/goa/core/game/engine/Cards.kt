@@ -42,7 +42,14 @@ fun Game.moveCard(heroId: String, cardId: String, zone: Zone, slot: Int = 0, kee
     touch()
 }
 
-fun Game.hand(heroId: String): List<String> = hero(heroId).cards.filter { it.zone == Zone.HAND }.map { it.id }
+/** [heroId]'s hand: hidden information to everyone else (p.4), so a probe notes the look ([Game.readsHiddenOf]). */
+fun Game.hand(heroId: String): List<String> {
+    readsHiddenOf(heroId)
+    return hero(heroId).cards.filter { it.zone == Zone.HAND }.map { it.id }
+}
+
+/** How many cards [heroId] holds: open information (the views show every hand's count), unlike the cards. */
+fun Game.handSize(heroId: String): Int = hero(heroId).cards.count { it.zone == Zone.HAND }
 
 fun Game.discardPile(heroId: String): List<String> =
     hero(heroId).cards.filter { it.zone == Zone.DISCARD }.sortedBy { it.stamp }.map { it.id }
@@ -136,6 +143,8 @@ fun Game.forceDiscard(
 ): String? {
     val heroId = heroBodyOf(victim) ?: return null
     val h = hero(heroId)
+    // Which hand cards pass [filter] is hidden from everyone but the victim (p.4).
+    readsHiddenOf(heroId)
     val options = h.cards.filter { it.zone == Zone.HAND && filter(card(it.id)) }.map { it.id }
     if (options.isEmpty()) {
         if (orDefeated && (h.at != null || state.pieces.any { it.heroBody == heroId && it.at != null })) {
