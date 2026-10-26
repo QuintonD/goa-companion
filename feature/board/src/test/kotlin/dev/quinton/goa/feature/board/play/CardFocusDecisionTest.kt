@@ -3,8 +3,11 @@ package dev.quinton.goa.feature.board.play
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
@@ -33,6 +36,7 @@ import dev.quinton.goa.feature.board.play.game.TurnStatus
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.logLines
 import dev.quinton.goa.feature.board.ui.cards.CARD_TAG
+import dev.quinton.goa.feature.board.ui.cards.GO_TO_ANSWER_TAG
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -60,8 +64,8 @@ class CardFocusDecisionTest {
         if (action !is GameAction.Review) actions += action
     }
 
-    private fun sessionAt(kind: DecisionKind): FakeGameSession {
-        val session = fakeFactory().newGame(fakeSetup(humans = all)) as FakeGameSession
+    private fun sessionAt(kind: DecisionKind, humans: Set<String> = all): FakeGameSession {
+        val session = fakeFactory().newGame(fakeSetup(humans = humans)) as FakeGameSession
         repeat(80) {
             val d = session.pending ?: error("No $kind")
             if (d.kind == kind) return session
@@ -70,9 +74,9 @@ class CardFocusDecisionTest {
         error("No $kind")
     }
 
-    private fun play(session: FakeGameSession): PlayUi {
-        val base = session.view(all.first())
-        val own = all.associateWith { seat -> session.view(seat).heroes.first { it.heroId == seat } }
+    private fun play(session: FakeGameSession, mine: Set<String> = all): PlayUi {
+        val base = session.view(mine.first())
+        val own = mine.associateWith { seat -> session.view(seat).heroes.first { it.heroId == seat } }
         val view: GameView = base.copy(heroes = base.heroes.map { own[it.heroId] ?: it })
         return PlayUi(
             table = TableUi(
@@ -80,11 +84,12 @@ class CardFocusDecisionTest {
                 view = view,
                 heroes = heroes,
                 cards = cards,
-                mine = all,
+                mine = mine,
                 decision = session.pending,
-                asking = true,
+                asking = session.pending?.seat in mine,
             ),
-            status = TurnStatus.YourTurn,
+            status = session.pending?.seat?.takeIf { it !in mine }?.let { TurnStatus.Computer(it, true) }
+                ?: TurnStatus.YourTurn,
             recent = emptyList(),
             log = logLines(session.events),
             coach = true,
@@ -96,8 +101,12 @@ class CardFocusDecisionTest {
 
     private var state by mutableStateOf<PlayUi?>(null)
 
-    private fun show(kind: DecisionKind, onAction: (GameAction) -> Unit = { record(it) }): PlayUi {
-        val p = play(sessionAt(kind))
+    private fun show(
+        kind: DecisionKind,
+        mine: Set<String> = all,
+        onAction: (GameAction) -> Unit = { record(it) },
+    ): PlayUi {
+        val p = play(sessionAt(kind, mine), mine)
         state = p
         compose.setContent {
             GoaTheme(themeMode = ThemeMode.DARK) {
@@ -182,5 +191,67 @@ class CardFocusDecisionTest {
         compose.onNodeWithTag(CARD_TAG).assertDoesNotExist()
         compose.onNodeWithText("Choose anyway").performClick()
         assertThat(actions).containsExactly(GameAction.Answer(option(p, 0)), GameAction.ChooseAnyway).inOrder()
+    }
+
+    // ---- Level up (ADR-045): the upgrade cards are shown before the colour is chosen ----------
+
+    private val current = "arien-red-1"
+    private val upgrade = "arien-red-2a"
+
+    private fun tapUpgrade(id: String) {
+        val name = "Upgrade of ${cards.getValue(current).name}: ${cards.getValue(id).name}"
+        compose.onAllNodes(hasContentDescription(name, substring = true) and hasClickAction()).onFirst().performClick()
+        compose.waitForIdle()
+    }
+
+    @Test
+    fun `level up - each card shows the two it would become, before anything is chosen`() {
+        show(DecisionKind.UPGRADE_CARD)
+        for (c in listOf("red", "green", "blue")) {
+            for (k in listOf("2a", "2b")) {
+                val name = "Upgrade of ${cards.getValue("arien-$c-1").name}: ${cards.getValue("arien-$c-$k").name}"
+                compose.onAllNodes(hasContentDescription(name, substring = true)).onFirst().assertExists()
+            }
+        }
+        assertThat(actions).isEmpty()
+    }
+
+    @Test
+    fun `level up - an upgrade card is read, never chosen, Go to leads to the card that is the choice`() {
+        show(DecisionKind.UPGRADE_CARD)
+        tapUpgrade(upgrade)
+        compose.onNodeWithText("Upgrade of ${cards.getValue(current).name}").assertExists()
+        // The second tap on an upgrade card answers nothing (it shakes): only the hand card is the choice.
+        compose.onNodeWithTag(CARD_TAG).performClick()
+        compose.waitForIdle()
+        assertThat(actions).isEmpty()
+        compose.onNodeWithTag(CARD_TAG).assertExists()
+        compose.onNodeWithTag(GO_TO_ANSWER_TAG).assertTextEquals("Go to ${cards.getValue(current).name}")
+        compose.onNodeWithTag(GO_TO_ANSWER_TAG).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Upgrade ${cards.getValue(current).name}").assertExists()
+        compose.onNodeWithTag(CARD_TAG).performClick()
+        compose.waitForIdle()
+        assertThat(actions).containsExactly(GameAction.Answer(Choice.Card(current)))
+    }
+
+    @Test
+    fun `level up - the second tap on the hand card upgrades it`() {
+        val p = show(DecisionKind.UPGRADE_CARD)
+        tapInPanel(p, 1)
+        compose.onNodeWithTag(CARD_TAG).performClick()
+        compose.waitForIdle()
+        assertThat(actions).containsExactly(GameAction.Answer(option(p, 1)))
+    }
+
+    @Test
+    fun `no peeking - a computer's level up shows none of its deck`() {
+        // Arien is the computer's: the person (Wasp) sees that Arien is choosing, not the cards.
+        show(DecisionKind.UPGRADE_CARD, mine = setOf("wasp"))
+        compose.onAllNodes(hasContentDescription("Upgrade of", substring = true)).assertCountEquals(0)
+        for (id in listOf("arien-red-2a", "arien-red-2b", "arien-green-2a", "arien-blue-2b")) {
+            compose.onAllNodes(hasContentDescription(cards.getValue(id).name, substring = true)).assertCountEquals(0)
+            compose.onAllNodes(hasText(cards.getValue(id).name, substring = true)).assertCountEquals(0)
+        }
     }
 }

@@ -1196,3 +1196,53 @@ so the sheet could not be opened from the map at all.
 **Consequences:** the hero and spellbook sheet screenshots and the screens whose hint gained the line were
 re-recorded. The sheet's hero name is the sheet title only (the header repeated it). A future "table
 rules" switch (ADR-037) would hide only earlier rounds; this turn and the dashboard are what the table shows.
+
+## ADR-045 — Level up: see the upgrade cards before choosing what to upgrade (2026-10-26)
+**Context:** The owner: "When upgrading cards it is important to facilitate viewing the potential
+upgrade cards BEFORE we select the chosen upgrade colour." Level up (pp.15–16) asked UPGRADE_CARD
+("choose a card to upgrade": the lowest-Tier coloured hand cards) and only then KEEP_UPGRADE (the two
+next-Tier cards of that colour; the one not kept becomes an item). The question's row showed the hand
+cards only; the two cards each would become were three taps away (zoom one card, read its small
+related thumbnails, back, repeat per colour), and the app computed them itself from the catalog, apart
+from the engine's own selection.
+**Decision:**
+1. **The engine previews the choice it is about to offer.** `DecisionContext.upgrades` (UPGRADE_CARD
+   only): per option card, the next Tier's cards of its colour in the deciding hero's deck, in the order
+   KEEP_UPGRADE offers them (CONTRACT-CHANGES.md). `Flow.kt`'s `upgradeable` (the options) and
+   `upgradesOf` (the pair) are the only selection: the question, its preview, the Keep question and
+   the AI's level-up score (`StaticPolicy`) all read them, so the preview can't drift from what follows.
+   `UpgradePreviewTest` levels every playable hero from 1 to 8 in one round and checks, for every
+   option of every question, that its preview is exactly the Keep question it leads to.
+2. **Visibility.** The rule has the player search their own deck ("Find two Action cards in your deck
+   that have the same color as the chosen card but are one Tier higher", p.15), so the preview is part
+   of the deciding hero's own question and the app shows it only with that question (the decision panel
+   is drawn for the person's own seats, `TableUi.mine`, as before; a computer's level up shows "Arien is
+   choosing" and nothing of its deck). It also tells no one anything hidden: the next Tier's two cards
+   of a colour are always both in the deck (a Tier is reached only through the one below), the deck
+   list is the hero's printed list, and what was kept or tucked earlier (hidden, BGG 3590819) doesn't
+   change it. The AI's samples (`determinize`) build it from the sample's own deck; two games differing
+   only in a hidden upgrade history give the same samples (no-peeking test).
+3. **The question as rows.** UPGRADE_CARD shows one row per card that may be upgraded: the hand card
+   (framed in its colour: the choice), an arrow, then the two cards it would become as official scans
+   with the item icon each gives if it is the one not kept (p.16): colours compare at a glance, with no
+   tap. Cards are as large as three fit across the panel (60–100 dp; the panel scrolls), the same in
+   portrait, landscape and at font scale 2. Hand cards the question doesn't offer (Gold, Silver, a
+   higher Tier) are no longer repeated here; the hand strip under the panel shows them.
+4. **Card focus without ambiguity.** Tapping any card opens the viewer over the rows in order (each hand
+   card followed by its upgrades), so a swipe walks through every colour. The hand card keeps the
+   convention: "Tap the card again to upgrade Liquid Leap" and its button; its sheet names the pair
+   ("… is replaced by Magical Current or Arcane Whirlpool: you keep one, the other becomes an item
+   (p.15, p.16). Swipe to see them.") instead of the small thumbnails it had, which the next pages now
+   show large. An upgrade card is captioned "Upgrade of Liquid Leap", is not veiled (it is not a wrong
+   answer, it is what an answer leads to), says which card to choose ("Upgrade Liquid Leap to choose
+   between this card and Rogue Wave next; the other becomes an item"), and in place of Confirm offers
+   "Go to Liquid Leap"; a second tap on it shakes and answers nothing. `FocusCard.answeredBy` (the key of
+   the card that answers for it) carries this; TalkBack has "Go to …" as an action.
+5. **KEEP_UPGRADE unchanged:** the two cards large with the item icon under each, the viewer's "… goes
+   to your hand" / "… becomes an item: +1 Defense (p.16)".
+**Consequences:** the level-up panel is taller (three rows of three cards); the board stays above it and
+the panel scrolls. Several levels in one round ask again with a fresh preview (the deck as the previous
+level left it); a level with one card left to upgrade is still answered by the engine (its Keep question
+shows the pair) and level 8 (the Ultimate) asks nothing, as before. Pass-and-play shows each question to
+the phone as every other question is shown. A puzzle that runs to the end of the round (p43, p48) can
+reach a level up when a hero gained the coins; it asks through the same panel (puzzle hands are open).

@@ -458,10 +458,9 @@ class PlayScreenshotTest {
 
     @Test fun tableMinionReturnDark() = capture(ThemeMode.DARK) { Game(remember { at(DecisionKind.MINION_RETURN) }) }
 
+    /** Level up (ADR-045): each card that may be upgraded with the two it would become and their items. */
     @Test
-    fun tableUpgradeCardDark() = capture(ThemeMode.DARK) {
-        Game(remember { at(DecisionKind.UPGRADE_CARD) { Choice.Card("arien-red-1") } })
-    }
+    fun tableUpgradeCardDark() = capture(ThemeMode.DARK) { Game(remember { at(DecisionKind.UPGRADE_CARD) }) }
 
     /** Keep one, the other becomes an item: the item's stat icon on each card. */
     @Test

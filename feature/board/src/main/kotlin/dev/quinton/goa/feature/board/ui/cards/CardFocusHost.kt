@@ -209,7 +209,10 @@ private fun FocusOverlay(state: CardFocusState, request: CardFocusRequest) {
             val to = (pager.currentPage + delta).coerceIn(0, request.cards.lastIndex)
             scope.launch { pager.animateScrollToPage(to) }
         }
-        val actions = FocusActions(confirm = confirm, step = step, close = { state.close() })
+        val goTo: (Int) -> Unit = { to ->
+            scope.launch { pager.animateScrollToPage(to.coerceIn(0, request.cards.lastIndex)) }
+        }
+        val actions = FocusActions(confirm = confirm, step = step, close = { state.close() }, goTo = goTo)
 
         // The scrim: tap to close (TalkBack has × instead).
         val scrimAlpha = SCRIM_ALPHA * motion.reveal.value * (1f - motion.back * 0.35f) *
@@ -244,7 +247,12 @@ private fun FocusOverlay(state: CardFocusState, request: CardFocusRequest) {
 }
 
 /** What the viewer's parts can do. */
-private class FocusActions(val confirm: () -> Unit, val step: (Int) -> Unit, val close: () -> Unit)
+private class FocusActions(
+    val confirm: () -> Unit,
+    val step: (Int) -> Unit,
+    val close: () -> Unit,
+    val goTo: (Int) -> Unit,
+)
 
 /** Every animated value of the viewer. */
 private class FocusMotion(private val state: CardFocusState) {
@@ -326,7 +334,7 @@ private fun FocusLayout(
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight
         val details: @Composable (Modifier) -> Unit = { m ->
-            FocusDetails(request, state.index, motion.reveal.value, actions.confirm, landscape, m)
+            FocusDetails(request, state.index, motion.reveal.value, actions.confirm, actions.goTo, landscape, m)
         }
         if (landscape) {
             val share = if (wide) LANDSCAPE_WIDE_CARD_SHARE else LANDSCAPE_CARD_SHARE
@@ -558,6 +566,14 @@ private fun FocusPage(
                         },
                     )
                 }
+                answerIndex(request, item)?.let { to ->
+                    add(
+                        CustomAccessibilityAction("Go to ${request.cards[to].card.name}") {
+                            actions.goTo(to)
+                            true
+                        },
+                    )
+                }
                 add(
                     CustomAccessibilityAction("Close") {
                         actions.close()
@@ -625,7 +641,8 @@ private fun FocusPage(
         ) {
             // TableCard's width is a portrait card's; a landscape spell keeps the height (CardShape.kt).
             TableCard(item.card, width = if (item.card.isSpell) size.height * CARD_ASPECT else size.width)
-            if (!item.enabled) NotAnOption(Modifier.align(Alignment.Center))
+            // A card an answer leads to (an upgrade card) is shown as it is, not veiled.
+            if (!item.enabled && item.answeredBy == null) NotAnOption(Modifier.align(Alignment.Center))
             item.verdict?.let { VerdictBadge(it, Modifier.align(Alignment.TopEnd).padding(Spacing.sm)) }
             if (current && motion.seal.value > 0f) ConfirmSeal(motion.seal.value, Modifier.align(Alignment.Center))
         }
@@ -703,6 +720,9 @@ internal const val CARD_TAG = "cardFocus:card"
 internal const val SCRIM_TAG = "cardFocus:scrim"
 internal const val CLOSE_TAG = "cardFocus:close"
 internal const val CONFIRM_TAG = "cardFocus:confirm"
+
+/** The "Go to <card>" button of a card an answer leads to (an upgrade card). */
+internal const val GO_TO_ANSWER_TAG = "cardFocus:goToAnswer"
 
 private const val SCRIM_ALPHA = 0.93f
 private const val PORTRAIT_CARD_SHARE = 0.6f

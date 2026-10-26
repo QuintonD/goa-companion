@@ -295,6 +295,18 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] On the S25 Ultra: long press on a hero that is a target (timing, haptic, no accidental answer), the
   sheet in landscape, TalkBack's custom action
 
+## M19 — Upgrade preview (ADR-045)
+- [x] Engine: `DecisionContext.upgrades` on the level up's first question, from the one selection the
+  question, the Keep question and the AI read (`upgradeable` / `upgradesOf`) — 2026-10-26,
+  `UpgradePreviewTest` (6: every playable hero 1 → 8, preview = Keep question; two levels in a round;
+  two heroes levelling; a short pair; no peeking across a hidden upgrade history; no preview elsewhere)
+- [x] Table: a row per card that may be upgraded with its two next-Tier cards and their item icons;
+  card focus walks every card, upgrade cards captioned "Upgrade of …" with "Go to …" instead of
+  Confirm — 2026-10-26, `CardFocusDecisionTest` (incl. a computer's level up shows none of its deck),
+  level-up screenshots portrait / landscape / light / W384 font scale 2 re-recorded and looked at. JVM only
+- [ ] On the S25 Ultra: a level up with three colours to choose from, the viewer swiped through, TalkBack
+  on the rows and "Go to …"
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check

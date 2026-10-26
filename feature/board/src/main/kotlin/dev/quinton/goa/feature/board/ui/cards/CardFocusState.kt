@@ -24,6 +24,10 @@ import dev.quinton.goa.core.model.catalog.Stat
  * ("Magnetic Dagger goes to your hand"), [related] other cards that come with it (the two of the
  * next Tier when upgrading) under [relatedLabel]. [key] matches the thumbnail's
  * [Modifier.cardFocusOrigin], so the card grows out of it and shrinks back into it.
+ * [answeredBy] marks a card shown with a question that isn't one of its answers but what an answer
+ * leads to (an upgrade card, ADR-045): the [key] of the card that is the answer. It can't be
+ * confirmed (keep [enabled] false) but isn't veiled; [reason] says what to choose instead, and the
+ * panel offers to go to that card.
  */
 @Immutable
 data class FocusCard(
@@ -36,6 +40,7 @@ data class FocusCard(
     val notes: List<CardNote> = emptyList(),
     val related: List<Card> = emptyList(),
     val relatedLabel: String? = null,
+    val answeredBy: String? = null,
 )
 
 /** A defense card against the Attack (p.14): "Holds" / "Falls" / "Decided by its text", and why. */

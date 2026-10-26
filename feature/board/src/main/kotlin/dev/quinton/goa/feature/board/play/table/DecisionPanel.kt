@@ -77,6 +77,7 @@ import dev.quinton.goa.feature.board.ui.cards.isSpell
  *   with the asking card beside the hint;
  * - cards (to play, discard, defend with, upgrade, keep) open in the card focus viewer: a first tap
  *   zooms the card, a second tap on it (or its Confirm button) answers (DecisionCards.kt);
+ * - which card to upgrade shows, beside each, the two cards it would become (UpgradeCards.kt);
  * - Defend shows the attacker's card with the Attack, then the hand's cards with each verdict.
  * [onSelect] marks a tentative choice, [onAnswer] answers, [focus] is the screen's card viewer.
  */
@@ -104,6 +105,8 @@ fun DecisionPanel(
             decision.kind == DecisionKind.PLAY_CARD -> HandPicker(table, onAnswer, focus, busy)
 
             decision.kind == DecisionKind.DEFEND -> DefensePanel(table, onSelect, onAnswer, focus, busy)
+
+            decision.kind == DecisionKind.UPGRADE_CARD -> UpgradePicker(table, onAnswer, focus, busy)
 
             layout == PanelLayout.CARDS -> CardPicker(table, onAnswer, focus, busy)
 
@@ -627,14 +630,6 @@ internal fun actionRule(action: ActionType): String? = when (action) {
 }
 
 // ---- Cards ------------------------------------------------------------------------------
-
-/** The cards of the next Tier in [card]'s colour (p.15): what upgrading it offers. */
-internal fun upgradesOf(table: TableUi, card: Card): List<Card> {
-    val tier = card.tier ?: return emptyList()
-    return table.cards.values
-        .filter { it.heroId == card.heroId && it.color == card.color && it.tier == tier + 1 }
-        .sortedBy { it.id }
-}
 
 /** Defense succeeds when its total is at least the Attack (p.14). */
 fun holds(defense: Int?, attack: Int?): Boolean? = if (defense == null || attack == null) null else defense >= attack

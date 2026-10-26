@@ -31,12 +31,14 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.SwipeUp
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -86,6 +88,7 @@ internal fun FocusDetails(
     index: Int,
     reveal: Float,
     onConfirm: () -> Unit,
+    onGoTo: (Int) -> Unit,
     landscape: Boolean,
     modifier: Modifier,
 ) {
@@ -110,7 +113,10 @@ internal fun FocusDetails(
                 }
             }
             val selection = request.selection
-            if (selection != null) {
+            val answer = answerIndex(request, item)
+            if (selection != null && answer != null) {
+                GoToAnswerBar(item, request.cards[answer].card, { onGoTo(answer) }, landscape)
+            } else if (selection != null) {
                 ConfirmBar(item, selection.action(item.card), request.canConfirm, onConfirm, landscape)
             } else {
                 ViewHint(request.cards.size > 1)
@@ -172,7 +178,10 @@ private fun NotOnTheCard(item: FocusCard, context: String?) {
         Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     item.verdict?.let { VerdictLine(it) }
-    if (!item.enabled) ReasonLine(item.reason ?: "This card can't be chosen for this question.")
+    // A card an answer leads to says what to choose in its bar instead (GoToAnswerBar).
+    if (!item.enabled && item.answeredBy == null) {
+        ReasonLine(item.reason ?: "This card can't be chosen for this question.")
+    }
     item.notes.forEach { note ->
         if (note.item != null) {
             ItemLine(note.item, note.text)
@@ -395,6 +404,58 @@ private fun ConfirmBar(
             )
         }
         // Large text or landscape: the card and its words need the room; × still says how to close.
+        if (!landscape && LocalDensity.current.fontScale <= LARGE_FONT_SCALE) {
+            Text(
+                "Swipe up or go back to choose nothing.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** The card that answers for [item] (it is what that answer leads to), when it is in the viewer. */
+internal fun answerIndex(request: CardFocusRequest, item: FocusCard): Int? =
+    item.answeredBy?.let { key -> request.cards.indexOfFirst { it.key == key }.takeIf { it >= 0 } }
+
+/**
+ * A card shown with a question that isn't its answer (an upgrade card, ADR-045): what to choose
+ * instead in a calm line (not the "Not an option" warning), and a button to go to that card, where
+ * a second tap answers as everywhere else.
+ */
+@Composable
+private fun GoToAnswerBar(item: FocusCard, answer: Card, onGoTo: () -> Unit, landscape: Boolean) {
+    HorizontalDivider(color = GoaTheme.colors.engravedBorder)
+    Column(
+        Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        item.reason?.let { reason ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.semantics(mergeDescendants = true) {},
+            ) {
+                Icon(
+                    Icons.Outlined.Info,
+                    null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(scaledIconSize(18.dp, 1.3f)),
+                )
+                Spacer(Modifier.width(Spacing.xs))
+                Text(
+                    reason,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        OutlinedButton(
+            onClick = onGoTo,
+            contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).testTag(GO_TO_ANSWER_TAG),
+        ) {
+            Text("Go to ${answer.name}", textAlign = TextAlign.Center)
+        }
         if (!landscape && LocalDensity.current.fontScale <= LARGE_FONT_SCALE) {
             Text(
                 "Swipe up or go back to choose nothing.",

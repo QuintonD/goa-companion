@@ -396,7 +396,8 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
 - **The game** follows the rulebook exactly: play a card facedown, reveal, initiative order (coin
   ties, team ties), respawn, one action per card, attacks and defense with the totals shown
   (minion modifiers, items, card text), minions, pushes mid-turn, the six end-of-round steps,
-  mandatory level ups with the upgrade choice, Pity coin, the three ways to win. Every question
+  mandatory level ups with the upgrade choice (each card that may be upgraded shows, beside it, the two
+  cards it would become and the item each gives, before the colour is chosen; ADR-045), Pity coin, the three ways to win. Every question
   says what is asked and which card asks it; every option is shown on the board or as a button;
   the log narrates every event (TalkBack reads it). The computer never sees hidden cards (p.4):
   it plans on guesses consistent with what is face up.
