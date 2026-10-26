@@ -1,0 +1,7 @@
+# gitleaks false positives (web review R2, 2026-10-26): the sync test vectors (group key 0..31 and the
+# tokens derived from it, docs/SYNC-SERVER.md) and the e2e suite's test group, published on purpose.
+767cbd72192124bb1767b0d1c27506e9cec297cc:web/e2e/tests/group-helpers.ts:generic-api-key:118
+876b3c5bf23b2f0fee50a3d70e3a8fef3c75e157:core/domain/src/main/kotlin/dev/quinton/goa/core/domain/sync/SyncVectors.kt:generic-api-key:23
+876b3c5bf23b2f0fee50a3d70e3a8fef3c75e157:core/domain/src/main/kotlin/dev/quinton/goa/core/domain/sync/SyncVectors.kt:generic-api-key:24
+876b3c5bf23b2f0fee50a3d70e3a8fef3c75e157:core/domain/src/main/kotlin/dev/quinton/goa/core/domain/sync/SyncVectors.kt:generic-api-key:28
+876b3c5bf23b2f0fee50a3d70e3a8fef3c75e157:core/domain/src/main/kotlin/dev/quinton/goa/core/domain/sync/SyncVectors.kt:generic-api-key:29
