@@ -1487,17 +1487,24 @@ Worker, and the board is SVG.
    one finger pans or, in the sandbox, drags the selected piece (a long press lifts another).
    VoiceOver gets hidden buttons for the pieces and options; the map itself is one image to it.
 4. **AI think time in WebKit** (this PC, Playwright WebKit iPhone 15 profile, `ai-timing.spec.ts`,
-   per computer answer through the real worker; card plays / other questions, median · p90 · max):
-   Easy 15 · 17 · 35 ms / 15 · 16 · 27 ms; Normal 29 · 59 · 154 / 15 · 28 · 86; Hard 187 · 386 · 495 /
-   42 · 141 · 167; Expert 3 494 · 4 135 · 4 217 / 880 · 1 510 · 1 734. Easy to Hard finish well inside
-   their wall-clock budgets; Expert runs into its 4 s cap on card plays, so in a browser it searches
-   less than on a phone (JS emulates `Long`, about 7× slower for this search, F1). Proposal, not done:
-   compile the worker to Wasm (Kotlin/Wasm, same sources) and measure Expert again; the game is
-   playable as is.
-5. **Strength slider (ADR-039, `feature/v07-ai`, not in `feature/web` yet):** the web names the
-   computer's strength in one place (`play/game/AiStrengths.kt`, `AiStrengthPicker`) and maps a seat
-   to a player in one place (`EngineHost.aiFor`); New game's form and its `Controller.Ai` come from
-   `NewGameRules` in core:play, so merging the slider changes those three and nothing else.
+   per computer answer through the real worker; card plays / other questions, median · p90 · max).
+   Re-measured per strength on 2026-10-26 after the v0.7 merge (12–41 card plays per strength, a
+   2v2 Quick game of computers; budgets per card play in brackets):
+   1–4: 15 · 16 · 18 ms / 15 · 16 · 27 ms (50 ms); 5: 19 · 56 · 103 / 15 · 16 · 27 (200 ms);
+   6: 24 · 64 · 103 / 15 · 22 · 60 (300 ms); 7: 21 · 65 · 102 / 18 · 49 · 56 (500 ms);
+   8: 101 · 280 · 352 / 21 · 70 · 104 (1.5 s); 9: 689 · 1 205 · 1 400 / 193 · 504 · 790 (3 s);
+   10: 1 844 · 3 126 · 3 231 / 471 · 1 478 · 1 581 (4 s). Every card play now finishes inside its
+   budget (the old Expert hit its 4 s cap: 3 494 · 4 135 · 4 217); only strength 10's other questions
+   reach their cap (1.33 s) in a browser, where the search runs ≈8× the desktop JVM's time (JS
+   emulates `Long`, F1). Proposal, not done: compile the worker to Wasm (Kotlin/Wasm, same sources)
+   and measure 9 and 10 again; the game is playable as is.
+5. **Strength slider (ADR-039), merged from v0.7 on 2026-10-26:** New game has the phone's slider
+   (`play/game/AiStrengths.kt`, `AiStrengthSlider`: 1–10 with − and +, the value and band, the phone's
+   notes), a strength per seat under Advanced, and starts at the last game's strength
+   (`AppSettings.computerStrength`). The form and its `Controller.Ai(strength)` come from
+   `NewGameRules` in core:play; the worker seats a strength with the phone's own rule
+   (`EngineHost.aiFor` → `AiPlayers.forApp`, one seed per strength), so a strength is the same player
+   on both; `EngineHostTest` checks it move by move.
 6. **Entry points:** the Heroes tab's Board (W1), a finished draft's "Try on the board" (W3) and a
    saved match's "Open on the board" (W2's match editor, in the draft's pick order) open the line-up's
    board (`#/boards/open?red=…&blue=…`, created at the opening or the untouched twin reopened).
@@ -1505,3 +1512,22 @@ Worker, and the board is SVG.
 with every stream merged) and one for the engine; the engine's first answer takes ≈0.3–0.8 s while
 the worker loads the catalog. Not ported: the board backup's import/export (the web has no backup
 file; boards stay in this browser). Device checks on an iPhone are still due.
+
+**Addendum (v0.7 merged into the web round, 2026-10-26):**
+**Context:** `feature/v0.7` gained ADR-039 (the strength slider and the tuned evaluation) and the
+hands-on fixes of ADR-041 §5–6 and ADR-042 (missing actions say why, the card focus viewer shows the
+card, the official coin) after this round branched; much of the code it edited had moved to the
+shared modules here.
+**Decision:** (1) Every v0.7 edit to moved code is re-applied where the code now lives: New game's
+form, actions and reducer (`strength`/`seatStrengths`, `SetStrength`/`SetSeatStrength`) and the
+Boards entry's "Computer: Hard 8" in core:play; `unavailableLine`/`unavailableActions` (the engine's
+reason for a printed action not offered) replace the removed `attackMissing` in core:play's
+`DecisionFacts`; the focus viewer's Handicap line is `focusHandicapBasis` in core:play's
+`FocusCards`; the AI's new soft-max keeps `PortableMath.exp` (same bits on the JVM and in JS). (2)
+The web follows: the missing-action lines under the answers (a forbidding card opens in the viewer),
+the slider (above), the printed Tie Breaker face in the HUD and the coin flip (`TieBreakerCoin`, the
+team's shape on a badge, a bronze ring while it loads), and the focus viewer's lean sheet with "Read
+the card as text" collapsed. (3) Milestones: v0.7's M15–M17 keep their numbers; the web's became M18
+(group, sync, players) and M19 (board, play, puzzles). v0.7 added no ADR numbered 043 or later.
+**Consequences:** One rule for a computer seat (`AiPlayers.forApp`) on the phone and in the browser.
+Strength 10's other questions reach their wall-clock cap in a browser (item 4 above).

@@ -3,22 +3,26 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { open } from "./helpers";
 
-// How long the computer thinks in this browser (W4): the real engine worker, the phone's levels and
-// seeds, a 2v2 game of computers on Forgotten Island; each GameComputer round trip is timed from the
-// page (what a player waits for). Card plays (the strong levels' biggest searches) apart. Not part of
+// How long the computer thinks in this browser (W4, re-measured per strength 1-10 for ADR-039): the
+// real engine worker, the phone's strengths and seeds (AiPlayers.forApp), a 2v2 game of computers on
+// Forgotten Island; each GameComputer round trip is timed from the
+// page (what a player waits for). Card plays (the strong strengths' biggest searches) apart. Not part of
 // the regular suite: run with GOA_AI_TIMING=1. Writes D:\.goa-qa\web\shots-w4\ai-timing.json.
 
 const out = process.env.GOA_W4_SHOTS ?? (process.platform === "win32" ? "D:/.goa-qa/web/shots-w4" : "test-results/shots-w4");
 
 test.skip(!process.env.GOA_AI_TIMING, "set GOA_AI_TIMING=1 to measure");
 
-test("ai think time per level", async ({ page }, info) => {
+test("ai think time per strength", async ({ page }, info) => {
   test.setTimeout(1_800_000);
   await open(page, "#/heroes");
-  const plan: [string, number][] = [["easy", 120], ["normal", 120], ["hard", 50], ["expert", 30]];
+  // [strength, decisions]: fewer for the strong ones, whose card plays take seconds.
+  const plan: [number, number][] = [
+    [1, 120], [2, 120], [3, 120], [4, 120], [5, 80], [6, 80], [7, 50], [8, 50], [9, 30], [10, 30],
+  ];
   const results: Record<string, unknown> = {};
-  for (const [level, decisions] of plan) {
-    const r = await page.evaluate(async ({ level, decisions }) => {
+  for (const [strength, decisions] of plan) {
+    const r = await page.evaluate(async ({ strength, decisions }) => {
       const worker = new Worker("engine-worker.js");
       let next = 0;
       const pending = new Map<number, (v: any) => void>();
@@ -33,7 +37,9 @@ test("ai think time per level", async ({ page }, info) => {
           pending.set(id, resolve);
           worker.postMessage(JSON.stringify({ id, request }));
         });
-      const ai = { type: "ai", level };
+      // Controller.Ai: the band's level (1-3 Easy, 4-6 Normal, 7-8 Hard, 9-10 Expert) and the strength.
+      const level = strength <= 3 ? "easy" : strength <= 6 ? "normal" : strength <= 8 ? "hard" : "expert";
+      const ai = { type: "ai", level, strength };
       const seat = (heroId: string, team: string) => ({ heroId, team, controller: ai });
       const t0 = performance.now();
       let game = (await call({
@@ -56,13 +62,13 @@ test("ai think time per level", async ({ page }, info) => {
       }
       worker.terminate();
       return { startMs, cards, other };
-    }, { level, decisions });
+    }, { strength, decisions });
     const stats = (xs: number[]) => {
       const s = [...xs].sort((a, b) => a - b);
       const q = (p: number) => (s.length ? Math.round(s[Math.min(s.length - 1, Math.floor(p * s.length))]) : null);
       return { n: s.length, median: q(0.5), p90: q(0.9), max: s.length ? Math.round(s[s.length - 1]) : null };
     };
-    results[level] = { firstStartMs: Math.round(r.startMs), cardPlay: stats(r.cards), otherDecisions: stats(r.other) };
+    results[String(strength)] = { firstStartMs: Math.round(r.startMs), cardPlay: stats(r.cards), otherDecisions: stats(r.other) };
   }
   mkdirSync(out, { recursive: true });
   const file = join(out, "ai-timing.json");

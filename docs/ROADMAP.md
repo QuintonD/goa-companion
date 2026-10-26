@@ -286,9 +286,13 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   focus viewer and Game state, the puzzles with nudges, misses and the solution replayed — 2026-10-26,
   `EngineHostTest`, `PuzzleControllerTest`, `GameControllerTest`, Playwright WebKit and Chromium
   (`play-board`, `play-game`, `play-puzzles`, the worker offline); AI think time per level measured
-- [ ] On an iPhone: drag and pinch on the board, the card focus viewer's swipe, Expert's think time,
+- [x] v0.7 merged in: the strength slider 1–10 (per seat, the last game's strength), the computer seated
+  by the phone's rule (`AiPlayers.forApp`), missing actions say why, the lean card focus viewer, the
+  printed Tie Breaker coin — 2026-10-26, `EngineHostTest` (strength 3 move by move against the phone's
+  player), Playwright WebKit and Chromium; think time re-measured per strength (ADR-043 W4 item 4)
+- [ ] On an iPhone: drag and pinch on the board, the card focus viewer's swipe, strength 10's think time,
   the worker after the app was in the background
-- [ ] Wasm for the engine worker, if Expert's capped search is felt in play
+- [ ] Wasm for the engine worker, if strength 10's capped search is felt in play
 
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)

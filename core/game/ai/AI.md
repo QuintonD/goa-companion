@@ -258,7 +258,10 @@ At 4× the desktop time every strength stays inside its budget at p95 (10: ≈ 2
 ≈ 0.5 s). The worst card play at 10 (1.2 s desktop, ≈ 4.6 s at 4×) and the worst move choices at 9
 and 10 (0.8 s, ≈ 3.2 s against caps of 1 s and 1.3 s) would be cut by the wall-clock cap on a slow
 phone (fewer samples, still legal). Against the old Expert (176 / 408 / 832 ms), strength 10 (the same
-samples and playouts, the tuned evaluation) costs about a quarter more at p95. Strengths 5–7 cost
+samples and playouts, the tuned evaluation) costs about a quarter more at p95. In a browser (the web app's
+engine worker, WebKit on the development machine, ADR-043 W4 item 4) the search runs about 8× the
+desktop JVM's time: strength 10's card plays took 1.8 / 3.1 / 3.2 s (median / p90 / max), inside the
+4 s budget; its other questions reach their 1.3 s cap. 1–8 stay far below their budgets there too. Strengths 5–7 cost
 about twice the old Normal (3.6 / 10.5 / 29 ms) and stay far below their budgets. The coach's
 `prepare` averaged 16 ms (max 157 ms) per decision over one Easy-vs-Hard game on mixed line-ups
 (`CoachAheadTest`).
