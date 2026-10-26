@@ -1,5 +1,6 @@
 import dev.detekt.gradle.extensions.DetektExtension
 import java.security.MessageDigest
+import java.util.Base64
 import org.jlleitschuh.gradle.ktlint.KtlintExtension
 
 /*
@@ -183,6 +184,10 @@ abstract class AssembleSite : DefaultTask() {
     @get:Input
     abstract val version: Property<String>
 
+    /** The group relay the page may connect to (`goa.syncServer`), named in the CSP's connect-src. */
+    @get:Input
+    abstract val relayOrigin: Property<String>
+
     @get:OutputDirectory
     abstract val site: DirectoryProperty
 
@@ -209,6 +214,7 @@ abstract class AssembleSite : DefaultTask() {
             val file = out.resolve(name)
             file.writeText(file.readText().replace("__GOA_BUILD__", build).replace("__GOA_VERSION__", version.get()))
         }
+        out.resolve("index.html").let { it.writeText(withPolicy(it.readText())) }
         val entries = files().filter { (path, _) -> path != "sw.js" }.joinToString(",\n") { (path, file) ->
             val hash = sha256(file.readBytes()).take(HASH_LENGTH)
             """    {"p": "${path.replace("\"", "\\\"")}", "s": ${file.length()}, "h": "$hash"}"""
@@ -221,6 +227,47 @@ abstract class AssembleSite : DefaultTask() {
 
     private fun sha256(bytes: ByteArray): String =
         MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+
+    /**
+     * [html] with its Content-Security-Policy (web review R2; Pages can't send headers, so it is a
+     * `<meta>`, placed before anything it governs): scripts only from the site plus the inline
+     * scripts of this very file by hash, connections only to the site and the group relay, no
+     * plugins, no `<base>`, no frames. Inline styles stay allowed (the splash and Compose's style
+     * attributes). The dev server never gets it (webpack's eval source maps would need 'unsafe-eval').
+     */
+    private fun withPolicy(html: String): String {
+        // Hashed as the browser sees the script: its HTML parser turns CR LF (a Windows checkout) into LF.
+        val inline = Regex("""<script>(.*?)</script>""", RegexOption.DOT_MATCHES_ALL).findAll(html)
+            .map { it.groupValues[1].replace("\r\n", "\n").replace('\r', '\n') }
+            .map {
+                "'sha256-" +
+                    Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-256").digest(it.toByteArray())) +
+                    "'"
+            }
+            .toList()
+        val relay = relayOrigin.get().trim().trimEnd('/')
+        require(relay.isEmpty() || Regex("https://[A-Za-z0-9.-]+(:[0-9]{1,5})?").matches(relay)) {
+            "goa.syncServer must be an https origin like https://host:8443, got \"$relay\""
+        }
+        val policy = listOf(
+            "default-src 'self'",
+            (listOf("script-src 'self'") + inline).joinToString(" "),
+            "style-src 'self' 'unsafe-inline'",
+            "img-src 'self' data: blob:",
+            "font-src 'self'",
+            listOf("connect-src 'self'", relay).filter { it.isNotEmpty() }.joinToString(" "),
+            "worker-src 'self'",
+            "manifest-src 'self'",
+            "media-src 'self' blob:",
+            "object-src 'none'",
+            "base-uri 'none'",
+            "form-action 'self'",
+            "frame-src 'none'",
+        ).joinToString("; ")
+        val marker = Regex("""<!-- __GOA_CSP__.*?-->""")
+        check(marker.containsMatchIn(html)) { "index.html lost its __GOA_CSP__ marker" }
+        return html.replace(marker, """<meta http-equiv="Content-Security-Policy" content="$policy">""")
+    }
 
     private companion object {
         const val MANIFEST = "asset-manifest.json"
@@ -241,6 +288,7 @@ val site = tasks.register<AssembleSite>("site") {
     dependsOn("jsBrowserDistribution")
     distribution.set(layout.buildDirectory.dir("dist/js/productionExecutable"))
     version.set(appVersion)
+    relayOrigin.set(providers.gradleProperty("goa.syncServer").orElse(""))
     site.set(layout.buildDirectory.dir("site"))
 }
 
