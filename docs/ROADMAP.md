@@ -293,6 +293,11 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] On an iPhone: drag and pinch on the board, the card focus viewer's swipe, strength 10's think time,
   the worker after the app was in the background
 - [ ] Wasm for the engine worker, if strength 10's capped search is felt in play
+- [x] First load (R3, ADR-043 "R3 first load"): app.js 5.3 → 3.8 MB (gzipped 1.38 → 1.03 MB), WOFF2
+  font subsets, QR libraries on first use, the precache after the first screen, resumable and checked
+  by hash (WebKit on Fast 3G now finishes it), updates download only what changed, list thumbnails —
+  2026-10-26, `r3-first-load.spec.ts`, `ThumbnailsTest`, `WebThumbnailsTest`; Fast 3G WebKit: usable
+  16.2 → 12.5 s, offline never → 48 s (`scripts/first-load.mjs`). Not on an iPhone yet
 
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
