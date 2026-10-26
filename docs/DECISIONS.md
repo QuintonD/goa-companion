@@ -1001,6 +1001,34 @@ derivable (the card says only Gydion looks).
 rebuilt, never saved). A future hero with extras declares its places and, if its scans are landscape,
 extends the shape rule (CardShapeTest fails until it does). The hero chip shows no spellbook count (the
 strip is S3's and has no room; the counts are on the sheet).
+**Extended 2026-10-26 (`feature/v08-spellbook-anytime`), "at any point":** the owner: "The player
+choosing Gideon should be able to view their spell deck at any point." Reaching the book meant finding
+Gydion's piece or chip (while a question makes his piece an option, the tap answers it instead) and
+scrolling the hero sheet. Now:
+1. **The table:** a Spellbook control per hero in `TableUi.mine` with spell cards, in the map buttons'
+   column under Fit and Flip (never over the round at a glance, the turn track or the hero strip; shown
+   with the panel hidden too): the hero's official deck symbol (ADR-042) and the spellbook's count on a
+   small landscape card. It opens `PlaySheet.Spellbook`, the groups above from the same `extrasGroups`,
+   so visibility stays the views' (`TableUi.mine` decides only whether the control is there; a teammate
+   or an opponent gets none). An opponent's Gydion: "Open the spellbook" on his hero sheet, the same
+   sheet with a facedown count. The review's rewound board carries the control built from that board's
+   view (`positionAt`), never the live one.
+2. **The cast question says why** (engine, additive, CONTRACT-CHANGES.md): `DecisionContext
+   .unavailableCards` lists the asking card's spells that are not options, from the same checks
+   (`Spellbook.whyNot`: removed faceup, Prepare Spells; not added yet, designer on BGG 3491113; its action
+   forbidden or unable to start, `Game.primaryUnavailable`, which `actionAvailability` now shares). Built
+   only while the question is pending (`askAlways`), so replays and the AI's runs skip it. The panel
+   shows those spells dimmed with one line each; the sheet marks the options "Can be cast now", only on
+   the person's own question (another seat's options would name its spellbook).
+3. **Before the game**, where a player chooses Gydion: New game's "You play" row and the line-up chip's
+   menu (New game and New board share it) open the 22 spell cards by tier from the catalog in the same
+   sheet; the draft's hero peek (feature/draft can't use feature/board) opens the catalog's hero page at
+   its Spellbook (`HeroDetailRoute(heroId, section = SPELLBOOK)`), reusing that layout rather than a
+   third copy.
+**Alternatives:** a top-bar action (the bar already holds Take back, Game state, Log and More, and a
+word would be squeezed); a tab in the Game state sheet (two taps, in a sheet about something else);
+letting the sheet answer the cast question (two places to answer one question; the panel stays the only
+one); a count on the hero chip (the strip gives way to the turn track after the reveal).
 
 ## ADR-041 — The game table after the reveal: a turn track of the played cards, and the card as the panel's content (2026-10-25)
 **Context:** The owner: "We are still missing a clear indication of the game state after everyone has

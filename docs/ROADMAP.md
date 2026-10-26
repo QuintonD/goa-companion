@@ -245,6 +245,23 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   Ultimate as its card, the sandbox's card strip includes the spells — 2026-10-25,
   `SpellbookScreenshotTest` (14), `SpellbookSectionTest`, `CardShapeTest`. JVM only
 - [ ] On the S25 Ultra: a Gydion game, casting from the book, the spellbook sheet in landscape
+- [x] At any point (ADR-040, extended 2026-10-26, `feature/v08-spellbook-anytime`): a Spellbook control
+  under Fit and Flip (Gydion's deck symbol, the spellbook's count) whenever a hero the person controls
+  has one (choosing a card, any question, after the reveal, end of round, panel hidden, landscape,
+  font scale 2), opening a Spellbook sheet (in your spellbook / cast / not yet added, card focus per
+  group); an opponent's from his hero sheet ("Open the spellbook", facedown, a count); the review's
+  rewound board shows the book as it was then. 2026-10-26, `SpellbookSectionTest` (11, incl. no-peeking
+  for the control, the sheet and the marks), `SpellbookScreenshotTest` (33). JVM only
+- [x] The cast question says why the card's other spells can't be cast (`DecisionContext.unavailableCards`:
+  removed faceup, not added yet, its action can't start), in the panel (dimmed, one line each) and on the
+  sheet ("Can be cast now" / the reason). 2026-10-26, `GydionTest`, `SpellbookSectionTest`
+- [x] Choosing Gydion: New game's "You play" ("Gydion's spellbook · 22 spells") and the line-up chip's
+  menu (New game, New board) open the 22 spell cards by tier from the catalog; the draft's hero peek
+  opens his hero page at the Spellbook (`HeroDetailRoute.section`). 2026-10-26,
+  `SpellbookSetupScreenshotTest` (7), `DraftScreenshotTest.heroPeekGydionDark`,
+  `OfficialDeckScreenshotTest.spellbookOpenedDark`. JVM only
+- [ ] On the S25 Ultra: the Spellbook control in a Gydion game at every moment above, portrait and
+  landscape, font scale 2; the draft peek's link; pass-and-play with Gydion on the other side
 
 ## M17 — The table after the reveal: turn track and the card as the content (ADR-041)
 - [x] Turn track: after the reveal the strip is the played cards in acting order with DONE / NOW / NEXT /

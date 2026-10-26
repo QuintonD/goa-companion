@@ -427,7 +427,13 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   cards in the spellbook": named to Gydion's player only, everyone else sees how many), cast (removed
   faceup: everyone), not yet added (everyone; the game starts with an empty spellbook). Tap a spell to
   read it large. "Choose and cast one spell" offers the spells as landscape cards ("Cast Magic
-  Missile"). An unlocked Ultimate shows as its card. **Done when:** an engine test shows two games that
+  Missile"). An unlocked Ultimate shows as its card. **At any point** (2026-10-26): a one-tap Spellbook
+  control on the table whenever a hero the person controls has a spellbook (before the reveal, during
+  any question, after it, at the end of a round, panel hidden, landscape), opening a Spellbook sheet;
+  during the cast question the sheet and the panel show which spells can be cast now and why the card's
+  others can't, in the engine's words. An opponent's spellbook opens from his hero sheet (facedown, a
+  count); the review's earlier boards show the book as it was then. Choosing Gydion (New game, the
+  board's line-up, the draft's hero peek) shows the 22 spell cards in one tap. **Done when:** an engine test shows two games that
   differ only in the spellbook's spells look the same to every other seat, live and in the review;
   screenshots of the sheet (Gydion's player and an opponent, before Prepare Spells, light/dark, 384 dp
   at font scale 2, landscape), the cast question and a spell in the card focus viewer (portrait,
