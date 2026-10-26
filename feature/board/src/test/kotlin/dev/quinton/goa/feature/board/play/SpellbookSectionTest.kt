@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.board.play
 
+import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
@@ -15,6 +16,10 @@ import dev.quinton.goa.feature.board.bundledCatalog
 import dev.quinton.goa.feature.board.bundledMaps
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.cardVerb
+import dev.quinton.goa.feature.board.play.table.castWith
+import dev.quinton.goa.feature.board.play.table.gridColumns
+import dev.quinton.goa.feature.board.play.table.namedSpells
+import dev.quinton.goa.feature.board.play.table.spellTierTitle
 import dev.quinton.goa.feature.board.play.table.catalogSpellbook
 import dev.quinton.goa.feature.board.play.table.extrasGroups
 import dev.quinton.goa.feature.board.play.table.extrasTitle
@@ -153,7 +158,8 @@ class SpellbookSectionTest {
         val s = session(prepared = true)
         val own = spellbookUi(table(s, "gydion"), "gydion")!!
         assertThat(own.title).isEqualTo("Your spellbook · Gydion")
-        assertThat(own.groups.first().cards!!.map { it.id }).isEqualTo(spells - cast.toSet())
+        // By Tier now (the hands-on pass): the same spells.
+        assertThat(own.groups.first().cards!!.map { it.id }).containsExactlyElementsIn(spells - cast.toSet())
         for (seat in listOf("wasp", "arien")) {
             val ui = spellbookUi(table(s, seat), "gydion")!!
             assertThat(ui.title).isEqualTo("Gydion's spellbook")
@@ -222,6 +228,85 @@ class SpellbookSectionTest {
             .containsExactly("Gold (no tier) 3", "Tier I 3", "Tier II 9", "Tier III 6", "Ultimate 1").inOrder()
         assertThat(ui.groups.flatMap { it.cards!! }.map { it.id }).containsExactlyElementsIn(spells)
         assertThat(catalogSpellbook(heroes.getValue("arien"))).isNull()
+    }
+
+    // ---- After the hands-on pass (2026-10-26) -------------------------------------------------
+
+    /** Gydion holds Cantrip, Lesser Evocation and Prepare Spells; Fireball and Shield are cast. */
+    private fun holding(): EngineSession = position(engine, "forgotten-island") {
+        clearMinions()
+        hero("gydion", Team.RED, Hex(1, -2)) {
+            hand("gydion-gold", "gydion-red-2a", "gydion-silver")
+            extra(*(spells - cast.toSet()).toTypedArray(), tag = "spellbook")
+            extra(*cast.toTypedArray(), tag = "removed")
+        }
+        hero("wasp", Team.RED, Hex(0, -5)) { hand("wasp-gold") }
+        hero("arien", Team.BLUE, Hex(4, -5)) { hand("arien-gold") }
+        hero("brogan", Team.BLUE, Hex(4, -2)) { hand("brogan-gold") }
+    }
+
+    @Test
+    fun `the Spellbook sheet marks each spell in the book with the card in the hand that casts it`() {
+        val ui = spellbookUi(table(holding(), "gydion"), "gydion")!!
+        assertThat(ui.castWith).containsExactly(
+            SHOCKING_GRASP, "Cast with Cantrip",
+            MISSILE, "Cast with Cantrip",
+            RETREAT, "Cast with Cantrip",
+            "gydion-spell-burning-hands", "Cast with Lesser Evocation",
+            // Fireball is named too, but it was cast: not in the spellbook, no line.
+        )
+    }
+
+    @Test
+    fun `no peeking - the hand's cast lines are for Gydion's own player only`() {
+        val s = holding()
+        for (seat in listOf("wasp", "arien", "brogan")) {
+            assertThat(castWith(table(s, seat), "gydion")).isEmpty()
+            assertThat(spellbookUi(table(s, seat), "gydion")!!.castWith).isEmpty()
+        }
+    }
+
+    @Test
+    fun `every spell a Gydion card quotes is one of his spell cards, as the engine casts them`() {
+        val gydion = bundledCatalog.heroes.first { it.id == "gydion" }
+        val book = gydion.extras
+        val named = gydion.allCards.filter { it.heroId == "gydion" && it.id !in spells }
+            .associate { it.id to namedSpells(it, book).map { s -> s.name } }
+        // Every quoted name found (the cards print "Midas Touch", the spell card "Midas' Touch").
+        gydion.allCards.filter { it.id !in spells }.forEach { card ->
+            val quoted = Regex("[“\"]([^”\"]+)[”\"]").findAll(card.text).count()
+            assertThat(namedSpells(card, book)).hasSize(quoted)
+        }
+        // As GydionHero registers them (core/game).
+        assertThat(named["gydion-gold"]).containsExactly("Shocking Grasp", "Magic Missile", "Expeditious Retreat")
+        assertThat(named["gydion-red-1"]).containsExactly("Burning Hands")
+        assertThat(named["gydion-blue-2b"]).containsExactly("Midas' Touch", "Disintegrate")
+        assertThat(named["gydion-green-3b"]).containsExactly("Find Familiar", "Dimension Door", "Cloud Kill")
+        assertThat(named["gydion-handicap"]).containsExactly("Expeditious Retreat")
+        assertThat(named["gydion-silver"]).isEmpty()
+    }
+
+    @Test
+    fun `the live spellbook lists its spells by Tier, as the catalog does`() {
+        val ui = spellbookUi(table(holding(), "gydion"), "gydion")!!
+        assertThat(ui.byTier).isTrue()
+        val book = ui.groups.first { it.place == "spellbook" }.cards!!
+        assertThat(book.map { it.tier ?: 0 }).isInOrder()
+        assertThat(book.map { it.id }).containsExactlyElementsIn(spells - cast.toSet())
+        assertThat(spellTierTitle(null)).isEqualTo("Gold (no tier)")
+        assertThat(spellTierTitle(2)).isEqualTo("Tier II")
+        assertThat(spellTierTitle(4)).isEqualTo("Ultimate")
+    }
+
+    @Test
+    fun `the spell grid fills the width and takes fewer columns with larger text`() {
+        // An S25-sized phone's sheet (411 dp less the margins).
+        assertThat(gridColumns(379.dp, 1f)).isEqualTo(3)
+        assertThat(gridColumns(379.dp, 1.3f)).isEqualTo(2)
+        assertThat(gridColumns(379.dp, 2f)).isEqualTo(2)
+        assertThat(gridColumns(352.dp, 2f)).isEqualTo(2)
+        assertThat(gridColumns(300.dp, 2f)).isEqualTo(1)
+        assertThat(gridColumns(800.dp, 1f)).isEqualTo(4)
     }
 
     private companion object {

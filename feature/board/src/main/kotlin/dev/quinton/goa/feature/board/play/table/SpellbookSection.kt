@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -125,10 +126,12 @@ private fun placeTitle(place: ExtraPlaceView): String =
     place.place.replace('_', ' ').replaceFirstChar { it.uppercase() }
 
 /**
- * The hero sheet's section for a hero's extra cards (nothing for a hero without any): each group's
- * cards as landscape thumbnails in a grid; tap one to see it large in the card focus viewer, swiping
- * through its group. [onOpen] opens the viewer; [origin] marks a thumbnail the card grows out of.
- * [onOpenSheet] adds "Open the spellbook" (the dedicated Spellbook sheet) beside the section's head.
+ * The hero sheet's section for a hero's extra cards (nothing for a hero without any). With
+ * [onOpenSheet] (the dedicated Spellbook sheet is one tap away) it is a summary: how many cards in
+ * each group, "Open the spellbook" beside the head, so the hero's other cards (the hand) are not
+ * buried under 22 spell cards. Without it, each group's cards as landscape thumbnails in a grid; tap
+ * one to see it large in the card focus viewer, swiping through its group. [onOpen] opens the viewer;
+ * [origin] marks a thumbnail the card grows out of.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -142,6 +145,7 @@ internal fun ExtrasSection(
 ) {
     if (hero.extras.isEmpty()) return
     val name = table.hero(hero.heroId).name
+    val groups = extrasGroups(table, hero)
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -156,13 +160,72 @@ internal fun ExtrasSection(
                 }
             }
         }
-        extrasGroups(table, hero).forEach { group ->
-            GroupBlock(group, "$name · ${group.title}", onOpen = onOpen, origin = origin)
+        if (onOpenSheet != null) {
+            ExtrasSummary(groups, onOpenSheet)
+        } else {
+            groups.forEach { group ->
+                GroupBlock(group, "$name · ${group.title}", onOpen = onOpen, origin = origin)
+            }
         }
     }
 }
 
-/** One group: its head with the count, the note, then its cards (nothing for a facedown group). */
+/**
+ * The groups as counts ("In your spellbook 19 · Cast · removed faceup 3"), with the spellbook's note
+ * (facedown to this person, or empty until Prepare Spells); a tap opens the sheet. One TalkBack node.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ExtrasSummary(groups: List<ExtrasGroup>, onOpenSheet: () -> Unit) {
+    val note = groups.firstOrNull { it.place == SPELLBOOK }?.note
+    val spoken = (groups.map { "${it.title}: ${it.count}" } + listOfNotNull(note)).joinToString(". ")
+    Surface(
+        onClick = onOpenSheet,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+        modifier = Modifier.fillMaxWidth().clearAndSetSemantics {
+            contentDescription = spoken
+            role = Role.Button
+            onClick(label = "Open the spellbook") {
+                onOpenSheet()
+                true
+            }
+        },
+    ) {
+        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                groups.forEach { group ->
+                    Column {
+                        Text(
+                            group.title,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text("${group.count}", style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+            }
+            note?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * One group: its head with the count, the note, then its cards (nothing for a facedown group).
+ * [byTier]: the cards (sorted by Tier) under a small head per Tier, as the catalog lists the spells;
+ * swiping in the viewer still goes through the whole group. [castWith]: a line under a spell no
+ * question marks, e.g. "Cast with Lesser Evocation".
+ */
 @Composable
 internal fun GroupBlock(
     group: ExtrasGroup,
@@ -170,6 +233,8 @@ internal fun GroupBlock(
     onOpen: (cards: List<Card>, index: Int, title: String) -> Unit,
     origin: (title: String, card: Card) -> Modifier,
     marks: Map<String, SpellMark> = emptyMap(),
+    castWith: Map<String, String> = emptyMap(),
+    byTier: Boolean = false,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
@@ -194,15 +259,58 @@ internal fun GroupBlock(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
+            byTier -> tierRuns(cards).forEach { run ->
+                Text(
+                    "${spellTierTitle(run.tier)} · ${run.cards.size}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = Spacing.xs).semantics { heading() },
+                )
+                ExtrasGrid(
+                    run.cards,
+                    onOpen = { i -> onOpen(cards, run.start + i, title) },
+                    origin = { origin(title, it) },
+                    marks = marks,
+                    castWith = castWith,
+                )
+            }
+
             else -> ExtrasGrid(
                 cards,
                 onOpen = { i -> onOpen(cards, i, title) },
                 origin = { origin(title, it) },
                 marks = marks,
+                castWith = castWith,
             )
         }
     }
 }
+
+/** A Tier's spells within a group: [start] is the first one's index in the group. */
+private data class TierRun(val tier: Int?, val start: Int, val cards: List<Card>)
+
+/** [cards] (already in Tier order) cut where the Tier changes. */
+private fun tierRuns(cards: List<Card>): List<TierRun> {
+    val runs = mutableListOf<TierRun>()
+    cards.forEachIndexed { i, card ->
+        val last = runs.lastOrNull()
+        if (last != null && last.tier == card.tier) {
+            runs[runs.lastIndex] = last.copy(cards = last.cards + card)
+        } else {
+            runs += TierRun(card.tier, i, listOf(card))
+        }
+    }
+    return runs
+}
+
+/** A spell's Tier as the catalog's hero page heads it: Gold (no tier), Tier I–III, Ultimate (Wish). */
+internal fun spellTierTitle(tier: Int?): String = when {
+    tier == null || tier == 0 -> "Gold (no tier)"
+    tier >= ULTIMATE_TIER -> "Ultimate"
+    else -> "Tier ${"I".repeat(tier)}"
+}
+
+private const val ULTIMATE_TIER = 4
 
 /** The hero sheet's spellbook, opening cards in [focus] (keys `"<title>/<card id>"`, as CardRow). */
 @Composable
@@ -228,7 +336,8 @@ internal fun ExtrasSection(
 /**
  * Landscape thumbnails filling the width, as many columns as fit at [MIN_THUMB] wide or more (fewer
  * with large text). A card with a [SpellMark] has it under it: offered now (a bronze edge), or why not
- * (dimmed); words and an edge, never colour alone.
+ * (dimmed); words and an edge, never colour alone. The width is whole pixels: a row of columns rounded
+ * up one by one would be a pixel too wide and wrap its last card (it left a third of the row empty).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -237,23 +346,39 @@ private fun ExtrasGrid(
     onOpen: (Int) -> Unit,
     origin: (Card) -> Modifier,
     marks: Map<String, SpellMark> = emptyMap(),
+    castWith: Map<String, String> = emptyMap(),
 ) {
-    val scale = LocalDensity.current.fontScale.coerceIn(1f, MAX_WIDTH_SCALE)
+    val density = LocalDensity.current
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val gap = Spacing.sm
-        val columns = ((maxWidth + gap) / (MIN_THUMB * scale + gap)).toInt().coerceIn(1, MAX_COLUMNS)
-        val width = max(MIN_THUMB_FLOOR, (maxWidth - gap * (columns - 1)) / columns)
+        val columns = gridColumns(maxWidth, density.fontScale)
+        val gapPx = with(density) { gap.roundToPx() }
+        val widthPx = ((constraints.maxWidth - gapPx * (columns - 1)) / columns).coerceAtLeast(1)
+        val width = max(MIN_THUMB_FLOOR, with(density) { widthPx.toDp() })
         FlowRow(horizontalArrangement = Arrangement.spacedBy(gap), verticalArrangement = Arrangement.spacedBy(gap)) {
-            cards.forEachIndexed { i, card -> ExtraThumb(card, width, origin(card), marks[card.id]) { onOpen(i) } }
+            cards.forEachIndexed { i, card ->
+                ExtraThumb(card, width, origin(card), marks[card.id], castWith[card.id]) { onOpen(i) }
+            }
         }
     }
 }
 
+/**
+ * How many spell cards side by side in [width]: each at least [MIN_THUMB] wide, more with larger text
+ * (up to [MAX_WIDTH_SCALE] times, so the caption under a card keeps room), at most [MAX_COLUMNS].
+ */
+internal fun gridColumns(width: Dp, fontScale: Float): Int {
+    val scale = fontScale.coerceIn(1f, MAX_WIDTH_SCALE)
+    return ((width + Spacing.sm) / (MIN_THUMB * scale + Spacing.sm)).toInt().coerceIn(1, MAX_COLUMNS)
+}
+
 @Composable
-private fun ExtraThumb(card: Card, width: Dp, origin: Modifier, mark: SpellMark?, onClick: () -> Unit) {
+private fun ExtraThumb(card: Card, width: Dp, origin: Modifier, mark: SpellMark?, hint: String?, onClick: () -> Unit) {
+    // A question's mark says more than the hand's line: one or the other under a card.
+    val line = mark?.text ?: hint
     Column(
         Modifier.width(width).clearAndSetSemantics {
-            contentDescription = listOfNotNull(spokenCard(card), mark?.text).joinToString(". ")
+            contentDescription = listOfNotNull(spokenCard(card), line).joinToString(". ")
             role = Role.Button
             onClick(label = "Look at the card") {
                 onClick()
@@ -275,12 +400,21 @@ private fun ExtraThumb(card: Card, width: Dp, origin: Modifier, mark: SpellMark?
             // TableCard's width is a portrait card's: this one keeps the height of a [width]-wide spell.
             TableCard(card, width = width / LANDSCAPE_CARD_ASPECT * CARD_ASPECT)
         }
-        if (mark != null) {
-            Text(
+        when {
+            mark != null -> Text(
                 mark.short,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = if (mark.offered) FontWeight.SemiBold else null,
                 color = MaterialTheme.colorScheme.run { if (mark.offered) primary else onSurfaceVariant },
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            hint != null -> Text(
+                hint,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )

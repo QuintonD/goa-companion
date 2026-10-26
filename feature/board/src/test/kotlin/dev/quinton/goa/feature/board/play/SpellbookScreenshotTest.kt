@@ -227,10 +227,13 @@ class SpellbookScreenshotTest {
     @Test
     fun spellbookCastFocusW384DarkFontScale2() = focused(ThemeMode.DARK, 2f)
 
-    /** A cast spell tapped on the hero sheet opens among the others cast. */
+    /**
+     * A cast spell tapped opens among the others cast. (The hero sheet now sums the spellbook up, so
+     * an opponent reads the cast spells on the Spellbook sheet it opens.)
+     */
     @Test
     fun spellbookSheetFocusDark() = capture(ThemeMode.DARK, before = { tap("Fireball") }) {
-        Game(play(session(), "arien"), PlaySheet.Hero("gydion"))
+        Game(play(session(), "arien"), PlaySheet.Spellbook("gydion"))
     }
 
     // ---- The Spellbook at any point (extends ADR-040) ----------------------------------------
@@ -335,8 +338,39 @@ class SpellbookScreenshotTest {
     @Test
     fun spellbookBookCastW384DarkFontScale2() = book(ThemeMode.DARK, 2f) { castingWithoutRetreat() }
 
-    /** Any time, no question: the spellbook and the cast spells. */
+    /**
+     * Any time, no question: the spellbook by Tier, each spell a card in the hand names marked "Cast
+     * with …", and the cast spells.
+     */
     @Test fun spellbookBookDark() = book(ThemeMode.DARK) { choosing() }
+
+    @Test fun spellbookBookLight() = book(ThemeMode.LIGHT) { choosing() }
+
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun spellbookBookLandscapeDark() = book(ThemeMode.DARK) { choosing() }
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun spellbookBookW384DarkFontScale2() = book(ThemeMode.DARK, 2f) { choosing() }
+
+    /** Gydion's own hero sheet while he chooses a card: this turn, the hand, the spellbook as counts. */
+    @Test
+    fun spellbookHeroSheetHandDark() = capture(ThemeMode.DARK) {
+        Game(play(choosing(), "gydion"), PlaySheet.Hero("gydion"))
+    }
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun spellbookHeroSheetHandW384LightFontScale2() = capture(ThemeMode.LIGHT, 2f) {
+        Game(play(choosing(), "gydion"), PlaySheet.Hero("gydion"))
+    }
+
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun spellbookHeroSheetHandLandscapeDark() = capture(ThemeMode.DARK) {
+        Game(play(choosing(), "gydion"), PlaySheet.Hero("gydion"))
+    }
 
     /** An opponent at this phone opens it from Gydion's hero sheet: the spellbook facedown, a count. */
     @Test fun spellbookBookOpponentDark() = book(ThemeMode.DARK, mine = "arien") { session() }

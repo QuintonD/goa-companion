@@ -104,6 +104,10 @@ internal data class SpellbookUi(
     val askingCard: Card? = null,
     /** Public counters the groups don't count ("Wish casts 1"). */
     val counters: List<Pair<String, Int>> = emptyList(),
+    /** The spells in the person's own spellbook a card in their hand names: "Cast with Lesser Evocation". */
+    val castWith: Map<String, String> = emptyMap(),
+    /** Each group's cards under a head per Tier (the live spellbook); the catalog's are groups by Tier. */
+    val byTier: Boolean = false,
 )
 
 /**
@@ -130,7 +134,9 @@ internal fun spellbookUi(table: TableUi, heroId: String): SpellbookUi? {
     val decision = table.decision?.takeIf { marks.isNotEmpty() }
     val shown = groups.map { group ->
         // The question's own note replaces the general one while it is asked.
-        if (group.place == SPELLBOOK && decision != null) group.copy(note = null) else group
+        val g = if (group.place == SPELLBOOK && decision != null) group.copy(note = null) else group
+        // By Tier, as the catalog lists them (stable: the engine's order within a Tier).
+        g.copy(cards = g.cards?.sortedBy { it.tier ?: 0 })
     }
     return SpellbookUi(
         heroId = heroId,
@@ -151,7 +157,50 @@ internal fun spellbookUi(table: TableUi, heroId: String): SpellbookUi? {
         askingCard = decision?.let { table.sourceCard },
         counters = hero.counters.filterKeys { it !in GROUP_COUNTERS && it.startsWith("wish") }
             .filterValues { it > 0 }.map { (k, v) -> PlayText.counter(k) to v },
+        castWith = castWith(table, heroId),
+        byTier = true,
     )
+}
+
+/**
+ * For the person's own [heroId] only: each spell in the spellbook that a card in the hand names, with
+ * the cards ("Cast with Cantrip or Lesser Evocation"). The hand is hidden information (p.4) and
+ * "Only Gydion can look at the cards in the spellbook" (Prepare Spells): nothing for anyone else.
+ */
+internal fun castWith(table: TableUi, heroId: String): Map<String, String> {
+    if (heroId !in table.mine) return emptyMap()
+    val hero = table.heroView(heroId) ?: return emptyMap()
+    val hand = hero.hand?.mapNotNull(table::card) ?: return emptyMap()
+    val inBook = hero.extras.firstOrNull { it.place == SPELLBOOK }?.cardIds?.toSet() ?: return emptyMap()
+    val spells = table.hero(heroId).spells
+    val by = linkedMapOf<String, MutableList<String>>()
+    hand.forEach { card ->
+        namedSpells(card, spells).filter { it.id in inBook }.forEach { spell ->
+            by.getOrPut(spell.id) { mutableListOf() } += card.name
+        }
+    }
+    return by.mapValues { (_, names) -> "Cast with " + orList(names) }
+}
+
+/**
+ * The spell cards [card]'s text names, in its order: Gydion's cards quote them ("Cast the “Burning
+ * Hands” spell in the spellbook", "Choose and cast one spell in the spellbook — • “Fireball” …"). The
+ * catalog's own words matched by name to [spells] (the hero's spell cards), apostrophes aside (the
+ * cards print "Midas Touch", the spell card "Midas' Touch"); never a mapping of our own.
+ */
+internal fun namedSpells(card: Card, spells: List<Card>): List<Card> {
+    if (spells.isEmpty() || card.isSpell) return emptyList()
+    val byName = spells.associateBy { spellKey(it.name) }
+    return QUOTED.findAll(card.text).mapNotNull { byName[spellKey(it.groupValues[1])] }.distinct().toList()
+}
+
+private val QUOTED = Regex("[“\"]([^”\"]+)[”\"]")
+
+private fun spellKey(name: String): String = name.lowercase().filter { it.isLetterOrDigit() || it == ' ' }.trim()
+
+private fun orList(names: List<String>): String = when (names.size) {
+    1 -> names.single()
+    else -> names.dropLast(1).joinToString(", ") + " or " + names.last()
 }
 
 /**
@@ -161,12 +210,7 @@ internal fun spellbookUi(table: TableUi, heroId: String): SpellbookUi? {
 internal fun catalogSpellbook(hero: BoardHero): SpellbookUi? {
     val spells = hero.spells.ifEmpty { return null }
     val groups = spells.groupBy { it.tier }.entries.sortedBy { (tier, _) -> tier ?: 0 }.map { (tier, cards) ->
-        val title = when {
-            tier == null -> "Gold (no tier)"
-            tier >= ULTIMATE_TIER -> "Ultimate"
-            else -> "Tier ${"I".repeat(tier)}"
-        }
-        ExtrasGroup(place = "tier-${tier ?: 0}", title = title, count = cards.size, cards = cards)
+        ExtrasGroup(place = "tier-${tier ?: 0}", title = spellTierTitle(tier), count = cards.size, cards = cards)
     }
     return SpellbookUi(
         heroId = hero.id,
@@ -177,7 +221,6 @@ internal fun catalogSpellbook(hero: BoardHero): SpellbookUi? {
     )
 }
 
-private const val ULTIMATE_TIER = 4
 private val GROUP_COUNTERS = setOf("spellbook", "spellsRemoved")
 
 /**
@@ -216,21 +259,26 @@ internal fun SpellbookContent(
                     group,
                     title,
                     onOpen = { cards, index, t ->
-                        onOpen(cards.map { focusSpell(it, t, ui.marks[it.id]) }, index, t)
+                        onOpen(cards.map { focusSpell(it, t, ui.marks[it.id], ui.castWith[it.id]) }, index, t)
                     },
                     origin = { t, card -> origin("$t/${card.id}") },
                     marks = ui.marks,
+                    castWith = ui.castWith,
+                    byTier = ui.byTier,
                 )
             }
         }
     }
 }
 
-/** A spell in the viewer: an offered one says so; one the question leaves out says why (dimmed). */
-private fun focusSpell(card: Card, title: String, mark: SpellMark?): FocusCard = FocusCard(
+/**
+ * A spell in the viewer: an offered one says so; one the question leaves out says why (dimmed); else
+ * the hand's card that casts it.
+ */
+private fun focusSpell(card: Card, title: String, mark: SpellMark?, castWith: String?): FocusCard = FocusCard(
     card,
     key = "$title/${card.id}",
-    caption = mark?.takeIf { it.offered }?.text,
+    caption = if (mark != null) mark.takeIf { it.offered }?.text else castWith,
     reason = mark?.takeIf { !it.offered }?.text,
 )
 
