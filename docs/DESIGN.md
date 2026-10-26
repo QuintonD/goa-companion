@@ -294,7 +294,7 @@ with the team's shape under the card, and the state in a word on a band across t
 2 dp border), **NEXT** (teal band and border), **PASS** (no card: an empty outline), **OUT** (a card
 that left the table unresolved); never colour alone. A card resolved facedown stays a card back. A
 tap opens the card focus viewer, swiping through the turn's cards, each captioned "Wasp · Done ·
-Movement · Initiative 10"; a long press (TalkBack: "Read about Wasp") opens the hero. The track stays
+Movement · Initiative 10"; a long press (TalkBack: "Show Wasp's game state") opens the hero. The track stays
 in view with the panel hidden and in landscape, compact there (32 dp cards, no names, DONE as a tick).
 **Moments:** a surfaceVariant card with a bronze border at the top of the panel (a polite live region)
 states the transition the table is at: "ALL CARDS REVEALED · Wasp acts first with initiative 10."
@@ -344,6 +344,24 @@ under that (1 and 10 have their own); TalkBack reads "Computer strength, Strengt
 Under "Advanced: a strength per seat" each computer hero gets the same slider with its name and value
 on one line and no end labels. The computer's strength also shows wherever its level did ("Computer ·
 Hard 7": the hero sheet, game over, the resume line on Boards).
+**Hero sheet** (ADR-044; `play/table/HeroState.kt`, `HeroDetail`): opened by a tap on a hero's chip or
+piece (when the tap is not an answer) and by a long press on any hero's piece (a haptic tick; the press is
+then the long press's, no tap or pan) or track card; TalkBack: "Show Wasp's game state" on the space,
+chip and card. The sheet's title names the hero, so the header is the 56 dp portrait in its team ring
+(faded off the board) with "◆ Blue · Computer · Hard 8" and "On the board · Lane Zone 2" (off the board:
+the respawn line in the error colour, p.7), then the number row (Level, Coins, In hand, Ultimate,
+counters). **THIS TURN · ROUND 2, TURN 3**: the card at 112 dp (a card back when it is facedown to you;
+Emmitt's second card at 76 dp beside it; a 40 dp outline when there is none), beside it the state as a
+word on a tag like the track's band (NOW bronze, NEXT teal, else surfaceVariant: FACEDOWN, CHOOSING,
+LATER, DONE, PASS, OUT), one line of what it means, the action chosen, the initiative as it counts in
+titleMedium ("Initiative 14 · printed 13"), the place in order; one TalkBack node that opens the card.
+**THIS ROUND · TURN SLOTS**: four 64 dp slots captioned Turn 1–4 as on the dashboard (an outline where
+no card lies; "No card resolved yet this round." before the first). **DISCARD · n**, then **ITEMS ·
+P.16**: the official item icons (40 × 30 dp) with "+1 Defense ×2" in titleMedium, side by side as they
+fit; for your own hero "Tucked under the dashboard: only you see which cards (p.4)." and the tucked cards
+captioned "+1 Defense". Then Ultimate, Active effects, Markers and tokens, Spellbook, your hand. From 600
+dp wide (landscape) this turn's column sits beside the round's cards, discard and items. When a hero's
+piece is an option the board hint adds "Long-press a hero for their game state."
 **Spellbook** (Gydion, ADR-040; `play/table/SpellbookSection.kt`): the hero sheet and the review's Now
 tab show a SPELLBOOK section after the discard, in the engine's order: "In your spellbook · 19" (the
 spell cards, for Gydion's player only), "Cast · removed faceup · 3" (everyone), "Not yet added · 22"

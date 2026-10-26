@@ -263,6 +263,21 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   2026-10-25, `UnavailableActionsTest` (7, incl. no-peeking), `PlayPanelTextTest`, spellbook / play /
   puzzle / review screenshots re-recorded and looked at. JVM only
 
+## M18 — Hero game state (ADR-044)
+- [x] Engine: items for every hero are the public item icons (`HeroView.itemStats`), the tucked cards the
+  owner's only; Min's Perfect Self no longer names the tucked card in the log — 2026-10-26,
+  `HeroStateViewTest` (5: live, review, games differing only in the tucked card, no-peeking)
+- [x] Hero sheet as a game state: this turn's card (facedown / faceup with NOW / NEXT / DONE and the
+  initiative as it counts), the round's Turn slots, discard, item icons with "+1 Defense ×2" (your tucked
+  cards too), where the hero stands or when it may respawn, markers and tokens; landscape side by side —
+  2026-10-26, `HeroStateSheetTest` (7, incl. no-peeking on the sheet), `HeroStateScreenshotTest` (10:
+  portrait, landscape, light, W384 font scale 2), hero / spellbook sheets re-recorded. JVM only
+- [x] Reaching it: a long press on any hero's piece (even a target), TalkBack "Show <hero>'s game state"
+  on the space, chip and track card, the board hint's line — 2026-10-26, `HeroStateSheetTest` (the real
+  gesture and the action). JVM only
+- [ ] On the S25 Ultra: long press on a hero that is a target (timing, haptic, no accidental answer), the
+  sheet in landscape, TalkBack's custom action
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check
