@@ -7,6 +7,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import dev.quinton.goa.web.ui.escapeMarkup
 import kotlin.js.Promise
 import kotlinx.browser.document
 import kotlinx.browser.window
@@ -51,7 +52,8 @@ object InviteQr {
                 }
             }
         }
-        val safeTitle = title.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        // The group's name is whatever the invite said: escaped for the attribute, quotes included.
+        val safeTitle = escapeMarkup(title)
         return """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 $size $size" shape-rendering="crispEdges" """ +
             """role="img" aria-label="$safeTitle"><rect width="$size" height="$size" fill="#fff"/>""" +
             """<path d="$path" fill="#000"/></svg>"""
