@@ -348,18 +348,11 @@ fun Game.actionAvailability(heroId: String, cardId: String, explain: Boolean = t
     if (pk == ActionKind.DEFENSE) {
         if (explain) missing += UnavailableAction(ActionType.PRIMARY, DEFENSE_PLAYED, "p.14")
     } else if (pk != ActionKind.NONE && script != null && script.hasPrimary) {
-        val by = actionForbiddenBy(heroId, cardId, pk, true)
-        val blocked = if (by == null) primaryBlocker(heroId, cardId) else null
-        when {
-            by != null -> if (explain) missing += forbidden(ActionType.PRIMARY, pk, by)
-
-            blocked == null -> out += ActionType.PRIMARY
-
-            explain -> missing += UnavailableAction(
-                ActionType.PRIMARY,
-                "Its ${kindName(pk)} can't start: ${blocked.reason}",
-                blocked.source ?: FIRST_INSTRUCTION,
-            )
+        val why = primaryUnavailable(heroId, cardId)
+        if (why == null) {
+            out += ActionType.PRIMARY
+        } else if (explain) {
+            missing += why
         }
     }
     val hasMovement = card.primary == PrimaryAction.MOVEMENT || SecondaryAction.MOVEMENT in card.secondary
@@ -392,6 +385,22 @@ fun Game.actionAvailability(heroId: String, cardId: String, explain: Boolean = t
     }
     out += ActionType.HOLD
     return ActionAvailability(out, missing)
+}
+
+/**
+ * Why [heroId] can't perform [cardId]'s Primary action now, or null when it can: an effect in force
+ * forbids it, or its first instruction can't be done ([primaryBlocker]). The action panel's reason
+ * (ADR-041) and Gydion's cast question (a spell's action, `Spellbook.castOneOf`) both use it.
+ */
+fun Game.primaryUnavailable(heroId: String, cardId: String): UnavailableAction? {
+    val pk = primaryKind(card(cardId))
+    actionForbiddenBy(heroId, cardId, pk, true)?.let { return forbidden(ActionType.PRIMARY, pk, it) }
+    val blocked = primaryBlocker(heroId, cardId) ?: return null
+    return UnavailableAction(
+        ActionType.PRIMARY,
+        "Its ${kindName(pk)} can't start: ${blocked.reason}",
+        blocked.source ?: FIRST_INSTRUCTION,
+    )
 }
 
 /** p.10 "Mandatory and Optional Steps" and the FAQ's "you may not perform the action at all". */

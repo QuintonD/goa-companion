@@ -314,6 +314,26 @@ data class DecisionContext(
      * that are not among the options, each with why. Built from the same checks that left them out.
      */
     val unavailable: List<UnavailableAction> = emptyList(),
+    /**
+     * CHOOSE_CARD: the cards the asking card names that are not among the options, each with why
+     * (Gydion's "Choose and cast one spell in the spellbook —": a spell removed faceup, not added yet,
+     * or whose action can't start). Built from the same checks that left them out.
+     */
+    val unavailableCards: List<UnavailableCard> = emptyList(),
+)
+
+/**
+ * A card the asking card names that can't be chosen now (CHOOSE_CARD), in one short line: "Not in the
+ * spellbook: removed faceup", "Its Attack can't start: no target in range". [source] is the rule, null
+ * when [byCardId] (a faceup card's effect in force) is the reason. Never names a hidden card: the
+ * cards are printed on the asking card, the reasons are open information.
+ */
+@Serializable
+data class UnavailableCard(
+    val cardId: String,
+    val text: String,
+    val source: String? = null,
+    val byCardId: String? = null,
 )
 
 /**

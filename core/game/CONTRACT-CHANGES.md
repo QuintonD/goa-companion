@@ -182,3 +182,20 @@ are rebuilt by the replay, never saved).
   `Fizzle(reason, source = null)` and `fizzle(reason, source)`. `attackTarget(…, none = "no target")`:
   `adjacentAttackTarget` fizzles "no target adjacent to you", `rangedAttackTarget` "no target in range"
   (the log's "… stops:" lines changed with them). Gydion's `castOneOf` says why no spell can be cast.
+
+## 2026-10-26 (why a spell can't be cast, `feature/v08-spellbook-anytime`, ADR-040 extended)
+
+Additive; defaults keep other `GameSession` implementations, test fakes, saves and the `feature/web`
+client unaffected (decisions are rebuilt by the replay, never saved).
+
+- `DecisionContext.unavailableCards: List<UnavailableCard> = emptyList()`: on `CHOOSE_CARD`, the cards the
+  asking card names that are not among the options, each with why. `UnavailableCard(cardId: String, text:
+  String, source: String? = null, byCardId: String? = null)`. Gydion's "Choose and cast one spell in the
+  spellbook": "Not in the spellbook: removed faceup" (Prepare Spells), "Not in the spellbook yet:
+  Prepare Spells adds it" (designer, BGG 3491113), or the action's own reason ("Its Attack can't start:
+  no target in range", "... is forbidden by ..."). Open information only. Built only while the question
+  is pending (`Game.askAlways`); the options and the number of questions are unchanged, so saves replay
+  as before.
+- Engine side: `Game.primaryUnavailable(heroId, cardId): UnavailableAction?` (forbidden, or the
+  probe's `Fizzle`), shared by `actionAvailability`; `Spellbook.whyNot(g, caster, spellId)` and
+  `Spellbook.CAST_PROMPT`.
