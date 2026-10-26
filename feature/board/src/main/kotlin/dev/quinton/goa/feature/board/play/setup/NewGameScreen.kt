@@ -278,7 +278,7 @@ private fun PlayableNote(state: NewGameUiState.Ready) {
         )
         Spacer(Modifier.width(Spacing.xs))
         Text(
-            "${BoardText.count(state.playable, "hero")} can play so far; $later more join as their cards are tested.",
+            "${BoardText.count(state.playable, "hero", "heroes")} can play so far; $later more join as their cards are tested.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
