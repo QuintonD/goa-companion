@@ -1,56 +1,97 @@
 package dev.quinton.goa.web.play.game
 
 import androidx.compose.runtime.Composable
-import dev.quinton.goa.core.game.AiLevel
+import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.web.ui.Icon
+import org.jetbrains.compose.web.attributes.InputType
+import org.jetbrains.compose.web.attributes.disabled
+import org.jetbrains.compose.web.attributes.max
+import org.jetbrains.compose.web.attributes.min
+import org.jetbrains.compose.web.attributes.step
 import org.jetbrains.compose.web.dom.Button
 import org.jetbrains.compose.web.dom.Div
-import org.jetbrains.compose.web.dom.P
+import org.jetbrains.compose.web.dom.Input
 import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
 
 /*
- * How strong the computer plays, the one place the web app names it (PRODUCT §9). Today the four
- * levels (AiLevel); when the strength slider lands (ADR-039, feature/v07-ai), the value becomes a
- * strength 1..10: change [AiStrengthPicker] to a range input over AiStrength.MIN..MAX with
- * PlayText.strengthValue / strengthSpoken / strengthNote, [AiStrengths.label] to PlayText.strength,
- * and New game's form (NewGameRules.computer in core:play) maps it to Controller.Ai(strength). The
- * worker's single mapping from a seat to a player is EngineHost.aiFor.
+ * How strong the computer plays, the one place the web app names it (PRODUCT §9, ADR-039): a
+ * strength 1..10 with the phone's words (PlayText.strengthValue / strengthSpoken / strengthNote /
+ * strength). New game's form (NewGameRules.computer in core:play) makes it a Controller.Ai(strength);
+ * the worker seats it with the phone's rule (EngineHost.aiFor → AiPlayers.forApp).
  */
 object AiStrengths {
-    /** The choices offered, weakest first. */
-    val choices: List<AiLevel> = AiLevel.entries
-
-    fun label(level: AiLevel): String = PlayText.level(level)
-
-    /** A computer seat's strength in words ("Hard"). */
-    fun label(computer: Controller.Ai): String = PlayText.level(computer.level)
-
-    fun note(level: AiLevel): String = PlayText.levelNote(level)
+    /** A computer seat's band and strength in words ("Hard 8"). */
+    fun label(computer: Controller.Ai): String = PlayText.strength(computer)
 }
 
 /**
- * Picks the computer's strength: a segmented row of the levels with the chosen one's note under it.
- * [label] names the group for VoiceOver ("Computer level", "Wasp's level").
+ * The computer's strength, 1 to 10, as on the phone: the value and its band ("6 · Normal") above a
+ * slider with a tick per step, "Gentler" and "Stronger" under its ends ([ends], once under the main
+ * one). − and + step it by one: a slider's thumb is small on an iPhone, and VoiceOver users get a
+ * plain button too. [label] names it ("Computer strength", "Wasp's strength"); VoiceOver reads the
+ * value as "Strength 6 of 10, Normal". [title] goes before the value (a seat's hero).
  */
 @Composable
-fun AiStrengthPicker(value: AiLevel, label: String, onChange: (AiLevel) -> Unit, showNote: Boolean = true) {
-    Div({
-        classes("goa-segmented")
-        attr("role", "radiogroup")
-        attr("aria-label", label)
-    }) {
-        AiStrengths.choices.forEach { level ->
-            Button({
-                classes("goa-segment")
-                if (level == value) classes("selected")
-                attr("type", "button")
-                attr("role", "radio")
-                attr("aria-checked", (level == value).toString())
-                onClick { onChange(level) }
-            }) { Span { Text(AiStrengths.label(level)) } }
+fun AiStrengthSlider(
+    value: Int,
+    label: String,
+    title: (@Composable () -> Unit)? = null,
+    ends: Boolean = title == null,
+    onChange: (Int) -> Unit,
+) {
+    val strength = AiStrength.coerce(value)
+    val fill = (strength - AiStrength.MIN) * PERCENT / (AiStrength.MAX - AiStrength.MIN)
+    Div({ classes("goa-strength") }) {
+        Div({ classes("goa-strength-head") }) {
+            if (title != null) Div({ classes("goa-strength-title") }) { title() }
+            Span({
+                classes("t-title-medium", "goa-strength-value")
+                attr("aria-hidden", "true")
+            }) { Text(PlayText.strengthValue(strength)) }
+        }
+        Div({ classes("goa-strength-row") }) {
+            StepButton("remove", "$label: gentler", enabled = strength > AiStrength.MIN) { onChange(strength - 1) }
+            Input(InputType.Range) {
+                classes("goa-range")
+                min(AiStrength.MIN.toString())
+                max(AiStrength.MAX.toString())
+                step(1)
+                value(strength)
+                attr("aria-label", label)
+                attr("aria-valuetext", PlayText.strengthSpoken(strength))
+                // The filled part of the track, up to the thumb.
+                style { property("--fill", "$fill%") }
+                onInput { event ->
+                    val picked = event.value?.toInt()?.let(AiStrength::coerce)
+                    if (picked != null && picked != strength) onChange(picked)
+                }
+            }
+            StepButton("add", "$label: stronger", enabled = strength < AiStrength.MAX) { onChange(strength + 1) }
+        }
+        if (ends) {
+            Div({
+                classes("goa-strength-ends", "t-label-small", "goa-quiet")
+                attr("aria-hidden", "true")
+            }) {
+                Span { Text("Gentler") }
+                Span { Text("Stronger") }
+            }
         }
     }
-    if (showNote) P({ classes("t-body-small", "goa-quiet") }) { Text(AiStrengths.note(value)) }
 }
+
+@Composable
+private fun StepButton(icon: String, label: String, enabled: Boolean, onClick: () -> Unit) {
+    Button({
+        classes("goa-icon-button", "goa-strength-step")
+        attr("type", "button")
+        attr("aria-label", label)
+        if (!enabled) disabled()
+        onClick { onClick() }
+    }) { Icon(icon) }
+}
+
+private const val PERCENT = 100

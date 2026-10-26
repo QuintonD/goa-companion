@@ -1,6 +1,10 @@
 package dev.quinton.goa.web.play.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.ui.PanelPeek
 import dev.quinton.goa.web.ui.Icon
@@ -8,6 +12,7 @@ import dev.quinton.goa.web.ui.IconSize
 import dev.quinton.goa.web.ui.Screen
 import org.jetbrains.compose.web.dom.Button
 import org.jetbrains.compose.web.dom.Div
+import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
 
@@ -114,4 +119,38 @@ fun TeamMark(team: Team) {
         classes("goa-team-mark", if (team == Team.RED) "red" else "blue")
         attr("aria-hidden", "true")
     })
+}
+
+/**
+ * The Tie Breaker coin as printed (ADR-042: Red's gear, Blue's star, rulebook p.5), with the team's
+ * shape on a badge at its foot as on the board's pieces (team never by colour alone). While the face
+ * loads, or if it can't: the shape on a bronze ring. [big]: New game's coin flip; else the HUD's
+ * size. [spoken] null leaves it to the caller's label (the HUD reads the coin in its own line).
+ */
+@Composable
+fun TieBreakerCoin(team: Team, big: Boolean = false, spoken: String? = null) {
+    var loaded by remember(team) { mutableStateOf(false) }
+    var failed by remember(team) { mutableStateOf(false) }
+    Span({
+        classes("goa-tb-coin")
+        if (big) classes("big")
+        if (!loaded) classes("ring")
+        if (spoken != null) {
+            attr("role", "img")
+            attr("aria-label", spoken)
+        } else {
+            attr("aria-hidden", "true")
+        }
+    }) {
+        if (!failed) {
+            Img("official/board/tie-breaker-${team.name.lowercase()}.webp", alt = "", attrs = {
+                classes("goa-tb-face")
+                if (!loaded) classes("loading")
+                attr("decoding", "async")
+                addEventListener("load") { loaded = true }
+                addEventListener("error") { failed = true }
+            })
+        }
+        Span({ classes("goa-tb-badge") }) { TeamMark(team) }
+    }
 }

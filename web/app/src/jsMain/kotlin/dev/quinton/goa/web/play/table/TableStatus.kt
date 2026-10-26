@@ -31,6 +31,7 @@ import dev.quinton.goa.web.play.cards.CardFocusState
 import dev.quinton.goa.web.play.cards.CardImage
 import dev.quinton.goa.web.play.cards.ItemBadge
 import dev.quinton.goa.web.play.ui.TeamMark
+import dev.quinton.goa.web.play.ui.TieBreakerCoin
 import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconSize
 import org.jetbrains.compose.web.dom.Button
@@ -96,7 +97,7 @@ fun TableHud(table: TableUi, compact: Boolean = false) {
                 }
             }
         }
-        Span({ classes("goa-coin") }) { TeamMark(view.tieBreaker) }
+        TieBreakerCoin(view.tieBreaker)
     }
 }
 

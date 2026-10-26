@@ -16,7 +16,7 @@ async function snap(page: Page, project: string, name: string) {
   await page.screenshot({ path: join(shots, `${project}-game-${name}.png`) });
 }
 
-/** New game: Brogan + Arien (you, the whole Red team) against Wasp + Tigerclaw on Easy, Coach off. */
+/** New game: Brogan + Arien (you, the whole Red team) against Wasp + Tigerclaw at strength 2 (Easy), Coach off. */
 async function newGame(page: Page, coach = false) {
   await open(page, "#/play/new");
   await expect(page.locator(".goa-hero-grid")).toBeVisible({ timeout: 30_000 });
@@ -24,7 +24,10 @@ async function newGame(page: Page, coach = false) {
     await page.locator(".goa-hero-grid").getByRole("button", { name, exact: true }).click();
   }
   await page.getByRole("button", { name: "Next" }).click();
-  await page.getByRole("radio", { name: /Easy/ }).first().click();
+  // The strength slider (ADR-039): a fresh browser starts at 5; 2 is Easy as before the slider.
+  const strength = page.getByRole("slider", { name: "Computer strength" });
+  await strength.fill("2");
+  await expect(page.locator(".goa-strength-value").first()).toHaveText("2 · Easy");
   if (!coach) await page.locator(".goa-switch-row", { hasText: "A gentle nudge" }).locator("input").uncheck();
   await page.getByRole("button", { name: "Flip the Tie Breaker coin" }).click();
   await page.getByRole("button", { name: "Start the game" }).click();
@@ -168,6 +171,83 @@ test("play: a game through the card viewer, every kind of question, take back, g
   sameQuestionAgain();
   await yourTurn(page);
   await expect(page.locator(".goa-map-svg")).toBeVisible();
+  errors();
+});
+
+test("new game: the strength slider, a strength per seat, the official coin, the last game's strength", async ({ page }, info) => {
+  test.setTimeout(180_000);
+  const errors = watchErrors(page);
+  const p = info.project.name;
+  await page.addInitScript(() => localStorage.setItem("goa.theme", "dark"));
+  await open(page, "#/play/new");
+  await expect(page.locator(".goa-hero-grid")).toBeVisible({ timeout: 30_000 });
+  for (const name of ["Brogan", "Wasp", "Arien", "Tigerclaw"]) {
+    await page.locator(".goa-hero-grid").getByRole("button", { name, exact: true }).click();
+  }
+  await page.getByRole("button", { name: "Next" }).click();
+  // ADR-039: 1..10, a fresh browser at 5; the band and the phone's words with it.
+  const slider = page.getByRole("slider", { name: "Computer strength" });
+  await expect(slider).toHaveAttribute("aria-valuetext", "Strength 5 of 10, Normal");
+  await expect(page.locator(".goa-strength-value").first()).toHaveText("5 · Normal");
+  await page.getByRole("button", { name: "Computer strength: stronger" }).click();
+  await page.getByRole("button", { name: "Computer strength: stronger" }).click();
+  await page.getByRole("button", { name: "Computer strength: stronger" }).click();
+  await expect(page.locator(".goa-strength-value").first()).toHaveText("8 · Hard");
+  await slider.fill("10");
+  await expect(page.getByRole("button", { name: "Computer strength: stronger" })).toBeDisabled();
+  await expect(page.getByText("As strong as it gets on a phone. Expect to be punished.")).toBeVisible();
+  await slider.fill("7");
+  // Advanced: a strength per computer seat, each starting at the one for all.
+  await page.locator(".goa-switch-row", { hasText: "Advanced: a strength per seat" }).locator("input").check();
+  const wasp = page.getByRole("slider", { name: "Wasp's strength" });
+  await expect(wasp).toHaveValue("7");
+  await wasp.fill("3");
+  await expect(page.getByRole("slider", { name: "Tigerclaw's strength" })).toHaveValue("7");
+  await snap(page, p, "new-options-strength-dark");
+  // The coin flip shows the printed face (ADR-042), with the team's shape.
+  await page.getByRole("button", { name: "Flip the Tie Breaker coin" }).click();
+  const coin = page.locator(".goa-coin-big .goa-tb-coin");
+  await expect(coin).toHaveAttribute("aria-label", /Tie Breaker coin showing (Red|Blue)/);
+  await expect(coin.locator("img.goa-tb-face:not(.loading)")).toBeVisible();
+  await snap(page, p, "new-coin-dark");
+  await page.getByRole("button", { name: "Start the game" }).click();
+  await expect(page.locator(".goa-map-svg")).toBeVisible();
+  // The HUD's coin is the printed face too.
+  await expect(page.locator(".goa-table-hud .goa-tb-face:not(.loading)")).toBeVisible();
+  // The seats play their strengths: Wasp at 3 (Easy), Tigerclaw at 7 (Hard), as the save says.
+  const seats = await page.evaluate(async () => {
+    const request = indexedDB.open("goa");
+    const db: IDBDatabase = await new Promise((ok, ko) => {
+      request.onsuccess = () => ok(request.result);
+      request.onerror = () => ko(request.error);
+    });
+    const found: Record<string, number> = {};
+    for (const name of Array.from(db.objectStoreNames)) {
+      const all: unknown[] = await new Promise((ok) => {
+        const r = db.transaction(name).objectStore(name).getAll();
+        r.onsuccess = () => ok(r.result);
+        r.onerror = () => ok([]);
+      });
+      for (const v of all) {
+        if (typeof v !== "string" || !v.includes("seats")) continue;
+        const saved = JSON.parse(v);
+        for (const seat of saved?.game?.setup?.seats ?? []) {
+          if (seat.controller?.type === "ai") found[seat.heroId] = seat.controller.strength;
+        }
+      }
+    }
+    return found;
+  });
+  expect(seats).toEqual({ wasp: 3, tigerclaw: 7 });
+  // The next New game starts at the strength of the game just started.
+  await open(page, "#/play/new");
+  for (const name of ["Brogan", "Wasp"]) {
+    await page.locator(".goa-hero-grid").getByRole("button", { name, exact: true }).click();
+  }
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.locator(".goa-strength-value").first()).toHaveText("7 · Hard");
+  // 1v1: one computer seat, no per-seat option.
+  await expect(page.locator(".goa-switch-row", { hasText: "Advanced: a strength per seat" })).toHaveCount(0);
   errors();
 });
 

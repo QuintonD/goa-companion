@@ -8,7 +8,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.data.game.GameInProgress
 import dev.quinton.goa.core.data.game.StoredGame
-import dev.quinton.goa.core.game.AiLevel
+import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.GameLength
 import dev.quinton.goa.core.model.board.BoardMap
 import dev.quinton.goa.core.model.catalog.Catalog
@@ -42,6 +42,7 @@ import dev.quinton.goa.web.play.table.Overline
 import dev.quinton.goa.web.play.table.Quiet
 import dev.quinton.goa.web.play.table.teamCss
 import dev.quinton.goa.web.play.ui.TeamMark
+import dev.quinton.goa.web.play.ui.TieBreakerCoin
 import dev.quinton.goa.web.storage.scoped
 import dev.quinton.goa.web.ui.AlertDialog
 import dev.quinton.goa.web.ui.BottomSheet
@@ -75,14 +76,17 @@ private class NewGameInputs(
     val sources: List<LineupSource>,
     val replacesGame: Boolean,
     val stored: String?,
+    /** The strength of the last game started here (ADR-039): a fresh form starts at it. */
+    val lastStrength: Int,
 )
 
 /**
  * New game against the computer (#/play/new, PRODUCT §9) in two steps, as on the phone: the line-up
  * (alternate picks like New board, "Use a draft or match"; heroes not playable yet are shown veiled,
- * "Later"), then who you control, the computer's level (one for all, or per seat), Quick or Long,
- * the map, Coach; the app flips the Tie Breaker coin and Start saves the game and opens it. The form
- * survives a reload (this browser's store), like the phone's saved state.
+ * "Later"), then who you control, the computer's strength 1–10 (one for all, or per seat,
+ * ADR-039; a fresh form starts at the last game's), Quick or Long, the map, Coach; the app flips
+ * the Tie Breaker coin and Start saves the game and opens it. The form survives a reload (this
+ * browser's store), like the phone's saved state.
  */
 @Composable
 fun NewGameScreen(route: Route.NewGame) {
@@ -97,16 +101,18 @@ fun NewGameScreen(route: Route.NewGame) {
         val drafts = runCatching { data.group.draftRecords.observeDrafts().first() }.getOrDefault(emptyList())
         val matches = runCatching { data.group.matches.observeMatches().first() }.getOrDefault(emptyList())
         val playable = info?.playableHeroes.orEmpty()
+        val settings = runCatching { data.content.settings.settings.first() }.getOrDefault(AppSettings())
         NewGameInputs(
             heroes = heroes,
             maps = maps,
             playable = playable,
             playableMaps = info?.playableMaps.orEmpty().mapNotNull { id -> maps.firstOrNull { it.id == id } },
-            owned = runCatching { data.content.settings.settings.first() }.getOrDefault(AppSettings()).ownedProducts,
+            owned = settings.ownedProducts,
             sources = lineupSources(drafts, matches, heroes, MAX_SOURCES)
                 .filter { s -> (s.lineup.red + s.lineup.blue).all { it in playable } },
             replacesGame = data.play.gameSave.current.first() !is StoredGame.None,
             stored = store.get(FORM_KEY),
+            lastStrength = AiStrength.coerce(settings.computerStrength),
         )
     }
     val ready = (loaded.state as? Load.Ready)?.value
@@ -146,6 +152,7 @@ private fun NewGameForm(route: Route.NewGame, inputs: NewGameInputs) {
                     blue = route.blue.distinct().filterNot { it in route.red },
                     filling = NewBoardRules.nextTeam(route.red.size, route.blue.size, Team.BLUE),
                 ),
+                strength = inputs.lastStrength,
             ),
         )
     }
@@ -227,12 +234,16 @@ private fun NewGameForm(route: Route.NewGame, inputs: NewGameInputs) {
                             ),
                         )
                         store.delete(FORM_KEY)
+                        val strength = form.strength
+                        runCatching { data.content.settings.update { it.copy(computerStrength = strength) } }
                         router.navigate(Route.Play, replace = true)
                     }
                 }, enabled = !starting)
             },
         ) {
-            P({ classes("goa-coin-big", teamCss(coin)) }) { TeamMark(coin) }
+            P({ classes("goa-coin-big", teamCss(coin)) }) {
+                TieBreakerCoin(coin, big = true, spoken = "Tie Breaker coin showing ${BoardText.team(coin)}")
+            }
             Text(
                 "The app flipped the Tie Breaker coin and placed it by the board (p.5). When heroes of both teams " +
                     "tie on initiative, the team it shows acts first, then the coin is flipped (p.7).",
@@ -408,26 +419,33 @@ private fun OptionsStep(
             }
         }
     }
-    Overline("Computer level")
-    AiStrengthPicker(AiLevel.of(form.strength), "Computer level", onChange = { act(NewGameAction.SetStrength(it.strength)) })
-    Label(attrs = { classes("goa-switch-row") }) {
-        Span({ classes("t-label-large", "goa-switch-text") }) { Text("Advanced: a level per seat") }
-        Input(InputType.Checkbox) {
-            classes("goa-switch")
-            checked(form.advanced)
-            onChange { act(NewGameAction.SetAdvanced(it.value)) }
+    Overline("Computer strength")
+    AiStrengthSlider(form.strength, "Computer strength") { act(NewGameAction.SetStrength(it)) }
+    P({ classes("t-body-small", "goa-quiet") }) { Text(PlayText.strengthNote(form.strength)) }
+    val seats = NewGameRules.aiSeats(form, control, inputs.heroes)
+    if (seats.size > 1) {
+        Label(attrs = { classes("goa-switch-row") }) {
+            Span({ classes("t-label-large", "goa-switch-text") }) { Text("Advanced: a strength per seat") }
+            Input(InputType.Checkbox) {
+                classes("goa-switch")
+                checked(form.advanced)
+                onChange { act(NewGameAction.SetAdvanced(it.value)) }
+            }
         }
-    }
-    if (form.advanced) {
-        NewGameRules.aiSeats(form, control, inputs.heroes).forEach { seat ->
-            Div({ classes("goa-seat-level") }) {
-                P({ classes("t-label-large") }) {
-                    TeamMark(seat.team)
-                    Text(" ${seat.hero.name}")
+        if (form.advanced) {
+            seats.forEach { seat ->
+                Div({ classes("goa-seat-level") }) {
+                    AiStrengthSlider(
+                        seat.strength,
+                        "${seat.hero.name}'s strength",
+                        title = {
+                            Span({ classes("t-title-small") }) {
+                                TeamMark(seat.team)
+                                Text(" ${seat.hero.name}")
+                            }
+                        },
+                    ) { act(NewGameAction.SetSeatStrength(seat.hero.id, it)) }
                 }
-                AiStrengthPicker(AiLevel.of(seat.strength), "${seat.hero.name}'s level", onChange = {
-                    act(NewGameAction.SetSeatStrength(seat.hero.id, it.strength))
-                }, showNote = false)
             }
         }
     }
