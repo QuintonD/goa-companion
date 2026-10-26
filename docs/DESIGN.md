@@ -324,8 +324,13 @@ icon, bodySmall) for each action the card prints that isn't offered, with the en
 source (`DecisionContext.unavailable`, ADR-041): "Its Skill can't start: the spellbook is empty until
 Prepare Spells is performed (designer, BGG 3491113).", "Its Attack can't start: no target in range
 (p.10, FAQ).", "Its Movement is forbidden by Xargatha's Stone Gaze." (a tap opens that card), "Its
-Defense is never performed from a played card, only from your hand when attacked (p.14)."; then one
-line under the panel: "Only the primary action applies the card's text (p.7)." Card questions (play, discard, retrieve, upgrade,
+Defense is never performed from a played card, only from your hand when attacked (p.14)."; right under
+the Primary chip, what it will do (`DecisionContext.primaryPreview`, ADR-040 extended): Gydion's spell
+as its landscape card (40 dp portrait-equivalent, tap to read) with "Casts Fireball" (labelLarge) and
+"Its only target: Brogan" (bodySmall), several spells as cards with "Casts one of these: you choose
+which next", a "will do nothing" warning on errorContainer with a warning icon, and the card's other
+spells one line each with the engine's reason (also after the action's own line when no spell can be
+cast); then one line under the panel: "Only the primary action applies the card's text (p.7)." Card questions (play, discard, retrieve, upgrade,
 keep) show "Asked by <card>" (28 dp thumbnail) when another card asks, and the cards as official
 images: the hand as 84 dp cards shrinking to 60 dp to fit five, two or three cards larger (140 / 110
 dp, so Keep's two next-Tier cards sit side by side with their item stats), a card the question

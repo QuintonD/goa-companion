@@ -1,7 +1,9 @@
 package dev.quinton.goa.core.game.effects
 
+import dev.quinton.goa.core.game.PrimaryPreview
 import dev.quinton.goa.core.game.engine.ActionScope
 import dev.quinton.goa.core.game.engine.DefenseScope
+import dev.quinton.goa.core.game.engine.Game
 
 /*
  * Card scripts (EFFECTS.md "Card scripts"). One [HeroModule] per hero, in `heroes/<Hero>.kt`,
@@ -27,6 +29,13 @@ interface CardScript {
      * as a Skill card, or discard it to defend").
      */
     fun defense(d: DefenseScope) {}
+
+    /**
+     * What [primary] will do for [heroId] now, for the action panel (`DecisionContext.primaryPreview`),
+     * when the card performs one of the cards it names (Gydion's "Cast the X spell"): which it may
+     * perform, why not the others. Null (the default): the engine's probe of the text tells.
+     */
+    fun preview(g: Game, heroId: String, cardId: String): PrimaryPreview? = null
 
     /** True when [primary] is implemented (an Ultimate or a Defense card has none). */
     val hasPrimary: Boolean get() = true

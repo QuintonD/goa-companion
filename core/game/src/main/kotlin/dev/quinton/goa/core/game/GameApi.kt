@@ -328,6 +328,44 @@ data class DecisionContext(
      * or whose action can't start). Built from the same checks that left them out.
      */
     val unavailableCards: List<UnavailableCard> = emptyList(),
+    /**
+     * CHOOSE_ACTION: what the asking card's primary action will do, told before the player commits
+     * (ADR-040, extended after the hands-on pass); null when there is nothing to tell. Present for a
+     * card that performs one of the cards it names (Gydion's spells) even when its primary is not an
+     * option, so the panel can say why for each. Computed only while the question is pending; it asks
+     * nothing and changes nothing, so saves replay as before.
+     */
+    val primaryPreview: PrimaryPreview? = null,
+)
+
+/**
+ * What a primary action will do as things stand ([DecisionContext.primaryPreview]), from the same
+ * checks the action then runs. Open information only: the probe stops telling the moment the text
+ * reads another hero's hand or deck (p.4), and the cards named are printed on the asking card.
+ */
+@Serializable
+data class PrimaryPreview(
+    /**
+     * The cards it may perform now, in the asking card's order (Gydion: the spells that can be cast).
+     * One card: it is performed with no question ("Casts Expeditious Retreat"). Empty for a card that
+     * performs its own text.
+     */
+    val cardIds: List<String> = emptyList(),
+    /** The cards it names that it can't perform now, each with why (as [DecisionContext.unavailableCards]). */
+    val unavailableCards: List<UnavailableCard> = emptyList(),
+    /**
+     * The unit or token its first choice must take, being the only one (picked with no question: the
+     * only target of Fireball); null when there is a choice or the action has no such step.
+     */
+    val onlyTargetId: String? = null,
+    /**
+     * The action will change nothing ("No enemy hero in radius 3 can move 3 spaces in a straight line:
+     * Suggestion will do nothing and is removed from the spellbook."): one line, null when it does
+     * something or the engine can't tell without hidden information.
+     */
+    val noEffect: String? = null,
+    /** The rule [noEffect] rests on ("rulings/gydion.md 5"), when there is one. */
+    val noEffectSource: String? = null,
 )
 
 /**

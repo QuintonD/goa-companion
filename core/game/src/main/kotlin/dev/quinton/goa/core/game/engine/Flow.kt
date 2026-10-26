@@ -299,7 +299,7 @@ fun Game.resolveCard(heroId: String) {
         DecisionKind.CHOOSE_ACTION,
         "Choose an action for ${cardName(cardId)}",
         cardId,
-        context = { DecisionContext(unavailable = availability.unavailable) },
+        context = { DecisionContext(unavailable = availability.unavailable, primaryPreview = availability.preview) },
     ) {
         availability.options.map { Choice.Action(it) }
     } as Choice.Action

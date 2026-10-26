@@ -235,3 +235,34 @@ client unaffected (decisions are rebuilt by the replay, never saved).
   (`UpgradePreviewTest`, no peeking).
 - A level reached when only one card can be upgraded is still answered by the engine (no question, no
   preview); level 8 (the Ultimate) asks nothing, as before.
+
+## 2026-10-26 (what a Gydion card will cast, `fix/v08-cast-preview`, ADR-040 extended after the hands-on pass)
+
+Additive; defaults keep other `GameSession` implementations, test fakes, saves and the `feature/web`
+client unaffected. No question was added or removed: the preview is information on the existing
+`CHOOSE_ACTION`, built only while it is pending (`askAlways`), so saves replay as before.
+
+- `DecisionContext.primaryPreview: PrimaryPreview? = null`: on `CHOOSE_ACTION`, what the asking card's
+  primary action will do. `PrimaryPreview(cardIds: List<String> = emptyList(), unavailableCards:
+  List<UnavailableCard> = emptyList(), onlyTargetId: String? = null, noEffect: String? = null,
+  noEffectSource: String? = null)`.
+  - Gydion's casting cards (`CardScript.preview`, `Spellbook.preview`): `cardIds` = the spells it can
+    cast now, in the card's order (one: cast with no question; two or more: the cast question follows
+    with exactly those), `unavailableCards` = the card's other spells with `Spellbook.whyNot`'s reason.
+    Present even when the primary is not an option, so each spell's reason can be shown.
+  - When exactly one spell can be cast (or for any other card, its own text): `onlyTargetId` = the unit
+    or token its first choice must take, being the only option (picked with no question); `noEffect` =
+    one line when the action will change nothing ("No enemy hero in radius 3: Suggestion will do nothing
+    and is removed from the spellbook.", source "Prepare Spells"; for another card "Its Skill will do
+    nothing now."). Null when the engine can't tell from open information.
+- How it is told: one probe of the primary on a copy (`Actions.primaryProbe`, shared with
+  `primaryBlocker`; `primaryCheck` = `primaryUnavailable` + the outcome), now remembering the first
+  forced unit choice of the probed hero and comparing the whole state before and after when the text
+  runs to its end without a question. **No peeking:** `Game.hand(heroId)` and `forceDiscard` mark the
+  probe as having read hidden cards when the hand is another hero's (p.4); after that, no target and no
+  "nothing" are told (`GydionCastPreviewTest`: Cloud Kill and Energy Drain on hands that differ give
+  the same preview). `Game.handSize(heroId)` reads only the count (open information).
+- Behaviour: `ActionScope.nothing(reason)` — a script that ends having done nothing says why: the log
+  gets "Suggestion does nothing: no enemy hero in radius 3." and the preview its reason. Suggestion and
+  Midas' Touch (fewer than two other spells removed: no coin) use it. Power Word Kill checks the hand's
+  count with `handSize`.
