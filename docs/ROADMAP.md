@@ -294,6 +294,19 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   gesture and the action). JVM only
 - [ ] On the S25 Ultra: long press on a hero that is a target (timing, haptic, no accidental answer), the
   sheet in landscape, TalkBack's custom action
+- [x] Hands-on fixes (`fix/v08-table-polish`, ADR-044 §4–5, ADR-040 extended): a question's options and
+  the hero asked come into view between the top overlays, the map buttons and the panel (framed again as
+  the turn track and panel settle, never after the person's own pan; hexes down to ~30 dp to fit a Move
+  3); the hand follows this turn's card on the hero sheet and the spellbook there is counts with "Open
+  the spellbook"; the Spellbook sheet by Tier, filling the width (a rounding wrap left a third empty), each
+  spell in the book marked "Cast with <card in hand>" for Gydion's own player — 2026-10-26,
+  `MapViewportTest` (+3), `SpellbookSectionTest` (+5, incl. no-peeking), `GydionSheetsTest` (4, incl.
+  no-peeking on both sheets), `SpellbookScreenshotTest` +9 (the sheet by Tier, the hero sheet with the
+  hand, a Move 3 in view: portrait, landscape, light, W384 font scale 2 — its sheets now really at font
+  scale 2: a sheet is its own window, so the shots set the configuration's scale too), play / puzzle /
+  review / hero-state screenshots re-recorded (the map framing behind them) and looked at. JVM only
+- [ ] On the S25 Ultra: an initiative tie and a Move 3 after the reveal (pieces in view, a pan not undone),
+  Gydion's hero sheet and Spellbook sheet at font scale 1 and 2
 
 ## M19 — Upgrade preview (ADR-045)
 - [x] Engine: `DecisionContext.upgrades` on the level up's first question, from the one selection the

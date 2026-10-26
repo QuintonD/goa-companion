@@ -1029,6 +1029,24 @@ scrolling the hero sheet. Now:
 word would be squeezed); a tab in the Game state sheet (two taps, in a sheet about something else);
 letting the sheet answer the cast question (two places to answer one question; the panel stays the only
 one); a count on the hero chip (the strip gives way to the turn track after the reveal).
+**Extended after the hands-on pass (2026-10-26, `fix/v08-table-polish`):** in a real game the sheet was a
+flat list by colour with the Tiers mixed, two cards a row with a third of the width empty, and nothing
+said which spells the cards in hand could cast (`22-book-r1.png`, `30-book-22.png`). (1) The grid's
+width is whole pixels: three columns rounded up one by one came to a pixel more than the row and the
+third card wrapped (at font scale 2 the second did) — the column count did react to the font scale, the
+wrap hid it. (2) The live and review sheets list each group by Tier under a small head ("Gold (no tier)",
+"Tier I"…"Ultimate", `spellTierTitle`, shared with the pre-game sheet), the engine's order kept within a
+Tier; the viewer swipes the whole group. (3) Gydion's own player sees under each spell in his spellbook
+the cards in his hand that name it: "Cast with Lesser Evocation" (`castWith`). The link is the catalog
+card text's own quoted names matched to the spell cards' names (`namedSpells`; apostrophes aside: the
+cards print "Midas Touch", the spell card "Midas' Touch"), the words the engine's `GydionHero` registers
+from; a test checks every quoted name resolves and spot-checks the engine's lists. Never shown to another
+seat (the hand is hidden, p.4; only Gydion looks in the spellbook): only for `TableUi.mine` and only from
+the hand the view gives that seat; screen tests check an opponent's sheet has no "Cast with" and no
+spell of the book. A pending cast question's mark replaces the line. Rejected: a view field from the
+engine's registration (a contract change in core/game, where another stream is working on the cast
+preview, for words the catalog already carries). (4) The hero sheet sums the spellbook up (ADR-044
+extended).
 
 ## ADR-041 — The game table after the reveal: a turn track of the played cards, and the card as the panel's content (2026-10-25)
 **Context:** The owner: "We are still missing a clear indication of the game state after everyone has
@@ -1196,6 +1214,27 @@ so the sheet could not be opened from the map at all.
 **Consequences:** the hero and spellbook sheet screenshots and the screens whose hint gained the line were
 re-recorded. The sheet's hero name is the sheet title only (the header repeated it). A future "table
 rules" switch (ADR-037) would hide only earlier rounds; this turn and the dashboard are what the table shows.
+**Extended after the hands-on pass (2026-10-26, `fix/v08-table-polish`):**
+4. **The hand is not buried.** On Gydion's own sheet the hand sat under 20+ spell cards, about three
+   screens down (`41-gydion-own-sheet.png`). The hand now follows this turn's card (in landscape, in its
+   column), and where the Spellbook sheet is one tap away (the live table and puzzles) the SPELLBOOK
+   section is a summary: each group's count, the facedown note for anyone else, "Open the spellbook"
+   (the whole card is the button). What each seat may see is unchanged: the counts were already open
+   (ADR-040); the cast spells, open too, are on the Spellbook sheet. The review's Now tab, which has no
+   sheet, keeps the cards.
+5. **The pieces a question asks about are in view.** In an initiative tie Gydion's piece lay under the
+   panel and Brogan's under the turn track; a Move 3's far spaces under the track (`47-lp-option.png`,
+   `51-move.png`, `70-move3.png`). Two causes: the table framed the options when the question came but
+   not again when the turn track, which appears at the reveal with the question, made the top taller
+   (ADR-041's "the map's inset follows it" held for the Lane view, not for the framing); and a region too
+   big for 38 dp hexes was centred on, its edges left under the overlays. Now the framing runs again as
+   the top, the panel or the map buttons settle — unless the person has dragged, pinched or double-tapped
+   since the question came (`MapViewport.gestures`, compared with its value when the question arrived),
+   so it never fights their pan; it keeps the options clear of the map buttons' column when they fit
+   beside it (`reveal(…, clearEnd)`); and it may shrink hexes to 80 % (about 30 dp, `shrink`) so all the
+   options fit. The sandbox's framing is unchanged (defaults). Rejected: smaller overlays (the turn
+   track's cards are ADR-041's point), a fixed bigger top inset (wrong before the reveal and in
+   landscape).
 
 ## ADR-045 — Level up: see the upgrade cards before choosing what to upgrade (2026-10-26)
 **Context:** The owner: "When upgrading cards it is important to facilitate viewing the potential
