@@ -145,7 +145,8 @@ fun MatchCard(
         Div({ classes("goa-w2-match-head") }) {
             ResultChip(match.status, match.winner)
             Span({ classes("t-label-medium", "c-variant", "goa-w2-grow") }) { Text(match.time) }
-            IconButton("more", "More options", onClick = { menu = true })
+            // A player's page has no delete or rematch: the card itself edits, no menu (as on the phone).
+            if (presenter != null || onRematch != null) IconButton("more", "More options", onClick = { menu = true })
         }
         dev.quinton.goa.web.ui.RouteLink(Route.MatchEdit(match.id), {
             classes("goa-w2-match-body")

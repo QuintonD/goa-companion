@@ -78,19 +78,7 @@ fun WhoAreYouScreen() {
             }
         }
         SectionHeader(if (players.isEmpty()) "Add yourself" else "Not in the list?")
-        TextField(
-            label = "Your name",
-            value = newName,
-            onValue = {
-                newName = it.take(WhoAreYouText.MAX_NAME)
-                nameError = null
-            },
-            error = nameError,
-            maxLength = WhoAreYouText.MAX_NAME,
-            words = true,
-            id = "me-name",
-        )
-        GoaButton("Add me to the group", {
+        val addMe: () -> Unit = {
             val name = newName.trim()
             if (name.isEmpty()) {
                 nameError = WhoAreYouText.ENTER_NAME
@@ -109,7 +97,22 @@ fun WhoAreYouScreen() {
                     services.router.back()
                 }
             }
-        }, block = true)
+        }
+        TextField(
+            label = "Your name",
+            value = newName,
+            onValue = {
+                newName = it.take(WhoAreYouText.MAX_NAME)
+                nameError = null
+            },
+            error = nameError,
+            maxLength = WhoAreYouText.MAX_NAME,
+            words = true,
+            id = "me-name",
+            onEnter = addMe,
+        )
+        // As on the phone: nothing to add until a name is typed; Return adds it.
+        GoaButton("Add me to the group", addMe, block = true, enabled = newName.isNotBlank())
     }
 }
 
