@@ -1158,7 +1158,7 @@ so the sheet could not be opened from the map at all.
    the turn track, so the sheet cannot name more than the table shows; a screen test checks an enemy's
    tucked cards, hand and facedown card are never on it. Landscape puts this turn beside the round.
 3. **Reaching it:** a long press on any hero's piece (or another figure of that hero) opens the sheet, even
-   when a tap there answers the question — the tap keeps answering (cards were considered: a second tap
+   when a tap there answers the question — the tap keeps answering (rejected: a second tap
    target or a menu would slow every answer). Detected in the map's own gesture loop, only on a hero's
    space, so pans, pinches and double taps are unchanged; a haptic tick confirms it and the rest of the
    press does nothing else. TalkBack gets "Show <hero>'s game state" as a custom action on the hero's
