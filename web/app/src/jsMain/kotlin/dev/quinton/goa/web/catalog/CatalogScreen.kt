@@ -14,6 +14,7 @@ import dev.quinton.goa.core.domain.catalog.CatalogSort
 import dev.quinton.goa.core.domain.catalog.HeroListItem
 import dev.quinton.goa.core.domain.catalog.activeFilterChips
 import dev.quinton.goa.core.domain.catalog.catalogResults
+import dev.quinton.goa.core.domain.catalog.catalogResultsKey
 import dev.quinton.goa.core.domain.catalog.cleared
 import dev.quinton.goa.core.domain.catalog.kindLabel
 import dev.quinton.goa.core.domain.catalog.matchHint
@@ -42,6 +43,9 @@ import dev.quinton.goa.web.ui.RouteLink
 import dev.quinton.goa.web.ui.RowList
 import dev.quinton.goa.web.ui.Screen
 import dev.quinton.goa.web.ui.rememberLoad
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.attributes.ButtonType
 import org.jetbrains.compose.web.attributes.InputType
@@ -76,7 +80,10 @@ fun CatalogScreen() {
     val content = services.data.content
     val browse = content.browse
     val indexed = rememberLoad(Unit) { browse.indexed() }
-    val settings by remember { optional<AppSettings?>(null) { content.settings.settings } }.collectAsState(null)
+    // Settings that can't be read (IndexedDB refusing) fall back to the defaults, never a spinner forever.
+    val settings by remember {
+        flow<AppSettings?> { emitAll(content.settings.settings) }.catch { emit(AppSettings()) }
+    }.collectAsState(null)
     val ratings by remember { optional(emptyMap()) { services.data.group.ratings.observeHeroRatings() } }
         .collectAsState(emptyMap())
     val usage by remember { optional(emptyMap()) { services.data.group.ratings.observeHeroUsage() } }
@@ -173,7 +180,7 @@ private fun CatalogContent(
     val showCards = results.cards.isNotEmpty()
     val cardsFirst = showCards && results.cardsFirst
     // A new search, filter or sort starts at the top, as on the phone (the best result first).
-    val resultsKey = "${browse.query.trim()}|${browse.filter}|${browse.sort}"
+    val resultsKey = catalogResultsKey(browse.query, browse.filter, browse.sort)
     ScrollToTopOn(resultsKey)
     if (cardsFirst) CardResults(results.cards, browse.query)
     if (showCards) ResultsHeader("Heroes", results.heroes.size)

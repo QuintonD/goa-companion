@@ -159,7 +159,7 @@ fun UnverifiedBadge(compact: Boolean = false) {
         classes("goa-unverified", "t-label-small")
         if (compact) classes("compact")
         attr("role", "img")
-        attr("aria-label", "Unverified data")
+        attr("aria-label", "Unverified data, may contain errors")
     }) {
         Span({
             classes("goa-unverified-icon")
