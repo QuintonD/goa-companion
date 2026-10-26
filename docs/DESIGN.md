@@ -324,8 +324,11 @@ dp, so Keep's two next-Tier cards sit side by side with their item stats), a car
 doesn't offer dimmed with a block icon, and a teal "Tap a card to see it large; tap it again to …"
 line; a tap opens the **card focus** viewer (below), which answers. **Level up** (which card to
 upgrade, ADR-045) is a row per card that may be upgraded: the hand card framed 2 dp in its colour (the
-choice), an arrow, then the two cards it would become with their item icons, three cards across the
-panel (60–100 dp); "The card on the left is the choice…" under the rows. **Defend** is an error-container
+choice), an arrow, then the two cards it would become with their item (the official icon and "+1
+Initiative"), three cards across the panel (60–100 dp); under each card the spells it names (Gydion,
+landscape, as wide as the card, tap to read); "The card on the left is the choice…" under the rows.
+Keep's two cards have their spells under them the same way. During the person's level up the end of
+round summary comes after the rows. **Defend** is an error-container
 header with the attacker's card (56 dp, tap to read), "Arien attacks · melee", the Attack total, the
 minion modifier counted and "Discard a card to defend" (it carries the prompt for TalkBack), then the
 hand's cards themselves with the verdict under each in words with an icon ("✓ Holds" teal, "! Falls"
@@ -426,14 +429,16 @@ discarded cards, a puzzle replay's card, and the sandbox's "Read the cards".
   bounds, 340 ms emphasised deceleration) into a large card over a near-black scrim (93 %, the same in
   both themes; light text on it). Portrait: × with the question's title ("WASP · CARD", bronze overline)
   and "Card 2 of 4" with page dots on the scrim, the card up to 60 % of the height (50 % above font
-  scale 1.3; on a phone it is as wide as the screen allows), then a surface panel (28 dp top corners)
-  at the bottom, **as tall as its words**: only what the card doesn't print (ADR-041: the scan is the
+  scale 1.3; on a phone it is as wide as the screen allows; it gives way to the panel, down to 30 % /
+  24 %, before any line of the panel is squeezed: the panel is measured for every card of the viewer,
+  the tallest counts), then a surface panel (28 dp top corners) at the bottom, **as tall as its words**: only what the card doesn't print (ADR-041: the scan is the
   content, nothing it shows is retyped): the question's context ("Play a card facedown", "Arien
   attacks · melee · Attack 6"), a caption ("Turn 2 · Active"), the verdict ("! Falls · Defense 2
   against Attack 6", also as a pill on the card's corner; the Defense total says what items and
   minions change), why a card isn't an option, what choosing it means (Keep: "… goes to your hand",
   "… becomes an item: +1 Defense (p.16)"; Upgrade: the two cards of the next Tier by name, shown large
-  as the next pages; an upgrade card itself: "Upgrade of Liquid Leap" and which card to choose instead, ADR-045), a Handicap card's basis ("a weaker version of the Gold card (frame colour, p.20)"), its item
+  as the next pages; an upgrade card itself: "Upgrade of Liquid Leap" and which card to choose instead, ADR-045; a
+  card that names spells: "The spells it chooses from:" with each spell small, a tap goes to its page), a Handicap card's basis ("a weaker version of the Gold card (frame colour, p.20)"), its item
   stat with its item icon; then **"Read the card as text"** (collapsed, article icon and
   chevron; TalkBack hears Expanded / Collapsed): open, the name, kind, printed values and the text
   verbatim, for anyone the scan doesn't serve (the switch holds while swiping; in portrait the card steps back to 36 % of the height, 26 % with large text, and the words scroll into view). Landscape: the card on

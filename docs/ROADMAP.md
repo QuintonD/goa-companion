@@ -304,6 +304,11 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   card focus walks every card, upgrade cards captioned "Upgrade of …" with "Go to …" instead of
   Confirm — 2026-10-26, `CardFocusDecisionTest` (incl. a computer's level up shows none of its deck),
   level-up screenshots portrait / landscape / light / W384 font scale 2 re-recorded and looked at. JVM only
+- [x] Hands-on polish (ADR-045 §6–9): the spells each Gydion card casts in the rows and the viewer; the
+  viewer's card shrinks before a line is squeezed; the rows before the round's summary; official item
+  icons with the stat in words — 2026-10-26, `NamedCardsTest`, `GydionLevelUpTest` (incl. the
+  computer's level up shows none), `GydionLevelUpScreenshotTest` (portrait / landscape / light / short
+  phone / W384 font scale 2) looked at. JVM only
 - [ ] On the S25 Ultra: a level up with three colours to choose from, the viewer swiped through, TalkBack
   on the rows and "Go to …"
 
