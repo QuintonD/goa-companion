@@ -17,13 +17,13 @@ import dev.quinton.goa.feature.board.bundledMaps
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.cardVerb
 import dev.quinton.goa.feature.board.play.table.castWith
-import dev.quinton.goa.feature.board.play.table.gridColumns
-import dev.quinton.goa.feature.board.play.table.namedSpells
-import dev.quinton.goa.feature.board.play.table.spellTierTitle
 import dev.quinton.goa.feature.board.play.table.catalogSpellbook
 import dev.quinton.goa.feature.board.play.table.extrasGroups
 import dev.quinton.goa.feature.board.play.table.extrasTitle
+import dev.quinton.goa.feature.board.play.table.gridColumns
+import dev.quinton.goa.feature.board.play.table.namedSpells
 import dev.quinton.goa.feature.board.play.table.offeredCards
+import dev.quinton.goa.feature.board.play.table.spellTierTitle
 import dev.quinton.goa.feature.board.play.table.spellbookSeats
 import dev.quinton.goa.feature.board.play.table.spellbookUi
 import dev.quinton.goa.feature.board.play.table.ultimateCard
@@ -248,13 +248,14 @@ class SpellbookSectionTest {
     @Test
     fun `the Spellbook sheet marks each spell in the book with the card in the hand that casts it`() {
         val ui = spellbookUi(table(holding(), "gydion"), "gydion")!!
-        assertThat(ui.castWith).containsExactly(
-            SHOCKING_GRASP, "Cast with Cantrip",
-            MISSILE, "Cast with Cantrip",
-            RETREAT, "Cast with Cantrip",
-            "gydion-spell-burning-hands", "Cast with Lesser Evocation",
-            // Fireball is named too, but it was cast: not in the spellbook, no line.
+        // Fireball is named too, but it was cast: not in the spellbook, no line.
+        val expected = mapOf(
+            SHOCKING_GRASP to "Cast with Cantrip",
+            MISSILE to "Cast with Cantrip",
+            RETREAT to "Cast with Cantrip",
+            "gydion-spell-burning-hands" to "Cast with Lesser Evocation",
         )
+        assertThat(ui.castWith).isEqualTo(expected)
     }
 
     @Test

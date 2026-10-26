@@ -168,10 +168,9 @@ internal fun spellbookUi(table: TableUi, heroId: String): SpellbookUi? {
  * "Only Gydion can look at the cards in the spellbook" (Prepare Spells): nothing for anyone else.
  */
 internal fun castWith(table: TableUi, heroId: String): Map<String, String> {
-    if (heroId !in table.mine) return emptyMap()
-    val hero = table.heroView(heroId) ?: return emptyMap()
-    val hand = hero.hand?.mapNotNull(table::card) ?: return emptyMap()
-    val inBook = hero.extras.firstOrNull { it.place == SPELLBOOK }?.cardIds?.toSet() ?: return emptyMap()
+    val hero = table.heroView(heroId)?.takeIf { heroId in table.mine } ?: return emptyMap()
+    val hand = hero.hand?.mapNotNull(table::card).orEmpty()
+    val inBook = hero.extras.firstOrNull { it.place == SPELLBOOK }?.cardIds?.toSet().orEmpty()
     val spells = table.hero(heroId).spells
     val by = linkedMapOf<String, MutableList<String>>()
     hand.forEach { card ->
