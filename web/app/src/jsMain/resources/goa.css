@@ -1469,14 +1469,23 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
 .goa-focus-slide { flex: 0 0 100%; scroll-snap-align: center; display: flex; justify-content: center; padding: var(--sp-sm) 0; }
 .goa-focus-card { padding: 0; border: 0; background: none; cursor: pointer; border-radius: 4%; }
 .goa-focus-card.dimmed { opacity: 0.5; }
-.goa-focus-image { width: min(300px, 72vw, 30dvh) !important; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6); }
+.goa-focus-image { width: min(340px, 80vw, 36dvh) !important; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6); transition: width var(--dur-medium) var(--ease-decelerate); }
+/* Read as text, the words get the room: the card steps back (still tappable, still swipes). */
+.goa-focus.as-text .goa-focus-image { width: min(220px, 52vw, 22dvh) !important; }
 .goa-focus-nav { flex: none; display: flex; justify-content: center; gap: var(--sp-xl); color: #F3F6F9; }
 .goa-focus-nav .goa-icon-button { color: #F3F6F9; }
 .goa-focus-nav .goa-icon-button:disabled { opacity: 0.35; }
 .flip-x .goa-icon { transform: scaleX(-1); }
-.goa-focus-details { flex: 1 1 auto; min-height: 6rem; overflow-y: auto; background: var(--surface); border-radius: 24px 24px 0 0; padding: var(--sp-md) var(--sp-lg); }
+/* Only what the card doesn't print (ADR-041): a sheet as tall as that, at the bottom. */
+.goa-focus-details { flex: 0 1 auto; margin-top: auto; min-height: 0; overflow-y: auto; background: var(--surface); border-radius: 24px 24px 0 0; padding: var(--sp-md) var(--sp-lg); }
 .goa-focus-details p, .goa-focus-details h2 { margin: 0 0 var(--sp-xs); }
 .goa-focus-reason { color: var(--error); }
+.goa-read-as-text {
+  display: flex; align-items: center; gap: var(--sp-sm); width: 100%; min-height: 44px; padding: 0;
+  background: none; border: 0; color: var(--primary); font-family: inherit; text-align: start; cursor: pointer;
+}
+.goa-read-as-text-label { flex: 1; }
+.goa-card-as-text { display: flex; flex-direction: column; gap: var(--sp-xs); padding-bottom: var(--sp-xs); }
 .goa-focus-values { display: flex; flex-wrap: wrap; gap: var(--sp-xs) var(--sp-md); margin: var(--sp-xs) 0; }
 .goa-value { color: var(--on-surface); }
 .goa-focus-related { display: flex; gap: var(--sp-sm); margin: var(--sp-xs) 0; }
@@ -1490,7 +1499,7 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
   .goa-focus { max-width: none; display: grid; grid-template-columns: 1fr minmax(18rem, 45%); grid-template-rows: auto 1fr auto auto; }
   .goa-focus-top { grid-column: 1 / -1; }
   .goa-focus-strip { grid-column: 1; grid-row: 2 / span 2; align-self: center; }
-  .goa-focus-image { width: min(240px, 40dvh) !important; }
+  .goa-focus-image, .goa-focus.as-text .goa-focus-image { width: min(240px, 40dvh) !important; }
   .goa-focus-nav { grid-column: 1; grid-row: 4; }
   .goa-focus-details { grid-column: 2; grid-row: 2; border-radius: 24px 24px 0 0; }
   .goa-focus-confirm, .goa-focus-hint { grid-column: 2; grid-row: 3 / span 2; }

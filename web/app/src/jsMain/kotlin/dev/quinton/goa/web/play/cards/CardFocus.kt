@@ -9,10 +9,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.model.catalog.Card
+import dev.quinton.goa.core.model.catalog.CardText as PrintedText
 import dev.quinton.goa.feature.board.board.cardKindLabel
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
+import dev.quinton.goa.feature.board.ui.cards.focusHandicapBasis
 import dev.quinton.goa.feature.board.ui.cards.lowerFirst
 import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconSize
@@ -156,6 +158,8 @@ private fun FocusOverlay(state: CardFocusState, request: CardFocusRequest) {
             previousFocus?.focus()
         }
     }
+    // "Read the card as text" is open: the words get the room, the card steps back (it holds while swiping).
+    var asText by remember { mutableStateOf(false) }
     val item = request.cards.getOrNull(state.index) ?: return
     val selection = request.selection
     Div({
@@ -164,6 +168,7 @@ private fun FocusOverlay(state: CardFocusState, request: CardFocusRequest) {
     }) {
         Div({
             classes("goa-focus")
+            if (asText) classes("as-text")
             attr("role", "dialog")
             attr("aria-modal", "true")
             attr("aria-label", request.title ?: item.card.name)
@@ -214,7 +219,12 @@ private fun FocusOverlay(state: CardFocusState, request: CardFocusRequest) {
                             attr("type", "button")
                             attr(
                                 "aria-label",
-                                spokenCard(focusCard.card) +
+                                // The scan is the card's words (the sheet under it no longer retypes them).
+                                listOfNotNull(
+                                    spokenCard(focusCard.card),
+                                    focusCard.caption,
+                                    PrintedText.plain(focusCard.card.text).takeIf { it.isNotBlank() },
+                                ).joinToString(", ") +
                                     if (selection != null &&
                                         focusCard.enabled
                                     ) {
@@ -252,7 +262,9 @@ private fun FocusOverlay(state: CardFocusState, request: CardFocusRequest) {
                     }) { Icon("back") }
                 }
             }
-            Div({ classes("goa-focus-details") }) { FocusDetails(item, selection?.context) }
+            Div({ classes("goa-focus-details") }) {
+                FocusDetails(item, selection?.context, asText) { asText = !asText }
+            }
             if (selection != null) {
                 Div({ classes("goa-focus-confirm") }) {
                     val can = item.enabled && request.canConfirm
@@ -277,15 +289,17 @@ private fun FocusOverlay(state: CardFocusState, request: CardFocusRequest) {
     }
 }
 
-/** The card's words: context, name, kind, verdict, why not, what choosing means, values, text verbatim. */
+/**
+ * Under the focused card, only what the card does not print (ADR-041/042: the scan is the content):
+ * the question, where it sits (the turn track's "Turn 2 · Active"), the verdict, why it can't be
+ * chosen, what choosing it means, the next Tier's cards, the Handicap basis and what it gives as an
+ * item; the card's words as text behind "Read the card as text" (collapsed, [asText]).
+ */
 @Composable
-private fun FocusDetails(item: FocusCard, context: String?) {
+private fun FocusDetails(item: FocusCard, context: String?, asText: Boolean, onToggleText: () -> Unit) {
     val card = item.card
     context?.let { P({ classes("t-label-large", "goa-quiet") }) { Text(it) } }
-    H2({ classes("t-title-large", "goa-focus-name") }) { Text(card.name) }
-    P({ classes("t-label-large", "goa-quiet") }) {
-        Text(listOfNotNull(cardKindLabel(card), item.caption).joinToString(" · "))
-    }
+    item.caption?.let { P({ classes("t-label-large", "goa-quiet") }) { Text(it) } }
     item.verdict?.let { verdict ->
         Div({ classes("goa-verdict", verdictClass(verdict.holds)) }) {
             if (verdict.holds != null) Icon(if (verdict.holds == true) "check" else "close", IconSize.SMALL)
@@ -304,20 +318,52 @@ private fun FocusDetails(item: FocusCard, context: String?) {
             Text(note.text)
         }
     }
-    Div({ classes("goa-focus-values") }) {
-        card.initiative?.let { Value("Initiative $it") }
-        card.values.attack?.let { Value("Attack $it") }
-        card.values.defense?.let { Value("Defense $it") }
-        card.values.movement?.let { Value("Movement $it") }
-        card.values.range?.let { Value("Range $it") }
-        card.values.radius?.let { Value("Radius $it") }
-        card.item?.let { Value("Item: +1 ${PlayText.stat(it)}") }
-    }
     if (item.related.isNotEmpty()) {
         item.relatedLabel?.let { P({ classes("t-body-small", "goa-quiet") }) { Text(it) } }
         Div({ classes("goa-focus-related") }) { item.related.forEach { CardImage(it, RELATED_WIDTH) } }
     }
-    if (card.text.isNotBlank()) CardText(card.text)
+    focusHandicapBasis(card)?.let { P({ classes("t-body-medium") }) { Text(it) } }
+    card.item?.let { stat ->
+        P({ classes("t-body-medium") }) {
+            ItemBadge(stat)
+            Text("As an item: +1 ${PlayText.stat(stat)} (p.16)")
+        }
+    }
+    Button({
+        classes("goa-read-as-text", "t-label-large")
+        attr("type", "button")
+        attr("aria-expanded", asText.toString())
+        onClick { onToggleText() }
+    }) {
+        Icon("article", IconSize.SMALL)
+        Span({ classes("goa-read-as-text-label") }) { Text("Read the card as text") }
+        Icon(if (asText) "chevron_up" else "chevron_down", IconSize.SMALL)
+    }
+    if (asText) CardAsText(card)
+}
+
+/** The card's printed words as text: name, kind, values, the text verbatim (brought into view when opened). */
+@Composable
+private fun CardAsText(card: Card) {
+    Div({
+        classes("goa-card-as-text")
+        ref { el ->
+            el.asDynamic().scrollIntoView(js("({ block: 'nearest' })"))
+            onDispose { }
+        }
+    }) {
+        H2({ classes("t-title-medium", "goa-focus-name") }) { Text(card.name) }
+        P({ classes("t-label-large", "goa-quiet") }) { Text(cardKindLabel(card)) }
+        Div({ classes("goa-focus-values") }) {
+            card.initiative?.let { Value("Initiative $it") }
+            card.values.attack?.let { Value("Attack $it") }
+            card.values.defense?.let { Value("Defense $it") }
+            card.values.movement?.let { Value("Movement $it") }
+            card.values.range?.let { Value("Range $it") }
+            card.values.radius?.let { Value("Radius $it") }
+        }
+        if (card.text.isNotBlank()) CardText(card.text)
+    }
 }
 
 @Composable
