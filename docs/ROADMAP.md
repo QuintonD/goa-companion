@@ -290,6 +290,9 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   by the phone's rule (`AiPlayers.forApp`), missing actions say why, the lean card focus viewer, the
   printed Tie Breaker coin — 2026-10-26, `EngineHostTest` (strength 3 move by move against the phone's
   player), Playwright WebKit and Chromium; think time re-measured per strength (ADR-043 W4 item 4)
+- [x] Hands-on game night on the web (R3): two iPhones (Home Screen, SE), a local relay and the phone's
+  sync code; what a player hit fixed (ADR-043 Addendum R3) — 2026-10-26, `r3-coin`, `r3-layout`,
+  `r3-game-night` (WebKit), `PuzzleControllerTest`
 - [ ] On an iPhone: drag and pinch on the board, the card focus viewer's swipe, strength 10's think time,
   the worker after the app was in the background
 - [ ] Wasm for the engine worker, if strength 10's capped search is felt in play
