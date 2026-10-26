@@ -182,20 +182,11 @@ internal fun castWith(table: TableUi, heroId: String): Map<String, String> {
 }
 
 /**
- * The spell cards [card]'s text names, in its order: Gydion's cards quote them ("Cast the “Burning
- * Hands” spell in the spellbook", "Choose and cast one spell in the spellbook — • “Fireball” …"). The
- * catalog's own words matched by name to [spells] (the hero's spell cards), apostrophes aside (the
- * cards print "Midas Touch", the spell card "Midas' Touch"); never a mapping of our own.
+ * The spell cards [card]'s text names, in its order (Gydion's cards quote them: "Cast the “Burning
+ * Hands” spell in the spellbook"); a spell names none. One matching rule for the table: [namedExtras].
  */
-internal fun namedSpells(card: Card, spells: List<Card>): List<Card> {
-    if (spells.isEmpty() || card.isSpell) return emptyList()
-    val byName = spells.associateBy { spellKey(it.name) }
-    return QUOTED.findAll(card.text).mapNotNull { byName[spellKey(it.groupValues[1])] }.distinct().toList()
-}
-
-private val QUOTED = Regex("[“\"]([^”\"]+)[”\"]")
-
-private fun spellKey(name: String): String = name.lowercase().filter { it.isLetterOrDigit() || it == ' ' }.trim()
+internal fun namedSpells(card: Card, spells: List<Card>): List<Card> =
+    if (card.isSpell) emptyList() else namedExtras(card, spells)
 
 private fun orList(names: List<String>): String = when (names.size) {
     1 -> names.single()
