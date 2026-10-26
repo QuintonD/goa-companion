@@ -42,10 +42,10 @@ internal object PlayEngineModule {
         // Screens ask for the factory on Dispatchers.Default only (see above), never on the main thread.
         runBlocking { GameEngine(catalog.catalog.first(), maps.maps.first()) }
 
-    /** The ten strengths of core/game/ai (AI.md); one player per request, seeded per strength. */
+    /** The ten strengths of core/game/ai (AI.md); one player per request, seeded per strength as on the web. */
     @Provides
     @Singleton
-    fun ai(): AiPlayers = AiPlayers { strength -> GameAiPlayers.forStrength(strength, AI_SEED + strength) }
+    fun ai(): AiPlayers = AiPlayers { strength -> GameAiPlayers.forApp(strength) }
 
     /** The coach analyses on the game factory's engine (it replays saves for the turning points). */
     @Provides
@@ -63,6 +63,4 @@ internal object PlayEngineModule {
         EnginePuzzleBook(
             factory as? GameEngine ?: runBlocking { GameEngine(catalog.catalog.first(), maps.maps.first()) },
         )
-
-    private const val AI_SEED = 0x60A_2026L
 }

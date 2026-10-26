@@ -205,3 +205,11 @@ are rebuilt by the replay, never saved).
   `Fizzle(reason, source = null)` and `fizzle(reason, source)`. `attackTarget(…, none = "no target")`:
   `adjacentAttackTarget` fizzles "no target adjacent to you", `rangedAttackTarget` "no target in range"
   (the log's "… stops:" lines changed with them). Gydion's `castOneOf` says why no spell can be cast.
+
+## 2026-10-26 (the apps' computer player, `feature/web` merge of v0.7)
+
+Additive. `AiPlayers.APP_SEED` and `AiPlayers.forApp(strength)` (= `forStrength(strength, APP_SEED + strength)`):
+the one rule the phone (`core/data` `PlayEngineModule`) and the web worker (`EngineHost.aiFor`) use to seat a
+strength, so a strength is the same player on both (a browser may only end a strong search sooner, at the
+strength's own time budget). The web worker used to seat the band's level (`AiLevel`) with its own seed;
+`EngineHostTest.aComputerSeatPlaysItsStrengthAsThePhoneDoes` pins it to the phone's player.

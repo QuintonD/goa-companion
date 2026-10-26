@@ -25,6 +25,16 @@ import kotlin.random.Random
  * wall-clock cap (the phone budget) may end a search early on a slow device; [deterministic] removes it.
  */
 object AiPlayers {
+    /** The seed the apps give the computer players: the phone's (core/data) and the web worker's (ADR-043). */
+    const val APP_SEED: Long = 0x60A_2026L
+
+    /**
+     * The computer player the apps seat at [strength] (ADR-039): [forStrength] seeded per strength, so
+     * a strength is the same player on the phone and in the browser (a slower browser may only end a
+     * search sooner, at the strength's own time budget).
+     */
+    fun forApp(strength: Int): AiPlayer = forStrength(strength, APP_SEED + strength)
+
     fun forStrength(strength: Int, seed: Long): AiPlayer = player(strength, seed, timeCap = true)
 
     /** Same, without the wall-clock cap: fully reproducible (tests, tournaments). */

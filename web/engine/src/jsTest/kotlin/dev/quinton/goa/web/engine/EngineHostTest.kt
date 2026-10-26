@@ -7,7 +7,11 @@ import dev.quinton.goa.core.game.GameLength
 import dev.quinton.goa.core.game.GameSetup
 import dev.quinton.goa.core.game.PuzzleStatus
 import dev.quinton.goa.core.game.SeatSetup
+import dev.quinton.goa.core.game.ai.AiPlayers
+import dev.quinton.goa.core.game.engine.GameEngine
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.feature.board.play.game.humans
+import dev.quinton.goa.feature.board.play.game.mergedView
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -100,6 +104,27 @@ class EngineHostTest {
         assertEquals(events, restored.events)
         assertEquals(snapshot.view, restored.view)
         assertEquals(snapshot.pending, restored.pending)
+    }
+
+    @Test
+    fun aComputerSeatPlaysItsStrengthAsThePhoneDoes() = runTest {
+        // Strength 3 is not a level's anchor (Easy plays as 2): the worker must seat the strength itself,
+        // seeded as the phone seeds it (AiPlayers.forApp, ADR-039), never the band's level.
+        val strength = 3
+        val seats = setup("none").seats.map { it.copy(controller = Controller.Ai(strength)) }
+        val gameSetup = setup("none").copy(seats = seats)
+        val (catalog, maps) = BundledData.load { shipped(it) }
+        val local = GameEngine(catalog, maps).newGame(gameSetup)
+        val phone = AiPlayers.deterministic(strength, AiPlayers.APP_SEED + strength)
+        var snapshot = game(EngineRequest.GameStart(gameSetup))
+        repeat(STRENGTH_STEPS) {
+            val decision = snapshot.pending ?: return@repeat
+            assertEquals(local.pending, decision)
+            local.answer(decision.id, phone.choose(local, decision))
+            snapshot = game(EngineRequest.GameComputer(decision.id))
+            assertEquals(local.events.size, snapshot.eventCount, "decision ${decision.id} (${decision.kind})")
+        }
+        assertEquals(local.mergedView(gameSetup.humans), snapshot.view)
     }
 
     @Test
@@ -200,6 +225,7 @@ class EngineHostTest {
 
     private companion object {
         const val STEPS = 120
+        const val STRENGTH_STEPS = 60
         const val REVIEW_STEPS = 40
         const val MAX_PUZZLE_MOVES = 20
     }

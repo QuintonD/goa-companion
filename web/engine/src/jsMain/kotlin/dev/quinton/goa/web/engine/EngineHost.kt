@@ -31,7 +31,7 @@ import kotlinx.coroutines.sync.withLock
  * engine Web Worker (`:web:worker`) and, for tests, directly on Node. [load] reads the bundled
  * catalog and maps once, on the first request.
  *
- * The computer players are the phone's: the same levels and seeds ([aiFor]), so a game replays the
+ * The computer players are the phone's: the same strengths and seeds ([aiFor]), so a game replays the
  * same on both; the coach and the puzzle book run on the same engine as the game.
  */
 class EngineHost(private val load: suspend () -> Pair<Catalog, List<BoardMap>>) {
@@ -238,17 +238,13 @@ class EngineHost(private val load: suspend () -> Pair<Catalog, List<BoardMap>>) 
     )
 
     companion object {
-        /** The phone's seed for the computer players (core/data PlayEngineModule). */
-        const val AI_SEED: Long = 0x60A_2026L
-
         /**
-         * The computer player of a seat: the phone's levels and seeds, with the wall-clock cap (the
-         * strong levels search less in a browser than on a phone; see the play addendum of ADR-043).
-         * When the strength slider (ADR-039) lands, this follows the phone's `forStrength`.
+         * The computer player of a seat: the phone's rule ([AiPlayers.forApp]: its strength, seeded per
+         * strength, with the wall-clock cap, ADR-039), so a strength plays the same search as on the
+         * phone; a browser that is slower ends a strong search sooner (the play addendum of ADR-043).
+         * A seat without a computer (never asked) plays as Normal.
          */
-        fun aiFor(controller: Controller.Ai?): AiPlayer {
-            val level = controller?.level ?: AiLevel.NORMAL
-            return AiPlayers.forLevel(level, AI_SEED + level.ordinal)
-        }
+        fun aiFor(controller: Controller.Ai?): AiPlayer =
+            AiPlayers.forApp(controller?.strength ?: AiLevel.NORMAL.strength)
     }
 }
