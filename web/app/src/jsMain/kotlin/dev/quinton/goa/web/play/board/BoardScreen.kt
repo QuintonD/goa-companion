@@ -10,6 +10,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.domain.board.BoardRules
 import dev.quinton.goa.core.model.board.Hex
+import dev.quinton.goa.feature.board.BoardHero
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.board.BoardAction
 import dev.quinton.goa.feature.board.board.BoardTool
@@ -23,8 +24,12 @@ import dev.quinton.goa.feature.board.map.HexLayout
 import dev.quinton.goa.feature.board.map.MapOrientation
 import dev.quinton.goa.feature.board.map.SpaceText
 import dev.quinton.goa.feature.board.ui.PanelPeek
+import dev.quinton.goa.feature.board.ui.cards.FocusCard
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.nav.Route
+import dev.quinton.goa.web.play.cards.CardFocusHost
+import dev.quinton.goa.web.play.cards.CardFocusState
+import dev.quinton.goa.web.play.cards.CardSelection
 import dev.quinton.goa.web.play.map.BoardSvg
 import dev.quinton.goa.web.play.map.DragPolicy
 import dev.quinton.goa.web.play.map.HexMark
@@ -124,6 +129,7 @@ private fun BoardContent(state: BoardUiState.Ready, controller: BoardController,
         MapScene(state.map, layout, battleZones, layout.laneRegion(state.map, state.geometry))
     }
     val camera = remember { MapCamera() }
+    val focus = remember { CardFocusState() }
     var overlay by remember { mutableStateOf<BoardOverlay?>(null) }
     var hidden by remember { mutableStateOf(keep.panelHidden) }
     val selected = state.selected
@@ -252,7 +258,9 @@ private fun BoardContent(state: BoardUiState.Ready, controller: BoardController,
             {
                 if (state.waiting.isNotEmpty()) WaitingTray(state, onAction)
                 SelectionPanel(state, it, onAction, onReadCards = { heroId, cardId ->
-                    readTheCards(services.router, heroId, cardId)
+                    readTheCards(focus, state.heroes.hero(heroId), cardId) { id ->
+                        onAction(BoardAction.ChooseCard(id))
+                    }
                 })
             }
         },
@@ -285,15 +293,27 @@ private fun BoardContent(state: BoardUiState.Ready, controller: BoardController,
         null -> Unit
     }
     state.throneCaptured?.let { ThroneDialog(it.winner) { onAction(BoardAction.DismissThrone) } }
+    CardFocusHost(focus)
 }
 
 /**
- * "Read the cards" (the phone's card focus viewer, PRODUCT §8): INTEGRATION HOOK — until the in-place
- * card focus viewer (play/cards, the game table's) is wired here, it opens the catalog's card viewer
- * on the card measured with (or the hero's first card).
+ * "Read the cards" (PRODUCT §8): the hero's cards in the card focus viewer, large, swiping from one
+ * to the next (opening on the card measured with); tapping the focused card again (or "Measure with
+ * …") measures with it, as on the phone (SandboxCards).
  */
-internal fun readTheCards(router: dev.quinton.goa.web.nav.Router, heroId: String, cardId: String) {
-    router.navigate(Route.CardViewer(heroId, cardId))
+internal fun readTheCards(focus: CardFocusState, hero: BoardHero, chosenId: String, onMeasure: (String) -> Unit) {
+    val cards = hero.measurable
+    if (cards.isEmpty()) return
+    focus.open(
+        cards.map { FocusCard(it) },
+        index = cards.indexOfFirst { it.id == chosenId }.coerceAtLeast(0),
+        selection = CardSelection(
+            action = { "Measure with ${it.name}" },
+            context = "The app measures; it never applies a card's effect.",
+            onConfirm = { i -> cards.getOrNull(i)?.let { onMeasure(it.id) } },
+        ),
+        title = "${hero.name}'s cards",
+    )
 }
 
 private fun disabledClass(disabled: Boolean): String? = if (disabled) "goa-board-disabled" else null
