@@ -32,11 +32,17 @@ class ServiceWorkerClient {
             offlineReady = true
             if (reloading) window.location.reload()
         })
-        container.register("sw.js").then({ reg: dynamic ->
-            registration = reg
-            watch(reg, container)
-            null
-        }, { _: dynamic -> null })
+        val register = {
+            container.register("sw.js").then({ reg: dynamic ->
+                registration = reg
+                watch(reg, container)
+                null
+            }, { _: dynamic -> null })
+        }
+        // A returning visit registers at once (that is the update check). The first visit waits until
+        // the first screen has loaded: installing precaches the whole shell (megabytes), which would
+        // otherwise share a slow link with the screen the person is looking at.
+        if (container.controller != null) register() else afterFirstScreen { register() }
         // Home-screen apps can stay open for days: look for a new build when brought back.
         document.addEventListener("visibilitychange", {
             if (document.asDynamic().visibilityState == "visible") checkForUpdate()
@@ -78,7 +84,49 @@ class ServiceWorkerClient {
         })
     }
 
+    /**
+     * Runs [action] once the page has loaded and the first screen has settled: drawn (no spinner), the
+     * images on screen finished and no request finished since the last check (checked every
+     * [SETTLE_POLL_MS]; two quiet checks in a row), or after [SETTLE_MAX_MS] whatever happens.
+     */
+    private fun afterFirstScreen(action: () -> Unit) {
+        var quiet = 0
+        var waited = 0
+        var requests = -1
+        fun poll() {
+            waited += SETTLE_POLL_MS
+            val finished = (window.performance.asDynamic().getEntriesByType("resource").length as? Int) ?: 0
+            quiet = if (finished == requests && firstScreenSettled()) quiet + 1 else 0
+            requests = finished
+            if (quiet >= 2 || waited >= SETTLE_MAX_MS) action() else window.setTimeout({ poll() }, SETTLE_POLL_MS)
+        }
+        val start = { window.setTimeout({ poll() }, SETTLE_POLL_MS) }
+        if (document.readyState.toString() == "complete") {
+            start()
+        } else {
+            window.addEventListener("load", { start() }, js("({ once: true })"))
+        }
+    }
+
+    private fun firstScreenSettled(): Boolean {
+        // The first screen draws after the catalog loads: a spinner or an empty page isn't settled yet.
+        if (document.querySelector(".goa-topbar-title") == null || document.querySelector(".goa-spinner") != null) {
+            return false
+        }
+        val height = window.innerHeight
+        val images = document.querySelectorAll("img")
+        for (i in 0 until images.length) {
+            val img = images.item(i).asDynamic()
+            val box = img.getBoundingClientRect()
+            val onScreen = (box.bottom as Double) > 0 && (box.top as Double) < height && (box.width as Double) > 0
+            if (onScreen && img.complete != true) return false
+        }
+        return true
+    }
+
     private companion object {
         const val CHECK_INTERVAL_MS = 30 * 60 * 1000.0
+        const val SETTLE_POLL_MS = 500
+        const val SETTLE_MAX_MS = 8_000
     }
 }

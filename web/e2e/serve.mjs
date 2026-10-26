@@ -1,7 +1,7 @@
 // Serves the built site (web/app/build/site, or GOA_SITE_DIR) under /goa-companion/ like GitHub
 // Pages does, for Playwright and for trying the production build locally:
 //   node serve.mjs            → http://localhost:4173/goa-companion/
-// Test hook: a `goa-deploy=<n>` cookie makes sw.js differ (a comment), as a new deploy would, so
+// Test hook: a `goa-deploy=<n>` cookie makes sw.js differ (its build id), as a new deploy would, so
 // the update prompt can be tested without building twice and without touching other tests.
 import { createServer } from "node:http";
 import { createReadStream, statSync } from "node:fs";
@@ -24,6 +24,7 @@ const types = {
   ".png": "image/png",
   ".webp": "image/webp",
   ".ttf": "font/ttf",
+  ".woff2": "font/woff2",
   ".txt": "text/plain; charset=utf-8",
   ".md": "text/markdown; charset=utf-8",
 };
@@ -52,12 +53,20 @@ createServer(async (req, res) => {
     res.writeHead(404, { "content-type": "text/plain" }).end("Not found");
     return;
   }
-  // GitHub Pages: max-age=600 on everything; the service worker must cope with it.
-  const headers = { "content-type": types[extname(file)] ?? "application/octet-stream", "cache-control": "max-age=600" };
+  // GitHub Pages: max-age=600 and an ETag on everything; the service worker must cope with both.
+  const etag = `"${stat.size.toString(16)}-${Math.floor(stat.mtimeMs).toString(16)}"`;
+  const headers = { "content-type": types[extname(file)] ?? "application/octet-stream", "cache-control": "max-age=600", etag };
   const deploy = /(?:^|;\s*)goa-deploy=(\w+)/.exec(req.headers.cookie ?? "")?.[1];
   if (rel === "sw.js" && deploy) {
-    const body = (await readFile(file, "utf8")) + `\n// test deploy ${deploy}\n`;
+    // A new build id too, as a real deploy has: the new worker installs into a cache of its own.
+    const text = (await readFile(file, "utf8")).replace(/const BUILD = "([^"]*)";/, `const BUILD = "$1-d${deploy}";`);
+    const body = text + `\n// test deploy ${deploy}\n`;
+    delete headers.etag;
     res.writeHead(200, headers).end(body);
+    return;
+  }
+  if (req.headers["if-none-match"] === etag) {
+    res.writeHead(304, headers).end();
     return;
   }
   res.writeHead(200, { ...headers, "content-length": stat.size });
