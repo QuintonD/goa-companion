@@ -814,8 +814,14 @@ class FakeGameSession(
                 decision(
                     "arien",
                     DecisionKind.UPGRADE_CARD,
-                    "Level up: choose a Tier I card to upgrade",
+                    "Level up: choose a card to upgrade",
                     listOf("arien-red-1", "arien-green-1", "arien-blue-1").map { Choice.Card(it) },
+                    // As the engine previews it (ADR-045): each colour's two Tier II cards.
+                    context = DecisionContext(
+                        upgrades = listOf("red", "green", "blue").associate { c ->
+                            "arien-$c-1" to listOf("arien-$c-2a", "arien-$c-2b")
+                        },
+                    ),
                 )
             },
             onAnswer = { st, choice ->
@@ -830,7 +836,7 @@ class FakeGameSession(
                 decision(
                     "arien",
                     DecisionKind.KEEP_UPGRADE,
-                    "Keep one card in hand; the other becomes an item",
+                    "Level up: take one card into your hand (the other becomes an item)",
                     listOf("arien-$color-2a", "arien-$color-2b").map { Choice.Card(it) },
                 )
             },

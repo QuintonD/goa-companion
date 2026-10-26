@@ -159,8 +159,6 @@ private fun focusCard(table: TableUi, offered: OfferedCard): FocusCard {
     val decision = table.decision
     val card = offered.card
     val notes = mutableListOf<CardNote>()
-    var related = emptyList<Card>()
-    var relatedLabel: String? = null
     when (decision?.kind) {
         DecisionKind.KEEP_UPGRADE -> {
             // p.15: the card kept goes to hand, the other is tucked as an item.
@@ -169,15 +167,6 @@ private fun focusCard(table: TableUi, offered: OfferedCard): FocusCard {
                 other.item?.let {
                     notes += CardNote("${other.name} becomes an item: +1 ${PlayText.stat(it)} (p.16)", it)
                 }
-            }
-        }
-
-        DecisionKind.UPGRADE_CARD -> {
-            val next = upgradesOf(table, card)
-            if (next.size == 2 && offered.choice != null) {
-                related = next
-                relatedLabel = "${card.name} is replaced by one of these: you keep one, the other becomes an item " +
-                    "(p.15, p.16)."
             }
         }
 
@@ -192,14 +181,12 @@ private fun focusCard(table: TableUi, offered: OfferedCard): FocusCard {
         enabled = offered.choice != null,
         reason = if (offered.choice == null) decision?.kind?.let(::notOffered) else null,
         notes = notes,
-        related = related,
-        relatedLabel = relatedLabel,
     )
 }
 
 /** Closes the viewer when its question is gone; Confirm waits while the game is busy. */
 @Composable
-private fun FocusLifecycle(focus: CardFocusState, decision: Decision, busy: Boolean) {
+internal fun FocusLifecycle(focus: CardFocusState, decision: Decision, busy: Boolean) {
     DisposableEffect(focus, decision.id) { onDispose { focus.closeFor(decision.id) } }
     LaunchedEffect(focus, decision.id, busy) { focus.setCanConfirm(decision.id, !busy) }
 }
@@ -238,7 +225,7 @@ internal fun HandPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardF
     }
 }
 
-/** Card choices other than playing: discard, retrieve, which card to upgrade, which to keep. */
+/** Card choices other than playing: discard, retrieve, which card to keep (upgrading: UpgradeCards.kt). */
 @Composable
 internal fun CardPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardFocusState, busy: Boolean) {
     val decision = table.decision ?: return
@@ -249,7 +236,6 @@ internal fun CardPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardF
     }
     if (offered.any { it.choice != null }) {
         val verb = when (decision.kind) {
-            DecisionKind.UPGRADE_CARD -> "upgrade it"
             DecisionKind.KEEP_UPGRADE -> "keep it"
             else -> "${cardVerb(decision.prompt).lowercase()} it"
         }
@@ -265,7 +251,7 @@ internal fun CardPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardF
 }
 
 @Composable
-private fun TapHint(text: String) {
+internal fun TapHint(text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             Icons.Outlined.TouchApp,
