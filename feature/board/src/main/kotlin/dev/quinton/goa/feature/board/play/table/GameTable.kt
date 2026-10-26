@@ -102,6 +102,8 @@ fun GameTable(
         val density = LocalDensity.current
         var cover by remember { mutableStateOf(PanelCover()) }
         var topHeight by remember { mutableIntStateOf(0) }
+        // The map buttons' column (Fit, Flip, the Spellbook), with the gap to the screen's edge.
+        var buttonsWidth by remember { mutableIntStateOf(0) }
         val sideWidth: Dp = if (landscape) minOf(maxWidth * SIDE_SHARE, SIDE_PANEL) else 0.dp
         // The floating overlays keep clear of the side panel only while it is shown.
         val overlayEnd = if (landscape && !hidden) sideWidth else 0.dp
@@ -110,12 +112,27 @@ fun GameTable(
             viewport.updateInsets(bottom = cover.bottom.toFloat(), end = cover.end.toFloat(), top = topHeight.toFloat())
         }
         FitWhileHidden(viewport, hidden)
-        // Bring what is asked for into view: the options, the unit they are about, the highlights.
-        // Not while the panel is hidden and the whole board is in view.
+        // Bring what is asked for into view: the options, the unit they are about, the highlights,
+        // between what floats over the map (the round at a glance and the turn track or hero strip at
+        // the top, the map buttons at the end side, the panel). Again as those settle (the turn track
+        // appears with the reveal, the panel grows), but never once the person has moved the map
+        // since the question came: their pan or pinch wins. Not while the panel is hidden and the
+        // whole board is in view.
         val decision = table.decision
-        LaunchedEffect(decision?.id, table.asking, viewport.unit, viewport.bottomInset, viewport.endInset, hidden) {
+        val gesturesAtQuestion = remember(decision?.id, table.asking) { viewport.gestures }
+        LaunchedEffect(
+            decision?.id,
+            table.asking,
+            viewport.unit,
+            viewport.bottomInset,
+            viewport.endInset,
+            viewport.topInset,
+            buttonsWidth,
+            hidden,
+        ) {
             if (decision == null || viewport.unit == 0f) return@LaunchedEffect
             if (hidden && !viewport.userMoved) return@LaunchedEffect
+            if (viewport.gestures != gesturesAtQuestion) return@LaunchedEffect
             // Choosing a card: the person's own heroes (the others choose theirs hidden, p.7).
             if (decision.kind == DecisionKind.PLAY_CARD && !table.asking) return@LaunchedEffect
             val who = if (decision.kind == DecisionKind.PLAY_CARD) table.mine else setOf(decision.seat)
@@ -123,7 +140,7 @@ fun GameTable(
                 decision.context.highlight + listOfNotNull(table.subject?.let(table::at)) +
                 who.mapNotNull(table::at)
             val region = layout.bounds(hexes, pad = 1.1f) ?: return@LaunchedEffect
-            viewport.reveal(region, region.center)
+            viewport.reveal(region, region.center, shrink = OPTIONS_SHRINK, clearEnd = buttonsWidth.toFloat())
         }
 
         GameMapView(table, layout, viewport, onTap, Modifier.fillMaxSize(), lane = lane, onLongPressHero = onHero)
@@ -155,7 +172,9 @@ fun GameTable(
                 if (!hidden) banner?.invoke(landscape)
             }
             Column(
-                Modifier.align(Alignment.End),
+                Modifier
+                    .align(Alignment.End)
+                    .onSizeChanged { buttonsWidth = it.width + with(density) { Spacing.sm.roundToPx() } },
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 horizontalAlignment = Alignment.End,
             ) {
@@ -332,6 +351,12 @@ fun TableUi.choiceFor(tap: TableTap): Choice? = when (tap) {
 }
 
 private const val RECENT = 4
+
+/**
+ * How much smaller than comfortable (38 dp) a hex may get so that every option of a question is in
+ * view at once (about 30 dp: a Move 3's spaces under the turn track on a phone).
+ */
+private const val OPTIONS_SHRINK = 0.8f
 private val SIDE_PANEL = 400.dp
 private const val SIDE_SHARE = 0.42f
 private const val PANEL_SHARE = 0.56f

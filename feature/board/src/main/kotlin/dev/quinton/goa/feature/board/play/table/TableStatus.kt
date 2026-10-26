@@ -436,7 +436,8 @@ private fun Stat(icon: ImageVector?, text: String) {
  * turn (facedown before the reveal unless it is the person's, then faceup with its state on the turn
  * track and its initiative as it counts); this round's Turn slots and the discard; the items (icons for
  * every hero, the tucked cards for the hero's own player); the Ultimate, Active effects, markers and
- * tokens, the spellbook; the person's own hand (any hero's in a puzzle). Tap a card to read it.
+ * tokens, the spellbook (counts, the Spellbook sheet one tap away). The person's own hand (any hero's
+ * in a puzzle) comes right after this turn's card. Tap a card to read it.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -519,12 +520,17 @@ internal fun HeroDetail(
             val gap = Arrangement.spacedBy(Spacing.md)
             if (maxWidth >= WIDE_SHEET && heroTurn(table, hero) != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xl)) {
-                    Column(Modifier.weight(1f), verticalArrangement = gap) { ThisTurnSection(table, hero, focus) }
+                    Column(Modifier.weight(1f), verticalArrangement = gap) {
+                        ThisTurnSection(table, hero, focus)
+                        HandSection(table, hero, focus)
+                    }
                     Column(Modifier.weight(1f), verticalArrangement = gap) { cards() }
                 }
             } else {
                 Column(verticalArrangement = gap) {
                     ThisTurnSection(table, hero, focus)
+                    // The cards the player most needs together: this turn's card, then the hand.
+                    HandSection(table, hero, focus)
                     cards()
                 }
             }
@@ -553,16 +559,26 @@ internal fun HeroDetail(
             focus,
             onOpenSheet = onSpellbook?.takeIf { info.spells.isNotEmpty() }?.let { open -> { open(heroId) } },
         )
-        val hand = hero.hand
-        if (hand != null && heroId in table.mine) {
-            Section("Your hand")
-            CardRow(hand.map { CardView(it) }, table, focus, "${info.name} · Your hand")
-        } else if (hand != null && hand.isNotEmpty()) {
-            // Only a puzzle shows another hero's hand: its hands are open information.
-            Section("In hand · open in this puzzle")
-            CardRow(hand.map { CardView(it) }, table, focus, "${info.name} · In hand")
-        }
         Spacer(Modifier.size(Spacing.md))
+    }
+}
+
+/**
+ * The hand on the hero sheet, with this turn's card (the hand is what the player chooses from): the
+ * person's own hero's, or in a puzzle any hero's (its hands are open information). Nothing otherwise:
+ * cards in hand are hidden information (p.4).
+ */
+@Composable
+private fun HandSection(table: TableUi, hero: HeroView, focus: CardFocusState) {
+    val hand = hero.hand ?: return
+    val name = table.hero(hero.heroId).name
+    if (hero.heroId in table.mine) {
+        Section("Your hand")
+        CardRow(hand.map { CardView(it) }, table, focus, "$name · Your hand")
+    } else if (hand.isNotEmpty()) {
+        // Only a puzzle shows another hero's hand: its hands are open information.
+        Section("In hand · open in this puzzle")
+        CardRow(hand.map { CardView(it) }, table, focus, "$name · In hand")
     }
 }
 

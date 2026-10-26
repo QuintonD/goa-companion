@@ -40,6 +40,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -118,6 +119,9 @@ class SpellbookScreenshotTest {
         before: () -> Unit = {},
         content: @Composable () -> Unit,
     ) {
+        // A sheet is its own window, with the configuration's density: set the font scale there too
+        // (else the hero and Spellbook sheets were drawn at font scale 1 in the "FontScale2" shots).
+        if (fontScale != 1f) RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent {
             val d = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(d.density, fontScale)) {
@@ -227,10 +231,13 @@ class SpellbookScreenshotTest {
     @Test
     fun spellbookCastFocusW384DarkFontScale2() = focused(ThemeMode.DARK, 2f)
 
-    /** A cast spell tapped on the hero sheet opens among the others cast. */
+    /**
+     * A cast spell tapped opens among the others cast. (The hero sheet now sums the spellbook up, so
+     * an opponent reads the cast spells on the Spellbook sheet it opens.)
+     */
     @Test
     fun spellbookSheetFocusDark() = capture(ThemeMode.DARK, before = { tap("Fireball") }) {
-        Game(play(session(), "arien"), PlaySheet.Hero("gydion"))
+        Game(play(session(), "arien"), PlaySheet.Spellbook("gydion"))
     }
 
     // ---- The Spellbook at any point (extends ADR-040) ----------------------------------------
@@ -335,8 +342,39 @@ class SpellbookScreenshotTest {
     @Test
     fun spellbookBookCastW384DarkFontScale2() = book(ThemeMode.DARK, 2f) { castingWithoutRetreat() }
 
-    /** Any time, no question: the spellbook and the cast spells. */
+    /**
+     * Any time, no question: the spellbook by Tier, each spell a card in the hand names marked "Cast
+     * with …", and the cast spells.
+     */
     @Test fun spellbookBookDark() = book(ThemeMode.DARK) { choosing() }
+
+    @Test fun spellbookBookLight() = book(ThemeMode.LIGHT) { choosing() }
+
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun spellbookBookLandscapeDark() = book(ThemeMode.DARK) { choosing() }
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun spellbookBookW384DarkFontScale2() = book(ThemeMode.DARK, 2f) { choosing() }
+
+    /** Gydion's own hero sheet while he chooses a card: this turn, the hand, the spellbook as counts. */
+    @Test
+    fun spellbookHeroSheetHandDark() = capture(ThemeMode.DARK) {
+        Game(play(choosing(), "gydion"), PlaySheet.Hero("gydion"))
+    }
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun spellbookHeroSheetHandW384LightFontScale2() = capture(ThemeMode.LIGHT, 2f) {
+        Game(play(choosing(), "gydion"), PlaySheet.Hero("gydion"))
+    }
+
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun spellbookHeroSheetHandLandscapeDark() = capture(ThemeMode.DARK) {
+        Game(play(choosing(), "gydion"), PlaySheet.Hero("gydion"))
+    }
 
     /** An opponent at this phone opens it from Gydion's hero sheet: the spellbook facedown, a count. */
     @Test fun spellbookBookOpponentDark() = book(ThemeMode.DARK, mine = "arien") { session() }
@@ -349,6 +387,41 @@ class SpellbookScreenshotTest {
     fun spellbookSheetOpenDark() = capture(ThemeMode.DARK, before = { tapText("Open the spellbook") }) {
         Game(play(session(), "arien"), PlaySheet.Hero("gydion"))
     }
+
+    // ---- The options in view (hands-on 2026-10-26, `51-move.png`) ------------------------------
+
+    /**
+     * After the reveal Gydion resolves Elementary Evocation and chose Movement: "Move up to 3 spaces"
+     * with the turn track over the top of the map. Every space he may move to is in view between the
+     * track, the map buttons and the panel.
+     */
+    private fun moving(): EngineSession = position(engine, MAP) {
+        clearMinions()
+        round = 2
+        hero("gydion", Team.RED, Hex(1, -2)) {
+            level = 3
+            played("gydion-red-1")
+            spellbook()
+        }
+        hero("wasp", Team.RED, Hex(0, -5)) { played("wasp-gold") }
+        hero("arien", Team.BLUE, Hex(4, -5)) { played("arien-blue-1") }
+        hero("brogan", Team.BLUE, Hex(4, -2)) { played("brogan-blue-1") }
+        phase = PositionPhase.Resolving(next = "gydion")
+    }.also { s ->
+        val d = s.pending!!
+        s.answer(d.id, d.options.first { it is Choice.Action && it.action == ActionType.MOVEMENT })
+        check(s.pending?.kind == DecisionKind.CHOOSE_SPACE) { "${s.pending?.kind}" }
+    }
+
+    @Test fun spellbookMoveInViewDark() = capture(ThemeMode.DARK) { Game(play(moving(), "gydion")) }
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun spellbookMoveInViewW384LightFontScale2() = capture(ThemeMode.LIGHT, 2f) { Game(play(moving(), "gydion")) }
+
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun spellbookMoveInViewLandscapeDark() = capture(ThemeMode.DARK) { Game(play(moving(), "gydion")) }
 
     private companion object {
         const val MAP = "forgotten-island"

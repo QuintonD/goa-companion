@@ -273,6 +273,14 @@ acting hero's space is outlined in bronze with a bronze **"NOW"** tag over its p
 outside the zoom; TalkBack hears "acting now" on the space); an immune minion is ringed with a dashed
 teal circle (TalkBack: "immune"). Map taps select, a **Confirm** button with the choice spelled out
 ("Confirm · Lane Zone 3 · 3 spaces from Wasp") answers.
+**Framing a question** (extended after the v0.8 hands-on pass): when a question arrives the map brings
+its options (with the unit they are about and the asking hero) into the part of the map nothing floats
+over: under the HUD and the hero strip or turn track, clear of the map buttons' column (Fit, Flip, the
+Spellbook; when the options fit beside it), above the panel. Hexes stay at least about 38 dp across, or
+down to about 30 dp when that is what it takes for every option to be in view (a Move 3 under the turn
+track); with still more, the middle of the options. It frames again as what floats over the map settles
+(the turn track appears at the reveal, the panel grows) — but never once the person has dragged, pinched
+or double-tapped since the question came: their view wins.
 **Top, floating:** one HUD pill (each team's Life counters as heart + number by its shape, Wave
 counters per Lane, "R2" and four turn pips: done filled, current ringed, later hollow; the Tie
 Breaker coin as printed, the showing face (Red's gear, Blue's star, `OfficialArt.tieBreaker`) with the
@@ -362,17 +370,29 @@ titleMedium ("Initiative 14 · printed 13"), the place in order; one TalkBack no
 no card lies; "No card resolved yet this round." before the first). **DISCARD · n**, then **ITEMS ·
 P.16**: the official item icons (40 × 30 dp) with "+1 Defense ×2" in titleMedium, side by side as they
 fit; for your own hero "Tucked under the dashboard: only you see which cards (p.4)." and the tucked cards
-captioned "+1 Defense". Then Ultimate, Active effects, Markers and tokens, Spellbook, your hand. From 600
-dp wide (landscape) this turn's column sits beside the round's cards, discard and items. When a hero's
+captioned "+1 Defense". **YOUR HAND** comes right after this turn's card (the cards a player most needs
+together; any hero's "In hand · open in this puzzle" in a puzzle). Then Ultimate, Active effects, Markers
+and tokens, Spellbook. From 600 dp wide (landscape) this turn's column (card and hand) sits beside the
+round's cards, discard and items. When a hero's
 piece is an option the board hint adds "Long-press a hero for their game state."
-**Spellbook** (Gydion, ADR-040; `play/table/SpellbookSection.kt`): the hero sheet and the review's Now
-tab show a SPELLBOOK section after the discard, in the engine's order: "In your spellbook · 19" (the
+**Spellbook** (Gydion, ADR-040; `play/table/SpellbookSection.kt`): the hero sheet sums it up (after the
+v0.8 hands-on pass, when the Spellbook sheet is a tap away): a SPELLBOOK head with "Open the spellbook",
+then one surfaceVariant card (tap = the sheet; one TalkBack node) with each group's name and count in
+titleMedium ("In your spellbook 19 · Cast · removed faceup 3") and, for anyone else, "Facedown: only
+Gydion can look at the cards in the spellbook." The review's Now tab (no sheet there) and the Spellbook
+sheet show the groups in full, in the engine's order: "In your spellbook · 19" (the
 spell cards, for Gydion's player only), "Cast · removed faceup · 3" (everyone), "Not yet added · 22"
 (only before the first Prepare Spells, with "Prepare Spells adds every spell card to the spellbook.").
 Anyone else sees "In the spellbook · 19" and "Facedown: only Gydion can look at the cards in the
 spellbook." (a puzzle, whose hands are open, says "Open in this puzzle."). The cards are the official
-landscape scans in a grid as wide as the sheet (columns of at least 104 dp, at most 4); the images are
-the content, no card text retyped. The groups' counts are said there only: the sheet's number row
+landscape scans in a grid as wide as the sheet (columns of at least 104 dp, wider with large text up to
+×1.6, at most 4; whole-pixel widths so a row never wraps its last card); the images are the content,
+no card text retyped. On the Spellbook sheet each group lists its spells by Tier under a small
+labelLarge head ("Gold (no tier) · 3", "Tier I · 2", …, "Ultimate · 1"), as the catalog and the pre-game
+sheet do; the viewer still swipes through the whole group. For Gydion's own player each spell in the
+spellbook that a card in his hand names carries a line under it, "Cast with Lesser Evocation" ("Cast
+with Cantrip or Lesser Evocation"; labelSmall, onSurface; the names are the catalog card text's own
+quoted spells) — a cast question's mark replaces it while asked. The groups' counts are said there only: the sheet's number row
 leaves out the engine's "spellbook" and "spellsRemoved" counters (it keeps "Wish casts"). A tap opens
 the card focus viewer among that group. Cantrip's
 "Choose and cast one spell" offers the spells as landscape cards that share the row's height

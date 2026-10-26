@@ -432,8 +432,9 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   (NOW / NEXT / LATER / DONE / PASS / OUT), the action chosen and the initiative as it counts ("Initiative
   14 · printed 13"); **this round's** four Turn slots with their cards (empty outlines for turns to come)
   and the discard; **items** for every hero as the official item icons with what they add ("+1 Defense
-  ×2", p.16), and for your own hero which cards are tucked; the Ultimate, Active effects, markers and
-  tokens, the spellbook, your hand. In landscape this turn's card sits beside the round's cards. A long
+  ×2", p.16), and for your own hero which cards are tucked; your hand right after this turn's card; the
+  Ultimate, Active effects, markers and tokens, the spellbook (how many in each group, the Spellbook sheet
+  one tap away). In landscape this turn's card and the hand sit beside the round's cards. A long
   press on a hero's piece opens it even when a tap there would answer the question (a target, a unit to
   move); the panel's hint says so ("Long-press a hero for their game state.") and TalkBack has "Show
   Wasp's game state" on the hero's space, chip and track card. Hidden information stays hidden (p.4): an
@@ -455,7 +456,9 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   during the cast question the sheet and the panel show which spells can be cast now and why the card's
   others can't, in the engine's words. An opponent's spellbook opens from his hero sheet (facedown, a
   count); the review's earlier boards show the book as it was then. Choosing Gydion (New game, the
-  board's line-up, the draft's hero peek) shows the 22 spell cards in one tap. **Done when:** an engine test shows two games that
+  board's line-up, the draft's hero peek) shows the 22 spell cards in one tap. The Spellbook sheet lists
+  each group by Tier and marks every spell in your spellbook with the card in your hand that casts it
+  ("Cast with Lesser Evocation"; your own Gydion only). **Done when:** an engine test shows two games that
   differ only in the spellbook's spells look the same to every other seat, live and in the review;
   screenshots of the sheet (Gydion's player and an opponent, before Prepare Spells, light/dark, 384 dp
   at font scale 2, landscape), the cast question and a spell in the card focus viewer (portrait,
@@ -490,6 +493,11 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   panel back. In landscape the side panel hides to a small card at the bottom end; while it is shown,
   the heroes are portraits beside the round at a glance (a tap still opens each one) and a puzzle's
   goal is one line, so a phone held sideways keeps most of its map.
+- **The options in view:** when a question asks for a space or a piece, the map brings every option
+  (and the hero asked) into the part of the map nothing covers — under the round at a glance and the
+  hero strip or turn track, clear of the map buttons, above the panel — hexes down to about 30 dp if
+  that is what it takes; it follows the turn track and panel as they settle, but never undoes your own
+  pan or pinch made since the question came.
 - **Pacing:** each computer action is shown for a moment (Slow / Normal / Fast); "thinking…" when
   it takes long. Take back undoes your last choice (counted in the summary).
 - **Coach** (on/off, also in-game): before a clearly worse choice, a gentle nudge ("Coach: Wasp's
