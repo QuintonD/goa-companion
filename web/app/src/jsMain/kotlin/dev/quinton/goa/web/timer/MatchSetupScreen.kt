@@ -26,6 +26,7 @@ import dev.quinton.goa.feature.timer.ui.timer.TimerUiMapper
 import dev.quinton.goa.web.AppServices
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.nav.Route
+import dev.quinton.goa.web.play.ui.TieBreakerCoin
 import dev.quinton.goa.web.table.Badge
 import dev.quinton.goa.web.table.BadgeKind
 import dev.quinton.goa.web.table.Note
@@ -468,7 +469,12 @@ private fun CoinSideChips(selected: Team?, label: String, onSet: (Team) -> Unit)
     }
 }
 
-/** The Tie Breaker coin face: ◆ Red or ● Blue; spins when flipped (not with reduced motion). */
+/**
+ * The Tie Breaker coin on a bronze disc, for Match setup and the draft's coin step: the printed face
+ * (Red's gear, Blue's star, rulebook p.5) with the team's shape on its badge, the same
+ * [TieBreakerCoin] the game table and New game show (it was ◆ / ● here); "?" before the first flip.
+ * Spins when flipped (not with reduced motion).
+ */
 @Composable
 fun CoinFace(team: Team?, flips: Int) {
     var spinKey by remember { mutableStateOf(flips) }
@@ -484,14 +490,10 @@ fun CoinFace(team: Team?, flips: Int) {
                 team?.let { "Tie Breaker coin showing ${if (it == Team.RED) "Red" else "Blue"}" } ?: "Coin not flipped",
             )
         }) {
-            Span({ attr("aria-hidden", "true") }) {
-                Text(
-                    when (team) {
-                        Team.RED -> "◆"
-                        Team.BLUE -> "●"
-                        null -> "?"
-                    },
-                )
+            if (team != null) {
+                TieBreakerCoin(team, big = true)
+            } else {
+                Span({ attr("aria-hidden", "true") }) { Text("?") }
             }
         }
     }
