@@ -1029,6 +1029,33 @@ scrolling the hero sheet. Now:
 word would be squeezed); a tab in the Game state sheet (two taps, in a sheet about something else);
 letting the sheet answer the cast question (two places to answer one question; the panel stays the only
 one); a count on the hero chip (the strip gives way to the turn track after the reveal).
+**Extended after the hands-on pass (2026-10-26, `fix/v08-cast-preview`), "say what it will cast":** in a
+2v2 on an S25-sized emulator, "Skill, primary action" on a card naming several spells cast the only one
+that could be cast — and took its only target — with no question, six times (Cantrip → Expeditious
+Retreat, Lesser Transmutation → Midas' Touch, Lesser Evocation → Fireball on Tigerclaw, defeating him),
+so the cast question's reasons (point 2) never appeared; and Elementary Enchantment cast Suggestion with
+no enemy hero in radius, doing nothing but spending the spell (right by ruling 5, unannounced). A new
+question would break saves (answers replay by question order), so the action question itself says it:
+4. **The preview** (`DecisionContext.primaryPreview`, CONTRACT-CHANGES.md): the spells the card can
+   cast now (`Spellbook.preview`, the same `whyNot` as the cast question), the others with why, and when
+   exactly one can be cast, its only target and whether it will do nothing. The engine tells these by
+   one probe of the action on a copy (`primaryProbe`, shared with `primaryBlocker`): the first unit
+   choice with a single option, and a whole-state comparison when the text runs out without a question
+   (the change stamp misses coins); a script may say why it did nothing (`ActionScope.nothing`, also a
+   log line). Generic: any card's primary gets its only target and "will do nothing" the same way.
+   Hidden information: the probe stops telling the moment the text reads another hero's hand
+   (`Game.hand`, `forceDiscard`): Cloud Kill's "discards a basic card, if able" never reveals whether
+   one is held.
+5. **The panel** (`CastPreview.kt`): under the Skill chip, the spell it will cast as its official card
+   (tap to read it), "Casts Fireball", "Its only target: Brogan", and the warning on the error
+   container ("No enemy hero in radius 3: Suggestion will do nothing and is removed from the spellbook
+   (Prepare Spells)."); with several spells, their cards and "you choose which next"; the card's other
+   spells one line each with the engine's reason, also when no spell can be cast (instead of only "no
+   spell of this card can start"), unless every spell has the same reason the action's line already
+   gives (an empty spellbook). Only on the person's own question, as the whole panel.
+**Alternatives:** always asking which spell, even for one (the save-replay break, and a question with
+one answer); a confirmation after choosing Skill (a new question too); the warning only in the log
+(after the fact, which is what the player hit).
 
 ## ADR-041 — The game table after the reveal: a turn track of the played cards, and the card as the panel's content (2026-10-25)
 **Context:** The owner: "We are still missing a clear indication of the game state after everyone has

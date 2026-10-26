@@ -255,6 +255,12 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] The cast question says why the card's other spells can't be cast (`DecisionContext.unavailableCards`:
   removed faceup, not added yet, its action can't start), in the panel (dimmed, one line each) and on the
   sheet ("Can be cast now" / the reason). 2026-10-26, `GydionTest`, `SpellbookSectionTest`
+- [x] The action question says what the card will cast before Skill is chosen (hands-on pass:
+  `DecisionContext.primaryPreview`): the spell as its card, its only target, "will do nothing" for
+  Suggestion with nobody able (and any card's primary), the other spells with why, also when none can be
+  cast; no new question (saves replay), nothing told after a look at another hand. 2026-10-26,
+  `GydionCastPreviewTest` (11: every casting card × 4 layouts × 3 spellbooks against the cast,
+  no-peeking), `CastPreviewScreenshotTest` (12). JVM only
 - [x] Choosing Gydion: New game's "You play" ("Gydion's spellbook · 22 spells") and the line-up chip's
   menu (New game, New board) open the 22 spell cards by tier from the catalog; the draft's hero peek
   opens his hero page at the Spellbook (`HeroDetailRoute.section`). 2026-10-26,
