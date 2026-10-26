@@ -190,14 +190,10 @@ class AndroidTimerNotifier @Inject constructor(
         ensureChannels()
         if (!alertChannelBlocked()) sounder.sound(style)
         if (!canPost()) return
-        val nextText = if (snapshot.preset.autoAdvance) {
-            "Now: ${TimerText.stepTitle(snapshot.step)}"
-        } else {
-            "Overtime is counting · ${TimerText.nextText(snapshot)}"
-        }
+        val nextText = TimerText.timesUpText(snapshot)
         val builder = NotificationCompat.Builder(context, CHANNEL_ALERT)
             .setSmallIcon(R.drawable.ic_stat_timer)
-            .setContentTitle("Time's up: $endedTitle")
+            .setContentTitle(TimerText.timesUpTitle(endedTitle))
             .setContentText(nextText)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

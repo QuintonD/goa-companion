@@ -248,11 +248,6 @@ class TimerModel(private val services: AppServices, private val scope: Coroutine
         }.onFailure { services.messages.show("Couldn't discard the match. Try again.") }
     }
 
-    /** Back on the page after it was hidden (the phone was locked): catch up, and say if a phase ended unseen. */
-    fun resync() = launch {
-        if (controller.resync()) services.messages.show("A phase ended while the screen was off.")
-    }
-
     private fun finishOnce(block: suspend () -> Unit) {
         if (finishing) return
         finishing = true

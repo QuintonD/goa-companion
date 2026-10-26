@@ -131,6 +131,19 @@ object TimerText {
         return "$what · Round $round"
     }
 
+    /** The "time's up" alert's title, from [endedTitle]: "Time's up: Turn 2 · Round 1". */
+    fun timesUpTitle(endedTitle: String): String = "Time's up: $endedTitle"
+
+    /**
+     * The "time's up" alert's line, from the session [after] the phase ended: the new phase when the
+     * preset auto-advanced, else that overtime is counting and what comes next.
+     */
+    fun timesUpText(after: TimerSnapshot): String = if (after.preset.autoAdvance) {
+        "Now: ${stepTitle(after.step)}"
+    } else {
+        "Overtime is counting · ${nextText(after)}"
+    }
+
     fun durationLabel(seconds: Int?): String = seconds?.let { duration(it * 1000L, roundUp = false) } ?: "Untimed"
 
     fun kindLabel(kind: PhaseKind): String = when (kind) {

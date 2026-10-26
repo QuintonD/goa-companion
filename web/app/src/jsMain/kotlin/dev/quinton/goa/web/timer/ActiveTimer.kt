@@ -255,7 +255,7 @@ private fun ScreenNote() {
 
 /** The screen's edge flashes where the phone would vibrate (a cue). Keyed so each cue replays the animation. */
 @Composable
-private fun Flash(count: Int, final: Boolean) {
+internal fun Flash(count: Int, final: Boolean) {
     if (count == 0) return
     key(count) {
         Div({
