@@ -1531,3 +1531,67 @@ the card as text" collapsed. (3) Milestones: v0.7's M15–M17 keep their numbers
 (group, sync, players) and M19 (board, play, puzzles). v0.7 added no ADR numbered 043 or later.
 **Consequences:** One rule for a computer seat (`AiPlayers.forApp`) on the phone and in the browser.
 Strength 10's other questions reach their wall-clock cap in a browser (item 4 above).
+
+**Addendum (Review R2: security and data safety, 2026-10-26):**
+**Context:** The site is public and each browser holds its group's key. Review of invite handling,
+storage, untrusted input, the Content-Security-Policy, the relay, the service worker, dependencies and
+the Pages workflow; each finding fixed with a test that fails without the fix.
+**Decision:**
+1. **Markup from names.** The invite QR code is SVG set with `innerHTML`, and the group's name went into
+   its `aria-label` with only `& < >` escaped: an invite named `x" onclick="…` (any invite link can name
+   its group, 40 characters) ran its script when the code was tapped (WebKit and Chromium). Every string
+   in built markup now goes through `escapeMarkup` (`& < > " '`; `InviteQrTest`), and the CSP below
+   blocks inline handlers as well. The other `innerHTML` paths (icons, map, pieces, rating chart, puzzle
+   pips) carry only build-time markup, enums and numbers. External links are http(s) only and
+   `noopener noreferrer`.
+2. **Invite links.** `index.html`'s first script takes `#join=…` out of the address and the history
+   entry before `app.js` loads (it is 5 MB on a first visit) and hands it to the router once
+   (`window.goaInvite`, then deleted); the `Join` route's address is the Group screen's, so the router
+   never writes the key back (`RouterTest`, `security.spec.ts`). Fragments never reach a server, a
+   `Referer` or the service worker's caches. Join now says when the invite's server isn't the app's own,
+   and that switching groups shares this browser's matches with the new group.
+3. **Content-Security-Policy** (`<meta>`, as Pages can't send headers; added by `:web:app:site`, never
+   on the dev server): `script-src 'self'` plus the hash of `index.html`'s own script (hashed as the
+   browser reads it, CR LF → LF), `connect-src 'self'` + the relay (`goa.syncServer`; `WebSyncDefaultsTest`
+   keeps the app's default equal to it), `worker-src 'self'`, `img-src 'self' data: blob:`,
+   `object-src 'none'`, `base-uri 'none'`, `frame-src 'none'`; inline styles stay allowed. Plus
+   `Referrer-Policy: no-referrer`. The suite walks every tab, a game with the engine worker and a puzzle
+   with no violation. A group on another relay syncs on the web by sync file only (the screens say so).
+   `frame-ancestors` can't be a `<meta>`: the app refuses to start inside another site's frame instead.
+4. **The shared origin.** Every Pages site of the account is the origin `https://quintond.github.io`
+   (today also `forge-store`), and storage is per origin: script on any of them can read this app's
+   IndexedDB (the group key and data), its `localStorage` and its Cache Storage. Wrapping the key with a
+   non-extractable CryptoKey would not help (the same script can use the wrapping key, and the relay
+   token is derived from the raw key in shared Kotlin). What is done: the service worker installs a build
+   only if every shell file matches the manifest's hash and the manifest matches the SHA-256 stamped into
+   `sw.js` (a file the Cache API can't touch), and re-checks a cached shell file each time it serves it;
+   a changed copy is dropped and fetched again, never run, so planted code can't persist in the app.
+   This also makes an update all-or-nothing: a deploy half-way through on the CDN (a new `sw.js` with an
+   old `engine-worker.js`) fails the install and is retried later, rather than mixing builds. Only this
+   app's pages can tell a waiting worker to take over. The Group screen says that the browser keeps
+   the key. **Owner action, not done:** the real fix is an origin of the app's own (a custom domain on
+   the Pages site, or the other sites moved to one); until then, keep every site on the account free of
+   third-party script.
+5. **Untrusted sync data.** `HostileSyncInputTest` (commonTest, JVM and Node): 100 000-deep JSON,
+   JavaScript object keys as ids (`__proto__`, `constructor`), a match at `Long.MAX_VALUE`, markup in
+   names and a stranger's malformed sync files all end in the codec's own errors or ordinary records;
+   validation runs before anything is stored (relay and files), unchanged.
+6. **Relay:** CORS is an exact-origin list without credentials, tokens are compared in constant time,
+   preflights touch no data; no change needed. WebCrypto: AES-GCM keys imported non-extractable per
+   call, a fresh random salt (HKDF) and IV per seal, `crypto.getRandomValues`.
+7. **Supply chain.** The Pages workflow pins every action to a commit, checks out without persisted
+   credentials, uses no secrets, keeps `contents: read` except the deploy job's Pages permissions, and
+   deploys only from `main` (a manual run elsewhere tests, never publishes). Bundled npm code: jsQR 1.4.0,
+   qrcode-generator 2.0.4 and @js-joda/core 3.2.0 (its BSD licence now ships in `licenses/`), pinned,
+   no advisories; the lock file's two (`serialize-javascript`, `diff`) come with mocha and run only the
+   unit tests. gitleaks (8.30) over the round's 106 commits: five hits, all the published sync test
+   vectors (key 0..31 and its tokens), recorded in `.gitleaksignore`; no secret.
+8. **Tests never reach production.** `web/e2e/guard.mjs`: every browser the suite launches sends traffic
+   for other hosts to a local proxy that refuses it (service worker and Web Workers included, which
+   Playwright's routes miss in WebKit) and logs it; `security.spec.ts` proves a fetch to the relay from
+   a controlled page is refused. `serve.mjs` lets the page reach a relay on this machine by re-stamping
+   `index.html`, the manifest and `sw.js` together.
+**Consequences:** The service worker hashes each shell file it serves: SHA-256 of the 5.3 MB `app.js`
+took ≈ 30 ms in Playwright's WebKit on this PC and ≈ 6 ms in Chromium (an iPhone hashes in hardware). A new inline script needs nothing (its hash is computed); a new connection target needs the
+CSP. Not fixed: the shared origin (owner action above); the relay's CORS default
+(`https://quintond.github.io`) admits the other sites on that origin, which still need a group's token.

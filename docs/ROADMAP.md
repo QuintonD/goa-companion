@@ -276,6 +276,12 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] On an iPhone: Safari and Home Screen, joining by the Camera from a phone's QR code, the camera
   scanner, sync after the app was in the background, the share sheet for sync files
 - [ ] A real group on the production relay with one phone and one iPhone
+- [x] Security review R2 (ADR-043 addendum): invite QR markup injection fixed, the invite key out of the
+  address before the app loads, a Content-Security-Policy, the service worker installs and serves only
+  this build's files, the Pages workflow pinned, a network guard so no test reaches the relay — 2026-10-26,
+  `InviteQrTest`, `RouterTest`, `HostileSyncInputTest` (JVM + Node), Playwright `security.spec.ts`
+- [ ] Owner: give the web app an origin of its own (a custom domain), as every Pages site of the account
+  shares `quintond.github.io` and its storage (ADR-043 R2 item 4)
 
 ## M19 — Web app: board, play against the computer, puzzles (ADR-043 W4)
 - [x] Shared: the board, table and puzzle screens' logic in `:core:play` (`BoardSandbox`, `TableUi`,
