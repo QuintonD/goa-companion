@@ -143,11 +143,12 @@ test("trivia's results open at the score, not where the last question was scroll
   for (let i = 0; i < 40; i++) {
     if ((await title(page).textContent())?.includes("Round over")) break;
     const next = page.locator("main button", { hasText: /^Next$|^See results$/ });
+    // A right answer moves on by itself: a button counted a moment ago may be gone.
     if (await next.count()) {
-      await next.first().click();
+      await next.first().click({ timeout: 2000 }).catch(() => {});
       continue;
     }
-    await page.locator("main button:not([disabled])").first().click();
+    await page.locator("main button:not([disabled])").first().click({ timeout: 2000 }).catch(() => {});
     await page.waitForTimeout(150);
   }
   await expect(title(page)).toHaveText("Round over");
