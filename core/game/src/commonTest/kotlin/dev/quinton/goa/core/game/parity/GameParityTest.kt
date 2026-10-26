@@ -131,10 +131,14 @@ class GameParityTest {
             }
             appendLine("round ${s.state.round} winner ${s.state.winner}")
         }
-        assertTranscript("b04d3808e164924242baa68fd13312052be889f69f1f9afafd816276fedb577f", transcript, "AI game")
+        assertTranscript("2532ce3cb51470cbda68ebe4f44cf2c1df8385afa0db9428c271b12f8c6b093f", transcript, "AI game")
     }
 
-    /** Hard and Expert search: determinized samples, playouts and the soft-max pick (exp). */
+    /**
+     * Hard and Expert search (strengths 8 and 10 since ADR-039: the tuned evaluation, the opponent
+     * soft-max, greedy playouts): determinized samples, playouts and the soft-max pick (exp). The
+     * hashes were re-pinned when v0.7's AI merged in (2026-10-26); the JVM and JS agreed on the new ones.
+     */
     @Test
     fun theSearchingLevelsChooseAlike() {
         val setup = GameSetup(
@@ -163,7 +167,7 @@ class GameParityTest {
                 n++
             }
         }
-        assertTranscript("9e7e6755b6d8cdad3da4c9616b8315ca0a87a464675601748bb00c7bbf235c13", transcript, "searching AI")
+        assertTranscript("dedfe9175b06306ece222577c2b46956e48d9f1746eda30abec37ba009ad6d1e", transcript, "searching AI")
     }
 
     @Test
