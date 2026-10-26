@@ -309,6 +309,25 @@ data class DecisionContext(
     val subjectId: String? = null,
     /** CHOOSE_SPACE for a move: the path the engine will use to each option, when it matters. */
     val paths: Map<String, List<Hex>> = emptyMap(),
+    /**
+     * CHOOSE_ACTION: the actions the asking card prints (its primary, a secondary Movement or Attack)
+     * that are not among the options, each with why. Built from the same checks that left them out.
+     */
+    val unavailable: List<UnavailableAction> = emptyList(),
+)
+
+/**
+ * A printed action that can't be chosen now (CHOOSE_ACTION), in one short line: "Its Skill can't
+ * start: no enemy hero in range", "Its Movement is forbidden by Xargatha's Stone Gaze". [source] is
+ * the rule ("p.10, FAQ", "p.14", a ruling), null when [byCardId] (a faceup card's effect in force)
+ * is the reason. Never names a hidden card.
+ */
+@Serializable
+data class UnavailableAction(
+    val action: ActionType,
+    val text: String,
+    val source: String? = null,
+    val byCardId: String? = null,
 )
 
 // ---------------------------------------------------------------------------------------------

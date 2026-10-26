@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -540,11 +541,31 @@ class PlayScreenshotTest {
 
     /**
      * A phone held sideways once the status bar, the gesture bar and the camera cutout are taken
-     * (S25-sized, hands-on 2026-10-25): the card's text still shows beside the card, without scrolling.
+     * (S25-sized, hands-on 2026-10-25): the card at full height, beside it only what it doesn't print.
      */
     @Config(qualifiers = "w800dp-h330dp-land-xxhdpi")
     @Test
     fun tableCardFocusLandscapeShortDark() = focusedDiscard(ThemeMode.DARK)
+
+    /** "Read the card as text" opened (ADR-041): the name, kind, values and the text verbatim. */
+    private fun focusedAsText(mode: ThemeMode, fontScale: Float = 1f) {
+        val play = at(DecisionKind.CHOOSE_CARD)
+        capture(mode, fontScale, before = {
+            tapCard(firstOption(play))
+            compose.waitForIdle()
+            compose.onAllNodes(hasText("Read the card as text") and hasClickAction()).onFirst().performClick()
+        }, screen = true) { Game(play) }
+    }
+
+    @Test fun tableCardFocusAsTextDark() = focusedAsText(ThemeMode.DARK)
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun tableCardFocusAsTextW384LightFontScale2() = focusedAsText(ThemeMode.LIGHT, 2f)
+
+    @Config(qualifiers = "w800dp-h330dp-land-xxhdpi")
+    @Test
+    fun tableCardFocusAsTextLandscapeShortDark() = focusedAsText(ThemeMode.DARK)
 
     /** Play a card sideways on a short screen: a Tier I card, its caption, the text and Play facedown. */
     @Config(qualifiers = "w800dp-h330dp-land-xxhdpi")

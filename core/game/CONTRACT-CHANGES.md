@@ -163,3 +163,22 @@ saves are unaffected (views are rebuilt, never saved).
   live table, `merged` views, `review`/`positionAt` (ADR-037) and puzzles show the same visibility.
   `ExtrasViewTest` checks it, with a no-peeking test (two games differing only in the spellbook's spells
   look the same to every other seat, live and in the review).
+
+## 2026-10-25 (why an action is missing, `fix/v07-handson`, ADR-041 §5)
+
+Additive; defaults keep other `GameSession` implementations, test fakes and saves unaffected (decisions
+are rebuilt by the replay, never saved).
+
+- `DecisionContext.unavailable: List<UnavailableAction> = emptyList()`: on `CHOOSE_ACTION`, each action the
+  asking card prints (its primary; a printed secondary Movement or Attack) that is not among the options,
+  with why. `UnavailableAction(action: ActionType, text: String, source: String? = null, byCardId: String? = null)`:
+  `text` is one short line ("Its Skill can't start: the spellbook is empty until Prepare Spells is
+  performed", "Its Movement is forbidden by Xargatha's Stone Gaze"), `source` the rule ("p.10, FAQ",
+  "p.14", "designer, BGG 3491113"), null when `byCardId` (a faceup card whose effect forbids it) is the
+  reason. Never names a hidden card.
+- Engine side: `Game.actionAvailability(heroId, cardId, explain)` builds the options and the reasons in
+  one pass (`actionOptions` = its options); `actionForbiddenBy` (the forbidding `Src`) under
+  `actionAllowed`; `primaryBlocker` (the probe's `Fizzle` reason and source) under `primaryPossible`;
+  `Fizzle(reason, source = null)` and `fizzle(reason, source)`. `attackTarget(…, none = "no target")`:
+  `adjacentAttackTarget` fizzles "no target adjacent to you", `rangedAttackTarget` "no target in range"
+  (the log's "… stops:" lines changed with them). Gydion's `castOneOf` says why no spell can be cast.

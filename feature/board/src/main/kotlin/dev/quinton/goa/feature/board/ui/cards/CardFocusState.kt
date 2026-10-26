@@ -73,6 +73,10 @@ class CardFocusRequest internal constructor(
     /** False while the question can't be answered (the game is busy): Confirm waits. */
     var canConfirm by mutableStateOf(true)
         internal set
+
+    /** "Read the card as text" is open: the words get the room, the card shrinks (it holds while swiping). */
+    var asText by mutableStateOf(false)
+        internal set
 }
 
 /**

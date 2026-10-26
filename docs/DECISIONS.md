@@ -1045,6 +1045,31 @@ instead of chips); the map's inset follows it. Level, coins and hand size are on
 reveal and in the hero sheet (long press) during the turn. The scripted test game (`FakeGame`) now
 reports `actedThisTurn`, the engine's shrinking `initiativeOrder` and `initiative`, and plays cards in
 its skipped-to turn 4. Large text puts the asking card above its answers.
+**Extended after the hands-on pass (2026-10-25, `fix/v07-handson`):**
+5. **A missing action says why, in the engine's words.** Playing Gydion's Cantrip on turn 1 offered
+   only Hold with no word why (the spellbook starts empty, rulings/gydion.md 1), and a player thinks the
+   app is broken. `Actions.actionAvailability` now builds the options and, for each action the card
+   prints that is left out (its primary; a printed secondary Movement or Attack), an
+   `UnavailableAction` (`DecisionContext.unavailable`, CONTRACT-CHANGES.md) from the same checks: the
+   effect that forbids it (`actionForbiddenBy`, named by its faceup card: "Its Skill is forbidden by
+   Arien's Spell Break"), or the step where the primary stops (`primaryBlocker`: the probe's `Fizzle`
+   reason, "Its Attack can't start: no target in range", source "p.10, FAQ" — p.10 "Mandatory and
+   Optional Steps" and the FAQ's "you may not perform the action at all"; a `Fizzle` may carry its own
+   source, as Gydion's empty book does: "designer, BGG 3491113"), or p.14 for a played Defense card. One
+   pass gives both, so a reason can't drift from the options; the AI's other queries skip the words
+   (`explain = false`). The reasons only name what the person may see: effects in force come from faceup
+   cards, Ultimates, markers and pieces (a facedown card loses its effect, p.10), fizzle reasons describe
+   the board, and Gydion's book count is public (ADR-040); `UnavailableActionsTest` checks that enemy
+   hands that differ give the same reasons. The panel shows each as one line under the chips (a forbidding
+   card opens on tap); the UI's own guess ("No Attack: no unit you may target is in reach…") is gone.
+   The attack helpers now say where the target was missing ("no target adjacent to you" / "no target in
+   range"; the log's "… stops:" lines read the same).
+6. **The card focus viewer no longer retypes the card.** The sheet under the big card repeated its
+   name, "Basic Gold", the values and the whole text. It now keeps only what the card doesn't print (the
+   question, caption, verdict, why it is dimmed, what choosing it means, the next Tier's cards, its item,
+   a Handicap card's basis) and "Read the card as text", collapsed, like the catalog viewer (ADR-042 §3).
+   The sheet is as tall as its words, at the bottom, and the card takes up to 60 % of the portrait height
+   (50 % with large text). TalkBack reads the card's name, kind, values and text on the card's node.
 
 ## ADR-042 — Styled on the official look: the cards as the cards, the rulebook's banner and heads (2026-10-25)
 **Context:** The owner: "Lean on the original assets throughout the app, the app should be styled
@@ -1101,3 +1126,9 @@ names repeated under a scan only while it is under 140 dp wide.
 images added (≈ 420 KB). Every screen's screenshots changed (banner, heads); the game table (S3's
 play/table) inherits banner, heads and tokens without layout changes. `core:testing` gained
 `BundledAssetImages`/`bundledHero` for screenshot tests that show official images.
+**Extended after the hands-on pass (2026-10-25, `fix/v07-handson`):** the Tie Breaker coin is the
+official coin face wherever the game table shows it, not only in the draft: the HUD (22 dp, about the
+face's own 76 px) and New game's coin-flip dialog (64 dp, where it was a plain team-coloured disc),
+with the app's team shape on a small badge at the coin's foot, as on the board's pieces (team never
+by colour alone; the printed gear and star are shapes too, but the rest of the app speaks diamond and
+circle). The old shape-on-a-bronze-ring stays as the fallback while the face loads.
