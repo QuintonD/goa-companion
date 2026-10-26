@@ -6,11 +6,13 @@ import dev.quinton.goa.core.game.ANY_HERO_ENGINE
 import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Controller
+import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.Driver
 import dev.quinton.goa.core.game.GameSetup
 import dev.quinton.goa.core.game.SeatSetup
 import dev.quinton.goa.core.game.TestData
+import dev.quinton.goa.core.game.UnavailableCard
 import dev.quinton.goa.core.game.WinReason
 import dev.quinton.goa.core.game.engine.ActionKind
 import dev.quinton.goa.core.game.engine.EngineSession
@@ -180,6 +182,43 @@ class GydionTest {
         // "As each spell is cast, remove it from the spellbook faceup."
         assertThat(d.tag(MAGIC_MISSILE)).isEqualTo(REMOVED)
         assertThat(d.texts()).contains("Gydion casts Magic Missile.")
+    }
+
+    @Test
+    fun `Cast question - the card's spells left out come with why (removed faceup, not added, can't start)`() {
+        fun question(removed: String?, box: String?, brogan: Boolean): Decision {
+            val d = pos {
+                clearMinions()
+                hero("gydion", Team.RED, g0) {
+                    played("gydion-gold")
+                    val book = Spellbook.ALL - setOfNotNull(removed, box)
+                    extra(*book.toTypedArray(), tag = SPELLBOOK)
+                    if (removed != null) extra(removed, tag = REMOVED)
+                    if (box != null) extra(box, tag = Spellbook.BOX)
+                }
+                hero("arien", Team.BLUE, Hex(2, -2)) { hand("arien-blue-1") } // adjacent
+                if (brogan) hero("brogan", Team.BLUE, Hex(4, -2)) { hand("brogan-blue-1") } // 3 away
+                phase = PositionPhase.Resolving(next = "gydion")
+            }
+            d.action("gydion", ActionType.PRIMARY)
+            return d.expect(DecisionKind.CHOOSE_CARD, "gydion")
+        }
+        // Expeditious Retreat was cast: removed faceup (Prepare Spells).
+        val cast = question(removed = EXPEDITIOUS_RETREAT, box = null, brogan = true).context.unavailableCards
+        assertThat(cast).containsExactly(
+            UnavailableCard(EXPEDITIOUS_RETREAT, "Not in the spellbook: removed faceup", "Prepare Spells"),
+        )
+        // Not added yet (the game starts with an empty spellbook, designer on BGG 3491113).
+        val box = question(removed = null, box = SHOCKING_GRASP, brogan = true).context.unavailableCards.single()
+        assertThat(box.cardId).isEqualTo(SHOCKING_GRASP)
+        assertThat(box.text).isEqualTo("Not in the spellbook yet: Prepare Spells adds it")
+        // Only Arien, adjacent: Magic Missile ("in range and not adjacent") can't start, in the probe's words.
+        val d = question(removed = null, box = null, brogan = false)
+        assertThat(d.options.map { (it as Choice.Card).cardId }).containsExactly(SHOCKING_GRASP, EXPEDITIOUS_RETREAT)
+        val missile = d.context.unavailableCards.single()
+        assertThat(missile.cardId).isEqualTo(MAGIC_MISSILE)
+        assertThat(missile.text).startsWith("Its Attack can't start: ")
+        assertThat(missile.source).isNotNull()
     }
 
     @Test

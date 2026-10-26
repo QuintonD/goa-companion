@@ -440,7 +440,13 @@ private fun Stat(icon: ImageVector?, text: String) {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState, modifier: Modifier = Modifier) {
+internal fun HeroDetail(
+    table: TableUi,
+    heroId: String,
+    focus: CardFocusState,
+    modifier: Modifier = Modifier,
+    onSpellbook: ((String) -> Unit)? = null,
+) {
     val hero = table.heroView(heroId) ?: return
     val info = table.hero(heroId)
     Column(
@@ -541,7 +547,12 @@ internal fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState, m
         }
         MarkersSection(table, hero)
         // Gydion's spellbook (ADR-040): SpellbookSection.kt.
-        ExtrasSection(table, hero, focus)
+        ExtrasSection(
+            table,
+            hero,
+            focus,
+            onOpenSheet = onSpellbook?.takeIf { info.spells.isNotEmpty() }?.let { open -> { open(heroId) } },
+        )
         val hand = hero.hand
         if (hand != null && heroId in table.mine) {
             Section("Your hand")

@@ -83,9 +83,11 @@ import dev.quinton.goa.feature.board.play.table.HeroDetail
 import dev.quinton.goa.feature.board.play.table.MomentCard
 import dev.quinton.goa.feature.board.play.table.PeekConfirm
 import dev.quinton.goa.feature.board.play.table.RecentEvents
+import dev.quinton.goa.feature.board.play.table.SpellbookSheet
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.YourHand
+import dev.quinton.goa.feature.board.play.table.spellbookUi
 import dev.quinton.goa.feature.board.ui.BoardScaffold
 import dev.quinton.goa.feature.board.ui.cards.CardFocusHost
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
@@ -182,6 +184,7 @@ fun PuzzleScreen(
                         },
                         initialPanelHidden = initialPanelHidden,
                         focus = focus,
+                        onSpellbook = { sheet = PlaySheet.Spellbook(it) },
                     ) {
                         PuzzlePanel(p, onAction, onNext, onList, focus)
                     }
@@ -211,7 +214,7 @@ fun PuzzleScreen(
             is PlaySheet.Hero -> BoardSheet(onDismiss = { sheet = null }) {
                 Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
                     SheetTitle(puzzle.table.hero(open.heroId).name, "Open information (p.4)", onDone = { sheet = null })
-                    HeroDetail(puzzle.table, open.heroId, focus)
+                    HeroDetail(puzzle.table, open.heroId, focus, onSpellbook = { sheet = PlaySheet.Spellbook(it) })
                 }
             }
 
@@ -219,6 +222,10 @@ fun PuzzleScreen(
                 ReviewSheet(puzzle.table, puzzle.review, open, {
                     sheet = it
                 }, { onAction(PuzzleAction.Review(it)) }, focus, puzzle = true)
+
+            is PlaySheet.Spellbook -> spellbookUi(puzzle.table, open.heroId)?.let { ui ->
+                SpellbookSheet(ui, focus, onDismiss = { sheet = null })
+            }
 
             null -> Unit
         }

@@ -86,6 +86,7 @@ import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.EngravedRule
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
@@ -100,6 +101,10 @@ import dev.quinton.goa.feature.board.board.BoardSheet
 import dev.quinton.goa.feature.board.board.SearchField
 import dev.quinton.goa.feature.board.board.SheetTitle
 import dev.quinton.goa.feature.board.list.LineupHeroes
+import dev.quinton.goa.feature.board.play.table.SpellbookSheet
+import dev.quinton.goa.feature.board.play.table.catalogSpellbook
+import dev.quinton.goa.feature.board.ui.cards.CardFocusHost
+import dev.quinton.goa.feature.board.ui.cards.rememberCardFocusState
 
 /**
  * New board, built to need no scrolling: the latest draft's line-up (Set up in one tap), both teams
@@ -116,8 +121,11 @@ fun NewBoardScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     initialSources: Boolean = false,
+    initialSpellbook: String? = null,
 ) {
     var sources by rememberSaveable { mutableStateOf(initialSources) }
+    var spellbook by rememberSaveable { mutableStateOf(initialSpellbook) }
+    val focus = rememberCardFocusState()
     val ready = state as? NewBoardUiState.Ready
     GoaScreen(
         title = "New board",
@@ -138,7 +146,7 @@ fun NewBoardScreen(
             if (ready == null) {
                 CircularProgressIndicator(Modifier.align(Alignment.Center))
             } else {
-                NewBoardContent(ready, onAction, onSetUp, onSetUpLatest)
+                NewBoardContent(ready, onAction, onSetUp, onSetUpLatest, onSpellbook = { spellbook = it })
             }
         }
     }
@@ -154,6 +162,9 @@ fun NewBoardScreen(
             )
         }
     }
+    val book = spellbook?.let { id -> ready?.heroById?.get(id) }?.let(::catalogSpellbook)
+    if (book != null) SpellbookSheet(book, focus, onDismiss = { spellbook = null })
+    CardFocusHost(focus)
 }
 
 @Composable
@@ -162,6 +173,7 @@ private fun NewBoardContent(
     onAction: (NewBoardAction) -> Unit,
     onSetUp: () -> Unit,
     onSetUpLatest: (LineupSource) -> Unit,
+    onSpellbook: (String) -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val focus = LocalFocusManager.current
@@ -211,7 +223,7 @@ private fun NewBoardContent(
                         latest?.let {
                             LatestCard(it, { onSetUpLatest(it) }, onEdit = { onAction(NewBoardAction.Use(it)) })
                         }
-                        Teams(state.picker, onAction)
+                        Teams(state.picker, onAction, onSpellbook)
                     }
                     SetUpBar(state, onAction, onSetUp)
                 }
@@ -232,7 +244,7 @@ private fun NewBoardContent(
                             LatestCard(it, { onSetUpLatest(it) }, onEdit = { onAction(NewBoardAction.Use(it)) })
                         }
                     },
-                    other = { Teams(state.picker, onAction) },
+                    other = { Teams(state.picker, onAction, onSpellbook) },
                 )
                 search(Modifier.padding(horizontal = Spacing.screen))
                 HeroGrid(shown, state.picker, onAction, large, start = Spacing.screen, end = Spacing.screen)
@@ -379,15 +391,20 @@ internal fun TeamSwitch(filling: Team, onPick: (Team) -> Unit) {
 }
 
 @Composable
-internal fun Teams(state: LineupPicker, onAction: (NewBoardAction) -> Unit) {
+internal fun Teams(state: LineupPicker, onAction: (NewBoardAction) -> Unit, onSpellbook: ((String) -> Unit)? = null) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Team.entries.forEach { team -> TeamRow(state, team, onAction) }
+        Team.entries.forEach { team -> TeamRow(state, team, onAction, onSpellbook) }
     }
 }
 
 /** One team's heroes in pick order; tap the row to pick for this team next. */
 @Composable
-private fun TeamRow(state: LineupPicker, team: Team, onAction: (NewBoardAction) -> Unit) {
+private fun TeamRow(
+    state: LineupPicker,
+    team: Team,
+    onAction: (NewBoardAction) -> Unit,
+    onSpellbook: ((String) -> Unit)?,
+) {
     val color = teamColor(team)
     val filling = state.form.filling == team
     val heroes = state.team(team)
@@ -430,7 +447,16 @@ private fun TeamRow(state: LineupPicker, team: Team, onAction: (NewBoardAction) 
                 ) {
                     heroes.forEachIndexed { index, hero ->
                         key(hero.id) {
-                            SlotChip(hero, team, index, heroes.size, state, onAction, Modifier.weight(1f, fill = false))
+                            SlotChip(
+                                hero,
+                                team,
+                                index,
+                                heroes.size,
+                                state,
+                                onAction,
+                                Modifier.weight(1f, fill = false),
+                                onSpellbook,
+                            )
                         }
                     }
                 }
@@ -461,6 +487,7 @@ private fun SlotChip(
     state: LineupPicker,
     onAction: (NewBoardAction) -> Unit,
     modifier: Modifier = Modifier,
+    onSpellbook: ((String) -> Unit)? = null,
 ) {
     var menu by remember { mutableStateOf(false) }
     val color = teamColor(team)
@@ -503,6 +530,17 @@ private fun SlotChip(
             }
         }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            // Gydion: his 22 spell cards before the game (ADR-040), from the catalog.
+            if (onSpellbook != null && hero.spells.isNotEmpty()) {
+                DropdownMenuItem(
+                    text = { Text("${hero.name}'s spellbook") },
+                    leadingIcon = { HeroSymbol(hero.id, hero.symbol, Modifier.size(24.dp)) },
+                    onClick = {
+                        menu = false
+                        onSpellbook(hero.id)
+                    },
+                )
+            }
             if (index > 0) {
                 DropdownMenuItem(
                     text = { Text("Move earlier") },

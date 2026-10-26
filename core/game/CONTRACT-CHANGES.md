@@ -195,3 +195,20 @@ No type change: the hero sheet (ADR-044) reads what the views already carry. Not
 - **Behaviour:** Min's Perfect Self no longer names the Tier II card it tucks in the log (the event text is
   public); it reads "Min adds a Tier II card from the deck as an item: +1 Initiative.", like the level-up
   line ("gains an item: +1 …", BGG 3590819).
+
+## 2026-10-26 (why a spell can't be cast, `feature/v08-spellbook-anytime`, ADR-040 extended)
+
+Additive; defaults keep other `GameSession` implementations, test fakes, saves and the `feature/web`
+client unaffected (decisions are rebuilt by the replay, never saved).
+
+- `DecisionContext.unavailableCards: List<UnavailableCard> = emptyList()`: on `CHOOSE_CARD`, the cards the
+  asking card names that are not among the options, each with why. `UnavailableCard(cardId: String, text:
+  String, source: String? = null, byCardId: String? = null)`. Gydion's "Choose and cast one spell in the
+  spellbook": "Not in the spellbook: removed faceup" (Prepare Spells), "Not in the spellbook yet:
+  Prepare Spells adds it" (designer, BGG 3491113), or the action's own reason ("Its Attack can't start:
+  no target in range", "... is forbidden by ..."). Open information only. Built only while the question
+  is pending (`Game.askAlways`); the options and the number of questions are unchanged, so saves replay
+  as before.
+- Engine side: `Game.primaryUnavailable(heroId, cardId): UnavailableAction?` (forbidden, or the
+  probe's `Fizzle`), shared by `actionAvailability`; `Spellbook.whyNot(g, caster, spellId)` and
+  `Spellbook.CAST_PROMPT`.

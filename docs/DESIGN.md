@@ -375,7 +375,24 @@ the card focus viewer among that group. Cantrip's
 "Choose and cast one spell" offers the spells as landscape cards that share the row's height
 (shrinking down to 44 dp-wide equivalents to fit three), "tap it again to cast it", "Cast Magic
 Missile". An unlocked Ultimate shows as its card ("ULTIMATE · p.16"), as it lies faceup on the
-dashboard. **Card shape:** deck cards are portrait scans (729 × 1026), spell cards landscape (737 ×
+dashboard. **At any point** (extended 2026-10-26, `play/table/SpellbookSheet.kt`): whenever a hero the
+person controls (`TableUi.mine`) has a spellbook, a pill under Fit and Flip (the hero's official deck
+symbol beside a small parchment landscape card holding the spellbook's count) opens the **Spellbook
+sheet** (one TalkBack node: "Gydion's spellbook, 19 in the spellbook, 3 cast"). It sits in the map
+buttons' column, under the round at a glance, the turn track and the hero strip, so it never covers
+them, and stays with the panel hidden. The sheet: "Your spellbook · Gydion", the groups as above, card
+focus per group. During the person's own cast question a bronze banner with the asking card says
+"Cantrip asks: … 2 spells are offered; choose in the panel. Expeditious Retreat: Not in the spellbook:
+removed faceup (Prepare Spells)."; offered spells get a bronze edge and "Can be cast now", the card's
+others are dimmed with the engine's reason (words and an edge, never colour alone). The panel's cast
+question shows those spells too, dimmed with the block mark, and one line each under the cards. An
+opponent's Gydion: his hero sheet's SPELLBOOK head has "Open the spellbook" (the same sheet, the
+spellbook a count, "Open information (p.4)"). The review's rewound board has the same pill, built from
+that board's view. Before the game: "Gydion's spellbook · 22 spells" (deck symbol, bronze outline)
+under his row in New game's "You play", and "Gydion's spellbook" in his line-up chip's menu (New game,
+New board), open the 22 spell cards by tier (Gold (no tier), Tier I to III, Ultimate); the draft's hero
+peek has a full-width "Gydion's spellbook · 22 spell cards" button that opens his hero page at its
+Spellbook. **Card shape:** deck cards are portrait scans (729 × 1026), spell cards landscape (737 ×
 510); `ui/cards/CardShape.kt` decides by the catalog id (`<hero>-spell-…`) and `CardShapeTest` checks
 every bundled scan. A landscape card is never put in a portrait frame: in a row it keeps the row's
 height and is about twice as wide (`TableCard`'s `width` is a portrait card's).

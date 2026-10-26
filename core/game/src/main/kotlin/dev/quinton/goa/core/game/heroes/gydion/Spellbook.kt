@@ -1,6 +1,10 @@
 package dev.quinton.goa.core.game.heroes.gydion
 
+import dev.quinton.goa.core.game.Choice
+import dev.quinton.goa.core.game.DecisionContext
+import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameEvent
+import dev.quinton.goa.core.game.UnavailableCard
 import dev.quinton.goa.core.game.WinReason
 import dev.quinton.goa.core.game.engine.ActionScope
 import dev.quinton.goa.core.game.engine.ActorDefeated
@@ -12,6 +16,7 @@ import dev.quinton.goa.core.game.engine.cancelEffect
 import dev.quinton.goa.core.game.engine.performAction
 import dev.quinton.goa.core.game.engine.primaryKind
 import dev.quinton.goa.core.game.engine.primaryPossible
+import dev.quinton.goa.core.game.engine.primaryUnavailable
 import dev.quinton.goa.core.game.engine.win
 
 /*
@@ -120,15 +125,45 @@ object Spellbook {
 
     /** "Choose and cast one spell in the spellbook —" / "Cast the X spell in the spellbook." (mandatory). */
     fun castOneOf(a: ActionScope, spells: List<String>) {
-        val available = spells.filter { castable(a.g, a.heroId, it) }
+        val why = spells.associateWith { whyNot(a.g, a.heroId, it) }
+        val available = spells.filter { why[it] == null }
         if (available.isEmpty()) noSpell(a, spells)
         val spell = if (available.size == 1) {
             available.single()
         } else {
-            a.chooseCard("Choose and cast one spell in the spellbook", available)!!
+            // The card's other spells come with why they can't be cast (the panel and the spellbook
+            // sheet show them, ADR-040), computed only while the question is really pending.
+            val answer = a.g.askAlways(
+                a.heroId,
+                DecisionKind.CHOOSE_CARD,
+                CAST_PROMPT,
+                a.cardId,
+                context = { DecisionContext(unavailableCards = spells.mapNotNull { why[it] }) },
+            ) { available.map { Choice.Card(it) } }
+            (answer as Choice.Card).cardId
         }
         cast(a.g, a.heroId, spell)
     }
+
+    const val CAST_PROMPT: String = "Choose and cast one spell in the spellbook"
+
+    /**
+     * Why [caster] can't cast [spellId] now, or null when [castable]: not in the spellbook (removed
+     * faceup, or not added yet: the game starts with an empty spellbook, designer on BGG 3491113), or
+     * its action is forbidden or can't start (rulings/gydion.md 5). All open information: the removed
+     * spells lie faceup, the ones not added are public, and the board is.
+     */
+    fun whyNot(g: Game, caster: String, spellId: String): UnavailableCard? = when (tagOf(g, spellId)) {
+        SPELLBOOK -> g.primaryUnavailable(caster, spellId)?.let {
+            UnavailableCard(spellId, it.text, it.source, it.byCardId)
+        }
+
+        REMOVED -> UnavailableCard(spellId, "Not in the spellbook: removed faceup", PREPARE_SPELLS)
+
+        else -> UnavailableCard(spellId, "Not in the spellbook yet: Prepare Spells adds it", "designer, BGG 3491113")
+    }
+
+    private const val PREPARE_SPELLS = "Prepare Spells"
 
     /**
      * Why none of [spells] can be cast, as the player needs it at the table (the action panel shows

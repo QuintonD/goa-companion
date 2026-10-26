@@ -5,6 +5,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
@@ -151,6 +152,10 @@ class SpellbookScreenshotTest {
             .performClick()
     }
 
+    private fun tapText(text: String) {
+        compose.onAllNodes(hasText(text) and hasClickAction()).onFirst().performClick()
+    }
+
     // ---- The hero sheet ---------------------------------------------------------------------
 
     private fun sheet(mode: ThemeMode, mine: String = "gydion", fontScale: Float = 1f, prepared: Boolean = true) =
@@ -225,6 +230,123 @@ class SpellbookScreenshotTest {
     /** A cast spell tapped on the hero sheet opens among the others cast. */
     @Test
     fun spellbookSheetFocusDark() = capture(ThemeMode.DARK, before = { tap("Fireball") }) {
+        Game(play(session(), "arien"), PlaySheet.Hero("gydion"))
+    }
+
+    // ---- The Spellbook at any point (extends ADR-040) ----------------------------------------
+
+    /** Before the reveal: Gydion's player chooses a card to play (p.7), his spellbook one tap away. */
+    private fun choosing(): EngineSession = position(engine, MAP) {
+        clearMinions()
+        round = 2
+        hero("gydion", Team.RED, Hex(1, -2)) {
+            level = 3
+            coins = 2
+            hand("gydion-gold", "gydion-silver", "gydion-red-1", "gydion-green-1", "gydion-blue-1")
+            spellbook()
+        }
+        hero("wasp", Team.RED, Hex(0, -5)) { hand("wasp-gold", "wasp-silver") }
+        hero("arien", Team.BLUE, Hex(2, -2)) { hand("arien-gold", "arien-blue-1") }
+        hero("brogan", Team.BLUE, Hex(4, -2)) { hand("brogan-gold", "brogan-blue-1") }
+        phase = PositionPhase.PlayCards()
+    }
+
+    private fun table(mode: ThemeMode, fontScale: Float = 1f, hidden: Boolean = false, before: () -> Unit = {}) =
+        capture(mode, fontScale, before) {
+            GameScreen(
+                state = GameUiState.Playing(play(choosing(), "gydion")),
+                onAction = {},
+                onTap = { false },
+                onDelete = {},
+                onNewGame = {},
+                onDone = {},
+                onBack = {},
+                initialPanelHidden = hidden,
+            )
+        }
+
+    /** The Spellbook control under Fit and Flip: Gydion's deck symbol, 19 spells in the spellbook. */
+    @Test fun spellbookTableDark() = table(ThemeMode.DARK)
+
+    @Test fun spellbookTableLight() = table(ThemeMode.LIGHT)
+
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun spellbookTableLandscapeDark() = table(ThemeMode.DARK)
+
+    @Config(qualifiers = "w800dp-h330dp-land-xxhdpi")
+    @Test
+    fun spellbookTableLandscapeShortLight() = table(ThemeMode.LIGHT)
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun spellbookTableW384DarkFontScale2() = table(ThemeMode.DARK, fontScale = 2f)
+
+    /** The panel hidden to see the whole board: the control stays. */
+    @Test fun spellbookTablePanelHiddenDark() = table(ThemeMode.DARK, hidden = true)
+
+    /** After the reveal, Gydion choosing an action: the turn track at the top, the control under Flip. */
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun spellbookTableActionW384LightFontScale2() = capture(ThemeMode.LIGHT, 2f) { Game(play(session(), "gydion")) }
+
+    /** One tap on the control opens the Spellbook sheet. */
+    @Test fun spellbookTableTapDark() = table(ThemeMode.DARK, before = { tap("Gydion's spellbook") })
+
+    // ---- The Spellbook sheet ----------------------------------------------------------------
+
+    /** Cantrip's cast question with Expeditious Retreat cast: the offered two marked, the third says why. */
+    private fun castingWithoutRetreat(): EngineSession = position(engine, MAP) {
+        clearMinions()
+        round = 2
+        hero("gydion", Team.RED, Hex(1, -2)) {
+            level = 3
+            coins = 2
+            played("gydion-gold")
+            val all = bundledCatalog.heroes.first { it.id == "gydion" }.extras.map { it.id }
+            val gone = removed + (SPELL + "expeditious-retreat")
+            extra(*(all - gone.toSet()).toTypedArray(), tag = "spellbook")
+            extra(*gone.toTypedArray(), tag = "removed")
+            counter("spellbook", all.size - gone.size)
+            counter("spellsRemoved", gone.size)
+        }
+        hero("wasp", Team.RED, Hex(0, -5))
+        hero("arien", Team.BLUE, Hex(2, -2)) { hand("arien-blue-1") }
+        hero("brogan", Team.BLUE, Hex(4, -2)) { hand("brogan-blue-1") }
+        phase = PositionPhase.Resolving(next = "gydion")
+    }.also { s ->
+        val d = s.pending!!
+        s.answer(d.id, d.options.first { it is Choice.Action && it.action == ActionType.PRIMARY })
+        check(s.pending?.kind == DecisionKind.CHOOSE_CARD)
+    }
+
+    private fun book(mode: ThemeMode, fontScale: Float = 1f, mine: String = "gydion", s: () -> EngineSession) =
+        capture(mode, fontScale) { Game(play(s(), mine), PlaySheet.Spellbook("gydion")) }
+
+    @Test fun spellbookBookCastDark() = book(ThemeMode.DARK) { castingWithoutRetreat() }
+
+    @Test fun spellbookBookCastLight() = book(ThemeMode.LIGHT) { castingWithoutRetreat() }
+
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun spellbookBookCastLandscapeDark() = book(ThemeMode.DARK) { castingWithoutRetreat() }
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun spellbookBookCastW384DarkFontScale2() = book(ThemeMode.DARK, 2f) { castingWithoutRetreat() }
+
+    /** Any time, no question: the spellbook and the cast spells. */
+    @Test fun spellbookBookDark() = book(ThemeMode.DARK) { choosing() }
+
+    /** An opponent at this phone opens it from Gydion's hero sheet: the spellbook facedown, a count. */
+    @Test fun spellbookBookOpponentDark() = book(ThemeMode.DARK, mine = "arien") { session() }
+
+    /** The cast question's panel: the card's spell that can't be cast now, dimmed, with the engine's reason. */
+    @Test fun spellbookCastUnavailableDark() = capture(ThemeMode.DARK) { Game(play(castingWithoutRetreat(), "gydion")) }
+
+    /** The hero sheet's spellbook head opens the sheet ("Open the spellbook"). */
+    @Test
+    fun spellbookSheetOpenDark() = capture(ThemeMode.DARK, before = { tapText("Open the spellbook") }) {
         Game(play(session(), "arien"), PlaySheet.Hero("gydion"))
     }
 

@@ -90,8 +90,16 @@ internal fun offeredCards(table: TableUi): List<OfferedCard> {
         hand != null && decision.kind != DecisionKind.KEEP_UPGRADE && decision.kind != DecisionKind.DEFEND &&
             options.isNotEmpty() && options.all { it.cardId in hand } && hand.size > options.size
     val ids = if (wholeHand) hand.orEmpty() else options.map { it.cardId }
-    return ids.mapNotNull { id -> table.card(id)?.let { OfferedCard(it, byId[id]) } }
+    // Gydion's cast question: the card's other spells, shown but marked with the engine's reason.
+    val named = decision.context.unavailableCards.map { it.cardId }.filter { it !in ids }
+    return (ids + named).mapNotNull { id -> table.card(id)?.let { OfferedCard(it, byId[id]) } }
 }
+
+/** Why the question leaves out a card the asking card names (DecisionContext.unavailableCards), in words. */
+internal fun unavailableCardLine(table: TableUi, cardId: String): String? =
+    table.decision?.context?.unavailableCards?.firstOrNull { it.cardId == cardId }?.let { u ->
+        u.source?.let { "${u.text} ($it)." } ?: "${u.text}."
+    }
 
 /** What confirming [card] does, as the button and the hint say it. */
 internal fun cardAction(decision: Decision, card: Card): String = when (decision.kind) {
@@ -190,7 +198,11 @@ private fun focusCard(table: TableUi, offered: OfferedCard): FocusCard {
     return FocusCard(
         card = card,
         enabled = offered.choice != null,
-        reason = if (offered.choice == null) decision?.kind?.let(::notOffered) else null,
+        reason = if (offered.choice == null) {
+            unavailableCardLine(table, card.id) ?: decision?.kind?.let(::notOffered)
+        } else {
+            null
+        },
         notes = notes,
         related = related,
         relatedLabel = relatedLabel,
@@ -255,6 +267,15 @@ internal fun CardPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardF
         }
         TapHint("Tap a card to see it large; tap it again to $verb.")
     }
+    // The asking card's spells that can't be cast now, one line each with the engine's reason (ADR-040).
+    decision.context.unavailableCards.forEach { u ->
+        val name = table.card(u.cardId)?.name ?: return@forEach
+        Text(
+            "$name: ${unavailableCardLine(table, u.cardId)}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
     if (decision.kind == DecisionKind.KEEP_UPGRADE) {
         Text(
             "One goes to your hand; the other is tucked under your hero as an item (p.15, p.16).",
@@ -304,7 +325,7 @@ private fun OfferedRow(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             offered.forEachIndexed { i, item ->
-                OfferedThumb(item, width, keep, reason, focus) { onOpen(i) }
+                OfferedThumb(item, width, keep, unavailableCardLine(table, item.card.id) ?: reason, focus) { onOpen(i) }
             }
         }
     }
