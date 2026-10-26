@@ -1191,7 +1191,7 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
 }
 .goa-track-slot.now { border: 2px solid var(--primary); }
 .goa-track-slot.next { border: 1.5px solid var(--secondary); }
-.goa-track-slot.done .goa-card { opacity: 0.6; }
+.goa-track-slot.done .goa-play-card { opacity: 0.6; }
 .goa-track-card { position: relative; padding: 0; border: 0; background: none; cursor: pointer; display: block; min-height: 44px; }
 .goa-track-band {
   position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font: 700 0.5625rem/12px var(--font-body);
@@ -1209,8 +1209,8 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
 .goa-track-name { font: 500 0.6875rem/1rem var(--font-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .goa-track-action { color: var(--on-surface-variant); font-size: 0.625rem; }
 /* Cards */
-.goa-card { position: relative; overflow: hidden; flex: none; background: var(--surface-high); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
-.goa-card.fluid { width: min(var(--card-w, 84px), 100%) !important; }
+.goa-play-card { position: relative; overflow: hidden; flex: none; background: var(--surface-high); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
+.goa-play-card.fluid { width: min(var(--card-w, 84px), 100%) !important; }
 .goa-card-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
 .goa-card-back { position: absolute; inset: 0; background: linear-gradient(var(--surface-high), var(--medallion)); display: flex; align-items: center; justify-content: center; }
 .goa-card-back::before { content: ""; position: absolute; inset: 8%; border: 1px solid color-mix(in srgb, var(--primary) 70%, transparent); border-radius: 8%; }
@@ -1220,7 +1220,7 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
 .goa-card-face-tier { color: var(--on-surface-variant); }
 .goa-thumb { padding: 0; border: 0; background: none; border-radius: 6px; cursor: pointer; color: inherit; display: inline-flex; min-width: var(--tap); min-height: var(--tap); align-items: center; justify-content: center; }
 .goa-thumb:disabled { cursor: default; }
-.goa-thumb.active .goa-card { outline: 2px solid var(--secondary); }
+.goa-thumb.active .goa-play-card { outline: 2px solid var(--secondary); }
 .goa-card-row { display: flex; gap: var(--sp-sm); overflow-x: auto; padding: 2px 0 var(--sp-xs); scrollbar-width: thin; }
 .goa-card-cell { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; max-width: 84px; text-align: center; }
 /* The panel's question */
@@ -1279,7 +1279,7 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
 .goa-offered { display: flex; gap: var(--sp-sm); overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
 .goa-offered-cell { flex: 1 1 0; min-width: 60px; max-width: var(--card-w, 84px); display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; }
 .goa-offered-card { width: 100%; }
-.goa-offered-card.dimmed .goa-card { opacity: 0.45; }
+.goa-offered-card.dimmed .goa-play-card { opacity: 0.45; }
 .goa-not-offered { color: var(--on-surface-variant); }
 .goa-attack { display: flex; gap: var(--sp-md); align-items: center; padding: var(--sp-sm); border-radius: 12px; background: var(--error-container); color: var(--on-error-container); }
 .goa-attack p { margin: 0; }
@@ -1403,9 +1403,9 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
 .goa-step-bar p { margin: 0; text-align: center; }
 .goa-source-row { display: flex; flex-direction: column; align-items: flex-start; width: 100%; min-height: 56px; padding: var(--sp-sm) var(--sp-md); margin-bottom: var(--sp-sm); border-radius: 12px; border: 1px solid var(--engraved); background: var(--surface); color: var(--on-surface); text-align: left; cursor: pointer; }
 .goa-source-row .goa-table-overline { margin: 0; }
-.goa-radio-list { display: flex; flex-direction: column; gap: var(--sp-xs); }
-.goa-radio-row { display: flex; flex-direction: column; align-items: flex-start; width: 100%; min-height: 52px; padding: var(--sp-sm) var(--sp-md); border-radius: 12px; border: 1px solid var(--engraved); background: var(--surface); color: var(--on-surface); text-align: left; cursor: pointer; }
-.goa-radio-row.selected { border: 2px solid var(--secondary); background: var(--secondary-container); color: var(--on-secondary-container); }
+.goa-play-radio-list { display: flex; flex-direction: column; gap: var(--sp-xs); }
+.goa-play-radio-row { display: flex; flex-direction: column; align-items: flex-start; width: 100%; min-height: 52px; padding: var(--sp-sm) var(--sp-md); border-radius: 12px; border: 1px solid var(--engraved); background: var(--surface); color: var(--on-surface); text-align: left; cursor: pointer; }
+.goa-play-radio-row.selected { border: 2px solid var(--secondary); background: var(--secondary-container); color: var(--on-secondary-container); }
 .goa-seat-level { margin: var(--sp-sm) 0; }
 .goa-seat-level p { margin: 0 0 var(--sp-xs); }
 /* The computer's strength 1–10 (ADR-039): the value above, − slider +, Gentler / Stronger under the ends. */
@@ -3589,6 +3589,51 @@ code {
 .goa-w2-scanner { position: relative; width: 100%; aspect-ratio: 1; max-width: 360px; margin: 0 auto; overflow: hidden; border-radius: 12px; background: #000; }
 .goa-w2-scanner video { width: 100%; height: 100%; object-fit: cover; display: block; }
 .goa-w2-scanner-frame { position: absolute; inset: 15%; border: 3px solid rgba(255, 255, 255, 0.85); border-radius: 12px; pointer-events: none; }
+
+/* ---------- iPhone hands-on fixes (ADR-043 R3) ---------- */
+/* A control that takes focus (VoiceOver moving on, Tab, the keyboard's next-field arrows) scrolls
+   into the part of the screen the sticky top bar, a pinned banner and the pinned footers leave free,
+   not underneath them. The heights are published by the bars themselves (ui/PinnedBars.kt). */
+html {
+  scroll-padding-top: calc(var(--topbar-height, 56px) + var(--pinned-top, 0px) + var(--sp-sm));
+  scroll-padding-bottom: calc(var(--safe-bottom) + var(--table-footer, 0px) + var(--pinned-footer, 0px) + var(--sp-sm));
+}
+html:has(.goa-app.has-tabbar) {
+  scroll-padding-bottom: calc(var(--tabbar-height) + var(--safe-bottom) + var(--table-footer, 0px) + var(--pinned-footer, 0px) + var(--sp-sm));
+}
+html:has(.goa-app.has-timerbar) {
+  scroll-padding-bottom: calc(var(--tabbar-height) + var(--safe-bottom) + 56px + var(--table-footer, 0px) + var(--pinned-footer, 0px) + var(--sp-sm));
+}
+
+/* A phone on its side: the tab bar puts each label beside its icon (as iOS does) instead of taking
+   a fifth of the height, and New game's step bar scrolls with the content like the table tools'
+   footers, so the hero grid isn't hidden behind three bars. */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root { --tabbar-height: 48px; }
+  .goa-tab { flex-direction: row; gap: var(--sp-xs); padding: 2px; }
+  .goa-tab-pill { width: 40px; height: 28px; }
+  .goa-step-bar { position: static; }
+  html:has(.goa-app.has-tabbar) { scroll-padding-bottom: calc(var(--tabbar-height) + var(--safe-bottom) + var(--sp-sm)); }
+}
+@media (max-height: 500px) {
+  html { scroll-padding-bottom: calc(var(--safe-bottom) + var(--sp-sm)); }
+}
+
+/* Large text on a narrow phone: a chip in a wrapping row wraps its words rather than pushing the
+   page sideways ("Untimed (counters only)"), and a section's note goes under its title. */
+.goa-chip-row.wrap > .goa-chip { flex: 0 1 auto; max-width: 100%; text-align: left; }
+.goa-w2-section-trailing { flex-wrap: wrap; row-gap: 0; }
+.goa-w2-team-head { flex-wrap: wrap; row-gap: 0; }
+
+/* The game panel's Hide: a 44 pt hit area around its 36 px row. */
+.goa-play-hide::after { content: ""; position: absolute; inset: -4px 0; }
+
+/* The running timer's bar also carries the Tie Breaker chip (and its Undo): on a phone in portrait
+   "Round 1" was cut to "Roun…". Levels and the view switch are in its More menu, so they go there
+   on any phone-width bar, as the other bars' secondary actions do on narrow ones. */
+@container topbar (max-width: 30rem) {
+  .goa-table-timer-header .goa-topbar-actions .collapsible { display: none; }
+}
 
 /* The draft's coin step shows the coin bigger (as on the phone's draft): the printed face grows with it. */
 .goa-draft-coin-stage .goa-table-coin .goa-tb-coin { width: 88px; height: 88px; }

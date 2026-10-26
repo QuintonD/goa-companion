@@ -25,7 +25,7 @@ fun CardImage(card: Card?, width: Int, extraClass: String? = null) {
     val aspect = cardAspect(card)
     val w = if (card?.isSpell == true) (width / cardAspect(null) * aspect).toInt() else width
     Div({
-        classes("goa-card")
+        classes("goa-play-card")
         extraClass?.let { classes(it) }
         attr("aria-hidden", "true")
         style {

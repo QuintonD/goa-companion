@@ -37,6 +37,7 @@ import dev.quinton.goa.web.ui.GoaButton
 import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconButton
 import dev.quinton.goa.web.ui.IconSize
+import dev.quinton.goa.web.ui.publishHeight
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.web.attributes.ButtonType
 import org.jetbrains.compose.web.attributes.disabled
@@ -270,7 +271,10 @@ private fun Flash(count: Int, final: Boolean) {
 private fun TimerHeader(state: ActiveUiState, model: TimerModel, onEnd: () -> Unit, onMenu: () -> Unit) {
     val router = LocalServices.current.router
     val roundView = state.layout == TimerLayout.ROUND
-    Header({ classes("goa-topbar", "goa-table-timer-header") }) {
+    Header({
+        classes("goa-topbar", "goa-table-timer-header")
+        publishHeight("--topbar-height")
+    }) {
         Div({ classes("goa-topbar-row") }) {
             Div({ classes("goa-table-timer-title") }) {
                 H1({

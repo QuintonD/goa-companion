@@ -43,6 +43,7 @@ import dev.quinton.goa.web.ui.PlayerAvatar
 import dev.quinton.goa.web.ui.RowList
 import dev.quinton.goa.web.ui.Screen
 import dev.quinton.goa.web.ui.SectionHeader
+import dev.quinton.goa.web.ui.publishHeight
 import dev.quinton.goa.web.ui.rememberLoad
 import kotlinx.coroutines.flow.first
 import org.jetbrains.compose.web.attributes.ButtonType
@@ -444,7 +445,10 @@ private fun DuelsRow(state: TriviaHomeUiState.Ready, onAction: (TriviaHomeAction
 private fun StartBar(state: TriviaHomeUiState.Ready, onStart: () -> Unit, onChallenge: () -> Unit) {
     val selection = state.selection
     val note = TriviaText.startNote(state)
-    Div({ classes("goa-trivia-startbar") }) {
+    Div({
+        classes("goa-trivia-startbar")
+        publishHeight("--pinned-footer")
+    }) {
         Div({ classes("goa-trivia-startbar-text") }) {
             P({
                 classes("t-numeric", "c-variant")

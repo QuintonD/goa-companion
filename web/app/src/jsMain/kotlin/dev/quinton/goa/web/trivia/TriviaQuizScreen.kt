@@ -29,6 +29,7 @@ import dev.quinton.goa.web.ui.IconSize
 import dev.quinton.goa.web.ui.LinearProgress
 import dev.quinton.goa.web.ui.LoadingState
 import dev.quinton.goa.web.ui.Screen
+import dev.quinton.goa.web.ui.ScrollToTopOnStep
 import dev.quinton.goa.web.ui.SectionHeader
 import kotlinx.browser.document
 import kotlinx.browser.window
@@ -78,6 +79,8 @@ fun TriviaQuizScreen(route: Route.TriviaQuiz) {
     val playing = state as? TriviaQuizUiState.Playing
     val askFirst = playing?.started == true
     AnswerTimeFollowsVisibility(model)
+    // The results replace the last question in place: start at the score, not part way down.
+    ScrollToTopOnStep(state is TriviaQuizUiState.Summary)
 
     Screen(
         title = when {
