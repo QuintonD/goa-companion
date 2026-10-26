@@ -366,11 +366,8 @@ internal fun LatestCard(source: LineupSource, onSetUp: () -> Unit, onEdit: (() -
     }
 }
 
-/** "12 Oct". */
-internal fun shortDay(epochMillis: Long): String =
-    Date(
-        epochMillis.toDouble(),
-    ).asDynamic().toLocaleDateString(js("[]"), js("({day: 'numeric', month: 'short'})")) as String
+/** "12 Oct" (the phone's "d MMM"). */
+internal fun shortDay(epochMillis: Long): String = dev.quinton.goa.web.players.WebDateLabels.short(epochMillis)
 
 @Composable
 private fun BoardRow(board: BoardRowUi, now: Long, onOpen: () -> Unit, onOptions: () -> Unit) {

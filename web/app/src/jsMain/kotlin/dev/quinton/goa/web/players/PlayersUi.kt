@@ -32,8 +32,10 @@ import org.jetbrains.compose.web.dom.Text
 import org.jetbrains.compose.web.dom.TextArea
 
 /**
- * Dates as this browser writes them (`Intl`, the person's language), for the shared builders
- * ([DateLabels], ADR-043): "Today", "Yesterday", "Sat 12 Oct 2026", "19:30".
+ * Dates for the shared builders ([DateLabels], ADR-043) in the phone's patterns (`Dates`:
+ * "EEE d MMM yyyy", "d MMM", "EEE d MMM"), with the names in the browser's language as the phone
+ * takes them from its locale: "Today", "Yesterday", "Sat 12 Oct 2026". The time of day is the
+ * browser's short style, as the phone's (`FormatStyle.SHORT`: "7:30 PM" or "19:30").
  */
 @OptIn(ExperimentalTime::class)
 object WebDateLabels : DateLabels {
@@ -49,38 +51,31 @@ object WebDateLabels : DateLabels {
     }
 
     override fun time(epochMillis: Long): String =
-        Date(
-            epochMillis.toDouble(),
-        ).asDynamic().toLocaleTimeString(js("[]"), opts("hour", "2-digit", "minute", "2-digit")) as String
+        Date(epochMillis.toDouble()).asDynamic().toLocaleTimeString(js("[]"), js("({ timeStyle: 'short' })")) as String
 
-    /** "Sat 12 Oct 2026" (in the browser's language). */
-    fun day(epochMillis: Long): String = Date(epochMillis.toDouble()).asDynamic()
-        .toLocaleDateString(
-            js("[]"),
-            opts("weekday", "short", "day", "numeric", "month", "short", "year", "numeric"),
-        ) as String
+    /** "Sat 12 Oct 2026". */
+    fun day(epochMillis: Long): String = dayPattern(Date(epochMillis.toDouble()), weekday = true, year = true)
 
     /** "12 Oct" (the chart's axis). */
-    fun short(epochMillis: Long): String =
-        Date(
-            epochMillis.toDouble(),
-        ).asDynamic().toLocaleDateString(js("[]"), opts("day", "numeric", "month", "short")) as String
+    fun short(epochMillis: Long): String = dayPattern(Date(epochMillis.toDouble()), weekday = false, year = false)
 
     /** "Sat 12 Oct" (the last game night). */
-    fun night(date: LocalDate): String {
-        val noon = Date(date.year, date.month.number - 1, date.day, 12)
-        return noon.asDynamic().toLocaleDateString(
-            js("[]"),
-            opts("weekday", "short", "day", "numeric", "month", "short"),
-        ) as String
-    }
+    fun night(date: LocalDate): String =
+        dayPattern(Date(date.year, date.month.number - 1, date.day, 12), weekday = true, year = false)
 
     fun today(): LocalDate = localDate(Date.now().toLong())
 
-    private fun opts(vararg pairs: String): dynamic {
-        val o: dynamic = js("({})")
-        for (i in pairs.indices step 2) o[pairs[i]] = pairs[i + 1]
-        return o
+    /** The phone's "EEE d MMM yyyy" (parts left out as asked): the names from `Intl`, the order fixed. */
+    internal fun dayPattern(date: Date, weekday: Boolean, year: Boolean): String {
+        val names = js("new Intl.DateTimeFormat([], { weekday: 'short', month: 'short' })")
+            .formatToParts(date) as Array<dynamic>
+        fun part(type: String) = names.firstOrNull { it.type == type }?.value as String? ?: ""
+        return listOfNotNull(
+            part("weekday").takeIf { weekday },
+            date.getDate().toString(),
+            part("month"),
+            date.getFullYear().toString().takeIf { year },
+        ).joinToString(" ")
     }
 }
 
