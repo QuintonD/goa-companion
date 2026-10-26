@@ -54,98 +54,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 
-/** Who the person plays: one hero, or every hero of a team (the rest are the computer). */
-@Immutable
-sealed interface Control {
-    data class Hero(val heroId: String) : Control
-
-    data class WholeTeam(val team: Team) : Control
-}
-
-/** New game in two steps: the line-up, then the options. */
-enum class NewGameStep { LINEUP, OPTIONS }
-
-/** The game being set up. Kept in the SavedStateHandle, so it survives process death. */
-@Immutable
-data class NewGameForm(
-    val lineup: NewBoardForm = NewBoardForm(),
-    val step: NewGameStep = NewGameStep.LINEUP,
-    /** null = the default: your whole first team (one hero in 1v1). */
-    val control: Control? = null,
-    val level: AiLevel = AiLevel.NORMAL,
-    /** Advanced: a level per computer seat, overriding [level]. */
-    val seatLevels: Map<String, AiLevel> = emptyMap(),
-    val advanced: Boolean = false,
-    val length: GameLength = GameLength.QUICK,
-    val mapId: String? = null,
-    val coach: Boolean = true,
-    /** The Tie Breaker coin as the app flipped it (p.5 step 3); null until Start. */
-    val coin: Team? = null,
-)
-
-/** One computer seat in the advanced list. */
-@Immutable
-data class AiSeatUi(val hero: BoardHero, val team: Team, val level: AiLevel)
-
-sealed interface NewGameUiState {
-    data object Loading : NewGameUiState
-
-    /** No hero (or no map) can be played yet: the engine is still being built and tested. */
-    data object ComingSoon : NewGameUiState
-
-    @Immutable
-    data class Ready(
-        val form: NewGameForm,
-        val picker: LineupPicker,
-        val sources: List<LineupSource>,
-        /** Playable maps, verified single lane first. */
-        val maps: List<MapOption>,
-        val map: MapOption?,
-        val playable: Int,
-        /** The control choices for this line-up, and the chosen one. */
-        val controls: List<Control>,
-        val control: Control?,
-        val aiSeats: List<AiSeatUi>,
-        /** A saved game will be replaced by starting this one. */
-        val replacesGame: Boolean,
-    ) : NewGameUiState {
-        val red: List<String> get() = form.lineup.red
-        val blue: List<String> get() = form.lineup.blue
-
-        /** Both teams the same size, at least one hero each. */
-        val canContinue: Boolean get() = red.isNotEmpty() && red.size == blue.size
-
-        val canStart: Boolean get() = canContinue && map != null && control != null
-
-        fun hero(id: String): BoardHero = picker.heroById.hero(id)
-    }
-}
-
-sealed interface NewGameAction {
-    data class Lineup(val action: NewBoardAction) : NewGameAction
-
-    data class Step(val step: NewGameStep) : NewGameAction
-
-    data class SetControl(val control: Control) : NewGameAction
-
-    data class SetLevel(val level: AiLevel) : NewGameAction
-
-    data class SetSeatLevel(val heroId: String, val level: AiLevel) : NewGameAction
-
-    data class SetAdvanced(val open: Boolean) : NewGameAction
-
-    data class SetLength(val length: GameLength) : NewGameAction
-
-    data class SetMap(val mapId: String) : NewGameAction
-
-    data class SetCoach(val on: Boolean) : NewGameAction
-
-    /** The app flips the Tie Breaker coin (p.5 step 3), shown before Start. */
-    data object FlipCoin : NewGameAction
-
-    data object CancelCoin : NewGameAction
-}
-
 /**
  * New game against the computer (PRODUCT §9): the line-up as on New board (alternate picks, "Use a
  * draft or match"; only playable heroes can be seated), then who you control, the computer's level
@@ -281,58 +189,15 @@ class NewGameViewModel internal constructor(
         savedState[KEY_FORM] = NewGameForms.encode(form.value)
     }
 
-    private fun reduce(form: NewGameForm, action: NewGameAction): NewGameForm = when (action) {
-        is NewGameAction.Lineup -> {
-            val ready = uiState.value as? NewGameUiState.Ready
-            val blocked = (action.action as? NewBoardAction.Tap)?.heroId?.let { id ->
-                ready != null && id in ready.picker.unavailable && !form.lineup.contains(id)
-            } == true
-            if (blocked) form else form.copy(lineup = NewBoardViewModel.reduce(form.lineup, action.action), coin = null)
-        }
-
-        is NewGameAction.Step -> form.copy(step = action.step)
-
-        is NewGameAction.SetControl -> form.copy(control = action.control)
-
-        is NewGameAction.SetLevel -> form.copy(level = action.level, seatLevels = emptyMap())
-
-        is NewGameAction.SetSeatLevel -> form.copy(seatLevels = form.seatLevels + (action.heroId to action.level))
-
-        is NewGameAction.SetAdvanced -> form.copy(advanced = action.open)
-
-        is NewGameAction.SetLength -> form.copy(length = action.length)
-
-        is NewGameAction.SetMap -> form.copy(mapId = action.mapId)
-
-        is NewGameAction.SetCoach -> form.copy(coach = action.on)
-
-        NewGameAction.FlipCoin -> form.copy(coin = if (random.nextBoolean()) Team.RED else Team.BLUE)
-
-        NewGameAction.CancelCoin -> form.copy(coin = null)
+    private fun reduce(form: NewGameForm, action: NewGameAction): NewGameForm {
+        val unavailable = (uiState.value as? NewGameUiState.Ready)?.picker?.unavailable.orEmpty()
+        return NewGameRules.reduce(form, action, unavailable) { if (random.nextBoolean()) Team.RED else Team.BLUE }
     }
 
     /** The setup for the current form (seats in pick order per team), or null when it can't start. */
     fun setup(): GameSetup? {
         val ready = (uiState.value as? NewGameUiState.Ready)?.takeIf { it.canStart } ?: return null
-        val coin = ready.form.coin
-        val map = ready.map
-        val control = ready.control
-        if (coin == null || map == null || control == null) return null
-        fun seat(heroId: String, team: Team) = SeatSetup(
-            heroId = heroId,
-            team = team,
-            controller = if (controls(control, heroId, team)) {
-                Controller.Human
-            } else {
-                Controller.Ai(ready.form.seatLevels[heroId] ?: ready.form.level)
-            },
-        )
-        return GameSetup(
-            mapId = map.id,
-            seats = ready.red.map { seat(it, Team.RED) } + ready.blue.map { seat(it, Team.BLUE) },
-            length = ready.form.length,
-            tieBreaker = coin,
-        )
+        return NewGameRules.setup(ready.form, ready.control, ready.map?.id)
     }
 
     /** Creates the game and saves it as the game in progress; false when the engine refused it. */
@@ -360,25 +225,15 @@ class NewGameViewModel internal constructor(
         private const val MAX_SOURCES = 10
         private const val STOP_TIMEOUT_MS = 5_000L
 
-        /** One hero each, or a whole team when it has more than one hero (p.20: two heroes per player). */
-        fun controls(lineup: NewBoardForm): List<Control> {
-            if (lineup.red.isEmpty() || lineup.red.size != lineup.blue.size) return emptyList()
-            val teams = if (lineup.red.size > 1) Team.entries.map { Control.WholeTeam(it) } else emptyList()
-            return teams + (lineup.red + lineup.blue).map { Control.Hero(it) }
-        }
+        fun controls(lineup: NewBoardForm): List<Control> = NewGameRules.controls(lineup)
 
-        fun controls(control: Control, heroId: String, team: Team): Boolean = when (control) {
-            is Control.Hero -> control.heroId == heroId
-            is Control.WholeTeam -> control.team == team
-        }
+        fun controls(control: Control, heroId: String, team: Team): Boolean = NewGameRules.controls(
+            control,
+            heroId,
+            team,
+        )
 
-        fun aiSeats(form: NewGameForm, control: Control?, heroes: Map<String, BoardHero>): List<AiSeatUi> {
-            if (control == null) return emptyList()
-            return Team.entries.flatMap { team ->
-                form.lineup.team(team).filterNot { controls(control, it, team) }.map { id ->
-                    AiSeatUi(heroes.hero(id), team, form.seatLevels[id] ?: form.level)
-                }
-            }
-        }
+        fun aiSeats(form: NewGameForm, control: Control?, heroes: Map<String, BoardHero>): List<AiSeatUi> =
+            NewGameRules.aiSeats(form, control, heroes)
     }
 }

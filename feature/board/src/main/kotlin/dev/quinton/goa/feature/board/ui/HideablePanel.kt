@@ -66,19 +66,6 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.map.MapViewport
 
-/**
- * What a hidden panel still says, in one line: "◆ Arien · Choose an action for Dangerous Current".
- * [label] (a hero's name, in [team]'s colour with its shape) leads [text]; [attention] marks a
- * question that waits for the person (a teal dot and a teal border).
- */
-@Immutable
-data class PanelPeek(
-    val text: String,
-    val label: String? = null,
-    val team: Team? = null,
-    val attention: Boolean = false,
-)
-
 /** How much of the map the panel covers, px: its height at the bottom, its width at the end. */
 @Immutable
 data class PanelCover(val bottom: Int = 0, val end: Int = 0)

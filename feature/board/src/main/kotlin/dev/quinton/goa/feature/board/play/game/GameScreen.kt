@@ -105,16 +105,6 @@ import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
 import dev.quinton.goa.feature.board.ui.cards.rememberCardFocusState
 
-/** The sheets the game opens (hoisted so screenshots can open one). */
-sealed interface PlaySheet {
-    data object Log : PlaySheet
-
-    data class Hero(val heroId: String) : PlaySheet
-
-    /** The game-state review (ADR-037). */
-    data class Review(val tab: ReviewTab = ReviewTab.NOW) : PlaySheet
-}
-
 /**
  * The game against the computer: the table, the question or the computer's move in the panel, the
  * log, Take back and the Coach; then the game-over summary. [onTap] reports whether a tap on the
@@ -386,9 +376,9 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
             if (play.busy && play.coach) CoachLooking()
         }
 
-        play.status is TurnStatus.Computer -> ComputerMove(table, play.status, focus)
+        play.status is TurnStatus.Computer -> ComputerMove(table, play.status as TurnStatus.Computer, focus)
 
-        play.status is TurnStatus.Waiting -> Waiting(table, play.status)
+        play.status is TurnStatus.Waiting -> Waiting(table, play.status as TurnStatus.Waiting)
 
         else -> Unit
     }
@@ -595,13 +585,4 @@ private fun Unavailable(
     )
 }
 
-/** The game's title for [room] dp of width at font scale 1. */
-internal fun roundTitle(round: Int, turn: Int, room: Float): String = when {
-    room >= FULL_TITLE_DP -> "Round $round · Turn $turn"
-    room >= SHORT_TITLE_DP -> "R$round · Turn $turn"
-    else -> "R$round · T$turn"
-}
-
 private const val SHEET_HEIGHT = 0.9f
-private const val FULL_TITLE_DP = 400f
-private const val SHORT_TITLE_DP = 300f

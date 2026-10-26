@@ -96,12 +96,6 @@ import dev.quinton.goa.feature.board.play.table.shownCounters
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.play.table.ultimateCard
 
-/** The review's two tabs. */
-enum class ReviewTab(val label: String) {
-    NOW("Now"),
-    TURNS("Turns"),
-}
-
 /**
  * The game-state review (PRODUCT §9–10, ADR-037), in a sheet: **Now** — the round at a glance (Life
  * and Wave counters, pushes, minions in the Battle Zone, who has acted and who is next) and every

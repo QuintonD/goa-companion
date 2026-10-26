@@ -86,7 +86,10 @@ private fun CompletionActions(state: BoardUiState, session: DraftSession, model:
             GoaButton("Try on the board", {
                 // Pick order per team: the board's opening places heroes in that order (p.20).
                 router.navigate(
-                    Route.NewBoard(DraftBoardText.lineUp(session, Team.RED), DraftBoardText.lineUp(session, Team.BLUE)),
+                    Route.OpenBoard(
+                        DraftBoardText.lineUp(session, Team.RED),
+                        DraftBoardText.lineUp(session, Team.BLUE),
+                    ),
                 )
             }, ButtonKind.OUTLINED, icon = "hexagon")
         }

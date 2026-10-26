@@ -126,35 +126,6 @@ private fun trackFocusCards(table: TableUi, track: TurnTrack): List<FocusCard> =
     }
 }
 
-private fun trackKey(heroId: String, cardId: String?) = "track/$heroId/$cardId"
-
-/** "Wasp · Done · Movement · Initiative 10". */
-private fun slotCaption(table: TableUi, slot: TrackSlot, card: Card): String = listOfNotNull(
-    table.hero(slot.heroId).name,
-    stateWord(slot.state),
-    slot.action?.let { actionWord(it, card) },
-    slot.initiative?.let { "Initiative $it" },
-).joinToString(" · ")
-
-internal fun stateWord(state: SlotState): String = when (state) {
-    SlotState.DONE -> "Done"
-    SlotState.NOW -> "Now"
-    SlotState.NEXT -> "Next"
-    SlotState.LATER -> "Later"
-    SlotState.PASSED -> "Passed"
-    SlotState.SKIPPED -> "Skipped"
-}
-
-/** The action as a word: "Movement", "Fast Travel", the primary as the card's type ("Attack"). */
-internal fun actionWord(action: ActionType, card: Card?): String = when (action) {
-    ActionType.PRIMARY -> PlayText.primary(card?.primary)
-    ActionType.MOVEMENT -> "Movement"
-    ActionType.FAST_TRAVEL -> "Fast Travel"
-    ActionType.ATTACK -> "Attack"
-    ActionType.CLEAR -> "Clear"
-    ActionType.HOLD -> "Hold"
-}
-
 /** The game's icon for an action (the primary's by the card's type). */
 internal fun actionIcon(action: ActionType, card: Card?): GameIcon = when (action) {
     ActionType.PRIMARY -> card?.primary?.let(GameIcons::forPrimary) ?: GameIcons.skill
@@ -163,40 +134,6 @@ internal fun actionIcon(action: ActionType, card: Card?): GameIcon = when (actio
     ActionType.ATTACK -> GameIcons.attack
     ActionType.CLEAR -> GameIcons.clear
     ActionType.HOLD -> GameIcons.hold
-}
-
-/** What TalkBack hears for a slot. */
-internal fun spokenSlot(table: TableUi, slot: TrackSlot): String {
-    val hero = table.heroView(slot.heroId)
-    val cards = slot.cards.map { view ->
-        view.cardId?.takeIf { !view.facedown }?.let(table::card)?.name ?: "a facedown card"
-    }
-    return buildList {
-        slot.place?.let { add("${PlayText.ordinal(it)} to act") }
-        add(table.hero(slot.heroId).name)
-        add(BoardText.team(slot.team))
-        hero?.let { add(table.controllerLabel(it)) }
-        add(
-            when (slot.state) {
-                SlotState.DONE -> "done"
-                SlotState.NOW -> "acting now"
-                SlotState.NEXT -> "next"
-                SlotState.LATER -> "later"
-                SlotState.PASSED -> "passed, no card"
-                SlotState.SKIPPED -> "its card left the table unresolved"
-            },
-        )
-        slot.action?.let { add("used ${actionWord(it, table.card(slot.cards.firstOrNull()?.cardId))}") }
-        if (cards.isNotEmpty()) add(cards.joinToString(" and "))
-        slot.initiative?.let { add("initiative $it") }
-        if (slot.tied) add("tied on initiative")
-        if (slot.defeated) add("defeated this turn")
-        if (slot.offBoard && slot.state != SlotState.DONE && slot.cards.isNotEmpty()) {
-            add("off the board: may respawn when its card resolves")
-        } else if (slot.offBoard) {
-            add("off the board")
-        }
-    }.joinToString(", ")
 }
 
 @OptIn(ExperimentalFoundationApi::class)

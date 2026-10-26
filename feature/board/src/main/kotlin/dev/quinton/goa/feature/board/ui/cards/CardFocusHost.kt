@@ -642,7 +642,7 @@ internal fun VerdictBadge(verdict: CardVerdict, modifier: Modifier = Modifier) {
         Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             if (verdict.holds != null) {
                 Icon(
-                    if (verdict.holds) Icons.Outlined.CheckCircle else Icons.Outlined.ErrorOutline,
+                    if (verdict.holds == true) Icons.Outlined.CheckCircle else Icons.Outlined.ErrorOutline,
                     null,
                     Modifier.size(16.dp),
                     tint = color,

@@ -58,18 +58,6 @@ import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** How long things take on the puzzle screen; tests shorten nothing, they run on virtual time. */
-data class PuzzleTiming(
-    /** A nudge comes by itself after this long without progress (nudges on). */
-    val idleNudgeMs: Long = 90_000L,
-    /** Each line of the other side's replies shows for this long… */
-    val replyLineMs: Long = 700L,
-    /** …but all of them together for no longer than this. */
-    val replyMaxMs: Long = 3_500L,
-    /** The last reply stays this long before the board catches up. */
-    val replyHoldMs: Long = 600L,
-)
-
 /**
  * One puzzle (PRODUCT §10). The player answers their heroes' questions on the game table; the
  * runtime answers every other seat at once, and the screen narrates those replies line by line
@@ -163,8 +151,6 @@ class PuzzleViewModel internal constructor(
     private val review = ReviewKeeper()
 
     private class Replay(val steps: List<ReplayStep>, val afterSolve: Boolean, var index: Int = 0)
-
-    private class ReplayStep(val view: GameView, val decision: Decision?, val choice: Choice?, val lines: List<String>)
 
     init {
         viewModelScope.launch { load() }
@@ -301,7 +287,7 @@ class PuzzleViewModel internal constructor(
         idle?.cancel()
         viewModelScope.launch {
             publish()
-            val played = withContext(engine) { play(s, choice) }
+            val played = withContext(engine) { s.play(choice, mine) }
             if (played == null) {
                 busy = false
                 publish()
@@ -334,62 +320,24 @@ class PuzzleViewModel internal constructor(
         }
     }
 
-    /** What one answer did: every event, how many of them were the player's own move, the board after it. */
-    private class Played(
-        val events: List<GameEvent>,
-        val own: Int,
-        val ownView: GameView,
-        val status: PuzzleStatus,
-    )
-
-    /** On [engine]: the answer, with the board just after the player's own move (a fork answered alone). */
-    private fun play(s: PuzzleSession, choice: Choice): Played? {
-        val decision = s.game.pending ?: return null
-        if (decision.seat !in mine || choice !in decision.options) return null
-        val before = s.game.events.size
-        val fork = s.game.fork()
-        val own = runCatching { fork.answer(decision.id, choice) }.getOrNull()
-        val result = s.answer(decision.id, choice) as? AnswerResult.Accepted ?: return null
-        val ownCount = if (own is AnswerResult.Accepted) fork.events.size - before else result.events.size
-        val ownView = if (own is AnswerResult.Accepted) openView(fork) else openView(s.game)
-        // A game over at the deadline is a miss when the goal wasn't met: pending null, status says.
-        return Played(result.events, ownCount.coerceIn(0, result.events.size), ownView, s.status)
-    }
-
     /** The other side's replies, one line at a time over the board as it was after the player's move. */
-    private suspend fun narrate(played: Played) {
-        val replies = played.events.drop(played.own).filterNot {
-            it is GameEvent.RoundStarted || it is GameEvent.TurnStarted
-        }
+    private suspend fun narrate(played: PuzzleMove) {
+        val replies = replies(played)
         if (replies.isEmpty()) return
         val lines = replies.map { it.text }
         interim = played.ownView to played.events.take(played.own).map { it.text }
         phase = PuzzlePhase.REPLYING
-        replying = ReplyingUi(replyTitle(replies), emptyList())
+        replying = ReplyingUi(replyTitle(replies, teams, team) { heroes.hero(it).name }, emptyList())
         publish()
         val per = minOf(timing.replyLineMs, timing.replyMaxMs / lines.size)
         lines.indices.forEach { i ->
             delay(per)
-            replying = ReplyingUi(replyTitle(replies), lines.take(i + 1))
+            replying = ReplyingUi(replyTitle(replies, teams, team) { heroes.hero(it).name }, lines.take(i + 1))
             publish()
         }
         delay(timing.replyHoldMs)
         interim = null
         replying = null
-    }
-
-    /** "Brogan answers" when an enemy hero acted, else "What happens". */
-    private fun replyTitle(replies: List<GameEvent>): String {
-        val enemy = replies.firstNotNullOfOrNull { event ->
-            when (event) {
-                is GameEvent.ActionChosen -> event.heroId
-                is GameEvent.Defended -> event.heroId
-                is GameEvent.Moved -> event.unitId
-                is GameEvent.Attacked -> event.attackerId
-                else -> null
-            }?.takeIf { id -> id in teams && teams[id] != team }
-        }
-        return enemy?.let { "${heroes.hero(it).name} answers" } ?: "What happens"
     }
 
     private val team: Team? get() = mine.firstNotNullOfOrNull(teams::get)
@@ -524,7 +472,7 @@ class PuzzleViewModel internal constructor(
         idle?.cancel()
         viewModelScope.launch {
             publish()
-            val steps = withContext(engine) { runCatching { solution(book) }.getOrDefault(emptyList()) }
+            val steps = withContext(engine) { runCatching { book.solution(puzzleId) }.getOrDefault(emptyList()) }
             if (steps.isNotEmpty()) {
                 if (phase != PuzzlePhase.SOLVED) record { it.copy(solutionShown = true) }
                 replay = Replay(steps, afterSolve = phase == PuzzlePhase.SOLVED)
@@ -533,31 +481,6 @@ class PuzzleViewModel internal constructor(
             busy = false
             publish()
         }
-    }
-
-    /** On [engine]: a fresh session played with the solver's choice at every player question. */
-    private fun solution(book: PuzzleBook): List<ReplayStep> {
-        val s = book.start(puzzleId)
-        val steps = ArrayList<ReplayStep>()
-        var seen = s.game.events.size
-        fun since(): List<String> = s.game.events.drop(seen).also { seen = s.game.events.size }
-            .filterNot { it is GameEvent.RoundStarted || it is GameEvent.TurnStarted }
-            .map { it.text }
-        var accepted = true
-        while (accepted && steps.size < MAX_STEPS) {
-            val (decision, choice) = bestMove(s) ?: break
-            steps += ReplayStep(openView(s.game), decision, choice, since())
-            accepted = s.answer(decision.id, choice) is AnswerResult.Accepted
-        }
-        steps += ReplayStep(openView(s.game), null, null, since())
-        return steps
-    }
-
-    /** The player's question and the solver's answer to it, while the puzzle is still being played. */
-    private fun bestMove(s: PuzzleSession): Pair<Decision, Choice>? {
-        if (s.status != PuzzleStatus.PLAYING) return null
-        val decision = s.game.pending ?: return null
-        return s.bestChoice()?.let { decision to it }
     }
 
     private fun step(by: Int) {
@@ -582,16 +505,6 @@ class PuzzleViewModel internal constructor(
         viewModelScope.launch { publish() }
     }
 
-    /** Every hero as it sees itself: a puzzle's hands (and cards already played) are open. */
-    private fun openView(game: GameSession): GameView {
-        val first = mine.firstOrNull() ?: return game.view(null)
-        val base = game.view(first)
-        val own = game.setup.seats.associate { seat ->
-            seat.heroId to game.view(seat.heroId).heroes.firstOrNull { it.heroId == seat.heroId }
-        }
-        return base.copy(heroes = base.heroes.map { hero -> own[hero.heroId] ?: hero })
-    }
-
     private class Snapshot(
         val pending: Decision?,
         val view: GameView,
@@ -608,7 +521,7 @@ class PuzzleViewModel internal constructor(
         val snapshot = withContext(engine) {
             // A puzzle's hands are open: the review sees every seat.
             val seats = s.game.setup.seats.map { it.heroId }.toSet()
-            Snapshot(s.game.pending, openView(s.game), s.game.events.toList(), review.build(s.game, seats))
+            Snapshot(s.game.pending, s.game.openView(mine), s.game.events.toList(), review.build(s.game, seats))
         }
         val live = interim
         val step = r?.steps?.getOrNull(r.index)
@@ -678,14 +591,7 @@ class PuzzleViewModel internal constructor(
     private fun replayUi(puzzle: PuzzleInfo, r: Replay, step: ReplayStep, table: TableUi): ReplayUi {
         val last = r.index == r.steps.lastIndex
         val solved = step.decision == null && r.steps.size > 1
-        val title = when {
-            step.decision != null && step.choice != null ->
-                "${heroes.hero(step.decision.seat).name} · ${step.decision.prompt}: ${table.label(step.choice)}"
-
-            solved -> "Goal met: ${puzzle.goal.text}"
-
-            else -> "The solution can't be shown for this position."
-        }
+        val title = replayTitle(puzzle, step, r.steps.size, { heroes.hero(it).name }, table::label)
         return ReplayUi(r.index, r.steps.size, title, step.lines, last, solved, r.afterSolve)
     }
 
@@ -706,7 +612,6 @@ class PuzzleViewModel internal constructor(
     internal companion object {
         const val RECENT = 4
 
-        /** A solution longer than this is not replayed (no puzzle comes close). */
-        const val MAX_STEPS = 60
+        const val MAX_STEPS = MAX_SOLUTION_STEPS
     }
 }

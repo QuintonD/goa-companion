@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.board.list
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,18 +12,12 @@ import dev.quinton.goa.core.data.GameSaveRepository
 import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.PuzzleProgressRepository
 import dev.quinton.goa.core.data.game.StoredGame
-import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.GameFactory
 import dev.quinton.goa.core.game.PuzzleBook
 import dev.quinton.goa.core.model.board.SavedBoard
 import dev.quinton.goa.core.model.catalog.Catalog
-import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardHero
 import dev.quinton.goa.feature.board.boardHeroes
-import dev.quinton.goa.feature.board.hero
-import dev.quinton.goa.feature.board.play.PlayText
-import dev.quinton.goa.feature.board.setup.LineupSource
-import dev.quinton.goa.feature.board.setup.lineupSources
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Provider
@@ -44,61 +37,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-/** One saved board in the list. */
-@Immutable
-data class BoardRowUi(
-    val id: String,
-    val name: String,
-    val mapName: String,
-    val mapVerified: Boolean,
-    val red: List<BoardHero>,
-    val blue: List<BoardHero>,
-    val updatedAt: Long,
-) {
-    fun team(team: Team): List<BoardHero> = if (team == Team.RED) red else blue
-}
-
-/** The game against the computer saved on this phone, as the Boards entry shows it. */
-@Immutable
-data class ResumeUi(
-    val red: List<BoardHero>,
-    val blue: List<BoardHero>,
-    /** "You play Arien · Computer: Hard". */
-    val summary: String,
-    val savedAt: Long,
-    /** The save can't be read: opening it offers to delete it. */
-    val unreadable: Boolean = false,
-)
-
-/** The puzzles as the Boards entry shows them: how many of the playable ones are solved. */
-@Immutable
-data class PuzzleHubUi(val solved: Int, val total: Int)
-
-/**
- * Play against the computer (ADR-035): offered once heroes are playable; a game in progress to
- * resume. [puzzles]: null while no puzzle is playable (the entry says they are coming).
- */
-@Immutable
-data class PlayHubUi(val available: Boolean = false, val resume: ResumeUi? = null, val puzzles: PuzzleHubUi? = null)
-
-sealed interface BoardsUiState {
-    data object Loading : BoardsUiState
-
-    /**
-     * [latest]: the newest finished draft or match, set up in one tap. [unreadable]: the boards
-     * couldn't be read (the list shows what it can, never crashes). [play]: the entry to games
-     * against the computer and puzzles.
-     */
-    @Immutable
-    data class Ready(
-        val boards: List<BoardRowUi>,
-        val now: Long,
-        val latest: LineupSource? = null,
-        val unreadable: Boolean = false,
-        val play: PlayHubUi = PlayHubUi(),
-    ) : BoardsUiState
-}
 
 /**
  * The Boards list: open, rename, duplicate, delete (undoable). Most recently changed first, under
@@ -171,9 +109,7 @@ class BoardsViewModel internal constructor(
     private val puzzles = combine(
         puzzleIds,
         puzzleProgress?.progress?.catch { emit(emptyMap()) } ?: flowOf(emptyMap()),
-    ) { ids, progress ->
-        if (ids.isEmpty()) null else PuzzleHubUi(solved = ids.count { progress[it]?.solved == true }, total = ids.size)
-    }
+    ) { ids, progress -> BoardsRules.puzzleHub(ids, progress) }
 
     private val play = combine(
         playable,
@@ -201,20 +137,9 @@ class BoardsViewModel internal constructor(
     ) { catalog, maps, (boards, unreadable), (drafts, matches), (available, stored, puzzles) ->
         val heroes = catalog.boardHeroes()
         BoardsUiState.Ready(
-            boards = boards.map { board ->
-                val map = maps.firstOrNull { it.id == board.state.mapId }
-                BoardRowUi(
-                    id = board.id,
-                    name = board.name,
-                    mapName = map?.name ?: "Map not in this build",
-                    mapVerified = map?.verified ?: true,
-                    red = board.lineup.red.map(heroes::hero),
-                    blue = board.lineup.blue.map(heroes::hero),
-                    updatedAt = board.updatedAt,
-                )
-            },
+            boards = boards.map { BoardsRules.row(it, maps, heroes) },
             now = clock.now(),
-            latest = lineupSources(drafts, matches, heroes, limit = 1).firstOrNull(),
+            latest = BoardsRules.latest(drafts, matches, heroes),
             unreadable = unreadable,
             play = PlayHubUi(available = available, resume = resumeOf(stored, heroes), puzzles = puzzles),
         )
@@ -258,40 +183,14 @@ class BoardsViewModel internal constructor(
     }
 
     internal companion object {
-        const val MAX_NAME = 60
+        const val MAX_NAME = BoardsRules.MAX_NAME
         private const val STOP_TIMEOUT_MS = 5_000L
 
-        fun copyName(name: String): String = "$name (copy)".take(MAX_NAME)
+        fun copyName(name: String): String = BoardsRules.copyName(name)
 
-        /** The saved game as its entry shows it: line-up, who you play, the computer's levels. */
-        fun resumeOf(stored: StoredGame, heroes: Map<String, BoardHero>): ResumeUi? = when (stored) {
-            StoredGame.None -> null
-
-            StoredGame.Unreadable -> ResumeUi(
-                emptyList(),
-                emptyList(),
-                "This saved game can't be read.",
-                0,
-                unreadable = true,
-            )
-
-            is StoredGame.Saved -> {
-                val seats = stored.game.game.setup.seats
-                val mine = seats.filter { it.controller == Controller.Human }.map { heroes.hero(it.heroId).name }
-                val levels = seats.mapNotNull { (it.controller as? Controller.Ai)?.level }.distinct()
-                ResumeUi(
-                    red = seats.filter { it.team == Team.RED }.map { heroes.hero(it.heroId) },
-                    blue = seats.filter { it.team == Team.BLUE }.map { heroes.hero(it.heroId) },
-                    summary = listOfNotNull(
-                        "You play ${mine.joinToString(" and ")}".takeIf { mine.isNotEmpty() },
-                        levels.takeIf { it.isNotEmpty() }?.let { l ->
-                            "Computer: " +
-                                l.joinToString(", ") { PlayText.level(it) }
-                        },
-                    ).joinToString(" · "),
-                    savedAt = stored.game.game.savedAt,
-                )
-            }
-        }
+        fun resumeOf(stored: StoredGame, heroes: Map<String, BoardHero>): ResumeUi? = BoardsRules.resumeOf(
+            stored,
+            heroes,
+        )
     }
 }

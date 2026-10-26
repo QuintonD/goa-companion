@@ -75,6 +75,7 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardHero
 import dev.quinton.goa.feature.board.BoardText
+import dev.quinton.goa.feature.board.changedHere
 import dev.quinton.goa.feature.board.setup.LatestCard
 import dev.quinton.goa.feature.board.setup.LineupSource
 
@@ -212,7 +213,7 @@ private fun BoardRow(
     onDelete: () -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
-    val changed = BoardText.changed(board.updatedAt, now)
+    val changed = BoardText.changedHere(board.updatedAt, now)
     GoaCard(
         onClick = onOpen,
         contentPadding = PaddingValues(start = Spacing.lg, top = Spacing.md, bottom = Spacing.md, end = Spacing.xs),

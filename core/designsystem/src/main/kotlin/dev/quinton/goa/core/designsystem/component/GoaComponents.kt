@@ -335,15 +335,8 @@ fun UnverifiedBadge(modifier: Modifier = Modifier) = StatusBadge(
     modifier = modifier,
 )
 
-fun cardColorName(color: CardColor): String = when (color) {
-    CardColor.GOLD -> "Gold"
-    CardColor.SILVER -> "Silver"
-    CardColor.RED -> "Red"
-    CardColor.GREEN -> "Green"
-    CardColor.BLUE -> "Blue"
-    CardColor.PURPLE -> "Purple"
-    CardColor.OTHER -> "Other"
-}
+/** A card colour's name (shared with the web app: core:model). */
+fun cardColorName(color: CardColor): String = dev.quinton.goa.core.model.catalog.cardColorName(color)
 
 /** A card's colour as a small dot with a hairline ring (so pale colours stay visible). */
 @Composable

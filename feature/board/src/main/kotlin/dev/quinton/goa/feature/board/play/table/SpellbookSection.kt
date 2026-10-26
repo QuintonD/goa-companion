@@ -44,77 +44,6 @@ import dev.quinton.goa.feature.board.ui.cards.isSpell
  * the cards in the spellbook. As each spell is cast, remove it from the spellbook faceup."
  */
 
-/** One place of a hero's extra cards as the sheet shows it. [cards] null = facedown to this person. */
-@Immutable
-internal data class ExtrasGroup(
-    val place: String,
-    val title: String,
-    val count: Int,
-    val cards: List<Card>?,
-    /** A line under the title: why the cards are hidden, or what puts cards here. */
-    val note: String? = null,
-)
-
-/**
- * The hero's Ultimate card once unlocked (p.16: it lies faceup on the dashboard, open information),
- * else null: the deck's purple card (Gydion's purple Wish is a spell, not in the deck).
- */
-internal fun ultimateCard(table: TableUi, hero: HeroView): Card? =
-    if (hero.ultimate) table.hero(hero.heroId).cards.firstOrNull { it.color == CardColor.PURPLE } else null
-
-/** "Spellbook" for spell cards (Gydion), else "Extra cards". */
-internal fun extrasTitle(table: TableUi, hero: HeroView): String {
-    val any = hero.extras.firstNotNullOfOrNull { place -> place.cardIds?.firstNotNullOfOrNull(table::card) }
-        ?: table.cards.values.firstOrNull { it.heroId == hero.heroId && it.isSpell }
-    return if (any?.isSpell == true) "Spellbook" else "Extra cards"
-}
-
-/**
- * The groups of [hero]'s extra cards, in the engine's order: in the spellbook (named to Gydion's
- * player only; the others see how many), cast (removed faceup, public), not yet added (public; shown
- * only while there are some: the game starts with an empty spellbook, designer on BGG 3491113).
- */
-internal fun extrasGroups(table: TableUi, hero: HeroView): List<ExtrasGroup> {
-    val name = table.hero(hero.heroId).name
-    val mine = hero.heroId in table.mine
-    return hero.extras.mapNotNull { place ->
-        val cards = place.cardIds?.mapNotNull(table::card)
-        when (place.place) {
-            SPELLBOOK -> ExtrasGroup(
-                place.place,
-                title = if (mine) "In your spellbook" else "In the spellbook",
-                count = place.count,
-                cards = cards,
-                note = when {
-                    cards == null -> "Facedown: only $name can look at the cards in the spellbook."
-                    !mine -> "Open in this puzzle."
-                    place.count == 0 -> "Empty until Prepare Spells adds the spell cards."
-                    else -> null
-                },
-            )
-
-            REMOVED -> ExtrasGroup(place.place, "Cast · removed faceup", place.count, cards)
-
-            BOX -> if (place.count == 0) {
-                null
-            } else {
-                ExtrasGroup(
-                    place.place,
-                    "Not yet added",
-                    place.count,
-                    cards,
-                    note = "Prepare Spells adds every spell card to the spellbook.",
-                )
-            }
-
-            else -> ExtrasGroup(place.place, placeTitle(place), place.count, cards)
-        }
-    }
-}
-
-private fun placeTitle(place: ExtraPlaceView): String =
-    place.place.replace('_', ' ').replaceFirstChar { it.uppercase() }
-
 /**
  * The hero sheet's section for a hero's extra cards (nothing for a hero without any): each group's
  * cards as landscape thumbnails in a grid; tap one to see it large in the card focus viewer, swiping
@@ -157,7 +86,7 @@ internal fun ExtrasSection(
                 when {
                     cards == null -> Unit
 
-                    cards.isEmpty() && group.place != SPELLBOOK -> Text(
+                    cards.isEmpty() && group.place != EXTRAS_SPELLBOOK -> Text(
                         "None yet",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -218,9 +147,6 @@ private fun ExtraThumb(card: Card, width: Dp, origin: Modifier, onClick: () -> U
     }
 }
 
-private const val SPELLBOOK = "spellbook"
-private const val REMOVED = "removed"
-private const val BOX = "box"
 private val MIN_THUMB = 104.dp
 private val MIN_THUMB_FLOOR = 72.dp
 private const val MAX_COLUMNS = 4

@@ -1,6 +1,7 @@
 package dev.quinton.goa.web.screens
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.catalog.CardViewerScreen
 import dev.quinton.goa.web.catalog.CatalogScreen
@@ -55,22 +56,21 @@ fun ScreenFor(route: Route) {
 
         Route.TriviaLeaderboard -> TriviaLeaderboardScreen()
 
-        Route.Boards -> PlaceholderScreen(
-            "Board",
-            Placeholder.BOARDS,
-            links = listOf(
-                PlaceholderLink("Play against the computer", "play", Route.Play),
-                PlaceholderLink("Puzzles", "puzzle", Route.Puzzles),
-            ),
-        )
+        Route.Boards -> dev.quinton.goa.web.play.board.BoardsScreen()
 
-        is Route.Board -> PlaceholderScreen("Board", Placeholder.BOARD)
+        is Route.Board -> dev.quinton.goa.web.play.board.BoardScreen(route.boardId)
 
-        Route.Play -> PlaceholderScreen("Play", Placeholder.PLAY)
+        is Route.NewBoard -> dev.quinton.goa.web.play.board.NewBoardScreen(route)
 
-        Route.Puzzles -> PlaceholderScreen("Puzzles", Placeholder.PUZZLES)
+        is Route.OpenBoard -> dev.quinton.goa.web.play.board.OpenBoardScreen(route)
 
-        is Route.Puzzle -> PlaceholderScreen("Puzzle", Placeholder.PUZZLE)
+        Route.Play -> dev.quinton.goa.web.play.game.GameScreen()
+
+        is Route.NewGame -> dev.quinton.goa.web.play.game.NewGameScreen(route)
+
+        Route.Puzzles -> dev.quinton.goa.web.play.puzzles.PuzzleListScreen()
+
+        is Route.Puzzle -> key(route.puzzleId) { dev.quinton.goa.web.play.puzzles.PuzzleScreen(route.puzzleId) }
 
         // Shared
         Route.Rules -> RulesScreen()
@@ -100,9 +100,6 @@ fun ScreenFor(route: Route) {
         Route.DraftMethods -> DraftMethodsScreen()
 
         is Route.DraftMethodEdit -> DraftMethodEditScreen(route.methodId)
-
-        // Opened by the table tools, built by another stream (W4 board)
-        is Route.NewBoard -> PlaceholderScreen("Board", Placeholder.BOARD)
 
         // Players tab (group stream W2: players, matches, meta, group sync)
         Route.Players -> PlayersHomeScreen(PlayersTab.PLAYERS)

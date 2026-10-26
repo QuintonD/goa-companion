@@ -135,6 +135,7 @@ fun GoaButton(
  * go Up to, [actions] on the right) over the content. Sets the document title.
  * [flush]: content spans the full width without screen padding (maps, the table). [onBack] replaces
  * the Back button's Up (e.g. to ask before leaving a quiz round); null = Up.
+ * [fill]: the screen is the window's height and never scrolls (the board, the game table, a puzzle).
  */
 @Composable
 fun Screen(
@@ -142,12 +143,17 @@ fun Screen(
     actions: @Composable () -> Unit = {},
     flush: Boolean = false,
     showBack: Boolean? = null,
+    fill: Boolean = false,
     onBack: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     val router = LocalServices.current.router
     SideEffect { document.title = "$title · Atlantis Companion" }
-    Div({ classes("goa-screen") }) {
+    Div({
+        classes("goa-screen")
+        // A board: exactly the window's height (compact title bar), the content lays itself out.
+        if (fill) classes("fill")
+    }) {
         Header({ classes("goa-topbar") }) {
             Div({ classes("goa-topbar-row") }) {
                 if (showBack ?: router.canGoBack) {

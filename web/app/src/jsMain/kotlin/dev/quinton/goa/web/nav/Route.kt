@@ -87,21 +87,6 @@ sealed interface Route {
         override val parent get() = Catalog
     }
 
-    /**
-     * A new board with the opening position for a line-up (W4's screen; a finished draft opens it with
-     * "Try on the board"): hero ids per team in pick order. As Android's `BoardRoute(red, blue)`.
-     */
-    data class NewBoard(val red: List<String>, val blue: List<String>) : Route {
-        override val path
-            get() = "boards/$NEW" + Routes.query(
-                "red" to red.takeIf { it.isNotEmpty() }?.joinToString(","),
-                "blue" to blue.takeIf { it.isNotEmpty() }?.joinToString(","),
-            )
-        override val tab: Tab? = null
-        override val parent get() = Boards
-        override val showsTabBar get() = false
-    }
-
     data class Board(val boardId: String) : Route {
         override val path get() = "boards/${Routes.encode(boardId)}"
         override val tab get() = Tab.HEROES
@@ -109,8 +94,58 @@ sealed interface Route {
         override val showsTabBar get() = false
     }
 
+    /**
+     * Choosing a new board's line-up and map; [red]/[blue] pre-fill the teams (hero ids in pick order),
+     * e.g. from a draft or a match (Android's NewBoardRoute).
+     */
+    data class NewBoard(
+        val red: List<String> = emptyList(),
+        val blue: List<String> = emptyList(),
+        val mapId: String? = null,
+    ) : Route {
+        override val path get() = "boards/new" +
+            Routes.query("red" to red.ids(), "blue" to blue.ids(), "map" to mapId)
+        override val tab get() = Tab.HEROES
+        override val parent get() = Boards
+    }
+
+    /**
+     * Opens the board of a line-up in one tap ("Try on the board", "Open on the board"): creates it at
+     * the opening on [mapId] (null = the default map for that many heroes), or reopens an untouched
+     * board of the same line-up and map, then stands in for that board (Android's BoardRoute with no id).
+     * [matchId]: the line-up is that logged match's (in its draft's pick order when it came from one).
+     */
+    data class OpenBoard(
+        val red: List<String> = emptyList(),
+        val blue: List<String> = emptyList(),
+        val mapId: String? = null,
+        val name: String? = null,
+        val matchId: String? = null,
+    ) : Route {
+        override val path get() = "boards/open" + Routes.query(
+            "red" to red.ids(),
+            "blue" to blue.ids(),
+            "map" to mapId,
+            "name" to name,
+            "match" to matchId,
+        )
+        override val tab get() = Tab.HEROES
+        override val parent get() = Boards
+        override val showsTabBar get() = false
+    }
+
+    /** The game against the computer in progress (this browser's): the table, then the game-over summary. */
     data object Play : Route {
         override val path = "play"
+        override val tab get() = Tab.HEROES
+        override val parent get() = Boards
+        override val showsTabBar get() = false
+    }
+
+    /** Setting up a game against the computer; [red]/[blue] pre-fill the teams (e.g. after a game). */
+    data class NewGame(val red: List<String> = emptyList(), val blue: List<String> = emptyList()) : Route {
+        override val path get() = "play/new" +
+            Routes.query("red" to red.ids(), "blue" to blue.ids())
         override val tab get() = Tab.HEROES
         override val parent get() = Boards
     }
@@ -349,8 +384,9 @@ object Routes {
         if (parts.any { it.isEmpty() }) return Route.NotFound(raw)
         return when (parts.first()) {
             "heroes" -> heroes(parts, raw)
-            "trivia", "levels", "boards" -> queried(parts, query)
-            "play" -> Route.Play.takeIf { parts.size == 1 }
+            "trivia", "levels" -> queried(parts, query)
+            "boards" -> boards(parts, query)
+            "play" -> play(parts, query)
             "puzzles" -> oneOrTwo(parts, Route.Puzzles) { Route.Puzzle(it) }
             "rules" -> oneOrTwo(parts, Route.Rules) { Route.RulesTopic(it) }
             "settings" -> settings(parts)
@@ -375,20 +411,46 @@ object Routes {
         else -> Route.NotFound(raw)
     }
 
+    private fun boards(parts: List<String>, query: Map<String, String>): Route? = when {
+        parts.size == 1 -> Route.Boards
+
+        parts.size == 2 && parts[1] == "new" -> Route.NewBoard(
+            ids(query["red"]),
+            ids(query["blue"]),
+            query["map"].orNull(),
+        )
+
+        parts.size == 2 && parts[1] == "open" -> Route.OpenBoard(
+            ids(query["red"]),
+            ids(query["blue"]),
+            query["map"].orNull(),
+            query["name"].orNull(),
+            query["match"].orNull(),
+        )
+
+        parts.size == 2 -> Route.Board(parts[1])
+
+        else -> null
+    }
+
+    private fun play(parts: List<String>, query: Map<String, String>): Route? = when {
+        parts.size == 1 -> Route.Play
+        parts.size == 2 && parts[1] == "new" -> Route.NewGame(ids(query["red"]), ids(query["blue"]))
+        else -> null
+    }
+
+    /** Hero ids in a query value, comma-separated ("arien,brogan"). */
+    private fun ids(value: String?): List<String> = value.orEmpty().split(',').filter { it.isNotEmpty() }
+
+    private fun String?.orNull(): String? = this?.takeIf { it.isNotEmpty() }
+
     /**
-     * The screens whose address carries a query: trivia (`?hero=`, a quiz's request), the level ladder
-     * (`?heroes=`), a new board's line-up (`?red=&blue=`).
+     * The screens whose address carries a query: trivia (`?hero=`, a quiz's request) and the level
+     * ladder (`?heroes=`); the boards' and the game's are [boards] and [play].
      */
     private fun queried(parts: List<String>, query: Map<String, String>): Route? = when (parts.first()) {
         "trivia" -> trivia(parts, query)
-
-        "levels" -> Route.LevelLadder(query.list("heroes")).takeIf { parts.size == 1 }
-
-        else -> if (parts.getOrNull(1) == NEW && parts.size == 2) {
-            Route.NewBoard(query.list("red"), query.list("blue"))
-        } else {
-            oneOrTwo(parts, Route.Boards) { Route.Board(it) }
-        }
+        else -> Route.LevelLadder(query.list("heroes")).takeIf { parts.size == 1 }
     }
 
     private fun trivia(parts: List<String>, query: Map<String, String>): Route? = when {
@@ -503,3 +565,6 @@ object Routes {
 private external fun encodeURIComponent(value: String): String
 
 private external fun decodeURIComponent(value: String): String
+
+/** Hero ids for an address (`arien,brogan`), or nothing for none. */
+private fun List<String>.ids(): String? = takeIf { it.isNotEmpty() }?.joinToString(",")

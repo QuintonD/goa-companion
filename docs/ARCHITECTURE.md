@@ -92,6 +92,10 @@ core/group-presentation/ # KMP jvm+js (ADR-043 W2): what the Players and Group s
                          #   contracts (Leaderboard, PlayerDetail, MatchRows, MetaBoard, MatchForm/MatchValidation/
                          #   MatchEditing, RatingSettingsText, GroupText, SyncServerText, SyncWords); packages are
                          #   feature:players'/feature:sync's own; used by both features and by web/app
+core/play/               # KMP jvm+js (ADR-043 W4): the board, play and puzzle screens' pure logic, package
+                         #   dev.quinton.goa.feature.board (moved from feature:board): UI states and builders
+                         #   (TableUi, turn track, review, sandbox, New board/New game forms, puzzle list),
+                         #   words (BoardText, PlayText, PuzzleText), HexLayout, GameFacts, PuzzlePlay
 core/data/               # repositories; catalog and board-map loaders; JSON/Room <-> model; export/import;
                          #   game/ (ADR-035): the game in progress (DataStoreGameSaveRepository) and
                          #   PlayEngineModule, the one place GameFactory, the AI per level, the Coach and the
@@ -140,6 +144,9 @@ web/app/                 # Kotlin/JS + Compose HTML PWA (ADR-043): nav/ (hash Ro
                          #   offline download), data/ (WebServices: the contracts per stream, stubs in
                          #   data/stub/; WebCatalogRepository), screens/; resources/ (index.html,
                          #   goa.css, sw.js, manifest, icons). Catalog, images, fonts copied in at build time
+web/engine/              # Kotlin/JS (ADR-043 W4): EngineProtocol (page ↔ engine worker messages, JSON) and
+                         #   EngineHost (the worker's side: game session, AI, coach, puzzles), tested on Node
+web/worker/              # Kotlin/JS executable: engine-worker.js (EngineHost behind self.onmessage)
 web/e2e/                 # Playwright tests of the built site (WebKit iPhone 15, Chromium Pixel 7), serve.mjs
 server/relay/            # NOT in the root build: standalone Gradle build (own wrapper + pinned catalog), the Ktor
                          #   (CIO) sync relay of ADR-036 / docs/SYNC-SERVER.md: one sealed blob per group,
@@ -367,8 +374,17 @@ Kotlin (once they target JS, F1) under a DOM UI in Compose HTML; rules never liv
   it. Screens in `players/` (the Players tab, match editor, ratings) and `sync/` (Group sync, Which
   player are you?, invite QR with qrcode-generator, camera scanning with jsQR, the `#join=` link)
   draw what `core:group-presentation` builds.
+- **Play (W4).** The board sandbox, the game against the computer and the puzzles use `:core:play`
+  (what the phone's screens show, the same code) and draw the board as SVG (`play/map/BoardSvg`:
+  the map and overlays as markup in map units from `HexLayout`, pieces as components that glide,
+  `MapCamera` framing it as the phone's `MapViewport`). The engine never runs on the page: it lives
+  in `engine-worker.js` (`:web:worker` over `:web:engine`'s `EngineHost`), reached through
+  `PlayData.engine` / `PlayData.coach` (`EngineClient`: one request at a time by id; `reset()`
+  terminates the worker to cancel a search, and screens refill a fresh worker from the save). Boards,
+  the game in progress and puzzle progress are stored under `play/` in the phone's formats.
 - **Build.** `:web:app:webAssets` copies the bundled catalog, `official/` images, fonts, licences and
-  shared icons from the Android sources at build time; `:web:app:site` writes the deployable
+  shared icons from the Android sources at build time, `:web:app:engineWorker` the engine worker's
+  production bundle; `:web:app:site` writes the deployable
   `web/app/build/site` (stamped build id, asset manifest, no source maps).
 
 ## Testing strategy
@@ -380,6 +396,7 @@ Kotlin (once they target JS, F1) under a DOM UI in Compose HTML; rules never liv
 | core:data-contracts | `commonTest` on the JVM and Node: `ReplayRatingsRepositoryTest` (recompute on log/config change, unknown heroes, one consistent snapshot, shared between collectors) with `core:data-testing`'s fakes. The shared relay algorithm (`RelaySyncRepository`) is held by `core:data`'s `SyncServerRepositoryTest` (JVM) and the web's `WebRelaySyncTest` (Node) |
 | core:group-presentation | `GroupPresentationParityTest` (`commonTest`, JVM and Node): the same log gives the same leaderboard, match rows, meta board, validation words and sync/rating words; the features' ViewModel and screenshot tests cover the rest |
 | Web group (W2) | `:web:app:jsTest`: `WebCryptoCipherTest` (`SyncCipherConformance`, a phone's upload, the relay token vector), `WebGroupDataTest` (the Room repositories' tests ported: names, stamps, merges, tombstones and undo, three browsers converging with equal ratings, sync files, reload, unreadable data kept aside), `WebRelaySyncTest` (fake relay: first upload, a second browser, 304, a phone's upload, the 412 race, refusals in words, invalid data never sent), `WebSyncServerControlTest` (schedule and retries). `web/e2e/tests/group.spec.ts` against a fake relay on a real socket, production blocked; `scripts/interop-live.mjs` + `LiveRelayInteropTest` (phone → real relay → browser → phone); `web/e2e/tests/table-group.spec.ts` where the match log and the table tools hand over (Resume and Rematch → Match setup, Log result's pre-fill, Draft again) |
+| Web play (W4) | `:web:engine:jsNodeTest`: `EngineHostTest` drives the engine through the worker's JSON on Node (a game whose events add up and whose save rebuilds it, stale and computer answers refused, take back, the review and an earlier board, a puzzle solved with the solver's moves and its solution replayed); `:web:app:jsTest`: `PuzzleControllerTest` (the real host in process: solving records progress, a miss and Try again, a fresh worker gets the puzzle and moves back, Show solution), the game controller's tests, `PlayRepositoriesTest` (boards, game save, puzzle progress in the phone's formats); Playwright `play-board.spec.ts`, `play-game.spec.ts`, `play-puzzles.spec.ts` (flows, screenshots, the worker offline) |
 | core:data | Catalog validation (schema, unique IDs, asset paths exist, every hero has a full deck), export/import round-trip |
 | core:database | Room in-memory tests; migration tests for every schema bump (v1 → v2: `matches.tie_breaker`; v2 → v3: `updated_at` backfill, `deletions`, `player_merges`; v3 → v4: `trivia_rounds`) |
 | Group sync | `core:domain`: merge properties (commutative, associative, idempotent, convergence, identical ratings), examples (ties, tombstones, merge chains and cycles, unknown heroes), crypto/codec (RFC 5869 vector, tamper, other group), protocol over the in-memory transport (host + 3, drops mid-upload and mid-download, wrong key, relay, Nearby unavailable). `core:data`: real Room phones syncing (game night, deletions, duplicates, trivia rounds), stamping, backup v5; the sync server client against a fake relay on MockWebServer (every branch and status, `SyncServerRepositoryTest`) and its `group_sync` state. `core:domain`: the token's fixed vector. `feature:sync`: VM tests, screenshots, `SyncServerSchedulerTest` on WorkManager's test driver. Real Nearby: two physical phones only |

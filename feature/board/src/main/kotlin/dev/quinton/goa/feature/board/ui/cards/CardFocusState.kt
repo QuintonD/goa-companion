@@ -18,35 +18,6 @@ import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.Stat
 
 /**
- * One card in the focused viewer. [enabled] false = shown but marked, and it can't be confirmed;
- * [reason] says why (shown under the card). [caption] is a short context line ("Turn 2 · Active"),
- * [verdict] a defense card's Holds / Falls against the Attack, [notes] what choosing it means
- * ("Magnetic Dagger goes to your hand"), [related] other cards that come with it (the two of the
- * next Tier when upgrading) under [relatedLabel]. [key] matches the thumbnail's
- * [Modifier.cardFocusOrigin], so the card grows out of it and shrinks back into it.
- */
-@Immutable
-data class FocusCard(
-    val card: Card,
-    val key: String = card.id,
-    val enabled: Boolean = true,
-    val reason: String? = null,
-    val caption: String? = null,
-    val verdict: CardVerdict? = null,
-    val notes: List<CardNote> = emptyList(),
-    val related: List<Card> = emptyList(),
-    val relatedLabel: String? = null,
-)
-
-/** A defense card against the Attack (p.14): "Holds" / "Falls" / "Decided by its text", and why. */
-@Immutable
-data class CardVerdict(val holds: Boolean?, val label: String, val detail: String)
-
-/** A line of what choosing a card means; [item] puts the item icon of that stat before it (p.16). */
-@Immutable
-data class CardNote(val text: String, val item: Stat? = null)
-
-/**
  * What confirming a focused card does. [action] names it for the card on show ("Discard Magnetic
  * Dagger", "Play Shock facedown"): the Confirm button's label and the hint "Tap the card again to
  * discard Magnetic Dagger". [onConfirm] gets the index of the confirmed card in the list opened.
@@ -181,6 +152,3 @@ fun rememberCardFocusState(): CardFocusState = remember { CardFocusState() }
 /** Marks a thumbnail as where the card with [key] grows out of (and shrinks back into). */
 fun Modifier.cardFocusOrigin(state: CardFocusState, key: String): Modifier =
     onGloballyPositioned { state.origins[key] = it.boundsInWindow() }
-
-/** "Discard Magnetic Dagger" → "discard Magnetic Dagger", for "Tap the card again to …". */
-internal fun lowerFirst(text: String): String = text.replaceFirstChar { it.lowercaseChar() }
