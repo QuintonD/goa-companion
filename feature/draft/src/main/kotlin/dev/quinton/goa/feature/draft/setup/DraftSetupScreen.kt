@@ -366,10 +366,8 @@ private fun BottomBar(state: SetupUiState, actions: SetupActions) {
                     if (last) {
                         Icon(Icons.Outlined.PlayArrow, contentDescription = null)
                         Spacer(Modifier.width(Spacing.sm))
-                        Text(if (state.form.teamMode == TeamMode.PLAYER_DRAFT) "Start Player Draft" else "Start draft")
-                    } else {
-                        Text("Next: ${SetupStage.entries[state.stage.ordinal + 1].title}")
                     }
+                    Text(state.primaryLabel)
                 }
             }
         }
@@ -537,7 +535,7 @@ private fun PlayerRow(option: PlayerOption, selected: Boolean, onToggle: () -> U
             Column(Modifier.weight(1f)) {
                 Text(option.player.name, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    ratingLabel(option),
+                    option.ratingLabel,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -545,13 +543,6 @@ private fun PlayerRow(option: PlayerOption, selected: Boolean, onToggle: () -> U
             Checkbox(checked = selected, onCheckedChange = null)
         }
     }
-}
-
-private fun ratingLabel(option: PlayerOption): String {
-    val r = option.rating ?: return "Unrated"
-    if (r.games == 0) return "Unrated"
-    val provisional = if (r.provisional) " · provisional" else ""
-    return "Elo ${r.value.roundToInt()} · ${plural(r.games, "game")}$provisional"
 }
 
 // ---------------------------------------------------------------- Teams
@@ -691,8 +682,7 @@ private fun SeatLayoutCard(state: SetupUiState, actions: SetupActions) {
         n == 2 -> InfoCard("Two players", "Each player controls two heroes (rulebook), so the draft fills 2 v 2 seats.")
 
         n == 3 -> {
-            val solo = (if (form.red.size == 1) form.red else form.blue).firstOrNull()
-            val name = solo?.let { state.player(it)?.player?.name } ?: "The solo player"
+            val name = state.soloPlayerName
             InfoCard(
                 "Official 3-player setup",
                 "$name controls two heroes and replaces a gold card of one of them with its Handicap card. " +
@@ -735,8 +725,8 @@ private fun SeatLayoutCard(state: SetupUiState, actions: SetupActions) {
 @Composable
 private fun DoublePilotPicker(state: SetupUiState, actions: SetupActions) {
     val form = state.form
-    val smaller = if (form.red.size < form.blue.size) form.red else form.blue
-    val current = state.seats.groupBy { it.pilotId }.entries.firstOrNull { it.value.size > 1 }?.key
+    val smaller = state.doublePilotChoices
+    val current = state.currentDoublePilot
     Column {
         Text("Who pilots two heroes?", style = MaterialTheme.typography.labelLarge)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -759,13 +749,7 @@ private fun PlayerDraftSetup(state: SetupUiState, actions: SetupActions) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         InfoCard(
             "Official Player Draft",
-            "The two most experienced players are Captains. First every player gets a hero with the method you " +
-                "choose next. Then the Captains draft players one at a time, Team A's captain first. Everyone plays " +
-                "their pre-selected hero." + if (state.playerCount % 2 == 1) {
-                    " With an odd count, the larger team's heroes use their Handicap cards."
-                } else {
-                    ""
-                },
+            DraftSetupPresenter.playerDraftExplanation(state.playerCount),
         )
         for (team in Team.entries) {
             SectionCard(title = "${teamLabel(team)} captain", titleColor = teamColor(team)) {
@@ -823,7 +807,7 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
                     val selected = option.method.id == form.methodId
                     ChoiceCard(
                         title = option.method.name,
-                        badge = originLabel(option.method.origin),
+                        badge = DraftSetupPresenter.originLabel(option.method),
                         body = option.unavailable ?: option.method.summary,
                         selected = selected,
                         onClick = { actions.selectMethod(option.method.id) },
@@ -938,12 +922,6 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
             choosing = false
         })
     }
-}
-
-private fun originLabel(origin: MethodOrigin) = when (origin) {
-    MethodOrigin.RULEBOOK -> "Rulebook"
-    MethodOrigin.HOUSE -> "House"
-    MethodOrigin.CUSTOM -> "Custom"
 }
 
 @Composable

@@ -10,6 +10,8 @@ import dev.quinton.goa.web.nav.Router
 import dev.quinton.goa.web.nav.ScrollTarget
 import dev.quinton.goa.web.pwa.DeviceStorage
 import dev.quinton.goa.web.screens.ScreenFor
+import dev.quinton.goa.web.timer.RunningTimerBar
+import dev.quinton.goa.web.timer.TimerShell
 import dev.quinton.goa.web.ui.SnackbarHost
 import dev.quinton.goa.web.ui.TabBar
 import dev.quinton.goa.web.ui.focusWithoutScroll
@@ -25,6 +27,7 @@ import org.w3c.dom.events.Event
 fun main() {
     val services = AppServices.create()
     services.serviceWorker.start()
+    services.data.group.start() // automatic sync with the group's relay (W2)
     document.getElementById("root")?.innerHTML = "" // the static splash in index.html
     renderComposable(rootElementId = "root") {
         CompositionLocalProvider(LocalServices provides services) { App() }
@@ -37,19 +40,25 @@ fun App() {
     val services = LocalServices.current
     val router = services.router
     val route = router.route
+    // A running timer session: its screen hides the tab bar, the others show the "timer running" bar.
+    val session = TimerShell.activeSession()
+    val tabBar = route.showsTabBar && !TimerShell.hidesTabBar(route, session)
+    val timerBar = TimerShell.showsBar(route, session, tabBar)
     Div({
         classes("goa-app")
-        if (route.showsTabBar) classes("has-tabbar")
+        if (tabBar) classes("has-tabbar")
+        if (timerBar) classes("has-timerbar")
     }) {
         // One composition per history entry: a screen opened again starts fresh, Back restores
         // scroll (ScrollRestorer) and retained state (rememberRetained).
         key(router.entry.key) { ScreenFor(route) }
-        if (route.showsTabBar) TabBar(router.tab, onSelect = router::selectTab)
+        if (timerBar && session != null) RunningTimerBar(session)
+        if (tabBar) TabBar(router.tab, onSelect = router::selectTab)
         SnackbarHost(services.messages, services.serviceWorker.updateReady, services.serviceWorker::applyUpdate)
     }
     ScrollRestorer(router.scrollTarget)
     FocusTitleOnNavigate(router.entry.key)
-    EdgeSwipeBack(router, enabled = route.showsTabBar)
+    EdgeSwipeBack(router, enabled = tabBar)
     KeepStorage()
 }
 

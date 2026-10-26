@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.catalog.list
 
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.domain.catalog.matchingParagraph
 import org.junit.Test
 
 /** The snippet under a card search result (synthetic card text). */

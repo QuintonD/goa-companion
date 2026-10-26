@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.catalog.ui
 
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.domain.catalog.blockMarkerLabel
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.PrimaryAction

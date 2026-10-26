@@ -13,17 +13,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class RatingSettingsUiState(
-    val loading: Boolean = true,
-    val config: EloConfig = EloConfig.DEFAULT,
-    val ratedMatches: Int = 0,
-    val skippedMatches: Int = 0,
-    /** True while the shown ratings were computed with an older config (recompute in flight). */
-    val recomputing: Boolean = false,
-) {
-    val isDefault: Boolean get() = config == EloConfig.DEFAULT
-}
-
 @HiltViewModel
 class RatingSettingsViewModel @Inject constructor(
     private val configRepository: EloConfigRepository,
@@ -33,13 +22,7 @@ class RatingSettingsViewModel @Inject constructor(
             config,
             snapshot,
         ->
-        RatingSettingsUiState(
-            loading = false,
-            config = config,
-            ratedMatches = snapshot.ratings.replayOrder.size,
-            skippedMatches = snapshot.ratings.skipped.size,
-            recomputing = snapshot.config != config,
-        )
+        ratingSettingsState(config, snapshot)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RatingSettingsUiState())
 
     fun update(transform: (EloConfig) -> EloConfig) {

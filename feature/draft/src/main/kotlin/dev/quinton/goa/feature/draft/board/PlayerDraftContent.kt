@@ -52,6 +52,7 @@ import dev.quinton.goa.core.domain.teams.PlayerDraftSession
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.draft.ui.HeroTile
 import dev.quinton.goa.feature.draft.ui.TileState
+import dev.quinton.goa.feature.draft.ui.heroLabel
 import dev.quinton.goa.feature.draft.ui.info
 import dev.quinton.goa.feature.draft.ui.teamGlyph
 import dev.quinton.goa.feature.draft.ui.teamLabel
@@ -120,20 +121,7 @@ internal fun PlayerDraftContent(
 private fun PhaseBanner(state: BoardUiState, session: PlayerDraftSession) {
     val team = session.captains.nextTeam
     val color = team?.let { teamColor(it) } ?: MaterialTheme.colorScheme.primary
-    val (title, body) = when (session.phase) {
-        PlayerDraftPhase.HEROES ->
-            "Heroes for every player" to
-                "${session.method.name}: ${session.method.summary} Choose in any order; teams come next."
-
-        PlayerDraftPhase.CAPTAINS -> {
-            val captain = state.playerName(team?.let { session.captains.captainOf(it) })
-            "${team?.let { teamLabel(it) }} captain — draft a player" to
-                "$captain picks. Team A's captain drafts first, then captains alternate; the last player " +
-                "joins the team whose turn it is."
-        }
-
-        PlayerDraftPhase.DONE -> "Teams complete" to ""
-    }
+    val (title, body) = DraftBoardText.playerDraftBanner(state, session)
     Surface(
         shape = MaterialTheme.shapes.large,
         color = color.copy(alpha = 0.14f),

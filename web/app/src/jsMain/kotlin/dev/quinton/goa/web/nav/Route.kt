@@ -53,6 +53,34 @@ sealed interface Route {
         override val parent get() = Catalog
     }
 
+    /**
+     * A trivia round (ADR-028) or the Challenge (ADR-032): the shared `TriviaQuizRequest` in the URL,
+     * so a reload or a home-screen relaunch reopens the same quiz. Full screen: no tab bar beside the
+     * answer buttons.
+     */
+    data class TriviaQuiz(
+        val config: String,
+        val factKeys: List<String> = emptyList(),
+        val challenge: Boolean = false,
+    ) :
+        Route {
+        override val path get() = buildString {
+            append("trivia/quiz?config=").append(Routes.encode(config))
+            if (factKeys.isNotEmpty()) append("&facts=").append(Routes.encode(factKeys.joinToString(",")))
+            if (challenge) append("&challenge=1")
+        }
+        override val tab get() = Tab.HEROES
+        override val parent get() = Trivia()
+        override val showsTabBar get() = false
+    }
+
+    /** The trivia leaderboard (ADR-032): Challenge and Practice boards from the group's rounds. */
+    data object TriviaLeaderboard : Route {
+        override val path = "trivia/leaderboard"
+        override val tab get() = Tab.HEROES
+        override val parent get() = Trivia()
+    }
+
     data object Boards : Route {
         override val path = "boards"
         override val tab get() = Tab.HEROES
@@ -76,7 +104,7 @@ sealed interface Route {
         val mapId: String? = null,
     ) : Route {
         override val path get() = "boards/new" +
-            Routes.query("red" to red.joinToString(","), "blue" to blue.joinToString(","), "map" to mapId)
+            Routes.query("red" to red.ids(), "blue" to blue.ids(), "map" to mapId)
         override val tab get() = Tab.HEROES
         override val parent get() = Boards
     }
@@ -95,8 +123,8 @@ sealed interface Route {
         val matchId: String? = null,
     ) : Route {
         override val path get() = "boards/open" + Routes.query(
-            "red" to red.joinToString(","),
-            "blue" to blue.joinToString(","),
+            "red" to red.ids(),
+            "blue" to blue.ids(),
             "map" to mapId,
             "name" to name,
             "match" to matchId,
@@ -117,7 +145,7 @@ sealed interface Route {
     /** Setting up a game against the computer; [red]/[blue] pre-fill the teams (e.g. after a game). */
     data class NewGame(val red: List<String> = emptyList(), val blue: List<String> = emptyList()) : Route {
         override val path get() = "play/new" +
-            Routes.query("red" to red.joinToString(","), "blue" to blue.joinToString(","))
+            Routes.query("red" to red.ids(), "blue" to blue.ids())
         override val tab get() = Tab.HEROES
         override val parent get() = Boards
     }
@@ -148,6 +176,18 @@ sealed interface Route {
         override val parent get() = Rules
     }
 
+    /**
+     * The level & defeat ladder (W1's rules reference; the running timer opens it on Level Up).
+     * [heroIds] are the heroes in play: their cards that change Life counters or defeat rewards are
+     * quoted. Empty = all heroes. As Android's `LevelLadderRoute`.
+     */
+    data class LevelLadder(val heroIds: List<String> = emptyList()) : Route {
+        override val path get() = "levels" +
+            Routes.query("heroes" to heroIds.takeIf { it.isNotEmpty() }?.joinToString(","))
+        override val tab: Tab? = null
+        override val parent get() = Rules
+    }
+
     data object Settings : Route {
         override val path = "settings"
         override val tab: Tab? = null
@@ -167,11 +207,61 @@ sealed interface Route {
         override val parent: Route? = null
     }
 
+    /**
+     * Match setup (mode, counters, Tie Breaker coin) for a pending match ([matchId]) or a fresh one.
+     * [rematchOf] + [rematchKind] (a `RematchKind` name) set up a rematch instead, saved as a match
+     * only when its timer starts.
+     */
+    data class MatchSetup(
+        val matchId: String? = null,
+        val rematchOf: String? = null,
+        val rematchKind: String? = null,
+    ) : Route {
+        override val path
+            get() = "timer/setup" + Routes.query("match" to matchId, "rematch" to rematchOf, "kind" to rematchKind)
+        override val tab get() = Tab.TIMER
+        override val parent get() = Timer
+    }
+
+    data object TimerPresets : Route {
+        override val path = "timer/presets"
+        override val tab get() = Tab.TIMER
+        override val parent get() = Timer
+    }
+
+    /** A preset's editor; null [presetId] = a new preset. */
+    data class TimerPresetEdit(val presetId: String? = null) : Route {
+        override val path get() = "timer/presets/" + (presetId?.let(Routes::encode) ?: NEW)
+        override val tab get() = Tab.TIMER
+        override val parent get() = TimerPresets
+    }
+
     // Draft tab
     data object Draft : Route {
         override val path = "draft"
         override val tab get() = Tab.DRAFT
         override val parent: Route? = null
+    }
+
+    /** The draft in progress (bans and picks, pass-and-play): a full-screen table tool. */
+    data object DraftBoard : Route {
+        override val path = "draft/board"
+        override val tab get() = Tab.DRAFT
+        override val parent get() = Draft
+        override val showsTabBar get() = false
+    }
+
+    data object DraftMethods : Route {
+        override val path = "draft/methods"
+        override val tab get() = Tab.DRAFT
+        override val parent get() = Draft
+    }
+
+    /** A draft method's editor; null [methodId] = a new method (a built-in opens as a copy). */
+    data class DraftMethodEdit(val methodId: String? = null) : Route {
+        override val path get() = "draft/methods/" + (methodId?.let(Routes::encode) ?: NEW)
+        override val tab get() = Tab.DRAFT
+        override val parent get() = DraftMethods
     }
 
     // Players tab
@@ -193,6 +283,43 @@ sealed interface Route {
         override val parent get() = Players
     }
 
+    /**
+     * The match editor (W2's screen; W3 opens it from the timer). [matchId] null = a new match;
+     * [prefillDurationMin] / [prefillMode] (a `GameMode` serial name) pre-fill a new one from a
+     * finished timer session. [result] opens the focused "Who won?" layout. [prefillPlayedAt] (epoch
+     * ms, the session's start) dates a new or pending match. [newMatchId] is the id a new match is
+     * saved under (the timer reserves one so it can tell when the result was saved). As Android's
+     * `MatchEditRoute`.
+     */
+    data class MatchEdit(
+        val matchId: String? = null,
+        val prefillDurationMin: Int? = null,
+        val prefillMode: String? = null,
+        val result: Boolean = false,
+        val prefillPlayedAt: Long? = null,
+        val newMatchId: String? = null,
+    ) : Route {
+        override val path
+            get() = "matches/" + (matchId?.let(Routes::encode) ?: NEW) + Routes.query(
+                "result" to if (result) "1" else null,
+                "duration" to prefillDurationMin?.toString(),
+                "mode" to prefillMode,
+                "playedAt" to prefillPlayedAt?.toString(),
+                "newId" to newMatchId,
+            )
+
+        // Opened from the Timer tab (Log result) and the match log: stays on the tab that opened it.
+        override val tab: Tab? = null
+        override val parent get() = Matches
+    }
+
+    /** A player profile's editor (W2's screen; the draft opens it for a new player). */
+    data class PlayerEdit(val playerId: String? = null) : Route {
+        override val path get() = playerId?.let { "players/${Routes.encode(it)}/edit" } ?: "players/$NEW"
+        override val tab: Tab? = null
+        override val parent get() = playerId?.let { PlayerDetail(it) } ?: Players
+    }
+
     data object Meta : Route {
         override val path = "meta"
         override val tab get() = Tab.PLAYERS
@@ -205,6 +332,30 @@ sealed interface Route {
         override val parent get() = Players
     }
 
+    /** How ratings are calculated (Settings → Ratings on the phone). */
+    data object RatingSettings : Route {
+        override val path = "ratings"
+        override val tab: Tab? = null
+        override val parent get() = Meta
+    }
+
+    /** "Which player are you?" */
+    data object WhoAreYou : Route {
+        override val path = "group/me"
+        override val tab get() = Tab.PLAYERS
+        override val parent get() = Group
+    }
+
+    /**
+     * An invite link (`#join=goa-sync:1?…`, the QR code's link, `GroupInvite.link`): the Group screen
+     * takes the invite and asks first; the key never stays in the address bar or the history.
+     */
+    data class Join(val invite: String) : Route {
+        override val path get() = "join=$invite"
+        override val tab get() = Tab.PLAYERS
+        override val parent get() = Group
+    }
+
     /** A hash no screen answers to (an old bookmark): says so and offers the way home. */
     data class NotFound(val hash: String) : Route {
         override val path get() = hash
@@ -213,11 +364,19 @@ sealed interface Route {
     }
 }
 
+/** The path segment that means "a new one" (`#/timer/presets/new`); never an id. */
+private const val NEW = "new"
+
 /** Parses and formats the `#/…` hash. Pure, so it is unit-tested without a browser. */
 object Routes {
     /** The route for [hash] (`#/heroes/arien`, `/heroes/arien` or `heroes/arien`); empty = Heroes. */
     fun parse(hash: String): Route {
         val raw = hash.removePrefix("#").removePrefix("/").trimEnd('/')
+        // An invite link: everything after "join=" is the invite, kept exactly as written.
+        return if (raw.startsWith(JOIN)) Route.Join(raw.removePrefix(JOIN)) else parsePath(raw)
+    }
+
+    private fun parsePath(raw: String): Route {
         if (raw.isEmpty()) return Route.Catalog
         val path = raw.substringBefore('?')
         val query = parseQuery(raw.substringAfter('?', ""))
@@ -225,18 +384,19 @@ object Routes {
         if (parts.any { it.isEmpty() }) return Route.NotFound(raw)
         return when (parts.first()) {
             "heroes" -> heroes(parts, raw)
-            "trivia" -> if (parts.size == 1) Route.Trivia(query["hero"]?.takeIf { it.isNotEmpty() }) else null
+            "trivia", "levels" -> queried(parts, query)
             "boards" -> boards(parts, query)
             "play" -> play(parts, query)
             "puzzles" -> oneOrTwo(parts, Route.Puzzles) { Route.Puzzle(it) }
             "rules" -> oneOrTwo(parts, Route.Rules) { Route.RulesTopic(it) }
             "settings" -> settings(parts)
-            "timer" -> Route.Timer.takeIf { parts.size == 1 }
-            "draft" -> Route.Draft.takeIf { parts.size == 1 }
-            "players" -> oneOrTwo(parts, Route.Players) { Route.PlayerDetail(it) }
-            "matches" -> Route.Matches.takeIf { parts.size == 1 }
+            "timer" -> timer(parts, query)
+            "draft" -> draft(parts)
+            "players" -> players(parts)
+            "matches" -> matches(parts, query)
             "meta" -> Route.Meta.takeIf { parts.size == 1 }
-            "group" -> Route.Group.takeIf { parts.size == 1 }
+            "ratings" -> Route.RatingSettings.takeIf { parts.size == 1 }
+            "group" -> group(parts)
             else -> null
         } ?: Route.NotFound(raw)
     }
@@ -284,16 +444,98 @@ object Routes {
 
     private fun String?.orNull(): String? = this?.takeIf { it.isNotEmpty() }
 
-    /** A query string ("?red=a,b&map=x") of the pairs with a value; empty when none has one. */
-    fun query(vararg pairs: Pair<String, String?>): String {
-        val kept = pairs.filter { !it.second.isNullOrEmpty() }
-        return if (kept.isEmpty()) {
-            ""
-        } else {
-            "?" +
-                kept.joinToString("&") { (k, v) -> "$k=${encode(v!!).replace("%2C", ",")}" }
-        }
+    /**
+     * The screens whose address carries a query: trivia (`?hero=`, a quiz's request) and the level
+     * ladder (`?heroes=`); the boards' and the game's are [boards] and [play].
+     */
+    private fun queried(parts: List<String>, query: Map<String, String>): Route? = when (parts.first()) {
+        "trivia" -> trivia(parts, query)
+
+        else -> Route.LevelLadder(query.list("heroes")).takeIf { parts.size == 1 }
     }
+
+    private fun trivia(parts: List<String>, query: Map<String, String>): Route? = when {
+        parts.size == 1 -> Route.Trivia(query["hero"]?.takeIf { it.isNotEmpty() })
+
+        parts.size == 2 && parts[1] == "leaderboard" -> Route.TriviaLeaderboard
+
+        parts.size == 2 && parts[1] == "quiz" -> query["config"]?.let { config ->
+            Route.TriviaQuiz(
+                config = config,
+                factKeys = query.list("facts"),
+                challenge = query["challenge"] == "1",
+            )
+        }
+
+        else -> null
+    }
+
+    private fun timer(parts: List<String>, query: Map<String, String>): Route? = when {
+        parts.size == 1 -> Route.Timer
+
+        parts.size == 2 && parts[1] == "setup" -> Route.MatchSetup(
+            query.value("match"),
+            query.value("rematch"),
+            query.value("kind"),
+        )
+
+        parts.size == 2 && parts[1] == "presets" -> Route.TimerPresets
+
+        parts.size == 3 && parts[1] == "presets" -> Route.TimerPresetEdit(parts[2].takeIf { it != NEW })
+
+        else -> null
+    }
+
+    private fun draft(parts: List<String>): Route? = when {
+        parts.size == 1 -> Route.Draft
+        parts.size == 2 && parts[1] == "board" -> Route.DraftBoard
+        parts.size == 2 && parts[1] == "methods" -> Route.DraftMethods
+        parts.size == 3 && parts[1] == "methods" -> Route.DraftMethodEdit(parts[2].takeIf { it != NEW })
+        else -> null
+    }
+
+    private fun players(parts: List<String>): Route? = when {
+        parts.size == 1 -> Route.Players
+        parts.size == 2 && parts[1] == NEW -> Route.PlayerEdit()
+        parts.size == 2 -> Route.PlayerDetail(parts[1])
+        parts.size == 3 && parts[2] == "edit" -> Route.PlayerEdit(parts[1])
+        else -> null
+    }
+
+    private fun matches(parts: List<String>, query: Map<String, String>): Route? = when (parts.size) {
+        1 -> Route.Matches
+
+        2 -> Route.MatchEdit(
+            matchId = parts[1].takeIf { it != NEW },
+            prefillDurationMin = query.value("duration")?.toIntOrNull(),
+            prefillMode = query.value("mode"),
+            result = query["result"] == "1",
+            prefillPlayedAt = query.value("playedAt")?.toLongOrNull(),
+            newMatchId = query.value("newId"),
+        )
+
+        else -> null
+    }
+
+    private fun Map<String, String>.value(key: String): String? = this[key]?.takeIf { it.isNotEmpty() }
+
+    private fun Map<String, String>.list(key: String): List<String> =
+        this[key].orEmpty().split(',').filter { it.isNotEmpty() }
+
+    /** `?a=1&b=2` from the non-null pairs (empty when none), values percent-encoded. */
+    fun query(vararg pairs: Pair<String, String?>): String {
+        val present = pairs.filter { it.second != null }
+        if (present.isEmpty()) return ""
+        return "?" + present.joinToString("&") { (k, v) -> "$k=${encode(v!!)}" }
+    }
+
+    private fun group(parts: List<String>): Route? = when {
+        parts.size == 1 -> Route.Group
+        parts.size == 2 && parts[1] == "me" -> Route.WhoAreYou
+        else -> null
+    }
+
+    private const val JOIN = "join="
 
     private fun settings(parts: List<String>): Route? = when {
         parts.size == 1 -> Route.Settings
@@ -324,3 +566,6 @@ object Routes {
 private external fun encodeURIComponent(value: String): String
 
 private external fun decodeURIComponent(value: String): String
+
+/** Hero ids for an address (`arien,brogan`), or nothing for none. */
+private fun List<String>.ids(): String? = takeIf { it.isNotEmpty() }?.joinToString(",")

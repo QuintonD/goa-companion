@@ -32,9 +32,25 @@ hero's name and title.
 | Bottom-bar icons, brand mark | `design/icons/*.svg` | `core/designsystem/src/main/res/drawable/ic_*.xml` |
 | App icon (foreground, background, monochrome) | `design/brand/ic_launcher_*.svg` | `app/src/main/res/drawable/ic_launcher_*.xml` |
 
+## Web app libraries (code, ADR-043)
+
+The web app bundles two npm libraries for invite QR codes; their licences ship in the site as
+`licenses/` files, copied from `third_party/web/`:
+qrcode-generator 2.0.4 (Kazuhiko Arase, MIT, `MIT-qrcode-generator.txt`) draws the codes and jsQR
+1.4.0 (Apache-2.0, `Apache-2.0-jsQR.txt`) reads them from the camera.
+
 ## Material Symbols
 
 UI icons from `androidx.compose.material:material-icons-extended` (Apache 2.0, Google).
+
+The web app (ADR-043) draws the same game-icon glyphs in card text from SVG copies:
+`web/app/src/jsMain/resources/icons/game_<token>.svg`, taken unchanged from the npm package
+`@material-design-icons/svg` 0.14.15 (`filled/` and `outlined/`, the same Material Icons set; each
+file's `<title>` names its source glyph), except `game_attack.svg`, the app's own sword
+(`GameIcons.Sword`). Licence text: [`icons/LICENSE-Apache-2.0.txt`](icons/LICENSE-Apache-2.0.txt),
+shown in the web app's About → Icons. The web app's other UI icons are original
+(`web/app/src/jsMain/resources/icons/*.svg`, 24-unit grid, 2-unit stroke); it also bundles the
+hero sigils from `design/sigils/` as the fallback for hero art.
 
 ## Sounds (original, made for this app)
 

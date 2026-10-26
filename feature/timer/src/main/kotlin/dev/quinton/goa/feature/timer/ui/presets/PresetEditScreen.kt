@@ -276,11 +276,7 @@ private fun TableRulesSection(
         state.issuesFor(null).filter {
             it.kind == PresetIssue.Kind.SHOT_CLOCK_OUT_OF_RANGE || it.kind == PresetIssue.Kind.TIME_OUTS_OUT_OF_RANGE
         }.forEach { issue ->
-            val text = if (issue.kind == PresetIssue.Kind.SHOT_CLOCK_OUT_OF_RANGE) {
-                "Hurry up must be between ${TimerPresetValidator.MIN_SECONDS} s and 10 min."
-            } else {
-                "Time-outs: up to ${TimerPresetValidator.TIME_OUTS_RANGE.last}, each up to 10 min."
-            }
+            val text = PresetEdits.tableRuleIssueText(issue) ?: return@forEach
             Text(
                 text,
                 color = colors.error,
@@ -444,7 +440,7 @@ private fun PhaseCard(
                         color = colors.onSurfaceVariant,
                     )
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        PresetEditViewModel.CUE_OPTIONS.filter { it < seconds }.forEach { cue ->
+                        PresetEdits.CUE_OPTIONS.filter { it < seconds }.forEach { cue ->
                             FilterChip(
                                 selected = cue in phase.cues,
                                 onClick = { actions.onToggleCue(phase.id, cue) },
@@ -468,8 +464,7 @@ private fun PhaseCard(
 @Composable
 private fun EndStepPicker(phase: PhaseSpec, endSteps: List<EndOfRoundStep>, onPick: (String?) -> Unit) {
     var open by remember { mutableStateOf(false) }
-    val index = endSteps.indexOfFirst { it.id == phase.endStepId }
-    val current = if (index >= 0) "Step ${index + 1}: ${endSteps[index].title}" else "After the checklist"
+    val current = PresetEdits.endStepLabel(phase, endSteps)
     Box {
         TextButton(onClick = { open = true }, modifier = Modifier.heightIn(min = 48.dp)) {
             Text("Runs during: $current")
@@ -498,26 +493,7 @@ private fun EndStepPicker(phase: PhaseSpec, endSteps: List<EndOfRoundStep>, onPi
 @Composable
 private fun IssueText(issues: List<PresetIssue>) {
     issues.forEach { issue ->
-        val text = when (issue.kind) {
-            PresetIssue.Kind.DURATION_OUT_OF_RANGE ->
-                "Duration must be between ${TimerPresetValidator.MIN_SECONDS} s and ${TimerPresetValidator.MAX_SECONDS / 60} min."
-
-            PresetIssue.Kind.CUE_OUT_OF_RANGE -> "Cues must be shorter than the phase."
-
-            PresetIssue.Kind.BLANK_PHASE_NAME -> "Give this timer a name."
-
-            PresetIssue.Kind.DUPLICATE_PHASE_ID -> "Duplicate timer."
-
-            PresetIssue.Kind.ACTION_NOT_PER_TURN -> "The Action timer runs during turns only."
-
-            PresetIssue.Kind.UNKNOWN_END_STEP -> "Pick an end-of-round step."
-
-            PresetIssue.Kind.BLANK_NAME,
-            PresetIssue.Kind.TURNS_OUT_OF_RANGE,
-            PresetIssue.Kind.SHOT_CLOCK_OUT_OF_RANGE,
-            PresetIssue.Kind.TIME_OUTS_OUT_OF_RANGE,
-            -> null
-        } ?: return@forEach
+        val text = PresetEdits.issueText(issue) ?: return@forEach
         Text(
             text,
             color = MaterialTheme.colorScheme.error,

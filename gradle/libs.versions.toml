@@ -45,6 +45,9 @@ work = "2.12.0"
 # Web app (ADR-043): Compose HTML (DOM) on Kotlin/JS. 1.12.2 is the last stable html-core.
 composeHtml = "1.12.2"
 fakeIndexedDb = "6.2.6"
+# Invite QR codes in the web app (W2): drawing (MIT) and reading with the camera (Apache-2.0).
+qrcodeGenerator = "2.0.4"
+jsQr = "1.4.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }

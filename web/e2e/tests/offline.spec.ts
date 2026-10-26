@@ -6,17 +6,17 @@ import { open, shot, title, waitForServiceWorker } from "./helpers";
 
 test("after the first visit the app opens offline, deep link included", async ({ page, context }) => {
   await open(page, "#/heroes/arien");
-  await expect(page.getByRole("img", { name: "Arien portrait" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Arien artwork" })).toBeVisible();
   await waitForServiceWorker(page);
   // The portrait was requested before the worker took over: open it again so it is cached.
   await page.reload();
-  await expect(page.getByRole("img", { name: "Arien portrait" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Arien artwork" })).toBeVisible();
 
   await context.setOffline(true);
   await page.reload();
-  await expect(title(page)).toHaveText("Hero");
+  await expect(title(page)).toHaveText("Arien");
   await expect(page.getByRole("heading", { name: "Arien" })).toBeVisible();
-  await expect.poll(() => imageLoaded(page, "Arien portrait")).toBe(true);
+  await expect.poll(() => imageLoaded(page, "Arien artwork")).toBe(true);
   await page.getByRole("button", { name: "Back" }).click();
   await expect(page.getByRole("link", { name: /^Widget/ })).toBeVisible(); // every hero file precached
   await context.setOffline(false);
@@ -36,7 +36,7 @@ test("Download everything puts every image on the device", async ({ page, contex
   await page.reload();
   await expect(page.getByText(/Last downloaded/)).toBeVisible();
   await page.goto("./#/heroes/widget");
-  await expect.poll(() => imageLoaded(page, "Widget portrait")).toBe(true);
+  await expect.poll(() => imageLoaded(page, "Widget artwork")).toBe(true);
   await context.setOffline(false);
 });
 
@@ -59,5 +59,9 @@ test("a new version waits for Reload", async ({ page, context, baseURL }, info) 
 });
 
 async function imageLoaded(page: import("@playwright/test").Page, alt: string): Promise<boolean> {
-  return page.getByRole("img", { name: alt }).evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0);
+  // The hero art is a labelled frame around the portrait <img>.
+  return page
+    .getByRole("img", { name: alt })
+    .locator("img")
+    .evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0);
 }

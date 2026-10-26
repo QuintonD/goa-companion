@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <title>Syncing: a cloud with arrows</title>
+  <path d="M7 18a4.5 4.5 0 0 1-.8-8.9A6 6 0 0 1 17.8 10 3.5 3.5 0 0 1 17 18"/>
+  <path d="M9 13.5a3 3 0 0 1 5.3-1.5M15 15a3 3 0 0 1-5.3 1.5M14.5 10.5v1.8h-1.8M9.5 18v-1.8h1.8"/>
+</svg>

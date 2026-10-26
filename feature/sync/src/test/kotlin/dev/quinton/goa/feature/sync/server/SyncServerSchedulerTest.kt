@@ -21,6 +21,7 @@ import dev.quinton.goa.core.data.SyncServerOutcome
 import dev.quinton.goa.core.data.SyncServerProblem
 import dev.quinton.goa.core.data.SyncServerRepository
 import dev.quinton.goa.core.data.SyncServerResult
+import dev.quinton.goa.core.data.sync.SyncServerRetry
 import dev.quinton.goa.core.domain.sync.SyncChanges
 import dev.quinton.goa.core.testing.FakeGroupRepository
 import dev.quinton.goa.feature.sync.TestGroup
@@ -312,14 +313,14 @@ class SyncServerSchedulerTest {
     @Test
     fun workerDecisions() {
         val synced = SyncServerResult.Synced(SyncChanges.NONE, 1, 1, uploaded = true)
-        assertThat(SyncServerWorker.decide(synced, 0)).isEqualTo(SyncServerWorker.Next.Done)
-        assertThat(SyncServerWorker.decide(SyncServerResult.NotConfigured, 0)).isEqualTo(SyncServerWorker.Next.Done)
+        assertThat(SyncServerWorker.decide(synced, 0)).isEqualTo(SyncServerRetry.Next.Done)
+        assertThat(SyncServerWorker.decide(SyncServerResult.NotConfigured, 0)).isEqualTo(SyncServerRetry.Next.Done)
         SyncServerProblem.entries.forEach { problem ->
-            val expected = if (problem.transient) SyncServerWorker.Next.Retry else SyncServerWorker.Next.Fail
+            val expected = if (problem.transient) SyncServerRetry.Next.Retry else SyncServerRetry.Next.Fail
             assertThat(SyncServerWorker.decide(failed(problem), 0)).isEqualTo(expected)
             // Someone is waiting on a join: never retry.
             val watched = SyncServerWorker.decide(failed(problem), 0, watched = true)
-            assertThat(watched).isEqualTo(SyncServerWorker.Next.Fail)
+            assertThat(watched).isEqualTo(SyncServerRetry.Next.Fail)
         }
         assertThat(SyncServerProblem.entries.filter { it.transient }).containsExactly(
             SyncServerProblem.UNREACHABLE,
@@ -328,20 +329,20 @@ class SyncServerSchedulerTest {
             SyncServerProblem.RATE_LIMITED,
             SyncServerProblem.SERVER_FULL,
         )
-        val last = SyncServerWorker.MAX_ATTEMPTS - 1
+        val last = SyncServerRetry.MAX_ATTEMPTS - 1
         assertThat(SyncServerWorker.decide(failed(SyncServerProblem.TIMEOUT), last))
-            .isEqualTo(SyncServerWorker.Next.Fail)
+            .isEqualTo(SyncServerRetry.Next.Fail)
         // Retry-After: within the backoff, WorkManager's own retry; longer, a run queued no earlier.
-        assertThat(SyncServerWorker.backoffSeconds(0)).isEqualTo(30)
-        assertThat(SyncServerWorker.backoffSeconds(2)).isEqualTo(120)
+        assertThat(SyncServerRetry.backoffSeconds(0)).isEqualTo(30)
+        assertThat(SyncServerRetry.backoffSeconds(2)).isEqualTo(120)
         assertThat(SyncServerWorker.decide(failed(SyncServerProblem.SERVER, retryAfter = 30), 0))
-            .isEqualTo(SyncServerWorker.Next.Retry)
+            .isEqualTo(SyncServerRetry.Next.Retry)
         assertThat(SyncServerWorker.decide(failed(SyncServerProblem.SERVER, retryAfter = 30), 2))
-            .isEqualTo(SyncServerWorker.Next.Retry)
+            .isEqualTo(SyncServerRetry.Next.Retry)
         assertThat(SyncServerWorker.decide(failed(SyncServerProblem.SERVER_FULL, retryAfter = 3600), 0))
-            .isEqualTo(SyncServerWorker.Next.RetryAfter(3600))
+            .isEqualTo(SyncServerRetry.Next.RetryAfter(3600))
         assertThat(SyncServerWorker.decide(failed(SyncServerProblem.RATE_LIMITED, retryAfter = 45), 0))
-            .isEqualTo(SyncServerWorker.Next.RetryAfter(45))
+            .isEqualTo(SyncServerRetry.Next.RetryAfter(45))
     }
 
     private fun failed(problem: SyncServerProblem, retryAfter: Long? = null) =

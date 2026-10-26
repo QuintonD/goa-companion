@@ -655,6 +655,8 @@ backup import or resurrects a deleted board. `lane` has a default and boards are
 `SyncDocument` bump; the backup round-trips it.
 
 ## ADR-034 — No privacy or offline rule: the app may go online and be published (2026-10-19)
+**Status:** In force; the public release it left open happened in ADR-043 (the web app on public GitHub
+Pages, with the official assets published and attributed in `official/SOURCES.md`).
 **Context:** Two rules have bounded every choice so far: "keep it private" (ADR-006 and its
 addendum: no public remote, no public APK, shared only by a private Drive link) and "the app is
 offline" (no `INTERNET` permission, no server; ADR-002, ADR-025, ADR-027). The owner lifted both
@@ -1234,3 +1236,146 @@ reachable code: the production `app.js` grew from 985 330 to 1 027 094 bytes (+4
 287 897, +11 KB) with the real catalog model and its serializers, and carries none of the engine
 (no `dev.quinton.goa.core.game` names in the bundle); the engine goes in the Worker. A new
 operation on a contract is added to the interface with an implementation on both platforms.
+
+**Addendum (Content, W1, 2026-10-25):** The hero catalog, rules reference, card trivia, Settings and
+About on the web, with the phone's logic moved into the shared core (parity rule):
+- **Moved to commonMain, Android calls it from there.** core:domain `catalog/`: feature:catalog's
+  model (`CatalogBrowser`, `CatalogSearchIndex`, `DeckLayout`, `HeroLogSummary`, the labels) plus
+  what its ViewModel and screens computed inline (`catalogResults`, filter chips, profile bars, the
+  spoken card summary, the Handicap/spellbook/gold notes, `CardIcons` = the words TalkBack says for
+  card icons, pinned to `GameIcons` by a test). core:domain `rules/RulesText` (topic and ladder
+  wording, spoken rows) and `settings/ProductOwnership` (the collection rules). core:data-contracts
+  `trivia/` (`TriviaHomeModel`, `TriviaQuizModel`, `TriviaLeaderboardModel`, `TriviaText`,
+  `PlayingAsState`; the Android ViewModels are thin wrappers), `TriviaFacts.keysOf` (the reset rule
+  of both progress stores) and core:model `PlayerPalette` (PlayerColors derives from it).
+  `CatalogParityTest` hashes search, filters, sorts, deck layouts and every card's spoken summary
+  over the shipped catalog on the JVM and on Node; accent folding is the only platform call (NFD:
+  `java.text.Normalizer` / `String.normalize`).
+- **Catalog.** `CatalogBrowse` (in `ContentData`) holds the search index and the search, filters and
+  sort for the page's lifetime, like the phone's ViewModel while the tab is on the back stack. The
+  card viewer pages with native CSS scroll snapping (the iOS swipe, momentum included) and its own
+  pinch / double-tap zoom (`PinchZoom`; `touch-action: pan-x pan-y` keeps Safari's page zoom off the
+  scan); off-screen pages are `inert`. Card text draws the same Material glyphs as Android
+  (`icons/game_*.svg`, Apache 2.0, credited in About → Icons and `third_party/ASSETS.md`); hero
+  sigils are the fallback art when a portrait isn't cached offline. Data another stream owns
+  (ratings, pilots, players) is read through `optional(...)`, which falls back to "no games" when a
+  contract fails, so a hero page never breaks over personal stats. The hero's name sits in the top
+  bar for VoiceOver and is shown there once the big name has scrolled away (as on the phone).
+- **Rules, Settings, About.** The rules reference reads `rules-reference.json` with the phone's
+  parser; the Levels & defeats sheet is a public composable other screens can open. Settings is
+  `WebSettingsRepository` (the phone's `AppSettings` in IndexedDB; the theme stays in localStorage
+  for the first paint), Haptics is offered only where the browser can vibrate, and Game setup links
+  go to the tab roots until dedicated screens exist on the web. There is no Backup on the web.
+  `official/SOURCES.md` (importer template, `SourcesNoticeTest`) now describes a public, free,
+  non-commercial fan companion with all rights with Wolff Designa; ADR-034's status points here.
+- **Trivia.** `WebTriviaProgressRepository` keeps this browser's mastery, last setup and Playing-as
+  pick in the phone's `TriviaJson` format; rounds and players go through the group contracts and the
+  screens fall back to Guest / "isn't available" when those fail. The quiz is a full-screen route
+  (`#/trivia/quiz`), the leaderboard `#/trivia/leaderboard`.
+- **Found on the way:** WebKit reports a first install's worker as "installed" after it has claimed
+  the page, so the shell showed "A new version of the app is ready" on a first visit;
+  `ServiceWorkerClient` now decides "update" when the new worker is found.
+
+**Addendum (Table: draft and phase timer, W3, 2026-10-25):**
+**Decision:** The web app's Timer and Draft tabs are the phone's, screen for screen, built on the
+same Kotlin. Where the decisions were the web's own:
+1. **The words and numbers are shared, not copied.** What the phone's view models computed for
+   these screens moved to `core:domain`'s commonMain, keeping their packages so the Android diff
+   stays small (`dev.quinton.goa.feature.timer…`, `…feature.draft…` now also live in core:domain):
+   `TimerText`, the timer's UI state and `TimerUiMapper` (+ the start card, pending matches, the
+   logged mode), `RunningTimerUi` (from app), `TonightTurn`, `TimerCommand` + `TimerSessions` (what a
+   command does, the duration written to a linked match), `PresetEdits` + the preset screens' states,
+   `MatchSetupPresenter` + its UI types; the draft's `DraftProgress`/`MethodLibrary` and their stored
+   format `DraftStorage`, `SetupForm` (+ its edits) and `DraftSetupPresenter`, `HeroInfo`/`StepToken`
+   and the labels (`DraftText`), `PoolView`/`BoardUiState` and `DraftBoardText` (banners, refusals,
+   undo), the method list and editor states. The Android view models call them; `@Immutable` was
+   dropped (strong skipping makes it moot). `TablePresentationParityTest` (commonTest) runs the
+   presenters over the shipped rules data on the JVM and on Node and checks the transcripts hash
+   alike. The player palette's values moved to `core:model` (`PlayerPalette`; `PlayerColors` reads it).
+2. **The web timer's clock is wall time that never steps back**, not `performance.now()`: Safari's
+   monotonic clock stops while the iPhone sleeps, so a locked phone would lose the time it was dark.
+   The snapshot's wall anchor still rebases it after a reload (no boot count on the web).
+3. **No background alerts on the web.** A page can't run while the iPhone is locked, so the
+   running timer holds a Screen Wake Lock (feature-detected, on by default, "Let the screen sleep" in
+   its menu; a note says to set Auto-Lock to Never where the browser refuses) and, back on the page,
+   catches up (auto-advance included) and says "A phase ended while the screen was off". Cue tones
+   are Web Audio, unlocked by the first tap; the Haptics setting flashes the screen's edge instead
+   (no vibration for web pages). The preset's volume-key control has no web equivalent and is not
+   shown (the field is kept).
+4. **State that must survive Safari putting the page away is stored at once** in IndexedDB under
+   `table/` in the phone's formats (`TimerJson`, `DraftStorage`): presets, the session, the setup
+   form, the draft in progress, the group's methods — and tonight's turn length, which the phone
+   keeps in memory (Safari reloads pages it put away far more often than Android kills a process).
+   The draft's step timer counts from when the step began, not from ticks.
+5. **The shell knows about a running timer** (`TimerShell`): it hides the tab bar on the running
+   timer, shows the "timer running" bar on the other tabs and opens the Timer tab on a cold start,
+   as the phone does. Pinned footers (Next, Start timer, Set up match) publish their height so
+   snackbars show above them. The service worker client decided "update" at the first install's
+   `installed` event, which WebKit can deliver after the page is claimed: a first visit said "A new
+   version of the app is ready"; it now decides when the install starts.
+6. **Screens other streams own** that the table tools open are routes here with placeholder
+   screens until they land: `MatchEdit` (Log result, W2), `PlayerEdit` (new player profile, W2),
+   `LevelLadder` (W1), `NewBoard` (Try on the board, W4), with Android's parameters. Player avatars
+   here are the initial in the player's palette colour (W2's crests can replace them). On merging
+   with W1, `LevelLadder` (`#/levels?heroes=…`) became W1's ladder as a page (`LevelLadderScreen`,
+   the same body as the Rules screen's sheet), Settings → Game setup opens the timer presets and
+   draft methods, the table's avatars draw the player's crest (W1's crest icons; the initial only
+   without one, as on the phone), and the two `PlayerPalette`s became one (`PlayerPalette.Swatch`,
+   `quickAdd`, `forNew`, `CREST_COUNT`).
+**Consequences:** Android behaviour is unchanged (its tests and screenshots pass as before); the web
+can't sound a phase end while the iPhone is locked, which the timer says where it matters.
+
+**Addendum (Group, W2, 2026-10-25):**
+**Decision:** The web app is a full group member: the phone's sync, membership and Players-tab
+logic run in the browser as **shared code**, not ports.
+1. **Moved to shared code, Android pointed at it:** the relay algorithm (`RelaySyncRepository` in
+   `core:data-contracts`, over a small `RelayHttp` port; the phone's `OkHttpSyncServerRepository` is
+   now the OkHttp adapter and `SyncServerRepositoryTest` keeps guarding it), group membership
+   (`PrefsGroupRepository` over a `GroupPrefsStore`; `GroupSyncPrefs` moved to `core:model`), the
+   worker's retry rule (`SyncServerRetry`), and a new KMP module **`:core:group-presentation`** with
+   what the ViewModels of `feature:players`/`feature:sync` computed (leaderboard, player page, match
+   rows, meta board, match form/validation/editing rules, saved-result summary, rematch options,
+   rating settings definitions and words, Group screen state and messages, server card words). Its
+   packages are the features' own so Android imports didn't change; dates come from the platform
+   (`DateLabels`). `GroupPresentationParityTest` runs the builders on the JVM and on Node.
+2. **Storage:** the group's synced data is one canonical `SyncDocument` in IndexedDB
+   (`group/document`), the simplest model that keeps the phone's rules: every write re-reads,
+   applies (stamped with `EditStamp`, tombstones kept, merges resolved on read) and stores in one
+   step; tabs share a Web Lock (handed back if its waiter is cancelled; given up after 5 s rather than
+   hang) and a `BroadcastChannel`. An unreadable stored document is kept aside, never dropped.
+3. **Crypto:** `WebCryptoCipher` (WebCrypto AES-256-GCM, `CompressionStream` gzip) passes
+   `SyncCipherConformance`; the seal vector is byte-identical to `javax.crypto`'s, so what a browser
+   uploads the phones open. Proven live by `web/e2e/scripts/interop-live.mjs`: the phone's real stack
+   uploads to `server/relay` on this machine, WebKit opens it and shows the phone's exact ratings, logs
+   a match, and a fresh phone receives it and computes the same ratings.
+4. **Invite link:** the invite QR code (Android and web) is
+   `https://quintond.github.io/goa-companion/#join=goa-sync:1?…` (`GroupInvite.link`). The fragment
+   never leaves the device; an iPhone's Camera opens the web app, which always asks before joining and
+   replaces the address at once. No compatibility cost: every app's `parseInvite` already finds a
+   `goa-sync:` invite inside any text, so phones that predate this read the new codes. The share
+   message carries the link too. The web reads codes with the camera (`getUserMedia` + jsQR, Apache-2.0;
+   Safari has no BarcodeDetector) and draws them with qrcode-generator (MIT); both ship in `app.js`,
+   their licences in the site's `licenses/` (from `third_party/web/`).
+5. **Relay CORS:** `server/relay` allows `GOA_RELAY_CORS_ORIGINS` (default
+   `https://quintond.github.io`): `Access-Control-Allow-Origin` on every answer to that origin, errors
+   and 429s included, exposing `ETag` and `Retry-After`; preflights for GET/PUT with the protocol's
+   four headers get 204 before the rate limiter. No protocol change; deployed to oldboi 2026-10-25.
+6. **Scheduling:** the phone's rules where a page can follow them (open/foreground at most once a
+   minute, every 5 minutes on screen, 15 s after changes, Sync now, joining, `SyncServerRetry`); no
+   hourly background sync. iOS sends `pageshow` right after the first visibility check: a page that
+   is already shown ignores it, or the opening sync would be cancelled before it starts.
+7. **On merging with W1 and W3:** the stubs are gone; the draft's quick add and "Draft again", the
+   trivia leaderboard and "Playing as", the hero page's pilots and the catalog's ratings read the real
+   repositories. Rematches (Same teams, Swap sides) and "Resume: setup & timer" open W3's Match setup
+   (`#/timer/setup?rematch=…&kind=…`, `?match=…`) as on the phone; the match editor takes the timer's
+   "Log result" pre-fill (mode, duration, the session's start, the reserved id), with the mode parsed
+   by `MatchEditing.gameModeOrNull` (moved from the phone's view model). W2's own palette copy became
+   core:model's `PlayerPalette` (`forNew`, the phone's choice), and the three `PlayerAvatar`s (players,
+   trivia, table) became one, `web/ui/PlayerAvatar.kt`.
+**Consequences:** Not ported (owner to decide): the backup screen (the relay and sync files are the
+web's backup), "Share stats page", "Open on the board" (W4). Production `app.js` is 2 351 212 bytes
+(gzip 633 963, from 287 897 after F3): the Players and Group screens (~330 KB minified Compose HTML),
+@js-joda (kotlinx-datetime's time zones, ~190 KB, needed by the game-night stats), jsQR (~127 KB) and
+the sync code; lazy-loading jsQR would save ~35 KB gzip and is left for when bundle size matters.
+Playwright runs these tests with the service worker blocked: WebKit sends a controlled page's
+requests past Playwright's routes, which would let a test reach the production relay.

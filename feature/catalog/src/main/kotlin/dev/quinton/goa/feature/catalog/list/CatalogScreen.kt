@@ -90,14 +90,17 @@ import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.catalog.model.CatalogFilter
-import dev.quinton.goa.feature.catalog.model.CatalogSearchIndex
-import dev.quinton.goa.feature.catalog.model.CatalogSort
-import dev.quinton.goa.feature.catalog.ui.complexityLabel
+import dev.quinton.goa.core.domain.catalog.CatalogFilter
+import dev.quinton.goa.core.domain.catalog.CatalogSearchIndex
+import dev.quinton.goa.core.domain.catalog.CatalogSort
+import dev.quinton.goa.core.domain.catalog.FilterOptions
+import dev.quinton.goa.core.domain.catalog.activeFilterChips
+import dev.quinton.goa.core.domain.catalog.complexityLabel
+import dev.quinton.goa.core.domain.catalog.label
+import dev.quinton.goa.core.domain.catalog.plural
+import dev.quinton.goa.core.domain.catalog.resultSummary
 import dev.quinton.goa.feature.catalog.ui.goaFilterChipColors
 import dev.quinton.goa.feature.catalog.ui.goaInputChipColors
-import dev.quinton.goa.feature.catalog.ui.label
-import dev.quinton.goa.feature.catalog.ui.plural
 
 /** Heroes tab: searchable, filterable grid/list of every hero in the catalog. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -382,28 +385,9 @@ private fun SortChip(sort: CatalogSort, onSort: (CatalogSort) -> Unit) {
     }
 }
 
-private data class ActiveChip(val key: String, val label: String, val remove: (CatalogFilter) -> CatalogFilter)
-
-private fun activeFilterChips(filter: CatalogFilter, options: FilterOptions): List<ActiveChip> = buildList {
-    filter.complexities.sorted().forEach { level ->
-        add(ActiveChip("c$level", complexityLabel(level)) { it.copy(complexities = it.complexities - level) })
-    }
-    filter.roles.sortedBy { it.ordinal }.forEach { role ->
-        add(ActiveChip("r${role.name}", role.label) { it.copy(roles = it.roles - role) })
-    }
-    filter.attackStyle?.let { style -> add(ActiveChip("a", style.label) { it.copy(attackStyle = null) }) }
-    filter.products.forEach { id ->
-        val name = options.products.firstOrNull { it.id == id }?.name ?: id
-        add(ActiveChip("p$id", name) { it.copy(products = it.products - id) })
-    }
-}
-
 @Composable
 private fun ResultSummary(state: CatalogUiState.Ready, query: String) {
-    val text = when {
-        query.isBlank() && !state.isFiltered -> plural(state.totalInScope, "hero", "heroes")
-        else -> "${state.heroes.size} of ${plural(state.totalInScope, "hero", "heroes")}"
-    }
+    val text = resultSummary(state.heroes.size, state.totalInScope, query)
     Text(
         text,
         style = MaterialTheme.typography.labelMedium,

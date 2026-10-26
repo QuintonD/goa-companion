@@ -75,6 +75,8 @@ build-logic/             # convention plugins (android-library, compose, feature
 core/model/              # KMP jvm+js: data classes (Hero, Card, Player, Match, DraftMethod…)
 core/domain/             # KMP jvm+js: TimerEngine, EloCalculator, DraftEngine, MetaStats, MatchSetup, TriviaEngine,
                          #   trivia/ TriviaChallenge + TriviaLeaderboard (derived, ADR-032),
+                         #   catalog/ (the Heroes tab's search, filters, deck layout and card wording,
+                         #   CatalogSearchIndex + catalogResults + CardIcons; shared with the web, ADR-043 W1),
                          #   sync/ (SyncMerge, PlayerMerges, SyncHash, SyncFileCodec + SyncCipher, SyncVectors);
                          #   jvmMain: SyncCrypto, SyncCodec, the Nearby protocol (SyncHost/SyncClient)
 core/domain-testfixtures/ # JVM: in-memory SyncTransport + data port (sources in core/domain/src/testFixtures)
@@ -86,6 +88,10 @@ core/data-contracts/     # KMP jvm+js (ADR-043 F3): the repository interfaces + 
                          #   (ReplayRatingsRepository, PlayerNames, PlayerMergeRules, stored-format codecs);
                          #   package dev.quinton.goa.core.data; implemented by core:data and by web/app
 core/data-testing/       # KMP jvm+js: in-memory fakes of the contracts + TestCatalog (re-exported by core:testing)
+core/group-presentation/ # KMP jvm+js (ADR-043 W2): what the Players and Group sync screens show, built from the
+                         #   contracts (Leaderboard, PlayerDetail, MatchRows, MetaBoard, MatchForm/MatchValidation/
+                         #   MatchEditing, RatingSettingsText, GroupText, SyncServerText, SyncWords); packages are
+                         #   feature:players'/feature:sync's own; used by both features and by web/app
 core/data/               # repositories; catalog and board-map loaders; JSON/Room <-> model; export/import;
                          #   game/ (ADR-035): the game in progress (DataStoreGameSaveRepository) and
                          #   PlayEngineModule, the one place GameFactory, the AI per level, the Coach and the
@@ -338,6 +344,29 @@ Kotlin (once they target JS, F1) under a DOM UI in Compose HTML; rules never liv
   content hash, and waits for "Reload" to switch builds. `pwa/OfflineAssets` downloads every image
   with progress from `asset-manifest.json` (written by `:web:app:site`).
 - **Storage.** `storage/KeyValueStore` over IndexedDB; each stream keeps its data under its own prefix.
+- **Content (W1).** `web/catalog/`: the Heroes tab, hero page and card viewer over core:domain's
+  `catalog/` (the phone's `CatalogViewModel` logic is `catalogResults`, the deck `DeckLayout`, the
+  spoken card `CardIcons`); `CatalogBrowse` (in `ContentData`) keeps the search index and the
+  search, filters and sort for the page's lifetime. Card text renders `game_<token>.svg` icons inline
+  (the Android glyphs, `third_party/ASSETS.md`); the viewer swipes with native CSS scroll snapping and
+  zooms with its own pinch/double-tap (`PinchZoom`). Data other streams own (ratings, pilots,
+  players) is read through `optional(...)`, which falls back when a contract fails. `web/rules/`,
+  `web/settings/` (settings, About) and `web/trivia/` complete the stream.
+- **Table tools (W3).** `timer/` and `draft/` build their state with the same presenters as the
+  phone's view models (core:domain, ADR-043 "Table"). `WebTimerController` is the phone's
+  `TimerController` without alarms or notifications: every command runs `TimerEngine` on the stored
+  snapshot, the clock is wall time that never steps back, and the page re-syncs when it is shown
+  again. The running timer keeps the screen on with the Screen Wake Lock, sounds cues with Web Audio
+  and flashes instead of vibrating. Drafts and the setup form are stored at every change.
+- **Group (W2).** `group/`: the group's synced data is one canonical `SyncDocument` under
+  `group/document` (`GroupDocumentStore`; each write re-reads, applies, stores, then publishes, under a
+  Web Lock shared by the site's tabs, and a `BroadcastChannel` tells other tabs to reload), with
+  `Web*Repository` classes keeping the phone's rules (stamps, tombstones, merges, orders); membership
+  in `group/prefs` through the shared `PrefsGroupRepository`; sync through the shared
+  `RelaySyncRepository` over `FetchRelayHttp` and `WebCryptoCipher`; `WebSyncServerControl` schedules
+  it. Screens in `players/` (the Players tab, match editor, ratings) and `sync/` (Group sync, Which
+  player are you?, invite QR with qrcode-generator, camera scanning with jsQR, the `#join=` link)
+  draw what `core:group-presentation` builds.
 - **Build.** `:web:app:webAssets` copies the bundled catalog, `official/` images, fonts, licences and
   shared icons from the Android sources at build time; `:web:app:site` writes the deployable
   `web/app/build/site` (stamped build id, asset manifest, no source maps).
@@ -348,7 +377,9 @@ Kotlin (once they target JS, F1) under a DOM UI in Compose HTML; rules never liv
 | core:game | Rule tests by rulebook page (setup, turn, movement, combat, minions, end of round, card rules), one test class per hero following each card clause by clause, session tests (save/restore mid-card, fork, undo, determinize), property tests over 1 200 random games, a games-per-second benchmark (core/game/ENGINE.md "Tests") |
 | core:domain | Unit + property tests (Elo maths, draft legality for every method/player count, timer with fake clock) |
 | Shared core on JVM and JS (ADR-043) | `commonTest`, run by `allTests` on the JVM and on Node: `DomainParityTest` / `GameParityTest` hash a transcript of each engine's output (Elo + meta + group stats on a seeded log, every bundled draft method, seeded trivia, merges of random phones, the timer, the shipped catalog decoded strictly, a seeded random game, a seeded AI game, one puzzle per difficulty solved, every answer key loading and fitting its position) and must match the hash the JVM produced; `SyncVectorsTest` (FIPS/RFC vectors, the relay token vectors, the phones' JSON), `SyncCodecParityTest` (envelope, errors, invites, server addresses). JVM only: `SharedSyncJvmTest` (shared hashes vs javax.crypto, `FormUrl` vs java.net, `UriHost` vs `java.net.URI` on a fuzz corpus, `SyncCipherConformance` on `JvmSyncCipher`, the old code's file bytes), `PortableMathTest` (bit for bit `StrictMath.exp`) |
-| core:data-contracts | `commonTest` on the JVM and Node: `ReplayRatingsRepositoryTest` (recompute on log/config change, unknown heroes, one consistent snapshot, shared between collectors) with `core:data-testing`'s fakes |
+| core:data-contracts | `commonTest` on the JVM and Node: `ReplayRatingsRepositoryTest` (recompute on log/config change, unknown heroes, one consistent snapshot, shared between collectors) with `core:data-testing`'s fakes. The shared relay algorithm (`RelaySyncRepository`) is held by `core:data`'s `SyncServerRepositoryTest` (JVM) and the web's `WebRelaySyncTest` (Node) |
+| core:group-presentation | `GroupPresentationParityTest` (`commonTest`, JVM and Node): the same log gives the same leaderboard, match rows, meta board, validation words and sync/rating words; the features' ViewModel and screenshot tests cover the rest |
+| Web group (W2) | `:web:app:jsTest`: `WebCryptoCipherTest` (`SyncCipherConformance`, a phone's upload, the relay token vector), `WebGroupDataTest` (the Room repositories' tests ported: names, stamps, merges, tombstones and undo, three browsers converging with equal ratings, sync files, reload, unreadable data kept aside), `WebRelaySyncTest` (fake relay: first upload, a second browser, 304, a phone's upload, the 412 race, refusals in words, invalid data never sent), `WebSyncServerControlTest` (schedule and retries). `web/e2e/tests/group.spec.ts` against a fake relay on a real socket, production blocked; `scripts/interop-live.mjs` + `LiveRelayInteropTest` (phone → real relay → browser → phone); `web/e2e/tests/table-group.spec.ts` where the match log and the table tools hand over (Resume and Rematch → Match setup, Log result's pre-fill, Draft again) |
 | core:data | Catalog validation (schema, unique IDs, asset paths exist, every hero has a full deck), export/import round-trip |
 | core:database | Room in-memory tests; migration tests for every schema bump (v1 → v2: `matches.tie_breaker`; v2 → v3: `updated_at` backfill, `deletions`, `player_merges`; v3 → v4: `trivia_rounds`) |
 | Group sync | `core:domain`: merge properties (commutative, associative, idempotent, convergence, identical ratings), examples (ties, tombstones, merge chains and cycles, unknown heroes), crypto/codec (RFC 5869 vector, tamper, other group), protocol over the in-memory transport (host + 3, drops mid-upload and mid-download, wrong key, relay, Nearby unavailable). `core:data`: real Room phones syncing (game night, deletions, duplicates, trivia rounds), stamping, backup v5; the sync server client against a fake relay on MockWebServer (every branch and status, `SyncServerRepositoryTest`) and its `group_sync` state. `core:domain`: the token's fixed vector. `feature:sync`: VM tests, screenshots, `SyncServerSchedulerTest` on WorkManager's test driver. Real Nearby: two physical phones only |
@@ -357,7 +388,7 @@ Kotlin (once they target JS, F1) under a DOM UI in Compose HTML; rules never liv
 | Play UI | `feature:board` test sources only: `FakeGameSession`, a scripted 2v2 on Forgotten Island that asks every `DecisionKind` (never shipped); `GameViewModelTest` (answers, AI pacing on a test dispatcher, take back, Coach nudge shown/skipped, the Coach's look ahead used at once and cancelled on take back and Coach off, save/restore, corrupt and incompatible saves, game over, rematch), `NewGameViewModelTest`; `PlayScreenshotTest` (the table in every decision kind, New game, game over) |
 | UI | Roborazzi (`recordRoborazziDebug` / `verifyRoborazziDebug`), light/dark × font scale 1.0/2.0 |
 | End to end | `app/src/androidTest` (`connectedDebugAndroidTest`): real Hilt graph and bundled catalog, a scripted game night (`GameNight`: House draft → setup → timer round → "Who won?" → rating changes → ratings/meta), a rematch night (`RematchTimerFlowTest`: logged match → Rematch "Same seats" → setup → timer with the rules sheet, rules screen and a notification tap back to the Timer tab → second result), catalog, players, double pilot, settings, card trivia and the trivia Challenge → leaderboard (`TriviaChallengeFlowTest`), the board sandbox (`BoardFlowTest`: House draft → Try on the board → move a hero to the space named 1 space from it → Boards), and ATF accessibility checks on every main screen. Runs through the AndroidX Test Orchestrator with `clearPackageData`, so each test starts from a fresh install |
-| Web app | `:web:app:jsTest` (Node/Mocha): routes, router (Up vs Back, tabs, scroll, retained state), the IndexedDB store on `fake-indexeddb`, offline planning, the Markdown reader, the catalog read from the shipped files exactly as the phone reads it (`WebCatalogRepositoryTest`: same strict result, offline then Try again, one fetch, an unknown key fails), stubs that never break start-up and name their stream (`WebServicesTest`). `web/e2e` (Playwright, WebKit "iPhone 15" + Chromium "Pixel 7") against the built site under `/goa-companion/`: every destination without console errors or sideways scrolling, tabs, deep link across reload, Back/Forward, scroll restoration, theme, sheets, offline reload, the full offline download, the update prompt; review screenshots in `D:\.goa-qa\web\shots` |
+| Web app | `:web:app:jsTest` (Node/Mocha): routes, router (Up vs Back, tabs, scroll, retained state), the IndexedDB store on `fake-indexeddb`, offline planning, the Markdown reader, the catalog read from the shipped files exactly as the phone reads it (`WebCatalogRepositoryTest`: same strict result, offline then Try again, one fetch, an unknown key fails), stubs that never break start-up and name their stream (`WebServicesTest`), the timer and draft surviving a reload, a locked phone (resync with auto-advance) and a linked match's duration (`TableDataTest`); the timer's and draft's words match the phone's (`TablePresentationParityTest`, core:domain commonTest). `web/e2e` (Playwright, WebKit "iPhone 15" + Chromium "Pixel 7") against the built site under `/goa-companion/`: every destination without console errors or sideways scrolling, tabs, deep link across reload, Back/Forward, scroll restoration, theme, sheets, offline reload, the full offline download, the update prompt, the timer and a whole draft at the table (`table.spec.ts`: full screen, reload, round view, running bar, SE/landscape/200 % text); review screenshots in `D:\.goa-qa\web\shots` |
 | Device | Manual smoke checklist on S25 Ultra per milestone (timer: lock screen, Doze, reboot); the web app on an iPhone (Safari tab and Home Screen) |
 
 ## Data files

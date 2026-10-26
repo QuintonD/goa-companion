@@ -20,17 +20,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class WhoAreYouUiState(
-    val loading: Boolean = true,
-    /** Active players, by name. */
-    val players: List<Player> = emptyList(),
-    val meId: String? = null,
-    val newName: String = "",
-    val nameError: String? = null,
-    /** Chosen: the screen closes. */
-    val done: Boolean = false,
-)
-
 private data class Form(val newName: String = "", val nameError: String? = null, val done: Boolean = false)
 
 /**
@@ -67,21 +56,21 @@ class WhoAreYouViewModel @Inject constructor(
         }
     }
 
-    fun onNameChange(name: String) = form.update { it.copy(newName = name.take(MAX_NAME), nameError = null) }
+    fun onNameChange(name: String) = form.update {
+        it.copy(newName = name.take(WhoAreYouText.MAX_NAME), nameError = null)
+    }
 
     /** Adds this phone's owner as a new player (unless the name is taken) and picks them. */
     fun createMe() {
         val name = form.value.newName.trim()
         if (name.isEmpty()) {
-            form.update { it.copy(nameError = "Enter your name") }
+            form.update { it.copy(nameError = WhoAreYouText.ENTER_NAME) }
             return
         }
         viewModelScope.launch {
             val existing = players.findByName(name)
             if (existing != null) {
-                form.update {
-                    it.copy(nameError = "“${existing.name}” is already in the group. If that's you, pick it above.")
-                }
+                form.update { it.copy(nameError = WhoAreYouText.taken(existing.name)) }
                 return@launch
             }
             val all = players.observePlayers(includeArchived = true).first()
@@ -97,9 +86,5 @@ class WhoAreYouViewModel @Inject constructor(
             groups.setMe(player.id)
             form.update { it.copy(done = true) }
         }
-    }
-
-    private companion object {
-        const val MAX_NAME = 24
     }
 }

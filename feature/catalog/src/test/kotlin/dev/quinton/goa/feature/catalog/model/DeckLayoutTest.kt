@@ -1,6 +1,9 @@
 package dev.quinton.goa.feature.catalog.model
 
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.domain.catalog.DeckGroupKind
+import dev.quinton.goa.core.domain.catalog.DeckLayout
+import dev.quinton.goa.core.domain.catalog.tierNumeral
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.testing.TestCatalog

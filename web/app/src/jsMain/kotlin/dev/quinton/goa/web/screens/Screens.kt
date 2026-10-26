@@ -3,7 +3,35 @@ package dev.quinton.goa.web.screens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import dev.quinton.goa.web.LocalServices
+import dev.quinton.goa.web.catalog.CardViewerScreen
+import dev.quinton.goa.web.catalog.CatalogScreen
+import dev.quinton.goa.web.catalog.HeroDetailScreen
+import dev.quinton.goa.web.draft.DraftBoardScreen
+import dev.quinton.goa.web.draft.DraftMethodEditScreen
+import dev.quinton.goa.web.draft.DraftMethodsScreen
+import dev.quinton.goa.web.draft.DraftSetupScreen
 import dev.quinton.goa.web.nav.Route
+import dev.quinton.goa.web.players.MatchEditScreen
+import dev.quinton.goa.web.players.PlayerDetailScreen
+import dev.quinton.goa.web.players.PlayerEditScreen
+import dev.quinton.goa.web.players.PlayersHomeScreen
+import dev.quinton.goa.web.players.PlayersTab
+import dev.quinton.goa.web.players.RatingSettingsScreen
+import dev.quinton.goa.web.rules.LevelLadderScreen
+import dev.quinton.goa.web.rules.RulesScreen
+import dev.quinton.goa.web.rules.RulesTopicScreen
+import dev.quinton.goa.web.settings.AboutScreen
+import dev.quinton.goa.web.settings.SettingsScreen
+import dev.quinton.goa.web.sync.GroupScreen
+import dev.quinton.goa.web.sync.JoinLinkScreen
+import dev.quinton.goa.web.sync.WhoAreYouScreen
+import dev.quinton.goa.web.timer.MatchSetupScreen
+import dev.quinton.goa.web.timer.PresetEditScreen
+import dev.quinton.goa.web.timer.PresetsScreen
+import dev.quinton.goa.web.timer.TimerScreen
+import dev.quinton.goa.web.trivia.TriviaHomeScreen
+import dev.quinton.goa.web.trivia.TriviaLeaderboardScreen
+import dev.quinton.goa.web.trivia.TriviaQuizScreen
 import dev.quinton.goa.web.ui.EmptyState
 import dev.quinton.goa.web.ui.GoaButton
 import dev.quinton.goa.web.ui.Screen
@@ -20,9 +48,13 @@ fun ScreenFor(route: Route) {
 
         is Route.HeroDetail -> HeroDetailScreen(route.heroId)
 
-        is Route.CardViewer -> PlaceholderScreen("Card", Placeholder.CARD_VIEWER)
+        is Route.CardViewer -> CardViewerScreen(route.heroId, route.cardId)
 
-        is Route.Trivia -> PlaceholderScreen("Card trivia", Placeholder.TRIVIA)
+        is Route.Trivia -> TriviaHomeScreen(route.heroId)
+
+        is Route.TriviaQuiz -> TriviaQuizScreen(route)
+
+        Route.TriviaLeaderboard -> TriviaLeaderboardScreen()
 
         Route.Boards -> dev.quinton.goa.web.play.board.BoardsScreen()
 
@@ -41,39 +73,54 @@ fun ScreenFor(route: Route) {
         is Route.Puzzle -> key(route.puzzleId) { dev.quinton.goa.web.play.puzzles.PuzzleScreen(route.puzzleId) }
 
         // Shared
-        Route.Rules -> PlaceholderScreen("Rules", Placeholder.RULES)
+        Route.Rules -> RulesScreen()
 
-        is Route.RulesTopic -> PlaceholderScreen("Rules", Placeholder.RULES)
+        is Route.RulesTopic -> RulesTopicScreen(route.topicId)
+
+        is Route.LevelLadder -> LevelLadderScreen(route.heroIds)
 
         Route.Settings -> SettingsScreen()
 
         Route.About -> AboutScreen()
 
-        // Timer tab
-        Route.Timer -> PlaceholderScreen("Timer", Placeholder.TIMER, settingsAction = true)
+        // Timer tab (W3 table)
+        Route.Timer -> TimerScreen()
 
-        // Draft tab
-        Route.Draft -> PlaceholderScreen("Draft", Placeholder.DRAFT, settingsAction = true)
+        is Route.MatchSetup -> MatchSetupScreen(route)
 
-        // Players tab
-        Route.Players -> PlaceholderScreen(
-            "Players",
-            Placeholder.PLAYERS,
-            settingsAction = true,
-            links = listOf(
-                PlaceholderLink("Match log", "list", Route.Matches),
-                PlaceholderLink("Meta", "chart", Route.Meta),
-                PlaceholderLink("Group sync", "sync", Route.Group),
-            ),
-        )
+        Route.TimerPresets -> PresetsScreen()
 
-        is Route.PlayerDetail -> PlaceholderScreen("Player", Placeholder.PLAYERS)
+        is Route.TimerPresetEdit -> PresetEditScreen(route.presetId)
 
-        Route.Matches -> PlaceholderScreen("Match log", Placeholder.MATCHES)
+        // Draft tab (W3 table)
+        Route.Draft -> DraftSetupScreen()
 
-        Route.Meta -> PlaceholderScreen("Meta", Placeholder.META)
+        Route.DraftBoard -> DraftBoardScreen()
 
-        Route.Group -> PlaceholderScreen("Group sync", Placeholder.GROUP)
+        Route.DraftMethods -> DraftMethodsScreen()
+
+        is Route.DraftMethodEdit -> DraftMethodEditScreen(route.methodId)
+
+        // Players tab (group stream W2: players, matches, meta, group sync)
+        Route.Players -> PlayersHomeScreen(PlayersTab.PLAYERS)
+
+        is Route.PlayerDetail -> PlayerDetailScreen(route.playerId)
+
+        is Route.PlayerEdit -> PlayerEditScreen(route.playerId)
+
+        Route.Matches -> PlayersHomeScreen(PlayersTab.MATCHES)
+
+        is Route.MatchEdit -> MatchEditScreen(route)
+
+        Route.Meta -> PlayersHomeScreen(PlayersTab.META)
+
+        Route.RatingSettings -> RatingSettingsScreen()
+
+        Route.Group -> GroupScreen()
+
+        Route.WhoAreYou -> WhoAreYouScreen()
+
+        is Route.Join -> JoinLinkScreen(route.invite)
 
         is Route.NotFound -> NotFoundScreen()
     }

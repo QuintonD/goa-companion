@@ -6,6 +6,7 @@ import dev.quinton.goa.core.designsystem.component.spokenDuration
 import dev.quinton.goa.core.designsystem.icon.HeroSigils
 import dev.quinton.goa.core.designsystem.icon.PlayerCrests
 import dev.quinton.goa.core.designsystem.theme.PlayerColors
+import dev.quinton.goa.core.model.player.PlayerPalette
 import org.junit.Test
 
 class AssetsTest {
@@ -28,6 +29,8 @@ class AssetsTest {
 
     @Test fun crests() {
         assertThat(PlayerCrests.count).isEqualTo(24)
+        // The shared count new players' crests are handed out by (phone and web app).
+        assertThat(PlayerPalette.CREST_COUNT).isEqualTo(PlayerCrests.count)
         assertThat(PlayerCrests.names).hasSize(24)
         assertThat(PlayerCrests.all.toSet()).hasSize(24)
         assertThat(PlayerCrests.drawableFor(24)).isNull()
@@ -37,6 +40,10 @@ class AssetsTest {
     @Test fun paletteIsDistinctAndFindable() {
         assertThat(PlayerColors.all.map { it.argb }.toSet()).hasSize(PlayerColors.all.size)
         PlayerColors.all.forEach { assertThat(PlayerColors.find(it.argb)).isEqualTo(it) }
+        // A palette colour's light tone (as stored by an old build) finds the same swatch.
+        PlayerColors.all.forEach { swatch ->
+            assertThat(PlayerColors.find(PlayerPalette.find(swatch.argb)!!.lightArgb)).isEqualTo(swatch)
+        }
         assertThat(PlayerColors.find(0xFF123456)).isNull()
         assertThat(PlayerColors.default(PlayerColors.all.size)).isEqualTo(PlayerColors.all.first())
     }

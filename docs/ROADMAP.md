@@ -221,6 +221,20 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] On the S25 Ultra: card scans and symbols at real density, banner under the status bar, TalkBack on
   a deck card (reads values and full text)
 
+## M15 — Web app: group, sync and players (ADR-043 W2)
+- [x] Relay CORS for the Pages origin (`GOA_RELAY_CORS_ORIGINS`), deployed to oldboi — 2026-10-25,
+  `CorsTest`, health and preflight checked from outside, existing groups untouched
+- [x] Shared: the relay algorithm (`RelaySyncRepository`), group membership (`PrefsGroupRepository`),
+  retry policy, and the Players/Group screens' builders and words (`core:group-presentation`); Android
+  calls them — 2026-10-25, Android players/sync/data tests and screenshots unchanged (the invite dialog
+  re-recorded on purpose)
+- [x] The web's group data in IndexedDB, WebCrypto, sync with the relay, the Players tab, match
+  editor, ratings, Group sync, invite QR link and camera scan — 2026-10-25, jsTest + Playwright WebKit
+  and Chromium, `interop-live.mjs` (phone ↔ real relay ↔ browser, same ratings)
+- [ ] On an iPhone: Safari and Home Screen, joining by the Camera from a phone's QR code, the camera
+  scanner, sync after the app was in the background, the share sheet for sync files
+- [ ] A real group on the production relay with one phone and one iPhone
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check

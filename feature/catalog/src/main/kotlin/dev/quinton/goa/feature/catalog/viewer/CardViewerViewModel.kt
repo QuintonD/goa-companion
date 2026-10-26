@@ -7,10 +7,10 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.CatalogRepository
+import dev.quinton.goa.core.domain.catalog.DeckLayout
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.navigation.CardViewerRoute
-import dev.quinton.goa.feature.catalog.model.DeckLayout
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch

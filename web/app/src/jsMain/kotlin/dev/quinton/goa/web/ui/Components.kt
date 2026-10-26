@@ -133,7 +133,8 @@ fun GoaButton(
 /**
  * A screen: the steel-banner top bar (title in engraved Cinzel caps, Back when there is somewhere to
  * go Up to, [actions] on the right) over the content. Sets the document title.
- * [flush]: content spans the full width without screen padding (maps, the table).
+ * [flush]: content spans the full width without screen padding (maps, the table). [onBack] replaces
+ * the Back button's Up (e.g. to ask before leaving a quiz round); null = Up.
  * [fill]: the screen is the window's height and never scrolls (the board, the game table, a puzzle).
  */
 @Composable
@@ -143,6 +144,7 @@ fun Screen(
     flush: Boolean = false,
     showBack: Boolean? = null,
     fill: Boolean = false,
+    onBack: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     val router = LocalServices.current.router
@@ -155,7 +157,7 @@ fun Screen(
         Header({ classes("goa-topbar") }) {
             Div({ classes("goa-topbar-row") }) {
                 if (showBack ?: router.canGoBack) {
-                    IconButton("back", "Back", onClick = { router.back() }, extraClass = "nav")
+                    IconButton("back", "Back", onClick = { onBack?.invoke() ?: router.back() }, extraClass = "nav")
                 }
                 H1({
                     classes("goa-topbar-title", "t-banner-title")

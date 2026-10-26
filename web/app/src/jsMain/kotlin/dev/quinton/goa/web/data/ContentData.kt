@@ -4,9 +4,11 @@ import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.data.TriviaProgressRepository
 import dev.quinton.goa.core.model.rules.RulesReference
-import dev.quinton.goa.web.data.stub.W1RulesReferenceStub
-import dev.quinton.goa.web.data.stub.W1SettingsStub
-import dev.quinton.goa.web.data.stub.W1TriviaProgressStub
+import dev.quinton.goa.web.catalog.CatalogBrowse
+import dev.quinton.goa.web.rules.AssetRulesReferenceSource
+import dev.quinton.goa.web.settings.WebSettingsRepository
+import dev.quinton.goa.web.storage.scoped
+import dev.quinton.goa.web.trivia.WebTriviaProgressRepository
 
 /** The bundled rules reference (`catalog/rules-reference.json`), as on Android's feature:rules. */
 fun interface RulesReferenceSource {
@@ -21,9 +23,13 @@ fun interface RulesReferenceSource {
 class ContentData(private val services: WebServices) {
     val catalog: CatalogRepository = WebCatalogRepository()
 
-    val settings: SettingsRepository = W1SettingsStub
+    /** The Heroes tab's search index, search, filters and sort (page lifetime). */
+    val browse: CatalogBrowse = CatalogBrowse(catalog)
 
-    val triviaProgress: TriviaProgressRepository = W1TriviaProgressStub
+    val settings: SettingsRepository = WebSettingsRepository(services.store.scoped("content/"))
 
-    val rulesReference: RulesReferenceSource = W1RulesReferenceStub
+    val triviaProgress: TriviaProgressRepository =
+        WebTriviaProgressRepository(services.store.scoped("content/"), catalog)
+
+    val rulesReference: RulesReferenceSource = AssetRulesReferenceSource()
 }

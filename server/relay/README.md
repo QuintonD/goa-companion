@@ -38,6 +38,15 @@ curl -s http://127.0.0.1:8787/v1/health   # {"ok":true,"protocol":1}
 | `GOA_RELAY_MAX_GROUPS` | `200` | Groups that may register; a new group beyond it gets 503 (`Retry-After: 3600`) |
 | `GOA_RELAY_RATE_PER_CLIENT` | `60` | Requests per minute per client (token bucket, burst = the same number) |
 | `GOA_RELAY_RATE_GLOBAL` | `600` | Requests per minute for everyone together |
+| `GOA_RELAY_CORS_ORIGINS` | `https://quintond.github.io` | Browser origins allowed to call the relay (CORS, comma-separated, exact `scheme://host[:port]`); empty = none |
+
+**Browsers (ADR-043).** The web app is a group member like a phone. For a request carrying an
+allowed `Origin`, every answer (errors included) gets `Access-Control-Allow-Origin: <origin>`,
+`Access-Control-Expose-Headers: ETag, Retry-After` and `Vary: Origin`; a preflight (`OPTIONS`)
+for `GET`/`PUT` with only `Authorization`, `If-Match`, `If-None-Match`, `Content-Type` on a relay
+path gets `204` (`Access-Control-Max-Age: 600`), anything else `403`. Preflights touch no data and
+are not rate limited. No cookies: credentials are never allowed. Phones send no `Origin`; nothing
+changes for them.
 
 The client is the **last** `X-Forwarded-For` hop when present (Tailscale Serve/Funnel adds it),
 else the peer address. Limits: 8 MiB per document (counted on the bytes received, chunked or not),

@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
+import dev.quinton.goa.core.domain.catalog.DeckLayout
+import dev.quinton.goa.core.domain.catalog.HeroLogSummary
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.testing.BundledAssetImages
 import dev.quinton.goa.core.testing.bundledHero
@@ -25,8 +27,6 @@ import dev.quinton.goa.feature.catalog.detail.ExtrasSection
 import dev.quinton.goa.feature.catalog.detail.HeroDetailScreen
 import dev.quinton.goa.feature.catalog.detail.HeroDetailUiState
 import dev.quinton.goa.feature.catalog.detail.HeroPersonalStats
-import dev.quinton.goa.feature.catalog.model.DeckLayout
-import dev.quinton.goa.feature.catalog.model.HeroLogSummary
 import dev.quinton.goa.feature.catalog.viewer.CardViewerScreen
 import dev.quinton.goa.feature.catalog.viewer.CardViewerUiState
 import org.junit.Before

@@ -412,9 +412,10 @@ private fun RowScope.TimerTopActions(
     onCoinUndo: (Boolean) -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
-    if (state.tieBreaker != null) {
+    val coin = state.tieBreaker
+    if (coin != null) {
         TieBreakerChip(
-            state.tieBreaker,
+            coin,
             actions.onFlipCoin,
             actionKey = "${state.round}:${state.title}:${state.paused}",
             onUndoShown = onCoinUndo,
@@ -787,8 +788,9 @@ private fun ChecklistRow(item: ChecklistItemUi, onOpenLevels: (() -> Unit)? = nu
                 color = if (item.state == ChecklistState.UPCOMING) colors.onSurfaceVariant else colors.onSurface,
                 modifier = Modifier.alpha(if (item.state == ChecklistState.DONE) 0.7f else 1f),
             )
-            if (item.timerName != null) {
-                Text(item.timerName, style = MaterialTheme.typography.bodySmall, color = colors.secondary)
+            val timerName = item.timerName
+            if (timerName != null) {
+                Text(timerName, style = MaterialTheme.typography.bodySmall, color = colors.secondary)
             }
         }
         onOpenLevels?.let { LevelLadderButton(it) }
