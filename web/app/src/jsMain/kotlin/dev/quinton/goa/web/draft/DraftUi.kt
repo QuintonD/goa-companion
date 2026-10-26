@@ -1,6 +1,10 @@
 package dev.quinton.goa.web.draft
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.domain.teams.ComplexityFilter
 import dev.quinton.goa.core.model.catalog.Role
 import dev.quinton.goa.core.model.catalog.Stat
@@ -13,11 +17,13 @@ import dev.quinton.goa.feature.draft.ui.description
 import dev.quinton.goa.feature.draft.ui.label
 import dev.quinton.goa.feature.draft.ui.teamGlyph
 import dev.quinton.goa.feature.draft.ui.teamName
+import dev.quinton.goa.web.data.Thumbnails
 import dev.quinton.goa.web.table.HeroArt
 import dev.quinton.goa.web.table.teamClass
 import dev.quinton.goa.web.ui.BottomSheet
 import dev.quinton.goa.web.ui.ButtonKind
 import dev.quinton.goa.web.ui.GoaButton
+import dev.quinton.goa.web.ui.OfficialImg
 import kotlinx.browser.window
 import org.jetbrains.compose.web.attributes.AttrsScope
 import org.jetbrains.compose.web.attributes.ButtonType
@@ -312,9 +318,17 @@ fun HeroPeekSheet(hero: HeroInfo, onDismiss: () -> Unit, onOpenHero: ((String) -
 @Composable
 private fun StartingCard(card: CardInfo) {
     Div({ classes("goa-draft-card") }) {
-        val image = card.image
+        var failed by remember(card.image) { mutableStateOf(false) }
+        val image = card.image?.takeUnless { failed }
         if (image != null) {
-            Img(image, "${card.name}, ${cardKind(card)}") {
+            // Three to a row in the sheet: about a third of a phone's width.
+            OfficialImg(
+                image,
+                Thumbnails.cardSrcset(image, spell = false),
+                sizes = "(max-width: 480px) 31vw, 160px",
+                alt = "${card.name}, ${cardKind(card)}",
+                onFailed = { failed = true },
+            ) {
                 classes("goa-draft-card-scan")
                 attr("loading", "lazy")
                 attr("decoding", "async")

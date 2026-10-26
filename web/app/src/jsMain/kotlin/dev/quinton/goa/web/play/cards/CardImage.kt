@@ -9,8 +9,9 @@ import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.feature.board.board.tierLabel
 import dev.quinton.goa.feature.board.ui.cards.cardAspect
 import dev.quinton.goa.feature.board.ui.cards.isSpell
+import dev.quinton.goa.web.data.Thumbnails
+import dev.quinton.goa.web.ui.OfficialImg
 import org.jetbrains.compose.web.dom.Div
-import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
 
@@ -39,13 +40,13 @@ fun CardImage(card: Card?, width: Int, extraClass: String? = null) {
                 Span({ classes("goa-card-back-mark") })
             }
 
-            else -> CardFace(card)
+            else -> CardFace(card, w)
         }
     }
 }
 
 @Composable
-private fun CardFace(card: Card) {
+private fun CardFace(card: Card, width: Int) {
     var failed by remember(card.id) { mutableStateOf(card.image == null) }
     if (failed) {
         Div({ classes("goa-card-face", "c-${card.color.name.lowercase()}") }) {
@@ -54,13 +55,19 @@ private fun CardFace(card: Card) {
             Span({ classes("goa-card-face-tier") }) { Text(tierLabel(card)) }
         }
     } else {
-        Img(card.image!!, alt = "", attrs = {
+        val image = card.image!!
+        OfficialImg(
+            image,
+            Thumbnails.cardSrcset(image, card.isSpell),
+            sizes = "${width}px",
+            alt = "",
+            onFailed = { failed = true },
+        ) {
             classes("goa-card-img")
             attr("loading", "lazy")
             attr("decoding", "async")
             attr("draggable", "false")
-            addEventListener("error") { failed = true }
-        })
+        }
     }
 }
 

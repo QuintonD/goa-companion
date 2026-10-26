@@ -3,6 +3,7 @@ package dev.quinton.goa.web.pwa
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import dev.quinton.goa.web.data.Thumbnails
 import kotlin.js.Promise
 import kotlin.math.roundToLong
 import kotlinx.browser.document
@@ -40,9 +41,12 @@ data class DownloadProgress(val doneFiles: Int, val totalFiles: Int, val doneByt
 
 /** Pure planning for "Download everything for offline" (unit-tested). */
 object OfflinePlan {
-    /** The images (card scans, art, symbols) the service worker caches on demand rather than on install. */
+    /**
+     * The images (card scans, art, symbols) the service worker caches on demand rather than on install.
+     * Not the lists' small copies ([Thumbnails]): offline, a list falls back to the full image.
+     */
     fun images(manifest: AssetManifest): List<AssetFile> =
-        manifest.files.filter { it.p.startsWith("official/") && !it.p.endsWith(".md") }
+        manifest.files.filter { it.p.startsWith("official/") && !it.p.endsWith(".md") && !Thumbnails.isThumbnail(it.p) }
 
     /** [images] not cached with their current content ([cached]: path → hash of the cached copy). */
     fun missing(images: List<AssetFile>, cached: Map<String, String>): List<AssetFile> =

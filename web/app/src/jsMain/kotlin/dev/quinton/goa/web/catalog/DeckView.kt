@@ -23,11 +23,12 @@ import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.catalog.PrimaryAction
+import dev.quinton.goa.web.data.Thumbnails
 import dev.quinton.goa.web.nav.Route
+import dev.quinton.goa.web.ui.OfficialImg
 import dev.quinton.goa.web.ui.RouteLink
 import org.jetbrains.compose.web.dom.Div
 import org.jetbrains.compose.web.dom.H3
-import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.P
 import org.jetbrains.compose.web.dom.Section
 import org.jetbrains.compose.web.dom.Span
@@ -118,12 +119,18 @@ private fun DeckCard(hero: Hero, card: Card, isHandicap: Boolean, spell: Boolean
             attr("aria-label", if (image != null) cardDescription(card, isHandicap) else card.spokenSummary(isHandicap))
         }) {
             if (image != null) {
-                Img(image, alt = "") {
+                // The grid's columns: about a third of a phone's width (half for a spell), at most 160/240 px.
+                OfficialImg(
+                    image,
+                    Thumbnails.cardSrcset(image, spell),
+                    sizes = if (spell) "(max-width: 480px) 46vw, 240px" else "(max-width: 480px) 31vw, 160px",
+                    alt = "",
+                    onFailed = { failed = true },
+                ) {
                     attr("width", if (spell) SPELL_WIDTH else CARD_WIDTH)
                     attr("height", if (spell) SPELL_HEIGHT else CARD_HEIGHT)
                     attr("loading", "lazy")
                     attr("decoding", "async")
-                    addEventListener("error") { failed = true }
                 }
             } else {
                 CardTileContent(card, isHandicap)
