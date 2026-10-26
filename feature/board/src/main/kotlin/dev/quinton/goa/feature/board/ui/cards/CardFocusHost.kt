@@ -70,6 +70,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -88,6 +89,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -358,26 +360,56 @@ private fun FocusLayout(
                 large -> PORTRAIT_CARD_SHARE_LARGE
                 else -> PORTRAIT_CARD_SHARE
             }
-            val frame = stageFrame(aspects, maxWidth - PEEK * 2, (maxHeight - TOP_BAR) * share)
-            Column(Modifier.fillMaxSize()) {
-                TopBar(request, state.index, actions.close, motion.reveal.value)
-                CardStage(
-                    state,
-                    request,
-                    pager,
-                    motion,
-                    actions,
-                    frame,
-                    Modifier.fillMaxWidth().height(frame.height + Spacing.lg),
-                )
-                // Only what the card doesn't print is under it (ADR-041): a sheet as tall as that, at the bottom.
-                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-                    details(Modifier.fillMaxWidth())
+            val stageWidth = maxWidth - PEEK * 2
+            // The card shrinks before any line under it is squeezed: the sheet's height is measured for
+            // every card (collapsed, the tallest counts, so the card keeps one size while swiping) and
+            // the card gets what is left, up to its share and down to MIN_CARD_SHARE; below that the
+            // sheet scrolls. Read as text, the card steps back to its share and the words scroll.
+            SubcomposeLayout(Modifier.fillMaxSize()) { constraints ->
+                val gap = Spacing.lg.roundToPx()
+                val room = (constraints.maxHeight - TOP_BAR.roundToPx()).coerceAtLeast(0)
+                val minCard = (room * if (large) MIN_CARD_SHARE_LARGE else MIN_CARD_SHARE).toInt()
+                val sheet = if (request.asText) {
+                    0
+                } else {
+                    val limit =
+                        Constraints(
+                            maxWidth = constraints.maxWidth,
+                            maxHeight = (room - minCard - gap).coerceAtLeast(0),
+                        )
+                    subcompose(FocusSlot.SHEETS) {
+                        request.cards.indices.forEach { i ->
+                            FocusDetails(request, i, 1f, {}, {}, false, Modifier.fillMaxWidth(), measuring = true)
+                        }
+                    }.maxOfOrNull { it.measure(limit).height } ?: 0
                 }
+                val cardHeight = minOf((room * share).toInt(), room - gap - sheet).coerceAtLeast(minCard).toDp()
+                val frame = stageFrame(aspects, stageWidth, cardHeight)
+                val content = subcompose(FocusSlot.CONTENT) {
+                    Column(Modifier.fillMaxSize()) {
+                        TopBar(request, state.index, actions.close, motion.reveal.value)
+                        CardStage(
+                            state,
+                            request,
+                            pager,
+                            motion,
+                            actions,
+                            frame,
+                            Modifier.fillMaxWidth().height(frame.height + Spacing.lg),
+                        )
+                        // Only what the card does not print is under it (ADR-041), at the bottom.
+                        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+                            details(Modifier.fillMaxWidth())
+                        }
+                    }
+                }.map { it.measure(constraints) }
+                layout(constraints.maxWidth, constraints.maxHeight) { content.forEach { it.place(0, 0) } }
             }
         }
     }
 }
+
+private enum class FocusSlot { SHEETS, CONTENT }
 
 /**
  * The stage's page: as wide as the widest card and as tall as the tallest, each card the largest it
@@ -729,6 +761,12 @@ private const val PORTRAIT_CARD_SHARE = 0.6f
 private const val PORTRAIT_CARD_SHARE_LARGE = 0.5f
 private const val PORTRAIT_TEXT_CARD_SHARE = 0.36f
 private const val PORTRAIT_TEXT_CARD_SHARE_LARGE = 0.26f
+
+/** The card never shrinks below this share of the height under the header: the sheet scrolls instead. */
+private const val MIN_CARD_SHARE = 0.3f
+
+/** With large text the words need more of the screen; the card is still a card you can read. */
+private const val MIN_CARD_SHARE_LARGE = 0.24f
 private const val LANDSCAPE_CARD_SHARE = 0.4f
 
 /** A landscape spell card takes more of a landscape screen's width (it is short: room is left above). */
