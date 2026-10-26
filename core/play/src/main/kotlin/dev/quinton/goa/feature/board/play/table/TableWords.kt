@@ -61,6 +61,16 @@ fun stateWord(state: SlotState): String = when (state) {
     SlotState.SKIPPED -> "Skipped"
 }
 
+/** The word on the band across a slot's card: DONE, NOW, NEXT, PASS, OUT; none for the later ones. */
+fun slotBand(state: SlotState): String? = when (state) {
+    SlotState.DONE -> "DONE"
+    SlotState.NOW -> "NOW"
+    SlotState.NEXT -> "NEXT"
+    SlotState.PASSED -> "PASS"
+    SlotState.SKIPPED -> "OUT"
+    SlotState.LATER -> null
+}
+
 /** The action as a word: "Movement", "Fast Travel", the primary as the card's type ("Attack"). */
 fun actionWord(action: ActionType, card: Card?): String = when (action) {
     ActionType.PRIMARY -> PlayText.primary(card?.primary)

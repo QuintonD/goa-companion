@@ -21,6 +21,7 @@ import dev.quinton.goa.feature.board.play.table.cardDown
 import dev.quinton.goa.feature.board.play.table.extrasGroups
 import dev.quinton.goa.feature.board.play.table.extrasTitle
 import dev.quinton.goa.feature.board.play.table.shownCounters
+import dev.quinton.goa.feature.board.play.table.slotBand
 import dev.quinton.goa.feature.board.play.table.slotCaption
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.play.table.spokenChip
@@ -238,19 +239,20 @@ private fun TrackSlotView(
             if (slot.cards.isEmpty()) {
                 Span({ classes("goa-track-pass") }) { Text("—") }
             } else {
+                // A second card (Emmitt's) peeks behind the first, as on the phone.
+                slot.cards.getOrNull(1)?.let { second ->
+                    Span({
+                        classes("goa-track-second")
+                        attr("aria-hidden", "true")
+                    }) { CardImage(second.cardId?.takeIf { !second.facedown }?.let(table::card), width) }
+                }
                 CardImage(card, width)
             }
-            Span({ classes("goa-track-band") }) {
-                Text(
-                    when (slot.state) {
-                        SlotState.DONE -> "✓ DONE"
-                        SlotState.NOW -> "NOW"
-                        SlotState.NEXT -> "NEXT"
-                        SlotState.LATER -> slot.place?.let { PlayText.ordinal(it).uppercase() } ?: ""
-                        SlotState.PASSED -> "PASS"
-                        SlotState.SKIPPED -> "SKIP"
-                    },
-                )
+            // The phone's band: DONE (with a tick), NOW, NEXT, PASS, OUT; none for the later ones.
+            slotBand(slot.state)?.let { band ->
+                Span({ classes("goa-track-band") }) {
+                    Text(if (slot.state == SlotState.DONE) "✓ $band" else band)
+                }
             }
             slot.initiative?.let {
                 Span({ classes("goa-track-init", "t-numeric") }) { Text(if (slot.tied) "=$it" else "$it") }

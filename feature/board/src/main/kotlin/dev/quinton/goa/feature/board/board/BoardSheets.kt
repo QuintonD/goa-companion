@@ -267,11 +267,7 @@ internal fun PiecesContent(
                 item(key = "header-$title") { SectionHeader(title, Modifier.padding(horizontal = Spacing.screen)) }
                 items(pieces.sortedBy { order(it) }, key = { it.id }) { piece ->
                     val name = BoardText.piece(piece) { state.heroes.hero(it).name }
-                    val lane = (piece as? MinionPiece)?.let { BoardText.lane(state.map, state.geometry.laneOf(it)) }
-                    val where = listOfNotNull(
-                        lane,
-                        piece.at?.let { BoardText.zone(state.map, state.geometry.zoneOf(it)) } ?: "In the tray",
-                    ).joinToString(" · ")
+                    val where = state.whereIs(piece)
                     Surface(
                         onClick = { onSelect(piece.id) },
                         color = if (piece.id == state.selectedId) {

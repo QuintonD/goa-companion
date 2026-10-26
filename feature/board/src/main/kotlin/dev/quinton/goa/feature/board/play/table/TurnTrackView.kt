@@ -328,13 +328,12 @@ private fun SlotPortrait(table: TableUi, slot: TrackSlot, compact: Boolean, modi
 @Composable
 private fun StateBand(state: SlotState, compact: Boolean, modifier: Modifier) {
     val scheme = MaterialTheme.colorScheme
-    val (word, background, content) = when (state) {
-        SlotState.NOW -> Triple("NOW", scheme.primary, scheme.onPrimary)
-        SlotState.NEXT -> Triple("NEXT", scheme.secondaryContainer, scheme.onSecondaryContainer)
-        SlotState.DONE -> Triple("DONE", scheme.surfaceVariant, scheme.onSurface)
-        SlotState.PASSED -> Triple("PASS", scheme.surfaceVariant, scheme.onSurfaceVariant)
-        SlotState.SKIPPED -> Triple("OUT", scheme.surfaceVariant, scheme.onSurfaceVariant)
-        SlotState.LATER -> return
+    val word = slotBand(state) ?: return
+    val (background, content) = when (state) {
+        SlotState.NOW -> scheme.primary to scheme.onPrimary
+        SlotState.NEXT -> scheme.secondaryContainer to scheme.onSecondaryContainer
+        SlotState.DONE -> scheme.surfaceVariant to scheme.onSurface
+        else -> scheme.surfaceVariant to scheme.onSurfaceVariant
     }
     Row(
         modifier

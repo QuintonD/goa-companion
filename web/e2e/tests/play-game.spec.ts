@@ -16,14 +16,22 @@ async function snap(page: Page, project: string, name: string) {
   await page.screenshot({ path: join(shots, `${project}-game-${name}.png`) });
 }
 
+/** Taps [name]'s tile in the line-up grid (New game reuses New board's grid, as the phone does). */
+async function pickHero(page: Page, name: string) {
+  await page
+    .locator(".goa-board-tile")
+    .filter({ has: page.locator(".goa-board-tile-name", { hasText: new RegExp(`^${name}$`) }) })
+    .click();
+}
+
 /** New game: Brogan + Arien (you, the whole Red team) against Wasp + Tigerclaw at strength 2 (Easy), Coach off. */
 async function newGame(page: Page, coach = false) {
   await open(page, "#/play/new");
-  await expect(page.locator(".goa-hero-grid")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".goa-board-grid")).toBeVisible({ timeout: 30_000 });
   for (const name of ["Brogan", "Wasp", "Arien", "Tigerclaw"]) {
-    await page.locator(".goa-hero-grid").getByRole("button", { name, exact: true }).click();
+    await pickHero(page, name);
   }
-  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
   // The strength slider (ADR-039): a fresh browser starts at 5; 2 is Easy as before the slider.
   const strength = page.getByRole("slider", { name: "Computer strength" });
   await strength.fill("2");
@@ -100,7 +108,7 @@ test("play: a game through the card viewer, every kind of question, take back, g
   sameQuestionAgain();
   await page.addInitScript(() => localStorage.setItem("goa.theme", "dark"));
   await open(page, "#/play/new");
-  await expect(page.locator(".goa-hero-grid")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".goa-board-grid")).toBeVisible({ timeout: 30_000 });
   await snap(page, p, "new-lineup-dark");
   await newGame(page);
   await yourTurn(page);
@@ -180,11 +188,11 @@ test("new game: the strength slider, a strength per seat, the official coin, the
   const p = info.project.name;
   await page.addInitScript(() => localStorage.setItem("goa.theme", "dark"));
   await open(page, "#/play/new");
-  await expect(page.locator(".goa-hero-grid")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".goa-board-grid")).toBeVisible({ timeout: 30_000 });
   for (const name of ["Brogan", "Wasp", "Arien", "Tigerclaw"]) {
-    await page.locator(".goa-hero-grid").getByRole("button", { name, exact: true }).click();
+    await pickHero(page, name);
   }
-  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
   // ADR-039: 1..10, a fresh browser at 5; the band and the phone's words with it.
   const slider = page.getByRole("slider", { name: "Computer strength" });
   await expect(slider).toHaveAttribute("aria-valuetext", "Strength 5 of 10, Normal");
@@ -242,9 +250,9 @@ test("new game: the strength slider, a strength per seat, the official coin, the
   // The next New game starts at the strength of the game just started.
   await open(page, "#/play/new");
   for (const name of ["Brogan", "Wasp"]) {
-    await page.locator(".goa-hero-grid").getByRole("button", { name, exact: true }).click();
+    await pickHero(page, name);
   }
-  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
   await expect(page.locator(".goa-strength-value").first()).toHaveText("7 · Hard");
   // 1v1: one computer seat, no per-seat option.
   await expect(page.locator(".goa-switch-row", { hasText: "Advanced: a strength per seat" })).toHaveCount(0);
@@ -271,7 +279,7 @@ for (const v of variants) {
     };
     await open(page, "#/play/new");
     await big();
-    await expect(page.locator(".goa-hero-grid")).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator(".goa-board-grid")).toBeVisible({ timeout: 30_000 });
     await snap(page, p, `new-lineup-${v.name}`);
     await newGame(page);
     await big();

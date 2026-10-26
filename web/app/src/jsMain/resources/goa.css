@@ -948,6 +948,8 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
 }
 .goa-board-field input:focus, .goa-board-search input:focus { outline: 2px solid var(--secondary); outline-offset: 0; }
 .goa-board-search { flex: 1; min-width: 0; margin: var(--sp-sm) 0; }
+/* With large text the search keeps a usable width: "Adding to" wraps under it (the phone's column). */
+.goa-board-new-search > .goa-board-search { flex: 1 1 9rem; }
 .goa-board-push { display: flex; flex-wrap: wrap; gap: var(--sp-sm); margin: var(--sp-sm) 0 var(--sp-md); }
 .goa-button.goa-board-team-button.red { color: var(--team-red); border-color: var(--team-red); }
 .goa-button.goa-board-team-button.blue { color: var(--team-blue); border-color: var(--team-blue); }
@@ -1193,6 +1195,10 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
 .goa-track-slot.next { border: 1.5px solid var(--secondary); }
 .goa-track-slot.done .goa-card { opacity: 0.6; }
 .goa-track-card { position: relative; padding: 0; border: 0; background: none; cursor: pointer; display: block; min-height: 44px; }
+/* A second card (Emmitt's) peeks behind the first, up and to the right (the phone's SlotCards). */
+.goa-track-card:has(.goa-track-second) { margin: 6px 6px 0 0; }
+.goa-track-second { position: absolute; top: -6px; right: -6px; opacity: 0.7; pointer-events: none; }
+.goa-track-card > .goa-card { position: relative; }
 .goa-track-band {
   position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font: 700 0.5625rem/12px var(--font-body);
   letter-spacing: 0.04em; color: var(--on-surface); background: color-mix(in srgb, var(--bg) 82%, transparent);
@@ -1375,30 +1381,14 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
 .goa-switch:checked::after { transform: translateX(20px); background: var(--on-secondary); }
 .goa-switch:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .goa-menu-actions { display: flex; flex-direction: column; gap: var(--sp-sm); margin-top: var(--sp-lg); }
-/* New game */
-.goa-lineup { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-sm); }
-.goa-lineup-team { padding: var(--sp-sm); border-radius: 12px; border: 1px solid var(--engraved); border-top: 3px solid var(--primary); min-height: 88px; min-width: 0; }
-.goa-lineup-team.red { border-top-color: var(--team-red); }
-.goa-lineup-team.blue { border-top-color: var(--team-blue); }
-.goa-lineup-team p { margin: 0 0 var(--sp-xs); }
-.goa-team-label { display: flex; align-items: center; gap: 4px; }
-.goa-lineup-team.red .goa-team-label { color: var(--team-red); }
-.goa-lineup-team.blue .goa-team-label { color: var(--team-blue); }
-.goa-lineup-hero { display: flex; align-items: center; gap: 4px; min-width: 0; }
-.goa-lineup-hero .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.goa-lineup-hero .goa-icon-button { width: 40px; height: 44px; min-width: 40px; }
-.goa-filling { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-sm); margin: var(--sp-sm) 0; }
-.goa-filling .goa-segmented { flex: 0 0 auto; }
-.goa-filling .goa-segment { display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
+/* New game: the line-up step reuses New board's teams and grid; its bar says the size (p.20) */
+.goa-lineup-size { flex: 1; min-width: 0; }
+.goa-lineup-size p { margin: 0; }
+.goa-lineup-size p + p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .goa-segment.red[aria-checked="true"] { background: color-mix(in srgb, var(--team-red) 22%, transparent); color: var(--on-surface); }
 .goa-segment.blue[aria-checked="true"] { background: color-mix(in srgb, var(--team-blue) 22%, transparent); color: var(--on-surface); }
 .goa-search { flex: 1 1 8rem; min-width: 0; min-height: var(--tap); padding: 0 var(--sp-md); border-radius: 22px; border: 1px solid var(--engraved); background: var(--surface); color: var(--on-surface); font: 400 1rem/1.5rem var(--font-body); }
 .goa-hero-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.25rem, 1fr)); gap: var(--sp-xs); margin: var(--sp-sm) 0; }
-.goa-grid-hero { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 2px; min-height: var(--tap); border-radius: 12px; border: 2px solid transparent; background: none; color: var(--on-surface); cursor: pointer; }
-.goa-grid-hero.picked { border-color: var(--secondary); background: var(--secondary-container); }
-.goa-grid-hero.later .goa-grid-name { color: var(--on-surface-variant); }
-.goa-grid-name { font: 500 0.6875rem/0.875rem var(--font-body); text-align: center; overflow-wrap: anywhere; }
-.goa-later { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); padding: 0 5px; border-radius: 6px; background: var(--bg); color: var(--on-surface-variant); font: 700 0.625rem/0.875rem var(--font-body); }
 .goa-step-bar { position: sticky; bottom: calc(var(--tabbar-height) + var(--safe-bottom)); padding: var(--sp-sm) 0 var(--sp-md); background: linear-gradient(transparent, var(--bg) 30%); display: flex; flex-direction: column; gap: var(--sp-xs); }
 .goa-step-bar p { margin: 0; text-align: center; }
 .goa-source-row { display: flex; flex-direction: column; align-items: flex-start; width: 100%; min-height: 56px; padding: var(--sp-sm) var(--sp-md); margin-bottom: var(--sp-sm); border-radius: 12px; border: 1px solid var(--engraved); background: var(--surface); color: var(--on-surface); text-align: left; cursor: pointer; }
