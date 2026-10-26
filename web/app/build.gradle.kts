@@ -222,6 +222,11 @@ abstract class AssembleSite : DefaultTask() {
         out.resolve(MANIFEST).writeText(
             "{\n  \"build\": \"$build\",\n  \"version\": \"${version.get()}\",\n  \"files\": [\n$entries\n  ]\n}\n",
         )
+        // The service worker installs and serves only files of this manifest (web review R2).
+        val worker = out.resolve("sw.js")
+        val manifestHash = sha256(out.resolve(MANIFEST).readBytes())
+        check("__GOA_MANIFEST_SHA256__" in worker.readText()) { "sw.js lost its __GOA_MANIFEST_SHA256__ marker" }
+        worker.writeText(worker.readText().replace("__GOA_MANIFEST_SHA256__", manifestHash))
         logger.lifecycle("Web site: build $build, version ${version.get()} → $out")
     }
 
