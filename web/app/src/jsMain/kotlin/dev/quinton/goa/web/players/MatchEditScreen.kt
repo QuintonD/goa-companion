@@ -195,6 +195,8 @@ fun MatchEditScreen(route: Route.MatchEdit) {
     var confirmDelete by remember { mutableStateOf(false) }
     val saved = state.saved
     val unsaved = (state.dirty || state.unsavedResult) && saved == null
+    // Back asks first on unsaved edits, as the phone's (top bar and Cancel alike).
+    val requestBack = { if (unsaved) confirmDiscard = true else services.router.back() }
     val save: () -> Unit = save@{
         if (editor.saving || editor.notFound || editor.saved != null) return@save
         if (MatchValidation.validate(editor.form, now = Date.now().toLong()).isNotEmpty()) {
@@ -229,6 +231,7 @@ fun MatchEditScreen(route: Route.MatchEdit) {
             state.isNew -> "Log match"
             else -> "Edit match"
         },
+        onBack = requestBack,
         actions = {
             if (!state.loading && !state.notFound && saved == null) {
                 GoaButton("Save", save, ButtonKind.TEXT, enabled = !state.saving)
@@ -251,7 +254,7 @@ fun MatchEditScreen(route: Route.MatchEdit) {
                 onPickPilot = { team, key -> picker = Picker.PilotFor(team, key) },
                 onSave = save,
                 onDelete = { confirmDelete = true },
-                onCancel = { if (unsaved) confirmDiscard = true else services.router.back() },
+                onCancel = requestBack,
                 // From a drafted match the board places the heroes in the draft's pick order (W4).
                 onOpenBoard = { red, blue ->
                     services.router.navigate(Route.OpenBoard(red, blue, matchId = route.matchId))
@@ -314,17 +317,18 @@ fun MatchEditScreen(route: Route.MatchEdit) {
         null -> Unit
     }
     if (confirmDiscard) {
+        val words = MatchEditing.leaveDialog(state.unsavedResult)
         AlertDialog(
-            if (state.unsavedResult) "Leave without saving?" else "Discard changes?",
+            words.title,
             onDismiss = { confirmDiscard = false },
             buttons = {
-                GoaButton("Keep editing", { confirmDiscard = false }, ButtonKind.TEXT)
-                GoaButton(if (state.unsavedResult) "Leave" else "Discard", {
+                GoaButton(words.keep, { confirmDiscard = false }, ButtonKind.TEXT)
+                GoaButton(words.leave, {
                     confirmDiscard = false
                     services.router.back()
                 }, ButtonKind.TEXT)
             },
-        ) { P { Text("Your edits to this match haven't been saved.") } }
+        ) { P { Text(words.body) } }
     }
     if (confirmDelete) {
         AlertDialog("Delete this match?", onDismiss = { confirmDelete = false }, buttons = {

@@ -105,6 +105,18 @@ object MatchEditing {
         .sortedBy { it.name.lowercase() }
         .map { HeroOption(it.id, it.name, it.title, it.portrait, it.complexity) }
 
+    /** The words of the dialog Back opens on unsaved edits ([unsavedResult]: a result not logged yet). */
+    fun leaveDialog(unsavedResult: Boolean): LeaveDialog = if (unsavedResult) {
+        LeaveDialog(
+            title = "Leave without saving?",
+            body = "This result isn't logged yet. The timer keeps the finished match, so you can " +
+                "log it later from the Timer tab.",
+            leave = "Leave",
+        )
+    } else {
+        LeaveDialog("Discard changes?", "Your edits to this match haven't been saved.", "Discard")
+    }
+
     /** [millis] rounded down to the minute (the editor shows no seconds). */
     fun toMinute(millis: Long): Long = millis - millis % MINUTE_MS
 
@@ -175,4 +187,9 @@ object MatchEditing {
             rematchOptions = rematchOptions(match),
         )
     }
+}
+
+/** The dialog Back opens on a match with unsaved edits; "Keep editing" is the other button. */
+data class LeaveDialog(val title: String, val body: String, val leave: String) {
+    val keep: String get() = "Keep editing"
 }
