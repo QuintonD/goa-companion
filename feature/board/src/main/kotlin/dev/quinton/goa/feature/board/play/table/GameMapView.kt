@@ -38,12 +38,17 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.selected
@@ -79,7 +84,9 @@ import kotlinx.coroutines.launch
  * shield ring), tokens by label, the acting hero outlined in bronze. When the person is asked for a
  * space or a piece, every option is a dashed teal space; the tapped one is outlined, with the path
  * the engine will use drawn to it; the decision's other highlights (a card's range) are violet.
- * Pinch zooms, drag pans, double tap zooms in; every space in view is a TalkBack node.
+ * Pinch zooms, drag pans, double tap zooms in; every space in view is a TalkBack node. A long press
+ * on a hero's piece (or another figure of that hero) always goes to [onLongPressHero] with the hero,
+ * even when a tap there would answer the question (ADR-044); TalkBack has it as a custom action.
  */
 @Composable
 fun GameMapView(
@@ -89,8 +96,11 @@ fun GameMapView(
     onTap: (TableTap) -> Unit,
     modifier: Modifier = Modifier,
     lane: Rect? = null,
+    onLongPressHero: ((String) -> Unit)? = null,
 ) {
     val palette = boardPalette()
+    val haptics = LocalHapticFeedback.current
+    val longPress by rememberUpdatedState(onLongPressHero)
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
     val current by rememberUpdatedState(table)
@@ -114,27 +124,56 @@ fun GameMapView(
                     var moved = 0f
                     var gesture = false
                     var up = down.uptimeMillis
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        val pressed = event.changes.filter { it.pressed }
-                        if (pressed.isEmpty()) {
-                            up = event.changes.firstOrNull()?.uptimeMillis ?: up
-                            break
-                        }
-                        if (pressed.size > 1) {
-                            gesture = true
-                            viewport.transform(event.calculateZoom(), event.calculateCentroid(), event.calculatePan())
-                            event.changes.forEach { it.consume() }
-                        } else {
-                            val change = pressed.first()
-                            val delta = change.position - change.previousPosition
-                            moved += delta.getDistance()
-                            if (gesture || moved > viewConfiguration.touchSlop) {
+
+                    // Pan and zoom until every finger is up.
+                    suspend fun AwaitPointerEventScope.track() {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val pressed = event.changes.filter { it.pressed }
+                            if (pressed.isEmpty()) {
+                                up = event.changes.firstOrNull()?.uptimeMillis ?: up
+                                return
+                            }
+                            if (pressed.size > 1) {
                                 gesture = true
-                                viewport.panBy(delta)
-                                change.consume()
+                                viewport.transform(
+                                    event.calculateZoom(),
+                                    event.calculateCentroid(),
+                                    event.calculatePan(),
+                                )
+                                event.changes.forEach { it.consume() }
+                            } else {
+                                val change = pressed.first()
+                                val delta = change.position - change.previousPosition
+                                moved += delta.getDistance()
+                                if (gesture || moved > viewConfiguration.touchSlop) {
+                                    gesture = true
+                                    viewport.panBy(delta)
+                                    change.consume()
+                                }
                             }
                         }
+                    }
+                    val heroAt = longPress?.let { heroAt(current, layout.hexAt(viewport.screenToMap(down.position))) }
+                    // On a hero's piece a press held still opens that hero, whatever a tap would do there.
+                    val released = if (heroAt == null) {
+                        track()
+                        true
+                    } else {
+                        withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) { track() } != null
+                    }
+                    if (!released && gesture) track()
+                    if (!released && !gesture) {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        longPress?.invoke(heroAt!!)
+                        // The rest of the press is the long press's: no tap, no pan.
+                        do {
+                            val event = awaitPointerEvent()
+                            event.changes.forEach { it.consume() }
+                        } while (event.changes.any { it.pressed })
+                        lastUp = 0L
+                        lastHex = null
+                        return@awaitEachGesture
                     }
                     if (!gesture) {
                         val hex = layout.hexAt(viewport.screenToMap(down.position))
@@ -167,7 +206,7 @@ fun GameMapView(
             Box(transform.semantics { isTraversalGroup = true }) {
                 DecisionOverlay(table, layout, unit, palette)
                 GamePieces(table, layout, unit, palette)
-                GameSpaceNodes(table, layout, viewport, onTap = { tap(it) })
+                GameSpaceNodes(table, layout, viewport, onTap = { tap(it) }, onHero = longPress)
             }
             ActingTag(table, layout, viewport)
         }
@@ -213,6 +252,13 @@ private fun ActingTag(table: TableUi, layout: MapLayout, viewport: MapViewport) 
             maxLines = 1,
         )
     }
+}
+
+/** The hero whose piece (or other figure, Razzle's doubles) stands on [hex], if any. */
+internal fun heroAt(table: TableUi, hex: Hex): String? {
+    val occupant = table.occupancy[hex] ?: return null
+    if (table.heroView(occupant) != null) return occupant
+    return table.view.pieces.firstOrNull { it.id == occupant }?.let(::figureOf)
 }
 
 /** What a tap on [hex] means: an option, else a piece (to read about it), else nothing. */
@@ -332,10 +378,17 @@ private fun GamePieces(table: TableUi, layout: MapLayout, unit: Float, palette: 
 
 /**
  * One node per space in view for TalkBack and tests: what stands there, the Zone, and whether it
- * is an option; its click does what a tap does.
+ * is an option; its click does what a tap does. A hero's space also has "Show <hero>'s game state"
+ * (the long press), so the hero can be read about while a tap there answers the question.
  */
 @Composable
-private fun GameSpaceNodes(table: TableUi, layout: MapLayout, viewport: MapViewport, onTap: (TableTap) -> Unit) {
+private fun GameSpaceNodes(
+    table: TableUi,
+    layout: MapLayout,
+    viewport: MapViewport,
+    onTap: (TableTap) -> Unit,
+    onHero: ((String) -> Unit)?,
+) {
     val density = LocalDensity.current
     val unit = viewport.unit
     val side = unit * SPACE_NODE
@@ -379,9 +432,11 @@ private fun GameSpaceNodes(table: TableUi, layout: MapLayout, viewport: MapViewp
                 if (space.hex in table.decision?.context?.highlight.orEmpty()) add("highlighted")
                 if (space.hex == table.hintAt) add("hint")
             }.joinToString(", ")
+            val hero = onHero?.let { heroAt(table, space.hex) }
             val action = when {
                 option && chosen -> null
                 option -> "Choose"
+                hero != null -> showGameState(table.hero(hero).name)
                 occupant != null -> "Read about it"
                 else -> null
             }
@@ -398,6 +453,14 @@ private fun GameSpaceNodes(table: TableUi, layout: MapLayout, viewport: MapViewp
                                 onTap(tapResult)
                                 true
                             }
+                        }
+                        if (hero != null && onHero != null) {
+                            customActions = listOf(
+                                CustomAccessibilityAction(showGameState(table.hero(hero).name)) {
+                                    onHero(hero)
+                                    true
+                                },
+                            )
                         }
                     },
             )

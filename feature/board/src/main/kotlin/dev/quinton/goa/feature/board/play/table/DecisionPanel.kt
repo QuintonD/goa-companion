@@ -393,7 +393,7 @@ private fun BoardHint(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boolean)
                 pieces.isEmpty() -> "Tap one of the ${spaces.size} spaces outlined in teal."
                 spaces.isEmpty() -> "Tap an outlined piece on the board, or pick it below."
                 else -> "Tap an outlined space or piece on the board."
-            },
+            } + longPressHint(table),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -408,6 +408,17 @@ private fun BoardHint(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boolean)
             Text("Confirm · ${table.label(selected)}", textAlign = TextAlign.Center)
         }
     }
+}
+
+/**
+ * When a hero's piece is an option (a tap there answers), how to read about that hero instead
+ * (ADR-044): a long press always opens the hero's game state.
+ */
+internal fun longPressHint(table: TableUi): String {
+    val heroOption = table.pieceOptions.keys.any { id ->
+        table.heroView(id) != null || table.view.pieces.firstOrNull { it.id == id }?.let(::figureOf) != null
+    }
+    return if (heroOption) " Long-press a hero for their game state." else ""
 }
 
 /** Units and tokens (and a short list of spaces whose names differ) as chips too. */

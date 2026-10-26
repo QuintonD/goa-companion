@@ -124,7 +124,7 @@ fun GameTable(
             viewport.reveal(region, region.center)
         }
 
-        GameMapView(table, layout, viewport, onTap, Modifier.fillMaxSize(), lane = lane)
+        GameMapView(table, layout, viewport, onTap, Modifier.fillMaxSize(), lane = lane, onLongPressHero = onHero)
 
         Column(
             Modifier
