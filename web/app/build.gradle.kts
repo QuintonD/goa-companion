@@ -19,17 +19,58 @@ plugins {
 }
 
 /**
+ * The web fonts (the `.woff2` files in `web/app/fonts`) are WOFF2 subsets of core/designsystem's TTFs, made by
+ * `web/app/fonts/subset_fonts.py` (a third of the bytes on a first visit). `sources.sha256` records the
+ * TTFs they were made from; the build stops when a TTF changed and the subsets weren't made again.
+ */
+abstract class CheckWebFonts : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.NAME_ONLY)
+    abstract val ttfs: ConfigurableFileCollection
+
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val lock: RegularFileProperty
+
+    @TaskAction
+    fun check() {
+        val recorded = lock.get().asFile.readLines().filter { it.isNotBlank() }
+            .associate { line -> line.substringAfter("  ").trim() to line.substringBefore("  ").trim() }
+        val actual = ttfs.files.associate { file ->
+            file.name to
+                MessageDigest.getInstance("SHA-256").digest(file.readBytes()).joinToString("") { "%02x".format(it) }
+        }
+        if (recorded != actual) {
+            throw GradleException(
+                "The web fonts are stale: core/designsystem's TTFs changed. Run web/app/fonts/subset_fonts.py " +
+                    "(see its header) and commit the new .woff2 files and sources.sha256.",
+            )
+        }
+    }
+}
+
+val checkWebFonts = tasks.register<CheckWebFonts>("checkWebFonts") {
+    description = "Checks that the web/app/fonts WOFF2 files were made from the current core/designsystem TTFs."
+    ttfs.from(fileTree(rootProject.file("core/designsystem/src/main/res/font")) { include("*.ttf") })
+    lock.set(layout.projectDirectory.file("fonts/sources.sha256"))
+}
+
+/**
  * The game data, official images, fonts and shared icons come from the Android app's files at build
  * time (single source of truth, never committed twice): catalog JSON and `official/` from
- * `app/src/main/assets`, fonts from `core/designsystem`, their licences from `third_party/fonts`,
- * the tab and brand icons from `design/icons`, the hero sigils from `design/sigils`.
+ * `app/src/main/assets`, fonts as WOFF2 subsets of core/designsystem's (above), their licences from
+ * `third_party/fonts`, the brand mark from `design/icons`, the hero sigils from `design/sigils`. The
+ * UI icons are inline markup (`iconMarkup` below), so their SVG files aren't part of the site.
  */
 val webAssets: TaskProvider<Sync> = tasks.register<Sync>("webAssets") {
     description = "Copies the catalog, official images, fonts, licences and shared icons into the web app."
+    dependsOn(checkWebFonts)
     into(layout.buildDirectory.dir("generated/webAssets"))
     from(rootProject.file("app/src/main/assets")) { include("catalog/**", "official/**") }
-    from(rootProject.file("core/designsystem/src/main/res/font")) {
-        include("*.ttf")
+    // The lists' small copies of the card scans and deck symbols (WebThumbnails.kt, Thumbnails.kt).
+    from(project(":tools:catalog-import").tasks.named("webThumbnails")) { into("official/thumbs") }
+    from(layout.projectDirectory.dir("fonts")) {
+        include("*.woff2")
         into("fonts")
     }
     from(rootProject.file("third_party/fonts")) {
@@ -47,7 +88,7 @@ val webAssets: TaskProvider<Sync> = tasks.register<Sync>("webAssets") {
         into("licenses")
     }
     from(rootProject.file("design/icons")) {
-        include("nav_*.svg", "brand_mark.svg")
+        include("brand_mark.svg")
         into("icons")
     }
     // The hero sigils (original art): a hero's emblem while its portrait loads or when it can't.
@@ -114,6 +155,9 @@ val iconMarkup = tasks.register<GenerateIconMarkup>("iconMarkup") {
 kotlin {
     js {
         outputModuleName.set("app")
+        // ES2015 (classes, ES modules) instead of ES5 prototype chains: a smaller app.js; iOS 17 Safari
+        // runs ES2022. The Node tests run as ES modules too (no `require`).
+        compilerOptions { target.set("es2015") }
         browser {
             commonWebpackConfig {
                 outputFileName = "app.js"
@@ -164,6 +208,19 @@ kotlin {
     }
 }
 
+// The UI icons' SVG files are compiled into IconMarkup.kt; only the brand mark is loaded by URL.
+tasks.named<ProcessResources>("jsProcessResources") {
+    exclude { it.path.startsWith("icons/") && it.name.endsWith(".svg") && it.name != "brand_mark.svg" }
+}
+
+// No Compose tooling metadata in the bundle (ADR-043 "Addendum (R3 first load)"): source information
+// ("C(App)39@1517L7…:Main.kt#…") and trace markers only serve Android Studio's inspector and the
+// composition tracer, neither of which exists in a browser. They were ~0.6 MB of app.js.
+composeCompiler {
+    includeSourceInformation.set(false)
+    includeTraceMarkers.set(false)
+}
+
 // Tests that read the shipped catalog find the repository through GOA_REPO_ROOT, like core's.
 val repoRoot: String = rootDir.absolutePath
 tasks.withType<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest>().configureEach {
@@ -192,6 +249,13 @@ abstract class AssembleSite : DefaultTask() {
         out.deleteRecursively()
         distribution.get().asFile.copyRecursively(out)
         out.walkTopDown().filter { it.isFile && it.name.endsWith(".map") }.forEach { it.delete() }
+        // The stylesheet blocks the first paint: ship it without its comments and indentation.
+        out.walkTopDown().filter { it.isFile && it.extension == "css" }.forEach { css ->
+            css.writeText(
+                css.readText().replace(Regex("""/\*.*?\*/""", RegexOption.DOT_MATCHES_ALL), "")
+                    .lines().map { it.trim() }.filter { it.isNotEmpty() }.joinToString("\n"),
+            )
+        }
         val stamped = setOf("index.html", "sw.js")
         fun files() = out.walkTopDown().filter { it.isFile }
             .map { it.relativeTo(out).invariantSeparatorsPath to it }

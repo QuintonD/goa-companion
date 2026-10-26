@@ -7,6 +7,8 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import dev.quinton.goa.web.ui.Load
+import dev.quinton.goa.web.ui.rememberLoad
 import kotlin.js.Promise
 import kotlinx.browser.document
 import kotlinx.browser.window
@@ -24,19 +26,49 @@ import org.jetbrains.compose.web.dom.Video
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.HTMLVideoElement
 
-@JsModule("qrcode-generator")
-@JsNonModule
-private external fun qrcode(typeNumber: Int, errorCorrectionLevel: String): dynamic
+/**
+ * The QR libraries, loaded on first use rather than with app.js (ADR-043 "Addendum (R3 first load)"):
+ * webpack splits them into chunks (`<id>.chunk.js`, precached with the shell for offline use), so a
+ * first visit that never opens the Group screen doesn't download them.
+ */
+private object QrLibraries {
+    private var loading: Promise<dynamic>? = null
 
-@JsModule("jsqr")
-@JsNonModule
-private external fun jsQR(data: dynamic, width: Int, height: Int, options: dynamic): dynamic
+    /** The two modules as `[qrcode-generator, jsQR]`. */
+    suspend fun load(): Array<dynamic> {
+        val promise = loading ?: importBoth().also { loading = it }
+        return try {
+            promise.await().unsafeCast<Array<dynamic>>()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
+            loading = null // offline before the chunk was cached: the next try fetches again
+            throw e
+        }
+    }
+
+    private fun importBoth(): Promise<dynamic> = js(
+        "Promise.all([import(\"qrcode-generator\"), import(\"jsqr\")]).then(function (m) { " +
+            "return [m[0].default || m[0], m[1].default || m[1]]; })",
+    )
+}
 
 /** QR codes for invites: drawing (qrcode-generator, MIT) and reading (jsQR, Apache-2.0). */
 object InviteQr {
+    /** Loads the QR libraries (a small chunk, cached); call before [svg] or [read]. */
+    suspend fun load() {
+        val (generator, reader) = QrLibraries.load()
+        qrcode = generator
+        jsQR = reader
+    }
+
+    private var qrcode: dynamic = null
+    private var jsQR: dynamic = null
+
     /**
      * The QR code of [text] as SVG markup: black modules on white with a quiet zone, error
      * correction M (the phone's ZXing settings), one unit per module so it scales crisply.
+     * Needs [load] first.
      */
     fun svg(text: String, title: String): String {
         val qr = qrcode(0, "M")
@@ -57,7 +89,7 @@ object InviteQr {
             """<path d="$path" fill="#000"/></svg>"""
     }
 
-    /** The text of a QR code in the pixels of [canvas], or null when none is found. */
+    /** The text of a QR code in the pixels of [canvas], or null when none is found. Needs [load] first. */
     fun read(canvas: HTMLCanvasElement): String? {
         val context = canvas.getContext("2d").asDynamic() ?: return null
         val image = context.getImageData(0, 0, canvas.width, canvas.height)
@@ -72,7 +104,21 @@ object InviteQr {
 /** The invite's QR code, big and on white (scanners need the contrast). */
 @Composable
 fun QrCode(text: String, title: String) {
-    val svg = remember(text, title) { InviteQr.svg(text, title) }
+    val loaded = rememberLoad(text to title) {
+        InviteQr.load()
+        InviteQr.svg(text, title)
+    }
+    val svg = (loaded.state as? Load.Ready)?.value
+    if (svg == null) {
+        // While the QR library loads (or if it can't, offline before it was cached): the same white
+        // square, so the layout doesn't jump; the invite link beside it still works.
+        Div({
+            classes("goa-w2-qr")
+            attr("role", "img")
+            attr("aria-label", if (loaded.state is Load.Failed) "$title (couldn't be drawn offline)" else title)
+        })
+        return
+    }
     key(svg) {
         Div({
             classes("goa-w2-qr")
@@ -120,6 +166,14 @@ fun QrScanner(onFound: (String) -> Unit, onProblem: (String) -> Unit) {
                 } catch (@Suppress("TooGenericExceptionCaught") _: Throwable) {
                     // iOS plays muted inline video without a gesture; a refusal shows a still frame.
                 }
+            }
+            try {
+                InviteQr.load()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (@Suppress("TooGenericExceptionCaught", "SwallowedException") e: Throwable) {
+                onProblem(NO_READER) // the chunk didn't load (offline before it was cached): words, not the error
+                return@launch
             }
             status = "Point the camera at the invite QR code"
             val canvas = document.createElement("canvas") as HTMLCanvasElement
@@ -171,5 +225,6 @@ private const val FRAME_MS = 200L
 private const val MAX_SIDE = 800
 
 const val NO_CAMERA = "This browser can't use a camera here. Paste the invite instead."
+const val NO_READER = "The QR reader couldn't load (offline?). Paste the invite instead."
 const val NO_PERMISSION =
     "The camera isn't allowed for this site. Allow it in the browser's settings, or paste the invite instead."
