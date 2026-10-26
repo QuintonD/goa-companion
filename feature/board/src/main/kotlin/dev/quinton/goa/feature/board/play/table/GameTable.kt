@@ -73,6 +73,7 @@ import kotlinx.coroutines.launch
  * [peekTrailing], e.g. Confirm), only the round at a glance stays at the top, and the map fits the
  * whole board unless the person has moved it. Taps on the map keep selecting while it is hidden.
  * Hidden or shown is kept for the screen (and survives rotation); [initialPanelHidden] for previews.
+ * [onSpellbook] adds a Spellbook control per hero the person controls that has one (Gydion, ADR-040).
  */
 @Composable
 fun GameTable(
@@ -87,6 +88,7 @@ fun GameTable(
     peekTrailing: (@Composable () -> Unit)? = null,
     initialPanelHidden: Boolean = false,
     focus: CardFocusState? = null,
+    onSpellbook: ((String) -> Unit)? = null,
     panel: @Composable ColumnScope.() -> Unit,
 ) {
     var hidden by rememberSaveable { mutableStateOf(initialPanelHidden) }
@@ -152,7 +154,11 @@ fun GameTable(
                 }
                 if (!hidden) banner?.invoke(landscape)
             }
-            Column(Modifier.align(Alignment.End), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Column(
+                Modifier.align(Alignment.End),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                horizontalAlignment = Alignment.End,
+            ) {
                 if (viewport.isFit) {
                     MapButton(Icons.Outlined.ZoomIn, "Zoom to the lane") { scope.launch { viewport.animateLane() } }
                 } else {
@@ -165,6 +171,13 @@ fun GameTable(
                     "Flip: ${BoardText.team(table.bottomTeam.opponent)} at the bottom",
                     onFlip,
                 )
+                // Gydion's spellbook, one tap at any point of the game (ADR-040): under the map buttons,
+                // so it never covers the round at a glance, the turn track or the hero strip.
+                if (onSpellbook != null) {
+                    table.spellbookSeats.forEach { id ->
+                        SpellbookButton(table, id, onClick = { onSpellbook(id) })
+                    }
+                }
             }
         }
 

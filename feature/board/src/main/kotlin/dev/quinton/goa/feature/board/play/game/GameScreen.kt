@@ -94,10 +94,12 @@ import dev.quinton.goa.feature.board.play.table.HeroDetail
 import dev.quinton.goa.feature.board.play.table.MomentCard
 import dev.quinton.goa.feature.board.play.table.PeekConfirm
 import dev.quinton.goa.feature.board.play.table.RecentEvents
+import dev.quinton.goa.feature.board.play.table.SpellbookSheet
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.YourHand
+import dev.quinton.goa.feature.board.play.table.spellbookUi
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.ui.BoardScaffold
 import dev.quinton.goa.feature.board.ui.cards.CardFocusHost
@@ -113,6 +115,9 @@ sealed interface PlaySheet {
 
     /** The game-state review (ADR-037). */
     data class Review(val tab: ReviewTab = ReviewTab.NOW) : PlaySheet
+
+    /** A hero's spellbook (Gydion, ADR-040): from the table's Spellbook control or the hero sheet. */
+    data class Spellbook(val heroId: String) : PlaySheet
 }
 
 /**
@@ -221,6 +226,7 @@ fun GameScreen(
                             },
                             initialPanelHidden = initialPanelHidden,
                             focus = focus,
+                            onSpellbook = { sheet = PlaySheet.Spellbook(it) },
                         ) {
                             Panel(state.play, onAction, focus)
                         }
@@ -251,13 +257,17 @@ fun GameScreen(
             is PlaySheet.Hero -> BoardSheet(onDismiss = { sheet = null }) {
                 Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
                     SheetTitle(play.table.hero(open.heroId).name, "Open information (p.4)", onDone = { sheet = null })
-                    HeroDetail(play.table, open.heroId, focus)
+                    HeroDetail(play.table, open.heroId, focus, onSpellbook = { sheet = PlaySheet.Spellbook(it) })
                 }
             }
 
             is PlaySheet.Review -> ReviewSheet(play.table, play.review, open, {
                 sheet = it
             }, { onAction(GameAction.Review(it)) }, focus)
+
+            is PlaySheet.Spellbook -> spellbookUi(play.table, open.heroId)?.let { ui ->
+                SpellbookSheet(ui, focus, onDismiss = { sheet = null })
+            }
 
             null -> Unit
         }
