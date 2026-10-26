@@ -314,6 +314,14 @@ data class DecisionContext(
      * that are not among the options, each with why. Built from the same checks that left them out.
      */
     val unavailable: List<UnavailableAction> = emptyList(),
+    /**
+     * UPGRADE_CARD: for each option card, the cards of the next Tier in its colour in the deciding
+     * hero's deck (p.15 "Find two Action cards in your deck…"), in the order KEEP_UPGRADE would offer
+     * them: the one kept goes to hand, the other becomes an item (p.16). Two in every shipped deck;
+     * fewer only if something moved one out of the deck. The deciding hero's own deck: show it only
+     * to them.
+     */
+    val upgrades: Map<String, List<String>> = emptyMap(),
 )
 
 /**

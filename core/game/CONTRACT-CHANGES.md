@@ -182,3 +182,26 @@ are rebuilt by the replay, never saved).
   `Fizzle(reason, source = null)` and `fizzle(reason, source)`. `attackTarget(…, none = "no target")`:
   `adjacentAttackTarget` fizzles "no target adjacent to you", `rangedAttackTarget` "no target in range"
   (the log's "… stops:" lines changed with them). Gydion's `castOneOf` says why no spell can be cast.
+
+## 2026-10-26 (see the upgrade cards before choosing, `feature/v08-upgrade-preview`, ADR-045)
+
+Additive; defaults keep other `GameSession` implementations, test fakes, saves and the `feature/web`
+client unaffected (decisions are rebuilt by the replay, never saved).
+
+- `DecisionContext.upgrades: Map<String, List<String>> = emptyMap()`: on `UPGRADE_CARD`, for each option
+  card, the cards of the next Tier in its colour in the deciding hero's deck, in the order the following
+  `KEEP_UPGRADE` offers them (p.15 "Find two Action cards in your deck…"; the one not kept becomes an
+  item, p.16). Two in every shipped deck. Empty on every other kind.
+- Engine side: `EngineData.upgradeable(hero)` (the lowest-Tier coloured hand cards, the options) and
+  `EngineData.upgradesOf(hero, cardId)` (the pair) in `Flow.kt`: `upgradeOnce` builds the question, its
+  preview and the KEEP_UPGRADE options from them, and the AI's `StaticPolicy.upgradeScore` reads the same
+  function (it had its own copy; same result). `UpgradePreviewTest`: for every playable hero through all
+  seven level ups, each option's preview equals the Keep question it leads to.
+- Visibility: the deciding hero's own deck, which the rule lets its player search, so show it only with
+  that hero's question (the app does: the panel is drawn only for the person's own seats, `TableUi.mine`).
+  It names nothing hidden from the others either: the next Tier's two cards are always both in the deck
+  (a Tier is only reached through the one below), and enemy samples (`determinize`) build it from the
+  sample's own deck — two games that differ only in a hidden upgrade history give the same samples
+  (`UpgradePreviewTest`, no peeking).
+- A level reached when only one card can be upgraded is still answered by the engine (no question, no
+  preview); level 8 (the Ultimate) asks nothing, as before.

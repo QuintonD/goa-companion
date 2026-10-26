@@ -577,15 +577,38 @@ interface UltimateUnlock {
     fun unlocked(g: Game, heroId: String)
 }
 
+/**
+ * p.15: the hand cards one level up may upgrade: "a non-basic Action card in your hand with the
+ * lowest card Tier or tied for the lowest" (Tier I or II; a Tier III card has nothing above it).
+ */
+internal fun EngineData.upgradeable(h: HeroState): List<String> {
+    val candidates = h.cards.filter {
+        it.zone == Zone.HAND && card(it.id).color in UPGRADE_COLOURS && (card(it.id).tier ?: 0) in 1..2
+    }
+    val lowest = candidates.minOfOrNull { card(it.id).tier!! } ?: return emptyList()
+    return candidates.filter { card(it.id).tier == lowest }.map { it.id }
+}
+
+/**
+ * p.15: what upgrading [cardId] offers: "two Action cards in your deck that have the same color as
+ * the chosen card but are one Tier higher", in the order [DecisionKind.KEEP_UPGRADE] asks them (fewer
+ * than two only if something moved one out of the deck). The one function both the question and its
+ * preview ([DecisionContext.upgrades]) read, so they can't differ.
+ */
+internal fun EngineData.upgradesOf(h: HeroState, cardId: String): List<String> {
+    val chosen = card(cardId)
+    val tier = chosen.tier ?: return emptyList()
+    return h.cards.filter {
+        it.zone == Zone.DECK && card(it.id).color == chosen.color && card(it.id).tier == tier + 1
+    }.map { it.id }
+}
+
+private val UPGRADE_COLOURS = setOf(CardColor.RED, CardColor.GREEN, CardColor.BLUE)
+
 private fun Game.upgradeOnce(heroId: String) {
     val h = hero(heroId)
-    val coloured = setOf(CardColor.RED, CardColor.GREEN, CardColor.BLUE)
-    val candidates = h.cards.filter {
-        it.zone == Zone.HAND && card(it.id).color in coloured &&
-            (card(it.id).tier ?: 0) in 1..2
-    }
-    val lowest = candidates.minOfOrNull { card(it.id).tier!! } ?: return
-    val pool = candidates.filter { card(it.id).tier == lowest }.map { it.id }
+    val pool = data.upgradeable(h)
+    if (pool.isEmpty()) return
     val old = (
         ask(
             heroId,
@@ -594,12 +617,11 @@ private fun Game.upgradeOnce(heroId: String) {
             pool.map {
                 Choice.Card(it)
             },
+            // The asking hero's own deck, which the rule lets them search (p.15): only in their question.
+            context = DecisionContext(upgrades = pool.associateWith { data.upgradesOf(h, it) }),
         ) as Choice.Card
         ).cardId
-    val color = card(old).color
-    val next = h.cards.filter {
-        it.zone == Zone.DECK && card(it.id).color == color && card(it.id).tier == lowest + 1
-    }.map { it.id }
+    val next = data.upgradesOf(h, old)
     moveCard(heroId, old, Zone.DECK)
     if (next.isEmpty()) return
     val keep = (
