@@ -49,9 +49,14 @@ test("the timer runs full screen, survives a reload and ends in the match summar
   await page.locator(".goa-table-next").click();
   await page.waitForTimeout(600); // Next is debounced against double taps
   await page.locator(".goa-table-next").click();
-  await page.getByRole("button", { name: "Show the whole round" }).or(page.getByRole("button", { name: "More options" })).first().click();
-  const sheetItem = page.getByRole("button", { name: "Whole-round view" });
-  if (await sheetItem.isVisible()) await sheetItem.click();
+  // On a phone-width bar the switch is in More (ADR-043 R3); on a wide one it is in the bar.
+  const direct = page.getByRole("button", { name: "Show the whole round" });
+  if (await direct.isVisible()) {
+    await direct.click();
+  } else {
+    await page.getByRole("button", { name: "More options" }).click();
+    await page.getByRole("button", { name: "Whole-round view" }).click();
+  }
   await expect(page.locator(".goa-table-round-list")).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await shot(page, info, "timer-round-view");
