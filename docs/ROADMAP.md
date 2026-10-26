@@ -235,6 +235,19 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   scanner, sync after the app was in the background, the share sheet for sync files
 - [ ] A real group on the production relay with one phone and one iPhone
 
+## M16 — Web app: board, play against the computer, puzzles (ADR-043 W4)
+- [x] Shared: the board, table and puzzle screens' logic in `:core:play` (`BoardSandbox`, `TableUi`,
+  `GameFacts`, `PuzzlePlay`, the New board/New game rules, the words); Android calls them — 2026-10-26,
+  `feature:board` tests and screenshots unchanged
+- [x] The engine, computer players, coach and puzzles in a Web Worker (`:web:engine`, `:web:worker`);
+  the board as SVG; Boards, New board, the board sandbox, New game, the game table with the card
+  focus viewer and Game state, the puzzles with nudges, misses and the solution replayed — 2026-10-26,
+  `EngineHostTest`, `PuzzleControllerTest`, `GameControllerTest`, Playwright WebKit and Chromium
+  (`play-board`, `play-game`, `play-puzzles`, the worker offline); AI think time per level measured
+- [ ] On an iPhone: drag and pinch on the board, the card focus viewer's swipe, Expert's think time,
+  the worker after the app was in the background
+- [ ] Wasm for the engine worker, if Expert's capped search is felt in play
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check

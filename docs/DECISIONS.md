@@ -1379,3 +1379,61 @@ web's backup), "Share stats page", "Open on the board" (W4). Production `app.js`
 the sync code; lazy-loading jsQR would save ~35 KB gzip and is left for when bundle size matters.
 Playwright runs these tests with the service worker blocked: WebKit sends a controlled page's
 requests past Playwright's routes, which would let a test reach the production relay.
+
+**Addendum (Play, W4, 2026-10-26):**
+**Decision:** The board sandbox, play against the computer and the puzzles run on the web with the
+phone's code: what the screens show is worked out in a new shared module, the engine runs in a Web
+Worker, and the board is SVG.
+1. **`:core:play` (KMP jvm + js).** The board feature's pure logic moved out of `feature:board`
+   (package `dev.quinton.goa.feature.board` kept, so the phone's screens didn't change): the UI
+   states and their builders (`TableUi`, the turn track and moments, review/`reviewUi`, recent lines,
+   peeks, `BoardUiState` and **`BoardSandbox`** — an open board's selection, tools, overlays, Undo/Redo,
+   taps/drops/pushes/tray/measure and the words read after each move — `BoardsRules`, `NewBoardForm`/
+   `NewBoardRules`, `NewGameForm`/`NewGameRules`, line-up sources, the puzzle list), the words
+   (`BoardText`, `PlayText`, `PuzzleText`, `SpaceText`, `SelectionText`, the table's `TableWords` and
+   `DecisionFacts`, `FocusCard` and its verdicts), the hex layout (`HexLayout`; Android's `MapLayout`
+   wraps it), and what the ViewModels computed inline (`GameFacts`: `mergedView`, `turnStatus`,
+   `recentLines`, `gameOverUi`, `GamePacing`; `PuzzlePlay`: `openView`, `PuzzleSession.play`,
+   `solution`, `replyTitle`, `replayTitle`; `PuzzleTiming`). The Android ViewModels call these; their
+   tests and screenshots are unchanged. The moved classes lost `@Immutable`:
+   `feature/board/compose-stability.conf` tells the Compose compiler they are stable, as before.
+   Card colour names moved to `core:model` (designsystem delegates). `BoardJson` and the backup
+   import's merge rule (`BoardImport`) moved to `core:data-contracts`: the web stores boards, the game
+   in progress and puzzle progress under `play/` in the phone's formats.
+2. **The engine in a Web Worker.** `:web:engine` holds the messages between the page and the worker
+   (`EngineProtocol`: JSON of the engine's own @Serializable types) and the worker's side,
+   `EngineHost` (the game session, the computer players at the phone's levels and seeds, the coach,
+   the puzzle book; one game and one puzzle at a time, as on the phone). `:web:worker` is
+   `engine-worker.js` (1 317 901 bytes, 355 KB gzipped), copied next to `app.js`, which carries none of
+   the engine (only its API types and serializers). A search can't be interrupted inside a worker, so
+   cancelling is stopping: `EngineClient.reset()` terminates the worker (take back while the computer
+   thinks, leaving a screen mid-search, a coach look that is out of date) and the next request starts
+   a fresh one, which the screen refills from the save (a game: `GameRestore`; a puzzle: start plus
+   the player's moves replayed, the engine being deterministic). The coach looks in a second worker
+   so the game never waits on it; an answer waits for its nudge at most the phone's 300 ms. The worker
+   reads the catalog and maps itself, through the service worker (checked offline in WebKit and
+   Chromium).
+3. **The board is SVG** (`BoardSvg`): the map, overlays and pieces in map units, the phone's look and
+   colours as CSS tokens, crisp at any zoom. Pinch, drag and the wheel move `MapCamera`, which frames
+   the board as the phone's `MapViewport` does (ported, not shared: it is gesture and animation state);
+   one finger pans or, in the sandbox, drags the selected piece (a long press lifts another).
+   VoiceOver gets hidden buttons for the pieces and options; the map itself is one image to it.
+4. **AI think time in WebKit** (this PC, Playwright WebKit iPhone 15 profile, `ai-timing.spec.ts`,
+   per computer answer through the real worker; card plays / other questions, median · p90 · max):
+   Easy 15 · 17 · 35 ms / 15 · 16 · 27 ms; Normal 29 · 59 · 154 / 15 · 28 · 86; Hard 187 · 386 · 495 /
+   42 · 141 · 167; Expert 3 494 · 4 135 · 4 217 / 880 · 1 510 · 1 734. Easy to Hard finish well inside
+   their wall-clock budgets; Expert runs into its 4 s cap on card plays, so in a browser it searches
+   less than on a phone (JS emulates `Long`, about 7× slower for this search, F1). Proposal, not done:
+   compile the worker to Wasm (Kotlin/Wasm, same sources) and measure Expert again; the game is
+   playable as is.
+5. **Strength slider (ADR-039, `feature/v07-ai`, not in `feature/web` yet):** the web names the
+   computer's strength in one place (`play/game/AiStrengths.kt`, `AiStrengthPicker`) and maps a seat
+   to a player in one place (`EngineHost.aiFor`); New game's form and its `Controller.Ai` come from
+   `NewGameRules` in core:play, so merging the slider changes those three and nothing else.
+6. **Entry points:** the Heroes tab's Board (W1), a finished draft's "Try on the board" (W3) and a
+   saved match's "Open on the board" (W2's match editor, in the draft's pick order) open the line-up's
+   board (`#/boards/open?red=…&blue=…`, created at the opening or the untouched twin reopened).
+**Consequences:** One production bundle for the page (`app.js` 5 314 062 bytes, 1 374 411 gzipped,
+with every stream merged) and one for the engine; the engine's first answer takes ≈0.3–0.8 s while
+the worker loads the catalog. Not ported: the board backup's import/export (the web has no backup
+file; boards stay in this browser). Device checks on an iPhone are still due.
