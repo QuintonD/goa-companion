@@ -322,7 +322,10 @@ keep) show "Asked by <card>" (28 dp thumbnail) when another card asks, and the c
 images: the hand as 84 dp cards shrinking to 60 dp to fit five, two or three cards larger (140 / 110
 dp, so Keep's two next-Tier cards sit side by side with their item stats), a card the question
 doesn't offer dimmed with a block icon, and a teal "Tap a card to see it large; tap it again to …"
-line; a tap opens the **card focus** viewer (below), which answers. **Defend** is an error-container
+line; a tap opens the **card focus** viewer (below), which answers. **Level up** (which card to
+upgrade, ADR-045) is a row per card that may be upgraded: the hand card framed 2 dp in its colour (the
+choice), an arrow, then the two cards it would become with their item icons, three cards across the
+panel (60–100 dp); "The card on the left is the choice…" under the rows. **Defend** is an error-container
 header with the attacker's card (56 dp, tap to read), "Arien attacks · melee", the Attack total, the
 minion modifier counted and "Discard a card to defend" (it carries the prompt for TalkBack), then the
 hand's cards themselves with the verdict under each in words with an icon ("✓ Holds" teal, "! Falls"
@@ -394,8 +397,8 @@ discarded cards, a puzzle replay's card, and the sandbox's "Read the cards".
   attacks · melee · Attack 6"), a caption ("Turn 2 · Active"), the verdict ("! Falls · Defense 2
   against Attack 6", also as a pill on the card's corner; the Defense total says what items and
   minions change), why a card isn't an option, what choosing it means (Keep: "… goes to your hand",
-  "… becomes an item: +1 Defense (p.16)"; Upgrade: the two cards of the next Tier with their item
-  stats), a Handicap card's basis ("a weaker version of the Gold card (frame colour, p.20)"), its item
+  "… becomes an item: +1 Defense (p.16)"; Upgrade: the two cards of the next Tier by name, shown large
+  as the next pages; an upgrade card itself: "Upgrade of Liquid Leap" and which card to choose instead, ADR-045), a Handicap card's basis ("a weaker version of the Gold card (frame colour, p.20)"), its item
   stat with its item icon; then **"Read the card as text"** (collapsed, article icon and
   chevron; TalkBack hears Expanded / Collapsed): open, the name, kind, printed values and the text
   verbatim, for anyone the scan doesn't serve (the switch holds while swiping; in portrait the card steps back to 36 % of the height, 26 % with large text, and the words scroll into view). Landscape: the card on
@@ -409,7 +412,10 @@ discarded cards, a puzzle replay's card, and the sandbox's "Read the cards".
   saying the same ("Discard Magnetic Dagger", "Play Shock facedown", "Defend with …", "Upgrade …",
   "Keep …", "Measure with …"), and "Swipe up or go back to choose nothing." A card that isn't an
   option is veiled with a "Not an option" pill; a tap on it shakes it with the Reject haptic; its
-  button reads "Not an option". While the game is busy the button reads "Wait…".
+  button reads "Not an option". A card shown with a question as what an answer leads to (an upgrade
+  card, `FocusCard.answeredBy`) is not veiled: its caption says whose upgrade it is, a calm info line
+  says which card to choose, and its button is an outlined "Go to Liquid Leap" (also a TalkBack
+  action); a second tap on it shakes. While the game is busy the button reads "Wait…".
 - **Swipe sideways** on the card for the others (a pager, neighbours peeking at 93 % scale and 55 %
   alpha, snapping); tap a neighbour to go to it.
 - **Landscape cards** (Gydion's spells) keep their aspect: in portrait the card is the screen's width
