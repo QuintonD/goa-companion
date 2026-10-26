@@ -17,7 +17,7 @@ import dev.quinton.goa.core.data.MatchRepository
 import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.data.game.GameInProgress
 import dev.quinton.goa.core.data.game.StoredGame
-import dev.quinton.goa.core.game.AiLevel
+import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.GameFactory
 import dev.quinton.goa.core.game.GameLength
@@ -52,13 +52,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
  * New game against the computer (PRODUCT §9): the line-up as on New board (alternate picks, "Use a
- * draft or match"; only playable heroes can be seated), then who you control, the computer's level
- * (one for all, or per seat), Quick or Long, the map, Coach; the app flips the Tie Breaker coin and
- * [start] creates and saves the game.
+ * draft or match"; only playable heroes can be seated), then who you control, the computer's
+ * strength 1–10 (one for all, or per seat, ADR-039), Quick or Long, the map, Coach; the app flips
+ * the Tie Breaker coin and [start] creates and saves the game.
  */
 @HiltViewModel(assistedFactory = NewGameViewModel.Factory::class)
 class NewGameViewModel internal constructor(
@@ -68,7 +69,7 @@ class NewGameViewModel internal constructor(
     mapRepository: BoardMapRepository,
     draftRepository: DraftRecordRepository,
     matchRepository: MatchRepository,
-    settingsRepository: SettingsRepository,
+    private val settingsRepository: SettingsRepository,
     private val saves: GameSaveRepository,
     private val factory: suspend () -> GameFactory,
     private val clock: EditClock,
@@ -114,6 +115,18 @@ class NewGameViewModel internal constructor(
             ),
         ),
     )
+
+    /** A restored form keeps its own strength; a fresh one starts at the strength of the last game started. */
+    private var strengthChosen = savedState.contains(KEY_FORM)
+
+    init {
+        if (!strengthChosen) {
+            viewModelScope.launch {
+                val last = settingsRepository.settings.catch { emit(AppSettings()) }.first().computerStrength
+                if (!strengthChosen) form.update { it.copy(strength = AiStrength.coerce(last)) }
+            }
+        }
+    }
 
     private val engine = flow {
         emit(
@@ -185,6 +198,7 @@ class NewGameViewModel internal constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), NewGameUiState.Loading)
 
     fun onAction(action: NewGameAction) {
+        if (action is NewGameAction.SetStrength) strengthChosen = true
         form.update { reduce(it, action) }
         savedState[KEY_FORM] = NewGameForms.encode(form.value)
     }
@@ -216,6 +230,8 @@ class NewGameViewModel internal constructor(
         val now = clock.now()
         withContext(NonCancellable) {
             saves.save(GameInProgress(game = saved.copy(savedAt = now), coach = coach, startedAt = now))
+            val strength = form.value.strength
+            settingsRepository.update { it.copy(computerStrength = strength) }
         }
         return true
     }

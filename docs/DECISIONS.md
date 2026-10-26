@@ -933,6 +933,43 @@ smoke checks; the full `connectedDebugAndroidTest` run stays on Megalithic or th
 Gradle build at a time on oldboi, always through `goa-gradle`; it is slower than Megalithic. Megalithic
 keeps everything until the owner decides to clear it.
 
+## ADR-039 — The computer's strength is a 1–10 slider; a tuned evaluation (2026-10-25)
+**Context:** The owner asked to "improve the ai and give the player a difficulty slider". The computer
+played at four levels (ADR-035); Expert beat Hard only 60–68%, more search bought little, and the
+evaluation's weights were set by hand.
+**Decision:**
+- **Contract (additive, CONTRACT-CHANGES.md):** `Controller.Ai` gains `strength: Int` (1..10,
+  `AiStrength`), defaulting to its level's `AiLevel.strength`, so a save that carries only the level
+  loads as Easy 2, Normal 6, Hard 8, Expert 10. `AiLevel` stays as the band, for the words: 1–3 Easy,
+  4–6 Normal, 7–8 Hard, 9–10 Expert (`AiLevel.of`). `AiPlayers.forStrength` / `deterministic(strength)`;
+  `PlayEngineModule`'s factory takes the strength (seeded per strength).
+- **UI:** New game's level switch becomes a Material 3 slider with a tick per step, the value and band
+  above it ("7 · Hard"), Gentler / Stronger under the ends and the band's note under it (1 and 10 have
+  their own); TalkBack reads "Computer strength, Strength 7 of 10, Hard". Default 5; after that a
+  new game starts at the strength of the last game started (`AppSettings.computerStrength`, a device
+  setting; a form restored after process death keeps its own). Advanced: one
+  slider per computer seat. The strength shows wherever the level did ("Computer · Hard 8").
+- **Evaluation:** the score is a sum of named terms with scales. Fitted to self-play outcomes
+  (logistic regression, `FitTest`), a hero's static exposure said almost nothing about who wins; the
+  searching strengths use exposure × 0.3 and minion opportunity × 2 (`TUNED`), which won 61% / 64% /
+  59% against the old Normal / Hard / Expert.
+- **Ten steps**, each adding one lever that measured, all on mirrored tournaments over all 32 heroes
+  (AI.md "Strengths", "Measured strength"): three static steps with fewer slips each (1 gentler than
+  the old Easy), a static player that sees every enemy, the first look-ahead, Normal, every choice
+  played to the end of the turn, Hard, Expert's samples and memory, Expert. Every adjacent pair's
+  rate is above 50% on line-ups not used for tuning (58.9% to 77.1% below the top step; the top step
+  (10 over 9) 55.7%, 50.7–60.6% over 384 games).
+**Alternatives:** interpolating the old knobs evenly between 2 / 4 / 6 / 8 (measured: steps of 47–55%
+between Hard and Expert, inverted pairs); more samples (24) and wider candidate lists above Expert,
+a longer horizon, no mixing, a sharper opponent model, played-out upgrade choices: all measured even
+or worse with Expert (AI.md "What changed in v0.7"), so 10 is Expert and the old levels moved up
+to the strengths their profiles measure at.
+**Consequences:** Every saved game against the computer keeps loading; its seats play the tuned
+evaluation (stronger than before at Normal, Hard and Expert; Easy unchanged). The coach (Hard
+analysis) uses the tuned evaluation. Device budgets are unchanged (Expert 4 s per card play at most;
+AI.md "Budgets"). The top end is flat: the next gains need a better evaluation of set-up heroes and
+round plans, not more search.
+
 ## ADR-040 — Gydion's spellbook at the game table (2026-10-25)
 **Context:** The owner: "Missing the spell cards for gideon". The catalog has Gydion's 22 spell cards
 (hero JSON `extras`, landscape scans) and the engine plays them, but at the table a Gydion player saw
@@ -1010,6 +1047,31 @@ instead of chips); the map's inset follows it. Level, coins and hand size are on
 reveal and in the hero sheet (long press) during the turn. The scripted test game (`FakeGame`) now
 reports `actedThisTurn`, the engine's shrinking `initiativeOrder` and `initiative`, and plays cards in
 its skipped-to turn 4. Large text puts the asking card above its answers.
+**Extended after the hands-on pass (2026-10-25, `fix/v07-handson`):**
+5. **A missing action says why, in the engine's words.** Playing Gydion's Cantrip on turn 1 offered
+   only Hold with no word why (the spellbook starts empty, rulings/gydion.md 1), and a player thinks the
+   app is broken. `Actions.actionAvailability` now builds the options and, for each action the card
+   prints that is left out (its primary; a printed secondary Movement or Attack), an
+   `UnavailableAction` (`DecisionContext.unavailable`, CONTRACT-CHANGES.md) from the same checks: the
+   effect that forbids it (`actionForbiddenBy`, named by its faceup card: "Its Skill is forbidden by
+   Arien's Spell Break"), or the step where the primary stops (`primaryBlocker`: the probe's `Fizzle`
+   reason, "Its Attack can't start: no target in range", source "p.10, FAQ" — p.10 "Mandatory and
+   Optional Steps" and the FAQ's "you may not perform the action at all"; a `Fizzle` may carry its own
+   source, as Gydion's empty book does: "designer, BGG 3491113"), or p.14 for a played Defense card. One
+   pass gives both, so a reason can't drift from the options; the AI's other queries skip the words
+   (`explain = false`). The reasons only name what the person may see: effects in force come from faceup
+   cards, Ultimates, markers and pieces (a facedown card loses its effect, p.10), fizzle reasons describe
+   the board, and Gydion's book count is public (ADR-040); `UnavailableActionsTest` checks that enemy
+   hands that differ give the same reasons. The panel shows each as one line under the chips (a forbidding
+   card opens on tap); the UI's own guess ("No Attack: no unit you may target is in reach…") is gone.
+   The attack helpers now say where the target was missing ("no target adjacent to you" / "no target in
+   range"; the log's "… stops:" lines read the same).
+6. **The card focus viewer no longer retypes the card.** The sheet under the big card repeated its
+   name, "Basic Gold", the values and the whole text. It now keeps only what the card doesn't print (the
+   question, caption, verdict, why it is dimmed, what choosing it means, the next Tier's cards, its item,
+   a Handicap card's basis) and "Read the card as text", collapsed, like the catalog viewer (ADR-042 §3).
+   The sheet is as tall as its words, at the bottom, and the card takes up to 60 % of the portrait height
+   (50 % with large text). TalkBack reads the card's name, kind, values and text on the card's node.
 
 ## ADR-042 — Styled on the official look: the cards as the cards, the rulebook's banner and heads (2026-10-25)
 **Context:** The owner: "Lean on the original assets throughout the app, the app should be styled
@@ -1066,6 +1128,12 @@ names repeated under a scan only while it is under 140 dp wide.
 images added (≈ 420 KB). Every screen's screenshots changed (banner, heads); the game table (S3's
 play/table) inherits banner, heads and tokens without layout changes. `core:testing` gained
 `BundledAssetImages`/`bundledHero` for screenshot tests that show official images.
+**Extended after the hands-on pass (2026-10-25, `fix/v07-handson`):** the Tie Breaker coin is the
+official coin face wherever the game table shows it, not only in the draft: the HUD (22 dp, about the
+face's own 76 px) and New game's coin-flip dialog (64 dp, where it was a plain team-coloured disc),
+with the app's team shape on a small badge at the coin's foot, as on the board's pieces (team never
+by colour alone; the printed gear and star are shapes too, but the rest of the app speaks diamond and
+circle). The old shape-on-a-bronze-ring stays as the fallback while the face loads.
 
 ## ADR-043 — The web app: a PWA for iPhones on GitHub Pages, running the same Kotlin (2026-10-25)
 **Context:** The owner: "Create a version accessible to someone on an iPhone. A webapp perhaps? Its

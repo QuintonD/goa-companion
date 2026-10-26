@@ -121,13 +121,33 @@ object Spellbook {
     /** "Choose and cast one spell in the spellbook —" / "Cast the X spell in the spellbook." (mandatory). */
     fun castOneOf(a: ActionScope, spells: List<String>) {
         val available = spells.filter { castable(a.g, a.heroId, it) }
-        if (available.isEmpty()) a.fizzle("no spell of this card can be cast from the spellbook")
+        if (available.isEmpty()) noSpell(a, spells)
         val spell = if (available.size == 1) {
             available.single()
         } else {
             a.chooseCard("Choose and cast one spell in the spellbook", available)!!
         }
         cast(a.g, a.heroId, spell)
+    }
+
+    /**
+     * Why none of [spells] can be cast, as the player needs it at the table (the action panel shows
+     * it, ADR-041): an empty spellbook (rulings/gydion.md 1), this card's spells already cast, or none
+     * of them can start (ruling 5). The spellbook's count is public, so this reveals nothing hidden.
+     */
+    private fun noSpell(a: ActionScope, spells: List<String>): Nothing {
+        val owner = spells.firstNotNullOfOrNull { owner(a.g, it) } ?: a.fizzle("no spellbook")
+        when {
+            contents(owner).isEmpty() ->
+                a.fizzle("the spellbook is empty until Prepare Spells is performed", source = "designer, BGG 3491113")
+
+            spells.none { inSpellbook(a.g, it) } -> {
+                val which = if (spells.size == 1) "spell is" else "spells are"
+                a.fizzle("this card's $which not in the spellbook")
+            }
+
+            else -> a.fizzle("no spell of this card can start")
+        }
     }
 
     /**

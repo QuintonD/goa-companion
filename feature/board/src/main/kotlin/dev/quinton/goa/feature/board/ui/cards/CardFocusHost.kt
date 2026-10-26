@@ -100,6 +100,7 @@ import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Motion
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.feature.board.play.table.CARD_ASPECT
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.spokenCard
@@ -334,13 +335,21 @@ private fun FocusLayout(
             Row(Modifier.fillMaxSize()) {
                 CardStage(state, request, pager, motion, actions, frame, Modifier.width(stage).fillMaxHeight())
                 Column(Modifier.weight(1f).fillMaxHeight().padding(end = Spacing.md)) {
-                    // The height is what the words lack here: a 48 dp header, the panel to the bottom edge.
+                    // The height is what the words lack here: a 48 dp header, the panel as tall as its
+                    // words (up to the bottom edge), at the bottom where the thumb is.
                     TopBar(request, state.index, actions.close, motion.reveal.value, height = TOP_BAR_LANDSCAPE)
-                    details(Modifier.weight(1f).fillMaxWidth().padding(bottom = Spacing.sm))
+                    Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+                        details(Modifier.fillMaxWidth().padding(bottom = Spacing.sm))
+                    }
                 }
             }
         } else {
-            val share = if (large) PORTRAIT_CARD_SHARE_LARGE else PORTRAIT_CARD_SHARE
+            // Read as text, the words get the room: the card steps back (still tappable, still swipes).
+            val share = when {
+                request.asText -> if (large) PORTRAIT_TEXT_CARD_SHARE_LARGE else PORTRAIT_TEXT_CARD_SHARE
+                large -> PORTRAIT_CARD_SHARE_LARGE
+                else -> PORTRAIT_CARD_SHARE
+            }
             val frame = stageFrame(aspects, maxWidth - PEEK * 2, (maxHeight - TOP_BAR) * share)
             Column(Modifier.fillMaxSize()) {
                 TopBar(request, state.index, actions.close, motion.reveal.value)
@@ -353,7 +362,10 @@ private fun FocusLayout(
                     frame,
                     Modifier.fillMaxWidth().height(frame.height + Spacing.lg),
                 )
-                details(Modifier.weight(1f).fillMaxWidth())
+                // Only what the card doesn't print is under it (ADR-041): a sheet as tall as that, at the bottom.
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+                    details(Modifier.fillMaxWidth())
+                }
             }
         }
     }
@@ -502,7 +514,13 @@ private fun FocusPage(
     val semantics = if (current) {
         Modifier.clearAndSetSemantics {
             testTag = CARD_TAG
-            contentDescription = listOfNotNull(spokenCard(item.card), item.caption).joinToString(", ")
+            // The scan is the card's words now (the sheet under it no longer retypes them): TalkBack
+            // reads its data and text from here.
+            contentDescription = listOfNotNull(
+                spokenCard(item.card),
+                item.caption,
+                CardText.plain(item.card.text).takeIf { it.isNotBlank() },
+            ).joinToString(", ")
             stateDescription = listOfNotNull(
                 item.verdict?.label,
                 if (!item.enabled) item.reason ?: "Can't be chosen" else null,
@@ -687,8 +705,10 @@ internal const val CLOSE_TAG = "cardFocus:close"
 internal const val CONFIRM_TAG = "cardFocus:confirm"
 
 private const val SCRIM_ALPHA = 0.93f
-private const val PORTRAIT_CARD_SHARE = 0.52f
-private const val PORTRAIT_CARD_SHARE_LARGE = 0.38f
+private const val PORTRAIT_CARD_SHARE = 0.6f
+private const val PORTRAIT_CARD_SHARE_LARGE = 0.5f
+private const val PORTRAIT_TEXT_CARD_SHARE = 0.36f
+private const val PORTRAIT_TEXT_CARD_SHARE_LARGE = 0.26f
 private const val LANDSCAPE_CARD_SHARE = 0.4f
 
 /** A landscape spell card takes more of a landscape screen's width (it is short: room is left above). */

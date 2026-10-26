@@ -829,6 +829,10 @@ only when the evaluation does not drop. For "up to N" distances, prefer the exac
 
 ### 4.2 The four levels
 
+Since v0.7 (ADR-039) the player sets a strength from 1 to 10; the four levels below are its bands
+(1–3 Easy, 4–6 Normal, 7–8 Hard, 9–10 Expert) and the design they follow. What each step does and
+how it measures is in [AI.md](AI.md) "Strengths".
+
 | | Easy | Normal | Hard | Expert |
 |-|------|--------|------|--------|
 | Card knowledge (what it assumes about unseen enemy cards) | Only cards it has seen this game; otherwise colour-slot averages (1.3 [DATA]) | Colour-slot averages adjusted by the hero's stat profile (the "stat heuristics" the designer intends, BGG 2887548) | Exact catalog values for candidate cards | Exact catalog values plus upgrade-history tracking (section 0) |

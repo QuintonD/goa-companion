@@ -4,6 +4,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,20 +13,24 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.SwipeUp
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material3.Button
@@ -35,16 +40,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
@@ -64,9 +73,11 @@ import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.ValueChip
 
 /**
- * The focused card's words: the question's context, name, tier and colour, the verdict, why it
- * can't be chosen, what choosing it means, its printed values and text verbatim; then the hint
- * and the Confirm button (with a selection) or how to move on and close (view only).
+ * Under the focused card, only what the card does not print (ADR-041/042: the scan is the content):
+ * the question, the verdict, why it can't be chosen, what choosing it means, its item icon, the
+ * Handicap basis; the card's words as text behind "Read the card as text" (collapsed); then the hint
+ * and the Confirm button (with a selection) or how to move on and close (view only). The sheet is as
+ * tall as its words (up to the room left), so the card keeps the screen.
  */
 @Composable
 internal fun FocusDetails(
@@ -88,9 +99,13 @@ internal fun FocusDetails(
         border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
     ) {
         Column {
-            Box(Modifier.weight(1f)) {
+            Box(Modifier.weight(1f, fill = false)) {
                 Crossfade(index, animationSpec = tween(Motion.SHORT_MS), label = "card details") { shown ->
-                    request.cards.getOrNull(shown)?.let { DetailsBody(it, request.selection?.context, landscape) }
+                    request.cards.getOrNull(shown)?.let {
+                        DetailsBody(it, request.selection?.context, landscape, request.asText) {
+                            request.asText = !request.asText
+                        }
+                    }
                 }
             }
             val selection = request.selection
@@ -105,21 +120,28 @@ internal fun FocusDetails(
 
 /**
  * Scrolls; a fade at the bottom says there is more. In landscape (a phone's height is what is short)
- * the tier sits beside the name and the padding is tighter, so the card's text shows without scrolling.
+ * the tier sits beside the name and the padding is tighter.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DetailsBody(item: FocusCard, context: String?, landscape: Boolean) {
+private fun DetailsBody(
+    item: FocusCard,
+    context: String?,
+    landscape: Boolean,
+    asText: Boolean,
+    onToggleText: () -> Unit,
+) {
     val scroll = rememberScrollState()
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxWidth()) {
         Column(
             Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .verticalScroll(scroll)
                 .padding(horizontal = Spacing.lg, vertical = if (landscape) Spacing.sm else Spacing.md),
             verticalArrangement = Arrangement.spacedBy(if (landscape) Spacing.xs else Spacing.sm),
         ) {
-            DetailsContent(item, context, landscape)
+            NotOnTheCard(item, context)
+            ReadAsText(asText, onToggleText)
+            if (asText) CardAsText(item.card, landscape)
         }
         if (scroll.canScrollForward) {
             val surface = MaterialTheme.colorScheme.surface
@@ -134,33 +156,19 @@ private fun DetailsBody(item: FocusCard, context: String?, landscape: Boolean) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * What the card doesn't print: the question, where it sits (the turn track's "Turn 2 · Active"), the
+ * verdict, why it can't be chosen, what choosing it means, the next Tier's cards, what it gives as an
+ * item (the icon at its foot, p.16) and, for a Handicap card, the basic card it stands in for.
+ */
 @Composable
-private fun DetailsContent(item: FocusCard, context: String?, landscape: Boolean) {
+private fun NotOnTheCard(item: FocusCard, context: String?) {
     val card = item.card
     context?.let {
         Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
-    val tier = listOfNotNull(cardKindLabel(card), item.caption).joinToString(" · ")
-    if (landscape) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(
-                card.name,
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.alignByBaseline().semantics { heading() },
-            )
-            Text(
-                tier,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.alignByBaseline(),
-            )
-        }
-    } else {
-        Column {
-            Text(card.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
-            Text(tier, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+    item.caption?.let {
+        Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     item.verdict?.let { VerdictLine(it) }
     if (!item.enabled) ReasonLine(item.reason ?: "This card can't be chosen for this question.")
@@ -172,33 +180,86 @@ private fun DetailsContent(item: FocusCard, context: String?, landscape: Boolean
             Text(note.text, style = MaterialTheme.typography.bodyMedium)
         }
     }
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        card.initiative?.let { ValueChip(GameIcons.initiative, "Initiative $it") }
-        card.values.attack?.let { ValueChip(GameIcons.attack, "Attack $it") }
-        card.values.defense?.let { ValueChip(GameIcons.defense, "Defense $it") }
-        card.values.movement?.let { ValueChip(GameIcons.movement, "Movement $it") }
-        card.values.range?.let { ValueChip(GameIcons.range, "Range $it") }
-        card.values.radius?.let { ValueChip(GameIcons.radius, "Radius $it") }
-    }
     if (item.related.isNotEmpty()) Related(item)
-    if (card.text.isNotBlank()) {
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+    focusHandicapBasis(card)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+    card.item?.let { stat -> ItemLine(stat, "As an item: +1 ${PlayText.stat(stat)} (p.16)") }
+}
+
+/** "Read the card as text", collapsed: the scan says it all; this is the accessible alternative. */
+@Composable
+private fun ReadAsText(expanded: Boolean, onToggle: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clickable(role = Role.Button, onClick = onToggle)
+            .semantics(mergeDescendants = true) {
+                stateDescription = if (expanded) "Expanded" else "Collapsed"
+            },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.AutoMirrored.Outlined.Article,
+            null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(scaledIconSize(18.dp, 1.3f)),
+        )
+        Spacer(Modifier.width(Spacing.sm))
+        Text(
+            "Read the card as text",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+            null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(scaledIconSize(20.dp, 1.3f)),
+        )
+    }
+}
+
+/** The card's printed words as text: name, kind, values, the text verbatim. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CardAsText(card: Card, landscape: Boolean) {
+    // Opened on a short sheet (a phone held sideways), the words would start below the fold.
+    val requester = remember { BringIntoViewRequester() }
+    LaunchedEffect(card.id) { requester.bringIntoView() }
+    Column(Modifier.bringIntoViewRequester(requester), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text(card.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+        Text(
+            cardKindLabel(card),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            CardTextView(
-                card.text,
-                style = if (landscape) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
-                iconTint = cardColor(card.color),
-                modifier = Modifier.fillMaxWidth().padding(if (landscape) Spacing.sm else Spacing.md),
-            )
+            card.initiative?.let { ValueChip(GameIcons.initiative, "Initiative $it") }
+            card.values.attack?.let { ValueChip(GameIcons.attack, "Attack $it") }
+            card.values.defense?.let { ValueChip(GameIcons.defense, "Defense $it") }
+            card.values.movement?.let { ValueChip(GameIcons.movement, "Movement $it") }
+            card.values.range?.let { ValueChip(GameIcons.range, "Range $it") }
+            card.values.radius?.let { ValueChip(GameIcons.radius, "Radius $it") }
+        }
+        if (card.text.isNotBlank()) {
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+            ) {
+                CardTextView(
+                    card.text,
+                    style = if (landscape) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
+                    iconTint = cardColor(card.color),
+                    modifier = Modifier.fillMaxWidth().padding(if (landscape) Spacing.sm else Spacing.md),
+                )
+            }
         }
     }
-    card.item?.let { stat -> ItemLine(stat, "As an item: +1 ${PlayText.stat(stat)} (p.16)") }
 }
 
 /** The verdict in words with its icon, and why ("Defense 7 against Attack 6"). */

@@ -1238,6 +1238,14 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
 }
 .goa-beside { display: flex; gap: var(--sp-md); align-items: flex-start; }
 .goa-beside-answers { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-xs); }
+/* A printed action that isn't offered, with the engine's reason (ADR-041 §5); tappable when a card forbids it. */
+.goa-unavailable {
+  display: flex; align-items: flex-start; gap: var(--sp-xs); margin: 0; padding: 2px 0;
+  color: var(--on-surface-variant); text-align: start; background: none; border: 0; font: inherit;
+}
+.goa-unavailable .goa-icon { flex: none; margin-top: 2px; }
+.goa-unavailable.tappable { min-height: 44px; align-items: center; cursor: pointer; width: 100%; }
+.goa-unavailable.tappable span:last-child { text-decoration: underline dotted; text-underline-offset: 3px; }
 .goa-asking { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: none; }
 .goa-tap-hint { display: flex; gap: var(--sp-xs); align-items: center; color: var(--on-surface-variant); margin: 0; }
 .goa-tap-hint .goa-icon { color: var(--secondary); flex: none; }

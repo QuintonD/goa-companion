@@ -3,6 +3,7 @@ package dev.quinton.goa.core.game.ai
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.AiLevel
+import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionContext
@@ -16,18 +17,20 @@ import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 import org.junit.Test
 
-/** Every [DecisionKind] gets a legal answer at every level, from real games and from built questions. */
+/** Every [DecisionKind] gets a legal answer at every strength, from real games and from built questions. */
 class DecisionKindsTest {
     @Test
     fun `AI games at every level answer every decision they meet`() {
         val seen = sortedSetOf<DecisionKind>()
-        for ((i, level) in AiLevel.entries.withIndex()) {
+        // Two strengths per game, so every profile plays (the four bands and the steps between).
+        for ((i, strength) in listOf(1, 3, 5, 7, 9).withIndex()) {
             val (red, blue) = AiHarness.LINEUPS[i % 3]
+            val level = AiLevel.of(strength)
             val setup = AiHarness.setup(red, blue, level, level, if (i % 2 == 0) Team.RED else Team.BLUE)
             val s = TestData.engine.newGame(setup)
             val players = mapOf(
-                Team.RED to AiPlayers.deterministic(level, 11L + i),
-                Team.BLUE to AiPlayers.deterministic(level, 21L + i),
+                Team.RED to AiPlayers.deterministic(strength, 11L + i),
+                Team.BLUE to AiPlayers.deterministic(strength + 1, 21L + i),
             )
             var n = 0
             while (n < 6000) {
@@ -69,8 +72,8 @@ class DecisionKindsTest {
         assertThat(d.actions()).contains(ActionType.CLEAR)
         d.action("wasp", ActionType.CLEAR)
         val q = d.expect(DecisionKind.CHOOSE_TOKEN, "wasp")
-        for (level in AiLevel.entries) {
-            assertThat(q.options).contains(AiPlayers.deterministic(level, 3).choose(d.s, q))
+        for (strength in AiStrength.MIN..AiStrength.MAX) {
+            assertThat(q.options).contains(AiPlayers.deterministic(strength, 3).choose(d.s, q))
         }
     }
 
@@ -129,10 +132,8 @@ class DecisionKindsTest {
             )
             val scores = policy.scores(s.state, q)
             assertThat(scores.size).isEqualTo(q.options.size)
-            for (level in AiLevel.entries) {
-                assertThat(
-                    q.options,
-                ).contains(AiPlayers.deterministic(level, 1).choose(s, q))
+            for (strength in AiStrength.MIN..AiStrength.MAX) {
+                assertThat(q.options).contains(AiPlayers.deterministic(strength, 1).choose(s, q))
             }
         }
     }

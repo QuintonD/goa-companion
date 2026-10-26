@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.board.play.table
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -109,6 +111,7 @@ fun DecisionPanel(
                 CardBeside(table, source, focus, large = !board) {
                     if (board) BoardHint(table, onAnswer, busy)
                     Choices(table, table.buttonOptions, onAnswer, busy)
+                    Unavailable(table, decision, focus)
                 }
                 if (board) BoardChips(table, onSelect)
             }
@@ -119,6 +122,7 @@ fun DecisionPanel(
                     BoardChips(table, onSelect)
                 }
                 Choices(table, table.buttonOptions, onAnswer, busy)
+                Unavailable(table, decision, focus)
             }
         }
         if (decision.kind == DecisionKind.CHOOSE_ACTION && table.buttonOptions.any { it is Choice.Action }) {
@@ -131,9 +135,6 @@ fun DecisionPanel(
                     "teams the Tie Breaker coin decides, then it flips (p.7).",
             )
         }
-        if (decision.kind == DecisionKind.CHOOSE_ACTION && attackMissing(source, decision.options)) {
-            Footnote("No Attack: no unit you may target is in reach (p.13), or an effect forbids it.")
-        }
     }
 }
 
@@ -142,6 +143,46 @@ private fun hasBoardOptions(table: TableUi) = table.spaceOptions.isNotEmpty() ||
 @Composable
 private fun Footnote(text: String) {
     Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+/**
+ * The actions the asking card prints that aren't offered, one line each with the engine's reason
+ * (`DecisionContext.unavailable`, ADR-041), so a lone Hold never looks like a broken app. A reason
+ * that is another card's effect opens that card when tapped.
+ */
+@Composable
+private fun Unavailable(table: TableUi, decision: Decision, focus: CardFocusState) {
+    unavailableActions(decision).forEach { u ->
+        val by = u.byCardId?.let { table.cards[it] }
+        val tap = if (by == null) {
+            Modifier
+        } else {
+            Modifier
+                .heightIn(min = 48.dp)
+                .clickable(onClickLabel = "Read ${by.name}") { focus.show(listOf(by), title = "Forbidden by") }
+        }
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .then(tap)
+                .padding(vertical = 2.dp)
+                .semantics(mergeDescendants = true) {},
+            verticalAlignment = Alignment.Top,
+        ) {
+            Icon(
+                Icons.Outlined.Info,
+                null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp).size(scaledIconSize(16.dp, 1.3f)),
+            )
+            Spacer(Modifier.width(Spacing.xs))
+            Text(
+                unavailableLine(u),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
 
 /**

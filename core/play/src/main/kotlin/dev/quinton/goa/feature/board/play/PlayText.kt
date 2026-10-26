@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.board.play
 import dev.quinton.goa.core.data.game.AiPace
 import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.AiLevel
+import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.GameLength
@@ -22,17 +23,33 @@ object PlayText {
         AiLevel.EXPERT -> "Expert"
     }
 
-    /** One line per level (PRODUCT §9). */
+    /** One line per band (PRODUCT §9), with the two ends of the slider said apart (ADR-039). */
+    fun strengthNote(strength: Int): String = when (AiStrength.coerce(strength)) {
+        AiStrength.MIN -> "A gentle first game: slow to spot danger and quick to slip. Good for learning the rules."
+        AiStrength.MAX -> "As strong as it gets on a phone. Expect to be punished."
+        else -> levelNote(AiLevel.of(strength))
+    }
+
     fun levelNote(level: AiLevel): String = when (level) {
         AiLevel.EASY -> "Makes visible mistakes and plays fast. Good for learning the turn."
-        AiLevel.NORMAL -> "Plays sensibly and looks a short way ahead."
+        AiLevel.NORMAL -> "Plays sensibly with few mistakes, and from 5 looks a short way ahead."
         AiLevel.HARD -> "Plans the turn against what you might have played."
-        AiLevel.EXPERT -> "Searches the longest. Expect to be punished."
+        AiLevel.EXPERT -> "Searches the longest and remembers the cards you have shown. Expect to be punished."
     }
+
+    /** The slider's value, "6 · Hard". */
+    fun strengthValue(strength: Int): String = "$strength · ${level(AiLevel.of(strength))}"
+
+    /** What TalkBack reads for the slider: "Strength 6 of 10, Hard". */
+    fun strengthSpoken(strength: Int): String =
+        "Strength $strength of ${AiStrength.MAX}, ${level(AiLevel.of(strength))}"
+
+    /** A computer seat's band and strength, "Hard 8". */
+    fun strength(computer: Controller.Ai): String = "${level(AiLevel.of(computer.strength))} ${computer.strength}"
 
     fun controller(controller: Controller): String = when (controller) {
         Controller.Human -> "You"
-        is Controller.Ai -> "Computer · ${level(controller.level)}"
+        is Controller.Ai -> "Computer · ${strength(controller)}"
     }
 
     fun pace(pace: AiPace): String = when (pace) {

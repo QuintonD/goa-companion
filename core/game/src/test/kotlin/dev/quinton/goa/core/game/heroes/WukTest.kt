@@ -347,6 +347,24 @@ class WukTest {
     }
 
     @Test
+    fun `Toss Away - a space that counts as an obstacle for the unit is not offered (Takahide's blade)`() {
+        val d = pos {
+            clearMinions()
+            hero("wuk", Team.RED, Hex(1, -2)) { played("wuk-green-1") } // Range 3
+            hero("takahide", Team.RED, Hex(2, -3)) { resolved(1, "takahide-red-2b") }
+            hero("brogan", Team.BLUE, Hex(0, -2))
+            turn = 2
+            // Spinning Blade: empty spaces adjacent to Takahide count as obstacles for enemy units.
+            effect("takahide", "takahide-red-2b", Timing.THIS_TURN, ActionKind.ATTACK)
+            phase = PositionPhase.Resolving(next = "wuk")
+        }
+        d.action("wuk", ActionType.PRIMARY) // Brogan, the only enemy unit adjacent, is chosen without asking
+        assertThat(d.spaces()).containsNoneOf(Hex(2, -2), Hex(3, -3))
+        d.space(4, -2)
+        assertThat(d.at("brogan")).isEqualTo(Hex(4, -2))
+    }
+
+    @Test
     fun `Toss Away - an immune heavy minion adjacent cannot be placed`() {
         val d = pos {
             clearMinions()

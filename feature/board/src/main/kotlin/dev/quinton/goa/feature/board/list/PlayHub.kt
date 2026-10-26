@@ -59,7 +59,7 @@ internal fun PlayHub(
             icon = Icons.Outlined.SportsEsports,
             title = "Play against the computer",
             text = if (play.available) {
-                "The real game on the map: the app runs every rule, the computer plays at four levels, a coach nudges."
+                "The real game on the map: the app runs every rule, the computer plays at a strength from 1 to 10, a coach nudges."
             } else {
                 "Coming soon: heroes join as each of their cards is built and tested."
             },

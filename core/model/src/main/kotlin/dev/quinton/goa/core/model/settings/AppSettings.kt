@@ -27,4 +27,6 @@ data class AppSettings(
     val timerLayout: TimerLayout = TimerLayout.STEPS,
     /** Puzzles nudge when the player is stuck (after a miss, or a while without progress); off = only when asked. */
     val puzzleNudges: Boolean = true,
+    /** The computer strength (1..10, ADR-039) last chosen on New game; the next game starts there. */
+    val computerStrength: Int = 5,
 )

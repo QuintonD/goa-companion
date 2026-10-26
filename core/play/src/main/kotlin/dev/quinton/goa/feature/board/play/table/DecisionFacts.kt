@@ -4,6 +4,7 @@ import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.game.UnavailableAction
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.feature.board.play.PlayText
@@ -24,13 +25,16 @@ fun panelLayout(kind: DecisionKind, hasSource: Boolean): PanelLayout = when (kin
     else -> if (hasSource) PanelLayout.CARD_BESIDE else PanelLayout.PLAIN
 }
 
-/** The card attacks (an Attack value), but neither its attack nor its Attack primary is offered. */
-fun attackMissing(card: Card?, options: List<Choice>): Boolean {
-    if (card?.values?.attack == null) return false
-    val actions = options.filterIsInstance<Choice.Action>().map { it.action }
-    val primaryAttacks = card.primary == PrimaryAction.ATTACK && ActionType.PRIMARY in actions
-    return ActionType.ATTACK !in actions && !primaryAttacks
-}
+/** One unavailable action's line: the engine's reason and where the rule is ("… (p.10, FAQ)."). */
+fun unavailableLine(u: UnavailableAction): String = u.source?.let { "${u.text} ($it)." } ?: "${u.text}."
+
+/**
+ * The reasons a CHOOSE_ACTION question gives for the actions its card prints that aren't offered
+ * (`DecisionContext.unavailable`, ADR-041 §5), so a lone Hold never looks like a broken app; none
+ * for any other question.
+ */
+fun unavailableActions(decision: Decision): List<UnavailableAction> =
+    if (decision.kind == DecisionKind.CHOOSE_ACTION) decision.context.unavailable else emptyList()
 
 /** "Radius 2" / "Range 3" when the question speaks of the asking card's radius or range. */
 fun sourceReach(prompt: String, card: Card): String? {

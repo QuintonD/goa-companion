@@ -1,10 +1,12 @@
 package dev.quinton.goa
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
@@ -12,7 +14,7 @@ import org.junit.runner.RunWith
 
 /**
  * Play against the computer from Boards (PRODUCT §9): a 2v2 on Forgotten Island, the person plays
- * Wasp, the computer Easy, Coach on. Play a card facedown, wait for the computer's three heroes to
+ * Wasp, the computer at strength 2 (Easy), Coach on. Play a card facedown, wait for the computer's three heroes to
  * play theirs, and see the reveal and the first question after it (the real engine and AI).
  */
 @RunWith(AndroidJUnit4::class)
@@ -34,10 +36,12 @@ class PlayFlowTest {
         rule.waitForText("2 v 2")
         rule.tap(hasText("Next") and hasClickAction() and isEnabled())
 
-        // You play Wasp; the computer is Easy; Coach is on by default; Forgotten Island is the map.
+        // You play Wasp; the computer is Easy (strength 2); Coach is on by default; Forgotten Island is the map.
         rule.waitForText("Game options")
         rule.tap(hasText("Wasp") and hasClickAction())
-        rule.tapText("Easy")
+        rule.reveal(hasContentDescription("Computer strength"))
+            .performSemanticsAction(SemanticsActions.SetProgress) { setProgress -> setProgress(2f) }
+        rule.waitForText("2 · Easy")
         rule.reveal(hasText("Forgotten Island"))
         rule.tapText("Flip the Tie Breaker coin")
         rule.waitForText("shows", substring = true)

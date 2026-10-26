@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.board.play.setup
 
 import dev.quinton.goa.core.game.AiLevel
+import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.GameLength
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.setup.NewBoardForm
@@ -21,7 +22,10 @@ object NewGameForms {
         val step: NewGameStep = NewGameStep.LINEUP,
         val controlHero: String? = null,
         val controlTeam: Team? = null,
-        val level: AiLevel = AiLevel.NORMAL,
+        val strength: Int? = null,
+        val seatStrengths: Map<String, Int> = emptyMap(),
+        /** Before the slider (ADR-039): read as the level's strength. */
+        val level: AiLevel? = null,
         val seatLevels: Map<String, AiLevel> = emptyMap(),
         val advanced: Boolean = false,
         val length: GameLength = GameLength.QUICK,
@@ -39,8 +43,8 @@ object NewGameForms {
             step = form.step,
             controlHero = (form.control as? Control.Hero)?.heroId,
             controlTeam = (form.control as? Control.WholeTeam)?.team,
-            level = form.level,
-            seatLevels = form.seatLevels,
+            strength = form.strength,
+            seatStrengths = form.seatStrengths,
             advanced = form.advanced,
             length = form.length,
             mapId = form.mapId,
@@ -54,8 +58,11 @@ object NewGameForms {
             lineup = NewBoardForm(red = s.red, blue = s.blue, filling = s.filling, showAll = s.showAll),
             step = s.step,
             control = s.controlHero?.let { Control.Hero(it) } ?: s.controlTeam?.let { Control.WholeTeam(it) },
-            level = s.level,
-            seatLevels = s.seatLevels,
+            strength = AiStrength.coerce(s.strength ?: s.level?.strength ?: AiStrength.DEFAULT),
+            seatStrengths =
+                s.seatLevels.mapValues {
+                    it.value.strength
+                } + s.seatStrengths.mapValues { AiStrength.coerce(it.value) },
             advanced = s.advanced,
             length = s.length,
             mapId = s.mapId,

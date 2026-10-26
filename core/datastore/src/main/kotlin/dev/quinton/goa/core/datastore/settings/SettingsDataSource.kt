@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import dev.quinton.goa.core.model.settings.AppSettings
@@ -40,6 +41,7 @@ class SettingsDataSource @Inject constructor(@param:SettingsStore private val st
             prefs[Keys.CATALOG_LIST] = next.catalogListView
             prefs[Keys.TIMER_LAYOUT] = next.timerLayout.name
             prefs[Keys.PUZZLE_NUDGES] = next.puzzleNudges
+            prefs[Keys.COMPUTER_STRENGTH] = next.computerStrength
         }
     }
 
@@ -51,6 +53,7 @@ class SettingsDataSource @Inject constructor(@param:SettingsStore private val st
         val CATALOG_LIST = booleanPreferencesKey("catalog_list_view")
         val TIMER_LAYOUT = stringPreferencesKey("timer_layout")
         val PUZZLE_NUDGES = booleanPreferencesKey("puzzle_nudges")
+        val COMPUTER_STRENGTH = intPreferencesKey("computer_strength")
     }
 
     private companion object {
@@ -66,6 +69,8 @@ class SettingsDataSource @Inject constructor(@param:SettingsStore private val st
             timerLayout = prefs[Keys.TIMER_LAYOUT]?.let { name -> TimerLayout.entries.firstOrNull { it.name == name } }
                 ?: Defaults.timerLayout,
             puzzleNudges = prefs[Keys.PUZZLE_NUDGES] ?: Defaults.puzzleNudges,
+            // Out-of-range values (a hand-edited or future file) fall back to the default.
+            computerStrength = prefs[Keys.COMPUTER_STRENGTH]?.takeIf { it in 1..10 } ?: Defaults.computerStrength,
         )
     }
 }

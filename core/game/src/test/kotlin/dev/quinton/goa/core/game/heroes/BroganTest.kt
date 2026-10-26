@@ -116,7 +116,7 @@ class BroganTest {
         }
         d.action("brogan", ActionType.PRIMARY)
         assertThat(d.at("brogan")).isEqualTo(Hex(2, -2))
-        assertThat(d.texts()).contains("Brogan's Mad Dash stops: no target.")
+        assertThat(d.texts()).contains("Brogan's Mad Dash stops: no target adjacent to you.")
     }
 
     @Test

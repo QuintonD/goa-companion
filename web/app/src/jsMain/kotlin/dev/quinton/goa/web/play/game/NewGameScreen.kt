@@ -8,6 +8,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.data.game.GameInProgress
 import dev.quinton.goa.core.data.game.StoredGame
+import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.GameLength
 import dev.quinton.goa.core.model.board.BoardMap
 import dev.quinton.goa.core.model.catalog.Catalog
@@ -408,7 +409,7 @@ private fun OptionsStep(
         }
     }
     Overline("Computer level")
-    AiStrengthPicker(form.level, "Computer level", onChange = { act(NewGameAction.SetLevel(it)) })
+    AiStrengthPicker(AiLevel.of(form.strength), "Computer level", onChange = { act(NewGameAction.SetStrength(it.strength)) })
     Label(attrs = { classes("goa-switch-row") }) {
         Span({ classes("t-label-large", "goa-switch-text") }) { Text("Advanced: a level per seat") }
         Input(InputType.Checkbox) {
@@ -424,8 +425,8 @@ private fun OptionsStep(
                     TeamMark(seat.team)
                     Text(" ${seat.hero.name}")
                 }
-                AiStrengthPicker(seat.level, "${seat.hero.name}'s level", onChange = {
-                    act(NewGameAction.SetSeatLevel(seat.hero.id, it))
+                AiStrengthPicker(AiLevel.of(seat.strength), "${seat.hero.name}'s level", onChange = {
+                    act(NewGameAction.SetSeatStrength(seat.hero.id, it.strength))
                 }, showNote = false)
             }
         }

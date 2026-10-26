@@ -5,10 +5,12 @@ import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.game.StoredGame
 import dev.quinton.goa.core.game.AiLevel
+import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.GameFactory
 import dev.quinton.goa.core.game.GameLength
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.navigation.NewGameRoute
 import dev.quinton.goa.core.testing.FakeBoardMapRepository
 import dev.quinton.goa.core.testing.FakeCatalogRepository
@@ -53,6 +55,7 @@ class NewGameViewModelTest {
     private fun TestScope.viewModel(
         engine: GameFactory = factory,
         route: NewGameRoute = NewGameRoute(),
+        settings: FakeSettingsRepository = FakeSettingsRepository(),
     ) = NewGameViewModel(
         route,
         SavedStateHandle(),
@@ -60,7 +63,7 @@ class NewGameViewModelTest {
         FakeBoardMapRepository(bundledMaps),
         FakeDraftRecordRepository(),
         FakeMatchRepository(),
-        FakeSettingsRepository(),
+        settings,
         saves,
         { engine },
         EditClock { 7L },
@@ -93,7 +96,9 @@ class NewGameViewModelTest {
     }
 
     @Test
-    fun `you play your whole team or one hero, the rest are the computer at the chosen levels`() = runTest(dispatcher) {
+    fun `you play your whole team or one hero, the rest are the computer at the chosen strengths`() = runTest(
+        dispatcher,
+    ) {
         val vm = viewModel(route = NewGameRoute(red = listOf("arien", "brogan"), blue = listOf("wasp", "tigerclaw")))
         val ready = vm.ready
         assertThat(ready.controls.first()).isEqualTo(Control.WholeTeam(Team.RED))
@@ -102,8 +107,9 @@ class NewGameViewModelTest {
 
         vm.onAction(NewGameAction.Step(NewGameStep.OPTIONS))
         vm.onAction(NewGameAction.SetControl(Control.Hero("arien")))
-        vm.onAction(NewGameAction.SetLevel(AiLevel.EXPERT))
-        vm.onAction(NewGameAction.SetSeatLevel("brogan", AiLevel.EASY))
+        assertThat(vm.ready.form.strength).isEqualTo(AiStrength.DEFAULT)
+        vm.onAction(NewGameAction.SetStrength(9))
+        vm.onAction(NewGameAction.SetSeatStrength("brogan", 1))
         vm.onAction(NewGameAction.SetLength(GameLength.LONG))
         assertThat(vm.setup()).isNull() // the coin isn't flipped yet
         vm.onAction(NewGameAction.FlipCoin)
@@ -113,10 +119,26 @@ class NewGameViewModelTest {
         assertThat(setup.length).isEqualTo(GameLength.LONG)
         assertThat(setup.seats.map { it.heroId to it.controller }).containsExactly(
             "arien" to Controller.Human,
-            "brogan" to Controller.Ai(AiLevel.EASY),
-            "wasp" to Controller.Ai(AiLevel.EXPERT),
-            "tigerclaw" to Controller.Ai(AiLevel.EXPERT),
+            "brogan" to Controller.Ai(AiLevel.EASY, 1),
+            "wasp" to Controller.Ai(AiLevel.EXPERT, 9),
+            "tigerclaw" to Controller.Ai(AiLevel.EXPERT, 9),
         ).inOrder()
+    }
+
+    @Test
+    fun `a new game starts at the strength of the last game started`() = runTest(dispatcher) {
+        val settings = FakeSettingsRepository(AppSettings(computerStrength = 7))
+        val route = NewGameRoute(red = listOf("arien", "brogan"), blue = listOf("wasp", "tigerclaw"))
+        val vm = viewModel(route = route, settings = settings)
+        assertThat(vm.ready.form.strength).isEqualTo(7)
+        vm.onAction(NewGameAction.SetStrength(3))
+        // Moving the slider alone doesn't change the remembered strength; starting the game does.
+        assertThat(settings.state.value.computerStrength).isEqualTo(7)
+        vm.onAction(NewGameAction.FlipCoin)
+        assertThat(vm.start()).isTrue()
+        assertThat(settings.state.value.computerStrength).isEqualTo(3)
+        val next = viewModel(route = route, settings = settings).uiState.first { it is NewGameUiState.Ready }
+        assertThat((next as NewGameUiState.Ready).form.strength).isEqualTo(3)
     }
 
     @Test
@@ -160,7 +182,7 @@ class NewGameViewModelTest {
         val ready = boards.uiState.first { it is dev.quinton.goa.feature.board.list.BoardsUiState.Ready }
             as dev.quinton.goa.feature.board.list.BoardsUiState.Ready
         assertThat(ready.play.available).isTrue()
-        assertThat(ready.play.resume?.summary).isEqualTo("You play Arien · Computer: Hard")
+        assertThat(ready.play.resume?.summary).isEqualTo("You play Arien · Computer: Hard 8")
         assertThat(ready.play.resume?.red?.map { it.id }).containsExactly("arien", "brogan").inOrder()
 
         val unreadable = BoardsViewModel.resumeOf(StoredGame.Unreadable, emptyMap())

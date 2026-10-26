@@ -22,7 +22,7 @@ internal enum class Horizon {
     /** Until the end of this turn (through the end of round after turn 4). */
     TURN,
 
-    /** Until the end of the next turn. */
+    /** Until the end of the next turn played (after a round's end: the new round's first turn). */
     NEXT_TURN,
 }
 
@@ -57,6 +57,14 @@ internal data class LevelProfile(
     val greedyEnemies: Boolean = false,
     /** Opaque choices ([Searcher.opaque]) inside playouts are answered one ply deep instead of statically. */
     val shallow: Boolean = true,
+    /** Static strengths: how often a move forgets the minion defense modifiers (STRATEGY §4.2). */
+    val blindRate: Double = 0.0,
+    /** Softmax temperature of the opponent model's card guess (lower: trusts the rules of thumb more). */
+    val opponentTau: Double = Searcher.OPPONENT_TAU,
+    /** Options a one-ply look in a playout tries (the best by static score). */
+    val greedyMax: Int = Searcher.GREEDY_MAX,
+    /** How far an upgrade choice is played out: TURN stops as the new round begins, NEXT_TURN plays its first turn. */
+    val upgradeHorizon: Horizon = Horizon.TURN,
 )
 
 /** One option's values over the samples (NaN where the option did not exist in a sample). */
@@ -123,7 +131,7 @@ internal class Searcher(
         val ctx = ev.context(state)
         val scores = pool.map { static.playScore(ctx, heroId, Choice.Card(it)) }
         val best = scores.maxOrNull() ?: 0.0
-        val soft = scores.map { PortableMath.exp((it - best) / OPPONENT_TAU) }
+        val soft = scores.map { PortableMath.exp((it - best) / profile.opponentTau) }
         val sum = soft.sum()
         return soft.map { 0.85 * it / sum + 0.15 / pool.size }
     }
@@ -139,7 +147,7 @@ internal class Searcher(
     ): Analysis? {
         val isPlay = d.kind == DecisionKind.PLAY_CARD
         val samples = if (isPlay) profile.playSamples else profile.otherSamples
-        val horizon = if (isPlay) profile.playHorizon else profile.otherHorizon
+        val horizon = horizonOf(d.kind)
         var candidates: List<Choice>? = only
         val table = LinkedHashMap<Choice, DoubleArray>()
         val leaves = ArrayList<Leaf>()
@@ -182,8 +190,7 @@ internal class Searcher(
     ): Analysis? {
         if (a.options.any { it.choice == choice }) return a
         val size = a.options.firstOrNull()?.values?.size ?: return a
-        val isPlay = d.kind == DecisionKind.PLAY_CARD
-        val horizon = if (isPlay) profile.playHorizon else profile.otherHorizon
+        val horizon = horizonOf(d.kind)
         val values = DoubleArray(size) { Double.NaN }
         val table = mapOf(choice to values)
         val leaves = ArrayList(a.leaves)
@@ -198,6 +205,12 @@ internal class Searcher(
             if (!sample(det, dp, d, listOf(choice), k, horizon, table, leaves, cancelled)) return null
         }
         return Analysis(d, a.options + OptionValue(choice, values), leaves, a.samples, a.tried)
+    }
+
+    private fun horizonOf(kind: DecisionKind): Horizon = when (kind) {
+        DecisionKind.PLAY_CARD -> profile.playHorizon
+        DecisionKind.UPGRADE_CARD, DecisionKind.KEEP_UPGRADE -> profile.upgradeHorizon
+        else -> profile.otherHorizon
     }
 
     /** One determinization: every candidate answered on a fork and played out. False if cancelled. */
@@ -247,17 +260,23 @@ internal class Searcher(
         val startActor = start.acting
         val startRound = start.round
         var n = 0
+        var turn = startTurn
+        var turnsEnded = 0
         while (n < maxSteps) {
             val d = f.pending ?: return
             val s = f.state
+            if (turnIndex(s) != turn) {
+                turn = turnIndex(s)
+                turnsEnded++
+            }
             val stop = when (horizon) {
                 Horizon.ACTION ->
                     s.round != startRound || s.step != startStep || s.stepSeat != startSeat ||
                         s.acting != startActor || turnIndex(s) != startTurn
 
-                Horizon.TURN -> turnIndex(s) > startTurn
+                Horizon.TURN -> turnsEnded >= 1
 
-                Horizon.NEXT_TURN -> turnIndex(s) > startTurn + 1
+                Horizon.NEXT_TURN -> turnsEnded >= 2
             }
             if (stop) return
             val mine = d.team == rootTeam
@@ -313,9 +332,9 @@ internal class Searcher(
 
     /** One-ply: each option answered on a fork, the action finished statically, evaluated. */
     fun greedy(f: EngineSession, d: Decision): Choice {
-        val opts = if (d.options.size > GREEDY_MAX) {
+        val opts = if (d.options.size > profile.greedyMax) {
             val sc = static.scores(f.state, d)
-            d.options.indices.sortedByDescending { sc[it] }.take(GREEDY_MAX).map { d.options[it] }
+            d.options.indices.sortedByDescending { sc[it] }.take(profile.greedyMax).map { d.options[it] }
         } else {
             d.options
         }

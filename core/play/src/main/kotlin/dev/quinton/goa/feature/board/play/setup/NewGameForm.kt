@@ -1,6 +1,6 @@
 package dev.quinton.goa.feature.board.play.setup
 
-import dev.quinton.goa.core.game.AiLevel
+import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.GameLength
 import dev.quinton.goa.core.game.GameSetup
@@ -31,9 +31,10 @@ data class NewGameForm(
     val step: NewGameStep = NewGameStep.LINEUP,
     /** null = the default: your whole first team (one hero in 1v1). */
     val control: Control? = null,
-    val level: AiLevel = AiLevel.NORMAL,
-    /** Advanced: a level per computer seat, overriding [level]. */
-    val seatLevels: Map<String, AiLevel> = emptyMap(),
+    /** The computer's strength, 1..10 (ADR-039). */
+    val strength: Int = AiStrength.DEFAULT,
+    /** Advanced: a strength per computer seat, overriding [strength]. */
+    val seatStrengths: Map<String, Int> = emptyMap(),
     val advanced: Boolean = false,
     val length: GameLength = GameLength.QUICK,
     val mapId: String? = null,
@@ -43,7 +44,7 @@ data class NewGameForm(
 )
 
 /** One computer seat in the advanced list. */
-data class AiSeatUi(val hero: BoardHero, val team: Team, val level: AiLevel)
+data class AiSeatUi(val hero: BoardHero, val team: Team, val strength: Int)
 
 sealed interface NewGameUiState {
     data object Loading : NewGameUiState
@@ -85,9 +86,9 @@ sealed interface NewGameAction {
 
     data class SetControl(val control: Control) : NewGameAction
 
-    data class SetLevel(val level: AiLevel) : NewGameAction
+    data class SetStrength(val strength: Int) : NewGameAction
 
-    data class SetSeatLevel(val heroId: String, val level: AiLevel) : NewGameAction
+    data class SetSeatStrength(val heroId: String, val strength: Int) : NewGameAction
 
     data class SetAdvanced(val open: Boolean) : NewGameAction
 
@@ -132,9 +133,13 @@ object NewGameRules {
 
             is NewGameAction.SetControl -> form.copy(control = action.control)
 
-            is NewGameAction.SetLevel -> form.copy(level = action.level, seatLevels = emptyMap())
+            is NewGameAction.SetStrength -> form.copy(
+                strength = AiStrength.coerce(action.strength),
+                seatStrengths = emptyMap(),
+            )
 
-            is NewGameAction.SetSeatLevel -> form.copy(seatLevels = form.seatLevels + (action.heroId to action.level))
+            is NewGameAction.SetSeatStrength ->
+                form.copy(seatStrengths = form.seatStrengths + (action.heroId to AiStrength.coerce(action.strength)))
 
             is NewGameAction.SetAdvanced -> form.copy(advanced = action.open)
 
@@ -165,19 +170,17 @@ object NewGameRules {
         if (control == null) return emptyList()
         return Team.entries.flatMap { team ->
             form.lineup.team(team).filterNot { controls(control, it, team) }.map { id ->
-                AiSeatUi(heroes.hero(id), team, form.seatLevels[id] ?: form.level)
+                AiSeatUi(heroes.hero(id), team, form.seatStrengths[id] ?: form.strength)
             }
         }
     }
 
     /**
-     * The computer seat a form asks for (ADR-039: when the strength slider lands, a strength per
-     * seat instead of a level; this is the one place the form becomes a controller).
+     * The computer seat a form asks for: its strength 1..10 (ADR-039), the seat's own under Advanced or
+     * the one for all; this is the one place the form becomes a controller.
      */
-    fun computer(
-        form: NewGameForm,
-        heroId: String,
-    ): Controller.Ai = Controller.Ai(form.seatLevels[heroId] ?: form.level)
+    fun computer(form: NewGameForm, heroId: String): Controller.Ai =
+        Controller.Ai(form.seatStrengths[heroId] ?: form.strength)
 
     /** The setup for a form that can start (seats in pick order per team), or null. */
     fun setup(form: NewGameForm, control: Control?, mapId: String?): GameSetup? {

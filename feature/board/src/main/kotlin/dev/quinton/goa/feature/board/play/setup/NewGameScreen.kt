@@ -45,6 +45,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -63,6 +64,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -77,7 +79,7 @@ import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.core.game.AiLevel
+import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.GameLength
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
@@ -91,11 +93,12 @@ import dev.quinton.goa.feature.board.setup.NewBoardAction
 import dev.quinton.goa.feature.board.setup.SourcesContent
 import dev.quinton.goa.feature.board.setup.TeamSwitch
 import dev.quinton.goa.feature.board.setup.Teams
+import kotlin.math.roundToInt
 
 /**
  * New game against the computer, in two steps. **Line-up:** both teams in pick order, search with
  * the Red | Blue switch, the hero grid (heroes not playable yet are veiled, "Later"), and "Use a
- * draft or match". **Options:** who you play, the computer's level (per seat under Advanced),
+ * draft or match". **Options:** who you play, the computer's strength 1–10 (per seat under Advanced),
  * Quick or Long, the map, Coach; then the app flips the Tie Breaker coin and the game starts.
  */
 @Composable
@@ -346,10 +349,10 @@ private fun OptionsStep(state: NewGameUiState.Ready, onAction: (NewGameAction) -
                 }
             }
 
-            Section("Computer level") {
-                LevelSwitch(state.form.level) { onAction(NewGameAction.SetLevel(it)) }
+            Section("Computer strength") {
+                StrengthSlider(state.form.strength, "Computer strength") { onAction(NewGameAction.SetStrength(it)) }
                 Text(
-                    PlayText.levelNote(state.form.level),
+                    PlayText.strengthNote(state.form.strength),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -512,24 +515,70 @@ private fun ControlRow(state: NewGameUiState.Ready, control: Control, selected: 
     }
 }
 
+/**
+ * The computer's strength, 1 to 10 (ADR-039): a slider with a tick per step, the value and its band
+ * ("6 · Hard") above it. TalkBack reads "[label], Strength 6 of 10, Hard"; [title] goes before the
+ * value (a seat's hero), or nothing under a section heading.
+ */
 @Composable
-private fun LevelSwitch(level: AiLevel, onPick: (AiLevel) -> Unit) {
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-        AiLevel.entries.forEachIndexed { i, option ->
-            SegmentedButton(
-                selected = level == option,
-                onClick = { onPick(option) },
-                shape = SegmentedButtonDefaults.itemShape(i, AiLevel.entries.size),
-                modifier = Modifier.heightIn(min = 48.dp),
-                icon = {},
-            ) {
-                Text(PlayText.level(option), maxLines = 1, overflow = TextOverflow.Clip)
+private fun StrengthSlider(
+    strength: Int,
+    label: String,
+    title: (@Composable () -> Unit)? = null,
+    /** "Gentler" and "Stronger" under the ends: once, under the main slider. */
+    ends: Boolean = title == null,
+    onPick: (Int) -> Unit,
+) {
+    Column {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            if (title != null) {
+                Box(Modifier.weight(1f)) { title() }
+                Spacer(Modifier.width(Spacing.sm))
             }
+            Text(
+                PlayText.strengthValue(strength),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        Slider(
+            value = strength.toFloat(),
+            onValueChange = { v -> v.roundToInt().let { if (it != strength) onPick(it) } },
+            valueRange = AiStrength.MIN.toFloat()..AiStrength.MAX.toFloat(),
+            steps = AiStrength.MAX - AiStrength.MIN - 1,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .semantics {
+                    contentDescription = label
+                    stateDescription = PlayText.strengthSpoken(strength)
+                },
+        )
+        if (ends) {
+            StrengthEnds()
         }
     }
 }
 
-/** Advanced: a level per computer seat. */
+@Composable
+private fun StrengthEnds() {
+    Row(Modifier.fillMaxWidth()) {
+        Text(
+            "Gentler",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            "Stronger",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** Advanced: a strength per computer seat. */
 @Composable
 private fun Advanced(state: NewGameUiState.Ready, onAction: (NewGameAction) -> Unit) {
     val open = state.form.advanced
@@ -540,19 +589,26 @@ private fun Advanced(state: NewGameUiState.Ready, onAction: (NewGameAction) -> U
             .toggleable(value = open, role = Role.Button) { onAction(NewGameAction.SetAdvanced(it)) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("Advanced: a level per seat", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+        Text(
+            "Advanced: a strength per seat",
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.weight(1f),
+        )
         Icon(if (open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, contentDescription = null)
     }
     if (!open) return
     state.aiSeats.forEach { seat ->
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                TeamMark(seat.team, markSize = 9.dp)
-                Spacer(Modifier.width(4.dp))
-                Text(seat.hero.name, style = MaterialTheme.typography.titleSmall)
-            }
-            LevelSwitch(seat.level) { onAction(NewGameAction.SetSeatLevel(seat.hero.id, it)) }
-        }
+        StrengthSlider(
+            seat.strength,
+            "${seat.hero.name}'s strength",
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TeamMark(seat.team, markSize = 9.dp)
+                    Spacer(Modifier.width(4.dp))
+                    Text(seat.hero.name, style = MaterialTheme.typography.titleSmall)
+                }
+            },
+        ) { onAction(NewGameAction.SetSeatStrength(seat.hero.id, it)) }
     }
 }
 

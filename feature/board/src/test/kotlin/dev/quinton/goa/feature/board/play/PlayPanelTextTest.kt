@@ -1,8 +1,8 @@
 package dev.quinton.goa.feature.board.play
 
 import dev.quinton.goa.core.game.ActionType
-import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.GameEvent
+import dev.quinton.goa.core.game.UnavailableAction
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.CardValues
@@ -10,9 +10,9 @@ import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.play.game.recentSince
 import dev.quinton.goa.feature.board.play.game.roundTitle
-import dev.quinton.goa.feature.board.play.table.attackMissing
 import dev.quinton.goa.feature.board.play.table.defenseVerdict
 import dev.quinton.goa.feature.board.play.table.sourceReach
+import dev.quinton.goa.feature.board.play.table.unavailableLine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -131,10 +131,23 @@ class PlayPanelTextTest {
             primary = PrimaryAction.ATTACK,
             values = CardValues(attack = 3, movement = 1, radius = 3),
         )
-        val noAttack = listOf(Choice.Action(ActionType.MOVEMENT), Choice.Action(ActionType.HOLD))
-        assertEquals(true, attackMissing(dagger, noAttack))
-        assertEquals(false, attackMissing(dagger, noAttack + Choice.Action(ActionType.PRIMARY)))
-        assertEquals(false, attackMissing(dagger.copy(values = CardValues(movement = 2)), noAttack))
+        // The engine says why (DecisionContext.unavailable); the line adds where the rule is.
+        assertEquals(
+            "Its Attack can't start: no target in range (p.10, FAQ).",
+            unavailableLine(
+                UnavailableAction(ActionType.PRIMARY, "Its Attack can't start: no target in range", "p.10, FAQ"),
+            ),
+        )
+        assertEquals(
+            "Its Skill is forbidden by Arien's Spell Break.",
+            unavailableLine(
+                UnavailableAction(
+                    ActionType.PRIMARY,
+                    "Its Skill is forbidden by Arien's Spell Break",
+                    byCardId = "arien-silver",
+                ),
+            ),
+        )
         assertEquals("Radius 3", sourceReach("Move a unit, or a token, in radius 1 space", dagger))
         assertNull(sourceReach("Move up to 4 spaces", dagger))
     }

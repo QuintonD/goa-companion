@@ -2,6 +2,7 @@ package dev.quinton.goa.core.game.engine
 
 import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
+import dev.quinton.goa.core.game.DecisionContext
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.effects.BattleParticipant
@@ -291,8 +292,16 @@ fun Game.resolveCard(heroId: String) {
         }
     }
     trigger(Trigger.ChoosingAction(heroId, cardId))
-    val answer = askAlways(heroId, DecisionKind.CHOOSE_ACTION, "Choose an action for ${cardName(cardId)}", cardId) {
-        actionOptions(heroId, cardId).map { Choice.Action(it) }
+    // Options and the reasons for the printed actions left out come from one pass (ADR-041).
+    val availability by lazy(LazyThreadSafetyMode.NONE) { actionAvailability(heroId, cardId) }
+    val answer = askAlways(
+        heroId,
+        DecisionKind.CHOOSE_ACTION,
+        "Choose an action for ${cardName(cardId)}",
+        cardId,
+        context = { DecisionContext(unavailable = availability.unavailable) },
+    ) {
+        availability.options.map { Choice.Action(it) }
     } as Choice.Action
     val kind = when (answer.action) {
         ActionType.PRIMARY -> primaryKind(card(cardId))

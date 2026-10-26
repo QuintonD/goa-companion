@@ -23,7 +23,8 @@ bronze" (deep-ocean dark with bronze and teal), which stays as the canvas and th
   name on the hero page, on catalog tiles and rows, and in the draft's hero peek.
 - **Item icons** (the sketched icons at the foot of every card) where an item's stat is explained,
   the **Spawn point symbols** (hero gear/star, minion symbols) on the map, and the **Tie Breaker
-  coin**'s faces on the draft's coin.
+  coin**'s faces on the draft's coin, the game table's HUD and New game's coin flip (with the team's
+  shape on a badge at the coin's foot: team never by colour alone).
 
 **Where we deviate, and why:**
 - **Dark canvas, not the white page.** The rulebook is white paper; at a dim table a white screen
@@ -274,7 +275,9 @@ teal circle (TalkBack: "immune"). Map taps select, a **Confirm** button with the
 ("Confirm · Lane Zone 3 · 3 spaces from Wasp") answers.
 **Top, floating:** one HUD pill (each team's Life counters as heart + number by its shape, Wave
 counters per Lane, "R2" and four turn pips: done filled, current ringed, later hollow; the Tie
-Breaker coin as the showing team's shape on a bronze ring), then, before the reveal, the hero strip:
+Breaker coin as printed, the showing face (Red's gear, Blue's star, `OfficialArt.tieBreaker`) with the
+team's shape on a small surface badge at its foot; the same coin, 64 dp, heads New game's "Blue
+shows" dialog), then, before the reveal, the hero strip:
 one chip per hero (portrait ringed in team colour, shape, name, Lv, coins, cards in hand, and a small
 card back once its card is down, p.7: which card stays hidden). In landscape with the panel shown the
 strip is portraits only, 48 dp discs on the HUD's row (team ring and shape; TalkBack hears the full
@@ -308,8 +311,13 @@ above them) for buttons, 72 dp beside a board question's tap hint and Confirm; t
 **Actions** are compact chips beside the card: the game's icon and the value the card prints
 ("Attack 6", "Movement 4"; the primary filled primaryContainer with "PRIMARY" above), only the rules
 no card prints in a few words with the page (Fast Travel "To your Zone or an adjacent one, no enemy
-hero or minion in either (p.11)", Hold "Do nothing (p.12)", Clear), and one line under them: "Only
-the primary action applies the card's text (p.7)." Card questions (play, discard, retrieve, upgrade,
+hero or minion in either (p.11)", Hold "Do nothing (p.12)", Clear); under the chips, one line (info
+icon, bodySmall) for each action the card prints that isn't offered, with the engine's reason and
+source (`DecisionContext.unavailable`, ADR-041): "Its Skill can't start: the spellbook is empty until
+Prepare Spells is performed (designer, BGG 3491113).", "Its Attack can't start: no target in range
+(p.10, FAQ).", "Its Movement is forbidden by Xargatha's Stone Gaze." (a tap opens that card), "Its
+Defense is never performed from a played card, only from your hand when attacked (p.14)."; then one
+line under the panel: "Only the primary action applies the card's text (p.7)." Card questions (play, discard, retrieve, upgrade,
 keep) show "Asked by <card>" (28 dp thumbnail) when another card asks, and the cards as official
 images: the hand as 84 dp cards shrinking to 60 dp to fit five, two or three cards larger (140 / 110
 dp, so Keep's two next-Tier cards sit side by side with their item stats), a card the question
@@ -320,7 +328,8 @@ minion modifier counted and "Discard a card to defend" (it carries the prompt fo
 hand's cards themselves with the verdict under each in words with an icon ("✓ Holds" teal, "! Falls"
 red, "Decided by its text" grey) and the Defense total with a shield when items or minions change
 the printed value; "Don't defend" is chosen then confirmed. Declines and Pass are outlined. With large
-text the asking card goes above the answers. The computer's move shows its portrait, level and prompt
+text the asking card goes above the answers. The computer's move shows its portrait, band and strength
+("COMPUTER · HARD 7") and prompt
 and the card it resolves (56 dp, tap to read), a linear progress bar once it is "thinking…". Under
 the question, the lines of what happened that the table doesn't show (an attack, a defense, a defeat,
 coins, a push…), not the reveal, the action chosen or a move (the track and the board show those);
@@ -328,7 +337,13 @@ the log sheet keeps every line. The coach's nudge is a secondary-container card 
 (outlined) and "Rethink" (filled). Game over leads with "You won" / "The computer won" in a card
 bordered in the winner's colour, the rulebook reason, each hero's results, then the coach's turning
 points by round and turn. New game reuses New board's picker; heroes not yet playable are veiled and
-marked "Later".
+marked "Later". **Computer strength** (ADR-039) is a Material 3 slider, 1 to 10 with a tick per step
+(default 5), the value and its band above it in the primary colour ("7 · Hard"; bands 1–3 Easy, 4–6
+Normal, 7–8 Hard, 9–10 Expert), "Gentler" and "Stronger" under the ends, and the band's one-line note
+under that (1 and 10 have their own); TalkBack reads "Computer strength, Strength 7 of 10, Hard".
+Under "Advanced: a strength per seat" each computer hero gets the same slider with its name and value
+on one line and no end labels. The computer's strength also shows wherever its level did ("Computer ·
+Hard 7": the hero sheet, game over, the resume line on Boards).
 **Spellbook** (Gydion, ADR-040; `play/table/SpellbookSection.kt`): the hero sheet and the review's Now
 tab show a SPELLBOOK section after the discard, in the engine's order: "In your spellbook · 19" (the
 spell cards, for Gydion's player only), "Cast · removed faceup · 3" (everyone), "Not yet added · 22"
@@ -372,15 +387,20 @@ discarded cards, a puzzle replay's card, and the sandbox's "Read the cards".
 - **First tap** on a thumbnail: the card grows out of it (scale and translate from the thumbnail's
   bounds, 340 ms emphasised deceleration) into a large card over a near-black scrim (93 %, the same in
   both themes; light text on it). Portrait: × with the question's title ("WASP · CARD", bronze overline)
-  and "Card 2 of 4" with page dots on the scrim, the card about half the height (38 % above font scale
-  1.3), then a surface panel (28 dp top corners) with the question's context ("Discard a card", "Arien
-  attacks · melee · Attack 6"), the name in Cinzel, tier and colour, the verdict ("! Falls · Defense 2
-  against Attack 6", also as a pill on the card's corner), why a card isn't an option, what choosing it
-  means (Keep: "… goes to your hand", "… becomes an item: +1 Defense (p.16)"; Upgrade: the two cards of
-  the next Tier with their item stats), the printed values, the text verbatim, its item stat.
-  Landscape: the card on the left at full height; on the right a 48 dp header and the panel down to
-  the bottom edge, with the tier beside the name, tighter spacing, the card text in bodyMedium and no
-  "Swipe up…" line, so on a phone held sideways the card's text shows without scrolling. The details
+  and "Card 2 of 4" with page dots on the scrim, the card up to 60 % of the height (50 % above font
+  scale 1.3; on a phone it is as wide as the screen allows), then a surface panel (28 dp top corners)
+  at the bottom, **as tall as its words**: only what the card doesn't print (ADR-041: the scan is the
+  content, nothing it shows is retyped): the question's context ("Play a card facedown", "Arien
+  attacks · melee · Attack 6"), a caption ("Turn 2 · Active"), the verdict ("! Falls · Defense 2
+  against Attack 6", also as a pill on the card's corner; the Defense total says what items and
+  minions change), why a card isn't an option, what choosing it means (Keep: "… goes to your hand",
+  "… becomes an item: +1 Defense (p.16)"; Upgrade: the two cards of the next Tier with their item
+  stats), a Handicap card's basis ("a weaker version of the Gold card (frame colour, p.20)"), its item
+  stat with its item icon; then **"Read the card as text"** (collapsed, article icon and
+  chevron; TalkBack hears Expanded / Collapsed): open, the name, kind, printed values and the text
+  verbatim, for anyone the scan doesn't serve (the switch holds while swiping; in portrait the card steps back to 36 % of the height, 26 % with large text, and the words scroll into view). Landscape: the card on
+  the left at full height; on the right a 48 dp header and the panel at the bottom, tighter spacing,
+  the card text in bodyMedium and no "Swipe up…" line. The details
   scroll in both orientations, with a fade at the bottom while there is more. The scrim turns opaque
   behind the header (fading out just below it), so the screen's top bar never shows through.
 - **Second tap** on the focused card confirms: a press (scale 0.93, 90 ms), a bouncy settle with a teal
@@ -402,7 +422,7 @@ discarded cards, a puzzle replay's card, and the sandbox's "Read the cards".
 - **View only** (no question): the same viewer without the button; "Swipe sideways for the other cards;
   swipe up or go back to close."
 - **TalkBack:** each thumbnail is one node ("Look at the card"); the focused card is one node with its
-  values, verdict or reason and "card 2 of 4", its click action named after the choice, and custom
+  name, kind, values and text (the card's data, as the scan shows it), verdict or reason and "card 2 of 4", its click action named after the choice, and custom
   actions Select, Next card, Previous card, Close; the Confirm button and × are ordinary buttons.
 - It is its own full-screen window (a dialog without the platform dim or window animation), so it shows
   above the panel, a hidden panel's peek bar and sheets alike. One `CardFocusState` per screen

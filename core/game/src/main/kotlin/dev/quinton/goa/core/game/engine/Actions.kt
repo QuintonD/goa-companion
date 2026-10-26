@@ -5,9 +5,11 @@ import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.DecisionContext
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameEvent
+import dev.quinton.goa.core.game.UnavailableAction
 import dev.quinton.goa.core.game.effects.ActionQuery
 import dev.quinton.goa.core.game.effects.ChoiceQuery
 import dev.quinton.goa.core.game.effects.MoveQuery
+import dev.quinton.goa.core.game.effects.Src
 import dev.quinton.goa.core.game.effects.Trigger
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.catalog.Card
@@ -177,7 +179,7 @@ class ActionScope internal constructor(
         return id
     }
 
-    fun fizzle(reason: String): Nothing = g.fizzle(reason)
+    fun fizzle(reason: String, source: String? = null): Nothing = g.fizzle(reason, source)
 
     // ---- the card's own movement --------------------------------------------------------------
 
@@ -303,7 +305,11 @@ fun primaryKind(card: Card): ActionKind = when (card.primary) {
     null -> ActionKind.NONE
 }
 
-fun Game.actionAllowed(heroId: String, cardId: String?, kind: ActionKind, primary: Boolean): Boolean {
+fun Game.actionAllowed(heroId: String, cardId: String?, kind: ActionKind, primary: Boolean): Boolean =
+    actionForbiddenBy(heroId, cardId, kind, primary) == null
+
+/** The first effect in force that forbids this action ("cannot perform skill actions"), or null. */
+fun Game.actionForbiddenBy(heroId: String, cardId: String?, kind: ActionKind, primary: Boolean): Src? {
     val q =
         ActionQuery(
             heroId,
@@ -315,34 +321,67 @@ fun Game.actionAllowed(heroId: String, cardId: String?, kind: ActionKind, primar
             } ?: false,
             cardId?.let { cardColorOf(heroId, it) },
         )
-    return sources().none { (b, s) -> b.forbidsAction(this, s, q) }
+    return sources().firstOrNull { (b, s) -> b.forbidsAction(this, s, q) }?.second
 }
 
 fun Game.repeatForbidden(heroId: String): Boolean = sources().any { (b, s) -> b.forbidsRepeat(this, s, heroId) }
 
 /** The secondary and replacing actions a card offers (p.7, p.9, p.11, p.13). */
-fun Game.actionOptions(heroId: String, cardId: String): List<ActionType> {
+fun Game.actionOptions(heroId: String, cardId: String): List<ActionType> =
+    actionAvailability(heroId, cardId, explain = false).options
+
+/**
+ * What a played card offers when its hero chooses an action: [options], and the actions it prints
+ * that are not among them, each with the reason ([unavailable], ADR-041). Both come from the same
+ * checks, so a reason can't disagree with the options.
+ */
+class ActionAvailability(val options: List<ActionType>, val unavailable: List<UnavailableAction>)
+
+/** See [ActionAvailability]; [explain] false skips the reasons (the AI's and other cards' queries). */
+@Suppress("CyclomaticComplexMethod")
+fun Game.actionAvailability(heroId: String, cardId: String, explain: Boolean = true): ActionAvailability {
     val card = card(cardId)
     val out = ArrayList<ActionType>()
+    val missing = ArrayList<UnavailableAction>()
     val pk = primaryKind(card)
     val script = data.registry.script(cardId)
-    if (pk != ActionKind.DEFENSE && pk != ActionKind.NONE && script != null && script.hasPrimary &&
-        actionAllowed(heroId, cardId, pk, true) && primaryPossible(heroId, cardId)
-    ) {
-        out += ActionType.PRIMARY
+    if (pk == ActionKind.DEFENSE) {
+        if (explain) missing += UnavailableAction(ActionType.PRIMARY, DEFENSE_PLAYED, "p.14")
+    } else if (pk != ActionKind.NONE && script != null && script.hasPrimary) {
+        val by = actionForbiddenBy(heroId, cardId, pk, true)
+        val blocked = if (by == null) primaryBlocker(heroId, cardId) else null
+        when {
+            by != null -> if (explain) missing += forbidden(ActionType.PRIMARY, pk, by)
+
+            blocked == null -> out += ActionType.PRIMARY
+
+            explain -> missing += UnavailableAction(
+                ActionType.PRIMARY,
+                "Its ${kindName(pk)} can't start: ${blocked.reason}",
+                blocked.source ?: FIRST_INSTRUCTION,
+            )
+        }
     }
     val hasMovement = card.primary == PrimaryAction.MOVEMENT || SecondaryAction.MOVEMENT in card.secondary
-    if (SecondaryAction.MOVEMENT in card.secondary && actionAllowed(heroId, cardId, ActionKind.MOVEMENT, false)) {
-        out += ActionType.MOVEMENT
+    if (SecondaryAction.MOVEMENT in card.secondary) {
+        val by = actionForbiddenBy(heroId, cardId, ActionKind.MOVEMENT, false)
+        if (by == null) {
+            out += ActionType.MOVEMENT
+        } else if (explain) {
+            missing += forbidden(ActionType.MOVEMENT, ActionKind.MOVEMENT, by)
+        }
     }
     val movementAllowed = actionAllowed(heroId, cardId, ActionKind.MOVEMENT, card.primary == PrimaryAction.MOVEMENT)
     if (hasMovement && movementAllowed && canFastTravel(heroId, cardId)) {
         out += ActionType.FAST_TRAVEL
     }
-    if (SecondaryAction.ATTACK in card.secondary && actionAllowed(heroId, cardId, ActionKind.ATTACK, false) &&
-        secondaryAttackTargets(heroId, cardId).isNotEmpty()
-    ) {
-        out += ActionType.ATTACK
+    if (SecondaryAction.ATTACK in card.secondary) {
+        val by = actionForbiddenBy(heroId, cardId, ActionKind.ATTACK, false)
+        when {
+            by != null -> if (explain) missing += forbidden(ActionType.ATTACK, ActionKind.ATTACK, by)
+            secondaryAttackTargets(heroId, cardId).isNotEmpty() -> out += ActionType.ATTACK
+            explain -> missing += UnavailableAction(ActionType.ATTACK, NO_ADJACENT_TARGET, "p.10")
+        }
     }
     val hasAttack = card.primary == PrimaryAction.ATTACK || SecondaryAction.ATTACK in card.secondary
     val pos = hero(heroId).at
@@ -352,7 +391,41 @@ fun Game.actionOptions(heroId: String, cardId: String): List<ActionType> {
         out += ActionType.CLEAR
     }
     out += ActionType.HOLD
-    return out
+    return ActionAvailability(out, missing)
+}
+
+/** p.10 "Mandatory and Optional Steps" and the FAQ's "you may not perform the action at all". */
+private const val FIRST_INSTRUCTION = "p.10, FAQ"
+
+/** p.14: "You cannot perform a Defense action on an already played card!" */
+private const val DEFENSE_PLAYED =
+    "Its Defense is never performed from a played card, only from your hand when attacked"
+
+/** p.10 "Picking Targets": "You must choose valid targets for your actions." */
+private const val NO_ADJACENT_TARGET = "Its Attack has no target: no enemy unit you may target is adjacent"
+
+private fun kindName(kind: ActionKind): String = when (kind) {
+    ActionKind.ATTACK -> "Attack"
+    ActionKind.MOVEMENT -> "Movement"
+    ActionKind.DEFENSE -> "Defense"
+    else -> "Skill"
+}
+
+/**
+ * "Its Skill is forbidden by Arien's Spell Break": the effect in force that forbids the action.
+ * Effects in force come from faceup cards, Ultimates, markers and pieces on the board (a card turned
+ * facedown loses its effect, p.10), so naming the card reveals nothing hidden.
+ */
+private fun Game.forbidden(action: ActionType, kind: ActionKind, by: Src): UnavailableAction {
+    val owner = by.owner?.let { heroName(it) }
+    val card = by.cardId
+    val what = when {
+        card != null && owner != null -> "$owner's ${cardName(card)}"
+        card != null -> cardName(card)
+        owner != null -> "an effect of $owner"
+        else -> "an effect in force"
+    }
+    return UnavailableAction(action, "Its ${kindName(kind)} is forbidden by $what", null, card)
 }
 
 /**
@@ -367,7 +440,18 @@ fun Game.primaryPossible(
     cardId: String,
     excluded: Set<String> = emptySet(),
     repeatFilter: ((String) -> Boolean)? = null,
-): Boolean {
+): Boolean = primaryBlocker(heroId, cardId, excluded, repeatFilter) == null
+
+/** Why a Primary action cannot start: the step it stopped at ([Fizzle]'s reason and source). */
+class PrimaryBlock(val reason: String, val source: String?)
+
+/** [primaryPossible]'s probe: null when the Primary action can start, else why it can't. */
+fun Game.primaryBlocker(
+    heroId: String,
+    cardId: String,
+    excluded: Set<String> = emptySet(),
+    repeatFilter: ((String) -> Boolean)? = null,
+): PrimaryBlock? {
     val copy = state.copy()
     val probe = Game(data, copy, emptyList(), RunMode.PROBE)
     val before = copy.stamp
@@ -381,17 +465,19 @@ fun Game.primaryPossible(
             probing = true,
             repeatFilter = repeatFilter,
         )
-        true
+        null
     } catch (_: ProbeHit) {
-        true
-    } catch (_: ProbeFizzled) {
-        copy.stamp != before
+        null
+    } catch (f: ProbeFizzled) {
+        if (copy.stamp != before) null else PrimaryBlock(f.message.orEmpty(), f.source)
     } catch (_: GameEnded) {
-        true
+        null
     }
 }
 
-private class ProbeFizzled : ControlSignal()
+private class ProbeFizzled(fizzle: Fizzle) : ControlSignal(fizzle.message) {
+    val source: String? = fizzle.source
+}
 
 /**
  * Perform one action of [heroId] with [cardId] (p.7 "Perform One Action"). Card text runs for the
@@ -440,7 +526,7 @@ fun Game.performAction(
             }
         }
     } catch (f: Fizzle) {
-        if (probing) throw ProbeFizzled()
+        if (probing) throw ProbeFizzled(f)
         note("${heroName(heroId)}'s ${cardName(cardId)} stops: ${f.message}.")
     } catch (a: ActorDefeated) {
         if (a.heroId != heroId) throw a

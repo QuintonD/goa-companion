@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.board.ui.cards
 
 import dev.quinton.goa.core.model.catalog.Card
+import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.feature.board.play.table.CARD_ASPECT
 
@@ -41,3 +42,21 @@ val Card.isSpell: Boolean get() = id.startsWith("$heroId-spell-")
 
 /** Width / height of [card]'s scan; a facedown card (null) is a portrait card back. */
 fun cardAspect(card: Card?): Float = if (card?.isSpell == true) LANDSCAPE_CARD_ASPECT else CARD_ASPECT
+
+/**
+ * A Handicap card's basis under the focused card, which the card itself doesn't print: derived from
+ * its frame colour (rulebook p.20: "weaker versions of the regular basic cards (Usually Gold)"), as
+ * the catalog says it; null for any other card.
+ */
+fun focusHandicapBasis(card: Card): String? {
+    if (!card.id.endsWith(HANDICAP_SUFFIX)) return null
+    val colour = when (card.color) {
+        CardColor.GOLD -> "Gold"
+        CardColor.SILVER -> "Silver"
+        else -> return null
+    }
+    return "Handicap: a weaker version of the $colour card (frame colour, p.20)."
+}
+
+/** A hero's Handicap card is `<hero>-handicap` in the catalog (the hero JSON's `handicap`). */
+private const val HANDICAP_SUFFIX = "-handicap"

@@ -28,6 +28,8 @@ Each ruling names the code and the test that pins it.
    *before* the action (Arien's Ultimate move) count, so a hero 2 spaces from every target may
    still choose an attack with Living Tsunami. A text that starts and then stops at a mandatory
    step (p.10) still counts as performed: "after the action" triggers fire. `Actions.primaryPossible`.
+   [APP] When it is not offered, the question says why (`DecisionContext.unavailable`, ADR-041): the
+   step it stopped at, with "p.10, FAQ", or the faceup card whose effect forbids it.
 5. **A played Defense card** offers its secondary actions and Hold only (p.14 "You cannot perform
    a Defense action on an already played card"); a played Defense/Skill card is a Skill (p.14).
 6. **Clear** is offered on a card with an Attack action (primary or secondary) when at least one

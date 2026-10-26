@@ -98,7 +98,7 @@ core/play/               # KMP jvm+js (ADR-043 W4): the board, play and puzzle s
                          #   words (BoardText, PlayText, PuzzleText), HexLayout, GameFacts, PuzzlePlay
 core/data/               # repositories; catalog and board-map loaders; JSON/Room <-> model; export/import;
                          #   game/ (ADR-035): the game in progress (DataStoreGameSaveRepository) and
-                         #   PlayEngineModule, the one place GameFactory, the AI per level, the Coach and the
+                         #   PlayEngineModule, the one place GameFactory, the AI per strength, the Coach and the
                          #   PuzzleBook are bound; puzzle/ (DataStorePuzzleProgressRepository)
 core/database/           # Room 3 DB (schema v4: players, matches, drafts, trivia_rounds, deletions,
                          #   player_merges), DAOs, entities, migrations, schemas/

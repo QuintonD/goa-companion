@@ -12,6 +12,7 @@ other branches should know are listed too.
 | `WinReason.CARD_TEXT` (`"card_text"`) | A win a card's text declares | Cutter's A Fistful of Coins ("you alone win the game"), Gydion's Wish ("your team wins the game") |
 | `HeroView.alsoPlayed: List<CardView> = emptyList()` | Further played cards this turn, hidden like `played` | Emmitt's Ultimate lets him play two cards |
 | `PuzzleInfo.intro: String = ""` | What the player knows that the board doesn't show (cards played facedown, opponents' hands, who acts next) | Puzzles treat hands as open information; the play view hides them |
+| `Controller.Ai.strength: Int = level.strength`, `Controller.Ai(strength)`; `AiLevel.strength` (2 / 6 / 8 / 10), `AiLevel.of(strength)`; `object AiStrength` (`MIN` 1, `MAX` 10, `DEFAULT` 5, `coerce`) | A computer seat plays at a strength 1–10; `level` stays as its band (1–3 Easy, 4–6 Normal, 7–8 Hard, 9–10 Expert) for the words. A save that carries only `level` loads as that level's strength | ADR-039: the difficulty slider. Build seats with `Controller.Ai(strength)`; read `strength` to play and `AiLevel.of(strength)` for the band's name |
 
 ## Behaviour of the existing contract (no type change)
 
@@ -185,3 +186,22 @@ app's worker) from the same sources; what other branches should know:
 - Seeded AI games, random games and puzzle solutions give the same moves on the JVM and in JS
   (`GameParityTest`, run by `:core:game:allTests`); keep new randomness on a seeded `kotlin.random.Random`
   and never let `HashMap`/`HashSet` iteration order reach a decision.
+
+## 2026-10-25 (why an action is missing, `fix/v07-handson`, ADR-041 §5)
+
+Additive; defaults keep other `GameSession` implementations, test fakes and saves unaffected (decisions
+are rebuilt by the replay, never saved).
+
+- `DecisionContext.unavailable: List<UnavailableAction> = emptyList()`: on `CHOOSE_ACTION`, each action the
+  asking card prints (its primary; a printed secondary Movement or Attack) that is not among the options,
+  with why. `UnavailableAction(action: ActionType, text: String, source: String? = null, byCardId: String? = null)`:
+  `text` is one short line ("Its Skill can't start: the spellbook is empty until Prepare Spells is
+  performed", "Its Movement is forbidden by Xargatha's Stone Gaze"), `source` the rule ("p.10, FAQ",
+  "p.14", "designer, BGG 3491113"), null when `byCardId` (a faceup card whose effect forbids it) is the
+  reason. Never names a hidden card.
+- Engine side: `Game.actionAvailability(heroId, cardId, explain)` builds the options and the reasons in
+  one pass (`actionOptions` = its options); `actionForbiddenBy` (the forbidding `Src`) under
+  `actionAllowed`; `primaryBlocker` (the probe's `Fizzle` reason and source) under `primaryPossible`;
+  `Fizzle(reason, source = null)` and `fizzle(reason, source)`. `attackTarget(…, none = "no target")`:
+  `adjacentAttackTarget` fizzles "no target adjacent to you", `rangedAttackTarget` "no target in range"
+  (the log's "… stops:" lines changed with them). Gydion's `castOneOf` says why no spell can be cast.

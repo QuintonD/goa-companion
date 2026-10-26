@@ -16,7 +16,6 @@ import dev.quinton.goa.feature.board.play.table.PanelLayout
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.actionLabel
 import dev.quinton.goa.feature.board.play.table.actionRule
-import dev.quinton.goa.feature.board.play.table.attackMissing
 import dev.quinton.goa.feature.board.play.table.cardAction
 import dev.quinton.goa.feature.board.play.table.cardVerb
 import dev.quinton.goa.feature.board.play.table.defenseLine
@@ -28,6 +27,8 @@ import dev.quinton.goa.feature.board.play.table.offeredCards
 import dev.quinton.goa.feature.board.play.table.panelLayout
 import dev.quinton.goa.feature.board.play.table.sourceReach
 import dev.quinton.goa.feature.board.play.table.spokenCard
+import dev.quinton.goa.feature.board.play.table.unavailableActions
+import dev.quinton.goa.feature.board.play.table.unavailableLine
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
 import dev.quinton.goa.feature.board.ui.cards.isSpell
 import dev.quinton.goa.web.play.cards.CardFocusState
@@ -93,6 +94,7 @@ fun DecisionPanel(
                     Div({ classes("goa-beside-answers") }) {
                         if (board) BoardHint(table, onAnswer, busy)
                         Choices(table, table.buttonOptions, onAnswer, busy)
+                        Unavailable(table, decision, focus)
                     }
                 }
                 if (board) BoardChips(table, onSelect)
@@ -104,6 +106,7 @@ fun DecisionPanel(
                     BoardChips(table, onSelect)
                 }
                 Choices(table, table.buttonOptions, onAnswer, busy)
+                Unavailable(table, decision, focus)
             }
         }
         if (decision.kind == DecisionKind.CHOOSE_ACTION && table.buttonOptions.any { it is Choice.Action }) {
@@ -115,8 +118,33 @@ fun DecisionPanel(
                     "the Tie Breaker coin decides, then it flips (p.7).",
             )
         }
-        if (decision.kind == DecisionKind.CHOOSE_ACTION && attackMissing(source, decision.options)) {
-            Quiet("No Attack: no unit you may target is in reach (p.13), or an effect forbids it.")
+    }
+}
+
+/**
+ * The actions the asking card prints that aren't offered, one line each with the engine's reason
+ * (`DecisionContext.unavailable`, ADR-041 §5), so a lone Hold never looks like a broken app. A reason
+ * that is another card's effect opens that card when tapped.
+ */
+@Composable
+private fun Unavailable(table: TableUi, decision: Decision, focus: CardFocusState) {
+    unavailableActions(decision).forEach { u ->
+        val by = u.byCardId?.let { table.cards[it] }
+        if (by == null) {
+            P({ classes("goa-unavailable", "t-body-small") }) {
+                Icon("info", IconSize.SMALL)
+                Span { Text(unavailableLine(u)) }
+            }
+        } else {
+            Button({
+                classes("goa-unavailable", "tappable", "t-body-small")
+                attr("type", "button")
+                attr("aria-label", "${unavailableLine(u)} Read ${by.name}.")
+                onClick { focus.show(listOf(by), title = "Forbidden by") }
+            }) {
+                Icon("info", IconSize.SMALL)
+                Span { Text(unavailableLine(u)) }
+            }
         }
     }
 }

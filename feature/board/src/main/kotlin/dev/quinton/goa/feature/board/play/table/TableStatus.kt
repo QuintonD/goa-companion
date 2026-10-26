@@ -2,6 +2,7 @@ package dev.quinton.goa.feature.board.play.table
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -48,6 +50,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.OfficialArt
+import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
@@ -165,19 +169,36 @@ private fun TurnPips(turn: Int) {
     }
 }
 
-/** The Tie Breaker coin, the showing team's shape on a bronze disc. */
+/**
+ * The Tie Breaker coin as printed (ADR-042, `OfficialArt.tieBreaker`: Red's gear, Blue's star, p.5),
+ * with the app's team shape on a badge at its foot, as on the board's pieces (team never by colour
+ * alone). While the face loads, or if it fails: the shape on a bronze disc.
+ */
 @Composable
-internal fun TieBreakerMark(team: Team, size: Dp = 20.dp) {
+internal fun TieBreakerMark(team: Team, size: Dp = 22.dp) {
     val bronze = MaterialTheme.colorScheme.primary
-    Box(
-        Modifier
-            .size(scaledIconSize(size, 1.4f))
-            .border(2.dp, bronze, CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        TeamMark(team, markSize = scaledIconSize(size * 0.5f, 1.4f))
+    val coin = scaledIconSize(size, 1.4f)
+    val badge = (coin * COIN_BADGE).coerceAtMost(MAX_COIN_BADGE)
+    Box(Modifier.size(coin)) {
+        OfficialIcon(OfficialArt.tieBreaker(team), Modifier.matchParentSize()) {
+            Box(Modifier.matchParentSize().border(2.dp, bronze, CircleShape))
+        }
+        Box(
+            Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = badge * 0.2f, y = badge * 0.2f)
+                .size(badge)
+                .background(MaterialTheme.colorScheme.surface, CircleShape)
+                .border(1.dp, bronze, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            TeamMark(team, markSize = badge * 0.62f)
+        }
     }
 }
+
+private const val COIN_BADGE = 0.48f
+private val MAX_COIN_BADGE = 24.dp
 
 /**
  * Every hero's status, one chip each: portrait ringed in team colour, level, coins, cards in hand.

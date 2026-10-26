@@ -221,7 +221,49 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] On the S25 Ultra: card scans and symbols at real density, banner under the status bar, TalkBack on
   a deck card (reads values and full text)
 
-## M15 — Web app: group, sync and players (ADR-043 W2)
+## M15 — A stronger computer and a strength slider (ADR-039)
+- [x] Contract: `Controller.Ai.strength` 1–10, old saves load as Easy 2 / Normal 6 / Hard 8 / Expert 10;
+  `AiPlayers.forStrength`; the factory takes the strength — 2026-10-25, `ControllerStrengthTest`,
+  `NewGameFormsTest`, NoPeeking and DecisionKinds over all ten strengths
+- [x] The tuned evaluation (exposure × 0.3, opportunity × 2), fitted to self-play outcomes and measured
+  59–64% over the old Normal / Hard / Expert; ten profiles, every adjacent step above 50% with its
+  95% interval on held-out line-ups (AI.md "Measured strength"); two engine placement crashes found by
+  the tournaments fixed — 2026-10-25, `LevelLadderTest`, `TimingTest` (10: 514 ms p95 on the desktop)
+- [x] New game: the strength slider (per seat under Advanced), "Computer · Hard 8" wherever the level
+  showed — 2026-10-25, slider screenshots portrait / landscape / light / W384 font scale 2. JVM only
+- [ ] On the S25 Ultra: strength 10's think time per card play (budget 4 s), the slider with TalkBack
+- [x] A new game starts at the strength of the last game started (`AppSettings.computerStrength`) —
+  2026-10-25, `NewGameViewModelTest`, `SettingsDataSourceTest`. JVM only
+
+## M16 — Gydion's spellbook at the game table (ADR-040)
+- [x] Contract: `HeroView.extras` (places with ids, hidden ones null), built in `Views` so review and
+  rewind show the same; the spellbook only to Gydion's own seat (Prepare Spells), cast spells and the
+  box open — 2026-10-25, `ExtrasViewTest` (no-peeking, live and review)
+- [x] Hero sheet / review / puzzles: a Spellbook section of the official landscape spell cards (in your
+  spellbook / cast / not yet added), the cast question as landscape cards ("Cast Magic Missile"), card
+  focus keeps each card's shape (`CardShape`, checked against every bundled image), the unlocked
+  Ultimate as its card, the sandbox's card strip includes the spells — 2026-10-25,
+  `SpellbookScreenshotTest` (14), `SpellbookSectionTest`, `CardShapeTest`. JVM only
+- [ ] On the S25 Ultra: a Gydion game, casting from the book, the spellbook sheet in landscape
+
+## M17 — The table after the reveal: turn track and the card as the content (ADR-041)
+- [x] Turn track: after the reveal the strip is the played cards in acting order with DONE / NOW / NEXT /
+  PASS / OUT bands (never colour alone), ties, Emmitt's second card, facedown cards kept facedown;
+  "NOW" over the acting hero on the map; moments for the reveal, turn over and round over; stays with
+  the panel hidden and in landscape — 2026-10-25, `TurnTrackTest` (11), table screenshots
+- [x] Decision panel: the asking card large beside compact action chips (only rules no card prints in
+  words), Defend with the attacker's card and Holds / Falls under each hand card, no log lines
+  repeated in the panel — 2026-10-25, Play / Puzzle screenshots re-recorded and looked at. JVM only
+- [ ] On the S25 Ultra: a full round against the computer, panel shown and hidden, TalkBack on the track
+- [x] Hands-on fixes (`fix/v07-handson`, ADR-041 §5–6, ADR-042): a printed action that isn't offered
+  says why in one line from the engine (`DecisionContext.unavailable`: Gydion's empty spellbook, an
+  Attack with no target, Movement or a Skill forbidden by an enemy card, a played Defense card); the
+  card focus viewer keeps only what the card doesn't print, with "Read the card as text" collapsed and
+  the card larger; the Tie Breaker coin is the official face in the HUD and New game's coin flip —
+  2026-10-25, `UnavailableActionsTest` (7, incl. no-peeking), `PlayPanelTextTest`, spellbook / play /
+  puzzle / review screenshots re-recorded and looked at. JVM only
+
+## M18 — Web app: group, sync and players (ADR-043 W2)
 - [x] Relay CORS for the Pages origin (`GOA_RELAY_CORS_ORIGINS`), deployed to oldboi — 2026-10-25,
   `CorsTest`, health and preflight checked from outside, existing groups untouched
 - [x] Shared: the relay algorithm (`RelaySyncRepository`), group membership (`PrefsGroupRepository`),
@@ -235,7 +277,7 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   scanner, sync after the app was in the background, the share sheet for sync files
 - [ ] A real group on the production relay with one phone and one iPhone
 
-## M16 — Web app: board, play against the computer, puzzles (ADR-043 W4)
+## M19 — Web app: board, play against the computer, puzzles (ADR-043 W4)
 - [x] Shared: the board, table and puzzle screens' logic in `:core:play` (`BoardSandbox`, `TableUi`,
   `GameFacts`, `PuzzlePlay`, the New board/New game rules, the words); Android calls them — 2026-10-26,
   `feature:board` tests and screenshots unchanged

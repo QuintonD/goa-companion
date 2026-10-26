@@ -34,7 +34,40 @@ internal data class EvalKnobs(
     val nextTurnThreat: Double = 0.22,
     /** Scale of the worth of a hero's own pieces on the board (tokens, the Turret…); 0 = ignored. */
     val pieces: Double = 1.0,
+    /** Per space outside the Battle Zone (a path of 3 spaces is worth about an action, BGG 2898177). */
+    val presencePerSpace: Double = 0.55,
+    /** Standing inside the Battle Zone. */
+    val inBattleZone: Double = 1.0,
+    /** Chance a revealed enemy attack card that can reach a hero is aimed at it this turn. */
+    val nowWeight: Double = 0.6,
+    /** Coin-equivalents per 1.0 of P(win the lane), and per minion of margin. */
+    val laneWeight: Double = 60.0,
+    val minionMargin: Double = 1.5,
+    /** A defeat's cost beyond the Life counter and the enemy's coins: the tempo of respawning. */
+    val killTempo: Double = 5.0,
+    /** Worth of the cards in hand per point of their rating. */
+    val handRating: Double = 0.12,
+    /** An enemy hero plays one card a turn: its cards' threats add up to at most one card's chance. */
+    val oneCardPerTurn: Boolean = false,
+    /** A multiplier per [Term] (missing = 1.0): what the self-play fit of AI.md "Evaluation" tunes. */
+    val scales: Map<Term, Double> = emptyMap(),
 )
+
+/** The parts of the evaluation (Red minus Blue), each in coin-equivalents; their sum is the score. */
+internal enum class Term {
+    LANE,
+    MINION_MARGIN,
+    PIECES,
+    LIFE,
+    COINS,
+    LEVELS,
+    COUNTERS,
+    HAND,
+    HAND_RATING,
+    PRESENCE,
+    OPPORTUNITY,
+    EXPOSURE,
+}
 
 /**
  * The static evaluation (STRATEGY.md §2) in coin-equivalents for one team: Lane + Life + Σ our
@@ -53,15 +86,6 @@ internal class Evaluator(val data: EngineData, val knobs: EvalKnobs = EvalKnobs(
 
     companion object {
         const val WIN: Double = 1000.0
-        const val LANE_WEIGHT: Double = 60.0
-        const val MINION_MARGIN: Double = 1.5
-
-        /** Chance a revealed enemy attack card that can reach a hero is aimed at it this turn. */
-        const val NOW_WEIGHT: Double = 0.6
-
-        /** Per space outside the Battle Zone (a path of 3 spaces is worth about an action, BGG 2898177). */
-        const val PRESENCE_PER_SPACE: Double = 0.55
-        const val IN_BATTLE_ZONE: Double = 1.0
 
         /** A hero's own piece on the board: lasting beyond the round / for the rest of the round / near an enemy. */
         const val PIECE_LASTING: Double = 1.2
@@ -248,7 +272,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
         val pool = if (revealed) e.unresolved else e.unresolved + e.hand
         // This turn: a revealed card is certain to be played (the target is still a choice).
         if (pool.isNotEmpty() && (e.unresolved.isNotEmpty() || !revealed)) {
-            val w = if (revealed) Evaluator.NOW_WEIGHT else Evaluator.NOW_WEIGHT * min(1.0, 2.0 / pool.size)
+            val w = if (revealed) knobs.nowWeight else knobs.nowWeight * min(1.0, 2.0 / pool.size)
             pool.forEach { add(it, w, 0, now = true) }
         }
         // Next turn: what is left in hand, after an approach with this turn's card.
@@ -279,6 +303,9 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
         val nextSet = hero.defenseNext
         for ((e, list) in threats) {
             val d = HexGrid.distance(e.at!!, at)
+            // Per enemy and turn: it plays one card, so its cards' chances add up to at most one card's
+            // (knobs.oneCardPerTurn), instead of each card being a separate chance.
+            val sums = DoubleArray(4)
             for (t in list) {
                 if (d > t.reach) continue
                 val set = if (t.now) nowSet else nextSet
@@ -289,7 +316,21 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
                     !t.p.ranged && set.blocksMelee -> false
                     else -> t.attackTotal > set.total(mod)
                 }
-                if (kills) noKill *= 1 - t.weight else noHit *= 1 - t.weight
+                if (knobs.oneCardPerTurn) {
+                    sums[(if (t.now) 0 else 2) + if (kills) 0 else 1] += t.weight
+                } else if (kills) {
+                    noKill *= 1 - t.weight
+                } else {
+                    noHit *= 1 - t.weight
+                }
+            }
+            if (knobs.oneCardPerTurn) {
+                val now = list.firstOrNull { it.now }?.weight ?: 0.0
+                val next = list.firstOrNull { !it.now }?.weight ?: 0.0
+                val killNow = min(now, sums[0])
+                val killNext = min(next, sums[2])
+                noKill *= (1 - killNow) * (1 - killNext)
+                noHit *= (1 - min(now - killNow, sums[1])) * (1 - min(next - killNext, sums[3]))
             }
         }
         val pKill = min(0.9, 1 - noKill)
@@ -306,7 +347,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
             Evaluator.lifeValue(life) - Evaluator.lifeValue(life - hero.tier)
         }
         val enemies = state.heroes.count { it.team != team }
-        return lifeLoss + hero.h.level + hero.tier * (enemies - 1) + 5.0
+        return lifeLoss + hero.h.level + hero.tier * (enemies - 1) + knobs.killTempo
     }
 
     fun discardCost(hero: HeroInfo): Double {
@@ -348,7 +389,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
         for (lane in map.laneZones.keys) {
             val bz = state.battleZones[lane] ?: continue
             val d = map.distanceToZone(at, bz)
-            v += if (d == 0) Evaluator.IN_BATTLE_ZONE else -Evaluator.PRESENCE_PER_SPACE * d
+            v += if (d == 0) knobs.inBattleZone else -knobs.presencePerSpace * d
         }
         return v / max(1, map.laneZones.size)
     }
@@ -356,42 +397,42 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
     /** How good it is for [heroId] to stand at [at] (its own team's point of view). */
     fun placement(heroId: String, at: Hex): Double {
         val hi = info(heroId)
-        return presence(hi.h.team, at) + opportunity(hi, at) - exposure(hi, at)
+        return scale(Term.PRESENCE) * presence(hi.h.team, at) + scale(Term.OPPORTUNITY) * opportunity(hi, at) -
+            scale(Term.EXPOSURE) * exposure(hi, at)
     }
 
-    private fun heroValue(h: HeroState): Double {
+    /** Adds one hero's worth to [t] (its team's sign applied by the caller through [sign]). */
+    private fun heroTerms(h: HeroState, sign: Double, t: DoubleArray) {
         val hi = info(h.id)
         val early = state.round <= 2 && state.heroes.all { it.level <= 3 }
-        var v = h.coins * (if (early) 1.3 else 1.0) + h.level * (h.level - 1) / 2.0 + 3.0 * (h.level - 1)
-        if (h.coins >= h.level && h.level < 8) v += 1.0
-        if (h.ultimateUnlocked) v += 8.0
-        for ((key, n) in h.counters) v += Evaluator.counterValue(key, n)
+        t[Term.COINS.ordinal] += sign * h.coins * (if (early) 1.3 else 1.0)
+        var levels = h.level * (h.level - 1) / 2.0 + 3.0 * (h.level - 1)
+        if (h.coins >= h.level && h.level < 8) levels += 1.0
+        if (h.ultimateUnlocked) levels += 8.0
+        t[Term.LEVELS.ordinal] += sign * levels
+        for ((key, n) in h.counters) t[Term.COUNTERS.ordinal] += sign * Evaluator.counterValue(key, n)
         if (!roundOver) {
             val needed = hi.playsLeft
             val n = hi.hand.size
-            v += 2.5 * min(n, needed) + spareWeight() * max(0, n - needed) - 3.0 * max(0, needed - n)
-            v += 0.12 * hi.hand.sumOf { it.rating }
+            t[Term.HAND.ordinal] +=
+                sign * (2.5 * min(n, needed) + spareWeight() * max(0, n - needed) - 3.0 * max(0, needed - n))
+            t[Term.HAND_RATING.ordinal] += sign * knobs.handRating * hi.hand.sumOf { it.rating }
         }
         val at = h.at
-        v += if (at == null) {
+        if (at == null) {
             val spawn = map.throneSpawns[h.team].orEmpty().firstOrNull()
-            -4.0 + (spawn?.let { presence(h.team, it) } ?: -4.0)
-        } else {
-            val bodies = state.pieces.filter { it.heroBody == h.id && it.at != null }.map { it.at!! }
-            if (bodies.isEmpty()) {
-                placement(h.id, at)
-            } else {
-                // Several bodies of one hero (Razzle): any of them may act, and a defeat of any of
-                // them defeats the hero, so the best reach and presence but the worst exposure count.
-                val all = listOf(at) + bodies
-                all.maxOf { presence(h.team, it) } + all.maxOf { opportunity(hi, it) } - all.maxOf { exposure(hi, it) }
-            }
+            t[Term.PRESENCE.ordinal] += sign * (-4.0 + (spawn?.let { presence(h.team, it) } ?: -4.0))
+            return
         }
-        return v
+        // Several bodies of one hero (Razzle): any of them may act, and a defeat of any of them
+        // defeats the hero, so the best reach and presence but the worst exposure count.
+        val all = listOf(at) + state.pieces.filter { it.heroBody == h.id && it.at != null }.map { it.at!! }
+        t[Term.PRESENCE.ordinal] += sign * all.maxOf { presence(h.team, it) }
+        t[Term.OPPORTUNITY.ordinal] += sign * all.maxOf { opportunity(hi, it) }
+        t[Term.EXPOSURE.ordinal] -= sign * all.maxOf { exposure(hi, it) }
     }
 
-    private fun laneValueRed(): Double {
-        var total = 0.0
+    private fun laneTerms(t: DoubleArray) {
         for ((lane, zones) in map.laneZones) {
             val bz = state.battleZones[lane] ?: continue
             val i = zones.indexOf(bz)
@@ -407,9 +448,9 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
             if (b > a && 2 * a - b <= 0.25) p = min(p, 0.05)
             val waves = state.wavesLeft[lane] ?: 1
             val w = Evaluator.laneWin(zones.lastIndex - i, i, waves, p)
-            total += Evaluator.LANE_WEIGHT * (2 * w - 1) + Evaluator.MINION_MARGIN * (red - blue)
+            t[Term.LANE.ordinal] += knobs.laneWeight * (2 * w - 1)
+            t[Term.MINION_MARGIN.ordinal] += knobs.minionMargin * (red - blue)
         }
-        return total
     }
 
     /** Enemy minions [team] can still take this round (the designer's Push Potential, STRATEGY L2). */
@@ -465,16 +506,25 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
     private fun fightDistance(at: Hex): Int =
         map.laneZones.keys.mapNotNull { state.battleZones[it] }.minOfOrNull { map.distanceToZone(at, it) } ?: 0
 
+    private fun scale(term: Term): Double = knobs.scales[term] ?: 1.0
+
     fun scoreRed(): Double {
         state.winner?.let { return if (it == Team.RED) Evaluator.WIN - state.round else -Evaluator.WIN + state.round }
-        var v = laneValueRed() + pieceValueRed()
-        v +=
+        val t = termsRed()
+        var v = 0.0
+        for (term in Term.entries) v += t[term.ordinal] * scale(term)
+        return v
+    }
+
+    /** The evaluation's parts (Red minus Blue) before [EvalKnobs.scales]; a finished game is not split. */
+    fun termsRed(): DoubleArray {
+        val t = DoubleArray(Term.entries.size)
+        laneTerms(t)
+        t[Term.PIECES.ordinal] = pieceValueRed()
+        t[Term.LIFE.ordinal] =
             Evaluator.lifeValue(state.lifeCounters[Team.RED] ?: 0) -
             Evaluator.lifeValue(state.lifeCounters[Team.BLUE] ?: 0)
-        for (h in state.heroes) {
-            val hv = heroValue(h)
-            v += if (h.team == Team.RED) hv else -hv
-        }
-        return v
+        for (h in state.heroes) heroTerms(h, if (h.team == Team.RED) 1.0 else -1.0, t)
+        return t
     }
 }

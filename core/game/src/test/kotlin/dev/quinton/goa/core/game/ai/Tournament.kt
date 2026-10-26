@@ -8,22 +8,31 @@ import java.util.concurrent.Executors
 import kotlin.math.sqrt
 
 /**
- * Seeded, mirrored tournaments (STRATEGY.md §4.5): every line-up is played twice with the levels
+ * Seeded, mirrored tournaments (STRATEGY.md §4.5): every line-up is played twice with the players
  * swapping teams (same seed, same coin), so hero and side strength cancel.
  */
 object Tournament {
-    class Score(val a: AiLevel, val b: AiLevel) {
+    /** One contestant: a name for the report and its players (seeded per team and game). */
+    class Side(val label: String, val factory: (Long) -> AiPlayer) {
+        override fun toString(): String = label
+    }
+
+    fun strength(s: Int): Side = Side("S$s") { seed -> AiPlayers.deterministic(s, seed) }
+
+    fun level(l: AiLevel): Side = Side(l.name) { seed -> AiPlayers.deterministic(l, seed) }
+
+    class Score(val a: Side, val b: Side) {
         var aWins = 0
         var bWins = 0
         var draws = 0
         val reasons = LinkedHashMap<String, Int>()
         var rounds = 0
 
-        /** Per hero: games in which level a played it, and how many of those a won. */
+        /** Per hero: games in which side a played it, and how many of those a won. */
         val heroGames = sortedMapOf<String, Int>()
         val heroWins = sortedMapOf<String, Int>()
 
-        /** One line per game: line-up, the side level a played, the winner and how. */
+        /** One line per game: line-up, the side a played, the winner and how. */
         val lines = ArrayList<String>()
 
         val games: Int get() = aWins + bWins + draws
@@ -34,12 +43,12 @@ object Tournament {
 
         override fun toString(): String {
             val (lo, hi) = interval
-            return "$a vs $b: $aWins-$bWins (draws $draws) of $games = ${"%.0f".format(rate * 100)}% " +
-                "[95% ${"%.0f".format(lo * 100)}-${"%.0f".format(hi * 100)}%], " +
+            return "$a vs $b: $aWins-$bWins (draws $draws) of $games = ${"%.1f".format(rate * 100)}% " +
+                "[95% ${"%.1f".format(lo * 100)}-${"%.1f".format(hi * 100)}%], " +
                 "avg ${"%.1f".format(rounds.toDouble() / games)} rounds, $reasons"
         }
 
-        /** a's win rate with each hero (the heroes the stronger level plays worst come first). */
+        /** a's win rate with each hero (the heroes a plays worst come first). */
         fun byHero(): String = heroGames.keys.sortedBy { (heroWins[it] ?: 0).toDouble() / heroGames.getValue(it) }
             .joinToString(", ") { "$it ${heroWins[it] ?: 0}/${heroGames.getValue(it)}" }
     }
@@ -56,14 +65,7 @@ object Tournament {
     class Spec(val lineup: Pair<List<String>, List<String>>, val coin: Team, val seed: Long)
 
     /** [seeds] games per first-game line-up and coin side, each mirrored: 3 × 2 × 2 × seeds games. */
-    fun run(
-        a: AiLevel,
-        b: AiLevel,
-        seeds: Int,
-        threads: Int = 4,
-        firstSeed: Int = 0,
-        factory: (AiLevel, Long) -> AiPlayer = { l, s -> AiPlayers.deterministic(l, s) },
-    ): Score {
+    fun run(a: Side, b: Side, seeds: Int, threads: Int = 4, firstSeed: Int = 0): Score {
         val specs = ArrayList<Spec>()
         for ((li, lineup) in AiHarness.LINEUPS.withIndex()) {
             for (coin in Team.entries) {
@@ -72,86 +74,74 @@ object Tournament {
                 }
             }
         }
-        return play(a, b, specs, threads, factory)
+        return play(a, b, specs, threads)
     }
 
     /**
      * [lineups] line-ups drawn from all playable heroes ([AiHarness.mixedLineups], starting at
      * [firstLineup]), the coin alternating, each mirrored: 2 × lineups games.
      */
-    fun runMixed(
-        a: AiLevel,
-        b: AiLevel,
-        lineups: Int,
-        threads: Int = 4,
-        firstLineup: Int = 0,
-        factory: (AiLevel, Long) -> AiPlayer = { l, s -> AiPlayers.deterministic(l, s) },
-    ): Score {
+    fun runMixed(a: Side, b: Side, lineups: Int, threads: Int = 4, firstLineup: Int = 0): Score {
         val all = AiHarness.mixedLineups(firstLineup + lineups)
         val specs = (firstLineup until firstLineup + lineups).map { i ->
             Spec(all[i], if (i % 2 == 0) Team.RED else Team.BLUE, 50_000L + i)
         }
-        return play(a, b, specs, threads, factory)
+        return play(a, b, specs, threads)
     }
 
-    private fun play(
-        a: AiLevel,
-        b: AiLevel,
-        specs: List<Spec>,
-        threads: Int,
-        factory: (AiLevel, Long) -> AiPlayer,
-    ): Score {
+    private fun play(a: Side, b: Side, specs: List<Spec>, threads: Int): Score {
         val score = Score(a, b)
-        val jobs = ArrayList<Callable<Pair<AiLevel?, AiHarness.Result>>>()
+        // Each job: did side a win (null = unfinished), and the game.
+        val jobs = ArrayList<Callable<Pair<Boolean?, AiHarness.Result>>>()
         val aRed = ArrayList<Boolean>()
         for (spec in specs) {
             val (red, blue) = spec.lineup
             for (aIsRed in listOf(true, false)) {
                 aRed += aIsRed
                 jobs += Callable {
-                    val redLevel = if (aIsRed) a else b
-                    val blueLevel = if (aIsRed) b else a
-                    val setup = AiHarness.setup(red, blue, redLevel, blueLevel, spec.coin)
+                    // The controllers only mark the seats as computer seats; the players decide.
+                    val setup = AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, spec.coin)
                     val r = AiHarness.play(
                         setup,
                         mapOf(
-                            Team.RED to factory(redLevel, spec.seed * 2),
-                            Team.BLUE to factory(blueLevel, spec.seed * 2 + 1),
+                            Team.RED to (if (aIsRed) a else b).factory(spec.seed * 2),
+                            Team.BLUE to (if (aIsRed) b else a).factory(spec.seed * 2 + 1),
                         ),
                     )
-                    val winnerLevel = when (r.winner) {
-                        Team.RED -> if (aIsRed) a else b
-                        Team.BLUE -> if (aIsRed) b else a
-                        null -> null
-                    }
-                    winnerLevel to r
+                    val aWon = r.winner?.let { (it == Team.RED) == aIsRed }
+                    aWon to r
                 }
             }
         }
         val pool = Executors.newFixedThreadPool(threads)
         try {
             for ((i, f) in pool.invokeAll(jobs).withIndex()) {
-                val (w, r) = f.get()
-                // With a == b (self-play), "a" is whoever played Red in the even job.
-                val aWon = if (a == b) r.winner == (if (i % 2 == 0) Team.RED else Team.BLUE) else w == a
-                when {
-                    w == null -> score.draws++
-                    aWon -> score.aWins++
-                    else -> score.bWins++
+                val (aWon, r) = try {
+                    f.get()
+                } catch (e: java.util.concurrent.ExecutionException) {
+                    val spec = specs[i / 2]
+                    val side = if (aRed[i]) "Red" else "Blue"
+                    val game = "${spec.lineup}, coin ${spec.coin}, seed ${spec.seed}, $a $side"
+                    throw IllegalStateException("Game failed: $game", e)
+                }
+                when (aWon) {
+                    null -> score.draws++
+                    true -> score.aWins++
+                    false -> score.bWins++
                 }
                 val (red, blue) = specs[i / 2].lineup
                 for (hero in if (aRed[i]) red else blue) {
                     score.heroGames[hero] = (score.heroGames[hero] ?: 0) + 1
-                    if (w != null && aWon) score.heroWins[hero] = (score.heroWins[hero] ?: 0) + 1
+                    if (aWon == true) score.heroWins[hero] = (score.heroWins[hero] ?: 0) + 1
                 }
                 val reason = r.session.view(null).winReason?.name ?: "UNFINISHED"
                 score.reasons[reason] = (score.reasons[reason] ?: 0) + 1
                 score.rounds += r.rounds
                 val side = if (aRed[i]) "Red" else "Blue"
-                val result = when {
-                    w == null -> "draw"
-                    aWon -> "$a won"
-                    else -> "$b won"
+                val result = when (aWon) {
+                    null -> "draw"
+                    true -> "$a won"
+                    false -> "$b won"
                 }
                 score.lines += "${red.joinToString("+")} vs ${blue.joinToString("+")}: $a $side, " +
                     "$result by $reason in round ${r.rounds}"

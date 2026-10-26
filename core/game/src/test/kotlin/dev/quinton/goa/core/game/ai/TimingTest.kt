@@ -9,34 +9,35 @@ import org.junit.Test
 /**
  * Time per decision on this desktop JVM, with the production players (wall-clock cap on), over
  * line-ups drawn from every playable hero (both teams timed). A phone is assumed 3–4× slower: device
- * budgets per card play are Easy 50 ms, Normal 300 ms, Hard 1.5 s, Expert 4 s (AI.md "Budgets").
- * Asserts only loose bounds: other builds may share the machine. `AI_TIMING_GAMES=8` seats all 32
- * heroes once per level and prints the slowest heroes.
+ * budgets per card play run from 50 ms (strengths 1–3) to 4 s (8–10) (AI.md "Budgets"). Asserts only
+ * loose bounds: other builds may share the machine. `AI_TIMING_GAMES=8` seats all 32 heroes once
+ * per strength and prints the slowest heroes; `AI_TIMING_STRENGTHS=8,9,10` picks the strengths.
  */
 class TimingTest {
     @Test
     fun `decision times per level`() {
         val games = System.getenv("AI_TIMING_GAMES")?.toIntOrNull() ?: 2
-        val levels = System.getenv("AI_TIMING_LEVELS")?.split(",")?.map { AiLevel.valueOf(it) } ?: AiLevel.entries
-        val budgets = AiLevel.entries.associateWith { AiPlayers.profile(it).budgetMs }
+        val strengths = System.getenv("AI_TIMING_STRENGTHS")?.split(",")?.map { it.trim().toInt() }
+            ?: listOf(2, 6, 8, 9, 10)
         val lineups = AiHarness.mixedLineups(games)
-        for (level in levels) {
+        for (strength in strengths) {
+            val budget = AiPlayers.profile(strength).budgetMs
             val all = LinkedHashMap<DecisionKind, MutableList<Long>>()
             val byHero = LinkedHashMap<String, MutableList<Long>>()
             for ((g, lineup) in lineups.withIndex()) {
                 val (red, blue) = lineup
                 val r = AiHarness.play(
-                    AiHarness.setup(red, blue, level, level, if (g % 2 == 0) Team.RED else Team.BLUE),
+                    AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, if (g % 2 == 0) Team.RED else Team.BLUE),
                     mapOf(
-                        Team.RED to AiPlayers.forLevel(level, 40L + g),
-                        Team.BLUE to AiPlayers.forLevel(level, 50L + g),
+                        Team.RED to AiPlayers.forStrength(strength, 40L + g),
+                        Team.BLUE to AiPlayers.forStrength(strength, 50L + g),
                     ),
                     timed = true,
                 )
                 for ((k, v) in r.timings) all.getOrPut(k) { ArrayList() } += v
                 for ((k, v) in r.playBySeat) byHero.getOrPut(k) { ArrayList() } += v
             }
-            println("TIMING $level (device budget per card ${budgets[level]} ms):")
+            println("TIMING strength $strength (device budget per card $budget ms):")
             for ((k, v) in all) {
                 val ms = v.map { it / 1e6 }.sorted()
                 println(
@@ -52,7 +53,7 @@ class TimingTest {
             )
             val play = all.getValue(DecisionKind.PLAY_CARD).map { it / 1e6 }
             // Desktop mean well under the phone budget (a phone is ~3–4× slower).
-            assertThat(play.average()).isLessThan(budgets.getValue(level) / 2.0)
+            assertThat(play.average()).isLessThan(budget / 2.0)
         }
     }
 

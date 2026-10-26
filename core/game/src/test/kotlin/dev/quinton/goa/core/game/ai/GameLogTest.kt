@@ -69,6 +69,6 @@ class GameLogTest {
     }
 
     companion object {
-        private val VALUED = setOf(DecisionKind.PLAY_CARD, DecisionKind.CHOOSE_ACTION)
+        private val VALUED = setOf(DecisionKind.PLAY_CARD, DecisionKind.CHOOSE_ACTION, DecisionKind.DEFEND)
     }
 }
