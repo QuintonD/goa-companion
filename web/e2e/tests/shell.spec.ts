@@ -9,7 +9,7 @@ const destinations: [hash: string, title: string][] = [
   ["#/rules", "Rules"],
   ["#/rules/movement", "Rules"],
   ["#/trivia", "Card trivia"],
-  ["#/boards", "Board"],
+  ["#/boards", "Boards"],
   ["#/play", "Play"],
   ["#/puzzles", "Puzzles"],
   ["#/puzzles/p1", "Puzzle"],

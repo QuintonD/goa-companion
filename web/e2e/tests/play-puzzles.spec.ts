@@ -63,7 +63,8 @@ test("puzzles: nudges, the panel hidden, the solution replayed", async ({ page }
   await shot(page, info, "replay-first");
   const goal = page.getByText(/^Goal met/);
   for (let i = 0; i < 30 && !(await goal.isVisible()); i++) {
-    await page.getByRole("button", { name: "Next step" }).last().click();
+    await page.getByRole("button", { name: "Next step" }).first().click();
+    await page.waitForTimeout(150);
   }
   await expect(goal).toBeVisible();
   await shot(page, info, "replay-last");
