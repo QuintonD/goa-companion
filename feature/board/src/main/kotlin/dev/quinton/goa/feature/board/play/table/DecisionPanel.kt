@@ -72,6 +72,8 @@ import dev.quinton.goa.feature.board.ui.cards.isSpell
  * and the answers are tied to it rather than restating what it prints.
  * - actions are compact chips beside the card, with the game's icon and value; only what the card
  *   doesn't say is added (the rule of Fast Travel and Hold; that only the primary applies the text);
+ *   under the Primary chip, what it will do before it is chosen: Gydion's spell as its card, its only
+ *   target, a warning when it will do nothing (CastPreview.kt);
  * - "Choose one" options, yes / decline and numbers are buttons beside the card;
  * - spaces, units and tokens are tapped on the board (each also a TalkBack node), then confirmed,
  *   with the asking card beside the hint;
@@ -114,8 +116,9 @@ fun DecisionPanel(
                 val board = hasBoardOptions(table)
                 CardBeside(table, source, focus, large = !board) {
                     if (board) BoardHint(table, onAnswer, busy)
-                    Choices(table, table.buttonOptions, onAnswer, busy)
+                    Choices(table, table.buttonOptions, onAnswer, busy) { CastPreview(table, focus) }
                     Unavailable(table, decision, focus)
+                    SpellReasonsIfNoPrimary(table)
                 }
                 if (board) BoardChips(table, onSelect)
             }
@@ -485,7 +488,13 @@ private fun OptionChip(label: String, selected: Boolean, onClick: () -> Unit) {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Choices(table: TableUi, choices: List<Choice>, onAnswer: (Choice) -> Unit, busy: Boolean) {
+private fun Choices(
+    table: TableUi,
+    choices: List<Choice>,
+    onAnswer: (Choice) -> Unit,
+    busy: Boolean,
+    afterPrimary: @Composable () -> Unit = {},
+) {
     if (choices.isEmpty()) return
     val numbers = choices.filterIsInstance<Choice.Number>()
     if (numbers.size == choices.size) {
@@ -504,7 +513,10 @@ private fun Choices(table: TableUi, choices: List<Choice>, onAnswer: (Choice) ->
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         choices.forEach { choice ->
             when {
-                choice is Choice.Action -> ActionChip(table, choice.action, busy) { onAnswer(choice) }
+                choice is Choice.Action -> {
+                    ActionChip(table, choice.action, busy) { onAnswer(choice) }
+                    if (choice.action == ActionType.PRIMARY) afterPrimary()
+                }
 
                 choice is Choice.Decline || choice is Choice.Pass -> OutlinedButton(
                     onClick = { onAnswer(choice) },
