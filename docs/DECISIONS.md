@@ -1132,3 +1132,39 @@ face's own 76 px) and New game's coin-flip dialog (64 dp, where it was a plain t
 with the app's team shape on a small badge at the coin's foot, as on the board's pieces (team never
 by colour alone; the printed gear and star are shapes too, but the rest of the app speaks diamond and
 circle). The old shape-on-a-bronze-ring stays as the fallback while the face loads.
+
+## ADR-044 — A hero's game state: the hero sheet answers what a player asks, and a long press reaches it (2026-10-26)
+**Context:** The owner: "Include game state information about the enemy or player when clicking on their
+character e.g. item and played cards." The hero sheet listed sections (level, coins, an items line, played,
+resolved, discarded…) but never showed an enemy's or a teammate's items: the screen read `HeroView.items`
+(the tucked card ids, the owner's only) instead of the public `itemStats`. It did not say where the hero
+stood in the turn, and when a hero's piece was a decision option (a target) a tap answered the question,
+so the sheet could not be opened from the map at all.
+**Decision:**
+1. **No contract change.** Items are open as their icon only (p.16 "only the item section of the card is
+   visible", "Your items must be clearly visible to the opposing team"; p.4 "the part of the card covered
+   by your hero dashboard" is hidden; designer, BGG 3590819). `HeroView.itemStats` already carries every
+   hero's icons, built in `Views` for every seat, the review and puzzles; `items` stays the owner's. A test
+   (`HeroStateViewTest`) pins both and that games differing only in which card of a pair was tucked look
+   the same to every other seat. One leak found and fixed: Min's Perfect Self named the Tier II card it
+   tucks in the (public) log; it now says the item it gives, like the level-up line.
+2. **The sheet is a game state, most asked first** (`play/table/HeroState.kt`): where the hero is in this
+   turn — the card large (a card back before the reveal unless it is the person's), after the reveal the
+   turn track's state (ADR-041: NOW / NEXT / LATER / DONE / PASS / OUT), the action chosen and the
+   initiative as it counts with the printed one when they differ; this round's four Turn slots as on the
+   dashboard and the discard; items as the official icons with what they add ("+1 Defense ×2"), the tucked
+   cards for the owner; where the hero stands (Zone, or off the board and when it may respawn, p.7); then
+   the Ultimate, Active effects, markers and tokens, spellbook and hand. Everything comes from the view and
+   the turn track, so the sheet cannot name more than the table shows; a screen test checks an enemy's
+   tucked cards, hand and facedown card are never on it. Landscape puts this turn beside the round.
+3. **Reaching it:** a long press on any hero's piece (or another figure of that hero) opens the sheet, even
+   when a tap there answers the question — the tap keeps answering (rejected: a second tap
+   target or a menu would slow every answer). Detected in the map's own gesture loop, only on a hero's
+   space, so pans, pinches and double taps are unchanged; a haptic tick confirms it and the rest of the
+   press does nothing else. TalkBack gets "Show <hero>'s game state" as a custom action on the hero's
+   space, and the same words on the hero strip and the turn track. Discoverable without a tutorial: when a
+   hero's piece is an option, the board hint adds "Long-press a hero for their game state." The moment
+   card's recap of the turn track no longer offers a long press that did nothing.
+**Consequences:** the hero and spellbook sheet screenshots and the screens whose hint gained the line were
+re-recorded. The sheet's hero name is the sheet title only (the header repeated it). A future "table
+rules" switch (ADR-037) would hide only earlier rounds; this turn and the dashboard are what the table shows.

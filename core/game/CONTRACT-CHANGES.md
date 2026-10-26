@@ -182,3 +182,16 @@ are rebuilt by the replay, never saved).
   `Fizzle(reason, source = null)` and `fizzle(reason, source)`. `attackTarget(…, none = "no target")`:
   `adjacentAttackTarget` fizzles "no target adjacent to you", `rangedAttackTarget` "no target in range"
   (the log's "… stops:" lines changed with them). Gydion's `castOneOf` says why no spell can be cast.
+
+## 2026-10-26 (a hero's game state, `feature/v08-hero-state`, ADR-044)
+
+No type change: the hero sheet (ADR-044) reads what the views already carry. Notes for other branches:
+
+- **Items for every hero are `HeroView.itemStats`** (one icon per item, sorted by stat; filled for every
+  seat, the review and puzzles alike, since the AI round). `HeroView.items` (the tucked card ids) stays the
+  viewer's own hero only: p.16 "only the item section of the card is visible", p.4 "the part of the card
+  covered by your hero dashboard" is hidden. `HeroStateViewTest` checks both, live and in the review, and
+  that games differing only in which card of a pair was tucked look the same to every other seat.
+- **Behaviour:** Min's Perfect Self no longer names the Tier II card it tucks in the log (the event text is
+  public); it reads "Min adds a Tier II card from the deck as an item: +1 Initiative.", like the level-up
+  line ("gains an item: +1 …", BGG 3590819).

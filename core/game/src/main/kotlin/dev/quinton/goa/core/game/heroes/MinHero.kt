@@ -429,7 +429,10 @@ object MinHero : HeroModule {
             if (pick == 1 || pick == 2) {
                 val c = a.chooseCard("Take a Tier II card from your deck as a permanent item", tierTwo)!!
                 a.g.moveCard(a.heroId, c, Zone.ITEM)
-                a.g.note("${a.g.heroName(a.heroId)} adds ${a.g.cardName(c)} to the dashboard as an item.")
+                // Which card was tucked is hidden (p.4 "the part of the card covered by your hero
+                // dashboard"); only its item icon is public (designer, BGG 3590819), as at level up.
+                val stat = a.g.card(c).item?.name?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "nothing"
+                a.g.note("${a.g.heroName(a.heroId)} adds a Tier II card from the deck as an item: +1 $stat.")
             }
         }
 

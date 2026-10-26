@@ -422,6 +422,27 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   then leaves the game for Boards. Tap a card to read it in the card focus viewer, over the sheet. Only open information (p.4): built by the engine from its own
   views, never from the log's words. Note: the rulebook forbids taking notes at the table (p.4 Table
   Talk); the history is the log's own content, offered as a learning aid (ADR-037).
+- **A hero's game state** (ADR-044; tap a hero's chip or piece, long-press any hero's piece or track card;
+  also in puzzles): a sheet that answers what a player asks about a hero at the table, most asked first —
+  team, who plays them and where they stand (their Zone, or off the board: "may respawn in their Throne
+  Zone before acting on their next card", p.7), level, coins and cards in hand; **this turn**: their card
+  large, a card back before the reveal ("Played facedown: revealed when everyone has played", p.7; your
+  own card faceup, "the others see it at the reveal"), after it faceup with its state as on the turn track
+  (NOW / NEXT / LATER / DONE / PASS / OUT), the action chosen and the initiative as it counts ("Initiative
+  14 · printed 13"); **this round's** four Turn slots with their cards (empty outlines for turns to come)
+  and the discard; **items** for every hero as the official item icons with what they add ("+1 Defense
+  ×2", p.16), and for your own hero which cards are tucked; the Ultimate, Active effects, markers and
+  tokens, the spellbook, your hand. In landscape this turn's card sits beside the round's cards. A long
+  press on a hero's piece opens it even when a tap there would answer the question (a target, a unit to
+  move); the panel's hint says so ("Long-press a hero for their game state.") and TalkBack has "Show
+  Wasp's game state" on the hero's space, chip and track card. Hidden information stays hidden (p.4): an
+  enemy's (or teammate's) hand, tucked cards and facedown card are never named, only counted or shown as a
+  back; their item icons are open (p.16 "Your items must be clearly visible to the opposing team").
+  **Done when:** engine and screen tests show another seat sees the item icons but never the tucked
+  cards, hand or a facedown card (live and in the review; two games differing only in which card was
+  tucked look the same); the long press and the TalkBack action open the sheet over a target question;
+  screenshots of an enemy before and after the reveal, your own hero with items, a hero off the board —
+  portrait, landscape, light, 384 dp at font scale 2.
 - **Gydion's spellbook** (ADR-040; hero sheet, Game state's Now tab, puzzles): the official spell cards,
   landscape as printed, in three groups — in the spellbook (Prepare Spells: "Only Gydion can look at the
   cards in the spellbook": named to Gydion's player only, everyone else sees how many), cast (removed
