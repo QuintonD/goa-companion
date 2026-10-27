@@ -348,6 +348,21 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] On the S25 Ultra: a level up with three colours to choose from, the viewer swiped through, TalkBack
   on the rows and "Go to …"
 
+## M20 — The resolution flow (ADR-046)
+- [x] Engine: `CardsChanged.cards` / `discarded` (open cards only, p.4) and `Defended.attackerId`, additive,
+  no event or question added — 2026-10-27, `ResolutionEventsTest` (5: a defense card and a forced discard,
+  facedown discards and retrieves never named, a swap, old JSON decodes, random 3v3 games: named cards in
+  their sentence, defenses after their attack, saves replay to the same events)
+- [x] Panel: one entry per card resolved since the person's last choice (and the end of the round), the
+  outcome in a few words, steps with the defending card as the card; the person's attack defended by an
+  enemy opens by itself; game and puzzles — 2026-10-27, `ResolutionFlowTest` (8: attack + defense, a failed
+  defense in a move-then-attack, a forced discard, a 3v3 turn of five cards, the end of round, nothing new,
+  a facedown discard, no peeking over a random 3v3 game), `GameViewModelTest` (+1),
+  `ResolutionFlowScreenshotTest` (7: collapsed, expanded, the defense card in the viewer; portrait,
+  landscape, light, W384 font scale 2) looked at; play / review screenshots re-recorded. JVM only
+- [ ] On the S25 Ultra: a 3v3 game against strength 10 — the flow after the computer's turn, an attack of
+  yours defended (open by itself), TalkBack on an entry (sentence, Expand / Collapse), font scale 2
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check

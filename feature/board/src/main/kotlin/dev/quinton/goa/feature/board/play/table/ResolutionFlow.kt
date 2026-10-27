@@ -142,50 +142,70 @@ private class Segment(
 
 /** Splits the log from [start] into segments: turn starts, each hero's card resolution, the end of a round. */
 private fun segment(events: List<GameEvent>, start: Int, heroes: Set<String>, name: (String) -> String): List<Segment> {
+    val s = Segmenter(heroes, name)
+    for (i in start until events.size) s.add(i, events[i])
+    return s.out
+}
+
+/** The segment each event belongs to, in log order. */
+private class Segmenter(private val heroes: Set<String>, private val name: (String) -> String) {
     val out = ArrayList<Segment>()
-    var current: Segment? = null
-    var revealed: Map<String, String?> = emptyMap()
-    fun open(kind: FlowKind, at: Int, heroId: String? = null, cardId: String? = null): Segment =
-        Segment(kind, at, heroId, cardId).also {
-            out += it
-            current = it
-        }
-    for (i in start until events.size) {
-        val e = events[i]
-        val cur = current
-        val seg = when {
-            e is GameEvent.RoundStarted -> open(FlowKind.TURN, i)
+    private var current: Segment? = null
+    private var revealed: Map<String, String?> = emptyMap()
 
-            e is GameEvent.TurnStarted ->
-                if (cur != null && cur.kind == FlowKind.TURN && cur.events.all { it.value is GameEvent.RoundStarted }) {
-                    cur
-                } else {
-                    open(FlowKind.TURN, i)
-                }
-
-            e is GameEvent.Note && e.text.startsWith(END_OF_ROUND) -> open(FlowKind.END_OF_ROUND, i)
-
-            e is GameEvent.ActionChosen ->
-                if (cur != null && cur.kind == FlowKind.HERO && cur.heroId == e.heroId && !cur.acted) {
-                    cur.also { it.cardId = e.cardId }
-                } else {
-                    open(FlowKind.HERO, i, e.heroId, e.cardId)
-                }.also { it.acted = true }
-
-            // A hero respawning starts its resolution (p.7 "Hero Respawn"), before it chooses an action.
-            e is GameEvent.Placed && e.from == null && e.pieceId in heroes && cur?.kind != FlowKind.END_OF_ROUND ->
-                open(FlowKind.HERO, i, e.pieceId, revealed[e.pieceId])
-
-            e is GameEvent.Note && cur?.kind != FlowKind.END_OF_ROUND ->
-                heroes.firstOrNull { e.text.startsWith("${name(it)} $OFF_BOARD") }
-                    ?.let { open(FlowKind.HERO, i, it, revealed[it]) } ?: cur ?: open(FlowKind.TURN, i)
-
-            else -> cur ?: open(FlowKind.TURN, i)
+    fun add(i: Int, e: GameEvent) {
+        val seg = when (e) {
+            is GameEvent.RoundStarted -> open(FlowKind.TURN, i)
+            is GameEvent.TurnStarted -> current?.takeIf(::onlyRoundHeading) ?: open(FlowKind.TURN, i)
+            is GameEvent.ActionChosen -> action(i, e)
+            is GameEvent.Placed -> respawn(i, e) ?: here(i)
+            is GameEvent.Note -> note(i, e)
+            else -> here(i)
         }
         if (e is GameEvent.CardsRevealed) revealed = e.played
         seg.events += IndexedValue(i, e)
     }
-    return out
+
+    private fun open(kind: FlowKind, at: Int, heroId: String? = null, cardId: String? = null): Segment =
+        Segment(kind, at, heroId, cardId).also {
+            out += it
+            current = it
+        }
+
+    private fun here(i: Int): Segment = current ?: open(FlowKind.TURN, i)
+
+    private fun onlyRoundHeading(seg: Segment): Boolean =
+        seg.kind == FlowKind.TURN && seg.events.all { it.value is GameEvent.RoundStarted }
+
+    /** A hero's action: its own segment, or the one its respawn opened. */
+    private fun action(i: Int, e: GameEvent.ActionChosen): Segment {
+        val cur = current
+        val seg = if (cur?.kind == FlowKind.HERO && cur.heroId == e.heroId && !cur.acted) {
+            cur.also { it.cardId = e.cardId }
+        } else {
+            open(FlowKind.HERO, i, e.heroId, e.cardId)
+        }
+        return seg.also { it.acted = true }
+    }
+
+    /** A hero respawning starts its resolution (p.7 "Hero Respawn"), before it chooses an action. */
+    private fun respawn(i: Int, e: GameEvent.Placed): Segment? = if (e.from == null && e.pieceId in heroes &&
+        !inRoundEnd()
+    ) {
+        open(FlowKind.HERO, i, e.pieceId, revealed[e.pieceId])
+    } else {
+        null
+    }
+
+    private fun note(i: Int, e: GameEvent.Note): Segment {
+        if (e.text.startsWith(END_OF_ROUND)) return open(FlowKind.END_OF_ROUND, i)
+        if (inRoundEnd()) return here(i)
+        // "Brogan stays off the board; …": a hero that didn't respawn still resolves its card (p.7).
+        val off = heroes.firstOrNull { e.text.startsWith("${name(it)} $OFF_BOARD") }
+        return off?.let { open(FlowKind.HERO, i, it, revealed[it]) } ?: here(i)
+    }
+
+    private fun inRoundEnd(): Boolean = current?.kind == FlowKind.END_OF_ROUND
 }
 
 /** Turns segments into entries: the steps, the outcome line, what stands out. */
@@ -199,8 +219,16 @@ private class EntryBuilder(
     fun isNew(seg: Segment, since: Int): Boolean = seg.events.any { (i, e) ->
         i >= since && when (seg.kind) {
             // Another hero's card: even a move is news ("moved 3"); the person's own needs more than their choices.
-            FlowKind.HERO -> if (seg.heroId in mine) panelWorthy(e) else e !is GameEvent.Note || !e.text.endsWith(FACEDOWN)
+            FlowKind.HERO -> if (seg.heroId in
+                mine
+            ) {
+                panelWorthy(e)
+            } else {
+                e !is GameEvent.Note || !e.text.endsWith(FACEDOWN)
+            }
+
             FlowKind.TURN -> panelWorthy(e)
+
             FlowKind.END_OF_ROUND -> true
         }
     }
@@ -284,19 +312,37 @@ private class EntryBuilder(
 
     private fun step(e: GameEvent): FlowStep? = when (e) {
         is GameEvent.RoundStarted, is GameEvent.TurnStarted, is GameEvent.CardsRevealed -> null
-        is GameEvent.Note -> if (e.text.endsWith(FACEDOWN)) null else FlowStep(e.text, StepKind.NOTE, important = important(e))
+
+        is GameEvent.Note -> if (e.text.endsWith(
+                FACEDOWN,
+            )
+        ) {
+            null
+        } else {
+            FlowStep(e.text, StepKind.NOTE, important = important(e))
+        }
+
         is GameEvent.ActionChosen -> FlowStep(e.text, StepKind.ACTION)
+
         is GameEvent.Moved -> FlowStep(e.text, StepKind.MOVE)
+
         is GameEvent.Placed, is GameEvent.Swapped, is GameEvent.Pushed, is GameEvent.Removed ->
             FlowStep(e.text, StepKind.PLACE)
+
         is GameEvent.Attacked -> FlowStep(e.text, StepKind.ATTACK)
+
         is GameEvent.Defended ->
             FlowStep(e.text, StepKind.DEFENSE, listOfNotNull(e.cardId), success = e.success, heroId = e.heroId)
+
         is GameEvent.Defeated -> FlowStep(e.text, StepKind.DEFEAT, important = e.unitId in teams)
+
         is GameEvent.CardsChanged -> FlowStep(e.text, StepKind.CARDS, e.cards, heroId = e.heroId)
+
         is GameEvent.CoinsGained -> FlowStep(e.text, StepKind.COINS)
+
         is GameEvent.LanePushed, is GameEvent.LifeSpent, is GameEvent.GameOver ->
             FlowStep(e.text, StepKind.LANE, important = true)
+
         is GameEvent.LevelledUp -> FlowStep(e.text, StepKind.LEVEL, important = true)
     }
 
@@ -318,23 +364,8 @@ private class EntryBuilder(
         val defeats = events.filterIsInstance<GameEvent.Defeated>()
             .filter { it.unitId !in explained && it.unitId in teams }
             .map { "${unitName(it.unitId, it.text)} defeated" }
-        val discards = events.filterIsInstance<GameEvent.CardsChanged>().mapNotNull { e ->
-            when {
-                e.discarded.isNotEmpty() && !isDefenseDiscard(e, events) ->
-                    "${name(e.heroId)} discarded ${e.discarded.joinToString(" and ") { cardName(it) ?: "a card" }}"
-                e.cards.isEmpty() && e.text.contains(DISCARDS_FACEDOWN) -> "${name(e.heroId)} discarded a facedown card"
-                else -> null
-            }
-        }
-        val round = events.mapNotNull { e ->
-            when (e) {
-                is GameEvent.LifeSpent -> e.text.removeSuffix(".")
-                is GameEvent.LanePushed -> "${teamWord(e.winner)} pushed the Lane"
-                is GameEvent.LevelledUp -> "${name(e.heroId)} reached level ${e.level}"
-                is GameEvent.GameOver -> e.text.removeSuffix(".")
-                else -> null
-            }
-        }
+        val discards = discards(events)
+        val round = events.mapNotNull(::bigNews)
         // Gydion's spells (ADR-040): the card says "cast a spell"; which one is the news.
         val casts = events.filterIsInstance<GameEvent.CardsChanged>()
             .filter { it.heroId == hero && CASTS in it.text }
@@ -348,16 +379,46 @@ private class EntryBuilder(
                 (e as? GameEvent.Placed)?.takeIf { it.pieceId == hero && FAST_TRAVELS in it.text }
             }
             when {
-                travel != null -> parts += "fast travelled to ${travel.text.substringAfter(FAST_TRAVELS).removeSuffix(".")}"
+                travel != null ->
+                    parts +=
+                        "fast travelled to ${travel.text.substringAfter(FAST_TRAVELS).removeSuffix(".")}"
+
                 moved > 0 -> parts += "moved $moved"
             }
             val pushes = events.filterIsInstance<GameEvent.Pushed>()
-            if (pushes.isNotEmpty()) parts += "pushed ${pushes.joinToString(" and ") { it.text.substringBefore(" is pushed") }}"
-            val coins = events.filterIsInstance<GameEvent.CoinsGained>().filter { it.heroId == hero }.sumOf { it.amount }
+            if (pushes.isNotEmpty()) {
+                parts +=
+                    "pushed ${pushes.joinToString(" and ") { it.text.substringBefore(" is pushed") }}"
+            }
+            val coins = events.filterIsInstance<GameEvent.CoinsGained>().filter {
+                it.heroId == hero
+            }.sumOf { it.amount }
             if (coins > 0) parts += "+$coins coin${if (coins == 1) "" else "s"}"
             if (parts.isEmpty()) parts += quiet(hero, action, events)
         }
         return parts.distinct().take(MAX_PARTS).joinToString(" · ")
+    }
+
+    /** The discards a card caused, the defense's own left out: "Arien discarded Liquid Leap". */
+    private fun discards(events: List<GameEvent>): List<String> =
+        events.filterIsInstance<GameEvent.CardsChanged>().mapNotNull { e ->
+            when {
+                e.discarded.isNotEmpty() && !isDefenseDiscard(e, events) ->
+                    "${name(e.heroId)} discarded ${e.discarded.joinToString(" and ") { cardName(it) ?: "a card" }}"
+
+                e.cards.isEmpty() && e.text.contains(DISCARDS_FACEDOWN) -> "${name(e.heroId)} discarded a facedown card"
+
+                else -> null
+            }
+        }
+
+    /** A Life counter, a Lane push, a level up, the end of the game, in a few words. */
+    private fun bigNews(e: GameEvent): String? = when (e) {
+        is GameEvent.LifeSpent -> e.text.removeSuffix(".")
+        is GameEvent.LanePushed -> "${teamWord(e.winner)} pushed the Lane"
+        is GameEvent.LevelledUp -> "${name(e.heroId)} reached level ${e.level}"
+        is GameEvent.GameOver -> e.text.removeSuffix(".")
+        else -> null
     }
 
     /** One attack's result and the unit it was on, from the events after it. */
@@ -371,7 +432,9 @@ private class EntryBuilder(
         val defeated = window.firstNotNullOfOrNull { e ->
             (e as? GameEvent.Defeated)?.takeIf { it.unitId == target || it.unitId == defense?.heroId }
         }
-        val who = defense?.heroId?.let(name) ?: defeated?.let { unitName(it.unitId, it.text) } ?: unitName(target, attack.text)
+        val who =
+            defense?.heroId?.let(name) ?: defeated?.let { unitName(it.unitId, it.text) }
+                ?: unitName(target, attack.text)
         val unit = defense?.heroId ?: defeated?.unitId ?: target
         val card = defense?.cardId?.let(cardName)
         val numbers = defense?.total?.let { " ($it vs ${attack.total})" }.orEmpty()
@@ -395,8 +458,11 @@ private class EntryBuilder(
 
     private fun quietAction(hero: String, action: ActionType?, events: List<GameEvent>): String = when (action) {
         ActionType.HOLD -> "held"
+
         ActionType.CLEAR -> "cleared"
+
         ActionType.MOVEMENT, ActionType.FAST_TRAVEL -> "did not move"
+
         else -> events.firstNotNullOfOrNull { e ->
             when (e) {
                 is GameEvent.ActionChosen, is GameEvent.Moved -> null
@@ -458,7 +524,9 @@ private class EntryBuilder(
     }
 
     private fun attackerBefore(d: GameEvent.Defended, events: List<GameEvent>): String? =
-        events.subList(0, events.indexOf(d)).lastOrNull { it is GameEvent.Attacked }?.let { (it as GameEvent.Attacked).attackerId }
+        events.subList(0, events.indexOf(d)).lastOrNull {
+            it is GameEvent.Attacked
+        }?.let { (it as GameEvent.Attacked).attackerId }
 }
 
 private fun teamWord(team: Team): String = if (team == Team.RED) "Red" else "Blue"

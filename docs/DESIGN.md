@@ -342,8 +342,8 @@ choice), an arrow, then the two cards it would become with their item (the offic
 Initiative"), three cards across the panel (60–100 dp); under each card the spells it names (Gydion,
 landscape, as wide as the card, tap to read); "The card on the left is the choice…" under the rows.
 Keep's two cards have their spells under them the same way. Whenever the question is the person's
-own (any kind, game and puzzles) the moment (reveal, turn over, the end of round summary) comes after
-it, and a new question opens the panel at its top. **Defend** is an error-container
+own (any kind, game and puzzles) the resolution flow and then the moment (reveal, turn over, the end of
+round summary) come after it, and a new question opens the panel at its top. **Defend** is an error-container
 header with the attacker's card (56 dp, tap to read), "Arien attacks · melee", the Attack total, the
 minion modifier counted and "Discard a card to defend" (it carries the prompt for TalkBack), then the
 hand's cards themselves with the verdict under each in words with an icon ("✓ Holds" teal, "! Falls"
@@ -351,10 +351,32 @@ red, "Decided by its text" grey) and the Defense total with a shield when items 
 the printed value; "Don't defend" is chosen then confirmed. Declines and Pass are outlined. With large
 text the asking card goes above the answers. The computer's move shows its portrait, band and strength
 ("COMPUTER · HARD 7") and prompt
-and the card it resolves (56 dp, tap to read), a linear progress bar once it is "thinking…". Under
-the question, the lines of what happened that the table doesn't show (an attack, a defense, a defeat,
-coins, a push…), not the reveal, the action chosen or a move (the track and the board show those);
-the log sheet keeps every line. The coach's nudge is a secondary-container card with "Choose anyway"
+and the card it resolves (56 dp, tap to read), a linear progress bar once it is "thinking…".
+**Resolution flow** (ADR-046; `play/table/ResolutionFlow*.kt`), under the question: what happened since
+the person last chose, **one entry per hero's card resolution** (plus one for the end of a round, and
+one for the turn's start when something happened there), oldest first, at most 8 ("3 earlier cards in
+the game log"). An entry is a surfaceVariant card (10 dp corners): collapsed, one 48 dp row with the
+hero's portrait in its team ring (a flag for the end of round), the card played as a 30 dp official
+thumbnail, the hero's name in the overline in its team colour ("BROGAN · YOU"), and the outcome in a few
+words in bodyMedium — "Onslaught → Wasp defended with Lift Up (4 vs 4)", "Shock → Brogan defeated · Arien
+discarded Liquid Leap", "Mad Dash → Wasp defeated: Lift Up fell short (5 vs 6)", "Cantrip → cast Magic
+Missile · Blue melee minion defeated", "Liquid Leap → moved 2", "fast travelled to Lane Zone 1", "held";
+"End of round 1 · Minion Battle: Red removes 1 · Arien reached level 2". A chevron opens it to its
+steps in the engine's words, each with a 3 dp bar: the action chosen (with the card, 40 dp, tap to
+read), moves, each attack with its total, **the defending card as the card** (48 dp, tap → the card
+focus viewer captioned "Against Attack 4 · Defense 5 - 1 (adjacent enemy melee minion) = 4. Defended")
+with its Defense sum and a verdict in words and shape ("✓ Defended" secondary, "! Defeated" error),
+discards with the open card a discard names, pushes, places, coins, defeats, effects starting. **The
+person's attack answered by an enemy** (an enemy hero defended against, or was defeated by, one of the
+person's heroes) starts open and its line is semibold with a 1.5 dp border; an entry with a line a
+player must not miss (a hero defeated, a Life counter, a Lane push, a level up, the Minion Battle) has
+the bronze border and a semibold line, and those steps are semibold with a bronze bar. Nothing new
+since the last answer: the last entry before, collapsed, marked "EARLIER". TalkBack: each entry is one
+button read as a sentence ("Brogan, your hero, played Onslaught: Wasp defended with Lift Up (4 against
+4)."), with "Expanded" / "Collapsed" and the action "Expand" / "Collapse"; a step's card is its own
+button ("Wasp's defense card: Lift Up, …", "Read the card"). Built only from the events (p.4): a card
+appears only where the log names it. The hidden panel's peek and the log sheet are unchanged (the log
+keeps every line). The coach's nudge is a secondary-container card with "Choose anyway"
 (outlined) and "Rethink" (filled). Game over leads with "You won" / "The computer won" in a card
 bordered in the winner's colour, the rulebook reason, each hero's results, then the coach's turning
 points by round and turn. New game reuses New board's picker; heroes not yet playable are veiled and
@@ -441,7 +463,9 @@ word Hard / Harder / Hardest: shape and word, never colour alone), the title in 
 then "What you know" (surfaceVariant, folds to one line). A **nudge** is a secondary-container card
 like the Coach's ("NUDGE 2 OF 3", ×, Another nudge); the last nudge's move is a **dashed bronze ring**
 around its space on the map (apart from the teal options and the white selection; TalkBack: "hint").
-The other side's replies appear line by line under "<HERO> ANSWERS" with a progress bar. A **miss** is
+The other side's replies appear line by line under "<HERO> ANSWERS" with a progress bar; once they are
+told, the resolution flow (as in the game) shows them grouped by card under the next question and
+under a miss. A **miss** is
 a quiet surfaceVariant card ("Not quite" in Cinzel, the reason, filled "Try again from before that
 move", outlined Restart, text Show solution); never error red. **Solved** is a primary-container card
 with a 2 dp bronze border and the original **seal** (a bronze hex with a tide-teal tick and six

@@ -1365,3 +1365,64 @@ reach a level up when a hero gained the coins; it asks through the same panel (p
 question (ADR-041 §7). The viewer's "Card 3 of 24" counted every spell as a card: it counts the cards
 and says a spell as its card's ("Card 2 of 9 · spell 2 of 2", TalkBack the same; `focusPosition`, any
 viewer whose pages name other pages).
+
+## ADR-046 — The resolution flow: what each card did since your last choice, as cards (2026-10-27)
+**Context:** The owner: "We need be more clear with resolving effects, a expandable flow of what happened
+due to enemy cards for example. I shouldn't need to go into logs to see what card was discarded to defend
+against my attack." The panel showed `RecentLines`: up to four flat log sentences since the person's last
+answer, the rest only in the log sheet. Between two of the person's answers the computer may resolve up
+to five other heroes' cards (3v3 and bigger, which is how the owner plays), a defense, forced discards,
+pushes and the end of the round; the card an enemy discarded to defend was one sentence, could be trimmed
+away, and was never shown as the card.
+**Decision:**
+1. **One entry per card resolution.** `play/table/ResolutionFlow.kt` groups the log (pure Kotlin, in the
+   view model, from the events only) into entries: a hero's card resolution from its respawn (`Placed` of
+   a hero from off the board) or its `ActionChosen` to the next one, so a defense, a forced discard, a
+   push or a defeat caused by a card sits in that card's entry; the end of a round from its "End of round
+   N." note; the turn's start when something happened there before the first card. Entries with
+   something new since the log's size **before** the person's last answer are shown, oldest first, at
+   most 8 (the rest are counted, "in the game log"). Starting before the answer keeps the person's own
+   attack and its result together (the attack is part of the answer's events, the enemy's defense comes
+   after the computer's own question); the person's own entries need more than their own choices (a
+   move) to count as new, another hero's card counts even for a move ("moved 3"). Nothing new: the last
+   entry before, collapsed and marked earlier.
+2. **Collapsed: who, which card, what came of it.** The hero's portrait, the card as its official
+   thumbnail (ADR-042), and a few words built from the events, most telling first and three at most:
+   each attack's result paired with the defense that answered it ("Wasp defended with Lift Up (4 vs 4)",
+   "Wasp blocked with Dodge", "Wasp defeated: Lift Up fell short (5 vs 6)", "Red melee minion defeated"),
+   a spell cast, defeats, discards ("Arien discarded Liquid Leap", "… a facedown card"), Life counters,
+   Lane pushes, level ups; else moved N / fast travelled to a Zone / pushed / coins / held. The end of a
+   round: "Minion Battle: Red removes 1 · Blue pushed the Lane · Arien reached level 2".
+3. **Expanded: the steps in the engine's words,** each event's own sentence (verified wording, page
+   references kept), with cards where a step has them: the action chosen with its card, the defending
+   card (its "discards" line folded into the defense step) with its Defense sum and "Defended" /
+   "Defeated" in words and shape, the open card of a discard, a retrieve, a swap, a cast. A card opens the
+   existing card focus viewer, the defense captioned with the Attack it answered.
+4. **Impossible to miss:** an entry in which an enemy hero defended against, or was defeated by, one of
+   the person's heroes starts open (and its line names the defense card). What `RecentLines` marked
+   important (a hero defeated, a Life counter, a Lane push, a level up, the Minion Battle) makes the
+   entry's border bronze and its line semibold. The flow sits right under the person's question (ADR-041
+   §7 keeps the question first), before the moment, whose turn-over cards the entries already show.
+5. **Engine: structured fields, additive, public only** (CONTRACT-CHANGES.md 2026-10-27).
+   `CardsChanged.cards` (the cards the sentence names, only open ones, p.4) and `.discarded` (those that
+   went to the discard pile), filled in `Game.discard` / `retrieve` / `swapCards`, Gydion's cast and
+   Takahide's swaps; `Defended.attackerId`. Never a new event, never a new question: the events are
+   re-derived by the replay, so old saves show the flow too. A facedown card discarded or retrieved
+   leaves the fields empty, as its sentence never names it (RULINGS 51/53).
+6. **No peeking.** The flow reads only events, never a view's hand: every card it shows is a card its
+   step's sentence names (`ResolutionFlowTest`, at every question of a random 3v3 game for the asking
+   seat), and the engine fills the fields only with cards its text names (`ResolutionEventsTest`, random
+   3v3 games, plus facedown discards and retrieves). A facedown *defense* card cannot happen: p.14 has the
+   defender reveal the card and discard it.
+7. **TalkBack:** each entry is one button read as a sentence ("Brogan, your hero, played Onslaught: Wasp
+   defended with Lift Up (4 against 4).") with "Expanded" / "Collapsed" and the action "Expand" /
+   "Collapse"; each step's text is readable, each card a button ("Wasp's defense card: Lift Up, …").
+**Considered:** reusing the grouped entries in the log sheet and the review's Turns tab. The review
+already groups by turn with the cards at the reveal (ADR-037) and the log sheet's job is every line, so
+both stay; the builder is a plain function either could call later. A new "resolution started" event
+would have made grouping exact without heuristics, but it changes the log of every game and the web
+client's event set; the respawn / action / "stays off the board" boundaries cover every way a card is
+resolved (p.7), and end-of-turn effects simply join the turn's last card.
+**Consequences:** the panel is taller after a busy stretch (five collapsed lines in a 3v3 turn, about
+56 dp each); it scrolls as before and the question stays at its top. The hidden panel's peek still reads
+the last recent line. Screens whose panel showed the recent lines were re-recorded.

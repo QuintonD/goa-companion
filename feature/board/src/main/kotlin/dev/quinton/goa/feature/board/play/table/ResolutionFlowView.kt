@@ -156,7 +156,13 @@ private fun EntryBadge(entry: FlowEntry, table: TableUi) {
             hero,
             table.hero(hero).portrait,
             null,
-            Modifier.size(BADGE).border(2.dp, entry.team?.let { teamColor(it) } ?: GoaTheme.colors.engravedBorder, CircleShape),
+            Modifier.size(BADGE).border(
+                2.dp,
+                entry.team?.let {
+                    teamColor(it)
+                } ?: GoaTheme.colors.engravedBorder,
+                CircleShape,
+            ),
             shape = CircleShape,
             framed = false,
         )
@@ -199,7 +205,11 @@ private fun StepRow(
         Box(
             Modifier.width(3.dp).heightIn(min = 18.dp).padding(vertical = 2.dp),
         ) {
-            Surface(color = if (step.important) scheme.primary else scheme.outlineVariant, modifier = Modifier.size(3.dp, 16.dp)) {}
+            Surface(
+                color = if (step.important) scheme.primary else scheme.outlineVariant,
+                modifier = Modifier.size(3.dp, 16.dp),
+            ) {
+            }
         }
         Spacer(Modifier.width(Spacing.sm))
         cards.forEachIndexed { c, card ->
@@ -288,10 +298,11 @@ private fun caption(step: FlowStep): String? = when (step.kind) {
         step.attack?.let { "Against Attack $it" },
         step.text.substringAfter(": ", "").removeSuffix(".").ifEmpty { null },
     ).joinToString(" · ").ifEmpty { null }
+
     else -> step.text.removeSuffix(".")
 }
 
-/** One sentence for TalkBack: "Brogan, the computer's hero, played Onslaught: Wasp defended with Lift Up, 5 against 4." */
+/** One sentence for TalkBack: "Brogan, your hero, played Onslaught: Wasp defended with Lift Up (5 against 4)." */
 private fun spokenEntry(entry: FlowEntry, table: TableUi, earlier: Boolean): String {
     val prefix = if (earlier) "Earlier: " else ""
     val hero = entry.heroId ?: return prefix + entry.spoken

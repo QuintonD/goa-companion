@@ -23,7 +23,9 @@ import org.junit.Test
 class ResolutionEventsTest {
     private val json = Json { allowStructuredMapKeys = true }
 
-    private fun cardName(id: String): String = TestData.catalog.heroes.flatMap { it.allCards }.first { it.id == id }.name
+    private fun cardName(id: String): String = TestData.catalog.heroes.flatMap {
+        it.allCards
+    }.first { it.id == id }.name
 
     @Test
     fun `a defense card and a forced discard are named as cards, with the attacker`() {

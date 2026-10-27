@@ -484,6 +484,21 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   shown larger (Keep's two next-Tier cards side by side); the computer's move shows its card. The panel
   repeats no log line the table already shows (the reveal, the action chosen, a move); the log sheet has
   them all. With large text the card goes above its answers.
+- **What happened, card by card** (ADR-046): under the question, a resolution flow of what happened
+  since your last choice — one line per hero's card resolved (and one for the end of a round), in the
+  order it happened: the hero, the card played as the card, and the outcome in a few words ("Onslaught
+  → Wasp defended with Lift Up (4 vs 4)", "Shock → Brogan defeated · Arien discarded Liquid Leap",
+  "moved 3"). Tap a line for its steps: the action, moves, each attack with its total, the defending
+  card as the card (tap to read it) with its Defense total and whether it held, discards with the card
+  when it is open information, pushes, coins, defeats, effects. When an enemy defended against (or was
+  defeated by) your attack, that line opens by itself — you never need the log to see which card was
+  discarded to defend. A hero defeated, a Life counter, a Lane push, a level up and the Minion Battle
+  stay bold. In puzzles too; the log sheet keeps every line. **Done when:** engine tests that the new
+  event fields name only public cards and that saves replay with them; tests of the grouping (attack
+  and defense, a failed defense, a forced discard, a move-then-attack, a 3v3 turn of five cards, the
+  end of round, nothing new) and that the flow shows only cards the log names over random 3v3 games;
+  screenshots collapsed and expanded, the defense card in the viewer, portrait, landscape, light and
+  384 dp at font scale 2.
 - **See the whole board:** the panel (questions, the computer's move, the coach) hides to a
   one-line peek bar that still says what is asked ("● Arien · Choose an action for Dangerous
   Current", teal when it waits for you; a new question is announced by TalkBack). The map fits the

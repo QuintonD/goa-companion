@@ -78,7 +78,11 @@ class ResolutionFlowTest {
         assertThat(defense.heroId).isEqualTo("wasp")
         // The defense's own "Wasp discards Lift Up." is folded into the defense step.
         assertThat(entry.steps.map { it.text }).doesNotContain("Wasp discards Lift Up.")
-        assertThat(entry.steps.map { it.kind }).containsAtLeast(StepKind.ACTION, StepKind.ATTACK, StepKind.DEFENSE).inOrder()
+        assertThat(
+            entry.steps.map {
+                it.kind
+            },
+        ).containsAtLeast(StepKind.ACTION, StepKind.ATTACK, StepKind.DEFENSE).inOrder()
         assertThat(entry.spoken).isEqualTo("Brogan: Onslaught, Wasp defended with Lift Up (5 against 4).")
     }
 
@@ -104,7 +108,9 @@ class ResolutionFlowTest {
         assertThat(entry.important).isTrue()
         assertThat(entry.open).isFalse() // the enemy's attack on the person: bold, not opened
         val kinds = entry.steps.map { it.kind }
-        assertThat(kinds).containsAtLeast(StepKind.ACTION, StepKind.MOVE, StepKind.ATTACK, StepKind.DEFENSE, StepKind.DEFEAT)
+        assertThat(
+            kinds,
+        ).containsAtLeast(StepKind.ACTION, StepKind.MOVE, StepKind.ATTACK, StepKind.DEFENSE, StepKind.DEFEAT)
             .inOrder()
         assertThat(entry.steps.single { it.kind == StepKind.DEFENSE }.success).isFalse()
         assertThat(entry.steps.single { it.kind == StepKind.DEFEAT }.important).isTrue()
@@ -160,7 +166,11 @@ class ResolutionFlowTest {
         val acted = s.events.drop(from).filterIsInstance<GameEvent.ActionChosen>().map { it.heroId }
         assertThat(acted).hasSize(5)
         assertThat(flow.fresh).isTrue()
-        assertThat(flow.entries.filter { it.kind == FlowKind.HERO }.map { it.heroId }).containsExactlyElementsIn(acted).inOrder()
+        assertThat(
+            flow.entries.filter {
+                it.kind == FlowKind.HERO
+            }.map { it.heroId },
+        ).containsExactlyElementsIn(acted).inOrder()
         assertThat(flow.entries.map { it.key }.distinct()).hasSize(flow.entries.size)
         flow.entries.filter { it.kind == FlowKind.HERO }.forEach { e ->
             assertThat(e.line).startsWith("${cards.getValue(e.cardId!!).name} → ")
@@ -259,8 +269,10 @@ class ResolutionFlowTest {
     /** First options, Movement over other actions, the given card to play: a quiet turn. */
     private fun simple(d: Decision, play: String?): Choice = when {
         d.kind == DecisionKind.PLAY_CARD && play != null -> Choice.Card(play)
+
         d.kind == DecisionKind.CHOOSE_ACTION ->
             d.options.firstOrNull { (it as? Choice.Action)?.action == ActionType.MOVEMENT } ?: d.options.first()
+
         else -> d.options.first()
     }
 

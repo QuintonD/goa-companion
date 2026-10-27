@@ -6,6 +6,7 @@ import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.position.PositionPhase
 import dev.quinton.goa.core.game.position.position
@@ -78,11 +79,17 @@ object ResolutionFlowGame {
                 s,
                 when {
                     d.kind == DecisionKind.DEFEND && d.seat == "wasp" -> Choice.Card("wasp-blue-1")
+
                     d.kind == DecisionKind.DEFEND -> d.options.last()
+
                     d.kind == DecisionKind.CHOOSE_ACTION && d.seat == "xargatha" -> Choice.Action(ActionType.PRIMARY)
+
                     d.kind == DecisionKind.CHOOSE_ACTION && d.seat == "gydion" -> Choice.Action(ActionType.HOLD)
+
                     d.kind == DecisionKind.CHOOSE_ACTION ->
-                        d.options.firstOrNull { (it as? Choice.Action)?.action == ActionType.MOVEMENT } ?: d.options.first()
+                        d.options.firstOrNull { (it as? Choice.Action)?.action == ActionType.MOVEMENT }
+                            ?: d.options.first()
+
                     else -> d.options.first()
                 },
             )
@@ -130,3 +137,7 @@ object ResolutionFlowGame {
 
     private const val MAX_STEPS = 60
 }
+
+/** The flow as the game builds it ([resolutionFlow]) with the bundled catalog's names, from event [from]. */
+fun flowFor(events: List<GameEvent>, teams: Map<String, Team>, mine: Set<String>, from: Int = 0) =
+    resolutionFlow(events, from, teams, mine, { heroes.hero(it).name }, { cards[it]?.name })

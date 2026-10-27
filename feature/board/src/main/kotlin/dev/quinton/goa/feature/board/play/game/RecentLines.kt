@@ -2,7 +2,11 @@ package dev.quinton.goa.feature.board.play.game
 
 import dev.quinton.goa.core.game.GameEvent
 
-/** What happened since the person last chose: a few log lines, the ones that matter most marked. */
+/**
+ * What happened since the person last chose: a few log lines, the ones that matter most marked. The
+ * hidden panel's peek reads the last one; the panel itself shows the resolution flow (ADR-046), which
+ * shares [panelWorthy], [important] and [merged].
+ */
 data class RecentLines(val lines: List<String>, val strong: Set<Int> = emptySet())
 
 /**

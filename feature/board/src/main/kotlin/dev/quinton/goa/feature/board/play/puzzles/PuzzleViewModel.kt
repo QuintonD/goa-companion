@@ -623,7 +623,10 @@ class PuzzleViewModel internal constructor(
             // A puzzle's hands are open: the review sees every seat.
             val seats = s.game.setup.seats.map { it.heroId }.toSet()
             val events = s.game.events.toList()
-            val flow = resolutionFlow(events, flowFrom ?: events.size, teams, mine, { heroes.hero(it).name }, { cards[it]?.name })
+            val flow =
+                resolutionFlow(events, flowFrom ?: events.size, teams, mine, {
+                    heroes.hero(it).name
+                }, { cards[it]?.name })
             Snapshot(s.game.pending, openView(s.game), events, review.build(s.game, seats), flow)
         }
         val live = interim

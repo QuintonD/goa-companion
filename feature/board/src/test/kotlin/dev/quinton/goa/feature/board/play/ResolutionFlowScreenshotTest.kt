@@ -64,7 +64,9 @@ class ResolutionFlowScreenshotTest {
         captureScreenRoboImage()
     }
 
-    private fun entry(text: String) = compose.onAllNodes(hasContentDescription(text, substring = true) and hasClickAction()).onFirst()
+    private fun entry(text: String) = compose.onAllNodes(
+        hasContentDescription(text, substring = true) and hasClickAction(),
+    ).onFirst()
 
     /** The panel scrolled down to the flow's last entry, so the flow is in view below the question. */
     private fun scrollToFlow() {
