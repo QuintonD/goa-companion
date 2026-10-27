@@ -54,8 +54,31 @@ determinizer's fallback. Two generic devices carry the hero mechanics the heuris
 **Determinism.** An answer depends on the seed, the decision id and the seat (not on the order of
 calls), so undo and restore give the same answers. The production player stops sampling at the
 device budget (`budgetMs` for card plays, a third of it for other decisions); on the desktop that cap
-is never reached in practice. `AiPlayers.deterministic` removes it. `cancelled()` is checked before
+is rarely reached. `AiPlayers.deterministic` removes it. `cancelled()` is checked before
 every playout (a playout is 0.1–30 ms on the desktop).
+
+**Samples on several threads (v0.9).** `Searcher` runs the samples of one answer through a
+`SampleRunner`: the engine has no threads (it is shared with the web build, ADR-043), so the default
+runs them one after the other; the app passes `AiSampleThreads` (`core/data` `PlayEngineModule`, up to
+three daemon threads). The first sample fixes the candidates; the rest run in batches of the runner's
+width, each on its own column of the value table and its own determinized copy, combined in sample
+order, so an answer without the wall-clock cap is the same with any runner (`SampleRunnerTest`). On
+the desktop three threads answered 2.15× faster (3v3 strength 10, card play mean 296 → 137 ms, p95
+655 → 286 ms). The deadline is checked between batches.
+
+**Search copies are quiet (v0.9).** The determinized copies and their forks build no explanations
+for a player at their questions (`EngineSession.quiet`: no "why not" reasons or Primary previews at
+`CHOOSE_ACTION`; the options are the same checks), and forks answered at once share the shown state
+instead of copying it (`forkForAnswer`). Same answers for every seed (`FingerprintTest` hashes equal
+before and after); a 3v3 strength-10 game about a quarter faster. What is left of the cost: one-ply
+looks in playouts (87% of the time), and in them the engine's probe of whether a Primary can start
+(a state copy per `CHOOSE_ACTION`, 26%); the evaluation is 12%.
+
+**Racing (v0.9, strength 10).** After four samples an option whose paired gap to the best (common
+random numbers: the same determinizations), less two standard errors, exceeds 3 coin-equivalents is
+not played out any more (`LevelProfile.race`); at least two stay. The same strength (51.0%, 41–61%, 96
+games in 3v3 against 10 without it) for 22% fewer playout steps (card play mean 296 → 227 ms, p95
+655 → 456 ms on the same games), so under the phone's cap more samples go to the contenders.
 
 ### The determinizer (`engine/Determinizer.kt`)
 
@@ -236,10 +259,46 @@ way, and the "missed defeat" was a teammate's attack that made it on the same tu
 
 ## Budgets and measured time
 
-`TimingTest` with `AI_TIMING_GAMES=8`, desktop JVM (development machine, shared with other work,
-2026-10-25), production players (`forStrength`, wall-clock cap on), eight mixed line-ups per
-strength seating all 32 heroes once, both teams' decisions with more than one option (840–1 330 card plays
-per strength). A phone is assumed 3–4× slower. Other decisions get a third of the card budget.
+**v0.9 (ADR-047): by team size.** The owner's ceiling is about 2 s per card play at the top strength
+on the S25 Ultra, in 3v3 or bigger. `TimingTest` (`AI_TIMING_FORMAT=2v2|3v3|4v4|4v4river`,
+`AI_TIMING_GAMES`, production players with the v0.7 budgets, one thread, both teams' decisions with
+more than one option, desktop JVM shared with three other builds, 2026-10-27, one afternoon) also
+prints the work of a card play in engine answers (the playouts' steps) and the time per 1 000 of them:
+
+| Format | Strength | Card play mean / p95 / max | Moves (`CHOOSE_SPACE`) mean / p95 | Work per card play mean / p95 (answers) | ms per 1 000 answers |
+|--------|----------|----------------------------|-----------------------------------|------------------------------------------|----------------------|
+| 2v2 | 8 | 28 / 81 / 445 ms | — | 475 / 1 372 | 58 |
+| 2v2 | 9 | 106 / 249 / 843 ms | — | 1 812 / 3 962 | 58 |
+| 2v2 | 10 | 204 / 479 / 1 464 ms | — | 3 468 / 6 460 | 59 |
+| 3v3 | 8 | 50 / 136 / 381 ms | 22 / 84 ms | 769 / 2 153 | 64 |
+| 3v3 | 9 | 184 / 451 / 1 253 ms | 100 / 358 ms | 2 774 / 6 622 | 66 |
+| 3v3 | 10 | 377 / 799 / 1 648 ms | 204 / 531 ms | 5 418 / 9 435 | 70 |
+| 4v4 (Forgotten Island) | 8 | 69 / 198 / 369 ms | 32 / 107 ms | 949 / 2 604 | 73 |
+| 4v4 (Forgotten Island) | 9 | 234 / 585 / 1 460 ms | 132 / 497 ms | 3 049 / 7 312 | 77 |
+| 4v4 (Forgotten Island) | 10 | 617 / 1 365 / 2 271 ms | 298 / 783 ms | 7 580 / 14 416 | 81 |
+| 4v4 (Across the River) | 10 | 820 / 1 637 / 3 276 ms | 379 / 980 ms | 7 491 / 13 634 | 109 |
+
+Strength 10 costs 1.8× its 2v2 time in 3v3 and 3× in 4v4 (4× on the double lane): each playout has
+more heroes acting (1.5–2.2× the steps) and each step is dearer (the state is bigger; two lanes double
+the lane terms). The time per answer is the same for every strength of a format, so the work is a
+deterministic stand-in for time: `LevelProfile.workBudget` (tests only, `AI_EXPERIMENT=s10+work=6000`)
+stops sampling after that many answers, as the wall clock does on a phone, but reproducibly.
+
+**The phone factor** stays 3–4× this desktop (no device measurement this round; ADB is not available
+to the AI streams). It is a planning number on the slow side: the S25 Ultra's Snapdragon 8 Elite
+scores well above this Ryzen 7 3800X single-threaded, but ART runs this allocation-heavy code slower
+than HotSpot's C2 and a phone throttles over a long game. With 4× and today's sequential search,
+strength 10's p95 card play is ≈ 3.2 s in 3v3 and ≈ 5.5 s (≈ 6.5 s on the double lane) in 4v4, so a
+2 s cap would cut a slow 3v3 decision to about 60% of its samples and a slow 4v4 one to about a third.
+
+**Budgets since v0.9:** 10: **2 s** per card play (was 4 s), 9: 1.5 s (3 s), 8: 1 s (1.5 s); 5–7
+unchanged (200 / 300 / 500 ms), 1–4 50 ms. Other decisions get a third. The app runs the samples on
+three threads (2.15× on the desktop) and strength 10 races its candidates (22% less work), so at 4×
+the p95 3v3 card play of 10 needs ≈ 1.0 s and the 4v4 one ≈ 1.8 s (2.1 s on the double lane): inside the cap but for the slowest 4v4 decisions.
+What that buys, measured with work budgets (2 s at 4× = 500 ms of desktop time ≈ 7 200 answers in
+3v3, 6 100 in 4v4, × 2.15 with three threads): see "Team sizes".
+
+**v0.7, 2v2** (`AI_TIMING_GAMES=8`, 2026-10-25, the budgets of then), for strengths 1–7 still current:
 
 | Strength | Card play mean / p95 / max | Other decisions, means (max) | Slowest heroes, card play p95 / max | Device budget per card |
 |----------|----------------------------|------------------------------|-------------------------------------|------------------------|
@@ -250,18 +309,12 @@ per strength). A phone is assumed 3–4× slower. Other decisions get a third of
 | 5 | 6.8 / 22 / 44 ms | 0.3–10 ms (40) | Snorri 40 / 44, Razzle 39 / 39, Cutter 33 / 34 | 200 ms |
 | 6 | 5.2 / 15 / 49 ms | 0.3–12 ms (169) | Snorri 38 / 49, Rowenna 35 / 40, Cutter 35 / 40 | 300 ms |
 | 7 | 5.6 / 19 / 52 ms | 0.2–9.3 ms (154) | Rowenna 47 / 52, Cutter 38 / 48, Bain 30 / 43 | 500 ms |
-| 8 | 39 / 117 / 577 ms | 0.7–25 ms (345) | Rowenna 402 / 577, Cutter 319 / 475, Takahide 200 / 200 | 1.5 s |
-| 9 | 117 / 314 / 1 088 ms | 3–73 ms (781) | Bain 730 / 988, Emmitt 469 / 595, Snorri 442 / 685 | 3 s |
-| 10 | 213 / 514 / 1 156 ms | 6–128 ms (824) | Bain 957 / 1 075, Min 823 / 831, Silverarrow 769 / 866 | 4 s |
+| 8 | 39 / 117 / 577 ms | 0.7–25 ms (345) | Rowenna 402 / 577, Cutter 319 / 475, Takahide 200 / 200 | 1.5 s (now 1 s) |
+| 9 | 117 / 314 / 1 088 ms | 3–73 ms (781) | Bain 730 / 988, Emmitt 469 / 595, Snorri 442 / 685 | 3 s (now 1.5 s) |
+| 10 | 213 / 514 / 1 156 ms | 6–128 ms (824) | Bain 957 / 1 075, Min 823 / 831, Silverarrow 769 / 866 | 4 s (now 2 s) |
 
-At 4× the desktop time every strength stays inside its budget at p95 (10: ≈ 2.1 s; 9: ≈ 1.3 s; 8:
-≈ 0.5 s). The worst card play at 10 (1.2 s desktop, ≈ 4.6 s at 4×) and the worst move choices at 9
-and 10 (0.8 s, ≈ 3.2 s against caps of 1 s and 1.3 s) would be cut by the wall-clock cap on a slow
-phone (fewer samples, still legal). Against the old Expert (176 / 408 / 832 ms), strength 10 (the same
-samples and playouts, the tuned evaluation) costs about a quarter more at p95. Strengths 5–7 cost
-about twice the old Normal (3.6 / 10.5 / 29 ms) and stay far below their budgets. The coach's
-`prepare` averaged 16 ms (max 157 ms) per decision over one Easy-vs-Hard game on mixed line-ups
-(`CoachAheadTest`).
+The coach's `prepare` averaged 16 ms (max 157 ms) per decision over one Easy-vs-Hard game on mixed
+line-ups (`CoachAheadTest`).
 
 ## Measured strength
 

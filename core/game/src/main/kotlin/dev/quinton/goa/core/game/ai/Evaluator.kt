@@ -66,9 +66,10 @@ internal data class EvalKnobs(
      */
     val focusFire: Boolean = false,
     /**
-     * A hero with no card left to defend with (now, or after the card it still has to play): its
-     * exposure counts at least this scale whatever [scales] says (0 = no floor). An enemy who strips
-     * the cards one turn kills the next (AI.md "Team sizes"); the playouts end with this turn.
+     * In teams of [Evaluator.DEFENSELESS_TEAM] or more: a hero with no card left to defend with (now, or after
+     * the card it still has to play) has its exposure counted at least at this scale, whatever
+     * [scales] says (0 = no floor). With three enemies one strips the cards and another kills next
+     * turn, beyond the playouts' horizon (AI.md "Team sizes"); in 2v2 it measured no better.
      */
     val defenseless: Double = 0.0,
 )
@@ -112,6 +113,9 @@ internal class Evaluator(val data: EngineData, val knobs: EvalKnobs = EvalKnobs(
         const val PIECE_ROUND: Double = 0.8
         const val PIECE_NEAR: Double = 0.4
         const val PIECES_COUNTED: Int = 4
+
+        /** Heroes a side from which [EvalKnobs.defenseless] applies. */
+        const val DEFENSELESS_TEAM: Int = 3
 
         fun sigmoid(x: Double): Double = 1.0 / (1.0 + exp(-x))
 
@@ -559,6 +563,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
         val w = exposureScale(hi.h.team)
         if (knobs.defenseless <= 0.0 || roundOver) return w
         if (hi.defenseNow.cards > 0 && hi.defenseNext.cards > 0) return w
+        if (state.heroes.count { it.team == hi.h.team } < Evaluator.DEFENSELESS_TEAM) return w
         return w * max(1.0, knobs.defenseless / scale(Term.EXPOSURE))
     }
 
