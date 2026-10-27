@@ -13,8 +13,11 @@ import dev.quinton.goa.core.game.GameFactory
 import dev.quinton.goa.core.game.PuzzleBook
 import dev.quinton.goa.core.game.ai.AiCoach
 import dev.quinton.goa.core.game.ai.AiPlayers as GameAiPlayers
+import dev.quinton.goa.core.game.ai.SampleRunner
 import dev.quinton.goa.core.game.engine.GameEngine
 import dev.quinton.goa.core.game.puzzles.EnginePuzzleBook
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -42,10 +45,14 @@ internal object PlayEngineModule {
         // Screens ask for the factory on Dispatchers.Default only (see above), never on the main thread.
         runBlocking { GameEngine(catalog.catalog.first(), maps.maps.first()) }
 
-    /** The ten strengths of core/game/ai (AI.md); one player per request, seeded per strength. */
+    /**
+     * The ten strengths of core/game/ai (AI.md); one player per request, seeded per strength. The
+     * samples of one answer run on a few background threads ([AiSampleThreads], AI.md "Budgets").
+     */
     @Provides
     @Singleton
-    fun ai(): AiPlayers = AiPlayers { strength -> GameAiPlayers.forStrength(strength, AI_SEED + strength) }
+    fun ai(): AiPlayers =
+        AiPlayers { strength -> GameAiPlayers.forStrength(strength, AI_SEED + strength, AiSampleThreads) }
 
     /** The coach analyses on the game factory's engine (it replays saves for the turning points). */
     @Provides
@@ -65,4 +72,28 @@ internal object PlayEngineModule {
         )
 
     private const val AI_SEED = 0x60A_2026L
+}
+
+/**
+ * Runs the samples of one computer answer on up to three daemon threads (the engine has no threads
+ * of its own, ADR-043): a phone's big cores search about [width] times as many samples within the
+ * same think time (AI.md "Budgets"). The answers combine in sample order, so they don't depend on the
+ * threads. Called from `Dispatchers.Default`, never from these threads.
+ */
+internal object AiSampleThreads : SampleRunner {
+    override val width: Int = (Runtime.getRuntime().availableProcessors() - 1).coerceIn(1, MAX_THREADS)
+
+    private val pool by lazy {
+        Executors.newFixedThreadPool(width) { r -> Thread(r, "ai-samples").apply { isDaemon = true } }
+    }
+
+    override fun runAll(tasks: List<() -> Unit>) {
+        if (width == 1 || tasks.size <= 1) {
+            tasks.forEach { it() }
+            return
+        }
+        pool.invokeAll(tasks.map { t -> Callable { t() } }).forEach { it.get() }
+    }
+
+    private const val MAX_THREADS = 3
 }
