@@ -45,10 +45,10 @@ internal data class EvalKnobs(
     /** Push Potential per attack card left of a hero near the Battle Zone (STRATEGY L2, "two minions per hero"). */
     val pushPerAttack: Double = 0.5,
     /**
-     * Push Potential shared by the team: × 2 / heroes a side (1 in 2v2, ⅔ in 3v3, ½ in 4v4). The same
-     * minions are there however many heroes hunt them, so each hero takes fewer (AI.md "Team sizes").
+     * [pushPerAttack] by heroes a side, where it differs (AI.md "Team sizes": in 3v3 the same minions
+     * are hunted by three heroes, and 0.35 measured better; 4v4 measured even).
      */
-    val pushByTeamSize: Boolean = false,
+    val pushPerAttackBySize: Map<Int, Double> = emptyMap(),
     /** A defeat's cost beyond the Life counter and the enemy's coins: the tempo of respawning. */
     val killTempo: Double = 5.0,
     /** Worth of the cards in hand per point of their rating. */
@@ -71,7 +71,7 @@ internal data class EvalKnobs(
      */
     val focusFire: Boolean = false,
     /**
-     * In teams of [Evaluator.DEFENSELESS_TEAM] or more: a hero with no card left to defend with (now, or after
+     * In teams of [Evaluator.BIG_TEAM] or more: a hero with no card left to defend with (now, or after
      * the card it still has to play) has its exposure counted at least at this scale, whatever
      * [scales] says (0 = no floor). With three enemies one strips the cards and another kills next
      * turn, beyond the playouts' horizon (AI.md "Team sizes"); in 2v2 it measured no better.
@@ -120,7 +120,7 @@ internal class Evaluator(val data: EngineData, val knobs: EvalKnobs = EvalKnobs(
         const val PIECES_COUNTED: Int = 4
 
         /** Heroes a side from which [EvalKnobs.defenseless] applies. */
-        const val DEFENSELESS_TEAM: Int = 3
+        const val BIG_TEAM: Int = 3
 
         fun sigmoid(x: Double): Double = 1.0 / (1.0 + exp(-x))
 
@@ -568,7 +568,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
         val w = exposureScale(hi.h.team)
         if (knobs.defenseless <= 0.0 || roundOver) return w
         if (hi.defenseNow.cards > 0 && hi.defenseNext.cards > 0) return w
-        if (state.heroes.count { it.team == hi.h.team } < Evaluator.DEFENSELESS_TEAM) return w
+        if (state.heroes.count { it.team == hi.h.team } < Evaluator.BIG_TEAM) return w
         return w * max(1.0, knobs.defenseless / scale(Term.EXPOSURE))
     }
 
@@ -629,6 +629,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
     /** Enemy minions [team] can still take this round (the designer's Push Potential, STRATEGY L2). */
     private fun pushPotential(team: Team, bz: String): Double {
         if (roundOver) return 0.0
+        val perAttack = knobs.pushPerAttackBySize[state.heroes.count { it.team == team }] ?: knobs.pushPerAttack
         var pp = 0.0
         for (h in state.heroes) {
             if (h.team != team) continue
@@ -636,9 +637,8 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
             if (map.distanceToZone(at, bz) > 6) continue
             val hi = info(h.id)
             val attacks = hi.hand.count { it.attackCard } + hi.unresolved.count { it.attackCard }
-            pp += knobs.pushPerAttack * min(attacks, max(hi.playsLeft, hi.unresolved.size))
+            pp += perAttack * min(attacks, max(hi.playsLeft, hi.unresolved.size))
         }
-        if (knobs.pushByTeamSize) pp *= 2.0 / max(2, state.heroes.count { it.team == team })
         return pp
     }
 

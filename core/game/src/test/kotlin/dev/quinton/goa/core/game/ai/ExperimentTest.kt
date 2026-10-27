@@ -125,8 +125,6 @@ class ExperimentTest {
 
                 "pp" -> p.copy(knobs = kn.copy(pushPerAttack = v.toDouble()))
 
-                "ppsize" -> p.copy(knobs = kn.copy(pushByTeamSize = v.toBoolean()))
-
                 "work" -> p.copy(workBudget = v.toLong())
 
                 "race" -> p.copy(race = v.toDouble())
@@ -142,7 +140,13 @@ class ExperimentTest {
                     p.copy(hunt = Hunt(selfExposure = se, enemyExposure = ee, enemyLife = el))
                 }
 
-                else -> error("Unknown override $k")
+                // pp3=0.35: Push Potential per attack card at 3 heroes a side (pp<n> for n heroes).
+                else -> if (k.startsWith("pp") && k.drop(2).toIntOrNull() != null) {
+                    val bySize = kn.pushPerAttackBySize + (k.drop(2).toInt() to v.toDouble())
+                    p.copy(knobs = kn.copy(pushPerAttackBySize = bySize))
+                } else {
+                    error("Unknown override $k")
+                }
             }
         }
     }
