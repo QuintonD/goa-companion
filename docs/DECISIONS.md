@@ -1395,14 +1395,22 @@ was 2v2.
   hand evaluation; AdamW with early stopping on held-out line-ups. Generation 1 played with the
   generation-0 net and was kept (58.3% against it); generation 2 measured no better (52.6%, 47.9%) and
   was dropped.
-- **Measured** on line-ups never used for training or tuning, mirrored, 95% Wilson: strength 10 with
-  the net against today's strength 10 — 3v3 67.7% (60.8–73.9%) over 192 games; 2v2 67.2% (60.3–73.4%); 4v4 ⟨4v4⟩.
+- **Measured** on line-ups never used for training or tuning, mirrored, 192 games each, 95% Wilson:
+  strength 10 with the net against the strength 10 before it — 3v3 67.7% (60.8–73.9%), 2v2 67.2%
+  (60.3–73.4%), 4v4 65.1% (58.1–71.5%); over strength 9 75.0% (68.4–80.6%).
+- **Found on the way** (self-play and tournaments over all 32 heroes at 3v3+): two engine crashes next
+  to Takahide's Spinning Blade — Wasp's Telekinesis offering a unit with no space it could enter, Razzle's
+  Stunt Doubles spawning into a token's spawn point the blade turns into an obstacle once the token is
+  removed (p.19) — fixed with `WaspTest` / `RazzleTest` cases.
 **Alternatives (measured and dropped, AI.md "Learned evaluation"):** training on the game result alone
 (the best held-out log-loss, 37.5% in play: the search exploits a sharp, noisy evaluation); larger λ
 (0.85: 58.9%, 0.95: 51.6% at strength 7); the net also in the one-ply looks (45.3%); a third
-generation; iterating the teacher on the same games (no gain beyond noise).
+generation; iterating the teacher on the same games (no gain beyond noise); the net at strengths
+5–10 (each stronger, the ladder's steps compressed).
 **Consequences:** Strength 10 (Expert, and a save's Expert) plays stronger at every team size;
-strengths 1–9, the coach and saves are unchanged (no engine contract change). An evaluation costs about twice the hand one
-(about 40 µs against 21 µs for a 3v3 position on the desktop); decision times ⟨timing⟩. A change to the features needs a retrain (one command, AI.md "How to
-retrain"); the training games live outside the repo (D:\.goa-qa\v09\a2\data) and are reproducible from
-their commands.
+strengths 1–9, the coach and saves are unchanged (no engine contract change). An evaluation costs
+about twice the hand one (about 40 µs against 21 µs for a 3v3 position on the desktop); decision
+times at 3v3 are the same with and without it (card plays 395 / 833 ms mean / p95 against 415 / 822
+ms on the desktop, uncapped); 3v3's own cost is part A's budget question. A change to the features
+needs a retrain (one command, AI.md "How to retrain"); the training games live outside the repo
+(`D:\.goa-qa\v09\a2\data`) and are reproducible from their commands.

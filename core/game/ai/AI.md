@@ -211,7 +211,7 @@ of self-play added nothing measurable; generation 1 is checked in.
 |-----------|------|------|--------------|-------|
 | 3v3 | 130–62 | 67.7% | 60.8–73.9% | +130 |
 | 2v2 | 129–63 | 67.2% | 60.3–73.4% | +125 |
-| 4v4 | ⟨4v4⟩ | | | |
+| 4v4 | 125–67 | 65.1% | 58.1–71.5% | +110 |
 
 Earlier, generation 0 at strength 10 on tuning line-ups: 58.3% (48.3–67.7%) over 96 games.
 
@@ -227,7 +227,12 @@ logistic fit of its twelve terms (as `FitTest`) 0.591, the net 0.580; in 3v3 0.5
 
 **Cost.** One evaluation of a 3v3 position on the desktop: the features about 40 µs (they include the
 hand evaluation's terms, about 21 µs alone), the net a few µs more — well under a playout (0.1–30
-ms). Decision times at 3v3: ⟨timing⟩.
+ms). Decision times at 3v3 (`LearnedTimingTest`, 4 games each on test line-ups, one at a time, no
+wall-clock cap, desktop shared with other work): card plays 395 ms mean / 833 ms p95 / 1.65 s max
+with the net, 415 / 822 / 1.90 s with the hand evaluation; moves 232 / 584 ms against 203 / 568 ms.
+The net costs nothing measurable per decision (one evaluation per playout, against thousands of
+engine steps); 3v3 itself costs about twice 2v2 (Budgets), which the device budget, not the
+evaluation, has to answer (ADR-047 part A).
 
 **How to retrain.** One command trains on the stored self-play games and writes the checked-in
 weights (seeded: the same data, seed and thread count give the same net, bit for bit; about 5 minutes

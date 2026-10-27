@@ -352,7 +352,7 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] Part B, learned evaluation (`feature/v09-ai-learned`): strength 10 scores playout ends with a
   small net trained on self-play (features pooled per team, 1v1–5v5; weights in Kotlin source with the
   feature-schema hash) — 2026-10-27, strength 10 with it against strength 10 before it on held-out
-  line-ups: 3v3 67.7% (60.8–73.9%), 2v2 67.2% (60.3–73.4%), 4v4 ⟨4v4⟩ (192 games each); 10 over 9 75.0% (68.4–80.6%), 1–9 unchanged;
+  line-ups: 3v3 67.7% (60.8–73.9%), 2v2 67.2% (60.3–73.4%), 4v4 65.1% (58.1–71.5%) (192 games each); 10 over 9 75.0% (68.4–80.6%), 1–9 unchanged;
   `LearnedNetTest`, `:core:game:test` green. JVM only
 - [ ] On the S25 Ultra: a 3v3 game at strength 10, decision times within ~2 s
 
