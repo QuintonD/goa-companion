@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.game.ai.learned
 
 import dev.quinton.goa.core.game.AiLevel
+import dev.quinton.goa.core.game.AnswerResult
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.GameSetup
 import dev.quinton.goa.core.game.TestData
@@ -190,7 +191,11 @@ internal object Learned {
             }
             lastTurn = turn
             lastResolved = resolved
-            s.answer(d.id, c)
+            // A game recorded before an engine fix may no longer replay: keep what was played before.
+            if (s.answer(d.id, c) !is AnswerResult.Accepted) {
+                println("LEARNED game ${r.game} no longer replays after ${out.size} positions; kept those")
+                break
+            }
         }
         return out
     }
