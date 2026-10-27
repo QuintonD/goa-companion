@@ -54,16 +54,10 @@ object AiPlayers {
     /**
      * The evaluation the searching strengths (5 and up) use: a hero's exposure counts 0.3 of its
      * hand-made weight and its minion opportunities twice (fitted to self-play outcomes and measured,
-     * AI.md "Evaluation" and "What changed in v0.7"); in 3v3 and bigger a hero with no card left to
-     * defend with counts its full exposure (AI.md "Team sizes", ADR-047).
+     * AI.md "Evaluation" and "What changed in v0.7"). The 3v3 candidates of v0.9 (a defenseless
+     * hero's full exposure, racing) measured even and are off (AI.md "Team sizes").
      */
-    internal val TUNED: EvalKnobs = EvalKnobs(
-        scales = mapOf(Term.EXPOSURE to 0.3, Term.OPPORTUNITY to 2.0),
-        defenseless = 1.0,
-    )
-
-    /** Strength 10's racing margin in coin-equivalents (AI.md "Team sizes"). */
-    internal const val RACE: Double = 3.0
+    internal val TUNED: EvalKnobs = EvalKnobs(scales = mapOf(Term.EXPOSURE to 0.3, Term.OPPORTUNITY to 2.0))
 
     /** What each strength does (AI.md "Strengths"); the measured ladder is in AI.md. */
     @Suppress("CyclomaticComplexMethod", "LongMethod", "MagicNumber")
@@ -148,14 +142,14 @@ object AiPlayers {
 
         // Expert. Playouts to the end of the next turn measured worse than to the end of this one
         // (AI.md): it spends its time on more samples and on smarter playouts for every hero instead.
-        // At most 2 s a card play on the phone (the owner's ceiling, ADR-047); options clearly behind
-        // after four samples stop being played out (racing: the same strength in about a quarter less time).
+        // At most 2 s a card play on the phone (the owner's ceiling, ADR-047); the app runs its samples
+        // on three threads.
         else -> LevelProfile(
             staticOnly = false, playSamples = 16, otherSamples = 6,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 10,
             temperature = 0.15, maxGap = 0.6, slipRate = 0.0, risk = 0.0,
             knobs = TUNED, modelPlays = true, memory = true, greedySelf = true,
-            budgetMs = 2000, greedyTeam = true, greedyEnemies = true, race = RACE,
+            budgetMs = 2000, greedyTeam = true, greedyEnemies = true,
         )
     }
 }
