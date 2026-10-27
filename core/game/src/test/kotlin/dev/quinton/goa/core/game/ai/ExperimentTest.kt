@@ -94,6 +94,8 @@ class ExperimentTest {
                 "lane" -> p.copy(knobs = kn.copy(laneWeight = v.toDouble()))
                 "margin" -> p.copy(knobs = kn.copy(minionMargin = v.toDouble()))
                 "pp" -> p.copy(knobs = kn.copy(pushPerAttack = v.toDouble()))
+                "work" -> p.copy(workBudget = v.toLong())
+                "race" -> p.copy(race = v.toDouble())
                 "tempo" -> p.copy(knobs = kn.copy(killTempo = v.toDouble()))
                 "hand" -> p.copy(knobs = kn.copy(handRating = v.toDouble()))
                 // The exploiter (AI.md "Team sizes"): hunt=selfExposure/enemyExposure/enemyLife, e.g. hunt=0/2/1.5.

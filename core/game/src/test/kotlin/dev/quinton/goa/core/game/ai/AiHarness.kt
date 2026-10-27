@@ -86,6 +86,8 @@ object AiHarness {
         val session: EngineSession,
         /** Card-play times (ns) per hero of the timed team. */
         val playBySeat: Map<String, MutableList<Long>> = emptyMap(),
+        /** Per timed card play: (engine answers spent in playouts, ns). */
+        val playWork: List<Pair<Long, Long>> = emptyList(),
     )
 
     fun setup(
@@ -114,10 +116,12 @@ object AiHarness {
         val s = TestData.engine.newGame(setup) as EngineSession
         val timings = LinkedHashMap<DecisionKind, MutableList<Long>>()
         val bySeat = LinkedHashMap<String, MutableList<Long>>()
+        val playWork = ArrayList<Pair<Long, Long>>()
         var n = 0
         while (n < maxDecisions) {
             val d = s.pending ?: break
             val t0 = System.nanoTime()
+            val w0 = (players.getValue(d.team) as? SearchAi)?.work ?: 0
             val c = try {
                 players.getValue(d.team).choose(s, d)
             } catch (e: IllegalStateException) {
@@ -127,12 +131,16 @@ object AiHarness {
             val dt = System.nanoTime() - t0
             if (timed && d.options.size > 1 && (timedTeam == null || d.team == timedTeam)) {
                 timings.getOrPut(d.kind) { ArrayList() } += dt
-                if (d.kind == DecisionKind.PLAY_CARD) bySeat.getOrPut(d.seat) { ArrayList() } += dt
+                if (d.kind == DecisionKind.PLAY_CARD) {
+                    bySeat.getOrPut(d.seat) { ArrayList() } += dt
+                    val w = ((players.getValue(d.team) as? SearchAi)?.work ?: 0) - w0
+                    playWork += w to dt
+                }
             }
             val r = s.answer(d.id, c)
             check(r is AnswerResult.Accepted) { "Rejected $c for $d: $r" }
             n++
         }
-        return Result(s.state.winner, n, s.state.round, timings, s, bySeat)
+        return Result(s.state.winner, n, s.state.round, timings, s, bySeat, playWork)
     }
 }

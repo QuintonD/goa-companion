@@ -161,6 +161,9 @@ internal class SearchAi(
     private var searchers: Pair<EngineData, Searcher>? = null
     private var blind: Pair<EngineData, Searcher>? = null
 
+    /** Engine answers spent in playouts so far ([LevelProfile.workBudget]; timing tests). */
+    internal val work: Long get() = (searchers?.second?.work ?: 0) + (blind?.second?.work ?: 0)
+
     /** The team of the last decision: the exploiter's one-sided taste depends on it. */
     private var team: Team? = null
 

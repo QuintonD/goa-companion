@@ -25,6 +25,7 @@ class TimingTest {
             val budget = AiPlayers.profile(strength).budgetMs
             val all = LinkedHashMap<DecisionKind, MutableList<Long>>()
             val byHero = LinkedHashMap<String, MutableList<Long>>()
+            val work = ArrayList<Pair<Long, Long>>()
             for ((g, lineup) in lineups.withIndex()) {
                 val (red, blue) = lineup
                 val r = AiHarness.play(
@@ -46,6 +47,7 @@ class TimingTest {
                 if (System.getenv("AI_PROGRESS") != null) println("TIMING   game $g: ${r.rounds} rounds, ${r.winner}")
                 for ((k, v) in r.timings) all.getOrPut(k) { ArrayList() } += v
                 for ((k, v) in r.playBySeat) byHero.getOrPut(k) { ArrayList() } += v
+                work += r.playWork
             }
             println("TIMING [$format] strength $strength (device budget per card $budget ms):")
             for ((k, v) in all) {
@@ -61,6 +63,15 @@ class TimingTest {
                 "TIMING   slowest heroes (card play p95/max ms): " +
                     slow.joinToString(", ") { (hero, t) -> "$hero ${ms(p95(t))}/${ms(t.last())}" },
             )
+            if (work.isNotEmpty()) {
+                val units = work.map { it.first.toDouble() }.sorted()
+                val perK = work.sumOf { it.second } / 1e6 / (work.sumOf { it.first }.coerceAtLeast(1) / 1000.0)
+                println(
+                    "TIMING   card play work (engine answers): mean ${"%.0f".format(units.average())} " +
+                        "p95 ${"%.0f".format(p95(units))} max ${"%.0f".format(units.last())}; " +
+                        "${"%.1f".format(perK)} ms per 1000",
+                )
+            }
             val play = all.getValue(DecisionKind.PLAY_CARD).map { it / 1e6 }
             // Desktop mean well under the phone budget (a phone is ~3–4× slower).
             assertThat(play.average()).isLessThan(budget / 2.0)
