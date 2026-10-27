@@ -73,7 +73,11 @@ class AiSmokeTest {
     /** The owner's games (ADR-047): 3v3 on the single lane, 4v4 and 5v5 on the double lane, every hero seated. */
     @Test
     fun `3v3, 4v4 and 5v5 games finish`() {
-        for ((i, format) in listOf(AiHarness.Format.THREE, AiHarness.Format.FOUR_RIVER, AiHarness.Format.FIVE_RIVER).withIndex()) {
+        for ((i, format) in listOf(
+            AiHarness.Format.THREE,
+            AiHarness.Format.FOUR_RIVER,
+            AiHarness.Format.FIVE_RIVER,
+        ).withIndex()) {
             val (red, blue) = AiHarness.mixedLineups(1, seed = 900L + i, size = format.size)[0]
             finishes(AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, Team.RED, format.length, format.mapId))
         }

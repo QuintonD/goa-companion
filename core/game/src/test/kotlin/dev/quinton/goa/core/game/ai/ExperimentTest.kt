@@ -64,44 +64,80 @@ class ExperimentTest {
             }
             return when (k) {
                 "samples" -> p.copy(playSamples = v.toInt())
+
                 "other" -> p.copy(otherSamples = v.toInt())
+
                 "cand" -> p.copy(candidates = v.toInt())
+
                 "temp" -> p.copy(temperature = v.toDouble())
+
                 "gap" -> p.copy(maxGap = v.toDouble())
+
                 "slip" -> p.copy(slipRate = v.toDouble())
+
                 "blind" -> p.copy(blindRate = v.toDouble())
+
                 "risk" -> p.copy(risk = v.toDouble())
+
                 "memory" -> p.copy(memory = v.toBoolean())
+
                 "model" -> p.copy(modelPlays = v.toBoolean())
+
                 "static" -> p.copy(staticOnly = v.toBoolean())
+
                 "greedySelf" -> p.copy(greedySelf = v.toBoolean())
+
                 "greedyTeam" -> p.copy(greedyTeam = v.toBoolean())
+
                 "greedyEnemies" -> p.copy(greedyEnemies = v.toBoolean())
+
                 "shallow" -> p.copy(shallow = v.toBoolean())
+
                 "horizon" -> p.copy(playHorizon = Horizon.valueOf(v))
+
                 "otherHorizon" -> p.copy(otherHorizon = Horizon.valueOf(v))
+
                 "nearest" -> p.copy(knobs = kn.copy(nearestThreatOnly = v.toBoolean()))
+
                 "oneCard" -> p.copy(knobs = kn.copy(oneCardPerTurn = v.toBoolean()))
+
                 "focus" -> p.copy(knobs = kn.copy(focusFire = v.toBoolean()))
+
                 "tau" -> p.copy(opponentTau = v.toDouble())
+
                 "upgrade" -> p.copy(upgradeHorizon = Horizon.valueOf(v))
+
                 "greedyMax" -> p.copy(greedyMax = v.toInt())
+
                 "next" -> p.copy(knobs = kn.copy(nextTurnThreat = v.toDouble()))
+
                 "pieces" -> p.copy(knobs = kn.copy(pieces = v.toDouble()))
+
                 "presence" -> p.copy(knobs = kn.copy(presencePerSpace = v.toDouble()))
+
                 "inZone" -> p.copy(knobs = kn.copy(inBattleZone = v.toDouble()))
+
                 "now" -> p.copy(knobs = kn.copy(nowWeight = v.toDouble()))
+
                 "lane" -> p.copy(knobs = kn.copy(laneWeight = v.toDouble()))
+
                 "margin" -> p.copy(knobs = kn.copy(minionMargin = v.toDouble()))
+
                 "pp" -> p.copy(knobs = kn.copy(pushPerAttack = v.toDouble()))
+
                 "work" -> p.copy(workBudget = v.toLong())
+
                 "race" -> p.copy(race = v.toDouble())
+
                 "tempo" -> p.copy(knobs = kn.copy(killTempo = v.toDouble()))
+
                 "hand" -> p.copy(knobs = kn.copy(handRating = v.toDouble()))
+
                 // The exploiter (AI.md "Team sizes"): hunt=selfExposure/enemyExposure/enemyLife, e.g. hunt=0/2/1.5.
                 "hunt" -> v.split("/").map { it.toDouble() }.let { (se, ee, el) ->
                     p.copy(hunt = Hunt(selfExposure = se, enemyExposure = ee, enemyLife = el))
                 }
+
                 else -> error("Unknown override $k")
             }
         }

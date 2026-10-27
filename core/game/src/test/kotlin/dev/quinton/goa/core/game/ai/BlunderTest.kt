@@ -37,7 +37,11 @@ class BlunderTest {
         val lineups = AiHarness.mixedLineups(first + games, size = format.size).drop(first)
         val pool = Executors.newFixedThreadPool(System.getenv("AI_THREADS")?.toIntOrNull() ?: 4)
         val results = try {
-            pool.invokeAll(lineups.mapIndexed { i, (r, b) -> Callable { game(i, r, b, strength, format) } }).map { it.get() }
+            pool.invokeAll(
+                lineups.mapIndexed { i, (r, b) ->
+                    Callable { game(i, r, b, strength, format) }
+                },
+            ).map { it.get() }
         } finally {
             pool.shutdown()
         }

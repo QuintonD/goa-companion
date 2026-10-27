@@ -30,7 +30,8 @@ object AiHarness {
      * (p.20, DOMAIN "Match setup"), so 4v4 and 5v5 are measured on both.
      */
     data class Format(val size: Int, val mapId: String, val length: GameLength = GameLength.QUICK) {
-        val label: String get() = "${size}v$size" + if (mapId == TestData.FOREST) "" else " ${mapId.substringBefore('-')}"
+        val label: String get() = "${size}v$size" +
+            if (mapId == TestData.FOREST) "" else " ${mapId.substringBefore('-')}"
 
         override fun toString(): String = label
 
@@ -74,7 +75,9 @@ object AiHarness {
     private fun dump(s: EngineSession, decisionId: Long, e: Throwable) {
         val dir = System.getenv("AI_DUMP_DIR") ?: return
         val f = java.io.File(dir, "crash-${s.setup.seats.joinToString("-") { it.heroId }}-$decisionId.json")
-        f.writeText(kotlinx.serialization.json.Json.encodeToString(dev.quinton.goa.core.game.SavedGame.serializer(), s.save()))
+        f.writeText(
+            kotlinx.serialization.json.Json.encodeToString(dev.quinton.goa.core.game.SavedGame.serializer(), s.save()),
+        )
         println("DUMP ${f.path}: $e")
     }
 

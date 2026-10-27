@@ -21,6 +21,9 @@ class TimingTest {
             ?: listOf(2, 6, 8, 9, 10)
         val format = AiHarness.Format.parse(System.getenv("AI_TIMING_FORMAT"))
         val lineups = AiHarness.mixedLineups(games, size = format.size)
+        // AI_TIMING_THREADS=3: each answer's samples on three threads, as the app's runner.
+        val threads = System.getenv("AI_TIMING_THREADS")?.toIntOrNull()?.let { ThreadRunner(it) }
+        val runner = threads ?: SampleRunner.SEQUENTIAL
         for (strength in strengths) {
             val budget = AiPlayers.profile(strength).budgetMs
             val all = LinkedHashMap<DecisionKind, MutableList<Long>>()
@@ -39,8 +42,8 @@ class TimingTest {
                         format.mapId,
                     ),
                     mapOf(
-                        Team.RED to AiPlayers.forStrength(strength, 40L + g),
-                        Team.BLUE to AiPlayers.forStrength(strength, 50L + g),
+                        Team.RED to AiPlayers.forStrength(strength, 40L + g, runner),
+                        Team.BLUE to AiPlayers.forStrength(strength, 50L + g, runner),
                     ),
                     timed = true,
                 )
@@ -49,7 +52,9 @@ class TimingTest {
                 for ((k, v) in r.playBySeat) byHero.getOrPut(k) { ArrayList() } += v
                 work += r.playWork
             }
-            println("TIMING [$format] strength $strength (device budget per card $budget ms):")
+            println(
+                "TIMING [$format] strength $strength (device budget per card $budget ms, ${runner.width} thread(s)):",
+            )
             for ((k, v) in all) {
                 val ms = v.map { it / 1e6 }.sorted()
                 println(
@@ -76,6 +81,7 @@ class TimingTest {
             // Desktop mean well under the phone budget (a phone is ~3–4× slower).
             assertThat(play.average()).isLessThan(budget / 2.0)
         }
+        threads?.close()
     }
 
     private fun ms(v: Double): String = "%.0f".format(v)

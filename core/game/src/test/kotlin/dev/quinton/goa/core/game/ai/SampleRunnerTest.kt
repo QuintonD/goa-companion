@@ -18,7 +18,9 @@ class SampleRunnerTest {
         ThreadRunner(3).use { threads ->
             val format = AiHarness.Format.THREE
             val (red, blue) = AiHarness.mixedLineups(1, seed = 4242L, size = format.size)[0]
-            val s = TestData.engine.newGame(AiHarness.setup(red, blue, AiLevel.HARD, AiLevel.HARD, Team.RED)) as EngineSession
+            val s = TestData.engine.newGame(
+                AiHarness.setup(red, blue, AiLevel.HARD, AiLevel.HARD, Team.RED),
+            ) as EngineSession
             val profile = AiPlayers.profile(STRENGTH)
             val one = mapOf(
                 Team.RED to SearchAi(AiLevel.of(STRENGTH), profile, 7L, timeCap = false),

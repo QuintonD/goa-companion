@@ -196,72 +196,103 @@ internal class Searcher(
         mustInclude: Choice? = null,
     ): Analysis? {
         val isPlay = d.kind == DecisionKind.PLAY_CARD
-        val samples = if (isPlay) profile.playSamples else profile.otherSamples
+        val run = Run(es, d, seed, cancelled, if (isPlay) profile.playSamples else profile.otherSamples)
+        val work0 = work
+        val workCap = when {
+            profile.workBudget <= 0 -> Long.MAX_VALUE
+            isPlay -> profile.workBudget
+            else -> profile.workBudget / 3
+        }
+        val overBudget = { cancelled() || System.nanoTime() > deadline || work - work0 > workCap }
+        val candidates = only ?: run.first(mustInclude, overBudget) ?: return run.result()
+        run.batches(candidates, overBudget)
+        return run.result()
+    }
+
+    /** One [analyze]: the samples' values per option, filled column by column (one column per sample). */
+    private inner class Run(
+        val es: EngineSession,
+        val d: Decision,
+        val seed: Long,
+        val cancelled: () -> Boolean,
+        val samples: Int,
+    ) {
         val horizon = horizonOf(d.kind)
-        var candidates: List<Choice>? = only
         val table = LinkedHashMap<Choice, DoubleArray>()
         val leaves = ArrayList<Leaf>()
         var done = 0
         var k = 0
-        val work0 = work
-        val workCap = if (profile.workBudget <= 0) Long.MAX_VALUE else if (isPlay) profile.workBudget else profile.workBudget / 3
-        val overBudget = { cancelled() || System.nanoTime() > deadline || work - work0 > workCap }
-        // The first sample fixes the candidates (one after the other until one has the decision).
-        while (k < samples && candidates == null && (k == 0 || !overBudget())) {
-            val det = determinize(es, d, mix(seed, k.toLong()))
-            val dp = det.pending?.takeIf { it.seat == d.seat && it.kind == d.kind }
-            if (dp != null) {
+        var stopped = false
+
+        fun result(): Analysis? =
+            if (done == 0) null else Analysis(d, table.map { (c, v) -> OptionValue(c, v) }, leaves, done, k)
+
+        fun columns(cs: List<Choice>) {
+            for (o in cs) table.getOrPut(o) { DoubleArray(samples) { Double.NaN } }
+        }
+
+        fun decision(det: EngineSession): Decision? = det.pending?.takeIf { it.seat == d.seat && it.kind == d.kind }
+
+        /** The first sample that has the decision fixes the candidates; null if none did (or cancelled). */
+        fun first(mustInclude: Choice?, overBudget: () -> Boolean): List<Choice>? {
+            while (k < samples && (k == 0 || !overBudget())) {
+                val det = determinize(es, d, mix(seed, k.toLong()))
+                val dp = decision(det)
+                if (dp == null) {
+                    k++
+                    continue
+                }
                 val cs = prune(det, d, dp).let { c ->
                     if (mustInclude != null && mustInclude !in c && mustInclude in dp.options) c + mustInclude else c
-                }.also { candidates = it }
-                for (o in cs) table.getOrPut(o) { DoubleArray(samples) { Double.NaN } }
+                }
+                columns(cs)
                 if (!sample(det, dp, d, cs, k, horizon, table, leaves, cancelled)) {
                     for (arr in table.values) arr[k] = Double.NaN
-                    return if (done == 0) null else Analysis(d, table.map { (c, v) -> OptionValue(c, v) }, leaves, done, k)
+                    stopped = true
+                    return null
                 }
                 done++
+                k++
+                return cs
             }
-            k++
+            return null
         }
-        val cs = candidates
-        if (cs != null) {
-            for (o in cs) table.getOrPut(o) { DoubleArray(samples) { Double.NaN } }
-            var live: List<Choice> = cs
-            // The rest in batches of the runner's width, each sample on its own columns.
-            while (k < samples && (k == 0 || !overBudget())) {
+
+        /** The other samples in batches of the runner's width, each on its own column; racing between batches. */
+        fun batches(candidates: List<Choice>, overBudget: () -> Boolean) {
+            columns(candidates)
+            var live = candidates
+            while (!stopped && k < samples && (k == 0 || !overBudget())) {
                 val batch = k until minOf(samples, k + runner.width)
                 val status = IntArray(batch.count())
                 val batchLeaves = Array(status.size) { ArrayList<Leaf>() }
+                val cs = live
                 runner.runAll(
                     batch.mapIndexed { i, kk ->
                         {
                             val det = determinize(es, d, mix(seed, kk.toLong()))
-                            val dp = det.pending?.takeIf { it.seat == d.seat && it.kind == d.kind }
+                            val dp = decision(det)
                             status[i] = when {
                                 dp == null -> 0
-                                sample(det, dp, d, live, kk, horizon, table, batchLeaves[i], cancelled) -> 1
+                                sample(det, dp, d, cs, kk, horizon, table, batchLeaves[i], cancelled) -> 1
                                 else -> -1
                             }
                         }
                     },
                 )
-                var stop = false
                 for ((i, kk) in batch.withIndex()) {
-                    if (stop || status[i] < 0) {
+                    if (stopped || status[i] < 0) {
                         for (arr in table.values) arr[kk] = Double.NaN
-                        stop = true
+                        stopped = true
                         continue
                     }
                     if (status[i] == 1) done++
                     leaves += batchLeaves[i]
                     k = kk + 1
                 }
-                if (stop) break
                 if (profile.race > 0 && done >= RACE_MIN && live.size > 2) live = race(live, table, k)
             }
         }
-        if (done == 0) return null
-        return Analysis(d, table.map { (c, v) -> OptionValue(c, v) }, leaves, done, k)
     }
 
     /**
@@ -343,9 +374,11 @@ internal class Searcher(
             val v = table.getValue(c)
             var sum = 0.0
             var n = 0
-            for (i in 0 until k) if (!v[i].isNaN()) {
-                sum += v[i]
-                n++
+            for (i in 0 until k) {
+                if (!v[i].isNaN()) {
+                    sum += v[i]
+                    n++
+                }
             }
             return if (n == 0) Double.NEGATIVE_INFINITY else sum / n
         }

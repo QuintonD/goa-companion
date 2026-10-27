@@ -27,7 +27,11 @@ class FingerprintTest {
             )
             val hash = r.session.save().payload.hashCode()
             val secs = (System.nanoTime() - t0) / 1e9
-            println("FINGERPRINT [$format] ${spec[0]} game $i: ${r.decisions} decisions, hash $hash, ${"%.1f".format(secs)} s")
+            println(
+                "FINGERPRINT [$format] ${spec[0]} game $i: ${r.decisions} decisions, hash $hash, ${"%.1f".format(
+                    secs,
+                )} s",
+            )
         }
     }
 }

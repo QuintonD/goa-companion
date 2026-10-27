@@ -27,7 +27,10 @@ class GameLogTest {
         }
         // A side is a level (HARD) or a strength or variant as in [ExperimentTest] (s10+hunt=0/2/1.5).
         fun side(x: String): Pair<AiLevel, (Long) -> dev.quinton.goa.core.game.AiPlayer> =
-            AiLevel.entries.firstOrNull { it.name == x }?.let { lv -> lv to { sd: Long -> AiPlayers.deterministic(lv, sd) } }
+            AiLevel.entries.firstOrNull { it.name == x }?.let { lv ->
+                lv to
+                    { sd: Long -> AiPlayers.deterministic(lv, sd) }
+            }
                 ?: ExperimentTest.side(x).let { sd -> AiLevel.HARD to sd.factory }
         val (red, redPlayer) = side(spec[0])
         val (blue, bluePlayer) = side(spec[1])

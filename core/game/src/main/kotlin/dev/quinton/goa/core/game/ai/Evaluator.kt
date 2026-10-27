@@ -181,7 +181,12 @@ internal class MapInfo private constructor(g: Game) {
 internal class Threat(val p: CardProfile, val attackTotal: Int, val reach: Int, val weight: Double, val now: Boolean)
 
 /** One defense card in hand: its value with items (null: a Block answer only), and what it answers. */
-internal class DefenseCard(val value: Int?, val ignoresMods: Boolean, val blocksRanged: Boolean, val blocksMelee: Boolean)
+internal class DefenseCard(
+    val value: Int?,
+    val ignoresMods: Boolean,
+    val blocksRanged: Boolean,
+    val blocksMelee: Boolean,
+)
 
 /** A hero's defense at a moment: best numeric value (before minion modifiers) and its Block answers. */
 internal class DefenseSet(
@@ -417,7 +422,14 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
                 listOf(Attack(top.attackTotal, top.p.ranged, total))
             } else {
                 val pTop = min(total, byTotal.filter { it.attackTotal == top.attackTotal }.sumOf { it.weight })
-                listOf(Attack(top.attackTotal, top.p.ranged, pTop), Attack(second.attackTotal, second.p.ranged, total - pTop))
+                listOf(
+                    Attack(top.attackTotal, top.p.ranged, pTop),
+                    Attack(
+                        second.attackTotal,
+                        second.p.ranged,
+                        total - pTop,
+                    ),
+                )
             }
         }
         val cards = hero.defenseCards

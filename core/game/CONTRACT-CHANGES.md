@@ -275,3 +275,19 @@ client unaffected. No question was added or removed: the preview is information 
   `rangedAttackTarget` keep "no target adjacent to you" / "no target in range" for their plain prompts and
   take an optional `none`. Fireball: "no target in range that isn't adjacent to you or to a friendly
   unit". Same checks and fizzles: no question added or removed, saves replay unchanged.
+
+## 2026-10-27 — `feature/v09-ai-teams`: the computer at 3v3 and bigger (ADR-047 part A)
+- No change to `GameApi.kt`. Engine-side additions with defaults, all outside the saved game:
+  `EngineSession.determinizeWith(viewer, seed, options, quiet = false)` — a **quiet** search copy
+  builds no explanations for a player at its questions (`CHOOSE_ACTION`'s `unavailable` and
+  `primaryPreview` stay empty; the options are computed by the same checks and are the same);
+  forks copy the flag. The AI's determinized copies are quiet; the coach reads no `CHOOSE_ACTION`
+  context. `AiPlayers.forStrength(strength, seed, runner = SampleRunner.SEQUENTIAL)` and the public
+  `interface SampleRunner` (`width`, `runAll`): the samples of one answer may run on several
+  threads the app supplies; each sample writes its own column and they combine in sample order, so
+  an uncapped answer does not depend on the runner (`SampleRunnerTest`).
+- Behaviour: `canSpawnInto` no longer offers a Spawn point under a token when an effect (Static
+  Barrier, Spinning Blade) makes the space an obstacle for the unit or the actor; removing the token
+  first (p.19) leaves the effect in force. Before, Razzle's Stunt Doubles could pick it and the engine
+  threw "Place into a non-empty space" (found by a 3v3 tournament, `RazzleTest`). No question was added
+  or removed: a save that never offered such a space replays unchanged.

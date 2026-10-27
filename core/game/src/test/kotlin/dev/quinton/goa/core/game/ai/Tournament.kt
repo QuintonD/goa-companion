@@ -70,6 +70,50 @@ object Tournament {
             "wall ${"%.1f".format(wallMs / 1000.0 / games)} s/game (max ${"%.0f".format(wallMaxMs / 1000.0)} s)" +
             if (failures.isEmpty()) "" else "; FAILED ${failures.size}: ${failures.joinToString(" | ")}"
 
+        /** Adds one finished game: side a played Red when [aRed]; [aWon] null for an unfinished game. */
+        fun record(
+            lineup: Pair<List<String>, List<String>>,
+            aRed: Boolean,
+            aWon: Boolean?,
+            r: AiHarness.Result,
+            ms: Long,
+        ) {
+            when (aWon) {
+                null -> draws++
+                true -> aWins++
+                false -> bWins++
+            }
+            val (red, blue) = lineup
+            for (hero in if (aRed) red else blue) {
+                heroGames[hero] = (heroGames[hero] ?: 0) + 1
+                if (aWon == true) heroWins[hero] = (heroWins[hero] ?: 0) + 1
+            }
+            val reason = r.session.view(null).winReason?.name ?: "UNFINISHED"
+            reasons[reason] = (reasons[reason] ?: 0) + 1
+            rounds += r.rounds
+            when (aWon) {
+                true -> aWinsBy[reason] = (aWinsBy[reason] ?: 0) + 1
+                false -> bWinsBy[reason] = (bWinsBy[reason] ?: 0) + 1
+                null -> Unit
+            }
+            val aTeam = if (aRed) Team.RED else Team.BLUE
+            val teams = r.session.setup.seats.associate { it.heroId to it.team }
+            for (e in r.session.events) {
+                if (e !is GameEvent.Defeated) continue
+                val t = teams[e.unitId] ?: continue
+                if (t == aTeam) aDefeats++ else bDefeats++
+            }
+            wallMs += ms
+            wallMaxMs = maxOf(wallMaxMs, ms)
+            val result = when (aWon) {
+                null -> "draw"
+                true -> "$a won"
+                false -> "$b won"
+            }
+            lines += "${red.joinToString("+")} vs ${blue.joinToString("+")}: $a ${if (aRed) "Red" else "Blue"}, " +
+                "$result by $reason in round ${r.rounds}"
+        }
+
         /** a's win rate with each hero (the heroes a plays worst come first). */
         fun byHero(): String = heroGames.keys.sortedBy { (heroWins[it] ?: 0).toDouble() / heroGames.getValue(it) }
             .joinToString(", ") { "$it ${heroWins[it] ?: 0}/${heroGames.getValue(it)}" }
@@ -159,7 +203,11 @@ object Tournament {
                     )
                     val aWon = r.winner?.let { (it == Team.RED) == aIsRed }
                     val ms = (System.nanoTime() - t0) / 1_000_000
-                    if (PROGRESS) println("GAME ${red + blue} $a ${if (aIsRed) "Red" else "Blue"}: a won $aWon in ${ms / 1000} s")
+                    if (PROGRESS) {
+                        println(
+                            "GAME ${red + blue} $a ${if (aIsRed) "Red" else "Blue"}: a won $aWon in ${ms / 1000} s",
+                        )
+                    }
                     Triple(aWon, r, ms)
                 }
             }
@@ -185,41 +233,7 @@ object Tournament {
             for ((i, f) in futures.withIndex()) {
                 if (i / 2 in failedPairs) continue
                 val (aWon, r, ms) = f.get()
-                when (aWon) {
-                    null -> score.draws++
-                    true -> score.aWins++
-                    false -> score.bWins++
-                }
-                val (red, blue) = specs[i / 2].lineup
-                for (hero in if (aRed[i]) red else blue) {
-                    score.heroGames[hero] = (score.heroGames[hero] ?: 0) + 1
-                    if (aWon == true) score.heroWins[hero] = (score.heroWins[hero] ?: 0) + 1
-                }
-                val reason = r.session.view(null).winReason?.name ?: "UNFINISHED"
-                score.reasons[reason] = (score.reasons[reason] ?: 0) + 1
-                score.rounds += r.rounds
-                when (aWon) {
-                    true -> score.aWinsBy[reason] = (score.aWinsBy[reason] ?: 0) + 1
-                    false -> score.bWinsBy[reason] = (score.bWinsBy[reason] ?: 0) + 1
-                    null -> Unit
-                }
-                val aTeam = if (aRed[i]) Team.RED else Team.BLUE
-                val teams = r.session.setup.seats.associate { it.heroId to it.team }
-                for (e in r.session.events) {
-                    if (e !is GameEvent.Defeated) continue
-                    val t = teams[e.unitId] ?: continue
-                    if (t == aTeam) score.aDefeats++ else score.bDefeats++
-                }
-                score.wallMs += ms
-                score.wallMaxMs = maxOf(score.wallMaxMs, ms)
-                val side = if (aRed[i]) "Red" else "Blue"
-                val result = when (aWon) {
-                    null -> "draw"
-                    true -> "$a won"
-                    false -> "$b won"
-                }
-                score.lines += "${red.joinToString("+")} vs ${blue.joinToString("+")}: $a $side, " +
-                    "$result by $reason in round ${r.rounds}"
+                score.record(specs[i / 2].lineup, aRed[i], aWon, r, ms)
             }
         } finally {
             pool.shutdown()
