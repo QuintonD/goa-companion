@@ -284,7 +284,10 @@ private fun StepCard(
 
 /** The viewer's caption for a step's card: "Defense 5 against Attack 4 · Defended". */
 private fun caption(step: FlowStep): String? = when (step.kind) {
-    StepKind.DEFENSE -> step.text.substringAfter(": ", "").removeSuffix(".").ifEmpty { null }
+    StepKind.DEFENSE -> listOfNotNull(
+        step.attack?.let { "Against Attack $it" },
+        step.text.substringAfter(": ", "").removeSuffix(".").ifEmpty { null },
+    ).joinToString(" · ").ifEmpty { null }
     else -> step.text.removeSuffix(".")
 }
 

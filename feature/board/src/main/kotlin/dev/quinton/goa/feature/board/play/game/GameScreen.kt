@@ -373,8 +373,8 @@ private fun GameMenu(
 
 /**
  * The panel's content: a nudge, the moment the table is at (the reveal, a turn or round over), the
- * question, the computer's move or the wait, what happened that the board doesn't show, your hand.
- * When the question is the person's own, it comes first and the moment after it.
+ * question, the computer's move or the wait, the resolution flow (ADR-046), your hand. When the
+ * question is the person's own, it comes first, then the flow, then the moment.
  * The turn's cards themselves are on the turn track at the top (ADR-041).
  */
 @Composable
@@ -406,9 +406,10 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
 
         else -> Unit
     }
-    if (moment != null && questionFirst) MomentCard(moment, table, focus = focus)
-    // What happened since the person last chose, one entry per card resolved (ADR-046).
+    // What happened since the person last chose, one entry per card resolved (ADR-046): right under
+    // their question, before the moment (whose cards the flow's entries already show).
     if (nudge == null) ResolutionFlowView(play.flow, table, focus, Modifier.padding(top = Spacing.xs))
+    if (moment != null && questionFirst) MomentCard(moment, table, focus = focus)
     if (!table.handDecision && nudge == null) YourHand(table, focus)
 }
 

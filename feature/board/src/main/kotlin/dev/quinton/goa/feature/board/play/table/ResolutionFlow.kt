@@ -46,6 +46,8 @@ data class FlowStep(
     val important: Boolean = false,
     /** For a defense: the hero that defended (the card's owner). */
     val heroId: String? = null,
+    /** For a defense: the Attack total it answered (p.14). */
+    val attack: Int? = null,
 )
 
 /**
@@ -261,7 +263,11 @@ private class EntryBuilder(
     private fun steps(events: List<GameEvent>): List<FlowStep> {
         // The card discarded to defend is the defense step's card: its "discards" line is folded in.
         val folded = defenseDiscards(events)
-        return merged(events.filterIndexed { i, _ -> i !in folded }).mapNotNull(::step)
+        var attack: Int? = null
+        return merged(events.filterIndexed { i, _ -> i !in folded }).mapNotNull { e ->
+            if (e is GameEvent.Attacked) attack = e.total
+            step(e)?.let { if (it.kind == StepKind.DEFENSE) it.copy(attack = attack) else it }
+        }
     }
 
     /** Indexes of the "X discards Y." lines that are a defense's own discard (p.14 "discard it"). */

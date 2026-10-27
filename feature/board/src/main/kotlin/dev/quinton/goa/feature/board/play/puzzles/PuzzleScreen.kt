@@ -339,8 +339,8 @@ private fun ColumnScope.PuzzlePanel(
                 focus = focus,
                 busy = puzzle.busy,
             )
-            if (moment != null && questionFirst) MomentCard(moment, puzzle.table, focus = focus)
             ResolutionFlowView(puzzle.flow, puzzle.table, focus, Modifier.padding(top = Spacing.xs))
+            if (moment != null && questionFirst) MomentCard(moment, puzzle.table, focus = focus)
             if (!puzzle.table.handDecision) YourHand(puzzle.table, focus)
         }
     }

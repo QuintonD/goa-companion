@@ -42,6 +42,7 @@ import dev.quinton.goa.core.testing.FakeMatchRepository
 import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.feature.board.BundledImages
 import dev.quinton.goa.feature.board.boardHeroes
+import dev.quinton.goa.feature.board.hero
 import dev.quinton.goa.feature.board.bundledCatalog
 import dev.quinton.goa.feature.board.bundledMaps
 import dev.quinton.goa.feature.board.play.game.GameOverUi
@@ -63,6 +64,7 @@ import dev.quinton.goa.feature.board.play.setup.NewGameStep
 import dev.quinton.goa.feature.board.play.setup.NewGameViewModel
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.logLines
+import dev.quinton.goa.feature.board.play.table.resolutionFlow
 import dev.quinton.goa.feature.board.play.table.turnLog
 import dev.quinton.goa.feature.board.setup.NewBoardAction
 import kotlin.random.Random
@@ -187,6 +189,7 @@ class PlayScreenshotTest {
             session.events.filter(::panelWorthy).takeLast(4).map { it.text }
         },
         log = logLines(session.events),
+        flow = flowOf(session, humans),
         coach = true,
         pace = AiPace.NORMAL,
         takeBacks = 0,
@@ -200,6 +203,16 @@ class PlayScreenshotTest {
             emptyList()
         },
         over = over,
+    )
+
+    /** As the game shows it: what happened since the person's last answer (here, the whole game). */
+    private fun flowOf(session: FakeGameSession, humans: Set<String>) = resolutionFlow(
+        session.events,
+        0,
+        session.setup.seats.associate { it.heroId to it.team },
+        humans,
+        { heroes.hero(it).name },
+        { cards[it]?.name },
     )
 
     @Composable
@@ -367,10 +380,26 @@ class PlayScreenshotTest {
             GameEvent.TurnStarted(1, 2, "Turn 2 of round 1."),
         )
         val decision = s.pending!!.copy(options = hand.map { Choice.Card(it) })
+        val turn1Log = listOf(
+            log[0],
+            log[1],
+            GameEvent.ActionChosen("arien", "arien-red-1", ActionType.PRIMARY, "Arien uses Dangerous Current: primary action."),
+            GameEvent.Attacked("arien", "tigerclaw", 6, "Arien attacks Tigerclaw: Attack 6."),
+            GameEvent.Defeated("tigerclaw", "arien", "Tigerclaw is defeated by Arien."),
+            log[2],
+        )
         return p.copy(
             table = p.table.copy(view = view, decision = decision, turnLog = log),
             recent = listOf("Arien attacks Tigerclaw with Attack 6.", "Tigerclaw is defeated by Arien."),
             recentStrong = setOf(1),
+            flow = resolutionFlow(
+                turn1Log,
+                0,
+                s.setup.seats.associate { it.heroId to it.team },
+                setOf("arien"),
+                { heroes.hero(it).name },
+                { cards[it]?.name },
+            ),
         )
     }
 
