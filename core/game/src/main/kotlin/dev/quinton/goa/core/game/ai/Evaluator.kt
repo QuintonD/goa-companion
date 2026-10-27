@@ -73,8 +73,8 @@ internal enum class Term {
  * heroes − Σ their heroes. Zero-sum: computed for Red and negated for Blue. Reads only the state it
  * is given — always a determinized copy or the AI's own knowledge, never a human's hidden cards.
  */
-internal class Evaluator(val data: EngineData, val knobs: EvalKnobs = EvalKnobs()) {
-    fun evaluate(state: GameState, team: Team): Double {
+internal class Evaluator(val data: EngineData, val knobs: EvalKnobs = EvalKnobs()) : PositionEvaluator {
+    override fun evaluate(state: GameState, team: Team): Double {
         val red = Ctx(this, state).scoreRed()
         return if (team == Team.RED) red else -red
     }

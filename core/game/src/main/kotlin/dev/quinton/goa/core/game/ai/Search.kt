@@ -64,6 +64,10 @@ internal data class LevelProfile(
     val greedyMax: Int = Searcher.GREEDY_MAX,
     /** How far an upgrade choice is played out: TURN stops as the new round begins, NEXT_TURN plays its first turn. */
     val upgradeHorizon: Horizon = Horizon.TURN,
+    /** Where the learned evaluation scores positions instead of [knobs]' hand evaluation (AI.md "Learned evaluation"). */
+    val learned: EvalSource = EvalSource.HAND,
+    /** The net [learned] uses; null = the checked-in one ([LearnedNet.CURRENT]). */
+    val net: LearnedNet? = null,
 )
 
 /** One option's values over the samples (NaN where the option did not exist in a sample). */
@@ -110,6 +114,13 @@ internal class Searcher(
     private val keepLeaves: Boolean = false,
 ) {
     val static = StaticPolicy(ev)
+
+    /** What scores the end of a playout ([LevelProfile.learned]). */
+    val leaf: PositionEvaluator =
+        if (profile.learned == EvalSource.HAND) ev else NetEvaluator(ev.data, profile.net ?: LearnedNet.CURRENT)
+
+    /** What scores the one-ply looks inside a playout. */
+    private val inner: PositionEvaluator = if (profile.learned == EvalSource.EVERYWHERE) leaf else ev
 
     fun determinize(es: EngineSession, d: Decision, seed: Long): EngineSession {
         val team = d.team
@@ -232,7 +243,7 @@ internal class Searcher(
             val before = f.events.size
             f.answer(dp.id, o)
             playout(f, d.seat, d.team, horizon)
-            val v = ev.evaluate(f.state, d.team)
+            val v = leaf.evaluate(f.state, d.team)
             table.getValue(o)[k] = v
             if (keepLeaves) leaves += Leaf(o, k, f, before, v)
         }
@@ -343,7 +354,7 @@ internal class Searcher(
             val g = f.forkSession()
             g.answer(d.id, o)
             finishAction(g, d.seat)
-            val v = ev.evaluate(g.state, d.team)
+            val v = inner.evaluate(g.state, d.team)
             if (v > bestV) {
                 bestV = v
                 best = o
