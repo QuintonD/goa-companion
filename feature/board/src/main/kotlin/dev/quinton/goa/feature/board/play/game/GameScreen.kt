@@ -93,7 +93,7 @@ import dev.quinton.goa.feature.board.play.table.GameTable
 import dev.quinton.goa.feature.board.play.table.HeroDetail
 import dev.quinton.goa.feature.board.play.table.MomentCard
 import dev.quinton.goa.feature.board.play.table.PeekConfirm
-import dev.quinton.goa.feature.board.play.table.RecentEvents
+import dev.quinton.goa.feature.board.play.table.ResolutionFlowView
 import dev.quinton.goa.feature.board.play.table.SpellbookSheet
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableTap
@@ -407,14 +407,8 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
         else -> Unit
     }
     if (moment != null && questionFirst) MomentCard(moment, table, focus = focus)
-    when {
-        nudge != null -> Unit
-
-        play.status is TurnStatus.YourTurn ->
-            RecentEvents(play.recent, Modifier.padding(top = Spacing.xs), strong = play.recentStrong)
-
-        else -> RecentEvents(play.recent)
-    }
+    // What happened since the person last chose, one entry per card resolved (ADR-046).
+    if (nudge == null) ResolutionFlowView(play.flow, table, focus, Modifier.padding(top = Spacing.xs))
     if (!table.handDecision && nudge == null) YourHand(table, focus)
 }
 

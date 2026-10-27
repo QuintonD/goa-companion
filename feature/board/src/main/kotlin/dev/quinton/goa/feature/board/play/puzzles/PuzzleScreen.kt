@@ -83,6 +83,7 @@ import dev.quinton.goa.feature.board.play.table.HeroDetail
 import dev.quinton.goa.feature.board.play.table.MomentCard
 import dev.quinton.goa.feature.board.play.table.PeekConfirm
 import dev.quinton.goa.feature.board.play.table.RecentEvents
+import dev.quinton.goa.feature.board.play.table.ResolutionFlowView
 import dev.quinton.goa.feature.board.play.table.SpellbookSheet
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableTap
@@ -320,7 +321,7 @@ private fun ColumnScope.PuzzlePanel(
         puzzle.phase == PuzzlePhase.MISSED -> {
             MissCard(puzzle, onAction)
             puzzle.nudge?.let { Nudge(it, onAction) }
-            RecentEvents(puzzle.recent)
+            ResolutionFlowView(puzzle.flow, puzzle.table, focus)
         }
 
         else -> {
@@ -339,7 +340,7 @@ private fun ColumnScope.PuzzlePanel(
                 busy = puzzle.busy,
             )
             if (moment != null && questionFirst) MomentCard(moment, puzzle.table, focus = focus)
-            RecentEvents(puzzle.recent.takeLast(2), Modifier.padding(top = Spacing.xs))
+            ResolutionFlowView(puzzle.flow, puzzle.table, focus, Modifier.padding(top = Spacing.xs))
             if (!puzzle.table.handDecision) YourHand(puzzle.table, focus)
         }
     }
