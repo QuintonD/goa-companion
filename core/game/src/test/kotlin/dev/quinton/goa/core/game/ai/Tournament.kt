@@ -37,6 +37,10 @@ object Tournament {
         var aDefeats = 0
         var bDefeats = 0
 
+        /** Of those, defeats of a hero with no card left to defend with (a card-kill after its hand was stripped). */
+        var aEmptyHand = 0
+        var bEmptyHand = 0
+
         /** Games that failed (AI_KEEP_GOING): their mirrored pairs are left out of the score. */
         val failures = ArrayList<String>()
 
@@ -66,7 +70,9 @@ object Tournament {
 
         /** Defeats per game per side, how each side won, and the wall time per game. */
         fun details(): String = "defeats/game $a ${"%.2f".format(aDefeats.toDouble() / games)} " +
-            "$b ${"%.2f".format(bDefeats.toDouble() / games)}; $a won by $aWinsBy; $b won by $bWinsBy; " +
+            "$b ${"%.2f".format(
+                bDefeats.toDouble() / games,
+            )} (with no card to defend: $aEmptyHand / $bEmptyHand); $a won by $aWinsBy; $b won by $bWinsBy; " +
             "wall ${"%.1f".format(wallMs / 1000.0 / games)} s/game (max ${"%.0f".format(wallMaxMs / 1000.0)} s)" +
             if (failures.isEmpty()) "" else "; FAILED ${failures.size}: ${failures.joinToString(" | ")}"
 
@@ -98,10 +104,16 @@ object Tournament {
             }
             val aTeam = if (aRed) Team.RED else Team.BLUE
             val teams = r.session.setup.seats.associate { it.heroId to it.team }
+            var empty: String? = null
             for (e in r.session.events) {
+                if (e is GameEvent.Note && e.text.endsWith(" has no card to defend with.")) empty = e.text
                 if (e !is GameEvent.Defeated) continue
                 val t = teams[e.unitId] ?: continue
+                val noCard = empty != null && empty.startsWith(r.session.engineData.heroName(e.unitId) + " ")
+                empty = null
                 if (t == aTeam) aDefeats++ else bDefeats++
+                if (noCard && t == aTeam) aEmptyHand++
+                if (noCard && t != aTeam) bEmptyHand++
             }
             wallMs += ms
             wallMaxMs = maxOf(wallMaxMs, ms)
