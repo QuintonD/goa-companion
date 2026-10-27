@@ -223,8 +223,9 @@ One ring of water hexes (the terrain around the board, p.19) is drawn faintly ar
 (`water`/`waterLine`). Zone labels (Battle Zone, "Lane 1 · Battle Zone" on a double-lane map,
 Red/Blue Throne) float at a fixed size outside the zoom, so they stay readable; they sit just
 outside their Zone's edge, under every piece and overlay, and take the first of their places that
-is in view and covers no piece, highlighted space, Measure line or map button; with none free they
-hide. **Spawn points** are the rulebook's printed symbols (p.6, `rememberSpawnArt`), drawn as markings on
+is in view and covers no piece, highlighted space, Measure line or map button (on the game table the
+Fit / Flip / Spellbook column as laid out, under the hero strip and grown with the font scale); with
+none free they hide. **Spawn points** are the rulebook's printed symbols (p.6, `rememberSpawnArt`), drawn as markings on
 the board, never as units: faded (50 %) and partly desaturated toward the Zone fill, 1.0 u across,
 inside a piece's disc, so a minion or hero standing on one hides it completely (an occupied Spawn
 point shows only its piece) and the pieces stay the most prominent thing on any space. A hero Spawn
@@ -340,8 +341,9 @@ upgrade, ADR-045) is a row per card that may be upgraded: the hand card framed 2
 choice), an arrow, then the two cards it would become with their item (the official icon and "+1
 Initiative"), three cards across the panel (60–100 dp); under each card the spells it names (Gydion,
 landscape, as wide as the card, tap to read); "The card on the left is the choice…" under the rows.
-Keep's two cards have their spells under them the same way. During the person's level up the end of
-round summary comes after the rows. **Defend** is an error-container
+Keep's two cards have their spells under them the same way. Whenever the question is the person's
+own (any kind, game and puzzles) the moment (reveal, turn over, the end of round summary) comes after
+it, and a new question opens the panel at its top. **Defend** is an error-container
 header with the attacker's card (56 dp, tap to read), "Arien attacks · melee", the Attack total, the
 minion modifier counted and "Discard a card to defend" (it carries the prompt for TalkBack), then the
 hand's cards themselves with the verdict under each in words with an icon ("✓ Holds" teal, "! Falls"
@@ -394,13 +396,15 @@ spell cards, for Gydion's player only), "Cast · removed faceup · 3" (everyone)
 Anyone else sees "In the spellbook · 19" and "Facedown: only Gydion can look at the cards in the
 spellbook." (a puzzle, whose hands are open, says "Open in this puzzle."). The cards are the official
 landscape scans in a grid as wide as the sheet (columns of at least 104 dp, wider with large text up to
-×1.6, at most 4; whole-pixel widths so a row never wraps its last card); the images are the content,
+×1.6, at most 6; whole-pixel widths so a row never wraps its last card); the images are the content,
 no card text retyped. On the Spellbook sheet each group lists its spells by Tier under a small
 labelLarge head ("Gold (no tier) · 3", "Tier I · 2", …, "Ultimate · 1"), as the catalog and the pre-game
-sheet do; the viewer still swipes through the whole group. For Gydion's own player each spell in the
+sheet do, a Tier sharing its row with the next when both fit (no row a third empty in landscape); the
+viewer still swipes through the whole group. For Gydion's own player each spell in the
 spellbook that a card in his hand names carries a line under it, "Cast with Lesser Evocation" ("Cast
 with Cantrip or Lesser Evocation"; labelSmall, onSurface; the names are the catalog card text's own
-quoted spells) — a cast question's mark replaces it while asked. The groups' counts are said there only: the sheet's number row
+quoted spells; two lines at most, the size stepping down rather than an ellipsis) — a cast question's
+mark replaces it while asked. The groups' counts are said there only: the sheet's number row
 leaves out the engine's "spellbook" and "spellsRemoved" counters (it keeps "Wish casts"). A tap opens
 the card focus viewer among that group. Cantrip's
 "Choose and cast one spell" offers the spells as landscape cards that share the row's height
@@ -453,7 +457,8 @@ discarded cards, a puzzle replay's card, and the sandbox's "Read the cards".
 - **First tap** on a thumbnail: the card grows out of it (scale and translate from the thumbnail's
   bounds, 340 ms emphasised deceleration) into a large card over a near-black scrim (93 %, the same in
   both themes; light text on it). Portrait: × with the question's title ("WASP · CARD", bronze overline)
-  and "Card 2 of 4" with page dots on the scrim, the card up to 60 % of the height (50 % above font
+  and "Card 2 of 4" with page dots on the scrim (the spells a card names are said as its pages: "Card 2
+  of 9 · spell 1 of 2"), the card up to 60 % of the height (50 % above font
   scale 1.3; on a phone it is as wide as the screen allows; it gives way to the panel, down to 30 % /
   24 %, before any line of the panel is squeezed: the panel is measured for every card of the viewer,
   the tallest counts), then a surface panel (28 dp top corners) at the bottom, **as tall as its words**: only what the card doesn't print (ADR-041: the scan is the
