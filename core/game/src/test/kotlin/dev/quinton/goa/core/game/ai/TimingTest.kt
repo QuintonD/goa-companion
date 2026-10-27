@@ -57,7 +57,8 @@ class TimingTest {
                 work += r.playWork
             }
             println(
-                "TIMING [$format] ${variant ?: "strength $strength"} (device budget per card $budget ms, ${runner.width} thread(s)):",
+                "TIMING [$format] ${variant ?: "strength $strength"} " +
+                    "(device budget per card $budget ms, ${runner.width} thread(s)):",
             )
             for ((k, v) in all) {
                 val ms = v.map { it / 1e6 }.sorted()

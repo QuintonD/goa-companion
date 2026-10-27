@@ -102,19 +102,7 @@ object Tournament {
                 false -> bWinsBy[reason] = (bWinsBy[reason] ?: 0) + 1
                 null -> Unit
             }
-            val aTeam = if (aRed) Team.RED else Team.BLUE
-            val teams = r.session.setup.seats.associate { it.heroId to it.team }
-            var empty: String? = null
-            for (e in r.session.events) {
-                if (e is GameEvent.Note && e.text.endsWith(" has no card to defend with.")) empty = e.text
-                if (e !is GameEvent.Defeated) continue
-                val t = teams[e.unitId] ?: continue
-                val noCard = empty != null && empty.startsWith(r.session.engineData.heroName(e.unitId) + " ")
-                empty = null
-                if (t == aTeam) aDefeats++ else bDefeats++
-                if (noCard && t == aTeam) aEmptyHand++
-                if (noCard && t != aTeam) bEmptyHand++
-            }
+            countDefeats(r, if (aRed) Team.RED else Team.BLUE)
             wallMs += ms
             wallMaxMs = maxOf(wallMaxMs, ms)
             val result = when (aWon) {
@@ -124,6 +112,22 @@ object Tournament {
             }
             lines += "${red.joinToString("+")} vs ${blue.joinToString("+")}: $a ${if (aRed) "Red" else "Blue"}, " +
                 "$result by $reason in round ${r.rounds}"
+        }
+
+        /** Heroes defeated per side, and those with no card left to defend with. */
+        private fun countDefeats(r: AiHarness.Result, aTeam: Team) {
+            val teams = r.session.setup.seats.associate { it.heroId to it.team }
+            var empty: String? = null
+            for (e in r.session.events) {
+                if (e is GameEvent.Note && e.text.endsWith(" has no card to defend with.")) empty = e.text
+                if (e !is GameEvent.Defeated) continue
+                val t = teams[e.unitId] ?: continue
+                val noCard = empty?.startsWith(r.session.engineData.heroName(e.unitId) + " ") == true
+                empty = null
+                if (t == aTeam) aDefeats++ else bDefeats++
+                if (noCard && t == aTeam) aEmptyHand++
+                if (noCard && t != aTeam) bEmptyHand++
+            }
         }
 
         /** a's win rate with each hero (the heroes a plays worst come first). */
