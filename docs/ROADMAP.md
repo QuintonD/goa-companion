@@ -357,7 +357,8 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   outcome in a few words, steps with the defending card as the card; the person's attack defended by an
   enemy opens by itself; game and puzzles — 2026-10-27, `ResolutionFlowTest` (8: attack + defense, a failed
   defense in a move-then-attack, a forced discard, a 3v3 turn of five cards, the end of round, nothing new,
-  a facedown discard, no peeking over a random 3v3 game), `GameViewModelTest` (+1),
+  a facedown discard, no peeking over a random 3v3 game), `GameViewModelTest` (+1), `PuzzleViewModelTest`
+  (a take back leaves nothing new),
   `ResolutionFlowScreenshotTest` (7: collapsed, expanded, the defense card in the viewer; portrait,
   landscape, light, W384 font scale 2) looked at; play / review screenshots re-recorded. JVM only
 - [ ] On the S25 Ultra: a 3v3 game against strength 10 — the flow after the computer's turn, an attack of
