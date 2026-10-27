@@ -25,16 +25,46 @@ object AiHarness {
     )
 
     /**
-     * [n] line-ups drawn from every playable hero: consecutive shuffles of the roster cut into fours,
-     * so every hero is seated about equally often (Red pair, Blue pair). Seeded and stable.
+     * A team size and the table it is played on. The app offers every verified map at every size and
+     * starts on Forgotten Island (single lane); the rulebook requires the double lane from 8 players
+     * (p.20, DOMAIN "Match setup"), so 4v4 and 5v5 are measured on both.
      */
-    fun mixedLineups(n: Int, seed: Long = 20_261_024L): List<Pair<List<String>, List<String>>> {
+    data class Format(val size: Int, val mapId: String, val length: GameLength = GameLength.QUICK) {
+        val label: String get() = "${size}v$size" + if (mapId == TestData.FOREST) "" else " ${mapId.substringBefore('-')}"
+
+        override fun toString(): String = label
+
+        companion object {
+            val TWO = Format(2, TestData.FOREST)
+            val THREE = Format(3, TestData.FOREST)
+            val FOUR = Format(4, TestData.FOREST)
+            val FOUR_RIVER = Format(4, TestData.RIVER)
+            val FIVE_RIVER = Format(5, TestData.RIVER)
+
+            /** `2v2`, `3v3`, `4v4`, `4v4river`, `5v5river` (`AI_FORMAT`); null = 2v2. */
+            fun parse(spec: String?): Format {
+                if (spec.isNullOrBlank()) return TWO
+                val size = spec.substringBefore('v').toInt()
+                val map = if (spec.contains("river")) TestData.RIVER else TestData.FOREST
+                val length = if (spec.contains("long")) GameLength.LONG else GameLength.QUICK
+                return Format(size, map, length)
+            }
+        }
+    }
+
+    /**
+     * [n] line-ups drawn from every playable hero: consecutive shuffles of the roster cut into groups
+     * of 2 × [size] (fours for 2v2), so every hero is seated about equally often (the first [size] Red).
+     * Seeded and stable; the 2v2 list is the one every earlier measurement used.
+     */
+    fun mixedLineups(n: Int, seed: Long = 20_261_024L, size: Int = 2): List<Pair<List<String>, List<String>>> {
         val heroes = TestData.engine.playableHeroes.sorted()
         val rng = Random(seed)
         val out = ArrayList<Pair<List<String>, List<String>>>()
+        val group = 2 * size
         while (out.size < n) {
-            for (four in heroes.shuffled(rng).chunked(4)) {
-                if (four.size == 4 && out.size < n) out += four.take(2) to four.drop(2)
+            for (g in heroes.shuffled(rng).chunked(group)) {
+                if (g.size == group && out.size < n) out += g.take(size) to g.drop(size)
             }
         }
         return out
@@ -57,8 +87,9 @@ object AiHarness {
         blueLevel: AiLevel,
         coin: Team,
         length: GameLength = GameLength.QUICK,
+        mapId: String = TestData.FOREST,
     ) = GameSetup(
-        TestData.FOREST,
+        mapId,
         red.map { SeatSetup(it, Team.RED, Controller.Ai(redLevel)) } +
             blue.map { SeatSetup(it, Team.BLUE, Controller.Ai(blueLevel)) },
         length = length,

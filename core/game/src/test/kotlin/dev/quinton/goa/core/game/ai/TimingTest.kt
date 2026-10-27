@@ -19,7 +19,8 @@ class TimingTest {
         val games = System.getenv("AI_TIMING_GAMES")?.toIntOrNull() ?: 2
         val strengths = System.getenv("AI_TIMING_STRENGTHS")?.split(",")?.map { it.trim().toInt() }
             ?: listOf(2, 6, 8, 9, 10)
-        val lineups = AiHarness.mixedLineups(games)
+        val format = AiHarness.Format.parse(System.getenv("AI_TIMING_FORMAT"))
+        val lineups = AiHarness.mixedLineups(games, size = format.size)
         for (strength in strengths) {
             val budget = AiPlayers.profile(strength).budgetMs
             val all = LinkedHashMap<DecisionKind, MutableList<Long>>()
@@ -27,17 +28,26 @@ class TimingTest {
             for ((g, lineup) in lineups.withIndex()) {
                 val (red, blue) = lineup
                 val r = AiHarness.play(
-                    AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, if (g % 2 == 0) Team.RED else Team.BLUE),
+                    AiHarness.setup(
+                        red,
+                        blue,
+                        AiLevel.NORMAL,
+                        AiLevel.NORMAL,
+                        if (g % 2 == 0) Team.RED else Team.BLUE,
+                        format.length,
+                        format.mapId,
+                    ),
                     mapOf(
                         Team.RED to AiPlayers.forStrength(strength, 40L + g),
                         Team.BLUE to AiPlayers.forStrength(strength, 50L + g),
                     ),
                     timed = true,
                 )
+                if (System.getenv("AI_PROGRESS") != null) println("TIMING   game $g: ${r.rounds} rounds, ${r.winner}")
                 for ((k, v) in r.timings) all.getOrPut(k) { ArrayList() } += v
                 for ((k, v) in r.playBySeat) byHero.getOrPut(k) { ArrayList() } += v
             }
-            println("TIMING strength $strength (device budget per card $budget ms):")
+            println("TIMING [$format] strength $strength (device budget per card $budget ms):")
             for ((k, v) in all) {
                 val ms = v.map { it / 1e6 }.sorted()
                 println(

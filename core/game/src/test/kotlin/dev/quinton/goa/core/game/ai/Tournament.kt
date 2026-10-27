@@ -2,6 +2,7 @@ package dev.quinton.goa.core.game.ai
 
 import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.AiPlayer
+import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.model.match.Team
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
@@ -28,6 +29,18 @@ object Tournament {
         val reasons = LinkedHashMap<String, Int>()
         var rounds = 0
 
+        /** How each side won (win reason → games). */
+        val aWinsBy = sortedMapOf<String, Int>()
+        val bWinsBy = sortedMapOf<String, Int>()
+
+        /** Heroes of each side defeated, summed over the games. */
+        var aDefeats = 0
+        var bDefeats = 0
+
+        /** Wall time of the games (ms, summed) and the longest one. */
+        var wallMs = 0L
+        var wallMaxMs = 0L
+
         /** Per hero: games in which side a played it, and how many of those a won. */
         val heroGames = sortedMapOf<String, Int>()
         val heroWins = sortedMapOf<String, Int>()
@@ -48,10 +61,18 @@ object Tournament {
                 "avg ${"%.1f".format(rounds.toDouble() / games)} rounds, $reasons"
         }
 
+        /** Defeats per game per side, how each side won, and the wall time per game. */
+        fun details(): String = "defeats/game $a ${"%.2f".format(aDefeats.toDouble() / games)} " +
+            "$b ${"%.2f".format(bDefeats.toDouble() / games)}; $a won by $aWinsBy; $b won by $bWinsBy; " +
+            "wall ${"%.1f".format(wallMs / 1000.0 / games)} s/game (max ${"%.0f".format(wallMaxMs / 1000.0)} s)"
+
         /** a's win rate with each hero (the heroes a plays worst come first). */
         fun byHero(): String = heroGames.keys.sortedBy { (heroWins[it] ?: 0).toDouble() / heroGames.getValue(it) }
             .joinToString(", ") { "$it ${heroWins[it] ?: 0}/${heroGames.getValue(it)}" }
     }
+
+    /** `AI_PROGRESS=1`: a line per finished game (long runs). */
+    private val PROGRESS = System.getenv("AI_PROGRESS") != null
 
     fun wilson(p: Double, games: Int): Pair<Double, Double> {
         val n = games.toDouble()
@@ -81,18 +102,31 @@ object Tournament {
      * [lineups] line-ups drawn from all playable heroes ([AiHarness.mixedLineups], starting at
      * [firstLineup]), the coin alternating, each mirrored: 2 × lineups games.
      */
-    fun runMixed(a: Side, b: Side, lineups: Int, threads: Int = 4, firstLineup: Int = 0): Score {
-        val all = AiHarness.mixedLineups(firstLineup + lineups)
+    fun runMixed(
+        a: Side,
+        b: Side,
+        lineups: Int,
+        threads: Int = 4,
+        firstLineup: Int = 0,
+        format: AiHarness.Format = AiHarness.Format.TWO,
+    ): Score {
+        val all = AiHarness.mixedLineups(firstLineup + lineups, size = format.size)
         val specs = (firstLineup until firstLineup + lineups).map { i ->
             Spec(all[i], if (i % 2 == 0) Team.RED else Team.BLUE, 50_000L + i)
         }
-        return play(a, b, specs, threads)
+        return play(a, b, specs, threads, format)
     }
 
-    private fun play(a: Side, b: Side, specs: List<Spec>, threads: Int): Score {
+    private fun play(
+        a: Side,
+        b: Side,
+        specs: List<Spec>,
+        threads: Int,
+        format: AiHarness.Format = AiHarness.Format.TWO,
+    ): Score {
         val score = Score(a, b)
         // Each job: did side a win (null = unfinished), and the game.
-        val jobs = ArrayList<Callable<Pair<Boolean?, AiHarness.Result>>>()
+        val jobs = ArrayList<Callable<Triple<Boolean?, AiHarness.Result, Long>>>()
         val aRed = ArrayList<Boolean>()
         for (spec in specs) {
             val (red, blue) = spec.lineup
@@ -100,7 +134,16 @@ object Tournament {
                 aRed += aIsRed
                 jobs += Callable {
                     // The controllers only mark the seats as computer seats; the players decide.
-                    val setup = AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, spec.coin)
+                    val setup = AiHarness.setup(
+                        red,
+                        blue,
+                        AiLevel.NORMAL,
+                        AiLevel.NORMAL,
+                        spec.coin,
+                        format.length,
+                        format.mapId,
+                    )
+                    val t0 = System.nanoTime()
                     val r = AiHarness.play(
                         setup,
                         mapOf(
@@ -109,14 +152,16 @@ object Tournament {
                         ),
                     )
                     val aWon = r.winner?.let { (it == Team.RED) == aIsRed }
-                    aWon to r
+                    val ms = (System.nanoTime() - t0) / 1_000_000
+                    if (PROGRESS) println("GAME ${red + blue} $a ${if (aIsRed) "Red" else "Blue"}: a won $aWon in ${ms / 1000} s")
+                    Triple(aWon, r, ms)
                 }
             }
         }
         val pool = Executors.newFixedThreadPool(threads)
         try {
             for ((i, f) in pool.invokeAll(jobs).withIndex()) {
-                val (aWon, r) = try {
+                val (aWon, r, ms) = try {
                     f.get()
                 } catch (e: java.util.concurrent.ExecutionException) {
                     val spec = specs[i / 2]
@@ -137,6 +182,20 @@ object Tournament {
                 val reason = r.session.view(null).winReason?.name ?: "UNFINISHED"
                 score.reasons[reason] = (score.reasons[reason] ?: 0) + 1
                 score.rounds += r.rounds
+                when (aWon) {
+                    true -> score.aWinsBy[reason] = (score.aWinsBy[reason] ?: 0) + 1
+                    false -> score.bWinsBy[reason] = (score.bWinsBy[reason] ?: 0) + 1
+                    null -> Unit
+                }
+                val aTeam = if (aRed[i]) Team.RED else Team.BLUE
+                val teams = r.session.setup.seats.associate { it.heroId to it.team }
+                for (e in r.session.events) {
+                    if (e !is GameEvent.Defeated) continue
+                    val t = teams[e.unitId] ?: continue
+                    if (t == aTeam) score.aDefeats++ else score.bDefeats++
+                }
+                score.wallMs += ms
+                score.wallMaxMs = maxOf(score.wallMaxMs, ms)
                 val side = if (aRed[i]) "Red" else "Blue"
                 val result = when (aWon) {
                     null -> "draw"
