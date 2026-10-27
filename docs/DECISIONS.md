@@ -1365,3 +1365,44 @@ reach a level up when a hero gained the coins; it asks through the same panel (p
 question (ADR-041 §7). The viewer's "Card 3 of 24" counted every spell as a card: it counts the cards
 and says a spell as its card's ("Card 2 of 9 · spell 2 of 2", TalkBack the same; `focusPosition`, any
 viewer whose pages name other pages).
+
+## ADR-047 — A stronger computer for 3v3 and bigger (2026-10-27)
+
+### ADR-047 part B — learned evaluation
+**Context:** The owner beat strength 10 easily (hero kills and lane pushes, 3v3 or bigger) and asked
+for an ML route "akin to chess" that does not load the phone. AI.md's own conclusion after v0.7: the
+top end is flat; more search bought nothing, the evaluation is the limit. Every earlier measurement
+was 2v2.
+**Decision:**
+- **Engine-style, not end-to-end:** keep the search; score the end of each playout with a small net
+  trained offline on self-play (NNUE-style: cheap inference, offline training, iterated). Strength
+  10 uses it at playout ends (`AiPlayers.LEARNED_FROM`, `EvalSource.LEAVES`); the one-ply looks inside
+  playouts, the static policy and opponent model, strengths 1–9 and the coach (its thresholds and
+  reasons) keep the hand evaluation. Given to 5–10 the net made each of them stronger but compressed
+  the ladder's steps (6 over 5 55.7%, 8 over 7 56.8%, 10 over 9 51.6%); at the top alone it keeps
+  the measured ladder 1–9 and makes the top step the biggest (10 over 9 75.0% (68.4–80.6%), 192 games).
+- **Features** (`Features.kt`): 52 numbers per hero pooled per team as sum and max, 40 global ones,
+  the hand evaluation's twelve terms among them; team-size invariant (one net, 1v1–5v5); read from the
+  determinized copy like `Evaluator` (no hidden information). **Net** (`LearnedEval.kt`): 248 → 64 →
+  32 → 1, ReLU, plus a linear skip that starts as the hand evaluation; P(Red) = σ(N(Red) − N(Blue)),
+  exactly antisymmetric; logit × the hand evaluation's fitted scale = coin-equivalents, so the
+  search's settings keep their meaning.
+- **Weights in source** (`LearnedWeights.kt`, generated FloatArray literals, the feature-schema hash;
+  `LearnedNetTest` fails on a mismatch): pure Kotlin, so the web build (ADR-043) shares them.
+- **Training** (opt-in tests, pure Kotlin, seeded, bit-for-bit reproducible): self-play at strength 7
+  and variants (a noisy one, an aggressive kill-seeker that ignores its own exposure, 6, 8) across
+  2v2–5v5 weighted to 3v3+; targets are λ-returns (λ 0.7 per recorded position) bootstrapped from the
+  hand evaluation; AdamW with early stopping on held-out line-ups. Generation 1 played with the
+  generation-0 net and was kept (58.3% against it); generation 2 measured no better (52.6%, 47.9%) and
+  was dropped.
+- **Measured** on line-ups never used for training or tuning, mirrored, 95% Wilson: strength 10 with
+  the net against today's strength 10 — 3v3 67.7% (60.8–73.9%) over 192 games; 2v2 67.2% (60.3–73.4%); 4v4 ⟨4v4⟩.
+**Alternatives (measured and dropped, AI.md "Learned evaluation"):** training on the game result alone
+(the best held-out log-loss, 37.5% in play: the search exploits a sharp, noisy evaluation); larger λ
+(0.85: 58.9%, 0.95: 51.6% at strength 7); the net also in the one-ply looks (45.3%); a third
+generation; iterating the teacher on the same games (no gain beyond noise).
+**Consequences:** Strength 10 (Expert, and a save's Expert) plays stronger at every team size;
+strengths 1–9, the coach and saves are unchanged (no engine contract change). An evaluation costs about twice the hand one
+(about 40 µs against 21 µs for a 3v3 position on the desktop); decision times ⟨timing⟩. A change to the features needs a retrain (one command, AI.md "How to
+retrain"); the training games live outside the repo (D:\.goa-qa\v09\a2\data) and are reproducible from
+their commands.
