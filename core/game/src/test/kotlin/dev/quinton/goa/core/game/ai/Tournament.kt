@@ -37,6 +37,9 @@ object Tournament {
         var aDefeats = 0
         var bDefeats = 0
 
+        /** Games that failed (AI_KEEP_GOING): their mirrored pairs are left out of the score. */
+        val failures = ArrayList<String>()
+
         /** Wall time of the games (ms, summed) and the longest one. */
         var wallMs = 0L
         var wallMaxMs = 0L
@@ -64,12 +67,15 @@ object Tournament {
         /** Defeats per game per side, how each side won, and the wall time per game. */
         fun details(): String = "defeats/game $a ${"%.2f".format(aDefeats.toDouble() / games)} " +
             "$b ${"%.2f".format(bDefeats.toDouble() / games)}; $a won by $aWinsBy; $b won by $bWinsBy; " +
-            "wall ${"%.1f".format(wallMs / 1000.0 / games)} s/game (max ${"%.0f".format(wallMaxMs / 1000.0)} s)"
+            "wall ${"%.1f".format(wallMs / 1000.0 / games)} s/game (max ${"%.0f".format(wallMaxMs / 1000.0)} s)" +
+            if (failures.isEmpty()) "" else "; FAILED ${failures.size}: ${failures.joinToString(" | ")}"
 
         /** a's win rate with each hero (the heroes a plays worst come first). */
         fun byHero(): String = heroGames.keys.sortedBy { (heroWins[it] ?: 0).toDouble() / heroGames.getValue(it) }
             .joinToString(", ") { "$it ${heroWins[it] ?: 0}/${heroGames.getValue(it)}" }
     }
+
+    private val KEEP_GOING = System.getenv("AI_KEEP_GOING") != null
 
     /** `AI_PROGRESS=1`: a line per finished game (long runs). */
     private val PROGRESS = System.getenv("AI_PROGRESS") != null
@@ -160,15 +166,25 @@ object Tournament {
         }
         val pool = Executors.newFixedThreadPool(threads)
         try {
-            for ((i, f) in pool.invokeAll(jobs).withIndex()) {
-                val (aWon, r, ms) = try {
+            val futures = pool.invokeAll(jobs)
+            // AI_KEEP_GOING: a failed game (an engine crash) drops its mirrored pair and is reported
+            // instead of ending the run (long measurements); by default it fails the run.
+            val failedPairs = HashSet<Int>()
+            for ((i, f) in futures.withIndex()) {
+                try {
                     f.get()
                 } catch (e: java.util.concurrent.ExecutionException) {
                     val spec = specs[i / 2]
                     val side = if (aRed[i]) "Red" else "Blue"
                     val game = "${spec.lineup}, coin ${spec.coin}, seed ${spec.seed}, $a $side"
-                    throw IllegalStateException("Game failed: $game", e)
+                    if (!KEEP_GOING) throw IllegalStateException("Game failed: $game", e)
+                    failedPairs += i / 2
+                    score.failures += "$game: ${e.cause}"
                 }
+            }
+            for ((i, f) in futures.withIndex()) {
+                if (i / 2 in failedPairs) continue
+                val (aWon, r, ms) = f.get()
                 when (aWon) {
                     null -> score.draws++
                     true -> score.aWins++

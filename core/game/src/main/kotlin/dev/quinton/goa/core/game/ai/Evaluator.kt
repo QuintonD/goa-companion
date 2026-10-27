@@ -42,6 +42,8 @@ internal data class EvalKnobs(
     /** Coin-equivalents per 1.0 of P(win the lane), and per minion of margin. */
     val laneWeight: Double = 60.0,
     val minionMargin: Double = 1.5,
+    /** Push Potential per attack card left of a hero near the Battle Zone (STRATEGY L2, "two minions per hero"). */
+    val pushPerAttack: Double = 0.5,
     /** A defeat's cost beyond the Life counter and the enemy's coins: the tempo of respawning. */
     val killTempo: Double = 5.0,
     /** Worth of the cards in hand per point of their rating. */
@@ -598,7 +600,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
             if (map.distanceToZone(at, bz) > 6) continue
             val hi = info(h.id)
             val attacks = hi.hand.count { it.attackCard } + hi.unresolved.count { it.attackCard }
-            pp += 0.5 * min(attacks, max(hi.playsLeft, hi.unresolved.size))
+            pp += knobs.pushPerAttack * min(attacks, max(hi.playsLeft, hi.unresolved.size))
         }
         return pp
     }

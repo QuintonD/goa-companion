@@ -70,6 +70,14 @@ object AiHarness {
         return out
     }
 
+    /** `AI_DUMP_DIR`: a game whose computer player crashed is saved there to reproduce the decision. */
+    private fun dump(s: EngineSession, decisionId: Long, e: Throwable) {
+        val dir = System.getenv("AI_DUMP_DIR") ?: return
+        val f = java.io.File(dir, "crash-${s.setup.seats.joinToString("-") { it.heroId }}-$decisionId.json")
+        f.writeText(kotlinx.serialization.json.Json.encodeToString(dev.quinton.goa.core.game.SavedGame.serializer(), s.save()))
+        println("DUMP ${f.path}: $e")
+    }
+
     class Result(
         val winner: Team?,
         val decisions: Int,
@@ -110,7 +118,12 @@ object AiHarness {
         while (n < maxDecisions) {
             val d = s.pending ?: break
             val t0 = System.nanoTime()
-            val c = players.getValue(d.team).choose(s, d)
+            val c = try {
+                players.getValue(d.team).choose(s, d)
+            } catch (e: IllegalStateException) {
+                dump(s, d.id, e)
+                throw e
+            }
             val dt = System.nanoTime() - t0
             if (timed && d.options.size > 1 && (timedTeam == null || d.team == timedTeam)) {
                 timings.getOrPut(d.kind) { ArrayList() } += dt
