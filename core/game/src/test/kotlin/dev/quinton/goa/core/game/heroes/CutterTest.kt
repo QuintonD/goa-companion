@@ -199,7 +199,8 @@ class CutterTest {
         d.option(0)
         d.space(1, -1) // south-east: nothing in front; Arien is adjacent but not in that direction
         assertThat(d.at("cutter")).isEqualTo(Hex(1, -1))
-        assertThat(d.texts()).contains("Cutter's Daring Strike stops: no target.")
+        assertThat(d.texts())
+            .contains("Cutter's Daring Strike stops: no hero adjacent to you in the direction of the move.")
     }
 
     @Test

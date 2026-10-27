@@ -44,6 +44,7 @@ import dev.quinton.goa.core.game.engine.inRange
 import dev.quinton.goa.core.game.engine.isAdjacent
 import dev.quinton.goa.core.game.engine.isEmpty
 import dev.quinton.goa.core.game.engine.move
+import dev.quinton.goa.core.game.engine.noTargetReason
 import dev.quinton.goa.core.game.engine.performAction
 import dev.quinton.goa.core.game.engine.performPrimary
 import dev.quinton.goa.core.game.engine.placeToken
@@ -317,7 +318,10 @@ object TaliHero : HeroModule {
                     add(listOf(1, 0))
                 }
             }
-            if (choices.isEmpty()) a.fizzle("no target")
+            if (choices.isEmpty()) {
+                val inDiscard = "this card is in the discard, and no hero adjacent to you"
+                a.fizzle(if (a.inDiscard()) inDiscard else noTargetReason(labels))
+            }
             val texts = choices.map { order ->
                 if (order.size ==
                     1

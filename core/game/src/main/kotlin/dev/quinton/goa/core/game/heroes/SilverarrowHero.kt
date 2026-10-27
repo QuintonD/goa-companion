@@ -38,6 +38,7 @@ import dev.quinton.goa.core.game.engine.forceDiscard
 import dev.quinton.goa.core.game.engine.gainCoins
 import dev.quinton.goa.core.game.engine.isAdjacent
 import dev.quinton.goa.core.game.engine.move
+import dev.quinton.goa.core.game.engine.noTargetReason
 import dev.quinton.goa.core.game.engine.performAction
 import dev.quinton.goa.core.game.engine.repeatForbidden
 import dev.quinton.goa.core.game.engine.setPos
@@ -228,7 +229,7 @@ object SilverarrowHero : HeroModule {
             }
             // RULINGS 38: a bullet that cannot start is not offered; with none the attack has no target.
             val pick = when (possible.size) {
-                0 -> 0
+                0 -> a.fizzle(noTargetReason(labels))
                 1 -> possible.single()
                 else -> a.chooseOption("Choose one", labels)!!
             }

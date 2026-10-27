@@ -30,6 +30,7 @@ import dev.quinton.goa.core.game.engine.isAdjacent
 import dev.quinton.goa.core.game.engine.isEmpty
 import dev.quinton.goa.core.game.engine.isInBattleZone
 import dev.quinton.goa.core.game.engine.isMinionSpawnPoint
+import dev.quinton.goa.core.game.engine.noTargetReason
 import dev.quinton.goa.core.game.engine.rangedAttackTarget
 import dev.quinton.goa.core.game.engine.respawnMinion
 import dev.quinton.goa.core.game.engine.within
@@ -135,7 +136,10 @@ object DodgerHero : HeroModule {
 
                 ranged -> 1
 
-                else -> a.fizzle("no target")
+                // "If you are adjacent to an empty spawn point in the battle zone, target a unit in range."
+                a.nextToEmptySpawnPoint() -> a.fizzle("no $what adjacent to you or in range")
+
+                else -> a.fizzle("no $what adjacent to you, and you are not adjacent to an empty spawn point")
             }
             if (pick == 0) {
                 val t = a.adjacentAttackTarget("Target a $what adjacent to you", extra = kind) ?: return
@@ -175,7 +179,7 @@ object DodgerHero : HeroModule {
                 plans += "Both: first the unit adjacent to you, then the hero in range" to listOf(0, 1)
                 plans += "Both: first the hero in range, then the unit adjacent to you" to listOf(1, 0)
             }
-            if (plans.isEmpty()) a.fizzle("no target")
+            if (plans.isEmpty()) a.fizzle(noTargetReason(LABELS))
             val plan = if (plans.size == 1) {
                 plans.single().second
             } else {

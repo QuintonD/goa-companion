@@ -26,6 +26,7 @@ import dev.quinton.goa.core.game.engine.inRange
 import dev.quinton.goa.core.game.engine.isAdjacent
 import dev.quinton.goa.core.game.engine.isAttackCard
 import dev.quinton.goa.core.game.engine.isObstacle
+import dev.quinton.goa.core.game.engine.noTargetReason
 import dev.quinton.goa.core.game.engine.rangedAttackTarget
 import dev.quinton.goa.core.game.engine.retrieve
 import dev.quinton.goa.core.game.engine.swap
@@ -140,7 +141,7 @@ object BrynnHero : HeroModule {
             )
             // "Choose one —": a bullet with no target is not offered (RULINGS 38).
             val possible = bullets.indices.filter { any(bullets[it]) }
-            if (possible.isEmpty()) a.fizzle("no target")
+            if (possible.isEmpty()) a.fizzle(noTargetReason(labels))
             val pick = if (possible.size == 1) possible.single() else a.chooseOption("Choose one", labels)!!
             val valid = bullets[pick]
             val t = a.attackTarget(labels[pick]) { valid(it) } ?: return

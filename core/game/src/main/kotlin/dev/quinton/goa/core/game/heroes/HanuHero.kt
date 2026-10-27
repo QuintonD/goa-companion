@@ -31,6 +31,7 @@ import dev.quinton.goa.core.game.engine.canSwap
 import dev.quinton.goa.core.game.engine.inRange
 import dev.quinton.goa.core.game.engine.isAdjacent
 import dev.quinton.goa.core.game.engine.move
+import dev.quinton.goa.core.game.engine.noTargetReason
 import dev.quinton.goa.core.game.engine.reach
 import dev.quinton.goa.core.game.engine.setPos
 import dev.quinton.goa.core.game.engine.swap
@@ -233,7 +234,7 @@ object HanuHero : HeroModule {
             val bullets: List<(String) -> Boolean> = listOf({ a.isAdjacent(it) }, { farValid(a, it) })
             fun possible(i: Int) = a.g.unitsOnBoard().any { a.isEnemy(it) && a.canTarget(it) && bullets[i](it) }
             val open = bullets.indices.filter { possible(it) }
-            if (open.isEmpty()) a.fizzle("no target")
+            if (open.isEmpty()) a.fizzle(noTargetReason(labels))
             // "Choose one —" (RULINGS 38): only a bullet with a target is offered, and one is not asked.
             val first = if (open.size ==
                 1

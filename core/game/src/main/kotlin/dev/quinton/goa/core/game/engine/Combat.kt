@@ -44,14 +44,15 @@ data class AttackResult(
 fun ActionScope.attackTarget(
     prompt: String,
     optional: Boolean = false,
-    none: String = "no target",
+    none: String? = null,
     valid: (String) -> Boolean,
 ): String? {
     val ids = g.unitsOnBoard().filter { g.isEnemy(heroId, it) && canTarget(it, ActionKind.ATTACK) && valid(it) }
     if (ids.isEmpty()) {
         if (optional) return null
-        // [none] is the reason the action panel shows when the Primary action can't start (ADR-041).
-        fizzle(none)
+        // [none] is the reason the action panel shows when the Primary action can't start (ADR-041);
+        // by default the card's own words in [prompt] ("no hero adjacent to you").
+        fizzle(none ?: noTargetReason(prompt))
     }
     val t = chooseUnit(prompt, ids, optional) ?: return null
     return target(t)
@@ -59,20 +60,55 @@ fun ActionScope.attackTarget(
 
 /** "Target a unit adjacent to you." (p.13: non-ranged attacks "can only target units adjacent to you"). */
 fun ActionScope.adjacentAttackTarget(
-    prompt: String = "Target a unit adjacent to you",
+    prompt: String = ADJACENT_PROMPT,
     optional: Boolean = false,
+    none: String? = null,
     extra: (String) -> Boolean = { true },
-): String? =
-    attackTarget(prompt, optional, "no target adjacent to you") { id -> isAdjacent(id) && extra(id) }
+): String? {
+    val reason = none ?: reasonOr(prompt, ADJACENT_PROMPT, "no target adjacent to you")
+    return attackTarget(prompt, optional, reason) { id -> isAdjacent(id) && extra(id) }
+}
 
 /** "Target a unit in range." (p.9: Range counts spaces, obstacles included; no line of sight). */
 fun ActionScope.rangedAttackTarget(
-    prompt: String = "Target a unit in range",
+    prompt: String = RANGED_PROMPT,
     optional: Boolean = false,
     rangeValue: Int = range,
+    none: String? = null,
     extra: (String) -> Boolean = { true },
-): String? =
-    attackTarget(prompt, optional, "no target in range") { id -> inRange(id, rangeValue) && extra(id) }
+): String? {
+    val reason = none ?: reasonOr(prompt, RANGED_PROMPT, "no target in range")
+    return attackTarget(prompt, optional, reason) { id -> inRange(id, rangeValue) && extra(id) }
+}
+
+private const val ADJACENT_PROMPT = "Target a unit adjacent to you"
+private const val RANGED_PROMPT = "Target a unit in range"
+
+/** [plain] for the plain prompt, else the reason in the prompt's own words (its extra conditions). */
+private fun reasonOr(prompt: String, default: String, plain: String) =
+    if (prompt == default) plain else noTargetReason(prompt)
+
+/**
+ * Why an attack has no target, in the card's words (hands-on re-check: Fireball said only "no
+ * target"): "Target a hero in range with a Bounty marker" → "no hero in range with a Bounty marker",
+ * "Target that hero" → "that hero can't be targeted". A prompt in other words gives "no target".
+ */
+fun noTargetReason(prompt: String): String {
+    val body = prompt.removePrefix("Target ").removePrefix("Attack ")
+    return when {
+        body == prompt -> "no target"
+        body.startsWith("a ") -> "no " + body.removePrefix("a ")
+        body.startsWith("an ") -> "no " + body.removePrefix("an ")
+        body.startsWith("that ") -> "$body can't be targeted"
+        else -> "no target"
+    }
+}
+
+/**
+ * Why a "Choose one —" attack has no target: each bullet's reason ([noTargetReason] of its prompt),
+ * "no hero in range with a Bounty marker and no unit adjacent to you" (p.10 "Modal Actions").
+ */
+fun noTargetReason(bullets: List<String>): String = bullets.map(::noTargetReason).distinct().joinToString(" and ")
 
 fun ActionScope.isAdjacent(id: String): Boolean {
     val me = hero.at ?: return false

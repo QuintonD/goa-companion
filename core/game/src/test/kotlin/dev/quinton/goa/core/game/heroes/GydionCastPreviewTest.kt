@@ -300,8 +300,38 @@ class GydionCastPreviewTest {
         assertThat(p.cardIds).isEmpty()
         assertThat(p.unavailableCards).containsExactly(
             UnavailableCard(SHOCKING_GRASP, "Its Attack can't start: no target adjacent to you", "p.10, FAQ"),
-            UnavailableCard(MAGIC_MISSILE, "Its Attack can't start: no target in range", "p.10, FAQ"),
+            UnavailableCard(
+                MAGIC_MISSILE,
+                "Its Attack can't start: no target in range that isn't adjacent to you",
+                "p.10, FAQ",
+            ),
             UnavailableCard(EXPEDITIOUS_RETREAT, "Not in the spellbook: removed faceup", "Prepare Spells"),
+        ).inOrder()
+    }
+
+    @Test
+    fun `Fireball with its only unit in range next to a friendly unit - the reason is the card's condition`() {
+        // Re-check: "Its Attack can't start: no target" while Arien was in range, but next to a red minion.
+        // Fireball: "Target a unit in range, not adjacent to you or to your friendly unit."
+        val d = pos {
+            clearMinions()
+            hero("gydion", Team.RED, g0) {
+                played("gydion-red-2a")
+                book(emptyList())
+            }
+            hero("arien", Team.BLUE, Hex(3, -2)) { hand("arien-blue-1") } // 2 away
+            minion(Team.RED, MinionType.MELEE, Hex(4, -2)) // next to Arien
+            phase = PositionPhase.Resolving(next = "gydion")
+        }
+        val p = d.preview()
+        assertThat(p.cardIds).isEmpty()
+        assertThat(p.unavailableCards).containsExactly(
+            UnavailableCard(BURNING_HANDS, "Its Attack can't start: no target adjacent to you", "p.10, FAQ"),
+            UnavailableCard(
+                FIREBALL,
+                "Its Attack can't start: no target in range that isn't adjacent to you or to a friendly unit",
+                "p.10, FAQ",
+            ),
         ).inOrder()
     }
 
