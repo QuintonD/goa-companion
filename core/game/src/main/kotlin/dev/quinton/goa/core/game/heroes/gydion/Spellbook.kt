@@ -227,7 +227,8 @@ object Spellbook {
     fun cast(g: Game, caster: String, spellId: String) {
         val owner = owner(g, spellId) ?: g.fizzle("no spellbook")
         setTag(g, owner, spellId, REMOVED)
-        g.emit(GameEvent.CardsChanged(caster, "${g.heroName(caster)} casts ${g.cardName(spellId)}."))
+        // Removed from the spellbook faceup (Prepare Spells): open information.
+        g.emit(GameEvent.CardsChanged(caster, "${g.heroName(caster)} casts ${g.cardName(spellId)}.", cards = listOf(spellId)))
         val wish = spellId == WISH
         if (wish) owner.counters[COUNT_WISH] = (owner.counters[COUNT_WISH] ?: 0) + 1
         val done = g.performAction(caster, spellId, primaryKind(g.card(spellId)), primary = true)

@@ -275,3 +275,21 @@ client unaffected. No question was added or removed: the preview is information 
   `rangedAttackTarget` keep "no target adjacent to you" / "no target in range" for their plain prompts and
   take an optional `none`. Fireball: "no target in range that isn't adjacent to you or to a friendly
   unit". Same checks and fizzles: no question added or removed, saves replay unchanged.
+
+## 2026-10-27 — `feature/v09-resolution`: what each card did, as cards (ADR-046)
+
+Additive; defaults keep other `GameSession` implementations, test fakes, old event JSON and the
+`feature/web` client unaffected. No question was added or removed and no event was added or removed:
+the fields are filled on the events the engine already emits, so saves replay unchanged (events are
+re-derived by the replay; the new fields appear in old games too, `ResolutionEventsTest`).
+
+- `GameEvent.CardsChanged.cards: List<String> = emptyList()`: the cards the sentence names, in its
+  order, and only those everyone may see (p.4 "Hidden Information": discarded and resolved cards are
+  open; a card in hand or deck, a facedown card and a tucked item never appear, as the text never names
+  them, RULINGS 51/53). `CardsChanged.discarded: List<String> = emptyList()`: those of `cards` this change
+  put into the discard pile. Filled by `Game.discard` (every discard: chosen, forced "if able" / "or is
+  defeated", and the card discarded to defend), `Game.retrieve`, `Game.swapCards` (not when a card's own
+  text replaces the line: Nebkher's names slots), Gydion's cast (the spell is removed faceup) and
+  Takahide's swaps. A facedown card discarded or retrieved leaves both empty.
+- `GameEvent.Defended.attackerId: String? = null`: the attacking hero (p.14), so a client can tell whose
+  attack a defense answered without pairing events by order.
