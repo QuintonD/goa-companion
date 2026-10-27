@@ -47,9 +47,20 @@ object AiPlayers {
      */
     internal val TUNED: EvalKnobs = EvalKnobs(scales = mapOf(Term.EXPOSURE to 0.3, Term.OPPORTUNITY to 2.0))
 
+    /**
+     * The searching strengths from this one up score playout ends with the learned evaluation
+     * (ADR-047 part B, AI.md "Learned evaluation"); the static strengths keep the hand-made weights
+     * their designed mistakes rest on.
+     */
+    internal const val LEARNED_FROM: Int = 11
+
     /** What each strength does (AI.md "Strengths"); the measured ladder is in AI.md. */
+    internal fun profile(strength: Int): LevelProfile = handProfile(strength).let {
+        if (AiStrength.coerce(strength) >= LEARNED_FROM) it.copy(learned = EvalSource.LEAVES) else it
+    }
+
     @Suppress("CyclomaticComplexMethod", "LongMethod", "MagicNumber")
-    internal fun profile(strength: Int): LevelProfile = when (AiStrength.coerce(strength)) {
+    private fun handProfile(strength: Int): LevelProfile = when (AiStrength.coerce(strength)) {
         // A true first game: looks at the nearest enemy only, forgets minion modifiers most of the
         // time it moves, and often picks the second or third best option.
         1 -> LevelProfile(

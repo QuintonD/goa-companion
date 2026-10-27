@@ -22,8 +22,8 @@ import org.junit.Test
  * [Trainer] and reports the test log-loss against the real results next to the hand evaluation's
  * (one slope on the tuned score) and a logistic fit of its twelve terms (as `FitTest`). The net is
  * saved as `<AI_NETS>/<AI_TRAIN_NAME>.net`; `AI_TRAIN_WRITE=1` also writes the checked-in
- * `LearnedWeights.kt`. Targets: the result, or with `AI_LAMBDA` < 1 a λ-return bootstrapped from a
- * teacher (`AI_TEACHER=hand` or a net name) over the positions of each game.
+ * `LearnedWeights.kt`. Targets: λ-returns over the positions of each game (`AI_LAMBDA`, default 0.7;
+ * 1 = the result alone) bootstrapped from a teacher (`AI_TEACHER=hand`, the default, or a net name).
  */
 class LearnedTrainTest {
     @Test
@@ -31,7 +31,7 @@ class LearnedTrainTest {
         val spec = System.getenv("AI_TRAIN") ?: return
         val name = System.getenv("AI_TRAIN_NAME") ?: "net"
         val rate = System.getenv("AI_RESOLVED")?.toDouble() ?: 0.35
-        val lambda = System.getenv("AI_LAMBDA")?.toDouble() ?: 1.0
+        val lambda = System.getenv("AI_LAMBDA")?.toDouble() ?: 0.7
         val teacher = System.getenv("AI_TEACHER") ?: "hand"
         val h1 = System.getenv("AI_H1")?.toInt() ?: 64
         val h2 = System.getenv("AI_H2")?.toInt() ?: 32
@@ -60,8 +60,8 @@ class LearnedTrainTest {
         println("TRAIN hand slope k = ${"%.4f".format(k)} (coin scale ${"%.2f".format(1 / k)})")
         val targets = targets(all, lambda, teacher, k)
         val cfg = Trainer.Config(
-            lr = System.getenv("AI_LR")?.toDouble() ?: 1e-3,
-            weightDecay = System.getenv("AI_WD")?.toDouble() ?: 1e-4,
+            lr = System.getenv("AI_LR")?.toDouble() ?: 3e-4,
+            weightDecay = System.getenv("AI_WD")?.toDouble() ?: 1e-3,
             batch = System.getenv("AI_BATCH")?.toInt() ?: 512,
             maxEpochs = System.getenv("AI_EPOCHS")?.toInt() ?: 40,
             patience = System.getenv("AI_PATIENCE")?.toInt() ?: 5,

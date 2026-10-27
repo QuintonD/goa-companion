@@ -42,6 +42,8 @@ class AiCoach internal constructor(
         otherHorizon = Horizon.TURN,
         candidates = 8,
         budgetMs = budgetMs,
+        // The coach's thresholds and reasons were set on the hand evaluation (AI.md "The coach").
+        learned = EvalSource.HAND,
     )
 
     @Volatile private var cached: Pair<EngineData, Searcher>? = null
