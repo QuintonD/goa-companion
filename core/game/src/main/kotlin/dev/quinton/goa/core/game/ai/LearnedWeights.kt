@@ -12,6 +12,8 @@ internal object LearnedWeights {
     const val COIN_SCALE: Double = 35.96912998164971
     const val B3: Float = 0.0f
 
+    fun wl(): FloatArray = FloatArray(INPUTS)
+
     fun w1(): FloatArray = FloatArray(15872).also { a ->
         w10().copyInto(a, 0)
         w11().copyInto(a, 1024)

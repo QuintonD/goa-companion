@@ -22,6 +22,8 @@ internal class Trainer(
     private val h2: Int,
     private val seed: Long,
     private val threads: Int = 4,
+    /** Starting weights of the linear skip on raw features (the hand evaluation's slope on its score). */
+    private val skipInit: Map<Int, Double> = emptyMap(),
 ) {
     /** Rows of Red's then Blue's features ([inputs] each), training targets and real results (1 = Red won). */
     class Data(val x: FloatArray, val target: FloatArray, val outcome: FloatArray) {
@@ -42,20 +44,25 @@ internal class Trainer(
     private val w2 = DoubleArray(h2 * h1)
     private val b2 = DoubleArray(h2)
     private val w3 = DoubleArray(h2)
+
+    /** A linear skip from the inputs to the output: N(x) = MLP(x) + wl · x (wide and deep). */
+    private val wl = DoubleArray(inputs)
     private var mean = DoubleArray(inputs)
     private var sd = DoubleArray(inputs) { 1.0 }
 
-    private val params: List<DoubleArray> get() = listOf(w1, b1, w2, b2, w3)
+    private val params: List<DoubleArray> get() = listOf(w1, b1, w2, b2, w3, wl)
 
     private fun init(constant: BooleanArray) {
         val rng = Random(seed)
-        fun gauss() = sqrt(-2 * ln(rng.nextDouble().coerceAtLeast(1e-12))) * kotlin.math.cos(2 * Math.PI * rng.nextDouble())
+        fun gauss() =
+            sqrt(-2 * ln(rng.nextDouble().coerceAtLeast(1e-12))) * kotlin.math.cos(2 * Math.PI * rng.nextDouble())
         val s1 = sqrt(2.0 / inputs)
         for (i in 0 until inputs) for (j in 0 until h1) w1[i * h1 + j] = if (constant[i]) 0.0 else gauss() * s1
         val s2 = sqrt(2.0 / h1)
         for (k in w2.indices) w2[k] = gauss() * s2
         val s3 = sqrt(1.0 / h2)
         for (k in w3.indices) w3[k] = gauss() * s3 * 0.5
+        for ((i, c) in skipInit) wl[i] = c * sd[i]
         b1.fill(0.01)
         b2.fill(0.01)
     }
@@ -85,11 +92,13 @@ internal class Trainer(
             val variance = ss / rows - mean[i] * mean[i]
             sd[i] = if (variance < 1e-10) 1.0 else sqrt(variance)
         }
-        val constant = BooleanArray(inputs) { i -> sd[i] == 1.0 && run {
-            var v = 0.0
-            for (r in 0 until rows) v = max(v, kotlin.math.abs(train.x[r * inputs + i] - mean[i]))
-            v < 1e-6
-        } }
+        val constant = BooleanArray(inputs) { i ->
+            sd[i] == 1.0 && run {
+                var v = 0.0
+                for (r in 0 until rows) v = max(v, kotlin.math.abs(train.x[r * inputs + i] - mean[i]))
+                v < 1e-6
+            }
+        }
         init(constant)
         val tx = standardize(train.x)
         val vx = standardize(valid.x)
@@ -117,23 +126,7 @@ internal class Trainer(
                     val (grads, loss) = gradients(tx, train.target, order, b, end, pool)
                     trainLoss += loss
                     step++
-                    val count = (end - b).toDouble()
-                    val lr = cfg.lr
-                    val bc1 = 1 - Math.pow(0.9, step.toDouble())
-                    val bc2 = 1 - Math.pow(0.999, step.toDouble())
-                    for ((pi, p) in params.withIndex()) {
-                        val g = grads[pi]
-                        val mm = m[pi]
-                        val vv = v[pi]
-                        val decay = pi == 0 || pi == 2 || pi == 4
-                        for (k in p.indices) {
-                            val gk = g[k] / count
-                            mm[k] = 0.9 * mm[k] + 0.1 * gk
-                            vv[k] = 0.999 * vv[k] + 0.001 * gk * gk
-                            p[k] -= lr * (mm[k] / bc1) / (sqrt(vv[k] / bc2) + 1e-8)
-                            if (decay) p[k] -= lr * cfg.weightDecay * p[k]
-                        }
-                    }
+                    adam(grads, m, v, step, (end - b).toDouble(), cfg)
                     b = end
                 }
                 val vl = logLoss(vx, valid.outcome)
@@ -152,6 +145,32 @@ internal class Trainer(
         for ((p, q) in params.zip(bestParams)) q.copyInto(p)
         cfg.log("TRAIN best epoch $bestEpoch valid ${"%.4f".format(best)}")
         return export()
+    }
+
+    /** One AdamW step with the summed gradients of [count] rows (weight decay on the weights, not the biases). */
+    private fun adam(
+        grads: List<DoubleArray>,
+        m: List<DoubleArray>,
+        v: List<DoubleArray>,
+        step: Int,
+        count: Double,
+        cfg: Config,
+    ) {
+        val bc1 = 1 - Math.pow(0.9, step.toDouble())
+        val bc2 = 1 - Math.pow(0.999, step.toDouble())
+        for ((pi, p) in params.withIndex()) {
+            val g = grads[pi]
+            val mm = m[pi]
+            val vv = v[pi]
+            val decay = pi == 0 || pi == 2 || pi == 4
+            for (k in p.indices) {
+                val gk = g[k] / count
+                mm[k] = 0.9 * mm[k] + 0.1 * gk
+                vv[k] = 0.999 * vv[k] + 0.001 * gk * gk
+                p[k] -= cfg.lr * (mm[k] / bc1) / (sqrt(vv[k] / bc2) + 1e-8)
+                if (decay) p[k] -= cfg.lr * cfg.weightDecay * p[k]
+            }
+        }
     }
 
     /** Summed gradients and loss over `order[from until to]`, split over the threads in a fixed way. */
@@ -221,6 +240,7 @@ internal class Trainer(
             a.z2[k] = s
             if (s > 0) out += w3[k] * s
         }
+        for (i in 0 until inputs) out += wl[i] * x[off + i]
         return out
     }
 
@@ -230,6 +250,8 @@ internal class Trainer(
         val gw2 = g[2]
         val gb2 = g[3]
         val gw3 = g[4]
+        val gwl = g[5]
+        for (i in 0 until inputs) gwl[i] += d * x[off + i]
         val d1 = DoubleArray(h1)
         for (k in 0 until h2) {
             if (a.z2[k] <= 0) continue
@@ -281,6 +303,7 @@ internal class Trainer(
             FloatArray(w2.size) { w2[it].toFloat() },
             FloatArray(h2) { b2[it].toFloat() },
             FloatArray(h2) { w3[it].toFloat() },
+            FloatArray(inputs) { (wl[it] / sd[it]).toFloat() },
             0f, 1.0, 0L,
         )
     }

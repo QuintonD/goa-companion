@@ -37,27 +37,11 @@ class LearnedSelfPlayTest {
         try {
             val jobs = (first until first + games).map { g ->
                 Callable {
-                    val rng = Random(Teams.TRAIN * 1_000_003L + g)
-                    val size = pick(sizes, rng)
-                    val (red, blue) = lineups.getValue(size)[g]
-                    val rv = pick(variants, rng)
-                    val bv = pick(variants, rng)
-                    val coin = if (g % 2 == 0) Team.RED else Team.BLUE
-                    val setup = AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, coin)
-                    val r = AiHarness.play(
-                        setup,
-                        mapOf(
-                            Team.RED to sides.getValue(rv).factory(g * 2L + 1),
-                            Team.BLUE to sides.getValue(bv).factory(g * 2L + 2),
-                        ),
-                        maxDecisions = 20_000,
-                    )
-                    val answers = r.session.answers()
-                    val rec = Learned.GameRecord(
-                        g, size, g, Teams.TRAIN, rv, bv, r.winner?.name, r.rounds,
-                        r.session.view(null).winReason?.name ?: "UNFINISHED", setup, answers,
-                    )
-                    Learned.JSON.encodeToString(Learned.GameRecord.serializer(), rec)
+                    try {
+                        game(g, sizes, lineups, variants, sides)
+                    } catch (e: Exception) {
+                        throw IllegalStateException("game $g", e)
+                    }
                 }
             }
             val cs = java.util.concurrent.ExecutorCompletionService<String>(pool)
@@ -68,6 +52,7 @@ class LearnedSelfPlayTest {
                         cs.take().get()
                     } catch (e: java.util.concurrent.ExecutionException) {
                         println("SELFPLAY game failed: ${e.cause}")
+                        e.cause?.printStackTrace(System.out)
                         null
                     }
                     if (line != null) {
@@ -85,6 +70,35 @@ class LearnedSelfPlayTest {
             pool.shutdown()
         }
         println("SELFPLAY wrote $done games to $out in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
+    }
+
+    private fun game(
+        g: Int,
+        sizes: List<Pair<Int, Double>>,
+        lineups: Map<Int, List<Pair<List<String>, List<String>>>>,
+        variants: List<Pair<String, Double>>,
+        sides: Map<String, dev.quinton.goa.core.game.ai.Tournament.Side>,
+    ): String {
+        val rng = Random(Teams.TRAIN * 1_000_003L + g)
+        val size = pick(sizes, rng)
+        val (red, blue) = lineups.getValue(size)[g]
+        val rv = pick(variants, rng)
+        val bv = pick(variants, rng)
+        val coin = if (g % 2 == 0) Team.RED else Team.BLUE
+        val setup = AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, coin)
+        val r = AiHarness.play(
+            setup,
+            mapOf(
+                Team.RED to sides.getValue(rv).factory(g * 2L + 1),
+                Team.BLUE to sides.getValue(bv).factory(g * 2L + 2),
+            ),
+            maxDecisions = 20_000,
+        )
+        val rec = Learned.GameRecord(
+            g, size, g, Teams.TRAIN, rv, bv, r.winner?.name, r.rounds,
+            r.session.view(null).winReason?.name ?: "UNFINISHED", setup, r.session.answers(),
+        )
+        return Learned.JSON.encodeToString(Learned.GameRecord.serializer(), rec)
     }
 
     private fun weighted(s: String): List<Pair<String, Double>> = s.split(",").map {

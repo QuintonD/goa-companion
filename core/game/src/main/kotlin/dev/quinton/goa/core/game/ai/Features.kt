@@ -34,7 +34,8 @@ internal class Features(val ev: Evaluator) {
         val ctx = ev.context(state)
         val heroes = state.heroes
         val per = Array(heroes.size) { FloatArray(HERO.size) }
-        for ((i, h) in heroes.withIndex()) heroVector(ctx, h, per[i])
+        val around = Around(ctx)
+        for ((i, h) in heroes.withIndex()) heroVector(ctx, around, h, per[i])
         val terms = ctx.termsRed()
         for ((t, team) in listOf(Team.RED, Team.BLUE).withIndex()) {
             val base = t * SIZE
@@ -42,6 +43,19 @@ internal class Features(val ev: Evaluator) {
             pool(heroes, per, team, out, base + OWN)
             pool(heroes, per, team.other(), out, base + ENEMY)
             global(ctx, team, terms, out, base + GLOBAL_AT)
+        }
+    }
+
+    /** Where each team's heroes and minions stand, once per state. */
+    private class Around(ctx: Ctx) {
+        val heroes: Map<Team, List<Pair<String, Hex>>> = Team.entries.associateWith { t ->
+            ctx.state.heroes.filter { it.team == t && it.at != null }.map { it.id to it.at!! }
+        }
+        val minions: Map<Team, List<Hex>> = Team.entries.associateWith { t ->
+            ctx.state.minions.filter { it.team == t && it.at != null }.map { it.at!! }
+        }
+        val targets: Map<Team, List<Hex>> = Team.entries.associateWith { t ->
+            ctx.state.minions.filter { it.team == t && it.at != null && !ctx.g.heavyImmune(it.id) }.map { it.at!! }
         }
     }
 
@@ -62,11 +76,14 @@ internal class Features(val ev: Evaluator) {
     }
 
     @Suppress("LongMethod", "CyclomaticComplexMethod")
-    private fun heroVector(ctx: Ctx, h: HeroState, v: FloatArray) {
+    private fun heroVector(ctx: Ctx, around: Around, h: HeroState, v: FloatArray) {
         val state = ctx.state
         val hi = ctx.info(h.id)
         val g = ctx.g
-        val bodies = h.at?.let { listOf(it) + state.pieces.filter { p -> p.heroBody == h.id && p.at != null }.map { p -> p.at!! } }
+        val bodies = h.at?.let {
+            listOf(it) +
+                state.pieces.filter { p -> p.heroBody == h.id && p.at != null }.map { p -> p.at!! }
+        }
             .orEmpty()
         var k = 0
         fun put(x: Double) {
@@ -77,8 +94,11 @@ internal class Features(val ev: Evaluator) {
         flag(at != null)
         val spawn = ctx.map.throneSpawns[h.team].orEmpty().firstOrNull()
         put(
-            if (at == null) (-4.0 + (spawn?.let { ctx.presence(h.team, it) } ?: -4.0)) / 4
-            else bodies.maxOf { ctx.presence(h.team, it) } / 4,
+            if (at == null) {
+                (-4.0 + (spawn?.let { ctx.presence(h.team, it) } ?: -4.0)) / 4
+            } else {
+                bodies.maxOf { ctx.presence(h.team, it) } / 4
+            },
         )
         val dz = if (at == null) 4 else bodies.minOf { fightDistance(ctx, it) }
         put(min(dz, 12) / 6.0)
@@ -123,15 +143,14 @@ internal class Features(val ev: Evaluator) {
         put(ctx.killCost(hi) / 30)
         put(ctx.discardCost(hi) / 3)
         put(if (at == null) 0.0 else ctx.minionMod(at, h.team) / 2.0)
-        val enemies = state.heroes.filter { it.team != h.team && it.at != null }
+        val foe = h.team.other()
         fun near(list: List<Hex>, r: Int) = if (at == null) 0 else list.count { HexGrid.distance(at, it) <= r }
-        val enemyAt = enemies.map { it.at!! }
+        val enemyAt = around.heroes.getValue(foe).map { it.second }
         put(near(enemyAt, 2) / 2.0)
         put(near(enemyAt, 4) / 2.0)
-        put(near(state.heroes.filter { it.team == h.team && it.id != h.id && it.at != null }.map { it.at!! }, 2) / 2.0)
-        val minions = state.minions.filter { it.at != null }
-        put(near(minions.filter { it.team != h.team && !g.heavyImmune(it.id) }.map { it.at!! }, 2) / 3.0)
-        put(near(minions.filter { it.team == h.team }.map { it.at!! }, 2) / 3.0)
+        put(near(around.heroes.getValue(h.team).filter { it.first != h.id }.map { it.second }, 2) / 2.0)
+        put(near(around.targets.getValue(foe), 2) / 3.0)
+        put(near(around.minions.getValue(h.team), 2) / 3.0)
         put(if (at == null) 1.0 else (enemyAt.minOfOrNull { HexGrid.distance(at, it) } ?: 10).coerceAtMost(10) / 10.0)
         val (killNow, killNext) = if (at == null) 0 to 0 else killThreats(ctx, hi, at)
         put(killNow / 3.0)
@@ -144,7 +163,9 @@ internal class Features(val ev: Evaluator) {
             if (!state.revealed || myInit == null) {
                 0.0
             } else {
-                enemies.count { e -> ctx.info(e.id).unresolved.firstOrNull()?.let { it.initiative < myInit } == true } / 3.0
+                around.heroes.getValue(foe).count { (e, _) ->
+                    ctx.info(e).unresolved.firstOrNull()?.let { it.initiative < myInit } == true
+                } / 3.0
             },
         )
         put((bodies.size - 1).coerceAtLeast(0).toDouble())

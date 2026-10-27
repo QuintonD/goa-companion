@@ -55,9 +55,11 @@ internal object Learned {
         EngineSession.JSON.decodeFromString(SavedPayload.serializer(), save().payload).answers.map { it.choice }
 
     fun readGames(files: List<File>): List<GameRecord> =
-        files.flatMap { f -> f.readLines().filter { it.isNotBlank() }.map { JSON.decodeFromString(GameRecord.serializer(), it) } }
+        files.flatMap { f ->
+            f.readLines().filter { it.isNotBlank() }.map { JSON.decodeFromString(GameRecord.serializer(), it) }
+        }
 
-    /** A tournament side from a variant spec: ExperimentTest's syntax plus `learned=LEAVES|EVERYWHERE` and `net=<file>`. */
+    /** A tournament side: ExperimentTest's variant syntax plus `learned=LEAVES|EVERYWHERE` and `net=<file>`. */
     fun side(spec: String): Tournament.Side {
         val parts = spec.split("+")
         val strength = parts[0].removePrefix("s").toIntOrNull()
@@ -68,7 +70,17 @@ internal object Learned {
             val (k, v) = o.split("=", limit = 2)
             p = when (k) {
                 "learned" -> p.copy(learned = EvalSource.valueOf(v.uppercase()))
-                else -> p.copy(net = net(v), learned = if (p.learned == EvalSource.HAND) EvalSource.LEAVES else p.learned)
+
+                else -> p.copy(
+                    net = net(v),
+                    learned = if (p.learned ==
+                        EvalSource.HAND
+                    ) {
+                        EvalSource.LEAVES
+                    } else {
+                        p.learned
+                    },
+                )
             }
         }
         return Tournament.Side(spec) { seed -> SearchAi(AiLevel.of(strength), p, seed, timeCap = false) }
@@ -93,11 +105,12 @@ internal object Learned {
         val w2: FloatArray,
         val b2: FloatArray,
         val w3: FloatArray,
+        val wl: FloatArray,
         val b3: Float,
         val coinScale: Double,
         val schema: Long,
     ) {
-        fun toNet() = LearnedNet(inputs, h1, h2, w1, b1, w2, b2, w3, b3, coinScale)
+        fun toNet() = LearnedNet(inputs, h1, h2, w1, b1, w2, b2, w3, wl, b3, coinScale)
     }
 
     fun saveNet(n: NetData, f: File) {
@@ -108,7 +121,7 @@ internal object Learned {
             o.writeInt(n.h1)
             o.writeInt(n.h2)
             o.writeDouble(n.coinScale)
-            for (a in listOf(n.w1, n.b1, n.w2, n.b2, n.w3)) for (x in a) o.writeFloat(x)
+            for (a in listOf(n.w1, n.b1, n.w2, n.b2, n.w3, n.wl)) for (x in a) o.writeFloat(x)
             o.writeFloat(n.b3)
         }
     }
@@ -121,7 +134,13 @@ internal object Learned {
         val h2 = i.readInt()
         val scale = i.readDouble()
         fun arr(n: Int) = FloatArray(n) { i.readFloat() }
-        NetData(inputs, h1, h2, arr(inputs * h1), arr(h1), arr(h1 * h2), arr(h2), arr(h2), i.readFloat(), scale, schema)
+        NetData(
+            inputs, h1, h2,
+            arr(
+                inputs * h1,
+            ),
+            arr(h1), arr(h1 * h2), arr(h2), arr(h2), arr(inputs), i.readFloat(), scale, schema,
+        )
     }
 
     fun loadNet(f: File): LearnedNet = loadNetData(f).toNet()
@@ -164,7 +183,11 @@ internal object Learned {
             val resolved = st.heroes.sumOf { h -> h.cards.count { it.zone == Zone.RESOLVED } }
             val boundary = turn != lastTurn
             val after = !boundary && resolved > lastResolved && rng.nextDouble() < resolvedRate
-            if ((boundary || after) && st.winner == null) out += position(r, out.size, boundary, winner, st, features, hand)
+            if ((boundary || after) &&
+                st.winner == null
+            ) {
+                out += position(r, out.size, boundary, winner, st, features, hand)
+            }
             lastTurn = turn
             lastResolved = resolved
             s.answer(d.id, c)

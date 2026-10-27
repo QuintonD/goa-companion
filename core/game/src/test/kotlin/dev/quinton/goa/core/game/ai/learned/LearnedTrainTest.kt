@@ -50,7 +50,13 @@ class LearnedTrainTest {
         )
         // The hand evaluation: one slope on the tuned score; and a logistic fit of its twelve terms.
         val k = Logistic.fit(train.map { doubleArrayOf(it.hand.toDouble()) }, train.map { it.redWon }, 0.0)[0]
-        val m = Logistic.fit(train.map { p -> DoubleArray(p.terms.size) { p.terms[it].toDouble() } }, train.map { it.redWon }, 1e-4)
+        val m = Logistic.fit(
+            train.map { p ->
+                DoubleArray(p.terms.size) { p.terms[it].toDouble() }
+            },
+            train.map { it.redWon },
+            1e-4,
+        )
         println("TRAIN hand slope k = ${"%.4f".format(k)} (coin scale ${"%.2f".format(1 / k)})")
         val targets = targets(all, lambda, teacher, k)
         val cfg = Trainer.Config(
@@ -61,10 +67,26 @@ class LearnedTrainTest {
             patience = System.getenv("AI_PATIENCE")?.toInt() ?: 5,
         )
         val t0 = System.nanoTime()
-        val raw = Trainer(Features.SIZE, h1, h2, seed, threads).train(data(train, targets), data(valid, targets), cfg)
+        // The linear skip starts as the hand evaluation (its tuned score is a feature, ±score / 30 per side).
+        val skip = if (System.getenv("AI_SKIP") ==
+            "0"
+        ) {
+            emptyMap()
+        } else {
+            mapOf(Features.NAMES.indexOf("tunedScore") to k * 15)
+        }
+        val raw = Trainer(
+            Features.SIZE,
+            h1,
+            h2,
+            seed,
+            threads,
+            skip,
+        ).train(data(train, targets), data(valid, targets), cfg)
         println("TRAIN trained in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
         val net = Learned.NetData(
-            raw.inputs, raw.h1, raw.h2, raw.w1, raw.b1, raw.w2, raw.b2, raw.w3, raw.b3, 1 / k, Features.SCHEMA_HASH,
+            raw.inputs, raw.h1, raw.h2, raw.w1, raw.b1, raw.w2, raw.b2, raw.w3, raw.wl, raw.b3, 1 / k,
+            Features.SCHEMA_HASH,
         )
         val out = File(Learned.NETS, "$name.net")
         Learned.saveNet(net, out)
@@ -74,7 +96,13 @@ class LearnedTrainTest {
         val write = System.getenv("AI_TRAIN_WRITE")
         if (write != null) {
             val target = File(if (write == "1") WEIGHTS else write)
-            WeightsWriter.write(net, target, "${files.joinToString { it.name }}, λ $lambda, teacher $teacher, seed $seed")
+            WeightsWriter.write(
+                net,
+                target,
+                "${files.joinToString {
+                    it.name
+                }}, λ $lambda, teacher $teacher, seed $seed",
+            )
             println("TRAIN wrote $target")
         }
     }
@@ -147,11 +175,20 @@ class LearnedTrainTest {
         return out
     }
 
-    private fun logit(net: LearnedNet, x: FloatArray): Double = (net.forward(x, 0) - net.forward(x, Features.SIZE)).toDouble()
+    private fun logit(net: LearnedNet, x: FloatArray): Double = (
+        net.forward(
+            x,
+            0,
+        ) - net.forward(x, Features.SIZE)
+        ).toDouble()
 
     /** Positions of the games in [file], featurized once per schema and rate (cached next to the file). */
     private fun load(file: File, rate: Double, threads: Int): List<Pos> {
-        val cache = File(file.parentFile, "${file.nameWithoutExtension}.${java.lang.Long.toHexString(Features.SCHEMA_HASH)}-$rate.feat")
+        val cache =
+            File(
+                file.parentFile,
+                "${file.nameWithoutExtension}.${java.lang.Long.toHexString(Features.SCHEMA_HASH)}-$rate.feat",
+            )
         if (cache.exists() && cache.lastModified() >= file.lastModified()) return readCache(cache)
         val games = Learned.readGames(listOf(file))
         val pool = Executors.newFixedThreadPool(threads)
@@ -161,7 +198,10 @@ class LearnedTrainTest {
                 games.map { r ->
                     Callable {
                         Learned.positions(r, rate).map {
-                            Pos(r.game, r.family, r.lineup, r.size, it.index, it.boundary, it.redWon, it.hand, it.terms, it.x)
+                            Pos(
+                                r.game, r.family, r.lineup, r.size, it.index, it.boundary, it.redWon, it.hand,
+                                it.terms, it.x,
+                            )
                         }
                     }
                 },
@@ -169,7 +209,11 @@ class LearnedTrainTest {
         } finally {
             pool.shutdown()
         }
-        println("TRAIN featurized ${games.size} games of $file: ${ps.size} positions in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
+        println(
+            "TRAIN featurized ${games.size} games of $file: ${ps.size} positions in ${"%.0f".format(
+                (System.nanoTime() - t0) / 1e9,
+            )} s",
+        )
         writeCache(cache, ps)
         return ps
     }
@@ -199,7 +243,11 @@ class LearnedTrainTest {
         List(n) {
             Pos(
                 i.readInt(), i.readLong(), i.readInt(), i.readInt(), i.readInt(), i.readBoolean(), i.readBoolean(),
-                i.readFloat(), FloatArray(Term.entries.size) { i.readFloat() }, FloatArray(2 * Features.SIZE) { i.readFloat() },
+                i.readFloat(),
+                FloatArray(Term.entries.size) {
+                    i.readFloat()
+                },
+                FloatArray(2 * Features.SIZE) { i.readFloat() },
             )
         }
     }

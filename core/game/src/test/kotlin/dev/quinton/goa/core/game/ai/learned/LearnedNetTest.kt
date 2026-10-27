@@ -75,20 +75,30 @@ class LearnedNetTest {
         }
         val netNs = time { net.evaluate(it, Team.RED) }
         val handNs = time { hand.evaluate(it, Team.RED) }
-        println("LEARNED evaluation: net ${"%.1f".format(netNs / 1000)} µs, hand ${"%.1f".format(handNs / 1000)} µs per position (3v3)")
+        println(
+            "LEARNED evaluation: net ${"%.1f".format(
+                netNs / 1000,
+            )} µs, hand ${"%.1f".format(handNs / 1000)} µs per position (3v3)",
+        )
         // A playout is 0.1–30 ms on the desktop (AI.md "Determinism"); loose for shared machines.
         assertThat(netNs).isLessThan(2_000_000.0)
     }
 
     private fun start(lineup: Pair<List<String>, List<String>>, coin: Team): GameState {
         val (red, blue) = lineup
-        return (TestData.engine.newGame(AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, coin)) as EngineSession).state
+        return (
+            TestData.engine.newGame(
+                AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, coin),
+            ) as EngineSession
+            ).state
     }
 
     /** States along a seeded strength-5 game. */
     private fun states(lineup: Pair<List<String>, List<String>>, n: Int): List<GameState> {
         val (red, blue) = lineup
-        val s = TestData.engine.newGame(AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, Team.RED)) as EngineSession
+        val s = TestData.engine.newGame(
+            AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, Team.RED),
+        ) as EngineSession
         val players = mapOf(Team.RED to AiPlayers.deterministic(5, 1L), Team.BLUE to AiPlayers.deterministic(5, 2L))
         val out = ArrayList<GameState>()
         while (out.size < n) {

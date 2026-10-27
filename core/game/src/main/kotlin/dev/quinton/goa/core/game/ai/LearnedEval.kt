@@ -23,7 +23,8 @@ internal enum class EvalSource {
 }
 
 /**
- * A small multilayer perceptron, inputs → [h1] → [h2] → 1, ReLU, read from [LearnedWeights]. The
+ * A small multilayer perceptron, inputs → [h1] → [h2] → 1, ReLU, plus a linear skip from the inputs
+ * to the output (wide and deep), read from [LearnedWeights]. The
  * first layer is stored input-major (`w1[i * h1 + j]`) so zero inputs cost nothing.
  */
 internal class LearnedNet(
@@ -35,12 +36,17 @@ internal class LearnedNet(
     private val w2: FloatArray,
     private val b2: FloatArray,
     private val w3: FloatArray,
+    /** The linear skip from the inputs to the output (wide and deep). */
+    private val wl: FloatArray,
     private val b3: Float,
     /** Coin-equivalents per unit of logit: the hand evaluation's scale, fitted when the net was trained. */
     val coinScale: Double,
 ) {
     init {
-        require(w1.size == inputs * h1 && b1.size == h1 && w2.size == h1 * h2 && b2.size == h2 && w3.size == h2) {
+        require(
+            w1.size == inputs * h1 && b1.size == h1 && w2.size == h1 * h2 && b2.size == h2 && w3.size == h2 &&
+                wl.size == inputs,
+        ) {
             "Learned net: weight sizes do not match $inputs → $h1 → $h2 → 1"
         }
     }
@@ -48,13 +54,14 @@ internal class LearnedNet(
     /** The output for the inputs `x[off until off + inputs]`. */
     fun forward(x: FloatArray, off: Int): Float {
         val a1 = b1.copyOf()
+        var out = b3
         for (i in 0 until inputs) {
             val xi = x[off + i]
             if (xi == 0f) continue
+            out += xi * wl[i]
             val row = i * h1
             for (j in 0 until h1) a1[j] += xi * w1[row + j]
         }
-        var out = b3
         for (k in 0 until h2) {
             var s = b2[k]
             val row = k * h1
@@ -76,6 +83,7 @@ internal class LearnedNet(
                 LearnedWeights.w2(),
                 LearnedWeights.b2(),
                 LearnedWeights.w3(),
+                LearnedWeights.wl(),
                 LearnedWeights.B3,
                 LearnedWeights.COIN_SCALE,
             )
@@ -94,7 +102,9 @@ internal class NetEvaluator(data: EngineData, private val net: LearnedNet = Lear
     private val features = Features(Evaluator(data))
 
     init {
-        require(net.inputs == Features.SIZE) { "Learned net expects ${net.inputs} inputs, the features are ${Features.SIZE}" }
+        require(net.inputs == Features.SIZE) {
+            "Learned net expects ${net.inputs} inputs, the features are ${Features.SIZE}"
+        }
     }
 
     /** The logit of P(Red wins). */
@@ -105,8 +115,9 @@ internal class NetEvaluator(data: EngineData, private val net: LearnedNet = Lear
     }
 
     override fun evaluate(state: GameState, team: Team): Double {
-        val red = state.winner?.let { if (it == Team.RED) Evaluator.WIN - state.round else -Evaluator.WIN + state.round }
-            ?: (redLogit(state) * net.coinScale)
+        val red =
+            state.winner?.let { if (it == Team.RED) Evaluator.WIN - state.round else -Evaluator.WIN + state.round }
+                ?: (redLogit(state) * net.coinScale)
         return if (team == Team.RED) red else -red
     }
 }

@@ -91,7 +91,8 @@ internal object Teams {
                 val reason = r.session.view(null).winReason?.name ?: "UNFINISHED"
                 score.reasons[reason] = (score.reasons[reason] ?: 0) + 1
                 score.rounds += r.rounds
-                score.lines += "${red.joinToString("+")} vs ${blue.joinToString("+")}: $a ${if (aRed[i]) "Red" else "Blue"}, " +
+                score.lines +=
+                    "${red.joinToString("+")} vs ${blue.joinToString("+")}: $a ${if (aRed[i]) "Red" else "Blue"}, " +
                     "${aWon?.let { if (it) "$a won" else "$b won" } ?: "draw"} by $reason in round ${r.rounds}"
             }
         } finally {

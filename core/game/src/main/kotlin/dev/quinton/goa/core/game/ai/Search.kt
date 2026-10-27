@@ -64,7 +64,7 @@ internal data class LevelProfile(
     val greedyMax: Int = Searcher.GREEDY_MAX,
     /** How far an upgrade choice is played out: TURN stops as the new round begins, NEXT_TURN plays its first turn. */
     val upgradeHorizon: Horizon = Horizon.TURN,
-    /** Where the learned evaluation scores positions instead of [knobs]' hand evaluation (AI.md "Learned evaluation"). */
+    /** Where the learned evaluation scores positions instead of [knobs]' hand one (AI.md "Learned evaluation"). */
     val learned: EvalSource = EvalSource.HAND,
     /** The net [learned] uses; null = the checked-in one ([LearnedNet.CURRENT]). */
     val net: LearnedNet? = null,
