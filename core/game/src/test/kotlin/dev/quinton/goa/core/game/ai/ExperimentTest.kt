@@ -125,6 +125,8 @@ class ExperimentTest {
 
                 "pp" -> p.copy(knobs = kn.copy(pushPerAttack = v.toDouble()))
 
+                "ppsize" -> p.copy(knobs = kn.copy(pushByTeamSize = v.toBoolean()))
+
                 "work" -> p.copy(workBudget = v.toLong())
 
                 "race" -> p.copy(race = v.toDouble())

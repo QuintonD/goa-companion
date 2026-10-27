@@ -44,6 +44,11 @@ internal data class EvalKnobs(
     val minionMargin: Double = 1.5,
     /** Push Potential per attack card left of a hero near the Battle Zone (STRATEGY L2, "two minions per hero"). */
     val pushPerAttack: Double = 0.5,
+    /**
+     * Push Potential shared by the team: × 2 / heroes a side (1 in 2v2, ⅔ in 3v3, ½ in 4v4). The same
+     * minions are there however many heroes hunt them, so each hero takes fewer (AI.md "Team sizes").
+     */
+    val pushByTeamSize: Boolean = false,
     /** A defeat's cost beyond the Life counter and the enemy's coins: the tempo of respawning. */
     val killTempo: Double = 5.0,
     /** Worth of the cards in hand per point of their rating. */
@@ -633,6 +638,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
             val attacks = hi.hand.count { it.attackCard } + hi.unresolved.count { it.attackCard }
             pp += knobs.pushPerAttack * min(attacks, max(hi.playsLeft, hi.unresolved.size))
         }
+        if (knobs.pushByTeamSize) pp *= 2.0 / max(2, state.heroes.count { it.team == team })
         return pp
     }
 
