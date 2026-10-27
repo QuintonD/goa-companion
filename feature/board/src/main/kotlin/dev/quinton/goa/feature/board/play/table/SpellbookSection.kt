@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -21,6 +23,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -34,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
+import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -259,21 +263,13 @@ internal fun GroupBlock(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            byTier -> tierRuns(cards).forEach { run ->
-                Text(
-                    "${spellTierTitle(run.tier)} · ${run.cards.size}",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = Spacing.xs).semantics { heading() },
-                )
-                ExtrasGrid(
-                    run.cards,
-                    onOpen = { i -> onOpen(cards, run.start + i, title) },
-                    origin = { origin(title, it) },
-                    marks = marks,
-                    castWith = castWith,
-                )
-            }
+            byTier -> TierRunsGrid(
+                tierRuns(cards),
+                onOpen = { i -> onOpen(cards, i, title) },
+                origin = { origin(title, it) },
+                marks = marks,
+                castWith = castWith,
+            )
 
             else -> ExtrasGrid(
                 cards,
@@ -336,10 +332,8 @@ internal fun ExtrasSection(
 /**
  * Landscape thumbnails filling the width, as many columns as fit at [MIN_THUMB] wide or more (fewer
  * with large text). A card with a [SpellMark] has it under it: offered now (a bronze edge), or why not
- * (dimmed); words and an edge, never colour alone. The width is whole pixels: a row of columns rounded
- * up one by one would be a pixel too wide and wrap its last card (it left a third of the row empty).
+ * (dimmed); words and an edge, never colour alone.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ExtrasGrid(
     cards: List<Card>,
@@ -348,17 +342,79 @@ private fun ExtrasGrid(
     marks: Map<String, SpellMark> = emptyMap(),
     castWith: Map<String, String> = emptyMap(),
 ) {
+    GridBox { m -> Cells(cards, m, onOpen, origin, marks, castWith) }
+}
+
+/**
+ * A group's Tiers, each headed ("Tier I · 3"), on one grid: a Tier with fewer spells than the grid has
+ * columns shares its row with the next ones that fit (re-check: in landscape a Tier of three on a row of
+ * its own left a third of the width empty); a longer one starts on a row of its own.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TierRunsGrid(
+    runs: List<TierRun>,
+    onOpen: (Int) -> Unit,
+    origin: (Card) -> Modifier,
+    marks: Map<String, SpellMark>,
+    castWith: Map<String, String>,
+) {
+    val density = LocalDensity.current
+    GridBox { m ->
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(m.gap),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            runs.forEach { run ->
+                val span = minOf(run.cards.size, m.columns)
+                val width = with(density) { (m.cellPx * span + m.gapPx * (span - 1)).toDp() }
+                Column(Modifier.width(width), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    Text(
+                        "${spellTierTitle(run.tier)} · ${run.cards.size}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Spacing.xs).semantics { heading() },
+                    )
+                    Cells(run.cards, m, { i -> onOpen(run.start + i) }, origin, marks, castWith)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The grid's measure in [GridBox]'s width: [columns] cells [cell] wide, [cellPx] whole pixels (a row of
+ * columns rounded up one by one would be a pixel too wide and wrap its last card), [gap] between.
+ */
+private class GridMeasure(val columns: Int, val cell: Dp, val cellPx: Int, val gap: Dp, val gapPx: Int)
+
+@Composable
+private fun GridBox(content: @Composable (GridMeasure) -> Unit) {
     val density = LocalDensity.current
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val gap = Spacing.sm
         val columns = gridColumns(maxWidth, density.fontScale)
         val gapPx = with(density) { gap.roundToPx() }
-        val widthPx = ((constraints.maxWidth - gapPx * (columns - 1)) / columns).coerceAtLeast(1)
-        val width = max(MIN_THUMB_FLOOR, with(density) { widthPx.toDp() })
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(gap), verticalArrangement = Arrangement.spacedBy(gap)) {
-            cards.forEachIndexed { i, card ->
-                ExtraThumb(card, width, origin(card), marks[card.id], castWith[card.id]) { onOpen(i) }
-            }
+        val cellPx = ((constraints.maxWidth - gapPx * (columns - 1)) / columns).coerceAtLeast(1)
+        val cell = max(MIN_THUMB_FLOOR, with(density) { cellPx.toDp() })
+        content(GridMeasure(columns, cell, cellPx, gap, gapPx))
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+@Suppress("LongParameterList")
+private fun Cells(
+    cards: List<Card>,
+    m: GridMeasure,
+    onOpen: (Int) -> Unit,
+    origin: (Card) -> Modifier,
+    marks: Map<String, SpellMark>,
+    castWith: Map<String, String>,
+) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(m.gap), verticalArrangement = Arrangement.spacedBy(m.gap)) {
+        cards.forEachIndexed { i, card ->
+            ExtraThumb(card, m.cell, origin(card), marks[card.id], castWith[card.id]) { onOpen(i) }
         }
     }
 }
@@ -401,25 +457,31 @@ private fun ExtraThumb(card: Card, width: Dp, origin: Modifier, mark: SpellMark?
             TableCard(card, width = width / LANDSCAPE_CARD_ASPECT * CARD_ASPECT)
         }
         when {
-            mark != null -> Text(
+            mark != null -> ThumbLine(
                 mark.short,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = if (mark.offered) FontWeight.SemiBold else null,
+                weight = if (mark.offered) FontWeight.SemiBold else null,
                 color = MaterialTheme.colorScheme.run { if (mark.offered) primary else onSurfaceVariant },
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
             )
 
-            hint != null -> Text(
-                hint,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            hint != null -> ThumbLine(hint, weight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
         }
     }
+}
+
+/**
+ * The line under a spell card, two lines at most and never cut off: a long card name ("Cast with
+ * Elementary Evocation") steps the text down until it fits (Clip: an ellipsis would count as fitting).
+ */
+@Composable
+private fun ThumbLine(text: String, weight: FontWeight?, color: Color) {
+    val style = MaterialTheme.typography.labelSmall
+    BasicText(
+        text,
+        style = style.copy(fontWeight = weight, color = color),
+        maxLines = 2,
+        overflow = TextOverflow.Clip,
+        autoSize = TextAutoSize.StepBased(minFontSize = THUMB_LINE_MIN, maxFontSize = style.fontSize),
+    )
 }
 
 internal const val SPELLBOOK = "spellbook"
@@ -429,4 +491,5 @@ private const val DIMMED = 0.5f
 private const val MAX_WIDTH_SCALE = 1.6f
 private val MIN_THUMB = 104.dp
 private val MIN_THUMB_FLOOR = 72.dp
-private const val MAX_COLUMNS = 4
+private val THUMB_LINE_MIN = 8.sp
+private const val MAX_COLUMNS = 6
