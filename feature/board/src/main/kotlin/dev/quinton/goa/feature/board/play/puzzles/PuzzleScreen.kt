@@ -327,7 +327,10 @@ private fun ColumnScope.PuzzlePanel(
             PuzzleHeader(puzzle.info, puzzle.total)
             if (puzzle.info.intro.isNotBlank()) Intro(puzzle.info.intro, puzzle.introOpen, onAction)
             puzzle.nudge?.let { Nudge(it, onAction) }
-            puzzle.table.moment?.let { MomentCard(it, puzzle.table, focus = focus) }
+            // The person's own question first, the moment after it (as in the game).
+            val moment = puzzle.table.moment
+            val questionFirst = puzzle.table.asking
+            if (moment != null && !questionFirst) MomentCard(moment, puzzle.table, focus = focus)
             DecisionPanel(
                 puzzle.table,
                 onSelect = { onAction(PuzzleAction.Select(it)) },
@@ -335,6 +338,7 @@ private fun ColumnScope.PuzzlePanel(
                 focus = focus,
                 busy = puzzle.busy,
             )
+            if (moment != null && questionFirst) MomentCard(moment, puzzle.table, focus = focus)
             RecentEvents(puzzle.recent.takeLast(2), Modifier.padding(top = Spacing.xs))
             if (!puzzle.table.handDecision) YourHand(puzzle.table, focus)
         }

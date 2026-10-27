@@ -36,6 +36,7 @@ import dev.quinton.goa.core.game.engine.inRange
 import dev.quinton.goa.core.game.engine.isAdjacent
 import dev.quinton.goa.core.game.engine.isEmpty
 import dev.quinton.goa.core.game.engine.move
+import dev.quinton.goa.core.game.engine.noTargetReason
 import dev.quinton.goa.core.game.engine.performAction
 import dev.quinton.goa.core.game.engine.placeToken
 import dev.quinton.goa.core.game.engine.primaryKind
@@ -373,13 +374,14 @@ object NebkherHero : HeroModule {
 
         override fun primary(a: ActionScope) {
             val enemies = a.g.unitsOnBoard().filter { a.isEnemy(it) && a.canTarget(it, ActionKind.ATTACK) }
+            val labels = listOf(
+                "Target a hero in range adjacent to an Illusion token in range",
+                "Target a unit adjacent to you",
+            )
             val pick = a.chooseBullet(
-                listOf(
-                    "Target a hero in range adjacent to an Illusion token in range",
-                    "Target a unit adjacent to you",
-                ),
+                labels,
                 listOf(enemies.any { nearIllusion(a, it) }, enemies.any { a.isAdjacent(it) }),
-            ) ?: a.fizzle("no target")
+            ) ?: a.fizzle(noTargetReason(labels))
             val rule = if (pick == 0) { id: String -> nearIllusion(a, id) } else { id: String -> a.isAdjacent(id) }
             val t =
                 a.attackTarget(
@@ -423,7 +425,9 @@ object NebkherHero : HeroModule {
                     tokens(a).isNotEmpty(),
                     a.g.unitsOnBoard().any { a.isEnemy(it) && a.isAdjacent(it) && a.canTarget(it, ActionKind.ATTACK) },
                 ),
-            ) ?: a.fizzle("no target")
+            ) ?: a.fizzle(
+                "no Illusion token in range can move next to an enemy hero in range, and no unit adjacent to you",
+            )
             if (pick == 1) {
                 val t = a.attackTarget("Target a unit adjacent to you") { a.isAdjacent(it) } ?: return
                 a.attack(t, valid = { a.isAdjacent(it) })

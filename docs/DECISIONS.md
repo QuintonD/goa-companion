@@ -1074,6 +1074,10 @@ question would break saves (answers replay by question order), so the action que
 **Alternatives:** always asking which spell, even for one (the save-replay break, and a question with
 one answer); a confirmation after choosing Skill (a new question too); the warning only in the log
 (after the fact, which is what the player hit).
+**Extended after the hands-on re-check (2026-10-27, `fix/v08-handson-2`):** the sheet's Tiers share a
+row when they fit (`TierRunsGrid`; in landscape Gold and Tier I, three each, each left a third of the
+row empty) and the grid takes up to six columns, never under 104 dp a card; the line under a spell
+("Cast with Elementary Evocation") wraps to two lines and steps its size down instead of an ellipsis.
 
 ## ADR-041 — The game table after the reveal: a turn track of the played cards, and the card as the panel's content (2026-10-25)
 **Context:** The owner: "We are still missing a clear indication of the game state after everyone has
@@ -1143,6 +1147,22 @@ its skipped-to turn 4. Large text puts the asking card above its answers.
    a Handicap card's basis) and "Read the card as text", collapsed, like the catalog viewer (ADR-042 §3).
    The sheet is as tall as its words, at the bottom, and the card takes up to 60 % of the portrait height
    (50 % with large text). TalkBack reads the card's name, kind, values and text on the card's node.
+
+**Extended after the hands-on re-check (2026-10-27, `fix/v08-handson-2`):**
+7. **The person's own question first, and from its top.** At font scale 2 the end-of-round summary
+   filled the panel and the Minion Battle's Confirm was below the fold; ADR-045 §8 had moved it for the
+   level up only. Now, whenever the question is the person's own (game and puzzles), the moment (reveal,
+   turn over, round ending) follows it. A new decision scrolls the panel back to its top (it opened the
+   Keep question mid-scroll, its header hidden); the same decision composed again keeps the scroll.
+8. **No target, in the card's words.** "Its Attack can't start: no target" said nothing while units were
+   in range but next to Gydion or a friendly unit. The attack helpers now take the reason from the
+   target prompt, the card's own condition (`noTargetReason`: "no hero in range with a Bounty marker and
+   no unit adjacent to you" for a "Choose one —" card), and a few cards give theirs (Fireball: "no target
+   in range that isn't adjacent to you or to a friendly unit"; Gydion's other spells, Dodger, Garrus,
+   Tali, Nebkher, Snorri). Wording only: the same checks, the same fizzles, no question added.
+9. **Zone labels clear of the game table's buttons.** The labels kept clear of the sandbox's corner
+   only; the game table's Fit / Flip / Spellbook column sits under the hero strip and grows with the font
+   scale ("Blue Throne" ran under the zoom button), so the table passes the column's bounds.
 
 ## ADR-042 — Styled on the official look: the cards as the cards, the rulebook's banner and heads (2026-10-25)
 **Context:** The owner: "Lean on the original assets throughout the app, the app should be styled
@@ -1340,3 +1360,8 @@ reach a level up when a hero gained the coins; it asks through the same panel (p
 9. **Official item icons.** Item badges outside card text are the official icons the cards print (ADR-042;
    the app's backpack-and-glyph badge only while one loads), under a card with the stat in words
    ("+1 Initiative"), so the hourglass on the card is the hourglass under it.
+
+**Extended after the hands-on re-check (2026-10-27, `fix/v08-handson-2`):** §8 now holds for every
+question (ADR-041 §7). The viewer's "Card 3 of 24" counted every spell as a card: it counts the cards
+and says a spell as its card's ("Card 2 of 9 · spell 2 of 2", TalkBack the same; `focusPosition`, any
+viewer whose pages name other pages).

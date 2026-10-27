@@ -38,6 +38,7 @@ import dev.quinton.goa.core.game.engine.isAdjacent
 import dev.quinton.goa.core.game.engine.isObstacle
 import dev.quinton.goa.core.game.engine.isTerrain
 import dev.quinton.goa.core.game.engine.move
+import dev.quinton.goa.core.game.engine.noTargetReason
 import dev.quinton.goa.core.game.engine.performAction
 import dev.quinton.goa.core.game.engine.rangedAttackTarget
 import dev.quinton.goa.core.game.engine.removeMarker
@@ -319,7 +320,7 @@ object BainHero : HeroModule {
             // "on different targets": both only when two different units can be targeted.
             val pair = t0.any { x -> t1.any { y -> !same(g, x, y) } }
             val order = a.chooseBullets(labels, listOf(t0.isNotEmpty(), t1.isNotEmpty()), both && pair)
-            if (order.isEmpty()) a.fizzle("no target")
+            if (order.isEmpty()) a.fizzle(noTargetReason(labels))
             var previous: String? = null
             for (i in order) {
                 val not = previous

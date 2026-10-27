@@ -121,7 +121,9 @@ private data class ZoneLabel(val text: String, val team: Team?, val places: List
  * Labels that stay readable at any zoom: each Lane's Battle Zone ("Lane 1 · Battle Zone" on a
  * double-lane map) and the two Throne Zones, set just outside their Zone's edge. A label takes the
  * first of its places that is fully in view, clear of the map buttons and of every piece and
- * highlighted space; with none free it stays hidden rather than cover what is on the board.
+ * highlighted space; with none free it stays hidden rather than cover what is on the board. [buttons]
+ * is where the map buttons are, in the map's pixels (the game table's sit under the hero strip and
+ * grow with the font scale); by default the sandbox's Fit and Flip in the top right corner.
  */
 @Composable
 internal fun ZoneLabels(
@@ -132,12 +134,13 @@ internal fun ZoneLabels(
     viewport: MapViewport,
     palette: BoardPalette,
     busy: List<Offset>,
+    buttons: Rect? = null,
 ) {
     val labels = remember(map, layout, battleZones, bottomTeam) { zoneLabels(map, battleZones, bottomTeam, layout) }
     val density = LocalDensity.current
     val margin = with(density) { 6.dp.toPx() }
-    // The Fit and Flip buttons in the top right corner.
-    val buttons = with(density) { Size(64.dp.toPx(), 124.dp.toPx()) }
+    // The Fit and Flip buttons in the top right corner, unless the screen says where its buttons are.
+    val corner = with(density) { Size(64.dp.toPx(), 124.dp.toPx()) }
     val fontScale = density.fontScale
     val labelScale = minOf(fontScale, MAX_LABEL_SCALE) / fontScale
     labels.forEach { label ->
@@ -147,8 +150,8 @@ internal fun ZoneLabels(
                     val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
                     layout(constraints.maxWidth, constraints.maxHeight) {
                         val view = viewport.visible
-                        val reserved =
-                            Rect(viewport.viewport.width - buttons.width, 0f, viewport.viewport.width, buttons.height)
+                        val reserved = buttons?.inflate(margin)
+                            ?: Rect(viewport.viewport.width - corner.width, 0f, viewport.viewport.width, corner.height)
                         val w = placeable.width.toFloat()
                         val h = placeable.height.toFloat()
                         val spot = label.places.firstNotNullOfOrNull { (anchor, side) ->

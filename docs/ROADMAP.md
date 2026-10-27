@@ -268,6 +268,11 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   `OfficialDeckScreenshotTest.spellbookOpenedDark`. JVM only
 - [ ] On the S25 Ultra: the Spellbook control in a Gydion game at every moment above, portrait and
   landscape, font scale 2; the draft peek's link; pass-and-play with Gydion on the other side
+- [x] Re-check fixes (`fix/v08-handson-2`, ADR-040 extended): the sheet's Tiers share a row when they fit
+  and the grid takes up to six columns (landscape no longer a third empty); "Cast with Elementary
+  Evocation" wraps to two lines, stepping its size down, never cut off — 2026-10-27,
+  `SpellbookSectionTest`, `SpellbookScreenshotTest` / `SpellbookSetupScreenshotTest` re-recorded and looked
+  at. JVM only
 
 ## M17 — The table after the reveal: turn track and the card as the content (ADR-041)
 - [x] Turn track: after the reveal the strip is the played cards in acting order with DONE / NOW / NEXT /
@@ -285,6 +290,15 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   the card larger; the Tie Breaker coin is the official face in the HUD and New game's coin flip —
   2026-10-25, `UnavailableActionsTest` (7, incl. no-peeking), `PlayPanelTextTest`, spellbook / play /
   puzzle / review screenshots re-recorded and looked at. JVM only
+- [x] Re-check fixes (`fix/v08-handson-2`, ADR-041 §7–9): the person's own question before the moment
+  (the Minion Battle's Confirm was below the fold at font scale 2; game and puzzles), a new question opens
+  the panel at its top; "Its Attack can't start" names the card's condition (Fireball: "no target in range
+  that isn't adjacent to you or to a friendly unit", Choose-one cards each bullet's), no question added;
+  Zone labels clear of the game table's buttons — 2026-10-27, `PanelOrderTest` (2), `NoTargetReasonTest`,
+  `GydionCastPreviewTest` (+1), `EndOfRoundScreenshotTest` (4: portrait, landscape, W384 font scale 2,
+  the whole board at font scale 2), play / puzzle / cast-preview screenshots re-recorded and looked at.
+  JVM only
+- [ ] On the S25 Ultra: the end of a round at font scale 2 (Minion Battle, then Keep from its top)
 
 ## M18 — Hero game state (ADR-044)
 - [x] Engine: items for every hero are the public item icons (`HeroView.itemStats`), the tucked cards the
@@ -328,6 +342,9 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   icons with the stat in words — 2026-10-26, `NamedCardsTest`, `GydionLevelUpTest` (incl. the
   computer's level up shows none), `GydionLevelUpScreenshotTest` (portrait / landscape / light / short
   phone / W384 font scale 2) looked at. JVM only
+- [x] Re-check (`fix/v08-handson-2`, ADR-045 extended): the viewer counts the cards and says a spell as its
+  card's ("Card 2 of 9 · spell 2 of 2", TalkBack the same) — 2026-10-27, `GydionLevelUpTest` (+1),
+  `GydionLevelUpScreenshotTest` re-recorded. JVM only
 - [ ] On the S25 Ultra: a level up with three colours to choose from, the viewer swiped through, TalkBack
   on the rows and "Go to …"
 

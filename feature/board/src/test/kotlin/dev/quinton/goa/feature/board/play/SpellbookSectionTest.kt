@@ -307,7 +307,9 @@ class SpellbookSectionTest {
         assertThat(gridColumns(379.dp, 2f)).isEqualTo(2)
         assertThat(gridColumns(352.dp, 2f)).isEqualTo(2)
         assertThat(gridColumns(300.dp, 2f)).isEqualTo(1)
-        assertThat(gridColumns(800.dp, 1f)).isEqualTo(4)
+        // A landscape phone's sheet (re-check: three columns left a third of the width empty): six.
+        assertThat(gridColumns(686.dp, 1f)).isEqualTo(6)
+        assertThat(gridColumns(800.dp, 1f)).isEqualTo(6)
     }
 
     private companion object {

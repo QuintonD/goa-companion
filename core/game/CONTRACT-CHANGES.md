@@ -266,3 +266,12 @@ client unaffected. No question was added or removed: the preview is information 
   gets "Suggestion does nothing: no enemy hero in radius 3." and the preview its reason. Suggestion and
   Midas' Touch (fewer than two other spells removed: no coin) use it. Power Word Kill checks the hand's
   count with `handSize`.
+
+## 2026-10-27 — `fix/v08-handson-2`: no-target reasons in the card's words (ADR-041 §8)
+- No type changes. The text of `UnavailableAction` / `UnavailableCard` ("Its Attack can't start: …") and
+  of the log's "… stops: …" lines now names the card's own condition when an attack has no target:
+  `attackTarget`'s `none` defaults to `noTargetReason(prompt)` ("Target a hero adjacent to you" → "no hero
+  adjacent to you"; "Choose one —" cards join their bullets), `adjacentAttackTarget` /
+  `rangedAttackTarget` keep "no target adjacent to you" / "no target in range" for their plain prompts and
+  take an optional `none`. Fireball: "no target in range that isn't adjacent to you or to a friendly
+  unit". Same checks and fizzles: no question added or removed, saves replay unchanged.

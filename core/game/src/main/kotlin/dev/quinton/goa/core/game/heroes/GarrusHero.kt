@@ -156,7 +156,9 @@ object GarrusHero : HeroModule {
 
                 second -> 1
 
-                else -> a.fizzle("no target")
+                hasDiscard -> a.fizzle("no unit adjacent to you, and no hero next to a space you can move to")
+
+                else -> a.fizzle("no unit adjacent to you, and no card in your discard to move first")
             }
             if (pick == 1) {
                 val t = a.adjacentAttackTarget() ?: return
