@@ -65,7 +65,8 @@ class PanelOrderTest {
     private fun top(text: String): Float =
         compose.onAllNodes(hasText(text, substring = true)).onFirst().fetchSemanticsNode().positionInRoot.y
 
-    private fun panel() = compose.onAllNodes(hasScrollAction() and hasAnyDescendant(hasText("END OF ROUND", substring = true)))
+    private fun panel() = compose
+        .onAllNodes(hasScrollAction() and hasAnyDescendant(hasText("END OF ROUND", substring = true)))
         .onFirst()
 
     private fun panelScroll(): Float =

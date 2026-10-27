@@ -97,6 +97,7 @@ fun GameMapView(
     modifier: Modifier = Modifier,
     lane: Rect? = null,
     onLongPressHero: ((String) -> Unit)? = null,
+    buttons: Rect? = null,
 ) {
     val palette = boardPalette()
     val haptics = LocalHapticFeedback.current
@@ -202,7 +203,16 @@ fun GameMapView(
                     translationY = viewport.pan.y
                 }
             Box(transform) { MapBase(table.map, battleZones.toSet(), layout, unit, palette) }
-            ZoneLabels(table.map, battleZones, table.bottomTeam, layout, viewport, palette, labelBusy(table, layout))
+            ZoneLabels(
+                table.map,
+                battleZones,
+                table.bottomTeam,
+                layout,
+                viewport,
+                palette,
+                labelBusy(table, layout),
+                buttons = buttons,
+            )
             Box(transform.semantics { isTraversalGroup = true }) {
                 DecisionOverlay(table, layout, unit, palette)
                 GamePieces(table, layout, unit, palette)

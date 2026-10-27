@@ -3,6 +3,8 @@ package dev.quinton.goa.feature.board.play
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureScreenRoboImage
@@ -31,7 +33,7 @@ class EndOfRoundScreenshotTest {
 
     @Before fun images() = BundledImages.install(ApplicationProvider.getApplicationContext(), memoryCache = false)
 
-    private fun capture(mode: ThemeMode, fontScale: Float = 1f) {
+    private fun capture(mode: ThemeMode, fontScale: Float = 1f, before: () -> Unit = {}) {
         val play = GydionLevelUpGame.play(EndOfRoundGame.session())
         compose.setContent {
             val d = LocalDensity.current
@@ -50,6 +52,8 @@ class EndOfRoundScreenshotTest {
             }
         }
         compose.waitForIdle()
+        before()
+        compose.waitForIdle()
         compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledImages.idle }
         compose.waitForIdle()
         captureScreenRoboImage()
@@ -65,7 +69,16 @@ class EndOfRoundScreenshotTest {
     @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
     fun minionBattleLandscapeLight() = capture(ThemeMode.LIGHT)
 
+    /** The whole board in view at font scale 2: the Zone labels keep clear of the map buttons (re-check). */
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun minionBattleFitW384DarkFontScale2() = capture(ThemeMode.DARK, 2f) {
+        compose.onNodeWithContentDescription("Fit the whole board").performClick()
+        compose.mainClock.advanceTimeBy(FIT_MS)
+    }
+
     private companion object {
         const val IMAGE_TIMEOUT_MS = 10_000L
+        const val FIT_MS = 1_000L
     }
 }
