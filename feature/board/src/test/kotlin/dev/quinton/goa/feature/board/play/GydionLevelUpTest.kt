@@ -22,8 +22,11 @@ import dev.quinton.goa.feature.board.play.game.GameAction
 import dev.quinton.goa.feature.board.play.game.GameScreen
 import dev.quinton.goa.feature.board.play.game.GameUiState
 import dev.quinton.goa.feature.board.play.game.PlayUi
+import dev.quinton.goa.feature.board.play.table.upgradeFocus
+import dev.quinton.goa.feature.board.play.table.upgradeRows
 import dev.quinton.goa.feature.board.ui.cards.CARD_TAG
 import dev.quinton.goa.feature.board.ui.cards.GO_TO_ANSWER_TAG
+import dev.quinton.goa.feature.board.ui.cards.focusPosition
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -126,6 +129,27 @@ class GydionLevelUpTest {
         compose.onNodeWithTag(CARD_TAG).performClick()
         compose.waitForIdle()
         assertThat(actions).containsExactly(GameAction.Answer(Choice.Card(OTHER_UPGRADE)))
+    }
+
+    @Test
+    fun `level up - the viewer counts the cards, a spell is said as its card's`() {
+        // Re-check: "Card 3 of 24" counted every spell as a card.
+        val p = GydionLevelUpGame.play(GydionLevelUpGame.session())
+        val rows = upgradeRows(p.table)
+        val pages = upgradeFocus(rows).cards
+        val cards = rows.sumOf { 1 + it.upgrades.size }
+        assertThat(focusPosition(pages, 0)).isEqualTo("Card 1 of $cards")
+        val hand = pages.indexOfFirst { it.card.id == HAND_CARD }
+        val upgrade = pages.indexOfFirst { it.card.id == UPGRADE }
+        assertThat(focusPosition(pages, hand + 1)).endsWith("of $cards · spell 1 of 1")
+        val spellAt = pages.indexOfFirst { it.key == "${pages[upgrade].key}>$fireball" }
+        val upgradeAt = focusPosition(pages, upgrade)
+        assertThat(focusPosition(pages, spellAt)).isEqualTo("$upgradeAt · spell 2 of 2")
+        // In the viewer, and TalkBack the same.
+        show(p)
+        tap(spellOf(UPGRADE, fireball))
+        compose.onNodeWithText("$upgradeAt · spell 2 of 2").assertExists()
+        compose.onAllNodes(hasContentDescription("$upgradeAt, spell 2 of 2")).onFirst().assertExists()
     }
 
     @Test

@@ -448,17 +448,39 @@ private fun TopBar(request: CardFocusRequest, index: Int, onClose: () -> Unit, r
                 )
             }
             if (request.cards.size > 1) {
+                val position = focusPosition(request.cards, index)
                 Text(
-                    "Card ${index + 1} of ${request.cards.size}",
+                    position,
                     style = MaterialTheme.typography.labelMedium,
                     color = OnScrim,
                     maxLines = 1,
+                    modifier = Modifier.semantics { contentDescription = position.replace(" · ", ", ") },
                 )
             }
         }
         if (request.cards.size > 1) PageDots(request.cards.size, index)
         Spacer(Modifier.width(Spacing.lg))
     }
+}
+
+/**
+ * Where the shown page is: "Card 2 of 4". The cards another card names (a Gydion card's spells, shown
+ * after it, ADR-045 extended) are not counted as cards but said as that card's: "Card 2 of 9 · spell 1
+ * of 2" (re-check: the level up said "Card 3 of 24", counting every spell as a card).
+ */
+internal fun focusPosition(cards: List<FocusCard>, index: Int): String {
+    val namer = cards.withIndex().associate { (i, c) -> c.key to i }.let { byKey ->
+        cards.flatMapIndexed { i, c -> c.related.mapNotNull { key -> byKey[key]?.let { it to i } } }.toMap()
+    }
+    if (namer.isEmpty()) return "Card ${index + 1} of ${cards.size}"
+    val main = cards.indices.filter { it !in namer }
+    val owner = namer[index]
+    if (owner == null) return "Card ${main.indexOf(index) + 1} of ${main.size}"
+    val related = cards[owner].related
+    val spells = related.all { key -> cards.firstOrNull { it.key == key }?.card?.isSpell == true }
+    val noun = if (spells) "spell" else "named card"
+    val position = related.indexOf(cards[index].key) + 1
+    return "Card ${main.indexOf(owner) + 1} of ${main.size} · $noun $position of ${related.size}"
 }
 
 /** One dot per card, the shown one long and bronze; up to [MAX_DOTS]. */
