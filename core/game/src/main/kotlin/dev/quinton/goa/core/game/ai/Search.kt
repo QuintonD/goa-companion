@@ -161,7 +161,8 @@ internal class Searcher(
             playWeight = if (profile.modelPlays) ::playWeights else null,
             hidePlayedOf = humans,
         )
-        return es.determinizeWith(team, seed, options)
+        // A search copy: no explanations for a player are built at its questions (the same options).
+        return es.determinizeWith(team, seed, options, quiet = true)
     }
 
     /** The opponent model (STRATEGY §3.1): softmax of the hero's own static card scores, 15% uniform. */
@@ -303,7 +304,7 @@ internal class Searcher(
         for (o in candidates) {
             if (cancelled()) return false
             if (o !in dp.options) continue
-            val f = det.forkSession()
+            val f = det.forkForAnswer()
             val before = f.events.size
             f.answer(dp.id, o)
             playout(f, d.seat, d.team, horizon)
@@ -415,7 +416,7 @@ internal class Searcher(
         var best = opts[0]
         var bestV = Double.NEGATIVE_INFINITY
         for (o in opts) {
-            val g = f.forkSession()
+            val g = f.forkForAnswer()
             g.answer(d.id, o)
             finishAction(g, d.seat)
             val v = ev.evaluate(g.state, d.team)

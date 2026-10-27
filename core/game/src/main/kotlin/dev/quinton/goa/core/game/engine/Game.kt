@@ -52,6 +52,11 @@ class Game internal constructor(
     internal val mode: RunMode = RunMode.NORMAL,
     /** In a determinized copy, answers that are no longer options are replaced by a sampled one. */
     private val lenient: Random? = null,
+    /**
+     * False in the AI's search copies: a question's explanations for the player (the reasons an
+     * action is unavailable, what the Primary will do, ADR-041) are left out; options are the same.
+     */
+    internal val explain: Boolean = true,
 ) {
     val geo: BoardGeometry = data.geometry(state.mapId)
 
