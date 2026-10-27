@@ -24,8 +24,12 @@ class TimingTest {
         // AI_TIMING_THREADS=3: each answer's samples on three threads, as the app's runner.
         val threads = System.getenv("AI_TIMING_THREADS")?.toIntOrNull()?.let { ThreadRunner(it) }
         val runner = threads ?: SampleRunner.SEQUENTIAL
-        for (strength in strengths) {
-            val budget = AiPlayers.profile(strength).budgetMs
+        // AI_TIMING_VARIANT=s10+race=3: one profile variant as in [ExperimentTest] instead of the strengths.
+        val variant = System.getenv("AI_TIMING_VARIANT")
+        for (strength in if (variant != null) listOf(0) else strengths) {
+            val profile = variant?.let { ExperimentTest.variant(it) } ?: AiPlayers.profile(strength)
+            val budget = profile.budgetMs
+            fun player(seed: Long) = SearchAi(AiLevel.of(maxOf(1, strength)), profile, seed, timeCap = true, runner)
             val all = LinkedHashMap<DecisionKind, MutableList<Long>>()
             val byHero = LinkedHashMap<String, MutableList<Long>>()
             val work = ArrayList<Pair<Long, Long>>()
@@ -42,8 +46,8 @@ class TimingTest {
                         format.mapId,
                     ),
                     mapOf(
-                        Team.RED to AiPlayers.forStrength(strength, 40L + g, runner),
-                        Team.BLUE to AiPlayers.forStrength(strength, 50L + g, runner),
+                        Team.RED to player(40L + g),
+                        Team.BLUE to player(50L + g),
                     ),
                     timed = true,
                 )
@@ -53,7 +57,7 @@ class TimingTest {
                 work += r.playWork
             }
             println(
-                "TIMING [$format] strength $strength (device budget per card $budget ms, ${runner.width} thread(s)):",
+                "TIMING [$format] ${variant ?: "strength $strength"} (device budget per card $budget ms, ${runner.width} thread(s)):",
             )
             for ((k, v) in all) {
                 val ms = v.map { it / 1e6 }.sorted()

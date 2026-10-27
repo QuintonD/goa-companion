@@ -65,6 +65,12 @@ internal data class EvalKnobs(
      * with the hero's best card on its own, so two attacks that each fail alone never add up.
      */
     val focusFire: Boolean = false,
+    /**
+     * A hero with no card left to defend with (now, or after the card it still has to play): its
+     * exposure counts at least this scale whatever [scales] says (0 = no floor). An enemy who strips
+     * the cards one turn kills the next (AI.md "Team sizes"); the playouts end with this turn.
+     */
+    val defenseless: Double = 0.0,
 )
 
 /** The parts of the evaluation (Red minus Blue), each in coin-equivalents; their sum is the score. */
@@ -543,10 +549,18 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
     fun placement(heroId: String, at: Hex): Double {
         val hi = info(heroId)
         return scale(Term.PRESENCE) * presence(hi.h.team, at) + scale(Term.OPPORTUNITY) * opportunity(hi, at) -
-            scale(Term.EXPOSURE) * exposureScale(hi.h.team) * exposure(hi, at)
+            scale(Term.EXPOSURE) * exposureWeight(hi) * exposure(hi, at)
     }
 
     private fun exposureScale(team: Team): Double = knobs.exposureByTeam[team] ?: 1.0
+
+    /** A hero's exposure weight on top of the term's scale: per team, and the floor for a defenseless hero. */
+    private fun exposureWeight(hi: HeroInfo): Double {
+        val w = exposureScale(hi.h.team)
+        if (knobs.defenseless <= 0.0 || roundOver) return w
+        if (hi.defenseNow.cards > 0 && hi.defenseNext.cards > 0) return w
+        return w * max(1.0, knobs.defenseless / scale(Term.EXPOSURE))
+    }
 
     private fun lifeScale(team: Team): Double = knobs.lifeByTeam[team] ?: 1.0
 
@@ -578,7 +592,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
         val all = listOf(at) + state.pieces.filter { it.heroBody == h.id && it.at != null }.map { it.at!! }
         t[Term.PRESENCE.ordinal] += sign * all.maxOf { presence(h.team, it) }
         t[Term.OPPORTUNITY.ordinal] += sign * all.maxOf { opportunity(hi, it) }
-        t[Term.EXPOSURE.ordinal] -= sign * exposureScale(h.team) * all.maxOf { exposure(hi, it) }
+        t[Term.EXPOSURE.ordinal] -= sign * exposureWeight(hi) * all.maxOf { exposure(hi, it) }
     }
 
     private fun laneTerms(t: DoubleArray) {

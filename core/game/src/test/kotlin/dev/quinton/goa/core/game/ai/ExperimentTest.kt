@@ -128,6 +128,7 @@ class ExperimentTest {
                 "work" -> p.copy(workBudget = v.toLong())
 
                 "race" -> p.copy(race = v.toDouble())
+                "defenseless" -> p.copy(knobs = kn.copy(defenseless = v.toDouble()))
 
                 "tempo" -> p.copy(knobs = kn.copy(killTempo = v.toDouble()))
 
