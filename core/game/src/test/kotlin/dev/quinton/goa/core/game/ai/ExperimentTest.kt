@@ -7,7 +7,8 @@ import org.junit.Test
  * Opt-in tuning experiments: `AI_EXPERIMENT=a:b,c:d` plays profile variant a against b, mirrored, on
  * `AI_MIXED` mixed line-ups from `AI_FIRST_SEED` (or `AI_TOURNAMENT` first-game seeds). A variant is
  * a strength (`s1`…`s10`) or a level (`hard`), optionally followed by overrides:
- * `s8+samples=24+next=0.3+xEXPOSURE=0.8` (see [override] for the keys).
+ * `s8+samples=24+next=0.3+xEXPOSURE=0.8` (see [override] for the keys). `AI_FORMAT=3v3` (or `4v4`,
+ * `4v4river`, `5v5river`) plays bigger teams ([AiHarness.Format]).
  */
 class ExperimentTest {
     @Test
@@ -17,17 +18,19 @@ class ExperimentTest {
         val first = System.getenv("AI_FIRST_SEED")?.toIntOrNull() ?: 0
         val threads = System.getenv("AI_THREADS")?.toIntOrNull() ?: 4
         val mixed = System.getenv("AI_MIXED")?.toIntOrNull()
+        val format = AiHarness.Format.parse(System.getenv("AI_FORMAT"))
         for (pair in pairs) {
             val (a, b) = pair.split(":")
             val sa = side(a)
             val sb = side(b)
             val t0 = System.nanoTime()
             val score = if (mixed != null) {
-                Tournament.runMixed(sa, sb, mixed, threads, first)
+                Tournament.runMixed(sa, sb, mixed, threads, first, format)
             } else {
                 Tournament.run(sa, sb, seeds, threads, first)
             }
-            println("EXPERIMENT $score in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
+            println("EXPERIMENT [$format] $score in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
+            println("EXPERIMENT   ${score.details()}")
             if (mixed != null) println("EXPERIMENT by hero ($a): ${score.byHero()}")
         }
     }
@@ -79,6 +82,7 @@ class ExperimentTest {
                 "otherHorizon" -> p.copy(otherHorizon = Horizon.valueOf(v))
                 "nearest" -> p.copy(knobs = kn.copy(nearestThreatOnly = v.toBoolean()))
                 "oneCard" -> p.copy(knobs = kn.copy(oneCardPerTurn = v.toBoolean()))
+                "focus" -> p.copy(knobs = kn.copy(focusFire = v.toBoolean()))
                 "tau" -> p.copy(opponentTau = v.toDouble())
                 "upgrade" -> p.copy(upgradeHorizon = Horizon.valueOf(v))
                 "greedyMax" -> p.copy(greedyMax = v.toInt())
@@ -91,6 +95,10 @@ class ExperimentTest {
                 "margin" -> p.copy(knobs = kn.copy(minionMargin = v.toDouble()))
                 "tempo" -> p.copy(knobs = kn.copy(killTempo = v.toDouble()))
                 "hand" -> p.copy(knobs = kn.copy(handRating = v.toDouble()))
+                // The exploiter (AI.md "Team sizes"): hunt=selfExposure/enemyExposure/enemyLife, e.g. hunt=0/2/1.5.
+                "hunt" -> v.split("/").map { it.toDouble() }.let { (se, ee, el) ->
+                    p.copy(hunt = Hunt(selfExposure = se, enemyExposure = ee, enemyLife = el))
+                }
                 else -> error("Unknown override $k")
             }
         }

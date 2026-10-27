@@ -9,6 +9,7 @@ import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.EngineSession
+import dev.quinton.goa.core.model.match.Team
 import kotlin.random.Random
 
 /**
@@ -24,7 +25,12 @@ import kotlin.random.Random
  * wall-clock cap (the phone budget) may end a search early on a slow device; [deterministic] removes it.
  */
 object AiPlayers {
-    fun forStrength(strength: Int, seed: Long): AiPlayer = player(strength, seed, timeCap = true)
+    /**
+     * The production player: wall-clock capped at the strength's device budget. [runner] may run the
+     * samples of one answer on several threads (the Android app passes one; the engine has no threads).
+     */
+    fun forStrength(strength: Int, seed: Long, runner: SampleRunner = SampleRunner.SEQUENTIAL): AiPlayer =
+        player(strength, seed, timeCap = true, runner)
 
     /** Same, without the wall-clock cap: fully reproducible (tests, tournaments). */
     fun deterministic(strength: Int, seed: Long): AiPlayer = player(strength, seed, timeCap = false)
@@ -33,9 +39,14 @@ object AiPlayers {
 
     fun deterministic(level: AiLevel, seed: Long): AiPlayer = deterministic(level.strength, seed)
 
-    private fun player(strength: Int, seed: Long, timeCap: Boolean): AiPlayer {
+    private fun player(
+        strength: Int,
+        seed: Long,
+        timeCap: Boolean,
+        runner: SampleRunner = SampleRunner.SEQUENTIAL,
+    ): AiPlayer {
         val s = AiStrength.coerce(strength)
-        return SearchAi(AiLevel.of(s), profile(s), seed, timeCap)
+        return SearchAi(AiLevel.of(s), profile(s), seed, timeCap, runner)
     }
 
     internal fun profile(level: AiLevel): LevelProfile = profile(level.strength)
@@ -145,15 +156,21 @@ internal class SearchAi(
     private val profile: LevelProfile,
     private val seed: Long,
     private val timeCap: Boolean,
+    private val runner: SampleRunner = SampleRunner.SEQUENTIAL,
 ) : AiPlayer {
     private var searchers: Pair<EngineData, Searcher>? = null
     private var blind: Pair<EngineData, Searcher>? = null
 
+    /** The team of the last decision: the exploiter's one-sided taste depends on it. */
+    private var team: Team? = null
+
     private fun searcher(data: EngineData, modifierBlind: Boolean = false): Searcher {
         val cached = if (modifierBlind) blind else searchers
         if (cached != null && cached.first === data) return cached.second
-        val knobs = profile.knobs.copy(modifierBlind = modifierBlind)
-        val s = Searcher(Evaluator(data, knobs), profile)
+        var knobs = profile.knobs.copy(modifierBlind = modifierBlind)
+        val own = team
+        if (profile.hunt != null && own != null) knobs = profile.hunt.knobs(knobs, own)
+        val s = Searcher(Evaluator(data, knobs), profile, runner = runner)
         if (modifierBlind) blind = data to s else searchers = data to s
         return s
     }
@@ -161,6 +178,11 @@ internal class SearchAi(
     override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice {
         if (decision.options.size == 1) return decision.options.single()
         val es = session as? EngineSession ?: return Fallback.choose(decision)
+        if (profile.hunt != null && team != decision.team) {
+            team = decision.team
+            searchers = null
+            blind = null
+        }
         val rng = Random(Searcher.mix(seed, decision.id * 1_000_003L + decision.seat.hashCode()))
         val budget = if (decision.kind == DecisionKind.PLAY_CARD) profile.budgetMs else profile.budgetMs / 3
         val deadline = if (timeCap) System.nanoTime() + budget * 1_000_000L else Long.MAX_VALUE

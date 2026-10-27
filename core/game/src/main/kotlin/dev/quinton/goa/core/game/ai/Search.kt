@@ -64,7 +64,45 @@ internal data class LevelProfile(
     val greedyMax: Int = Searcher.GREEDY_MAX,
     /** How far an upgrade choice is played out: TURN stops as the new round begins, NEXT_TURN plays its first turn. */
     val upgradeHorizon: Horizon = Horizon.TURN,
+    /** A one-sided taste for kills (the exploiter of AI.md "Team sizes"); null = symmetric. */
+    val hunt: Hunt? = null,
 )
+
+/**
+ * How a kill-hunting player weighs the board, relative to the symmetric evaluation: its own heroes'
+ * exposure × [selfExposure], the enemy heroes' × [enemyExposure], the enemy's Life counters × [enemyLife].
+ */
+internal data class Hunt(val selfExposure: Double = 0.0, val enemyExposure: Double = 2.0, val enemyLife: Double = 1.5) {
+    fun knobs(base: EvalKnobs, own: Team): EvalKnobs {
+        val enemy = if (own == Team.RED) Team.BLUE else Team.RED
+        return base.copy(
+            exposureByTeam = mapOf(own to selfExposure, enemy to enemyExposure),
+            lifeByTeam = mapOf(enemy to enemyLife),
+        )
+    }
+}
+
+/**
+ * Runs the samples of one answer (AI.md "Budgets"). The engine has no threads (it must stay
+ * multiplatform), so the default runs them one after the other; the Android app supplies a runner on a
+ * few threads. Each sample writes only its own column and the values are combined in sample order, so
+ * an answer without a wall-clock cap is the same whatever the runner.
+ */
+interface SampleRunner {
+    /** How many samples are started together (the search checks its deadline between batches). */
+    val width: Int
+
+    /** Runs every task, possibly at the same time, and returns when all are done. */
+    fun runAll(tasks: List<() -> Unit>)
+
+    companion object {
+        val SEQUENTIAL: SampleRunner = object : SampleRunner {
+            override val width: Int = 1
+
+            override fun runAll(tasks: List<() -> Unit>) = tasks.forEach { it() }
+        }
+    }
+}
 
 /** One option's values over the samples (NaN where the option did not exist in a sample). */
 internal class OptionValue(val choice: Choice, val values: DoubleArray) {
@@ -108,6 +146,7 @@ internal class Searcher(
     val ev: Evaluator,
     val profile: LevelProfile,
     private val keepLeaves: Boolean = false,
+    private val runner: SampleRunner = SampleRunner.SEQUENTIAL,
 ) {
     val static = StaticPolicy(ev)
 
@@ -152,21 +191,57 @@ internal class Searcher(
         val leaves = ArrayList<Leaf>()
         var done = 0
         var k = 0
-        while (k < samples && (k == 0 || !(cancelled() || System.nanoTime() > deadline))) {
+        // The first sample fixes the candidates (one after the other until one has the decision).
+        while (k < samples && candidates == null && (k == 0 || !(cancelled() || System.nanoTime() > deadline))) {
             val det = determinize(es, d, mix(seed, k.toLong()))
             val dp = det.pending?.takeIf { it.seat == d.seat && it.kind == d.kind }
             if (dp != null) {
-                val cs = candidates ?: prune(det, d, dp).let { c ->
+                val cs = prune(det, d, dp).let { c ->
                     if (mustInclude != null && mustInclude !in c && mustInclude in dp.options) c + mustInclude else c
                 }.also { candidates = it }
                 for (o in cs) table.getOrPut(o) { DoubleArray(samples) { Double.NaN } }
                 if (!sample(det, dp, d, cs, k, horizon, table, leaves, cancelled)) {
                     for (arr in table.values) arr[k] = Double.NaN
-                    break
+                    return if (done == 0) null else Analysis(d, table.map { (c, v) -> OptionValue(c, v) }, leaves, done, k)
                 }
                 done++
             }
             k++
+        }
+        val cs = candidates
+        if (cs != null) {
+            for (o in cs) table.getOrPut(o) { DoubleArray(samples) { Double.NaN } }
+            // The rest in batches of the runner's width, each sample on its own columns.
+            while (k < samples && (k == 0 || !(cancelled() || System.nanoTime() > deadline))) {
+                val batch = k until minOf(samples, k + runner.width)
+                val status = IntArray(batch.count())
+                val batchLeaves = Array(status.size) { ArrayList<Leaf>() }
+                runner.runAll(
+                    batch.mapIndexed { i, kk ->
+                        {
+                            val det = determinize(es, d, mix(seed, kk.toLong()))
+                            val dp = det.pending?.takeIf { it.seat == d.seat && it.kind == d.kind }
+                            status[i] = when {
+                                dp == null -> 0
+                                sample(det, dp, d, cs, kk, horizon, table, batchLeaves[i], cancelled) -> 1
+                                else -> -1
+                            }
+                        }
+                    },
+                )
+                var stop = false
+                for ((i, kk) in batch.withIndex()) {
+                    if (stop || status[i] < 0) {
+                        for (arr in table.values) arr[kk] = Double.NaN
+                        stop = true
+                        continue
+                    }
+                    if (status[i] == 1) done++
+                    leaves += batchLeaves[i]
+                    k = kk + 1
+                }
+                if (stop) break
+            }
         }
         if (done == 0) return null
         return Analysis(d, table.map { (c, v) -> OptionValue(c, v) }, leaves, done, k)
