@@ -48,11 +48,12 @@ object AiPlayers {
     internal val TUNED: EvalKnobs = EvalKnobs(scales = mapOf(Term.EXPOSURE to 0.3, Term.OPPORTUNITY to 2.0))
 
     /**
-     * The searching strengths from this one up score playout ends with the learned evaluation
-     * (ADR-047 part B, AI.md "Learned evaluation"); the static strengths keep the hand-made weights
-     * their designed mistakes rest on.
+     * The strengths from this one up score playout ends with the learned evaluation (ADR-047 part B,
+     * AI.md "Learned evaluation"): Expert (10) only. It strengthens every searching strength, but
+     * given to 5–10 it compressed the steps between them (6 over 5 55.7%, 8 over 7 56.8%, 10 over 9
+     * 51.6%); the static strengths keep the hand-made weights their designed mistakes rest on.
      */
-    internal const val LEARNED_FROM: Int = 11
+    internal const val LEARNED_FROM: Int = 10
 
     /** What each strength does (AI.md "Strengths"); the measured ladder is in AI.md. */
     internal fun profile(strength: Int): LevelProfile = handProfile(strength).let {
