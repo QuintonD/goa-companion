@@ -143,6 +143,17 @@ fun GameTable(
             viewport.reveal(region, region.center, shrink = OPTIONS_SHRINK, clearEnd = buttonsWidth.toFloat())
         }
 
+        // A new question (another decision) starts at the top of the panel, its header in view; the
+        // same question composed again (a selection, a rotation) keeps where the person scrolled to.
+        val panelScroll = rememberScrollState()
+        var scrolledFor by rememberSaveable { mutableStateOf(decision?.id) }
+        LaunchedEffect(decision?.id) {
+            if (decision?.id != scrolledFor) {
+                scrolledFor = decision?.id
+                panelScroll.scrollTo(0)
+            }
+        }
+
         GameMapView(table, layout, viewport, onTap, Modifier.fillMaxSize(), lane = lane, onLongPressHero = onHero)
 
         Column(
@@ -212,7 +223,7 @@ fun GameTable(
         ) {
             Column(
                 Modifier
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(panelScroll)
                     .padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 content = panel,

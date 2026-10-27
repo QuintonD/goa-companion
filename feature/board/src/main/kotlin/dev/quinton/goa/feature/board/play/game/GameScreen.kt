@@ -99,7 +99,6 @@ import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.YourHand
-import dev.quinton.goa.feature.board.play.table.isLevelUp
 import dev.quinton.goa.feature.board.play.table.spellbookUi
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.ui.BoardScaffold
@@ -375,6 +374,7 @@ private fun GameMenu(
 /**
  * The panel's content: a nudge, the moment the table is at (the reveal, a turn or round over), the
  * question, the computer's move or the wait, what happened that the board doesn't show, your hand.
+ * When the question is the person's own, it comes first and the moment after it.
  * The turn's cards themselves are on the turn track at the top (ADR-041).
  */
 @Composable
@@ -382,8 +382,9 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
     val table = play.table
     val nudge = play.nudge
     val moment = table.moment.takeIf { nudge == null }
-    // A level up's cards come before the round's summary (at large text it filled the panel).
-    val questionFirst = play.status is TurnStatus.YourTurn && isLevelUp(table)
+    // The person's own question comes before the moment (the reveal, a turn or the round ending): at
+    // large text the round's summary filled the panel and the question's Confirm was below the fold.
+    val questionFirst = play.status is TurnStatus.YourTurn
     if (moment != null && !questionFirst) MomentCard(moment, table, focus = focus)
     when {
         nudge != null -> CoachNudge(nudge, onAction)
