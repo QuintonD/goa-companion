@@ -165,7 +165,9 @@ hand-weighted sum above (`LearnedEval.kt`, `Features.kt`, `LearnedWeights.kt`;
 `AiPlayers.LEARNED_FROM`); the one-ply looks inside playouts, the static policy, the opponent model,
 strengths 1–9 and the coach keep the hand evaluation. The search is unchanged: the same samples,
 candidates, horizons and noise. `LevelProfile.learned` (`EvalSource`) switches it per profile, so a
-tournament can try it at any strength.
+tournament can try it at any strength. The net was trained beside v0.8's `TUNED`, and both its
+inputs and strength 10's hand parts keep that knob set (`Features.KNOBS` / `SCALES`,
+`AiPlayers.TUNED_WITH_NET`), not part A's 3v3 knobs: measured, "The two parts together".
 
 **Features** (`Features.kt`, pure Kotlin, commonMain-safe). One state, one team's point of view,
 team-size invariant so one net plays 1v1 to 5v5: every hero gets the same 52 numbers (on the board,
@@ -310,13 +312,14 @@ adds one lever that measured (below); the knobs are `LevelProfile`s in `AiPlayer
 | 7 | Hard | played out once | turn / **turn** | 1 / 1, 6 | static; opaque one ply | opponent model | τ 0.5 within 1.3 | tuned | 500 ms |
 | 8 | Hard | mean − 0.3 sd for card plays | turn / turn | **6 / 2**, 8 | static; opaque one ply | opponent model | τ 0.25 within 0.8 | tuned | 1 s |
 | 9 | Expert | mean | turn / turn | **16 / 6**, 10 | its own by **one-ply search** | + **memory** of cards shown since each level up | τ 0.15 within 0.6 (mixing) | tuned | 1.5 s |
-| 10 | Expert | mean | turn / turn | 16 / 6, 10 | **every hero's** by one-ply search | + memory | τ 0.15 within 0.6 | **learned** at playout ends (tuned inside) | 2 s |
+| 10 | Expert | mean | turn / turn | 16 / 6, 10 | **every hero's** by one-ply search | + memory | τ 0.15 within 0.6 | **learned** at playout ends (v0.8's tuned inside) | 2 s |
 
 "Tuned" is `TUNED`: exposure × 0.3, minion opportunity × 2 (Evaluation, above), and since v0.9 in 3v3
 a Push Potential of 0.35 per attack card and the full exposure of a hero with no card left to defend
 with ("Team sizes"). Since v0.9 (ADR-047 part B) strength 10 scores the end of every playout with the
-learned evaluation instead (`AiPlayers.LEARNED_FROM`; the one-ply looks inside playouts and the static
-policy keep `TUNED`). Device budgets since v0.9 ("Budgets"); the app runs the samples on three
+learned evaluation instead (`AiPlayers.LEARNED_FROM`); its one-ply looks inside playouts, static
+policy and opponent model keep v0.8's tuned knobs, without the 3v3 ones (`TUNED_WITH_NET`, "The two
+parts together"). Device budgets since v0.9 ("Budgets"); the app runs the samples on three
 threads, so the answers do not depend on the device wherever the cap is not reached. "Opaque" choices are
 a bullet, a token, a confirm or number, a space that is not a move, a unit that is not an attack
 target, another hero's card (Architecture).
@@ -445,6 +448,8 @@ cap), the 4v4 one ≈ 2.5 s (≈ 3 s on the double lane: cut to 65–80% of its 
 of one thread buys about the samples 2 s of three threads do. What samples are worth under the cap,
 measured with work budgets (2 s at 4× = 500 ms of desktop time ≈ 7 200 answers in 3v3, 6 100 in
 4v4, × 2.15 with three threads): see "Team sizes".
+
+The merged strength 10 (the net, three threads, the 2 s cap) is timed in "The two parts together".
 
 **v0.7, 2v2** (`AI_TIMING_GAMES=8`, 2026-10-25, the budgets of then), for strengths 1–7 still current:
 
@@ -579,12 +584,14 @@ games lost on Life counters); with the defenseless floor as well 54.2% (44–64%
 (61 with an empty hand) and 24 games lost on Life counters, while the exploiter lost 2.15 (91). That
 is why the two ship together.
 
-**The top strength since v0.9** is today's 10 with, in 3v3, the Push Potential of 0.35 and the
-defenseless floor (it answers exactly as the variant measured below; in 2v2 and 4v4 exactly as
-before, `FingerprintTest`), a 2 s budget, and its samples on three threads in the app: on the phone
-it searches about as much as today's 10 did in 4 s, and against a one-thread 10 held to the owner's
-2 s it gets 2.15× the samples (3v3: 16 against 8 samples 54.2%; 4v4: 58.3%, above). Strengths 5–9
-share `TUNED` and play 3v3 the same way; 1–4 are unchanged.
+**What part A shipped** (on its own branch) was today's 10 with, in 3v3, the Push Potential of 0.35
+and the defenseless floor (it answers exactly as the variant measured below; in 2v2 and 4v4 exactly
+as before, `FingerprintTest`), a 2 s budget, and its samples on three threads in the app: on the
+phone it searches about as much as today's 10 did in 4 s, and against a one-thread 10 held to the
+owner's 2 s it gets 2.15× the samples (3v3: 16 against 8 samples 54.2%; 4v4: 58.3%, above).
+Strengths 5–9 share `TUNED` and play 3v3 that way; 1–4 are unchanged. Since the merge strength 10
+judges playout ends with the learned evaluation and keeps v0.8's knobs beside it; the budget and the
+threads stay ("The two parts together").
 
 | 3v3, no cap, against the v0.8 strength 10 | Wins | Rate | 95% interval | Heroes lost a game (with an empty hand, in all) |
 |-------------------------------------------|------|------|--------------|--------------------------------------------------|
@@ -608,7 +615,9 @@ pair, 95% intervals): 2 over 1
 81.3% (72–88%), 3 over 2 66.7% (57–75%), 4 over 3 61.5% (52–71%), 5 over 4 82.3% (74–89%), 6 over 5
 58.3% (48–68%), 7 over 6 74.0% (64–82%), 8 over 7 54.2% (44–64%), 9 over 8 57.3% (47–67%), 10 over 9
 61.5% (51.5–70.6%). Every step wins; 96 games cannot separate 6/5, 8/7 and 9/8 from even (their 2v2
-steps over 192 games could, "Measured strength"). `LevelLadderTest` (2v2) is unchanged.
+steps over 192 games could, "Measured strength"). `LevelLadderTest` (2v2) is unchanged. With the
+merged strength 10 (the net) and 9 and 8 as shipped, on line-ups 2000–2047: 10 over 9 67.7%
+(57.8–76.2%), 9 over 8 61.5% (51.5–70.6%) ("The two parts together").
 
 **Tried and dropped in v0.9** (3v3, 192 games at strength 8 unless noted): exposure × 0.6 41.1%;
 focus fire 48.4%; Push Potential 0.75 45.8%, 0.35 in 2v2 53.1% and in 4v4 49.0%, 0.25 in 4v4 42.7%;
@@ -618,6 +627,74 @@ Life × 1.5 47.4%; kill tempo 10 47.4%; defenseless 1.0 53.6% (10: 51.6%), 2.0 4
 the package above; the Push Potential alone (it made the AI more exposed to the exploiter). Kept: the
 3v3 Push Potential with the 3v3 defenseless floor, the budgets, the threads, the quiet search copies,
 the harness, the engine fix.
+
+## The two parts together (v0.9 integration, ADR-047)
+
+Part A tuned the hand evaluation for 3v3 (Push Potential 0.35, the defenseless floor) with the hand
+evaluation at the playout leaves; part B trained the net beside v0.8's `TUNED` and put it at strength
+10's leaves. The question at the merge was whether they compose. What the code does: the net's inputs
+include the hand evaluation's terms, but `NetEvaluator` builds its own hand evaluation with the knobs
+the net was trained with (now frozen as `Features.KNOBS` / `SCALES`), so part A's knobs never reach
+the net. They would reach strength 10 only through its hand parts — the one-ply looks inside
+playouts, the static policy and the opponent model. Measured, 3v3, mirrored, deterministic players,
+fresh mixed line-ups 2000–2095 (`AiHarness.mixedLineups`; no stream tuned or trained on them; A2's
+families are a different generator), 95% Wilson intervals:
+
+| 3v3 | Wins | Rate | 95% interval | Heroes lost a game (with an empty hand, in all) |
+|-----|------|------|--------------|--------------------------------------------------|
+| (a) net + part A's 3v3 knobs in the hand parts, against (b) net + v0.8's knobs there | 88–104 | 45.8% | 38.9–52.9% | 1.71 against 1.61 (92 / 90) |
+
+(b) wins or ties, so strength 10 ships as (b): `AiPlayers.TUNED_WITH_NET` (v0.8's `TUNED`) beside the
+net, `TUNED` with the 3v3 knobs for 5–9 (`LearnedNetTest` asserts both, and that the leaf scores do
+not move with the knobs). Part A's 3v3 gain was measured with the hand evaluation judging the leaves;
+with the net judging them the same knobs in the playout policy bought nothing (the interval includes
+even, the point estimate is below it).
+
+**The merged strength 10 against v0.8's strength 10.** "v0.8's 10" is
+`s10+learned=HAND` (`ExperimentTest`), deterministic, the hand evaluation with v0.8's `TUNED`; it
+gives the very answers of 1f7fa273's `AiPlayers.deterministic(10)` (three games, 1 139 answers,
+hashes compared across the two builds). It is the uncapped equivalent of v0.8's 10 (4 s, one thread),
+which on the desktop rarely reached its cap. Same harness, line-ups 2000–2095 (192 games each):
+
+| Team size | Wins | Rate | 95% interval | ≈ Elo | Heroes lost a game, merged / v0.8 | How the merged 10 won (last push / Throne / Life) |
+|-----------|------|------|--------------|-------|-----------------------------------|---------------------------------------------------|
+| 3v3 | 124–68 | 64.6% | 57.6–71.0% | +104 | 1.98 / 1.29 | 66 / 39 / 19 |
+| 2v2 | 133–59 | 69.3% | 62.4–75.4% | +141 | 1.13 / 0.77 | 74 / 46 / 13 |
+| 4v4 (Forgotten Island) | 117–75 | 60.9% | 53.9–67.6% | +77 | 2.45 / 2.13 | 51 / 29 / 37 |
+
+It wins mostly by pushing and loses more heroes than v0.8's 10 does: the net trades heroes for the
+lane, and against v0.8's 10 the trade pays.
+
+**Against the kill-hunter** (`Hunt` 1 / 2 / 1.3 with focus fire on v0.8's 10, part A's stand-in for
+the owner: `s10+learned=HAND+hunt=1/2/1.3+focus=true`), 3v3, the same line-ups for both:
+
+| 3v3 against the kill-hunter, line-ups 2000–2095 | Wins | Rate | 95% interval | Heroes lost a game (exploiter's) | With an empty hand (exploiter's) | Games lost on Life counters |
+|--------------------------------------------------|------|------|--------------|----------------------------------|----------------------------------|-----------------------------|
+| **Merged strength 10** | 127–65 | 66.1% | 59.2–72.5% | 2.25 (1.55) | 122 (117) | 43 |
+| v0.8's strength 10 | 99–93 | 51.6% | 44.5–58.5% | 2.10 (1.89) | 149 (131) | 47 |
+
+(Each half of 96 games: merged 70.8% and 61.5%, losing 2.06 and 2.43 heroes a game; v0.8's 50.0%
+and 53.1%, losing 2.19 and 2.01.) The merged 10 beats the exploiter far more often, but it loses
+about as many heroes to it as v0.8's 10 did — slightly more (2.25 against 2.10 a game), fewer of them
+with an empty hand — and two thirds of the games it loses it loses on Life counters (43 of 65;
+v0.8's 10: 47 of 93). The net does not make strength 10 safer against a kill-hunter; it makes it win
+the lane faster than the hunter can cash its kills.
+
+**Ladder in 3v3** (line-ups 2000–2047, 96 games a pair): 10 over 9 67.7% (57.8–76.2%), 9 over 8
+61.5% (51.5–70.6%); `LevelLadderTest` (2v2) green.
+
+**Time** (`TimingTest`, production players: the 2 s cap on, three sample threads as in the app,
+both teams' decisions with more than one option, desktop JVM with nothing else running, 2026-10-28):
+
+| Strength 10 | Card play mean / p95 / max | Moves (`CHOOSE_SPACE`) mean / p95 / max | Work per card play mean / p95 (answers) | At a 3–4× phone: card play mean / p95 / max |
+|-------------|----------------------------|-----------------------------------------|------------------------------------------|---------------------------------------------|
+| 3v3, the net (6 games) | 116 / 256 / 898 ms | 81 / 199 / 407 ms | 5 365 / 9 578 | 0.35–0.46 / 0.77–1.02 / 2 s (capped) |
+| 3v3, the hand evaluation (v0.8's 10), same line-ups | 120 / 262 / 923 ms | 80 / 211 / 343 ms | 5 417 / 9 435 | — |
+| 4v4 Forgotten Island, the net (4 games) | 190 / 417 / 1 025 ms | 116 / 292 / 626 ms | 7 364 / 14 038 | 0.57–0.76 / 1.25–1.67 / 2 s (capped) |
+
+The net costs nothing measurable per decision (one evaluation per playout). At the assumed phone
+factor the p95 card play stays inside the owner's ~2 s in 3v3 and 4v4; only the slowest few (the
+max) reach the cap and are cut short. The factor is still an assumption, not a device measurement.
 
 ## The coach
 
@@ -676,8 +753,15 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
   itself, keep a defender back for a teammate, or count which enemy acts after a discard. No
   style the engine can play (the `Hunt` exploiters) beats strength 10, so how a human beats it is
   still read only from the owner's report; the numbers here are AI against AI.
-- **4v4 on the phone:** even with three threads a slow 4v4 card play (p95) passes the 2 s cap at a 4×
-  phone and is cut to 65–80% of its samples (≈ 2.5 s needed, ≈ 3 s on the double lane).
+- **The net trades heroes for the lane (v0.9):** strength 10 with the learned evaluation wins mostly
+  by pushing and loses more heroes than v0.8's 10 did (3v3 1.98 against 1.29 a game, 2v2 1.13 against
+  0.77, "The two parts together"). Against the kill-hunting exploiter it wins 66.1% where v0.8's 10
+  won 51.6%, but it loses as many heroes to it (2.25 against 2.10 a game); whether a human who hunts
+  kills punishes that is the device game night's question.
+- **4v4 on the phone:** part A estimated from one-thread times that a slow 4v4 card play (p95) would
+  pass the 2 s cap at a 4× phone; timed with three threads (the merged 10, "The two parts together")
+  the p95 is ≈ 1.7 s at 4× and only the slowest card plays (up to ≈ 4 s needed) are cut. The double
+  lane (≈ 1.3× the cost per step) was not timed with the net.
 - **Holding:** about a quarter of all actions are Holds (Hard self-play, 64 mixed games: 13%
   Mortimer to 35% Razzle). Most are chosen (moving would not improve the space), but Silver and Gold
   cards without a movement are often played on a turn their Primary has no target and are then held
@@ -721,8 +805,8 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
 | `CoachSurveyTest` | The coach speaks on fewer than 15% of a weak player's decisions, on mixed line-ups (`AI_COACH_GAMES` for more games) |
 | `TimingTest` | Decision times per strength over mixed line-ups, the slowest heroes and the work per card play (`AI_TIMING_GAMES=8 AI_TIMING_STRENGTHS=… AI_TIMING_FORMAT=3v3` prints the tables above; `AI_TIMING_THREADS=3` with a threaded runner, `AI_TIMING_VARIANT=s10+race=3` a profile variant) |
 | `ControllerStrengthTest` | A save with only a level loads as its strength; strengths round-trip; the bands |
-| `TournamentTest`, `ExperimentTest`, `GameLogTest`, `UsageTest` | Opt-in (`AI_TOURNAMENT` / `AI_MIXED` with `AI_PAIRS=6:5,…`, `AI_EXPERIMENT=s10+samples=24:s10`, `AI_LOG`, `AI_USAGE` environment variables; `AI_FORMAT=3v3` for bigger teams, `AI_KEEP_GOING` and `AI_DUMP_DIR` for long runs, `AI_PROGRESS` a line per game; variants also `work=`, `race=`, `defenseless=`, `focus=`, `hunt=a/b/c`, `pp=`): long tournaments between strengths (per-hero rates; `AI_GAMES=<hero>` lists the games; a failing game is reported with its line-up and seed), profile variants (any knob or `x<TERM>=` scale), one game's log (a mixed or explicit line-up; `AI_LOG_DECISIONS`, `AI_LOG_VALUES` also for defenses, `AI_LOG_LEAVES=<hero>`), each card's actions, defeats and kills per hero |
+| `TournamentTest`, `ExperimentTest`, `GameLogTest`, `UsageTest` | Opt-in (`AI_TOURNAMENT` / `AI_MIXED` with `AI_PAIRS=6:5,…`, `AI_EXPERIMENT=s10+samples=24:s10`, `AI_LOG`, `AI_USAGE` environment variables; `AI_FORMAT=3v3` for bigger teams, `AI_KEEP_GOING` and `AI_DUMP_DIR` for long runs, `AI_PROGRESS` a line per game; variants also `work=`, `race=`, `defenseless=`, `focus=`, `hunt=a/b/c`, `pp=`, `learned=HAND` — `s10+learned=HAND` is v0.8's 10): long tournaments between strengths (per-hero rates; `AI_GAMES=<hero>` lists the games; a failing game is reported with its line-up and seed), profile variants (any knob or `x<TERM>=` scale), one game's log (a mixed or explicit line-up; `AI_LOG_DECISIONS`, `AI_LOG_VALUES` also for defenses, `AI_LOG_LEAVES=<hero>`), each card's actions, defeats and kills per hero |
 | `FingerprintTest`, `CrashReproTest` | Opt-in (`AI_FINGERPRINT=<variant>:<games>`, `AI_REPRO=<dump>\|<variant>\|<seed>`): a hash of every answer of deterministic games (a change meant only to be faster must keep them); a crashed game's decision asked again from its dump |
-| `LearnedNetTest` | The checked-in weights load and were trained on these features (`Features.SCHEMA_HASH`, input count); swapping the teams negates the score; mirrored openings give mirrored features except the board-dependent ones; an evaluation costs far less than a playout (prints µs per position) |
+| `LearnedNetTest` | The checked-in weights load and were trained on these features (`Features.SCHEMA_HASH`, input count); the net's inputs and strength 10's hand parts keep the knobs it was trained with (`Features.KNOBS` / `SCALES`, `TUNED_WITH_NET`; leaf scores do not move with part A's 3v3 knobs, which do move the hand evaluation); swapping the teams negates the score; mirrored openings give mirrored features except the board-dependent ones; an evaluation costs far less than a playout (prints µs per position) |
 | `LearnedSelfPlayTest`, `LearnedTrainTest`, `TeamTournamentTest`, `LearnedTimingTest` | Opt-in (`AI_SELFPLAY`, `AI_TRAIN`, `AI_TEAMS`, `AI_LTIMING`): self-play data at any team size, training (Learned evaluation, "How to retrain"), mirrored tournaments of any variant (`learned=`, `net=<name>` on top of `ExperimentTest`'s keys) at any team size on the train / tune / test line-up families, decision times at any team size |
 | `FitTest`, `BlunderTest` | Opt-in (`AI_FIT=<games>:<strength>`, `AI_BLUNDERS=<strength>:<games>`, `AI_FORMAT`): the evaluation's parts fitted to self-play outcomes (above); plays a decent player would call blunders, judged on the real game — a defense declined or too weak while one would hold, an action that defeats an enemy hero passed over, a move into a defeat another destination avoided |

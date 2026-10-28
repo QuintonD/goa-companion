@@ -389,6 +389,23 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   `LearnedNetTest`, `:core:game:test` green. JVM only
 - [ ] On the S25 Ultra: a 3v3 game at strength 10, decision times within ~2 s
 
+## M20c — v0.9 merged: the resolution flow and the merged top strength (ADR-046, ADR-047 together)
+- [x] `feature/v0.9` = E + A1 + A2 (`--no-ff`); one Stunt Doubles spawn rule covering both streams'
+  crash tests (`RazzleTest`), `CONTRACT-CHANGES` — 2026-10-28, gate green: `:core:model/domain/game
+  :tools:catalog-import:test` (core:game 1 733 tests), `testDebugUnitTest` (1 259), `verifyRoborazziDebug`,
+  `lintDebug detekt ktlintCheck`; `:app:assembleRelease` builds (R8; unsigned in the worktree). JVM only
+- [x] Composition measured (AI.md "The two parts together"): strength 10 = the net with v0.8's knobs
+  beside it (part A's 3v3 knobs beside the net 45.8%, 38.9–52.9%); against v0.8's 10 on fresh
+  line-ups 3v3 64.6% (57.6–71.0%), 2v2 69.3% (62.4–75.4%), 4v4 60.9% (53.9–67.6%); against the kill-hunter 66.1% (v0.8's 10: 51.6%), heroes lost 2.25
+  against 2.10 a game; 3v3 ladder 10/9
+  67.7%, 9/8 61.5%; card play p95 on the desktop with three threads 256 ms (3v3) / 417 ms (4v4) —
+  2026-10-28, `LearnedNetTest` (the net's and 10's knobs), `LevelLadderTest`, `TimingTest`
+- [x] `SyncServerRepositoryTest.changesToSyncedDataAreSignalled` flake (also on 1f7fa273): Room's
+  table tracking starts after collection begins; the test warms up first — 2026-10-28, 6 of 6 runs
+  green under load
+- [ ] On the S25 Ultra: a 3v3 game night against strength 10 (heroes lost to a human who hunts
+  kills; think time within ~2 s), the resolution flow after the computer's turns
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check

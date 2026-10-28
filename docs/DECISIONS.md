@@ -1427,7 +1427,7 @@ resolved (p.7), and end-of-turn effects simply join the turn's last card.
 56 dp each); it scrolls as before and the question stays at its top. The hidden panel's peek still reads
 the last recent line. Screens whose panel showed the recent lines were re-recorded.
 
-## ADR-047 — A computer that holds up at 3v3 and bigger (2026-10-27)
+## ADR-047 — A computer that holds up at 3v3 and bigger: teams, search and a learned evaluation (2026-10-27)
 
 ### ADR-047 part A — teams and search (`feature/v09-ai-teams`)
 **Context:** The owner beat strength 10 "easily", by hero kills and pushing the lane, in 3v3 or
@@ -1475,7 +1475,8 @@ Potential alone (stronger against itself, weaker against a kill-hunter); a Push 
 2 / heroes a side (4v4 at 0.25 measured 42.7%); joint team planning of card plays (too expensive for
 the phone; part B's learned evaluation is the other route).
 **Consequences:** Strength 10 (and 5–9, which share `TUNED`) plays 3v3 with the two changes and
-answers exactly as before in 2v2 and 4v4; on the phone it thinks half as long for about the same
+answers exactly as before in 2v2 and 4v4 (since the merge only 5–9 do: strength 10 keeps v0.8's
+knobs beside the net, "ADR-047 together" below); on the phone it thinks half as long for about the same
 search in 3v3, and in 4v4 a slow card play is still cut to 65–80% of its
 samples at a 4× phone. Saves are unaffected (no question added or removed; the engine fix only removes
 an option that crashed). How a human beats the AI is still known only from the owner's report: the AI
@@ -1527,3 +1528,34 @@ times at 3v3 are the same with and without it (card plays 395 / 833 ms mean / p9
 ms on the desktop, uncapped); 3v3's own cost is part A's budget question. A change to the features
 needs a retrain (one command, AI.md "How to retrain"); the training games live outside the repo
 (`D:\.goa-qa\v09\a2\data`) and are reproducible from their commands.
+
+### ADR-047 together — the merged top strength (`feature/v0.9`, 2026-10-28)
+**Context:** Part A tuned two hand terms for 3v3 with the hand evaluation at the playout leaves;
+part B's net was trained beside v0.8's knobs and judges strength 10's leaves. Both terms are among
+the net's inputs, so the knobs could have moved its inputs off what it was trained on.
+**Decision:**
+- **The net keeps its own frozen knob set.** Its inputs are computed with `Features.KNOBS` (the
+  defaults) and `Features.SCALES` (v0.8's `TUNED` scales), never a profile's; the training teacher
+  uses the same set. (This was already true of the code by construction; it is now explicit and
+  tested, so a later change to `TUNED` cannot shift the net's inputs silently.)
+- **Strength 10's hand parts keep v0.8's knobs too** (`AiPlayers.TUNED_WITH_NET`: its one-ply looks
+  inside playouts, static policy and opponent model); strengths 5–9 keep part A's 3v3 knobs. Measured
+  on fresh 3v3 line-ups: the net with part A's knobs beside it against the net with v0.8's, 45.8%
+  (38.9–52.9%, 192 games) — no gain, so the simpler composition the net was trained in ships.
+- **Kept from part A for strength 10:** the 2 s budget, the three sample threads, the quiet search
+  copies, the harness, the engine fixes.
+- **Measured against v0.8's strength 10** (its exact answers, deterministic; 192 mirrored games per
+  size on line-ups 2000–2095, which no stream tuned or trained on): 3v3 64.6% (57.6–71.0%), 2v2 69.3%
+  (62.4–75.4%), 4v4 60.9% (53.9–67.6%); against part A's kill-hunting exploiter 66.1% (59.2–72.5%) where v0.8's 10 won
+  51.6% (44.5–58.5%) on the same 192 games; ladder in 3v3: 10 over 9
+  67.7% (57.8–76.2%), 9 over 8 61.5% (51.5–70.6%).
+**Alternatives:** (a) part A's knobs beside the net (measured no better, above); retraining the net
+with part A's knobs in its inputs and teacher (a new generation of self-play; not needed while (b)
+holds, and the knobs only help the hand evaluation's own search); the net for 5–9 as well (part B:
+it compresses the ladder).
+**Consequences:** The merged strength 10 wins mostly by pushing and loses more heroes than v0.8's 10
+(3v3: 1.98 against 1.29 a game): it trades heroes for the lane. Against the kill-hunter it wins far more often
+than v0.8's 10 but loses about as many heroes to it (2.25 against 2.10 a game). How a human who hunts kills fares against it is the device game night's question (ROADMAP
+M20c). Timing (desktop, three threads, the 2 s cap): card play p95 256 ms in 3v3 and 417 ms in 4v4,
+≈ 1.0 s and ≈ 1.7 s at a 4× phone, inside the owner's ~2 s; the net costs nothing measurable per
+decision (the hand evaluation on the same 3v3 games: 262 ms).
