@@ -1559,3 +1559,21 @@ than v0.8's 10 but loses about as many heroes to it (2.25 against 2.10 a game). 
 M20c). Timing (desktop, three threads, the 2 s cap): card play p95 256 ms in 3v3 and 417 ms in 4v4,
 ≈ 1.0 s and ≈ 1.7 s at a 4× phone, inside the owner's ~2 s; the net costs nothing measurable per
 decision (the hand evaluation on the same 3v3 games: 262 ms).
+
+## ADR-048 — The Android APK on GitHub Pages (2026-10-28)
+**Context:** Friends got the APK through a Drive link and the owner through the private
+`goa-companion-releases` repository; neither is a stable public link. The web app (ADR-043) owns
+`https://quintond.github.io/goa-companion/` but has not been deployed from main yet, so the Pages
+site was empty (404).
+**Decision:** The signed APK is an asset of a release of the public `QuintonD/goa-companion`
+repository (tag `vX.Y.Z`, `GoA-Companion-X.Y.Z.apk`), never a file in git. An orphan branch
+`pages` holds a download page (`site/android/index.html`, colours from DESIGN) and a workflow that
+fetches the newest release's APK, fills in version, size, date and SHA-256, and deploys the site:
+`/android/` is the page, `/android/GoA-Companion.apk` always the newest APK, and the root redirects
+to `/android/` until the web app takes it. The `github-pages` environment allows `main` and
+`pages`.
+**Consequences:** One link for every friend, updated by a release plus a push to `pages`. A Pages
+deploy replaces the whole site, so before the web app's first deploy from main, `web-pages.yml`
+must carry `android/` the same way (fetch the newest release's APK) or the download disappears.
+The APK is public, like the repository: the owner accepted publishing the official assets when the
+repository went public (2026-10-25, the web app's ADR-043 on `feature/web`), which relaxes ADR-034.
