@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.game.ai
 
 import dev.quinton.goa.core.domain.board.HexGrid
+import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.HeroState
 import dev.quinton.goa.core.game.engine.Step
@@ -23,9 +24,13 @@ import kotlin.math.min
  * determinized copy in a search — and nothing names a hero. Pure Kotlin (commonMain-safe).
  *
  * Changing a name, its order or its meaning changes [SCHEMA_HASH]: the checked-in weights then fail
- * `LearnedNetTest` until they are retrained (AI.md "How to retrain").
+ * `LearnedNetTest` until they are retrained (AI.md "How to retrain"). The hand evaluation's terms
+ * among them are computed with the frozen [KNOBS] and [SCALES] the net was trained on, never a
+ * profile's: a change to `AiPlayers.TUNED` (ADR-047 part A's 3v3 knobs) does not move the net's inputs.
  */
-internal class Features(val ev: Evaluator) {
+internal class Features(data: EngineData) {
+    val ev: Evaluator = Evaluator(data, KNOBS)
+
     /**
      * Both points of view of [state]: Red's features into `out[0 until SIZE]`, Blue's into
      * `out[SIZE until 2 * SIZE]`.
@@ -220,7 +225,7 @@ internal class Features(val ev: Evaluator) {
         }
         fun flag(b: Boolean) = put(if (b) 1.0 else 0.0)
         for (term in Term.entries) put(sign * terms[term.ordinal] / 20)
-        val tuned = AiPlayers.TUNED.scales
+        val tuned = SCALES
         put(sign * Term.entries.sumOf { terms[it.ordinal] * (tuned[it] ?: 1.0) } / 30)
         // The lane(s), averaged.
         val lanes = ctx.map.laneZones
@@ -304,6 +309,15 @@ internal class Features(val ev: Evaluator) {
     }
 
     companion object {
+        /**
+         * The hand evaluation's knobs for the net's inputs: the defaults, as when the checked-in net
+         * was trained (no team-size knobs: Push Potential 0.5 per attack card, no defenseless floor).
+         */
+        val KNOBS: EvalKnobs = EvalKnobs()
+
+        /** The scales of the "tunedScore" input: v0.8's `TUNED` (exposure × 0.3, minion opportunity × 2). */
+        val SCALES: Map<Term, Double> = mapOf(Term.EXPOSURE to 0.3, Term.OPPORTUNITY to 2.0)
+
         /** Per hero, pooled per team as sum then max. */
         val HERO: List<String> = listOf(
             "onBoard", "presence", "fightDistance", "inBattleZone", "laneProgress",

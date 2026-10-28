@@ -99,7 +99,7 @@ internal class LearnedNet(
  * it is given (a determinized copy in a search).
  */
 internal class NetEvaluator(data: EngineData, private val net: LearnedNet = LearnedNet.CURRENT) : PositionEvaluator {
-    private val features = Features(Evaluator(data))
+    private val features = Features(data)
 
     init {
         require(net.inputs == Features.SIZE) {

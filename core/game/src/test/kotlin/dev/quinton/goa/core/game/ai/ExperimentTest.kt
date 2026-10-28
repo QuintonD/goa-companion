@@ -134,6 +134,10 @@ class ExperimentTest {
                     knobs = kn.copy(defenselessBySize = if (v.toDouble() > 0) mapOf(3 to v.toDouble()) else emptyMap()),
                 )
 
+                // learned=HAND|LEAVES|EVERYWHERE: where the learned evaluation scores (s10+learned=HAND is
+                // the hand-evaluation 10 of v0.8, with pp3=0.5+defenseless=0 also its v0.8 knobs).
+                "learned" -> p.copy(learned = EvalSource.valueOf(v.uppercase()))
+
                 "tempo" -> p.copy(knobs = kn.copy(killTempo = v.toDouble()))
 
                 "hand" -> p.copy(knobs = kn.copy(handRating = v.toDouble()))

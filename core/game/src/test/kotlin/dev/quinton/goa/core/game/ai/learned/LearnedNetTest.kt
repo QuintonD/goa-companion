@@ -5,11 +5,14 @@ import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.TestData
 import dev.quinton.goa.core.game.ai.AiHarness
 import dev.quinton.goa.core.game.ai.AiPlayers
+import dev.quinton.goa.core.game.ai.EvalKnobs
 import dev.quinton.goa.core.game.ai.Evaluator
 import dev.quinton.goa.core.game.ai.Features
 import dev.quinton.goa.core.game.ai.LearnedNet
 import dev.quinton.goa.core.game.ai.LearnedWeights
 import dev.quinton.goa.core.game.ai.NetEvaluator
+import dev.quinton.goa.core.game.ai.Searcher
+import dev.quinton.goa.core.game.ai.Term
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.model.match.Team
@@ -27,7 +30,7 @@ class LearnedNetTest {
         assertThat(LearnedWeights.INPUTS).isEqualTo(Features.SIZE)
         val net = LearnedNet.CURRENT
         val x = FloatArray(2 * Features.SIZE)
-        Features(Evaluator(TestData.engine.data)).extract(start(LINEUPS[0], Team.RED), x)
+        Features(TestData.engine.data).extract(start(LINEUPS[0], Team.RED), x)
         assertThat(net.forward(x, 0).isFinite()).isTrue()
         assertThat(LearnedWeights.COIN_SCALE).isGreaterThan(0.0)
     }
@@ -43,7 +46,7 @@ class LearnedNetTest {
         // Blue's view of the other, except what depends on the board (it is not exactly symmetric:
         // the hand evaluation itself scores the opening about 15 in Red's favour, its Push Potential
         // counting heroes within 6 spaces of the Battle Zone).
-        val features = Features(Evaluator(TestData.engine.data))
+        val features = Features(TestData.engine.data)
         val geometric = Features.NAMES.indices.filter { i -> GEOMETRY.any { it in Features.NAMES[i] } }.toSet()
         for (lineup in LINEUPS) {
             val (red, blue) = lineup
@@ -57,6 +60,29 @@ class LearnedNetTest {
                 assertThat(a[Features.SIZE + i]).isWithin(1e-6f).of(b[i])
             }
         }
+    }
+
+    @Test
+    fun `the net's inputs do not move with a profile's knobs`() {
+        val data = TestData.engine.data
+        // What the net was trained on: v0.8's TUNED scales and no team-size knobs (ADR-047).
+        assertThat(Features.KNOBS).isEqualTo(EvalKnobs())
+        assertThat(Features.SCALES).isEqualTo(mapOf(Term.EXPOSURE to 0.3, Term.OPPORTUNITY to 2.0))
+        // Strength 10's leaves score the same whatever team-size knobs its hand evaluation carries.
+        val v08 = AiPlayers.TUNED.copy(pushPerAttackBySize = emptyMap(), defenselessBySize = emptyMap())
+        val profile = AiPlayers.profile(10)
+        val withA1 = Searcher(Evaluator(data, AiPlayers.TUNED), profile).leaf
+        val without = Searcher(Evaluator(data, v08), profile).leaf
+        val tuned = Evaluator(data, AiPlayers.TUNED)
+        val plain = Evaluator(data, v08)
+        var handDiffers = 0
+        for (st in states(LINEUPS[1], 150)) {
+            assertThat(withA1.evaluate(st, Team.RED)).isEqualTo(without.evaluate(st, Team.RED))
+            if (tuned.evaluate(st, Team.RED) != plain.evaluate(st, Team.RED)) handDiffers++
+        }
+        // Not vacuous: in 3v3 those knobs do change the hand evaluation of these positions.
+        assertThat(AiPlayers.TUNED.pushPerAttackBySize).containsKey(3)
+        assertThat(handDiffers).isGreaterThan(0)
     }
 
     @Test

@@ -5,7 +5,6 @@ import dev.quinton.goa.core.game.AnswerResult
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.GameSetup
 import dev.quinton.goa.core.game.TestData
-import dev.quinton.goa.core.game.ai.AiPlayers
 import dev.quinton.goa.core.game.ai.EvalSource
 import dev.quinton.goa.core.game.ai.Evaluator
 import dev.quinton.goa.core.game.ai.ExperimentTest
@@ -170,8 +169,9 @@ internal object Learned {
     fun positions(r: GameRecord, resolvedRate: Double): List<Position> {
         val winner = r.winner ?: return emptyList()
         val data = TestData.engine.data
-        val features = Features(Evaluator(data))
-        val hand = Evaluator(data, AiPlayers.TUNED)
+        val features = Features(data)
+        // The hand teacher the checked-in net was trained with (v0.8's TUNED; no team-size knobs).
+        val hand = Evaluator(data, Features.KNOBS.copy(scales = Features.SCALES))
         val s = TestData.engine.newGame(r.setup) as EngineSession
         val out = ArrayList<Position>()
         val rng = kotlin.random.Random(r.game * 7919L + r.family)
