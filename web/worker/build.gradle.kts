@@ -16,6 +16,8 @@ plugins {
 kotlin {
     js {
         outputModuleName.set("engine-worker")
+        // ES2015 output, as :web:app: a smaller bundle (iOS 17 Safari runs ES2022).
+        compilerOptions { target.set("es2015") }
         browser {
             commonWebpackConfig { outputFileName = "engine-worker.js" }
             testTask { enabled = false }

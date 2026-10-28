@@ -95,6 +95,10 @@ fun AboutScreen() {
                         "who keep all rights to them. They appear here for non-commercial play by fans of the game.",
                 )
                 P({ classes("t-body-medium") }) { Text("Not affiliated with or endorsed by Wolff Designa.") }
+                BodyText(
+                    "Lists show smaller copies of the card scans and deck symbols so they load faster; " +
+                        "the card viewer shows the scans themselves.",
+                )
             }
         }
         GoaCard(flush = true) {

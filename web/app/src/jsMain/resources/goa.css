@@ -10,18 +10,18 @@
  * min-height so they grow with it.
  */
 
-/* ---------- Fonts (OFL, copied from core/designsystem at build time) ---------- */
-@font-face { font-family: "Cinzel"; src: url("fonts/cinzel_regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "Cinzel"; src: url("fonts/cinzel_semibold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
-@font-face { font-family: "Cinzel"; src: url("fonts/cinzel_bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
-@font-face { font-family: "Inter"; src: url("fonts/inter_regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "Inter"; src: url("fonts/inter_medium.ttf") format("truetype"); font-weight: 500; font-display: swap; }
-@font-face { font-family: "Inter"; src: url("fonts/inter_semibold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
-@font-face { font-family: "Inter"; src: url("fonts/inter_bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
-@font-face { font-family: "Crimson Pro"; src: url("fonts/crimson_regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "Crimson Pro"; src: url("fonts/crimson_italic.ttf") format("truetype"); font-weight: 400; font-style: italic; font-display: swap; }
+/* ---------- Fonts (OFL; WOFF2 subsets of core/designsystem's TTFs, web/app/fonts) ---------- */
+@font-face { font-family: "Cinzel"; src: url("fonts/cinzel_regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Cinzel"; src: url("fonts/cinzel_semibold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Cinzel"; src: url("fonts/cinzel_bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("fonts/inter_regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("fonts/inter_medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("fonts/inter_semibold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("fonts/inter_bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Crimson Pro"; src: url("fonts/crimson_regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Crimson Pro"; src: url("fonts/crimson_italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
 /* Bold keywords use the semibold cut, as on Android (Crimson's bold is too heavy small). */
-@font-face { font-family: "Crimson Pro"; src: url("fonts/crimson_semibold.ttf") format("truetype"); font-weight: 600 700; font-display: swap; }
+@font-face { font-family: "Crimson Pro"; src: url("fonts/crimson_semibold.woff2") format("woff2"); font-weight: 600 700; font-display: swap; }
 
 /* ---------- Tokens ---------- */
 :root {
@@ -3576,6 +3576,7 @@ code {
 .goa-w2-server-error { display: flex; gap: var(--sp-sm); margin-top: var(--sp-md); }
 .goa-w2-qr { width: min(280px, 100%); margin: 0 auto var(--sp-md); padding: var(--sp-md); background: #FFFFFF; border-radius: 12px; }
 .goa-w2-qr svg { display: block; width: 100%; height: auto; }
+.goa-w2-qr:empty { aspect-ratio: 1; } /* while the QR library loads */
 .goa-w2-scanner { position: relative; width: 100%; aspect-ratio: 1; max-width: 360px; margin: 0 auto; overflow: hidden; border-radius: 12px; background: #000; }
 .goa-w2-scanner video { width: 100%; height: 100%; object-fit: cover; display: block; }
 .goa-w2-scanner-frame { position: absolute; inset: 15%; border: 3px solid rgba(255, 255, 255, 0.85); border-radius: 12px; pointer-events: none; }

@@ -1630,3 +1630,55 @@ the Pages workflow; each finding fixed with a test that fails without the fix.
 took ≈ 30 ms in Playwright's WebKit on this PC and ≈ 6 ms in Chromium (an iPhone hashes in hardware). A new inline script needs nothing (its hash is computed); a new connection target needs the
 CSP. Not fixed: the shared origin (owner action above); the relay's CORS default
 (`https://quintond.github.io`) admits the other sites on that origin, which still need a group's token.
+
+**Addendum (R3 first load, 2026-10-26):**
+**Context:** A friend's first visit downloaded 5.3 MB of app.js (1.37 MB gzipped), 1 MB of TrueType
+fonts and, at once, a 286-file precache; on a slow link WebKit never finished that precache (an
+all-or-nothing `addAll`: nothing cached after two minutes, so the app didn't work offline), and the
+hero list's images queued behind it. Measured with `web/e2e/scripts/first-load.mjs` (the site served
+like Pages, gzip and ETag, through one throttled link; HTTP/1.1, so request-heavy phases are
+pessimistic next to Pages' HTTP/2). Median of 3, empty cache, until the Heroes list is usable / its
+images are in / the app works offline:
+
+| | before | after |
+|---|---|---|
+| WebKit iPhone 15, Fast 3G (1.44 Mbit/s, 562 ms) | 16.2 s / 17.8 s / never | 12.5 s / 14.8 s / 48 s |
+| Chromium Pixel 7, Fast 3G | 16.6 s / 25.2 s / 88 s | 12.4 s / 17.9 s / 46 s |
+| WebKit iPhone 15, 4G (9 Mbit/s, 170 ms) | 4.2 s / 14.5 s / 14.5 s | 3.7 s / 4.0 s / 15.4 s |
+| Chromium Pixel 7, 4G | 4.2 s / 6.3 s / 26 s | 3.6 s / 5.0 s / 15.7 s |
+
+Bytes on the wire until the list is usable: 2.0–2.5 MB → 1.3 MB.
+**Decision:** (1) **app.js** 5.34 MB → 3.77 MB (gzipped 1.38 → 1.03 MB): the Compose compiler's
+source information and trace markers are off for the browser (tooling strings, ~0.6 MB); ES2015
+output (classes, ES modules; iOS 17 Safari runs ES2022), also for the engine worker (1.33 → 1.25 MB);
+the QR libraries (jsQR, qrcode-generator) are `import()`ed on first use into webpack chunks
+(`<id>.chunk.js`, precached for offline). Whole-program granularity and explicit ES modules were
+tried and gave nothing more. kotlinx-datetime's js-joda (~190 KB minified) stays: it is core
+code's dependency and needs no time-zone database. Kotlin/JS can't split our own screens into
+chunks. (2) **Fonts:** WOFF2 subsets (Latin with Latin Extended for names, Greek, the punctuation,
+arrow, maths and symbol blocks; no hinting; all layout features) made by
+`web/app/fonts/subset_fonts.py` and committed: 1.0 MB → 350 KB. The three families are OFL 1.1
+without Reserved Font Names. `checkWebFonts` stops the build when core/designsystem's TTFs change
+without new subsets. (3) **Shell:** the UI icons' SVG files no longer ship (they are inline markup),
+the PNG app icons aren't precached, goa.css ships without comments: 286 → 106 shell files.
+(4) **Service worker:** on a first visit `sw.js` is registered once the first screen has drawn and
+its images loaded (two quiet half-second checks, at most 8 s after `load`); a returning visit
+registers at once (that is the update check). The install fetches file by file, four at a time,
+keeps each as it arrives (a cut-short install resumes), checks each against the manifest's content
+hash (a deploy landing mid-install can't mix builds) and copies a file whose hash didn't change from
+the previous build's cache, so an update downloads only what changed. Revalidation is
+`cache: "no-cache"` (ETag). (5) **Thumbnails:** `:tools:catalog-import:webThumbnails` writes
+downscaled copies of the card scans (384 px wide) and deck symbols (96 px) to `official/thumbs/`;
+the hero page's card grid, the draft's starting cards, the table's cards and the hero grid's symbols
+offer them through `srcset` (`OfficialImg`), so the browser takes them when sharp enough (Arien's
+page: 960 KB of scans → 537 KB). The card viewer, trivia proofs, hero header and portraits keep the
+full images. The copies are an online speed-up: "Download everything" stores the full images only
+(33 MB, unchanged) and an image whose copy can't load falls back to the full one; About says lists
+show smaller copies. The official images themselves are unmodified. (6) A catalog `<link
+rel=preload>` was tried and dropped: WebKit downloaded the file twice.
+**Consequences:** F2's "Assets" and "Service worker" items are amended as above. GitHub Pages can't
+serve Brotli or precompressed files (no headers), so gzip stays. The first visit still downloads
+app.js before anything is usable (1 MB gzipped: ~7 s on Fast 3G); the next step would be Wasm or a
+second, lighter entry, not worth it today. Tests: `r3-first-load.spec.ts` (images before the
+precache, WOFF2 only, no QR chunk until Invite, an update re-downloads nothing unchanged, the copies
+and their fallback), `ThumbnailsTest`, `OfflinePlanTest`, `WebThumbnailsTest`.

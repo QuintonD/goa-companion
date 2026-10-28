@@ -16,11 +16,12 @@ class OfflinePlanTest {
             AssetFile("official/SOURCES.md", 90_000, "h2"),
             AssetFile("official/cards/arien-gold.webp", 60_000, "h3"),
             AssetFile("official/heroes/arien/portrait.webp", 40_000, "h4"),
+            AssetFile("official/thumbs/cards/arien-gold.webp", 30_000, "h5"),
         ),
     )
 
     @Test
-    fun theImagesAreEverythingUnderOfficialButItsSourcesFile() {
+    fun theImagesAreEverythingUnderOfficialButItsSourcesFileAndTheListsSmallCopies() {
         assertEquals(
             listOf("official/cards/arien-gold.webp", "official/heroes/arien/portrait.webp"),
             OfflinePlan.images(manifest).map { it.p },

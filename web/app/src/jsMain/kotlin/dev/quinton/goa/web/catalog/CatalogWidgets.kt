@@ -10,7 +10,9 @@ import dev.quinton.goa.core.domain.catalog.complexityName
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.core.model.catalog.Hero
+import dev.quinton.goa.web.data.Thumbnails
 import dev.quinton.goa.web.ui.IconMarkup
+import dev.quinton.goa.web.ui.OfficialImg
 import org.jetbrains.compose.web.dom.B
 import org.jetbrains.compose.web.dom.Br
 import org.jetbrains.compose.web.dom.Div
@@ -235,13 +237,18 @@ fun HeroSymbol(hero: Hero, extraClass: String, alt: String = "") {
     val symbol = hero.symbol ?: return
     var failed by remember(symbol) { mutableStateOf(false) }
     if (failed) return
-    Img(symbol, alt = alt) {
+    // Its size on screen (goa.css): 30 px on a grid tile, 24 px in a list row, up to 90 px on the hero page.
+    val sizes = when (extraClass) {
+        "tile" -> "30px"
+        "row" -> "24px"
+        else -> "90px"
+    }
+    OfficialImg(symbol, Thumbnails.symbolSrcset(symbol), sizes, alt = alt, onFailed = { failed = true }) {
         classes("goa-hero-symbol", extraClass)
         attr("width", SYMBOL_SIZE)
         attr("height", SYMBOL_SIZE)
         attr("decoding", "async")
         attr("loading", "lazy")
-        addEventListener("error") { failed = true }
     }
 }
 

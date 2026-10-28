@@ -19,11 +19,17 @@
  * beside the worker of another: the install fails and the browser tries again later), and a cached
  * shell file is checked again each time it is served: every site on quintond.github.io shares this
  * origin and so its Cache Storage, and a changed copy is dropped and fetched afresh, never run.
+ *
+ * Install on a slow link (web review R3): files are fetched a few at a time and kept as they arrive,
+ * so an install a slow link cut short resumes where it stopped; a file whose content hash is
+ * unchanged since the build this one replaces is copied from that build's cache, so an update
+ * downloads only what changed. Every file taken from a cache is checked against this build's hash
+ * first, so reuse can't bring in bytes the manifest doesn't name.
  */
 const BUILD = "__GOA_BUILD__";
 const MANIFEST_SHA256 = "__GOA_MANIFEST_SHA256__";
 const HASH_LENGTH = 16; // hex digits of SHA-256 in the manifest (AssembleSite.HASH_LENGTH)
-const INSTALL_PARALLEL = 6;
+const INSTALL_PARALLEL = 4;
 const SHELL_CACHE = "goa-shell-" + BUILD;
 const IMAGE_CACHE = "goa-images";
 const MANIFEST = "asset-manifest.json";
@@ -37,9 +43,12 @@ function isImage(path) {
   return path.startsWith("official/") && !path.endsWith(".md");
 }
 
-/** Shell files: everything except images, the manifest itself and the worker. */
+/**
+ * Shell files: everything except images, the manifest itself and the worker. The PNG app icons are
+ * only read by the browser when the app is installed, so they aren't precached either.
+ */
 function isShell(path) {
-  return !isImage(path) && path !== MANIFEST && path !== "sw.js";
+  return !isImage(path) && path !== MANIFEST && path !== "sw.js" && !(path.startsWith("icons/") && path.endsWith(".png"));
 }
 
 /** The path below the scope (`official/cards/x.webp`), or null for another origin or outside the app. */
@@ -102,12 +111,41 @@ function buildHashes() {
 
 /** Fetches [path] past the HTTP cache; its bytes, or an error unless they are the file at [hash]. */
 async function fetchVerified(path, hash) {
-  // cache: "reload" skips the HTTP cache, so a stale file can't slip into a new build's cache.
-  const res = await fetch(new Request(url(path), { cache: "reload" }));
+  // cache: "no-cache" revalidates with the server (ETag), so a file the browser already holds can
+  // come back as a 304 on a slow link; a stale copy fails the hash check below either way.
+  const res = await fetch(new Request(url(path), { cache: "no-cache" }));
   if (!res.ok) throw new Error(path + " " + res.status);
   const bytes = await res.arrayBuffer();
   if (!(await matches(bytes, hash))) throw new Error(path + " is not this build's (a deploy in progress?)");
   return rebuilt(bytes, res);
+}
+
+/**
+ * A copy of [path] at [hash] already in [cache] (this build's, from an attempt a slow link cut
+ * short, or an earlier build's), as a fresh response, or null when there is none or its bytes differ.
+ */
+async function cachedVerified(cache, path, hash) {
+  const hit = await cache.match(url(path));
+  if (!hit) return null;
+  const bytes = await hit.arrayBuffer();
+  return (await matches(bytes, hash)) ? rebuilt(bytes, hit) : null;
+}
+
+/** The shell caches of earlier builds, by "path#hash" of the files their manifests list. */
+async function previousShell() {
+  const found = new Map();
+  for (const name of await caches.keys()) {
+    if (!name.startsWith("goa-shell-") || name === SHELL_CACHE) continue;
+    const cache = await caches.open(name);
+    const res = await cache.match(url(MANIFEST));
+    if (!res) continue;
+    try {
+      for (const f of (await res.json()).files) found.set(f.p + "#" + f.h, cache);
+    } catch (e) {
+      // an unreadable manifest: nothing to reuse from that build
+    }
+  }
+  return found;
 }
 
 self.addEventListener("install", (event) => {
@@ -118,17 +156,24 @@ self.addEventListener("install", (event) => {
     if (!(await isOurManifest(bytes))) throw new Error("asset manifest is not this build's (a deploy in progress?)");
     const manifest = JSON.parse(new TextDecoder().decode(bytes));
     const cache = await caches.open(SHELL_CACHE);
-    const shell = manifest.files.filter((f) => isShell(f.p));
-    // All or nothing: one file of another build fails the install, and the browser tries again later.
-    const verified = new Array(shell.length);
+    const previous = await previousShell();
+    const download = [];
+    for (const file of manifest.files.filter((f) => isShell(f.p))) {
+      if (await cachedVerified(cache, file.p, file.h)) continue;
+      const old = previous.get(file.p + "#" + file.h);
+      const reused = old && (await cachedVerified(old, file.p, file.h));
+      if (reused) await cache.put(url(file.p), reused);
+      else download.push(file);
+    }
+    // A few at a time, each kept as it arrives; one file of another build fails the install (the
+    // browser tries again later and resumes), so a deploy landing mid-install can't mix two builds.
     let next = 0;
     await Promise.all(Array.from({ length: INSTALL_PARALLEL }, async () => {
-      while (next < shell.length) {
-        const i = next++;
-        verified[i] = await fetchVerified(shell[i].p, shell[i].h);
+      while (next < download.length) {
+        const file = download[next++];
+        await cache.put(url(file.p), await fetchVerified(file.p, file.h));
       }
     }));
-    await Promise.all(shell.map((f, i) => cache.put(url(f.p), verified[i])));
     await cache.put(url(MANIFEST), rebuilt(bytes, res));
   })());
 });
