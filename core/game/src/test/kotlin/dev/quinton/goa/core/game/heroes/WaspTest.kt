@@ -4,6 +4,8 @@ import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.game.engine.ActionKind
+import dev.quinton.goa.core.game.engine.Timing
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.pos
 import dev.quinton.goa.core.game.position.PositionPhase
@@ -299,6 +301,30 @@ class WaspTest {
         for (h in d.spaces()) assertThat(HexGrid.distance(h, Hex(1, -2))).isEqualTo(1)
         d.space(0, -2)
         assertThat(d.at("arien")).isEqualTo(Hex(0, -2))
+    }
+
+    @Test
+    fun `Telekinesis - a unit with no space next to Wasp it may enter is not a target (Takahide's blade)`() {
+        val d = pos {
+            clearMinions()
+            hero("wasp", Team.RED, Hex(1, -2)) { played("wasp-green-2b") }
+            hero("xargatha", Team.RED, Hex(3, -3)) // not in a straight line
+            hero("brogan", Team.BLUE, Hex(-1, -1)) // not in a straight line
+            hero("takahide", Team.BLUE, Hex(2, -2)) { resolved(1, "takahide-red-2b") }
+            // Wasp's other neighbours are taken; the two left are next to Takahide.
+            token("token_rock", Hex(0, -2))
+            token("token_rock", Hex(0, -1))
+            turn = 2
+            // Spinning Blade: empty spaces adjacent to Takahide count as obstacles for enemy units.
+            effect("takahide", "takahide-red-2b", Timing.THIS_TURN, ActionKind.ATTACK)
+            phase = PositionPhase.Resolving(next = "wasp")
+        }
+        d.action("wasp", ActionType.PRIMARY)
+        // Xargatha could not be placed anywhere: Brogan is the only target, chosen without asking.
+        d.expect(DecisionKind.CHOOSE_SPACE)
+        d.space(2, -3)
+        assertThat(d.at("brogan")).isEqualTo(Hex(2, -3))
+        assertThat(d.at("xargatha")).isEqualTo(Hex(3, -3))
     }
 
     // ---- Kinetic Repulse / Kinetic Blast (blue alternates) ------------------------------------

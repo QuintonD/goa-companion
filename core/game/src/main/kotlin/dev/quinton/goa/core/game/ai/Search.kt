@@ -73,6 +73,10 @@ internal data class LevelProfile(
     val workBudget: Long = 0,
     /** Racing margin in coin-equivalents ([Searcher.race]); 0 = every candidate gets every sample. */
     val race: Double = 0.0,
+    /** Where the learned evaluation scores positions instead of [knobs]' hand one (AI.md "Learned evaluation"). */
+    val learned: EvalSource = EvalSource.HAND,
+    /** The net [learned] uses; null = the checked-in one ([LearnedNet.CURRENT]). */
+    val net: LearnedNet? = null,
 )
 
 /**
@@ -160,6 +164,13 @@ internal class Searcher(
     /** Engine answers spent in playouts so far (the [LevelProfile.workBudget] measure; sequential runs). */
     var work: Long = 0
         private set
+
+    /** What scores the end of a playout ([LevelProfile.learned]). */
+    val leaf: PositionEvaluator =
+        if (profile.learned == EvalSource.HAND) ev else NetEvaluator(ev.data, profile.net ?: LearnedNet.CURRENT)
+
+    /** What scores the one-ply looks inside a playout. */
+    private val inner: PositionEvaluator = if (profile.learned == EvalSource.EVERYWHERE) leaf else ev
 
     fun determinize(es: EngineSession, d: Decision, seed: Long): EngineSession {
         val team = d.team
@@ -356,7 +367,7 @@ internal class Searcher(
             f.answer(dp.id, o)
             work++
             playout(f, d.seat, d.team, horizon)
-            val v = ev.evaluate(f.state, d.team)
+            val v = leaf.evaluate(f.state, d.team)
             table.getValue(o)[k] = v
             if (keepLeaves) leaves += Leaf(o, k, f, before, v)
         }
@@ -502,7 +513,7 @@ internal class Searcher(
             g.answer(d.id, o)
             work++
             finishAction(g, d.seat)
-            val v = ev.evaluate(g.state, d.team)
+            val v = inner.evaluate(g.state, d.team)
             if (v > bestV) {
                 bestV = v
                 best = o

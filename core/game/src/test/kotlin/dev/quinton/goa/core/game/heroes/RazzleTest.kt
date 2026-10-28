@@ -129,6 +129,27 @@ class RazzleTest {
     }
 
     @Test
+    fun `Stunt Doubles - a spawn point under a token that the blade would make an obstacle is not offered`() {
+        val d = pos {
+            clearMinions()
+            hero("razzle", Team.RED, Hex(1, -2)) { played("razzle-gold") } // radius 1
+            hero("takahide", Team.BLUE, Hex(3, -3)) { resolved(1, "takahide-red-2b") }
+            minion(Team.BLUE, MinionType.MELEE, Hex(2, -2)) // the only target: attacked without asking
+            minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))
+            minion(Team.RED, MinionType.MELEE, Hex(4, -7))
+            token("token_rock", Hex(2, -3)) // a spawn point next to Takahide
+            turn = 2
+            effect("takahide", "takahide-red-2b", Timing.THIS_TURN, ActionKind.ATTACK)
+            phase = PositionPhase.Resolving(next = "razzle")
+        }
+        d.action("razzle", ActionType.PRIMARY)
+        d.expect(DecisionKind.CHOOSE_SPACE, "razzle")
+        // The rock would be removed first (p.19), leaving an empty space next to Takahide: an obstacle for her.
+        assertThat(d.spaces()).containsNoneOf(Hex(2, -3), Hex(2, -2))
+        assertThat(d.spaces()).contains(Hex(1, -1))
+    }
+
+    @Test
     fun `Stunt Doubles - only figures left in the supply can be spawned (p19 Spawn)`() {
         val d = pos {
             clearMinions()

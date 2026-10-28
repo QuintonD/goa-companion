@@ -212,8 +212,11 @@ object WaspHero : HeroModule {
     private class Telekinesis(private val repeat: Boolean) : CardScript {
         override fun primary(a: ActionScope) {
             val adjacent = HexGrid.neighbors(a.pos).filter { a.g.isEmpty(it) }
+            // A space can be an obstacle for one unit only (Takahide's Spinning Blade): a target needs
+            // an adjacent space it can be placed into.
             val targets = a.objectsWithin(a.range).filter { id ->
-                !a.inStraightLine(id) && a.canTarget(id) && a.g.canPlace(id, a.heroId)
+                !a.inStraightLine(id) && a.canTarget(id) && a.g.canPlace(id, a.heroId) &&
+                    adjacent.any { a.g.isEmpty(it, id) }
             }
             if (targets.isEmpty() || adjacent.isEmpty()) a.fizzle("nothing to place")
             val t = a.target(a.chooseObject("Place a unit or a token in range, not in a straight line", targets)!!)

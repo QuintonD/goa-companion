@@ -17,6 +17,7 @@ plays as the level's strength (Easy 2, Normal 6, Hard 8, Expert 10, ADR-039).
 | `Evaluator.kt` | The static evaluation in coin-equivalents (STRATEGY §2) as a sum of named `Term`s with scales (`EvalKnobs`), and `Ctx`, its per-state cache, which also scores "this hero standing on that space" without forking |
 | `StaticPolicy.kt` | Scores every option of every `DecisionKind` from one state, no fork (STRATEGY §3): the playout policy, the opponent model and Easy |
 | `CardProfile.kt` | Per-card numbers the heuristics need (attack, reach incl. "Before the attack: Move N", discard-or-defeat, blocks, a rating), read once from the catalog; nothing hero-specific |
+| `Features.kt`, `LearnedEval.kt`, `LearnedWeights.kt` | The learned evaluation (below): team-size invariant features of a state, the net (`LearnedNet`, `NetEvaluator`, `PositionEvaluator`, `EvalSource`) and its generated weights |
 | `AiCoach.kt` | `AiCoach(factory)`: `nudge` (Hard-level analysis from the human team's view) with `Explainer`, `prepare` (the same analysis before the answer); `turningPoints` with `TurningPoint` |
 | `engine/Determinizer.kt` | Samples hidden information (below) |
 
@@ -156,6 +157,139 @@ put exposure near 0 and opportunity near 3.7×, but neither 0.15 nor 3.5 measure
 fit and the tournaments say together: a hero's danger matters through what the playouts find
 (an attack that lands this turn), not through a static guess of next turn's threats.
 
+## Learned evaluation (ADR-047 part B)
+
+Strength 10 (Expert) scores the end of every playout with a small learned network instead of the
+hand-weighted sum above (`LearnedEval.kt`, `Features.kt`, `LearnedWeights.kt`;
+`AiPlayers.LEARNED_FROM`); the one-ply looks inside playouts, the static policy, the opponent model,
+strengths 1–9 and the coach keep the hand evaluation. The search is unchanged: the same samples,
+candidates, horizons and noise. `LevelProfile.learned` (`EvalSource`) switches it per profile, so a
+tournament can try it at any strength.
+
+**Features** (`Features.kt`, pure Kotlin, commonMain-safe). One state, one team's point of view,
+team-size invariant so one net plays 1v1 to 5v5: every hero gets the same 52 numbers (on the board,
+presence and distance to the Battle Zone, progress along the lane; level, coins, a level due,
+Ultimate, lowest Tier; hand size against the plays left, spare and missing cards; the printed
+numbers of the cards in hand — attack cards, best Attack and reach with items, best Defense,
+defenders, Block, highest and lowest Initiative, best Movement, the rating; the played card's
+Initiative, Attack, reach, Movement; the five item bonuses; the hand evaluation's exposure,
+opportunity, defeat and discard costs and the minion modifier at its space; enemies within 2 and 4,
+allies within 2, enemy and own minions within 2, the nearest enemy; enemy cards that can reach it
+and beat its defense this turn and next; its dashboard counters, its pieces, whether it has acted,
+enemies acting after it, extra bodies). They are pooled per team as sum and max (own team, enemy
+team: 4 × 52), then 40 global numbers: the hand evaluation's twelve terms and its tuned score (the
+net can learn to trust them), pushes to win and to lose, Wave counters, match points, minions by
+type per side, Push Potential per side, Life counters and their worth, "one defeat loses", round,
+turn, revealed, end of round, team sizes, the coin. 248 inputs. Like `Evaluator` it reads only the
+state it is given — a determinized copy in a search — and names no hero; `NoPeekingTest` covers it
+through the strengths.
+
+**Net.** N(x) = MLP(x) + w·x: 248 → 64 → 32 → 1 with ReLU plus a linear skip ("wide and deep"),
+applied to both teams' features; P(Red wins) = σ(N(Red) − N(Blue)), so swapping the teams negates
+the score exactly. The score is the logit × the coin scale (the hand evaluation's fitted slope,
+1/k ≈ 39 coin-equivalents per unit), so the search's noise, risk and the ±1000 of a finished game
+keep their meaning. Inference reads raw features (the training standardization is folded into the
+first layer) and skips zero inputs.
+
+**Data** (`LearnedSelfPlayTest`). Self-play on training line-ups only (`Teams.TRAIN`, a seed family
+of its own): 2v2 ×1, 3v3 ×2, 4v4 ×1.2, 5v5 ×0.4, every hero seated equally often, ≤ 4 threads. Each
+team plays a variant drawn per game: strength 7 ×4, a noisy 7 (τ 1.5 within 4) ×2, an aggressive 7
+that ignores its own exposure and values Life counters twice (so walking into danger gets punished)
+×2, strength 6 ×1, strength 8 ×1. Generation 1 replaced the plain and noisy 7s and the 8 with the
+generation-0 net. A game is stored as its setup and answers and replayed to record positions: every
+turn boundary (what a playout to the end of the turn ends on) and a third of the moments after a
+card resolved (what a one-ply look sees).
+
+**Targets and training** (`LearnedTrainTest`, `Trainer.kt`, pure Kotlin, seeded). λ-returns over a
+game's positions, bootstrapped from a teacher: G = (1 − λ)·P_teacher(next) + λ·G(next), the result
+at the end. The first teacher is the hand evaluation (σ(k · tuned score)), then the previous net
+(fitted value iteration). Cross-entropy, AdamW (lr 3e-4, weight decay 1e-3 on the weights), batches
+of 512, early stopping on a validation split. The split is by line-up (line-up % 10: 8 validation,
+9 test, the rest training).
+
+**What measured.** Every candidate net was screened at strength 7 (cheap: 192 games in 2–3 minutes)
+in 3v3, mirrored, on 96 line-ups of the tuning family (`Teams.TUNE`); the chosen one was then measured
+at strength 10 on the test family (`Teams.TEST`), which no training or choice used. 95% Wilson
+intervals.
+
+| Candidate (strength 7 with it, 3v3) | Against | Result | Kept |
+|-------------------------------------|---------|--------|------|
+| Trained on the game result alone (λ 1) | strength 7 | 37.5% (31.0–44.5%) | no |
+| λ 0.95 / 0.85 from the hand evaluation | strength 7 | 51.6% / 58.9% | no |
+| λ 0.7 / 0.5 / 0.3 / 0 | strength 7 | 68.2% / 65.6% / 57.3% / 63.5% | λ 0.7 |
+| λ 0.7 from the λ-0.7 net instead of the hand evaluation (`g0t07`, generation 0) | strength 7 | 72.4% (65.7–78.2%) | yes |
+| The same iterated once / twice more on the same games | strength 7 | 59.9% / 65.1% | no |
+| Generation 1 (gen-0 + gen-1 games, λ 0.7 from the hand evaluation; `g1a`) | generation 0 | 58.3% (51.3–65.1%) | **yes** |
+| Generation 1 with seed 2 / λ 0.6 / λ 0.8 / the teacher iterated | generation 0 | 61.5% / 55.7% / 55.7% / 51.6% | no |
+| Generation 2 (all games / gen-1 + gen-2 games) | generation 1 | 52.6% / 47.9% | no |
+| The net also in the one-ply looks inside playouts (`EVERYWHERE`) | the net at playout ends | 45.3% (38.4–52.4%) | no |
+
+What this says: the result alone is the target that predicts results best (held-out log-loss 0.552
+against the hand evaluation's 0.581 on generation 0) and plays worst. A search picks the option whose
+leaf the evaluation overrates, so a sharp, noisy evaluation is exploited by its own search. Targets
+bootstrapped from the hand evaluation a few positions on (λ 0.7 per recorded position: about a turn) give a smooth
+evaluation that sees further than the hand one, and that is what plays better. A third generation
+of self-play added nothing measurable; generation 1 is checked in.
+
+**Strength 10 with the net against strength 10 with the hand evaluation** (`TeamTournamentTest`,
+96 test line-ups mirrored = 192 games each, every hero seated equally often):
+
+| Team size | Wins | Rate | 95% interval | ≈ Elo |
+|-----------|------|------|--------------|-------|
+| 3v3 | 130–62 | 67.7% | 60.8–73.9% | +130 |
+| 2v2 | 129–63 | 67.2% | 60.3–73.4% | +125 |
+| 4v4 | 125–67 | 65.1% | 58.1–71.5% | +110 |
+
+Earlier, generation 0 at strength 10 on tuning line-ups: 58.3% (48.3–67.7%) over 96 games.
+
+**Why only strength 10.** The net helps every searching strength (7: 68–72%), but with it at 5–10
+the steps between neighbours shrank on the ladder's line-ups 900–995 (2v2, 192 games each): 6 over 5
+55.7% (48.7–62.6%), 7 over 6 67.2%, 8 over 7 56.8% (49.7–63.6%), 9 over 8 62.5%, 10 over 9 51.6%
+(44.5–58.5%). Giving it to Expert alone keeps the measured ladder 1–9 as it was and makes the top
+step the biggest: 10 over 9 75.0% (68.4–80.6%), 192 games.
+
+**Held-out log-loss** against the real results (test split of generations 0 + 1: 41 756 positions
+from 640 games of line-ups never trained on): the tuned hand evaluation (one fitted slope) 0.597, a
+logistic fit of its twelve terms (as `FitTest`) 0.591, the net 0.580; in 3v3 0.583 / 0.572 / 0.564.
+
+**Cost.** One evaluation of a 3v3 position on the desktop: the features about 40 µs (they include the
+hand evaluation's terms, about 21 µs alone), the net a few µs more — well under a playout (0.1–30
+ms). Decision times at 3v3 (`LearnedTimingTest`, 4 games each on test line-ups, one at a time, no
+wall-clock cap, desktop shared with other work): card plays 395 ms mean / 833 ms p95 / 1.65 s max
+with the net, 415 / 822 / 1.90 s with the hand evaluation; moves 232 / 584 ms against 203 / 568 ms.
+The net costs nothing measurable per decision (one evaluation per playout, against thousands of
+engine steps); 3v3 itself costs about twice 2v2 (Budgets), which the device budget, not the
+evaluation, has to answer (ADR-047 part A).
+
+**How to retrain.** One command trains on the stored self-play games and writes the checked-in
+weights (seeded: the same data, seed and thread count give the same net, bit for bit; about 5 minutes
+on the desktop for 6 400 games):
+
+```
+AI_HEAP=8g AI_TRAIN=<dir>/gen0/games-0.jsonl,<dir>/gen1/games-1.jsonl AI_TRAIN_WRITE=1 \
+  ./gradlew :core:game:test --tests '*LearnedTrainTest' --rerun
+```
+
+(defaults: λ 0.7, teacher `hand`, 64 → 32, lr 3e-4, weight decay 1e-3, seed 1, 4 threads; `AI_NETS`
+is where named nets are saved, `AI_TRAIN_NAME` their name). The games themselves are reproducible too
+(deterministic players, seeded per game; generation 0 was played before this round's two engine
+fixes, which only changed choices met inside search forks, and its games still replay exactly) — generation 0 and 1 of the
+checked-in net, `<dir>` being `D:\.goa-qa\v09\a2\data` on the development machine:
+
+```
+AI_SELFPLAY=3200:<dir>/gen0/games-0.jsonl AI_SIZES='2*1,3*2,4*1.2,5*0.4' \
+  ./gradlew :core:game:test --tests '*LearnedSelfPlayTest' --rerun
+AI_SELFPLAY=3200:<dir>/gen1/games-1.jsonl AI_FIRST=3200 AI_SIZES='2*1,3*2,4*1.2,5*0.4' \
+  AI_VARIANTS='s7+net=g0t07*4,s7+net=g0t07+temp=1.5+gap=4*2,s7+xEXPOSURE=0+xLIFE=2+tempo=10*2,s7*1,s8+net=g0t07*1' \
+  ./gradlew :core:game:test --tests '*LearnedSelfPlayTest' --rerun
+```
+
+where `g0t07` is the generation-0 net: `AI_TRAIN=<gen0> AI_TRAIN_NAME=g0l0.7` then
+`AI_TRAIN=<gen0> AI_TEACHER=g0l0.7 AI_TRAIN_NAME=g0t07` (each `--tests '*LearnedTrainTest'`). A change
+to `Features` changes `Features.SCHEMA_HASH` and `LearnedNetTest` fails until the net is retrained;
+after retraining, measure it against the previous one (`AI_TEAMS=s7+net=<new>:s7+net=<old>`,
+`TeamTournamentTest`) and keep it only if it wins.
+
 ## Strengths
 
 The player sets the computer's **strength from 1 to 10** (ADR-039; one for all, or per seat). The
@@ -175,13 +309,14 @@ adds one lever that measured (below); the knobs are `LevelProfile`s in `AiPlayer
 | 7 | Hard | played out once | turn / **turn** | 1 / 1, 6 | static; opaque one ply | opponent model | τ 0.5 within 1.3 | tuned | 500 ms |
 | 8 | Hard | mean − 0.3 sd for card plays | turn / turn | **6 / 2**, 8 | static; opaque one ply | opponent model | τ 0.25 within 0.8 | tuned | 1 s |
 | 9 | Expert | mean | turn / turn | **16 / 6**, 10 | its own by **one-ply search** | + **memory** of cards shown since each level up | τ 0.15 within 0.6 (mixing) | tuned | 1.5 s |
-| 10 | Expert | mean | turn / turn | 16 / 6, 10 | **every hero's** by one-ply search | + memory | τ 0.15 within 0.6 | tuned | 2 s |
+| 10 | Expert | mean | turn / turn | 16 / 6, 10 | **every hero's** by one-ply search | + memory | τ 0.15 within 0.6 | **learned** at playout ends (tuned inside) | 2 s |
 
 "Tuned" is `TUNED`: exposure × 0.3, minion opportunity × 2 (Evaluation, above), and since v0.9 in 3v3
 a Push Potential of 0.35 per attack card and the full exposure of a hero with no card left to defend
-with ("Team sizes"). Device budgets since v0.9 ("Budgets"); the app
-runs the samples on three threads, so the answers do not depend on the device wherever the cap is not
-reached. "Opaque" choices are
+with ("Team sizes"). Since v0.9 (ADR-047 part B) strength 10 scores the end of every playout with the
+learned evaluation instead (`AiPlayers.LEARNED_FROM`; the one-ply looks inside playouts and the static
+policy keep `TUNED`). Device budgets since v0.9 ("Budgets"); the app runs the samples on three
+threads, so the answers do not depend on the device wherever the cap is not reached. "Opaque" choices are
 a bullet, a token, a confirm or number, a space that is not a move, a unit that is not an attack
 target, another hero's card (Architecture).
 
@@ -198,10 +333,12 @@ target, another hero's card (Architecture).
   through the whole turn, risk-averse.
 - **9** samples more, remembers every card you have shown since your last level up, and plays its own
   later choices in a playout by one-ply search; **10** is Expert: everyone's later choices in a
-  playout by one-ply search, and it mixes between near-equal plays; since v0.9 it thinks at most 2 s a
-  card play on the phone, on three threads.
+  playout by one-ply search, it mixes between near-equal plays, and since v0.9 it judges the end of
+  every playout with the learned evaluation (Learned evaluation) and thinks at most 2 s a card play on
+  the phone, on three threads.
 
-The coach analyses at Hard (8) and so uses the tuned evaluation too.
+The coach analyses at Hard (8) but keeps the tuned hand evaluation (its thresholds and reasons were set
+on it; `AiCoach` sets `learned = HAND`).
 
 ### Departures from STRATEGY.md §4.2, and why
 
@@ -345,9 +482,12 @@ Wilson intervals:
 | 7 vs 6 | 128–64 | 66.7% | 59.7–73.0% | +120 | every choice played to the end of the turn |
 | 8 vs 7 | 113–79 | 58.9% | 51.8–65.6% | +60 | six guesses, risk-averse |
 | 9 vs 8 | 115–77 | 59.9% | 52.8–66.6% | +70 | sixteen guesses, memory, its own one-ply playouts |
-| 10 vs 9 | 214–170 | 55.7% | 50.7–60.6% | +40 | everyone's one-ply playouts |
+| 10 vs 9 | 214–170 | 55.7% | 50.7–60.6% | +40 | everyone's one-ply playouts (v0.7) |
+| 10 vs 9 (v0.9) | 144–48 | 75.0% | 68.4–80.6% | +190 | + the learned evaluation at playout ends |
 
-10 vs 9 is over 384 games (line-ups 900–995 and 1300–1395: 54.7% and 56.8%). Every step's rate
+10 vs 9 (v0.7) is over 384 games (line-ups 900–995 and 1300–1395: 54.7% and 56.8%); since v0.9
+strength 10 adds the learned evaluation (Learned evaluation) and the step is 75.0% (line-ups 900–995,
+2026-10-27). Every step's rate
 and every interval's lower end is above 50%; the highest steps come closest to it (the top end is
 flat, Known weaknesses). From 1 to 10 the steps add up to about 1 000 Elo.
 
@@ -556,10 +696,10 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
   has not been tuned, and each engine step costs a third more than on one lane.
 - **Opponent model** is the static card policy: a human who plays unusual cards is guessed poorly
   (15% of each guess is uniform to stay robust).
-- **The top end is flat:** above Expert (10) nothing measured better: 24 samples with 12 candidates,
-  a longer horizon, a hotter or colder choice, a wider one-ply look, played-out upgrade choices, a
-  sharper or looser opponent model (all in "What changed in v0.7"). The next gains need a better
-  evaluation of set-up and round plans, not more search.
+- **The top end was flat:** above Expert (10) no search setting measured better (24 samples with 12
+  candidates, a longer horizon, a hotter or colder choice, a wider one-ply look, played-out upgrade
+  choices, a sharper or looser opponent model; "What changed in v0.7"). The learned evaluation
+  (v0.9) was the next gain; its features still see set-up heroes' tokens and counters only as such.
 - **Wall-clock cap**: on a loaded phone the production player may search less than on the desktop;
   answers are then still legal but no longer reproducible for a seed. The phone factor (3–4×) is an
   assumption, not a device measurement ("Budgets").
@@ -582,4 +722,6 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
 | `ControllerStrengthTest` | A save with only a level loads as its strength; strengths round-trip; the bands |
 | `TournamentTest`, `ExperimentTest`, `GameLogTest`, `UsageTest` | Opt-in (`AI_TOURNAMENT` / `AI_MIXED` with `AI_PAIRS=6:5,…`, `AI_EXPERIMENT=s10+samples=24:s10`, `AI_LOG`, `AI_USAGE` environment variables; `AI_FORMAT=3v3` for bigger teams, `AI_KEEP_GOING` and `AI_DUMP_DIR` for long runs, `AI_PROGRESS` a line per game; variants also `work=`, `race=`, `defenseless=`, `focus=`, `hunt=a/b/c`, `pp=`): long tournaments between strengths (per-hero rates; `AI_GAMES=<hero>` lists the games; a failing game is reported with its line-up and seed), profile variants (any knob or `x<TERM>=` scale), one game's log (a mixed or explicit line-up; `AI_LOG_DECISIONS`, `AI_LOG_VALUES` also for defenses, `AI_LOG_LEAVES=<hero>`), each card's actions, defeats and kills per hero |
 | `FingerprintTest`, `CrashReproTest` | Opt-in (`AI_FINGERPRINT=<variant>:<games>`, `AI_REPRO=<dump>\|<variant>\|<seed>`): a hash of every answer of deterministic games (a change meant only to be faster must keep them); a crashed game's decision asked again from its dump |
+| `LearnedNetTest` | The checked-in weights load and were trained on these features (`Features.SCHEMA_HASH`, input count); swapping the teams negates the score; mirrored openings give mirrored features except the board-dependent ones; an evaluation costs far less than a playout (prints µs per position) |
+| `LearnedSelfPlayTest`, `LearnedTrainTest`, `TeamTournamentTest`, `LearnedTimingTest` | Opt-in (`AI_SELFPLAY`, `AI_TRAIN`, `AI_TEAMS`, `AI_LTIMING`): self-play data at any team size, training (Learned evaluation, "How to retrain"), mirrored tournaments of any variant (`learned=`, `net=<name>` on top of `ExperimentTest`'s keys) at any team size on the train / tune / test line-up families, decision times at any team size |
 | `FitTest`, `BlunderTest` | Opt-in (`AI_FIT=<games>:<strength>`, `AI_BLUNDERS=<strength>:<games>`, `AI_FORMAT`): the evaluation's parts fitted to self-play outcomes (above); plays a decent player would call blunders, judged on the real game — a defense declined or too weak while one would hold, an action that defeats an enemy hero passed over, a move into a defeat another destination avoided |

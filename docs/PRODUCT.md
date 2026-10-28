@@ -389,7 +389,7 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   1–3 **Easy** (makes visible mistakes, plays fast; 1 is a gentle first game), 4–6 **Normal**
   (sensible, few mistakes, from 5 a short look-ahead), 7–8 **Hard** (plans the turn against what you
   might have played), 9–10 **Expert** (searches longest, remembers the cards you have shown; 10 is
-  as strong as a phone allows), one strength for all or per seat. A game saved before the slider
+  as strong as a phone allows and judges positions with an evaluation learned from self-play, ADR-047), one strength for all or per seat. A game saved before the slider
   plays its level as Easy 2, Normal 6, Hard 8, Expert 10. Quick or Long, a verified map (Forgotten Island default), Coach on
   or off. The app flips the Tie Breaker coin. 2v2 is the rulebook's standard; 1v1 is offered,
   labelled as not the rulebook's way (p.20: two players each control two heroes).

@@ -65,9 +65,21 @@ object AiPlayers {
         defenselessBySize = mapOf(3 to 1.0),
     )
 
+    /**
+     * The strengths from this one up score playout ends with the learned evaluation (ADR-047 part B,
+     * AI.md "Learned evaluation"): Expert (10) only. It strengthens every searching strength, but
+     * given to 5–10 it compressed the steps between them (6 over 5 55.7%, 8 over 7 56.8%, 10 over 9
+     * 51.6%); the static strengths keep the hand-made weights their designed mistakes rest on.
+     */
+    internal const val LEARNED_FROM: Int = 10
+
     /** What each strength does (AI.md "Strengths"); the measured ladder is in AI.md. */
+    internal fun profile(strength: Int): LevelProfile = handProfile(strength).let {
+        if (AiStrength.coerce(strength) >= LEARNED_FROM) it.copy(learned = EvalSource.LEAVES) else it
+    }
+
     @Suppress("CyclomaticComplexMethod", "LongMethod", "MagicNumber")
-    internal fun profile(strength: Int): LevelProfile = when (AiStrength.coerce(strength)) {
+    private fun handProfile(strength: Int): LevelProfile = when (AiStrength.coerce(strength)) {
         // A true first game: looks at the nearest enemy only, forgets minion modifiers most of the
         // time it moves, and often picks the second or third best option.
         1 -> LevelProfile(

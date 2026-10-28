@@ -662,11 +662,22 @@ fun Game.spawnPiece(piece: PieceState, to: Hex) {
  */
 fun Game.canSpawnInto(hex: Hex, asUnit: String? = null): Boolean {
     if (isEmpty(hex, asUnit)) return true
-    val token = occupant(hex)?.takeIf { isSpawnPoint(hex) && state.piece(it)?.token == true } ?: return false
-    // The token is removed first (p.19); the space must then be empty for the unit: an effect that
-    // makes it an obstacle for this side or this actor (Static Barrier, Spinning Blade) still counts.
-    val q = SpaceQuery(hex, asUnit, actor)
-    return sources().none { (b, s) -> s.piece?.id != token && b.countsAsObstacle(this, s, q) } && canInteract(hex)
+    if (!isSpawnPoint(hex)) return false
+    val token = occupant(hex)?.let { state.piece(it) }?.takeIf { it.token } ?: return false
+    // The token is removed first, then the unit spawns (p.19): the space must then be empty for it. An
+    // effect still makes it an obstacle for this side or this actor: Static Barrier, and Takahide's
+    // Spinning Blade, whose "empty spaces adjacent to you" this space becomes once the token is gone.
+    // A query: the change stamp is restored too (a primary probe reads a bumped stamp as a change).
+    val stamp = state.stamp
+    token.at = null
+    touch()
+    try {
+        return isEmpty(hex, asUnit)
+    } finally {
+        token.at = hex
+        touch()
+        state.stamp = stamp
+    }
 }
 
 /** Throne Zones and Spawn points (p.6, p.19). */

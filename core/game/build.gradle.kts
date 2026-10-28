@@ -14,3 +14,8 @@ dependencies {
 extensions.configure<dev.detekt.gradle.extensions.DetektExtension> {
     config.from(file("detekt.yml"))
 }
+
+// The opt-in AI runs (AI.md "How to retrain") need more than the default test heap: AI_HEAP=8g.
+tasks.withType<Test>().configureEach {
+    providers.environmentVariable("AI_HEAP").orNull?.let { maxHeapSize = it }
+}
