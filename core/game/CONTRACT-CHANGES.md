@@ -309,3 +309,17 @@ re-derived by the replay; the new fields appear in old games too, `ResolutionEve
   first (p.19) leaves the effect in force. Before, Razzle's Stunt Doubles could pick it and the engine
   threw "Place into a non-empty space" (found by a 3v3 tournament, `RazzleTest`). No question was added
   or removed: a save that never offered such a space replays unchanged.
+
+## 2026-10-28 — `feature/v09-ai-learned`, merged in `feature/v0.9`: the learned evaluation (ADR-047 part B)
+- No change to `GameApi.kt`. Strength 10 scores playout ends with a net (`AiPlayers.LEARNED_FROM`);
+  `LevelProfile.learned` / `net`, `PositionEvaluator`, `NetEvaluator` are internal. Saves carry no
+  strength-specific state, so old games replay unchanged.
+- Behaviour: Wasp's Telekinesis no longer offers a unit that has no adjacent space it may enter
+  (Takahide's Spinning Blade makes the empty spaces next to him obstacles for enemy units only); the
+  engine crashed choosing where to place it (`WaspTest`).
+- Behaviour, `canSpawnInto` (both AI streams fixed the same Stunt Doubles crash; the merge keeps one
+  rule): the token on a Spawn point is removed first (p.19), then the space must be empty for the
+  unit — so an effect that makes it an obstacle for that side or that actor still counts (Static
+  Barrier), and so does one that makes it an obstacle *because* it is now empty (the empty spaces next
+  to Takahide's Spinning Blade). The check lifts the token, asks `isEmpty`, and puts it back, restoring
+  the change stamp (a primary probe reads a bumped stamp as a change). `RazzleTest` covers both.
