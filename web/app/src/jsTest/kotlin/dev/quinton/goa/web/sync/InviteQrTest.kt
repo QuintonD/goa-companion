@@ -6,13 +6,15 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlinx.coroutines.test.runTest
 
 /** The invite QR code is markup set with innerHTML: the group's name in it must stay text (web review R2). */
 class InviteQrTest {
     private val invite = "goa-sync:1?g=6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d&k=" + "A".repeat(43)
 
     @Test
-    fun aGroupNameCannotAddAttributesOrElements() {
+    fun aGroupNameCannotAddAttributesOrElements() = runTest {
+        InviteQr.load() // the QR libraries load lazily (web review R3)
         // A crafted invite can name its group anything up to 40 characters, quotes included.
         val name = GroupInvite.parseInvite("$invite&n=x%22%20onload%3D%22alert(1)%22%20%3Cb%3E").getOrThrow().group.name
         assertEquals("x\" onload=\"alert(1)\" <b>", name)

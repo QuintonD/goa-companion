@@ -137,7 +137,8 @@ class GameParityTest {
     /**
      * Hard and Expert search (strengths 8 and 10 since ADR-039: the tuned evaluation, the opponent
      * soft-max, greedy playouts): determinized samples, playouts and the soft-max pick (exp). The
-     * hashes were re-pinned when v0.7's AI merged in (2026-10-26); the JVM and JS agreed on the new ones.
+     * hashes were re-pinned when v0.7's AI merged in (2026-10-26) and again for v0.9 (2026-10-28: strength 10
+     * scores with the learned net, its float arithmetic rounded per operation, f32); the JVM and JS agreed.
      */
     @Test
     fun theSearchingLevelsChooseAlike() {
@@ -167,7 +168,7 @@ class GameParityTest {
                 n++
             }
         }
-        assertTranscript("dedfe9175b06306ece222577c2b46956e48d9f1746eda30abec37ba009ad6d1e", transcript, "searching AI")
+        assertTranscript("e30f960c9c4f83a61b1aa5c6e539c9814ae7a6c058a5e47dcaebfc9ac515bf86", transcript, "searching AI")
     }
 
     @Test

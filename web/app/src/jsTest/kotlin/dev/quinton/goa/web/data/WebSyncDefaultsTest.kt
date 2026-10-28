@@ -12,7 +12,7 @@ class WebSyncDefaultsTest {
     @Test
     fun theBuiltInServerIsTheOneThePolicyAllows() {
         val root = js("process.env.GOA_REPO_ROOT") as String? ?: error("GOA_REPO_ROOT is not set")
-        val fs = js("require('fs')")
+        val fs = js("process.getBuiltinModule('fs')") // the tests run as ES modules (es2015 target): no require
         val properties = fs.readFileSync("$root/gradle.properties", "utf8") as String
         val configured = properties.lines().map { it.trim() }
             .single { it.startsWith("goa.syncServer=") }

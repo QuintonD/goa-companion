@@ -350,7 +350,9 @@ private fun openOffered(
         selection = CardSelection(
             action = { cardAction(decision, it) },
             context = context ?: decision.prompt,
-            alongside = { item -> if (decision.kind == DecisionKind.UPGRADE_CARD) upgradeAlongside(table, item) else null },
+            alongside = { item ->
+                if (decision.kind == DecisionKind.UPGRADE_CARD) upgradeAlongside(table, item) else null
+            },
             onConfirm = { i -> offered.getOrNull(i)?.choice?.let(onAnswer) },
         ),
         title = focusTitle(table, decision),

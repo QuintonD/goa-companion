@@ -338,10 +338,12 @@ private fun FocusDetails(
         Div({ classes("goa-focus-related") }) { more.cards.forEach { CardImage(it, RELATED_WIDTH) } }
     }
     focusHandicapBasis(card)?.let { P({ classes("t-body-medium") }) { Text(it) } }
-    if (item.itemLine) card.item?.let { stat ->
-        P({ classes("t-body-medium") }) {
-            ItemBadge(stat)
-            Text("As an item: +1 ${PlayText.stat(stat)} (p.16)")
+    if (item.itemLine) {
+        card.item?.let { stat ->
+            P({ classes("t-body-medium") }) {
+                ItemBadge(stat)
+                Text("As an item: +1 ${PlayText.stat(stat)} (p.16)")
+            }
         }
     }
     Button({

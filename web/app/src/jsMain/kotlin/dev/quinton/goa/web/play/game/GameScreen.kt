@@ -189,7 +189,10 @@ fun GameScreen() {
                 }
 
                 // The table's Spellbook (Android) is the hero sheet's spellbook section here.
-                is PlaySheet.Spellbook -> BottomSheet(s.play.table.hero(open.heroId).name, onDismiss = { sheet = null }) {
+                is PlaySheet.Spellbook -> BottomSheet(
+                    s.play.table.hero(open.heroId).name,
+                    onDismiss = { sheet = null },
+                ) {
                     Quiet("Open information (p.4)")
                     HeroDetail(s.play.table, open.heroId, focus)
                 }

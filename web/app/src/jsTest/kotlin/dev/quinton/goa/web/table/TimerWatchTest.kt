@@ -18,7 +18,7 @@ import kotlinx.coroutines.test.runTest
 
 private fun bundled(path: String): String {
     val root = js("process.env.GOA_REPO_ROOT") as String? ?: error("GOA_REPO_ROOT is not set")
-    val fs = js("require('fs')")
+    val fs = js("process.getBuiltinModule('fs')") // the tests run as ES modules (es2015 target): no require
     return fs.readFileSync("$root/app/src/main/assets/$path", "utf8") as String
 }
 
