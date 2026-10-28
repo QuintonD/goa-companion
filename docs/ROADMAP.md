@@ -444,6 +444,13 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   `r3-game-night` (WebKit), `PuzzleControllerTest`
 - [ ] On an iPhone: drag and pinch on the board, the card focus viewer's swipe, strength 10's think time,
   the worker after the app was in the background
+- [x] v0.9 in the browser: the reviews R1–R3 and main (0.9.0) merged into `feature/web`; the shared
+  code got 0.8/0.9's changes to what it took from the phone (the resolution flow moved to core/play);
+  the learned evaluation's float arithmetic rounded per operation (`f32`), so `GameParityTest`'s
+  strength 10 transcript is the same on the JVM and Node (re-pinned); the Android download rides on
+  the web deploy at `android/` (ADR-048 addendum) — 2026-10-28. The web table doesn't show 0.8/0.9's
+  new table UI yet (resolution flow panel, hero game-state sheet, upgrade preview row, Spellbook
+  button): its engine and computer are 0.9's
 - [ ] Wasm for the engine worker, if strength 10's capped search is felt in play
 - [x] First load (R3, ADR-043 "R3 first load"): app.js 5.3 → 3.8 MB (gzipped 1.38 → 1.03 MB), WOFF2
   font subsets, QR libraries on first use, the precache after the first screen, resumable and checked

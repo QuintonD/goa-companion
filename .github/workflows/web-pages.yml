@@ -3,6 +3,8 @@
 # Supply chain (web review R2): every action is pinned to a commit (the tag in the comment), the
 # token is read-only except for the deploy job's Pages permissions, no secrets are used, checkout
 # keeps no credentials, and only main deploys. Bump a pin by resolving the new tag's commit.
+# The site also carries the Android download at android/ (ADR-048): the newest release's APK, fetched
+# at deploy. After publishing a release, run this workflow on main (gh workflow run web-pages.yml).
 name: Web app
 
 on:
@@ -90,6 +92,12 @@ jobs:
             web/e2e/playwright-report
             web/e2e/test-results
           retention-days: 7
+
+      - name: The Android download (ADR-048)
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 web/android/add_download.py web/app/build/site
 
       - name: Site artifact for Pages
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

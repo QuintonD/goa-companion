@@ -213,6 +213,8 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const path = relativePath(request.url);
   if (path === null) return; // other origins (the sync relay) go straight to the network
+  // The Android download (ADR-048) is its own page beside the app, added at deploy: never this app's shell.
+  if (path === "android" || path.startsWith("android/")) return;
   if (request.mode === "navigate") {
     event.respondWith(shellResponse(url("index.html"), request));
   } else if (isImage(path)) {

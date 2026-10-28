@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guards of Atlantis Companion @VERSION@ for Android</title>
+<meta name="description" content="Download the Guards of Atlantis II companion app for Android, version @VERSION@.">
+<meta name="theme-color" content="#0B1622">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="../icons/app-192.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<style>
+  :root {
+    color-scheme: dark light;
+    --bg: #0B1622; --surface: #122334; --surface-high: #1A2E44;
+    --text: #E8E2D6; --muted: #A9B4C2; --primary: #C9A35B; --on-primary: #0B1622; --teal: #3FC1B0;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #F4EFE6; --surface: #FFFFFF; --surface-high: #EDE5D6;
+      --text: #1A1F26; --muted: #4A5563; --primary: #84662A; --on-primary: #FFFFFF; --teal: #1B786B;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 40rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+  header { display: flex; gap: 1rem; align-items: center; }
+  header img { width: 72px; height: 72px; border-radius: 16px; }
+  h1 { font-size: 1.5rem; line-height: 1.2; margin: 0; }
+  .sub { color: var(--muted); margin: .25rem 0 0; }
+  .download {
+    display: block; margin: 1.75rem 0 .5rem; padding: 1rem 1.25rem; border-radius: 12px;
+    background: var(--primary); color: var(--on-primary); text-align: center;
+    font-size: 1.15rem; font-weight: 700; text-decoration: none;
+  }
+  .download:focus-visible { outline: 3px solid var(--teal); outline-offset: 3px; }
+  .meta { color: var(--muted); text-align: center; font-size: .9rem; margin: 0; }
+  section { background: var(--surface); border-radius: 12px; padding: 1rem 1.25rem; margin-top: 1.25rem; }
+  h2 { font-size: 1.1rem; margin: 0 0 .5rem; color: var(--primary); }
+  h3 { font-size: 1rem; margin: 1rem 0 .25rem; }
+  ul, ol { padding-left: 1.25rem; margin: .25rem 0; }
+  li { margin: .25rem 0; }
+  code { overflow-wrap: anywhere; font-size: .8rem; background: var(--surface-high); padding: .1rem .3rem; border-radius: 4px; }
+  a { color: var(--teal); }
+  footer { color: var(--muted); font-size: .8rem; margin-top: 2rem; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="../icons/app-192.png" alt="">
+    <div>
+      <h1>Guards of Atlantis Companion</h1>
+      <p class="sub">for Android · version @VERSION@</p>
+    </div>
+  </header>
+
+  <a class="download" href="GoA-Companion-@VERSION@.apk" download>Download for Android</a>
+  <p class="meta">GoA-Companion-@VERSION@.apk · @SIZE@ MB · released @DATE@ · Android 8 or newer</p>
+
+  <section>
+    <h2>Install</h2>
+    <ol>
+      <li>Open the download on your phone. If Android asks, allow your browser to install unknown apps.</li>
+      <li>Already have the app? Install over it: <strong>don't uninstall first</strong>, or your players and matches are lost.</li>
+      <li>If Play Protect warns, choose “More details” → “Install anyway”.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>What's new in @VERSION@</h2>
+@NOTES@
+  </section>
+
+  <section>
+    <h2>Check the file</h2>
+    <p>SHA-256: <code>@SHA256@</code></p>
+    <p>Always the newest version: <a href="GoA-Companion.apk" download>GoA-Companion.apk</a> ·
+      <a href="https://github.com/QuintonD/goa-companion/releases">all releases</a></p>
+  </section>
+
+  <section>
+    <h2>On an iPhone?</h2>
+    <p>Use the <a href="../">web app</a>: open it in Safari, then Share → Add to Home Screen.</p>
+  </section>
+
+  <footer>
+    An unofficial fan companion for Guards of Atlantis II. Game art and card text belong to Wolff Designa.
+  </footer>
+</main>
+</body>
+</html>

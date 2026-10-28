@@ -95,8 +95,9 @@ To publish an update:
    the release on this repository with it attached:
    `gh release create vX.Y.Z GoA-Companion-X.Y.Z.apk -R QuintonD/goa-companion --target <commit> -F notes.md`
    (the private `QuintonD/goa-companion-releases` keeps a copy too).
-3. On the `pages` branch, update "What's new" in `site/android/index.html` and push: its workflow
-   fetches the newest release's APK and deploys the page (a minute or two).
+3. Run the web app's workflow on main: `gh workflow run web-pages.yml --ref main -R QuintonD/goa-companion`.
+   It deploys the web app with the newest release's APK and notes at `android/` (ADR-048; about
+   15 minutes with its tests).
 
 ## Group sync: every friend's phone, the same data (ADR-025)
 

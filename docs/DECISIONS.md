@@ -2152,3 +2152,15 @@ deploy replaces the whole site, so before the web app's first deploy from main, 
 must carry `android/` the same way (fetch the newest release's APK) or the download disappears.
 The APK is public, like the repository: the owner accepted publishing the official assets when the
 repository went public (2026-10-25, the web app's ADR-043 on `feature/web`), which relaxes ADR-034.
+
+**Addendum (with the web app's first deploy, 2026-10-28):** The web app now owns the site, so the
+download moved into its deploy: `web/android/index.html` (the page) and `web/android/add_download.py`
+(fetches the newest release's APK into the built site's `android/`, fills in version, size, date and
+SHA-256, and the release's notes through GitHub's Markdown API without their title and Install
+sections) run in `web-pages.yml` on main, after the tests, before the site is uploaded. The web
+app's service worker leaves `android/` alone (an installed web app would otherwise answer the
+download page's address with itself), and nothing there is precached. The `pages` branch and its
+workflow are retired and `github-pages` deploys from `main` only again. A new release reaches the
+page by running the workflow on main (`gh workflow run web-pages.yml --ref main`); the download page
+links the web app for iPhones, the root is the web app.
+
