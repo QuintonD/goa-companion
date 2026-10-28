@@ -27,6 +27,7 @@ import org.w3c.dom.HTMLElement
 import org.w3c.dom.events.Event
 
 fun main() {
+    if (framed()) return
     val services = AppServices.create()
     services.serviceWorker.start()
     services.data.group.start() // automatic sync with the group's relay (W2)
@@ -34,6 +35,22 @@ fun main() {
     renderComposable(rootElementId = "root") {
         CompositionLocalProvider(LocalServices provides services) { App() }
     }
+}
+
+/**
+ * Inside another site's frame the app doesn't start (web review R2): a page could otherwise lay its
+ * own buttons over "Join" or "Leave group" (Pages can't send `frame-ancestors`). It says where to
+ * open it instead.
+ */
+private fun framed(): Boolean {
+    if (!(js("window.top !== window.self") as Boolean)) return false
+    val root = document.getElementById("root") ?: return true
+    root.textContent = ""
+    val note = document.createElement("p")
+    note.textContent = "Atlantis Companion only runs in its own tab: open quintond.github.io/goa-companion."
+    note.setAttribute("class", "t-body-large")
+    root.appendChild(note)
+    return true
 }
 
 /** The shell: the current screen, the bottom tab bar (hidden for full-screen table tools), messages. */

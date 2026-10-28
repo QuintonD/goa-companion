@@ -401,14 +401,15 @@ private fun SourcesBlock(hero: Hero) {
     hero.sources.forEach { source ->
         Div({ classes("goa-source") }) {
             P({ classes("t-body-medium") }) { Text(source.name) }
-            val url = source.url
+            // Only web addresses become links (never `javascript:` or `data:`, whatever the data says).
+            val url = source.url?.takeIf { it.startsWith("https://") || it.startsWith("http://") }
             val retrieved = source.retrieved?.let { "retrieved $it" }
             if (url != null || retrieved != null) {
                 P({ classes("t-body-small", "c-variant") }) {
                     if (url != null) {
                         A(url, {
                             target(ATarget.Blank)
-                            attr("rel", "noopener")
+                            attr("rel", "noopener noreferrer")
                         }) { Text(url) }
                     }
                     if (url != null && retrieved != null) Text(" · ")

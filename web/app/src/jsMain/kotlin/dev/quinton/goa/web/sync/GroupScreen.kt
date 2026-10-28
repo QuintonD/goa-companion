@@ -23,6 +23,7 @@ import dev.quinton.goa.feature.sync.server.SyncServerText
 import dev.quinton.goa.feature.sync.server.SyncServerUi
 import dev.quinton.goa.web.AppServices
 import dev.quinton.goa.web.LocalServices
+import dev.quinton.goa.web.data.WebSyncDefaults
 import dev.quinton.goa.web.group.WebCryptoCipher
 import dev.quinton.goa.web.nav.Route
 import dev.quinton.goa.web.players.SwitchRow
@@ -320,6 +321,7 @@ private fun InGroup(state: GroupUiState, form: GroupForm) {
         }
     }
     StorageNote()
+    KeyNote()
     SectionHeader("Sync files")
     GoaCard(flush = true) {
         RowList {
@@ -371,6 +373,21 @@ private fun StorageNote() {
         Text(
             "Safari can clear a website's data after a week without a visit, unless it's on the Home Screen " +
                 "(Share → Add to Home Screen). Your group's sync server keeps a copy: joining again brings it back.",
+        )
+    }
+}
+
+/**
+ * Where the group key lives on the web (web review R2, ADR-043): in this browser's storage for the
+ * site, which a shared computer's other users, and other pages of the same web address, can read.
+ */
+@Composable
+private fun KeyNote() {
+    P({ classes("t-body-small", "c-variant", "goa-w2-note") }) {
+        Text(
+            "This browser keeps the group key, so anyone using it can open the group's data. On a shared " +
+                "computer, leave the group when you're done and clear this site's data in the browser's settings " +
+                "(leaving keeps the matches here); on your own phone there's nothing to do.",
         )
     }
 }
@@ -459,7 +476,7 @@ private fun ServerCard(server: SyncServerUi, form: GroupForm) {
                     form.addressError = null
                 },
                 error = form.addressError,
-                supporting = SyncServerText.Browser.ADVANCED_HINT,
+                supporting = SyncServerText.Browser.ADVANCED_HINT + " " + WEB_SERVER_LIMIT,
                 placeholder = server.defaultHost ?: "oldboi.example.ts.net:8443",
                 inputMode = InputMode.Url,
                 id = "server-address",
@@ -520,6 +537,10 @@ private fun ConfirmJoin(text: String, state: GroupUiState, form: GroupForm) {
     val name = invite.group.name
     val switching = state.inGroup && state.groupName != null && GroupInvite.parseInvite(state.invite.orEmpty())
         .getOrNull()?.group?.groupId != invite.group.groupId
+    // The invite chooses where this browser's data goes: say so when it isn't the app's own server.
+    val server = invite.serverUrl
+        ?.takeIf { it != WebSyncDefaults.DEFAULT_URL }
+        ?.let { SyncServerAddress.normalize(it, services.data.group.allowLocalHttp) }
     AlertDialog("Join “$name”?", onDismiss = { PendingInvite.text = null }, buttons = {
         GoaButton("Cancel", { PendingInvite.text = null }, ButtonKind.TEXT)
         GoaButton("Join", {
@@ -531,12 +552,20 @@ private fun ConfirmJoin(text: String, state: GroupUiState, form: GroupForm) {
             Text(
                 if (switching) {
                     "This browser is in “${state.groupName}”. Joining “$name” stops syncing with it here; " +
-                        "everything you played stays in this browser."
+                        "everything you played stays in this browser and is shared with “$name” from now on."
                 } else {
                     "This browser gets the group's matches, players and ratings from its sync server and keeps them " +
                         "in sync. Only join groups you play with."
                 },
             )
+        }
+        if (server != null) {
+            P({ classes("t-body-medium", "goa-w2-break") }) {
+                Text(
+                    "This group syncs through ${SyncServerAddress.display(server)}, not the app's own server. " +
+                        "Only join if you know that server. " + WEB_SERVER_LIMIT,
+                )
+            }
         }
     }
 }
@@ -626,3 +655,11 @@ private fun ImportDialog(stage: ImportStage, onStage: (ImportStage?) -> Unit) {
 }
 
 private const val UNREADABLE = "This file can't be read. Save it again and pick it from the file list."
+
+/**
+ * The web app's Content-Security-Policy lets the page reach only its own site and the app's sync
+ * server (web review R2, ADR-043), so a group on another server syncs here by sync file only.
+ */
+private val WEB_SERVER_LIMIT =
+    "The web app only reaches ${SyncServerAddress.display(WebSyncDefaults.DEFAULT_URL)}; with another " +
+        "server, use sync files here."

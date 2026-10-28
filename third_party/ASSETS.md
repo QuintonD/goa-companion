@@ -34,10 +34,14 @@ hero's name and title.
 
 ## Web app libraries (code, ADR-043)
 
-The web app bundles two npm libraries for invite QR codes; their licences ship in the site as
+The web app bundles three npm libraries; their licences ship in the site as
 `licenses/` files, copied from `third_party/web/`:
 qrcode-generator 2.0.4 (Kazuhiko Arase, MIT, `MIT-qrcode-generator.txt`) draws the codes and jsQR
-1.4.0 (Apache-2.0, `Apache-2.0-jsQR.txt`) reads them from the camera.
+1.4.0 (Apache-2.0, `Apache-2.0-jsQR.txt`) reads them from the camera. kotlinx-datetime brings
+@js-joda/core 3.2.0 (BSD-3-Clause, `BSD-3-Clause-js-joda.txt`) into both bundles. All three are pinned
+(`gradle/libs.versions.toml`, `kotlin-js-store/yarn.lock`) and had no known advisories on 2026-10-26
+(npm's advisory database; the two findings in the lock file, `serialize-javascript` and `diff`, come with
+mocha and only run the unit tests on a developer's machine).
 
 ## Material Symbols
 

@@ -125,7 +125,7 @@ fun InlineText(text: String) {
 
             is SimpleMarkdown.Inline.Link -> A(run.url, {
                 target(ATarget.Blank)
-                attr("rel", "noopener")
+                attr("rel", "noopener noreferrer")
             }) { Text(run.url) }
         }
     }

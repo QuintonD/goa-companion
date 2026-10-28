@@ -3,11 +3,19 @@
 //   node serve.mjs            → http://localhost:4173/goa-companion/
 // Test hook: a `goa-deploy=<n>` cookie makes sw.js differ (a comment), as a new deploy would, so
 // the update prompt can be tested without building twice and without touching other tests.
+// Test hook: a `goa-stale=<path>` cookie serves that file with other bytes (a deploy half-way
+// through on the CDN), so the service worker's all-or-nothing install can be tested.
+// Test relays: index.html's Content-Security-Policy lets the page reach only the site and the group
+// relay; served from here it may also reach a relay on this machine (the suite's fake relay and
+// server/relay), which the app allows only on a localhost page anyway. The manifest and sw.js are
+// re-stamped to match, as the site task would (the service worker installs only files whose bytes
+// its manifest names). Nothing else is changed.
 import { createServer } from "node:http";
 import { createReadStream, statSync } from "node:fs";
 import { extname, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const root = resolve(process.env.GOA_SITE_DIR ?? join(here, "..", "app", "build", "site"));
@@ -27,6 +35,23 @@ const types = {
   ".txt": "text/plain; charset=utf-8",
   ".md": "text/markdown; charset=utf-8",
 };
+
+const sha256 = (text) => createHash("sha256").update(text).digest("hex");
+
+/** index.html allowing local relays, and the asset-manifest.json and sw.js that vouch for it. */
+async function localRelaySite() {
+  const index = (await readFile(join(root, "index.html"), "utf8")).replace(
+    /(Content-Security-Policy" content="[^"]*connect-src 'self')/,
+    "$1 http://127.0.0.1:* http://localhost:*",
+  );
+  const built = await readFile(join(root, "asset-manifest.json"), "utf8");
+  const manifest = built.replace(
+    /(\{"p": "index\.html", "s": )\d+(, "h": ")[0-9a-f]+/,
+    (_, head, mid) => `${head}${Buffer.byteLength(index)}${mid}${sha256(index).slice(0, 16)}`,
+  );
+  const sw = (await readFile(join(root, "sw.js"), "utf8")).replace(sha256(built), sha256(manifest));
+  return { "index.html": index, "asset-manifest.json": manifest, "sw.js": sw };
+}
 
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${port}`);
@@ -54,10 +79,17 @@ createServer(async (req, res) => {
   }
   // GitHub Pages: max-age=600 on everything; the service worker must cope with it.
   const headers = { "content-type": types[extname(file)] ?? "application/octet-stream", "cache-control": "max-age=600" };
-  const deploy = /(?:^|;\s*)goa-deploy=(\w+)/.exec(req.headers.cookie ?? "")?.[1];
-  if (rel === "sw.js" && deploy) {
-    const body = (await readFile(file, "utf8")) + `\n// test deploy ${deploy}\n`;
+  const cookie = req.headers.cookie ?? "";
+  const deploy = /(?:^|;\s*)goa-deploy=(\w+)/.exec(cookie)?.[1];
+  const stale = /(?:^|;\s*)goa-stale=([\w./-]+)/.exec(cookie)?.[1];
+  if (rel === "index.html" || rel === "asset-manifest.json" || rel === "sw.js") {
+    let body = (await localRelaySite())[rel];
+    if (rel === "sw.js" && deploy) body += `\n// test deploy ${deploy}\n`;
     res.writeHead(200, headers).end(body);
+    return;
+  }
+  if (rel === stale) {
+    res.writeHead(200, headers).end((await readFile(file, "utf8")) + "\n/* another build */\n");
     return;
   }
   res.writeHead(200, { ...headers, "content-length": stat.size });

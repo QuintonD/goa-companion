@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import dev.quinton.goa.feature.players.common.formatRating
 import dev.quinton.goa.feature.players.common.plural
+import dev.quinton.goa.web.ui.escapeMarkup
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
@@ -77,13 +78,11 @@ internal fun chartSvg(values: List<Double>, dates: List<Long>): String {
                 else -> "middle"
             }
             append("""<text class="goa-w2-chart-label" text-anchor="$anchor" x="${fmt(x(i))}" y="${HEIGHT - 6}">""")
-            append(escape(label)).append("</text>")
+            append(escapeMarkup(label)).append("</text>")
         }
         append("</svg>")
     }
 }
-
-private fun escape(text: String) = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 private fun fmt(v: Double): String = (round(v * 10) / 10).toString()
 

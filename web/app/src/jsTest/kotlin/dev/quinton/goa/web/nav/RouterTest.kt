@@ -185,4 +185,17 @@ class RouterTest {
         router.navigate(Route.Catalog)
         assertEquals(1, history.entries.size)
     }
+
+    @Test
+    fun anInviteLinkNeverLeavesTheKeyInTheHistory() {
+        val invite = "goa-sync:1?g=6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d&k=SECRET&n=Friday"
+        val history = FakeHistory("#join=$invite")
+        val router = router(history)
+        assertEquals(Route.Join(invite), router.route)
+        assertEquals(listOf("#/group"), history.entries.map { it.first })
+        // Opened again while the app is open (a link, a typed address): replaced the same way.
+        history.type("#/join=$invite")
+        assertEquals(Route.Join(invite), router.route)
+        assertTrue(history.entries.none { "SECRET" in it.first }, history.entries.toString())
+    }
 }
