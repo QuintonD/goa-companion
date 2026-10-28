@@ -1365,3 +1365,57 @@ reach a level up when a hero gained the coins; it asks through the same panel (p
 question (ADR-041 §7). The viewer's "Card 3 of 24" counted every spell as a card: it counts the cards
 and says a spell as its card's ("Card 2 of 9 · spell 2 of 2", TalkBack the same; `focusPosition`, any
 viewer whose pages name other pages).
+
+## ADR-047 — A computer that holds up at 3v3 and bigger (2026-10-27)
+
+### ADR-047 part A — teams and search (`feature/v09-ai-teams`)
+**Context:** The owner beat strength 10 "easily", by hero kills and pushing the lane, in 3v3 or
+bigger; the top strength may think up to about 2 s per card play on the S25 Ultra. Every AI
+measurement and the timing table were 2v2 (ADR-039). Four suspects: the phone's cap starving the
+search in big teams, caution tuned away by self-play, lane weights calibrated for 2v2, no focus fire.
+**Decision:**
+- **Measure at the owner's sizes.** The AI harness plays 3v3 (Forgotten Island, the app's default
+  map), 4v4 (Forgotten Island and the double lane the rulebook requires from 8 players) and 5v5, on
+  mixed line-ups seating every hero equally, mirrored, seeded; tournaments report defeats per game
+  (and with an empty hand) and how each side won. A deterministic work budget (engine answers in
+  playouts) stands in for the phone's wall clock. The answers to the four suspects are in AI.md
+  "Team sizes": starvation is real in 4v4 at 2 s, not at today's 4 s; self-play still prefers little
+  caution; the lane projection over-counted three heroes' Push Potential; kills set up over two turns
+  are the gap.
+- **Two 3v3 evaluation changes, together** (`TUNED`, per team size, so 5–10 play 3v3 this way and
+  2v2/4v4 as before): each attack card left counts 0.35 of a minion of Push Potential instead of 0.5
+  (`pushPerAttackBySize`: the same minions, hunted by three heroes), and a hero with no card left to
+  defend with counts its full exposure (`defenselessBySize`: stripped one turn, hit the next, beyond
+  the playouts' horizon). The pair beat the v0.8 strength 10 55.5% (50.5–60.3%, 384 held-out 3v3
+  games over two line-up sets: 57.8% and 53.1%) with fewer heroes lost (1.79 against 1.88 a game; a
+  third fewer with an empty hand), and against the kill-hunting exploiter it held (54.2%, 2.06 heroes
+  lost a game, against 55.2% and 2.14 for the v0.8 10). The Push Potential alone beat today's 10 as
+  well (57.8%) but lost more heroes to the exploiter (43.8%, 2.31 a game), so it ships only with the
+  floor. 2v2 and 4v4 measured even or worse with a lower Push Potential and keep 0.5.
+- **Budgets:** strength 10 thinks at most 2 s per card play (was 4 s), 9 1.5 s, 8 1 s (other
+  decisions a third); measured times per team size in AI.md "Budgets". The phone factor stays an
+  assumption (3–4× the desktop JVM; no device measurement in this round).
+- **The same search on three threads.** The samples of one answer run through a small `SampleRunner`
+  interface (the engine stays thread-free for the web build, ADR-043; sequential default); the app
+  supplies three daemon threads (`AiSampleThreads`, 2.15× on the desktop). Answers combine in sample
+  order, so an uncapped answer is the same with any runner, and strength 10 gets about the samples it
+  had in 4 s within 2 s. Search copies build no player explanations and forks answered at once share
+  state (same answers for every seed, about a quarter faster).
+- **No other evaluation or search change ships.** The other candidates (doubled exposure, a
+  focus-fire threat model, other lane weights, racing of candidates, the defenseless floor without the
+  Push Potential) did not beat today's 10 with the interval's lower end above 50% (AI.md "Team
+  sizes"); racing and focus fire stay knobs.
+- **A stand-in for the owner:** an exploiter profile (`Hunt`: strength 10 with a one-sided taste for
+  kills) is kept as a test tool; no such style beat strength 10, so it measures robustness only.
+- **Engine fix found by the 3v3 tournaments:** a Spawn point under a token is not offered when an
+  effect makes it an obstacle for the unit (Stunt Doubles beyond Static Barrier crashed the engine).
+**Alternatives:** a bigger budget (over the owner's ceiling); more samples (v0.7: flat); the Push
+Potential alone (stronger against itself, weaker against a kill-hunter); a Push Potential scaled by
+2 / heroes a side (4v4 at 0.25 measured 42.7%); joint team planning of card plays (too expensive for
+the phone; part B's learned evaluation is the other route).
+**Consequences:** Strength 10 (and 5–9, which share `TUNED`) plays 3v3 with the two changes and
+answers exactly as before in 2v2 and 4v4; on the phone it thinks half as long for about the same
+search in 3v3, and in 4v4 a slow card play is still cut to 65–80% of its
+samples at a 4× phone. Saves are unaffected (no question added or removed; the engine fix only removes
+an option that crashed). How a human beats the AI is still known only from the owner's report: the AI
+does not plan kills over two turns or keep a defender back for a teammate.

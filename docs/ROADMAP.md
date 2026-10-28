@@ -231,7 +231,7 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   the tournaments fixed — 2026-10-25, `LevelLadderTest`, `TimingTest` (10: 514 ms p95 on the desktop)
 - [x] New game: the strength slider (per seat under Advanced), "Computer · Hard 8" wherever the level
   showed — 2026-10-25, slider screenshots portrait / landscape / light / W384 font scale 2. JVM only
-- [ ] On the S25 Ultra: strength 10's think time per card play (budget 4 s), the slider with TalkBack
+- [ ] On the S25 Ultra: strength 10's think time per card play (budget 4 s; 2 s since v0.9, M20a), the slider with TalkBack
 - [x] A new game starts at the strength of the last game started (`AppSettings.computerStrength`) —
   2026-10-25, `NewGameViewModelTest`, `SettingsDataSourceTest`. JVM only
 
@@ -347,6 +347,23 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   `GydionLevelUpScreenshotTest` re-recorded. JVM only
 - [ ] On the S25 Ultra: a level up with three colours to choose from, the viewer swiped through, TalkBack
   on the rows and "Go to …"
+
+## M20a — The computer at 3v3 and bigger (ADR-047 part A)
+- [x] Harness for 3v3, 4v4 (single and double lane) and 5v5: mixed line-ups seating every hero, mirrored,
+  defeats and win types per side, a deterministic work budget for the phone's cap; decision times per
+  team size (AI.md "Budgets") — 2026-10-27, `AiSmokeTest` (3v3, 4v4, 5v5), `TimingTest`
+- [x] Strength 10 within 2 s a card play (9: 1.5 s, 8: 1 s); samples on three threads in the app
+  (`SampleRunner`, `AiSampleThreads`), quiet search copies (same answers, a quarter faster) —
+  2026-10-27, `SampleRunnerTest`, `AiSampleThreadsTest`, `FingerprintTest`
+- [x] 3v3: Push Potential 0.35 per attack card and the full exposure of a hero with no card left to
+  defend with (strength 10 beat the v0.8 10 55.5%, 50.5–60.3%, 384 held-out games, fewer heroes lost,
+  held against the kill-hunting exploiter); the four suspects measured, the 3v3 ladder, the candidates
+  that did not pass (racing, focus fire, exposure and other lane weights; AI.md "Team sizes") —
+  2026-10-28, `FingerprintTest`, `LevelLadderTest`
+- [x] Engine: Stunt Doubles no longer crashes beyond Static Barrier on a token's Spawn point — 2026-10-27,
+  `RazzleTest`
+- [ ] On the S25 Ultra: strength 10's think time in a 3v3 and a 4v4 game (the 3–4× phone factor is
+  still an assumption), and a game night against it at 3v3
 
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
