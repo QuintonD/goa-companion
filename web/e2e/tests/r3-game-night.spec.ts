@@ -246,11 +246,14 @@ test("the computer: three turns at strength 5, then 10", async ({ browser }, inf
   await blockProductionContext(c);
   for (const strength of ["5", "10"]) {
     await open(c, "#/play/new");
-    await expect(c.locator(".goa-hero-grid")).toBeVisible({ timeout: 30_000 });
+    await expect(c.locator(".goa-board-grid")).toBeVisible({ timeout: 30_000 });
     for (const hero of ["Brogan", "Wasp", "Arien", "Tigerclaw"]) {
-      await c.locator(".goa-hero-grid").getByRole("button", { name: hero, exact: true }).click();
+      await c
+      .locator(".goa-board-tile")
+      .filter({ has: c.locator(".goa-board-tile-name", { hasText: new RegExp(`^${hero}$`) }) })
+      .click();
     }
-    await c.getByRole("button", { name: "Next" }).click();
+    await c.getByRole("button", { name: "Next", exact: true }).click();
     await c.getByRole("slider", { name: "Computer strength" }).fill(strength);
     await c.locator(".goa-switch-row", { hasText: "A gentle nudge" }).locator("input").uncheck();
     await c.getByRole("button", { name: "Flip the Tie Breaker coin" }).click();

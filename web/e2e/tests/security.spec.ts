@@ -71,11 +71,14 @@ test("the policy is strict and nothing the app does breaks it", async ({ page })
     await open(page, hash);
   }
   await open(page, "#/play/new");
-  await expect(page.locator(".goa-hero-grid")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".goa-board-grid")).toBeVisible({ timeout: 30_000 });
   for (const name of ["Brogan", "Wasp", "Arien", "Tigerclaw"]) {
-    await page.locator(".goa-hero-grid").getByRole("button", { name, exact: true }).click();
+    await page
+      .locator(".goa-board-tile")
+      .filter({ has: page.locator(".goa-board-tile-name", { hasText: new RegExp(`^${name}$`) }) })
+      .click();
   }
-  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
   await page.getByRole("button", { name: "Flip the Tie Breaker coin" }).click();
   await page.getByRole("button", { name: "Start the game" }).click();
   await expect(page.locator(".goa-map-svg")).toBeVisible();
@@ -166,6 +169,17 @@ test("a deploy half-way through on the CDN is not installed", async ({ page, con
     { name: "goa-deploy", value: "3", url: baseURL! },
     { name: "goa-stale", value: "engine-worker.js", url: baseURL! },
   ]);
+  // As if the engine worker changed in this deploy: no earlier build holds a copy the install could
+  // reuse (the worker copies unchanged files from the build it replaces), so it must fetch it.
+  await page.evaluate(async () => {
+    for (const name of await caches.keys()) {
+      if (!name.startsWith("goa-shell-")) continue;
+      const cache = await caches.open(name);
+      for (const request of await cache.keys()) {
+        if (request.url.endsWith("/engine-worker.js")) await cache.delete(request);
+      }
+    }
+  });
   const failed = await page.evaluate(async () => {
     const reg = (await navigator.serviceWorker.getRegistration())!;
     await reg.update().catch(() => undefined);

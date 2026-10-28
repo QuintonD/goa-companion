@@ -49,12 +49,15 @@ for (const [name, viewport] of [["iPhone 15", null], ["iPhone SE", SE]] as const
 test("New game's options start at the top, not where the line-up was scrolled", async ({ page }) => {
   const check = watchErrors(page);
   await open(page, "#/play/new");
-  await expect(page.locator(".goa-hero-grid")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".goa-board-grid")).toBeVisible({ timeout: 30_000 });
   for (const hero of ["Brogan", "Wasp", "Arien", "Tigerclaw"]) {
-    await page.locator(".goa-hero-grid").getByRole("button", { name: hero, exact: true }).click();
+    await page
+      .locator(".goa-board-tile")
+      .filter({ has: page.locator(".goa-board-tile-name", { hasText: new RegExp(`^${hero}$`) }) })
+      .click();
   }
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
   await expect(title(page)).toHaveText("Game options");
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
   await expect(page.getByRole("radio", { name: /^All of Red/ })).toBeInViewport();
@@ -64,11 +67,14 @@ test("New game's options start at the top, not where the line-up was scrolled", 
 test("New game's choices look like choices (no class shared with the catalog's sort list)", async ({ page }, info) => {
   const check = watchErrors(page);
   await open(page, "#/play/new");
-  await expect(page.locator(".goa-hero-grid")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".goa-board-grid")).toBeVisible({ timeout: 30_000 });
   for (const hero of ["Brogan", "Wasp", "Arien", "Tigerclaw"]) {
-    await page.locator(".goa-hero-grid").getByRole("button", { name: hero, exact: true }).click();
+    await page
+      .locator(".goa-board-tile")
+      .filter({ has: page.locator(".goa-board-tile-name", { hasText: new RegExp(`^${hero}$`) }) })
+      .click();
   }
-  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
   // Every option of "You play" and "Map" is a framed card, its title over its line, text from the left.
   for (const option of await page.locator(".goa-play-radio-list [role=radio]").all()) {
     const style = await option.evaluate((el) => {
@@ -181,12 +187,12 @@ test("on its side: a compact tab bar, and New game's grid isn't hidden behind it
   const check = watchErrors(page);
   await page.setViewportSize(LANDSCAPE);
   await open(page, "#/play/new");
-  await expect(page.locator(".goa-hero-grid")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".goa-board-grid")).toBeVisible({ timeout: 30_000 });
   const tabbar = await page.locator(".goa-tabbar").boundingBox();
   expect(tabbar!.height, "tab bar height on a phone on its side").toBeLessThanOrEqual(52);
   // The first heroes show without scrolling: the line-up's Next bar (New board's, review R1) sits in
   // the side column here, not over the grid.
-  await expect(page.locator(".goa-hero-grid button").first()).toBeInViewport();
+  await expect(page.locator(".goa-board-tile").first()).toBeInViewport();
   expect(await page.locator(".goa-board-setup-bar.wide").evaluate((el) => getComputedStyle(el).position)).toBe("static");
   // Tab targets stay 44 pt.
   for (const tab of await page.locator(".goa-tab").all()) {
