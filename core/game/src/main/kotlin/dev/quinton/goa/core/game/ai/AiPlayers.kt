@@ -9,6 +9,7 @@ import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.EngineSession
+import dev.quinton.goa.core.model.match.Team
 import kotlin.random.Random
 
 /**
@@ -24,7 +25,12 @@ import kotlin.random.Random
  * wall-clock cap (the phone budget) may end a search early on a slow device; [deterministic] removes it.
  */
 object AiPlayers {
-    fun forStrength(strength: Int, seed: Long): AiPlayer = player(strength, seed, timeCap = true)
+    /**
+     * The production player: wall-clock capped at the strength's device budget. [runner] may run the
+     * samples of one answer on several threads (the Android app passes one; the engine has no threads).
+     */
+    fun forStrength(strength: Int, seed: Long, runner: SampleRunner = SampleRunner.SEQUENTIAL): AiPlayer =
+        player(strength, seed, timeCap = true, runner)
 
     /** Same, without the wall-clock cap: fully reproducible (tests, tournaments). */
     fun deterministic(strength: Int, seed: Long): AiPlayer = player(strength, seed, timeCap = false)
@@ -33,19 +39,31 @@ object AiPlayers {
 
     fun deterministic(level: AiLevel, seed: Long): AiPlayer = deterministic(level.strength, seed)
 
-    private fun player(strength: Int, seed: Long, timeCap: Boolean): AiPlayer {
+    private fun player(
+        strength: Int,
+        seed: Long,
+        timeCap: Boolean,
+        runner: SampleRunner = SampleRunner.SEQUENTIAL,
+    ): AiPlayer {
         val s = AiStrength.coerce(strength)
-        return SearchAi(AiLevel.of(s), profile(s), seed, timeCap)
+        return SearchAi(AiLevel.of(s), profile(s), seed, timeCap, runner)
     }
 
     internal fun profile(level: AiLevel): LevelProfile = profile(level.strength)
 
     /**
-     * The evaluation the searching strengths (4 and up) use: a hero's exposure counts 0.3 of its
+     * The evaluation the searching strengths (5 and up) use: a hero's exposure counts 0.3 of its
      * hand-made weight and its minion opportunities twice (fitted to self-play outcomes and measured,
-     * AI.md "Evaluation" and "What changed in v0.7").
+     * AI.md "Evaluation" and "What changed in v0.7"). In 3v3 (v0.9, AI.md "Team sizes") each attack
+     * card left counts 0.35 of a minion of Push Potential instead of 0.5, and a hero with no card left
+     * to defend with counts its full exposure: together 57.8% and 53.1% against the v0.8 strength 10
+     * over two sets of 192 held-out games, with fewer heroes lost to a kill-hunting opponent.
      */
-    internal val TUNED: EvalKnobs = EvalKnobs(scales = mapOf(Term.EXPOSURE to 0.3, Term.OPPORTUNITY to 2.0))
+    internal val TUNED: EvalKnobs = EvalKnobs(
+        scales = mapOf(Term.EXPOSURE to 0.3, Term.OPPORTUNITY to 2.0),
+        pushPerAttackBySize = mapOf(3 to 0.35),
+        defenselessBySize = mapOf(3 to 1.0),
+    )
 
     /** What each strength does (AI.md "Strengths"); the measured ladder is in AI.md. */
     @Suppress("CyclomaticComplexMethod", "LongMethod", "MagicNumber")
@@ -117,7 +135,7 @@ object AiPlayers {
             staticOnly = false, playSamples = 6, otherSamples = 2,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 8,
             temperature = 0.25, maxGap = 0.8, slipRate = 0.0, risk = 0.3,
-            knobs = TUNED, modelPlays = true, memory = false, greedySelf = false, budgetMs = 1500,
+            knobs = TUNED, modelPlays = true, memory = false, greedySelf = false, budgetMs = 1000,
         )
 
         // Expert's samples and memory; only its own later choices in a playout are searched.
@@ -125,17 +143,19 @@ object AiPlayers {
             staticOnly = false, playSamples = 16, otherSamples = 6,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 10,
             temperature = 0.15, maxGap = 0.6, slipRate = 0.0, risk = 0.0,
-            knobs = TUNED, modelPlays = true, memory = true, greedySelf = true, budgetMs = 3000,
+            knobs = TUNED, modelPlays = true, memory = true, greedySelf = true, budgetMs = 1500,
         )
 
         // Expert. Playouts to the end of the next turn measured worse than to the end of this one
         // (AI.md): it spends its time on more samples and on smarter playouts for every hero instead.
+        // At most 2 s a card play on the phone (the owner's ceiling, ADR-047); the app runs its samples
+        // on three threads.
         else -> LevelProfile(
             staticOnly = false, playSamples = 16, otherSamples = 6,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 10,
             temperature = 0.15, maxGap = 0.6, slipRate = 0.0, risk = 0.0,
             knobs = TUNED, modelPlays = true, memory = true, greedySelf = true,
-            budgetMs = 4000, greedyTeam = true, greedyEnemies = true,
+            budgetMs = 2000, greedyTeam = true, greedyEnemies = true,
         )
     }
 }
@@ -145,15 +165,24 @@ internal class SearchAi(
     private val profile: LevelProfile,
     private val seed: Long,
     private val timeCap: Boolean,
+    private val runner: SampleRunner = SampleRunner.SEQUENTIAL,
 ) : AiPlayer {
     private var searchers: Pair<EngineData, Searcher>? = null
     private var blind: Pair<EngineData, Searcher>? = null
 
+    /** Engine answers spent in playouts so far ([LevelProfile.workBudget]; timing tests). */
+    internal val work: Long get() = (searchers?.second?.work ?: 0) + (blind?.second?.work ?: 0)
+
+    /** The team of the last decision: the exploiter's one-sided taste depends on it. */
+    private var team: Team? = null
+
     private fun searcher(data: EngineData, modifierBlind: Boolean = false): Searcher {
         val cached = if (modifierBlind) blind else searchers
         if (cached != null && cached.first === data) return cached.second
-        val knobs = profile.knobs.copy(modifierBlind = modifierBlind)
-        val s = Searcher(Evaluator(data, knobs), profile)
+        var knobs = profile.knobs.copy(modifierBlind = modifierBlind)
+        val own = team
+        if (profile.hunt != null && own != null) knobs = profile.hunt.knobs(knobs, own)
+        val s = Searcher(Evaluator(data, knobs), profile, runner = runner)
         if (modifierBlind) blind = data to s else searchers = data to s
         return s
     }
@@ -161,6 +190,11 @@ internal class SearchAi(
     override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice {
         if (decision.options.size == 1) return decision.options.single()
         val es = session as? EngineSession ?: return Fallback.choose(decision)
+        if (profile.hunt != null && team != decision.team) {
+            team = decision.team
+            searchers = null
+            blind = null
+        }
         val rng = Random(Searcher.mix(seed, decision.id * 1_000_003L + decision.seat.hashCode()))
         val budget = if (decision.kind == DecisionKind.PLAY_CARD) profile.budgetMs else profile.budgetMs / 3
         val deadline = if (timeCap) System.nanoTime() + budget * 1_000_000L else Long.MAX_VALUE

@@ -42,6 +42,13 @@ internal data class EvalKnobs(
     /** Coin-equivalents per 1.0 of P(win the lane), and per minion of margin. */
     val laneWeight: Double = 60.0,
     val minionMargin: Double = 1.5,
+    /** Push Potential per attack card left of a hero near the Battle Zone (STRATEGY L2, "two minions per hero"). */
+    val pushPerAttack: Double = 0.5,
+    /**
+     * [pushPerAttack] by heroes a side, where it differs (AI.md "Team sizes": in 3v3 the same minions
+     * are hunted by three heroes, and 0.35 measured better; 4v4 measured even).
+     */
+    val pushPerAttackBySize: Map<Int, Double> = emptyMap(),
     /** A defeat's cost beyond the Life counter and the enemy's coins: the tempo of respawning. */
     val killTempo: Double = 5.0,
     /** Worth of the cards in hand per point of their rating. */
@@ -50,6 +57,26 @@ internal data class EvalKnobs(
     val oneCardPerTurn: Boolean = false,
     /** A multiplier per [Term] (missing = 1.0): what the self-play fit of AI.md "Evaluation" tunes. */
     val scales: Map<Term, Double> = emptyMap(),
+    /**
+     * Per team, on top of [scales]: how much that team's heroes' exposure and its Life counters count
+     * (missing = 1.0). Symmetric play leaves them empty; the exploiter of AI.md "Team sizes" (a
+     * stand-in for a human who hunts kills) ignores its own exposure and prizes the enemy's.
+     */
+    val exposureByTeam: Map<Team, Double> = emptyMap(),
+    val lifeByTeam: Map<Team, Double> = emptyMap(),
+    /**
+     * Several enemies attacking one hero this turn (focus fire, STRATEGY §1.5): the first attack
+     * strips a defense card, the next has to beat only what is left. Off: every attack is compared
+     * with the hero's best card on its own, so two attacks that each fail alone never add up.
+     */
+    val focusFire: Boolean = false,
+    /**
+     * By heroes a side: a hero with no card left to defend with (now, or after the card it still has
+     * to play) has its exposure counted at least at this scale, whatever [scales] says (missing = no
+     * floor). With three enemies one strips the cards and another kills next turn, beyond the
+     * playouts' horizon (AI.md "Team sizes"); in 2v2 it measured no better, 4v4 is not measured.
+     */
+    val defenselessBySize: Map<Int, Double> = emptyMap(),
 )
 
 /** The parts of the evaluation (Red minus Blue), each in coin-equivalents; their sum is the score. */
@@ -165,6 +192,14 @@ internal class MapInfo private constructor(g: Game) {
 /** One threat: an enemy card that may hit a hero this turn or the next. */
 internal class Threat(val p: CardProfile, val attackTotal: Int, val reach: Int, val weight: Double, val now: Boolean)
 
+/** One defense card in hand: its value with items (null: a Block answer only), and what it answers. */
+internal class DefenseCard(
+    val value: Int?,
+    val ignoresMods: Boolean,
+    val blocksRanged: Boolean,
+    val blocksMelee: Boolean,
+)
+
 /** A hero's defense at a moment: best numeric value (before minion modifiers) and its Block answers. */
 internal class DefenseSet(
     val cards: Int,
@@ -181,6 +216,14 @@ internal class DefenseSet(
  * would this hero be standing at that space" for the rollout policy (no fork needed).
  */
 internal class Ctx(val ev: Evaluator, val state: GameState) {
+    private companion object {
+        /** An enemy plays one card a turn: its attacks this turn add up to at most this chance. */
+        const val FOCUS_CAP = 0.9
+
+        /** A Block answer against the attack type it names, whatever the total. */
+        const val BLOCK_VALUE = 1000
+    }
+
     val g: Game = Game(ev.data, state, emptyList(), RunMode.PROBE)
     val map: MapInfo = MapInfo.of(g)
     private val knobs = ev.knobs
@@ -238,6 +281,18 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
                 defenders.any { it.blocksRanged },
                 defenders.any { it.blocksMelee },
             )
+        }
+
+        /** The hand's defense cards one by one (items added), for several attacks in one turn. */
+        val defenseCards: List<DefenseCard> by lazy {
+            hand.filter { it.canDefend }.mapNotNull { c ->
+                val d = c.defense ?: if (c.block && !c.blocksMelee && !c.blocksRanged) 5 else null
+                if (d == null && !c.blocksRanged && !c.blocksMelee) {
+                    null
+                } else {
+                    DefenseCard(d?.plus(defenseItems), c.ignoresMinionModifiers, c.blocksRanged, c.blocksMelee)
+                }
+            }
         }
 
         /** The threats every enemy hero poses to a hero of this team (positions of the enemies). */
@@ -300,6 +355,8 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
         }
         val nowSet = hero.defenseNow
         val nextSet = hero.defenseNext
+        // Focus fire: each enemy's attacks that can land this turn, combined below when there are several.
+        val focus = if (knobs.focusFire && nowSet.cards > 0) focusAttackers(threats, at) else null
         for ((e, list) in threats) {
             val d = HexGrid.distance(e.at!!, at)
             // Per enemy and turn: it plays one card, so its cards' chances add up to at most one card's
@@ -307,6 +364,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
             val sums = DoubleArray(4)
             for (t in list) {
                 if (d > t.reach) continue
+                if (focus != null && t.now && t.p.attackCard) continue
                 val set = if (t.now) nowSet else nextSet
                 val kills = when {
                     set.cards == 0 -> true
@@ -332,9 +390,109 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
                 noHit *= (1 - min(now - killNow, sums[1])) * (1 - min(next - killNext, sums[3]))
             }
         }
+        if (focus != null) {
+            val (kill, hit) = focusFire(hero, focus, mod)
+            noKill *= 1 - kill
+            noHit *= 1 - hit
+        }
         val pKill = min(0.9, 1 - noKill)
         val pHit = (1 - pKill) * (1 - noHit)
         return pKill * killCost(hero) + pHit * discardCost(hero)
+    }
+
+    /** Per enemy, its attack cards that can hit [at] this turn; null unless two or more enemies have one. */
+    private fun focusAttackers(threats: List<Pair<HeroState, List<Threat>>>, at: Hex): List<List<Threat>>? {
+        var out: ArrayList<List<Threat>>? = null
+        var first: List<Threat>? = null
+        for ((e, list) in threats) {
+            val d = HexGrid.distance(e.at!!, at)
+            val now = list.filter { it.now && it.p.attackCard && d <= it.reach }
+            if (now.isEmpty()) continue
+            if (first == null) {
+                first = now
+            } else {
+                if (out == null) out = arrayListOf(first)
+                out += now
+            }
+        }
+        return out
+    }
+
+    /**
+     * Two or more enemies that can each attack [hero] this turn: every combination of them attacking
+     * (each with one card: the chance of its cards that reach adds up to at most [FOCUS_CAP]; its two
+     * strongest attack totals), the hero answering each attack with the cheapest card that holds,
+     * strongest attack first. Returns P(defeated) and P(a card spent | not defeated).
+     */
+    private fun focusFire(hero: HeroInfo, attackers: List<List<Threat>>, mod: Int): Pair<Double, Double> {
+        val outcomes = attackers.map { list ->
+            val total = min(FOCUS_CAP, list.sumOf { it.weight })
+            val byTotal = list.sortedByDescending { it.attackTotal }
+            val top = byTotal[0]
+            val second = byTotal.firstOrNull { it.attackTotal < top.attackTotal }
+            if (second == null) {
+                listOf(Attack(top.attackTotal, top.p.ranged, total))
+            } else {
+                val pTop = min(total, byTotal.filter { it.attackTotal == top.attackTotal }.sumOf { it.weight })
+                listOf(
+                    Attack(top.attackTotal, top.p.ranged, pTop),
+                    Attack(
+                        second.attackTotal,
+                        second.p.ranged,
+                        total - pTop,
+                    ),
+                )
+            }
+        }
+        val cards = hero.defenseCards
+        var kill = 0.0
+        var hit = 0.0
+        val chosen = IntArray(outcomes.size)
+        fun walk(i: Int, p: Double) {
+            if (p <= 0.0) return
+            if (i == outcomes.size) {
+                val attacks = outcomes.indices.filter { chosen[it] > 0 }.map { outcomes[it][chosen[it] - 1] }
+                if (attacks.isEmpty()) return
+                if (holds(cards, attacks, mod)) hit += p else kill += p
+                return
+            }
+            chosen[i] = 0
+            walk(i + 1, p * (1 - outcomes[i].sumOf { it.p }))
+            for (k in outcomes[i].indices) {
+                chosen[i] = k + 1
+                walk(i + 1, p * outcomes[i][k].p)
+            }
+        }
+        walk(0, 1.0)
+        return kill to (if (kill >= 1.0) 0.0 else hit / (1 - kill))
+    }
+
+    private class Attack(val total: Int, val ranged: Boolean, val p: Double)
+
+    /** Whether distinct cards answer every attack: the strongest first, each with the cheapest card that holds. */
+    private fun holds(cards: List<DefenseCard>, attacks: List<Attack>, mod: Int): Boolean {
+        if (attacks.size > cards.size) return false
+        val used = BooleanArray(cards.size)
+        for (a in attacks.sortedByDescending { it.total }) {
+            var best = -1
+            var bestValue = Int.MAX_VALUE
+            for ((i, c) in cards.withIndex()) {
+                if (used[i]) continue
+                val value = when {
+                    (a.ranged && c.blocksRanged) || (!a.ranged && c.blocksMelee) -> BLOCK_VALUE
+                    c.value == null -> continue
+                    c.ignoresMods -> c.value
+                    else -> c.value + mod
+                }
+                if (value >= a.total && value < bestValue) {
+                    best = i
+                    bestValue = value
+                }
+            }
+            if (best < 0) return false
+            used[best] = true
+        }
+        return true
     }
 
     fun killCost(hero: HeroInfo): Double {
@@ -397,8 +555,21 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
     fun placement(heroId: String, at: Hex): Double {
         val hi = info(heroId)
         return scale(Term.PRESENCE) * presence(hi.h.team, at) + scale(Term.OPPORTUNITY) * opportunity(hi, at) -
-            scale(Term.EXPOSURE) * exposure(hi, at)
+            scale(Term.EXPOSURE) * exposureWeight(hi) * exposure(hi, at)
     }
+
+    private fun exposureScale(team: Team): Double = knobs.exposureByTeam[team] ?: 1.0
+
+    /** A hero's exposure weight on top of the term's scale: per team, and the floor for a defenseless hero. */
+    private fun exposureWeight(hi: HeroInfo): Double {
+        val w = exposureScale(hi.h.team)
+        if (knobs.defenselessBySize.isEmpty() || roundOver) return w
+        if (hi.defenseNow.cards > 0 && hi.defenseNext.cards > 0) return w
+        val floor = knobs.defenselessBySize[state.heroes.count { it.team == hi.h.team }] ?: return w
+        return w * max(1.0, floor / scale(Term.EXPOSURE))
+    }
+
+    private fun lifeScale(team: Team): Double = knobs.lifeByTeam[team] ?: 1.0
 
     /** Adds one hero's worth to [t] (its team's sign applied by the caller through [sign]). */
     private fun heroTerms(h: HeroState, sign: Double, t: DoubleArray) {
@@ -428,7 +599,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
         val all = listOf(at) + state.pieces.filter { it.heroBody == h.id && it.at != null }.map { it.at!! }
         t[Term.PRESENCE.ordinal] += sign * all.maxOf { presence(h.team, it) }
         t[Term.OPPORTUNITY.ordinal] += sign * all.maxOf { opportunity(hi, it) }
-        t[Term.EXPOSURE.ordinal] -= sign * all.maxOf { exposure(hi, it) }
+        t[Term.EXPOSURE.ordinal] -= sign * exposureWeight(hi) * all.maxOf { exposure(hi, it) }
     }
 
     private fun laneTerms(t: DoubleArray) {
@@ -455,6 +626,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
     /** Enemy minions [team] can still take this round (the designer's Push Potential, STRATEGY L2). */
     private fun pushPotential(team: Team, bz: String): Double {
         if (roundOver) return 0.0
+        val perAttack = knobs.pushPerAttackBySize[state.heroes.count { it.team == team }] ?: knobs.pushPerAttack
         var pp = 0.0
         for (h in state.heroes) {
             if (h.team != team) continue
@@ -462,7 +634,7 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
             if (map.distanceToZone(at, bz) > 6) continue
             val hi = info(h.id)
             val attacks = hi.hand.count { it.attackCard } + hi.unresolved.count { it.attackCard }
-            pp += 0.5 * min(attacks, max(hi.playsLeft, hi.unresolved.size))
+            pp += perAttack * min(attacks, max(hi.playsLeft, hi.unresolved.size))
         }
         return pp
     }
@@ -521,8 +693,8 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
         laneTerms(t)
         t[Term.PIECES.ordinal] = pieceValueRed()
         t[Term.LIFE.ordinal] =
-            Evaluator.lifeValue(state.lifeCounters[Team.RED] ?: 0) -
-            Evaluator.lifeValue(state.lifeCounters[Team.BLUE] ?: 0)
+            lifeScale(Team.RED) * Evaluator.lifeValue(state.lifeCounters[Team.RED] ?: 0) -
+            lifeScale(Team.BLUE) * Evaluator.lifeValue(state.lifeCounters[Team.BLUE] ?: 0)
         for (h in state.heroes) heroTerms(h, if (h.team == Team.RED) 1.0 else -1.0, t)
         return t
     }

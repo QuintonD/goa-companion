@@ -7,7 +7,8 @@ import org.junit.Test
  * 12 × seeds mirrored games per pair over the first-game heroes; `AI_MIXED=<line-ups>` plays
  * 2 × line-ups mirrored games over line-ups drawn from all playable heroes (`AI_FIRST_SEED` is then
  * the first line-up). `AI_PAIRS=6:5,…` picks the pairs of strengths (default: every neighbouring
- * pair, 2:1 to 10:9; a variant as in [ExperimentTest] works too), `AI_THREADS` the threads.
+ * pair, 2:1 to 10:9; a variant as in [ExperimentTest] works too), `AI_THREADS` the threads, `AI_FORMAT`
+ * the team size and map (`3v3`, `4v4`, `4v4river`; [AiHarness.Format]).
  */
 class TournamentTest {
     @Test
@@ -21,14 +22,16 @@ class TournamentTest {
         }
         val first = System.getenv("AI_FIRST_SEED")?.toIntOrNull() ?: 0
         val threads = System.getenv("AI_THREADS")?.toIntOrNull() ?: 4
+        val format = AiHarness.Format.parse(System.getenv("AI_FORMAT"))
         for ((a, b) in pairs) {
             val t0 = System.nanoTime()
             val score = if (mixed != null) {
-                Tournament.runMixed(a, b, mixed, threads, firstLineup = first)
+                Tournament.runMixed(a, b, mixed, threads, firstLineup = first, format = format)
             } else {
                 Tournament.run(a, b, seeds!!, threads, firstSeed = first)
             }
-            println("TOURNAMENT $score in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
+            println("TOURNAMENT [$format] $score in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
+            println("TOURNAMENT   ${score.details()}")
             if (mixed != null) println("TOURNAMENT by hero ($a): ${score.byHero()}")
             // AI_GAMES=<hero>: every game with that hero seated (or "all").
             System.getenv("AI_GAMES")?.let { h ->

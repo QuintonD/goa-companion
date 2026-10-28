@@ -101,6 +101,33 @@ class RazzleTest {
         assertThat(doubles(d).map { it.at }).containsExactly(Hex(1, -1))
     }
 
+    /**
+     * A 3v3 tournament crash (ADR-047): a Spawn point under a token was offered although Static Barrier
+     * made it an obstacle for Razzle; removing the token (p.19) does not lift the barrier (Wasp FAQ).
+     */
+    @Test
+    fun `Stunt Doubles - a token on a Spawn point beyond an enemy's Static Barrier is not offered`() {
+        val d = pos {
+            clearMinions()
+            hero("razzle", Team.BLUE, Hex(4, -5)) { played("razzle-gold") } // radius 1
+            hero("wasp", Team.RED, Hex(6, -6)) { resolved(1, "wasp-silver") } // radius 2: Razzle inside
+            minion(Team.RED, MinionType.MELEE, Hex(4, -6)) // her only target
+            minion(Team.RED, MinionType.MELEE, Hex(7, -9))
+            minion(Team.BLUE, MinionType.MELEE, Hex(0, -1))
+            token("token_rock", Hex(3, -4)) // a Blue ranged Spawn point, 3 from Wasp: beyond the barrier
+            turn = 2
+            effect("wasp", "wasp-silver", Timing.THIS_TURN, ActionKind.SKILL)
+            phase = PositionPhase.Resolving(next = "razzle")
+        }
+        d.action("razzle", ActionType.PRIMARY)
+        d.expect(DecisionKind.CHOOSE_SPACE, "razzle")
+        assertThat(d.spaces()).doesNotContain(Hex(3, -4))
+        assertThat(d.spaces()).doesNotContain(Hex(3, -5))
+        assertThat(d.spaces()).containsAtLeast(Hex(5, -5), Hex(4, -4))
+        d.space(5, -5)
+        assertThat(doubles(d).map { it.at }).containsExactly(Hex(5, -5))
+    }
+
     @Test
     fun `Stunt Doubles - only figures left in the supply can be spawned (p19 Spawn)`() {
         val d = pos {

@@ -92,6 +92,12 @@ class EngineSession internal constructor(
      */
     internal var haltWhen: ((GameState) -> Boolean)? = null
 
+    /**
+     * A search copy (the AI's determinized games and their forks): questions carry no explanations
+     * for a player ([Game.explain]); the options, answers and outcomes are the same. Copied by forks.
+     */
+    internal var quiet: Boolean = false
+
     internal fun start(): EngineSession {
         for (m in Mark.initial(checkpoint)) marks = Chain.push(marks, m)
         advance()
@@ -110,7 +116,7 @@ class EngineSession internal constructor(
                 return
             }
             val work = checkpoint.copy()
-            val g = Game(data, work, segment, RunMode.NORMAL, lenient)
+            val g = Game(data, work, segment, RunMode.NORMAL, lenient, explain = !quiet)
             try {
                 g.runStep()
                 commit(work, g)
@@ -181,6 +187,7 @@ class EngineSession internal constructor(
         f.partial = partial
         f.marks = marks
         f.haltWhen = haltWhen
+        f.quiet = quiet
         // The checkpoint is never mutated in place (each run works on a copy), so sharing it is safe.
         return f
     }
@@ -200,6 +207,7 @@ class EngineSession internal constructor(
         f.partial = partial
         f.marks = marks
         f.haltWhen = haltWhen
+        f.quiet = quiet
         return f
     }
 
@@ -213,10 +221,16 @@ class EngineSession internal constructor(
      * [determinize] with the AI's refinements ([Determinizer.Options]: public card memory, an opponent
      * model for unrevealed played cards, human teammates' facedown cards). Same no-leak guarantee.
      */
-    fun determinizeWith(viewer: Team, seed: Long, options: Determinizer.Options): EngineSession {
+    fun determinizeWith(
+        viewer: Team,
+        seed: Long,
+        options: Determinizer.Options,
+        quiet: Boolean = false,
+    ): EngineSession {
         val rng = Random(seed)
         val base = Determinizer.sample(data, checkpoint, viewer, rng, options)
         val f = EngineSession(data, setup, base, Random(seed xor 0x5DEECE66DL))
+        f.quiet = quiet
         f.segment = ArrayList(segment)
         f.advance()
         return f

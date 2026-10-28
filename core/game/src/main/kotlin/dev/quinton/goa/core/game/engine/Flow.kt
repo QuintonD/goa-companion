@@ -293,7 +293,7 @@ fun Game.resolveCard(heroId: String) {
     }
     trigger(Trigger.ChoosingAction(heroId, cardId))
     // Options and the reasons for the printed actions left out come from one pass (ADR-041).
-    val availability by lazy(LazyThreadSafetyMode.NONE) { actionAvailability(heroId, cardId) }
+    val availability by lazy(LazyThreadSafetyMode.NONE) { actionAvailability(heroId, cardId, explain) }
     val answer = askAlways(
         heroId,
         DecisionKind.CHOOSE_ACTION,

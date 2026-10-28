@@ -13,7 +13,7 @@ plays as the level's strength (Easy 2, Normal 6, Hard 8, Expert 10, ADR-039).
 | File | What |
 |------|------|
 | `AiPlayers.kt` | `AiPlayers.forStrength(strength, seed)` (production, wall-clock capped) and `deterministic(strength, seed)` (tests), `forLevel` for a level alone; the ten `LevelProfile`s and `TUNED`, the evaluation of the searching strengths; `SearchAi`, the one `AiPlayer`; `Fallback` (answers from the `Decision` alone) |
-| `Search.kt` | `Searcher`: determinize → fork → answer an option → playout to a horizon → evaluate; option pruning, the playout policy, the one-ply "greedy" policy, the opponent model, public card memory; `Picker` (noise) |
+| `Search.kt` | `Searcher`: determinize → fork → answer an option → playout to a horizon → evaluate; option pruning, racing, the playout policy, the one-ply "greedy" policy, the opponent model, public card memory; `SampleRunner` (the samples of one answer, sequential unless the app passes threads); `Hunt` (the exploiter's taste, tests); `Picker` (noise) |
 | `Evaluator.kt` | The static evaluation in coin-equivalents (STRATEGY §2) as a sum of named `Term`s with scales (`EvalKnobs`), and `Ctx`, its per-state cache, which also scores "this hero standing on that space" without forking |
 | `StaticPolicy.kt` | Scores every option of every `DecisionKind` from one state, no fork (STRATEGY §3): the playout policy, the opponent model and Easy |
 | `CardProfile.kt` | Per-card numbers the heuristics need (attack, reach incl. "Before the attack: Move N", discard-or-defeat, blocks, a rating), read once from the catalog; nothing hero-specific |
@@ -54,8 +54,32 @@ determinizer's fallback. Two generic devices carry the hero mechanics the heuris
 **Determinism.** An answer depends on the seed, the decision id and the seat (not on the order of
 calls), so undo and restore give the same answers. The production player stops sampling at the
 device budget (`budgetMs` for card plays, a third of it for other decisions); on the desktop that cap
-is never reached in practice. `AiPlayers.deterministic` removes it. `cancelled()` is checked before
+is rarely reached. `AiPlayers.deterministic` removes it. `cancelled()` is checked before
 every playout (a playout is 0.1–30 ms on the desktop).
+
+**Samples on several threads (v0.9).** `Searcher` runs the samples of one answer through a
+`SampleRunner`: the engine has no threads (it is shared with the web build, ADR-043), so the default
+runs them one after the other; the app passes `AiSampleThreads` (`core/data` `PlayEngineModule`, up to
+three daemon threads). The first sample fixes the candidates; the rest run in batches of the runner's
+width, each on its own column of the value table and its own determinized copy, combined in sample
+order, so an answer without the wall-clock cap is the same with any runner (`SampleRunnerTest`). On
+the desktop three threads answered 2.15× faster (3v3 strength 10, card play mean 296 → 137 ms, p95
+655 → 286 ms). The deadline is checked between batches.
+
+**Search copies are quiet (v0.9).** The determinized copies and their forks build no explanations
+for a player at their questions (`EngineSession.quiet`: no "why not" reasons or Primary previews at
+`CHOOSE_ACTION`; the options are the same checks), and forks answered at once share the shown state
+instead of copying it (`forkForAnswer`). Same answers for every seed (`FingerprintTest` hashes equal
+before and after); a 3v3 strength-10 game about a quarter faster. What is left of the cost: one-ply
+looks in playouts (87% of the time), and in them the engine's probe of whether a Primary can start
+(a state copy per `CHOOSE_ACTION`, 26%); the evaluation is 12%.
+
+**Racing (v0.9, built, off).** After four samples an option whose paired gap to the best (common
+random numbers: the same determinizations), less two standard errors, exceeds a margin is not played
+out any more (`LevelProfile.race`); at least two stay. With a margin of 3 coin-equivalents at strength
+10 it measured 51.0% (41–61%, 96 games in 3v3) for 22% fewer playout steps (card play mean 296 →
+227 ms, p95 655 → 456 ms on the same games), but the packages it was part of measured below even
+("Team sizes"), so no strength uses it.
 
 ### The determinizer (`engine/Determinizer.kt`)
 
@@ -86,7 +110,8 @@ because the deck order of the tucked cards told which colour each came from.
 
 - **Lane:** P(win the lane) from the Battle Zone offset and the Wave counters (the §1.1 recursion),
   with the next push's probability `σ(1.1 · projected margin)`; the projection subtracts each side's
-  Push Potential (0.5 per attack card left for heroes within 6 spaces of the Battle Zone), and a
+  Push Potential (0.5 per attack card left for heroes within 6 spaces of the Battle Zone; 0.35 at
+  three heroes a side since v0.9, "Team sizes"), and a
   projected Minion Battle that empties a side counts as ~0.95. 60 per 1.0 of P(win), plus 1.5 per
   minion of margin. One minion of advantage at an even lane is worth ~15: the AI is lane-first, as the
   designer's "Ruling the Waves" says it should be.
@@ -99,7 +124,9 @@ because the deck order of the tucked cards told which colour each came from.
   that can reach the space this turn (revealed card: weight 0.6) or next turn (0.22), whether its
   Attack total beats the hero's best Defense there (items, minion modifiers, Block answers; a
   discard-or-defeat text against an empty hand), giving
-  `P(defeat) × (Life value + level coins + assists + 5 tempo) + P(discard) × card value`.
+  `P(defeat) × (Life value + level coins + assists + 5 tempo) + P(discard) × card value`. In 3v3
+  (v0.9) a hero with no card left to defend with, now or after the card it still has to play, counts
+  this in full even where the term is scaled down ("Team sizes").
   Off the board: −4 plus the Throne's distance to the Battle Zone. A hero with several bodies
   (Razzle's Stunt Doubles: any of them may act, a defeat of any defeats the hero) counts the best
   presence and reach and the worst exposure over its bodies.
@@ -146,11 +173,15 @@ adds one lever that measured (below); the knobs are `LevelProfile`s in `AiPlayer
 | 5 | Normal | each option played out once | end of turn / end of the action | 1 / 1, the best 3 | static; opaque ones one ply deep | uniform | τ 1.0 within 3 | tuned | 200 ms |
 | 6 | Normal | played out once | turn / action | 1 / 1, 6 | static; opaque one ply | opponent model | τ 0.6 within 1.5 | tuned | 300 ms |
 | 7 | Hard | played out once | turn / **turn** | 1 / 1, 6 | static; opaque one ply | opponent model | τ 0.5 within 1.3 | tuned | 500 ms |
-| 8 | Hard | mean − 0.3 sd for card plays | turn / turn | **6 / 2**, 8 | static; opaque one ply | opponent model | τ 0.25 within 0.8 | tuned | 1.5 s |
-| 9 | Expert | mean | turn / turn | **16 / 6**, 10 | its own by **one-ply search** | + **memory** of cards shown since each level up | τ 0.15 within 0.6 (mixing) | tuned | 3 s |
-| 10 | Expert | mean | turn / turn | 16 / 6, 10 | **every hero's** by one-ply search | + memory | τ 0.15 within 0.6 | tuned | 4 s |
+| 8 | Hard | mean − 0.3 sd for card plays | turn / turn | **6 / 2**, 8 | static; opaque one ply | opponent model | τ 0.25 within 0.8 | tuned | 1 s |
+| 9 | Expert | mean | turn / turn | **16 / 6**, 10 | its own by **one-ply search** | + **memory** of cards shown since each level up | τ 0.15 within 0.6 (mixing) | tuned | 1.5 s |
+| 10 | Expert | mean | turn / turn | 16 / 6, 10 | **every hero's** by one-ply search | + memory | τ 0.15 within 0.6 | tuned | 2 s |
 
-"Tuned" is `TUNED`: exposure × 0.3, minion opportunity × 2 (Evaluation, above). "Opaque" choices are
+"Tuned" is `TUNED`: exposure × 0.3, minion opportunity × 2 (Evaluation, above), and since v0.9 in 3v3
+a Push Potential of 0.35 per attack card and the full exposure of a hero with no card left to defend
+with ("Team sizes"). Device budgets since v0.9 ("Budgets"); the app
+runs the samples on three threads, so the answers do not depend on the device wherever the cap is not
+reached. "Opaque" choices are
 a bullet, a token, a confirm or number, a space that is not a move, a unit that is not an attack
 target, another hero's card (Architecture).
 
@@ -167,7 +198,8 @@ target, another hero's card (Architecture).
   through the whole turn, risk-averse.
 - **9** samples more, remembers every card you have shown since your last level up, and plays its own
   later choices in a playout by one-ply search; **10** is Expert: everyone's later choices in a
-  playout by one-ply search, and it mixes between near-equal plays.
+  playout by one-ply search, and it mixes between near-equal plays; since v0.9 it thinks at most 2 s a
+  card play on the phone, on three threads.
 
 The coach analyses at Hard (8) and so uses the tuned evaluation too.
 
@@ -236,10 +268,47 @@ way, and the "missed defeat" was a teammate's attack that made it on the same tu
 
 ## Budgets and measured time
 
-`TimingTest` with `AI_TIMING_GAMES=8`, desktop JVM (development machine, shared with other work,
-2026-10-25), production players (`forStrength`, wall-clock cap on), eight mixed line-ups per
-strength seating all 32 heroes once, both teams' decisions with more than one option (840–1 330 card plays
-per strength). A phone is assumed 3–4× slower. Other decisions get a third of the card budget.
+**v0.9 (ADR-047): by team size.** The owner's ceiling is about 2 s per card play at the top strength
+on the S25 Ultra, in 3v3 or bigger. `TimingTest` (`AI_TIMING_FORMAT=2v2|3v3|4v4|4v4river`,
+`AI_TIMING_GAMES`, production players with the v0.7 budgets, one thread, both teams' decisions with
+more than one option, desktop JVM shared with three other builds, 2026-10-27, one afternoon) also
+prints the work of a card play in engine answers (the playouts' steps) and the time per 1 000 of them:
+
+| Format | Strength | Card play mean / p95 / max | Moves (`CHOOSE_SPACE`) mean / p95 | Work per card play mean / p95 (answers) | ms per 1 000 answers |
+|--------|----------|----------------------------|-----------------------------------|------------------------------------------|----------------------|
+| 2v2 | 8 | 28 / 81 / 445 ms | — | 475 / 1 372 | 58 |
+| 2v2 | 9 | 106 / 249 / 843 ms | — | 1 812 / 3 962 | 58 |
+| 2v2 | 10 | 204 / 479 / 1 464 ms | — | 3 468 / 6 460 | 59 |
+| 3v3 | 8 | 50 / 136 / 381 ms | 22 / 84 ms | 769 / 2 153 | 64 |
+| 3v3 | 9 | 184 / 451 / 1 253 ms | 100 / 358 ms | 2 774 / 6 622 | 66 |
+| 3v3 | 10 | 377 / 799 / 1 648 ms | 204 / 531 ms | 5 418 / 9 435 | 70 |
+| 4v4 (Forgotten Island) | 8 | 69 / 198 / 369 ms | 32 / 107 ms | 949 / 2 604 | 73 |
+| 4v4 (Forgotten Island) | 9 | 234 / 585 / 1 460 ms | 132 / 497 ms | 3 049 / 7 312 | 77 |
+| 4v4 (Forgotten Island) | 10 | 617 / 1 365 / 2 271 ms | 298 / 783 ms | 7 580 / 14 416 | 81 |
+| 4v4 (Across the River) | 10 | 820 / 1 637 / 3 276 ms | 379 / 980 ms | 7 491 / 13 634 | 109 |
+
+Strength 10 costs 1.8× its 2v2 time in 3v3 and 3× in 4v4 (4× on the double lane): each playout has
+more heroes acting (1.5–2.2× the steps) and each step is dearer (the state is bigger; two lanes double
+the lane terms). The time per answer is the same for every strength of a format, so the work is a
+deterministic stand-in for time: `LevelProfile.workBudget` (tests only, `AI_EXPERIMENT=s10+work=6000`)
+stops sampling after that many answers, as the wall clock does on a phone, but reproducibly.
+
+**The phone factor** stays 3–4× this desktop (no device measurement this round; ADB is not available
+to the AI streams). It is a planning number on the slow side: the S25 Ultra's Snapdragon 8 Elite
+scores well above this Ryzen 7 3800X single-threaded, but ART runs this allocation-heavy code slower
+than HotSpot's C2 and a phone throttles over a long game. With 4× and today's sequential search,
+strength 10's p95 card play is ≈ 3.2 s in 3v3 and ≈ 5.5 s (≈ 6.5 s on the double lane) in 4v4, so a
+2 s cap would cut a slow 3v3 decision to about 60% of its samples and a slow 4v4 one to about a third.
+
+**Budgets since v0.9:** 10: **2 s** per card play (was 4 s), 9: 1.5 s (3 s), 8: 1 s (1.5 s); 5–7
+unchanged (200 / 300 / 500 ms), 1–4 50 ms. Other decisions get a third. The app runs the samples on
+three threads (2.15× on the desktop), so at 4× the p95 3v3 card play of 10 needs ≈ 1.5 s (inside the
+cap), the 4v4 one ≈ 2.5 s (≈ 3 s on the double lane: cut to 65–80% of its samples), and today's 4 s
+of one thread buys about the samples 2 s of three threads do. What samples are worth under the cap,
+measured with work budgets (2 s at 4× = 500 ms of desktop time ≈ 7 200 answers in 3v3, 6 100 in
+4v4, × 2.15 with three threads): see "Team sizes".
+
+**v0.7, 2v2** (`AI_TIMING_GAMES=8`, 2026-10-25, the budgets of then), for strengths 1–7 still current:
 
 | Strength | Card play mean / p95 / max | Other decisions, means (max) | Slowest heroes, card play p95 / max | Device budget per card |
 |----------|----------------------------|------------------------------|-------------------------------------|------------------------|
@@ -250,18 +319,12 @@ per strength). A phone is assumed 3–4× slower. Other decisions get a third of
 | 5 | 6.8 / 22 / 44 ms | 0.3–10 ms (40) | Snorri 40 / 44, Razzle 39 / 39, Cutter 33 / 34 | 200 ms |
 | 6 | 5.2 / 15 / 49 ms | 0.3–12 ms (169) | Snorri 38 / 49, Rowenna 35 / 40, Cutter 35 / 40 | 300 ms |
 | 7 | 5.6 / 19 / 52 ms | 0.2–9.3 ms (154) | Rowenna 47 / 52, Cutter 38 / 48, Bain 30 / 43 | 500 ms |
-| 8 | 39 / 117 / 577 ms | 0.7–25 ms (345) | Rowenna 402 / 577, Cutter 319 / 475, Takahide 200 / 200 | 1.5 s |
-| 9 | 117 / 314 / 1 088 ms | 3–73 ms (781) | Bain 730 / 988, Emmitt 469 / 595, Snorri 442 / 685 | 3 s |
-| 10 | 213 / 514 / 1 156 ms | 6–128 ms (824) | Bain 957 / 1 075, Min 823 / 831, Silverarrow 769 / 866 | 4 s |
+| 8 | 39 / 117 / 577 ms | 0.7–25 ms (345) | Rowenna 402 / 577, Cutter 319 / 475, Takahide 200 / 200 | 1.5 s (now 1 s) |
+| 9 | 117 / 314 / 1 088 ms | 3–73 ms (781) | Bain 730 / 988, Emmitt 469 / 595, Snorri 442 / 685 | 3 s (now 1.5 s) |
+| 10 | 213 / 514 / 1 156 ms | 6–128 ms (824) | Bain 957 / 1 075, Min 823 / 831, Silverarrow 769 / 866 | 4 s (now 2 s) |
 
-At 4× the desktop time every strength stays inside its budget at p95 (10: ≈ 2.1 s; 9: ≈ 1.3 s; 8:
-≈ 0.5 s). The worst card play at 10 (1.2 s desktop, ≈ 4.6 s at 4×) and the worst move choices at 9
-and 10 (0.8 s, ≈ 3.2 s against caps of 1 s and 1.3 s) would be cut by the wall-clock cap on a slow
-phone (fewer samples, still legal). Against the old Expert (176 / 408 / 832 ms), strength 10 (the same
-samples and playouts, the tuned evaluation) costs about a quarter more at p95. Strengths 5–7 cost
-about twice the old Normal (3.6 / 10.5 / 29 ms) and stay far below their budgets. The coach's
-`prepare` averaged 16 ms (max 157 ms) per decision over one Easy-vs-Hard game on mixed line-ups
-(`CoachAheadTest`).
+The coach's `prepare` averaged 16 ms (max 157 ms) per decision over one Easy-vs-Hard game on mixed
+line-ups (`CoachAheadTest`).
 
 ## Measured strength
 
@@ -301,6 +364,119 @@ Trinkets, Widget), whose cards work through pieces and counters the evaluation s
 levels' strengths (2 over 1, 6 over 2, 8 over 6, 10 over 6) on every test run: 36 games cannot
 guard a gap of about 63% (10 over 8 made 16 of 36 there, against 59.9% and 55.7% for its two steps
 above).
+
+## Team sizes: 3v3 and bigger (v0.9, ADR-047 part A)
+
+The owner beat strength 10 "easily", by hero kills and pushing the lane, in 3v3 or bigger, and
+everything above had been measured on 2v2. The harness now plays any size (`AiHarness.Format`,
+`AI_FORMAT=3v3`, `4v4`, `4v4river`, `5v5river`): mixed line-ups from consecutive seeded shuffles of
+the roster cut into groups of 2 × size (every hero seated about equally often; the 2v2 list is the
+old one), mirrored, seeded, deterministic players, four game threads. 3v3 is played on Forgotten
+Island Quick (5 Life counters for 6 heroes), the map the app starts on; 4v4 on Forgotten Island (the
+app allows it; Life by the nearest listed row, 5) and on Across the River, the double lane the
+rulebook requires from 8 players (p.20; 6 Life, 7 Waves a lane). A 3v3 strength-10 game takes 1–1.5
+minutes of wall time with four games at once, a 4v4 one about two. Tournaments now report defeats per
+game per side, how many of them were heroes with no card left to defend with, and how each side won
+(`Score.details`); a crashed game is dumped and reproduced (`AI_DUMP_DIR`, `CrashReproTest`). The
+first 3v3 tournament found an engine crash (Razzle's Stunt Doubles offered a Spawn point under a token
+beyond Wasp's Static Barrier, CONTRACT-CHANGES), fixed with `RazzleTest`.
+
+What 3v3 looks like: kills decide it. Strength 10 against itself loses 1.6–1.9 heroes a game (about
+1 in 2v2), 30–40% of games end on Life counters, and about half of all defeats are of a hero with no
+card left to defend with: one enemy's "discards a card" strips the hand on one turn, another's attack
+lands on the next (game logs: Swift's Suppress and Reload!, then Brynn's attacks, took three of Red's
+four heroes in one game; strength 8 loses 0.75 heroes a game that way).
+
+**The four suspects, measured** (3v3 unless noted; 95% Wilson intervals):
+
+1. **Budget starvation: not at today's 4 s; real in 4v4 at the owner's 2 s.** Strength 10 costs 1.8×
+   its 2v2 time in 3v3 and 3× in 4v4 (Budgets). At a 4× phone today's 4 s cap is reached only by the
+   slowest 3v3 decisions; a 2 s cap on one thread would cut a slow 3v3 card play to ~60% of its
+   samples and a 4v4 one to about a third. What samples are worth: 16 against 8, 54.2% (44–64%, 96
+   games), the side with fewer samples losing more heroes (1.83 against 1.46 a game); in 4v4 at 2 s,
+   three threads' worth of work (15 000 answers) against one thread's (6 000): 58.3% (48–68%, 96).
+   Hence 2 s on three threads: about today's samples in half the time.
+2. **Caution tuned away: confirmed as self-play's choice, and the gap is narrow.** Doubling the
+   exposure scale (0.3 → 0.6) loses 41.1% (34–48%, 192 games at strength 8) although it loses fewer
+   heroes (1.20 against 1.68). The exposure term did not compound several attackers; a focus-fire
+   model (`EvalKnobs.focusFire`: each enemy's one card, the hero answering the strongest attack first
+   with the cheapest card that holds) measured 48.4% (42–56%, 192). What the term misses is a hero
+   with **no card left to defend with**, certain to fall to any attack that reaches it one turn after
+   the playouts end. Counting that hero's exposure in full (`EvalKnobs.defenseless`, from 3 heroes a
+   side) measured 53.6% at strength 8 (47–61%, 192; 2.0: 46.4%, 0.6: 49.0%; in 2v2 46.9%) and 51.6%
+   at 10 (44.5–58.5%, 192 held-out games) with 35% fewer heroes lost that way (95 against 147). Alone
+   it trades kills for pushes (in the dropped package below the win rate stayed even); with the 3v3
+   Push Potential (3.), which wins pushes, it is **kept for 3v3**: the pair beat today's 10 and keeps
+   the heroes the Push Potential alone exposes (the exploiter, below).
+3. **Lane arithmetic: confirmed, in one number.** The projection of the round's Minion Battle sums
+   every hero's Push Potential (0.5 of a minion per attack card left), but three heroes a side hunt
+   the same minions two did. Push Potential 0.35 per attack card measured 57.3% (50–64%, 192 games at
+   strength 8) and, at strength 10 on held-out line-ups 900–995, **57.8% (50.7–64.6%, 192 games)**
+   against today's 10, winning more by pushes (59 last pushes and 20 Throne pushes against 41 and 8)
+   with the same heroes lost (1.76 against 1.80 a game). It is kept for three heroes a side only: in
+   2v2 0.35 measured 53.1% (46–60%), in 4v4 49.0% (39–59%, 96) and 0.25 (the same minions shared by
+   four) 42.7% (33–53%, 96). The other lane weights hold: 0.75 per card 45.8% (39–53%), lane weight 80
+   instead of 60 50.0% (43–57%), minion opportunity × 1 instead of × 2 44.3% (37–51%), Life × 1.5
+   47.4%, kill tempo 10 instead of 5 47.4% (192 games at strength 8 each).
+4. **No focus fire / team plan: within a turn it is there, across turns it is not.** At 10 teammates'
+   later actions in a playout are one-ply searched and attack a stripped hero when the evaluation sees
+   the kill, so two-hero kills inside a turn are found. A focus-fire term measured nothing (2., and
+   46.9% on top of the defenseless floor). Kills set up over two turns are not made; the defenseless
+   floor (2.) makes them feared in 3v3, and planning them is part B's ground.
+
+**A stand-in for the owner.** `Hunt` (`LevelProfile.hunt`, `AI_EXPERIMENT=s10+hunt=a/b/c`) is
+strength 10 with a one-sided taste: its own heroes' exposure × a, the enemy's × b, the enemy's Life
+counters × c. Reckless (0 / 2 / 1.5) lost 22.9% (13–37%, 48 games) and 3.25 heroes a game against
+1.67; hunting with caution and focus fire (1 / 2 / 1.3, `focus=true`) 43.8% (31–58%, 48), losing 2.06
+heroes a game against 2.23. No style of our own beat strength 10, so the exploiter measures
+robustness, not a ceiling. On line-ups 900–947 (96 games each) today's 10 won 55.2% (45–65%) against
+it, losing 2.14 heroes a game (62 with an empty hand) and 28 games on Life counters; with the
+defenseless floor 51.0% (41–61%), 1.94 heroes a game (48 with an empty hand) and 20 games on Life
+counters: fewer heroes lost, the win rate the same within the noise. The 3v3 Push Potential alone
+made strength 10 *more* exposed to it (43.8%, 34–54%; 2.31 heroes a game, 73 with an empty hand; 35
+games lost on Life counters); with the defenseless floor as well 54.2% (44–64%), 2.06 heroes a game
+(61 with an empty hand) and 24 games lost on Life counters, while the exploiter lost 2.15 (91). That
+is why the two ship together.
+
+**The top strength since v0.9** is today's 10 with, in 3v3, the Push Potential of 0.35 and the
+defenseless floor (it answers exactly as the variant measured below; in 2v2 and 4v4 exactly as
+before, `FingerprintTest`), a 2 s budget, and its samples on three threads in the app: on the phone
+it searches about as much as today's 10 did in 4 s, and against a one-thread 10 held to the owner's
+2 s it gets 2.15× the samples (3v3: 16 against 8 samples 54.2%; 4v4: 58.3%, above). Strengths 5–9
+share `TUNED` and play 3v3 the same way; 1–4 are unchanged.
+
+| 3v3, no cap, against the v0.8 strength 10 | Wins | Rate | 95% interval | Heroes lost a game (with an empty hand, in all) |
+|-------------------------------------------|------|------|--------------|--------------------------------------------------|
+| Push Potential 0.35 alone, line-ups 900–995 | 111–81 | 57.8% | 50.7–64.6% | 1.76 against 1.80 (120 / 119) |
+| **Shipped: Push Potential and defenseless floor**, line-ups 900–995 | 111–81 | 57.8% | 50.7–64.6% | 1.70 against 1.92 (88 / 133) |
+| **Shipped**, line-ups 1700–1795 | 102–90 | 53.1% | 46.1–60.1% | 1.88 against 1.84 (96 / 143) |
+| **Shipped**, both (384 games) | 213–171 | 55.5% | 50.5–60.3% | 1.79 against 1.88 (184 / 276) |
+
+The earlier candidate package (racing and the defenseless floor, before the Push Potential was found)
+did not beat today's 10 and was dropped:
+
+| Where (package: race 3, defenseless 1.0, 2 s on three threads) | Package against today's 10 | Games | Rate | 95% interval |
+|-----------------------------------------------------------------|----------------------------|-------|------|--------------|
+| 3v3, the phone at 2 s (4×; package 15 500 answers; old: one thread, 7 200); heroes lost a game 1.59 against 1.93, with an empty hand 89 against 146 | 104–88 | 192 | 54.2% | 47.1–61.1% |
+| 3v3, no cap (line-ups 1300–1395); heroes lost 1.75 against 1.94, with an empty hand 94 against 156; more wins on Life counters (45 against 33), fewer by pushes (47 against 67) | 92–100 | 192 | 47.9% | 41.0–55.0% |
+| 4v4 Forgotten Island, the phone at 2 s (13 200 against 6 100); heroes lost 2.27 against 2.39 | 44–52 | 96 | 45.8% | 36.2–55.8% |
+
+**Ladder in 3v3** (the v0.9 profiles with the 3v3 Push Potential, measured before the defenseless
+floor joined `TUNED` — both sides of each searching pair carry both; line-ups 900–947, 96 games a
+pair, 95% intervals): 2 over 1
+81.3% (72–88%), 3 over 2 66.7% (57–75%), 4 over 3 61.5% (52–71%), 5 over 4 82.3% (74–89%), 6 over 5
+58.3% (48–68%), 7 over 6 74.0% (64–82%), 8 over 7 54.2% (44–64%), 9 over 8 57.3% (47–67%), 10 over 9
+61.5% (51.5–70.6%). Every step wins; 96 games cannot separate 6/5, 8/7 and 9/8 from even (their 2v2
+steps over 192 games could, "Measured strength"). `LevelLadderTest` (2v2) is unchanged.
+
+**Tried and dropped in v0.9** (3v3, 192 games at strength 8 unless noted): exposure × 0.6 41.1%;
+focus fire 48.4%; Push Potential 0.75 45.8%, 0.35 in 2v2 53.1% and in 4v4 49.0%, 0.25 in 4v4 42.7%;
+lane weight 80 50.0%; minion opportunity × 1 44.3%;
+Life × 1.5 47.4%; kill tempo 10 47.4%; defenseless 1.0 53.6% (10: 51.6%), 2.0 46.4%, 0.6 49.0%, in 2v2
+46.9%; defenseless with focus fire against defenseless alone 46.9%; racing 51.0% (96 games at 10);
+the package above; the Push Potential alone (it made the AI more exposed to the exploiter). Kept: the
+3v3 Push Potential with the 3v3 defenseless floor, the budgets, the threads, the quiet search copies,
+the harness, the engine fix.
 
 ## The coach
 
@@ -353,6 +529,14 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
   deliberate focus fire, card-kill setup over two turns, or "let the wave push itself". Since v0.7
   the searching strengths are much less cautious (exposure × 0.3), and more games end on Life
   counters: Hard with exposure × 0.3 against Hard, 47 of 192 games; with exposure × 1.5, 27 of 192.
+- **3v3 and bigger (v0.9):** about half the heroes lost are lost with an empty hand to a two-turn
+  card-kill (strip, then hit, after the playouts' horizon). In 3v3 the defenseless floor cuts those
+  losses by about a third; in 4v4 it is not measured and off. The AI does not set such kills up
+  itself, keep a defender back for a teammate, or count which enemy acts after a discard. No
+  style the engine can play (the `Hunt` exploiters) beats strength 10, so how a human beats it is
+  still read only from the owner's report; the numbers here are AI against AI.
+- **4v4 on the phone:** even with three threads a slow 4v4 card play (p95) passes the 2 s cap at a 4×
+  phone and is cut to 65–80% of its samples (≈ 2.5 s needed, ≈ 3 s on the double lane).
 - **Holding:** about a quarter of all actions are Holds (Hard self-play, 64 mixed games: 13%
   Mortimer to 35% Razzle). Most are chosen (moving would not improve the space), but Silver and Gold
   cards without a movement are often played on a turn their Primary has no target and are then held
@@ -368,7 +552,8 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
 - **Runes and other per-turn plans** (Snorri's rune under each turn slot, Swift's slot order, Cutter's
   Ultimate) are not planned over the round: the static round plan does not read them.
 - **Fast Travel blocking**, spawn camping and post-push repositioning are not modelled explicitly.
-- **Double lane:** the evaluation sums the lanes; it plays legally (smoke test) but has not been tuned.
+- **Double lane:** the evaluation sums the lanes; it plays legally (smoke tests, 4v4 and 5v5 too) but
+  has not been tuned, and each engine step costs a third more than on one lane.
 - **Opponent model** is the static card policy: a human who plays unusual cards is guessed poorly
   (15% of each guess is uniform to stay robust).
 - **The top end is flat:** above Expert (10) nothing measured better: 24 samples with 12 candidates,
@@ -376,7 +561,8 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
   sharper or looser opponent model (all in "What changed in v0.7"). The next gains need a better
   evaluation of set-up and round plans, not more search.
 - **Wall-clock cap**: on a loaded phone the production player may search less than on the desktop;
-  answers are then still legal but no longer reproducible for a seed.
+  answers are then still legal but no longer reproducible for a seed. The phone factor (3–4×) is an
+  assumption, not a device measurement ("Budgets").
 - **Coach turning points** on quiet turns say only that the heroes "moved into position".
 
 ## Tests
@@ -386,12 +572,14 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
 | `LevelLadderTest` | The named levels' strengths beat each other over a seeded, mirrored tournament (24 games on mixed line-ups from all heroes + 12 on the first-game heroes per pair): Easy (2) over 1 ≥ 60%, Normal (6) over Easy ≥ 75%, Hard (8) over Normal ≥ 65%, Expert (10) over Normal ≥ 75% |
 | `NoPeekingTest` | Same public view, different hidden enemy cards → same answer at every strength 1–10; the determinizer keeps every public fact and samples only consistent upgrade histories |
 | `DecisionKindsTest` | Every `DecisionKind` gets a legal answer at every strength: in AI games (every strength plays), a Clear action's token choice, and built questions of every kind |
-| `AiSmokeTest` | Full AI games finish: every level, Long, 1v1, 2v1 with a Handicap card, the double-lane map |
+| `AiSmokeTest` | Full AI games finish: every level, Long, 1v1, 2v1 with a Handicap card, the double-lane map, 3v3 (Forgotten Island), 4v4 and 5v5 (Across the River) at Normal and 4v4 on Forgotten Island at Hard |
+| `SampleRunnerTest` | A threaded `SampleRunner` gives the same answers as the sequential one (40 decisions of a 3v3 game at strength 8) |
 | `AllHeroesAiTest` | 16 seeded AI-vs-AI games over shuffled line-ups that seat each of the 32 heroes twice (Easy, Normal, Hard, two at Expert): all finish, every answer accepted (2026-10-24: 5–15 rounds, all three win types) |
 | `CoachTest` | Nudges on hand-built blunders (no defense, too weak a defense, walking into a revealed attack) and silence on the right choices; turning points of a finished game |
 | `CoachAheadTest` | `prepare` + `nudge(analysis, …)` equals `nudge` on the blunder positions (every option) and on every answer of a game (every option of the first long lists); the session is unchanged; the answer-time cost |
 | `CoachSurveyTest` | The coach speaks on fewer than 15% of a weak player's decisions, on mixed line-ups (`AI_COACH_GAMES` for more games) |
-| `TimingTest` | Decision times per strength over mixed line-ups, the slowest heroes (`AI_TIMING_GAMES=8 AI_TIMING_STRENGTHS=…` prints the table above) |
+| `TimingTest` | Decision times per strength over mixed line-ups, the slowest heroes and the work per card play (`AI_TIMING_GAMES=8 AI_TIMING_STRENGTHS=… AI_TIMING_FORMAT=3v3` prints the tables above; `AI_TIMING_THREADS=3` with a threaded runner, `AI_TIMING_VARIANT=s10+race=3` a profile variant) |
 | `ControllerStrengthTest` | A save with only a level loads as its strength; strengths round-trip; the bands |
-| `TournamentTest`, `ExperimentTest`, `GameLogTest`, `UsageTest` | Opt-in (`AI_TOURNAMENT` / `AI_MIXED` with `AI_PAIRS=6:5,…`, `AI_EXPERIMENT=s10+samples=24:s10`, `AI_LOG`, `AI_USAGE` environment variables): long tournaments between strengths (per-hero rates; `AI_GAMES=<hero>` lists the games; a failing game is reported with its line-up and seed), profile variants (any knob or `x<TERM>=` scale), one game's log (a mixed or explicit line-up; `AI_LOG_DECISIONS`, `AI_LOG_VALUES` also for defenses, `AI_LOG_LEAVES=<hero>`), each card's actions, defeats and kills per hero |
-| `FitTest`, `BlunderTest` | Opt-in (`AI_FIT=<games>:<strength>`, `AI_BLUNDERS=<strength>:<games>`): the evaluation's parts fitted to self-play outcomes (above); plays a decent player would call blunders, judged on the real game — a defense declined or too weak while one would hold, an action that defeats an enemy hero passed over, a move into a defeat another destination avoided |
+| `TournamentTest`, `ExperimentTest`, `GameLogTest`, `UsageTest` | Opt-in (`AI_TOURNAMENT` / `AI_MIXED` with `AI_PAIRS=6:5,…`, `AI_EXPERIMENT=s10+samples=24:s10`, `AI_LOG`, `AI_USAGE` environment variables; `AI_FORMAT=3v3` for bigger teams, `AI_KEEP_GOING` and `AI_DUMP_DIR` for long runs, `AI_PROGRESS` a line per game; variants also `work=`, `race=`, `defenseless=`, `focus=`, `hunt=a/b/c`, `pp=`): long tournaments between strengths (per-hero rates; `AI_GAMES=<hero>` lists the games; a failing game is reported with its line-up and seed), profile variants (any knob or `x<TERM>=` scale), one game's log (a mixed or explicit line-up; `AI_LOG_DECISIONS`, `AI_LOG_VALUES` also for defenses, `AI_LOG_LEAVES=<hero>`), each card's actions, defeats and kills per hero |
+| `FingerprintTest`, `CrashReproTest` | Opt-in (`AI_FINGERPRINT=<variant>:<games>`, `AI_REPRO=<dump>\|<variant>\|<seed>`): a hash of every answer of deterministic games (a change meant only to be faster must keep them); a crashed game's decision asked again from its dump |
+| `FitTest`, `BlunderTest` | Opt-in (`AI_FIT=<games>:<strength>`, `AI_BLUNDERS=<strength>:<games>`, `AI_FORMAT`): the evaluation's parts fitted to self-play outcomes (above); plays a decent player would call blunders, judged on the real game — a defense declined or too weak while one would hold, an action that defeats an enemy hero passed over, a move into a defeat another destination avoided |

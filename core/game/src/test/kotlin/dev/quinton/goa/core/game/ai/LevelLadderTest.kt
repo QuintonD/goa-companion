@@ -14,9 +14,9 @@ import org.junit.Test
  */
 class LevelLadderTest {
     private fun ladder(a: Int, b: Int, atLeast: Double) {
-        val mixed = Tournament.runMixed(Tournament.strength(a), Tournament.strength(b), 12, 6, FIRST_LINEUP)
+        val mixed = Tournament.runMixed(Tournament.strength(a), Tournament.strength(b), 12, 4, FIRST_LINEUP)
         println("LADDER mixed $mixed")
-        val first = Tournament.run(Tournament.strength(a), Tournament.strength(b), seeds = 1, threads = 6)
+        val first = Tournament.run(Tournament.strength(a), Tournament.strength(b), seeds = 1, threads = 4)
         println("LADDER first-game heroes $first")
         val rate = (mixed.aWins + first.aWins + 0.5 * (mixed.draws + first.draws)) / (mixed.games + first.games)
         assertThat(rate).isAtLeast(atLeast)

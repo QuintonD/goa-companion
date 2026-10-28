@@ -412,7 +412,12 @@ fun Game.fastTravelDestinations(heroId: String): List<Hex> {
 
 /** p.18 "Place": into an empty space; not movement. Checks displacement limits for others' pieces. */
 fun Game.place(id: String, to: Hex, byHero: String? = actor) {
-    check(isEmpty(to, id)) { "Place into a non-empty space $to" }
+    check(isEmpty(to, id)) {
+        val q = SpaceQuery(to, id, actor)
+        val by = sources().firstOrNull { (b, s) -> b.countsAsObstacle(this, s, q) }?.second
+        "Place into a non-empty space $to (occupant ${occupant(to)}, obstacle by ${by?.key}, " +
+            "interact ${canInteract(to)}, actor $actor)"
+    }
     val from = posOf(id)
     setPos(id, to)
     val away = from?.let { HexGrid.distance(it, to) }
@@ -655,8 +660,14 @@ fun Game.spawnPiece(piece: PieceState, to: Hex) {
  * hero, when the piece isn't on the board yet): a space that counts as an obstacle for that side's
  * units (Takahide's Blade) is not empty for it either, and [place] would refuse it.
  */
-fun Game.canSpawnInto(hex: Hex, asUnit: String? = null): Boolean =
-    isEmpty(hex, asUnit) || (isSpawnPoint(hex) && occupant(hex)?.let { state.piece(it)?.token } == true)
+fun Game.canSpawnInto(hex: Hex, asUnit: String? = null): Boolean {
+    if (isEmpty(hex, asUnit)) return true
+    val token = occupant(hex)?.takeIf { isSpawnPoint(hex) && state.piece(it)?.token == true } ?: return false
+    // The token is removed first (p.19); the space must then be empty for the unit: an effect that
+    // makes it an obstacle for this side or this actor (Static Barrier, Spinning Blade) still counts.
+    val q = SpaceQuery(hex, asUnit, actor)
+    return sources().none { (b, s) -> s.piece?.id != token && b.countsAsObstacle(this, s, q) } && canInteract(hex)
+}
 
 /** Throne Zones and Spawn points (p.6, p.19). */
 fun Game.isSpawnPoint(hex: Hex): Boolean = geo.spaces[hex]?.spawn != null

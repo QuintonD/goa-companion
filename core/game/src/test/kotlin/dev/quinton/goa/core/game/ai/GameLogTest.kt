@@ -10,25 +10,34 @@ import org.junit.Test
 /**
  * Opt-in: `AI_LOG=RED_LEVEL:BLUE_LEVEL[:seed[:lineup]]` prints one game's log, to read how a level
  * plays. The line-up is an index into the first-game line-ups, `m<i>` for the i-th mixed line-up, or
- * four hero ids joined by `+` (Red, Red, Blue, Blue). `AI_LOG_DECISIONS` also prints every choice.
+ * hero ids joined by `+` (Red first, then Blue). A side is a level or a variant as in [ExperimentTest]
+ * (`s10`, `s10+hunt=0/2/1.5`); `AI_FORMAT=3v3` for bigger teams. `AI_LOG_DECISIONS` also prints every choice.
  */
 class GameLogTest {
     @Test
     fun `print one game`() {
         val spec = System.getenv("AI_LOG")?.split(":") ?: return
-        val red = AiLevel.valueOf(spec[0])
-        val blue = AiLevel.valueOf(spec[1])
         val seed = spec.getOrNull(2)?.toLong() ?: 1L
         val l = spec.getOrNull(3) ?: "0"
+        val format = AiHarness.Format.parse(System.getenv("AI_FORMAT"))
         val (r, b) = when {
-            "+" in l -> l.split("+").let { it.take(2) to it.drop(2) }
-            l.startsWith("m") -> AiHarness.mixedLineups(l.drop(1).toInt() + 1).last()
+            "+" in l -> l.split("+").let { it.take(it.size / 2) to it.drop(it.size / 2) }
+            l.startsWith("m") -> AiHarness.mixedLineups(l.drop(1).toInt() + 1, size = format.size).last()
             else -> AiHarness.LINEUPS[l.toInt()]
         }
-        val s = TestData.engine.newGame(AiHarness.setup(r, b, red, blue, Team.RED))
+        // A side is a level (HARD) or a strength or variant as in [ExperimentTest] (s10+hunt=0/2/1.5).
+        fun side(x: String): Pair<AiLevel, (Long) -> dev.quinton.goa.core.game.AiPlayer> =
+            AiLevel.entries.firstOrNull { it.name == x }?.let { lv ->
+                lv to
+                    { sd: Long -> AiPlayers.deterministic(lv, sd) }
+            }
+                ?: ExperimentTest.side(x).let { sd -> AiLevel.HARD to sd.factory }
+        val (red, redPlayer) = side(spec[0])
+        val (blue, bluePlayer) = side(spec[1])
+        val s = TestData.engine.newGame(AiHarness.setup(r, b, red, blue, Team.RED, format.length, format.mapId))
         val players = mapOf(
-            Team.RED to AiPlayers.deterministic(red, seed),
-            Team.BLUE to AiPlayers.deterministic(blue, seed + 1),
+            Team.RED to redPlayer(seed),
+            Team.BLUE to bluePlayer(seed + 1),
         )
         val decisions = System.getenv("AI_LOG_DECISIONS") != null
         // AI_LOG_VALUES: Hard-level playout values of every option of card plays and actions.
@@ -40,7 +49,7 @@ class GameLogTest {
             AiPlayers.profile(AiLevel.HARD),
             keepLeaves = leavesOf != null,
         )
-        println("LOG Red ${r.joinToString()} ($red) vs Blue ${b.joinToString()} ($blue)")
+        println("LOG Red ${r.joinToString()} (${spec[0]}) vs Blue ${b.joinToString()} (${spec[1]})")
         var printed = 0
         var n = 0
         while (n < 8000) {
