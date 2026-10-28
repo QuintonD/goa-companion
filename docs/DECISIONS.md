@@ -1682,3 +1682,29 @@ app.js before anything is usable (1 MB gzipped: ~7 s on Fast 3G); the next step 
 second, lighter entry, not worth it today. Tests: `r3-first-load.spec.ts` (images before the
 precache, WOFF2 only, no QR chunk until Invite, an update re-downloads nothing unchanged, the copies
 and their fallback), `ThumbnailsTest`, `OfflinePlanTest`, `WebThumbnailsTest`.
+
+**Addendum (R3 hands-on, 2026-10-26):** A game night played on the web as a group would (WebKit
+iPhone 15 from the Home Screen and a 375 × 667 SE in Safari, a local `server/relay`, the phone's sync
+code on the JVM before and after; `web/e2e/scripts/r3-game-night.mjs`). Join from the phone's invite,
+ratings, draft, the timer with the screen off two minutes mid-phase (it counted from its timestamps),
+the result synced to the other iPhone and the phone with the same ratings, trivia, board, the computer
+at 5 and 10, a puzzle with nudges, offline and back all worked. What a player hit, now fixed:
+1. **One Tie Breaker coin.** Match setup and the draft's coin step drew ◆ / ●; `CoinFace` now draws the
+   game table's `TieBreakerCoin` (the printed face, ADR-042) on its bronze disc.
+2. **Spaces offered alike read apart** (shared `TableUi.label`, so the phone too): when two offered
+   spaces read the same ("Lane Zone 2 · 1 space from Brogan"), each adds what stands next to it,
+   heroes first. VoiceOver, the Confirm button and a nudge's hint named three identical spaces before.
+3. **Screens that swap their body start at the top** (`ScrollToTopOnStep`): New game's options,
+   trivia's results and the finished draft opened at the old scroll offset.
+4. **Class names are per stream where looks differ.** Play's `.goa-radio-row` and `.goa-card` restyled
+   the catalog's Sort sheet and every `GoaCard`; they are `.goa-play-radio-row` / `.goa-play-card` now.
+5. **Focus never stops under a bar:** the sticky top bar, the draft's banner and the pinned footers
+   publish their heights (`publishHeight`), and the page's `scroll-padding` follows them, so a control
+   reached by VoiceOver, Tab or the keyboard's next-field arrows is scrolled into the free part.
+6. **Small screens:** the running timer's bar moves Levels and the view switch into More below 30rem
+   (it cut "Round 1"); on a phone on its side the tab bar is compact (48px, label beside the icon) and
+   New game's step bar scrolls with the page; at 200 % text chips and section notes wrap instead of
+   pushing the page sideways; the game panel's Hide has a 44pt hit area.
+Not changed: the map's floating Fit / Flip buttons can sit over a piece at the screen's edge (as on the
+phone; pan or Fit); the on-screen keyboard itself can't be emulated in Playwright, so fields in bottom
+sheets above it are left for the device pass.

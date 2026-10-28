@@ -58,6 +58,8 @@ import dev.quinton.goa.web.ui.IconButton
 import dev.quinton.goa.web.ui.Load
 import dev.quinton.goa.web.ui.LoadContent
 import dev.quinton.goa.web.ui.Screen
+import dev.quinton.goa.web.ui.ScrollToTopOnStep
+import dev.quinton.goa.web.ui.publishHeight
 import dev.quinton.goa.web.ui.rememberLoad
 import kotlin.random.Random
 import kotlinx.coroutines.flow.first
@@ -190,6 +192,7 @@ private fun NewGameForm(route: Route.NewGame, inputs: NewGameInputs) {
             }
         },
     ) {
+        ScrollToTopOnStep(options)
         if (options) {
             OptionsStep(form, inputs, controls, control, map, ::act)
         } else {
@@ -343,7 +346,7 @@ private fun OptionsStep(
     }
     Overline("You play")
     Div({
-        classes("goa-radio-list")
+        classes("goa-play-radio-list")
         attr("role", "radiogroup")
         attr("aria-label", "You play")
     }) {
@@ -351,7 +354,7 @@ private fun OptionsStep(
             val selected = option == control
             val (title, note) = controlText(form, option, inputs)
             Button({
-                classes("goa-radio-row")
+                classes("goa-play-radio-row")
                 if (selected) classes("selected")
                 attr("type", "button")
                 attr("role", "radio")
@@ -413,14 +416,14 @@ private fun OptionsStep(
     Quiet(PlayText.lengthNote(form.length))
     Overline("Map")
     Div({
-        classes("goa-radio-list")
+        classes("goa-play-radio-list")
         attr("role", "radiogroup")
         attr("aria-label", "Map")
     }) {
         inputs.playableMaps.forEach { m ->
             val selected = m.id == map.id
             Button({
-                classes("goa-radio-row")
+                classes("goa-play-radio-row")
                 if (selected) classes("selected")
                 attr("type", "button")
                 attr("role", "radio")
@@ -452,7 +455,10 @@ private fun OptionsStep(
             onChange { act(NewGameAction.SetCoach(it.value)) }
         }
     }
-    Div({ classes("goa-step-bar") }) {
+    Div({
+        classes("goa-step-bar")
+        publishHeight("--pinned-footer")
+    }) {
         if (inputs.replacesGame) Quiet("Starting replaces the game in progress.")
         GoaButton("Flip the Tie Breaker coin", { act(NewGameAction.FlipCoin) }, enabled = control != null, block = true)
     }

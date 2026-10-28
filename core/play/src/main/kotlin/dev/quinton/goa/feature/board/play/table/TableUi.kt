@@ -178,7 +178,7 @@ data class TableUi(
 
     /** What a choice is, in words: for buttons, TalkBack and the Confirm button. */
     fun label(choice: Choice): String = when (choice) {
-        is Choice.Space -> spaceLabel(choice.hex)
+        is Choice.Space -> distinctSpaceLabel(choice.hex)
         is Choice.Unit -> distinctPieceName(choice.unitId)
         is Choice.Token -> distinctPieceName(choice.tokenId)
         is Choice.Card -> card(choice.cardId)?.name ?: "Unknown card"
@@ -196,6 +196,24 @@ data class TableUi(
         val twins = pieceOptions.keys.count { it != id && pieceName(it) == name }
         val at = at(id)
         return if (twins > 0 && at != null) "$name · ${spaceLabel(at)}" else name
+    }
+
+    /**
+     * A space's words, with what stands next to it when another offered space reads the same
+     * ("Lane Zone 2 · 1 space from Brogan · next to Wasp"): three spaces around Brogan all read
+     * "Lane Zone 2 · 1 space from Brogan", and a screen reader or the puzzle's hint told the player
+     * nothing about which one.
+     */
+    private fun distinctSpaceLabel(hex: Hex): String {
+        val label = spaceLabel(hex)
+        if (spaceOptions.keys.none { it != hex && spaceLabel(it) == label }) return label
+        val from = subject ?: decision?.seat
+        val standing = occupancy
+        // Heroes first: "next to Wasp, Blue Heavy minion".
+        val beside = HexGrid.neighbors(hex).mapNotNull { standing[it] }.filter { it != from }
+            .sortedBy { id -> view.heroes.none { it.heroId == id } }
+            .map(::pieceName).distinct()
+        return if (beside.isEmpty()) label else "$label · next to ${beside.joinToString(", ")}"
     }
 
     /** "Lane Zone 2 · 3 spaces from Arien". */

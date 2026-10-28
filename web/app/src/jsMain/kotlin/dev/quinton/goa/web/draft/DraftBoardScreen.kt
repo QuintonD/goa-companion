@@ -44,6 +44,8 @@ import dev.quinton.goa.web.ui.IconButton
 import dev.quinton.goa.web.ui.IconSize
 import dev.quinton.goa.web.ui.LoadingState
 import dev.quinton.goa.web.ui.Screen
+import dev.quinton.goa.web.ui.ScrollToTopOnStep
+import dev.quinton.goa.web.ui.publishHeight
 import org.jetbrains.compose.web.attributes.ButtonType
 import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.attributes.disabled
@@ -122,6 +124,8 @@ fun DraftBoardScreen() {
         },
         flush = true,
     ) {
+        // The finished line-up replaces the board in place: start at "Draft complete", not part way down.
+        ScrollToTopOnStep(board?.isComplete == true)
         when {
             state.loading -> LoadingState()
 
@@ -198,7 +202,10 @@ private fun HeroBoard(state: BoardUiState, session: DraftSession, model: DraftBo
     val concealed = remember(session) { session.concealedIds() }
     Div({ classes("goa-draft-board") }) {
         // Sticky: whose turn it is stays on screen however far the pool is scrolled.
-        Div({ classes("goa-draft-banner-slot") }) { StepBanner(session, state) }
+        Div({
+            classes("goa-draft-banner-slot")
+            publishHeight("--pinned-top")
+        }) { StepBanner(session, state) }
         Div({ classes("goa-draft-side") }) {
             SequenceStrip(tokens, current = session.currentStepIndex, wrap = false)
             if (session.canEditPool) PoolEditBanner(session, model)

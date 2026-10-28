@@ -154,7 +154,10 @@ fun Screen(
         // A board: exactly the window's height (compact title bar), the content lays itself out.
         if (fill) classes("fill")
     }) {
-        Header({ classes("goa-topbar") }) {
+        Header({
+            classes("goa-topbar")
+            publishHeight("--topbar-height")
+        }) {
             Div({ classes("goa-topbar-row") }) {
                 if (showBack ?: router.canGoBack) {
                     IconButton("back", "Back", onClick = { onBack?.invoke() ?: router.back() }, extraClass = "nav")
