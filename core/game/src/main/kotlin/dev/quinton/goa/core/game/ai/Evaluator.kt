@@ -71,12 +71,12 @@ internal data class EvalKnobs(
      */
     val focusFire: Boolean = false,
     /**
-     * In teams of [Evaluator.BIG_TEAM] or more: a hero with no card left to defend with (now, or after
-     * the card it still has to play) has its exposure counted at least at this scale, whatever
-     * [scales] says (0 = no floor). With three enemies one strips the cards and another kills next
-     * turn, beyond the playouts' horizon (AI.md "Team sizes"); in 2v2 it measured no better.
+     * By heroes a side: a hero with no card left to defend with (now, or after the card it still has
+     * to play) has its exposure counted at least at this scale, whatever [scales] says (missing = no
+     * floor). With three enemies one strips the cards and another kills next turn, beyond the
+     * playouts' horizon (AI.md "Team sizes"); in 2v2 it measured no better, 4v4 is not measured.
      */
-    val defenseless: Double = 0.0,
+    val defenselessBySize: Map<Int, Double> = emptyMap(),
 )
 
 /** The parts of the evaluation (Red minus Blue), each in coin-equivalents; their sum is the score. */
@@ -118,9 +118,6 @@ internal class Evaluator(val data: EngineData, val knobs: EvalKnobs = EvalKnobs(
         const val PIECE_ROUND: Double = 0.8
         const val PIECE_NEAR: Double = 0.4
         const val PIECES_COUNTED: Int = 4
-
-        /** Heroes a side from which [EvalKnobs.defenseless] applies. */
-        const val BIG_TEAM: Int = 3
 
         fun sigmoid(x: Double): Double = 1.0 / (1.0 + exp(-x))
 
@@ -566,10 +563,10 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
     /** A hero's exposure weight on top of the term's scale: per team, and the floor for a defenseless hero. */
     private fun exposureWeight(hi: HeroInfo): Double {
         val w = exposureScale(hi.h.team)
-        if (knobs.defenseless <= 0.0 || roundOver) return w
+        if (knobs.defenselessBySize.isEmpty() || roundOver) return w
         if (hi.defenseNow.cards > 0 && hi.defenseNext.cards > 0) return w
-        if (state.heroes.count { it.team == hi.h.team } < Evaluator.BIG_TEAM) return w
-        return w * max(1.0, knobs.defenseless / scale(Term.EXPOSURE))
+        val floor = knobs.defenselessBySize[state.heroes.count { it.team == hi.h.team }] ?: return w
+        return w * max(1.0, floor / scale(Term.EXPOSURE))
     }
 
     private fun lifeScale(team: Team): Double = knobs.lifeByTeam[team] ?: 1.0

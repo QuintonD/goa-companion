@@ -129,7 +129,10 @@ class ExperimentTest {
 
                 "race" -> p.copy(race = v.toDouble())
 
-                "defenseless" -> p.copy(knobs = kn.copy(defenseless = v.toDouble()))
+                // defenseless=1.0: the floor at 3 heroes a side, as measured (0 = none); def<n>=v for n heroes.
+                "defenseless" -> p.copy(
+                    knobs = kn.copy(defenselessBySize = if (v.toDouble() > 0) mapOf(3 to v.toDouble()) else emptyMap()),
+                )
 
                 "tempo" -> p.copy(knobs = kn.copy(killTempo = v.toDouble()))
 
@@ -144,6 +147,9 @@ class ExperimentTest {
                 else -> if (k.startsWith("pp") && k.drop(2).toIntOrNull() != null) {
                     val bySize = kn.pushPerAttackBySize + (k.drop(2).toInt() to v.toDouble())
                     p.copy(knobs = kn.copy(pushPerAttackBySize = bySize))
+                } else if (k.startsWith("def") && k.drop(3).toIntOrNull() != null) {
+                    val bySize = kn.defenselessBySize + (k.drop(3).toInt() to v.toDouble())
+                    p.copy(knobs = kn.copy(defenselessBySize = bySize))
                 } else {
                     error("Unknown override $k")
                 }

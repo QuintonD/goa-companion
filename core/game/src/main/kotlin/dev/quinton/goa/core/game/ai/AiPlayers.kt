@@ -54,13 +54,15 @@ object AiPlayers {
     /**
      * The evaluation the searching strengths (5 and up) use: a hero's exposure counts 0.3 of its
      * hand-made weight and its minion opportunities twice (fitted to self-play outcomes and measured,
-     * AI.md "Evaluation" and "What changed in v0.7"); in 3v3 each attack card left counts 0.35 of a
-     * minion of Push Potential instead of 0.5 (v0.9, AI.md "Team sizes"). The other 3v3 candidates of
-     * v0.9 (a defenseless hero's full exposure, racing) measured even and are off.
+     * AI.md "Evaluation" and "What changed in v0.7"). In 3v3 (v0.9, AI.md "Team sizes") each attack
+     * card left counts 0.35 of a minion of Push Potential instead of 0.5, and a hero with no card left
+     * to defend with counts its full exposure: together 57.8% and 53.1% against the v0.8 strength 10
+     * over two sets of 192 held-out games, with fewer heroes lost to a kill-hunting opponent.
      */
     internal val TUNED: EvalKnobs = EvalKnobs(
         scales = mapOf(Term.EXPOSURE to 0.3, Term.OPPORTUNITY to 2.0),
         pushPerAttackBySize = mapOf(3 to 0.35),
+        defenselessBySize = mapOf(3 to 1.0),
     )
 
     /** What each strength does (AI.md "Strengths"); the measured ladder is in AI.md. */
