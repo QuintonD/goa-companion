@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import org.jetbrains.compose.web.dom.Button
 import org.jetbrains.compose.web.dom.Div
+import org.jetbrains.compose.web.dom.P
 import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
 import org.w3c.dom.Element
@@ -112,20 +113,29 @@ fun NewBoardScreen(route: Route.NewBoard) {
         }) { router.navigate(openRoute(it)) }
     }
     if (state != null && sources) {
-        BottomSheet("Use a draft or match", onDismiss = { sources = false }) {
-            Span({ classes("t-body-medium", "goa-board-muted") }) { Text("Fills both teams in pick order.") }
-            RowList {
-                state.sources.forEach { source ->
-                    ListRow(
-                        title = listOf(source.red, source.blue).filter { it.isNotEmpty() }
-                            .joinToString(" vs ") { team -> team.joinToString(", ") { it.name } },
-                        subtitle = "${source.kind.label} · ${shortDay(source.at)}",
-                        onClick = {
-                            onAction(NewBoardAction.Use(source))
-                            sources = false
-                        },
-                    )
-                }
+        SourcesSheet(state.sources, onUse = { onAction(NewBoardAction.Use(it)) }, onDismiss = { sources = false })
+    }
+}
+
+/** "Use a draft or match": finished drafts and logged matches, newest first (New board and New game). */
+@Composable
+internal fun SourcesSheet(sources: List<LineupSource>, onUse: (LineupSource) -> Unit, onDismiss: () -> Unit) {
+    BottomSheet("Use a draft or match", onDismiss = onDismiss) {
+        Span({ classes("t-body-medium", "goa-board-muted") }) { Text("Fills both teams in pick order.") }
+        if (sources.isEmpty()) {
+            P({ classes("t-body-medium") }) { Text("Finished drafts and logged matches appear here.") }
+        }
+        RowList {
+            sources.forEach { source ->
+                ListRow(
+                    title = listOf(source.red, source.blue).filter { it.isNotEmpty() }
+                        .joinToString(" vs ") { team -> team.joinToString(", ") { it.name } },
+                    subtitle = "${source.kind.label} · ${shortDay(source.at)}",
+                    onClick = {
+                        onUse(source)
+                        onDismiss()
+                    },
+                )
             }
         }
     }

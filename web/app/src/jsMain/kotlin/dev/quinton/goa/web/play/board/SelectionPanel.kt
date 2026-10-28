@@ -170,7 +170,7 @@ private fun HeroMeasures(
     if (card != null && card.text.isNotBlank()) {
         Overline("Card text")
         ParchmentPanel {
-            card.text.split('\n').forEach { line -> P { Text(line.removePrefix("~")) } }
+            dev.quinton.goa.web.catalog.CardTextView(card.text, "t-printed-small")
         }
         Note("The app measures; it never applies a card's effect. Read the card and move the pieces.")
     }

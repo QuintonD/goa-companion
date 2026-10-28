@@ -1,7 +1,6 @@
 package dev.quinton.goa.web.timer
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,7 +32,6 @@ import dev.quinton.goa.web.ui.IconLink
 import dev.quinton.goa.web.ui.IconSize
 import dev.quinton.goa.web.ui.LoadingState
 import dev.quinton.goa.web.ui.Screen
-import kotlinx.browser.document
 import org.jetbrains.compose.web.attributes.ButtonType
 import org.jetbrains.compose.web.attributes.type
 import org.jetbrains.compose.web.dom.Button
@@ -42,7 +40,6 @@ import org.jetbrains.compose.web.dom.H2
 import org.jetbrains.compose.web.dom.P
 import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
-import org.w3c.dom.events.Event
 
 /**
  * The Timer tab: the start card (preset, tonight's turn length, pending matches), the running
@@ -55,14 +52,7 @@ fun TimerScreen() {
     val model = remember { TimerModel(services, scope) }
     val state by model.uiState.collectAsState()
     val error by model.loadError.collectAsState()
-    // Back on the page (unlocked phone, another app): catch up with the clock at once.
-    DisposableEffect(model) {
-        val listener: (Event) -> Unit = {
-            if (document.asDynamic().visibilityState == "visible") model.resync()
-        }
-        document.addEventListener("visibilitychange", listener)
-        onDispose { document.removeEventListener("visibilitychange", listener) }
-    }
+    // Back on the page after it was hidden, the shell catches up with the clock (TimerBackground).
     val active = state.active
     val summary = state.summary
     val start = state.start

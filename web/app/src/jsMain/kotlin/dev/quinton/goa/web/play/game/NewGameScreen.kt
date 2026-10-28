@@ -27,6 +27,7 @@ import dev.quinton.goa.feature.board.play.setup.NewGameForms
 import dev.quinton.goa.feature.board.play.setup.NewGameRules
 import dev.quinton.goa.feature.board.play.setup.NewGameStep
 import dev.quinton.goa.feature.board.play.setup.lineupNote
+import dev.quinton.goa.feature.board.setup.LineupPicker
 import dev.quinton.goa.feature.board.setup.LineupSource
 import dev.quinton.goa.feature.board.setup.MapOption
 import dev.quinton.goa.feature.board.setup.NewBoardAction
@@ -34,10 +35,15 @@ import dev.quinton.goa.feature.board.setup.NewBoardForm
 import dev.quinton.goa.feature.board.setup.NewBoardRules
 import dev.quinton.goa.feature.board.setup.lineupSources
 import dev.quinton.goa.web.LocalServices
+import dev.quinton.goa.web.catalog.UnverifiedBadge
 import dev.quinton.goa.web.engine.EngineRequest
 import dev.quinton.goa.web.engine.EngineResponse
 import dev.quinton.goa.web.nav.Route
-import dev.quinton.goa.web.play.table.HeroPortrait
+import dev.quinton.goa.web.play.board.HeroGrid
+import dev.quinton.goa.web.play.board.SearchField
+import dev.quinton.goa.web.play.board.SourcesSheet
+import dev.quinton.goa.web.play.board.TeamSwitch
+import dev.quinton.goa.web.play.board.Teams
 import dev.quinton.goa.web.play.table.Overline
 import dev.quinton.goa.web.play.table.Quiet
 import dev.quinton.goa.web.play.table.teamCss
@@ -45,7 +51,6 @@ import dev.quinton.goa.web.play.ui.TeamMark
 import dev.quinton.goa.web.play.ui.TieBreakerCoin
 import dev.quinton.goa.web.storage.scoped
 import dev.quinton.goa.web.ui.AlertDialog
-import dev.quinton.goa.web.ui.BottomSheet
 import dev.quinton.goa.web.ui.ButtonKind
 import dev.quinton.goa.web.ui.EmptyState
 import dev.quinton.goa.web.ui.GoaButton
@@ -126,8 +131,9 @@ fun NewGameScreen(route: Route.NewGame) {
                 EmptyState(
                     "swords",
                     "Playing against the computer is coming",
-                    "The app is learning every rule and every card. Heroes join as soon as each of their " +
-                        "cards is tested.",
+                    "The app is learning every rule and every card. Heroes join as soon as each of their cards " +
+                        "is built and tested, so the computer never plays a card wrong. Until then, set up " +
+                        "positions on the board.",
                 )
             }
         } else {
@@ -172,9 +178,14 @@ private fun NewGameForm(route: Route.NewGame, inputs: NewGameInputs) {
     val options = form.step == NewGameStep.OPTIONS && canContinue
     Screen(
         if (options) "Game options" else "New game",
+        fill = !options,
+        // As on the phone: Back from the options returns to the line-up.
+        onBack = if (options) ({ act(NewGameAction.Step(NewGameStep.LINEUP)) }) else null,
         actions = {
             if (!options) {
-                IconButton("restart", "Clear the line-up", { act(NewGameAction.Lineup(NewBoardAction.Clear)) })
+                if (form.lineup.red.isNotEmpty() || form.lineup.blue.isNotEmpty()) {
+                    GoaButton("Clear", { act(NewGameAction.Lineup(NewBoardAction.Clear)) }, ButtonKind.TEXT)
+                }
                 if (inputs.sources.isNotEmpty()) IconButton("list", "Use a draft or match", { sourcesOpen = true })
             }
         },
@@ -186,26 +197,9 @@ private fun NewGameForm(route: Route.NewGame, inputs: NewGameInputs) {
         }
     }
     if (sourcesOpen) {
-        BottomSheet("Use a draft or match", onDismiss = { sourcesOpen = false }) {
-            inputs.sources.forEach { source ->
-                Button({
-                    classes("goa-source-row")
-                    attr("type", "button")
-                    onClick {
-                        act(NewGameAction.Lineup(NewBoardAction.Use(source)))
-                        sourcesOpen = false
-                    }
-                }) {
-                    Span({ classes("t-overline", "goa-table-overline") }) { Text(source.kind.label) }
-                    Span({ classes("t-body-medium") }) {
-                        Text(
-                            source.red.joinToString(", ") { it.name } + " vs " +
-                                source.blue.joinToString(", ") { it.name },
-                        )
-                    }
-                }
-            }
-        }
+        SourcesSheet(inputs.sources, onUse = { act(NewGameAction.Lineup(NewBoardAction.Use(it))) }, onDismiss = {
+            sourcesOpen = false
+        })
     }
     val coin = form.coin
     if (coin != null) {
@@ -252,6 +246,12 @@ private fun NewGameForm(route: Route.NewGame, inputs: NewGameInputs) {
     }
 }
 
+/**
+ * The phone's line-up step: both teams in pick order (move a pick earlier, later or to the other team),
+ * search with "Adding to Red | Blue", the hero grid (heroes not playable yet veiled, "Later"), the
+ * line-up's size and Next. The same Teams, HeroGrid and TeamSwitch as New board, over the picker the
+ * phone's NewGameViewModel builds.
+ */
 @Composable
 private fun LineupStep(
     form: NewGameForm,
@@ -262,115 +262,59 @@ private fun LineupStep(
 ) {
     val lineup = form.lineup
     var query by remember { mutableStateOf("") }
-    Div({ classes("goa-lineup") }) {
-        Team.entries.forEach { team ->
-            val ids = lineup.team(team)
-            Div({ classes("goa-lineup-team", teamCss(team)) }) {
-                P({ classes("t-overline", "goa-team-label") }) {
-                    TeamMark(team)
-                    Text(" ${BoardText.team(team)}")
-                }
-                if (ids.isEmpty()) Quiet("No hero yet")
-                ids.forEach { id ->
-                    val hero = inputs.heroes.hero(id)
-                    Div({ classes("goa-lineup-hero") }) {
-                        HeroPortrait(hero, team, 32)
-                        Span({ classes("t-label-large", "name") }) { Text(hero.name) }
-                        IconButton("flip", "Move ${hero.name} to the other team", {
-                            act(NewGameAction.Lineup(NewBoardAction.SwitchTeam(id)))
-                        })
-                        IconButton("close", "Remove ${hero.name}", {
-                            act(NewGameAction.Lineup(NewBoardAction.Remove(id)))
-                        })
-                    }
-                }
-            }
-        }
-    }
-    P({ classes("t-body-small", "goa-quiet") }) { Text(lineupNote(lineup.red.size, lineup.blue.size)) }
-    Div({ classes("goa-filling") }) {
-        Span({ classes("t-label-large") }) { Text("Adding to") }
-        Div({
-            classes("goa-segmented")
-            attr("role", "radiogroup")
-            attr("aria-label", "Adding to")
-        }) {
-            Team.entries.forEach { team ->
-                Button({
-                    classes("goa-segment", teamCss(team))
-                    if (lineup.filling == team) classes("selected")
-                    attr("type", "button")
-                    attr("role", "radio")
-                    attr("aria-checked", (lineup.filling == team).toString())
-                    onClick { act(NewGameAction.Lineup(NewBoardAction.Fill(team))) }
-                }) {
-                    TeamMark(team)
-                    Text(" ${BoardText.team(team)}")
-                }
-            }
-        }
-        Input(InputType.Search) {
-            classes("goa-search")
-            attr("placeholder", "Search")
-            attr("aria-label", "Search heroes")
-            value(query)
-            onInput { query = it.value }
-        }
-    }
     val all = inputs.heroes.values.sortedWith(compareBy<BoardHero> { it.id in unavailable }.thenBy { it.name })
-    val shown = (if (lineup.showAll) all else all.filter { it.ownedIn(inputs.owned) || lineup.contains(it.id) })
-        .filter { query.isBlank() || it.name.contains(query.trim(), ignoreCase = true) }
-    val later = inputs.heroes.size - inputs.playable.size
-    if (later > 0) {
-        Quiet(
-            "${BoardText.count(
-                inputs.playable.size,
-                "hero",
-            )} can play so far; $later more join as their cards are tested.",
-        )
+    val owned = all.filter { it.ownedIn(inputs.owned) || lineup.contains(it.id) }
+    val listed = if (lineup.showAll) all else owned
+    val picker = LineupPicker(
+        form = lineup,
+        heroes = listed,
+        heroById = inputs.heroes,
+        hiddenHeroes = all.size - listed.size,
+        ownedOnly = inputs.owned.isNotEmpty(),
+        unavailable = unavailable,
+    )
+    val q = query.trim()
+    val shown = listed.filter {
+        q.isEmpty() || it.name.contains(q, ignoreCase = true) || it.title.contains(q, ignoreCase = true)
     }
-    Div({ classes("goa-hero-grid") }) {
-        shown.forEach { hero ->
-            val picked = lineup.contains(hero.id)
-            val team = when (hero.id) {
-                in lineup.red -> Team.RED
-                in lineup.blue -> Team.BLUE
-                else -> null
+    val pick: (NewBoardAction) -> Unit = { act(NewGameAction.Lineup(it)) }
+    Div({ classes("goa-board-new") }) {
+        Div({ classes("goa-board-new-side") }) {
+            Div({ classes("goa-board-new-top") }) {
+                Teams(picker, pick)
+                PlayableNote(inputs)
             }
-            val off = hero.id in unavailable
-            Button({
-                classes("goa-grid-hero")
-                if (picked) classes("picked")
-                if (off) classes("later")
-                attr("type", "button")
-                attr("aria-pressed", picked.toString())
-                attr(
-                    "aria-label",
-                    hero.name + when {
-                        team != null -> ", ${BoardText.team(team)}"
-                        off -> ", coming later"
-                        else -> ""
-                    },
-                )
-                if (off && !picked) attr("aria-disabled", "true")
-                onClick { act(NewGameAction.Lineup(NewBoardAction.Tap(hero.id))) }
-            }) {
-                HeroPortrait(hero, team, 52, dim = off)
-                Span({ classes("goa-grid-name") }) { Text(hero.name) }
-                if (off) Span({ classes("goa-later") }) { Text("Later") }
+            LineupBar(lineup, canContinue, act, extra = "wide")
+        }
+        Div({ classes("goa-board-new-main") }) {
+            Div({ classes("goa-board-new-search") }) {
+                SearchField(query, "Search") { query = it }
+                TeamSwitch(lineup.filling) { pick(NewBoardAction.Fill(it)) }
             }
+            HeroGrid(shown, picker, pick)
+            LineupBar(lineup, canContinue, act, extra = "narrow")
         }
     }
-    val hidden = inputs.heroes.size - inputs.heroes.values.count { it.ownedIn(inputs.owned) || lineup.contains(it.id) }
-    if (inputs.owned.isNotEmpty() && (hidden > 0 || lineup.showAll)) {
-        GoaButton(
-            if (lineup.showAll) "Only the heroes you own" else "Show all heroes ($hidden more)",
-            { act(NewGameAction.Lineup(NewBoardAction.ShowAll(!lineup.showAll))) },
-            ButtonKind.TEXT,
-        )
-    }
-    Div({ classes("goa-step-bar") }) {
-        GoaButton("Next", { act(NewGameAction.Step(NewGameStep.OPTIONS)) }, enabled = canContinue, block = true)
+}
+
+/** How many heroes can be played so far: the rest are veiled in the grid. */
+@Composable
+private fun PlayableNote(inputs: NewGameInputs) {
+    val later = inputs.heroes.size - inputs.playable.size
+    if (later <= 0) return
+    val playable = BoardText.count(inputs.playable.size, "hero")
+    Quiet("$playable can play so far; $later more join as their cards are tested.")
+}
+
+/** The line-up's size in the rulebook's terms (p.20), and Next. */
+@Composable
+private fun LineupBar(lineup: NewBoardForm, canContinue: Boolean, act: (NewGameAction) -> Unit, extra: String) {
+    Div({ classes("goa-board-setup-bar", extra) }) {
+        Div({ classes("goa-lineup-size") }) {
+            P({ classes("t-title-medium") }) { Text("${lineup.red.size} v ${lineup.blue.size}") }
+            P({ classes("t-body-small", "goa-quiet") }) { Text(lineupNote(lineup.red.size, lineup.blue.size)) }
+        }
+        GoaButton("Next", { act(NewGameAction.Step(NewGameStep.OPTIONS)) }, enabled = canContinue)
     }
 }
 
@@ -487,13 +431,14 @@ private fun OptionsStep(
                 Span({ classes("t-body-small", "goa-quiet") }) {
                     Text(if (m.lanes.size > 1) "${m.lanes.size} lanes" else "Single lane")
                 }
+                if (!m.verified) UnverifiedBadge()
             }
         }
     }
     Overline("Coach")
     Label(attrs = { classes("goa-switch-row") }) {
         Span({ classes("goa-switch-text") }) {
-            Span({ classes("t-title-small") }) { Text("Coach") }
+            Span({ classes("t-title-small") }) { Text(if (form.coach) "On" else "Off") }
             Span({ classes("t-body-small", "goa-quiet") }) {
                 Text(
                     "A gentle nudge before a clearly worse choice, and the turning points after the game. It never " +

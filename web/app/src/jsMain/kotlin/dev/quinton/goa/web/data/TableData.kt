@@ -7,6 +7,7 @@ import dev.quinton.goa.web.storage.scoped
 import dev.quinton.goa.web.table.TableAssets
 import dev.quinton.goa.web.timer.TablePrefsStore
 import dev.quinton.goa.web.timer.TimerCues
+import dev.quinton.goa.web.timer.TimerWatch
 import dev.quinton.goa.web.timer.WakeLock
 import dev.quinton.goa.web.timer.WebTimerController
 import dev.quinton.goa.web.timer.WebTimerRepository
@@ -27,6 +28,9 @@ class TableData(private val services: WebServices) {
 
     /** Every timer change goes through here; the match log is read only when a linked session ends. */
     val timer: WebTimerController = WebTimerController(timerStore, matches = { services.group.matches })
+
+    /** The phase-end alarm while the timer screen isn't showing (the shell runs it). */
+    val timerWatch: TimerWatch = TimerWatch(timer)
 
     val drafts: WebDraftRepository = WebDraftRepository(store, assets)
 

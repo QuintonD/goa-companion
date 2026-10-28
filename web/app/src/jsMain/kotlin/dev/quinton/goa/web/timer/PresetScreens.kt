@@ -410,7 +410,7 @@ private fun PhaseCard(
                         it.kind == PresetIssue.Kind.BLANK_PHASE_NAME
                     }
                 ) {
-                    "Give this timer a name."
+                    issues.first { it.kind == PresetIssue.Kind.BLANK_PHASE_NAME }.let(PresetEdits::issueText)
                 } else {
                     null
                 },
@@ -464,7 +464,8 @@ private fun PhaseCard(
                     endStepMenu = true
                 }, ButtonKind.TEXT)
             }
-            issues.mapNotNull(PresetEdits::issueText).forEach {
+            // A blank name is said once, on the Name field.
+            issues.filter { it.kind != PresetIssue.Kind.BLANK_PHASE_NAME }.mapNotNull(PresetEdits::issueText).forEach {
                 P({
                     classes("t-body-small", "c-error")
                     attr("role", "alert")

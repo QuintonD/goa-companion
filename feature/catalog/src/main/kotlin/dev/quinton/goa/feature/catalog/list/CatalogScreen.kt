@@ -91,10 +91,10 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.catalog.CatalogFilter
-import dev.quinton.goa.core.domain.catalog.CatalogSearchIndex
 import dev.quinton.goa.core.domain.catalog.CatalogSort
 import dev.quinton.goa.core.domain.catalog.FilterOptions
 import dev.quinton.goa.core.domain.catalog.activeFilterChips
+import dev.quinton.goa.core.domain.catalog.catalogResultsKey
 import dev.quinton.goa.core.domain.catalog.complexityLabel
 import dev.quinton.goa.core.domain.catalog.label
 import dev.quinton.goa.core.domain.catalog.plural
@@ -474,7 +474,7 @@ private fun Results(
 
 /** What the result list shows; a change scrolls it back to the top. */
 internal fun resultsKey(query: String, controls: CatalogControls): String =
-    "${CatalogSearchIndex.tokenize(query).joinToString(" ")}|${controls.filter}|${controls.sort}"
+    catalogResultsKey(query, controls.filter, controls.sort)
 
 @Composable
 private fun ResultsHeader(title: String, count: Int) {

@@ -21,10 +21,13 @@ import dev.quinton.goa.feature.board.play.review.ReviewTab
 import dev.quinton.goa.feature.board.play.review.ReviewUi
 import dev.quinton.goa.feature.board.play.review.RewindUi
 import dev.quinton.goa.feature.board.play.review.TurnUi
+import dev.quinton.goa.feature.board.play.review.reviewHero
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.spokenCard
+import dev.quinton.goa.feature.board.play.table.ultimateCard
 import dev.quinton.goa.web.play.cards.CardFocusState
 import dev.quinton.goa.web.play.cards.CardImage
+import dev.quinton.goa.web.play.cards.ItemBadge
 import dev.quinton.goa.web.play.map.MapCamera
 import dev.quinton.goa.web.play.map.MapScene
 import dev.quinton.goa.web.play.ui.TeamMark
@@ -131,7 +134,10 @@ private fun NowTab(table: TableUi, review: ReviewUi?, focus: CardFocusState, puz
         if (heroes.isEmpty()) return@forEach
         P({ classes("t-section-head", "goa-team-head", teamCss(team)) }) {
             TeamMark(team)
-            Text(" ${BoardText.team(team)} team")
+            Text(
+                " ${BoardText.team(team)} team" +
+                    if (table.mine.any { table.heroView(it)?.team == team }) " · yours" else "",
+            )
         }
         heroes.forEach { HeroCard(table, it, focus, puzzle) }
     }
@@ -228,57 +234,64 @@ private fun HeroCard(table: TableUi, hero: HeroView, focus: CardFocusState, puzz
                 }
             }
         }
-        P({ classes("t-body-small") }) {
-            Text(
-                listOfNotNull(
-                    "Level ${hero.level}",
-                    BoardText.count(hero.coins, "coin"),
-                    "${BoardText.count(hero.handCount, "card")} in hand",
-                    "Ultimate unlocked".takeIf { hero.ultimate },
-                    hero.itemStats.takeIf { it.isNotEmpty() }?.let { stats ->
-                        "Items: " + stats.joinToString(", ") { "+1 ${PlayText.stat(it)}" }
-                    },
-                ).joinToString(" · "),
-            )
+        // The phone's facts, notes and sections (core:play reviewHero).
+        val words = reviewHero(table, hero, puzzle)
+        Div({ classes("goa-facts") }) {
+            words.facts.forEach { (label, value) -> Fact(label, value) }
         }
-        hero.played?.let { played ->
-            Overline("This turn")
+        if (hero.itemStats.isNotEmpty()) {
+            P({ classes("t-body-small") }) {
+                hero.itemStats.forEach { ItemBadge(it) }
+                Text("Items: " + hero.itemStats.joinToString(", ") { "+1 ${PlayText.stat(it)}" })
+            }
+        }
+        Overline("This turn")
+        val played = hero.played
+        if (played != null) {
             CardRow(listOf(played) + hero.alsoPlayed, table, focus, "${info.name} · This turn")
+            words.inPlayNote?.let { Quiet(it) }
+        } else {
+            words.noCardInPlay?.let { Quiet(it) }
         }
-        if (hero.resolved.isNotEmpty()) {
-            Overline("Resolved this round · Turn slots")
+        Overline("Resolved this round · Turn slots")
+        if (hero.resolved.isEmpty()) {
+            Quiet("None yet")
+        } else {
             CardRow(hero.resolved, table, focus, "${info.name} · Resolved", slots = true)
         }
         if (hero.discard.isNotEmpty()) {
             Overline("Discarded")
             CardRow(hero.discard, table, focus, "${info.name} · Discarded")
         }
-        if (hero.markers.isNotEmpty()) {
-            Overline("Markers and tokens")
-            P({ classes("t-body-small") }) {
-                Text(
-                    hero.markers.joinToString(", ") { m ->
-                        m.kind +
-                            (m.fromHeroId?.let { " from ${table.hero(it).name}" } ?: "")
-                    },
-                )
-            }
+        if (hero.activeEffects.isNotEmpty()) {
+            Overline("Active effects")
+            CardRow(
+                hero.activeEffects.map {
+                    CardView(it, active = true)
+                },
+                table,
+                focus,
+                "${info.name} · Active effects",
+            )
+        }
+        ultimateCard(table, hero)?.let { card ->
+            Overline("Ultimate")
+            CardRow(listOf(CardView(card.id)), table, focus, "${info.name} · Ultimate")
         }
         ExtrasSection(table, hero, focus)
+        if (words.hasMarkersOrTokens) {
+            Overline("Markers and tokens")
+            words.markers.forEach { P({ classes("t-body-small") }) { Text(it) } }
+            words.tokens?.let { P({ classes("t-body-small") }) { Text(it) } }
+        }
         val hand = hero.hand
-        if (hand != null && (hero.heroId in table.mine || puzzle)) {
-            Overline(if (hero.heroId in table.mine) "Your hand" else "In hand · open in this puzzle")
+        val handTitle = words.handTitle
+        if (hand != null && handTitle != null) {
+            Overline(handTitle)
             if (hand.isEmpty()) {
                 Quiet("No cards")
             } else {
-                CardRow(
-                    hand.map {
-                        CardView(it)
-                    },
-                    table,
-                    focus,
-                    "${info.name} · Hand",
-                )
+                CardRow(hand.map { CardView(it) }, table, focus, "${info.name} · Hand")
             }
         }
     }

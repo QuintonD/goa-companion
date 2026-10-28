@@ -53,6 +53,23 @@ object SyncServerText {
         "That isn't a sync server address. Type it like oldboi.example.ts.net:8443 (it must use https)."
     const val RETRYING = "Trying again on its own."
 
+    /**
+     * The web app's words where the phone's would be false (ADR-043): a browser has no face-to-face
+     * sync, and it syncs while it is open rather than every hour.
+     */
+    object Browser {
+        const val NONE =
+            "This group has no sync server in this browser. A browser syncs through the group's server and " +
+                "by sync file. Add the server's address under Advanced."
+        const val OFF = "Off: this browser syncs by sync file only."
+        const val AUTOMATIC =
+            "Sync now goes through the server. It also syncs on its own when the app opens or comes back on " +
+                "screen, shortly after every change and every few minutes while it's open. The server only ever " +
+                "sees the group's data locked with the group key."
+        const val ADVANCED_HINT =
+            "Every phone in the group needs the same server. New invites from this browser carry the address."
+    }
+
     fun ui(state: GroupState, syncing: Boolean, now: Long, addressError: String? = null): SyncServerUi {
         val server = state.server
         val url = server.url.takeIf { state.inGroup }

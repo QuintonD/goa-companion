@@ -34,6 +34,16 @@ data class CardNote(val text: String, val item: Stat? = null)
 /** "Discard Magnetic Dagger" → "discard Magnetic Dagger", for "Tap the card again to …". */
 fun lowerFirst(text: String): String = text.replaceFirstChar { it.lowercaseChar() }
 
+/** The focus viewer's Confirm button: the [action], else why this card can't be chosen now. */
+fun confirmLabel(item: FocusCard, canConfirm: Boolean, action: String): String = when {
+    !item.enabled -> "Not an option"
+    !canConfirm -> "Wait…"
+    else -> action
+}
+
+/** Over Confirm, only when the card can be chosen now: "Tap the card again to play this card". */
+fun confirmHint(action: String): String = "Tap the card again to ${lowerFirst(action)}"
+
 /** Gydion's spell card scans are 737 × 510 (official/SOURCES.md). */
 const val LANDSCAPE_CARD_ASPECT = 737f / 510f
 

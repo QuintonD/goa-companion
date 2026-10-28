@@ -113,7 +113,7 @@ internal fun AppSettingsSections() {
         RowList {
             ListRow("Timer presets", "Phase lengths, cues and auto-advance", "nav_timer", route = Route.TimerPresets)
             ListRow("Draft methods", "House draft, official methods, your own", "nav_draft", route = Route.DraftMethods)
-            ListRow("Ratings", "Elo constants and double-pilot weighting", "chart", route = Route.Players)
+            ListRow("Ratings", "Elo constants and double-pilot weighting", "chart", route = Route.RatingSettings)
         }
     }
 

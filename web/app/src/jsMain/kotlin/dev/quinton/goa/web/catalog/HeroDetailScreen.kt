@@ -36,6 +36,7 @@ import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconSize
 import dev.quinton.goa.web.ui.Load
 import dev.quinton.goa.web.ui.LoadContent
+import dev.quinton.goa.web.ui.PlayerAvatar
 import dev.quinton.goa.web.ui.RouteLink
 import dev.quinton.goa.web.ui.Screen
 import dev.quinton.goa.web.ui.rememberLoad
@@ -346,10 +347,7 @@ private fun PilotRow(rank: Int, pilot: HeroPilotStat, ranked: Boolean) {
     val losses = pilot.games - pilot.wins
     Div({ classes("goa-pilot") }) {
         if (ranked) Span({ classes("goa-pilot-rank", "t-title-medium", "c-primary") }) { Text("$rank") }
-        Span({
-            classes("goa-pilot-avatar", "t-title-small")
-            attr("aria-hidden", "true")
-        }) { Text(name.firstOrNull()?.uppercase() ?: "?") }
+        PlayerAvatar(pilot.player, PILOT_AVATAR)
         Span({ classes("goa-pilot-name", "t-body-large") }) { Text(name) }
         Span({ classes("goa-pilot-record") }) {
             Span({ classes("t-title-small") }) { Text(percent(pilot.winRate)) }
@@ -439,3 +437,6 @@ private external class IntersectionObserver(
 
 private const val MAX_PILOTS = 3
 private const val TITLE_HIDDEN = "goa-title-hidden"
+
+/** The phone's pilot row avatar (36 dp). */
+private const val PILOT_AVATAR = 36

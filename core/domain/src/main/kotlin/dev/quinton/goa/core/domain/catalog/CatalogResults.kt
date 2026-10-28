@@ -164,3 +164,10 @@ fun HeroListItem.spokenLabel(sort: CatalogSort): String = listOfNotNull(
     metricLine(sort),
     matchHint(),
 ).joinToString(". ")
+
+/**
+ * What the result list shows, as a key: a change scrolls it back to the top (the best result first).
+ * The query by its search tokens, so a change of case or punctuation that finds the same keeps the place.
+ */
+fun catalogResultsKey(query: String, filter: CatalogFilter, sort: CatalogSort): String =
+    "${CatalogSearchIndex.tokenize(query).joinToString(" ")}|$filter|$sort"

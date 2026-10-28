@@ -165,8 +165,7 @@ internal fun PiecesSheet(state: BoardUiState.Ready, onDismiss: () -> Unit, onSel
                 pieces.sortedBy(::order).forEach { piece ->
                     ListRow(
                         title = BoardText.piece(piece) { state.heroes.hero(it).name },
-                        subtitle =
-                            piece.at?.let { BoardText.zone(state.map, state.geometry.zoneOf(it)) } ?: "In the tray",
+                        subtitle = state.whereIs(piece),
                         trailing = if (piece.id == state.selectedId) "Selected" else null,
                         onClick = { onSelect(piece.id) },
                         leading = { PieceAvatar(piece, state.heroes) },

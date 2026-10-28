@@ -6,11 +6,13 @@ import dev.quinton.goa.core.model.board.BoardMap
 import dev.quinton.goa.core.model.board.BoardPiece
 import dev.quinton.goa.core.model.board.HeroPiece
 import dev.quinton.goa.core.model.board.Hex
+import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.board.SavedBoard
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardHero
+import dev.quinton.goa.feature.board.BoardText
 
 /** What a tap on the map does right now. */
 sealed interface BoardTool {
@@ -123,6 +125,12 @@ sealed interface BoardUiState {
         val pieces: List<BoardPiece> get() = board.state.pieces
 
         val selected: BoardPiece? get() = selectedId?.let { id -> pieces.firstOrNull { it.id == id } }
+
+        /** Where [piece] is, as the Pieces sheet says it: "Lane 1 · Battle Zone", "Red Throne Zone", "In the tray". */
+        fun whereIs(piece: BoardPiece): String = listOfNotNull(
+            (piece as? MinionPiece)?.let { BoardText.lane(map, geometry.laneOf(it)) },
+            piece.at?.let { BoardText.zone(map, geometry.zoneOf(it)) } ?: "In the tray",
+        ).joinToString(" · ")
 
         val activeWaiting: WaitingUi? get() = waiting.firstOrNull { it.piece.id == activeWaitingId }
 

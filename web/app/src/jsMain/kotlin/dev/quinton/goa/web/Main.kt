@@ -6,11 +6,13 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import dev.quinton.goa.web.nav.Route
 import dev.quinton.goa.web.nav.Router
 import dev.quinton.goa.web.nav.ScrollTarget
 import dev.quinton.goa.web.pwa.DeviceStorage
 import dev.quinton.goa.web.screens.ScreenFor
 import dev.quinton.goa.web.timer.RunningTimerBar
+import dev.quinton.goa.web.timer.TimerBackground
 import dev.quinton.goa.web.timer.TimerShell
 import dev.quinton.goa.web.ui.SnackbarHost
 import dev.quinton.goa.web.ui.TabBar
@@ -58,6 +60,7 @@ fun App() {
     }
     ScrollRestorer(router.scrollTarget)
     FocusTitleOnNavigate(router.entry.key)
+    TimerBackground(onTimerScreen = route == Route.Timer, sessionInPlay = session != null)
     EdgeSwipeBack(router, enabled = tabBar)
     KeepStorage()
 }

@@ -296,7 +296,7 @@ private fun InGroup(state: GroupUiState, form: GroupForm) {
                     if (server.active) {
                         services.data.group.syncServerControl.syncNow()
                     } else {
-                        services.messages.show(SyncServerText.NONE)
+                        services.messages.show(SyncServerText.Browser.NONE)
                     }
                 },
                 icon = "sync",
@@ -399,8 +399,8 @@ private fun ServerCard(server: SyncServerUi, form: GroupForm) {
                 Div({ classes("t-body-medium", "c-variant") }) {
                     Text(
                         when {
-                            server.url == null -> SyncServerText.NONE
-                            !server.enabled -> SyncServerText.OFF
+                            server.url == null -> SyncServerText.Browser.NONE
+                            !server.enabled -> SyncServerText.Browser.OFF
                             else -> server.status.orEmpty()
                         },
                     )
@@ -433,30 +433,12 @@ private fun ServerCard(server: SyncServerUi, form: GroupForm) {
                     }
                 }
             }
-            P({ classes("t-body-small", "c-variant") }) {
-                Text(
-                    "Sync now goes through the server. It also syncs on its own when the app opens or comes " +
-                        "back on screen, shortly after every change and every few minutes while it's open. The " +
-                        "server only ever sees the group's data locked with the group key.",
-                )
-            }
+            P({ classes("t-body-small", "c-variant") }) { Text(SyncServerText.Browser.AUTOMATIC) }
         }
         GoaButton("Advanced", { advanced = !advanced }, ButtonKind.TEXT, icon = if (advanced) "close" else "settings")
         if (advanced) {
-            TextField(
-                label = "Server address",
-                value = address,
-                onValue = {
-                    address = it.trim()
-                    form.addressError = null
-                },
-                error = form.addressError,
-                supporting = SyncServerText.ADVANCED_HINT,
-                placeholder = server.defaultHost ?: "oldboi.example.ts.net:8443",
-                inputMode = InputMode.Url,
-                id = "server-address",
-            )
-            GoaButton("Save address", {
+            val canSave = address.isNotBlank() && address != server.host
+            val saveAddress: () -> Unit = {
                 val url = SyncServerAddress.normalize(address, services.data.group.allowLocalHttp)
                 if (url == null) {
                     form.addressError = SyncServerText.NOT_AN_ADDRESS
@@ -468,7 +450,23 @@ private fun ServerCard(server: SyncServerUi, form: GroupForm) {
                         services.messages.show(GroupText.serverSaved(url))
                     }
                 }
-            }, ButtonKind.OUTLINED, enabled = address.isNotBlank() && address != server.host, block = true)
+            }
+            TextField(
+                label = "Server address",
+                value = address,
+                onValue = {
+                    address = it.trim()
+                    form.addressError = null
+                },
+                error = form.addressError,
+                supporting = SyncServerText.Browser.ADVANCED_HINT,
+                placeholder = server.defaultHost ?: "oldboi.example.ts.net:8443",
+                inputMode = InputMode.Url,
+                id = "server-address",
+                // Return saves, as Done does on the phone.
+                onEnter = { if (canSave) saveAddress() },
+            )
+            GoaButton("Save address", saveAddress, ButtonKind.OUTLINED, enabled = canSave, block = true)
             val defaultHost = server.defaultHost
             if (server.custom && defaultHost != null) {
                 GoaButton("Use the app's server ($defaultHost)", {
@@ -568,6 +566,8 @@ private sealed interface ImportStage {
         val matches: Int,
         val document: SyncDocument,
         val summary: String,
+        /** Merging would change nothing here: "Nothing to merge", disabled (as on the phone). */
+        val nothingNew: Boolean,
     ) :
         ImportStage
 
@@ -582,7 +582,14 @@ private suspend fun readSyncFile(services: AppServices, bytes: ByteArray?): Impo
         val doc = SyncFileCodec.decodeFile(bytes, group, WebCryptoCipher)
         val local = services.data.group.sync.export()
         val changes = SyncMerge.changes(local, SyncMerge.merge(local, doc))
-        ImportStage.Ready(group?.name.orEmpty(), doc.players.size, doc.matches.size, doc, SyncWords.summary(changes))
+        ImportStage.Ready(
+            group?.name.orEmpty(),
+            doc.players.size,
+            doc.matches.size,
+            doc,
+            SyncWords.summary(changes),
+            nothingNew = changes.isEmpty,
+        )
     } catch (e: SyncFileException) {
         ImportStage.Failed(e.message.orEmpty())
     }
@@ -598,13 +605,13 @@ private fun ImportDialog(stage: ImportStage, onStage: (ImportStage?) -> Unit) {
 
         is ImportStage.Ready -> AlertDialog("From “${stage.groupName}”", onDismiss = { onStage(null) }, buttons = {
             GoaButton("Cancel", { onStage(null) }, ButtonKind.TEXT)
-            GoaButton(if (stage.summary == NOTHING_NEW) "Nothing to merge" else "Merge into this browser", {
+            GoaButton(if (stage.nothingNew) "Nothing to merge" else "Merge into this browser", {
                 onStage(null)
                 services.data.scope.launch {
                     val result = services.data.group.sync.apply(stage.document)
                     services.messages.show("Merged: ${SyncWords.summary(result.changes)}")
                 }
-            }, ButtonKind.TEXT)
+            }, ButtonKind.TEXT, enabled = !stage.nothingNew)
         }) {
             P { Text("${stage.matches} matches and ${stage.players} players in the file.") }
             P { Text("In this browser: ${stage.summary}") }
@@ -618,5 +625,4 @@ private fun ImportDialog(stage: ImportStage, onStage: (ImportStage?) -> Unit) {
     }
 }
 
-private const val NOTHING_NEW = "Already up to date"
 private const val UNREADABLE = "This file can't be read. Save it again and pick it from the file list."

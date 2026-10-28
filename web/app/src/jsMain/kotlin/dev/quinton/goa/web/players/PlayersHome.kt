@@ -62,6 +62,7 @@ fun PlayersHomeScreen(tab: PlayersTab) {
     val services = LocalServices.current
     val presenter = remember { playersPresenter(services) }
     val players by remember { presenter.players }.collectAsState(PlayersUiState())
+    val log by remember { presenter.matchLog }.collectAsState(MatchLogUiState())
     Screen(
         "Players",
         // Players, Matches and Meta are tabs of one screen: nothing to go back to (the phone's too).
@@ -77,10 +78,7 @@ fun PlayersHomeScreen(tab: PlayersTab) {
             when (tab) {
                 PlayersTab.PLAYERS -> LeaderboardContent(players, presenter)
 
-                PlayersTab.MATCHES -> {
-                    val log by remember { presenter.matchLog }.collectAsState(MatchLogUiState())
-                    MatchLogContent(log, presenter)
-                }
+                PlayersTab.MATCHES -> MatchLogContent(log, presenter)
 
                 PlayersTab.META -> {
                     val meta by remember { presenter.meta }.collectAsState(MetaUiState())
@@ -93,7 +91,10 @@ fun PlayersHomeScreen(tab: PlayersTab) {
                 Fab("g_person_add", "Add player") { services.router.navigate(Route.PlayerEdit()) }
             }
 
-            PlayersTab.MATCHES -> Fab("g_add", "Log a match") { services.router.navigate(Route.MatchEdit()) }
+            // An empty log has its own "Log a match" button (as on the phone: one, not two).
+            PlayersTab.MATCHES -> if (!log.isEmpty && !log.loading) {
+                Fab("g_add", "Log a match") { services.router.navigate(Route.MatchEdit()) }
+            }
 
             PlayersTab.META -> Unit
         }

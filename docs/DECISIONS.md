@@ -1374,7 +1374,9 @@ same Kotlin. Where the decisions were the web's own:
    `table/` in the phone's formats (`TimerJson`, `DraftStorage`): presets, the session, the setup
    form, the draft in progress, the group's methods — and tonight's turn length, which the phone
    keeps in memory (Safari reloads pages it put away far more often than Android kills a process).
-   The draft's step timer counts from when the step began, not from ticks.
+   The draft's step timer counts by the clock from when this page first showed the step, not from ticks
+   (a hidden page loses no time); after a reload it starts the step again, as the phone does after its
+   process is killed.
 5. **The shell knows about a running timer** (`TimerShell`): it hides the tab bar on the running
    timer, shows the "timer running" bar on the other tabs and opens the Timer tab on a cold start,
    as the phone does. Pinned footers (Next, Start timer, Set up match) publish their height so
@@ -1531,3 +1533,36 @@ the card as text" collapsed. (3) Milestones: v0.7's M15–M17 keep their numbers
 (group, sync, players) and M19 (board, play, puzzles). v0.7 added no ADR numbered 043 or later.
 **Consequences:** One rule for a computer seat (`AiPlayers.forApp`) on the phone and in the browser.
 Strength 10's other questions reach their wall-clock cap in a browser (item 4 above).
+
+**Addendum (Review R1, parity and rules, 2026-10-26):**
+**Context:** A screen-by-screen read of every web screen against the phone's composables, view models
+and the rulebook found places where the web computed or worded something itself and drifted.
+**Decision:** (1) **What both platforms show moved to shared code** where the web had its own copy:
+the review's per-hero words (`reviewHero` in core:play: facts, "No card played yet." and the other
+in-play notes, markers "Poison marker · from Bain", tokens, whose hand), the turn track's band
+(`slotBand`: OUT, not SKIP; no band for later slots), the focus viewer's Confirm label and hint
+(`confirmLabel`/`confirmHint`: "Not an option", "Wait…"), the Pieces sheet's "Lane 1 · Battle Zone"
+(`BoardUiState.Ready.whereIs`), the match editor's leave dialog (`MatchEditing.leaveDialog`), the
+"time's up" alert's words (`TimerText.timesUpTitle`/`timesUpText`, the phone's notification), the
+catalog's scroll-to-top key (`catalogResultsKey`) and the browser's sync-server words
+(`SyncServerText.Browser`: a browser has no face-to-face sync). The phone calls the same functions.
+(2) **The web follows the phone** where it behaved differently: card text everywhere goes through the
+catalog's markup parser (the focus viewer's "Read the card as text" and the board's "Card text" had
+shown `**`, `{skill}` and `~(…)` raw); the match editor's top-bar Back asks before dropping edits;
+Settings → Ratings opens the rating settings; New game's line-up is New board's (pick order with Move
+earlier/later, name or title search, Clear only with picks, the "N v M" bar) and Back from its
+options returns to the line-up; the review always shows "This turn" and "Resolved this round",
+active effects, the Ultimate and tokens; the Who-are-you button waits for a name; Return saves a
+server address; "Nothing to merge" is disabled; dates use the phone's patterns ("Sat 12 Oct 2026",
+names from the browser's language) and its short time style.
+(3) **The phase-end alarm on the web** (`TimerWatch`, run by the shell): the timer's cues and
+auto-advance ran only while the Timer screen was showing, so a phase that ran out while a player read
+the Levels and defeats ladder (the timer's own button), the rules or another tab passed in silence.
+Away from the timer screen the shell now does what the phone's alarm does — auto-advance if the
+preset says so, one "Time's up" (sound and flash per Settings) with the phone's words and "Open
+timer" — and catching up after the page was hidden moved from the Timer screen to the shell.
+**Consequences:** `ReviewHeroTest` (core:play, JVM and Node), `LeaveDialogTest`,
+`CatalogResultsKeyTest`, `TimerWatchTest` (web) and `web/e2e/tests/r1-parity.spec.ts` guard these.
+Kept deliberately different: the iOS wording "Touch and hold" (the phone's "Long-press"), the
+focus viewer's "tap outside to close", the web puzzle list's error when the puzzle book can't load
+(offline before it was cached), and the turn track's action word under the slot (the phone's badge).

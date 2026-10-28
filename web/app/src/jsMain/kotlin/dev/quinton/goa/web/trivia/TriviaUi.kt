@@ -97,7 +97,10 @@ internal fun UnverifiedBadge() {
     Span({
         classes("goa-trivia-unverified", "t-label-medium")
         attr("title", "Unverified data, may contain errors")
-    }) { Text("Unverified") }
+        // VoiceOver reads the phone's words, not just "Unverified".
+        attr("role", "img")
+        attr("aria-label", "Unverified data, may contain errors")
+    }) { Span({ attr("aria-hidden", "true") }) { Text("Unverified") } }
 }
 
 /** A hero's portrait in a small medallion (decorative: the name is always beside it). */

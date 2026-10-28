@@ -91,8 +91,6 @@ import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableHud
 import dev.quinton.goa.feature.board.play.table.TableTopRow
 import dev.quinton.goa.feature.board.play.table.TableUi
-import dev.quinton.goa.feature.board.play.table.figureOf
-import dev.quinton.goa.feature.board.play.table.shownCounters
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.play.table.ultimateCard
 
@@ -342,6 +340,7 @@ private fun HeroCard(table: TableUi, hero: HeroView, onCard: OpenCard, puzzle: B
     val view = table.view
     val acting = view.acting == hero.heroId
     val acted = hero.heroId in view.actedThisTurn
+    val words = reviewHero(table, hero, puzzle)
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -402,11 +401,7 @@ private fun HeroCard(table: TableUi, hero: HeroView, onCard: OpenCard, puzzle: B
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 itemVerticalAlignment = Alignment.CenterVertically,
             ) {
-                Fact("Level", "${hero.level}")
-                Fact("Coins", "${hero.coins}")
-                Fact("In hand", "${hero.handCount}")
-                if (hero.ultimate) Fact("Ultimate", "Unlocked")
-                shownCounters(hero).forEach { (name, value) -> Fact(PlayText.counter(name), "$value") }
+                words.facts.forEach { (name, value) -> Fact(name, value) }
                 if (hero.itemStats.isNotEmpty()) {
                     Column(
                         Modifier.semantics(mergeDescendants = true) {
@@ -421,7 +416,7 @@ private fun HeroCard(table: TableUi, hero: HeroView, onCard: OpenCard, puzzle: B
                     }
                 }
             }
-            InPlay(table, hero, onCard)
+            InPlay(table, hero, words, onCard)
             Section("Resolved this round · Turn slots")
             if (hero.resolved.isEmpty()) {
                 Quiet("None yet")
@@ -444,34 +439,15 @@ private fun HeroCard(table: TableUi, hero: HeroView, onCard: OpenCard, puzzle: B
             }
             // Gydion's spellbook (ADR-040), as the hero sheet shows it.
             ExtrasSection(table, hero, onOpen = { cards, index, _ -> onCard(cards, index) })
-            val tokens = view.pieces.filter { it.ownerHeroId == hero.heroId && figureOf(it) == null }
-            if (hero.markers.isNotEmpty() || tokens.isNotEmpty()) {
+            if (words.hasMarkersOrTokens) {
                 Section("Markers and tokens")
-                hero.markers.forEach { marker ->
-                    val from = marker.fromHeroId?.let { " · from ${table.hero(it).name}" }.orEmpty()
-                    Text(
-                        marker.kind.replaceFirstChar {
-                            it.uppercase()
-                        } + " marker" + from,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-                if (tokens.isNotEmpty()) {
-                    Text(
-                        "On the board: " +
-                            tokens.groupingBy { it.label }.eachCount().entries.joinToString(", ") { (label, n) ->
-                                if (n == 1) label else "$label × $n"
-                            },
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
+                words.markers.forEach { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                words.tokens?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
             }
             val hand = hero.hand
-            if (hand != null && hero.heroId in table.mine) {
-                Section(if (table.mine.size > 1) "${info.name}'s hand" else "Your hand")
-                if (hand.isEmpty()) Quiet("No cards") else HandRow(hand, table, onCard)
-            } else if (hand != null && puzzle) {
-                Section("In hand · open in this puzzle")
+            val handTitle = words.handTitle
+            if (hand != null && handTitle != null) {
+                Section(handTitle)
                 if (hand.isEmpty()) Quiet("No cards") else HandRow(hand, table, onCard)
             }
         }
@@ -486,32 +462,15 @@ private fun HandRow(hand: List<String>, table: TableUi, onCard: OpenCard) {
 
 /** The card in play this turn: facedown before the reveal (named only to its owner), else face up. */
 @Composable
-private fun InPlay(table: TableUi, hero: HeroView, onCard: OpenCard) {
-    val view = table.view
+private fun InPlay(table: TableUi, hero: HeroView, words: ReviewHeroUi, onCard: OpenCard) {
     val played = hero.played
     Section("This turn")
-    when {
-        played != null -> {
-            val note = when {
-                view.phase == GamePhase.PLAY_CARDS && played.cardId == null ->
-                    "Played facedown: revealed with the others (p.7)."
-
-                view.phase == GamePhase.PLAY_CARDS -> "Your card, facedown until the reveal."
-
-                else -> hero.initiative?.let { "Initiative $it" }
-            }
-            val cards = listOf(played) + hero.alsoPlayed
-            CardRow(cards, table, opener(cards, table, onCard))
-            note?.let { Quiet(it) }
-        }
-
-        view.phase == GamePhase.PLAY_CARDS -> Quiet("No card played yet.")
-
-        hero.heroId in view.actedThisTurn -> Quiet("Resolved: on Turn slot ${view.turn}.")
-
-        view.phase == GamePhase.RESOLVE -> Quiet("No card this turn.")
-
-        else -> Quiet("No card in play.")
+    if (played != null) {
+        val cards = listOf(played) + hero.alsoPlayed
+        CardRow(cards, table, opener(cards, table, onCard))
+        words.inPlayNote?.let { Quiet(it) }
+    } else {
+        words.noCardInPlay?.let { Quiet(it) }
     }
 }
 

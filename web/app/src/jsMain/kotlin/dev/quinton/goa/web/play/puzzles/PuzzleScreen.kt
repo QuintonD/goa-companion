@@ -98,7 +98,7 @@ fun PuzzleScreen(puzzleId: String) {
                 if (state.why ==
                     NoPuzzle.MISSING
                 ) {
-                    "This puzzle isn't in this version"
+                    "This puzzle isn't in this build"
                 } else {
                     "This puzzle can't be set up"
                 },
@@ -162,7 +162,7 @@ private fun PuzzleTable(puzzle: PuzzleUi, controller: PuzzleController) {
         }
 
         is PlaySheet.Hero -> BottomSheet(table.hero(open.heroId).name, onDismiss = { sheet = null }) {
-            Quiet("Every hand is open in a puzzle.")
+            Quiet("Open information (p.4)")
             HeroDetail(table, open.heroId, focus)
         }
 

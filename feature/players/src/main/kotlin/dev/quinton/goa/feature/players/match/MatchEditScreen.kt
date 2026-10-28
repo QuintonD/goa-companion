@@ -234,26 +234,18 @@ fun MatchEditScreen(state: MatchEditUiState, actions: MatchEditActions, modifier
     }
 
     if (confirmDiscard) {
+        val words = MatchEditing.leaveDialog(state.unsavedResult)
         AlertDialog(
             onDismissRequest = { confirmDiscard = false },
-            title = { Text(if (state.unsavedResult) "Leave without saving?" else "Discard changes?") },
-            text = {
-                Text(
-                    if (state.unsavedResult) {
-                        "This result isn't logged yet. The timer keeps the finished match, so you can " +
-                            "log it later from the Timer tab."
-                    } else {
-                        "Your edits to this match haven't been saved."
-                    },
-                )
-            },
+            title = { Text(words.title) },
+            text = { Text(words.body) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDiscard = false
                     actions.onBack()
-                }) { Text(if (state.unsavedResult) "Leave" else "Discard") }
+                }) { Text(words.leave) }
             },
-            dismissButton = { TextButton(onClick = { confirmDiscard = false }) { Text("Keep editing") } },
+            dismissButton = { TextButton(onClick = { confirmDiscard = false }) { Text(words.keep) } },
         )
     }
     if (confirmDelete) {
