@@ -6,6 +6,7 @@ import dev.quinton.goa.core.game.TestData
 import dev.quinton.goa.core.game.ai.AiHarness
 import dev.quinton.goa.core.game.ai.AiPlayers
 import dev.quinton.goa.core.game.ai.EvalKnobs
+import dev.quinton.goa.core.game.ai.EvalSource
 import dev.quinton.goa.core.game.ai.Evaluator
 import dev.quinton.goa.core.game.ai.Features
 import dev.quinton.goa.core.game.ai.LearnedNet
@@ -63,14 +64,18 @@ class LearnedNetTest {
     }
 
     @Test
-    fun `the net's inputs do not move with a profile's knobs`() {
+    fun `the net and strength 10's hand evaluation keep the knobs the net was trained with`() {
         val data = TestData.engine.data
         // What the net was trained on: v0.8's TUNED scales and no team-size knobs (ADR-047).
         assertThat(Features.KNOBS).isEqualTo(EvalKnobs())
         assertThat(Features.SCALES).isEqualTo(mapOf(Term.EXPOSURE to 0.3, Term.OPPORTUNITY to 2.0))
-        // Strength 10's leaves score the same whatever team-size knobs its hand evaluation carries.
+        // Strength 10's hand parts beside the net carry them too, not part A's 3v3 knobs (5–9 do).
         val v08 = AiPlayers.TUNED.copy(pushPerAttackBySize = emptyMap(), defenselessBySize = emptyMap())
         val profile = AiPlayers.profile(10)
+        assertThat(profile.learned).isEqualTo(EvalSource.LEAVES)
+        assertThat(profile.knobs).isEqualTo(v08)
+        assertThat(AiPlayers.profile(9).knobs).isEqualTo(AiPlayers.TUNED)
+        // The net's inputs score the same whatever team-size knobs a hand evaluation carries.
         val withA1 = Searcher(Evaluator(data, AiPlayers.TUNED), profile).leaf
         val without = Searcher(Evaluator(data, v08), profile).leaf
         val tuned = Evaluator(data, AiPlayers.TUNED)

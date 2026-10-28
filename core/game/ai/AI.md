@@ -6,7 +6,8 @@ this file is how the code uses it, what each strength does, what it costs and ho
 ## Architecture
 
 The app binds these in `core/data/.../game/PlayEngineModule.kt`:
-`AiPlayers { strength -> forStrength(strength, seed) }` and `AiCoach(factory)`. A seat's
+`AiPlayers { strength -> forStrength(strength, seed, AiSampleThreads) }` (each answer's samples on three
+background threads, "Budgets") and `AiCoach(factory)`. A seat's
 `Controller.Ai` carries its strength 1–10; a save from before the slider carries only the level and
 plays as the level's strength (Easy 2, Normal 6, Hard 8, Expert 10, ADR-039).
 

@@ -52,12 +52,12 @@ object AiPlayers {
     internal fun profile(level: AiLevel): LevelProfile = profile(level.strength)
 
     /**
-     * The evaluation the searching strengths (5 and up) use: a hero's exposure counts 0.3 of its
-     * hand-made weight and its minion opportunities twice (fitted to self-play outcomes and measured,
-     * AI.md "Evaluation" and "What changed in v0.7"). In 3v3 (v0.9, AI.md "Team sizes") each attack
-     * card left counts 0.35 of a minion of Push Potential instead of 0.5, and a hero with no card left
-     * to defend with counts its full exposure: together 57.8% and 53.1% against the v0.8 strength 10
-     * over two sets of 192 held-out games, with fewer heroes lost to a kill-hunting opponent.
+     * The evaluation the searching strengths 5–9 use: a hero's exposure counts 0.3 of its hand-made
+     * weight and its minion opportunities twice (fitted to self-play outcomes and measured, AI.md
+     * "Evaluation" and "What changed in v0.7"). In 3v3 (v0.9, AI.md "Team sizes") each attack card
+     * left counts 0.35 of a minion of Push Potential instead of 0.5, and a hero with no card left to
+     * defend with counts its full exposure: together 57.8% and 53.1% against the v0.8 strength 10 over
+     * two sets of 192 held-out games, with fewer heroes lost to a kill-hunting opponent.
      */
     internal val TUNED: EvalKnobs = EvalKnobs(
         scales = mapOf(Term.EXPOSURE to 0.3, Term.OPPORTUNITY to 2.0),
@@ -73,9 +73,21 @@ object AiPlayers {
      */
     internal const val LEARNED_FROM: Int = 10
 
+    /**
+     * The hand evaluation beside the net (its one-ply looks inside playouts, the static policy, the
+     * opponent model): the knobs the net was trained with, v0.8's `TUNED` without the 3v3 knobs. With
+     * them the merged strength 10 beat the one carrying the 3v3 knobs 54.2% (47.1–61.1%, 192 3v3
+     * games; AI.md "The two parts together"); the net's own inputs never see a profile's knobs.
+     */
+    internal val TUNED_WITH_NET: EvalKnobs = Features.KNOBS.copy(scales = Features.SCALES)
+
     /** What each strength does (AI.md "Strengths"); the measured ladder is in AI.md. */
     internal fun profile(strength: Int): LevelProfile = handProfile(strength).let {
-        if (AiStrength.coerce(strength) >= LEARNED_FROM) it.copy(learned = EvalSource.LEAVES) else it
+        if (AiStrength.coerce(strength) >= LEARNED_FROM) {
+            it.copy(learned = EvalSource.LEAVES, knobs = TUNED_WITH_NET)
+        } else {
+            it
+        }
     }
 
     @Suppress("CyclomaticComplexMethod", "LongMethod", "MagicNumber")

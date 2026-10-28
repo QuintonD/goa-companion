@@ -9,7 +9,7 @@ import org.junit.Test
 /**
  * Time per decision on this desktop JVM, with the production players (wall-clock cap on), over
  * line-ups drawn from every playable hero (both teams timed). A phone is assumed 3–4× slower: device
- * budgets per card play run from 50 ms (strengths 1–3) to 4 s (8–10) (AI.md "Budgets"). Asserts only
+ * budgets per card play run from 50 ms (strengths 1–4) to 2 s (10) (AI.md "Budgets"). Asserts only
  * loose bounds: other builds may share the machine. `AI_TIMING_GAMES=8` seats all 32 heroes once
  * per strength and prints the slowest heroes; `AI_TIMING_STRENGTHS=8,9,10` picks the strengths.
  */
