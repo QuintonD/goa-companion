@@ -87,12 +87,17 @@ import dev.quinton.goa.feature.board.board.BoardSheet
 import dev.quinton.goa.feature.board.board.SearchField
 import dev.quinton.goa.feature.board.list.LineupHeroes
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.play.table.SpellbookChip
+import dev.quinton.goa.feature.board.play.table.SpellbookSheet
 import dev.quinton.goa.feature.board.play.table.TieBreakerMark
+import dev.quinton.goa.feature.board.play.table.catalogSpellbook
 import dev.quinton.goa.feature.board.setup.HeroGrid
 import dev.quinton.goa.feature.board.setup.NewBoardAction
 import dev.quinton.goa.feature.board.setup.SourcesContent
 import dev.quinton.goa.feature.board.setup.TeamSwitch
 import dev.quinton.goa.feature.board.setup.Teams
+import dev.quinton.goa.feature.board.ui.cards.CardFocusHost
+import dev.quinton.goa.feature.board.ui.cards.rememberCardFocusState
 import kotlin.math.roundToInt
 
 /**
@@ -110,9 +115,12 @@ fun NewGameScreen(
     modifier: Modifier = Modifier,
     starting: Boolean = false,
     initialSources: Boolean = false,
+    initialSpellbook: String? = null,
 ) {
     val ready = state as? NewGameUiState.Ready
     var sources by rememberSaveable { mutableStateOf(initialSources) }
+    var spellbook by rememberSaveable { mutableStateOf(initialSpellbook) }
+    val focus = rememberCardFocusState()
     val options = ready?.form?.step == NewGameStep.OPTIONS
     GoaScreen(
         title = if (options) "Game options" else "New game",
@@ -136,9 +144,9 @@ fun NewGameScreen(
                 NewGameUiState.ComingSoon -> ComingSoon(onBack, Modifier.align(Alignment.Center))
 
                 is NewGameUiState.Ready -> if (options) {
-                    OptionsStep(state, onAction, starting)
+                    OptionsStep(state, onAction, starting, onSpellbook = { spellbook = it })
                 } else {
-                    LineupStep(state, onAction)
+                    LineupStep(state, onAction, onSpellbook = { spellbook = it })
                 }
             }
         }
@@ -155,6 +163,10 @@ fun NewGameScreen(
             )
         }
     }
+    // Gydion's 22 spell cards, from the line-up's menu or "You play" (ADR-040).
+    val book = spellbook?.let { id -> ready?.picker?.heroById?.get(id) }?.let(::catalogSpellbook)
+    if (book != null) SpellbookSheet(book, focus, onDismiss = { spellbook = null })
+    CardFocusHost(focus)
     val coin = ready?.form?.coin
     if (ready != null && coin != null) {
         CoinDialog(coin, starting, onStart = onStart, onDismiss = { onAction(NewGameAction.CancelCoin) })
@@ -177,7 +189,11 @@ private fun ComingSoon(onBack: () -> Unit, modifier: Modifier = Modifier) {
 // ---- Step 1: line-up ---------------------------------------------------------------------
 
 @Composable
-private fun LineupStep(state: NewGameUiState.Ready, onAction: (NewGameAction) -> Unit) {
+private fun LineupStep(
+    state: NewGameUiState.Ready,
+    onAction: (NewGameAction) -> Unit,
+    onSpellbook: (String) -> Unit,
+) {
     var query by rememberSaveable { mutableStateOf("") }
     val focus = LocalFocusManager.current
     val picker = state.picker
@@ -221,7 +237,7 @@ private fun LineupStep(state: NewGameUiState.Ready, onAction: (NewGameAction) ->
                             .padding(horizontal = Spacing.screen, vertical = Spacing.sm),
                         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
-                        Teams(picker, lineup)
+                        Teams(picker, lineup, onSpellbook)
                         PlayableNote(state)
                     }
                     LineupBar(state, onAction)
@@ -237,7 +253,7 @@ private fun LineupStep(state: NewGameUiState.Ready, onAction: (NewGameAction) ->
                     Modifier.padding(horizontal = Spacing.screen).padding(top = Spacing.sm),
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 ) {
-                    Teams(picker, lineup)
+                    Teams(picker, lineup, onSpellbook)
                     PlayableNote(state)
                 }
                 search(Modifier.padding(horizontal = Spacing.screen))
@@ -262,7 +278,8 @@ private fun PlayableNote(state: NewGameUiState.Ready) {
         )
         Spacer(Modifier.width(Spacing.xs))
         Text(
-            "${BoardText.count(state.playable, "hero")} can play so far; $later more join as their cards are tested.",
+            "${BoardText.count(state.playable, "hero", "heroes")} can play so far; " +
+                "$later more join as their cards are tested.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -304,7 +321,12 @@ private fun LineupBar(state: NewGameUiState.Ready, onAction: (NewGameAction) -> 
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun OptionsStep(state: NewGameUiState.Ready, onAction: (NewGameAction) -> Unit, starting: Boolean) {
+private fun OptionsStep(
+    state: NewGameUiState.Ready,
+    onAction: (NewGameAction) -> Unit,
+    starting: Boolean,
+    onSpellbook: (String) -> Unit,
+) {
     Column(Modifier.fillMaxSize()) {
         Column(
             Modifier
@@ -345,7 +367,12 @@ private fun OptionsStep(state: NewGameUiState.Ready, onAction: (NewGameAction) -
 
             Section("You play") {
                 state.controls.forEach { control ->
-                    ControlRow(state, control, control == state.control) { onAction(NewGameAction.SetControl(control)) }
+                    ControlRow(
+                        state,
+                        control,
+                        control == state.control,
+                        onSpellbook,
+                    ) { onAction(NewGameAction.SetControl(control)) }
                 }
             }
 
@@ -438,7 +465,13 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun ControlRow(state: NewGameUiState.Ready, control: Control, selected: Boolean, onClick: () -> Unit) {
+private fun ControlRow(
+    state: NewGameUiState.Ready,
+    control: Control,
+    selected: Boolean,
+    onSpellbook: (String) -> Unit,
+    onClick: () -> Unit,
+) {
     val (title, note, heroes) = when (control) {
         is Control.WholeTeam -> {
             val ids = state.form.lineup.team(control.team)
@@ -510,6 +543,10 @@ private fun ControlRow(state: NewGameUiState.Ready, control: Control, selected: 
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                // Choosing to play Gydion: his spell cards one tap away (ADR-040).
+                heroes.map(state::hero).filter { it.spells.isNotEmpty() }.forEach { hero ->
+                    SpellbookChip(hero, onClick = { onSpellbook(hero.id) }, Modifier.padding(top = Spacing.xs))
+                }
             }
         }
     }

@@ -12,6 +12,7 @@ import dev.quinton.goa.core.game.engine.cardValue
 import dev.quinton.goa.core.game.engine.fastTravelDestinations
 import dev.quinton.goa.core.game.engine.heavyImmune
 import dev.quinton.goa.core.game.engine.reach
+import dev.quinton.goa.core.game.engine.upgradesOf
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.catalog.CardColor
@@ -367,10 +368,8 @@ internal class StaticPolicy(private val ev: Evaluator) {
         if (o !is Choice.Card) return 0.0
         val h = ctx.state.hero(d.seat) ?: return 0.0
         val card = ev.data.card(o.cardId)
-        val next = h.cards.filter {
-            val c = ev.data.card(it.id)
-            it.zone == Zone.DECK && c.color == card.color && c.tier == (card.tier ?: 0) + 1
-        }.map { it.id }
+        // The engine's own selection (the preview in the decision's context reads the same).
+        val next = ev.data.upgradesOf(h, o.cardId)
         if (next.isEmpty()) return -5.0
         val bestPair = next.maxOf { k -> keepValue(ctx, d.seat, k, next - k) }
         return bestPair - ev.profile(o.cardId).rating + colourBias(card.color)

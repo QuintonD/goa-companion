@@ -14,6 +14,9 @@ sealed interface PlaySheet {
 
     /** The game-state review (ADR-037). */
     data class Review(val tab: ReviewTab = ReviewTab.NOW) : PlaySheet
+
+    /** A hero's spellbook (Gydion, ADR-040): from the table's Spellbook control or the hero sheet. */
+    data class Spellbook(val heroId: String) : PlaySheet
 }
 
 /** The game's title for [room] dp of width at font scale 1. */

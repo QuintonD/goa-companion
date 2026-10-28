@@ -65,7 +65,56 @@ internal data class LevelProfile(
     val greedyMax: Int = Searcher.GREEDY_MAX,
     /** How far an upgrade choice is played out: TURN stops as the new round begins, NEXT_TURN plays its first turn. */
     val upgradeHorizon: Horizon = Horizon.TURN,
+    /** A one-sided taste for kills (the exploiter of AI.md "Team sizes"); null = symmetric. */
+    val hunt: Hunt? = null,
+    /**
+     * Tests only: stop sampling once this many engine answers were spent in playouts for a card play
+     * (a third for other decisions), as the wall-clock cap would on a phone, but reproducibly. 0 = no cap.
+     */
+    val workBudget: Long = 0,
+    /** Racing margin in coin-equivalents ([Searcher.race]); 0 = every candidate gets every sample. */
+    val race: Double = 0.0,
+    /** Where the learned evaluation scores positions instead of [knobs]' hand one (AI.md "Learned evaluation"). */
+    val learned: EvalSource = EvalSource.HAND,
+    /** The net [learned] uses; null = the checked-in one ([LearnedNet.CURRENT]). */
+    val net: LearnedNet? = null,
 )
+
+/**
+ * How a kill-hunting player weighs the board, relative to the symmetric evaluation: its own heroes'
+ * exposure × [selfExposure], the enemy heroes' × [enemyExposure], the enemy's Life counters × [enemyLife].
+ */
+internal data class Hunt(val selfExposure: Double = 0.0, val enemyExposure: Double = 2.0, val enemyLife: Double = 1.5) {
+    fun knobs(base: EvalKnobs, own: Team): EvalKnobs {
+        val enemy = if (own == Team.RED) Team.BLUE else Team.RED
+        return base.copy(
+            exposureByTeam = mapOf(own to selfExposure, enemy to enemyExposure),
+            lifeByTeam = mapOf(enemy to enemyLife),
+        )
+    }
+}
+
+/**
+ * Runs the samples of one answer (AI.md "Budgets"). The engine has no threads (it must stay
+ * multiplatform), so the default runs them one after the other; the Android app supplies a runner on a
+ * few threads. Each sample writes only its own column and the values are combined in sample order, so
+ * an answer without a wall-clock cap is the same whatever the runner.
+ */
+interface SampleRunner {
+    /** How many samples are started together (the search checks its deadline between batches). */
+    val width: Int
+
+    /** Runs every task, possibly at the same time, and returns when all are done. */
+    fun runAll(tasks: List<() -> Unit>)
+
+    companion object {
+        val SEQUENTIAL: SampleRunner = object : SampleRunner {
+            override val width: Int = 1
+
+            override fun runAll(tasks: List<() -> Unit>) = tasks.forEach { it() }
+        }
+    }
+}
 
 /** One option's values over the samples (NaN where the option did not exist in a sample). */
 internal class OptionValue(val choice: Choice, val values: DoubleArray) {
@@ -109,8 +158,20 @@ internal class Searcher(
     val ev: Evaluator,
     val profile: LevelProfile,
     private val keepLeaves: Boolean = false,
+    private val runner: SampleRunner = SampleRunner.SEQUENTIAL,
 ) {
     val static = StaticPolicy(ev)
+
+    /** Engine answers spent in playouts so far (the [LevelProfile.workBudget] measure; sequential runs). */
+    var work: Long = 0
+        private set
+
+    /** What scores the end of a playout ([LevelProfile.learned]). */
+    val leaf: PositionEvaluator =
+        if (profile.learned == EvalSource.HAND) ev else NetEvaluator(ev.data, profile.net ?: LearnedNet.CURRENT)
+
+    /** What scores the one-ply looks inside a playout. */
+    private val inner: PositionEvaluator = if (profile.learned == EvalSource.EVERYWHERE) leaf else ev
 
     fun determinize(es: EngineSession, d: Decision, seed: Long): EngineSession {
         val team = d.team
@@ -123,7 +184,8 @@ internal class Searcher(
             playWeight = if (profile.modelPlays) ::playWeights else null,
             hidePlayedOf = humans,
         )
-        return es.determinizeWith(team, seed, options)
+        // A search copy: no explanations for a player are built at its questions (the same options).
+        return es.determinizeWith(team, seed, options, quiet = true)
     }
 
     /** The opponent model (STRATEGY §3.1): softmax of the hero's own static card scores, 15% uniform. */
@@ -146,31 +208,103 @@ internal class Searcher(
         mustInclude: Choice? = null,
     ): Analysis? {
         val isPlay = d.kind == DecisionKind.PLAY_CARD
-        val samples = if (isPlay) profile.playSamples else profile.otherSamples
+        val run = Run(es, d, seed, cancelled, if (isPlay) profile.playSamples else profile.otherSamples)
+        val work0 = work
+        val workCap = when {
+            profile.workBudget <= 0 -> Long.MAX_VALUE
+            isPlay -> profile.workBudget
+            else -> profile.workBudget / 3
+        }
+        val overBudget = { cancelled() || monotonicNanos() > deadline || work - work0 > workCap }
+        val candidates = only ?: run.first(mustInclude, overBudget) ?: return run.result()
+        run.batches(candidates, overBudget)
+        return run.result()
+    }
+
+    /** One [analyze]: the samples' values per option, filled column by column (one column per sample). */
+    private inner class Run(
+        val es: EngineSession,
+        val d: Decision,
+        val seed: Long,
+        val cancelled: () -> Boolean,
+        val samples: Int,
+    ) {
         val horizon = horizonOf(d.kind)
-        var candidates: List<Choice>? = only
         val table = LinkedHashMap<Choice, DoubleArray>()
         val leaves = ArrayList<Leaf>()
         var done = 0
         var k = 0
-        while (k < samples && (k == 0 || !(cancelled() || monotonicNanos() > deadline))) {
-            val det = determinize(es, d, mix(seed, k.toLong()))
-            val dp = det.pending?.takeIf { it.seat == d.seat && it.kind == d.kind }
-            if (dp != null) {
-                val cs = candidates ?: prune(det, d, dp).let { c ->
+        var stopped = false
+
+        fun result(): Analysis? =
+            if (done == 0) null else Analysis(d, table.map { (c, v) -> OptionValue(c, v) }, leaves, done, k)
+
+        fun columns(cs: List<Choice>) {
+            for (o in cs) table.getOrPut(o) { DoubleArray(samples) { Double.NaN } }
+        }
+
+        fun decision(det: EngineSession): Decision? = det.pending?.takeIf { it.seat == d.seat && it.kind == d.kind }
+
+        /** The first sample that has the decision fixes the candidates; null if none did (or cancelled). */
+        fun first(mustInclude: Choice?, overBudget: () -> Boolean): List<Choice>? {
+            while (k < samples && (k == 0 || !overBudget())) {
+                val det = determinize(es, d, mix(seed, k.toLong()))
+                val dp = decision(det)
+                if (dp == null) {
+                    k++
+                    continue
+                }
+                val cs = prune(det, d, dp).let { c ->
                     if (mustInclude != null && mustInclude !in c && mustInclude in dp.options) c + mustInclude else c
-                }.also { candidates = it }
-                for (o in cs) table.getOrPut(o) { DoubleArray(samples) { Double.NaN } }
+                }
+                columns(cs)
                 if (!sample(det, dp, d, cs, k, horizon, table, leaves, cancelled)) {
                     for (arr in table.values) arr[k] = Double.NaN
-                    break
+                    stopped = true
+                    return null
                 }
                 done++
+                k++
+                return cs
             }
-            k++
+            return null
         }
-        if (done == 0) return null
-        return Analysis(d, table.map { (c, v) -> OptionValue(c, v) }, leaves, done, k)
+
+        /** The other samples in batches of the runner's width, each on its own column; racing between batches. */
+        fun batches(candidates: List<Choice>, overBudget: () -> Boolean) {
+            columns(candidates)
+            var live = candidates
+            while (!stopped && k < samples && (k == 0 || !overBudget())) {
+                val batch = k until minOf(samples, k + runner.width)
+                val status = IntArray(batch.count())
+                val batchLeaves = Array(status.size) { ArrayList<Leaf>() }
+                val cs = live
+                runner.runAll(
+                    batch.mapIndexed { i, kk ->
+                        {
+                            val det = determinize(es, d, mix(seed, kk.toLong()))
+                            val dp = decision(det)
+                            status[i] = when {
+                                dp == null -> 0
+                                sample(det, dp, d, cs, kk, horizon, table, batchLeaves[i], cancelled) -> 1
+                                else -> -1
+                            }
+                        }
+                    },
+                )
+                for ((i, kk) in batch.withIndex()) {
+                    if (stopped || status[i] < 0) {
+                        for (arr in table.values) arr[kk] = Double.NaN
+                        stopped = true
+                        continue
+                    }
+                    if (status[i] == 1) done++
+                    leaves += batchLeaves[i]
+                    k = kk + 1
+                }
+                if (profile.race > 0 && done >= RACE_MIN && live.size > 2) live = race(live, table, k)
+            }
+        }
     }
 
     /**
@@ -229,15 +363,49 @@ internal class Searcher(
         for (o in candidates) {
             if (cancelled()) return false
             if (o !in dp.options) continue
-            val f = det.forkSession()
+            val f = det.forkForAnswer()
             val before = f.events.size
             f.answer(dp.id, o)
+            work++
             playout(f, d.seat, d.team, horizon)
-            val v = ev.evaluate(f.state, d.team)
+            val v = leaf.evaluate(f.state, d.team)
             table.getValue(o)[k] = v
             if (keepLeaves) leaves += Leaf(o, k, f, before, v)
         }
         return true
+    }
+
+    /**
+     * Racing ([LevelProfile.race]): options clearly behind the best after the first samples are not
+     * played out any more, so the samples left go to the contenders. With common random numbers the
+     * paired differences are tight: an option drops when its mean gap to the best, less two standard
+     * errors, exceeds the margin. At least two stay.
+     */
+    private fun race(live: List<Choice>, table: Map<Choice, DoubleArray>, k: Int): List<Choice> {
+        fun mean(c: Choice): Double {
+            val v = table.getValue(c)
+            var sum = 0.0
+            var n = 0
+            for (i in 0 until k) {
+                if (!v[i].isNaN()) {
+                    sum += v[i]
+                    n++
+                }
+            }
+            return if (n == 0) Double.NEGATIVE_INFINITY else sum / n
+        }
+        val best = live.maxBy { mean(it) }
+        val b = table.getValue(best)
+        val keep = live.filter { c ->
+            if (c == best) return@filter true
+            val v = table.getValue(c)
+            val diffs = (0 until k).filter { !v[it].isNaN() && !b[it].isNaN() }.map { b[it] - v[it] }
+            if (diffs.size < RACE_MIN) return@filter true
+            val m = diffs.average()
+            val sd = sqrt(diffs.sumOf { (it - m) * (it - m) } / (diffs.size - 1))
+            m - 2 * sd / sqrt(diffs.size.toDouble()) <= profile.race
+        }
+        return if (keep.size >= 2) keep else live.sortedByDescending { mean(it) }.take(2)
     }
 
     /** Big option lists: keep the best few by static score (plus every non-space option). */
@@ -295,6 +463,7 @@ internal class Searcher(
                 else -> static.best(s, d)
             }
             f.answer(d.id, c)
+            work++
             n++
         }
     }
@@ -341,10 +510,11 @@ internal class Searcher(
         var best = opts[0]
         var bestV = Double.NEGATIVE_INFINITY
         for (o in opts) {
-            val g = f.forkSession()
+            val g = f.forkForAnswer()
             g.answer(d.id, o)
+            work++
             finishAction(g, d.seat)
-            val v = ev.evaluate(g.state, d.team)
+            val v = inner.evaluate(g.state, d.team)
             if (v > bestV) {
                 bestV = v
                 best = o
@@ -365,6 +535,7 @@ internal class Searcher(
             if (s.acting != acting || s.step != step || turnIndex(s) != turn) return
             if (d.seat != seat && d.kind != DecisionKind.DEFEND) return
             g.answer(d.id, static.best(s, d))
+            work++
             n++
         }
     }
@@ -372,6 +543,9 @@ internal class Searcher(
     companion object {
         const val OPPONENT_TAU: Double = 1.5
         const val GREEDY_MAX: Int = 8
+
+        /** Samples before racing may drop an option. */
+        const val RACE_MIN: Int = 4
 
         fun turnIndex(s: GameState): Int = s.round * 8 + s.turn
 

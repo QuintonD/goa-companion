@@ -47,7 +47,12 @@ interface Navigator {
 // Catalog
 @Serializable data object CatalogRoute : NavKey
 
-@Serializable data class HeroDetailRoute(val heroId: String) : NavKey
+/** A hero's page; [section] [SPELLBOOK] opens it at the hero's spellbook (Gydion, from the draft's peek). */
+@Serializable data class HeroDetailRoute(val heroId: String, val section: String? = null) : NavKey {
+    companion object {
+        const val SPELLBOOK: String = "spellbook"
+    }
+}
 
 @Serializable data class CardViewerRoute(val heroId: String, val cardId: String) : NavKey
 

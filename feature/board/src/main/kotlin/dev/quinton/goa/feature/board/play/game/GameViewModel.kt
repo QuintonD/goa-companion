@@ -31,12 +31,15 @@ import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardHero
 import dev.quinton.goa.feature.board.boardHeroes
+import dev.quinton.goa.feature.board.hero
 import dev.quinton.goa.feature.board.play.review.ReviewKeeper
 import dev.quinton.goa.feature.board.play.review.ReviewUi
+import dev.quinton.goa.feature.board.play.table.ResolutionFlow
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.choiceFor
 import dev.quinton.goa.feature.board.play.table.logLines
+import dev.quinton.goa.feature.board.play.table.resolutionFlow
 import dev.quinton.goa.feature.board.play.table.turnLog
 import javax.inject.Inject
 import javax.inject.Provider
@@ -140,6 +143,9 @@ class GameViewModel internal constructor(
     /** The event count at the person's last answer: the panel tells what happened since. */
     private var answeredAt = 0
 
+    /** The event count just before the person's last answer: the resolution flow starts there (ADR-046). */
+    private var flowFrom = 0
+
     /** The computer's turn (or the coach after the game): cancelled by take back, rematch, leaving. */
     private var driver: Job? = null
 
@@ -198,6 +204,7 @@ class GameViewModel internal constructor(
         humanAnswered = !fresh && canUndo(game)
         shownEvents = withContext(engine) { game.events.size }
         answeredAt = withContext(engine) { turnStart(game.events) }
+        flowFrom = answeredAt
         reveal = withContext(engine) { latestReveal(game.events) { cards[it]?.initiative } }
         publish()
         drive()
@@ -375,13 +382,14 @@ class GameViewModel internal constructor(
 
     private suspend fun commit(game: GameSession, decision: Decision, choice: Choice) {
         dropLookahead()
-        val result = withContext(engine) { game.answer(decision.id, choice) }
+        val (before, result) = withContext(engine) { game.events.size to game.answer(decision.id, choice) }
         busy = false
         selected = null
         if (result is AnswerResult.Accepted) {
             humanAnswered = true
             absorb(game)
             answeredAt = shownEvents
+            flowFrom = before
             save()
         }
         publish()
@@ -410,6 +418,7 @@ class GameViewModel internal constructor(
             humanAnswered = canUndo(game)
             shownEvents = withContext(engine) { game.events.size }
             answeredAt = withContext(engine) { turnStart(game.events) }
+            flowFrom = answeredAt
             reveal = withContext(engine) { latestReveal(game.events) { cards[it]?.initiative } }
             update(publish = false) { it.copy(takeBacks = it.takeBacks + 1) }
             say("Took back your last choice.")
@@ -595,8 +604,11 @@ class GameViewModel internal constructor(
         val game = session ?: return
         val board = map ?: return
         val inProgress = progress ?: return
+        val teams = game.setup.seats.associate { it.heroId to it.team }
         val snapshot = withContext(engine) {
-            Snapshot(game.pending, game.mergedView(humans), game.events.toList(), review.build(game, humans))
+            val events = game.events.toList()
+            val flow = resolutionFlow(events, flowFrom, teams, humans, { heroes.hero(it).name }, { cards[it]?.name })
+            Snapshot(game.pending, game.mergedView(humans), events, review.build(game, humans), flow)
         }
         val decision = snapshot.pending
         val view = snapshot.view
@@ -639,6 +651,7 @@ class GameViewModel internal constructor(
                     message = message,
                     messageId = messageId,
                     review = snapshot.review,
+                    flow = snapshot.flow,
                 ),
             )
         }
@@ -649,6 +662,7 @@ class GameViewModel internal constructor(
         val view: GameView,
         val events: List<GameEvent>,
         val review: ReviewUi? = null,
+        val flow: ResolutionFlow = ResolutionFlow(),
     )
 
     override fun onCleared() {

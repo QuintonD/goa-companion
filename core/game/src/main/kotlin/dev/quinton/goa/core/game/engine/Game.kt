@@ -55,6 +55,11 @@ class Game internal constructor(
     internal val mode: RunMode = RunMode.NORMAL,
     /** In a determinized copy, answers that are no longer options are replaced by a sampled one. */
     private val lenient: Random? = null,
+    /**
+     * False in the AI's search copies: a question's explanations for the player (the reasons an
+     * action is unavailable, what the Primary will do, ADR-041) are left out; options are the same.
+     */
+    internal val explain: Boolean = true,
 ) {
     val geo: BoardGeometry = data.geometry(state.mapId)
 
@@ -76,6 +81,36 @@ class Game internal constructor(
 
     /** The innermost action being performed (its card, type, targets so far), if any. */
     fun currentAction(): ActionScope? = actions.lastOrNull()
+
+    // ---- what a probe saw (the action panel's preview, [primaryCheck]) ----------------------
+
+    /** PROBE: the hero whose action is probed; any other hero's hand or deck is hidden from it (p.4). */
+    internal var probeFor: String? = null
+
+    /** PROBE: the run read hidden cards ([readsHiddenOf]): what it did after that can't be told. */
+    internal var readHidden: Boolean = false
+        private set
+
+    /** PROBE: the first unit or token [probeFor] had to choose with one option only, before anything hidden. */
+    internal var forcedTarget: String? = null
+        private set
+
+    /** PROBE: why the action does nothing, in the script's words ([ActionScope.nothing]). */
+    internal var nothingReason: String? = null
+
+    /** A script reads [heroId]'s hand or deck: hidden information (p.4) unless [heroId] is the probed hero. */
+    internal fun readsHiddenOf(heroId: String) {
+        if (mode == RunMode.PROBE && heroId != probeFor) readHidden = true
+    }
+
+    private fun forced(seat: String, kind: DecisionKind, choice: Choice) {
+        if (forcedTarget != null || readHidden || seat != probeFor || kind != DecisionKind.CHOOSE_UNIT) return
+        forcedTarget = when (choice) {
+            is Choice.Unit -> choice.unitId
+            is Choice.Token -> choice.tokenId
+            else -> null
+        }
+    }
 
     /**
      * Run [block] as an action of [heroId] (effects "while an enemy hero is performing an action" see
@@ -108,7 +143,10 @@ class Game internal constructor(
         auto: Boolean = true,
     ): Choice {
         check(options.isNotEmpty()) { "Decision without options: $prompt" }
-        if (auto && options.size == 1) return options.single()
+        if (auto && options.size == 1) {
+            if (mode == RunMode.PROBE) forced(seat, kind, options.single())
+            return options.single()
+        }
         if (mode == RunMode.PROBE) throw ProbeHit()
         val asker = controllerOf(seat)
         val index = asked

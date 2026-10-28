@@ -42,7 +42,14 @@ fun Game.moveCard(heroId: String, cardId: String, zone: Zone, slot: Int = 0, kee
     touch()
 }
 
-fun Game.hand(heroId: String): List<String> = hero(heroId).cards.filter { it.zone == Zone.HAND }.map { it.id }
+/** [heroId]'s hand: hidden information to everyone else (p.4), so a probe notes the look ([Game.readsHiddenOf]). */
+fun Game.hand(heroId: String): List<String> {
+    readsHiddenOf(heroId)
+    return hero(heroId).cards.filter { it.zone == Zone.HAND }.map { it.id }
+}
+
+/** How many cards [heroId] holds: open information (the views show every hand's count), unlike the cards. */
+fun Game.handSize(heroId: String): Int = hero(heroId).cards.count { it.zone == Zone.HAND }
 
 fun Game.discardPile(heroId: String): List<String> =
     hero(heroId).cards.filter { it.zone == Zone.DISCARD }.sortedBy { it.stamp }.map { it.id }
@@ -115,7 +122,8 @@ fun Game.discard(heroId: String, cardId: String, allowReplacement: Boolean = tru
     state.turnRecord.discarded.getOrPut(heroId) { ArrayList() } += actual
     // "Discarded cards are open information" (p.10), unless the card is facedown (hidden, p.10).
     val what = if (inst.faceDown) "a facedown card" else cardName(actual)
-    emit(GameEvent.CardsChanged(heroId, "${heroName(heroId)} discards $what."))
+    val named = if (inst.faceDown) emptyList() else listOf(actual)
+    emit(GameEvent.CardsChanged(heroId, "${heroName(heroId)} discards $what.", cards = named, discarded = named))
     trigger(Trigger.CardDiscarded(heroId, actual, fromResolved))
     return actual
 }
@@ -136,6 +144,8 @@ fun Game.forceDiscard(
 ): String? {
     val heroId = heroBodyOf(victim) ?: return null
     val h = hero(heroId)
+    // Which hand cards pass [filter] is hidden from everyone but the victim (p.4).
+    readsHiddenOf(heroId)
     val options = h.cards.filter { it.zone == Zone.HAND && filter(card(it.id)) }.map { it.id }
     if (options.isEmpty()) {
         if (orDefeated && (h.at != null || state.pieces.any { it.heroBody == heroId && it.at != null })) {
@@ -160,7 +170,8 @@ fun Game.retrieve(heroId: String, cardId: String) {
     val hidden = hero(heroId).card(cardId)?.let { !isPublic(it) } ?: true
     moveCard(heroId, cardId, Zone.HAND)
     val what = if (hidden) "a facedown card" else cardName(cardId)
-    emit(GameEvent.CardsChanged(heroId, "${heroName(heroId)} retrieves $what."))
+    val named = if (hidden) emptyList() else listOf(cardId)
+    emit(GameEvent.CardsChanged(heroId, "${heroName(heroId)} retrieves $what.", cards = named))
 }
 
 /**
@@ -217,7 +228,9 @@ fun Game.swapCards(heroId: String, a: String, b: String, keepEffects: Boolean = 
         hidden(ca) && hidden(cb) -> "two hidden cards"
         else -> listOf(ca, cb).joinToString(" and ") { if (hidden(it)) "a hidden card" else cardName(it.id) }
     }
-    emit(GameEvent.CardsChanged(heroId, text ?: "${heroName(heroId)} swaps $names."))
+    // A replacing [text] names its own cards; the swap's line names those not hidden.
+    val named = if (text != null) emptyList() else listOf(ca, cb).filter { !hidden(it) }.map { it.id }
+    emit(GameEvent.CardsChanged(heroId, text ?: "${heroName(heroId)} swaps $names.", cards = named))
 }
 
 /** A card other seats cannot see (p.4: hands and decks; p.10: facedown cards). */

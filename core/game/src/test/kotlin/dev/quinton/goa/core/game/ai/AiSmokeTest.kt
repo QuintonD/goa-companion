@@ -10,7 +10,7 @@ import dev.quinton.goa.core.game.TestData
 import dev.quinton.goa.core.model.match.Team
 import org.junit.Test
 
-/** Full AI-vs-AI games finish: every level, 2v2 Quick and Long, 1v1, 2v1 with a Handicap, double lane. */
+/** Full AI-vs-AI games finish: every level, 2v2 Quick and Long, 1v1, 2v1 with a Handicap, 3v3 to 5v5, double lane. */
 class AiSmokeTest {
     @Test
     fun `every level finishes a full game against itself`() {
@@ -68,6 +68,21 @@ class AiSmokeTest {
             ),
             AiLevel.HARD,
         )
+    }
+
+    /** The owner's games (ADR-047): 3v3 on the single lane, 4v4 and 5v5 on the double lane, every hero seated. */
+    @Test
+    fun `3v3, 4v4 and 5v5 games finish`() {
+        for ((i, format) in listOf(
+            AiHarness.Format.THREE,
+            AiHarness.Format.FOUR_RIVER,
+            AiHarness.Format.FIVE_RIVER,
+        ).withIndex()) {
+            val (red, blue) = AiHarness.mixedLineups(1, seed = 900L + i, size = format.size)[0]
+            finishes(AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, Team.RED, format.length, format.mapId))
+        }
+        val (red, blue) = AiHarness.mixedLineups(1, seed = 903L, size = 4)[0]
+        finishes(AiHarness.setup(red, blue, AiLevel.HARD, AiLevel.HARD, Team.BLUE), AiLevel.HARD)
     }
 
     @Test

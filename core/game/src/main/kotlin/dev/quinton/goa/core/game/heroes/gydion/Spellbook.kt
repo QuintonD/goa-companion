@@ -1,6 +1,11 @@
 package dev.quinton.goa.core.game.heroes.gydion
 
+import dev.quinton.goa.core.game.Choice
+import dev.quinton.goa.core.game.DecisionContext
+import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameEvent
+import dev.quinton.goa.core.game.PrimaryPreview
+import dev.quinton.goa.core.game.UnavailableCard
 import dev.quinton.goa.core.game.WinReason
 import dev.quinton.goa.core.game.engine.ActionScope
 import dev.quinton.goa.core.game.engine.ActorDefeated
@@ -9,9 +14,12 @@ import dev.quinton.goa.core.game.engine.HeroState
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.engine.actionAllowed
 import dev.quinton.goa.core.game.engine.cancelEffect
+import dev.quinton.goa.core.game.engine.capitalized
 import dev.quinton.goa.core.game.engine.performAction
+import dev.quinton.goa.core.game.engine.primaryCheck
 import dev.quinton.goa.core.game.engine.primaryKind
 import dev.quinton.goa.core.game.engine.primaryPossible
+import dev.quinton.goa.core.game.engine.primaryUnavailable
 import dev.quinton.goa.core.game.engine.win
 
 /*
@@ -120,14 +128,75 @@ object Spellbook {
 
     /** "Choose and cast one spell in the spellbook —" / "Cast the X spell in the spellbook." (mandatory). */
     fun castOneOf(a: ActionScope, spells: List<String>) {
-        val available = spells.filter { castable(a.g, a.heroId, it) }
+        val why = spells.associateWith { whyNot(a.g, a.heroId, it) }
+        val available = spells.filter { why[it] == null }
         if (available.isEmpty()) noSpell(a, spells)
         val spell = if (available.size == 1) {
             available.single()
         } else {
-            a.chooseCard("Choose and cast one spell in the spellbook", available)!!
+            // The card's other spells come with why they can't be cast (the panel and the spellbook
+            // sheet show them, ADR-040), computed only while the question is really pending.
+            val answer = a.g.askAlways(
+                a.heroId,
+                DecisionKind.CHOOSE_CARD,
+                CAST_PROMPT,
+                a.cardId,
+                context = { DecisionContext(unavailableCards = spells.mapNotNull { why[it] }) },
+            ) { available.map { Choice.Card(it) } }
+            (answer as Choice.Card).cardId
         }
         cast(a.g, a.heroId, spell)
+    }
+
+    const val CAST_PROMPT: String = "Choose and cast one spell in the spellbook"
+
+    /**
+     * Why [caster] can't cast [spellId] now, or null when [castable]: not in the spellbook (removed
+     * faceup, or not added yet: the game starts with an empty spellbook, designer on BGG 3491113), or
+     * its action is forbidden or can't start (rulings/gydion.md 5). All open information: the removed
+     * spells lie faceup, the ones not added are public, and the board is.
+     */
+    fun whyNot(g: Game, caster: String, spellId: String): UnavailableCard? = when (tagOf(g, spellId)) {
+        SPELLBOOK -> g.primaryUnavailable(caster, spellId)?.let {
+            UnavailableCard(spellId, it.text, it.source, it.byCardId)
+        }
+
+        REMOVED -> UnavailableCard(spellId, "Not in the spellbook: removed faceup", PREPARE_SPELLS)
+
+        else -> UnavailableCard(spellId, "Not in the spellbook yet: Prepare Spells adds it", "designer, BGG 3491113")
+    }
+
+    private const val PREPARE_SPELLS = "Prepare Spells"
+
+    /**
+     * What a card casting one of [spells] will do for [caster] now, before the player chooses its
+     * primary action (the action panel; ADR-040 extended after the hands-on pass): the spells it can
+     * cast ([castOneOf]'s options; one is cast with no question), why not each of the others, and when
+     * exactly one can be cast, that spell's only target and whether it will do nothing (an "If able"
+     * with nobody able, ruling 5: it is still cast and removed). The spell is probed as [cast] performs
+     * it, after leaving the spellbook. Open information only (see [whyNot]; the probe stops telling at
+     * any hidden card).
+     */
+    fun preview(g: Game, caster: String, spells: List<String>): PrimaryPreview {
+        val why = spells.associateWith { whyNot(g, caster, it) }
+        val available = spells.filter { why[it] == null }
+        val single = available.singleOrNull()
+        val probe = single?.let { spell ->
+            g.primaryCheck(caster, spell) { p -> owner(p, spell)?.let { setTag(p, it, spell, REMOVED) } }.probe
+        }
+        val noEffect = if (single != null && probe?.noEffect == true) {
+            val what = "${g.cardName(single)} will do nothing and is removed from the spellbook"
+            probe.nothingReason?.let { "${it.capitalized()}: $what." } ?: "${what.capitalized()}."
+        } else {
+            null
+        }
+        return PrimaryPreview(
+            cardIds = available,
+            unavailableCards = spells.mapNotNull { why[it] },
+            onlyTargetId = probe?.onlyTargetId,
+            noEffect = noEffect,
+            noEffectSource = noEffect?.let { PREPARE_SPELLS },
+        )
     }
 
     /**
@@ -158,7 +227,14 @@ object Spellbook {
     fun cast(g: Game, caster: String, spellId: String) {
         val owner = owner(g, spellId) ?: g.fizzle("no spellbook")
         setTag(g, owner, spellId, REMOVED)
-        g.emit(GameEvent.CardsChanged(caster, "${g.heroName(caster)} casts ${g.cardName(spellId)}."))
+        // Removed from the spellbook faceup (Prepare Spells): open information.
+        g.emit(
+            GameEvent.CardsChanged(
+                caster,
+                "${g.heroName(caster)} casts ${g.cardName(spellId)}.",
+                cards = listOf(spellId),
+            ),
+        )
         val wish = spellId == WISH
         if (wish) owner.counters[COUNT_WISH] = (owner.counters[COUNT_WISH] ?: 0) + 1
         val done = g.performAction(caster, spellId, primaryKind(g.card(spellId)), primary = true)

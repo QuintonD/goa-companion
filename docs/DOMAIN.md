@@ -247,7 +247,9 @@ a phase.
   Gold. Pills show the count ("Ranged attacks · 5 of 6").
 - **Levels 1–8**, costs 1–7 coins per step; max tier II at levels 2–4, III at 5–7, Ultimate
   at 8. Each level: upgrade lowest-tier colour; of two next-tier cards one goes to hand, the
-  other becomes an item. All colours reach II before any reaches III.
+  other becomes an item. All colours reach II before any reaches III. The rule has the player
+  search their own deck for the pair (p.15), so the game table shows each colour's pair beside the
+  card to upgrade before the colour is chosen, from the engine's own selection (ADR-045); with each card, the extra cards its text names in quotes (Gydion's spells), matched to the catalog by name.
 - **Hero Profile card** (p.21): Attack, Initiative, Defense, Movement bars from 1 ("Very
   poor") to 8 ("Exceptional"); brighter sections are conditional (level-up choices, card
   text) and are stored as [base, max]. Complexity: ★ Challenging, ★★ Complex, ★★★ Very

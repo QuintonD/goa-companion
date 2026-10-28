@@ -34,7 +34,7 @@ import dev.quinton.goa.core.game.engine.canSwap
 import dev.quinton.goa.core.game.engine.defeatHero
 import dev.quinton.goa.core.game.engine.defeatMinion
 import dev.quinton.goa.core.game.engine.gainCoins
-import dev.quinton.goa.core.game.engine.hand
+import dev.quinton.goa.core.game.engine.handSize
 import dev.quinton.goa.core.game.engine.inRange
 import dev.quinton.goa.core.game.engine.isAdjacent
 import dev.quinton.goa.core.game.engine.isBasic
@@ -130,7 +130,7 @@ internal object GydionSpells {
         // other spell cards from the spellbook faceup."
         r.card(FIND_FAMILIAR, script { findFamiliar() })
         // Cloud Kill (green III, Radius 3): "An enemy hero in radius discards a basic card, if able."
-        r.card(CLOUD_KILL, script { discardSpell(radius, "a basic card") { g.isBasic(it) } })
+        r.card(CLOUD_KILL, script { discardSpell(radius, "in radius", "a basic card") { g.isBasic(it) } })
         // Suggestion (blue I, Radius 3): "If able, an enemy hero in radius moves 3 spaces in a straight line."
         r.card(SUGGESTION, script { suggestion() })
         // Dominate Person (blue II, Radius 3): "Target an enemy hero in radius. Defeat an enemy minion in
@@ -139,7 +139,7 @@ internal object GydionSpells {
         // Power Word Kill (blue III, Radius 3): "Defeat an enemy hero in radius with no cards in hand."
         r.card(POWER_WORD_KILL, script { powerWordKill() })
         // Midas' Touch (blue II): "Gain 1 coin for every two other spell cards removed from the spellbook."
-        r.card(MIDAS_TOUCH, script { g.gainCoins(heroId, Spellbook.otherRemoved(g, cardId) / 2, "Midas' Touch") })
+        r.card(MIDAS_TOUCH, script { midasTouch() })
         // Disintegrate (blue II): "Remove a token or an enemy non-heavy minion adjacent to you."
         r.card(DISINTEGRATE, script { disintegrate() })
         // Polymorph (blue III, Radius 3): "Swap an enemy hero in radius with a token in radius or with an
@@ -153,7 +153,10 @@ internal object GydionSpells {
     // ---- attacks -------------------------------------------------------------------------------
 
     private fun ActionScope.magicMissile() {
-        val t = rangedAttackTarget("Target a unit in range and not adjacent to you") { !isAdjacent(it) } ?: return
+        val t = rangedAttackTarget(
+            "Target a unit in range and not adjacent to you",
+            none = "no target in range that isn't adjacent to you",
+        ) { !isAdjacent(it) } ?: return
         attack(t, valid = { inRange(it) && !isAdjacent(it) })
     }
 
@@ -182,8 +185,10 @@ internal object GydionSpells {
             // "not adjacent to you or to your friendly unit": presence, immune units count (p.18).
             return inRange(id) && !isAdjacent(id) && g.unitsAdjacentTo(p).none { isFriendly(it) }
         }
-        val t = attackTarget("Target a unit in range, not adjacent to you or to your friendly unit") { valid(it) }
-            ?: return
+        val t = attackTarget(
+            "Target a unit in range, not adjacent to you or to your friendly unit",
+            none = "no target in range that isn't adjacent to you or to a friendly unit",
+        ) { valid(it) } ?: return
         attack(t, valid = { valid(it) })
     }
 
@@ -191,7 +196,9 @@ internal object GydionSpells {
         val n = Spellbook.otherRemoved(g, cardId)
         // Designer (BGG 3589662): exactly at the maximum range; items add to the 0 printed Range and Attack.
         val reach = range + n
-        val t = attackTarget("Target a unit at maximum range ($reach)") { distanceTo(it) == reach } ?: return
+        val t = attackTarget("Target a unit at maximum range ($reach)", none = "no target at maximum range ($reach)") {
+            distanceTo(it) == reach
+        } ?: return
         attack(t, valid = { distanceTo(it) == reach }, bonus = { n })
     }
 
@@ -240,7 +247,7 @@ internal object GydionSpells {
 
     private fun ActionScope.energyDrain() {
         // FAQ: the enemy hero must be targetable for the team to regain the Life counter.
-        discardSpell(range, "a non-basic card") { !g.isBasic(it) }
+        discardSpell(range, "in range", "a non-basic card") { !g.isBasic(it) }
         val team = hero.team
         val start = g.data.lifeCounters(g.geo.map.lanes.size, g.state.length, g.state.heroes.size)
         // "regains 1 spent Life counter": only a spent one, never above the starting count.
@@ -248,9 +255,9 @@ internal object GydionSpells {
     }
 
     /** "An enemy hero in range/radius discards [what], if able": the hero is mandatory, the discard is not. */
-    private fun ActionScope.discardSpell(distance: Int, what: String, filter: (String) -> Boolean) {
+    private fun ActionScope.discardSpell(distance: Int, within: String, what: String, filter: (String) -> Boolean) {
         val victims = unitsWithin(distance).filter { isHero(it) && isEnemy(it) && canTarget(it) }
-        if (victims.isEmpty()) fizzle("no enemy hero to target")
+        if (victims.isEmpty()) fizzle("no enemy hero $within")
         val v = chooseUnit("An enemy hero discards $what, if able", victims)!!
         discardIfAble(v, what) { filter(it.id) }
     }
@@ -260,7 +267,7 @@ internal object GydionSpells {
         fun spaces(id: String): List<Hex> =
             g.within(me, radius).filter { g.geo.isSpace(it) && it != g.posOf(id) && g.isEmpty(it, id) }
         val objects = objectsWithin(1).filter { canTarget(it) && g.canPlace(it, heroId) && spaces(it).isNotEmpty() }
-        if (objects.isEmpty()) fizzle("nothing adjacent can be placed")
+        if (objects.isEmpty()) fizzle("no unit or token adjacent to you can be placed into an empty space in radius")
         val t = target(chooseObject("Place a unit or a token adjacent to you", objects)!!)
         val h = chooseSpace("Place ${g.name(t)} into a space in radius", spaces(t))!!
         g.place(t, h, heroId)
@@ -308,7 +315,17 @@ internal object GydionSpells {
             isHero(id) && isEnemy(id) && canTarget(id) && g.canDisplace(id, Displacement.MOVE, heroId) &&
                 canMoveOther(id, 3, 3, straightLine = true)
         }
-        if (able.isEmpty()) return
+        if (able.isEmpty()) {
+            val any = unitsWithin(radius).any { isHero(it) && isEnemy(it) }
+            nothing(
+                if (any) {
+                    "no enemy hero in radius $radius can move 3 spaces in a straight line"
+                } else {
+                    "no enemy hero in radius $radius"
+                },
+            )
+            return
+        }
         val t = chooseUnit("An enemy hero in radius moves 3 spaces in a straight line", able)!!
         moveOther(t, 3, 3, straightLine = true)
     }
@@ -329,11 +346,20 @@ internal object GydionSpells {
     private fun ActionScope.powerWordKill() {
         // Checking a hero's hand is checking its status: it targets (goa2-faq common).
         val victims = unitsWithin(radius).filter { id ->
-            isHero(id) && isEnemy(id) && canTarget(id) && g.hand(g.heroBodyOf(id)!!).isEmpty()
+            isHero(id) && isEnemy(id) && canTarget(id) && g.handSize(g.heroBodyOf(id)!!) == 0
         }
         if (victims.isEmpty()) fizzle("no enemy hero in radius with no cards in hand")
         val v = target(chooseUnit("Defeat an enemy hero in radius with no cards in hand", victims)!!)
         g.defeatHero(g.heroBodyOf(v)!!, heroId)
+    }
+
+    private fun ActionScope.midasTouch() {
+        val coins = Spellbook.otherRemoved(g, cardId) / 2
+        if (coins == 0) {
+            nothing("fewer than two other spell cards are removed from the spellbook")
+            return
+        }
+        g.gainCoins(heroId, coins, "Midas' Touch")
     }
 
     private fun ActionScope.disintegrate() {
@@ -341,7 +367,7 @@ internal object GydionSpells {
             canTarget(id) &&
                 (g.isToken(id) || (isMinion(id) && isEnemy(id) && g.state.minion(id)?.type != MinionType.HEAVY))
         }
-        if (options.isEmpty()) fizzle("no token or enemy non-heavy minion adjacent")
+        if (options.isEmpty()) fizzle("no token or enemy non-heavy minion adjacent to you")
         val t = target(chooseObject("Remove a token or an enemy non-heavy minion adjacent to you", options)!!)
         if (g.isToken(t)) g.removePiece(t) else g.removeMinion(t)
     }
@@ -354,7 +380,7 @@ internal object GydionSpells {
             isHero(it) && isEnemy(it) && canTarget(it) &&
                 partners(it).isNotEmpty()
         }
-        if (heroes.isEmpty()) fizzle("nothing to swap")
+        if (heroes.isEmpty()) fizzle("no enemy hero in radius to swap with a token or an enemy minion in radius")
         val h = target(chooseUnit("Swap an enemy hero in radius", heroes)!!)
         val o = target(chooseObject("… with a token in radius or with an enemy minion in radius", partners(h))!!)
         g.swap(h, o, heroId)

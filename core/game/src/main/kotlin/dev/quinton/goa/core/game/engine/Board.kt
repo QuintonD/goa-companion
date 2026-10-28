@@ -412,7 +412,12 @@ fun Game.fastTravelDestinations(heroId: String): List<Hex> {
 
 /** p.18 "Place": into an empty space; not movement. Checks displacement limits for others' pieces. */
 fun Game.place(id: String, to: Hex, byHero: String? = actor) {
-    check(isEmpty(to, id)) { "Place into a non-empty space $to" }
+    check(isEmpty(to, id)) {
+        val q = SpaceQuery(to, id, actor)
+        val by = sources().firstOrNull { (b, s) -> b.countsAsObstacle(this, s, q) }?.second
+        "Place into a non-empty space $to (occupant ${occupant(to)}, obstacle by ${by?.key}, " +
+            "interact ${canInteract(to)}, actor $actor)"
+    }
     val from = posOf(id)
     setPos(id, to)
     val away = from?.let { HexGrid.distance(it, to) }
@@ -655,8 +660,25 @@ fun Game.spawnPiece(piece: PieceState, to: Hex) {
  * hero, when the piece isn't on the board yet): a space that counts as an obstacle for that side's
  * units (Takahide's Blade) is not empty for it either, and [place] would refuse it.
  */
-fun Game.canSpawnInto(hex: Hex, asUnit: String? = null): Boolean =
-    isEmpty(hex, asUnit) || (isSpawnPoint(hex) && occupant(hex)?.let { state.piece(it)?.token } == true)
+fun Game.canSpawnInto(hex: Hex, asUnit: String? = null): Boolean {
+    if (isEmpty(hex, asUnit)) return true
+    if (!isSpawnPoint(hex)) return false
+    val token = occupant(hex)?.let { state.piece(it) }?.takeIf { it.token } ?: return false
+    // The token is removed first, then the unit spawns (p.19): the space must then be empty for it. An
+    // effect still makes it an obstacle for this side or this actor: Static Barrier, and Takahide's
+    // Spinning Blade, whose "empty spaces adjacent to you" this space becomes once the token is gone.
+    // A query: the change stamp is restored too (a primary probe reads a bumped stamp as a change).
+    val stamp = state.stamp
+    token.at = null
+    touch()
+    try {
+        return isEmpty(hex, asUnit)
+    } finally {
+        token.at = hex
+        touch()
+        state.stamp = stamp
+    }
+}
 
 /** Throne Zones and Spawn points (p.6, p.19). */
 fun Game.isSpawnPoint(hex: Hex): Boolean = geo.spaces[hex]?.spawn != null

@@ -6,6 +6,7 @@ import dev.quinton.goa.feature.board.play.game.PlayAnnouncement
 import dev.quinton.goa.feature.board.play.review.ReviewAction
 import dev.quinton.goa.feature.board.play.review.ReviewUi
 import dev.quinton.goa.feature.board.play.table.LogLine
+import dev.quinton.goa.feature.board.play.table.ResolutionFlow
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
 
@@ -86,6 +87,8 @@ data class PuzzleUi(
     val announcement: PlayAnnouncement? = null,
     /** The game-state review, while its sheet is open (ADR-037). */
     val review: ReviewUi? = null,
+    /** What happened since the player's last move, one entry per card resolved (ADR-046). */
+    val flow: ResolutionFlow = ResolutionFlow(),
 ) {
     val canNudge: Boolean get() = nudgeCount > 0 && (nudgeLevel < nudgeCount || nudge == null)
 }

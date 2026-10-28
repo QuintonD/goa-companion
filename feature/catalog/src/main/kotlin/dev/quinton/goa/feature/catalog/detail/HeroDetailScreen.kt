@@ -43,6 +43,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -85,6 +86,7 @@ import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.catalog.Ruling
+import dev.quinton.goa.core.navigation.HeroDetailRoute
 import dev.quinton.goa.feature.catalog.ui.MetaPill
 import dev.quinton.goa.feature.catalog.ui.SectionTitle
 import dev.quinton.goa.feature.catalog.ui.UnverifiedBadge
@@ -96,8 +98,19 @@ fun HeroDetailScreen(
     onCardClick: (heroId: String, cardId: String) -> Unit,
     modifier: Modifier = Modifier,
     onLearnNumbers: ((heroId: String) -> Unit)? = null,
+    /** [HeroDetailRoute.SPELLBOOK]: open at the spellbook (once; back and rotation keep where you are). */
+    initialSection: String? = null,
 ) {
     val listState = rememberLazyListState()
+    var opened by rememberSaveable { mutableStateOf(false) }
+    val ready = state as? HeroDetailUiState.Ready
+    LaunchedEffect(ready != null) {
+        if (ready == null || opened) return@LaunchedEffect
+        opened = true
+        if (initialSection == HeroDetailRoute.SPELLBOOK) {
+            extrasItemIndex(ready, onLearnNumbers != null)?.let { listState.scrollToItem(it) }
+        }
+    }
     val headerGone by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
     val title = (state as? HeroDetailUiState.Ready)?.hero?.name?.takeIf { headerGone }.orEmpty()
     GoaScreen(title = title, onBack = onBack, modifier = modifier) { padding ->
@@ -128,6 +141,18 @@ fun HeroDetailScreen(
         }
     }
 }
+
+/**
+ * Where [heroDetailContent] puts the extras (Gydion's spellbook): after the header, profile, stats,
+ * deck title, the deck's groups, the trivia button and the Handicap card. Null without extras.
+ */
+internal fun extrasItemIndex(state: HeroDetailUiState.Ready, trivia: Boolean): Int? {
+    if (state.deck.extras.isEmpty()) return null
+    return FIXED_ITEMS + state.deck.groups.size + (if (trivia) 1 else 0) + (if (state.deck.handicap != null) 1 else 0)
+}
+
+/** header, profile, stats, deck-title. */
+private const val FIXED_ITEMS = 4
 
 private fun LazyListScope.heroDetailContent(
     state: HeroDetailUiState.Ready,

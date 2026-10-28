@@ -53,12 +53,18 @@ import dev.quinton.goa.core.model.catalog.Stat
 
 /**
  * Hero peek during a draft (long-press a pool tile): complexity, roles, stat bars (base → max),
- * the five starting cards and a link to the full hero page. Catalog data only, never draft
+ * the five starting cards, Gydion's spellbook (his hero page opened at it) and a link to the full
+ * hero page. Catalog data only, never draft
  * state, so it can't reveal a hidden choice.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun HeroPeekSheet(hero: HeroInfo, onDismiss: () -> Unit, onOpenHero: ((String) -> Unit)?) {
+internal fun HeroPeekSheet(
+    hero: HeroInfo,
+    onDismiss: () -> Unit,
+    onOpenHero: ((String) -> Unit)?,
+    onOpenSpellbook: ((String) -> Unit)? = null,
+) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -119,6 +125,20 @@ internal fun HeroPeekSheet(hero: HeroInfo, onDismiss: () -> Unit, onOpenHero: ((
                     )
                 }
                 StartingCardScans(hero.startingCards)
+                // Choosing Gydion: his deck casts spells from a spellbook of its own (ADR-040); the hero
+                // page shows the spell cards, opened at them.
+                if (onOpenSpellbook != null && hero.spellCards > 0) {
+                    OutlinedButton(
+                        onClick = { onOpenSpellbook(hero.id) },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    ) {
+                        if (hero.symbol != null) {
+                            HeroSymbol(hero.id, hero.symbol, Modifier.size(scaledIconSize(24.dp, 1.3f)))
+                            Spacer(Modifier.width(Spacing.sm))
+                        }
+                        Text("${hero.name}'s spellbook · ${hero.spellCards} spell cards")
+                    }
+                }
             }
             if (onOpenHero != null && hero.known) {
                 OutlinedButton(

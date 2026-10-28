@@ -22,7 +22,7 @@ import org.junit.Test
  *   rules of thumb) was offered and another was chosen that defeats none, pushes nothing, wins nothing;
  * - **walked into a defeat:** the hero moved, was defeated later in the same turn, and another
  *   destination of that move (the rest of the turn played out the same way) was not defeated.
- * `AI_BLUNDERS_SHOW=n` prints the first n of each with the game and the turn.
+ * `AI_BLUNDERS_SHOW=n` prints the first n of each with the game and the turn; `AI_FORMAT=3v3` bigger teams.
  */
 class BlunderTest {
     private class Found(val kind: String, val text: String)
@@ -33,16 +33,21 @@ class BlunderTest {
         val strength = spec[0].toInt()
         val games = spec.getOrNull(1)?.toInt() ?: 24
         val first = spec.getOrNull(2)?.toInt() ?: 300
-        val lineups = AiHarness.mixedLineups(first + games).drop(first)
+        val format = AiHarness.Format.parse(System.getenv("AI_FORMAT"))
+        val lineups = AiHarness.mixedLineups(first + games, size = format.size).drop(first)
         val pool = Executors.newFixedThreadPool(System.getenv("AI_THREADS")?.toIntOrNull() ?: 4)
         val results = try {
-            pool.invokeAll(lineups.mapIndexed { i, (r, b) -> Callable { game(i, r, b, strength) } }).map { it.get() }
+            pool.invokeAll(
+                lineups.mapIndexed { i, (r, b) ->
+                    Callable { game(i, r, b, strength, format) }
+                },
+            ).map { it.get() }
         } finally {
             pool.shutdown()
         }
         val all = results.flatMap { it.second }
         val decisions = results.sumOf { it.first }
-        println("BLUNDERS strength $strength, $games games, $decisions decisions")
+        println("BLUNDERS [$format] strength $strength, $games games, $decisions decisions")
         val show = System.getenv("AI_BLUNDERS_SHOW")?.toIntOrNull() ?: 5
         for ((kind, list) in all.groupBy { it.kind }) {
             println("BLUNDERS $kind: ${list.size} (${"%.2f".format(list.size.toDouble() / games)} per game)")
@@ -50,10 +55,17 @@ class BlunderTest {
         }
     }
 
-    private fun game(i: Int, red: List<String>, blue: List<String>, strength: Int): Pair<Int, List<Found>> {
+    private fun game(
+        i: Int,
+        red: List<String>,
+        blue: List<String>,
+        strength: Int,
+        format: AiHarness.Format,
+    ): Pair<Int, List<Found>> {
         val level = AiLevel.of(strength)
+        val coin = if (i % 2 == 0) Team.RED else Team.BLUE
         val s = TestData.engine.newGame(
-            AiHarness.setup(red, blue, level, level, if (i % 2 == 0) Team.RED else Team.BLUE),
+            AiHarness.setup(red, blue, level, level, coin, format.length, format.mapId),
         ) as EngineSession
         val players = mapOf(
             Team.RED to AiPlayers.deterministic(strength, 9_000L + 2 * i),

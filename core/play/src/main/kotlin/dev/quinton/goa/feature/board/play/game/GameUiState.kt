@@ -9,6 +9,7 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.play.review.ReviewAction
 import dev.quinton.goa.feature.board.play.review.ReviewUi
 import dev.quinton.goa.feature.board.play.table.LogLine
+import dev.quinton.goa.feature.board.play.table.ResolutionFlow
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
 
@@ -69,7 +70,8 @@ data class PlayUi(
     val status: TurnStatus,
     /**
      * The latest events, oldest first. When the question is the person's: what happened since
-     * their last answer ([recentSince]), the lines not to miss at [recentStrong].
+     * their last answer ([recentSince]), the lines not to miss at [recentStrong]. The hidden panel's
+     * peek reads the last one; the panel itself shows [flow].
      */
     val recent: List<String>,
     val log: List<LogLine>,
@@ -90,6 +92,8 @@ data class PlayUi(
     val recentStrong: Set<Int> = emptySet(),
     /** The game-state review, while its sheet is open (ADR-037). */
     val review: ReviewUi? = null,
+    /** What happened since the person last chose, one entry per card resolved (ADR-046): the panel shows it. */
+    val flow: ResolutionFlow = ResolutionFlow(),
 )
 
 /** Why there is no game to show. */

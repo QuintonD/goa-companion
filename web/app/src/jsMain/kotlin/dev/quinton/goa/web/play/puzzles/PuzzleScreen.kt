@@ -161,6 +161,12 @@ private fun PuzzleTable(puzzle: PuzzleUi, controller: PuzzleController) {
             EventLog(puzzle.log)
         }
 
+        // The table's Spellbook (Android) is the hero sheet's spellbook section here.
+        is PlaySheet.Spellbook -> BottomSheet(table.hero(open.heroId).name, onDismiss = { sheet = null }) {
+            Quiet("Open information (p.4)")
+            HeroDetail(table, open.heroId, focus)
+        }
+
         is PlaySheet.Hero -> BottomSheet(table.hero(open.heroId).name, onDismiss = { sheet = null }) {
             Quiet("Open information (p.4)")
             HeroDetail(table, open.heroId, focus)

@@ -223,8 +223,9 @@ One ring of water hexes (the terrain around the board, p.19) is drawn faintly ar
 (`water`/`waterLine`). Zone labels (Battle Zone, "Lane 1 · Battle Zone" on a double-lane map,
 Red/Blue Throne) float at a fixed size outside the zoom, so they stay readable; they sit just
 outside their Zone's edge, under every piece and overlay, and take the first of their places that
-is in view and covers no piece, highlighted space, Measure line or map button; with none free they
-hide. **Spawn points** are the rulebook's printed symbols (p.6, `rememberSpawnArt`), drawn as markings on
+is in view and covers no piece, highlighted space, Measure line or map button (on the game table the
+Fit / Flip / Spellbook column as laid out, under the hero strip and grown with the font scale); with
+none free they hide. **Spawn points** are the rulebook's printed symbols (p.6, `rememberSpawnArt`), drawn as markings on
 the board, never as units: faded (50 %) and partly desaturated toward the Zone fill, 1.0 u across,
 inside a piece's disc, so a minion or hero standing on one hides it completely (an occupied Spawn
 point shows only its piece) and the pieces stay the most prominent thing on any space. A hero Spawn
@@ -273,6 +274,14 @@ acting hero's space is outlined in bronze with a bronze **"NOW"** tag over its p
 outside the zoom; TalkBack hears "acting now" on the space); an immune minion is ringed with a dashed
 teal circle (TalkBack: "immune"). Map taps select, a **Confirm** button with the choice spelled out
 ("Confirm · Lane Zone 3 · 3 spaces from Wasp") answers.
+**Framing a question** (extended after the v0.8 hands-on pass): when a question arrives the map brings
+its options (with the unit they are about and the asking hero) into the part of the map nothing floats
+over: under the HUD and the hero strip or turn track, clear of the map buttons' column (Fit, Flip, the
+Spellbook; when the options fit beside it), above the panel. Hexes stay at least about 38 dp across, or
+down to about 30 dp when that is what it takes for every option to be in view (a Move 3 under the turn
+track); with still more, the middle of the options. It frames again as what floats over the map settles
+(the turn track appears at the reveal, the panel grows) — but never once the person has dragged, pinched
+or double-tapped since the question came: their view wins.
 **Top, floating:** one HUD pill (each team's Life counters as heart + number by its shape, Wave
 counters per Lane, "R2" and four turn pips: done filled, current ringed, later hollow; the Tie
 Breaker coin as printed, the showing face (Red's gear, Blue's star, `OfficialArt.tieBreaker`) with the
@@ -294,7 +303,7 @@ with the team's shape under the card, and the state in a word on a band across t
 2 dp border), **NEXT** (teal band and border), **PASS** (no card: an empty outline), **OUT** (a card
 that left the table unresolved); never colour alone. A card resolved facedown stays a card back. A
 tap opens the card focus viewer, swiping through the turn's cards, each captioned "Wasp · Done ·
-Movement · Initiative 10"; a long press (TalkBack: "Read about Wasp") opens the hero. The track stays
+Movement · Initiative 10"; a long press (TalkBack: "Show Wasp's game state") opens the hero. The track stays
 in view with the panel hidden and in landscape, compact there (32 dp cards, no names, DONE as a tick).
 **Moments:** a surfaceVariant card with a bronze border at the top of the panel (a polite live region)
 states the transition the table is at: "ALL CARDS REVEALED · Wasp acts first with initiative 10."
@@ -316,13 +325,25 @@ icon, bodySmall) for each action the card prints that isn't offered, with the en
 source (`DecisionContext.unavailable`, ADR-041): "Its Skill can't start: the spellbook is empty until
 Prepare Spells is performed (designer, BGG 3491113).", "Its Attack can't start: no target in range
 (p.10, FAQ).", "Its Movement is forbidden by Xargatha's Stone Gaze." (a tap opens that card), "Its
-Defense is never performed from a played card, only from your hand when attacked (p.14)."; then one
-line under the panel: "Only the primary action applies the card's text (p.7)." Card questions (play, discard, retrieve, upgrade,
+Defense is never performed from a played card, only from your hand when attacked (p.14)."; right under
+the Primary chip, what it will do (`DecisionContext.primaryPreview`, ADR-040 extended): Gydion's spell
+as its landscape card (40 dp portrait-equivalent, tap to read) with "Casts Fireball" (labelLarge) and
+"Its only target: Brogan" (bodySmall), several spells as cards with "Casts one of these: you choose
+which next", a "will do nothing" warning on errorContainer with a warning icon, and the card's other
+spells one line each with the engine's reason (also after the action's own line when no spell can be
+cast); then one line under the panel: "Only the primary action applies the card's text (p.7)." Card questions (play, discard, retrieve, upgrade,
 keep) show "Asked by <card>" (28 dp thumbnail) when another card asks, and the cards as official
 images: the hand as 84 dp cards shrinking to 60 dp to fit five, two or three cards larger (140 / 110
 dp, so Keep's two next-Tier cards sit side by side with their item stats), a card the question
 doesn't offer dimmed with a block icon, and a teal "Tap a card to see it large; tap it again to …"
-line; a tap opens the **card focus** viewer (below), which answers. **Defend** is an error-container
+line; a tap opens the **card focus** viewer (below), which answers. **Level up** (which card to
+upgrade, ADR-045) is a row per card that may be upgraded: the hand card framed 2 dp in its colour (the
+choice), an arrow, then the two cards it would become with their item (the official icon and "+1
+Initiative"), three cards across the panel (60–100 dp); under each card the spells it names (Gydion,
+landscape, as wide as the card, tap to read); "The card on the left is the choice…" under the rows.
+Keep's two cards have their spells under them the same way. Whenever the question is the person's
+own (any kind, game and puzzles) the resolution flow and then the moment (reveal, turn over, the end of
+round summary) come after it, and a new question opens the panel at its top. **Defend** is an error-container
 header with the attacker's card (56 dp, tap to read), "Arien attacks · melee", the Attack total, the
 minion modifier counted and "Discard a card to defend" (it carries the prompt for TalkBack), then the
 hand's cards themselves with the verdict under each in words with an icon ("✓ Holds" teal, "! Falls"
@@ -330,10 +351,32 @@ red, "Decided by its text" grey) and the Defense total with a shield when items 
 the printed value; "Don't defend" is chosen then confirmed. Declines and Pass are outlined. With large
 text the asking card goes above the answers. The computer's move shows its portrait, band and strength
 ("COMPUTER · HARD 7") and prompt
-and the card it resolves (56 dp, tap to read), a linear progress bar once it is "thinking…". Under
-the question, the lines of what happened that the table doesn't show (an attack, a defense, a defeat,
-coins, a push…), not the reveal, the action chosen or a move (the track and the board show those);
-the log sheet keeps every line. The coach's nudge is a secondary-container card with "Choose anyway"
+and the card it resolves (56 dp, tap to read), a linear progress bar once it is "thinking…".
+**Resolution flow** (ADR-046; `play/table/ResolutionFlow*.kt`), under the question: what happened since
+the person last chose, **one entry per hero's card resolution** (plus one for the end of a round, and
+one for the turn's start when something happened there), oldest first, at most 8 ("3 earlier cards in
+the game log"). An entry is a surfaceVariant card (10 dp corners): collapsed, one 48 dp row with the
+hero's portrait in its team ring (a flag for the end of round), the card played as a 30 dp official
+thumbnail, the hero's name in the overline in its team colour ("BROGAN · YOU"), and the outcome in a few
+words in bodyMedium — "Onslaught → Wasp defended with Lift Up (4 vs 4)", "Shock → Brogan defeated · Arien
+discarded Liquid Leap", "Mad Dash → Wasp defeated: Lift Up fell short (5 vs 6)", "Cantrip → cast Magic
+Missile · Blue melee minion defeated", "Liquid Leap → moved 2", "fast travelled to Lane Zone 1", "held";
+"End of round 1 · Minion Battle: Red removes 1 · Arien reached level 2". A chevron opens it to its
+steps in the engine's words, each with a 3 dp bar: the action chosen (with the card, 40 dp, tap to
+read), moves, each attack with its total, **the defending card as the card** (48 dp, tap → the card
+focus viewer captioned "Against Attack 4 · Defense 5 - 1 (adjacent enemy melee minion) = 4. Defended")
+with its Defense sum and a verdict in words and shape ("✓ Defended" secondary, "! Defeated" error),
+discards with the open card a discard names, pushes, places, coins, defeats, effects starting. **The
+person's attack answered by an enemy** (an enemy hero defended against, or was defeated by, one of the
+person's heroes) starts open and its line is semibold with a 1.5 dp border; an entry with a line a
+player must not miss (a hero defeated, a Life counter, a Lane push, a level up, the Minion Battle) has
+the bronze border and a semibold line, and those steps are semibold with a bronze bar. Nothing new
+since the last answer: the last entry before, collapsed, marked "EARLIER". TalkBack: each entry is one
+button read as a sentence ("Brogan, your hero, played Onslaught: Wasp defended with Lift Up (4 against
+4)."), with "Expanded" / "Collapsed" and the action "Expand" / "Collapse"; a step's card is its own
+button ("Wasp's defense card: Lift Up, …", "Read the card"). Built only from the events (p.4): a card
+appears only where the log names it. The hidden panel's peek and the log sheet are unchanged (the log
+keeps every line). The coach's nudge is a secondary-container card with "Choose anyway"
 (outlined) and "Rethink" (filled). Game over leads with "You won" / "The computer won" in a card
 bordered in the winner's colour, the rulebook reason, each hero's results, then the coach's turning
 points by round and turn. New game reuses New board's picker; heroes not yet playable are veiled and
@@ -344,20 +387,69 @@ under that (1 and 10 have their own); TalkBack reads "Computer strength, Strengt
 Under "Advanced: a strength per seat" each computer hero gets the same slider with its name and value
 on one line and no end labels. The computer's strength also shows wherever its level did ("Computer ·
 Hard 7": the hero sheet, game over, the resume line on Boards).
-**Spellbook** (Gydion, ADR-040; `play/table/SpellbookSection.kt`): the hero sheet and the review's Now
-tab show a SPELLBOOK section after the discard, in the engine's order: "In your spellbook · 19" (the
+**Hero sheet** (ADR-044; `play/table/HeroState.kt`, `HeroDetail`): opened by a tap on a hero's chip or
+piece (when the tap is not an answer) and by a long press on any hero's piece (a haptic tick; the press is
+then the long press's, no tap or pan) or track card; TalkBack: "Show Wasp's game state" on the space,
+chip and card. The sheet's title names the hero, so the header is the 56 dp portrait in its team ring
+(faded off the board) with "◆ Blue · Computer · Hard 8" and "On the board · Lane Zone 2" (off the board:
+the respawn line in the error colour, p.7), then the number row (Level, Coins, In hand, Ultimate,
+counters). **THIS TURN · ROUND 2, TURN 3**: the card at 112 dp (a card back when it is facedown to you;
+Emmitt's second card at 76 dp beside it; a 40 dp outline when there is none), beside it the state as a
+word on a tag like the track's band (NOW bronze, NEXT teal, else surfaceVariant: FACEDOWN, CHOOSING,
+LATER, DONE, PASS, OUT), one line of what it means, the action chosen, the initiative as it counts in
+titleMedium ("Initiative 14 · printed 13"), the place in order; one TalkBack node that opens the card.
+**THIS ROUND · TURN SLOTS**: four 64 dp slots captioned Turn 1–4 as on the dashboard (an outline where
+no card lies; "No card resolved yet this round." before the first). **DISCARD · n**, then **ITEMS ·
+P.16**: the official item icons (40 × 30 dp) with "+1 Defense ×2" in titleMedium, side by side as they
+fit; for your own hero "Tucked under the dashboard: only you see which cards (p.4)." and the tucked cards
+captioned "+1 Defense". **YOUR HAND** comes right after this turn's card (the cards a player most needs
+together; any hero's "In hand · open in this puzzle" in a puzzle). Then Ultimate, Active effects, Markers
+and tokens, Spellbook. From 600 dp wide (landscape) this turn's column (card and hand) sits beside the
+round's cards, discard and items. When a hero's
+piece is an option the board hint adds "Long-press a hero for their game state."
+**Spellbook** (Gydion, ADR-040; `play/table/SpellbookSection.kt`): the hero sheet sums it up (after the
+v0.8 hands-on pass, when the Spellbook sheet is a tap away): a SPELLBOOK head with "Open the spellbook",
+then one surfaceVariant card (tap = the sheet; one TalkBack node) with each group's name and count in
+titleMedium ("In your spellbook 19 · Cast · removed faceup 3") and, for anyone else, "Facedown: only
+Gydion can look at the cards in the spellbook." The review's Now tab (no sheet there) and the Spellbook
+sheet show the groups in full, in the engine's order: "In your spellbook · 19" (the
 spell cards, for Gydion's player only), "Cast · removed faceup · 3" (everyone), "Not yet added · 22"
 (only before the first Prepare Spells, with "Prepare Spells adds every spell card to the spellbook.").
 Anyone else sees "In the spellbook · 19" and "Facedown: only Gydion can look at the cards in the
 spellbook." (a puzzle, whose hands are open, says "Open in this puzzle."). The cards are the official
-landscape scans in a grid as wide as the sheet (columns of at least 104 dp, at most 4); the images are
-the content, no card text retyped. The groups' counts are said there only: the sheet's number row
+landscape scans in a grid as wide as the sheet (columns of at least 104 dp, wider with large text up to
+×1.6, at most 6; whole-pixel widths so a row never wraps its last card); the images are the content,
+no card text retyped. On the Spellbook sheet each group lists its spells by Tier under a small
+labelLarge head ("Gold (no tier) · 3", "Tier I · 2", …, "Ultimate · 1"), as the catalog and the pre-game
+sheet do, a Tier sharing its row with the next when both fit (no row a third empty in landscape); the
+viewer still swipes through the whole group. For Gydion's own player each spell in the
+spellbook that a card in his hand names carries a line under it, "Cast with Lesser Evocation" ("Cast
+with Cantrip or Lesser Evocation"; labelSmall, onSurface; the names are the catalog card text's own
+quoted spells; two lines at most, the size stepping down rather than an ellipsis) — a cast question's
+mark replaces it while asked. The groups' counts are said there only: the sheet's number row
 leaves out the engine's "spellbook" and "spellsRemoved" counters (it keeps "Wish casts"). A tap opens
 the card focus viewer among that group. Cantrip's
 "Choose and cast one spell" offers the spells as landscape cards that share the row's height
 (shrinking down to 44 dp-wide equivalents to fit three), "tap it again to cast it", "Cast Magic
 Missile". An unlocked Ultimate shows as its card ("ULTIMATE · p.16"), as it lies faceup on the
-dashboard. **Card shape:** deck cards are portrait scans (729 × 1026), spell cards landscape (737 ×
+dashboard. **At any point** (extended 2026-10-26, `play/table/SpellbookSheet.kt`): whenever a hero the
+person controls (`TableUi.mine`) has a spellbook, a pill under Fit and Flip (the hero's official deck
+symbol beside a small parchment landscape card holding the spellbook's count) opens the **Spellbook
+sheet** (one TalkBack node: "Gydion's spellbook, 19 in the spellbook, 3 cast"). It sits in the map
+buttons' column, under the round at a glance, the turn track and the hero strip, so it never covers
+them, and stays with the panel hidden. The sheet: "Your spellbook · Gydion", the groups as above, card
+focus per group. During the person's own cast question a bronze banner with the asking card says
+"Cantrip asks: … 2 spells are offered; choose in the panel. Expeditious Retreat: Not in the spellbook:
+removed faceup (Prepare Spells)."; offered spells get a bronze edge and "Can be cast now", the card's
+others are dimmed with the engine's reason (words and an edge, never colour alone). The panel's cast
+question shows those spells too, dimmed with the block mark, and one line each under the cards. An
+opponent's Gydion: his hero sheet's SPELLBOOK head has "Open the spellbook" (the same sheet, the
+spellbook a count, "Open information (p.4)"). The review's rewound board has the same pill, built from
+that board's view. Before the game: "Gydion's spellbook · 22 spells" (deck symbol, bronze outline)
+under his row in New game's "You play", and "Gydion's spellbook" in his line-up chip's menu (New game,
+New board), open the 22 spell cards by tier (Gold (no tier), Tier I to III, Ultimate); the draft's hero
+peek has a full-width "Gydion's spellbook · 22 spell cards" button that opens his hero page at its
+Spellbook. **Card shape:** deck cards are portrait scans (729 × 1026), spell cards landscape (737 ×
 510); `ui/cards/CardShape.kt` decides by the catalog id (`<hero>-spell-…`) and `CardShapeTest` checks
 every bundled scan. A landscape card is never put in a portrait frame: in a row it keeps the row's
 height and is about twice as wide (`TableCard`'s `width` is a portrait card's).
@@ -371,7 +463,9 @@ word Hard / Harder / Hardest: shape and word, never colour alone), the title in 
 then "What you know" (surfaceVariant, folds to one line). A **nudge** is a secondary-container card
 like the Coach's ("NUDGE 2 OF 3", ×, Another nudge); the last nudge's move is a **dashed bronze ring**
 around its space on the map (apart from the teal options and the white selection; TalkBack: "hint").
-The other side's replies appear line by line under "<HERO> ANSWERS" with a progress bar. A **miss** is
+The other side's replies appear line by line under "<HERO> ANSWERS" with a progress bar; once they are
+told, the resolution flow (as in the game) shows them grouped by card under the next question and
+under a miss. A **miss** is
 a quiet surfaceVariant card ("Not quite" in Cinzel, the reason, filled "Try again from before that
 move", outlined Restart, text Show solution); never error red. **Solved** is a primary-container card
 with a 2 dp bronze border and the original **seal** (a bronze hex with a tide-teal tick and six
@@ -387,15 +481,18 @@ discarded cards, a puzzle replay's card, and the sandbox's "Read the cards".
 - **First tap** on a thumbnail: the card grows out of it (scale and translate from the thumbnail's
   bounds, 340 ms emphasised deceleration) into a large card over a near-black scrim (93 %, the same in
   both themes; light text on it). Portrait: × with the question's title ("WASP · CARD", bronze overline)
-  and "Card 2 of 4" with page dots on the scrim, the card up to 60 % of the height (50 % above font
-  scale 1.3; on a phone it is as wide as the screen allows), then a surface panel (28 dp top corners)
-  at the bottom, **as tall as its words**: only what the card doesn't print (ADR-041: the scan is the
+  and "Card 2 of 4" with page dots on the scrim (the spells a card names are said as its pages: "Card 2
+  of 9 · spell 1 of 2"), the card up to 60 % of the height (50 % above font
+  scale 1.3; on a phone it is as wide as the screen allows; it gives way to the panel, down to 30 % /
+  24 %, before any line of the panel is squeezed: the panel is measured for every card of the viewer,
+  the tallest counts), then a surface panel (28 dp top corners) at the bottom, **as tall as its words**: only what the card doesn't print (ADR-041: the scan is the
   content, nothing it shows is retyped): the question's context ("Play a card facedown", "Arien
   attacks · melee · Attack 6"), a caption ("Turn 2 · Active"), the verdict ("! Falls · Defense 2
   against Attack 6", also as a pill on the card's corner; the Defense total says what items and
   minions change), why a card isn't an option, what choosing it means (Keep: "… goes to your hand",
-  "… becomes an item: +1 Defense (p.16)"; Upgrade: the two cards of the next Tier with their item
-  stats), a Handicap card's basis ("a weaker version of the Gold card (frame colour, p.20)"), its item
+  "… becomes an item: +1 Defense (p.16)"; Upgrade: the two cards of the next Tier by name, shown large
+  as the next pages; an upgrade card itself: "Upgrade of Liquid Leap" and which card to choose instead, ADR-045; a
+  card that names spells: "The spells it chooses from:" with each spell small, a tap goes to its page), a Handicap card's basis ("a weaker version of the Gold card (frame colour, p.20)"), its item
   stat with its item icon; then **"Read the card as text"** (collapsed, article icon and
   chevron; TalkBack hears Expanded / Collapsed): open, the name, kind, printed values and the text
   verbatim, for anyone the scan doesn't serve (the switch holds while swiping; in portrait the card steps back to 36 % of the height, 26 % with large text, and the words scroll into view). Landscape: the card on
@@ -409,7 +506,10 @@ discarded cards, a puzzle replay's card, and the sandbox's "Read the cards".
   saying the same ("Discard Magnetic Dagger", "Play Shock facedown", "Defend with …", "Upgrade …",
   "Keep …", "Measure with …"), and "Swipe up or go back to choose nothing." A card that isn't an
   option is veiled with a "Not an option" pill; a tap on it shakes it with the Reject haptic; its
-  button reads "Not an option". While the game is busy the button reads "Wait…".
+  button reads "Not an option". A card shown with a question as what an answer leads to (an upgrade
+  card, `FocusCard.answeredBy`) is not veiled: its caption says whose upgrade it is, a calm info line
+  says which card to choose, and its button is an outlined "Go to Liquid Leap" (also a TalkBack
+  action); a second tap on it shakes. While the game is busy the button reads "Wait…".
 - **Swipe sideways** on the card for the others (a pager, neighbours peeking at 93 % scale and 55 %
   alpha, snapping); tap a neighbour to go to it.
 - **Landscape cards** (Gydion's spells) keep their aspect: in portrait the card is the screen's width

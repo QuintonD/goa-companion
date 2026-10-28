@@ -26,6 +26,8 @@ data class PuzzleMove(
     val own: Int,
     val ownView: GameView,
     val status: PuzzleStatus,
+    /** The log's size before the move: the resolution flow starts there (ADR-046). */
+    val before: Int,
 )
 
 /** One step of the solution replayed: the position before a move, the move, what happened since the last one. */
@@ -57,7 +59,7 @@ fun PuzzleSession.play(choice: Choice, mine: Set<String> = playerSeats): PuzzleM
     val result = answer(decision.id, choice) as? AnswerResult.Accepted ?: return null
     val ownCount = if (own is AnswerResult.Accepted) fork.events.size - before else result.events.size
     val ownView = if (own is AnswerResult.Accepted) fork.openView(mine) else game.openView(mine)
-    return PuzzleMove(result.events, ownCount.coerceIn(0, result.events.size), ownView, status)
+    return PuzzleMove(result.events, ownCount.coerceIn(0, result.events.size), ownView, status, before)
 }
 
 /** The other side's replies in [move], as the screen narrates them (round and turn headings left out). */

@@ -44,6 +44,7 @@ import dev.quinton.goa.feature.board.BundledImages
 import dev.quinton.goa.feature.board.boardHeroes
 import dev.quinton.goa.feature.board.bundledCatalog
 import dev.quinton.goa.feature.board.bundledMaps
+import dev.quinton.goa.feature.board.hero
 import dev.quinton.goa.feature.board.play.game.GameOverUi
 import dev.quinton.goa.feature.board.play.game.GameScreen
 import dev.quinton.goa.feature.board.play.game.GameUiState
@@ -187,6 +188,8 @@ class PlayScreenshotTest {
             session.events.filter(::panelWorthy).takeLast(4).map { it.text }
         },
         log = logLines(session.events),
+        // As the game shows it: what happened since the person's last answer (here, the whole game).
+        flow = flowFor(session.events, session.setup.seats.associate { it.heroId to it.team }, humans),
         coach = true,
         pace = AiPace.NORMAL,
         takeBacks = 0,
@@ -367,10 +370,24 @@ class PlayScreenshotTest {
             GameEvent.TurnStarted(1, 2, "Turn 2 of round 1."),
         )
         val decision = s.pending!!.copy(options = hand.map { Choice.Card(it) })
+        val turn1Log = listOf(
+            log[0],
+            log[1],
+            GameEvent.ActionChosen(
+                "arien",
+                "arien-red-1",
+                ActionType.PRIMARY,
+                "Arien uses Dangerous Current: primary action.",
+            ),
+            GameEvent.Attacked("arien", "tigerclaw", 6, "Arien attacks Tigerclaw: Attack 6."),
+            GameEvent.Defeated("tigerclaw", "arien", "Tigerclaw is defeated by Arien."),
+            log[2],
+        )
         return p.copy(
             table = p.table.copy(view = view, decision = decision, turnLog = log),
             recent = listOf("Arien attacks Tigerclaw with Attack 6.", "Tigerclaw is defeated by Arien."),
             recentStrong = setOf(1),
+            flow = flowFor(turn1Log, s.setup.seats.associate { it.heroId to it.team }, setOf("arien")),
         )
     }
 
@@ -458,10 +475,9 @@ class PlayScreenshotTest {
 
     @Test fun tableMinionReturnDark() = capture(ThemeMode.DARK) { Game(remember { at(DecisionKind.MINION_RETURN) }) }
 
+    /** Level up (ADR-045): each card that may be upgraded with the two it would become and their items. */
     @Test
-    fun tableUpgradeCardDark() = capture(ThemeMode.DARK) {
-        Game(remember { at(DecisionKind.UPGRADE_CARD) { Choice.Card("arien-red-1") } })
-    }
+    fun tableUpgradeCardDark() = capture(ThemeMode.DARK) { Game(remember { at(DecisionKind.UPGRADE_CARD) }) }
 
     /** Keep one, the other becomes an item: the item's stat icon on each card. */
     @Test

@@ -9,7 +9,7 @@ import org.junit.Test
 /**
  * Time per decision on this desktop JVM, with the production players (wall-clock cap on), over
  * line-ups drawn from every playable hero (both teams timed). A phone is assumed 3–4× slower: device
- * budgets per card play run from 50 ms (strengths 1–3) to 4 s (8–10) (AI.md "Budgets"). Asserts only
+ * budgets per card play run from 50 ms (strengths 1–4) to 2 s (10) (AI.md "Budgets"). Asserts only
  * loose bounds: other builds may share the machine. `AI_TIMING_GAMES=8` seats all 32 heroes once
  * per strength and prints the slowest heroes; `AI_TIMING_STRENGTHS=8,9,10` picks the strengths.
  */
@@ -19,25 +19,47 @@ class TimingTest {
         val games = System.getenv("AI_TIMING_GAMES")?.toIntOrNull() ?: 2
         val strengths = System.getenv("AI_TIMING_STRENGTHS")?.split(",")?.map { it.trim().toInt() }
             ?: listOf(2, 6, 8, 9, 10)
-        val lineups = AiHarness.mixedLineups(games)
-        for (strength in strengths) {
-            val budget = AiPlayers.profile(strength).budgetMs
+        val format = AiHarness.Format.parse(System.getenv("AI_TIMING_FORMAT"))
+        val lineups = AiHarness.mixedLineups(games, size = format.size)
+        // AI_TIMING_THREADS=3: each answer's samples on three threads, as the app's runner.
+        val threads = System.getenv("AI_TIMING_THREADS")?.toIntOrNull()?.let { ThreadRunner(it) }
+        val runner = threads ?: SampleRunner.SEQUENTIAL
+        // AI_TIMING_VARIANT=s10+race=3: one profile variant as in [ExperimentTest] instead of the strengths.
+        val variant = System.getenv("AI_TIMING_VARIANT")
+        for (strength in if (variant != null) listOf(0) else strengths) {
+            val profile = variant?.let { ExperimentTest.variant(it) } ?: AiPlayers.profile(strength)
+            val budget = profile.budgetMs
+            fun player(seed: Long) = SearchAi(AiLevel.of(maxOf(1, strength)), profile, seed, timeCap = true, runner)
             val all = LinkedHashMap<DecisionKind, MutableList<Long>>()
             val byHero = LinkedHashMap<String, MutableList<Long>>()
+            val work = ArrayList<Pair<Long, Long>>()
             for ((g, lineup) in lineups.withIndex()) {
                 val (red, blue) = lineup
                 val r = AiHarness.play(
-                    AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, if (g % 2 == 0) Team.RED else Team.BLUE),
+                    AiHarness.setup(
+                        red,
+                        blue,
+                        AiLevel.NORMAL,
+                        AiLevel.NORMAL,
+                        if (g % 2 == 0) Team.RED else Team.BLUE,
+                        format.length,
+                        format.mapId,
+                    ),
                     mapOf(
-                        Team.RED to AiPlayers.forStrength(strength, 40L + g),
-                        Team.BLUE to AiPlayers.forStrength(strength, 50L + g),
+                        Team.RED to player(40L + g),
+                        Team.BLUE to player(50L + g),
                     ),
                     timed = true,
                 )
+                if (System.getenv("AI_PROGRESS") != null) println("TIMING   game $g: ${r.rounds} rounds, ${r.winner}")
                 for ((k, v) in r.timings) all.getOrPut(k) { ArrayList() } += v
                 for ((k, v) in r.playBySeat) byHero.getOrPut(k) { ArrayList() } += v
+                work += r.playWork
             }
-            println("TIMING strength $strength (device budget per card $budget ms):")
+            println(
+                "TIMING [$format] ${variant ?: "strength $strength"} " +
+                    "(device budget per card $budget ms, ${runner.width} thread(s)):",
+            )
             for ((k, v) in all) {
                 val ms = v.map { it / 1e6 }.sorted()
                 println(
@@ -51,10 +73,20 @@ class TimingTest {
                 "TIMING   slowest heroes (card play p95/max ms): " +
                     slow.joinToString(", ") { (hero, t) -> "$hero ${ms(p95(t))}/${ms(t.last())}" },
             )
+            if (work.isNotEmpty()) {
+                val units = work.map { it.first.toDouble() }.sorted()
+                val perK = work.sumOf { it.second } / 1e6 / (work.sumOf { it.first }.coerceAtLeast(1) / 1000.0)
+                println(
+                    "TIMING   card play work (engine answers): mean ${"%.0f".format(units.average())} " +
+                        "p95 ${"%.0f".format(p95(units))} max ${"%.0f".format(units.last())}; " +
+                        "${"%.1f".format(perK)} ms per 1000",
+                )
+            }
             val play = all.getValue(DecisionKind.PLAY_CARD).map { it / 1e6 }
             // Desktop mean well under the phone budget (a phone is ~3–4× slower).
             assertThat(play.average()).isLessThan(budget / 2.0)
         }
+        threads?.close()
     }
 
     private fun ms(v: Double): String = "%.0f".format(v)

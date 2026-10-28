@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -53,6 +54,8 @@ import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcon
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.CardColorDot
+import dev.quinton.goa.core.designsystem.component.OfficialArt
+import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.assetUrl
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
@@ -198,9 +201,45 @@ internal fun ItemLine(stat: Stat, text: String) {
     }
 }
 
-/** The item icon with the stat it raises (backpack + stat glyph). */
+/**
+ * The item icon of [stat] as the cards print it at their foot (the official icon, ADR-042), [size]
+ * tall before font scaling; the app's backpack-and-glyph badge while it loads or if it is missing.
+ */
 @Composable
 internal fun ItemIcon(stat: Stat, size: Dp = 18.dp) {
+    val height = scaledIconSize(size + ITEM_ICON_PAD, 1.4f)
+    OfficialIcon(
+        OfficialArt.itemIcon(stat),
+        Modifier
+            .size(width = height * ITEM_ICON_ASPECT, height = height)
+            .clearAndSetSemantics {},
+    ) { ItemBadge(stat, size) }
+}
+
+/**
+ * An item in a few words under a card: its official icon over "+1 Initiative" (p.16), the same under
+ * every card of a row; the words grow with the font scale only up to 1.3× so a stat's name is never
+ * broken inside a word.
+ */
+@Composable
+internal fun ItemCaption(stat: Stat, size: Dp = 14.dp) {
+    val density = LocalDensity.current
+    val style = MaterialTheme.typography.labelMedium
+    val capped = style.fontSize * (minOf(density.fontScale, CAPTION_MAX_SCALE) / density.fontScale)
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clearAndSetSemantics {}) {
+        ItemIcon(stat, size)
+        Text(
+            "+1 ${PlayText.stat(stat)}",
+            style = style.copy(fontSize = capped, lineHeight = capped * 1.3f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+/** The app's own item badge (backpack + stat glyph): the fallback for the official icon. */
+@Composable
+private fun ItemBadge(stat: Stat, size: Dp) {
     Surface(
         shape = RoundedCornerShape(50),
         color = MaterialTheme.colorScheme.primaryContainer,
@@ -222,6 +261,11 @@ internal fun ItemIcon(stat: Stat, size: Dp = 18.dp) {
         }
     }
 }
+
+/** The official item icons are 240 × 180. */
+private const val ITEM_ICON_ASPECT = 4f / 3f
+private val ITEM_ICON_PAD = 6.dp
+private const val CAPTION_MAX_SCALE = 1.3f
 
 internal fun statIcon(stat: Stat): GameIcon = when (stat) {
     Stat.ATTACK -> GameIcons.attack

@@ -70,6 +70,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -88,6 +89,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -209,7 +211,10 @@ private fun FocusOverlay(state: CardFocusState, request: CardFocusRequest) {
             val to = (pager.currentPage + delta).coerceIn(0, request.cards.lastIndex)
             scope.launch { pager.animateScrollToPage(to) }
         }
-        val actions = FocusActions(confirm = confirm, step = step, close = { state.close() })
+        val goTo: (Int) -> Unit = { to ->
+            scope.launch { pager.animateScrollToPage(to.coerceIn(0, request.cards.lastIndex)) }
+        }
+        val actions = FocusActions(confirm = confirm, step = step, close = { state.close() }, goTo = goTo)
 
         // The scrim: tap to close (TalkBack has × instead).
         val scrimAlpha = SCRIM_ALPHA * motion.reveal.value * (1f - motion.back * 0.35f) *
@@ -244,7 +249,12 @@ private fun FocusOverlay(state: CardFocusState, request: CardFocusRequest) {
 }
 
 /** What the viewer's parts can do. */
-private class FocusActions(val confirm: () -> Unit, val step: (Int) -> Unit, val close: () -> Unit)
+private class FocusActions(
+    val confirm: () -> Unit,
+    val step: (Int) -> Unit,
+    val close: () -> Unit,
+    val goTo: (Int) -> Unit,
+)
 
 /** Every animated value of the viewer. */
 private class FocusMotion(private val state: CardFocusState) {
@@ -326,7 +336,7 @@ private fun FocusLayout(
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight
         val details: @Composable (Modifier) -> Unit = { m ->
-            FocusDetails(request, state.index, motion.reveal.value, actions.confirm, landscape, m)
+            FocusDetails(request, state.index, motion.reveal.value, actions.confirm, actions.goTo, landscape, m)
         }
         if (landscape) {
             val share = if (wide) LANDSCAPE_WIDE_CARD_SHARE else LANDSCAPE_CARD_SHARE
@@ -350,26 +360,56 @@ private fun FocusLayout(
                 large -> PORTRAIT_CARD_SHARE_LARGE
                 else -> PORTRAIT_CARD_SHARE
             }
-            val frame = stageFrame(aspects, maxWidth - PEEK * 2, (maxHeight - TOP_BAR) * share)
-            Column(Modifier.fillMaxSize()) {
-                TopBar(request, state.index, actions.close, motion.reveal.value)
-                CardStage(
-                    state,
-                    request,
-                    pager,
-                    motion,
-                    actions,
-                    frame,
-                    Modifier.fillMaxWidth().height(frame.height + Spacing.lg),
-                )
-                // Only what the card doesn't print is under it (ADR-041): a sheet as tall as that, at the bottom.
-                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-                    details(Modifier.fillMaxWidth())
+            val stageWidth = maxWidth - PEEK * 2
+            // The card shrinks before any line under it is squeezed: the sheet's height is measured for
+            // every card (collapsed, the tallest counts, so the card keeps one size while swiping) and
+            // the card gets what is left, up to its share and down to MIN_CARD_SHARE; below that the
+            // sheet scrolls. Read as text, the card steps back to its share and the words scroll.
+            SubcomposeLayout(Modifier.fillMaxSize()) { constraints ->
+                val gap = Spacing.lg.roundToPx()
+                val room = (constraints.maxHeight - TOP_BAR.roundToPx()).coerceAtLeast(0)
+                val minCard = (room * if (large) MIN_CARD_SHARE_LARGE else MIN_CARD_SHARE).toInt()
+                val sheet = if (request.asText) {
+                    0
+                } else {
+                    val limit =
+                        Constraints(
+                            maxWidth = constraints.maxWidth,
+                            maxHeight = (room - minCard - gap).coerceAtLeast(0),
+                        )
+                    subcompose(FocusSlot.SHEETS) {
+                        request.cards.indices.forEach { i ->
+                            FocusDetails(request, i, 1f, {}, {}, false, Modifier.fillMaxWidth(), measuring = true)
+                        }
+                    }.maxOfOrNull { it.measure(limit).height } ?: 0
                 }
+                val cardHeight = minOf((room * share).toInt(), room - gap - sheet).coerceAtLeast(minCard).toDp()
+                val frame = stageFrame(aspects, stageWidth, cardHeight)
+                val content = subcompose(FocusSlot.CONTENT) {
+                    Column(Modifier.fillMaxSize()) {
+                        TopBar(request, state.index, actions.close, motion.reveal.value)
+                        CardStage(
+                            state,
+                            request,
+                            pager,
+                            motion,
+                            actions,
+                            frame,
+                            Modifier.fillMaxWidth().height(frame.height + Spacing.lg),
+                        )
+                        // Only what the card does not print is under it (ADR-041), at the bottom.
+                        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+                            details(Modifier.fillMaxWidth())
+                        }
+                    }
+                }.map { it.measure(constraints) }
+                layout(constraints.maxWidth, constraints.maxHeight) { content.forEach { it.place(0, 0) } }
             }
         }
     }
 }
+
+private enum class FocusSlot { SHEETS, CONTENT }
 
 /**
  * The stage's page: as wide as the widest card and as tall as the tallest, each card the largest it
@@ -408,17 +448,39 @@ private fun TopBar(request: CardFocusRequest, index: Int, onClose: () -> Unit, r
                 )
             }
             if (request.cards.size > 1) {
+                val position = focusPosition(request.cards, index)
                 Text(
-                    "Card ${index + 1} of ${request.cards.size}",
+                    position,
                     style = MaterialTheme.typography.labelMedium,
                     color = OnScrim,
                     maxLines = 1,
+                    modifier = Modifier.semantics { contentDescription = position.replace(" · ", ", ") },
                 )
             }
         }
         if (request.cards.size > 1) PageDots(request.cards.size, index)
         Spacer(Modifier.width(Spacing.lg))
     }
+}
+
+/**
+ * Where the shown page is: "Card 2 of 4". The cards another card names (a Gydion card's spells, shown
+ * after it, ADR-045 extended) are not counted as cards but said as that card's: "Card 2 of 9 · spell 1
+ * of 2" (re-check: the level up said "Card 3 of 24", counting every spell as a card).
+ */
+internal fun focusPosition(cards: List<FocusCard>, index: Int): String {
+    val namer = cards.withIndex().associate { (i, c) -> c.key to i }.let { byKey ->
+        cards.flatMapIndexed { i, c -> c.related.mapNotNull { key -> byKey[key]?.let { it to i } } }.toMap()
+    }
+    if (namer.isEmpty()) return "Card ${index + 1} of ${cards.size}"
+    val main = cards.indices.filter { it !in namer }
+    val owner = namer[index]
+    if (owner == null) return "Card ${main.indexOf(index) + 1} of ${main.size}"
+    val related = cards[owner].related
+    val spells = related.all { key -> cards.firstOrNull { it.key == key }?.card?.isSpell == true }
+    val noun = if (spells) "spell" else "named card"
+    val position = related.indexOf(cards[index].key) + 1
+    return "Card ${main.indexOf(owner) + 1} of ${main.size} · $noun $position of ${related.size}"
 }
 
 /** One dot per card, the shown one long and bronze; up to [MAX_DOTS]. */
@@ -558,6 +620,14 @@ private fun FocusPage(
                         },
                     )
                 }
+                answerIndex(request, item)?.let { to ->
+                    add(
+                        CustomAccessibilityAction("Go to ${request.cards[to].card.name}") {
+                            actions.goTo(to)
+                            true
+                        },
+                    )
+                }
                 add(
                     CustomAccessibilityAction("Close") {
                         actions.close()
@@ -625,7 +695,8 @@ private fun FocusPage(
         ) {
             // TableCard's width is a portrait card's; a landscape spell keeps the height (CardShape.kt).
             TableCard(item.card, width = if (item.card.isSpell) size.height * CARD_ASPECT else size.width)
-            if (!item.enabled) NotAnOption(Modifier.align(Alignment.Center))
+            // A card an answer leads to (an upgrade card) is shown as it is, not veiled.
+            if (!item.enabled && item.answeredBy == null) NotAnOption(Modifier.align(Alignment.Center))
             item.verdict?.let { VerdictBadge(it, Modifier.align(Alignment.TopEnd).padding(Spacing.sm)) }
             if (current && motion.seal.value > 0f) ConfirmSeal(motion.seal.value, Modifier.align(Alignment.Center))
         }
@@ -704,11 +775,20 @@ internal const val SCRIM_TAG = "cardFocus:scrim"
 internal const val CLOSE_TAG = "cardFocus:close"
 internal const val CONFIRM_TAG = "cardFocus:confirm"
 
+/** The "Go to <card>" button of a card an answer leads to (an upgrade card). */
+internal const val GO_TO_ANSWER_TAG = "cardFocus:goToAnswer"
+
 private const val SCRIM_ALPHA = 0.93f
 private const val PORTRAIT_CARD_SHARE = 0.6f
 private const val PORTRAIT_CARD_SHARE_LARGE = 0.5f
 private const val PORTRAIT_TEXT_CARD_SHARE = 0.36f
 private const val PORTRAIT_TEXT_CARD_SHARE_LARGE = 0.26f
+
+/** The card never shrinks below this share of the height under the header: the sheet scrolls instead. */
+private const val MIN_CARD_SHARE = 0.3f
+
+/** With large text the words need more of the screen; the card is still a card you can read. */
+private const val MIN_CARD_SHARE_LARGE = 0.24f
 private const val LANDSCAPE_CARD_SHARE = 0.4f
 
 /** A landscape spell card takes more of a landscape screen's width (it is short: room is left above). */

@@ -63,6 +63,14 @@ class MapViewport {
     var userMoved = false
         private set
 
+    /**
+     * How many times the person has moved the view by hand (drag, pinch, double tap): a caller that
+     * brought something into view for a question can tell whether the person has moved it since.
+     * Not observable state: it changes on every drag event.
+     */
+    var gestures = 0
+        private set
+
     private var maxZoom = MIN_MAX_ZOOM
     private var maxHexPx = 0f
     private var minHexPx = 0f
@@ -118,6 +126,10 @@ class MapViewport {
     /** The part of the screen the map is seen through (px), insets left out. */
     val visible: Rect get() = Rect(0f, topInset, viewport.width - endInset, viewport.height - bottomInset)
 
+    /** The visible part with a band [end] px wide on its end side left out too (the map buttons). */
+    private fun visibleClear(end: Float): Rect =
+        visible.let { v -> v.copy(right = (v.right - end).coerceAtLeast(v.left + 1f)) }
+
     /** Zoom at which a hex is [minHexPx] across its flats. */
     private val comfortableZoom: Float get() = if (unit == 0f) 1f else minHexPx / (SQRT3 * unit)
 
@@ -126,8 +138,7 @@ class MapViewport {
     private fun fullMap(): Rect = layout?.let { Rect(0f, 0f, it.width, it.height) } ?: Rect(0f, 0f, 1f, 1f)
 
     /** The zoom that fits [region] (map units) into the visible part, with a margin. */
-    private fun fitZoom(region: Rect): Float {
-        val v = visible
+    private fun fitZoom(region: Rect, v: Rect = visible): Float {
         val w = (v.width - 2 * MARGIN_PX).coerceAtLeast(1f)
         val h = (v.height - 2 * MARGIN_PX).coerceAtLeast(1f)
         return minOf(w / (region.width * unit).coerceAtLeast(1f), h / (region.height * unit).coerceAtLeast(1f))
@@ -171,8 +182,7 @@ class MapViewport {
         mode = ViewMode.FIT
     }
 
-    private fun centerOn(map: Offset, z: Float): Offset {
-        val v = visible
+    private fun centerOn(map: Offset, z: Float, v: Rect = visible): Offset {
         return Offset(v.center.x - map.x * unit * z, v.center.y - map.y * unit * z)
     }
 
@@ -211,6 +221,7 @@ class MapViewport {
     fun panBy(delta: Offset) {
         mode = ViewMode.MOVED
         userMoved = true
+        gestures++
         pan = clampPan(pan + delta, zoom)
     }
 
@@ -218,6 +229,7 @@ class MapViewport {
     fun transform(factor: Float, focus: Offset, delta: Offset) {
         mode = ViewMode.MOVED
         userMoved = true
+        gestures++
         val next = (zoom * factor).coerceIn(minZoom, maxZoom)
         val applied = next / zoom
         val panned = focus - (focus - pan) * applied + delta
@@ -227,6 +239,7 @@ class MapViewport {
 
     /** Double tap: zoom in around [focus]; at the largest zoom, back to the Lane. */
     suspend fun zoomStep(focus: Offset) {
+        gestures++
         if (zoom >= maxZoom * 0.95f) {
             animateLane()
         } else {
@@ -242,27 +255,40 @@ class MapViewport {
      * Keeps [region] (map units, e.g. a selected hero and what its overlays reach) comfortably in
      * view: hexes at least `minHexPx` across, the whole region inside the visible part when it fits
      * at that size, else [focus] (the piece) in the middle. Does nothing when that already holds.
+     *
+     * [shrink] (< 1) lets hexes get that much smaller than comfortable when that is what it takes
+     * for the whole region to fit (a question's options: every one should be seen without panning);
+     * [clearEnd] (px) keeps the region clear of a band on the end side too (the map buttons), when
+     * the region fits beside it.
      */
-    suspend fun reveal(region: Rect, focus: Offset) {
+    suspend fun reveal(region: Rect, focus: Offset, shrink: Float = 1f, clearEnd: Float = 0f) {
         if (unit == 0f) return
+        val clear = visibleClear(clearEnd).takeIf { clearEnd > 0f }
+        val smallest = (comfortableZoom * shrink).coerceAtMost(comfortableZoom)
         var z = maxOf(zoom, comfortableZoom).coerceAtMost(maxZoom)
-        if (!fits(region, z)) z = maxOf(minOf(z, fitZoom(region)), comfortableZoom).coerceIn(minZoom, maxZoom)
-        val target = if (fits(region, z)) panToShow(region, z) else centerOn(focus, z)
+        var v = visible
+        if (!fits(region, z, v)) z = maxOf(minOf(z, fitZoom(region)), smallest).coerceIn(minZoom, maxZoom)
+        // Beside the buttons when the region fits there at a size no smaller than that.
+        if (clear != null) {
+            val zc = if (fits(region, z, clear)) z else maxOf(minOf(z, fitZoom(region, clear)), smallest)
+            if (fits(region, zc, clear)) {
+                z = zc.coerceIn(minZoom, maxZoom)
+                v = clear
+            }
+        }
+        val target = if (fits(region, z, v)) panToShow(region, z, v) else centerOn(focus, z)
         val clamped = clampPan(target, z)
         if (z == zoom && (clamped - pan).getDistance() < 1f) return
         animateTo(z, clamped)
         mode = ViewMode.MOVED
     }
 
-    private fun fits(region: Rect, z: Float): Boolean {
-        val v = visible
-        return region.width * unit * z <= v.width - 2 * MARGIN_PX &&
+    private fun fits(region: Rect, z: Float, v: Rect = visible): Boolean =
+        region.width * unit * z <= v.width - 2 * MARGIN_PX &&
             region.height * unit * z <= v.height - 2 * MARGIN_PX
-    }
 
     /** The smallest pan from the current one that brings [region] inside the visible part at [z]. */
-    private fun panToShow(region: Rect, z: Float): Offset {
-        val v = visible
+    private fun panToShow(region: Rect, z: Float, v: Rect = visible): Offset {
         val scaled = unit * z
         // Where the current view's centre (map units) would stay, then nudge to contain the region.
         val centre = (v.center - pan) / zoom / unit

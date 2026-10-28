@@ -75,10 +75,12 @@ class DraftScreenshotTest {
     }
 
     /** The hero peek (a sheet: its own window) for a bundled hero: deck symbol, starting cards as scans. */
-    private fun capturePeek(theme: ThemeMode = ThemeMode.DARK, fontScale: Float = 1f) {
+    private fun capturePeek(theme: ThemeMode = ThemeMode.DARK, fontScale: Float = 1f, id: String = "arien") {
         if (fontScale != 1f) RuntimeEnvironment.setFontScale(fontScale)
-        val hero = HeroInfo.of(bundledHero("arien"))
-        compose.setContent { GoaTheme(themeMode = theme) { HeroPeekSheet(hero, onDismiss = {}, onOpenHero = {}) } }
+        val hero = HeroInfo.of(bundledHero(id))
+        compose.setContent {
+            GoaTheme(themeMode = theme) { HeroPeekSheet(hero, onDismiss = {}, onOpenHero = {}, onOpenSpellbook = {}) }
+        }
         compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledAssetImages.idle }
         compose.waitForIdle()
         captureScreenRoboImage()
@@ -89,6 +91,9 @@ class DraftScreenshotTest {
     @Test fun heroPeekLight() = capturePeek(ThemeMode.LIGHT)
 
     @Test fun heroPeekFontScale2() = capturePeek(fontScale = 2f)
+
+    /** Gydion: his spellbook one tap away (the hero page opened at it), under the starting cards. */
+    @Test fun heroPeekGydionDark() = capturePeek(id = "gydion")
 
     private fun session(choices: Int, seconds: Int? = 30, method: DraftMethod = PreviewData.pattern): DraftSession {
         val ids = PreviewData.players.map { it.id }

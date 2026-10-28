@@ -71,11 +71,14 @@ import dev.quinton.goa.feature.board.ui.cards.isSpell
  * and the answers are tied to it rather than restating what it prints.
  * - actions are compact chips beside the card, with the game's icon and value; only what the card
  *   doesn't say is added (the rule of Fast Travel and Hold; that only the primary applies the text);
+ *   under the Primary chip, what it will do before it is chosen: Gydion's spell as its card, its only
+ *   target, a warning when it will do nothing (CastPreview.kt);
  * - "Choose one" options, yes / decline and numbers are buttons beside the card;
  * - spaces, units and tokens are tapped on the board (each also a TalkBack node), then confirmed,
  *   with the asking card beside the hint;
  * - cards (to play, discard, defend with, upgrade, keep) open in the card focus viewer: a first tap
  *   zooms the card, a second tap on it (or its Confirm button) answers (DecisionCards.kt);
+ * - which card to upgrade shows, beside each, the two cards it would become (UpgradeCards.kt);
  * - Defend shows the attacker's card with the Attack, then the hand's cards with each verdict.
  * [onSelect] marks a tentative choice, [onAnswer] answers, [focus] is the screen's card viewer.
  */
@@ -104,14 +107,17 @@ fun DecisionPanel(
 
             decision.kind == DecisionKind.DEFEND -> DefensePanel(table, onSelect, onAnswer, focus, busy)
 
+            decision.kind == DecisionKind.UPGRADE_CARD -> UpgradePicker(table, onAnswer, focus, busy)
+
             layout == PanelLayout.CARDS -> CardPicker(table, onAnswer, focus, busy)
 
             layout == PanelLayout.CARD_BESIDE && source != null -> {
                 val board = hasBoardOptions(table)
                 CardBeside(table, source, focus, large = !board) {
                     if (board) BoardHint(table, onAnswer, busy)
-                    Choices(table, table.buttonOptions, onAnswer, busy)
+                    Choices(table, table.buttonOptions, onAnswer, busy) { CastPreview(table, focus) }
                     Unavailable(table, decision, focus)
+                    SpellReasonsIfNoPrimary(table)
                 }
                 if (board) BoardChips(table, onSelect)
             }
@@ -348,7 +354,7 @@ private fun BoardHint(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boolean)
                 pieces.isEmpty() -> "Tap one of the ${spaces.size} spaces outlined in teal."
                 spaces.isEmpty() -> "Tap an outlined piece on the board, or pick it below."
                 else -> "Tap an outlined space or piece on the board."
-            },
+            } + longPressHint(table),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -363,6 +369,17 @@ private fun BoardHint(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boolean)
             Text("Confirm · ${table.label(selected)}", textAlign = TextAlign.Center)
         }
     }
+}
+
+/**
+ * When a hero's piece is an option (a tap there answers), how to read about that hero instead
+ * (ADR-044): a long press always opens the hero's game state.
+ */
+internal fun longPressHint(table: TableUi): String {
+    val heroOption = table.pieceOptions.keys.any { id ->
+        table.heroView(id) != null || table.view.pieces.firstOrNull { it.id == id }?.let(::figureOf) != null
+    }
+    return if (heroOption) " Long-press a hero for their game state." else ""
 }
 
 /** Units and tokens (and a short list of spaces whose names differ) as chips too. */
@@ -426,7 +443,13 @@ private fun OptionChip(label: String, selected: Boolean, onClick: () -> Unit) {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Choices(table: TableUi, choices: List<Choice>, onAnswer: (Choice) -> Unit, busy: Boolean) {
+private fun Choices(
+    table: TableUi,
+    choices: List<Choice>,
+    onAnswer: (Choice) -> Unit,
+    busy: Boolean,
+    afterPrimary: @Composable () -> Unit = {},
+) {
     if (choices.isEmpty()) return
     val numbers = choices.filterIsInstance<Choice.Number>()
     if (numbers.size == choices.size) {
@@ -445,7 +468,10 @@ private fun Choices(table: TableUi, choices: List<Choice>, onAnswer: (Choice) ->
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         choices.forEach { choice ->
             when {
-                choice is Choice.Action -> ActionChip(table, choice.action, busy) { onAnswer(choice) }
+                choice is Choice.Action -> {
+                    ActionChip(table, choice.action, busy) { onAnswer(choice) }
+                    if (choice.action == ActionType.PRIMARY) afterPrimary()
+                }
 
                 choice is Choice.Decline || choice is Choice.Pass -> OutlinedButton(
                     onClick = { onAnswer(choice) },

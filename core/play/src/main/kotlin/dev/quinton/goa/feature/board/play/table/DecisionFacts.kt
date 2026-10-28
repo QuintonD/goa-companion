@@ -122,8 +122,16 @@ fun offeredCards(table: TableUi): List<OfferedCard> {
         hand != null && decision.kind != DecisionKind.KEEP_UPGRADE && decision.kind != DecisionKind.DEFEND &&
             options.isNotEmpty() && options.all { it.cardId in hand } && hand.size > options.size
     val ids = if (wholeHand) hand.orEmpty() else options.map { it.cardId }
-    return ids.mapNotNull { id -> table.card(id)?.let { OfferedCard(it, byId[id]) } }
+    // Gydion's cast question: the card's other spells, shown but marked with the engine's reason.
+    val named = decision.context.unavailableCards.map { it.cardId }.filter { it !in ids }
+    return (ids + named).mapNotNull { id -> table.card(id)?.let { OfferedCard(it, byId[id]) } }
 }
+
+/** Why the question leaves out a card the asking card names (DecisionContext.unavailableCards), in words. */
+fun unavailableCardLine(table: TableUi, cardId: String): String? =
+    table.decision?.context?.unavailableCards?.firstOrNull { it.cardId == cardId }?.let { u ->
+        u.source?.let { "${u.text} ($it)." } ?: "${u.text}."
+    }
 
 /** What confirming [card] does, as the button and the hint say it. */
 fun cardAction(decision: Decision, card: Card): String = when (decision.kind) {
@@ -167,25 +175,15 @@ fun focusCard(table: TableUi, offered: OfferedCard): FocusCard {
     val decision = table.decision
     val card = offered.card
     val notes = mutableListOf<CardNote>()
-    var related = emptyList<Card>()
-    var relatedLabel: String? = null
     when (decision?.kind) {
         DecisionKind.KEEP_UPGRADE -> {
-            // p.15: the card kept goes to hand, the other is tucked as an item.
+            // p.15: the card kept goes to hand, the other is tucked as an item (so this card's own
+            // item stat doesn't apply when it is kept: its line is left out, the row shows it).
             notes += CardNote("${card.name} goes to your hand.")
             table.cardOptions.firstOrNull { it.cardId != card.id }?.let { table.card(it.cardId) }?.let { other ->
                 other.item?.let {
                     notes += CardNote("${other.name} becomes an item: +1 ${PlayText.stat(it)} (p.16)", it)
                 }
-            }
-        }
-
-        DecisionKind.UPGRADE_CARD -> {
-            val next = upgradesOf(table, card)
-            if (next.size == 2 && offered.choice != null) {
-                related = next
-                relatedLabel = "${card.name} is replaced by one of these: you keep one, the other becomes an item " +
-                    "(p.15, p.16)."
             }
         }
 
@@ -198,10 +196,13 @@ fun focusCard(table: TableUi, offered: OfferedCard): FocusCard {
     return FocusCard(
         card = card,
         enabled = offered.choice != null,
-        reason = if (offered.choice == null) decision?.kind?.let(::notOffered) else null,
+        reason = if (offered.choice == null) {
+            unavailableCardLine(table, card.id) ?: decision?.kind?.let(::notOffered)
+        } else {
+            null
+        },
         notes = notes,
-        related = related,
-        relatedLabel = relatedLabel,
+        itemLine = decision?.kind != DecisionKind.KEEP_UPGRADE,
     )
 }
 

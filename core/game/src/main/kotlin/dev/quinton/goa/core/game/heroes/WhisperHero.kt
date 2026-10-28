@@ -46,6 +46,7 @@ import dev.quinton.goa.core.game.engine.isInBattleZone
 import dev.quinton.goa.core.game.engine.isMinionSpawnPoint
 import dev.quinton.goa.core.game.engine.isSpawnPoint
 import dev.quinton.goa.core.game.engine.move
+import dev.quinton.goa.core.game.engine.noTargetReason
 import dev.quinton.goa.core.game.engine.place
 import dev.quinton.goa.core.game.engine.swap
 import dev.quinton.goa.core.game.engine.trigger
@@ -149,7 +150,7 @@ object WhisperHero : HeroModule {
                 g.unitsOnBoard().any { a.isEnemy(it) && a.canTarget(it, ActionKind.ATTACK) && b(it) }
             }
             val order = a.chooseBullets(labels, possible, a.mayChooseBoth())
-            if (order.isEmpty()) a.fizzle("no target")
+            if (order.isEmpty()) a.fizzle(noTargetReason(labels))
             for (i in order) {
                 val t = a.attackTarget(labels[i], valid = bullets[i]) ?: return
                 val victim = g.heroBodyOf(t)

@@ -9,9 +9,14 @@ import dev.quinton.goa.feature.board.play.table.CARD_ASPECT
  * One card in the focused viewer. [enabled] false = shown but marked, and it can't be confirmed;
  * [reason] says why (shown under the card). [caption] is a short context line ("Turn 2 · Active"),
  * [verdict] a defense card's Holds / Falls against the Attack, [notes] what choosing it means
- * ("Magnetic Dagger goes to your hand"), [related] other cards that come with it (the two of the
- * next Tier when upgrading) under [relatedLabel]. [key] matches the thumbnail's
+ * ("Magnetic Dagger goes to your hand"), [related] the [key]s of other cards in the viewer that
+ * come with it (the spells a Gydion card names), shown small under [relatedLabel]; a tap goes to
+ * them. [itemLine] false leaves out "As an item: +1 …" (a note says it). [key] matches the thumbnail's
  * [Modifier.cardFocusOrigin], so the card grows out of it and shrinks back into it.
+ * [answeredBy] marks a card shown with a question that isn't one of its answers but what an answer
+ * leads to (an upgrade card, ADR-045): the [key] of the card that is the answer. It can't be
+ * confirmed (keep [enabled] false) but isn't veiled; [reason] says what to choose instead, and the
+ * panel offers to go to that card.
  */
 data class FocusCard(
     val card: Card,
@@ -21,8 +26,10 @@ data class FocusCard(
     val caption: String? = null,
     val verdict: CardVerdict? = null,
     val notes: List<CardNote> = emptyList(),
-    val related: List<Card> = emptyList(),
+    val related: List<String> = emptyList(),
     val relatedLabel: String? = null,
+    val answeredBy: String? = null,
+    val itemLine: Boolean = true,
 )
 
 /** A defense card against the Attack (p.14): "Holds" / "Falls" / "Decided by its text", and why. */

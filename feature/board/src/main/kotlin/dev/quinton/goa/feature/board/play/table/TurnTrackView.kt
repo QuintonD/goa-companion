@@ -80,13 +80,14 @@ import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
 
 /**
  * The turn's cards in a row, scrolling when they don't fit. [compact] (a phone held sideways with
- * the panel shown, or the panel hidden): smaller cards, no names under them.
+ * the panel shown, or the panel hidden): smaller cards, no names under them. [onHero] opens a hero's
+ * game state (long press, TalkBack's action); null = no such action (a recap in the panel).
  */
 @Composable
 fun TurnTrackRow(
     table: TableUi,
     track: TurnTrack,
-    onHero: (String) -> Unit,
+    onHero: ((String) -> Unit)?,
     modifier: Modifier = Modifier,
     focus: CardFocusState? = null,
     compact: Boolean = false,
@@ -109,10 +110,10 @@ fun TurnTrackRow(
                     if (focus != null && index >= 0) {
                         focus.open(viewable, index, title = "Round ${track.round} · Turn ${track.turn}")
                     } else {
-                        onHero(slot.heroId)
+                        onHero?.invoke(slot.heroId)
                     }
                 },
-                onHero = { onHero(slot.heroId) },
+                onHero = onHero?.let { open -> { open(slot.heroId) } },
             )
         }
     }
@@ -144,7 +145,7 @@ private fun TrackSlotView(
     compact: Boolean,
     focus: CardFocusState?,
     onOpen: () -> Unit,
-    onHero: () -> Unit,
+    onHero: (() -> Unit)?,
 ) {
     val info = table.hero(slot.heroId)
     val spoken = spokenSlot(table, slot)
@@ -170,12 +171,14 @@ private fun TrackSlotView(
                     onOpen()
                     true
                 }
-                customActions = listOf(
-                    CustomAccessibilityAction("Read about ${info.name}") {
-                        onHero()
-                        true
-                    },
-                )
+                if (onHero != null) {
+                    customActions = listOf(
+                        CustomAccessibilityAction(showGameState(info.name)) {
+                            onHero()
+                            true
+                        },
+                    )
+                }
             },
     ) {
         Column(
@@ -388,7 +391,7 @@ fun MomentCard(moment: TableMoment, table: TableUi, modifier: Modifier = Modifie
                 TurnTrackRow(
                     table,
                     TurnTrack(table.view.round, table.view.turn - 1, moment.cards),
-                    onHero = {},
+                    onHero = null,
                     focus = focus,
                 )
             }

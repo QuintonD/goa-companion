@@ -47,6 +47,7 @@ fun EntryProviderScope<NavKey>.catalogEntries(navigator: Navigator) {
             onBack = navigator::back,
             onCardClick = { heroId, cardId -> navigator.navigate(CardViewerRoute(heroId, cardId)) },
             onLearnNumbers = { heroId -> navigator.navigate(TriviaRoute(heroId)) },
+            initialSection = key.section,
         )
     }
     entry<CardViewerRoute> { key ->

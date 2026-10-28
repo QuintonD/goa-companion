@@ -35,7 +35,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -73,6 +78,7 @@ import kotlinx.coroutines.launch
  * [peekTrailing], e.g. Confirm), only the round at a glance stays at the top, and the map fits the
  * whole board unless the person has moved it. Taps on the map keep selecting while it is hidden.
  * Hidden or shown is kept for the screen (and survives rotation); [initialPanelHidden] for previews.
+ * [onSpellbook] adds a Spellbook control per hero the person controls that has one (Gydion, ADR-040).
  */
 @Composable
 fun GameTable(
@@ -87,10 +93,14 @@ fun GameTable(
     peekTrailing: (@Composable () -> Unit)? = null,
     initialPanelHidden: Boolean = false,
     focus: CardFocusState? = null,
+    onSpellbook: ((String) -> Unit)? = null,
     panel: @Composable ColumnScope.() -> Unit,
 ) {
     var hidden by rememberSaveable { mutableStateOf(initialPanelHidden) }
-    BoxWithConstraints(modifier.fillMaxSize()) {
+    // Where the table and its map buttons are on the screen: the Zone labels keep clear of the buttons.
+    var origin by remember { mutableStateOf(Offset.Zero) }
+    var buttons by remember { mutableStateOf<Rect?>(null) }
+    BoxWithConstraints(modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInRoot() }) {
         val landscape = maxWidth > maxHeight
         val orientation = if (landscape) MapOrientation.LANDSCAPE else MapOrientation.PORTRAIT
         val layout =
@@ -100,6 +110,8 @@ fun GameTable(
         val density = LocalDensity.current
         var cover by remember { mutableStateOf(PanelCover()) }
         var topHeight by remember { mutableIntStateOf(0) }
+        // The map buttons' column (Fit, Flip, the Spellbook), with the gap to the screen's edge.
+        var buttonsWidth by remember { mutableIntStateOf(0) }
         val sideWidth: Dp = if (landscape) minOf(maxWidth * SIDE_SHARE, SIDE_PANEL) else 0.dp
         // The floating overlays keep clear of the side panel only while it is shown.
         val overlayEnd = if (landscape && !hidden) sideWidth else 0.dp
@@ -108,12 +120,27 @@ fun GameTable(
             viewport.updateInsets(bottom = cover.bottom.toFloat(), end = cover.end.toFloat(), top = topHeight.toFloat())
         }
         FitWhileHidden(viewport, hidden)
-        // Bring what is asked for into view: the options, the unit they are about, the highlights.
-        // Not while the panel is hidden and the whole board is in view.
+        // Bring what is asked for into view: the options, the unit they are about, the highlights,
+        // between what floats over the map (the round at a glance and the turn track or hero strip at
+        // the top, the map buttons at the end side, the panel). Again as those settle (the turn track
+        // appears with the reveal, the panel grows), but never once the person has moved the map
+        // since the question came: their pan or pinch wins. Not while the panel is hidden and the
+        // whole board is in view.
         val decision = table.decision
-        LaunchedEffect(decision?.id, table.asking, viewport.unit, viewport.bottomInset, viewport.endInset, hidden) {
+        val gesturesAtQuestion = remember(decision?.id, table.asking) { viewport.gestures }
+        LaunchedEffect(
+            decision?.id,
+            table.asking,
+            viewport.unit,
+            viewport.bottomInset,
+            viewport.endInset,
+            viewport.topInset,
+            buttonsWidth,
+            hidden,
+        ) {
             if (decision == null || viewport.unit == 0f) return@LaunchedEffect
             if (hidden && !viewport.userMoved) return@LaunchedEffect
+            if (viewport.gestures != gesturesAtQuestion) return@LaunchedEffect
             // Choosing a card: the person's own heroes (the others choose theirs hidden, p.7).
             if (decision.kind == DecisionKind.PLAY_CARD && !table.asking) return@LaunchedEffect
             val who = if (decision.kind == DecisionKind.PLAY_CARD) table.mine else setOf(decision.seat)
@@ -121,10 +148,30 @@ fun GameTable(
                 decision.context.highlight + listOfNotNull(table.subject?.let(table::at)) +
                 who.mapNotNull(table::at)
             val region = layout.bounds(hexes, pad = 1.1f) ?: return@LaunchedEffect
-            viewport.reveal(region, region.center)
+            viewport.reveal(region, region.center, shrink = OPTIONS_SHRINK, clearEnd = buttonsWidth.toFloat())
         }
 
-        GameMapView(table, layout, viewport, onTap, Modifier.fillMaxSize(), lane = lane)
+        // A new question (another decision) starts at the top of the panel, its header in view; the
+        // same question composed again (a selection, a rotation) keeps where the person scrolled to.
+        val panelScroll = rememberScrollState()
+        var scrolledFor by rememberSaveable { mutableStateOf(decision?.id) }
+        LaunchedEffect(decision?.id) {
+            if (decision?.id != scrolledFor) {
+                scrolledFor = decision?.id
+                panelScroll.scrollTo(0)
+            }
+        }
+
+        GameMapView(
+            table,
+            layout,
+            viewport,
+            onTap,
+            Modifier.fillMaxSize(),
+            lane = lane,
+            onLongPressHero = onHero,
+            buttons = buttons?.translate(-origin),
+        )
 
         Column(
             Modifier
@@ -152,7 +199,14 @@ fun GameTable(
                 }
                 if (!hidden) banner?.invoke(landscape)
             }
-            Column(Modifier.align(Alignment.End), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Column(
+                Modifier
+                    .align(Alignment.End)
+                    .onSizeChanged { buttonsWidth = it.width + with(density) { Spacing.sm.roundToPx() } }
+                    .onGloballyPositioned { buttons = it.boundsInRoot() },
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                horizontalAlignment = Alignment.End,
+            ) {
                 if (viewport.isFit) {
                     MapButton(Icons.Outlined.ZoomIn, "Zoom to the lane") { scope.launch { viewport.animateLane() } }
                 } else {
@@ -165,6 +219,13 @@ fun GameTable(
                     "Flip: ${BoardText.team(table.bottomTeam.opponent)} at the bottom",
                     onFlip,
                 )
+                // Gydion's spellbook, one tap at any point of the game (ADR-040): under the map buttons,
+                // so it never covers the round at a glance, the turn track or the hero strip.
+                if (onSpellbook != null) {
+                    table.spellbookSeats.forEach { id ->
+                        SpellbookButton(table, id, onClick = { onSpellbook(id) })
+                    }
+                }
             }
         }
 
@@ -180,7 +241,7 @@ fun GameTable(
         ) {
             Column(
                 Modifier
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(panelScroll)
                     .padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 content = panel,
@@ -291,6 +352,12 @@ fun RecentEvents(lines: List<String>, modifier: Modifier = Modifier, strong: Set
 }
 
 private const val RECENT = 4
+
+/**
+ * How much smaller than comfortable (38 dp) a hex may get so that every option of a question is in
+ * view at once (about 30 dp: a Move 3's spaces under the turn track on a phone).
+ */
+private const val OPTIONS_SHRINK = 0.8f
 private val SIDE_PANEL = 400.dp
 private const val SIDE_SHARE = 0.42f
 private const val PANEL_SHARE = 0.56f

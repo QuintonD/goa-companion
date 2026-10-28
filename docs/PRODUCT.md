@@ -391,14 +391,16 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   1–3 **Easy** (makes visible mistakes, plays fast; 1 is a gentle first game), 4–6 **Normal**
   (sensible, few mistakes, from 5 a short look-ahead), 7–8 **Hard** (plans the turn against what you
   might have played), 9–10 **Expert** (searches longest, remembers the cards you have shown; 10 is
-  as strong as a phone allows), one strength for all or per seat. A game saved before the slider
+  as strong as a phone allows: it judges positions with an evaluation learned from self-play, thinks
+  at most about 2 s a card play, and is measured at 2v2, 3v3 and 4v4, ADR-047), one strength for all or per seat. A game saved before the slider
   plays its level as Easy 2, Normal 6, Hard 8, Expert 10. Quick or Long, a verified map (Forgotten Island default), Coach on
   or off. The app flips the Tie Breaker coin. 2v2 is the rulebook's standard; 1v1 is offered,
   labelled as not the rulebook's way (p.20: two players each control two heroes).
 - **The game** follows the rulebook exactly: play a card facedown, reveal, initiative order (coin
   ties, team ties), respawn, one action per card, attacks and defense with the totals shown
   (minion modifiers, items, card text), minions, pushes mid-turn, the six end-of-round steps,
-  mandatory level ups with the upgrade choice, Pity coin, the three ways to win. Every question
+  mandatory level ups with the upgrade choice (each card that may be upgraded shows, beside it, the two
+  cards it would become and the item each gives, and for Gydion the spells each card casts, before the colour is chosen; ADR-045), Pity coin, the three ways to win. Every question
   says what is asked and which card asks it; every option is shown on the board or as a button;
   the log narrates every event (TalkBack reads it). The computer never sees hidden cards (p.4):
   it plans on guesses consistent with what is face up.
@@ -424,12 +426,42 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   then leaves the game for Boards. Tap a card to read it in the card focus viewer, over the sheet. Only open information (p.4): built by the engine from its own
   views, never from the log's words. Note: the rulebook forbids taking notes at the table (p.4 Table
   Talk); the history is the log's own content, offered as a learning aid (ADR-037).
+- **A hero's game state** (ADR-044; tap a hero's chip or piece, long-press any hero's piece or track card;
+  also in puzzles): a sheet that answers what a player asks about a hero at the table, most asked first —
+  team, who plays them and where they stand (their Zone, or off the board: "may respawn in their Throne
+  Zone before acting on their next card", p.7), level, coins and cards in hand; **this turn**: their card
+  large, a card back before the reveal ("Played facedown: revealed when everyone has played", p.7; your
+  own card faceup, "the others see it at the reveal"), after it faceup with its state as on the turn track
+  (NOW / NEXT / LATER / DONE / PASS / OUT), the action chosen and the initiative as it counts ("Initiative
+  14 · printed 13"); **this round's** four Turn slots with their cards (empty outlines for turns to come)
+  and the discard; **items** for every hero as the official item icons with what they add ("+1 Defense
+  ×2", p.16), and for your own hero which cards are tucked; your hand right after this turn's card; the
+  Ultimate, Active effects, markers and tokens, the spellbook (how many in each group, the Spellbook sheet
+  one tap away). In landscape this turn's card and the hand sit beside the round's cards. A long
+  press on a hero's piece opens it even when a tap there would answer the question (a target, a unit to
+  move); the panel's hint says so ("Long-press a hero for their game state.") and TalkBack has "Show
+  Wasp's game state" on the hero's space, chip and track card. Hidden information stays hidden (p.4): an
+  enemy's (or teammate's) hand, tucked cards and facedown card are never named, only counted or shown as a
+  back; their item icons are open (p.16 "Your items must be clearly visible to the opposing team").
+  **Done when:** engine and screen tests show another seat sees the item icons but never the tucked
+  cards, hand or a facedown card (live and in the review; two games differing only in which card was
+  tucked look the same); the long press and the TalkBack action open the sheet over a target question;
+  screenshots of an enemy before and after the reveal, your own hero with items, a hero off the board —
+  portrait, landscape, light, 384 dp at font scale 2.
 - **Gydion's spellbook** (ADR-040; hero sheet, Game state's Now tab, puzzles): the official spell cards,
   landscape as printed, in three groups — in the spellbook (Prepare Spells: "Only Gydion can look at the
   cards in the spellbook": named to Gydion's player only, everyone else sees how many), cast (removed
   faceup: everyone), not yet added (everyone; the game starts with an empty spellbook). Tap a spell to
   read it large. "Choose and cast one spell" offers the spells as landscape cards ("Cast Magic
-  Missile"). An unlocked Ultimate shows as its card. **Done when:** an engine test shows two games that
+  Missile"). An unlocked Ultimate shows as its card. **At any point** (2026-10-26): a one-tap Spellbook
+  control on the table whenever a hero the person controls has a spellbook (before the reveal, during
+  any question, after it, at the end of a round, panel hidden, landscape), opening a Spellbook sheet;
+  during the cast question the sheet and the panel show which spells can be cast now and why the card's
+  others can't, in the engine's words. An opponent's spellbook opens from his hero sheet (facedown, a
+  count); the review's earlier boards show the book as it was then. Choosing Gydion (New game, the
+  board's line-up, the draft's hero peek) shows the 22 spell cards in one tap. The Spellbook sheet lists
+  each group by Tier and marks every spell in your spellbook with the card in your hand that casts it
+  ("Cast with Lesser Evocation"; your own Gydion only). **Done when:** an engine test shows two games that
   differ only in the spellbook's spells look the same to every other seat, live and in the review;
   screenshots of the sheet (Gydion's player and an opponent, before Prepare Spells, light/dark, 384 dp
   at font scale 2, landscape), the cast question and a spell in the card focus viewer (portrait,
@@ -455,6 +487,21 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   shown larger (Keep's two next-Tier cards side by side); the computer's move shows its card. The panel
   repeats no log line the table already shows (the reveal, the action chosen, a move); the log sheet has
   them all. With large text the card goes above its answers.
+- **What happened, card by card** (ADR-046): under the question, a resolution flow of what happened
+  since your last choice — one line per hero's card resolved (and one for the end of a round), in the
+  order it happened: the hero, the card played as the card, and the outcome in a few words ("Onslaught
+  → Wasp defended with Lift Up (4 vs 4)", "Shock → Brogan defeated · Arien discarded Liquid Leap",
+  "moved 3"). Tap a line for its steps: the action, moves, each attack with its total, the defending
+  card as the card (tap to read it) with its Defense total and whether it held, discards with the card
+  when it is open information, pushes, coins, defeats, effects. When an enemy defended against (or was
+  defeated by) your attack, that line opens by itself — you never need the log to see which card was
+  discarded to defend. A hero defeated, a Life counter, a Lane push, a level up and the Minion Battle
+  stay bold. In puzzles too; the log sheet keeps every line. **Done when:** engine tests that the new
+  event fields name only public cards and that saves replay with them; tests of the grouping (attack
+  and defense, a failed defense, a forced discard, a move-then-attack, a 3v3 turn of five cards, the
+  end of round, nothing new) and that the flow shows only cards the log names over random 3v3 games;
+  screenshots collapsed and expanded, the defense card in the viewer, portrait, landscape, light and
+  384 dp at font scale 2.
 - **See the whole board:** the panel (questions, the computer's move, the coach) hides to a
   one-line peek bar that still says what is asked ("● Arien · Choose an action for Dangerous
   Current", teal when it waits for you; a new question is announced by TalkBack). The map fits the
@@ -464,6 +511,11 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   panel back. In landscape the side panel hides to a small card at the bottom end; while it is shown,
   the heroes are portraits beside the round at a glance (a tap still opens each one) and a puzzle's
   goal is one line, so a phone held sideways keeps most of its map.
+- **The options in view:** when a question asks for a space or a piece, the map brings every option
+  (and the hero asked) into the part of the map nothing covers — under the round at a glance and the
+  hero strip or turn track, clear of the map buttons, above the panel — hexes down to about 30 dp if
+  that is what it takes; it follows the turn track and panel as they settle, but never undoes your own
+  pan or pinch made since the question came.
 - **Pacing:** each computer action is shown for a moment (Slow / Normal / Fast); "thinking…" when
   it takes long. Take back undoes your last choice (counted in the summary).
 - **Coach** (on/off, also in-game): before a clearly worse choice, a gentle nudge ("Coach: Wasp's

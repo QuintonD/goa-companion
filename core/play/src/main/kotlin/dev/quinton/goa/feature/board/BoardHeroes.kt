@@ -18,7 +18,12 @@ data class BoardHero(
     val product: String = "",
     /** Cards outside the deck the hero's cards use (Gydion's 22 spell cards), in the catalog's order. */
     val extras: List<Card> = emptyList(),
+    /** The official deck symbol (ADR-042), null when the catalog has none. */
+    val symbol: String? = null,
 ) {
+    /** The hero's spell cards (Gydion's spellbook, ADR-040): extras with the `<hero>-spell-` ids. */
+    val spells: List<Card> get() = extras.filter { it.id.startsWith("$id-spell-") }
+
     /** The deck, then the extras: every card the board can measure with (a spell has its own values). */
     val measurable: List<Card> get() = cards + extras
 
@@ -32,6 +37,7 @@ data class BoardHero(
             cards = deckOrder(hero.cards),
             product = hero.product,
             extras = hero.extras,
+            symbol = hero.symbol,
         )
 
         fun unknown(id: String) = BoardHero(id, "Unknown hero", "", null, verified = false, cards = emptyList())

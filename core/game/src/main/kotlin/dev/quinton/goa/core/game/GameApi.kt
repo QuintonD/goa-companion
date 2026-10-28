@@ -314,6 +314,72 @@ data class DecisionContext(
      * that are not among the options, each with why. Built from the same checks that left them out.
      */
     val unavailable: List<UnavailableAction> = emptyList(),
+    /**
+     * UPGRADE_CARD: for each option card, the cards of the next Tier in its colour in the deciding
+     * hero's deck (p.15 "Find two Action cards in your deck…"), in the order KEEP_UPGRADE would offer
+     * them: the one kept goes to hand, the other becomes an item (p.16). Two in every shipped deck;
+     * fewer only if something moved one out of the deck. The deciding hero's own deck: show it only
+     * to them.
+     */
+    val upgrades: Map<String, List<String>> = emptyMap(),
+    /**
+     * CHOOSE_CARD: the cards the asking card names that are not among the options, each with why
+     * (Gydion's "Choose and cast one spell in the spellbook —": a spell removed faceup, not added yet,
+     * or whose action can't start). Built from the same checks that left them out.
+     */
+    val unavailableCards: List<UnavailableCard> = emptyList(),
+    /**
+     * CHOOSE_ACTION: what the asking card's primary action will do, told before the player commits
+     * (ADR-040, extended after the hands-on pass); null when there is nothing to tell. Present for a
+     * card that performs one of the cards it names (Gydion's spells) even when its primary is not an
+     * option, so the panel can say why for each. Computed only while the question is pending; it asks
+     * nothing and changes nothing, so saves replay as before.
+     */
+    val primaryPreview: PrimaryPreview? = null,
+)
+
+/**
+ * What a primary action will do as things stand ([DecisionContext.primaryPreview]), from the same
+ * checks the action then runs. Open information only: the probe stops telling the moment the text
+ * reads another hero's hand or deck (p.4), and the cards named are printed on the asking card.
+ */
+@Serializable
+data class PrimaryPreview(
+    /**
+     * The cards it may perform now, in the asking card's order (Gydion: the spells that can be cast).
+     * One card: it is performed with no question ("Casts Expeditious Retreat"). Empty for a card that
+     * performs its own text.
+     */
+    val cardIds: List<String> = emptyList(),
+    /** The cards it names that it can't perform now, each with why (as [DecisionContext.unavailableCards]). */
+    val unavailableCards: List<UnavailableCard> = emptyList(),
+    /**
+     * The unit or token its first choice must take, being the only one (picked with no question: the
+     * only target of Fireball); null when there is a choice or the action has no such step.
+     */
+    val onlyTargetId: String? = null,
+    /**
+     * The action will change nothing ("No enemy hero in radius 3 can move 3 spaces in a straight line:
+     * Suggestion will do nothing and is removed from the spellbook."): one line, null when it does
+     * something or the engine can't tell without hidden information.
+     */
+    val noEffect: String? = null,
+    /** The rule [noEffect] rests on ("rulings/gydion.md 5"), when there is one. */
+    val noEffectSource: String? = null,
+)
+
+/**
+ * A card the asking card names that can't be chosen now (CHOOSE_CARD), in one short line: "Not in the
+ * spellbook: removed faceup", "Its Attack can't start: no target in range". [source] is the rule, null
+ * when [byCardId] (a faceup card's effect in force) is the reason. Never names a hidden card: the
+ * cards are printed on the asking card, the reasons are open information.
+ */
+@Serializable
+data class UnavailableCard(
+    val cardId: String,
+    val text: String,
+    val source: String? = null,
+    val byCardId: String? = null,
 )
 
 /**
@@ -601,6 +667,10 @@ sealed interface GameEvent {
     data class Attacked(val attackerId: String, val targetId: String, val total: Int, override val text: String) :
         GameEvent
 
+    /**
+     * A hero's defense (p.14 steps 3–6): [cardId] the card revealed and discarded to defend (open
+     * information), [total] its Defense total (null for a Block), [success] whether it defended.
+     */
     @Serializable
     @SerialName("defended")
     data class Defended(
@@ -609,6 +679,8 @@ sealed interface GameEvent {
         val total: Int?,
         val success: Boolean,
         override val text: String,
+        /** The attacking hero (ADR-046); null from an older engine or test fake. */
+        val attackerId: String? = null,
     ) : GameEvent
 
     @Serializable
@@ -623,9 +695,21 @@ sealed interface GameEvent {
     @SerialName("coins")
     data class CoinsGained(val heroId: String, val amount: Int, override val text: String) : GameEvent
 
+    /**
+     * A hero's cards changed state: a discard, a retrieve, a swap, a spell cast, an item gained.
+     * [cards] are the cards the sentence names, in its order, and only those everyone may see (p.4
+     * "Hidden Information": discarded and resolved cards are open; a card in hand or deck, a facedown
+     * card and a tucked item never appear, as the text never names them); [discarded] are those of
+     * [cards] this change put into the discard pile. Both empty when nothing public is named (ADR-046).
+     */
     @Serializable
     @SerialName("cards")
-    data class CardsChanged(val heroId: String, override val text: String) : GameEvent
+    data class CardsChanged(
+        val heroId: String,
+        override val text: String,
+        val cards: List<String> = emptyList(),
+        val discarded: List<String> = emptyList(),
+    ) : GameEvent
 
     @Serializable
     @SerialName("lane_pushed")

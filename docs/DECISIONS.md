@@ -1003,6 +1003,83 @@ derivable (the card says only Gydion looks).
 rebuilt, never saved). A future hero with extras declares its places and, if its scans are landscape,
 extends the shape rule (CardShapeTest fails until it does). The hero chip shows no spellbook count (the
 strip is S3's and has no room; the counts are on the sheet).
+**Extended 2026-10-26 (`feature/v08-spellbook-anytime`), "at any point":** the owner: "The player
+choosing Gideon should be able to view their spell deck at any point." Reaching the book meant finding
+Gydion's piece or chip (while a question makes his piece an option, the tap answers it instead) and
+scrolling the hero sheet. Now:
+1. **The table:** a Spellbook control per hero in `TableUi.mine` with spell cards, in the map buttons'
+   column under Fit and Flip (never over the round at a glance, the turn track or the hero strip; shown
+   with the panel hidden too): the hero's official deck symbol (ADR-042) and the spellbook's count on a
+   small landscape card. It opens `PlaySheet.Spellbook`, the groups above from the same `extrasGroups`,
+   so visibility stays the views' (`TableUi.mine` decides only whether the control is there; a teammate
+   or an opponent gets none). An opponent's Gydion: "Open the spellbook" on his hero sheet, the same
+   sheet with a facedown count. The review's rewound board carries the control built from that board's
+   view (`positionAt`), never the live one.
+2. **The cast question says why** (engine, additive, CONTRACT-CHANGES.md): `DecisionContext
+   .unavailableCards` lists the asking card's spells that are not options, from the same checks
+   (`Spellbook.whyNot`: removed faceup, Prepare Spells; not added yet, designer on BGG 3491113; its action
+   forbidden or unable to start, `Game.primaryUnavailable`, which `actionAvailability` now shares). Built
+   only while the question is pending (`askAlways`), so replays and the AI's runs skip it. The panel
+   shows those spells dimmed with one line each; the sheet marks the options "Can be cast now", only on
+   the person's own question (another seat's options would name its spellbook).
+3. **Before the game**, where a player chooses Gydion: New game's "You play" row and the line-up chip's
+   menu (New game and New board share it) open the 22 spell cards by tier from the catalog in the same
+   sheet; the draft's hero peek (feature/draft can't use feature/board) opens the catalog's hero page at
+   its Spellbook (`HeroDetailRoute(heroId, section = SPELLBOOK)`), reusing that layout rather than a
+   third copy.
+**Alternatives:** a top-bar action (the bar already holds Take back, Game state, Log and More, and a
+word would be squeezed); a tab in the Game state sheet (two taps, in a sheet about something else);
+letting the sheet answer the cast question (two places to answer one question; the panel stays the only
+one); a count on the hero chip (the strip gives way to the turn track after the reveal).
+**Extended after the hands-on pass (2026-10-26, `fix/v08-table-polish`):** in a real game the sheet was a
+flat list by colour with the Tiers mixed, two cards a row with a third of the width empty, and nothing
+said which spells the cards in hand could cast (`22-book-r1.png`, `30-book-22.png`). (1) The grid's
+width is whole pixels: three columns rounded up one by one came to a pixel more than the row and the
+third card wrapped (at font scale 2 the second did) — the column count did react to the font scale, the
+wrap hid it. (2) The live and review sheets list each group by Tier under a small head ("Gold (no tier)",
+"Tier I"…"Ultimate", `spellTierTitle`, shared with the pre-game sheet), the engine's order kept within a
+Tier; the viewer swipes the whole group. (3) Gydion's own player sees under each spell in his spellbook
+the cards in his hand that name it: "Cast with Lesser Evocation" (`castWith`). The link is the catalog
+card text's own quoted names matched to the spell cards' names (`namedSpells`; apostrophes aside: the
+cards print "Midas Touch", the spell card "Midas' Touch"), the words the engine's `GydionHero` registers
+from; a test checks every quoted name resolves and spot-checks the engine's lists. Never shown to another
+seat (the hand is hidden, p.4; only Gydion looks in the spellbook): only for `TableUi.mine` and only from
+the hand the view gives that seat; screen tests check an opponent's sheet has no "Cast with" and no
+spell of the book. A pending cast question's mark replaces the line. Rejected: a view field from the
+engine's registration (a contract change in core/game, where another stream is working on the cast
+preview, for words the catalog already carries). (4) The hero sheet sums the spellbook up (ADR-044
+extended).
+**Extended after the hands-on pass (2026-10-26, `fix/v08-cast-preview`), "say what it will cast":** in a
+2v2 on an S25-sized emulator, "Skill, primary action" on a card naming several spells cast the only one
+that could be cast — and took its only target — with no question, six times (Cantrip → Expeditious
+Retreat, Lesser Transmutation → Midas' Touch, Lesser Evocation → Fireball on Tigerclaw, defeating him),
+so the cast question's reasons (point 2) never appeared; and Elementary Enchantment cast Suggestion with
+no enemy hero in radius, doing nothing but spending the spell (right by ruling 5, unannounced). A new
+question would break saves (answers replay by question order), so the action question itself says it:
+4. **The preview** (`DecisionContext.primaryPreview`, CONTRACT-CHANGES.md): the spells the card can
+   cast now (`Spellbook.preview`, the same `whyNot` as the cast question), the others with why, and when
+   exactly one can be cast, its only target and whether it will do nothing. The engine tells these by
+   one probe of the action on a copy (`primaryProbe`, shared with `primaryBlocker`): the first unit
+   choice with a single option, and a whole-state comparison when the text runs out without a question
+   (the change stamp misses coins); a script may say why it did nothing (`ActionScope.nothing`, also a
+   log line). Generic: any card's primary gets its only target and "will do nothing" the same way.
+   Hidden information: the probe stops telling the moment the text reads another hero's hand
+   (`Game.hand`, `forceDiscard`): Cloud Kill's "discards a basic card, if able" never reveals whether
+   one is held.
+5. **The panel** (`CastPreview.kt`): under the Skill chip, the spell it will cast as its official card
+   (tap to read it), "Casts Fireball", "Its only target: Brogan", and the warning on the error
+   container ("No enemy hero in radius 3: Suggestion will do nothing and is removed from the spellbook
+   (Prepare Spells)."); with several spells, their cards and "you choose which next"; the card's other
+   spells one line each with the engine's reason, also when no spell can be cast (instead of only "no
+   spell of this card can start"), unless every spell has the same reason the action's line already
+   gives (an empty spellbook). Only on the person's own question, as the whole panel.
+**Alternatives:** always asking which spell, even for one (the save-replay break, and a question with
+one answer); a confirmation after choosing Skill (a new question too); the warning only in the log
+(after the fact, which is what the player hit).
+**Extended after the hands-on re-check (2026-10-27, `fix/v08-handson-2`):** the sheet's Tiers share a
+row when they fit (`TierRunsGrid`; in landscape Gold and Tier I, three each, each left a third of the
+row empty) and the grid takes up to six columns, never under 104 dp a card; the line under a spell
+("Cast with Elementary Evocation") wraps to two lines and steps its size down instead of an ellipsis.
 
 ## ADR-041 — The game table after the reveal: a turn track of the played cards, and the card as the panel's content (2026-10-25)
 **Context:** The owner: "We are still missing a clear indication of the game state after everyone has
@@ -1072,6 +1149,22 @@ its skipped-to turn 4. Large text puts the asking card above its answers.
    a Handicap card's basis) and "Read the card as text", collapsed, like the catalog viewer (ADR-042 §3).
    The sheet is as tall as its words, at the bottom, and the card takes up to 60 % of the portrait height
    (50 % with large text). TalkBack reads the card's name, kind, values and text on the card's node.
+
+**Extended after the hands-on re-check (2026-10-27, `fix/v08-handson-2`):**
+7. **The person's own question first, and from its top.** At font scale 2 the end-of-round summary
+   filled the panel and the Minion Battle's Confirm was below the fold; ADR-045 §8 had moved it for the
+   level up only. Now, whenever the question is the person's own (game and puzzles), the moment (reveal,
+   turn over, round ending) follows it. A new decision scrolls the panel back to its top (it opened the
+   Keep question mid-scroll, its header hidden); the same decision composed again keeps the scroll.
+8. **No target, in the card's words.** "Its Attack can't start: no target" said nothing while units were
+   in range but next to Gydion or a friendly unit. The attack helpers now take the reason from the
+   target prompt, the card's own condition (`noTargetReason`: "no hero in range with a Bounty marker and
+   no unit adjacent to you" for a "Choose one —" card), and a few cards give theirs (Fireball: "no target
+   in range that isn't adjacent to you or to a friendly unit"; Gydion's other spells, Dodger, Garrus,
+   Tali, Nebkher, Snorri). Wording only: the same checks, the same fizzles, no question added.
+9. **Zone labels clear of the game table's buttons.** The labels kept clear of the sandbox's corner
+   only; the game table's Fit / Flip / Spellbook column sits under the hero strip and grows with the font
+   scale ("Blue Throne" ran under the zoom button), so the table passes the column's bounds.
 
 ## ADR-042 — Styled on the official look: the cards as the cards, the rulebook's banner and heads (2026-10-25)
 **Context:** The owner: "Lean on the original assets throughout the app, the app should be styled
@@ -1708,3 +1801,354 @@ at 5 and 10, a puzzle with nudges, offline and back all worked. What a player hi
 Not changed: the map's floating Fit / Flip buttons can sit over a piece at the screen's edge (as on the
 phone; pan or Fit); the on-screen keyboard itself can't be emulated in Playwright, so fields in bottom
 sheets above it are left for the device pass.
+## ADR-044 — A hero's game state: the hero sheet answers what a player asks, and a long press reaches it (2026-10-26)
+**Context:** The owner: "Include game state information about the enemy or player when clicking on their
+character e.g. item and played cards." The hero sheet listed sections (level, coins, an items line, played,
+resolved, discarded…) but never showed an enemy's or a teammate's items: the screen read `HeroView.items`
+(the tucked card ids, the owner's only) instead of the public `itemStats`. It did not say where the hero
+stood in the turn, and when a hero's piece was a decision option (a target) a tap answered the question,
+so the sheet could not be opened from the map at all.
+**Decision:**
+1. **No contract change.** Items are open as their icon only (p.16 "only the item section of the card is
+   visible", "Your items must be clearly visible to the opposing team"; p.4 "the part of the card covered
+   by your hero dashboard" is hidden; designer, BGG 3590819). `HeroView.itemStats` already carries every
+   hero's icons, built in `Views` for every seat, the review and puzzles; `items` stays the owner's. A test
+   (`HeroStateViewTest`) pins both and that games differing only in which card of a pair was tucked look
+   the same to every other seat. One leak found and fixed: Min's Perfect Self named the Tier II card it
+   tucks in the (public) log; it now says the item it gives, like the level-up line.
+2. **The sheet is a game state, most asked first** (`play/table/HeroState.kt`): where the hero is in this
+   turn — the card large (a card back before the reveal unless it is the person's), after the reveal the
+   turn track's state (ADR-041: NOW / NEXT / LATER / DONE / PASS / OUT), the action chosen and the
+   initiative as it counts with the printed one when they differ; this round's four Turn slots as on the
+   dashboard and the discard; items as the official icons with what they add ("+1 Defense ×2"), the tucked
+   cards for the owner; where the hero stands (Zone, or off the board and when it may respawn, p.7); then
+   the Ultimate, Active effects, markers and tokens, spellbook and hand. Everything comes from the view and
+   the turn track, so the sheet cannot name more than the table shows; a screen test checks an enemy's
+   tucked cards, hand and facedown card are never on it. Landscape puts this turn beside the round.
+3. **Reaching it:** a long press on any hero's piece (or another figure of that hero) opens the sheet, even
+   when a tap there answers the question — the tap keeps answering (rejected: a second tap
+   target or a menu would slow every answer). Detected in the map's own gesture loop, only on a hero's
+   space, so pans, pinches and double taps are unchanged; a haptic tick confirms it and the rest of the
+   press does nothing else. TalkBack gets "Show <hero>'s game state" as a custom action on the hero's
+   space, and the same words on the hero strip and the turn track. Discoverable without a tutorial: when a
+   hero's piece is an option, the board hint adds "Long-press a hero for their game state." The moment
+   card's recap of the turn track no longer offers a long press that did nothing.
+**Consequences:** the hero and spellbook sheet screenshots and the screens whose hint gained the line were
+re-recorded. The sheet's hero name is the sheet title only (the header repeated it). A future "table
+rules" switch (ADR-037) would hide only earlier rounds; this turn and the dashboard are what the table shows.
+**Extended after the hands-on pass (2026-10-26, `fix/v08-table-polish`):**
+4. **The hand is not buried.** On Gydion's own sheet the hand sat under 20+ spell cards, about three
+   screens down (`41-gydion-own-sheet.png`). The hand now follows this turn's card (in landscape, in its
+   column), and where the Spellbook sheet is one tap away (the live table and puzzles) the SPELLBOOK
+   section is a summary: each group's count, the facedown note for anyone else, "Open the spellbook"
+   (the whole card is the button). What each seat may see is unchanged: the counts were already open
+   (ADR-040); the cast spells, open too, are on the Spellbook sheet. The review's Now tab, which has no
+   sheet, keeps the cards.
+5. **The pieces a question asks about are in view.** In an initiative tie Gydion's piece lay under the
+   panel and Brogan's under the turn track; a Move 3's far spaces under the track (`47-lp-option.png`,
+   `51-move.png`, `70-move3.png`). Two causes: the table framed the options when the question came but
+   not again when the turn track, which appears at the reveal with the question, made the top taller
+   (ADR-041's "the map's inset follows it" held for the Lane view, not for the framing); and a region too
+   big for 38 dp hexes was centred on, its edges left under the overlays. Now the framing runs again as
+   the top, the panel or the map buttons settle — unless the person has dragged, pinched or double-tapped
+   since the question came (`MapViewport.gestures`, compared with its value when the question arrived),
+   so it never fights their pan; it keeps the options clear of the map buttons' column when they fit
+   beside it (`reveal(…, clearEnd)`); and it may shrink hexes to 80 % (about 30 dp, `shrink`) so all the
+   options fit. The sandbox's framing is unchanged (defaults). Rejected: smaller overlays (the turn
+   track's cards are ADR-041's point), a fixed bigger top inset (wrong before the reveal and in
+   landscape).
+
+## ADR-045 — Level up: see the upgrade cards before choosing what to upgrade (2026-10-26)
+**Context:** The owner: "When upgrading cards it is important to facilitate viewing the potential
+upgrade cards BEFORE we select the chosen upgrade colour." Level up (pp.15–16) asked UPGRADE_CARD
+("choose a card to upgrade": the lowest-Tier coloured hand cards) and only then KEEP_UPGRADE (the two
+next-Tier cards of that colour; the one not kept becomes an item). The question's row showed the hand
+cards only; the two cards each would become were three taps away (zoom one card, read its small
+related thumbnails, back, repeat per colour), and the app computed them itself from the catalog, apart
+from the engine's own selection.
+**Decision:**
+1. **The engine previews the choice it is about to offer.** `DecisionContext.upgrades` (UPGRADE_CARD
+   only): per option card, the next Tier's cards of its colour in the deciding hero's deck, in the order
+   KEEP_UPGRADE offers them (CONTRACT-CHANGES.md). `Flow.kt`'s `upgradeable` (the options) and
+   `upgradesOf` (the pair) are the only selection: the question, its preview, the Keep question and
+   the AI's level-up score (`StaticPolicy`) all read them, so the preview can't drift from what follows.
+   `UpgradePreviewTest` levels every playable hero from 1 to 8 in one round and checks, for every
+   option of every question, that its preview is exactly the Keep question it leads to.
+2. **Visibility.** The rule has the player search their own deck ("Find two Action cards in your deck
+   that have the same color as the chosen card but are one Tier higher", p.15), so the preview is part
+   of the deciding hero's own question and the app shows it only with that question (the decision panel
+   is drawn for the person's own seats, `TableUi.mine`, as before; a computer's level up shows "Arien is
+   choosing" and nothing of its deck). It also tells no one anything hidden: the next Tier's two cards
+   of a colour are always both in the deck (a Tier is reached only through the one below), the deck
+   list is the hero's printed list, and what was kept or tucked earlier (hidden, BGG 3590819) doesn't
+   change it. The AI's samples (`determinize`) build it from the sample's own deck; two games differing
+   only in a hidden upgrade history give the same samples (no-peeking test).
+3. **The question as rows.** UPGRADE_CARD shows one row per card that may be upgraded: the hand card
+   (framed in its colour: the choice), an arrow, then the two cards it would become as official scans
+   with the item icon each gives if it is the one not kept (p.16): colours compare at a glance, with no
+   tap. Cards are as large as three fit across the panel (60–100 dp; the panel scrolls), the same in
+   portrait, landscape and at font scale 2. Hand cards the question doesn't offer (Gold, Silver, a
+   higher Tier) are no longer repeated here; the hand strip under the panel shows them.
+4. **Card focus without ambiguity.** Tapping any card opens the viewer over the rows in order (each hand
+   card followed by its upgrades), so a swipe walks through every colour. The hand card keeps the
+   convention: "Tap the card again to upgrade Liquid Leap" and its button; its sheet names the pair
+   ("… is replaced by Magical Current or Arcane Whirlpool: you keep one, the other becomes an item
+   (p.15, p.16). Swipe to see them.") instead of the small thumbnails it had, which the next pages now
+   show large. An upgrade card is captioned "Upgrade of Liquid Leap", is not veiled (it is not a wrong
+   answer, it is what an answer leads to), says which card to choose ("Upgrade Liquid Leap to choose
+   between this card and Rogue Wave next; the other becomes an item"), and in place of Confirm offers
+   "Go to Liquid Leap"; a second tap on it shakes and answers nothing. `FocusCard.answeredBy` (the key of
+   the card that answers for it) carries this; TalkBack has "Go to …" as an action.
+5. **KEEP_UPGRADE unchanged:** the two cards large with the item icon under each, the viewer's "… goes
+   to your hand" / "… becomes an item: +1 Defense (p.16)".
+**Consequences:** the level-up panel is taller (three rows of three cards); the board stays above it and
+the panel scrolls. Several levels in one round ask again with a fresh preview (the deck as the previous
+level left it); a level with one card left to upgrade is still answered by the engine (its Keep question
+shows the pair) and level 8 (the Ultimate) asks nothing, as before. Pass-and-play shows each question to
+the phone as every other question is shown. A puzzle that runs to the end of the round (p43, p48) can
+reach a level up when a hero gained the coins; it asks through the same panel (puzzle hands are open).
+
+**Extended after the hands-on pass (2026-10-26, `fix/v08-upgrade-polish`):**
+6. **The spells a card casts come with it.** For Gydion, Lesser Evocation vs Lesser Necromancy is
+   Burning Hands / Fireball vs Vampiric Touch / Create Undead; the rows showed only the deck cards. Each
+   card in the level-up rows (the hand card and both upgrades) and in the Keep row now has the spell
+   cards it names under it, small and landscape as printed, each tappable into the viewer; in the viewer
+   each card is followed by its spells as pages of their own ("A spell Lesser Evocation casts"; not
+   veiled, never an answer, "Go to" the card that is: the hand card when upgrading, the card itself when
+   keeping), and the card's sheet lists them small ("The spells it chooses from:"), a tap goes to one.
+   The link is the printed text and the catalog only (`NamedCards.kt`): a name the card puts in quotes
+   matched, by its letters and digits, to an extra card of the same hero ("Midas Touch" on the card is
+   the spell card "Midas' Touch"). `NamedCardsTest`: every quoted name on Gydion's 18 cards finds its
+   spell card, Tier I names one, Tier II two, Tier III three, and no other hero's card names an extra
+   card. Generic: any future card that names its hero's extra cards gets the same. Visibility as in 2:
+   only with the deciding hero's own question, and the spell cards themselves are the hero's printed
+   list (nothing says whether a spell is in the spellbook).
+7. **The card shrinks before a line is squeezed.** The viewer's portrait sheet is measured for every card
+   it holds (collapsed; the tallest counts, so the card keeps one size while swiping) and the card gets
+   what is left, up to its share and down to 30 % of the height (24 % above font scale 1.3); only then
+   does the sheet scroll. With large text a card an answer leads to says what to choose in the sheet
+   (it scrolls) and its bar is the button alone; the "Tap the card again to …" hint is left out (the
+   button says it). At Keep the card's own "As an item" line is left out: the note says what the other
+   card becomes, the row shows each card's item.
+8. **The question before the round's summary.** During the person's level up the end-of-round summary
+   follows the rows instead of preceding them (at font scale 2 it filled the panel).
+9. **Official item icons.** Item badges outside card text are the official icons the cards print (ADR-042;
+   the app's backpack-and-glyph badge only while one loads), under a card with the stat in words
+   ("+1 Initiative"), so the hourglass on the card is the hourglass under it.
+
+**Extended after the hands-on re-check (2026-10-27, `fix/v08-handson-2`):** §8 now holds for every
+question (ADR-041 §7). The viewer's "Card 3 of 24" counted every spell as a card: it counts the cards
+and says a spell as its card's ("Card 2 of 9 · spell 2 of 2", TalkBack the same; `focusPosition`, any
+viewer whose pages name other pages).
+
+## ADR-046 — The resolution flow: what each card did since your last choice, as cards (2026-10-27)
+**Context:** The owner: "We need be more clear with resolving effects, a expandable flow of what happened
+due to enemy cards for example. I shouldn't need to go into logs to see what card was discarded to defend
+against my attack." The panel showed `RecentLines`: up to four flat log sentences since the person's last
+answer, the rest only in the log sheet. Between two of the person's answers the computer may resolve up
+to five other heroes' cards (3v3 and bigger, which is how the owner plays), a defense, forced discards,
+pushes and the end of the round; the card an enemy discarded to defend was one sentence, could be trimmed
+away, and was never shown as the card.
+**Decision:**
+1. **One entry per card resolution.** `play/table/ResolutionFlow.kt` groups the log (pure Kotlin, in the
+   view model, from the events only) into entries: a hero's card resolution from its respawn (`Placed` of
+   a hero from off the board) or its `ActionChosen` to the next one, so a defense, a forced discard, a
+   push or a defeat caused by a card sits in that card's entry; the end of a round from its "End of round
+   N." note; the turn's start when something happened there before the first card. Entries with
+   something new since the log's size **before** the person's last answer are shown, oldest first, at
+   most 8 (the rest are counted, "in the game log"). Starting before the answer keeps the person's own
+   attack and its result together (the attack is part of the answer's events, the enemy's defense comes
+   after the computer's own question); the person's own entries need more than their own choices (a
+   move) to count as new, another hero's card counts even for a move ("moved 3"). Nothing new: the last
+   entry before, collapsed and marked earlier.
+2. **Collapsed: who, which card, what came of it.** The hero's portrait, the card as its official
+   thumbnail (ADR-042), and a few words built from the events, most telling first and three at most:
+   each attack's result paired with the defense that answered it ("Wasp defended with Lift Up (4 vs 4)",
+   "Wasp blocked with Dodge", "Wasp defeated: Lift Up fell short (5 vs 6)", "Red melee minion defeated"),
+   a spell cast, defeats, discards ("Arien discarded Liquid Leap", "… a facedown card"), Life counters,
+   Lane pushes, level ups; else moved N / fast travelled to a Zone / pushed / coins / held. The end of a
+   round: "Minion Battle: Red removes 1 · Blue pushed the Lane · Arien reached level 2".
+3. **Expanded: the steps in the engine's words,** each event's own sentence (verified wording, page
+   references kept), with cards where a step has them: the action chosen with its card, the defending
+   card (its "discards" line folded into the defense step) with its Defense sum and "Defended" /
+   "Defeated" in words and shape, the open card of a discard, a retrieve, a swap, a cast. A card opens the
+   existing card focus viewer, the defense captioned with the Attack it answered.
+4. **Impossible to miss:** an entry in which an enemy hero defended against, or was defeated by, one of
+   the person's heroes starts open (and its line names the defense card). What `RecentLines` marked
+   important (a hero defeated, a Life counter, a Lane push, a level up, the Minion Battle) makes the
+   entry's border bronze and its line semibold. The flow sits right under the person's question (ADR-041
+   §7 keeps the question first), before the moment, whose turn-over cards the entries already show.
+5. **Engine: structured fields, additive, public only** (CONTRACT-CHANGES.md 2026-10-27).
+   `CardsChanged.cards` (the cards the sentence names, only open ones, p.4) and `.discarded` (those that
+   went to the discard pile), filled in `Game.discard` / `retrieve` / `swapCards`, Gydion's cast and
+   Takahide's swaps; `Defended.attackerId`. Never a new event, never a new question: the events are
+   re-derived by the replay, so old saves show the flow too. A facedown card discarded or retrieved
+   leaves the fields empty, as its sentence never names it (RULINGS 51/53).
+6. **No peeking.** The flow reads only events, never a view's hand: every card it shows is a card its
+   step's sentence names (`ResolutionFlowTest`, at every question of a random 3v3 game for the asking
+   seat), and the engine fills the fields only with cards its text names (`ResolutionEventsTest`, random
+   3v3 games, plus facedown discards and retrieves). A facedown *defense* card cannot happen: p.14 has the
+   defender reveal the card and discard it.
+7. **TalkBack:** each entry is one button read as a sentence ("Brogan, your hero, played Onslaught: Wasp
+   defended with Lift Up (4 against 4).") with "Expanded" / "Collapsed" and the action "Expand" /
+   "Collapse"; each step's text is readable, each card a button ("Wasp's defense card: Lift Up, …").
+**Considered:** reusing the grouped entries in the log sheet and the review's Turns tab. The review
+already groups by turn with the cards at the reveal (ADR-037) and the log sheet's job is every line, so
+both stay; the builder is a plain function either could call later. A new "resolution started" event
+would have made grouping exact without heuristics, but it changes the log of every game and the web
+client's event set; the respawn / action / "stays off the board" boundaries cover every way a card is
+resolved (p.7), and end-of-turn effects simply join the turn's last card.
+**Consequences:** the panel is taller after a busy stretch (five collapsed lines in a 3v3 turn, about
+56 dp each); it scrolls as before and the question stays at its top. The hidden panel's peek still reads
+the last recent line. Screens whose panel showed the recent lines were re-recorded.
+
+## ADR-047 — A computer that holds up at 3v3 and bigger: teams, search and a learned evaluation (2026-10-27)
+
+### ADR-047 part A — teams and search (`feature/v09-ai-teams`)
+**Context:** The owner beat strength 10 "easily", by hero kills and pushing the lane, in 3v3 or
+bigger; the top strength may think up to about 2 s per card play on the S25 Ultra. Every AI
+measurement and the timing table were 2v2 (ADR-039). Four suspects: the phone's cap starving the
+search in big teams, caution tuned away by self-play, lane weights calibrated for 2v2, no focus fire.
+**Decision:**
+- **Measure at the owner's sizes.** The AI harness plays 3v3 (Forgotten Island, the app's default
+  map), 4v4 (Forgotten Island and the double lane the rulebook requires from 8 players) and 5v5, on
+  mixed line-ups seating every hero equally, mirrored, seeded; tournaments report defeats per game
+  (and with an empty hand) and how each side won. A deterministic work budget (engine answers in
+  playouts) stands in for the phone's wall clock. The answers to the four suspects are in AI.md
+  "Team sizes": starvation is real in 4v4 at 2 s, not at today's 4 s; self-play still prefers little
+  caution; the lane projection over-counted three heroes' Push Potential; kills set up over two turns
+  are the gap.
+- **Two 3v3 evaluation changes, together** (`TUNED`, per team size, so 5–10 play 3v3 this way and
+  2v2/4v4 as before): each attack card left counts 0.35 of a minion of Push Potential instead of 0.5
+  (`pushPerAttackBySize`: the same minions, hunted by three heroes), and a hero with no card left to
+  defend with counts its full exposure (`defenselessBySize`: stripped one turn, hit the next, beyond
+  the playouts' horizon). The pair beat the v0.8 strength 10 55.5% (50.5–60.3%, 384 held-out 3v3
+  games over two line-up sets: 57.8% and 53.1%) with fewer heroes lost (1.79 against 1.88 a game; a
+  third fewer with an empty hand), and against the kill-hunting exploiter it held (54.2%, 2.06 heroes
+  lost a game, against 55.2% and 2.14 for the v0.8 10). The Push Potential alone beat today's 10 as
+  well (57.8%) but lost more heroes to the exploiter (43.8%, 2.31 a game), so it ships only with the
+  floor. 2v2 and 4v4 measured even or worse with a lower Push Potential and keep 0.5.
+- **Budgets:** strength 10 thinks at most 2 s per card play (was 4 s), 9 1.5 s, 8 1 s (other
+  decisions a third); measured times per team size in AI.md "Budgets". The phone factor stays an
+  assumption (3–4× the desktop JVM; no device measurement in this round).
+- **The same search on three threads.** The samples of one answer run through a small `SampleRunner`
+  interface (the engine stays thread-free for the web build, ADR-043; sequential default); the app
+  supplies three daemon threads (`AiSampleThreads`, 2.15× on the desktop). Answers combine in sample
+  order, so an uncapped answer is the same with any runner, and strength 10 gets about the samples it
+  had in 4 s within 2 s. Search copies build no player explanations and forks answered at once share
+  state (same answers for every seed, about a quarter faster).
+- **No other evaluation or search change ships.** The other candidates (doubled exposure, a
+  focus-fire threat model, other lane weights, racing of candidates, the defenseless floor without the
+  Push Potential) did not beat today's 10 with the interval's lower end above 50% (AI.md "Team
+  sizes"); racing and focus fire stay knobs.
+- **A stand-in for the owner:** an exploiter profile (`Hunt`: strength 10 with a one-sided taste for
+  kills) is kept as a test tool; no such style beat strength 10, so it measures robustness only.
+- **Engine fix found by the 3v3 tournaments:** a Spawn point under a token is not offered when an
+  effect makes it an obstacle for the unit (Stunt Doubles beyond Static Barrier crashed the engine).
+**Alternatives:** a bigger budget (over the owner's ceiling); more samples (v0.7: flat); the Push
+Potential alone (stronger against itself, weaker against a kill-hunter); a Push Potential scaled by
+2 / heroes a side (4v4 at 0.25 measured 42.7%); joint team planning of card plays (too expensive for
+the phone; part B's learned evaluation is the other route).
+**Consequences:** Strength 10 (and 5–9, which share `TUNED`) plays 3v3 with the two changes and
+answers exactly as before in 2v2 and 4v4 (since the merge only 5–9 do: strength 10 keeps v0.8's
+knobs beside the net, "ADR-047 together" below); on the phone it thinks half as long for about the same
+search in 3v3, and in 4v4 a slow card play is still cut to 65–80% of its
+samples at a 4× phone. Saves are unaffected (no question added or removed; the engine fix only removes
+an option that crashed). How a human beats the AI is still known only from the owner's report: the AI
+does not plan kills over two turns or keep a defender back for a teammate.
+
+### ADR-047 part B — learned evaluation (`feature/v09-ai-learned`)
+**Context:** The owner beat strength 10 easily (hero kills and lane pushes, 3v3 or bigger) and asked
+for an ML route "akin to chess" that does not load the phone. AI.md's own conclusion after v0.7: the
+top end is flat; more search bought nothing, the evaluation is the limit. Every earlier measurement
+was 2v2.
+**Decision:**
+- **Engine-style, not end-to-end:** keep the search; score the end of each playout with a small net
+  trained offline on self-play (NNUE-style: cheap inference, offline training, iterated). Strength
+  10 uses it at playout ends (`AiPlayers.LEARNED_FROM`, `EvalSource.LEAVES`); the one-ply looks inside
+  playouts, the static policy and opponent model, strengths 1–9 and the coach (its thresholds and
+  reasons) keep the hand evaluation. Given to 5–10 the net made each of them stronger but compressed
+  the ladder's steps (6 over 5 55.7%, 8 over 7 56.8%, 10 over 9 51.6%); at the top alone it keeps
+  the measured ladder 1–9 and makes the top step the biggest (10 over 9 75.0% (68.4–80.6%), 192 games).
+- **Features** (`Features.kt`): 52 numbers per hero pooled per team as sum and max, 40 global ones,
+  the hand evaluation's twelve terms among them; team-size invariant (one net, 1v1–5v5); read from the
+  determinized copy like `Evaluator` (no hidden information). **Net** (`LearnedEval.kt`): 248 → 64 →
+  32 → 1, ReLU, plus a linear skip that starts as the hand evaluation; P(Red) = σ(N(Red) − N(Blue)),
+  exactly antisymmetric; logit × the hand evaluation's fitted scale = coin-equivalents, so the
+  search's settings keep their meaning.
+- **Weights in source** (`LearnedWeights.kt`, generated FloatArray literals, the feature-schema hash;
+  `LearnedNetTest` fails on a mismatch): pure Kotlin, so the web build (ADR-043) shares them.
+- **Training** (opt-in tests, pure Kotlin, seeded, bit-for-bit reproducible): self-play at strength 7
+  and variants (a noisy one, an aggressive kill-seeker that ignores its own exposure, 6, 8) across
+  2v2–5v5 weighted to 3v3+; targets are λ-returns (λ 0.7 per recorded position) bootstrapped from the
+  hand evaluation; AdamW with early stopping on held-out line-ups. Generation 1 played with the
+  generation-0 net and was kept (58.3% against it); generation 2 measured no better (52.6%, 47.9%) and
+  was dropped.
+- **Measured** on line-ups never used for training or tuning, mirrored, 192 games each, 95% Wilson:
+  strength 10 with the net against the strength 10 before it — 3v3 67.7% (60.8–73.9%), 2v2 67.2%
+  (60.3–73.4%), 4v4 65.1% (58.1–71.5%); over strength 9 75.0% (68.4–80.6%).
+- **Found on the way** (self-play and tournaments over all 32 heroes at 3v3+): two engine crashes next
+  to Takahide's Spinning Blade — Wasp's Telekinesis offering a unit with no space it could enter, Razzle's
+  Stunt Doubles spawning into a token's spawn point the blade turns into an obstacle once the token is
+  removed (p.19) — fixed with `WaspTest` / `RazzleTest` cases.
+**Alternatives (measured and dropped, AI.md "Learned evaluation"):** training on the game result alone
+(the best held-out log-loss, 37.5% in play: the search exploits a sharp, noisy evaluation); larger λ
+(0.85: 58.9%, 0.95: 51.6% at strength 7); the net also in the one-ply looks (45.3%); a third
+generation; iterating the teacher on the same games (no gain beyond noise); the net at strengths
+5–10 (each stronger, the ladder's steps compressed).
+**Consequences:** Strength 10 (Expert, and a save's Expert) plays stronger at every team size;
+strengths 1–9, the coach and saves are unchanged (no engine contract change). An evaluation costs
+about twice the hand one (about 40 µs against 21 µs for a 3v3 position on the desktop); decision
+times at 3v3 are the same with and without it (card plays 395 / 833 ms mean / p95 against 415 / 822
+ms on the desktop, uncapped); 3v3's own cost is part A's budget question. A change to the features
+needs a retrain (one command, AI.md "How to retrain"); the training games live outside the repo
+(`D:\.goa-qa\v09\a2\data`) and are reproducible from their commands.
+
+### ADR-047 together — the merged top strength (`feature/v0.9`, 2026-10-28)
+**Context:** Part A tuned two hand terms for 3v3 with the hand evaluation at the playout leaves;
+part B's net was trained beside v0.8's knobs and judges strength 10's leaves. Both terms are among
+the net's inputs, so the knobs could have moved its inputs off what it was trained on.
+**Decision:**
+- **The net keeps its own frozen knob set.** Its inputs are computed with `Features.KNOBS` (the
+  defaults) and `Features.SCALES` (v0.8's `TUNED` scales), never a profile's; the training teacher
+  uses the same set. (This was already true of the code by construction; it is now explicit and
+  tested, so a later change to `TUNED` cannot shift the net's inputs silently.)
+- **Strength 10's hand parts keep v0.8's knobs too** (`AiPlayers.TUNED_WITH_NET`: its one-ply looks
+  inside playouts, static policy and opponent model); strengths 5–9 keep part A's 3v3 knobs. Measured
+  on fresh 3v3 line-ups: the net with part A's knobs beside it against the net with v0.8's, 45.8%
+  (38.9–52.9%, 192 games) — no gain, so the simpler composition the net was trained in ships.
+- **Kept from part A for strength 10:** the 2 s budget, the three sample threads, the quiet search
+  copies, the harness, the engine fixes.
+- **Measured against v0.8's strength 10** (its exact answers, deterministic; 192 mirrored games per
+  size on line-ups 2000–2095, which no stream tuned or trained on): 3v3 64.6% (57.6–71.0%), 2v2 69.3%
+  (62.4–75.4%), 4v4 60.9% (53.9–67.6%); against part A's kill-hunting exploiter 66.1% (59.2–72.5%) where v0.8's 10 won
+  51.6% (44.5–58.5%) on the same 192 games; ladder in 3v3: 10 over 9
+  67.7% (57.8–76.2%), 9 over 8 61.5% (51.5–70.6%).
+**Alternatives:** (a) part A's knobs beside the net (measured no better, above); retraining the net
+with part A's knobs in its inputs and teacher (a new generation of self-play; not needed while (b)
+holds, and the knobs only help the hand evaluation's own search); the net for 5–9 as well (part B:
+it compresses the ladder).
+**Consequences:** The merged strength 10 wins mostly by pushing and loses more heroes than v0.8's 10
+(3v3: 1.98 against 1.29 a game): it trades heroes for the lane. Against the kill-hunter it wins far more often
+than v0.8's 10 but loses about as many heroes to it (2.25 against 2.10 a game). How a human who hunts kills fares against it is the device game night's question (ROADMAP
+M20c). Timing (desktop, three threads, the 2 s cap): card play p95 256 ms in 3v3 and 417 ms in 4v4,
+≈ 1.0 s and ≈ 1.7 s at a 4× phone, inside the owner's ~2 s; the net costs nothing measurable per
+decision (the hand evaluation on the same 3v3 games: 262 ms).
+
+## ADR-048 — The Android APK on GitHub Pages (2026-10-28)
+**Context:** Friends got the APK through a Drive link and the owner through the private
+`goa-companion-releases` repository; neither is a stable public link. The web app (ADR-043) owns
+`https://quintond.github.io/goa-companion/` but has not been deployed from main yet, so the Pages
+site was empty (404).
+**Decision:** The signed APK is an asset of a release of the public `QuintonD/goa-companion`
+repository (tag `vX.Y.Z`, `GoA-Companion-X.Y.Z.apk`), never a file in git. An orphan branch
+`pages` holds a download page (`site/android/index.html`, colours from DESIGN) and a workflow that
+fetches the newest release's APK, fills in version, size, date and SHA-256, and deploys the site:
+`/android/` is the page, `/android/GoA-Companion.apk` always the newest APK, and the root redirects
+to `/android/` until the web app takes it. The `github-pages` environment allows `main` and
+`pages`.
+**Consequences:** One link for every friend, updated by a release plus a push to `pages`. A Pages
+deploy replaces the whole site, so before the web app's first deploy from main, `web-pages.yml`
+must carry `android/` the same way (fetch the newest release's APK) or the download disappears.
+The APK is public, like the repository: the owner accepted publishing the official assets when the
+repository went public (2026-10-25, the web app's ADR-043 on `feature/web`), which relaxes ADR-034.

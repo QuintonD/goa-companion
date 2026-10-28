@@ -78,6 +78,7 @@ import dev.quinton.goa.core.game.TurnPlay
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
+import dev.quinton.goa.feature.board.board.BoardSheet
 import dev.quinton.goa.feature.board.map.MapLayout
 import dev.quinton.goa.feature.board.map.MapOrientation
 import dev.quinton.goa.feature.board.map.MapViewport
@@ -87,10 +88,16 @@ import dev.quinton.goa.feature.board.play.table.ExtrasSection
 import dev.quinton.goa.feature.board.play.table.GameMapView
 import dev.quinton.goa.feature.board.play.table.HeroStrip
 import dev.quinton.goa.feature.board.play.table.ItemIcon
+import dev.quinton.goa.feature.board.play.table.SpellbookButton
+import dev.quinton.goa.feature.board.play.table.SpellbookContent
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableHud
 import dev.quinton.goa.feature.board.play.table.TableTopRow
 import dev.quinton.goa.feature.board.play.table.TableUi
+import dev.quinton.goa.feature.board.play.table.figureOf
+import dev.quinton.goa.feature.board.play.table.shownCounters
+import dev.quinton.goa.feature.board.play.table.spellbookSeats
+import dev.quinton.goa.feature.board.play.table.spellbookUi
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.play.table.ultimateCard
 
@@ -122,7 +129,7 @@ fun GameReviewContent(
     val rewind = review?.rewind
     Column(modifier.fillMaxWidth().fillMaxHeight(REVIEW_HEIGHT)) {
         if (rewind != null) {
-            Rewind(table, rewind, onAction)
+            Rewind(table, rewind, onAction, onOpenCard)
             return@Column
         }
         ReviewTitle(table, onDone)
@@ -729,9 +736,10 @@ private fun Lines(lines: List<ReviewLine>, startOpen: Boolean, what: String) {
  * handler would close the whole review, so the next press would leave the game.
  */
 @Composable
-private fun Rewind(table: TableUi, rewind: RewindUi, onAction: (ReviewAction) -> Unit) {
+private fun Rewind(table: TableUi, rewind: RewindUi, onAction: (ReviewAction) -> Unit, onCard: OpenCard) {
     // Registered inside the sheet's window after the sheet's own callback, so it is asked first.
     BackHandler { onAction(ReviewAction.CloseRewind) }
+    var book by remember(rewind.round, rewind.turn) { mutableStateOf<String?>(null) }
     val then = TableUi(
         map = table.map,
         view = rewind.view,
@@ -793,7 +801,22 @@ private fun Rewind(table: TableUi, rewind: RewindUi, onAction: (ReviewAction) ->
                     TableHud(then)
                     HeroStrip(then, onHero = {})
                 }
+                // The spellbook as it was then (ADR-040): built from this board's view, never the live one.
+                then.spellbookSeats.forEach { id ->
+                    SpellbookButton(then, id, onClick = { book = id }, Modifier.align(Alignment.End))
+                }
             }
+        }
+    }
+    book?.let { spellbookUi(then, it) }?.let { ui ->
+        BoardSheet(onDismiss = { book = null }) {
+            SpellbookContent(
+                ui.copy(
+                    subtitle = "As it was at the start of round ${rewind.round}, turn ${rewind.turn}. ${ui.subtitle}",
+                ),
+                onOpen = { cards, index, _ -> onCard(cards.map { it.card }, index) },
+                onDone = { book = null },
+            )
         }
     }
 }

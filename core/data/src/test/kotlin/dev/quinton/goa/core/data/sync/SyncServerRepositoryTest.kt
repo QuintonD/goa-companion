@@ -35,10 +35,10 @@ import java.net.InetAddress
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
@@ -636,10 +636,16 @@ class SyncServerRepositoryTest {
     fun changesToSyncedDataAreSignalled() = runTest {
         withContext(Dispatchers.Default) {
             repository.localChanges.test {
-                // Room registers the invalidation observer after collection starts, asynchronously
-                // (no initial emission to wait for): a write before that is never signalled, which is
-                // what made this test fail when run with the rest of the class.
-                delay(OBSERVER_SETTLE_MS)
+                // Room starts tracking the tables only once collection has begun, on its own thread: a
+                // write before that is never signalled (the test failed about half its runs on a loaded
+                // machine). Write until the first signal arrives, then let any late ones drain. (The
+                // channel, not awaitItem: Turbine turns any timeout inside awaitItem into a failure.)
+                val signals = asChannel()
+                var warmUps = 0
+                do {
+                    players.upsert(player("warm-up-${warmUps++}"))
+                } while (withTimeoutOrNull(WARM_UP_MS) { signals.receive() } == null)
+                while (withTimeoutOrNull(WARM_UP_MS) { signals.receive() } != null) Unit
                 players.upsert(player("ann"))
                 awaitItem()
                 players.upsert(player("bob"))
@@ -672,7 +678,9 @@ class SyncServerRepositoryTest {
         assertThat(relay.stored()).isEqualTo(expected)
         assertThat(RoomSyncRepository(db, elo, clock).export()).isEqualTo(expected)
     }
-}
 
-/** Time for Room to register a flow's invalidation observer (real time: Dispatchers.Default). */
-private const val OBSERVER_SETTLE_MS = 500L
+    private companion object {
+        /** How long a write's signal may take before the warm-up writes again (and how long the drain waits). */
+        const val WARM_UP_MS = 500L
+    }
+}

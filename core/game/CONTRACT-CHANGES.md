@@ -213,3 +213,143 @@ the one rule the phone (`core/data` `PlayEngineModule`) and the web worker (`Eng
 strength, so a strength is the same player on both (a browser may only end a strong search sooner, at the
 strength's own time budget). The web worker used to seat the band's level (`AiLevel`) with its own seed;
 `EngineHostTest.aComputerSeatPlaysItsStrengthAsThePhoneDoes` pins it to the phone's player.
+## 2026-10-26 (a hero's game state, `feature/v08-hero-state`, ADR-044)
+
+No type change: the hero sheet (ADR-044) reads what the views already carry. Notes for other branches:
+
+- **Items for every hero are `HeroView.itemStats`** (one icon per item, sorted by stat; filled for every
+  seat, the review and puzzles alike, since the AI round). `HeroView.items` (the tucked card ids) stays the
+  viewer's own hero only: p.16 "only the item section of the card is visible", p.4 "the part of the card
+  covered by your hero dashboard" is hidden. `HeroStateViewTest` checks both, live and in the review, and
+  that games differing only in which card of a pair was tucked look the same to every other seat.
+- **Behaviour:** Min's Perfect Self no longer names the Tier II card it tucks in the log (the event text is
+  public); it reads "Min adds a Tier II card from the deck as an item: +1 Initiative.", like the level-up
+  line ("gains an item: +1 …", BGG 3590819).
+
+## 2026-10-26 (why a spell can't be cast, `feature/v08-spellbook-anytime`, ADR-040 extended)
+
+Additive; defaults keep other `GameSession` implementations, test fakes, saves and the `feature/web`
+client unaffected (decisions are rebuilt by the replay, never saved).
+
+- `DecisionContext.unavailableCards: List<UnavailableCard> = emptyList()`: on `CHOOSE_CARD`, the cards the
+  asking card names that are not among the options, each with why. `UnavailableCard(cardId: String, text:
+  String, source: String? = null, byCardId: String? = null)`. Gydion's "Choose and cast one spell in the
+  spellbook": "Not in the spellbook: removed faceup" (Prepare Spells), "Not in the spellbook yet:
+  Prepare Spells adds it" (designer, BGG 3491113), or the action's own reason ("Its Attack can't start:
+  no target in range", "... is forbidden by ..."). Open information only. Built only while the question
+  is pending (`Game.askAlways`); the options and the number of questions are unchanged, so saves replay
+  as before.
+- Engine side: `Game.primaryUnavailable(heroId, cardId): UnavailableAction?` (forbidden, or the
+  probe's `Fizzle`), shared by `actionAvailability`; `Spellbook.whyNot(g, caster, spellId)` and
+  `Spellbook.CAST_PROMPT`.
+
+## 2026-10-26 (see the upgrade cards before choosing, `feature/v08-upgrade-preview`, ADR-045)
+
+Additive; defaults keep other `GameSession` implementations, test fakes, saves and the `feature/web`
+client unaffected (decisions are rebuilt by the replay, never saved).
+
+- `DecisionContext.upgrades: Map<String, List<String>> = emptyMap()`: on `UPGRADE_CARD`, for each option
+  card, the cards of the next Tier in its colour in the deciding hero's deck, in the order the following
+  `KEEP_UPGRADE` offers them (p.15 "Find two Action cards in your deck…"; the one not kept becomes an
+  item, p.16). Two in every shipped deck. Empty on every other kind.
+- Engine side: `EngineData.upgradeable(hero)` (the lowest-Tier coloured hand cards, the options) and
+  `EngineData.upgradesOf(hero, cardId)` (the pair) in `Flow.kt`: `upgradeOnce` builds the question, its
+  preview and the KEEP_UPGRADE options from them, and the AI's `StaticPolicy.upgradeScore` reads the same
+  function (it had its own copy; same result). `UpgradePreviewTest`: for every playable hero through all
+  seven level ups, each option's preview equals the Keep question it leads to.
+- Visibility: the deciding hero's own deck, which the rule lets its player search, so show it only with
+  that hero's question (the app does: the panel is drawn only for the person's own seats, `TableUi.mine`).
+  It names nothing hidden from the others either: the next Tier's two cards are always both in the deck
+  (a Tier is only reached through the one below), and enemy samples (`determinize`) build it from the
+  sample's own deck — two games that differ only in a hidden upgrade history give the same samples
+  (`UpgradePreviewTest`, no peeking).
+- A level reached when only one card can be upgraded is still answered by the engine (no question, no
+  preview); level 8 (the Ultimate) asks nothing, as before.
+
+## 2026-10-26 (what a Gydion card will cast, `fix/v08-cast-preview`, ADR-040 extended after the hands-on pass)
+
+Additive; defaults keep other `GameSession` implementations, test fakes, saves and the `feature/web`
+client unaffected. No question was added or removed: the preview is information on the existing
+`CHOOSE_ACTION`, built only while it is pending (`askAlways`), so saves replay as before.
+
+- `DecisionContext.primaryPreview: PrimaryPreview? = null`: on `CHOOSE_ACTION`, what the asking card's
+  primary action will do. `PrimaryPreview(cardIds: List<String> = emptyList(), unavailableCards:
+  List<UnavailableCard> = emptyList(), onlyTargetId: String? = null, noEffect: String? = null,
+  noEffectSource: String? = null)`.
+  - Gydion's casting cards (`CardScript.preview`, `Spellbook.preview`): `cardIds` = the spells it can
+    cast now, in the card's order (one: cast with no question; two or more: the cast question follows
+    with exactly those), `unavailableCards` = the card's other spells with `Spellbook.whyNot`'s reason.
+    Present even when the primary is not an option, so each spell's reason can be shown.
+  - When exactly one spell can be cast (or for any other card, its own text): `onlyTargetId` = the unit
+    or token its first choice must take, being the only option (picked with no question); `noEffect` =
+    one line when the action will change nothing ("No enemy hero in radius 3: Suggestion will do nothing
+    and is removed from the spellbook.", source "Prepare Spells"; for another card "Its Skill will do
+    nothing now."). Null when the engine can't tell from open information.
+- How it is told: one probe of the primary on a copy (`Actions.primaryProbe`, shared with
+  `primaryBlocker`; `primaryCheck` = `primaryUnavailable` + the outcome), now remembering the first
+  forced unit choice of the probed hero and comparing the whole state before and after when the text
+  runs to its end without a question. **No peeking:** `Game.hand(heroId)` and `forceDiscard` mark the
+  probe as having read hidden cards when the hand is another hero's (p.4); after that, no target and no
+  "nothing" are told (`GydionCastPreviewTest`: Cloud Kill and Energy Drain on hands that differ give
+  the same preview). `Game.handSize(heroId)` reads only the count (open information).
+- Behaviour: `ActionScope.nothing(reason)` — a script that ends having done nothing says why: the log
+  gets "Suggestion does nothing: no enemy hero in radius 3." and the preview its reason. Suggestion and
+  Midas' Touch (fewer than two other spells removed: no coin) use it. Power Word Kill checks the hand's
+  count with `handSize`.
+
+## 2026-10-27 — `fix/v08-handson-2`: no-target reasons in the card's words (ADR-041 §8)
+- No type changes. The text of `UnavailableAction` / `UnavailableCard` ("Its Attack can't start: …") and
+  of the log's "… stops: …" lines now names the card's own condition when an attack has no target:
+  `attackTarget`'s `none` defaults to `noTargetReason(prompt)` ("Target a hero adjacent to you" → "no hero
+  adjacent to you"; "Choose one —" cards join their bullets), `adjacentAttackTarget` /
+  `rangedAttackTarget` keep "no target adjacent to you" / "no target in range" for their plain prompts and
+  take an optional `none`. Fireball: "no target in range that isn't adjacent to you or to a friendly
+  unit". Same checks and fizzles: no question added or removed, saves replay unchanged.
+
+## 2026-10-27 — `feature/v09-resolution`: what each card did, as cards (ADR-046)
+
+Additive; defaults keep other `GameSession` implementations, test fakes, old event JSON and the
+`feature/web` client unaffected. No question was added or removed and no event was added or removed:
+the fields are filled on the events the engine already emits, so saves replay unchanged (events are
+re-derived by the replay; the new fields appear in old games too, `ResolutionEventsTest`).
+
+- `GameEvent.CardsChanged.cards: List<String> = emptyList()`: the cards the sentence names, in its
+  order, and only those everyone may see (p.4 "Hidden Information": discarded and resolved cards are
+  open; a card in hand or deck, a facedown card and a tucked item never appear, as the text never names
+  them, RULINGS 51/53). `CardsChanged.discarded: List<String> = emptyList()`: those of `cards` this change
+  put into the discard pile. Filled by `Game.discard` (every discard: chosen, forced "if able" / "or is
+  defeated", and the card discarded to defend), `Game.retrieve`, `Game.swapCards` (not when a card's own
+  text replaces the line: Nebkher's names slots), Gydion's cast (the spell is removed faceup) and
+  Takahide's swaps. A facedown card discarded or retrieved leaves both empty.
+- `GameEvent.Defended.attackerId: String? = null`: the attacking hero (p.14), so a client can tell whose
+  attack a defense answered without pairing events by order.
+
+## 2026-10-27 — `feature/v09-ai-teams`: the computer at 3v3 and bigger (ADR-047 part A)
+- No change to `GameApi.kt`. Engine-side additions with defaults, all outside the saved game:
+  `EngineSession.determinizeWith(viewer, seed, options, quiet = false)` — a **quiet** search copy
+  builds no explanations for a player at its questions (`CHOOSE_ACTION`'s `unavailable` and
+  `primaryPreview` stay empty; the options are computed by the same checks and are the same);
+  forks copy the flag. The AI's determinized copies are quiet; the coach reads no `CHOOSE_ACTION`
+  context. `AiPlayers.forStrength(strength, seed, runner = SampleRunner.SEQUENTIAL)` and the public
+  `interface SampleRunner` (`width`, `runAll`): the samples of one answer may run on several
+  threads the app supplies; each sample writes its own column and they combine in sample order, so
+  an uncapped answer does not depend on the runner (`SampleRunnerTest`).
+- Behaviour: `canSpawnInto` no longer offers a Spawn point under a token when an effect (Static
+  Barrier, Spinning Blade) makes the space an obstacle for the unit or the actor; removing the token
+  first (p.19) leaves the effect in force. Before, Razzle's Stunt Doubles could pick it and the engine
+  threw "Place into a non-empty space" (found by a 3v3 tournament, `RazzleTest`). No question was added
+  or removed: a save that never offered such a space replays unchanged.
+
+## 2026-10-28 — `feature/v09-ai-learned`, merged in `feature/v0.9`: the learned evaluation (ADR-047 part B)
+- No change to `GameApi.kt`. Strength 10 scores playout ends with a net (`AiPlayers.LEARNED_FROM`);
+  `LevelProfile.learned` / `net`, `PositionEvaluator`, `NetEvaluator` are internal. Saves carry no
+  strength-specific state, so old games replay unchanged.
+- Behaviour: Wasp's Telekinesis no longer offers a unit that has no adjacent space it may enter
+  (Takahide's Spinning Blade makes the empty spaces next to him obstacles for enemy units only); the
+  engine crashed choosing where to place it (`WaspTest`).
+- Behaviour, `canSpawnInto` (both AI streams fixed the same Stunt Doubles crash; the merge keeps one
+  rule): the token on a Spawn point is removed first (p.19), then the space must be empty for the
+  unit — so an effect that makes it an obstacle for that side or that actor still counts (Static
+  Barrier), and so does one that makes it an obstacle *because* it is now empty (the empty spaces next
+  to Takahide's Spinning Blade). The check lifts the token, asks `isEmpty`, and puts it back, restoring
+  the change stamp (a primary probe reads a bumped stamp as a change). `RazzleTest` covers both.

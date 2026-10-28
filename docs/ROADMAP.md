@@ -231,7 +231,7 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   the tournaments fixed — 2026-10-25, `LevelLadderTest`, `TimingTest` (10: 514 ms p95 on the desktop)
 - [x] New game: the strength slider (per seat under Advanced), "Computer · Hard 8" wherever the level
   showed — 2026-10-25, slider screenshots portrait / landscape / light / W384 font scale 2. JVM only
-- [ ] On the S25 Ultra: strength 10's think time per card play (budget 4 s), the slider with TalkBack
+- [ ] On the S25 Ultra: strength 10's think time per card play (budget 4 s; 2 s since v0.9, M20a), the slider with TalkBack
 - [x] A new game starts at the strength of the last game started (`AppSettings.computerStrength`) —
   2026-10-25, `NewGameViewModelTest`, `SettingsDataSourceTest`. JVM only
 
@@ -245,6 +245,34 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   Ultimate as its card, the sandbox's card strip includes the spells — 2026-10-25,
   `SpellbookScreenshotTest` (14), `SpellbookSectionTest`, `CardShapeTest`. JVM only
 - [ ] On the S25 Ultra: a Gydion game, casting from the book, the spellbook sheet in landscape
+- [x] At any point (ADR-040, extended 2026-10-26, `feature/v08-spellbook-anytime`): a Spellbook control
+  under Fit and Flip (Gydion's deck symbol, the spellbook's count) whenever a hero the person controls
+  has one (choosing a card, any question, after the reveal, end of round, panel hidden, landscape,
+  font scale 2), opening a Spellbook sheet (in your spellbook / cast / not yet added, card focus per
+  group); an opponent's from his hero sheet ("Open the spellbook", facedown, a count); the review's
+  rewound board shows the book as it was then. 2026-10-26, `SpellbookSectionTest` (11, incl. no-peeking
+  for the control, the sheet and the marks), `SpellbookScreenshotTest` (33). JVM only
+- [x] The cast question says why the card's other spells can't be cast (`DecisionContext.unavailableCards`:
+  removed faceup, not added yet, its action can't start), in the panel (dimmed, one line each) and on the
+  sheet ("Can be cast now" / the reason). 2026-10-26, `GydionTest`, `SpellbookSectionTest`
+- [x] The action question says what the card will cast before Skill is chosen (hands-on pass:
+  `DecisionContext.primaryPreview`): the spell as its card, its only target, "will do nothing" for
+  Suggestion with nobody able (and any card's primary), the other spells with why, also when none can be
+  cast; no new question (saves replay), nothing told after a look at another hand. 2026-10-26,
+  `GydionCastPreviewTest` (11: every casting card × 4 layouts × 3 spellbooks against the cast,
+  no-peeking), `CastPreviewScreenshotTest` (12). JVM only
+- [x] Choosing Gydion: New game's "You play" ("Gydion's spellbook · 22 spells") and the line-up chip's
+  menu (New game, New board) open the 22 spell cards by tier from the catalog; the draft's hero peek
+  opens his hero page at the Spellbook (`HeroDetailRoute.section`). 2026-10-26,
+  `SpellbookSetupScreenshotTest` (7), `DraftScreenshotTest.heroPeekGydionDark`,
+  `OfficialDeckScreenshotTest.spellbookOpenedDark`. JVM only
+- [ ] On the S25 Ultra: the Spellbook control in a Gydion game at every moment above, portrait and
+  landscape, font scale 2; the draft peek's link; pass-and-play with Gydion on the other side
+- [x] Re-check fixes (`fix/v08-handson-2`, ADR-040 extended): the sheet's Tiers share a row when they fit
+  and the grid takes up to six columns (landscape no longer a third empty); "Cast with Elementary
+  Evocation" wraps to two lines, stepping its size down, never cut off — 2026-10-27,
+  `SpellbookSectionTest`, `SpellbookScreenshotTest` / `SpellbookSetupScreenshotTest` re-recorded and looked
+  at. JVM only
 
 ## M17 — The table after the reveal: turn track and the card as the content (ADR-041)
 - [x] Turn track: after the reveal the strip is the played cards in acting order with DONE / NOW / NEXT /
@@ -262,6 +290,121 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   the card larger; the Tie Breaker coin is the official face in the HUD and New game's coin flip —
   2026-10-25, `UnavailableActionsTest` (7, incl. no-peeking), `PlayPanelTextTest`, spellbook / play /
   puzzle / review screenshots re-recorded and looked at. JVM only
+- [x] Re-check fixes (`fix/v08-handson-2`, ADR-041 §7–9): the person's own question before the moment
+  (the Minion Battle's Confirm was below the fold at font scale 2; game and puzzles), a new question opens
+  the panel at its top; "Its Attack can't start" names the card's condition (Fireball: "no target in range
+  that isn't adjacent to you or to a friendly unit", Choose-one cards each bullet's), no question added;
+  Zone labels clear of the game table's buttons — 2026-10-27, `PanelOrderTest` (2), `NoTargetReasonTest`,
+  `GydionCastPreviewTest` (+1), `EndOfRoundScreenshotTest` (4: portrait, landscape, W384 font scale 2,
+  the whole board at font scale 2), play / puzzle / cast-preview screenshots re-recorded and looked at.
+  JVM only
+- [ ] On the S25 Ultra: the end of a round at font scale 2 (Minion Battle, then Keep from its top)
+
+## M18 — Hero game state (ADR-044)
+- [x] Engine: items for every hero are the public item icons (`HeroView.itemStats`), the tucked cards the
+  owner's only; Min's Perfect Self no longer names the tucked card in the log — 2026-10-26,
+  `HeroStateViewTest` (5: live, review, games differing only in the tucked card, no-peeking)
+- [x] Hero sheet as a game state: this turn's card (facedown / faceup with NOW / NEXT / DONE and the
+  initiative as it counts), the round's Turn slots, discard, item icons with "+1 Defense ×2" (your tucked
+  cards too), where the hero stands or when it may respawn, markers and tokens; landscape side by side —
+  2026-10-26, `HeroStateSheetTest` (7, incl. no-peeking on the sheet), `HeroStateScreenshotTest` (10:
+  portrait, landscape, light, W384 font scale 2), hero / spellbook sheets re-recorded. JVM only
+- [x] Reaching it: a long press on any hero's piece (even a target), TalkBack "Show <hero>'s game state"
+  on the space, chip and track card, the board hint's line — 2026-10-26, `HeroStateSheetTest` (the real
+  gesture and the action). JVM only
+- [ ] On the S25 Ultra: long press on a hero that is a target (timing, haptic, no accidental answer), the
+  sheet in landscape, TalkBack's custom action
+- [x] Hands-on fixes (`fix/v08-table-polish`, ADR-044 §4–5, ADR-040 extended): a question's options and
+  the hero asked come into view between the top overlays, the map buttons and the panel (framed again as
+  the turn track and panel settle, never after the person's own pan; hexes down to ~30 dp to fit a Move
+  3); the hand follows this turn's card on the hero sheet and the spellbook there is counts with "Open
+  the spellbook"; the Spellbook sheet by Tier, filling the width (a rounding wrap left a third empty), each
+  spell in the book marked "Cast with <card in hand>" for Gydion's own player — 2026-10-26,
+  `MapViewportTest` (+3), `SpellbookSectionTest` (+5, incl. no-peeking), `GydionSheetsTest` (4, incl.
+  no-peeking on both sheets), `SpellbookScreenshotTest` +9 (the sheet by Tier, the hero sheet with the
+  hand, a Move 3 in view: portrait, landscape, light, W384 font scale 2 — its sheets now really at font
+  scale 2: a sheet is its own window, so the shots set the configuration's scale too), play / puzzle /
+  review / hero-state screenshots re-recorded (the map framing behind them) and looked at. JVM only
+- [ ] On the S25 Ultra: an initiative tie and a Move 3 after the reveal (pieces in view, a pan not undone),
+  Gydion's hero sheet and Spellbook sheet at font scale 1 and 2
+
+## M19 — Upgrade preview (ADR-045)
+- [x] Engine: `DecisionContext.upgrades` on the level up's first question, from the one selection the
+  question, the Keep question and the AI read (`upgradeable` / `upgradesOf`) — 2026-10-26,
+  `UpgradePreviewTest` (6: every playable hero 1 → 8, preview = Keep question; two levels in a round;
+  two heroes levelling; a short pair; no peeking across a hidden upgrade history; no preview elsewhere)
+- [x] Table: a row per card that may be upgraded with its two next-Tier cards and their item icons;
+  card focus walks every card, upgrade cards captioned "Upgrade of …" with "Go to …" instead of
+  Confirm — 2026-10-26, `CardFocusDecisionTest` (incl. a computer's level up shows none of its deck),
+  level-up screenshots portrait / landscape / light / W384 font scale 2 re-recorded and looked at. JVM only
+- [x] Hands-on polish (ADR-045 §6–9): the spells each Gydion card casts in the rows and the viewer; the
+  viewer's card shrinks before a line is squeezed; the rows before the round's summary; official item
+  icons with the stat in words — 2026-10-26, `NamedCardsTest`, `GydionLevelUpTest` (incl. the
+  computer's level up shows none), `GydionLevelUpScreenshotTest` (portrait / landscape / light / short
+  phone / W384 font scale 2) looked at. JVM only
+- [x] Re-check (`fix/v08-handson-2`, ADR-045 extended): the viewer counts the cards and says a spell as its
+  card's ("Card 2 of 9 · spell 2 of 2", TalkBack the same) — 2026-10-27, `GydionLevelUpTest` (+1),
+  `GydionLevelUpScreenshotTest` re-recorded. JVM only
+- [ ] On the S25 Ultra: a level up with three colours to choose from, the viewer swiped through, TalkBack
+  on the rows and "Go to …"
+
+## M20 — The resolution flow (ADR-046)
+- [x] Engine: `CardsChanged.cards` / `discarded` (open cards only, p.4) and `Defended.attackerId`, additive,
+  no event or question added — 2026-10-27, `ResolutionEventsTest` (5: a defense card and a forced discard,
+  facedown discards and retrieves never named, a swap, old JSON decodes, random 3v3 games: named cards in
+  their sentence, defenses after their attack, saves replay to the same events)
+- [x] Panel: one entry per card resolved since the person's last choice (and the end of the round), the
+  outcome in a few words, steps with the defending card as the card; the person's attack defended by an
+  enemy opens by itself; game and puzzles — 2026-10-27, `ResolutionFlowTest` (8: attack + defense, a failed
+  defense in a move-then-attack, a forced discard, a 3v3 turn of five cards, the end of round, nothing new,
+  a facedown discard, no peeking over a random 3v3 game), `GameViewModelTest` (+1), `PuzzleViewModelTest`
+  (a take back leaves nothing new),
+  `ResolutionFlowScreenshotTest` (7: collapsed, expanded, the defense card in the viewer; portrait,
+  landscape, light, W384 font scale 2) looked at; play / review screenshots re-recorded. JVM only
+- [ ] On the S25 Ultra: a 3v3 game against strength 10 — the flow after the computer's turn, an attack of
+  yours defended (open by itself), TalkBack on an entry (sentence, Expand / Collapse), font scale 2
+
+## M20a — The computer at 3v3 and bigger (ADR-047 part A)
+- [x] Harness for 3v3, 4v4 (single and double lane) and 5v5: mixed line-ups seating every hero, mirrored,
+  defeats and win types per side, a deterministic work budget for the phone's cap; decision times per
+  team size (AI.md "Budgets") — 2026-10-27, `AiSmokeTest` (3v3, 4v4, 5v5), `TimingTest`
+- [x] Strength 10 within 2 s a card play (9: 1.5 s, 8: 1 s); samples on three threads in the app
+  (`SampleRunner`, `AiSampleThreads`), quiet search copies (same answers, a quarter faster) —
+  2026-10-27, `SampleRunnerTest`, `AiSampleThreadsTest`, `FingerprintTest`
+- [x] 3v3: Push Potential 0.35 per attack card and the full exposure of a hero with no card left to
+  defend with (strength 10 beat the v0.8 10 55.5%, 50.5–60.3%, 384 held-out games, fewer heroes lost,
+  held against the kill-hunting exploiter); the four suspects measured, the 3v3 ladder, the candidates
+  that did not pass (racing, focus fire, exposure and other lane weights; AI.md "Team sizes") —
+  2026-10-28, `FingerprintTest`, `LevelLadderTest`
+- [x] Engine: Stunt Doubles no longer crashes beyond Static Barrier on a token's Spawn point — 2026-10-27,
+  `RazzleTest`
+- [ ] On the S25 Ultra: strength 10's think time in a 3v3 and a 4v4 game (the 3–4× phone factor is
+  still an assumption), and a game night against it at 3v3
+
+## M20b — The learned evaluation (ADR-047 part B)
+- [x] Part B, learned evaluation (`feature/v09-ai-learned`): strength 10 scores playout ends with a
+  small net trained on self-play (features pooled per team, 1v1–5v5; weights in Kotlin source with the
+  feature-schema hash) — 2026-10-27, strength 10 with it against strength 10 before it on held-out
+  line-ups: 3v3 67.7% (60.8–73.9%), 2v2 67.2% (60.3–73.4%), 4v4 65.1% (58.1–71.5%) (192 games each); 10 over 9 75.0% (68.4–80.6%), 1–9 unchanged;
+  `LearnedNetTest`, `:core:game:test` green. JVM only
+- [ ] On the S25 Ultra: a 3v3 game at strength 10, decision times within ~2 s
+
+## M20c — v0.9 merged: the resolution flow and the merged top strength (ADR-046, ADR-047 together)
+- [x] `feature/v0.9` = E + A1 + A2 (`--no-ff`); one Stunt Doubles spawn rule covering both streams'
+  crash tests (`RazzleTest`), `CONTRACT-CHANGES` — 2026-10-28, gate green: `:core:model/domain/game
+  :tools:catalog-import:test` (core:game 1 733 tests), `testDebugUnitTest` (1 259), `verifyRoborazziDebug`,
+  `lintDebug detekt ktlintCheck`; `:app:assembleRelease` builds (R8; unsigned in the worktree). JVM only
+- [x] Composition measured (AI.md "The two parts together"): strength 10 = the net with v0.8's knobs
+  beside it (part A's 3v3 knobs beside the net 45.8%, 38.9–52.9%); against v0.8's 10 on fresh
+  line-ups 3v3 64.6% (57.6–71.0%), 2v2 69.3% (62.4–75.4%), 4v4 60.9% (53.9–67.6%); against the kill-hunter 66.1% (v0.8's 10: 51.6%), heroes lost 2.25
+  against 2.10 a game; 3v3 ladder 10/9
+  67.7%, 9/8 61.5%; card play p95 on the desktop with three threads 256 ms (3v3) / 417 ms (4v4) —
+  2026-10-28, `LearnedNetTest` (the net's and 10's knobs), `LevelLadderTest`, `TimingTest`
+- [x] `SyncServerRepositoryTest.changesToSyncedDataAreSignalled` flake (also on 1f7fa273): Room's
+  table tracking starts after collection begins; the test warms up first — 2026-10-28, 6 of 6 runs
+  green under load
+- [ ] On the S25 Ultra: a 3v3 game night against strength 10 (heroes lost to a human who hunts
+  kills; think time within ~2 s), the resolution flow after the computer's turns
 
 ## M18 — Web app: group, sync and players (ADR-043 W2)
 - [x] Relay CORS for the Pages origin (`GOA_RELAY_CORS_ORIGINS`), deployed to oldboi — 2026-10-25,

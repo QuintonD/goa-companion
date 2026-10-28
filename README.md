@@ -83,11 +83,20 @@ the app is ready — Reload").
 
 ## Sharing with the play group
 
-Share the signed release APK with your group through a link (Google Drive works).
-`D:\GoA-share\` holds the APK and a `HOW-TO-INSTALL.txt` for friends. For an update,
-bump `versionCode`/`versionName` in `app/build.gradle.kts`, rebuild, and replace the file in the
-same Drive folder (Drive "Manage versions" keeps the link). Friends install over the old version
-and keep their data.
+Friends download the app from **https://quintond.github.io/goa-companion/android/** (GitHub
+Pages, ADR-048): the page names the version, its size and SHA-256, and
+`https://quintond.github.io/goa-companion/android/GoA-Companion.apk` is always the newest APK.
+Friends install over the old version and keep their data.
+
+To publish an update:
+
+1. Bump `versionCode`/`versionName` in `app/build.gradle.kts` and build `:app:assembleRelease`.
+2. Copy `app/build/outputs/apk/release/app-release.apk` to `GoA-Companion-X.Y.Z.apk` and create
+   the release on this repository with it attached:
+   `gh release create vX.Y.Z GoA-Companion-X.Y.Z.apk -R QuintonD/goa-companion --target <commit> -F notes.md`
+   (the private `QuintonD/goa-companion-releases` keeps a copy too).
+3. On the `pages` branch, update "What's new" in `site/android/index.html` and push: its workflow
+   fetches the newest release's APK and deploys the page (a minute or two).
 
 ## Group sync: every friend's phone, the same data (ADR-025)
 

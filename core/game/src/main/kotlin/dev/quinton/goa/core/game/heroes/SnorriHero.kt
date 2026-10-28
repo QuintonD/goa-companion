@@ -244,7 +244,9 @@ object SnorriHero : HeroModule {
             // The horn's repeat: "Repeat once on a different hero in range" (the repeat targets a hero in
             // range; the rest of the action, axe and anvil included, is performed again).
             if (a.isRepeat) {
-                val t = a.attackTarget("Target a different hero in range") { a.g.isHero(it) && a.inRange(it) } ?: return
+                val t = a.attackTarget("Target a different hero in range", none = "no other hero in range") {
+                    a.g.isHero(it) && a.inRange(it)
+                } ?: return
                 hit(a, t, a.runes(), valid = { a.g.isHero(it) && a.inRange(it) })
                 return
             }
@@ -264,7 +266,8 @@ object SnorriHero : HeroModule {
                 } else {
                     "Target a unit adjacent to you"
                 }
-                val t = a.attackTarget(prompt) { valid(it) } ?: return
+                val none = if (Rune.BIRD in runes) "no unit adjacent to you and no minion in range" else null
+                val t = a.attackTarget(prompt, none = none) { valid(it) } ?: return
                 hit(a, t, runes, valid)
             }
         }

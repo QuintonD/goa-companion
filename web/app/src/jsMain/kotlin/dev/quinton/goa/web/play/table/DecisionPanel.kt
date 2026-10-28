@@ -29,8 +29,10 @@ import dev.quinton.goa.feature.board.play.table.sourceReach
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.play.table.unavailableActions
 import dev.quinton.goa.feature.board.play.table.unavailableLine
+import dev.quinton.goa.feature.board.play.table.upgradesOf
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
 import dev.quinton.goa.feature.board.ui.cards.isSpell
+import dev.quinton.goa.web.play.cards.Alongside
 import dev.quinton.goa.web.play.cards.CardFocusState
 import dev.quinton.goa.web.play.cards.CardImage
 import dev.quinton.goa.web.play.cards.CardSelection
@@ -348,10 +350,21 @@ private fun openOffered(
         selection = CardSelection(
             action = { cardAction(decision, it) },
             context = context ?: decision.prompt,
+            alongside = { item -> if (decision.kind == DecisionKind.UPGRADE_CARD) upgradeAlongside(table, item) else null },
             onConfirm = { i -> offered.getOrNull(i)?.choice?.let(onAnswer) },
         ),
         title = focusTitle(table, decision),
         owner = decision.id,
+    )
+}
+
+/** Upgrading (p.15): the two cards of the next Tier that would replace [item]'s card. */
+private fun upgradeAlongside(table: TableUi, item: FocusCard): Alongside? {
+    if (!item.enabled) return null
+    val next = upgradesOf(table, item.card).takeIf { it.size == 2 } ?: return null
+    return Alongside(
+        "${item.card.name} is replaced by one of these: you keep one, the other becomes an item (p.15, p.16).",
+        next,
     )
 }
 

@@ -5,6 +5,7 @@ import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.DecisionContext
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameEvent
+import dev.quinton.goa.core.game.PrimaryPreview
 import dev.quinton.goa.core.game.UnavailableAction
 import dev.quinton.goa.core.game.effects.ActionQuery
 import dev.quinton.goa.core.game.effects.ChoiceQuery
@@ -181,6 +182,19 @@ class ActionScope internal constructor(
 
     fun fizzle(reason: String, source: String? = null): Nothing = g.fizzle(reason, source)
 
+    /**
+     * The text ends here having done nothing, though the action was performed (an "If able" step with
+     * nobody able, a gain of zero): [reason] in a few words, for the log and the action panel's
+     * preview ([primaryCheck]). Not a [fizzle]: the action could start, so it may be chosen (p.10, FAQ).
+     */
+    fun nothing(reason: String) {
+        if (g.mode == RunMode.PROBE) {
+            if (g.nothingReason == null) g.nothingReason = reason
+        } else {
+            g.note("${g.cardName(cardId)} does nothing: $reason.")
+        }
+    }
+
     // ---- the card's own movement --------------------------------------------------------------
 
     /**
@@ -335,32 +349,38 @@ fun Game.actionOptions(heroId: String, cardId: String): List<ActionType> =
  * that are not among them, each with the reason ([unavailable], ADR-041). Both come from the same
  * checks, so a reason can't disagree with the options.
  */
-class ActionAvailability(val options: List<ActionType>, val unavailable: List<UnavailableAction>)
+class ActionAvailability(
+    val options: List<ActionType>,
+    val unavailable: List<UnavailableAction>,
+    /** What the primary will do ([DecisionContext.primaryPreview]); only when explaining. */
+    val preview: PrimaryPreview? = null,
+)
 
-/** See [ActionAvailability]; [explain] false skips the reasons (the AI's and other cards' queries). */
+/**
+ * See [ActionAvailability]; [explain] false skips the reasons and the preview (the AI's and other
+ * cards' queries).
+ */
 @Suppress("CyclomaticComplexMethod")
 fun Game.actionAvailability(heroId: String, cardId: String, explain: Boolean = true): ActionAvailability {
     val card = card(cardId)
     val out = ArrayList<ActionType>()
     val missing = ArrayList<UnavailableAction>()
+    var preview: PrimaryPreview? = null
     val pk = primaryKind(card)
     val script = data.registry.script(cardId)
     if (pk == ActionKind.DEFENSE) {
         if (explain) missing += UnavailableAction(ActionType.PRIMARY, DEFENSE_PLAYED, "p.14")
     } else if (pk != ActionKind.NONE && script != null && script.hasPrimary) {
-        val by = actionForbiddenBy(heroId, cardId, pk, true)
-        val blocked = if (by == null) primaryBlocker(heroId, cardId) else null
-        when {
-            by != null -> if (explain) missing += forbidden(ActionType.PRIMARY, pk, by)
-
-            blocked == null -> out += ActionType.PRIMARY
-
-            explain -> missing += UnavailableAction(
-                ActionType.PRIMARY,
-                "Its ${kindName(pk)} can't start: ${blocked.reason}",
-                blocked.source ?: FIRST_INSTRUCTION,
-            )
+        // The card's own preview (one of the cards it names, Gydion's spells), else the probe's.
+        val named = if (explain) script.preview(this, heroId, cardId) else null
+        val check = if (explain && named == null) primaryCheck(heroId, cardId) else null
+        val why = if (check != null) check.unavailable else primaryUnavailable(heroId, cardId)
+        if (why == null) {
+            out += ActionType.PRIMARY
+        } else if (explain) {
+            missing += why
         }
+        preview = named ?: check?.probe?.let { ownPreview(pk, it) }
     }
     val hasMovement = card.primary == PrimaryAction.MOVEMENT || SecondaryAction.MOVEMENT in card.secondary
     if (SecondaryAction.MOVEMENT in card.secondary) {
@@ -391,7 +411,33 @@ fun Game.actionAvailability(heroId: String, cardId: String, explain: Boolean = t
         out += ActionType.CLEAR
     }
     out += ActionType.HOLD
-    return ActionAvailability(out, missing)
+    return ActionAvailability(out, missing, preview)
+}
+
+/** A card performing its own text: its only target, or that it will do nothing; null when neither. */
+private fun ownPreview(pk: ActionKind, probe: PrimaryProbe): PrimaryPreview? {
+    val noEffect = if (probe.noEffect) {
+        val what = "its ${kindName(pk)} will do nothing"
+        probe.nothingReason?.let { "${it.capitalized()}: $what." } ?: "${what.capitalized()} now."
+    } else {
+        null
+    }
+    if (noEffect == null && probe.onlyTargetId == null) return null
+    return PrimaryPreview(onlyTargetId = probe.onlyTargetId, noEffect = noEffect)
+}
+
+internal fun String.capitalized(): String = replaceFirstChar { it.uppercaseChar() }
+
+/**
+ * Why [heroId] can't perform [cardId]'s Primary action now, or null when it can: an effect in force
+ * forbids it, or its first instruction can't be done ([primaryBlocker]). The action panel's reason
+ * (ADR-041) and Gydion's cast question (a spell's action, `Spellbook.castOneOf`) both use it.
+ */
+fun Game.primaryUnavailable(heroId: String, cardId: String): UnavailableAction? {
+    val pk = primaryKind(card(cardId))
+    actionForbiddenBy(heroId, cardId, pk, true)?.let { return forbidden(ActionType.PRIMARY, pk, it) }
+    val blocked = primaryBlocker(heroId, cardId) ?: return null
+    return cantStart(pk, blocked)
 }
 
 /** p.10 "Mandatory and Optional Steps" and the FAQ's "you may not perform the action at all". */
@@ -451,10 +497,41 @@ fun Game.primaryBlocker(
     cardId: String,
     excluded: Set<String> = emptySet(),
     repeatFilter: ((String) -> Boolean)? = null,
-): PrimaryBlock? {
+): PrimaryBlock? = primaryProbe(heroId, cardId, excluded, repeatFilter).block
+
+/**
+ * What one probe of a Primary action found: [block] as [primaryBlocker]; with outcomes asked for
+ * ([primaryCheck]), the unit or token its first choice must take ([onlyTargetId]) and whether it runs
+ * to its end changing nothing ([noEffect], [nothingReason] in the script's words). The outcomes are
+ * told only from open information: nothing after the text read another hero's hand or deck (p.4).
+ */
+class PrimaryProbe(
+    val block: PrimaryBlock?,
+    val onlyTargetId: String? = null,
+    val noEffect: Boolean = false,
+    val nothingReason: String? = null,
+)
+
+/**
+ * The probe on a copy of the state. [prepare] runs on the copy first (Gydion's spell leaves the
+ * spellbook before its action, rulings/gydion.md 4); [outcomes] compares the state before and after
+ * when the text runs to its end without a question (a cost only the action panel's preview pays).
+ */
+@Suppress("LongParameterList")
+internal fun Game.primaryProbe(
+    heroId: String,
+    cardId: String,
+    excluded: Set<String> = emptySet(),
+    repeatFilter: ((String) -> Boolean)? = null,
+    outcomes: Boolean = false,
+    prepare: (Game) -> Unit = {},
+): PrimaryProbe {
     val copy = state.copy()
     val probe = Game(data, copy, emptyList(), RunMode.PROBE)
+    probe.probeFor = heroId
+    prepare(probe)
     val before = copy.stamp
+    val snapshot = if (outcomes) copy.copy() else null
     return try {
         probe.performAction(
             heroId,
@@ -465,15 +542,57 @@ fun Game.primaryBlocker(
             probing = true,
             repeatFilter = repeatFilter,
         )
-        null
+        val unchanged = snapshot != null && !probe.readHidden && sameState(snapshot, copy)
+        PrimaryProbe(null, probe.forcedTarget, unchanged, probe.nothingReason.takeIf { unchanged })
     } catch (_: ProbeHit) {
-        null
+        PrimaryProbe(null, probe.forcedTarget)
     } catch (f: ProbeFizzled) {
-        if (copy.stamp != before) null else PrimaryBlock(f.message.orEmpty(), f.source)
+        PrimaryProbe(if (copy.stamp != before) null else PrimaryBlock(f.message.orEmpty(), f.source))
     } catch (_: GameEnded) {
-        null
+        PrimaryProbe(null)
     }
 }
+
+/**
+ * Whether two states are the same game (what [GameState] serializes; the change stamp aside, which
+ * some primitives bump without changing anything). Not every change bumps the stamp (coins), so the
+ * whole state is compared.
+ */
+private fun sameState(a: GameState, b: GameState): Boolean {
+    fun text(s: GameState): String {
+        val stamp = s.stamp
+        s.stamp = 0
+        return try {
+            EngineSession.JSON.encodeToString(GameState.serializer(), s)
+        } finally {
+            s.stamp = stamp
+        }
+    }
+    return text(a) == text(b)
+}
+
+/**
+ * [primaryUnavailable] and, when the action can be performed, what it will do ([PrimaryProbe]'s
+ * outcomes): the action panel's preview ([dev.quinton.goa.core.game.PrimaryPreview]).
+ */
+class PrimaryCheck(val unavailable: UnavailableAction?, val probe: PrimaryProbe?)
+
+/** See [PrimaryCheck]; [prepare] as [primaryProbe]. */
+fun Game.primaryCheck(heroId: String, cardId: String, prepare: (Game) -> Unit = {}): PrimaryCheck {
+    val pk = primaryKind(card(cardId))
+    actionForbiddenBy(heroId, cardId, pk, true)?.let { by ->
+        return PrimaryCheck(forbidden(ActionType.PRIMARY, pk, by), null)
+    }
+    val probe = primaryProbe(heroId, cardId, outcomes = true, prepare = prepare)
+    val blocked = probe.block ?: return PrimaryCheck(null, probe)
+    return PrimaryCheck(cantStart(pk, blocked), null)
+}
+
+private fun cantStart(pk: ActionKind, blocked: PrimaryBlock) = UnavailableAction(
+    ActionType.PRIMARY,
+    "Its ${kindName(pk)} can't start: ${blocked.reason}",
+    blocked.source ?: FIRST_INSTRUCTION,
+)
 
 private class ProbeFizzled(fizzle: Fizzle) : ControlSignal(fizzle.message) {
     val source: String? = fizzle.source

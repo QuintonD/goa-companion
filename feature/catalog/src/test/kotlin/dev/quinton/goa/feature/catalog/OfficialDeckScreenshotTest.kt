@@ -21,6 +21,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.catalog.DeckLayout
 import dev.quinton.goa.core.domain.catalog.HeroLogSummary
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.navigation.HeroDetailRoute
 import dev.quinton.goa.core.testing.BundledAssetImages
 import dev.quinton.goa.core.testing.bundledHero
 import dev.quinton.goa.feature.catalog.detail.ExtrasSection
@@ -116,6 +117,17 @@ class OfficialDeckScreenshotTest {
             DeckLayout.of(bundledHero("gydion")),
             onCardClick = {},
             modifier = Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+        )
+    }
+
+    /** From the draft's peek: Gydion's page opened at his spellbook. */
+    @Test
+    fun spellbookOpenedDark() = shot {
+        HeroDetailScreen(
+            detail("gydion"),
+            onBack = {},
+            onCardClick = { _, _ -> },
+            initialSection = HeroDetailRoute.SPELLBOOK,
         )
     }
 

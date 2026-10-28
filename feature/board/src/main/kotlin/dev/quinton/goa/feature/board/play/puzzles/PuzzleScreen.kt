@@ -83,9 +83,12 @@ import dev.quinton.goa.feature.board.play.table.HeroDetail
 import dev.quinton.goa.feature.board.play.table.MomentCard
 import dev.quinton.goa.feature.board.play.table.PeekConfirm
 import dev.quinton.goa.feature.board.play.table.RecentEvents
+import dev.quinton.goa.feature.board.play.table.ResolutionFlowView
+import dev.quinton.goa.feature.board.play.table.SpellbookSheet
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.YourHand
+import dev.quinton.goa.feature.board.play.table.spellbookUi
 import dev.quinton.goa.feature.board.ui.BoardScaffold
 import dev.quinton.goa.feature.board.ui.cards.CardFocusHost
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
@@ -182,6 +185,7 @@ fun PuzzleScreen(
                         },
                         initialPanelHidden = initialPanelHidden,
                         focus = focus,
+                        onSpellbook = { sheet = PlaySheet.Spellbook(it) },
                     ) {
                         PuzzlePanel(p, onAction, onNext, onList, focus)
                     }
@@ -211,7 +215,7 @@ fun PuzzleScreen(
             is PlaySheet.Hero -> BoardSheet(onDismiss = { sheet = null }) {
                 Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
                     SheetTitle(puzzle.table.hero(open.heroId).name, "Open information (p.4)", onDone = { sheet = null })
-                    HeroDetail(puzzle.table, open.heroId, focus)
+                    HeroDetail(puzzle.table, open.heroId, focus, onSpellbook = { sheet = PlaySheet.Spellbook(it) })
                 }
             }
 
@@ -219,6 +223,10 @@ fun PuzzleScreen(
                 ReviewSheet(puzzle.table, puzzle.review, open, {
                     sheet = it
                 }, { onAction(PuzzleAction.Review(it)) }, focus, puzzle = true)
+
+            is PlaySheet.Spellbook -> spellbookUi(puzzle.table, open.heroId)?.let { ui ->
+                SpellbookSheet(ui, focus, onDismiss = { sheet = null })
+            }
 
             null -> Unit
         }
@@ -313,14 +321,17 @@ private fun ColumnScope.PuzzlePanel(
         puzzle.phase == PuzzlePhase.MISSED -> {
             MissCard(puzzle, onAction)
             puzzle.nudge?.let { Nudge(it, onAction) }
-            RecentEvents(puzzle.recent)
+            ResolutionFlowView(puzzle.flow, puzzle.table, focus)
         }
 
         else -> {
             PuzzleHeader(puzzle.info, puzzle.total)
             if (puzzle.info.intro.isNotBlank()) Intro(puzzle.info.intro, puzzle.introOpen, onAction)
             puzzle.nudge?.let { Nudge(it, onAction) }
-            puzzle.table.moment?.let { MomentCard(it, puzzle.table, focus = focus) }
+            // The person's own question first, the moment after it (as in the game).
+            val moment = puzzle.table.moment
+            val questionFirst = puzzle.table.asking
+            if (moment != null && !questionFirst) MomentCard(moment, puzzle.table, focus = focus)
             DecisionPanel(
                 puzzle.table,
                 onSelect = { onAction(PuzzleAction.Select(it)) },
@@ -328,7 +339,8 @@ private fun ColumnScope.PuzzlePanel(
                 focus = focus,
                 busy = puzzle.busy,
             )
-            RecentEvents(puzzle.recent.takeLast(2), Modifier.padding(top = Spacing.xs))
+            ResolutionFlowView(puzzle.flow, puzzle.table, focus, Modifier.padding(top = Spacing.xs))
+            if (moment != null && questionFirst) MomentCard(moment, puzzle.table, focus = focus)
             if (!puzzle.table.handDecision) YourHand(puzzle.table, focus)
         }
     }

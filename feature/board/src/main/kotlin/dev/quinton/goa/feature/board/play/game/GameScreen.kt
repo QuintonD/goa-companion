@@ -93,11 +93,13 @@ import dev.quinton.goa.feature.board.play.table.GameTable
 import dev.quinton.goa.feature.board.play.table.HeroDetail
 import dev.quinton.goa.feature.board.play.table.MomentCard
 import dev.quinton.goa.feature.board.play.table.PeekConfirm
-import dev.quinton.goa.feature.board.play.table.RecentEvents
+import dev.quinton.goa.feature.board.play.table.ResolutionFlowView
+import dev.quinton.goa.feature.board.play.table.SpellbookSheet
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.YourHand
+import dev.quinton.goa.feature.board.play.table.spellbookUi
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.ui.BoardScaffold
 import dev.quinton.goa.feature.board.ui.cards.CardFocusHost
@@ -211,6 +213,7 @@ fun GameScreen(
                             },
                             initialPanelHidden = initialPanelHidden,
                             focus = focus,
+                            onSpellbook = { sheet = PlaySheet.Spellbook(it) },
                         ) {
                             Panel(state.play, onAction, focus)
                         }
@@ -241,13 +244,17 @@ fun GameScreen(
             is PlaySheet.Hero -> BoardSheet(onDismiss = { sheet = null }) {
                 Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
                     SheetTitle(play.table.hero(open.heroId).name, "Open information (p.4)", onDone = { sheet = null })
-                    HeroDetail(play.table, open.heroId, focus)
+                    HeroDetail(play.table, open.heroId, focus, onSpellbook = { sheet = PlaySheet.Spellbook(it) })
                 }
             }
 
             is PlaySheet.Review -> ReviewSheet(play.table, play.review, open, {
                 sheet = it
             }, { onAction(GameAction.Review(it)) }, focus)
+
+            is PlaySheet.Spellbook -> spellbookUi(play.table, open.heroId)?.let { ui ->
+                SpellbookSheet(ui, focus, onDismiss = { sheet = null })
+            }
 
             null -> Unit
         }
@@ -353,7 +360,8 @@ private fun GameMenu(
 
 /**
  * The panel's content: a nudge, the moment the table is at (the reveal, a turn or round over), the
- * question, the computer's move or the wait, what happened that the board doesn't show, your hand.
+ * question, the computer's move or the wait, the resolution flow (ADR-046), your hand. When the
+ * question is the person's own, it comes first, then the flow, then the moment.
  * The turn's cards themselves are on the turn track at the top (ADR-041).
  */
 @Composable
@@ -361,7 +369,10 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
     val table = play.table
     val nudge = play.nudge
     val moment = table.moment.takeIf { nudge == null }
-    if (moment != null) MomentCard(moment, table, focus = focus)
+    // The person's own question comes before the moment (the reveal, a turn or the round ending): at
+    // large text the round's summary filled the panel and the question's Confirm was below the fold.
+    val questionFirst = play.status is TurnStatus.YourTurn
+    if (moment != null && !questionFirst) MomentCard(moment, table, focus = focus)
     when {
         nudge != null -> CoachNudge(nudge, onAction)
 
@@ -382,14 +393,10 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
 
         else -> Unit
     }
-    when {
-        nudge != null -> Unit
-
-        play.status is TurnStatus.YourTurn ->
-            RecentEvents(play.recent, Modifier.padding(top = Spacing.xs), strong = play.recentStrong)
-
-        else -> RecentEvents(play.recent)
-    }
+    // What happened since the person last chose, one entry per card resolved (ADR-046): right under
+    // their question, before the moment (whose cards the flow's entries already show).
+    if (nudge == null) ResolutionFlowView(play.flow, table, focus, Modifier.padding(top = Spacing.xs))
+    if (moment != null && questionFirst) MomentCard(moment, table, focus = focus)
     if (!table.handDecision && nudge == null) YourHand(table, focus)
 }
 

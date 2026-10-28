@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -204,7 +205,7 @@ private val MAX_COIN_BADGE = 24.dp
  * Every hero's status, one chip each: portrait ringed in team colour, level, coins, cards in hand.
  * Before the reveal in team order; after it in initiative order, numbered, with the initiative of
  * the card played (the initiative order strip). The acting hero's chip is outlined in bronze and
- * marked "Now". Tap a chip for the hero's cards and markers.
+ * marked "Now". Tap a chip for the hero's game state (ADR-044).
  *
  * [compact] (a phone held sideways with the panel shown, where the map has little height): each
  * hero is just its ringed portrait with the order badge, the acting one in a bronze ring, so the
@@ -254,7 +255,7 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
             .clearAndSetSemantics {
                 contentDescription = spoken
                 role = Role.Button
-                onClick(label = "Read about ${info.name}") {
+                onClick(label = showGameState(info.name)) {
                     onClick()
                     true
                 }
@@ -350,7 +351,7 @@ private fun CompactHeroChip(table: TableUi, hero: HeroView, place: Int?, onClick
             .clearAndSetSemantics {
                 contentDescription = spoken
                 role = Role.Button
-                onClick(label = "Read about ${info.name}") {
+                onClick(label = showGameState(info.name)) {
                     onClick()
                     true
                 }
@@ -406,13 +407,23 @@ private fun Stat(icon: ImageVector?, text: String) {
 }
 
 /**
- * One hero in full (open information, p.4): level, coins, cards in hand, items with the stat each
- * raises, markers, Active effects, the card played this turn, the resolved Turn slots and the
- * discard. Its own hand when it is the person's hero (any hero's in a puzzle). Tap a card to read it.
+ * One hero's game state (ADR-044, open information, p.4), most asked first: who plays them and where they
+ * stand (Zone, or off the board and when they may respawn), level, coins, cards in hand; their card this
+ * turn (facedown before the reveal unless it is the person's, then faceup with its state on the turn
+ * track and its initiative as it counts); this round's Turn slots and the discard; the items (icons for
+ * every hero, the tucked cards for the hero's own player); the Ultimate, Active effects, markers and
+ * tokens, the spellbook (counts, the Spellbook sheet one tap away). The person's own hand (any hero's
+ * in a puzzle) comes right after this turn's card. Tap a card to read it.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState, modifier: Modifier = Modifier) {
+internal fun HeroDetail(
+    table: TableUi,
+    heroId: String,
+    focus: CardFocusState,
+    modifier: Modifier = Modifier,
+    onSpellbook: ((String) -> Unit)? = null,
+) {
     val hero = table.heroView(heroId) ?: return
     val info = table.hero(heroId)
     Column(
@@ -422,33 +433,44 @@ internal fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState, m
             .padding(horizontal = Spacing.screen, vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // The sheet's title names the hero: the header says the team, who plays them and where they stand.
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics(mergeDescendants = true) {}) {
             HeroPortrait(
                 heroId,
                 info.portrait,
                 null,
-                Modifier.size(56.dp).border(2.dp, teamColor(hero.team), CircleShape),
+                Modifier
+                    .size(56.dp)
+                    .border(2.dp, teamColor(hero.team), CircleShape)
+                    .alpha(if (hero.at == null) OFF_BOARD_ALPHA else 1f),
                 shape = CircleShape,
                 framed = false,
             )
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
-                Text(
-                    info.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.semantics {
-                        heading()
-                    },
-                )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TeamMark(hero.team, markSize = 10.dp)
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        "${BoardText.team(hero.team)} · ${table.controllerLabel(hero)}",
+                        listOfNotNull(
+                            BoardText.team(hero.team),
+                            table.controllerLabel(hero),
+                        ).joinToString(" · "),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                Text(
+                    heroWhere(table, hero),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (hero.at ==
+                        null
+                    ) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                )
             }
         }
         FlowRow(
@@ -458,28 +480,41 @@ internal fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState, m
             Fact("Level", "${hero.level}")
             Fact("Coins", "${hero.coins}")
             Fact("In hand", "${hero.handCount}")
-            if (hero.ultimate) Fact("Ultimate", "Active")
-            if (hero.at == null) Fact("Board", "Off the board")
+            if (hero.ultimate) Fact("Ultimate", "Unlocked")
             shownCounters(hero).forEach { (name, value) -> Fact(PlayText.counter(name), "$value") }
         }
-        if (hero.items.isNotEmpty()) {
-            Section("Items · p.16")
-            hero.items.mapNotNull(table::card).forEach { card ->
-                val stat = card.item
-                if (stat != null) ItemLine(stat, "+1 ${PlayText.stat(stat)} · ${card.name}") else Text(card.name)
+        // A wide sheet (landscape) puts this turn's card beside the round's cards and the items.
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val cards: @Composable () -> Unit = {
+                if (table.view.phase != GamePhase.GAME_OVER) RoundSlotsSection(table, hero, focus)
+                if (hero.discard.isNotEmpty()) {
+                    Section("Discard · ${hero.discard.size}")
+                    CardRow(hero.discard, table, focus, "${info.name} · Discarded")
+                }
+                ItemsSection(table, hero, focus)
+            }
+            val gap = Arrangement.spacedBy(Spacing.md)
+            if (maxWidth >= WIDE_SHEET && heroTurn(table, hero) != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xl)) {
+                    Column(Modifier.weight(1f), verticalArrangement = gap) {
+                        ThisTurnSection(table, hero, focus)
+                        HandSection(table, hero, focus)
+                    }
+                    Column(Modifier.weight(1f), verticalArrangement = gap) { cards() }
+                }
+            } else {
+                Column(verticalArrangement = gap) {
+                    ThisTurnSection(table, hero, focus)
+                    // The cards the player most needs together: this turn's card, then the hand.
+                    HandSection(table, hero, focus)
+                    cards()
+                }
             }
         }
-        if (hero.markers.isNotEmpty()) {
-            Section("Markers")
-            hero.markers.forEach { marker ->
-                val from = marker.fromHeroId?.let { " · from ${table.hero(it).name}" }.orEmpty()
-                Text(
-                    marker.kind.replaceFirstChar {
-                        it.uppercase()
-                    } + from,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
+        // The unlocked Ultimate is a faceup card on the dashboard (p.16): show it, not only "Unlocked".
+        ultimateCard(table, hero)?.let { card ->
+            Section("Ultimate · p.16")
+            CardRow(listOf(CardView(card.id)), table, focus, "${info.name} · Ultimate")
         }
         if (hero.activeEffects.isNotEmpty()) {
             Section("Active effects")
@@ -492,35 +527,34 @@ internal fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState, m
                 "${info.name} · Active effects",
             )
         }
-        hero.played?.let { played ->
-            Section("Played this turn")
-            CardRow(listOf(played) + hero.alsoPlayed, table, focus, "${info.name} · Played this turn")
-        }
-        if (hero.resolved.isNotEmpty()) {
-            Section("Resolved · Turn slots")
-            CardRow(hero.resolved, table, focus, "${info.name} · Resolved", slots = true)
-        }
-        if (hero.discard.isNotEmpty()) {
-            Section("Discarded")
-            CardRow(hero.discard, table, focus, "${info.name} · Discarded")
-        }
-        // The unlocked Ultimate is a faceup card on the dashboard (p.16): show it, not only "Active".
-        ultimateCard(table, hero)?.let { card ->
-            Section("Ultimate · p.16")
-            CardRow(listOf(CardView(card.id)), table, focus, "${info.name} · Ultimate")
-        }
+        MarkersSection(table, hero)
         // Gydion's spellbook (ADR-040): SpellbookSection.kt.
-        ExtrasSection(table, hero, focus)
-        val hand = hero.hand
-        if (hand != null && heroId in table.mine) {
-            Section("Your hand")
-            CardRow(hand.map { CardView(it) }, table, focus, "${info.name} · Your hand")
-        } else if (hand != null && hand.isNotEmpty()) {
-            // Only a puzzle shows another hero's hand: its hands are open information.
-            Section("In hand · open in this puzzle")
-            CardRow(hand.map { CardView(it) }, table, focus, "${info.name} · In hand")
-        }
+        ExtrasSection(
+            table,
+            hero,
+            focus,
+            onOpenSheet = onSpellbook?.takeIf { info.spells.isNotEmpty() }?.let { open -> { open(heroId) } },
+        )
         Spacer(Modifier.size(Spacing.md))
+    }
+}
+
+/**
+ * The hand on the hero sheet, with this turn's card (the hand is what the player chooses from): the
+ * person's own hero's, or in a puzzle any hero's (its hands are open information). Nothing otherwise:
+ * cards in hand are hidden information (p.4).
+ */
+@Composable
+private fun HandSection(table: TableUi, hero: HeroView, focus: CardFocusState) {
+    val hand = hero.hand ?: return
+    val name = table.hero(hero.heroId).name
+    if (hero.heroId in table.mine) {
+        Section("Your hand")
+        CardRow(hand.map { CardView(it) }, table, focus, "$name · Your hand")
+    } else if (hand.isNotEmpty()) {
+        // Only a puzzle shows another hero's hand: its hands are open information.
+        Section("In hand · open in this puzzle")
+        CardRow(hand.map { CardView(it) }, table, focus, "$name · In hand")
     }
 }
 
@@ -570,8 +604,10 @@ internal fun CardRow(
     focus: CardFocusState,
     title: String,
     slots: Boolean = false,
+    /** Captions under the cards instead of the Turn slot / Active ones. */
+    captions: List<String>? = null,
 ) {
-    val captions = cards.map { cardCaption(it, slots) }
+    val captions = captions ?: cards.map { cardCaption(it, slots) }
     val open = cards.indices.filter { !cards[it].facedown && table.card(cards[it].cardId) != null }
     val viewable = open.map { i ->
         val card = table.card(cards[i].cardId)!!
@@ -580,7 +616,7 @@ internal fun CardRow(
     ThumbRow(
         cards,
         table,
-        slots,
+        captions,
         origin = { card -> Modifier.cardFocusOrigin(focus, "$title/${card.id}") },
         onOpen = { i, _ -> open.indexOf(i).takeIf { it >= 0 }?.let { focus.open(viewable, it, title = title) } },
     )
@@ -589,14 +625,22 @@ internal fun CardRow(
 /** Small cards in a row; a tap on a face-up one goes to [onCard] (the caller decides how it is read). */
 @Composable
 internal fun CardRow(cards: List<CardView>, table: TableUi, onCard: (Card) -> Unit, slots: Boolean = false) {
-    ThumbRow(cards, table, slots, origin = { Modifier }, onOpen = { _, card -> onCard(card) })
+    ThumbRow(
+        cards,
+        table,
+        cards.map {
+            cardCaption(it, slots)
+        },
+        origin = { Modifier },
+        onOpen = { _, card -> onCard(card) },
+    )
 }
 
 @Composable
 private fun ThumbRow(
     cards: List<CardView>,
     table: TableUi,
-    slots: Boolean,
+    captions: List<String>,
     origin: (Card) -> Modifier,
     onOpen: (index: Int, card: Card) -> Unit,
 ) {
@@ -604,9 +648,8 @@ private fun ThumbRow(
         cards.forEachIndexed { i, view ->
             val card = table.card(view.cardId).takeIf { !view.facedown }
             val spoken = listOfNotNull(
-                view.slot?.takeIf { slots }?.let { "Turn $it" },
+                captions.getOrNull(i)?.takeIf { it.isNotEmpty() },
                 card?.let(::spokenCard) ?: "Facedown card",
-                "Active".takeIf { view.active },
             ).joinToString(", ")
             val show = { if (card != null) onOpen(i, card) }
             Column(
@@ -630,7 +673,7 @@ private fun ThumbRow(
                 ) {
                     TableCard(card, width = 64.dp)
                 }
-                val caption = cardCaption(view, slots)
+                val caption = captions.getOrNull(i).orEmpty()
                 if (caption.isNotEmpty()) {
                     Text(
                         caption,
@@ -644,3 +687,6 @@ private fun ThumbRow(
 }
 
 private const val OFF_BOARD_ALPHA = 0.45f
+
+/** From this width the hero sheet shows this turn's card beside the round's cards. */
+private val WIDE_SHEET = 600.dp

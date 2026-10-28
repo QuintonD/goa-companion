@@ -85,7 +85,7 @@ class TigerclawTest {
         }
         d.action("tigerclaw", ActionType.PRIMARY)
         assertThat(d.at("tigerclaw")).isEqualTo(Hex(-1, -2))
-        assertThat(d.texts()).contains("Tigerclaw's Blink Strike stops: no target.")
+        assertThat(d.texts()).contains("Tigerclaw's Blink Strike stops: that unit can't be targeted.")
     }
 
     @Test
@@ -592,7 +592,7 @@ class TigerclawTest {
         // Back through Wasp, or on through the minion.
         assertThat(d.spaces()).containsExactly(Hex(2, -2), Hex(-2, -2))
         d.space(2, -2)
-        assertThat(d.texts()).contains("Tigerclaw's Blink Strike stops: no target.")
+        assertThat(d.texts()).contains("Tigerclaw's Blink Strike stops: that unit can't be targeted.")
         assertThat(d.s.events.filterIsInstance<GameEvent.Attacked>()).hasSize(1)
     }
 

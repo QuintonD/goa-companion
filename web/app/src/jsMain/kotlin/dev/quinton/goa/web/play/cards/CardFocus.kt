@@ -36,13 +36,18 @@ import org.w3c.dom.events.KeyboardEvent
  * What confirming a focused card does. [action] names it for the card on show ("Discard Magnetic
  * Dagger"): the Confirm button and the hint "Tap the card again to discard Magnetic Dagger".
  * [onConfirm] gets the index of the confirmed card in the list opened. [context] is the question's
- * own line above the card ("Arien attacks · melee · Attack 6").
+ * own line above the card ("Arien attacks · melee · Attack 6"). [alongside] shows other cards that
+ * come with a card, under a label (upgrading: the two cards of the next Tier, p.15).
  */
 class CardSelection(
     val action: (Card) -> String,
     val context: String? = null,
+    val alongside: (FocusCard) -> Alongside? = { null },
     val onConfirm: (index: Int) -> Unit,
 )
+
+/** Cards shown small under a focused card, with what they are. */
+class Alongside(val label: String, val cards: List<Card>)
 
 /** An open viewer: the cards, what confirming does (null = view only), the question it belongs to. */
 class CardFocusRequest internal constructor(
@@ -264,7 +269,7 @@ private fun FocusOverlay(state: CardFocusState, request: CardFocusRequest) {
                 }
             }
             Div({ classes("goa-focus-details") }) {
-                FocusDetails(item, selection?.context, asText) { asText = !asText }
+                FocusDetails(item, selection?.context, selection?.alongside?.invoke(item), asText) { asText = !asText }
             }
             if (selection != null) {
                 Div({ classes("goa-focus-confirm") }) {
@@ -300,7 +305,13 @@ private fun FocusOverlay(state: CardFocusState, request: CardFocusRequest) {
  * item; the card's words as text behind "Read the card as text" (collapsed, [asText]).
  */
 @Composable
-private fun FocusDetails(item: FocusCard, context: String?, asText: Boolean, onToggleText: () -> Unit) {
+private fun FocusDetails(
+    item: FocusCard,
+    context: String?,
+    alongside: Alongside?,
+    asText: Boolean,
+    onToggleText: () -> Unit,
+) {
     val card = item.card
     context?.let { P({ classes("t-label-large", "goa-quiet") }) { Text(it) } }
     item.caption?.let { P({ classes("t-label-large", "goa-quiet") }) { Text(it) } }
@@ -322,12 +333,12 @@ private fun FocusDetails(item: FocusCard, context: String?, asText: Boolean, onT
             Text(note.text)
         }
     }
-    if (item.related.isNotEmpty()) {
-        item.relatedLabel?.let { P({ classes("t-body-small", "goa-quiet") }) { Text(it) } }
-        Div({ classes("goa-focus-related") }) { item.related.forEach { CardImage(it, RELATED_WIDTH) } }
+    alongside?.let { more ->
+        P({ classes("t-body-small", "goa-quiet") }) { Text(more.label) }
+        Div({ classes("goa-focus-related") }) { more.cards.forEach { CardImage(it, RELATED_WIDTH) } }
     }
     focusHandicapBasis(card)?.let { P({ classes("t-body-medium") }) { Text(it) } }
-    card.item?.let { stat ->
+    if (item.itemLine) card.item?.let { stat ->
         P({ classes("t-body-medium") }) {
             ItemBadge(stat)
             Text("As an item: +1 ${PlayText.stat(stat)} (p.16)")
