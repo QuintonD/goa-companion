@@ -400,6 +400,7 @@ internal fun Game.defend(
             if (card.block) null else total,
             success,
             "${heroName(defender)} defends with ${card.name}: $how.",
+            attackerId = info.attackerId,
         ),
     )
     if (!success) defeatHero(defender, info.attackerId)

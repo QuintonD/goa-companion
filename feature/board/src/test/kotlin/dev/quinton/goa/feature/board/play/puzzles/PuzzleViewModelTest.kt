@@ -133,6 +133,7 @@ class PuzzleViewModelTest {
         settle()
         assertThat(vm.ui().phase).isEqualTo(PuzzlePhase.SOLVING)
         assertThat(vm.ui().miss).isNull()
+        assertThat(vm.ui().flow.fresh).isFalse() // taken back: nothing new to tell
         // Back to just before the move that missed: the moves before it stand; play the rest of the solution.
         val kept = wrong.moves.size - 1
         assertThat(wrong.moves.take(kept)).isEqualTo(file.solution.take(kept))

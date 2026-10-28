@@ -93,7 +93,7 @@ import dev.quinton.goa.feature.board.play.table.GameTable
 import dev.quinton.goa.feature.board.play.table.HeroDetail
 import dev.quinton.goa.feature.board.play.table.MomentCard
 import dev.quinton.goa.feature.board.play.table.PeekConfirm
-import dev.quinton.goa.feature.board.play.table.RecentEvents
+import dev.quinton.goa.feature.board.play.table.ResolutionFlowView
 import dev.quinton.goa.feature.board.play.table.SpellbookSheet
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableTap
@@ -373,8 +373,8 @@ private fun GameMenu(
 
 /**
  * The panel's content: a nudge, the moment the table is at (the reveal, a turn or round over), the
- * question, the computer's move or the wait, what happened that the board doesn't show, your hand.
- * When the question is the person's own, it comes first and the moment after it.
+ * question, the computer's move or the wait, the resolution flow (ADR-046), your hand. When the
+ * question is the person's own, it comes first, then the flow, then the moment.
  * The turn's cards themselves are on the turn track at the top (ADR-041).
  */
 @Composable
@@ -406,15 +406,10 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
 
         else -> Unit
     }
+    // What happened since the person last chose, one entry per card resolved (ADR-046): right under
+    // their question, before the moment (whose cards the flow's entries already show).
+    if (nudge == null) ResolutionFlowView(play.flow, table, focus, Modifier.padding(top = Spacing.xs))
     if (moment != null && questionFirst) MomentCard(moment, table, focus = focus)
-    when {
-        nudge != null -> Unit
-
-        play.status is TurnStatus.YourTurn ->
-            RecentEvents(play.recent, Modifier.padding(top = Spacing.xs), strong = play.recentStrong)
-
-        else -> RecentEvents(play.recent)
-    }
     if (!table.handDecision && nudge == null) YourHand(table, focus)
 }
 

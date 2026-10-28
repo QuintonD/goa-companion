@@ -34,10 +34,12 @@ import dev.quinton.goa.feature.board.hero
 import dev.quinton.goa.feature.board.play.game.PlayAnnouncement
 import dev.quinton.goa.feature.board.play.review.ReviewKeeper
 import dev.quinton.goa.feature.board.play.review.ReviewUi
+import dev.quinton.goa.feature.board.play.table.ResolutionFlow
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.choiceFor
 import dev.quinton.goa.feature.board.play.table.logLines
+import dev.quinton.goa.feature.board.play.table.resolutionFlow
 import dev.quinton.goa.feature.board.play.table.turnLog
 import javax.inject.Provider
 import kotlinx.coroutines.CancellationException
@@ -142,6 +144,12 @@ class PuzzleViewModel internal constructor(
 
     /** While the replies are narrated: the board just after the player's own move. */
     private var interim: Pair<GameView, List<String>>? = null
+
+    /**
+     * The event count just before the player's last move: the resolution flow starts there (ADR-046).
+     * Null after loading, a take back or a restart: nothing new to tell.
+     */
+    private var flowFrom: Int? = null
     private var selected: Choice? = null
     private var hint: Choice? = null
     private var nudgeLevel = 0
@@ -311,6 +319,7 @@ class PuzzleViewModel internal constructor(
             hint = null
             nudgeVisible = false
             introOpen = false
+            flowFrom = played.before
             if (!moved) {
                 moved = true
                 record { it.copy(attempts = it.attempts + 1, lastPlayedAt = clock.now()) }
@@ -340,6 +349,8 @@ class PuzzleViewModel internal constructor(
         val own: Int,
         val ownView: GameView,
         val status: PuzzleStatus,
+        /** The log's size before the move. */
+        val before: Int,
     )
 
     /** On [engine]: the answer, with the board just after the player's own move (a fork answered alone). */
@@ -353,7 +364,7 @@ class PuzzleViewModel internal constructor(
         val ownCount = if (own is AnswerResult.Accepted) fork.events.size - before else result.events.size
         val ownView = if (own is AnswerResult.Accepted) openView(fork) else openView(s.game)
         // A game over at the deadline is a miss when the goal wasn't met: pending null, status says.
-        return Played(result.events, ownCount.coerceIn(0, result.events.size), ownView, s.status)
+        return Played(result.events, ownCount.coerceIn(0, result.events.size), ownView, s.status, before)
     }
 
     /** The other side's replies, one line at a time over the board as it was after the player's move. */
@@ -428,6 +439,7 @@ class PuzzleViewModel internal constructor(
         viewModelScope.launch {
             withContext(engine) { s.undo() }
             review.reset()
+            flowFrom = null
             phase = PuzzlePhase.SOLVING
             miss = null
             moved = false
@@ -449,6 +461,7 @@ class PuzzleViewModel internal constructor(
             val fresh = withContext(engine) { runCatching { s.restart() }.getOrNull() }
             if (fresh != null) session = fresh
             review.reset()
+            flowFrom = null
             phase = PuzzlePhase.SOLVING
             miss = null
             moved = false
@@ -597,6 +610,7 @@ class PuzzleViewModel internal constructor(
         val view: GameView,
         val events: List<GameEvent>,
         val review: ReviewUi? = null,
+        val flow: ResolutionFlow = ResolutionFlow(),
     )
 
     /** Rebuilds what the screen shows from the session (on [engine]) and the screen's own state. */
@@ -608,7 +622,12 @@ class PuzzleViewModel internal constructor(
         val snapshot = withContext(engine) {
             // A puzzle's hands are open: the review sees every seat.
             val seats = s.game.setup.seats.map { it.heroId }.toSet()
-            Snapshot(s.game.pending, openView(s.game), s.game.events.toList(), review.build(s.game, seats))
+            val events = s.game.events.toList()
+            val flow =
+                resolutionFlow(events, flowFrom ?: events.size, teams, mine, {
+                    heroes.hero(it).name
+                }, { cards[it]?.name })
+            Snapshot(s.game.pending, openView(s.game), events, review.build(s.game, seats), flow)
         }
         val live = interim
         val step = r?.steps?.getOrNull(r.index)
@@ -638,6 +657,7 @@ class PuzzleViewModel internal constructor(
                 busy = busy,
                 announcement = announcement,
                 review = snapshot.review,
+                flow = snapshot.flow,
             ),
         )
     }

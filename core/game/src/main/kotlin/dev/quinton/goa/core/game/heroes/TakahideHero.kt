@@ -221,6 +221,9 @@ object TakahideHero : HeroModule {
                 GameEvent.CardsChanged(
                     f,
                     "${a.g.heroName(f)} swaps ${a.g.cardName(unresolved)} for ${a.g.cardName(c)} (now unresolved).",
+                    // Both end faceup: the old card in the discard, the new one unresolved (p.4).
+                    cards = listOf(unresolved, c),
+                    discarded = listOf(unresolved),
                 ),
             )
         }
@@ -384,6 +387,11 @@ object TakahideHero : HeroModule {
             facedown -> "$who swaps ${g.cardName(out)} with a gold card from the deck, placed facedown."
             else -> "$who swaps ${g.cardName(out)} with ${g.cardName(incoming)} from the deck."
         }
-        return GameEvent.CardsChanged(heroId, text)
+        val named = when {
+            !public -> emptyList()
+            facedown -> listOf(out)
+            else -> listOf(out, incoming)
+        }
+        return GameEvent.CardsChanged(heroId, text, cards = named)
     }
 }

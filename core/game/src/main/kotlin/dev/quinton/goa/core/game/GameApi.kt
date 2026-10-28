@@ -667,6 +667,10 @@ sealed interface GameEvent {
     data class Attacked(val attackerId: String, val targetId: String, val total: Int, override val text: String) :
         GameEvent
 
+    /**
+     * A hero's defense (p.14 steps 3–6): [cardId] the card revealed and discarded to defend (open
+     * information), [total] its Defense total (null for a Block), [success] whether it defended.
+     */
     @Serializable
     @SerialName("defended")
     data class Defended(
@@ -675,6 +679,8 @@ sealed interface GameEvent {
         val total: Int?,
         val success: Boolean,
         override val text: String,
+        /** The attacking hero (ADR-046); null from an older engine or test fake. */
+        val attackerId: String? = null,
     ) : GameEvent
 
     @Serializable
@@ -689,9 +695,21 @@ sealed interface GameEvent {
     @SerialName("coins")
     data class CoinsGained(val heroId: String, val amount: Int, override val text: String) : GameEvent
 
+    /**
+     * A hero's cards changed state: a discard, a retrieve, a swap, a spell cast, an item gained.
+     * [cards] are the cards the sentence names, in its order, and only those everyone may see (p.4
+     * "Hidden Information": discarded and resolved cards are open; a card in hand or deck, a facedown
+     * card and a tucked item never appear, as the text never names them); [discarded] are those of
+     * [cards] this change put into the discard pile. Both empty when nothing public is named (ADR-046).
+     */
     @Serializable
     @SerialName("cards")
-    data class CardsChanged(val heroId: String, override val text: String) : GameEvent
+    data class CardsChanged(
+        val heroId: String,
+        override val text: String,
+        val cards: List<String> = emptyList(),
+        val discarded: List<String> = emptyList(),
+    ) : GameEvent
 
     @Serializable
     @SerialName("lane_pushed")

@@ -129,6 +129,28 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `the panel's flow has one entry per card the computer resolved since the person's last answer`() = runTest(
+        dispatcher,
+    ) {
+        val vm = viewModel(saved())
+        advanceUntilIdle()
+        val before = session.events.size
+        vm.onAction(GameAction.Answer(Choice.Card("arien-red-1")))
+        advanceUntilIdle()
+        assertThat(vm.play.status).isEqualTo(TurnStatus.YourTurn)
+        val acted = session.events.drop(before).filterIsInstance<dev.quinton.goa.core.game.GameEvent.ActionChosen>()
+            .map { it.heroId }.filter { it != "arien" }
+        assertThat(acted).isNotEmpty()
+        val flow = vm.play.flow
+        assertThat(flow.fresh).isTrue()
+        val heroes = flow.entries.filter { it.kind == dev.quinton.goa.feature.board.play.table.FlowKind.HERO }
+        assertThat(heroes.map { it.heroId }.filter { it != "arien" }).containsExactlyElementsIn(acted).inOrder()
+        assertThat(heroes.filter { it.heroId != "arien" }.none { it.mine }).isTrue()
+        // The panel's question is the next one; the flow keeps to what happened since the answer.
+        assertThat(heroes.all { it.cardId != null }).isTrue()
+    }
+
+    @Test
     fun `the speed setting sets how long each computer action stays on screen`() = runTest(dispatcher) {
         val saves = saved(pace = AiPace.FAST)
         val vm = viewModel(saves)
