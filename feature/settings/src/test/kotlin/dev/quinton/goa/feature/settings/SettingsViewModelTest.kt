@@ -131,6 +131,7 @@ class SettingsViewModelTest {
         vm.uiState.test {
             assertThat(ready().speedTest).isEqualTo(SpeedTest.Idle)
             vm.onAction(SettingsAction.ToggleSpeedTest)
+            assertThat(ready().speedTest).isEqualTo(SpeedTest.Running(0f))
             assertThat(ready().speedTest).isEqualTo(SpeedTest.Running(0.5f))
             gate.complete(Unit)
             assertThat(ready().speedTest).isEqualTo(SpeedTest.Done(speed))
