@@ -45,12 +45,17 @@ class FullRoundFlowTest {
         rule.tap(hasContentDescription("Full round 1: Claws That Catch, Twice", substring = true) and hasClickAction())
 
         rule.waitForText("Turn 1 of 4", timeout = PUZZLE_TIMEOUT)
-        rule.waitFor(hasContentDescription("Push the lane", substring = true))
+        rule.waitFor(hasContentDescription("Gain 6 coins", substring = true))
         shot("start")
         rule.reveal(hasText("WHAT THEY WILL PLAY"))
         rule.waitFor(hasContentDescription("turn 1:", substring = true))
         rule.waitFor(hasContentDescription("still to come", substring = true))
         shot("strip")
+        rule.reveal(hasText("Show later turns"))
+        rule.tapText("Show later turns")
+        rule.reveal(hasText("Turn 2.", substring = true))
+        rule.waitForText("Turn 2.", substring = true)
+        shot("later-turns")
 
         rule.tap(hasContentDescription("More options"))
         rule.tapText("Nudge me")
