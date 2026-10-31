@@ -367,8 +367,8 @@ synced or saved type changes: puzzle progress is stored by id, and `p..` ids are
 
 - `PuzzleGoal.WinGame.by: Deadline = Deadline.END_OF_TURN`: a win may have a round-long deadline.
 - `PuzzleInfo.known: List<KnownPlay> = emptyList()`: a full round's enemy plays. `KnownPlay(heroId, turn, cardId,
-  plan: String? = null, spaces: List<Hex> = emptyList())`; `plan` null = that turn is free; `spaces` = where the plan goes,
-  for the board. Not empty = a full round (`PuzzleInfo.fullRound`).
+  plan: String? = null, spaces: List<Hex> = emptyList(), targets: List<String> = emptyList())`; `plan` null = that turn
+  is free; `spaces` = where the plan goes, for the board; `targets` = the units it aims at once its card has started. Not empty = a full round (`PuzzleInfo.fullRound`).
 - `PuzzleInfo.nudgesByTurn: List<List<String>> = emptyList()` and `PuzzleInfo.nudgesFor(turn)`: nudges per turn.
   Use `nudgesFor` rather than `nudges` wherever a nudge is shown.
 - `PuzzleInfo.number` is the place in its part of the book: the full rounds count from 1 again, so numbers repeat

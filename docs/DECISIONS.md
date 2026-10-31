@@ -2228,7 +2228,28 @@ comes late. No first-turn option has been *proven* to lose in any puzzle (that p
 how many win, and the text never says a first card loses unless it is proven. No one has played these on the S25 Ultra,
 and no hands-on pass happened on the emulator (`device_open`: "Android emulator video needs working ffmpeg with the libx264
 encoder"): `FullRoundFlowTest` on `goa_s25b` and the screenshots stand in, and neither plays a whole round by hand.
-The book is 23, not the aimed 30: more of the pool is usable, but each needs its text traced line by line.
+
+**The audit (2026-10-31).** An independent audit of r01–r23 found the proofs and positions sound and 18 puzzles with a false
+sentence or premise. What changed:
+
+1. **The note says what is true.** The enemy doesn't always "answer as hard as it can": off the key it uses the static policy
+   in turns 1–2 and when the budget runs out, so a win off the line may not be a forced one. The screen says that, and every
+   later turn's plan is one tap away ("Show later turns"): a plan four turns long needs them.
+2. **The gate that let it through is closed** (ENCODING.md, `FullRoundGateTest`): a proven loss in turn 3, each claim of the
+   text taken away and asked again, random clicks, all recorded in `rounds/gate.txt` and held by a test. What the probe can
+   and can't say: a win without the idea forbids the claim; no plan found only means none was found in 120 s. Nothing proves
+   an idea necessary. Building this took three tries: a ban on a choice does nothing where an attack has a single target
+   (never asked), and a goal met by the banned defeat itself counted as a win. So probes forbid what happens on the board.
+3. **Titles say what holds.** Removing the idea still won for most of the book. Puzzles stayed when something else could be
+   claimed truthfully: their text says "other plans win" (each one recorded in `rounds/claims.txt`) and calls only measured
+   decisions proven losses. Cut: r09, r11, r22, r23 (the lead's); r02, r03, r13 (no proven loss in turn 3, even at 60 s an
+   option); r05, r06, r16 (every claimed idea won without it); r08 (nothing could be claimed). Added, mined or from the pool,
+   against this gate: r24, r25, r27, r28, r31–r33, r35–r37, r39. Tried and failed the gate unshipped: r26, r29, r30, r34, r38.
+4. **Grades come from what is measured**, not from `openFrom` (ENCODING.md).
+5. **Strength sentences are gone from the text**: STATUS.md has the table with its date.
+
+Still true after this: many puzzles have several winning plans, so they teach one way, and say so. Eight of the 23 have only
+"holding this card loses" as their turn-3 loss on the line, a real but thin proof that turn matters.
 
 If the convention is rejected, the book's second part can be dropped by emptying `Puzzles.fullRounds`: nothing else
 depends on it, and the 50 and their keys are untouched.

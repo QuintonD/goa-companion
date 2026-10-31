@@ -1543,33 +1543,31 @@ Also noted (not risky, but conventions the encoder must share): `GainCoins` as a
 A throwaway script (outside the repo, `D:\.goa-qa\puzzle-work\`) loaded `forgotten-island.json` and implemented the `HexGrid` conventions: hex distance, the six directions, straight lines (`straightLineDirection`), movement reach with obstacles (units, tokens, non-space hexes), exact-length straight runs (Mad Dash, Blink Strike), pushes (stop at the first obstacle or terrain), ring moves at constant distance (Lift Up), Fast Travel legality (zone adjacency from the map, enemies in both zones), minion defence modifiers, empty-spawn-point counts and obstacle counts. Every concept's position was built in it and the claims in the text (distances, which squares a run can end on, who is adjacent, which Zone a space is in, which spawn points are empty) were printed and compared. Several concepts were found by search over the whole map (C21, C25, C35, C50, C53, C58 in particular) so that the intended answer is the only one among the obvious alternatives. Encoders should still let the solver confirm each line.
 
 <!-- full-rounds -->
-## Full rounds (ADR-052)
+## Full rounds
 
-These weren't designed as concepts: they were mined from self-play games and filtered (ENCODING.md "Full rounds"), then
-written up from what the proof shows. What they teach, as it turned out, is mostly this: a hero plays one card a turn and has one
-spare, so an attack that "fails" in turn 1 to 3 can still win turn 4; plus cards played a turn or two before they pay off.
+Four-turn puzzles (ADR-052). What each is about, as the gate holds it (`rounds/ideas.txt`):
 
-- **r01 Where the Turret Goes** (Setting up a shot two turns ahead, Minion Battle arithmetic): arien, trinkets against rowenna, ursafar, round 3. Mined: `g7906_r3_BLUE_push`.
-- **r02 She Plays an Attack** (A bonus you can only plan because you know their card): tigerclaw, sabina against ignatia, xargatha, round 7. Mined: `g772_r7_RED_win`.
-- **r03 Two at Once** (Two defeats in one turn, swapping to reach the front): hanu, ursafar against takahide, tigerclaw, round 3. Mined: `g6501_r3_RED_coins-7`.
-- **r04 The Last Push** (Trees set up for a later shot, three minions in three turns): wuk, bain against ignatia, razzle, round 8. Mined: `g3777_r8_RED_push`.
-- **r05 Reload the Snipe** (Playing a card now so another can use it later): swift, sabina against dodger, nebkher, round 5. Mined: `g2499_r5_RED_coins-6`.
-- **r06 In a Straight Line** (Walking a shot into place, a straight line kept open): brynn, cutter against brogan, trinkets, round 4. Mined: `g612_r4_RED_defeat-trinkets`.
-- **r07 Float Like a Butterfly** (Gold cards swapped in sequence, a card kept for the last turn, Minion Battle arithmetic): takahide, swift against tali, bain, round 3. Mined: `g6470_r3_BLUE_push`.
-- **r08 Walk the Plank, Then the Thrust** (A skill that spends the enemy's spare card, coins from a defeat): cutter, razzle against ignatia, gydion, round 4. Mined: `g6389_r4_RED_coins-6`.
-- **r09 What to Lose** (Keeping the card that wins through a forced discard): emmitt, whisper against garrus, dodger, round 5. Mined: `g2974_r5_RED_coins-5`.
-- **r10 Nothing Left to Defend With** (Making a hero spend its spare card): misa, wasp against widget, nebkher, round 8. Mined: `g4536_r8_RED_win`.
-- **r11 Swap the Minion Next Door** (Moving a minion to you with Storm Spirit, the big coin at the end): misa, wasp against widget, nebkher, round 7. Mined: `g4536_r7_RED_coins-8`.
-- **r12 Call the Last One Over** (Keeping a defense for one shot, pulling a minion into reach): xargatha, mrak against silverarrow, snorri, round 6. Mined: `g9086_r6_BLUE_push`.
-- **r13 Attack 2 Still Costs a Card** (A weak attack that spends the enemy's spare, assist coins): wasp, whisper against min, snorri, round 7. Mined: `g4608_r7_BLUE_coins-5`.
-- **r14 Hurry Up, Xargatha** (Changing your own card's initiative, attack bonuses counted from the board): hanu, xargatha against misa, emmitt, round 3. Mined: `g2470_r3_BLUE_coins-6`.
-- **r15 Two Swings at Wuk** (An active card used twice, coins counted to the last one): mortimer, ursafar against gydion, wuk, round 2. Mined: `g2312_r2_RED_coins-6`.
-- **r16 Strike Like a Tiger** (Gold cards swapped for an attack, a big attack that only spends a card): takahide, wuk against xargatha, mrak, round 6. Mined: `g1082_r6_RED_defeat-xargatha`.
-- **r17 Opening Shots** (A discard forced while both discards are empty, the last Life counters): rowenna, swift against snorri, wasp, round 7. Mined: `g8907_r7_BLUE_defeat-snorri`.
-- **r18 A Price on Brogan** (Bounty set up for a later shot, spending the enemy's hand): ursafar, bain against brogan, razzle, round 4. Mined: `g2672_r4_BLUE_defeat-brogan`.
-- **r19 Come to Me** (Bringing the target to you, a Turret set up for later, counting coins): xargatha, trinkets against razzle, wasp, round 2. Mined: `g6433_r2_RED_coins-6`.
-- **r20 She Has No Cards and Passes** (Two attacks in one turn empty a hand): misa, brynn against xargatha, ursafar, round 5. Mined: `g4321_r5_BLUE_defeat-xargatha`.
-- **r21 Both Sides of the Coin** (Tie Breaker text, a card played now for a later turn, Minion Battle arithmetic): ignatia, garrus against swift, razzle, round 6. Mined: `g2850_r6_BLUE_push`.
-- **r22 Let Min Fall** (A hero spent for tempo, respawn and return): min, tali against mortimer, arien, round 4. Mined: `g1893_r4_RED_defeat-mortimer`.
-- **r23 A Discard for an Attack** (Feeding Angry Strike from your own discard, Gydion's spells): garrus, gydion against arien, silverarrow, round 3. Mined: `g4946_r3_BLUE_coins-6`.
+- **r15 Claws That Catch, Twice** (strip): Angry Roar performs Claws That Catch. mortimer, ursafar against gydion, wuk.
+- **r04 The Last Push** (battle): Blue minions have to fall, the last here to Nature's Champion and a Tree. wuk, bain against ignatia, razzle.
+- **r28 Discard to Reach** (battle): A discard buys Throwing Axe its range. garrus, brogan against arien, hanu.
+- **r24 Mind Grip** (coins): Mind Grip starts the coins. sabina, nebkher against tali, razzle.
+- **r01 One Too Many** (battle): Red has to end the round behind in the Minion Battle. arien, trinkets against rowenna, ursafar.
+- **r33 A Tree Next to It** (battle): Nature's Guardian takes the last Red melee minion. mortimer, wuk against brogan, min.
+- **r39 Phantasmal Warrior** (setup): Phantasmal Warrior, with an Illusion in place. silverarrow, nebkher against garrus, mrak.
+- **r35 Seven Coins and Min** (last-card): Min is where the coins end. takahide, snorri against tigerclaw, min.
+- **r10 Nothing Left to Defend With** (strip): Widget's spare card spent before turn 4. misa, wasp against widget, nebkher.
+- **r32 Three Blue Minions** (coins): Six coins from Blue minions. bain, wasp against brogan, brynn.
+- **r37 Eight Coins From Whisper** (last-card): Whisper's defeat is where the coins come from. trinkets, widget against nebkher, whisper.
+- **r31 Every Coin Counts** (coins): Coins counted from minions upward. dodger, min against swift, misa.
+- **r27 Six Against Three** (battle): Red falls far enough behind in the battle. whisper, hanu against razzle, ignatia.
+- **r14 One Space for Xargatha** (coins): Coins from minions; one way ends with Misa. hanu, xargatha against misa, emmitt.
+- **r17 Opening Shots** (strip): Opening Shots, while both discards are empty. rowenna, swift against snorri, wasp.
+- **r25 Blue Falls Behind** (battle): Red keeps all four and Blue falls behind. cutter, razzle against min, emmitt.
+- **r19 Come to Me** (last-card): Siren's Call brings Razzle over. xargatha, trinkets against razzle, wasp.
+- **r20 The Last Shot** (strip): Split Attack finishes her in turn 4. misa, brynn against xargatha, ursafar.
+- **r21 Far Enough Behind** (battle): Red has to end the round far enough behind. ignatia, garrus against swift, razzle.
+- **r12 Count the Battle** (battle): The battle has to leave Red with nothing. xargatha, mrak against silverarrow, snorri.
+- **r07 Float Like a Butterfly** (battle): Float like a Butterfly fetched and used to stand beside Bain. takahide, swift against tali, bain.
+- **r18 A Price on Brogan** (strip): The Bounty on Brogan in turn 2. ursafar, bain against brogan, razzle.
+- **r36 Seven Coins** (coins): Coins counted from minions upward. dodger, snorri against emmitt, silverarrow.
 <!-- /full-rounds -->
