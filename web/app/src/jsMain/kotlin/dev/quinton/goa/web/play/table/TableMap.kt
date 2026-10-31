@@ -80,6 +80,7 @@ fun TableMap(table: TableUi, scene: MapScene, camera: MapCamera, onTap: (TableTa
         }
         view.acting?.let(table::at)?.let { add(HexMark(it, MarkStyle.ACTING)) }
         table.hintAt?.let { add(HexMark(it, MarkStyle.HINT)) }
+        table.planned.forEach { add(HexMark(it, MarkStyle.HINT)) }
         chosenAt(table)?.let { add(HexMark(it, MarkStyle.SELECTION)) }
     }
     val lines = listOfNotNull(pathLine(table))

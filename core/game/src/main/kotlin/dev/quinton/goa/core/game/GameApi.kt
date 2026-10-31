@@ -891,7 +891,14 @@ data class PuzzleInfo(
  * impossible, and a card that has left the hand, are free too.
  */
 @Serializable
-data class KnownPlay(val heroId: String, val turn: Int, val cardId: String, val plan: String? = null)
+data class KnownPlay(
+    val heroId: String,
+    val turn: Int,
+    val cardId: String,
+    val plan: String? = null,
+    /** The spaces [plan] goes to, for the board (a plan's exact space matters in a four-turn plan). */
+    val spaces: List<Hex> = emptyList(),
+)
 
 // ---------------------------------------------------------------------------------------------
 // Entry points implemented by the engine, the AI and the puzzle runtime.

@@ -34,7 +34,8 @@ object PuzzleText {
 
     /** The convention, once, where a full round is introduced. */
     const val KNOWN_NOTE: String = "You know their cards all round and what they do with them where a plan " +
-        "is shown. Where none is, or you spoil a plan, they answer as hard as they can."
+        "is shown; a plan's space is outlined on the board on its turn. Where no plan is shown, or you spoil " +
+        "one, they answer as hard as they can."
 
     fun names(names: List<String>): String = when (names.size) {
         0 -> ""

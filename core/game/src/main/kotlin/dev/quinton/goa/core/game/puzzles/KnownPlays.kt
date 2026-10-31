@@ -45,6 +45,9 @@ data class KnownPlays(
 
     /** What the player is shown: every listed card; [plans] (hero → text per known turn) say what it does. */
     fun display(plans: Map<String, Map<Int, String>>): List<KnownPlay> = cards.flatMap { (hero, list) ->
-        list.mapIndexed { i, card -> KnownPlay(hero, i + 1, card, plans[hero]?.get(i + 1)) }
+        list.mapIndexed { i, card ->
+            val answers = actions[hero]?.get(i + 1).orEmpty()
+            KnownPlay(hero, i + 1, card, plans[hero]?.get(i + 1), answers.filterIsInstance<Choice.Space>().map { it.hex })
+        }
     }
 }

@@ -611,6 +611,7 @@ class PuzzleViewModel internal constructor(
             selected = selected?.takeIf { it in options },
             bottomTeam = bottomTeam,
             hint = hint?.takeIf { it in options },
+            planned = info?.let { p -> roundUi(p, snapshot.view, cards) { "" }?.planned }.orEmpty(),
             // While the replies are narrated the board is the one after the player's move: no later events.
             turnLog = if (live == null) turnLog(snapshot.events) else emptyList(),
         )
