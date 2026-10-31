@@ -91,17 +91,31 @@ class RoundSpec private constructor(
         val b = picture(built)
         val i = a.zip(b).indexOfFirst { (x, y) -> x != y }.let { if (it < 0) minOf(a.length, b.length) else it }
         val from = maxOf(0, i - CONTEXT)
-        return "mined …${a.substring(from, minOf(a.length, i + CONTEXT))}… built …${b.substring(from, minOf(b.length, i + CONTEXT))}…"
+        return "mined …${a.substring(from, minOf(a.length, i + CONTEXT))}… built …${b.substring(
+            from,
+            minOf(
+                b.length,
+                i + CONTEXT,
+            ),
+        )}…"
     }
 
     private fun picture(s: GameState): String = buildString {
         append(s.round, s.turn, s.step, s.stepSeat, s.tieBreaker, s.battleZones, s.wavesLeft, s.lifeCounters)
         append(s.effects.size, s.pushDue, s.lastWaveFlipped, s.revealed, s.vars)
-        append(s.pieces.map { listOf(it.id, it.kind, it.at, it.owner, it.team, it.token, it.unit, it.heroBody, it.data) })
+        append(
+            s.pieces.map {
+                listOf(it.id, it.kind, it.at, it.owner, it.team, it.token, it.unit, it.heroBody, it.data)
+            },
+        )
         for (h in s.heroes) {
             append(h.id, h.team, h.seat, h.at, h.level, h.coins, h.counters, h.vars, h.spareItems)
             append(h.markers.map { listOf(it.kind, it.from, it.persistent, it.data) })
-            append(h.cards.filter { it.zone != Zone.DECK }.map { listOf(it.id, it.zone, it.slot, it.tag) }.sortedBy { it[0].toString() })
+            append(
+                h.cards.filter {
+                    it.zone != Zone.DECK
+                }.map { listOf(it.id, it.zone, it.slot, it.tag) }.sortedBy { it[0].toString() },
+            )
         }
         append(s.minions.map { "${it.team} ${it.type} ${it.at} ${it.lane}" }.sorted())
     }
@@ -128,7 +142,11 @@ class RoundSpec private constructor(
     fun kotlin(): String = buildString {
         appendLine("        round = $round")
         appendLine("        tieBreaker = Team.$tieBreaker")
-        if (this@RoundSpec.length != GameLength.QUICK) appendLine("        length = GameLength.${this@RoundSpec.length}")
+        if (this@RoundSpec.length !=
+            GameLength.QUICK
+        ) {
+            appendLine("        length = GameLength.${this@RoundSpec.length}")
+        }
         appendLine("        clearMinions()")
         for ((lane, zone) in battleZones) appendLine("        battleZone(\"$lane\", \"$zone\")")
         for ((lane, n) in waves) appendLine("        wavesLeft(\"$lane\", $n)")
@@ -209,7 +227,9 @@ class RoundSpec private constructor(
             val team = p.team?.let { "Team.$it" } ?: "null"
             val body = p.heroBody?.let(::quote) ?: "null"
             val data = p.data.entries.joinToString { "${quote(it.key)} to ${quote(it.value)}" }
-            return "        piece(PieceState(${quote(p.id)}, ${quote(p.kind)}, ${quote(p.label)}, $at, $owner, $team, " +
+            return "        piece(PieceState(${quote(
+                p.id,
+            )}, ${quote(p.kind)}, ${quote(p.label)}, $at, $owner, $team, " +
                 "${p.token}, ${p.unit}, ${p.removeAtEndOfRound}, ${p.passable}, ${p.faceDown}, $body, " +
                 "linkedMapOf($data)))"
         }

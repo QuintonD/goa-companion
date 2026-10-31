@@ -18,9 +18,9 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 17, mined from self-play (g2672_r4_BLUE_defeat-brogan; ADR-052, ENCODING.md "Full rounds"). */
-object R17APriceOnBrogan : Puzzle() {
-    override val concept = "R17"
+/** Full round 18, mined from self-play (g2672_r4_BLUE_defeat-brogan; ADR-052, ENCODING.md "Full rounds"). */
+object R18APriceOnBrogan : Puzzle() {
+    override val concept = "R18"
 
     override val known = KnownPlays(
         cards = mapOf(
@@ -29,21 +29,31 @@ object R17APriceOnBrogan : Puzzle() {
         ),
         actions = mapOf(
             "brogan" to mapOf(
-                1 to listOf(Choice.Space(Hex(-6, -3)), Choice.Action(ActionType.FAST_TRAVEL), Choice.Space(Hex(5, -11))),
+                1 to listOf(
+                    Choice.Space(Hex(-6, -3)),
+                    Choice.Action(ActionType.FAST_TRAVEL),
+                    Choice.Space(Hex(5, -11)),
+                ),
                 2 to listOf(Choice.Action(ActionType.PRIMARY)),
                 3 to listOf(Choice.Action(ActionType.FAST_TRAVEL), Choice.Space(Hex(5, -8))),
             ),
             "razzle" to mapOf(
                 1 to listOf(Choice.Action(ActionType.FAST_TRAVEL), Choice.Space(Hex(4, -1))),
                 2 to listOf(Choice.Action(ActionType.MOVEMENT), Choice.Space(Hex(6, -4))),
-                3 to listOf(Choice.Action(ActionType.PRIMARY), Choice.Space(Hex(6, -5)), Choice.Space(Hex(5, -4)), Choice.Space(Hex(7, -5))),
+                3 to
+                    listOf(
+                        Choice.Action(ActionType.PRIMARY),
+                        Choice.Space(Hex(6, -5)),
+                        Choice.Space(Hex(5, -4)),
+                        Choice.Space(Hex(7, -5)),
+                    ),
             ),
         ),
     )
 
     override val info = PuzzleInfo(
-        id = "r17",
-        number = 17,
+        id = "r18",
+        number = 18,
         title = "A Price on Brogan",
         difficulty = 3,
         theme = "Bounty set up for a later shot, spending the enemy's hand",
@@ -52,28 +62,29 @@ object R17APriceOnBrogan : Puzzle() {
         intro = "Round 4. You play Ursafar and Bain for Blue. Red has 2 Life counters left. Brogan is off the board " +
             "and respawns in turn 1. Hand Crossbow, Bain's ranged attack, can only reach a hero who carries a " +
             "Bounty marker.",
-        nudges = R17_NUDGES.first(),
-        nudgesByTurn = R17_NUDGES,
-        explanation = "Turn 1: Brogan respawns and fast travels away as planned. Nothing can reach him yet. Use Movement on" +
-            " both cards to bring Ursafar and Bain up among the minions." +
-            "\n\n" +
-            "Turn 2: Each of you kills a Red melee minion. Claws That Catch makes Ursafar enraged and stays " +
-            "active this round. After Dead or Alive's attack, Bain gives Brogan the Bounty marker: he is in " +
-            "radius 4. That marker is the whole point. Hand Crossbow in turn 4 can only target him at range " +
-            "because of it." +
-            "\n\n" +
-            "Turn 3: Bain goes first and uses Get over here! to move Ursafar one space. When Brogan has fast " +
-            "travelled in, Angry Roar performs the primary action of Claws That Catch, which moves Ursafar next " +
-            "to Brogan (enraged) and attacks for 4. Brogan must spend a card to survive it: with Mad Dash or " +
-            "Mighty Punch he defends, without one he is defeated at once." +
-            "\n\n" +
-            "Turn 4: Brogan's fourth card is played and his spare has gone on that defense. Bain's initiative " +
-            "ties his, and the coin shows Blue, so Bain acts first (p.7): Hand Crossbow shoots at Attack 5, " +
-            "Brogan has no card to defend with, and he is defeated (p.13). His own card goes unresolved, and Red " +
-            "spends its last 2 Life counters too." +
-            "\n\n" +
-            "The computer at strength 7, playing your heroes, doesn't get there: the plan needs the marker in " +
-            "turn 2 and the forced defense in turn 3.",
+        nudges = R18_NUDGES.first(),
+        nudgesByTurn = R18_NUDGES,
+        explanation =
+            "Turn 1: Brogan respawns and fast travels away as planned. Nothing can reach him yet. Use Movement on" +
+                " both cards to bring Ursafar and Bain up among the minions." +
+                "\n\n" +
+                "Turn 2: Each of you kills a Red melee minion. Claws That Catch makes Ursafar enraged and stays " +
+                "active this round. After Dead or Alive's attack, Bain gives Brogan the Bounty marker: he is in " +
+                "radius 4. That marker is the whole point. Hand Crossbow in turn 4 can only target him at range " +
+                "because of it." +
+                "\n\n" +
+                "Turn 3: Bain goes first and uses Get over here! to move Ursafar one space. When Brogan has fast " +
+                "travelled in, Angry Roar performs the primary action of Claws That Catch, which moves Ursafar next " +
+                "to Brogan (enraged) and attacks for 4. Brogan must spend a card to survive it: with Mad Dash or " +
+                "Mighty Punch he defends, without one he is defeated at once." +
+                "\n\n" +
+                "Turn 4: Brogan's fourth card is played and his spare has gone on that defense. Bain's initiative " +
+                "ties his, and the coin shows Blue, so Bain acts first (p.7): Hand Crossbow shoots at Attack 5, " +
+                "Brogan has no card to defend with, and he is defeated (p.13). His own card goes unresolved, and Red " +
+                "spends its last 2 Life counters too." +
+                "\n\n" +
+                "The computer at strength 7, playing your heroes, doesn't get there: the plan needs the marker in " +
+                "turn 2 and the forced defense in turn 3.",
         rules = listOf(
             "p.13 Attacking a hero, When a hero is defeated",
             "p.14 Defense",
@@ -200,33 +211,33 @@ object R17APriceOnBrogan : Puzzle() {
     )
 }
 
-private val R17_NUDGES = listOf(
-            listOf(
-                "Brogan will arrive far away. You won't catch him with Ursafar alone. Which of your cards reaches" +
-                " a hero who isn't next to you?",
-                "Move both heroes up now, while the enemy is arriving: you want minions to attack next turn and " +
-                "Brogan close by turn 3.",
-                "Play Prey Drive on Ursafar and Dead Man's Hand on Bain, and take the Movement of both.",
-            ),
-            listOf(
-                "Hand Crossbow needs a Bounty marker on its target. Which card gives one?",
-                "Dead or Alive's after-the-attack gives the Bounty to an enemy hero in radius 4. Ursafar's card " +
-                "also matters later: it stays active, and he is enraged from now on.",
-                "Play Claws That Catch on Ursafar and Dead or Alive on Bain. Attack minions with both, and give " +
-                "Brogan the Bounty.",
-            ),
-            listOf(
-                "Brogan comes to you this turn. Count the cards he has left, and what happens if he has to spend " +
-                "one.",
-                "Angry Roar repeats an active card's primary action when you are enraged. Claws That Catch is " +
-                "active.",
-                "Play Angry Roar on Ursafar and Get over here! on Bain. Bain pulls Ursafar one space, and Angry " +
-                "Roar performs Claws That Catch on Brogan.",
-            ),
-            listOf(
-                "Brogan has played a card each turn and spent one on defense. What does he have left?",
-                "Bain ties Brogan on initiative and the coin shows Blue. Hand Crossbow is Attack 5, and his " +
-                "Bounty makes him a legal target in range.",
-                "Play Eyes on the Prey on Ursafar and Hand Crossbow on Bain, and shoot Brogan.",
-            ),
+private val R18_NUDGES = listOf(
+    listOf(
+        "Brogan will arrive far away. You won't catch him with Ursafar alone. Which of your cards reaches" +
+            " a hero who isn't next to you?",
+        "Move both heroes up now, while the enemy is arriving: you want minions to attack next turn and " +
+            "Brogan close by turn 3.",
+        "Play Prey Drive on Ursafar and Dead Man's Hand on Bain, and take the Movement of both.",
+    ),
+    listOf(
+        "Hand Crossbow needs a Bounty marker on its target. Which card gives one?",
+        "Dead or Alive's after-the-attack gives the Bounty to an enemy hero in radius 4. Ursafar's card " +
+            "also matters later: it stays active, and he is enraged from now on.",
+        "Play Claws That Catch on Ursafar and Dead or Alive on Bain. Attack minions with both, and give " +
+            "Brogan the Bounty.",
+    ),
+    listOf(
+        "Brogan comes to you this turn. Count the cards he has left, and what happens if he has to spend " +
+            "one.",
+        "Angry Roar repeats an active card's primary action when you are enraged. Claws That Catch is " +
+            "active.",
+        "Play Angry Roar on Ursafar and Get over here! on Bain. Bain pulls Ursafar one space, and Angry " +
+            "Roar performs Claws That Catch on Brogan.",
+    ),
+    listOf(
+        "Brogan has played a card each turn and spent one on defense. What does he have left?",
+        "Bain ties Brogan on initiative and the coin shows Blue. Hand Crossbow is Attack 5, and his " +
+            "Bounty makes him a legal target in range.",
+        "Play Eyes on the Prey on Ursafar and Hand Crossbow on Bain, and shoot Brogan.",
+    ),
 )

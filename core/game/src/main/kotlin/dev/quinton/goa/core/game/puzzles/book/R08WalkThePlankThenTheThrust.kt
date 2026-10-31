@@ -57,20 +57,21 @@ object R08WalkThePlankThenTheThrust : Puzzle() {
             "attack is hers to aim.",
         nudges = R08_NUDGES.first(),
         nudgesByTurn = R08_NUDGES,
-        explanation = "Turn 1: Grappling Bolt pulls Cutter along a straight line to an obstacle, next to a Blue melee " +
-            "minion in the Battle Zone. Razzle uses Rummage's Movement." +
-            "\n\n" +
-            "Turn 2: Cutter wins the tie and Walk the Plank defeats the Blue melee minion next to him: 2 coins." +
-            "\n\n" +
-            "Turn 3: Ignatia fast travels next to the Red ranged minion as planned. Brace for Impact moves Cutter" +
-            " 3 spaces in a straight line to the space next to her, and she has to discard Crack of Doom, her " +
-            "spare." +
-            "\n\n" +
-            "Turn 4: Ignatia acts first and attacks Cutter at 3; X Marks the Spot defends with 6 (p.14). Then " +
-            "Bold Thrust attacks her at 5. She has no card to defend with and is defeated (p.13): 4 more coins, " +
-            "and the goal is met." +
-            "\n\n" +
-            "The computer at strength 7, playing your heroes, doesn't find it, and neither does strength 10.",
+        explanation =
+            "Turn 1: Grappling Bolt pulls Cutter along a straight line to an obstacle, next to a Blue melee " +
+                "minion in the Battle Zone. Razzle uses Rummage's Movement." +
+                "\n\n" +
+                "Turn 2: Cutter wins the tie and Walk the Plank defeats the Blue melee minion next to him: 2 coins." +
+                "\n\n" +
+                "Turn 3: Ignatia fast travels next to the Red ranged minion as planned. Brace for Impact moves Cutter" +
+                " 3 spaces in a straight line to the space next to her, and she has to discard Crack of Doom, her " +
+                "spare." +
+                "\n\n" +
+                "Turn 4: Ignatia acts first and attacks Cutter at 3; X Marks the Spot defends with 6 (p.14). Then " +
+                "Bold Thrust attacks her at 5. She has no card to defend with and is defeated (p.13): 4 more coins, " +
+                "and the goal is met." +
+                "\n\n" +
+                "The computer at strength 7, playing your heroes, doesn't find it, and neither does strength 10.",
         rules = listOf(
             "p.13 Attacking a hero, When a hero is defeated",
             "p.14 Defense",
@@ -130,8 +131,34 @@ object R08WalkThePlankThenTheThrust : Puzzle() {
             hand("gydion-gold", "gydion-silver", "gydion-red-1", "gydion-green-2b", "gydion-blue-2a")
             items("gydion-green-2a", "gydion-blue-2b")
             deck("gydion-green-1", "gydion-blue-1")
-            extra("gydion-spell-magic-missile", "gydion-spell-expeditious-retreat", "gydion-spell-burning-hands", tag = "removed")
-            extra("gydion-spell-shocking-grasp", "gydion-spell-fireball", "gydion-spell-sunburst", "gydion-spell-vampiric-touch", "gydion-spell-create-undead", "gydion-spell-energy-drain", "gydion-spell-shield", "gydion-spell-banishment", "gydion-spell-invulnerability", "gydion-spell-dimension-door", "gydion-spell-find-familiar", "gydion-spell-cloud-kill", "gydion-spell-suggestion", "gydion-spell-dominate-person", "gydion-spell-power-word-kill", "gydion-spell-midas-touch", "gydion-spell-disintegrate", "gydion-spell-polymorph", "gydion-spell-wish", tag = "spellbook")
+            extra(
+                "gydion-spell-magic-missile",
+                "gydion-spell-expeditious-retreat",
+                "gydion-spell-burning-hands",
+                tag = "removed",
+            )
+            extra(
+                "gydion-spell-shocking-grasp",
+                "gydion-spell-fireball",
+                "gydion-spell-sunburst",
+                "gydion-spell-vampiric-touch",
+                "gydion-spell-create-undead",
+                "gydion-spell-energy-drain",
+                "gydion-spell-shield",
+                "gydion-spell-banishment",
+                "gydion-spell-invulnerability",
+                "gydion-spell-dimension-door",
+                "gydion-spell-find-familiar",
+                "gydion-spell-cloud-kill",
+                "gydion-spell-suggestion",
+                "gydion-spell-dominate-person",
+                "gydion-spell-power-word-kill",
+                "gydion-spell-midas-touch",
+                "gydion-spell-disintegrate",
+                "gydion-spell-polymorph",
+                "gydion-spell-wish",
+                tag = "spellbook",
+            )
             counter("spellbook", 19)
             counter("spellsRemoved", 3)
         }
@@ -211,28 +238,28 @@ object R08WalkThePlankThenTheThrust : Puzzle() {
 }
 
 private val R08_NUDGES = listOf(
-            listOf(
-                "A Blue minion is worth 2 coins and Ignatia 4. That's your 6: how do you get Ignatia with no card" +
-                " left?",
-                "Cutter's way to the front is a hook, and it needs an obstacle in a straight line.",
-                "Play Grappling Bolt on Cutter, next to the Blue melee minion, and Rummage on Razzle, who moves.",
-            ),
-            listOf(
-                "Cutter stands next to a Blue minion now.",
-                "Walk the Plank can defeat a minion next to you. Razzle keeps walking.",
-                "Play Walk the Plank on Cutter, defeating the Blue melee minion, and Stunt Doubles on Razzle, who" +
-                " moves.",
-            ),
-            listOf(
-                "Ignatia fast travels this turn, and you know the space. Her spare card is what stands between " +
-                "you and 4 coins.",
-                "Brace for Impact moves Cutter 3 spaces in a straight line, next to her, and it costs her a card.",
-                "Play Brace for Impact on Cutter and Crowd Control on Razzle.",
-            ),
-            listOf(
-                "Ignatia attacks Cutter first. Keep the card that holds, then answer.",
-                "X Marks the Spot defends. Bold Thrust then attacks her, and she has nothing left.",
-                "Play Bold Thrust on Cutter, attacking Ignatia, and Group Performance on Razzle; defend with X " +
-                "Marks the Spot.",
-            ),
+    listOf(
+        "A Blue minion is worth 2 coins and Ignatia 4. That's your 6: how do you get Ignatia with no card" +
+            " left?",
+        "Cutter's way to the front is a hook, and it needs an obstacle in a straight line.",
+        "Play Grappling Bolt on Cutter, next to the Blue melee minion, and Rummage on Razzle, who moves.",
+    ),
+    listOf(
+        "Cutter stands next to a Blue minion now.",
+        "Walk the Plank can defeat a minion next to you. Razzle keeps walking.",
+        "Play Walk the Plank on Cutter, defeating the Blue melee minion, and Stunt Doubles on Razzle, who" +
+            " moves.",
+    ),
+    listOf(
+        "Ignatia fast travels this turn, and you know the space. Her spare card is what stands between " +
+            "you and 4 coins.",
+        "Brace for Impact moves Cutter 3 spaces in a straight line, next to her, and it costs her a card.",
+        "Play Brace for Impact on Cutter and Crowd Control on Razzle.",
+    ),
+    listOf(
+        "Ignatia attacks Cutter first. Keep the card that holds, then answer.",
+        "X Marks the Spot defends. Bold Thrust then attacks her, and she has nothing left.",
+        "Play Bold Thrust on Cutter, attacking Ignatia, and Group Performance on Razzle; defend with X " +
+            "Marks the Spot.",
+    ),
 )

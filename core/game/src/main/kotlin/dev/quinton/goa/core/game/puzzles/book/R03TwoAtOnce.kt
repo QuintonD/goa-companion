@@ -55,24 +55,25 @@ object R03TwoAtOnce : Puzzle() {
             "pay 2 to the hero who defeats them and 1 to the other, and the whole of their round is known.",
         nudges = R03_NUDGES.first(),
         nudgesByTurn = R03_NUDGES,
-        explanation = "Turn 1: Tigerclaw defeats a Red melee minion. Sniff Out's Movement brings Ursafar up, and Hear " +
-            "Nothing swaps Hanu with Takahide, which puts Hanu next to a Blue melee minion." +
-            "\n\n" +
-            "Turn 2: Fight and Flight defeats that minion: 2 coins. Ursafar moves next to the Blue heavy with " +
-            "Claws That Catch's Movement. Tigerclaw takes a second Red minion and moves next to Ursafar." +
-            "\n\n" +
-            "Turn 3: Hurry up! and Angry Roar are played now so that the two attacks are left for turn 4. Angry " +
-            "Roar also makes Ursafar enraged this round." +
-            "\n\n" +
-            "Turn 4: Takahide walks next to Hanu as planned. Hanu acts first on the tie: Helping Hand attacks him" +
-            " at 4, Sting like a Bee gives only 2, and he is defeated (p.13), 2 coins to Hanu and 1 to Ursafar. " +
-            "Rip then attacks Tigerclaw at 5. Sidestep's Block fails (p.14), he is defeated before his card " +
-            "resolves, 2 coins to Ursafar and 1 to Hanu, and enraged Rip pays 1 more. The goal needs 7; you have " +
-            "9." +
-            "\n\n" +
-            "Even so Blue wins the Minion Battle, 2 against 1: your coins are the goal here, and it costs you the" +
-            " lane. The computer at strength 7, playing your heroes, doesn't find it, and neither does strength " +
-            "10.",
+        explanation =
+            "Turn 1: Tigerclaw defeats a Red melee minion. Sniff Out's Movement brings Ursafar up, and Hear " +
+                "Nothing swaps Hanu with Takahide, which puts Hanu next to a Blue melee minion." +
+                "\n\n" +
+                "Turn 2: Fight and Flight defeats that minion: 2 coins. Ursafar moves next to the Blue heavy with " +
+                "Claws That Catch's Movement. Tigerclaw takes a second Red minion and moves next to Ursafar." +
+                "\n\n" +
+                "Turn 3: Hurry up! and Angry Roar are played now so that the two attacks are left for turn 4. Angry " +
+                "Roar also makes Ursafar enraged this round." +
+                "\n\n" +
+                "Turn 4: Takahide walks next to Hanu as planned. Hanu acts first on the tie: Helping Hand attacks him" +
+                " at 4, Sting like a Bee gives only 2, and he is defeated (p.13), 2 coins to Hanu and 1 to Ursafar. " +
+                "Rip then attacks Tigerclaw at 5. Sidestep's Block fails (p.14), he is defeated before his card " +
+                "resolves, 2 coins to Ursafar and 1 to Hanu, and enraged Rip pays 1 more. The goal needs 7; you have " +
+                "9." +
+                "\n\n" +
+                "Even so Blue wins the Minion Battle, 2 against 1: your coins are the goal here, and it costs you the" +
+                " lane. The computer at strength 7, playing your heroes, doesn't find it, and neither does strength " +
+                "10.",
         rules = listOf(
             "p.13 Attacking a hero, When a hero is defeated",
             "p.14 Block",
@@ -195,29 +196,29 @@ object R03TwoAtOnce : Puzzle() {
 }
 
 private val R03_NUDGES = listOf(
-            listOf(
-                "Both enemy heroes spend their cards on minions. Count what each will have left in turn 4.",
-                "Hanu stands away from the Blue minions. Is there a card that takes him where Takahide is?",
-                "Play Hear Nothing on Hanu, swapping with Takahide, and Sniff Out on Ursafar, taking its " +
-                "Movement.",
-            ),
-            listOf(
-                "Hanu has a minion next to him now. Ursafar has to get close to where Tigerclaw is going.",
-                "Fight and Flight attacks a unit next to Hanu. Ursafar's Movement matters more than his attack " +
-                "this turn.",
-                "Play Fight and Flight on Hanu, attacking the Blue melee minion, and Claws That Catch on Ursafar," +
-                " taking its Movement.",
-            ),
-            listOf(
-                "The enemy is close enough. Now spend the cards you won't need in turn 4.",
-                "Keep both of your attacks. Ursafar is enraged by Angry Roar for the round.",
-                "Play Hurry up! on Hanu and Angry Roar on Ursafar.",
-            ),
-            listOf(
-                "Takahide walks next to Hanu, and Tigerclaw is beside Ursafar. Can their last cards stop your " +
-                "attacks?",
-                "Hanu's Helping Hand and Ursafar's Rip both act before Tigerclaw's card. Sidestep's Block doesn't" +
-                " work against a non-ranged attack.",
-                "Play Helping Hand on Hanu, attacking Takahide, and Rip on Ursafar, attacking Tigerclaw.",
-            ),
+    listOf(
+        "Both enemy heroes spend their cards on minions. Count what each will have left in turn 4.",
+        "Hanu stands away from the Blue minions. Is there a card that takes him where Takahide is?",
+        "Play Hear Nothing on Hanu, swapping with Takahide, and Sniff Out on Ursafar, taking its " +
+            "Movement.",
+    ),
+    listOf(
+        "Hanu has a minion next to him now. Ursafar has to get close to where Tigerclaw is going.",
+        "Fight and Flight attacks a unit next to Hanu. Ursafar's Movement matters more than his attack " +
+            "this turn.",
+        "Play Fight and Flight on Hanu, attacking the Blue melee minion, and Claws That Catch on Ursafar," +
+            " taking its Movement.",
+    ),
+    listOf(
+        "The enemy is close enough. Now spend the cards you won't need in turn 4.",
+        "Keep both of your attacks. Ursafar is enraged by Angry Roar for the round.",
+        "Play Hurry up! on Hanu and Angry Roar on Ursafar.",
+    ),
+    listOf(
+        "Takahide walks next to Hanu, and Tigerclaw is beside Ursafar. Can their last cards stop your " +
+            "attacks?",
+        "Hanu's Helping Hand and Ursafar's Rip both act before Tigerclaw's card. Sidestep's Block doesn't" +
+            " work against a non-ranged attack.",
+        "Play Helping Hand on Hanu, attacking Takahide, and Rip on Ursafar, attacking Tigerclaw.",
+    ),
 )

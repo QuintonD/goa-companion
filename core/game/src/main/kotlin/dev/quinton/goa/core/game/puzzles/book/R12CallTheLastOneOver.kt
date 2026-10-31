@@ -19,19 +19,25 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 11, mined from self-play (g9086_r6_BLUE_push; ADR-052, ENCODING.md "Full rounds"). */
-object R11CallTheLastOneOver : Puzzle() {
-    override val concept = "R11"
+/** Full round 12, mined from self-play (g9086_r6_BLUE_push; ADR-052, ENCODING.md "Full rounds"). */
+object R12CallTheLastOneOver : Puzzle() {
+    override val concept = "R12"
 
     override val known = KnownPlays(
         cards = mapOf(
-            "silverarrow" to listOf("silverarrow-green-2a", "silverarrow-red-2a", "silverarrow-blue-3a", "silverarrow-gold"),
+            "silverarrow" to
+                listOf("silverarrow-green-2a", "silverarrow-red-2a", "silverarrow-blue-3a", "silverarrow-gold"),
             "snorri" to listOf("snorri-blue-2b", "snorri-green-2a", "snorri-red-2b", "snorri-gold"),
         ),
         actions = mapOf(
             "silverarrow" to mapOf(
                 1 to listOf(Choice.Action(ActionType.HOLD)),
-                2 to listOf(Choice.Action(ActionType.PRIMARY), Choice.Option(1, "Target a unit adjacent to you"), Choice.Unit("m1009")),
+                2 to
+                    listOf(
+                        Choice.Action(ActionType.PRIMARY),
+                        Choice.Option(1, "Target a unit adjacent to you"),
+                        Choice.Unit("m1009"),
+                    ),
                 3 to listOf(Choice.Action(ActionType.HOLD)),
                 4 to listOf(Choice.Action(ActionType.HOLD)),
             ),
@@ -45,8 +51,8 @@ object R11CallTheLastOneOver : Puzzle() {
     )
 
     override val info = PuzzleInfo(
-        id = "r11",
-        number = 11,
+        id = "r12",
+        number = 12,
         title = "Call the Last One Over",
         difficulty = 2,
         theme = "Keeping a defense for one shot, pulling a minion into reach",
@@ -55,23 +61,24 @@ object R11CallTheLastOneOver : Puzzle() {
         intro = "Round 6. You play Xargatha and Mrak for Blue. The Battle Zone is Lane Zone 3, and both of you start " +
             "a Zone away. Snorri will shoot Mrak from far away in turn 3, and Silverarrow takes a Blue minion in " +
             "turn 2.",
-        nudges = R11_NUDGES.first(),
-        nudgesByTurn = R11_NUDGES,
-        explanation = "Turn 1: Petrifying Stare's and Seismic Assault's Movement take Xargatha and Mrak into Lane Zone 3, " +
-            "side by side next to a Red melee minion." +
-            "\n\n" +
-            "Turn 2: Cleave defeats that Red melee minion (it has no second target to repeat on). Silverarrow " +
-            "defeats a Blue melee minion, as planned. Fissure's Movement keeps Mrak next to Xargatha and a Blue " +
-            "melee minion." +
-            "\n\n" +
-            "Turn 3: Snorri shoots Mrak at 6. Treacherous Ground defends: 4, +1 for the item, +1 for the adjacent" +
-            " Blue melee minion, makes 6 (p.14). Without that minion next to him it would fall short: that is why" +
-            " he stood there. Siren's Call moves the other Red melee minion 3 spaces, next to Xargatha." +
-            "\n\n" +
-            "Turn 4: Long Thrust attacks it at 5 and defeats it. In the Minion Battle Red has 2 and Blue 5: Red " +
-            "has to remove 3, which is all it has, and Blue pushes the lane (p.8)." +
-            "\n\n" +
-            "The computer at strength 7, playing your heroes, doesn't find it, and neither does strength 10.",
+        nudges = R12_NUDGES.first(),
+        nudgesByTurn = R12_NUDGES,
+        explanation =
+            "Turn 1: Petrifying Stare's and Seismic Assault's Movement take Xargatha and Mrak into Lane Zone 3, " +
+                "side by side next to a Red melee minion." +
+                "\n\n" +
+                "Turn 2: Cleave defeats that Red melee minion (it has no second target to repeat on). Silverarrow " +
+                "defeats a Blue melee minion, as planned. Fissure's Movement keeps Mrak next to Xargatha and a Blue " +
+                "melee minion." +
+                "\n\n" +
+                "Turn 3: Snorri shoots Mrak at 6. Treacherous Ground defends: 4, +1 for the item, +1 for the adjacent" +
+                " Blue melee minion, makes 6 (p.14). Without that minion next to him it would fall short: that is why" +
+                " he stood there. Siren's Call moves the other Red melee minion 3 spaces, next to Xargatha." +
+                "\n\n" +
+                "Turn 4: Long Thrust attacks it at 5 and defeats it. In the Minion Battle Red has 2 and Blue 5: Red " +
+                "has to remove 3, which is all it has, and Blue pushes the lane (p.8)." +
+                "\n\n" +
+                "The computer at strength 7, playing your heroes, doesn't find it, and neither does strength 10.",
         rules = listOf(
             "p.8 Minion Battle, Push the Lane",
             "p.14 Defense, Minion Defense Modifiers",
@@ -108,7 +115,13 @@ object R11CallTheLastOneOver : Puzzle() {
         hero("silverarrow", Team.RED, Hex(8, -5)) {
             level = 5
             coins = 1
-            hand("silverarrow-gold", "silverarrow-silver", "silverarrow-red-2a", "silverarrow-green-2a", "silverarrow-blue-3a")
+            hand(
+                "silverarrow-gold",
+                "silverarrow-silver",
+                "silverarrow-red-2a",
+                "silverarrow-green-2a",
+                "silverarrow-blue-3a",
+            )
             items("silverarrow-red-2b", "silverarrow-green-2b", "silverarrow-blue-2b", "silverarrow-blue-3b")
             deck("silverarrow-red-1", "silverarrow-green-1", "silverarrow-blue-1")
         }
@@ -207,28 +220,28 @@ object R11CallTheLastOneOver : Puzzle() {
     )
 }
 
-private val R11_NUDGES = listOf(
-            listOf(
-                "The fight is in Lane Zone 3. Who can you reach next turn from there?",
-                "Both your heroes need their Movement this turn.",
-                "Play Petrifying Stare on Xargatha and Seismic Assault on Mrak, moving both into Lane Zone 3, " +
-                "next to the Red melee minion.",
-            ),
-            listOf(
-                "You are there now. One Red minion falls this turn. What will you need Mrak to keep?",
-                "Cleave can reach a minion next to Xargatha. Mrak only has to step next to her.",
-                "Play Cleave on Xargatha, attacking the Red melee minion, and Fissure on Mrak, who moves.",
-            ),
-            listOf(
-                "Snorri is about to shoot Mrak. And there is a Red melee minion Xargatha can't reach. Yet.",
-                "Mrak's defense is Treacherous Ground; with a Blue melee minion beside him it's enough. Siren's " +
-                "Call moves an enemy unit next to Xargatha.",
-                "Play Siren's Call on Xargatha, moving the Red melee minion to her, and Stone Grip on Mrak; " +
-                "defend with Treacherous Ground.",
-            ),
-            listOf(
-                "The Red melee minion is next to Xargatha now. What is left to do before the battle?",
-                "Long Thrust attacks a unit in range at 5. Count the battle after that.",
-                "Play Long Thrust on Xargatha, attacking the Red melee minion, and Boulder Blitz on Mrak.",
-            ),
+private val R12_NUDGES = listOf(
+    listOf(
+        "The fight is in Lane Zone 3. Who can you reach next turn from there?",
+        "Both your heroes need their Movement this turn.",
+        "Play Petrifying Stare on Xargatha and Seismic Assault on Mrak, moving both into Lane Zone 3, " +
+            "next to the Red melee minion.",
+    ),
+    listOf(
+        "You are there now. One Red minion falls this turn. What will you need Mrak to keep?",
+        "Cleave can reach a minion next to Xargatha. Mrak only has to step next to her.",
+        "Play Cleave on Xargatha, attacking the Red melee minion, and Fissure on Mrak, who moves.",
+    ),
+    listOf(
+        "Snorri is about to shoot Mrak. And there is a Red melee minion Xargatha can't reach. Yet.",
+        "Mrak's defense is Treacherous Ground; with a Blue melee minion beside him it's enough. Siren's " +
+            "Call moves an enemy unit next to Xargatha.",
+        "Play Siren's Call on Xargatha, moving the Red melee minion to her, and Stone Grip on Mrak; " +
+            "defend with Treacherous Ground.",
+    ),
+    listOf(
+        "The Red melee minion is next to Xargatha now. What is left to do before the battle?",
+        "Long Thrust attacks a unit in range at 5. Count the battle after that.",
+        "Play Long Thrust on Xargatha, attacking the Red melee minion, and Boulder Blitz on Mrak.",
+    ),
 )

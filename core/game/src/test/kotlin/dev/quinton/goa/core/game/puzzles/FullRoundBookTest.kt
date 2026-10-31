@@ -27,7 +27,7 @@ class FullRoundBookTest(private val puzzle: Puzzle) {
         @Parameterized.Parameters(name = "{0}")
         fun puzzles(): List<Array<Any>> = Puzzles.fullRounds.map { arrayOf(it) }
 
-        /** Desktop budget for one answer off the key (a phone is ~4× slower: 2 s in the worst case, usually far less). */
+        /** Desktop budget for one answer off the key, under load; the runtime's own clock stops at 350 ms. */
         const val ANSWER_MS = PuzzleBookTest.ANSWER_MS
 
         const val TURNS = 4
@@ -111,7 +111,9 @@ class FullRoundBookTest(private val puzzle: Puzzle) {
     @Test
     fun `it really takes four turns`() {
         val line = certificate().line(RoundCertificate.prepared(puzzle))
-        assertWithMessage("$id: the turn its solution ends in").that(PlanProver.turnOf(line.last().next)).isAtLeast(TURNS)
+        assertWithMessage(
+            "$id: the turn its solution ends in",
+        ).that(PlanProver.turnOf(line.last().next)).isAtLeast(TURNS)
     }
 
     @Test

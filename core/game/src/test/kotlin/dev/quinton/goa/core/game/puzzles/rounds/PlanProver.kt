@@ -310,7 +310,10 @@ data class RoundKey(val a: Long, val b: Long, val seg: Int, val coins: Int) {
             n.checkpointHash,
             n.checkpointHash2,
             // Starts at 1 and every answer adds its kind: no answer may leave the hash where it was.
-            n.session.stepAnswers.fold(1) { h, c -> h * SEG_MUL + PlanProver.stableHash(c) * KIND_MUL + c::class.simpleName.hashCode() },
+            n.session.stepAnswers.fold(1) { h, c ->
+                h * SEG_MUL + PlanProver.stableHash(c) * KIND_MUL +
+                    c::class.simpleName.hashCode()
+            },
             n.progress.coins,
         )
 

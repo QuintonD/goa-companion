@@ -110,7 +110,11 @@ class RoundCertificate(val moves: Map<String, Int>) {
             )
         }
 
-        fun of(proof: PlanProver.Proof) = RoundCertificate(proof.moves.entries.associate { it.key.format() to it.value })
+        fun of(proof: PlanProver.Proof) = RoundCertificate(
+            proof.moves.entries.associate {
+                it.key.format() to it.value
+            },
+        )
 
         fun prepared(p: Puzzle): PreparedPuzzle =
             EnginePuzzleBook(TestData.engine, listOf(p), useKeys = false).prepared(p.info.id)

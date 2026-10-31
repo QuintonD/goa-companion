@@ -75,7 +75,10 @@ class RoundGenTest {
                             try {
                                 if (System.nanoTime() < deadline) {
                                     val made = runCatching { Case(m, t, goal, id, out).run() }
-                                        .onFailure { println("GEN $id failed: $it"); it.printStackTrace(System.out) }
+                                        .onFailure {
+                                            println("GEN $id failed: $it")
+                                            it.printStackTrace(System.out)
+                                        }
                                         .getOrNull()
                                     if (made == true) for (h in m.team(t)) found.merge(h, 1, Int::plus)
                                     seen += id
@@ -98,12 +101,12 @@ class RoundGenTest {
         val by = Deadline.END_OF_ROUND
         // Coins only where the game offers no goal a player would name first.
         val recognised = m.goalsFor(t).any { g ->
-            (g is PuzzleGoal.DefeatHero || g is PuzzleGoal.PushLane || g is PuzzleGoal.WinGame) && (m.metIn(g, t) ?: 0) >= LATE
+            (g is PuzzleGoal.DefeatHero || g is PuzzleGoal.PushLane || g is PuzzleGoal.WinGame) &&
+                (m.metIn(g, t) ?: 0) >= LATE
         }
         val real = m.goalsFor(t).filter { g ->
             when (g) {
                 is PuzzleGoal.GainCoins -> g.atLeast >= MIN_COINS && (m.metIn(g, t) ?: 0) >= LATE && !recognised
-
 
                 // In the spike's numbers Survive only burned its budget: it stays out unless asked for.
                 is PuzzleGoal.Survive -> !recognised && System.getenv("ROUND_SURVIVE") != null
@@ -114,7 +117,9 @@ class RoundGenTest {
         return real.flatMap { g ->
             if (g is PuzzleGoal.GainCoins) {
                 // A forced goal that ends too soon may need four turns one or two coins higher.
-                (0..2).map { PuzzleGoal.GainCoins(g.atLeast + it, by, "Gain ${g.atLeast + it} coins by the end of the round.") }
+                (0..2).map {
+                    PuzzleGoal.GainCoins(g.atLeast + it, by, "Gain ${g.atLeast + it} coins by the end of the round.")
+                }
             } else {
                 listOf(g)
             }
@@ -265,7 +270,9 @@ class RoundGenTest {
             }
             val grade = if (!s10.solved && base < 3) base + 1 else base
             survives {
-                writeDossier(sp, solver, known, root, proof, line, runs, ms, open, grade, by2, by3, matters, firstCards, s7, s10)
+                writeDossier(
+                    sp, solver, known, root, proof, line, runs, ms, open, grade, by2, by3, matters, firstCards, s7, s10,
+                )
             }
             return null
         }
@@ -302,11 +309,17 @@ class RoundGenTest {
 
         fun moveCode(n: Node, c: Choice): String = when (c) {
             is Choice.Action -> "action(ActionType.${c.action.name})"
+
             is Choice.Card -> "card(\"${c.cardId}\")"
+
             is Choice.Space -> "space(${c.hex.q}, ${c.hex.r})"
+
             is Choice.Option -> "option(${c.index})"
+
             is Choice.Number -> "number(${c.value})"
+
             is Choice.Decline -> "decline()"
+
             is Choice.Token -> {
                 val at = n.session.state.pieces.first { it.id == c.tokenId }.at!!
                 "tokenAt(${at.q}, ${at.r})"
@@ -354,8 +367,13 @@ class RoundGenTest {
                     appendLine("goal ${goal.text} [$goal]")
                     appendLine("player $mine vs $enemies; round ${m.round} (game ${m.game} of ${m.rounds} rounds)")
                     appendLine("openFrom $open grade $grade")
-                    appendLine("proof ${proof.positions} positions (${proof.playerPositions} player, ${proof.enemyPositions} enemy), ${proof.edges} edges; search $runs runs, $ms ms")
-                    appendLine("goal met in turns ${proof.earliest}..${proof.latest}; forced by turn 2: $by2; by turn 3: $by3")
+                    appendLine(
+                        "proof ${proof.positions} positions (${proof.playerPositions} player, " +
+                            "${proof.enemyPositions} enemy), ${proof.edges} edges; search $runs runs, $ms ms",
+                    )
+                    appendLine(
+                        "goal met in turns ${proof.earliest}..${proof.latest}; forced by turn 2: $by2; by turn 3: $by3",
+                    )
                     appendLine("s7 solved ${s7.solved}, s10 solved ${s10.solved}")
                     for ((t, w) in matters) appendLine("turn $t matters: $w")
                     for ((h, w) in firstCards) appendLine("first card $h: $w")
@@ -374,7 +392,11 @@ class RoundGenTest {
                         val d = step.decision
                         val side = solver.sideOf(d)
                         val width = solver.choices(step.at).size
-                        appendLine("[T${PlanProver.turnOf(step.at)}] $side ${d.seat} ${d.kind} '${d.prompt}' of $width: ${moveCode(step.at, step.choice)}")
+                        appendLine(
+                            "[T${PlanProver.turnOf(
+                                step.at,
+                            )}] $side ${d.seat} ${d.kind} '${d.prompt}' of $width: ${moveCode(step.at, step.choice)}",
+                        )
                         val ev = step.next.session.events
                         for (e in ev.drop(seen)) appendLine("    ${e.text}")
                         seen = ev.size

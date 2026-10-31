@@ -195,25 +195,25 @@ object R02ShePlaysAnAttack : Puzzle() {
 }
 
 private val R02_NUDGES = listOf(
-            listOf(
-                "Look along Xargatha's cards. Which turn is she playing an attack card, and which of your attacks" +
-                " cares?",
-                "Gunslinger has to be left for turn 4, and Sabina has to end up in range of her by then.",
-                "Play Blink Strike on Tigerclaw, who moves, and Covering Fire on Sabina, who moves.",
-            ),
-            listOf(
-                "Ignatia has pushed Sabina about. Walk back in.",
-                "Tigerclaw needs to be near too, for the Zone and for the assist.",
-                "Play Blend Into Shadows on Tigerclaw and Point Blank Shot on Sabina, who moves.",
-            ),
-            listOf(
-                "This is a turn for spending what's left.",
-                "Keep Gunslinger. Sabina needn't go further.",
-                "Play Poisoned Dagger on Tigerclaw, who moves, and Back to Back on Sabina.",
-            ),
-            listOf(
-                "Xargatha has played Cleave, an attack card. What is Gunslinger worth now?",
-                "Attack 7. Her only card left is Siren's Call, which gives her 4 here.",
-                "Play Parry on Tigerclaw and Gunslinger on Sabina, attacking Xargatha.",
-            ),
+    listOf(
+        "Look along Xargatha's cards. Which turn is she playing an attack card, and which of your attacks" +
+            " cares?",
+        "Gunslinger has to be left for turn 4, and Sabina has to end up in range of her by then.",
+        "Play Blink Strike on Tigerclaw, who moves, and Covering Fire on Sabina, who moves.",
+    ),
+    listOf(
+        "Ignatia has pushed Sabina about. Walk back in.",
+        "Tigerclaw needs to be near too, for the Zone and for the assist.",
+        "Play Blend Into Shadows on Tigerclaw and Point Blank Shot on Sabina, who moves.",
+    ),
+    listOf(
+        "This is a turn for spending what's left.",
+        "Keep Gunslinger. Sabina needn't go further.",
+        "Play Poisoned Dagger on Tigerclaw, who moves, and Back to Back on Sabina.",
+    ),
+    listOf(
+        "Xargatha has played Cleave, an attack card. What is Gunslinger worth now?",
+        "Attack 7. Her only card left is Siren's Call, which gives her 4 here.",
+        "Play Parry on Tigerclaw and Gunslinger on Sabina, attacking Xargatha.",
+    ),
 )

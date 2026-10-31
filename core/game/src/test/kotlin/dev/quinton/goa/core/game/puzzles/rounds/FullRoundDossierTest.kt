@@ -49,8 +49,12 @@ class FullRoundDossierTest {
 
     /** "Lane Zone 2, next to Swift and the red melee minion". */
     private fun place(st: GameState, hex: Hex, except: String): String {
-        val near = (st.heroes.filter { it.id != except && it.at != null && HexGrid.distance(it.at!!, hex) == 1 }.map { data.heroName(it.id) } +
-            st.minions.filter { it.at != null && HexGrid.distance(it.at!!, hex) == 1 }.map { name(st, it.id) })
+        val near = (
+            st.heroes.filter {
+                it.id != except && it.at != null && HexGrid.distance(it.at!!, hex) == 1
+            }.map { data.heroName(it.id) } +
+                st.minions.filter { it.at != null && HexGrid.distance(it.at!!, hex) == 1 }.map { name(st, it.id) }
+            )
         return zone(st, hex) + if (near.isEmpty()) "" else ", next to " + near.joinToString(" and ")
     }
 
@@ -58,16 +62,27 @@ class FullRoundDossierTest {
         val c = data.card(id)
         val v = c.values
         val stats = listOfNotNull(
-            c.initiative?.let { "init $it" }, v.attack?.let { "A$it" }, v.defense?.let { "D$it" },
-            v.movement?.let { "M$it" }, v.range?.let { "R$it" }, v.radius?.let { "rad$it" },
+            c.initiative?.let { "init $it" },
+            v.attack?.let { "A$it" },
+            v.defense?.let { "D$it" },
+            v.movement?.let { "M$it" },
+            v.range?.let { "R$it" },
+            v.radius?.let { "rad$it" },
         ).joinToString(" ")
         return "${c.name} [$id, ${c.primary}, $stats]${if (c.text.isBlank()) "" else " \"${c.text}\""}"
     }
 
     private fun position(st: GameState): String = buildString {
-        appendLine("Round ${st.round}. Coin: ${st.tieBreaker}. Battle Zone ${st.battleZones}. Waves ${st.wavesLeft}. Life ${st.lifeCounters}.")
+        appendLine(
+            "Round ${st.round}. Coin: ${st.tieBreaker}. Battle Zone ${st.battleZones}. " +
+                "Waves ${st.wavesLeft}. Life ${st.lifeCounters}.",
+        )
         for (h in st.heroes) {
-            appendLine("${data.heroName(h.id)} (${h.team}, level ${h.level}, ${h.coins} coins) in ${h.at?.let { place(st, it, h.id) } ?: "off the board"}")
+            appendLine(
+                "${data.heroName(h.id)} (${h.team}, level ${h.level}, ${h.coins} coins) in ${h.at?.let {
+                    place(st, it, h.id)
+                } ?: "off the board"}",
+            )
             h.inZone(Zone.HAND).forEach { appendLine("    hand: ${card(it.id)}") }
             h.inZone(Zone.ITEM).forEach { appendLine("    item: ${data.card(it.id).item}") }
             if (h.markers.isNotEmpty()) appendLine("    markers: ${h.markers.map { it.kind }}")
@@ -75,7 +90,13 @@ class FullRoundDossierTest {
         }
         val byZone = st.minions.groupBy { m -> m.at?.let { zone(st, it) } ?: "off" }
         for ((z, ms) in byZone) appendLine("Minions in $z: ${ms.joinToString { name(st, it.id) }}")
-        if (st.pieces.isNotEmpty()) appendLine("Pieces: ${st.pieces.joinToString { "${it.label} in ${it.at?.let { a -> zone(st, a) }}" }}")
+        if (st.pieces.isNotEmpty()) {
+            appendLine(
+                "Pieces: ${st.pieces.joinToString {
+                    "${it.label} in ${it.at?.let { a -> zone(st, a) }}"
+                }}",
+            )
+        }
     }
 
     private fun answer(st: GameState, c: Choice): String = when (c) {
@@ -97,10 +118,25 @@ class FullRoundDossierTest {
             val side = solver.sideOf(s.decision)
             if (s.decision.options.size > 1 || s.decision.kind.name == "PLAY_CARD") {
                 val who = if (side == Side.PLAYER) "YOU" else "them"
-                appendLine("  [T${PlanProver.turnOf(s.at)}] $who ${data.heroName(s.decision.seat)} ${s.decision.kind} (${s.decision.prompt}): ${answer(st, s.choice)}  {${solver.choices(s.at).size} of ${s.decision.options.size}}")
+                appendLine(
+                    "  [T${PlanProver.turnOf(
+                        s.at,
+                    )}] $who ${data.heroName(
+                        s.decision.seat,
+                    )} ${s.decision.kind} (${s.decision.prompt}): ${answer(
+                        st,
+                        s.choice,
+                    )}  {${solver.choices(s.at).size} of ${s.decision.options.size}}",
+                )
             }
             val ev = s.next.session.events
-            for (e in ev.drop(seen)) if (e !is GameEvent.Note || "plays a card" !in e.text) appendLine("        ${e.text}")
+            for (e in ev.drop(seen)) {
+                if (e !is GameEvent.Note ||
+                    "plays a card" !in e.text
+                ) {
+                    appendLine("        ${e.text}")
+                }
+            }
             seen = ev.size
         }
     }
@@ -117,7 +153,13 @@ class FullRoundDossierTest {
         val known = checkNotNull(p.known)
         for ((h, cards) in known.cards) {
             cards.forEachIndexed { i, c ->
-                appendLine("${data.heroName(h)} turn ${i + 1}: ${card(c)}${if (known.actions[h]?.containsKey(i + 1) == true) "  (action known)" else "  (free)"}")
+                appendLine(
+                    "${data.heroName(
+                        h,
+                    )} turn ${i + 1}: ${card(
+                        c,
+                    )}${if (known.actions[h]?.containsKey(i + 1) == true) "  (action known)" else "  (free)"}",
+                )
             }
         }
         appendLine("=== draft plans")
@@ -133,21 +175,34 @@ class FullRoundDossierTest {
         val known = checkNotNull(p.known)
         for ((hero, turns) in known.actions) {
             for (turn in turns.keys.sorted()) {
-                val steps = line.filter { it.decision.seat == hero && it.at.session.state.turn == turn && it.at.session.state.acting == hero }
+                val steps = line.filter {
+                    it.decision.seat == hero && it.at.session.state.turn == turn &&
+                        it.at.session.state.acting == hero
+                }
                 val parts = ArrayList<String>()
                 for (s in steps) {
                     val st = s.next.session.state
                     for (e in s.next.session.events.drop(s.at.session.events.size)) {
                         when (e) {
-                            is GameEvent.Moved -> if (e.unitId == hero) parts += "moves to ${place(st, e.path.last(), hero)}"
+                            is GameEvent.Moved -> if (e.unitId ==
+                                hero
+                            ) {
+                                parts += "moves to ${place(st, e.path.last(), hero)}"
+                            }
+
                             is GameEvent.Placed -> if (e.pieceId == hero) parts += "travels to ${place(st, e.to, hero)}"
+
                             is GameEvent.Attacked -> parts += "attacks ${name(s.at.session.state, e.targetId)}"
+
                             is GameEvent.ActionChosen -> if (e.action.name == "HOLD") parts += "holds"
+
                             else -> Unit
                         }
                     }
                 }
-                val text = parts.joinToString(", then ").replaceFirstChar { it.uppercase() }.ifEmpty { "Uses its skill" }
+                val text = parts.joinToString(", then ").replaceFirstChar {
+                    it.uppercase()
+                }.ifEmpty { "Uses its skill" }
                 appendLine("plan $hero $turn: $text.")
             }
         }
@@ -163,7 +218,11 @@ class FullRoundDossierTest {
             val others = solver.choices(s.at).filter { it != s.option }
             if (others.isEmpty()) continue
             val st = s.at.session.state
-            appendLine("[T${PlanProver.turnOf(s.at)}] ${data.heroName(d.seat)} ${d.kind} (${d.prompt}): line plays ${answer(st, s.choice)}")
+            appendLine(
+                "[T${PlanProver.turnOf(
+                    s.at,
+                )}] ${data.heroName(d.seat)} ${d.kind} (${d.prompt}): line plays ${answer(st, s.choice)}",
+            )
             for (i in others.take(MAX_OTHERS)) {
                 if (shown++ > MAX_SHOWN) return@buildString
                 val c: Node = solver.child(s.at, d.options[i])!!
@@ -172,7 +231,9 @@ class FullRoundDossierTest {
                     continue
                 }
                 val rest = PlanProver.mainLine(solver, c, plan)
-                val mine = rest.filter { solver.sideOf(it.decision) == Side.PLAYER && it.decision.options.size > 1 }.take(MAX_MOVES)
+                val mine = rest.filter {
+                    solver.sideOf(it.decision) == Side.PLAYER && it.decision.options.size > 1
+                }.take(MAX_MOVES)
                     .joinToString("; ") { answer(it.at.session.state, it.choice) }
                 val end = rest.lastOrNull()?.let { PlanProver.turnOf(it.next) } ?: PlanProver.turnOf(c)
                 appendLine("    ${answer(st, d.options[i])}: plan goes on $mine; goal met in turn $end")

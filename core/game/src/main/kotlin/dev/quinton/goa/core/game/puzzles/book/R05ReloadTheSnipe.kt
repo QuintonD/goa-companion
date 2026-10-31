@@ -35,7 +35,13 @@ object R05ReloadTheSnipe : Puzzle() {
                 4 to listOf(Choice.Action(ActionType.HOLD)),
             ),
             "nebkher" to mapOf(
-                1 to listOf(Choice.Action(ActionType.PRIMARY), Choice.Space(Hex(2, -2)), Choice.Space(Hex(1, -2)), Choice.Decline("Skip")),
+                1 to
+                    listOf(
+                        Choice.Action(ActionType.PRIMARY),
+                        Choice.Space(Hex(2, -2)),
+                        Choice.Space(Hex(1, -2)),
+                        Choice.Decline("Skip"),
+                    ),
                 2 to listOf(Choice.Action(ActionType.PRIMARY), Choice.Decline("Stop")),
                 3 to listOf(Choice.Action(ActionType.MOVEMENT), Choice.Space(Hex(3, -3))),
                 4 to listOf(Choice.Action(ActionType.PRIMARY), Choice.Option(1, "Defeat a minion adjacent to you")),
@@ -200,27 +206,27 @@ object R05ReloadTheSnipe : Puzzle() {
 }
 
 private val R05_NUDGES = listOf(
-            listOf(
-                "Two coins are there for the taking now. The rest take three more turns to line up.",
-                "Sabina can shoot a Blue minion at once. Swift has something to do with an enemy minion.",
-                "Play Mark for Death on Swift and Shootout on Sabina, and attack the Blue melee minion with " +
-                "Shootout.",
-            ),
-            listOf(
-                "Dodger is coming next to Sabina. Where does Swift need to be two turns from now?",
-                "Swift has a shot that needs a long straight line. Start walking; Sabina steps away.",
-                "Play Bounce on Swift and Point Blank Shot on Sabina; Sabina takes the Movement.",
-            ),
-            listOf(
-                "Swift has one attack that reaches Dodger from far away, and he won't use it this turn. Play it " +
-                "anyway.",
-                "Snipe's Attack is for next turn. This turn its Movement takes Swift to a space at Snipe's " +
-                "maximum range, in a straight line from where Dodger will hold.",
-                "Play Snipe on Swift, taking its Movement, and Back to Back on Sabina.",
-            ),
-            listOf(
-                "Which card is Swift's rightmost resolved card now? What would Reload! do with it?",
-                "Reload! performs Snipe's primary action: Attack 6, at maximum range in a straight line.",
-                "Play Reload! on Swift, performing Snipe at Dodger, and Close Support on Sabina.",
-            ),
+    listOf(
+        "Two coins are there for the taking now. The rest take three more turns to line up.",
+        "Sabina can shoot a Blue minion at once. Swift has something to do with an enemy minion.",
+        "Play Mark for Death on Swift and Shootout on Sabina, and attack the Blue melee minion with " +
+            "Shootout.",
+    ),
+    listOf(
+        "Dodger is coming next to Sabina. Where does Swift need to be two turns from now?",
+        "Swift has a shot that needs a long straight line. Start walking; Sabina steps away.",
+        "Play Bounce on Swift and Point Blank Shot on Sabina; Sabina takes the Movement.",
+    ),
+    listOf(
+        "Swift has one attack that reaches Dodger from far away, and he won't use it this turn. Play it " +
+            "anyway.",
+        "Snipe's Attack is for next turn. This turn its Movement takes Swift to a space at Snipe's " +
+            "maximum range, in a straight line from where Dodger will hold.",
+        "Play Snipe on Swift, taking its Movement, and Back to Back on Sabina.",
+    ),
+    listOf(
+        "Which card is Swift's rightmost resolved card now? What would Reload! do with it?",
+        "Reload! performs Snipe's primary action: Attack 6, at maximum range in a straight line.",
+        "Play Reload! on Swift, performing Snipe at Dodger, and Close Support on Sabina.",
+    ),
 )

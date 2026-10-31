@@ -18,9 +18,9 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 12, mined from self-play (g4608_r7_BLUE_coins-5; ADR-052, ENCODING.md "Full rounds"). */
-object R12Attack2StillCostsACard : Puzzle() {
-    override val concept = "R12"
+/** Full round 13, mined from self-play (g4608_r7_BLUE_coins-5; ADR-052, ENCODING.md "Full rounds"). */
+object R13Attack2StillCostsACard : Puzzle() {
+    override val concept = "R13"
 
     override val known = KnownPlays(
         cards = mapOf(
@@ -32,7 +32,14 @@ object R12Attack2StillCostsACard : Puzzle() {
                 1 to listOf(Choice.Action(ActionType.HOLD)),
                 2 to listOf(Choice.Action(ActionType.PRIMARY)),
                 3 to listOf(Choice.Action(ActionType.MOVEMENT), Choice.Space(Hex(3, -1))),
-                4 to listOf(Choice.Action(ActionType.PRIMARY), Choice.Space(Hex(4, -4)), Choice.Space(Hex(4, -2)), Choice.Space(Hex(2, 0)), Choice.Space(Hex(2, 0))),
+                4 to
+                    listOf(
+                        Choice.Action(ActionType.PRIMARY),
+                        Choice.Space(Hex(4, -4)),
+                        Choice.Space(Hex(4, -2)),
+                        Choice.Space(Hex(2, 0)),
+                        Choice.Space(Hex(2, 0)),
+                    ),
             ),
             "snorri" to mapOf(
                 1 to listOf(Choice.Action(ActionType.HOLD)),
@@ -44,8 +51,8 @@ object R12Attack2StillCostsACard : Puzzle() {
     )
 
     override val info = PuzzleInfo(
-        id = "r12",
-        number = 12,
+        id = "r13",
+        number = 13,
         title = "Attack 2 Still Costs a Card",
         difficulty = 2,
         theme = "A weak attack that spends the enemy's spare, assist coins",
@@ -54,23 +61,24 @@ object R12Attack2StillCostsACard : Puzzle() {
         intro = "Round 7. You play Wasp and Whisper for Blue. Whisper stands next to Snorri. A hero who doesn't " +
             "defend is defeated, however small the attack, and defending costs a card (p.13, p.14). Snorri holds " +
             "five cards and will play four.",
-        nudges = R12_NUDGES.first(),
-        nudgesByTurn = R12_NUDGES,
-        explanation = "Turn 1: Wasp fast travels with Control Gravity's Movement. Shadow Walk places Whisper on an empty " +
-            "spawn point next to Snorri, so she can reach him next turn." +
-            "\n\n" +
-            "Turn 2: Swift Justice attacks Snorri for only 2, but a hero who doesn't defend is defeated (p.13), " +
-            "so he has to spend a card: with Runic Hammer here, or with Inscribe the Runes or Ancestral Boon. If " +
-            "he declines, the goal is met at once." +
-            "\n\n" +
-            "Turn 3: Nobody attacks. Static Barrier and Death Seeker are played now so that Charged Boomerang and" +
-            " Sanguine Path are left for turn 4." +
-            "\n\n" +
-            "Turn 4: Snorri's fourth card is played and his spare has gone. Wasp moves first on the tie; Sanguine" +
-            " Path moves Whisper 2 spaces and attacks Snorri at 3. He has no card to defend with and is defeated " +
-            "before his card resolves: Whisper gains 4 coins and Wasp 2 for the assist (p.13), 6 in all." +
-            "\n\n" +
-            "The computer at strength 7, playing your heroes, doesn't get there, and neither does strength 10.",
+        nudges = R13_NUDGES.first(),
+        nudgesByTurn = R13_NUDGES,
+        explanation =
+            "Turn 1: Wasp fast travels with Control Gravity's Movement. Shadow Walk places Whisper on an empty " +
+                "spawn point next to Snorri, so she can reach him next turn." +
+                "\n\n" +
+                "Turn 2: Swift Justice attacks Snorri for only 2, but a hero who doesn't defend is defeated (p.13), " +
+                "so he has to spend a card: with Runic Hammer here, or with Inscribe the Runes or Ancestral Boon. If " +
+                "he declines, the goal is met at once." +
+                "\n\n" +
+                "Turn 3: Nobody attacks. Static Barrier and Death Seeker are played now so that Charged Boomerang and" +
+                " Sanguine Path are left for turn 4." +
+                "\n\n" +
+                "Turn 4: Snorri's fourth card is played and his spare has gone. Wasp moves first on the tie; Sanguine" +
+                " Path moves Whisper 2 spaces and attacks Snorri at 3. He has no card to defend with and is defeated " +
+                "before his card resolves: Whisper gains 4 coins and Wasp 2 for the assist (p.13), 6 in all." +
+                "\n\n" +
+                "The computer at strength 7, playing your heroes, doesn't get there, and neither does strength 10.",
         rules = listOf(
             "p.13 Attacking a hero, When a hero is defeated",
             "p.14 Defense",
@@ -205,30 +213,30 @@ object R12Attack2StillCostsACard : Puzzle() {
     )
 }
 
-private val R12_NUDGES = listOf(
-            listOf(
-                "Snorri is worth more coins than any minion. What stops him being defeated?",
-                "He has one spare card. You will need an attack in turn 2 and another in turn 4, and Whisper has " +
-                "to stay close.",
-                "Play Control Gravity on Wasp, fast travelling, and Shadow Walk on Whisper, onto the spawn point " +
-                "next to Snorri.",
-            ),
-            listOf(
-                "Even the smallest attack must be answered. Which of Whisper's cards can reach him now?",
-                "Swift Justice has Attack 2 and can target a unit next to you. Snorri has to spend a card on it " +
-                "or be defeated.",
-                "Play Magnetic Dagger on Wasp, who moves, and Swift Justice on Whisper, attacking Snorri.",
-            ),
-            listOf(
-                "This turn doesn't attack anybody. Which cards do you have to get out of the way, so that the " +
-                "right ones are left for turn 4?",
-                "Keep Whisper's card that moves and attacks, and Wasp's that can move her.",
-                "Play Static Barrier on Wasp and Death Seeker on Whisper.",
-            ),
-            listOf(
-                "Snorri's last card is on the table. Look at his hand. Who acts before him?",
-                "Sanguine Path moves Whisper before the attack. Snorri can't defend, and the assist pays as well.",
-                "Play Charged Boomerang on Wasp, who moves first, and Sanguine Path on Whisper, moving next to " +
-                "Snorri and attacking him.",
-            ),
+private val R13_NUDGES = listOf(
+    listOf(
+        "Snorri is worth more coins than any minion. What stops him being defeated?",
+        "He has one spare card. You will need an attack in turn 2 and another in turn 4, and Whisper has " +
+            "to stay close.",
+        "Play Control Gravity on Wasp, fast travelling, and Shadow Walk on Whisper, onto the spawn point " +
+            "next to Snorri.",
+    ),
+    listOf(
+        "Even the smallest attack must be answered. Which of Whisper's cards can reach him now?",
+        "Swift Justice has Attack 2 and can target a unit next to you. Snorri has to spend a card on it " +
+            "or be defeated.",
+        "Play Magnetic Dagger on Wasp, who moves, and Swift Justice on Whisper, attacking Snorri.",
+    ),
+    listOf(
+        "This turn doesn't attack anybody. Which cards do you have to get out of the way, so that the " +
+            "right ones are left for turn 4?",
+        "Keep Whisper's card that moves and attacks, and Wasp's that can move her.",
+        "Play Static Barrier on Wasp and Death Seeker on Whisper.",
+    ),
+    listOf(
+        "Snorri's last card is on the table. Look at his hand. Who acts before him?",
+        "Sanguine Path moves Whisper before the attack. Snorri can't defend, and the assist pays as well.",
+        "Play Charged Boomerang on Wasp, who moves first, and Sanguine Path on Whisper, moving next to " +
+            "Snorri and attacking him.",
+    ),
 )

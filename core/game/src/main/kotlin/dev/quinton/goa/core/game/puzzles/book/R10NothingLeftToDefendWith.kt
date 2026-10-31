@@ -37,7 +37,15 @@ object R10NothingLeftToDefendWith : Puzzle() {
                 3 to listOf(Choice.Action(ActionType.PRIMARY), Choice.Space(Hex(0, 1))),
             ),
             "nebkher" to mapOf(
-                1 to listOf(Choice.Action(ActionType.PRIMARY), Choice.Option(1, "Place an Illusion token in an adjacent space"), Choice.Space(Hex(5, -4)), Choice.Option(0, "Swap with an Illusion token in radius"), Choice.Option(1, "Place an Illusion token in an adjacent space"), Choice.Space(Hex(5, -5))),
+                1 to
+                    listOf(
+                        Choice.Action(ActionType.PRIMARY),
+                        Choice.Option(1, "Place an Illusion token in an adjacent space"),
+                        Choice.Space(Hex(5, -4)),
+                        Choice.Option(0, "Swap with an Illusion token in radius"),
+                        Choice.Option(1, "Place an Illusion token in an adjacent space"),
+                        Choice.Space(Hex(5, -5)),
+                    ),
                 2 to listOf(Choice.Action(ActionType.MOVEMENT), Choice.Space(Hex(5, -3))),
                 3 to listOf(Choice.Action(ActionType.FAST_TRAVEL), Choice.Space(Hex(5, -4))),
             ),
@@ -57,22 +65,23 @@ object R10NothingLeftToDefendWith : Puzzle() {
             "discarding a card.",
         nudges = R10_NUDGES.first(),
         nudgesByTurn = R10_NUDGES,
-        explanation = "Turn 1: Widget plays four of its five cards this round, so it has one to spare. Electrocute attacks " +
-            "it for 7 now, and it has to spend a card to stop it (p.14): Dragon Bond or Diversionary Attack " +
-            "defends, anything less and Widget is defeated at once, which ends the game." +
-            "\n\n" +
-            "Turn 2: Widget kills the Red melee minion as planned. Swoop In puts Misa next to Widget and the Blue" +
-            " melee minion (it needs two or more enemy units next to the space), while Wasp plays Static Barrier." +
-            "\n\n" +
-            "Turn 3: Widget's Safe Landing moves Pyro and swaps with it, so you know where it will end. Dash and " +
-            "Slash takes Misa one space, next to that space." +
-            "\n\n" +
-            "Turn 4: The cards are revealed with Widget's hand empty. Misa acts first and attacks with Worthy " +
-            "Opponent for 7. Widget has no card to defend with and is defeated (p.13), its own card goes " +
-            "unresolved, and Blue spends its last 2 Life counters: the game is over." +
-            "\n\n" +
-            "The computer at strength 7, playing your heroes, doesn't find this: on its line the round ends with " +
-            "Widget alive and the Minion Battle level at 1 against 1.",
+        explanation =
+            "Turn 1: Widget plays four of its five cards this round, so it has one to spare. Electrocute attacks " +
+                "it for 7 now, and it has to spend a card to stop it (p.14): Dragon Bond or Diversionary Attack " +
+                "defends, anything less and Widget is defeated at once, which ends the game." +
+                "\n\n" +
+                "Turn 2: Widget kills the Red melee minion as planned. Swoop In puts Misa next to Widget and the Blue" +
+                " melee minion (it needs two or more enemy units next to the space), while Wasp plays Static Barrier." +
+                "\n\n" +
+                "Turn 3: Widget's Safe Landing moves Pyro and swaps with it, so you know where it will end. Dash and " +
+                "Slash takes Misa one space, next to that space." +
+                "\n\n" +
+                "Turn 4: The cards are revealed with Widget's hand empty. Misa acts first and attacks with Worthy " +
+                "Opponent for 7. Widget has no card to defend with and is defeated (p.13), its own card goes " +
+                "unresolved, and Blue spends its last 2 Life counters: the game is over." +
+                "\n\n" +
+                "The computer at strength 7, playing your heroes, doesn't find this: on its line the round ends with " +
+                "Widget alive and the Minion Battle level at 1 against 1.",
         rules = listOf(
             "p.13 Attacking a hero, When a hero is defeated",
             "p.14 Defense",
@@ -104,7 +113,16 @@ object R10NothingLeftToDefendWith : Puzzle() {
         wavesLeft("lane-1", 1)
         lifeCounters(Team.RED, 4)
         lifeCounters(Team.BLUE, 2)
-        piece(PieceState("t33", "pyro", "Pyro", Hex(-1, 1), "widget", Team.BLUE, true, false, false, false, false, null, linkedMapOf()))
+        piece(
+            PieceState(
+                "t33", "pyro", "Pyro",
+                Hex(
+                    -1,
+                    1,
+                ),
+                "widget", Team.BLUE, true, false, false, false, false, null, linkedMapOf(),
+            ),
+        )
         hero("misa", Team.RED, Hex(4, -1)) {
             level = 6
             coins = 6
@@ -197,28 +215,28 @@ object R10NothingLeftToDefendWith : Puzzle() {
 }
 
 private val R10_NUDGES = listOf(
-            listOf(
-                "Widget has five cards and plays four. What will it have left in turn 4?",
-                "A defense costs a card (p.14). Attack Widget now, when it can afford to defend, so that it can't" +
-                " later.",
-                "Play Watch How I Soar on Misa and Electrocute on Wasp, and attack Widget with Electrocute.",
-            ),
-            listOf(
-                "Widget's next two plans are known. Where do you need Misa standing by turn 4?",
-                "Swoop In places Misa next to two or more enemy units. Look at who will be standing where.",
-                "Play Swoop In on Misa, into the space next to Widget and the Blue melee minion, and Static " +
-                "Barrier on Wasp.",
-            ),
-            listOf(
-                "Widget's plan this turn ends on the outlined space. Be next to it.",
-                "Misa only needs one space, and Dash and Slash can stop after one.",
-                "Play Dash and Slash on Misa, one space along, next to the Red heavy minion, and Magnetic Dagger " +
-                "on Wasp, who just moves.",
-            ),
-            listOf(
-                "Look at Widget's hand: its fourth card is played and the spare is gone. Now look at who acts " +
-                "first.",
-                "Misa acts before Widget in this turn. Her attack is 7.",
-                "Play Worthy Opponent on Misa and Kinetic Blast on Wasp, and attack Widget with Worthy Opponent.",
-            ),
+    listOf(
+        "Widget has five cards and plays four. What will it have left in turn 4?",
+        "A defense costs a card (p.14). Attack Widget now, when it can afford to defend, so that it can't" +
+            " later.",
+        "Play Watch How I Soar on Misa and Electrocute on Wasp, and attack Widget with Electrocute.",
+    ),
+    listOf(
+        "Widget's next two plans are known. Where do you need Misa standing by turn 4?",
+        "Swoop In places Misa next to two or more enemy units. Look at who will be standing where.",
+        "Play Swoop In on Misa, into the space next to Widget and the Blue melee minion, and Static " +
+            "Barrier on Wasp.",
+    ),
+    listOf(
+        "Widget's plan this turn ends on the outlined space. Be next to it.",
+        "Misa only needs one space, and Dash and Slash can stop after one.",
+        "Play Dash and Slash on Misa, one space along, next to the Red heavy minion, and Magnetic Dagger " +
+            "on Wasp, who just moves.",
+    ),
+    listOf(
+        "Look at Widget's hand: its fourth card is played and the spare is gone. Now look at who acts " +
+            "first.",
+        "Misa acts before Widget in this turn. Her attack is 7.",
+        "Play Worthy Opponent on Misa and Kinetic Blast on Wasp, and attack Widget with Worthy Opponent.",
+    ),
 )

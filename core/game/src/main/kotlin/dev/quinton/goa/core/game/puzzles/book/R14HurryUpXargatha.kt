@@ -19,9 +19,9 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 13, mined from self-play (g2470_r3_BLUE_coins-6; ADR-052, ENCODING.md "Full rounds"). */
-object R13HurryUpXargatha : Puzzle() {
-    override val concept = "R13"
+/** Full round 14, mined from self-play (g2470_r3_BLUE_coins-6; ADR-052, ENCODING.md "Full rounds"). */
+object R14HurryUpXargatha : Puzzle() {
+    override val concept = "R14"
 
     override val known = KnownPlays(
         cards = mapOf(
@@ -36,15 +36,21 @@ object R13HurryUpXargatha : Puzzle() {
             ),
             "emmitt" to mapOf(
                 1 to listOf(Choice.Action(ActionType.HOLD)),
-                2 to listOf(Choice.Action(ActionType.PRIMARY), Choice.Space(Hex(3, -7)), Choice.Space(Hex(0, -5)), Choice.Unit("hanu")),
+                2 to
+                    listOf(
+                        Choice.Action(ActionType.PRIMARY),
+                        Choice.Space(Hex(3, -7)),
+                        Choice.Space(Hex(0, -5)),
+                        Choice.Unit("hanu"),
+                    ),
                 3 to listOf(Choice.Action(ActionType.HOLD)),
             ),
         ),
     )
 
     override val info = PuzzleInfo(
-        id = "r13",
-        number = 13,
+        id = "r14",
+        number = 14,
         title = "Hurry Up, Xargatha",
         difficulty = 3,
         theme = "Changing your own card's initiative, attack bonuses counted from the board",
@@ -54,8 +60,8 @@ object R13HurryUpXargatha : Puzzle() {
             "who defeats her and 1 to the other. Hurry up! sets the printed Initiative of a hero's unresolved " +
             "card to 11, and it can be your own. Deadly Swipe gets +2 Attack for each other enemy unit next to " +
             "you. Turn 4 isn't known.",
-        nudges = R13_NUDGES.first(),
-        nudgesByTurn = R13_NUDGES,
+        nudges = R14_NUDGES.first(),
+        nudgesByTurn = R14_NUDGES,
         explanation = "Turn 1: Misa defeats a Blue minion as planned. You have nothing in reach, so Monkey Trick and " +
             "Siren's Call are the cards to spend." +
             "\n\n" +
@@ -191,28 +197,28 @@ object R13HurryUpXargatha : Puzzle() {
     )
 }
 
-private val R13_NUDGES = listOf(
-            listOf(
-                "Six coins is a minion and Misa. Look at her Turn 4 card's initiative, and at yours.",
-                "Nothing is in reach yet. Spend the cards you won't need.",
-                "Play Monkey Trick on Hanu and Siren's Call on Xargatha.",
-            ),
-            listOf(
-                "Hanu wants to stand next to the Red ranged minion. Xargatha has to start towards Misa and " +
-                "Emmitt.",
-                "Unexpected Journey's Movement is 3. Charm's is 2.",
-                "Play Unexpected Journey on Hanu, moving next to the Red ranged minion, and Charm on Xargatha, " +
-                "who moves.",
-            ),
-            listOf(
-                "Hanu can collect now, even at Attack 2. Where must Xargatha end this turn?",
-                "Next to both Misa and Emmitt: count what Deadly Swipe is worth there.",
-                "Play Fight and Flight on Hanu, attacking the Red ranged minion, and Cleave on Xargatha, moving " +
-                "next to Misa and Emmitt.",
-            ),
-            listOf(
-                "Deadly Swipe would act after Misa. Which of your cards changes that?",
-                "Hanu's Hurry up! acts first and sets Deadly Swipe to 11, ahead of Misa's 9.",
-                "Play Hurry up! on Hanu, on Xargatha's card, and Deadly Swipe on Xargatha, attacking Misa.",
-            ),
+private val R14_NUDGES = listOf(
+    listOf(
+        "Six coins is a minion and Misa. Look at her Turn 4 card's initiative, and at yours.",
+        "Nothing is in reach yet. Spend the cards you won't need.",
+        "Play Monkey Trick on Hanu and Siren's Call on Xargatha.",
+    ),
+    listOf(
+        "Hanu wants to stand next to the Red ranged minion. Xargatha has to start towards Misa and " +
+            "Emmitt.",
+        "Unexpected Journey's Movement is 3. Charm's is 2.",
+        "Play Unexpected Journey on Hanu, moving next to the Red ranged minion, and Charm on Xargatha, " +
+            "who moves.",
+    ),
+    listOf(
+        "Hanu can collect now, even at Attack 2. Where must Xargatha end this turn?",
+        "Next to both Misa and Emmitt: count what Deadly Swipe is worth there.",
+        "Play Fight and Flight on Hanu, attacking the Red ranged minion, and Cleave on Xargatha, moving " +
+            "next to Misa and Emmitt.",
+    ),
+    listOf(
+        "Deadly Swipe would act after Misa. Which of your cards changes that?",
+        "Hanu's Hurry up! acts first and sets Deadly Swipe to 11, ahead of Misa's 9.",
+        "Play Hurry up! on Hanu, on Xargatha's card, and Deadly Swipe on Xargatha, attacking Misa.",
+    ),
 )

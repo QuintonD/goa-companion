@@ -21,9 +21,9 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 20, mined from self-play (g2850_r6_BLUE_push; ADR-052, ENCODING.md "Full rounds"). */
-object R20BothSidesOfTheCoin : Puzzle() {
-    override val concept = "R20"
+/** Full round 22, mined from self-play (g2850_r6_BLUE_push; ADR-052, ENCODING.md "Full rounds"). */
+object R22BothSidesOfTheCoin : Puzzle() {
+    override val concept = "R22"
 
     override val known = KnownPlays(
         cards = mapOf(
@@ -32,7 +32,13 @@ object R20BothSidesOfTheCoin : Puzzle() {
         ),
         actions = mapOf(
             "swift" to mapOf(
-                1 to listOf(Choice.Action(ActionType.PRIMARY), Choice.Space(Hex(6, -6)), Choice.Unit("ignatia"), Choice.Number(1)),
+                1 to
+                    listOf(
+                        Choice.Action(ActionType.PRIMARY),
+                        Choice.Space(Hex(6, -6)),
+                        Choice.Unit("ignatia"),
+                        Choice.Number(1),
+                    ),
                 2 to listOf(Choice.Action(ActionType.HOLD)),
                 3 to listOf(Choice.Action(ActionType.PRIMARY)),
             ),
@@ -45,8 +51,8 @@ object R20BothSidesOfTheCoin : Puzzle() {
     )
 
     override val info = PuzzleInfo(
-        id = "r20",
-        number = 20,
+        id = "r22",
+        number = 22,
         title = "Both Sides of the Coin",
         difficulty = 3,
         theme = "Tie Breaker text, a card played now for a later turn, Minion Battle arithmetic",
@@ -55,26 +61,27 @@ object R20BothSidesOfTheCoin : Puzzle() {
         intro = "Round 6. You play Ignatia and Garrus for Blue. Ignatia's cards change with the Tie Breaker coin, " +
             "which flips when a tied card resolves. The Battle Zone is Lane Zone 3. Win the Minion Battle by " +
             "enough and Red loses its last minion there (p.8).",
-        nudges = R20_NUDGES.first(),
-        nudgesByTurn = R20_NUDGES,
-        explanation = "Turn 1: Swift lands beside you and pushes Ignatia, as planned. Chase's Movement takes Garrus 4 " +
-            "spaces, next to the Red melee and ranged minions; Ignatia walks 3 spaces to Lane Zone 2 with " +
-            "Spontaneous Immolation's Movement." +
-            "\n\n" +
-            "Turn 2: Razzle takes her doubles off the board with Crowd Control. Angry Strike kills a Red melee " +
-            "minion. Ignatia plays Equilibrium: this round, each time she performs a primary action she may apply" +
-            " either coin's text. It does nothing yet." +
-            "\n\n" +
-            "Turn 3: Chilling Howl lets Garrus discard Chase, a card already resolved, and Pin Down then takes " +
-            "Light Pilum. Path of Ashes takes Ignatia 2 spaces with its blue text, leaving Magma behind her, and " +
-            "her tie flips the coin to orange." +
-            "\n\n" +
-            "Turn 4: Form Up! moves Ignatia 1 space. With the coin on orange, Crack of Doom would only reach a " +
-            "unit at maximum range, but Equilibrium lets her apply the blue text: she attacks the Red ranged " +
-            "minion next to her for 5 and defeats it. In the Minion Battle Red has 2 and Blue 4, Red removes 2, " +
-            "its last two, and Blue pushes the lane (p.8)." +
-            "\n\n" +
-            "The computer at strength 7, playing your heroes, doesn't find it.",
+        nudges = R22_NUDGES.first(),
+        nudgesByTurn = R22_NUDGES,
+        explanation =
+            "Turn 1: Swift lands beside you and pushes Ignatia, as planned. Chase's Movement takes Garrus 4 " +
+                "spaces, next to the Red melee and ranged minions; Ignatia walks 3 spaces to Lane Zone 2 with " +
+                "Spontaneous Immolation's Movement." +
+                "\n\n" +
+                "Turn 2: Razzle takes her doubles off the board with Crowd Control. Angry Strike kills a Red melee " +
+                "minion. Ignatia plays Equilibrium: this round, each time she performs a primary action she may apply" +
+                " either coin's text. It does nothing yet." +
+                "\n\n" +
+                "Turn 3: Chilling Howl lets Garrus discard Chase, a card already resolved, and Pin Down then takes " +
+                "Light Pilum. Path of Ashes takes Ignatia 2 spaces with its blue text, leaving Magma behind her, and " +
+                "her tie flips the coin to orange." +
+                "\n\n" +
+                "Turn 4: Form Up! moves Ignatia 1 space. With the coin on orange, Crack of Doom would only reach a " +
+                "unit at maximum range, but Equilibrium lets her apply the blue text: she attacks the Red ranged " +
+                "minion next to her for 5 and defeats it. In the Minion Battle Red has 2 and Blue 4, Red removes 2, " +
+                "its last two, and Blue pushes the lane (p.8)." +
+                "\n\n" +
+                "The computer at strength 7, playing your heroes, doesn't find it.",
         rules = listOf(
             "p.8 Minion Battle, Push the Lane",
             "p.5 Tie Breaker coin",
@@ -108,9 +115,36 @@ object R20BothSidesOfTheCoin : Puzzle() {
         wavesLeft("lane-1", 2)
         lifeCounters(Team.RED, 4)
         lifeCounters(Team.BLUE, 4)
-        piece(PieceState("rz21", "razzle_double", "Razzle", Hex(3, -9), "razzle", Team.RED, false, true, false, false, false, "razzle", linkedMapOf()))
-        piece(PieceState("rz22", "razzle_double", "Razzle", Hex(7, -11), "razzle", Team.RED, false, true, false, false, false, "razzle", linkedMapOf()))
-        piece(PieceState("rz38", "razzle_double", "Razzle", Hex(3, -8), "razzle", Team.RED, false, true, false, false, false, "razzle", linkedMapOf()))
+        piece(
+            PieceState(
+                "rz21", "razzle_double", "Razzle",
+                Hex(
+                    3,
+                    -9,
+                ),
+                "razzle", Team.RED, false, true, false, false, false, "razzle", linkedMapOf(),
+            ),
+        )
+        piece(
+            PieceState(
+                "rz22", "razzle_double", "Razzle",
+                Hex(
+                    7,
+                    -11,
+                ),
+                "razzle", Team.RED, false, true, false, false, false, "razzle", linkedMapOf(),
+            ),
+        )
+        piece(
+            PieceState(
+                "rz38", "razzle_double", "Razzle",
+                Hex(
+                    3,
+                    -8,
+                ),
+                "razzle", Team.RED, false, true, false, false, false, "razzle", linkedMapOf(),
+            ),
+        )
         hero("swift", Team.RED, Hex(6, -4)) {
             level = 5
             coins = 1
@@ -209,31 +243,31 @@ object R20BothSidesOfTheCoin : Puzzle() {
     )
 }
 
-private val R20_NUDGES = listOf(
-            listOf(
-                "Count the minions in the Battle Zone. How many must go before the battle takes the rest?",
-                "Garrus can reach the Red minions now. Ignatia needs to be somewhere else for a while.",
-                "Play Spontaneous Immolation on Ignatia and Chase on Garrus; Garrus goes first and runs 4 spaces " +
-                "next to the Red melee and ranged minions.",
-            ),
-            listOf(
-                "One Red minion falls to Garrus this turn. Ignatia's card this turn isn't for this turn.",
-                "Equilibrium lasts the whole round: each time, you may apply either coin's text.",
-                "Play Equilibrium on Ignatia and Angry Strike on Garrus, and attack a Red melee minion with Angry" +
-                " Strike.",
-            ),
-            listOf(
-                "Swift is going to make Garrus discard. Choose what he loses before Swift does.",
-                "Chilling Howl lets him discard a resolved card first. Ignatia still has a way to go.",
-                "Play Path of Ashes on Ignatia and Chilling Howl on Garrus. Garrus discards Chase; Ignatia moves " +
-                "2 spaces in a straight line with the Blue text.",
-            ),
-            listOf(
-                "The coin shows orange now. Crack of Doom's orange text reaches only a unit at maximum range. Is " +
-                "that what you want?",
-                "Equilibrium lets Ignatia use the blue text anyway: a unit next to her. Garrus can bring her next" +
-                " to it first.",
-                "Play Crack of Doom on Ignatia and Form Up! on Garrus. Form Up! moves Ignatia once, then she " +
-                "attacks the Red ranged minion with the blue text.",
-            ),
+private val R22_NUDGES = listOf(
+    listOf(
+        "Count the minions in the Battle Zone. How many must go before the battle takes the rest?",
+        "Garrus can reach the Red minions now. Ignatia needs to be somewhere else for a while.",
+        "Play Spontaneous Immolation on Ignatia and Chase on Garrus; Garrus goes first and runs 4 spaces " +
+            "next to the Red melee and ranged minions.",
+    ),
+    listOf(
+        "One Red minion falls to Garrus this turn. Ignatia's card this turn isn't for this turn.",
+        "Equilibrium lasts the whole round: each time, you may apply either coin's text.",
+        "Play Equilibrium on Ignatia and Angry Strike on Garrus, and attack a Red melee minion with Angry" +
+            " Strike.",
+    ),
+    listOf(
+        "Swift is going to make Garrus discard. Choose what he loses before Swift does.",
+        "Chilling Howl lets him discard a resolved card first. Ignatia still has a way to go.",
+        "Play Path of Ashes on Ignatia and Chilling Howl on Garrus. Garrus discards Chase; Ignatia moves " +
+            "2 spaces in a straight line with the Blue text.",
+    ),
+    listOf(
+        "The coin shows orange now. Crack of Doom's orange text reaches only a unit at maximum range. Is " +
+            "that what you want?",
+        "Equilibrium lets Ignatia use the blue text anyway: a unit next to her. Garrus can bring her next" +
+            " to it first.",
+        "Play Crack of Doom on Ignatia and Form Up! on Garrus. Form Up! moves Ignatia once, then she " +
+            "attacks the Red ranged minion with the blue text.",
+    ),
 )

@@ -20,9 +20,9 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 15, mined from self-play (g1082_r6_RED_defeat-xargatha; ADR-052, ENCODING.md "Full rounds"). */
-object R15StrikeLikeATiger : Puzzle() {
-    override val concept = "R15"
+/** Full round 16, mined from self-play (g1082_r6_RED_defeat-xargatha; ADR-052, ENCODING.md "Full rounds"). */
+object R16StrikeLikeATiger : Puzzle() {
+    override val concept = "R16"
 
     override val known = KnownPlays(
         cards = mapOf(
@@ -44,8 +44,8 @@ object R15StrikeLikeATiger : Puzzle() {
     )
 
     override val info = PuzzleInfo(
-        id = "r15",
-        number = 15,
+        id = "r16",
+        number = 16,
         title = "Strike Like a Tiger",
         difficulty = 3,
         theme = "Gold cards swapped for an attack, a big attack that only spends a card",
@@ -54,23 +54,24 @@ object R15StrikeLikeATiger : Puzzle() {
         intro = "Round 6. You play Takahide and Wuk for Red. Xargatha has five cards and will play four. Takahide's " +
             "gold cards can be swapped with those in his deck: Strike like a Tiger is there, and it hits hard. " +
             "Turn 4 isn't known.",
-        nudges = R15_NUDGES.first(),
-        nudgesByTurn = R15_NUDGES,
-        explanation = "Turn 1: Bushido swaps Takahide's gold card with Strike like a Tiger from the deck. Wuk plays Tree " +
-            "Slam, which removes a Tree and finds no target." +
-            "\n\n" +
-            "Turn 2: Wuk places Trees again with Mystic Saplings. Takahide's Pledge of Allegiance lets Wuk " +
-            "discard Nature's Guardian, and you each gain a coin. Xargatha's Siren's Call moves Takahide next to " +
-            "the Red heavy minion, which is where he wanted to go." +
-            "\n\n" +
-            "Turn 3: Takahide wins the tie and Strike like a Tiger attacks at 8. Deadly Swipe holds, with her " +
-            "items and modifiers, and anything less defeats her at once. So her spare is gone. The card swaps " +
-            "itself for Sting like a Bee, and Tree of Plenty removes a Tree to retrieve Nature's Guardian." +
-            "\n\n" +
-            "Turn 4: Takahide acts before her. Lead from the Front attacks at 4, she has no card to defend with, " +
-            "and she is defeated (p.13). Her Cleave goes unresolved. Blue spends 2 Life counters." +
-            "\n\n" +
-            "The computer at strength 7, playing your heroes, doesn't find it, and neither does strength 10.",
+        nudges = R16_NUDGES.first(),
+        nudgesByTurn = R16_NUDGES,
+        explanation =
+            "Turn 1: Bushido swaps Takahide's gold card with Strike like a Tiger from the deck. Wuk plays Tree " +
+                "Slam, which removes a Tree and finds no target." +
+                "\n\n" +
+                "Turn 2: Wuk places Trees again with Mystic Saplings. Takahide's Pledge of Allegiance lets Wuk " +
+                "discard Nature's Guardian, and you each gain a coin. Xargatha's Siren's Call moves Takahide next to " +
+                "the Red heavy minion, which is where he wanted to go." +
+                "\n\n" +
+                "Turn 3: Takahide wins the tie and Strike like a Tiger attacks at 8. Deadly Swipe holds, with her " +
+                "items and modifiers, and anything less defeats her at once. So her spare is gone. The card swaps " +
+                "itself for Sting like a Bee, and Tree of Plenty removes a Tree to retrieve Nature's Guardian." +
+                "\n\n" +
+                "Turn 4: Takahide acts before her. Lead from the Front attacks at 4, she has no card to defend with, " +
+                "and she is defeated (p.13). Her Cleave goes unresolved. Blue spends 2 Life counters." +
+                "\n\n" +
+                "The computer at strength 7, playing your heroes, doesn't find it, and neither does strength 10.",
         rules = listOf(
             "p.13 Attacking a hero, When a hero is defeated",
             "p.14 Defense, Minion Defense Modifiers",
@@ -103,9 +104,36 @@ object R15StrikeLikeATiger : Puzzle() {
         wavesLeft("lane-1", 2)
         lifeCounters(Team.RED, 4)
         lifeCounters(Team.BLUE, 4)
-        piece(PieceState("t41", "token_tree", "Tree", Hex(9, -12), "wuk", Team.RED, true, false, false, false, false, null, linkedMapOf()))
-        piece(PieceState("t42", "token_tree", "Tree", Hex(6, -9), "wuk", Team.RED, true, false, false, false, false, null, linkedMapOf()))
-        piece(PieceState("t43", "token_tree", "Tree", Hex(7, -11), "wuk", Team.RED, true, false, false, false, false, null, linkedMapOf()))
+        piece(
+            PieceState(
+                "t41", "token_tree", "Tree",
+                Hex(
+                    9,
+                    -12,
+                ),
+                "wuk", Team.RED, true, false, false, false, false, null, linkedMapOf(),
+            ),
+        )
+        piece(
+            PieceState(
+                "t42", "token_tree", "Tree",
+                Hex(
+                    6,
+                    -9,
+                ),
+                "wuk", Team.RED, true, false, false, false, false, null, linkedMapOf(),
+            ),
+        )
+        piece(
+            PieceState(
+                "t43", "token_tree", "Tree",
+                Hex(
+                    7,
+                    -11,
+                ),
+                "wuk", Team.RED, true, false, false, false, false, null, linkedMapOf(),
+            ),
+        )
         hero("takahide", Team.RED, Hex(7, -9)) {
             level = 4
             coins = 1
@@ -203,29 +231,29 @@ object R15StrikeLikeATiger : Puzzle() {
     )
 }
 
-private val R15_NUDGES = listOf(
-            listOf(
-                "Xargatha can defend once and still play four cards. How do you take that away from her?",
-                "Takahide's big attack is in his deck. Which card fetches it?",
-                "Play Bushido on Takahide, taking Strike like a Tiger, and Tree Slam on Wuk.",
-            ),
-            listOf(
-                "You will want something back next turn. Discarding isn't always a loss.",
-                "Pledge of Allegiance pays you both a coin if Wuk discards. Mystic Saplings places the Trees " +
-                "again.",
-                "Play Pledge of Allegiance on Takahide and Mystic Saplings on Wuk, who discards Nature's " +
-                "Guardian.",
-            ),
-            listOf(
-                "Xargatha has pulled Takahide near her. Attack 8 is coming: what does she have to do?",
-                "She has to spend Deadly Swipe, her only card that holds. Tree of Plenty brings your discard " +
-                "back.",
-                "Play Strike like a Tiger on Takahide, attacking Xargatha, and Tree of Plenty on Wuk, retrieving " +
-                "Nature's Guardian.",
-            ),
-            listOf(
-                "Look at Xargatha's hand. Takahide's initiative beats hers.",
-                "A small attack is enough now.",
-                "Play Lead from the Front on Takahide, attacking Xargatha, and Treetop Ride on Wuk.",
-            ),
+private val R16_NUDGES = listOf(
+    listOf(
+        "Xargatha can defend once and still play four cards. How do you take that away from her?",
+        "Takahide's big attack is in his deck. Which card fetches it?",
+        "Play Bushido on Takahide, taking Strike like a Tiger, and Tree Slam on Wuk.",
+    ),
+    listOf(
+        "You will want something back next turn. Discarding isn't always a loss.",
+        "Pledge of Allegiance pays you both a coin if Wuk discards. Mystic Saplings places the Trees " +
+            "again.",
+        "Play Pledge of Allegiance on Takahide and Mystic Saplings on Wuk, who discards Nature's " +
+            "Guardian.",
+    ),
+    listOf(
+        "Xargatha has pulled Takahide near her. Attack 8 is coming: what does she have to do?",
+        "She has to spend Deadly Swipe, her only card that holds. Tree of Plenty brings your discard " +
+            "back.",
+        "Play Strike like a Tiger on Takahide, attacking Xargatha, and Tree of Plenty on Wuk, retrieving " +
+            "Nature's Guardian.",
+    ),
+    listOf(
+        "Look at Xargatha's hand. Takahide's initiative beats hers.",
+        "A small attack is enough now.",
+        "Play Lead from the Front on Takahide, attacking Xargatha, and Treetop Ride on Wuk.",
+    ),
 )

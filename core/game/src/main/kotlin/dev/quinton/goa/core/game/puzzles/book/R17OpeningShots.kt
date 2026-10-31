@@ -17,9 +17,9 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 16, mined from self-play (g8907_r7_BLUE_defeat-snorri; ADR-052, ENCODING.md "Full rounds"). */
-object R16OpeningShots : Puzzle() {
-    override val concept = "R16"
+/** Full round 17, mined from self-play (g8907_r7_BLUE_defeat-snorri; ADR-052, ENCODING.md "Full rounds"). */
+object R17OpeningShots : Puzzle() {
+    override val concept = "R17"
 
     override val known = KnownPlays(
         cards = mapOf(
@@ -41,8 +41,8 @@ object R16OpeningShots : Puzzle() {
     )
 
     override val info = PuzzleInfo(
-        id = "r16",
-        number = 16,
+        id = "r17",
+        number = 17,
         title = "Opening Shots",
         difficulty = 3,
         theme = "A discard forced while both discards are empty, the last Life counters",
@@ -51,8 +51,8 @@ object R16OpeningShots : Puzzle() {
         intro = "Round 7. You play Rowenna and Swift for Blue. Red has 2 Life counters left, and defeating Snorri " +
             "costs both. Snorri has five cards and will play four. Opening Shots makes an enemy hero in radius " +
             "discard only if neither of you has a card in the discard. Turn 4 isn't known.",
-        nudges = R16_NUDGES.first(),
-        nudgesByTurn = R16_NUDGES,
+        nudges = R17_NUDGES.first(),
+        nudgesByTurn = R17_NUDGES,
         explanation = "Turn 1: Throw the Gauntlet places Rowenna near the fight. Wasp fast travels into Side Zone 2." +
             "\n\n" +
             "Turn 2: Code of Chivalry's Movement takes Rowenna next to Snorri. Prepared Shot defeats the Red " +
@@ -190,28 +190,28 @@ object R16OpeningShots : Puzzle() {
     )
 }
 
-private val R16_NUDGES = listOf(
-            listOf(
-                "What will Snorri have left in turn 4? And what must Rowenna's own discard look like when you " +
-                "take his spare?",
-                "Don't defend, and don't discard, before turn 3. Rowenna needs to get close first.",
-                "Play Throw the Gauntlet on Rowenna and Reload! on Swift.",
-            ),
-            listOf(
-                "Rowenna has a card that walks her next to Snorri. Swift has a clear shot at a Red minion.",
-                "Take the Movement on Rowenna's gold card, not the attack.",
-                "Play Code of Chivalry on Rowenna, moving next to Snorri, and Prepared Shot on Swift, shooting " +
-                "the Red melee minion.",
-            ),
-            listOf(
-                "Rowenna's discard is still empty, and so is Snorri's. Now is the moment for the card that needs " +
-                "that.",
-                "Opening Shots takes Snorri's spare card, in radius 3. Swift only has to bounce clear.",
-                "Play Opening Shots on Rowenna and Bounce on Swift.",
-            ),
-            listOf(
-                "Snorri's fourth card is played. Who acts first?",
-                "Paragon of Grace acts before him at Attack 7, and he has no card left to defend with.",
-                "Play Paragon of Grace on Rowenna, attacking Snorri, and Mark for Death on Swift.",
-            ),
+private val R17_NUDGES = listOf(
+    listOf(
+        "What will Snorri have left in turn 4? And what must Rowenna's own discard look like when you " +
+            "take his spare?",
+        "Don't defend, and don't discard, before turn 3. Rowenna needs to get close first.",
+        "Play Throw the Gauntlet on Rowenna and Reload! on Swift.",
+    ),
+    listOf(
+        "Rowenna has a card that walks her next to Snorri. Swift has a clear shot at a Red minion.",
+        "Take the Movement on Rowenna's gold card, not the attack.",
+        "Play Code of Chivalry on Rowenna, moving next to Snorri, and Prepared Shot on Swift, shooting " +
+            "the Red melee minion.",
+    ),
+    listOf(
+        "Rowenna's discard is still empty, and so is Snorri's. Now is the moment for the card that needs " +
+            "that.",
+        "Opening Shots takes Snorri's spare card, in radius 3. Swift only has to bounce clear.",
+        "Play Opening Shots on Rowenna and Bounce on Swift.",
+    ),
+    listOf(
+        "Snorri's fourth card is played. Who acts first?",
+        "Paragon of Grace acts before him at Attack 7, and he has no card left to defend with.",
+        "Play Paragon of Grace on Rowenna, attacking Snorri, and Mark for Death on Swift.",
+    ),
 )

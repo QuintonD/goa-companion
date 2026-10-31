@@ -56,19 +56,20 @@ object R09WhatToLose : Puzzle() {
             "is going to cost Whisper a card in turn 2, and you choose which.",
         nudges = R09_NUDGES.first(),
         nudgesByTurn = R09_NUDGES,
-        explanation = "Turn 1: Dodger respawns and moves in, as planned. Emmitt plays Reverse Time and Whisper Shadow Walk." +
-            "\n\n" +
-            "Turn 2: Lesser Evil's Movement takes Whisper 2 spaces, and Back to the Future places her back again." +
-            " Garrus's Light Pilum then makes her discard: Swift Justice goes, and Blood Fury stays." +
-            "\n\n" +
-            "Turn 3: Garrus moves next to Whisper as planned. Emmitt's Unstable Timeline makes Garrus choose the " +
-            "Glitch he swaps with, and Whisper plays Death Seeker. She has one card left now." +
-            "\n\n" +
-            "Turn 4: Emmitt and Whisper tie, and Emmitt moves first. Blood Fury attacks Garrus at 6. Chilling " +
-            "Howl gives 3 and 2 for items, 5, not enough, and he is defeated before Blunt Force resolves (p.13): " +
-            "4 coins for Whisper and 2 for Emmitt. Blue spends its last 2 Life counters, too." +
-            "\n\n" +
-            "The computer at strength 7, playing your heroes, doesn't find it, and neither does strength 10.",
+        explanation =
+            "Turn 1: Dodger respawns and moves in, as planned. Emmitt plays Reverse Time and Whisper Shadow Walk." +
+                "\n\n" +
+                "Turn 2: Lesser Evil's Movement takes Whisper 2 spaces, and Back to the Future places her back again." +
+                " Garrus's Light Pilum then makes her discard: Swift Justice goes, and Blood Fury stays." +
+                "\n\n" +
+                "Turn 3: Garrus moves next to Whisper as planned. Emmitt's Unstable Timeline makes Garrus choose the " +
+                "Glitch he swaps with, and Whisper plays Death Seeker. She has one card left now." +
+                "\n\n" +
+                "Turn 4: Emmitt and Whisper tie, and Emmitt moves first. Blood Fury attacks Garrus at 6. Chilling " +
+                "Howl gives 3 and 2 for items, 5, not enough, and he is defeated before Blunt Force resolves (p.13): " +
+                "4 coins for Whisper and 2 for Emmitt. Blue spends its last 2 Life counters, too." +
+                "\n\n" +
+                "The computer at strength 7, playing your heroes, doesn't find it, and neither does strength 10.",
         rules = listOf(
             "p.13 Attacking a hero, When a hero is defeated",
             "p.10 Discard a Card",
@@ -202,24 +203,24 @@ object R09WhatToLose : Puzzle() {
 }
 
 private val R09_NUDGES = listOf(
-            listOf(
-                "Which of your cards beats Garrus's best defense? That one has to last until turn 4.",
-                "Blood Fury is Attack 6. Everything else this round serves it.",
-                "Play Reverse Time on Emmitt and Shadow Walk on Whisper.",
-            ),
-            listOf(
-                "Whisper is going to lose a card this turn. Be sure it is not the one that matters.",
-                "Discard Swift Justice. And Lesser Evil's Movement starts her walking.",
-                "Play Back to the Future on Emmitt and Lesser Evil on Whisper, who moves; discard Swift Justice.",
-            ),
-            listOf(
-                "Garrus walks next to Whisper this turn. Nothing you do has to stop him.",
-                "Keep Time Trap and Blood Fury for last.",
-                "Play Unstable Timeline on Emmitt and Death Seeker on Whisper.",
-            ),
-            listOf(
-                "Garrus stands next to Whisper. Which of you goes first on the tie doesn't matter to him.",
-                "Blood Fury acts before his Blunt Force, and Attack 6 beats Chilling Howl's 5.",
-                "Play Time Trap on Emmitt and Blood Fury on Whisper, attacking Garrus.",
-            ),
+    listOf(
+        "Which of your cards beats Garrus's best defense? That one has to last until turn 4.",
+        "Blood Fury is Attack 6. Everything else this round serves it.",
+        "Play Reverse Time on Emmitt and Shadow Walk on Whisper.",
+    ),
+    listOf(
+        "Whisper is going to lose a card this turn. Be sure it is not the one that matters.",
+        "Discard Swift Justice. And Lesser Evil's Movement starts her walking.",
+        "Play Back to the Future on Emmitt and Lesser Evil on Whisper, who moves; discard Swift Justice.",
+    ),
+    listOf(
+        "Garrus walks next to Whisper this turn. Nothing you do has to stop him.",
+        "Keep Time Trap and Blood Fury for last.",
+        "Play Unstable Timeline on Emmitt and Death Seeker on Whisper.",
+    ),
+    listOf(
+        "Garrus stands next to Whisper. Which of you goes first on the tie doesn't matter to him.",
+        "Blood Fury acts before his Blunt Force, and Attack 6 beats Chilling Howl's 5.",
+        "Play Time Trap on Emmitt and Blood Fury on Whisper, attacking Garrus.",
+    ),
 )

@@ -55,7 +55,9 @@ class RoundSpikeTest {
         val rng = kotlin.random.Random(SEED)
         val cases = mined.shuffled(rng).flatMap { m ->
             Team.entries.flatMap { t ->
-                m.goalsFor(t).filter { it !is PuzzleGoal.Survive }.filter { (m.metIn(it, t) ?: 0) >= LATE }.map { Job(m, t, it) }
+                m.goalsFor(t).filter {
+                    it !is PuzzleGoal.Survive
+                }.filter { (m.metIn(it, t) ?: 0) >= LATE }.map { Job(m, t, it) }
             }
         }.distinctBy { it.m.game }.take(n)
         println("SPIKE ${mined.size} rounds of $read games, ${cases.size} cases")
@@ -80,7 +82,8 @@ class RoundSpikeTest {
             enemies.associateWith { h -> m.actions[h].orEmpty().filterKeys { it < openFrom } },
         )
         val tracker = GoalTracker(j.goal, j.team, mine.toSet())
-        val label = "open$openFrom g${m.game} r${m.round} ${j.team} $mine vs $enemies ${j.goal.text} (game: turn ${m.metIn(j.goal, j.team)})"
+        val label = "open$openFrom g${m.game} r${m.round} ${j.team} $mine vs $enemies ${j.goal.text} " +
+            "(game: turn ${m.metIn(j.goal, j.team)})"
         val sv = PuzzleSolver(tracker, known = known)
         val root = sv.wrap(m.halted().also { it.quiet = System.getenv("ROUND_QUIET") != "0" }, Progress(), null)
         val prover = PlanProver(sv, runs, System.nanoTime() + seconds * 1_000_000_000L)
@@ -93,8 +96,9 @@ class RoundSpikeTest {
 
             proof == null -> " PROOF DOES NOT HOLD"
 
-            else -> " proof ${proof.positions} positions (${proof.playerPositions} player, " +
-                "${proof.enemyPositions} enemy) ${proof.edges} edges, goal met in turns ${proof.earliest}..${proof.latest}"
+            else ->
+                " proof ${proof.positions} positions (${proof.playerPositions} player, " +
+                    "${proof.enemyPositions} enemy) ${proof.edges} edges, goal met in turns ${proof.earliest}..${proof.latest}"
         }
         println("SPIKE $label: $v runs ${prover.engineRuns} positions ${prover.positions} $ms ms$shown")
         return v == Value.WIN

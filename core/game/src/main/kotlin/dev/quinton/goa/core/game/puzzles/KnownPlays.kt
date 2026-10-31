@@ -47,7 +47,15 @@ data class KnownPlays(
     fun display(plans: Map<String, Map<Int, String>>): List<KnownPlay> = cards.flatMap { (hero, list) ->
         list.mapIndexed { i, card ->
             val answers = actions[hero]?.get(i + 1).orEmpty()
-            KnownPlay(hero, i + 1, card, plans[hero]?.get(i + 1), answers.filterIsInstance<Choice.Space>().map { it.hex })
+            KnownPlay(
+                hero,
+                i + 1,
+                card,
+                plans[hero]?.get(i + 1),
+                answers.filterIsInstance<Choice.Space>().map {
+                    it.hex
+                },
+            )
         }
     }
 }

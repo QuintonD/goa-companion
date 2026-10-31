@@ -52,27 +52,31 @@ object R04TheLastPush : Puzzle() {
         difficulty = 2,
         theme = "Trees set up for a later shot, three minions in three turns",
         heroes = listOf("wuk", "bain", "ignatia", "razzle"),
-        goal = PuzzleGoal.PushLane(Deadline.END_OF_ROUND, "Push the lane by the end of the round. It is the last Wave counter: the push wins the game."),
+        goal = PuzzleGoal.PushLane(
+            Deadline.END_OF_ROUND,
+            "Push the lane by the end of the round. It is the last Wave counter: the push wins the game.",
+        ),
         intro = "Round 8. You play Wuk and Bain for Red. Blue has more minions in the Battle Zone than you can take " +
             "in one turn, and Razzle's first card removes one of yours. Nature's Champion can shoot a unit in " +
             "range only if that unit stands next to a Tree token. Tree tokens stay at the end of a round.",
         nudges = R04_NUDGES.first(),
         nudgesByTurn = R04_NUDGES,
-        explanation = "Turn 1: Razzle removes the Red ranged minion as planned. Monstrous Throw's Movement takes Wuk next " +
-            "to the Blue ranged minion. Bain plays Get over here!." +
-            "\n\n" +
-            "Turn 2: Tree Slam defeats the Blue ranged minion at 6. Bain moves 1 space with Dead or Alive's " +
-            "Movement, which lines him up for next turn." +
-            "\n\n" +
-            "Turn 3: Heavy Crossbow needs a straight line with no units or terrain in the way: from there it " +
-            "reaches a Blue melee minion and defeats it at 8. Mystic Saplings takes the Trees already on the " +
-            "board and places them again, next to the Blue melee minions." +
-            "\n\n" +
-            "Turn 4: Nature's Champion shoots a Blue melee minion next to a Tree and defeats it. In the Minion " +
-            "Battle Red has 4 and Blue 2: Blue removes its last two, Red pushes the lane with the last Wave " +
-            "counter, and Red wins the last push (p.3, p.8)." +
-            "\n\n" +
-            "The computer at strength 7, playing your heroes, doesn't find it, and neither does strength 10.",
+        explanation =
+            "Turn 1: Razzle removes the Red ranged minion as planned. Monstrous Throw's Movement takes Wuk next " +
+                "to the Blue ranged minion. Bain plays Get over here!." +
+                "\n\n" +
+                "Turn 2: Tree Slam defeats the Blue ranged minion at 6. Bain moves 1 space with Dead or Alive's " +
+                "Movement, which lines him up for next turn." +
+                "\n\n" +
+                "Turn 3: Heavy Crossbow needs a straight line with no units or terrain in the way: from there it " +
+                "reaches a Blue melee minion and defeats it at 8. Mystic Saplings takes the Trees already on the " +
+                "board and places them again, next to the Blue melee minions." +
+                "\n\n" +
+                "Turn 4: Nature's Champion shoots a Blue melee minion next to a Tree and defeats it. In the Minion " +
+                "Battle Red has 4 and Blue 2: Blue removes its last two, Red pushes the lane with the last Wave " +
+                "counter, and Red wins the last push (p.3, p.8)." +
+                "\n\n" +
+                "The computer at strength 7, playing your heroes, doesn't find it, and neither does strength 10.",
         rules = listOf(
             "p.8 Minion Battle, Push the Lane",
             "p.3 Last Push",
@@ -107,9 +111,36 @@ object R04TheLastPush : Puzzle() {
         wavesLeft("lane-1", 1)
         lifeCounters(Team.RED, 3)
         lifeCounters(Team.BLUE, 1)
-        piece(PieceState("t54", "token_tree", "Tree", Hex(0, -5), "wuk", Team.RED, true, false, false, false, false, null, linkedMapOf()))
-        piece(PieceState("t55", "token_tree", "Tree", Hex(0, -4), "wuk", Team.RED, true, false, false, false, false, null, linkedMapOf()))
-        piece(PieceState("t56", "token_tree", "Tree", Hex(-1, -5), "wuk", Team.RED, true, false, false, false, false, null, linkedMapOf()))
+        piece(
+            PieceState(
+                "t54", "token_tree", "Tree",
+                Hex(
+                    0,
+                    -5,
+                ),
+                "wuk", Team.RED, true, false, false, false, false, null, linkedMapOf(),
+            ),
+        )
+        piece(
+            PieceState(
+                "t55", "token_tree", "Tree",
+                Hex(
+                    0,
+                    -4,
+                ),
+                "wuk", Team.RED, true, false, false, false, false, null, linkedMapOf(),
+            ),
+        )
+        piece(
+            PieceState(
+                "t56", "token_tree", "Tree",
+                Hex(
+                    -1,
+                    -5,
+                ),
+                "wuk", Team.RED, true, false, false, false, false, null, linkedMapOf(),
+            ),
+        )
         hero("wuk", Team.RED, Hex(2, -2)) {
             level = 7
             coins = 1
@@ -207,30 +238,30 @@ object R04TheLastPush : Puzzle() {
 }
 
 private val R04_NUDGES = listOf(
-            listOf(
-                "Count the Minion Battle: Red will lose its ranged minion to Razzle. How many Blue minions must " +
-                "be gone by the end?",
-                "Three Blue minions, one a turn from turn 2. This turn is for getting into position.",
-                "Play Monstrous Throw on Wuk, moving next to the Blue ranged minion, and Get over here! on Bain.",
-            ),
-            listOf(
-                "Wuk is next to the first one. Bain has a straight-line shot next turn: where must he stand for " +
-                "it?",
-                "Tree Slam targets a minion next to Wuk. Bain only has to move.",
-                "Play Tree Slam on Wuk, attacking the Blue ranged minion, and Dead or Alive on Bain, moving 1 " +
-                "space.",
-            ),
-            listOf(
-                "Bain can take the second one now. Wuk's last attack needs something on the board first.",
-                "Nature's Champion targets a unit in range next to a Tree token. Place Trees next to the Blue " +
-                "minions you want.",
-                "Play Mystic Saplings on Wuk, placing Trees next to the Blue melee minions, and Heavy Crossbow on" +
-                " Bain, shooting a Blue melee minion.",
-            ),
-            listOf(
-                "One more Blue minion, and you are done. Which is next to a Tree?",
-                "Nature's Champion shoots at 8 here. Bain has nothing to do but stay safe.",
-                "Play Nature's Champion on Wuk, attacking the Blue melee minion, and Perfect Getaway on Bain, who" +
-                " moves.",
-            ),
+    listOf(
+        "Count the Minion Battle: Red will lose its ranged minion to Razzle. How many Blue minions must " +
+            "be gone by the end?",
+        "Three Blue minions, one a turn from turn 2. This turn is for getting into position.",
+        "Play Monstrous Throw on Wuk, moving next to the Blue ranged minion, and Get over here! on Bain.",
+    ),
+    listOf(
+        "Wuk is next to the first one. Bain has a straight-line shot next turn: where must he stand for " +
+            "it?",
+        "Tree Slam targets a minion next to Wuk. Bain only has to move.",
+        "Play Tree Slam on Wuk, attacking the Blue ranged minion, and Dead or Alive on Bain, moving 1 " +
+            "space.",
+    ),
+    listOf(
+        "Bain can take the second one now. Wuk's last attack needs something on the board first.",
+        "Nature's Champion targets a unit in range next to a Tree token. Place Trees next to the Blue " +
+            "minions you want.",
+        "Play Mystic Saplings on Wuk, placing Trees next to the Blue melee minions, and Heavy Crossbow on" +
+            " Bain, shooting a Blue melee minion.",
+    ),
+    listOf(
+        "One more Blue minion, and you are done. Which is next to a Tree?",
+        "Nature's Champion shoots at 8 here. Bain has nothing to do but stay safe.",
+        "Play Nature's Champion on Wuk, attacking the Blue melee minion, and Perfect Getaway on Bain, who" +
+            " moves.",
+    ),
 )

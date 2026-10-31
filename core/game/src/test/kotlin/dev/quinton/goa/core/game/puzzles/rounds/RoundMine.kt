@@ -70,9 +70,7 @@ class MinedRound(
         for (e in events) {
             when (e) {
                 is GameEvent.TurnStarted -> turn = e.turn
-
                 is GameEvent.Note -> if (e.text.startsWith("End of round")) turn = RoundMine.END_OF_ROUND
-
                 else -> Unit
             }
             when (goal) {
@@ -116,7 +114,9 @@ internal object RoundMine {
             val ev = s.events.drop(eventsAt)
             val endOfBattle = ev.indexOfFirst { it is GameEvent.Note && it.text.startsWith("Everyone retrieves") }
             out += MinedRound(
-                r.game, round, st,
+                r.game,
+                round,
+                st,
                 played.mapValues { (_, v) -> v.toList() },
                 if (endOfBattle >= 0) ev.take(endOfBattle) else ev,
                 r.rounds,
@@ -145,7 +145,9 @@ internal object RoundMine {
             ) {
                 played[d.seat]?.set(st.turn - 1, c.cardId)
             }
-            if (start != null && st.acting == d.seat && d.kind != DecisionKind.DEFEND && d.kind != DecisionKind.PLAY_CARD) {
+            if (start != null && st.acting == d.seat && d.kind != DecisionKind.DEFEND &&
+                d.kind != DecisionKind.PLAY_CARD
+            ) {
                 actions.getOrPut(d.seat) { LinkedHashMap() }.getOrPut(st.turn) { ArrayList() } += c
             }
             if (s.answer(d.id, c) !is AnswerResult.Accepted) return out

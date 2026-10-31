@@ -57,21 +57,22 @@ object R01WhereTheTurretGoes : Puzzle() {
             "both Trinkets and the Turret, and the Turret isn't on the board yet.",
         nudges = R01_NUDGES.first(),
         nudgesByTurn = R01_NUDGES,
-        explanation = "Turn 1: Red has a ranged, a melee and a heavy minion; Blue a heavy and two melee, and Ursafar will " +
-            "take a melee in turn 2. For the Minion Battle to take Red's last minion, Red must end with one " +
-            "against your two. Noble Blade defeats the ranged minion next to Arien at once." +
-            "\n\n" +
-            "Turn 2: Ursafar defeats a Blue melee minion as planned. Rapid Redeployment moves Trinkets 3 spaces " +
-            "and places the Turret next to him. Arien's Spell Break stops enemy skills near him this turn." +
-            "\n\n" +
-            "Turn 3: Salvage Parts places the Turret again, 2 spaces from where it was, next to the Red heavy " +
-            "minion. That is what brings the Red melee minion into range of the Turret next turn. Arien walks to " +
-            "Side Zone 2." +
-            "\n\n" +
-            "Turn 4: Gatling Gun attacks the Red melee minion at 3 and defeats it. In the Minion Battle Red has 1" +
-            " and Blue 2: Red removes its heavy, its last minion in the Zone, and Blue pushes the lane (p.8)." +
-            "\n\n" +
-            "The computer at strength 7, playing your heroes, doesn't find it. Strength 10 does.",
+        explanation =
+            "Turn 1: Red has a ranged, a melee and a heavy minion; Blue a heavy and two melee, and Ursafar will " +
+                "take a melee in turn 2. For the Minion Battle to take Red's last minion, Red must end with one " +
+                "against your two. Noble Blade defeats the ranged minion next to Arien at once." +
+                "\n\n" +
+                "Turn 2: Ursafar defeats a Blue melee minion as planned. Rapid Redeployment moves Trinkets 3 spaces " +
+                "and places the Turret next to him. Arien's Spell Break stops enemy skills near him this turn." +
+                "\n\n" +
+                "Turn 3: Salvage Parts places the Turret again, 2 spaces from where it was, next to the Red heavy " +
+                "minion. That is what brings the Red melee minion into range of the Turret next turn. Arien walks to " +
+                "Side Zone 2." +
+                "\n\n" +
+                "Turn 4: Gatling Gun attacks the Red melee minion at 3 and defeats it. In the Minion Battle Red has 1" +
+                " and Blue 2: Red removes its heavy, its last minion in the Zone, and Blue pushes the lane (p.8)." +
+                "\n\n" +
+                "The computer at strength 7, playing your heroes, doesn't find it. Strength 10 does.",
         rules = listOf(
             "p.8 Minion Battle, Push the Lane",
             "p.9 Range and Radius",
@@ -197,29 +198,29 @@ object R01WhereTheTurretGoes : Puzzle() {
 }
 
 private val R01_NUDGES = listOf(
-            listOf(
-                "Count to the end of the round: Ursafar takes one of your three, so Blue will have two. How many " +
-                "may Red keep?",
-                "Arien stands next to the Red ranged minion now, and he acts early.",
-                "Play Noble Blade on Arien, attacking the Red ranged minion, and Early Prototype on Trinkets.",
-            ),
-            listOf(
-                "Red still has two minions, one too many. Which card of Trinkets can reach the melee minion, and " +
-                "what does it need?",
-                "Rapid Redeployment moves Trinkets up and puts the Turret on the board.",
-                "Play Spell Break on Arien and Rapid Redeployment on Trinkets, moving next to the Red melee " +
-                "minion.",
-            ),
-            listOf(
-                "Gatling Gun needs its target in range of the Turret as well. Is it?",
-                "Salvage Parts can place the Turret again, next to Trinkets. Arien has done his work: keep him " +
-                "out of the way.",
-                "Play Dangerous Current on Arien, moving away, and Salvage Parts on Trinkets, placing the Turret " +
-                "again.",
-            ),
-            listOf(
-                "Enemies only hold this turn. All that is left is the shot.",
-                "Gatling Gun reaches the Red melee minion from Trinkets and from the Turret.",
-                "Play Magical Current on Arien and Gatling Gun on Trinkets, attacking the Red melee minion.",
-            ),
+    listOf(
+        "Count to the end of the round: Ursafar takes one of your three, so Blue will have two. How many " +
+            "may Red keep?",
+        "Arien stands next to the Red ranged minion now, and he acts early.",
+        "Play Noble Blade on Arien, attacking the Red ranged minion, and Early Prototype on Trinkets.",
+    ),
+    listOf(
+        "Red still has two minions, one too many. Which card of Trinkets can reach the melee minion, and " +
+            "what does it need?",
+        "Rapid Redeployment moves Trinkets up and puts the Turret on the board.",
+        "Play Spell Break on Arien and Rapid Redeployment on Trinkets, moving next to the Red melee " +
+            "minion.",
+    ),
+    listOf(
+        "Gatling Gun needs its target in range of the Turret as well. Is it?",
+        "Salvage Parts can place the Turret again, next to Trinkets. Arien has done his work: keep him " +
+            "out of the way.",
+        "Play Dangerous Current on Arien, moving away, and Salvage Parts on Trinkets, placing the Turret " +
+            "again.",
+    ),
+    listOf(
+        "Enemies only hold this turn. All that is left is the shot.",
+        "Gatling Gun reaches the Red melee minion from Trinkets and from the Turret.",
+        "Play Magical Current on Arien and Gatling Gun on Trinkets, attacking the Red melee minion.",
+    ),
 )

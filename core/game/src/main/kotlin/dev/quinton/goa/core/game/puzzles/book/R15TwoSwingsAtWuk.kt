@@ -21,9 +21,9 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 14, mined from self-play (g2312_r2_RED_coins-6; ADR-052, ENCODING.md "Full rounds"). */
-object R14TwoSwingsAtWuk : Puzzle() {
-    override val concept = "R14"
+/** Full round 15, mined from self-play (g2312_r2_RED_coins-6; ADR-052, ENCODING.md "Full rounds"). */
+object R15TwoSwingsAtWuk : Puzzle() {
+    override val concept = "R15"
 
     override val known = KnownPlays(
         cards = mapOf(
@@ -38,15 +38,21 @@ object R14TwoSwingsAtWuk : Puzzle() {
             ),
             "wuk" to mapOf(
                 1 to listOf(Choice.Action(ActionType.PRIMARY)),
-                2 to listOf(Choice.Action(ActionType.PRIMARY), Choice.Space(Hex(-1, -5)), Choice.Space(Hex(-1, -6)), Choice.Space(Hex(0, -5))),
+                2 to
+                    listOf(
+                        Choice.Action(ActionType.PRIMARY),
+                        Choice.Space(Hex(-1, -5)),
+                        Choice.Space(Hex(-1, -6)),
+                        Choice.Space(Hex(0, -5)),
+                    ),
                 3 to listOf(Choice.Action(ActionType.HOLD)),
             ),
         ),
     )
 
     override val info = PuzzleInfo(
-        id = "r14",
-        number = 14,
+        id = "r15",
+        number = 15,
         title = "Two Swings at Wuk",
         difficulty = 3,
         theme = "An active card used twice, coins counted to the last one",
@@ -55,22 +61,23 @@ object R14TwoSwingsAtWuk : Puzzle() {
         intro = "Round 2. You play Mortimer and Ursafar for Red, both still level 1. Minions pay 2 coins. Wuk, also " +
             "level 1, pays 1 to the hero who defeats him and 1 to the other. Wuk holds five cards and will play " +
             "four. Turn 4 isn't known.",
-        nudges = R14_NUDGES.first(),
-        nudgesByTurn = R14_NUDGES,
-        explanation = "Turn 1: Wuk takes a Red melee minion as planned. Ursafar uses Sniff Out's Movement to stand next to " +
-            "a Blue melee minion, and Mortimer plays Awaken!." +
-            "\n\n" +
-            "Turn 2: Claws That Catch and Knife of the Living Dead each defeat a Blue melee minion: 4 coins. " +
-            "Claws That Catch stays active, and Ursafar is enraged this round." +
-            "\n\n" +
-            "Turn 3: Angry Roar performs Claws That Catch again: Ursafar moves 1 space, next to Wuk, and attacks " +
-            "at 4. Wuk must spend a card: Toss Away holds, with 4 and +1 for his adjacent heavy minion (p.14). " +
-            "That was his spare. Mortimer walks into Lane Zone 3." +
-            "\n\n" +
-            "Turn 4: Prey Drive attacks Wuk at 5. He has no card to defend with and is defeated before his card " +
-            "resolves (p.13): 1 coin for Ursafar and 1 for Mortimer's assist. That makes 6, and the goal is met." +
-            "\n\n" +
-            "The computer at strength 7, playing your heroes, doesn't find it, and neither does strength 10.",
+        nudges = R15_NUDGES.first(),
+        nudgesByTurn = R15_NUDGES,
+        explanation =
+            "Turn 1: Wuk takes a Red melee minion as planned. Ursafar uses Sniff Out's Movement to stand next to " +
+                "a Blue melee minion, and Mortimer plays Awaken!." +
+                "\n\n" +
+                "Turn 2: Claws That Catch and Knife of the Living Dead each defeat a Blue melee minion: 4 coins. " +
+                "Claws That Catch stays active, and Ursafar is enraged this round." +
+                "\n\n" +
+                "Turn 3: Angry Roar performs Claws That Catch again: Ursafar moves 1 space, next to Wuk, and attacks " +
+                "at 4. Wuk must spend a card: Toss Away holds, with 4 and +1 for his adjacent heavy minion (p.14). " +
+                "That was his spare. Mortimer walks into Lane Zone 3." +
+                "\n\n" +
+                "Turn 4: Prey Drive attacks Wuk at 5. He has no card to defend with and is defeated before his card " +
+                "resolves (p.13): 1 coin for Ursafar and 1 for Mortimer's assist. That makes 6, and the goal is met." +
+                "\n\n" +
+                "The computer at strength 7, playing your heroes, doesn't find it, and neither does strength 10.",
         rules = listOf(
             "p.13 Attacking a hero, When a hero is defeated",
             "p.14 Defense, Minion Defense Modifiers",
@@ -102,10 +109,46 @@ object R14TwoSwingsAtWuk : Puzzle() {
         wavesLeft("lane-1", 3)
         lifeCounters(Team.RED, 4)
         lifeCounters(Team.BLUE, 4)
-        piece(PieceState("t17", "token_zombie", "Zombie", Hex(-4, -6), "mortimer", Team.RED, true, false, false, false, false, null, linkedMapOf()))
-        piece(PieceState("t18", "token_zombie", "Zombie", Hex(-4, -5), "mortimer", Team.RED, true, false, false, false, false, null, linkedMapOf()))
-        piece(PieceState("t19", "token_zombie", "Zombie", Hex(-5, -4), "mortimer", Team.RED, true, false, false, false, false, null, linkedMapOf()))
-        piece(PieceState("t20", "token_zombie", "Zombie", Hex(-5, -6), "mortimer", Team.RED, true, false, false, false, false, null, linkedMapOf()))
+        piece(
+            PieceState(
+                "t17", "token_zombie", "Zombie",
+                Hex(
+                    -4,
+                    -6,
+                ),
+                "mortimer", Team.RED, true, false, false, false, false, null, linkedMapOf(),
+            ),
+        )
+        piece(
+            PieceState(
+                "t18", "token_zombie", "Zombie",
+                Hex(
+                    -4,
+                    -5,
+                ),
+                "mortimer", Team.RED, true, false, false, false, false, null, linkedMapOf(),
+            ),
+        )
+        piece(
+            PieceState(
+                "t19", "token_zombie", "Zombie",
+                Hex(
+                    -5,
+                    -4,
+                ),
+                "mortimer", Team.RED, true, false, false, false, false, null, linkedMapOf(),
+            ),
+        )
+        piece(
+            PieceState(
+                "t20", "token_zombie", "Zombie",
+                Hex(
+                    -5,
+                    -6,
+                ),
+                "mortimer", Team.RED, true, false, false, false, false, null, linkedMapOf(),
+            ),
+        )
         hero("mortimer", Team.RED, Hex(5, -9)) {
             level = 1
             coins = 1
@@ -120,7 +163,31 @@ object R14TwoSwingsAtWuk : Puzzle() {
             level = 1
             coins = 1
             hand("gydion-gold", "gydion-silver", "gydion-red-1", "gydion-green-1", "gydion-blue-1")
-            extra("gydion-spell-magic-missile", "gydion-spell-shocking-grasp", "gydion-spell-expeditious-retreat", "gydion-spell-burning-hands", "gydion-spell-fireball", "gydion-spell-sunburst", "gydion-spell-vampiric-touch", "gydion-spell-create-undead", "gydion-spell-energy-drain", "gydion-spell-shield", "gydion-spell-banishment", "gydion-spell-invulnerability", "gydion-spell-dimension-door", "gydion-spell-find-familiar", "gydion-spell-cloud-kill", "gydion-spell-suggestion", "gydion-spell-dominate-person", "gydion-spell-power-word-kill", "gydion-spell-midas-touch", "gydion-spell-disintegrate", "gydion-spell-polymorph", "gydion-spell-wish", tag = "spellbook")
+            extra(
+                "gydion-spell-magic-missile",
+                "gydion-spell-shocking-grasp",
+                "gydion-spell-expeditious-retreat",
+                "gydion-spell-burning-hands",
+                "gydion-spell-fireball",
+                "gydion-spell-sunburst",
+                "gydion-spell-vampiric-touch",
+                "gydion-spell-create-undead",
+                "gydion-spell-energy-drain",
+                "gydion-spell-shield",
+                "gydion-spell-banishment",
+                "gydion-spell-invulnerability",
+                "gydion-spell-dimension-door",
+                "gydion-spell-find-familiar",
+                "gydion-spell-cloud-kill",
+                "gydion-spell-suggestion",
+                "gydion-spell-dominate-person",
+                "gydion-spell-power-word-kill",
+                "gydion-spell-midas-touch",
+                "gydion-spell-disintegrate",
+                "gydion-spell-polymorph",
+                "gydion-spell-wish",
+                tag = "spellbook",
+            )
             counter("spellbook", 22)
             counter("spellsRemoved", 0)
         }
@@ -204,29 +271,29 @@ object R14TwoSwingsAtWuk : Puzzle() {
     )
 }
 
-private val R14_NUDGES = listOf(
-            listOf(
-                "Two minions make four coins. Where do the last two come from?",
-                "Ursafar needs to be next to a Blue minion next turn, and enraged by the turn after. Mortimer is " +
-                "close already.",
-                "Play Awaken! on Mortimer and Sniff Out on Ursafar, who moves next to the Blue melee minion.",
-            ),
-            listOf(
-                "Each of you can take a Blue minion now. Only one of your attack cards also matters next turn.",
-                "Claws That Catch makes Ursafar enraged this round and stays active. Keep that in mind.",
-                "Play Knife of the Living Dead on Mortimer and Claws That Catch on Ursafar, each attacking a Blue" +
-                " melee minion.",
-            ),
-            listOf(
-                "Wuk is in reach of something you have already played. What will it cost him?",
-                "Angry Roar performs the primary action of an active card when you are enraged: Claws That Catch," +
-                " with its move next to an enemy hero.",
-                "Play Crawling Dead on Mortimer, who moves, and Angry Roar on Ursafar, attacking Wuk through " +
-                "Claws That Catch.",
-            ),
-            listOf(
-                "Wuk has spent his spare. Who acts first this turn?",
-                "Ursafar's initiative ties Wuk's, and you are first. Attack 5, and he has nothing to defend with.",
-                "Play Stage Dive on Mortimer and Prey Drive on Ursafar, attacking Wuk.",
-            ),
+private val R15_NUDGES = listOf(
+    listOf(
+        "Two minions make four coins. Where do the last two come from?",
+        "Ursafar needs to be next to a Blue minion next turn, and enraged by the turn after. Mortimer is " +
+            "close already.",
+        "Play Awaken! on Mortimer and Sniff Out on Ursafar, who moves next to the Blue melee minion.",
+    ),
+    listOf(
+        "Each of you can take a Blue minion now. Only one of your attack cards also matters next turn.",
+        "Claws That Catch makes Ursafar enraged this round and stays active. Keep that in mind.",
+        "Play Knife of the Living Dead on Mortimer and Claws That Catch on Ursafar, each attacking a Blue" +
+            " melee minion.",
+    ),
+    listOf(
+        "Wuk is in reach of something you have already played. What will it cost him?",
+        "Angry Roar performs the primary action of an active card when you are enraged: Claws That Catch," +
+            " with its move next to an enemy hero.",
+        "Play Crawling Dead on Mortimer, who moves, and Angry Roar on Ursafar, attacking Wuk through " +
+            "Claws That Catch.",
+    ),
+    listOf(
+        "Wuk has spent his spare. Who acts first this turn?",
+        "Ursafar's initiative ties Wuk's, and you are first. Attack 5, and he has nothing to defend with.",
+        "Play Stage Dive on Mortimer and Prey Drive on Ursafar, attacking Wuk.",
+    ),
 )

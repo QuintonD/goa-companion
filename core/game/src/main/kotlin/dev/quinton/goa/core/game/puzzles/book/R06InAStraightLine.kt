@@ -58,20 +58,21 @@ object R06InAStraightLine : Puzzle() {
             "Cutter and Trinkets stand in turn 4. Turn 4 isn't known.",
         nudges = R06_NUDGES.first(),
         nudgesByTurn = R06_NUDGES,
-        explanation = "Turn 1: Trinkets walks next to Cutter as planned. Tread Lightly's Movement starts Brynn across, and " +
-            "Cutter holds with Barrage." +
-            "\n\n" +
-            "Turn 2: Walk the Plank can't move Trinkets here. Familiar Ground's Movement takes Brynn next to " +
-            "Brogan, and Brogan walks off towards Lane Zone 1." +
-            "\n\n" +
-            "Turn 3: Brogan defeats a Red melee minion, and Trinkets moves to the outlined space. Grappling Bolt " +
-            "takes Cutter along a straight line, to a space from which Evasive Shot can reach it next turn." +
-            "\n\n" +
-            "Turn 4: Evasive Shot attacks Trinkets at 5. Rapid Redeployment gives 1, and it is defeated before " +
-            "Makeshift Minigun resolves (p.13). Blue spends a Life counter. Several of the other options in turns" +
-            " 3 and 4 are proven to lose." +
-            "\n\n" +
-            "The computer at strength 7, playing your heroes, doesn't find it. Strength 10 does.",
+        explanation =
+            "Turn 1: Trinkets walks next to Cutter as planned. Tread Lightly's Movement starts Brynn across, and " +
+                "Cutter holds with Barrage." +
+                "\n\n" +
+                "Turn 2: Walk the Plank can't move Trinkets here. Familiar Ground's Movement takes Brynn next to " +
+                "Brogan, and Brogan walks off towards Lane Zone 1." +
+                "\n\n" +
+                "Turn 3: Brogan defeats a Red melee minion, and Trinkets moves to the outlined space. Grappling Bolt " +
+                "takes Cutter along a straight line, to a space from which Evasive Shot can reach it next turn." +
+                "\n\n" +
+                "Turn 4: Evasive Shot attacks Trinkets at 5. Rapid Redeployment gives 1, and it is defeated before " +
+                "Makeshift Minigun resolves (p.13). Blue spends a Life counter. Several of the other options in turns" +
+                " 3 and 4 are proven to lose." +
+                "\n\n" +
+                "The computer at strength 7, playing your heroes, doesn't find it. Strength 10 does.",
         rules = listOf(
             "p.19 Straight line",
             "p.13 Attacking a hero, When a hero is defeated",
@@ -103,7 +104,16 @@ object R06InAStraightLine : Puzzle() {
         wavesLeft("lane-1", 2)
         lifeCounters(Team.RED, 4)
         lifeCounters(Team.BLUE, 3)
-        piece(PieceState("p17", "trinkets_turret", "Turret", Hex(2, -2), "trinkets", null, false, false, false, false, false, null, linkedMapOf()))
+        piece(
+            PieceState(
+                "p17", "trinkets_turret", "Turret",
+                Hex(
+                    2,
+                    -2,
+                ),
+                "trinkets", null, false, false, false, false, false, null, linkedMapOf(),
+            ),
+        )
         hero("brynn", Team.RED, Hex(-1, -2)) {
             level = 2
             coins = 2
@@ -204,25 +214,25 @@ object R06InAStraightLine : Puzzle() {
 }
 
 private val R06_NUDGES = listOf(
-            listOf(
-                "Cutter's attack is his last card. Don't spend it. What can each of you do without it?",
-                "Trinkets is about to come next to Cutter. Cutter can wait; Brynn should get moving.",
-                "Play Tread Lightly on Brynn, moving, and Barrage on Cutter, who holds.",
-            ),
-            listOf(
-                "Trinkets stands next to Cutter. It won't stay there. Brynn has further to go.",
-                "Walk the Plank pushes an enemy next to you, and a push of 0 is allowed: Trinkets can't be moved " +
-                "anyway.",
-                "Play Familiar Ground on Brynn, moving next to Brogan, and Walk the Plank on Cutter.",
-            ),
-            listOf(
-                "Trinkets is going to the outlined space. Which space is two away from it in a straight line?",
-                "Grappling Bolt pulls Cutter along a straight line to an obstacle.",
-                "Play Decoy on Brynn, who holds, and Grappling Bolt on Cutter.",
-            ),
-            listOf(
-                "Trinkets is in reach. Who acts first?",
-                "Evasive Shot acts before its card, and it has nothing that stops Attack 5.",
-                "Play Bear Trap on Brynn and Evasive Shot on Cutter, attacking Trinkets.",
-            ),
+    listOf(
+        "Cutter's attack is his last card. Don't spend it. What can each of you do without it?",
+        "Trinkets is about to come next to Cutter. Cutter can wait; Brynn should get moving.",
+        "Play Tread Lightly on Brynn, moving, and Barrage on Cutter, who holds.",
+    ),
+    listOf(
+        "Trinkets stands next to Cutter. It won't stay there. Brynn has further to go.",
+        "Walk the Plank pushes an enemy next to you, and a push of 0 is allowed: Trinkets can't be moved " +
+            "anyway.",
+        "Play Familiar Ground on Brynn, moving next to Brogan, and Walk the Plank on Cutter.",
+    ),
+    listOf(
+        "Trinkets is going to the outlined space. Which space is two away from it in a straight line?",
+        "Grappling Bolt pulls Cutter along a straight line to an obstacle.",
+        "Play Decoy on Brynn, who holds, and Grappling Bolt on Cutter.",
+    ),
+    listOf(
+        "Trinkets is in reach. Who acts first?",
+        "Evasive Shot acts before its card, and it has nothing that stops Attack 5.",
+        "Play Bear Trap on Brynn and Evasive Shot on Cutter, attacking Trinkets.",
+    ),
 )

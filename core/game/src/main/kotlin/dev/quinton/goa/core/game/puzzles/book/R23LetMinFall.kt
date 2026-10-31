@@ -20,9 +20,9 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 21, mined from self-play (g1893_r4_RED_defeat-mortimer; ADR-052, ENCODING.md "Full rounds"). */
-object R21LetMinFall : Puzzle() {
-    override val concept = "R21"
+/** Full round 23, mined from self-play (g1893_r4_RED_defeat-mortimer; ADR-052, ENCODING.md "Full rounds"). */
+object R23LetMinFall : Puzzle() {
+    override val concept = "R23"
 
     override val known = KnownPlays(
         cards = mapOf(
@@ -44,8 +44,8 @@ object R21LetMinFall : Puzzle() {
     )
 
     override val info = PuzzleInfo(
-        id = "r21",
-        number = 21,
+        id = "r23",
+        number = 23,
         title = "Let Min Fall",
         difficulty = 3,
         theme = "A hero spent for tempo, respawn and return",
@@ -54,23 +54,24 @@ object R21LetMinFall : Puzzle() {
         intro = "Round 4. You play Min and Tali for Red. Min stands next to Mortimer, whose Braains...! hits her " +
             "first for 8. Mortimer holds five cards and will play four. Turn 4 isn't known: there he answers as " +
             "hard as he can.",
-        nudges = R21_NUDGES.first(),
-        nudgesByTurn = R21_NUDGES,
-        explanation = "Turn 1: Mortimer attacks Min at 8, and Smoke Bomb gives her only 3: she is defeated, and Red spends " +
-            "2 Life counters. On this line that is the price. Ancestral Totem's Movement takes Tali 2 spaces, " +
-            "next to the Red melee and heavy minions." +
-            "\n\n" +
-            "Turn 2: Min respawns in the Red Throne Zone and moves 1 space. Ice Blast's Movement takes Tali next " +
-            "to Mortimer, who defeats a Red melee minion as planned." +
-            "\n\n" +
-            "Turn 3: Viper Stance's Movement takes Min 5 spaces to Side Zone 2. Tali plays Commune with Spirits, " +
-            "which stops there with no gold card in the discard to perform." +
-            "\n\n" +
-            "Turn 4: Winter Spear attacks Mortimer at 6. His best answer is Gathering Horde: 4, +2 for items, -1 " +
-            "for the adjacent enemy melee minion, makes 5. He is defeated before Morbid Mosh resolves (p.13): 4 " +
-            "coins for Tali and 2 for Min, and Blue spends 2 Life counters." +
-            "\n\n" +
-            "The computer at strength 7, playing your heroes, doesn't find it, and neither does strength 10.",
+        nudges = R23_NUDGES.first(),
+        nudgesByTurn = R23_NUDGES,
+        explanation =
+            "Turn 1: Mortimer attacks Min at 8, and Smoke Bomb gives her only 3: she is defeated, and Red spends " +
+                "2 Life counters. On this line that is the price. Ancestral Totem's Movement takes Tali 2 spaces, " +
+                "next to the Red melee and heavy minions." +
+                "\n\n" +
+                "Turn 2: Min respawns in the Red Throne Zone and moves 1 space. Ice Blast's Movement takes Tali next " +
+                "to Mortimer, who defeats a Red melee minion as planned." +
+                "\n\n" +
+                "Turn 3: Viper Stance's Movement takes Min 5 spaces to Side Zone 2. Tali plays Commune with Spirits, " +
+                "which stops there with no gold card in the discard to perform." +
+                "\n\n" +
+                "Turn 4: Winter Spear attacks Mortimer at 6. His best answer is Gathering Horde: 4, +2 for items, -1 " +
+                "for the adjacent enemy melee minion, makes 5. He is defeated before Morbid Mosh resolves (p.13): 4 " +
+                "coins for Tali and 2 for Min, and Blue spends 2 Life counters." +
+                "\n\n" +
+                "The computer at strength 7, playing your heroes, doesn't find it, and neither does strength 10.",
         rules = listOf(
             "p.13 Attacking a hero, When a hero is defeated",
             "p.14 Defense, Minion Defense Modifiers",
@@ -102,10 +103,46 @@ object R21LetMinFall : Puzzle() {
         wavesLeft("lane-1", 2)
         lifeCounters(Team.RED, 4)
         lifeCounters(Team.BLUE, 4)
-        piece(PieceState("t20", "token_zombie", "Zombie", Hex(5, -4), "mortimer", Team.BLUE, true, false, false, false, false, null, linkedMapOf()))
-        piece(PieceState("t22", "token_zombie", "Zombie", Hex(-1, -2), "mortimer", Team.BLUE, true, false, false, false, false, null, linkedMapOf()))
-        piece(PieceState("t24", "token_zombie", "Zombie", Hex(2, -1), "mortimer", Team.BLUE, true, false, false, false, false, null, linkedMapOf()))
-        piece(PieceState("t25", "token_zombie", "Zombie", Hex(1, -2), "mortimer", Team.BLUE, true, false, false, false, false, null, linkedMapOf()))
+        piece(
+            PieceState(
+                "t20", "token_zombie", "Zombie",
+                Hex(
+                    5,
+                    -4,
+                ),
+                "mortimer", Team.BLUE, true, false, false, false, false, null, linkedMapOf(),
+            ),
+        )
+        piece(
+            PieceState(
+                "t22", "token_zombie", "Zombie",
+                Hex(
+                    -1,
+                    -2,
+                ),
+                "mortimer", Team.BLUE, true, false, false, false, false, null, linkedMapOf(),
+            ),
+        )
+        piece(
+            PieceState(
+                "t24", "token_zombie", "Zombie",
+                Hex(
+                    2,
+                    -1,
+                ),
+                "mortimer", Team.BLUE, true, false, false, false, false, null, linkedMapOf(),
+            ),
+        )
+        piece(
+            PieceState(
+                "t25", "token_zombie", "Zombie",
+                Hex(
+                    1,
+                    -2,
+                ),
+                "mortimer", Team.BLUE, true, false, false, false, false, null, linkedMapOf(),
+            ),
+        )
         hero("min", Team.RED, Hex(9, -10)) {
             level = 4
             coins = 1
@@ -197,27 +234,27 @@ object R21LetMinFall : Puzzle() {
     )
 }
 
-private val R21_NUDGES = listOf(
-            listOf(
-                "Attack 8 is coming at Min. Tali is the one who ends this round next to Mortimer.",
-                "Don't spend the round saving Min. Tali should walk.",
-                "Play Inner Strength on Min and Ancestral Totem on Tali, who moves next to the Red melee and " +
-                "heavy minions.",
-            ),
-            listOf(
-                "Min is off the board, and she can come back. Tali only has one more step to take.",
-                "Respawn Min. Tali's Ice Blast has a Movement of 1.",
-                "Play Fast as Lightning on Min, respawning in the Red Throne Zone, and Ice Blast on Tali, moving " +
-                "next to Mortimer.",
-            ),
-            listOf(
-                "Keep Tali's best attack for last. What's left to spend?",
-                "Min can run with Viper Stance's Movement. Commune with Spirits costs you nothing.",
-                "Play Viper Stance on Min, who moves, and Commune with Spirits on Tali.",
-            ),
-            listOf(
-                "Look at Mortimer's hand. What can he defend with, and what is Winter Spear worth?",
-                "Winter Spear reaches 6 here. Gathering Horde gives him 5.",
-                "Play Death Grenade on Min and Winter Spear on Tali, attacking Mortimer.",
-            ),
+private val R23_NUDGES = listOf(
+    listOf(
+        "Attack 8 is coming at Min. Tali is the one who ends this round next to Mortimer.",
+        "Don't spend the round saving Min. Tali should walk.",
+        "Play Inner Strength on Min and Ancestral Totem on Tali, who moves next to the Red melee and " +
+            "heavy minions.",
+    ),
+    listOf(
+        "Min is off the board, and she can come back. Tali only has one more step to take.",
+        "Respawn Min. Tali's Ice Blast has a Movement of 1.",
+        "Play Fast as Lightning on Min, respawning in the Red Throne Zone, and Ice Blast on Tali, moving " +
+            "next to Mortimer.",
+    ),
+    listOf(
+        "Keep Tali's best attack for last. What's left to spend?",
+        "Min can run with Viper Stance's Movement. Commune with Spirits costs you nothing.",
+        "Play Viper Stance on Min, who moves, and Commune with Spirits on Tali.",
+    ),
+    listOf(
+        "Look at Mortimer's hand. What can he defend with, and what is Winter Spear worth?",
+        "Winter Spear reaches 6 here. Gathering Horde gives him 5.",
+        "Play Death Grenade on Min and Winter Spear on Tali, attacking Mortimer.",
+    ),
 )
