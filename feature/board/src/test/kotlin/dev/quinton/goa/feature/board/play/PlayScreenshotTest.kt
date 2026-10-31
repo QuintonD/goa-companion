@@ -699,12 +699,12 @@ class PlayScreenshotTest {
         options = listOf(
             SuggestedOption(
                 Choice.Card("arien-red-1"),
-                "Noble Blade",
+                "Dangerous Current",
                 60,
                 0,
                 if (close) SuggestionConfidence.CLOSE else SuggestionConfidence.CLEAR,
                 line = listOf(
-                    "You attack Tigerclaw with Noble Blade (Attack 4)",
+                    "You attack Tigerclaw with Dangerous Current (Attack 6)",
                     "Tigerclaw could hold the attack",
                     "An enemy melee minion is defeated",
                 ),
@@ -716,18 +716,18 @@ class PlayScreenshotTest {
                     ),
                     why(
                         CoachReasonKind.KEEP_DEFENDER,
-                        "Playing Noble Blade keeps Liquid Leap in hand (Defense 4); playing Liquid Leap would leave you a best Defense of 2.",
+                        "Playing Dangerous Current keeps Aspiring Duelist in hand (Defense 5); playing Aspiring Duelist would leave you a best Defense of 4.",
                         "You defend by discarding a card from your hand; with none, you are defeated (p.13, p.14).",
                     ),
                 ),
             ),
             SuggestedOption(
                 Choice.Card("arien-gold"),
-                "Spell Break",
+                "Noble Blade",
                 50,
                 10,
                 SuggestionConfidence.LIKELY,
-                line = listOf("You move with Spell Break"),
+                line = listOf("You move with Noble Blade"),
                 against = listOf(
                     why(
                         CoachReasonKind.DANGER,
@@ -746,7 +746,7 @@ class PlayScreenshotTest {
         plan = CoachPlan(
             listOf("arien-red-1", "arien-blue-1", "arien-green-1"),
             "arien-gold",
-            "Play Noble Blade now, then Liquid Leap, then Slippery Ground; keep Spell Break.",
+            "Play Dangerous Current now, then Aspiring Duelist, then Liquid Leap; keep Noble Blade.",
             "Best in 5 of 6 guesses of the hidden cards played to the end of the round. A card used to defend is discarded (p.10) and changes the plan; all cards come back at the end of the round (p.8).",
         ),
         advice = tips,

@@ -114,12 +114,15 @@ internal class CoachReviewer(
         val where = if (at == null) {
             "off the board"
         } else {
-            val near = f.distanceToNearestEnemy(at)?.let { (e, n) -> "$n from ${f.data.heroName(e)}" }
+            val near = f.distanceToNearestEnemy(at)?.let { (e, n) ->
+                "$n space${if (n == 1) "" else "s"} from ${f.data.heroName(e)}"
+            }
             listOfNotNull(f.g.spaceName(at), near).joinToString(", ")
         }
         val me = f.me
         return "Round ${v.round}, turn ${v.turn}. $lane. Life counters: yours $own, theirs $other. " +
-            "${f.name}, level ${me.level} with ${me.coins} coins and ${me.handCount} cards in hand, $where."
+            "${f.name}, level ${me.level} with ${me.coins} coin${if (me.coins == 1) "" else "s"} and " +
+            "${me.handCount} card${if (me.handCount == 1) "" else "s"} in hand, $where."
     }
 
     private fun accuracy(key: String, rows: List<ReviewedDecision>) = ReviewAccuracy(
