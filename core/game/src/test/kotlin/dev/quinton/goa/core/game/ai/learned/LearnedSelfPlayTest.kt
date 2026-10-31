@@ -1,6 +1,11 @@
 package dev.quinton.goa.core.game.ai.learned
 
 import dev.quinton.goa.core.game.AiLevel
+import dev.quinton.goa.core.game.AiPlayer
+import dev.quinton.goa.core.game.Choice
+import dev.quinton.goa.core.game.Decision
+import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.ai.AiHarness
 import dev.quinton.goa.core.game.ai.learned.Learned.answers
 import dev.quinton.goa.core.model.match.Team
@@ -16,7 +21,10 @@ import org.junit.Test
  * a variant drawn from `AI_VARIANTS` (`spec*weight,…`, default [GEN0]), team sizes drawn from
  * `AI_SIZES` (`size*weight,…`, default 2v2 ×1, 3v3 ×2, 4v4 ×1), and writes one replayable
  * [Learned.GameRecord] per line. `AI_FIRST` offsets the game numbers (and so the line-ups) so that
- * several runs never repeat a game. At most `AI_THREADS` (4) games at once.
+ * several runs never repeat a game. At most `AI_THREADS` (4) games at once. `AI_HERO_WEIGHTS`
+ * (`hero*weight,…`) seats those heroes more often (the ones the strength lifts least, ADR-049);
+ * `AI_EPS_UPGRADE` answers that share of the level-up questions at random (the upgrade table,
+ * [UpgradeTableTest]).
  */
 class LearnedSelfPlayTest {
     @Test
@@ -29,7 +37,14 @@ class LearnedSelfPlayTest {
         val variants = weighted(System.getenv("AI_VARIANTS") ?: GEN0)
         val sizes = weighted(System.getenv("AI_SIZES") ?: "2*1,3*2,4*1").map { (s, w) -> s.toInt() to w }
         out.parentFile.mkdirs()
-        val lineups = sizes.associate { (size, _) -> size to Teams.lineups(first + games, size, Teams.TRAIN) }
+        val heroWeights = System.getenv("AI_HERO_WEIGHTS")?.let(::weighted)?.toMap().orEmpty()
+        val lineups = sizes.associate { (size, _) ->
+            size to if (heroWeights.isEmpty()) {
+                Teams.lineups(first + games, size, Teams.TRAIN)
+            } else {
+                Teams.weightedLineups(first + games, size, Teams.TRAIN, heroWeights)
+            }
+        }
         val sides = variants.map { it.first }.distinct().associateWith { Learned.side(it) }
         val t0 = System.nanoTime()
         val pool = Executors.newFixedThreadPool(threads)
@@ -89,8 +104,8 @@ class LearnedSelfPlayTest {
         val r = AiHarness.play(
             setup,
             mapOf(
-                Team.RED to sides.getValue(rv).factory(g * 2L + 1),
-                Team.BLUE to sides.getValue(bv).factory(g * 2L + 2),
+                Team.RED to explore(sides.getValue(rv).factory(g * 2L + 1), g * 2L + 1),
+                Team.BLUE to explore(sides.getValue(bv).factory(g * 2L + 2), g * 2L + 2),
             ),
             maxDecisions = 20_000,
         )
@@ -99,6 +114,20 @@ class LearnedSelfPlayTest {
             r.session.view(null).winReason?.name ?: "UNFINISHED", setup, r.session.answers(),
         )
         return Learned.JSON.encodeToString(Learned.GameRecord.serializer(), rec)
+    }
+
+    /** ε-exploration at the level-up questions, seeded per decision. */
+    private fun explore(player: AiPlayer, seed: Long): AiPlayer {
+        val eps = System.getenv("AI_EPS_UPGRADE")?.toDouble() ?: return player
+        return object : AiPlayer {
+            override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice {
+                if (decision.kind == DecisionKind.UPGRADE_CARD || decision.kind == DecisionKind.KEEP_UPGRADE) {
+                    val rng = Random(seed * 1_000_003L + decision.id)
+                    if (rng.nextDouble() < eps) return decision.options[rng.nextInt(decision.options.size)]
+                }
+                return player.choose(session, decision, cancelled)
+            }
+        }
     }
 
     private fun weighted(s: String): List<Pair<String, Double>> = s.split(",").map {

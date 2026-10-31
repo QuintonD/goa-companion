@@ -8,6 +8,7 @@ import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.engine.Determinizer
+import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.model.match.Team
@@ -81,6 +82,13 @@ internal data class LevelProfile(
     val learned: EvalSource = EvalSource.HAND,
     /** The net [learned] uses; null = the checked-in one ([LearnedNet.CURRENT]). */
     val net: LearnedNet? = null,
+    /**
+     * Teammates' hands, items and facedown cards are guessed too: the coach speaks to one player, who
+     * may not see them (p.4). A computer team's own search counts them as announced (AI.md "The determinizer").
+     */
+    val hideTeammates: Boolean = false,
+    /** Tests only: what scores the end of a playout instead of [net] (the frozen baseline, `net=v09`). */
+    val leafEvaluator: ((EngineData) -> PositionEvaluator)? = null,
 )
 
 /**
@@ -172,8 +180,11 @@ internal class Searcher(
     val work: Long get() = answered.load()
 
     /** What scores the end of a playout ([LevelProfile.learned]). */
-    val leaf: PositionEvaluator =
-        if (profile.learned == EvalSource.HAND) ev else NetEvaluator(ev.data, profile.net ?: LearnedNet.CURRENT)
+    val leaf: PositionEvaluator = when {
+        profile.learned == EvalSource.HAND -> ev
+        profile.leafEvaluator != null -> profile.leafEvaluator.invoke(ev.data)
+        else -> NetEvaluator(ev.data, profile.net ?: LearnedNet.CURRENT)
+    }
 
     /** What scores the one-ply looks inside a playout. */
     private val inner: PositionEvaluator = if (profile.learned == EvalSource.EVERYWHERE) leaf else ev
@@ -184,10 +195,16 @@ internal class Searcher(
             it.team == team && it.controller == Controller.Human && it.heroId != d.seat
         }
             .map { it.heroId }.toSet()
+        val teammates = if (profile.hideTeammates) {
+            es.setup.seats.filter { it.team == team && it.heroId != d.seat }.map { it.heroId }.toSet()
+        } else {
+            emptySet()
+        }
         val options = Determinizer.Options(
             seen = if (profile.memory) seenCards(es, team) else emptyMap(),
             playWeight = if (profile.modelPlays) ::playWeights else null,
             hidePlayedOf = humans,
+            hideAllOf = teammates,
         )
         // A search copy: no explanations for a player are built at its questions (the same options).
         return es.determinizeWith(team, seed, options, quiet = true)
@@ -344,6 +361,59 @@ internal class Searcher(
             if (!sample(det, dp, d, listOf(choice), k, horizon, table, leaves, cancelled)) return null
         }
         return Analysis(d, a.options + OptionValue(choice, values), leaves, a.samples, a.tried)
+    }
+
+    /**
+     * [a] with up to [samples] samples: the same candidates and the same seeds, so its first samples are
+     * those of [a] and only the new ones are played out (the coach, when the person asks for suggestions).
+     * Stops at [deadline] with what it has; on a cancel, null.
+     */
+    @Suppress("LongParameterList")
+    fun deepen(
+        es: EngineSession,
+        d: Decision,
+        seed: Long,
+        a: Analysis,
+        samples: Int,
+        cancelled: () -> Boolean,
+        deadline: Long,
+    ): Analysis? {
+        if (samples <= a.tried) return a
+        val horizon = horizonOf(d.kind)
+        val options = a.options.map { o ->
+            OptionValue(o.choice, DoubleArray(samples) { o.values.getOrElse(it) { Double.NaN } })
+        }
+        val table = options.associate { it.choice to it.values }
+        val candidates = options.map { it.choice }
+        val leaves = ArrayList(a.leaves)
+        var done = a.samples
+        var k = a.tried
+        while (k < samples && monotonicNanos() <= deadline) {
+            if (cancelled()) return null
+            val batch = k until minOf(samples, k + runner.width)
+            val status = IntArray(batch.count())
+            val batchLeaves = Array(status.size) { ArrayList<Leaf>() }
+            runner.runAll(
+                batch.mapIndexed { i, kk ->
+                    {
+                        val det = determinize(es, d, mix(seed, kk.toLong()))
+                        val dp = det.pending?.takeIf { it.seat == d.seat && it.kind == d.kind }
+                        status[i] = when {
+                            dp == null -> 0
+                            sample(det, dp, d, candidates, kk, horizon, table, batchLeaves[i], cancelled) -> 1
+                            else -> -1
+                        }
+                    }
+                },
+            )
+            if (status.any { it < 0 }) return null
+            for ((i, kk) in batch.withIndex()) {
+                if (status[i] == 1) done++
+                leaves += batchLeaves[i]
+                k = kk + 1
+            }
+        }
+        return Analysis(d, options, leaves, done, k)
     }
 
     private fun horizonOf(kind: DecisionKind): Horizon = when (kind) {

@@ -83,6 +83,7 @@ class PositionBuilder(private val engine: GameEngine, private val mapId: String)
     private val waves = LinkedHashMap<String, Int>()
     private val life = LinkedHashMap<Team, Int>()
     private val effects = ArrayList<EffectSpec>()
+    private val gameVars = LinkedHashMap<String, String>()
     private var openingMinions = true
     private var nextId = 1000
 
@@ -139,6 +140,11 @@ class PositionBuilder(private val engine: GameEngine, private val mapId: String)
 
     fun lifeCounters(team: Team, n: Int) {
         life[team] = n
+    }
+
+    /** A game-level note a card script keeps ([GameState.vars]), e.g. one left by an earlier round. */
+    fun gameVar(key: String, value: String) {
+        gameVars[key] = value
     }
 
     /** An Active effect in force ([timing] as when it was made in [madeTurn] of this round). */
@@ -248,6 +254,7 @@ class PositionBuilder(private val engine: GameEngine, private val mapId: String)
         state.turn = turn
         state.nextId = nextId + 1000
         state.heroDefeatedThisRound = heroDefeatedThisRound
+        state.vars += gameVars
         if (openingMinions) {
             val opening = BoardSetup.opening(geo, BoardLineup()) { "m${nextId++}" }
             opening.pieces.filterIsInstance<MinionPiece>().forEach {

@@ -47,6 +47,8 @@ data class TableUi(
     val bottomTeam: Team = Team.RED,
     val hint: Choice? = null,
     val turnLog: List<GameEvent> = emptyList(),
+    /** A full-round puzzle: the spaces the enemy's known plans go to this turn (ADR-052). */
+    val planned: Set<Hex> = emptySet(),
 ) {
     /** After the reveal: every played card in acting order, with who is done, acting and next (ADR-041). */
     val track: TurnTrack? by lazy { turnTrack(view, turnLog) { card(it)?.initiative } }

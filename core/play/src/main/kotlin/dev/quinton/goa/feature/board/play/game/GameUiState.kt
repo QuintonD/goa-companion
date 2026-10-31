@@ -3,7 +3,9 @@ package dev.quinton.goa.feature.board.play.game
 import dev.quinton.goa.core.data.game.AiPace
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.CoachNote
+import dev.quinton.goa.core.game.CoachSuggestions
 import dev.quinton.goa.core.game.Controller
+import dev.quinton.goa.core.game.GameReport
 import dev.quinton.goa.core.game.WinReason
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.play.review.ReviewAction
@@ -62,6 +64,15 @@ data class GameOverUi(
 /** A nudge waiting on the person: Choose anyway answers [choice], Rethink goes back to the question. */
 data class PendingNudge(val note: CoachNote, val choice: Choice, val choiceLabel: String)
 
+/**
+ * The suggestions sheet, while it is open (ADR-051): null [suggestions] and [looking] while the coach
+ * thinks; null and not looking when it has nothing to say at this question.
+ */
+data class SuggestUi(val seat: String, val looking: Boolean = false, val suggestions: CoachSuggestions? = null)
+
+/** The post-game review of the person's decisions (ADR-051): running with its progress, or its [report]. */
+data class ReportUi(val done: Int = 0, val total: Int = 0, val running: Boolean = false, val report: GameReport? = null)
+
 /** What TalkBack reads after something happens; [id] makes each one new. */
 data class PlayAnnouncement(val text: String, val id: Long)
 
@@ -94,6 +105,12 @@ data class PlayUi(
     val review: ReviewUi? = null,
     /** What happened since the person last chose, one entry per card resolved (ADR-046): the panel shows it. */
     val flow: ResolutionFlow = ResolutionFlow(),
+    /** The suggestions sheet, while it is open (ADR-051). */
+    val suggest: SuggestUi? = null,
+    /** The person's question has something to suggest (more than one option, their own seat). */
+    val canSuggest: Boolean = false,
+    /** The post-game review of the person's decisions, once asked for (ADR-051). */
+    val report: ReportUi? = null,
 )
 
 /** Why there is no game to show. */
@@ -148,4 +165,14 @@ sealed interface GameAction {
 
     /** The game-state review: opened, closed, a board rewound. */
     data class Review(val action: ReviewAction) : GameAction
+
+    /** Suggest: the coach's look at the person's question, in a sheet; it never answers for them. */
+    data object AskSuggestions : GameAction
+
+    data object CloseSuggestions : GameAction
+
+    /** Game over: look at every decision of the person's again, in the background. */
+    data object StartReport : GameAction
+
+    data object CancelReport : GameAction
 }

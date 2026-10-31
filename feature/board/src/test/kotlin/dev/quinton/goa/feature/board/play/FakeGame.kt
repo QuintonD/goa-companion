@@ -13,13 +13,16 @@ import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Coach
 import dev.quinton.goa.core.game.CoachAnalysis
 import dev.quinton.goa.core.game.CoachNote
+import dev.quinton.goa.core.game.CoachSuggestions
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionContext
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.game.DecisionMark
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.GameFactory
 import dev.quinton.goa.core.game.GamePhase
+import dev.quinton.goa.core.game.GameReport
 import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.GameSetup
 import dev.quinton.goa.core.game.GameView
@@ -27,7 +30,11 @@ import dev.quinton.goa.core.game.HeroView
 import dev.quinton.goa.core.game.MarkerView
 import dev.quinton.goa.core.game.MinionView
 import dev.quinton.goa.core.game.PieceView
+import dev.quinton.goa.core.game.ReviewAccuracy
+import dev.quinton.goa.core.game.ReviewedDecision
 import dev.quinton.goa.core.game.SavedGame
+import dev.quinton.goa.core.game.SuggestedOption
+import dev.quinton.goa.core.game.SuggestionConfidence
 import dev.quinton.goa.core.game.WinReason
 import dev.quinton.goa.core.model.board.BoardLineup
 import dev.quinton.goa.core.model.board.BoardMap
@@ -1162,6 +1169,57 @@ class FakeCoach(var silent: Boolean = false, var prepares: Boolean = false) : Co
 
             else -> null
         }
+    }
+
+    /** Each [suggest] call, and the look it was given. */
+    var suggests = 0
+    var suggestedWith: CoachAnalysis? = null
+
+    /** What [suggest] puts first; null = the decision's first option. */
+    var suggestFirst: Choice? = null
+
+    override fun suggest(
+        analysis: CoachAnalysis?,
+        session: GameSession,
+        decision: Decision,
+        cancelled: () -> Boolean,
+    ): CoachSuggestions? {
+        suggests++
+        suggestedWith = analysis
+        val first = suggestFirst ?: decision.options.first()
+        return CoachSuggestions(
+            decision.id,
+            decision.seat,
+            listOf(SuggestedOption(first, "First", 60, 0, SuggestionConfidence.CLEAR)),
+            close = false,
+            samples = 12,
+        )
+    }
+
+    /** Set: [review] waits on it; each decision of the saved game counts as one step. */
+    var reviewSteps = 2
+    var reviews = 0
+
+    override fun review(
+        saved: SavedGame,
+        seats: Set<String>,
+        progress: (done: Int, total: Int) -> Unit,
+        cancelled: () -> Boolean,
+    ): GameReport? {
+        reviews++
+        for (i in 1..reviewSteps) {
+            if (cancelled()) return null
+            progress(i, reviewSteps)
+        }
+        val row = ReviewedDecision(1, seats.first(), DecisionKind.PLAY_CARD, 1, 1, DecisionMark.BEST, 0.0, 3)
+        val all = ReviewAccuracy("All", 1, 1, 0.0)
+        return GameReport(
+            listOf(row),
+            all,
+            listOf(all.copy(key = seats.first())),
+            listOf(all.copy(key = "PLAY_CARD")),
+            emptyList(),
+        )
     }
 
     override fun turningPoints(saved: SavedGame, seat: String, cancelled: () -> Boolean): List<CoachNote> = listOf(

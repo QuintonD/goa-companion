@@ -51,6 +51,14 @@ internal class CardProfile(card: Card) {
     /** "Ignore all minion defense modifiers" on a defense card. */
     val ignoresMinionModifiers: Boolean = "ignore all minion defense modifiers" in text
 
+    /** The text targets any unit in plain reach, with no condition a distance can't tell. */
+    val plainTarget: Boolean = attackCard &&
+        (text.startsWith("target a unit adjacent to you") || text.startsWith("target a unit in range"))
+
+    /** The text changes what the attack takes: "+1 Attack for every…", or defending with another value. */
+    val textSetsAttack: Boolean = attackCard &&
+        (attackBonus.containsMatchIn(text) || "must use the {initiative}" in text)
+
     /** Spaces from its hero at which this card can hit a unit with its primary action (no other movement). */
     val reach: Int = when {
         attackCard -> premove + if (ranged) maxOf(range, 1) else 1
@@ -86,6 +94,7 @@ internal class CardProfile(card: Card) {
             "^(?:if [^,:]*, )?(?:you may )?move (?:up to )?((?:\\d+(?:, | or |, or ))*\\d+) spaces?",
         )
         private val number = Regex("\\d+")
+        private val attackBonus = Regex("[+-]\\d+ \\{attack\\}")
 
         private fun premoveOf(text: String): Int {
             val at = text.indexOf("before the attack:")

@@ -271,6 +271,19 @@ private fun Game.previewBlock(heroId: String, cardId: String, info: AttackInfo, 
 }
 
 /**
+ * What [defender]'s cards would answer an attack with, before any attack is made, by the same previews as
+ * the Defend question (p.14): each defense card's total (null for a Block or a text that decides only as it
+ * resolves) and whether a Block's condition holds (null when only resolving tells).
+ */
+fun Game.defensePreviewAgainst(defender: String, info: AttackInfo): Map<String, Pair<Int?, Boolean?>> {
+    val at = posOf(info.targetId) ?: return emptyMap()
+    val minion = minionTerms(at, hero(defender).team, info.attackerId)
+    return defenseCards(defender).associateWith { id ->
+        previewDefense(defender, id, info, false, false, minion) to previewBlock(defender, id, info, false)
+    }
+}
+
+/**
  * Step 5: the Defense total. [minion] are the minion defense modifiers calculated at step 2, before
  * the Defense text (p.14 order), so a Defense text that moves the defender doesn't change them.
  */

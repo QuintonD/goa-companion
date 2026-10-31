@@ -129,6 +129,7 @@ fun GameScreen(
     var sheet by remember { mutableStateOf(initialSheet) }
     var menu by remember { mutableStateOf(false) }
     var ending by rememberSaveable { mutableStateOf(false) }
+    var logAt by remember { mutableStateOf<Int?>(null) }
     val snackbar = remember { SnackbarHostState() }
     val viewport = remember { MapViewport() }
     val focus = rememberCardFocusState()
@@ -191,6 +192,9 @@ fun GameScreen(
                         GameOverContent(state.play, over, onAction, onNewGame, onDone, onHero = {
                             sheet =
                                 PlaySheet.Hero(it)
+                        }, focus = focus, onLogAt = {
+                            logAt = it
+                            sheet = PlaySheet.Log
                         })
                     } else {
                         GameTable(
@@ -234,10 +238,16 @@ fun GameScreen(
     ReviewOpenEffect(sheet) { onAction(GameAction.Review(it)) }
     if (play != null) {
         when (val open = sheet) {
-            PlaySheet.Log -> BoardSheet(onDismiss = { sheet = null }) {
-                Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
-                    SheetTitle("Game log", "Every event, newest at the bottom.", onDone = { sheet = null })
-                    EventLog(play.log, Modifier.weight(1f))
+            PlaySheet.Log -> {
+                val close = {
+                    sheet = null
+                    logAt = null
+                }
+                BoardSheet(onDismiss = close) {
+                    Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
+                        SheetTitle("Game log", "Every event, newest at the bottom.", onDone = close)
+                        EventLog(play.log, Modifier.weight(1f), at = logAt)
+                    }
                 }
             }
 
@@ -259,6 +269,7 @@ fun GameScreen(
             null -> Unit
         }
     }
+    play?.suggest?.let { open -> SuggestionsSheet(play, open, focus, onAction) }
     CardFocusHost(focus)
     if (ending) {
         ConfirmDialog(
@@ -385,6 +396,7 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
                 busy = play.busy,
             )
             if (play.busy && play.coach) CoachLooking()
+            if (play.canSuggest) SuggestButton(enabled = !play.busy) { onAction(GameAction.AskSuggestions) }
         }
 
         play.status is TurnStatus.Computer -> ComputerMove(table, play.status as TurnStatus.Computer, focus)

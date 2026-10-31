@@ -81,6 +81,92 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `Suggest opens the sheet, Coach on or off, and answers nothing`() = runTest(dispatcher) {
+        val vm = viewModel(saved(coach = false))
+        advanceUntilIdle()
+        assertThat(vm.play.canSuggest).isTrue()
+        val asked = vm.play.table.decision
+        vm.onAction(GameAction.AskSuggestions)
+        advanceUntilIdle()
+        assertThat(coach.suggests).isEqualTo(1)
+        // Coach off: no look ahead ran, so it looks at the question itself.
+        assertThat(coach.suggestedWith).isNull()
+        assertThat(vm.play.suggest?.suggestions?.decisionId).isEqualTo(asked?.id)
+        assertThat(vm.play.table.decision).isEqualTo(asked)
+        assertThat(session.pending).isEqualTo(asked)
+        vm.onAction(GameAction.CloseSuggestions)
+        advanceUntilIdle()
+        assertThat(vm.play.suggest).isNull()
+        // Opened again at the same question: already worked out.
+        vm.onAction(GameAction.AskSuggestions)
+        advanceUntilIdle()
+        assertThat(coach.suggests).isEqualTo(1)
+        assertThat(vm.play.suggest?.suggestions).isNotNull()
+    }
+
+    @Test
+    fun `suggestions use the look ahead and are gone with the question`() = runTest(dispatcher) {
+        coach.prepares = true
+        val vm = viewModel(saved())
+        advanceUntilIdle()
+        vm.onAction(GameAction.AskSuggestions)
+        advanceUntilIdle()
+        assertThat(coach.suggestedWith).isNotNull()
+        answerScripted(vm)
+        assertThat(vm.play.suggest).isNull()
+    }
+
+    @Test
+    fun `no suggestions while the computer chooses`() = runTest(dispatcher) {
+        val vm = viewModel(saved())
+        advanceUntilIdle()
+        vm.onAction(GameAction.Answer(session.preferred()!!))
+        runCurrent()
+        assertThat(vm.play.status).isNotEqualTo(TurnStatus.YourTurn)
+        assertThat(vm.play.canSuggest).isFalse()
+        vm.onAction(GameAction.AskSuggestions)
+        runCurrent()
+        assertThat(coach.suggests).isEqualTo(0)
+        assertThat(vm.play.suggest).isNull()
+    }
+
+    @Test
+    fun `the coach doesn't warn against what it just suggested`() = runTest(dispatcher) {
+        val vm = viewModel(saved())
+        advanceUntilIdle()
+        while (vm.play.table.decision?.kind != DecisionKind.CHOOSE_ACTION) answerScripted(vm)
+        coach.suggestFirst = Choice.Action(ActionType.HOLD)
+        vm.onAction(GameAction.AskSuggestions)
+        advanceUntilIdle()
+        vm.onAction(GameAction.CloseSuggestions)
+        val looked = coach.asked + coach.askedPrepared
+        vm.onAction(GameAction.Answer(Choice.Action(ActionType.HOLD)))
+        advanceUntilIdle()
+        assertThat(vm.play.nudge).isNull()
+        assertThat(coach.asked + coach.askedPrepared).isEqualTo(looked)
+    }
+
+    @Test
+    fun `the post-game review runs on demand with its progress and can be cancelled`() = runTest(dispatcher) {
+        val vm = viewModel(saved(coach = false))
+        advanceUntilIdle()
+        vm.onAction(GameAction.StartReport)
+        runCurrent()
+        coach.reviewSteps = 8
+        advanceUntilIdle()
+        assertThat(coach.reviews).isEqualTo(1)
+        assertThat(vm.play.report?.running).isFalse()
+        assertThat(vm.play.report?.report?.overall?.percent).isEqualTo(100)
+        vm.onAction(GameAction.StartReport)
+        advanceUntilIdle()
+        // Once done it stays: nothing is looked at twice.
+        assertThat(coach.reviews).isEqualTo(1)
+        vm.onAction(GameAction.CancelReport)
+        advanceUntilIdle()
+        assertThat(vm.play.report).isNull()
+    }
+
+    @Test
     fun `opens on the person's first question with their hand`() = runTest(dispatcher) {
         val vm = viewModel(saved())
         advanceUntilIdle()

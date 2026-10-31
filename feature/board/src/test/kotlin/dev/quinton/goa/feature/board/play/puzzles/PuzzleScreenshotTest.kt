@@ -150,6 +150,27 @@ class PuzzleScreenshotTest {
     /** Puzzle 1 at its first question: the goal, "What you know", the actions. */
     private fun start() = drive("p01")
 
+    // ---- A full round: the turn and the enemy's known cards (ADR-052) ------------------------
+
+    private val round get() = dev.quinton.goa.core.game.puzzles.book.Puzzles.fullRounds.first().info.id
+
+    /** Turn 2: turn 1's cards are marked played, turn 2's is outlined. */
+    private fun roundTurnTwo() = drive(round) {
+        val solution = puzzleFile(round).solution
+        for (move in solution) {
+            if (ui().round?.turn == 2) break
+            play(move)
+        }
+    }
+
+    @Test fun puzzleRoundStartDark() = shot(ThemeMode.DARK, needs = listOf("r01")) { drive(round) }
+
+    @Test fun puzzleRoundTurnTwoLight() = shot(ThemeMode.LIGHT, needs = listOf("r01")) { roundTurnTwo() }
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun puzzleRoundW384DarkFontScale2() = shot(ThemeMode.DARK, 2f, needs = listOf("r01")) { roundTurnTwo() }
+
     @Test fun puzzleStartDark() = shot(ThemeMode.DARK, needs = listOf("p01")) { start() }
 
     @Test fun puzzleStartLight() = shot(ThemeMode.LIGHT, needs = listOf("p01")) { start() }

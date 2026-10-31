@@ -50,6 +50,7 @@ import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 
 /**
  * Game over: who won and how, in the rulebook's words; how each hero did; take backs and nudges;
@@ -64,6 +65,8 @@ internal fun GameOverContent(
     onNewGame: () -> Unit,
     onDone: () -> Unit,
     onHero: (String) -> Unit,
+    focus: CardFocusState? = null,
+    onLogAt: (Int) -> Unit = {},
 ) {
     val winColor = teamColor(over.winner)
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -194,6 +197,8 @@ internal fun GameOverContent(
                     }
                 }
             }
+
+            GameReportSection(play, onAction, focus, onLogAt)
 
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Button(onClick = {

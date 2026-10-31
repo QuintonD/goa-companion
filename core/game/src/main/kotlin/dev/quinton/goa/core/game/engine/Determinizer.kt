@@ -19,7 +19,8 @@ import kotlin.random.Random
  *   [Options.playWeight] (an opponent model) when given, else uniformly.
  * Facedown tokens of the other team get their kinds shuffled among themselves. Heroes of the viewer's
  * team named in [Options.hidePlayedOf] (human teammates) have their unrevealed played card dealt again
- * too: a facedown card is hidden information even to a teammate (p.4).
+ * too: a facedown card is hidden information even to a teammate (p.4). Heroes named in
+ * [Options.hideAllOf] (the coach's view: every teammate but the seat asking) are resampled like the other team.
  *
  * The sample depends only on public information and [rng]: hidden places are canonicalised (sorted)
  * before dealing and hand stamps cleared, so two states that differ only in hidden cards give the same
@@ -30,12 +31,15 @@ object Determinizer {
      * Refinements the AI may pass. [seen]: per hero, card ids seen faceup since its last level up
      * (public memory from the log). [playWeight]: weights for the cards of a hero's hand pool (all in
      * hand when it is called) to be the one it played. [hidePlayedOf]: viewer-team heroes whose
-     * unrevealed played card is hidden.
+     * unrevealed played card is hidden. [hideAllOf]: viewer-team heroes whose hand, items and facedown
+     * cards and tokens are hidden as well (p.4: cards in hand and facedown cards are hidden, and teammates
+     * may not show each other cards).
      */
     class Options(
         val seen: Map<String, Set<String>> = emptyMap(),
         val playWeight: ((state: GameState, heroId: String, pool: List<String>) -> List<Double>)? = null,
         val hidePlayedOf: Set<String> = emptySet(),
+        val hideAllOf: Set<String> = emptySet(),
     )
 
     fun sample(data: EngineData, source: GameState, viewer: Team, rng: Random): GameState =
@@ -44,13 +48,14 @@ object Determinizer {
     fun sample(data: EngineData, source: GameState, viewer: Team, rng: Random, options: Options): GameState {
         val s = source.copy()
         for (h in s.heroes) {
-            if (h.team == viewer) continue
+            if (h.team == viewer && h.id !in options.hideAllOf) continue
             if (!resampleHistory(data, s, h, rng, options.seen[h.id].orEmpty())) resampleIdentities(data, s, h, rng)
         }
         for (h in s.heroes) {
-            if (h.team != viewer || h.id in options.hidePlayedOf) redealHand(s, h, rng, options.playWeight)
+            val hidden = h.team != viewer || h.id in options.hidePlayedOf || h.id in options.hideAllOf
+            if (hidden) redealHand(s, h, rng, options.playWeight)
         }
-        shuffleFacedownTokens(s, viewer, rng)
+        shuffleFacedownTokens(s, viewer, rng, options.hideAllOf)
         s.stamp++
         return s
     }
@@ -263,8 +268,9 @@ object Determinizer {
         return weights.lastIndex
     }
 
-    private fun shuffleFacedownTokens(s: GameState, viewer: Team, rng: Random) {
-        val hiddenPieces = s.pieces.filter { it.faceDown && it.team != viewer }.groupBy { it.owner }
+    private fun shuffleFacedownTokens(s: GameState, viewer: Team, rng: Random, hideAllOf: Set<String>) {
+        val hiddenPieces = s.pieces.filter { it.faceDown && (it.team != viewer || it.owner in hideAllOf) }
+            .groupBy { it.owner }
         for ((_, pieces) in hiddenPieces) {
             if (pieces.size < 2) continue
             val kinds = pieces.sortedBy { it.id }.map { it.kind to it.label }.sortedBy { it.first }.shuffled(rng)

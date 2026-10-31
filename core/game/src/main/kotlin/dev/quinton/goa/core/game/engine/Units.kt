@@ -313,8 +313,7 @@ fun Game.defeatHero(heroId: String, byHero: String?) {
     // Extra Life costs are read while the hero still has its markers and effects: the defeat is when the
     // text applies (Bain's Bounty: "A hero with the Bounty marker spends 1 additional Life counter when
     // defeated"; card text beats the p.13 order, p.3).
-    val q = LifeQuery(heroId, byHero, tier)
-    val extraCost = sources().sumOf { (b, s) -> b.extraLifeCost(this, s, q) }
+    val extraCost = extraLifeCost(heroId, byHero, tier)
     cancelEffectsOf(heroId)
     h.markers.removeAll { !it.persistent }
     touch()
@@ -343,6 +342,12 @@ fun Game.defeatHero(heroId: String, byHero: String?) {
         win(h.team.opponent, WinReason.LIFE_COUNTERS, "${Game.teamName(h.team)} has spent its last Life counter.")
     }
     if (heroId in actors) throw ActorDefeated(heroId)
+}
+
+/** The Life counters card text adds to a defeat of [heroId] now, on top of its lowest Tier (p.13). */
+fun Game.extraLifeCost(heroId: String, byHero: String?, tier: Int): Int {
+    val q = LifeQuery(heroId, byHero, tier)
+    return sources().sumOf { (b, s) -> b.extraLifeCost(this, s, q) }
 }
 
 /**

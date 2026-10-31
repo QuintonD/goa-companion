@@ -2164,3 +2164,111 @@ workflow are retired and `github-pages` deploys from `main` only again. A new re
 page by running the workflow on main (`gh workflow run web-pages.yml --ref main`); the download page
 links the web app for iPhones, the root is the web app.
 
+
+## ADR-051: The coach suggests and reviews, with a fitted chance (v0.10)
+**Status:** accepted, 2026-10-31.
+**Context:** The owner: "The suggestions should be more vast and specific." The coach only reacted after a choice, spoke on 2.5% of decisions, had seven kinds of reason, never said what it would do, and its σ(score / 15) said 96% where 81% won.
+**Decision:** Additive on `Coach` with defaults, so the web and existing callers keep working: `suggest` (ranked options, chance, confidence, line, reasons, threats, round plan, the hero's official tips) and `review` (every decision of a game marked, from the save). `prepare` stays as it was and pays for no words; `suggest` adds samples on the same seeds. Win chance by Platt scaling per team size on stored self-play, shown to the nearest 5, used by the turning points too. The coach keeps the hand evaluation (`learned = HAND`). Confidence from the paired samples: "too close to rank" rather than ranking noise. Reasons only from events and printed values, each with its page, and silence stays allowed. `Hero.advice` joins the catalog through the importer, verbatim from source 3 (dataVersion 5). Text in the engine, as the nudges' is; the sheet's own words in string resources (the first in `:feature:board`). Android only: the web table keeps compiling and its controller ignores the new actions.
+**Consequences:** A strength-4 player following the top suggestion wins 79.7% (68.3–87.7%) against strength 6 in 3v3. The sheet's advice is as strong as a strength-8 look: it lifts a weak player and does not improve a strong one (AI.md "Known weaknesses"). Three in four decisions are honestly "too close to rank". Marks are relative to that look, so strength 10 is told of mistakes too. On a slow phone fewer samples and then no round plan, never a late sheet. The phone factor is still an assumption. Android builds of a checkout on C: with output on D: fail in Hilt's KSP ("this and base files have different roots"): this stream built Android from a detached checkout on D:.
+**Rules audit (independent, same day):** 22 findings, all fixed with `CoachTruthTest` holding the worst. Teammates' hidden cards reached the text and the chances (only enemies were resampled, so `NoPeekingTest` missed it: the coach now guesses teammates too). The Life cost ignored card text such as the Bounty marker and could hide a game loss. Block cards counted as "no defense"; threats' numbers now come from the Defend question's own previews, immunity removes a threat this turn, and a card whose text sets what it takes gets no number. "But Y is" could name a card that also falls. Also: token placements read as the hero moving, the Pity coin as card text, persistent runes as going back, the Minion Battle's removals past what a team has, and wording throughout.
+
+## ADR-052 — Full-round puzzles: what is known about the enemy, and how far (2026-10-31)
+**Context:** The owner: "The puzzles should be expanded to a full round." Every puzzle was a turn or less.
+The round's plan was to add four-turn puzzles with the enemy's *cards* known and everything else
+adversarial, and to let a feasibility spike set the budgets. The spike found that model out of reach.
+
+**What the spike measured** (2v2, positions mined at round starts of self-play games; desktop, 4 threads):
+
+| Test | Result |
+|------|--------|
+| The current solver, cards known, 1 M nodes a position | 20 positions: 5 proven, all trivial (5–49 nodes, goal met in turn 1–2); 15 out of budget at 60–1 700 s |
+| df-pn with weak sums and the 1+ε trick, 6 M engine runs | The same 5; the other 15 out of budget at ~1 M positions |
+| A prover that tries a sibling's plan first (`PlanProver`), 10 M engine runs | Nothing past turn 2 |
+| One rigid player plan, every enemy answer open: distinct positions | Over 4 M, with most of turn 1's branches not yet visited: 12 of 12 positions hit the cap |
+
+So one proof of a four-turn goal against enemies free in everything but their cards is far beyond the whole
+budget (4 threads × 12 h × ~20 000 engine runs/s ≈ 3.5 × 10⁹ runs). Most enemy answers don't merge: two heroes
+at 5–20 options a turn over three or four turns.
+
+**Decision:**
+1. **The enemy's plays are known in more detail than planned: its cards all round, and also what it does with
+   them up to a turn.** From that turn on (`openFrom`, shown on every card), and at every defense and every question
+   asked while someone else resolves a card, and whenever the player makes a known answer impossible, the enemy answers
+   as hard as it can. This goes further than the plan's "enemies answer adversarially in everything else": *on the known
+   turns they don't*, unless disrupted. It is the smallest change the numbers allowed, and the app says so to the player.
+   The known actions are the ones the self-play game really played, so positions and plays are legal by construction.
+2. **2v2, the player on both heroes.** No friends: a teammate answered in the player's favour makes a four-turn plan
+   unreadable. 3v3 was not tried: 2v2 gave enough survivors, and the owner can read the plan of two heroes on a phone.
+3. **A proof, as before, and only ever a proof:** a plan that reaches the goal against every answer that is still open.
+4. **The filter** rejects: a solution ending before turn 4; a goal forced by the end of turn 2 or 3; every first card
+   working for both heroes; a turn with no choice that matters; `s7` or `s3` solving it; the first option at every
+   decision solving it. Mining's budgets leave too much unknown, so a second pass with longer ones
+   (`FullRoundDeepTest`) decides: it cut 14 of the first 40 survivors, and STATUS.md shows its table.
+5. **Answer keys hold one line, and the proof is a certificate in test resources.** Off the line the status comes from a
+   budgeted solve (500 expansions and 350 ms an answer, none in turns 1–2), so a losing line may stay PLAYING until the
+   solver proves it or the round ends. An off-line win counts. Try again takes back a turn at a time.
+6. **`PlanProver` replaces the proposed df-pn** (kept in test sources for the measurement): its history table is what
+   works. The AI's static policy as move order made proofs slower and larger, so it is off, and the search doesn't move
+   when the value stream changes the evaluation.
+
+**Tried and dropped:**
+
+| Tried | Why dropped |
+|-------|-------------|
+| Enemy free in everything but its cards (the plan) | The table above |
+| df-pn | No proof the plan-first prover didn't find faster; more code |
+| The static policy as move order | 577 933 runs and 19 738 positions against 220 452 and 2 416 on the same position |
+| `Survive` as a mined goal | 37 of 37 out of budget in the sample, none survived: left out (it stays available to a hand-made puzzle) |
+| Double oracle | The known actions removed the need |
+
+**Consequences:** Puzzles teach a real thing: a card played or spent now for a turn later, an enemy's spare card stripped
+so it can't defend in turn 4, the Minion Battle counted from turn 1. The weaker statement has a price. In the known
+turns the enemy doesn't react to the player, so a plan can lean on an enemy walking into it. Off the shipped line, MISSED
+comes late. No first-turn option has been *proven* to lose in any puzzle (that proof is out of budget): what is proven is
+how many win, and the text never says a first card loses unless it is proven. No one has played these on the S25 Ultra,
+and no hands-on pass happened on the emulator (`device_open`: "Android emulator video needs working ffmpeg with the libx264
+encoder"): `FullRoundFlowTest` on `goa_s25b` and the screenshots stand in, and neither plays a whole round by hand.
+The book is 23, not the aimed 30: more of the pool is usable, but each needs its text traced line by line.
+
+If the convention is rejected, the book's second part can be dropped by emptying `Puzzles.fullRounds`: nothing else
+depends on it, and the 50 and their keys are untouched.
+
+## ADR-049 — A net that knows heroes, cards and pieces (v0.10, 2026-10-31)
+**Context:** The owner asked for a stronger computer with every hero, and beats strength 10 by hero kills
+and pushing the lane in 3v3 or bigger. v0.9's net pools 52 generic numbers per hero per team, so it
+cannot tell what a hero or a token is for; it wins by pushing and loses heroes (ADR-047 together).
+**Decision:**
+- **Extend the net, keep what measured:** N(team) = MLP(pooled features) + linear skip + a per-hero linear
+  correction on each of the team's heroes' 52 numbers + a value per card id and place (in hand, played,
+  resolved, item, extra place). The tables start at zero and decay towards it. New inputs: per team, each
+  piece kind's count and nearness to the Battle Zone and to enemy heroes, markers per kind, counters per
+  key. P(Red) = σ(N(Red) − N(Blue)), the coin scale, λ 0.7 targets from the hand evaluation, team-size
+  invariance and "reads only the determinized copy" all stay. Tables are data: no logic depends on a hero,
+  and a hero or card they do not know adds nothing.
+- **Trained** on the 6 399 stored games and 4 000 new ones (the net in self-play, low-uplift heroes
+  seated more often, kill-punishing variants in 40% of the mix). The checked-in net is seed 3 of three.
+- **Weights as Base64 text in Kotlin source** (exact bits, 209 KB of source for 33 900 floats; the
+  FloatArray literals took 243 KB for 18 300). An evaluation costs 1.34× v0.9's.
+- **v0.9's net stays playable in test sources** (`net=v09`, the same answers, `FingerprintTest`): every
+  later measurement can compare with it.
+- **Only strength 10 changes.** Strengths 1–9 and the coach keep the hand evaluation; `Evaluator` is
+  untouched.
+- **Measured** at the phone's work on line-ups never used for training or choosing, against v0.9's 10: 3v3
+  60.5% (55.6–65.2%, 400 games), 1.71 heroes lost a game against 1.96; 2v2 59.4% (52.3–66.1%, 192), 0.91
+  against 1.16; 4v4 56.8% (49.7–63.6%, 192), 2.29 against 2.49. Against the kill-hunter
+  74.0% (67.3–79.7%, 192) where v0.9's won 62.0% (54.9–68.5%), 2.10 heroes lost a game against its 1.70 (v0.9's: 2.27 against 1.49).
+  10 over 9 in 3v3 84.4% (75.8–90.3%, 96). No hero's uplift over v0.9 is negative in 400 games; the
+  set-up heroes gained most (Gydion +41%, Trinkets +28%, NebKher +20%, ±22 points).
+**Alternatives (measured and dropped, AI.md "v0.10"):** a retrain with neither new part (48.4%, so the
+parts are what pays); per-hero upgrade tables by Monte Carlo control (138 946 explored answers; "which
+to upgrade" showed nothing beyond chance, a table of "which to keep" 50.6% over 1 000 games); searching a
+tied answer again to the end of the next turn (48.3% over 1 000 games, at strength 7 only); other
+λ, table decay, data subsets. A second new generation was not played: generation 2's net did not beat
+generation 1's head to head (46.9%), it only lost fewer heroes.
+**Consequences:** A feature change needs a retrain (AI.md "How to retrain") and re-pinning
+`GameParityTest`; the JVM and Node agree on the new transcript. Training data outside the repo:
+`D:\.goa-qa\v09\a2\data` and `D:\.goa-qa\v10\value\data`, reproducible from their commands. Not
+measured: the real phone's factor and decision times on the new net (`TimingTest` was not rerun; the
+extra cost is one evaluation per playout), and whether a human hunting kills fares worse, which is the
+device game night's question. In a one-ply look inside a playout the hand evaluation still answers, so
+where a token goes in a playout is chosen without the net's knowledge.

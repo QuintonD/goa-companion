@@ -27,7 +27,7 @@ Ten features, offline-first, pass-and-play on one phone at the table:
 9. **Play against the computer** — the real game with every rule run by the `:core:game` engine,
    computer opponents at a strength from 1 to 10 (ADR-039) and an optional Coach (ADR-035).
 10. **Puzzles** — 50 difficult solver-proven positions with switchable nudges and an explanation
-   at the end (ADR-035).
+   at the end (ADR-035), and full rounds: four turns planned from turn 1 with the enemy's plays known (ADR-052).
 
 iPhones use the same app as a PWA on GitHub Pages (`web/`, ADR-043).
 

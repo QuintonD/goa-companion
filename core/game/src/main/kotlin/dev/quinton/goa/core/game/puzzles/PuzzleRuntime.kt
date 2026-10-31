@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.game.puzzles
 
+import dev.quinton.goa.core.domain.monotonicNanos
 import dev.quinton.goa.core.game.AnswerResult
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.GameEvent
@@ -8,6 +9,9 @@ import dev.quinton.goa.core.game.PuzzleBook
 import dev.quinton.goa.core.game.PuzzleInfo
 import dev.quinton.goa.core.game.PuzzleSession
 import dev.quinton.goa.core.game.PuzzleStatus
+import dev.quinton.goa.core.game.ai.Evaluator
+import dev.quinton.goa.core.game.ai.Features
+import dev.quinton.goa.core.game.ai.StaticPolicy
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameEngine
 import dev.quinton.goa.core.game.puzzles.book.Puzzles
@@ -20,22 +24,27 @@ import dev.quinton.goa.core.game.puzzles.book.Puzzles
  */
 class EnginePuzzleBook(
     private val engine: GameEngine,
-    all: List<Puzzle> = Puzzles.all,
+    all: List<Puzzle> = Puzzles.all + Puzzles.fullRounds,
     /** Use the stored answer keys (tests switch them off to check the solver alone). */
     private val useKeys: Boolean = true,
 ) : PuzzleBook {
     private val available: List<Puzzle> =
         all.filter { p -> p.info.heroes.all { it in engine.playableHeroes } }
 
-    override val puzzles: List<PuzzleInfo> = available.mapIndexed { i, p -> p.info.copy(number = i + 1) }
+    /** Numbered within each part of the book, so the full rounds start again at 1. */
+    override val puzzles: List<PuzzleInfo> = available.filter { it.known == null }.mapIndexed { i, p ->
+        p.info.copy(number = i + 1)
+    } + available.filter { it.known != null }.mapIndexed { i, p -> p.info.copy(number = i + 1) }
 
     private val prepared = HashMap<String, PreparedPuzzle>()
 
     /** The solver-ready puzzle (built once per book). */
     fun prepared(puzzleId: String): PreparedPuzzle {
-        val i = available.indexOfFirst { it.info.id == puzzleId }
-        require(i >= 0) { "No playable puzzle $puzzleId" }
-        return prepared.getOrPut(puzzleId) { PreparedPuzzle(available[i], engine, puzzles[i], useKeys) }
+        val puzzle = available.firstOrNull { it.info.id == puzzleId }
+        requireNotNull(puzzle) { "No playable puzzle $puzzleId" }
+        return prepared.getOrPut(puzzleId) {
+            PreparedPuzzle(puzzle, engine, puzzles.first { it.id == puzzleId }, useKeys)
+        }
     }
 
     override fun start(puzzleId: String): PuzzleSession = prepared(puzzleId).newSession()
@@ -48,6 +57,9 @@ class PreparedPuzzle(
     val info: PuzzleInfo = puzzle.info,
     useKey: Boolean = true,
 ) {
+    /** A round has too many positions for a key of every winning option: its key is the solution line. */
+    val fullRound: Boolean = puzzle.known != null
+
     /** The starting game; sessions fork it. Never answered. */
     val root: EngineSession = puzzle.build(engine)
 
@@ -60,12 +72,17 @@ class PreparedPuzzle(
 
     init {
         val start = root.checkpointState
-        root.haltWhen = GoalTracker.haltAt(puzzle.deadline, start.round, start.turn)
+        root.haltWhen = GoalTracker.haltAt(puzzle.deadline, start.round, start.turn, beforeRetrieve = fullRound)
         val teams = puzzle.playerSeats.map { seat ->
             requireNotNull(root.state.hero(seat)) { "Player seat $seat is not in the position" }.team
         }.toSet()
         require(teams.size == 1) { "The player's seats must be on one team" }
-        solver = PuzzleSolver(GoalTracker(info.goal, teams.single(), puzzle.playerSeats), puzzle.nodeBudget)
+        solver = PuzzleSolver(
+            GoalTracker(info.goal, teams.single(), puzzle.playerSeats),
+            puzzle.nodeBudget,
+            if (fullRound) ROUND_MEMO else PuzzleSolver.DEFAULT_MAX_MEMO,
+            puzzle.known,
+        )
         rootNode = solver.root(root)
         key = if (useKey) {
             AnswerKey.load(info.id)?.takeIf {
@@ -81,6 +98,21 @@ class PreparedPuzzle(
     companion object {
         /** Solver expansions for a check off the answer key (≈ 0.1 s on a desktop, well under 1 s on a phone). */
         const val RUNTIME_BUDGET: Long = 1_500
+
+        /** A full round's transposition table on a phone (these searches never fill much of it). */
+        const val ROUND_MEMO: Int = 100_000
+
+        /**
+         * A full round off its key: solver expansions for one answer, its own status and every reply it
+         * sets off together, so the phone answers within about half a second (ENCODING.md "Full rounds").
+         */
+        const val ROUND_ANSWER_BUDGET: Long = 500
+
+        /** And at most this long, whatever the device: the phone must answer within about half a second. */
+        const val ROUND_ANSWER_MS: Long = 350
+
+        /** A full round off its key: the first turn a budgeted search is worth trying. */
+        const val SEARCH_FROM_TURN: Int = 3
     }
 }
 
@@ -98,6 +130,13 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
     private val log = ArrayList<Logged>()
     private val path = ArrayList<Int>()
     private var current: PuzzleStatus = PuzzleStatus.PLAYING
+
+    /** Full round: what is left of [PreparedPuzzle.ROUND_ANSWER_BUDGET] for the answer being worked on. */
+    private var answerBudget = PreparedPuzzle.ROUND_ANSWER_BUDGET
+    private var answerDeadline = 0L
+    private val static by lazy(LazyThreadSafetyMode.NONE) {
+        StaticPolicy(Evaluator(node.session.engineData, Features.KNOBS))
+    }
 
     private class Logged(val decisionId: Long, val index: Int, val byPlayer: Boolean)
 
@@ -130,7 +169,9 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
         val events = ArrayList<GameEvent>()
         val r = apply(decisionId, index, byPlayer = true, events)
         if (r !is AnswerResult.Accepted) return r
-        refresh(wins?.let { index in it.options })
+        startAnswerBudget()
+        // A full round's key is one line: off it nothing is known yet, a search or the end of the round decides.
+        refresh(wins?.let { w -> (index in w.options).takeIf { it || !prepared.fullRound } })
         autoAnswer(events)
         return AnswerResult.Accepted(events)
     }
@@ -154,8 +195,9 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
         val d = node.session.pending ?: return null
         if (solver.sideOf(d) != Side.PLAYER || current != PuzzleStatus.PLAYING) return null
         (keyEntry() as? AnswerKey.Wins)?.let { return d.options[it.options.first()] }
-        val s = solver.solve(node, cancelled)
-        return if (s.value == Value.WIN) d.options[s.best] else null
+        startAnswerBudget()
+        val s = if (prepared.fullRound) budgeted() else solver.solve(node, cancelled)
+        return if (s?.value == Value.WIN) d.options[s.best] else null
     }
 
     private fun apply(decisionId: Long, index: Int, byPlayer: Boolean, events: MutableList<GameEvent>?): AnswerResult {
@@ -184,6 +226,7 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
             GoalState.OPEN -> when {
                 current == PuzzleStatus.MISSED || keyed == false -> PuzzleStatus.MISSED
                 keyed == true || onKey -> PuzzleStatus.PLAYING
+                prepared.fullRound -> if (budgeted()?.value == Value.LOSS) PuzzleStatus.MISSED else PuzzleStatus.PLAYING
                 solver.solve(node).value == Value.LOSS -> PuzzleStatus.MISSED
                 else -> PuzzleStatus.PLAYING
             }
@@ -206,8 +249,38 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
         }
     }
 
+    private fun startAnswerBudget() {
+        answerBudget = PreparedPuzzle.ROUND_ANSWER_BUDGET
+        answerDeadline = monotonicNanos() + PreparedPuzzle.ROUND_ANSWER_MS * NANOS_PER_MS
+    }
+
+    /**
+     * A solve within what is left for this answer, or null when nothing is left or it is too early: this
+     * budget proves nothing in turns 1 and 2, and a phone shouldn't spend half a second to learn that.
+     * The clock is what holds the phone to its time: a value it cuts short is UNKNOWN, never a wrong one.
+     */
+    private fun budgeted(): Solved? {
+        if (answerBudget <= 0 || node.session.state.turn < PreparedPuzzle.SEARCH_FROM_TURN) return null
+        val before = solver.nodesExpanded
+        val s = solver.solve(node, { monotonicNanos() > answerDeadline }, answerBudget)
+        answerBudget -= solver.nodesExpanded - before
+        return s
+    }
+
+    /** A full round off its key: a known play, else a budgeted solve, else the AI's static policy. */
+    private fun roundReply(): Int {
+        val choices = solver.choices(node)
+        choices.singleOrNull()?.let { return it }
+        val s = budgeted()
+        if (s != null && s.value != Value.UNKNOWN) return s.best
+        val d = checkNotNull(node.session.pending)
+        val scores = static.scores(node.session.state, d)
+        return choices.maxByOrNull { scores[it] } ?: choices.first()
+    }
+
     /** Off the key: a full solve while the puzzle can still be won, a budgeted one after a miss. */
     private fun replyOffKey(): Int {
+        if (prepared.fullRound) return roundReply()
         val budget = if (current == PuzzleStatus.MISSED) PreparedPuzzle.RUNTIME_BUDGET else solver.nodeBudget
         return solver.solve(node, budget = budget).best
     }
@@ -222,3 +295,5 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
         }
     }
 }
+
+private const val NANOS_PER_MS = 1_000_000L

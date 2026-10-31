@@ -353,3 +353,40 @@ re-derived by the replay; the new fields appear in old games too, `ResolutionEve
   Barrier), and so does one that makes it an obstacle *because* it is now empty (the empty spaces next
   to Takahide's Spinning Blade). The check lifts the token, asks `isEmpty`, and puts it back, restoring
   the change stamp (a primary probe reads a bumped stamp as a change). `RazzleTest` covers both.
+
+## 2026-10-31 — `feature/v10-coach`: suggestions and the review (ADR-051)
+- Additive on `Coach`, with defaults: `suggest(analysis, session, decision, cancelled)` and `review(saved, seats, progress, cancelled)`. New plain types: `CoachSuggestions`, `SuggestedOption`, `SuggestionConfidence`, `CoachReason`, `CoachReasonKind`, `CoachThreat`, `CoachPlan`, `GameReport`, `ReviewedDecision`, `ReviewAccuracy`, `ReviewMistake`, `DecisionMark`.
+- `Searcher.deepen` is new and only for the coach; `AiCoach` takes an optional `SampleRunner`. `AiCoach.winChance` is gone (`WinChance` is internal, per team size).
+- `Hero.advice: String?` in `core:model`, filled by the importer. `PlayUi` gains `suggest`, `canSuggest`, `report`; `GameAction` gains `AskSuggestions`, `CloseSuggestions`, `StartReport`, `CancelReport` (the web controller ignores them).
+- Behaviour: `nudge` no longer says a card "can still stop" an attack it falls to (or whose Block condition fails).
+
+## 2026-10-31 (full rounds, `feature/v10-puzzles`, ADR-052)
+
+Additive; defaults keep the 50 puzzles, other `GameSession` implementations and fakes unaffected. No
+synced or saved type changes: puzzle progress is stored by id, and `p..` ids are unchanged.
+
+- `PuzzleGoal.WinGame.by: Deadline = Deadline.END_OF_TURN`: a win may have a round-long deadline.
+- `PuzzleInfo.known: List<KnownPlay> = emptyList()`: a full round's enemy plays. `KnownPlay(heroId, turn, cardId,
+  plan: String? = null, spaces: List<Hex> = emptyList())`; `plan` null = that turn is free; `spaces` = where the plan goes,
+  for the board. Not empty = a full round (`PuzzleInfo.fullRound`).
+- `PuzzleInfo.nudgesByTurn: List<List<String>> = emptyList()` and `PuzzleInfo.nudgesFor(turn)`: nudges per turn.
+  Use `nudgesFor` rather than `nudges` wherever a nudge is shown.
+- `PuzzleInfo.number` is the place in its part of the book: the full rounds count from 1 again, so numbers repeat
+  across parts. Name a puzzle with `PuzzleText.short(info)`; never key anything by number.
+- `PuzzleInfo.id`: `p01`…`p60` or `r01`….
+- `core/play`: `PuzzleUi.round: RoundUi?` (`roundUi`, the turn and each known card's state), `TableUi.planned: Set<Hex>`,
+  `PuzzleSession.undoTurn()`, `PuzzleText.short/place/numbered/knownLine/tryAgain`.
+- Engine side: `Puzzles.fullRounds` beside `Puzzles.all` (which stays the 50); `EnginePuzzleBook`'s default book is
+  both; `PuzzleSolver(known = …)` and `PuzzleSolver.choices(node)`, the real choices at a node; `GoalTracker.haltAt(…,
+  beforeRetrieve)`; `PositionBuilder.gameVar`.
+- Behaviour: a full round's `PuzzleSession.bestChoice` is the key's move on the line and, off it, a budgeted solve's
+  or null. Its status can stay PLAYING on a line that will fail, until the solver proves it or the round ends.
+- Web: `EngineRequest.PuzzleUndo` takes back a whole turn in a full round.
+
+## 2026-10-31 — `feature/v10-ai-value`: the hero-aware net (ADR-049)
+- No change to `GameApi.kt` or `Evaluator.kt`; the coach's numbers on the hand evaluation are unaffected.
+  `LevelProfile` gains `leafEvaluator` (tests only, the frozen baseline), `LearnedNet` per-hero and
+  per-card tables, `Features` the board inputs and `extract(state, out, perHero)`, all internal. Saves
+  carry no strength-specific state, so old games replay unchanged.
+- Behaviour: strength 10 answers differently (new weights), `GameParityTest`'s searching transcript is
+  re-pinned, the JVM and Node agree; strengths 1–9 answer as before.

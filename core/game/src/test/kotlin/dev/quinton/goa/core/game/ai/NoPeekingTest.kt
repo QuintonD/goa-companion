@@ -34,6 +34,16 @@ class NoPeekingTest {
                 assertThat(cb).isEqualTo(ca)
             }
         }
+        // The coach's words too (ADR-051): the same public view, the same suggestions, line for line.
+        for (seed in 1L..3L) {
+            val sa = AiCoach(TestData.engine, seed, UNHURRIED).suggest(null, a, da)
+            val sb = AiCoach(TestData.engine, seed, UNHURRIED).suggest(null, b, db)
+            assertThat(sb).isEqualTo(sa)
+        }
+    }
+
+    private companion object {
+        const val UNHURRIED = 3_600_000L
     }
 
     @Test

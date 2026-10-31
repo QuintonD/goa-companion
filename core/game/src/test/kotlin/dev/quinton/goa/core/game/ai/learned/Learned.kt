@@ -10,10 +10,12 @@ import dev.quinton.goa.core.game.ai.Evaluator
 import dev.quinton.goa.core.game.ai.ExperimentTest
 import dev.quinton.goa.core.game.ai.Features
 import dev.quinton.goa.core.game.ai.LearnedNet
+import dev.quinton.goa.core.game.ai.LevelProfile
 import dev.quinton.goa.core.game.ai.SearchAi
 import dev.quinton.goa.core.game.ai.Searcher
 import dev.quinton.goa.core.game.ai.Term
 import dev.quinton.goa.core.game.ai.Tournament
+import dev.quinton.goa.core.game.ai.learned.v09.BaselineV09
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.SavedPayload
@@ -64,6 +66,13 @@ internal object Learned {
         val parts = spec.split("+")
         val strength = parts[0].removePrefix("s").toIntOrNull()
             ?: AiLevel.entries.first { it.name.equals(parts[0], true) }.strength
+        val p = profile(spec)
+        return Tournament.Side(spec) { seed -> SearchAi(AiLevel.of(strength), p, seed, timeCap = false) }
+    }
+
+    /** The profile of a [side]. */
+    fun profile(spec: String): LevelProfile {
+        val parts = spec.split("+")
         val mine = parts.drop(1).filter { it.startsWith("learned=") || it.startsWith("net=") }
         var p = ExperimentTest.variant((listOf(parts[0]) + parts.drop(1).filter { it !in mine }).joinToString("+"))
         for (o in mine) {
@@ -71,19 +80,24 @@ internal object Learned {
             p = when (k) {
                 "learned" -> p.copy(learned = EvalSource.valueOf(v.uppercase()))
 
-                else -> p.copy(
-                    net = net(v),
-                    learned = if (p.learned ==
-                        EvalSource.HAND
-                    ) {
-                        EvalSource.LEAVES
-                    } else {
-                        p.learned
-                    },
-                )
+                else -> if (v == "v09") {
+                    // The frozen baseline: the strength 10 of `feature/v0.10`'s first commit (ADR-049).
+                    p.copy(learned = EvalSource.LEAVES, leafEvaluator = ::BaselineV09)
+                } else {
+                    p.copy(
+                        net = net(v),
+                        learned = if (p.learned ==
+                            EvalSource.HAND
+                        ) {
+                            EvalSource.LEAVES
+                        } else {
+                            p.learned
+                        },
+                    )
+                }
             }
         }
-        return Tournament.Side(spec) { seed -> SearchAi(AiLevel.of(strength), p, seed, timeCap = false) }
+        return p
     }
 
     private val nets = ConcurrentHashMap<String, LearnedNet>()
@@ -109,9 +123,21 @@ internal object Learned {
         val b3: Float,
         val coinScale: Double,
         val schema: Long,
+        val heroes: List<String>,
+        val wh: FloatArray,
+        val cards: List<String>,
+        val wc: FloatArray,
     ) {
-        fun toNet() = LearnedNet(inputs, h1, h2, w1, b1, w2, b2, w3, wl, b3, coinScale)
+        fun toNet() = LearnedNet(inputs, h1, h2, w1, b1, w2, b2, w3, wl, b3, coinScale, heroes, wh, cards, wc)
     }
+
+    /** The heroes and cards of the correction tables, in table order. */
+    val HEROES: List<String> by lazy { TestData.engine.data.catalog.heroes.map { it.id }.sorted() }
+    val CARDS: List<String> by lazy {
+        TestData.engine.data.catalog.heroes.flatMap { h -> h.allCards.map { it.id } }.distinct().sorted()
+    }
+    private val HERO_INDEX by lazy { HEROES.withIndex().associate { (i, h) -> h to i } }
+    private val CARD_INDEX by lazy { CARDS.withIndex().associate { (i, c) -> c to i } }
 
     fun saveNet(n: NetData, f: File) {
         f.parentFile.mkdirs()
@@ -123,6 +149,12 @@ internal object Learned {
             o.writeDouble(n.coinScale)
             for (a in listOf(n.w1, n.b1, n.w2, n.b2, n.w3, n.wl)) for (x in a) o.writeFloat(x)
             o.writeFloat(n.b3)
+            o.writeUTF(n.heroes.joinToString(" "))
+            for (x in n.wh) o.writeFloat(x)
+            // Card ids can be long: in pieces, as DataOutput's strings stop at 64 KB.
+            o.writeInt(n.cards.size)
+            for (c in n.cards) o.writeUTF(c)
+            for (x in n.wc) o.writeFloat(x)
         }
     }
 
@@ -134,13 +166,18 @@ internal object Learned {
         val h2 = i.readInt()
         val scale = i.readDouble()
         fun arr(n: Int) = FloatArray(n) { i.readFloat() }
-        NetData(
-            inputs, h1, h2,
-            arr(
-                inputs * h1,
-            ),
-            arr(h1), arr(h1 * h2), arr(h2), arr(h2), arr(inputs), i.readFloat(), scale, schema,
-        )
+        val w1 = arr(inputs * h1)
+        val b1 = arr(h1)
+        val w2 = arr(h1 * h2)
+        val b2 = arr(h2)
+        val w3 = arr(h2)
+        val wl = arr(inputs)
+        val b3 = i.readFloat()
+        val heroes = i.readUTF().split(" ").filter { it.isNotEmpty() }
+        val wh = arr(heroes.size * LearnedNet.HERO_COLS)
+        val cards = List(i.readInt()) { i.readUTF() }
+        val wc = arr(cards.size * LearnedNet.CARD_PLACES)
+        NetData(inputs, h1, h2, w1, b1, w2, b2, w3, wl, b3, scale, schema, heroes, wh, cards, wc)
     }
 
     fun loadNet(f: File): LearnedNet = loadNetData(f).toNet()
@@ -159,6 +196,7 @@ internal object Learned {
         val terms: FloatArray,
         /** Red's then Blue's features. */
         val x: FloatArray,
+        val extras: Trainer.Extras,
     )
 
     /**
@@ -210,12 +248,42 @@ internal object Learned {
         hand: Evaluator,
     ): Position {
         val x = FloatArray(2 * Features.SIZE)
-        features.extract(st, x)
+        val perHero = FloatArray(st.heroes.size * Features.HERO.size)
+        features.extract(st, x, perHero)
         val ctx = hand.context(st)
         val terms = ctx.termsRed()
         return Position(
             r.game, r.lineup, r.size, index, boundary, winner == Team.RED.name,
             ctx.scoreRed().toFloat(), FloatArray(Term.entries.size) { terms[it].toFloat() }, x,
+            extras(st, perHero),
+        )
+    }
+
+    /** What a position gives the correction tables: Red's heroes first, their numbers, each team's cards. */
+    private fun extras(st: GameState, perHero: FloatArray): Trainer.Extras {
+        val order = st.heroes.indices.sortedBy { if (st.heroes[it].team == Team.RED) 0 else 1 }
+        val size = Features.HERO.size
+        val v = FloatArray(order.size * size)
+        for ((o, i) in order.withIndex()) perHero.copyInto(v, o * size, i * size, (i + 1) * size)
+        fun cards(team: Team): ShortArray {
+            val out = ArrayList<Short>()
+            for (h in st.heroes) {
+                if (h.team != team) continue
+                for (c in h.cards) {
+                    val place = LearnedNet.cardPlace(c)
+                    if (place < 0) continue
+                    val row = CARD_INDEX[c.id] ?: continue
+                    out += (row * LearnedNet.CARD_PLACES + place).toShort()
+                }
+            }
+            return out.toShortArray()
+        }
+        return Trainer.Extras(
+            ByteArray(order.size) { HERO_INDEX.getValue(st.heroes[order[it]].id).toByte() },
+            order.count { st.heroes[it].team == Team.RED },
+            v,
+            cards(Team.RED),
+            cards(Team.BLUE),
         )
     }
 }

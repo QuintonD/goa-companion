@@ -406,6 +406,22 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] On the S25 Ultra: a 3v3 game night against strength 10 (heroes lost to a human who hunts
   kills; think time within ~2 s), the resolution flow after the computer's turns
 
+## M24 — Full-round puzzles (ADR-052)
+- [x] Feasibility spike decided the model: cards alone are out of reach (over 4 M positions under one rigid plan), so
+  the early turns' enemy actions are known too; 2v2, the player on both heroes — 2026-10-31, `RoundSpikeTest`,
+  `RoundWidthTest`, ADR-052's table
+- [x] Solver, generator and filter (`PlanProver`, `RoundGenTest`, `FullRoundDeepTest`); certificates replayed against
+  every open enemy answer in `FullRoundBookTest` — 2026-10-31. JVM only
+- [x] 23 full rounds of an aimed 30, grades 1/2/3 = 1/12/10, every hero at least 2 times; text traced to the dossiers — 2026-10-31, `FullRoundBookTest` (proofs replayed), STATUS.md
+- [x] Android and web screens: the turn, the enemy's real cards, plans, a plan's space outlined, nudges per turn, a turn
+  back after a miss — 2026-10-31, `PuzzleViewModelTest`, `PuzzleControllerTest`, Roborazzi baselines. JVM and JS only
+- [x] `FullRoundFlowTest` on the emulator `goa_s25b` (the list, a round's turn, cards and plan, a nudge, the solution
+  to the goal met) and `play-puzzles.spec.ts` on WebKit and Chromium — 2026-10-31
+- [ ] Hands-on on the emulator: not done, `device_open` failed ("Android emulator video needs working ffmpeg with the
+  libx264 encoder")
+- [ ] On the S25 Ultra: a full round played from scratch, answer times off the line within ~500 ms
+- [ ] Independent rules review of every full round's text (the lead's)
+
 ## M18 — Web app: group, sync and players (ADR-043 W2)
 - [x] Relay CORS for the Pages origin (`GOA_RELAY_CORS_ORIGINS`), deployed to oldboi — 2026-10-25,
   `CorsTest`, health and preflight checked from outside, existing groups untouched
@@ -457,6 +473,24 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   by hash (WebKit on Fast 3G now finishes it), updates download only what changed, list thumbnails —
   2026-10-26, `r3-first-load.spec.ts`, `ThumbnailsTest`, `WebThumbnailsTest`; Fast 3G WebKit: usable
   16.2 → 12.5 s, offline never → 48 s (`scripts/first-load.mjs`). Not on an iPhone yet
+
+## M23 — The coach suggests and reviews (ADR-051)
+- [x] Win chance by Platt scaling per team size on 6 399 stored games, held-out reliability within about 5 points, used by the sheet, the review and the turning points — 2026-10-31, `CalibrationTest` (opt-in), AI.md "The coach"
+- [x] `Coach.suggest` (ranked options, chance, confidence, line, reasons from 7 to 32 kinds, threats, round plan, official tips imported verbatim) and `Coach.review` — 2026-10-31, `CoachSuggestTest` (every sentence over all 32 heroes against its events and printed values), `NoPeekingTest` (same public view, same words), `CoachAheadTest` (the look ahead unchanged)
+- [x] A strength-4 player following the top suggestion: 100% against strength 4, 79.7% (68.3–87.7%) against strength 6, 3v3 held-out — 2026-10-31, `CoachHelpTest`
+- [x] Android: Suggest button and sheet, post-game review with progress and Cancel, the jump to the log; strings in resources — 2026-10-31, `GameViewModelTest`, `PlayScreenshotTest` (light, dark, landscape, 384 dp at font scale 2), `CoachSuggestFlowTest` on the emulator (real engine, 3v3). Built; JVM and emulator only
+- [ ] Hands-on on an emulator: not done, `device_open` refused on the development machine (ffmpeg with libx264 missing); the real sheets were read as Robolectric screens of a real game (`CoachRealGameTest`)
+- [ ] On the S25 Ultra: suggestions within about 1.5 s, a review's time, TalkBack through the sheet
+- [ ] Suggestions on the web table
+
+## M21 — A net that knows heroes, cards and pieces (ADR-049)
+- [x] Per-hero corrections, a card table and piece, marker and counter inputs at strength 10; v0.9's net
+  kept as `net=v09` — 2026-10-31, at the phone's work on test line-ups against v0.9's 10: 3v3 60.5%
+  (55.6–65.2%, 400 games), 1.71 heroes lost a game against 1.96; 2v2 59.4% (52.3–66.1%); 4v4 56.8%
+  (49.7–63.6%). Strengths 1–9 unchanged, 10 over 9 84.4%. JVM and Node; not on a device
+- [x] Per-hero upgrade tables tried: even (50.6%, 1 000 games at strength 7), not shipped
+- [ ] On the S25 Ultra: a 3v3 game at strength 10, decision times within ~2 s, and whether hunting kills
+  still beats it
 
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)

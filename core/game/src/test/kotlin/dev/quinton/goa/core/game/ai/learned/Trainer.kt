@@ -1,5 +1,7 @@
 package dev.quinton.goa.core.game.ai.learned
 
+import dev.quinton.goa.core.game.ai.Features
+import dev.quinton.goa.core.game.ai.LearnedNet
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import kotlin.math.exp
@@ -14,7 +16,9 @@ import kotlin.random.Random
  * against the targets, AdamW, mini-batches, early stopping on the validation set's log-loss against
  * the real results. Seeded and reproducible (the batch is split over a fixed number of threads and
  * the gradients summed in order). Inputs are standardized for training and the scaling folded into
- * the first layer at the end, so the exported net reads raw features.
+ * the first layer at the end, so the exported net reads raw features. On top of the MLP, N has the
+ * per-hero corrections and the card table ([dev.quinton.goa.core.game.ai.LearnedNet], ADR-049): they
+ * start at zero and decay towards it, so a rare situation does not overfit.
  */
 internal class Trainer(
     private val inputs: Int,
@@ -24,15 +28,31 @@ internal class Trainer(
     private val threads: Int = 4,
     /** Starting weights of the linear skip on raw features (the hand evaluation's slope on its score). */
     private val skipInit: Map<Int, Double> = emptyMap(),
+    /** Heroes and cards of the correction tables (0 = the plain net). */
+    private val heroes: Int = 0,
+    private val cards: Int = 0,
+    /** Inputs from this index up are mostly zero (the pieces of one hero): a floor under their scale. */
+    private val sparseFrom: Int = inputs,
 ) {
+    /** One position for the tables: the heroes' table rows (Red's first, [red] of them), their numbers, the cards. */
+    class Extras(
+        val heroes: ByteArray,
+        val red: Int,
+        val v: FloatArray,
+        val redCards: ShortArray,
+        val blueCards: ShortArray,
+    )
+
     /** Rows of Red's then Blue's features ([inputs] each), training targets and real results (1 = Red won). */
-    class Data(val x: FloatArray, val target: FloatArray, val outcome: FloatArray) {
+    class Data(val x: FloatArray, val target: FloatArray, val outcome: FloatArray, val extras: List<Extras>) {
         val n: Int get() = target.size
     }
 
     class Config(
         val lr: Double = 1e-3,
         val weightDecay: Double = 1e-4,
+        /** AdamW's decay on the correction tables, towards zero. */
+        val tableDecay: Double = 1.0,
         val batch: Int = 512,
         val maxEpochs: Int = 40,
         val patience: Int = 5,
@@ -47,10 +67,12 @@ internal class Trainer(
 
     /** A linear skip from the inputs to the output: N(x) = MLP(x) + wl · x (wide and deep). */
     private val wl = DoubleArray(inputs)
+    private val wh = DoubleArray(heroes * LearnedNet.HERO_COLS)
+    private val wc = DoubleArray(cards * LearnedNet.CARD_PLACES)
     private var mean = DoubleArray(inputs)
     private var sd = DoubleArray(inputs) { 1.0 }
 
-    private val params: List<DoubleArray> get() = listOf(w1, b1, w2, b2, w3, wl)
+    private val params: List<DoubleArray> get() = listOf(w1, b1, w2, b2, w3, wl, wh, wc)
 
     private fun init(constant: BooleanArray) {
         val rng = Random(seed)
@@ -67,16 +89,15 @@ internal class Trainer(
         b2.fill(0.01)
     }
 
-    /** Standardizes a copy of [x] with the training statistics. */
-    private fun standardize(x: FloatArray): FloatArray {
-        val out = FloatArray(x.size)
+    /** Standardizes [x] in place with the training statistics. */
+    private fun standardize(x: FloatArray) {
         for (r in 0 until x.size / inputs) {
             val o = r * inputs
-            for (i in 0 until inputs) out[o + i] = ((x[o + i] - mean[i]) / sd[i]).toFloat()
+            for (i in 0 until inputs) x[o + i] = ((x[o + i] - mean[i]) / sd[i]).toFloat()
         }
-        return out
     }
 
+    /** Trains on [train] and [valid], whose inputs it overwrites. */
     fun train(train: Data, valid: Data, cfg: Config = Config()): Learned.NetData {
         // Statistics over both points of view of every training row.
         val rows = train.x.size / inputs
@@ -91,6 +112,7 @@ internal class Trainer(
             mean[i] = s / rows
             val variance = ss / rows - mean[i] * mean[i]
             sd[i] = if (variance < 1e-10) 1.0 else sqrt(variance)
+            if (i >= sparseFrom) sd[i] = max(sd[i], SPARSE_SCALE)
         }
         val constant = BooleanArray(inputs) { i ->
             sd[i] == 1.0 && run {
@@ -100,8 +122,8 @@ internal class Trainer(
             }
         }
         init(constant)
-        val tx = standardize(train.x)
-        val vx = standardize(valid.x)
+        standardize(train.x)
+        standardize(valid.x)
         val m = params.map { DoubleArray(it.size) }
         val v = params.map { DoubleArray(it.size) }
         var step = 0
@@ -123,13 +145,13 @@ internal class Trainer(
                 var b = 0
                 while (b < train.n) {
                     val end = minOf(train.n, b + cfg.batch)
-                    val (grads, loss) = gradients(tx, train.target, order, b, end, pool)
+                    val (grads, loss) = gradients(train, order, b, end, pool)
                     trainLoss += loss
                     step++
                     adam(grads, m, v, step, (end - b).toDouble(), cfg)
                     b = end
                 }
-                val vl = logLoss(vx, valid.outcome)
+                val vl = logLoss(valid)
                 cfg.log("TRAIN epoch $epoch train ${"%.4f".format(trainLoss / train.n)} valid ${"%.4f".format(vl)}")
                 if (vl < best - 1e-5) {
                     best = vl
@@ -162,21 +184,24 @@ internal class Trainer(
             val g = grads[pi]
             val mm = m[pi]
             val vv = v[pi]
-            val decay = pi == 0 || pi == 2 || pi == 4
+            val decay = when (pi) {
+                0, 2, 4 -> cfg.weightDecay
+                6, 7 -> cfg.tableDecay
+                else -> 0.0
+            }
             for (k in p.indices) {
                 val gk = g[k] / count
                 mm[k] = 0.9 * mm[k] + 0.1 * gk
                 vv[k] = 0.999 * vv[k] + 0.001 * gk * gk
                 p[k] -= cfg.lr * (mm[k] / bc1) / (sqrt(vv[k] / bc2) + 1e-8)
-                if (decay) p[k] -= cfg.lr * cfg.weightDecay * p[k]
+                p[k] -= cfg.lr * decay * p[k]
             }
         }
     }
 
     /** Summed gradients and loss over `order[from until to]`, split over the threads in a fixed way. */
     private fun gradients(
-        x: FloatArray,
-        y: FloatArray,
+        data: Data,
         order: IntArray,
         from: Int,
         to: Int,
@@ -192,14 +217,18 @@ internal class Trainer(
                 val e = minOf(to, a + chunk)
                 for (q in a until e) {
                     val r = order[q]
-                    val zr = forward(x, 2 * r * inputs, ws.red)
-                    val zb = forward(x, (2 * r + 1) * inputs, ws.blue)
+                    val e = data.extras[r]
+                    val x = data.x
+                    val zr = forward(x, 2 * r * inputs, ws.red) + tables(e, true)
+                    val zb = forward(x, (2 * r + 1) * inputs, ws.blue) + tables(e, false)
                     val p = sigmoid(zr - zb)
-                    val target = y[r].toDouble()
+                    val target = data.target[r].toDouble()
                     loss += -(target * ln(p.coerceAtLeast(1e-9)) + (1 - target) * ln((1 - p).coerceAtLeast(1e-9)))
                     val d = p - target
                     backward(x, 2 * r * inputs, ws.red, d, g)
                     backward(x, (2 * r + 1) * inputs, ws.blue, -d, g)
+                    tablesBack(e, true, d, g)
+                    tablesBack(e, false, -d, g)
                 }
                 g to loss
             }
@@ -222,6 +251,35 @@ internal class Trainer(
     private inner class Work {
         val red = Act()
         val blue = Act()
+    }
+
+    /** What one team's heroes and cards add ([dev.quinton.goa.core.game.ai.LearnedNet.corrections]). */
+    private fun tables(e: Extras, red: Boolean): Double {
+        if (heroes == 0) return 0.0
+        var out = 0.0
+        val size = Features.HERO.size
+        val cols = LearnedNet.HERO_COLS
+        for (h in if (red) 0 until e.red else e.red until e.heroes.size) {
+            val row = e.heroes[h] * cols
+            out += wh[row + size]
+            for (k in 0 until size) out += wh[row + k] * e.v[h * size + k]
+        }
+        for (c in if (red) e.redCards else e.blueCards) out += wc[c.toInt()]
+        return out
+    }
+
+    private fun tablesBack(e: Extras, red: Boolean, d: Double, g: List<DoubleArray>) {
+        if (heroes == 0) return
+        val gh = g[6]
+        val gc = g[7]
+        val size = Features.HERO.size
+        val cols = LearnedNet.HERO_COLS
+        for (h in if (red) 0 until e.red else e.red until e.heroes.size) {
+            val row = e.heroes[h] * cols
+            gh[row + size] += d
+            for (k in 0 until size) gh[row + k] += d * e.v[h * size + k]
+        }
+        for (c in if (red) e.redCards else e.blueCards) gc[c.toInt()] += d
     }
 
     private fun forward(x: FloatArray, off: Int, a: Act): Double {
@@ -274,12 +332,18 @@ internal class Trainer(
         }
     }
 
-    /** Log-loss against [y] of the standardized rows [x]. */
-    private fun logLoss(x: FloatArray, y: FloatArray): Double {
+    /** Log-loss of the standardized rows of [d] against the real results. */
+    private fun logLoss(d: Data): Double {
         val a = Work()
         var l = 0.0
+        val x = d.x
+        val y = d.outcome
         for (r in y.indices) {
-            val p = sigmoid(forward(x, 2 * r * inputs, a.red) - forward(x, (2 * r + 1) * inputs, a.blue))
+            val e = d.extras[r]
+            val p = sigmoid(
+                forward(x, 2 * r * inputs, a.red) + tables(e, true) -
+                    forward(x, (2 * r + 1) * inputs, a.blue) - tables(e, false),
+            )
             l += -(y[r] * ln(p.coerceAtLeast(1e-9)) + (1 - y[r]) * ln((1 - p).coerceAtLeast(1e-9)))
         }
         return l / y.size
@@ -305,10 +369,17 @@ internal class Trainer(
             FloatArray(h2) { w3[it].toFloat() },
             FloatArray(inputs) { (wl[it] / sd[it]).toFloat() },
             0f, 1.0, 0L,
+            Learned.HEROES.takeIf { heroes > 0 }.orEmpty(),
+            FloatArray(wh.size) { wh[it].toFloat() },
+            Learned.CARDS.takeIf { cards > 0 }.orEmpty(),
+            FloatArray(wc.size) { wc[it].toFloat() },
         )
     }
 
     companion object {
+        /** The floor under the scale of the mostly-zero inputs: a rare piece must not shout. */
+        private const val SPARSE_SCALE = 0.25
+
         fun sigmoid(z: Double): Double = 1 / (1 + exp(-z))
     }
 }
