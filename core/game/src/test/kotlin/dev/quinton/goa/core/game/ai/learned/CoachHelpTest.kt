@@ -214,7 +214,8 @@ class CoachHelpTest {
                 maxMs = maxOf(maxMs, took)
                 report.mistakes.filter { it.decision.loss >= CoachReviewer.MISTAKE_BELOW }.forEach { m ->
                     println(
-                        "COACHBLUNDER s$strength ${m.decision.seat} ${m.decision.kind} ${m.prompt}: chose ${m.chosen} " +
+                        "COACHBLUNDER s$strength ${m.decision.seat} ${m.decision.kind} ${m.prompt}: " +
+                            "chose ${m.chosen} " +
                             "(-${"%.3f".format(m.decision.loss)}) | ${m.position.take(POSITION_WORDS)} | " +
                             m.suggestions.options.joinToString(" / ") { o ->
                                 "${o.label} ${o.chance}% ${o.reasons.firstOrNull()?.text.orEmpty()}"

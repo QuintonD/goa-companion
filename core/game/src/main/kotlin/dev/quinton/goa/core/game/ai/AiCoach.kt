@@ -358,7 +358,9 @@ internal class Explainer(
         val block = d.context.blockPreview[cardId]
         return when {
             block != null -> block
+
             value != null -> value >= total
+
             else -> share(Choice.Card(cardId)) { l ->
                 events(l).any { it is GameEvent.Defended && it.heroId == seat && it.success }
             } >= 0.5
