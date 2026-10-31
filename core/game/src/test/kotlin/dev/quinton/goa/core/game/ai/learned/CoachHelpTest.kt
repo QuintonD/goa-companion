@@ -174,8 +174,12 @@ class CoachHelpTest {
                 "max ${"%.0f".format(q.last())} ms"
         }
         println(
-            "COACHTIME ${tap.size} decisions, budget $onDesktop ms: the look ahead ${line(look)}; the tap ${line(tap)}; " +
-                "mean samples ${"%.1f".format(samples.toDouble() / tap.size)}, a plan at $withPlan of $plays card plays",
+            "COACHTIME ${tap.size} decisions, budget $onDesktop ms: the look ahead ${line(
+                look,
+            )}; the tap ${line(tap)}; " +
+                "mean samples ${"%.1f".format(
+                    samples.toDouble() / tap.size,
+                )}, a plan at $withPlan of $plays card plays",
         )
     }
 
@@ -214,15 +218,15 @@ class CoachHelpTest {
             }
             val sorted = all.sorted()
             fun q(p: Double) = if (sorted.isEmpty()) 0.0 else sorted[(p * (sorted.size - 1)).toInt()]
+            val quantiles = listOf(0.5, 0.75, 0.9, 0.95, 0.99)
+                .joinToString(" ") { "p${(it * 100).toInt()} ${"%.3f".format(q(it))}" }
+            val edges = "${CoachReviewer.GOOD_BELOW}/${CoachReviewer.INACCURACY_BELOW}/${CoachReviewer.MISTAKE_BELOW}"
             println(
-                "COACHMARKS strength $strength: ${all.size} decisions of one seat in $games games, mean loss " +
-                    "${"%.3f".format(all.average())}, " +
-                    "p50 ${"%.3f".format(q(0.5))} p75 ${"%.3f".format(q(0.75))} p90 ${"%.3f".format(q(0.9))} p95 " +
-                    "${"%.3f".format(q(0.95))} " +
-                    "p99 ${"%.3f".format(q(0.99))}; $counts; review of one seat mean ${"%.0f".format(ms / games)} " +
-                    "ms, max ${"%.0f".format(maxMs)} ms; " +
-                    "edges ${CoachReviewer.GOOD_BELOW}/${CoachReviewer.INACCURACY_BELOW}/" +
-                    "${CoachReviewer.MISTAKE_BELOW}",
+                "COACHMARKS strength $strength: ${all.size} decisions of one seat in $games games, " +
+                    "mean loss ${"%.3f".format(all.average())}, $quantiles; $counts; " +
+                    "review of one seat mean ${"%.0f".format(
+                        ms / games,
+                    )} ms, max ${"%.0f".format(maxMs)} ms; edges $edges",
             )
         }
         // The noise floor: the loss of the first-choice option under another seed of the same analysis.

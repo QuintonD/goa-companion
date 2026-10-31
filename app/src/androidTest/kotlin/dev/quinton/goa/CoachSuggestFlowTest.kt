@@ -47,7 +47,7 @@ class CoachSuggestFlowTest {
 
         rule.waitFor(hasText("Play a card facedown"), timeout = GAME_TIMEOUT)
         rule.tap(hasText("Suggest") and hasClickAction() and isEnabled())
-        rule.waitFor(hasText("% to win", substring = true), timeout = GAME_TIMEOUT)
+        rule.waitFor(hasContentDescription("to win", substring = true), timeout = GAME_TIMEOUT)
         rule.waitFor(hasText("TIPS FOR WASP"), timeout = GAME_TIMEOUT)
         rule.tapText("Done")
 
