@@ -2250,7 +2250,7 @@ sentence or premise. What changed:
 
 Still true after this: many puzzles have several winning plans, so they teach one way, and say so. Ten of the 23 have only
 "holding this card, or skipping what it offers, loses" as their turn-3 losses on the line: real, but thin proof that the turn
-matters. Strength 10 solves 9 of the 23 with the v0.10 net (`gate.txt` is measured on it), up from 4 before it merged.
+matters. Strength 10 solves 8 of the 23 with the v0.10 net (`gate.txt` is measured on it).
 
 If the convention is rejected, the book's second part can be dropped by emptying `Puzzles.fullRounds`: nothing else
 depends on it, and the 50 and their keys are untouched.
