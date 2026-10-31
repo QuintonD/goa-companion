@@ -390,3 +390,10 @@ synced or saved type changes: puzzle progress is stored by id, and `p..` ids are
   carry no strength-specific state, so old games replay unchanged.
 - Behaviour: strength 10 answers differently (new weights), `GameParityTest`'s searching transcript is
   re-pinned, the JVM and Node agree; strengths 1–9 answer as before.
+
+## 2026-10-31 — `feature/v10-ai-search`: the speed measure (ADR-050)
+- No change to `GameApi.kt`, no question added or removed, saves unaffected.
+- New public in `core.game.ai`: `AiBenchmark` (`run`, `Result`, `Result.line`). `Searcher.work` is now read-only over an
+  atomic count (internal), so it is exact with a threaded runner; `kotlin.concurrent.atomics` is opted in there.
+- `core:data`: `AiSpeed` and `AiSpeedMeter`, provided by `PlayEngineModule`. `SettingsViewModel` takes an `AiSpeedMeter`.
+- The web app does not offer the measure; the shared code builds for it.

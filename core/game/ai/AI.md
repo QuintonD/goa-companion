@@ -15,6 +15,7 @@ plays as the level's strength (Easy 2, Normal 6, Hard 8, Expert 10, ADR-039).
 |------|------|
 | `AiPlayers.kt` | `AiPlayers.forStrength(strength, seed)` (production, wall-clock capped) and `deterministic(strength, seed)` (tests), `forLevel` for a level alone; the ten `LevelProfile`s and `TUNED`, the evaluation of the searching strengths; `SearchAi`, the one `AiPlayer`; `Fallback` (answers from the `Decision` alone) |
 | `Search.kt` | `Searcher`: determinize → fork → answer an option → playout to a horizon → evaluate; option pruning, racing, the playout policy, the one-ply "greedy" policy, the opponent model, public card memory; `SampleRunner` (the samples of one answer, sequential unless the app passes threads); `Hunt` (the exploiter's taste, tests); `Picker` (noise) |
+| `AiBenchmark.kt` | The speed measure behind Settings' "Measure the computer's speed": strength 10 on a fixed, seeded list of 3v3 card plays ("Budgets") |
 | `Evaluator.kt` | The static evaluation in coin-equivalents (STRATEGY §2) as a sum of named `Term`s with scales (`EvalKnobs`), and `Ctx`, its per-state cache, which also scores "this hero standing on that space" without forking |
 | `StaticPolicy.kt` | Scores every option of every `DecisionKind` from one state, no fork (STRATEGY §3): the playout policy, the opponent model and Easy |
 | `CardProfile.kt` | Per-card numbers the heuristics need (attack, reach incl. "Before the attack: Move N", discard-or-defeat, blocks, a rating), read once from the catalog; nothing hero-specific |
@@ -501,9 +502,11 @@ on it; `AiCoach` sets `learned = HAND`).
   Playouts to the end of the *next* turn measured worse than to the end of this one, before v0.7
   (39–44% against Hard, 36 games each) and again with the tuned evaluation (37.5%, 128 games against
   Expert), because the later turns are played by rules of thumb. The round plan lives in the static
-  card policy and the hand terms (spare, ratings).
+  card policy and the hand terms (spare, ratings). v0.10 gave the later turns a real search and it
+  still lost: rules of thumb are not the whole reason ("Depth and speed").
 - **Sample counts** are below §4.2's 24–64: 6 (Hard) / 16 (Expert). 24 samples with 12 candidates
-  measured even with 16 and 10 over three runs (233 of 448 games, 52.0%), so it is not used.
+  measured even with 16 and 10 over three runs (233 of 448 games, 52.0%), so it is not used; 32 samples
+  lost (42.2%, "Depth and speed").
 - **Sampling enemy cards inside the playout** (enemies who play after you) from the opponent model
   measured worse (42%, 36 games) than letting them play their best static card; not used.
 - **Normal's τ = 2** would make it visibly random on our score scale; τ 0.6 within 1.5 instead.
@@ -585,7 +588,27 @@ the lane terms). The time per answer is the same for every strength of a format,
 deterministic stand-in for time: `LevelProfile.workBudget` (tests only, `AI_EXPERIMENT=s10+work=6000`)
 stops sampling after that many answers, as the wall clock does on a phone, but reproducibly.
 
-**The phone factor** stays 3–4× this desktop (no device measurement this round; ADB is not available
+**Reading the phone factor (v0.10, ADR-050).** Settings → Data → "Measure the computer's speed" plays
+strength 10 on the same seeded 3v3 card plays on any device, on the app's sample threads, for about 30 s
+(the first 5 s warm the code up on other positions and do not count), with no cap, so it shows what a
+card play needs rather than what the cap allows. It ends with a line to copy, for example
+`GoA speed v1 | samsung SM-S938B | 3v3 strength 10, 3 threads | … answers/s (halves …, …) | card play
+median … ms, p95 … ms, max … ms, … of … over 2000 ms | 25.0 s`. **The phone factor is 41 000 divided by
+the phone's answers per second.** This desktop (`AI_BENCHMARK=1`, `AiBenchmarkTest`, the v0.10 net, nothing
+else of ours running, 2026-10-31):
+
+| Desktop JVM, Ryzen 7 3800X | Answers per second | Card play median / p95 / max | Card plays in 25 s |
+|----------------------------|--------------------|------------------------------|--------------------|
+| 3 threads, four runs | 39 100–41 800 | 116–125 / 279–299 / 489–504 ms | 175–188 |
+| 1 thread, four runs | 17 100–17 800 | 298–312 / 673–697 / 715–730 ms | 78–82 |
+
+Three threads answer 2.3–2.4× faster than one. A fifth run read 22 800 and 13 800 with rising halves; what
+disturbed it is not known, so on the phone **measure twice and keep the higher**. Unequal halves in a run
+that is otherwise steady mean throttling. Not measured on a phone by anyone yet: the line is what the owner
+sends back. At any factor, what it changes is the wait: a phone at half the assumed speed lost no measurable
+strength ("Depth and speed").
+
+**The phone factor** stays 3–4× this desktop until then (no device measurement; ADB is not available
 to the AI streams). It is a planning number on the slow side: the S25 Ultra's Snapdragon 8 Elite
 scores well above this Ryzen 7 3800X single-threaded, but ART runs this allocation-heavy code slower
 than HotSpot's C2 and a phone throttles over a long game. With 4× and today's sequential search,
@@ -853,6 +876,62 @@ The net costs nothing measurable per decision (one evaluation per playout). At t
 factor the p95 card play stays inside the owner's ~2 s in 3v3 and 4v4; only the slowest few (the
 max) reach the cap and are cut short. The factor is still an assumption, not a device measurement.
 
+## Depth and speed (v0.10, ADR-050)
+
+The AI searches one ply at the root and plays out to the end of the turn. The owner's kills are set up over
+two turns, past that horizon. So the plan was: prove that depth pays, then train a move policy to make deep
+playouts affordable. **The first gate failed and nothing was built on it: the move policy, cheaper playouts,
+the deeper search and the tree over the team's own choices were not started, and strength 10 plays as before.**
+
+The test gave deep playouts good later turns with no limit on time. Every hero's card in a later turn is chosen
+by a small search: its three best cards by static score, each played to the end of that turn and judged by the
+net, every hero replying to the others' static cards, so that a hero asked later reads nothing from an earlier
+one's choice. "Cheap" plays that small search's turn by the static rules, "full" by the one-ply looks. All 3v3,
+tune family, mirrored, against `s10` with no work limit; 95% Wilson intervals. Runs marked * were stopped by the
+2-hour limit on a command, so they have fewer than the 96 games planned, and only the running score was printed
+(no heroes lost per game).
+
+| Strength 10 with | Net | Wins | Games | Rate | 95% interval |
+|------------------|-----|------|-------|------|--------------|
+| End of the next turn, later turns static | v0.9 | 19–61 | 80* | 23.8% | 15.8–34.1% |
+| The same, later cards by the cheap search | v0.9 | 18–38 | 56* | 32.1% | 21.4–45.2% |
+| The same, later cards by the full search | v0.9 | 13–21 | 34* | 38.2% | 23.9–55.0% |
+| 0.7 × this turn's value + 0.3 × the next turn's, cheap search | v0.9 | 7–13 | 20* | 35.0% | 18.1–56.7% |
+| End of the next turn, later turns static | v0.10 | 32–64 | 96 | 33.3% | 24.7–43.2% |
+| The same, later cards by the full search | v0.10 | 10–34 | 44* | 22.7% | 12.8–37.0% |
+
+On the net that ships, better later turns did not help at all, so the rise over the v0.9 rows does not carry over.
+The full search cost about 15 thread-minutes a game, against about 2 for `s10` against `s10`, and a policy
+could only approximate it. A horizon at the end of the round was built but not played: it asks more of the same
+search that already lost at one turn. The code is kept in commit `7477dbcd` (`later=`, `laterCheap=`, `blend=`,
+`Horizon.ROUND_END`) and left production.
+
+**Speed alone buys nothing either.** Same harness, at the phone's work (`work=15500`, AI.md's 2 s at 4× on three
+threads):
+
+| 3v3, tune family | Net | Wins | Games | Rate | 95% interval |
+|------------------|-----|------|-------|------|--------------|
+| Double the search (32 / 12 samples, `work=31000`) against `work=15500` | v0.9 | 81–111 | 192 | 42.2% | 35.4–49.3% |
+| The same | v0.10 | 42–54 | 96 | 43.8% | 34.3–53.7% |
+| `work=15500` against half of it (`work=7750`), a phone twice as slow as assumed | v0.9 | 45–51 | 96 | 46.9% | 37.2–56.8% |
+
+The 192 games decide the test against 0.55 (log-likelihood ratio −3.98, past its −2.94; worked out by hand, as they
+were two runs). Double the search lost in both nets, and half the work lost nothing measurable. The second
+result has a wide interval: it rules out a large loss, not a small one.
+
+**Reading (not proven).** Less noise at the root has lost before: τ 0 measured 43.8% and 24 samples with τ 0 41.7%
+("What changed in v0.7"). Together with these numbers it looks as if a search that averages harder finds what the
+evaluation overrates, the same effect that kept the net's targets smooth ("What measured"). So the gain lies in
+what judges a position, which is where v0.9 and v0.10 gained, and not in more or deeper search of today's kind.
+A tree that plans a team's choices together was not tried, and two-turn kills are still not planned: the owner's
+report stands (Known weaknesses).
+
+Answers were unchanged by this work: hashes of whole games at strengths 5, 8 and 10 (3v3, two games each) are equal
+before and after, measured before merging the v0.10 net. **Time on the v0.10 net** (`TimingTest`, the 2 s cap
+on, three threads, 3v3, 6 games, 2026-10-31): card play 143 / 303 / 982 ms (mean / p95 / max), moves 90 / 228 /
+423 ms, work per card play 5 526 / 9 669 / 15 354, 25.9 ms per 1 000 answers; at the assumed 3–4× a card play is
+0.43–0.57 / 0.91–1.21 / 2 s (capped).
+
 ## The coach
 
 `nudge` runs Hard-level playouts (6 / 4 samples, end-of-turn horizon) on copies determinized from
@@ -1035,10 +1114,12 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
 - **The top end was flat:** above Expert (10) no search setting measured better (24 samples with 12
   candidates, a longer horizon, a hotter or colder choice, a wider one-ply look, played-out upgrade
   choices, a sharper or looser opponent model; "What changed in v0.7"). The learned evaluation
-  (v0.9) was the next gain, and the per-hero and per-card parts (v0.10) the one after.
+  (v0.9) was the next gain, and the per-hero and per-card parts (v0.10) the one after. Deeper playouts with
+  searched later turns and double the search both lost in v0.10 ("Depth and speed"); kills set up over two
+  turns stay out of its reach.
 - **Wall-clock cap**: on a loaded phone the production player may search less than on the desktop;
   answers are then still legal but no longer reproducible for a seed. The phone factor (3–4×) is an
-  assumption, not a device measurement ("Budgets").
+  assumption until the owner sends back the measure's line ("Budgets").
 - **Coach turning points** on quiet turns say only that the heroes "moved into position".
 - **The coach is a strength-8 look:** its marks and suggestions measure against its own search, so strength 10 with the net shows
   "mistakes" there too, and a card worth more next turn than this one is not seen. Suggestions make a weak player strong, not a strong one stronger.
@@ -1052,6 +1133,7 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
 | `DecisionKindsTest` | Every `DecisionKind` gets a legal answer at every strength: in AI games (every strength plays), a Clear action's token choice, and built questions of every kind |
 | `AiSmokeTest` | Full AI games finish: every level, Long, 1v1, 2v1 with a Handicap card, the double-lane map, 3v3 (Forgotten Island), 4v4 and 5v5 (Across the River) at Normal and 4v4 on Forgotten Island at Hard |
 | `SampleRunnerTest` | A threaded `SampleRunner` gives the same answers as the sequential one (40 decisions of a 3v3 game at strength 8) |
+| `AiBenchmarkTest` | The speed measure: the card plays are the same on every run, threads lose no count of the work, it stops when cancelled (`AI_BENCHMARK=1` prints this machine's lines, "Budgets"). Through Gradle, an opt-in run with a new `AI_*` value needs `--no-configuration-cache`: a cached configuration ran the previous value (seen with `AI_FINGERPRINT`) |
 | `AllHeroesAiTest` | 16 seeded AI-vs-AI games over shuffled line-ups that seat each of the 32 heroes twice (Easy, Normal, Hard, two at Expert): all finish, every answer accepted (2026-10-24: 5–15 rounds, all three win types) |
 | `CoachTest` | Nudges on hand-built blunders (no defense, too weak a defense, walking into a revealed attack) and silence on the right choices; turning points of a finished game |
 | `CoachAheadTest` | `prepare` + `nudge(analysis, …)` equals `nudge` on the blunder positions (every option) and on every answer of a game (every option of the first long lists); the session is unchanged; the answer-time cost |
@@ -1063,6 +1145,6 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
 | `TournamentTest`, `ExperimentTest`, `GameLogTest`, `UsageTest` | Opt-in (`AI_TOURNAMENT` / `AI_MIXED` with `AI_PAIRS=6:5,…`, `AI_EXPERIMENT=s10+samples=24:s10`, `AI_LOG`, `AI_USAGE` environment variables; `AI_FORMAT=3v3` for bigger teams, `AI_KEEP_GOING` and `AI_DUMP_DIR` for long runs, `AI_PROGRESS` a line per game; variants also `work=`, `race=`, `defenseless=`, `focus=`, `hunt=a/b/c`, `pp=`, `learned=HAND` — `s10+learned=HAND` is v0.8's 10): long tournaments between strengths (per-hero rates; `AI_GAMES=<hero>` lists the games; a failing game is reported with its line-up and seed), profile variants (any knob or `x<TERM>=` scale), one game's log (a mixed or explicit line-up; `AI_LOG_DECISIONS`, `AI_LOG_VALUES` also for defenses, `AI_LOG_LEAVES=<hero>`), each card's actions, defeats and kills per hero |
 | `FingerprintTest`, `CrashReproTest` | Opt-in (`AI_FINGERPRINT=<variant>:<games>`, `AI_REPRO=<dump>\|<variant>\|<seed>`): a hash of every answer of deterministic games (a change meant only to be faster must keep them); a crashed game's decision asked again from its dump |
 | `LearnedNetTest` | The checked-in weights load and were trained on these features (`Features.SCHEMA_HASH`, input count); the board inputs name real piece kinds and the tables real heroes and cards; a piece reaches the net per kind, seen from both sides; the net's inputs and strength 10's hand parts keep the knobs it was trained with (`Features.KNOBS` / `SCALES`, `TUNED_WITH_NET`; leaf scores do not move with part A's 3v3 knobs, which do move the hand evaluation); swapping the teams negates the score; mirrored openings give mirrored features except the board-dependent ones; an evaluation costs far less than a playout (prints µs per position) |
-| `LearnedSelfPlayTest`, `LearnedTrainTest`, `TeamTournamentTest`, `LearnedTimingTest` | Opt-in (`AI_SELFPLAY`, `AI_TRAIN`, `AI_TEAMS`, `AI_LTIMING`): self-play data at any team size, training (Learned evaluation, "How to retrain"), mirrored tournaments of any variant (`learned=`, `net=<name>` or `net=v09` on top of `ExperimentTest`'s keys) at any team size on the train / tune / test line-up families, decision times at any team size |
+| `LearnedSelfPlayTest`, `LearnedTrainTest`, `TeamTournamentTest`, `LearnedTimingTest` | Opt-in (`AI_SELFPLAY`, `AI_TRAIN`, `AI_TEAMS`, `AI_LTIMING`): self-play data at any team size, training (Learned evaluation, "How to retrain"), mirrored tournaments of any variant (`learned=`, `net=<name>` or `net=v09` on top of `ExperimentTest`'s keys) at any team size on the train / tune / test line-up families (`AI_BATCH=<n>` prints the running score every n line-ups), decision times at any team size |
 | `BlindSpotTest`, `UpgradeTableTest` | Opt-in (`AI_BLIND=<variant>:<games>`, `AI_UPGRADES=<games>`): which questions the search cannot tell apart, per hero and question; the value of each level-up choice from games played with `AI_EPS_UPGRADE` (ADR-049) |
 | `FitTest`, `BlunderTest` | Opt-in (`AI_FIT=<games>:<strength>`, `AI_BLUNDERS=<strength>:<games>`, `AI_FORMAT`): the evaluation's parts fitted to self-play outcomes (above); plays a decent player would call blunders, judged on the real game — a defense declined or too weak while one would hold, an action that defeats an enemy hero passed over, a move into a defeat another destination avoided |
