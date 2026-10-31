@@ -11,8 +11,8 @@ import dev.quinton.goa.core.game.ai.AiCoach
 import dev.quinton.goa.core.game.ai.AiHarness
 import dev.quinton.goa.core.game.ai.AiPlayers
 import dev.quinton.goa.core.game.ai.CoachReviewer
-import dev.quinton.goa.core.game.ai.confidence
 import dev.quinton.goa.core.game.ai.Tournament
+import dev.quinton.goa.core.game.ai.confidence
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.model.match.Team
 import kotlin.random.Random
@@ -68,6 +68,7 @@ class CoachHelpTest {
         }
     }
 
+    @Suppress("NestedBlockDepth", "LongMethod", "CyclomaticComplexMethod")
     @Test
     fun `the top suggestion against a far deeper analysis`() {
         val want = System.getenv("AI_COACH_DEEP")?.toIntOrNull() ?: return
@@ -94,13 +95,20 @@ class CoachHelpTest {
                     val deep = coach.rankedAt(s, d, DEEP)
                     val deepTop = deep.firstOrNull()?.option?.choice
                     val deepSecond = deep.getOrNull(1)
-                    for ((label, samples) in listOf("look ahead" to 0, "12/8" to if (d.kind.name == "PLAY_CARD") 12 else 8)) {
+                    for ((label, samples) in listOf(
+                        "look " +
+                            "ahead" to 0,
+                        "12/8" to if (d.kind.name == "PLAY_CARD") 12 else 8,
+                    )) {
                         val r = coach.rankedAt(s, d, samples)
                         if (r.size < 2 || deepTop == null) continue
                         val conf = confidence(r[0], r[1]).name
                         val agree = r[0].option.choice == deepTop
                         // The difference at 64 samples between the deep best and this top pick.
-                        val lost = deep.first { it.option.choice == r[0].option.choice }.let { deep.first().chance - it.chance }
+                        val lost = deep.first { it.option.choice == r[0].option.choice }.let {
+                            deep.first().chance -
+                                it.chance
+                        }
                         for (key in listOf("$label all", "$label $conf")) {
                             val row = rows.getOrPut(key) { IntArray(3) }
                             row[0]++
@@ -117,7 +125,8 @@ class CoachHelpTest {
         }
         for ((k, r) in rows.toSortedMap()) {
             println(
-                "COACHDEEP $k: n ${r[0]}, same top as 64 samples ${pc(r[1], r[0])}, within 3 points of its best ${pc(r[2], r[0])}",
+                "COACHDEEP $k: n ${r[0]}, same top as 64 samples ${pc(r[1], r[0])}, within 3 points of its best " +
+                    "${pc(r[2], r[0])}",
             )
         }
     }
@@ -158,9 +167,12 @@ class CoachHelpTest {
             val sorted = all.sorted()
             fun q(p: Double) = if (sorted.isEmpty()) 0.0 else sorted[(p * (sorted.size - 1)).toInt()]
             println(
-                "COACHMARKS strength $strength: ${all.size} decisions of one seat in $games games, mean loss ${"%.3f".format(all.average())}, " +
-                    "p50 ${"%.3f".format(q(0.5))} p75 ${"%.3f".format(q(0.75))} p90 ${"%.3f".format(q(0.9))} p95 ${"%.3f".format(q(0.95))} " +
-                    "p99 ${"%.3f".format(q(0.99))}; $counts; review of one seat mean ${"%.0f".format(ms / games)} ms, max ${"%.0f".format(maxMs)} ms; " +
+                "COACHMARKS strength $strength: ${all.size} decisions of one seat in $games games, mean loss " +
+                    "${"%.3f".format(all.average())}, " +
+                    "p50 ${"%.3f".format(q(0.5))} p75 ${"%.3f".format(q(0.75))} p90 ${"%.3f".format(q(0.9))} p95 " +
+                    "${"%.3f".format(q(0.95))} " +
+                    "p99 ${"%.3f".format(q(0.99))}; $counts; review of one seat mean ${"%.0f".format(ms / games)} " +
+                    "ms, max ${"%.0f".format(maxMs)} ms; " +
                     "edges ${CoachReviewer.GOOD_BELOW}/${CoachReviewer.INACCURACY_BELOW}/${CoachReviewer.MISTAKE_BELOW}",
             )
         }
@@ -190,8 +202,10 @@ class CoachHelpTest {
         val sorted = floor.sorted()
         fun q(p: Double) = if (sorted.isEmpty()) 0.0 else sorted[(p * (sorted.size - 1)).toInt()]
         println(
-            "COACHMARKS noise floor (one seed's best under another seed), ${floor.size} decisions: mean ${"%.3f".format(floor.average())}, " +
-                "p50 ${"%.3f".format(q(0.5))} p75 ${"%.3f".format(q(0.75))} p90 ${"%.3f".format(q(0.9))} p95 ${"%.3f".format(q(0.95))}",
+            "COACHMARKS noise floor (one seed's best under another seed), ${floor.size} decisions: mean " +
+                "${"%.3f".format(floor.average())}, " +
+                "p50 ${"%.3f".format(q(0.5))} p75 ${"%.3f".format(q(0.75))} p90 ${"%.3f".format(q(0.9))} p95 " +
+                "${"%.3f".format(q(0.95))}",
         )
     }
 

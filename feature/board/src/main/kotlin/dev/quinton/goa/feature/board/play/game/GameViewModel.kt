@@ -79,6 +79,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  * thread of Dispatchers.Default in the app). The coach's look ahead runs on [analysis] on a fork of
  * the session that nothing else touches, so the table stays responsive while it looks.
  */
+@Suppress("LargeClass")
 @HiltViewModel
 class GameViewModel internal constructor(
     private val catalogRepository: CatalogRepository,

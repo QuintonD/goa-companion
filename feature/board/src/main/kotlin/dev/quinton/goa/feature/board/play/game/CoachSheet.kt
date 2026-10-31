@@ -31,11 +31,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -311,7 +311,13 @@ private fun ThreatRow(table: TableUi, threat: CoachThreat) {
             threat.heroId,
             info.portrait,
             null,
-            Modifier.size(32.dp).border(1.dp, team?.let { teamColor(it) } ?: GoaTheme.colors.engravedBorder, CircleShape),
+            Modifier.size(32.dp).border(
+                1.dp,
+                team?.let {
+                    teamColor(it)
+                } ?: GoaTheme.colors.engravedBorder,
+                CircleShape,
+            ),
             shape = CircleShape,
             framed = false,
         )
@@ -331,9 +337,18 @@ private fun PlanBlock(table: TableUi, plan: CoachPlan) {
             plan.order.forEach { TableCard(table.card(it), width = 56.dp) }
         }
     }
-    Text(plan.text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.semantics(mergeDescendants = true) {})
+    Text(
+        plan.text,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.semantics(mergeDescendants = true) {
+        },
+    )
     if (plan.detail.isNotBlank()) {
-        Text(plan.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            plan.detail,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

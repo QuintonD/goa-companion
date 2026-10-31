@@ -78,6 +78,7 @@ class CoachRealGameTest {
         canTakeBack = false,
     )
 
+    @Suppress("LoopWithTooManyJumpStatements")
     @Test
     fun `the sheet and the report on a real game`() {
         val dir = System.getenv("AI_COACH_SHOTS")
@@ -124,7 +125,10 @@ class CoachRealGameTest {
         }
         val t0 = System.nanoTime()
         val report = coach.review(game.save(), setOf(seat))
-        println("COACHREAL review ${(System.nanoTime() - t0) / 1_000_000} ms: ${report?.overall}, ${report?.mistakes?.size} mistakes")
+        println(
+            "COACHREAL review ${(System.nanoTime() - t0) / 1_000_000} ms: ${report?.overall}, " +
+                "${report?.mistakes?.size} mistakes",
+        )
         assertThat(report).isNotNull()
         val view = game.view(seat)
         state = play(game, seat).copy(

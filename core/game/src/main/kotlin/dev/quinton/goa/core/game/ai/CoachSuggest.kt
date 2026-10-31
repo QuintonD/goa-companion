@@ -134,7 +134,12 @@ internal class SuggestionBuilder(
             }
         }
         return withDistance.mapIndexed { i, label ->
-            if (withDistance.count { it == label } > 1) "$label (${withDistance.take(i + 1).count { it == label }})" else label
+            if (withDistance.count { it == label } > 1) {
+                "$label " +
+                    "(${withDistance.take(i + 1).count { it == label }})"
+            } else {
+                label
+            }
         }
     }
 

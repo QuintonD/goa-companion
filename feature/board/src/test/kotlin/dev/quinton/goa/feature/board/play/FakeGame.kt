@@ -1213,7 +1213,13 @@ class FakeCoach(var silent: Boolean = false, var prepares: Boolean = false) : Co
         }
         val row = ReviewedDecision(1, seats.first(), DecisionKind.PLAY_CARD, 1, 1, DecisionMark.BEST, 0.0, 3)
         val all = ReviewAccuracy("All", 1, 1, 0.0)
-        return GameReport(listOf(row), all, listOf(all.copy(key = seats.first())), listOf(all.copy(key = "PLAY_CARD")), emptyList())
+        return GameReport(
+            listOf(row),
+            all,
+            listOf(all.copy(key = seats.first())),
+            listOf(all.copy(key = "PLAY_CARD")),
+            emptyList(),
+        )
     }
 
     override fun turningPoints(saved: SavedGame, seat: String, cancelled: () -> Boolean): List<CoachNote> = listOf(

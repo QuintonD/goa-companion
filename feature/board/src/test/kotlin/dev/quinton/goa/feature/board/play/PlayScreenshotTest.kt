@@ -95,6 +95,7 @@ import org.robolectric.annotation.GraphicsMode
  * the reveal, a coach nudge, the sheets; New game; game over. Light/dark, font scale 2 at 384 dp,
  * landscape, as the board's screenshots.
  */
+@Suppress("LargeClass")
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w411dp-h891dp-xxhdpi")
@@ -712,11 +713,13 @@ class PlayScreenshotTest {
                     why(
                         CoachReasonKind.KILL,
                         "You defeat Tigerclaw in most playouts of this.",
-                        "You collect 1 coin (their level) and their team spends 1 Life counter (their lowest card Tier) (p.13).",
+                        "You collect 1 coin (their level) and their team spends 1 Life counter (their lowest card " +
+                            "Tier) (p.13).",
                     ),
                     why(
                         CoachReasonKind.KEEP_DEFENDER,
-                        "Playing Dangerous Current keeps Aspiring Duelist in hand (Defense 5); playing Aspiring Duelist would leave you a best Defense of 4.",
+                        "Playing Dangerous Current keeps Aspiring Duelist in hand (Defense 5); playing Aspiring " +
+                            "Duelist would leave you a best Defense of 4.",
                         "You defend by discarding a card from your hand; with none, you are defeated (p.13, p.14).",
                     ),
                 ),
@@ -732,7 +735,8 @@ class PlayScreenshotTest {
                     why(
                         CoachReasonKind.DANGER,
                         "Brogan's Onslaught can still reach Arien after this action.",
-                        "An attack whose total is higher than your best Defense card defeats you; minion modifiers count (p.14).",
+                        "An attack whose total is higher than your best Defense card defeats you; minion modifiers " +
+                            "count (p.14).",
                     ),
                 ),
             ),
@@ -740,14 +744,33 @@ class PlayScreenshotTest {
         close = close,
         samples = 12,
         threats = listOf(
-            CoachThreat("brogan", true, null, 5, 4, -1, "Brogan: a card of Attack 5 could reach you this turn: it takes Defense 5, and your best is only 4, counting −1 from minions here."),
-            CoachThreat("wasp", false, null, 3, 4, -1, "Wasp: a card of Attack 3 could reach you next turn: it takes Defense 3, and your best is 4, counting −1 from minions here."),
+            CoachThreat(
+                "brogan",
+                true,
+                null,
+                5,
+                4,
+                -1,
+                "Brogan: a card of Attack 5 could reach you this turn: it " +
+                    "takes Defense 5, and your best is only 4, counting −1 from minions here.",
+            ),
+            CoachThreat(
+                "wasp",
+                false,
+                null,
+                3,
+                4,
+                -1,
+                "Wasp: a card of Attack 3 could reach you next turn: it " +
+                    "takes Defense 3, and your best is 4, counting −1 from minions here.",
+            ),
         ),
         plan = CoachPlan(
             listOf("arien-red-1", "arien-blue-1", "arien-green-1"),
             "arien-gold",
             "Play Dangerous Current now, then Aspiring Duelist, then Liquid Leap; keep Noble Blade.",
-            "Best in 5 of 6 guesses of the hidden cards played to the end of the round. A card used to defend is discarded (p.10) and changes the plan; all cards come back at the end of the round (p.8).",
+            "Best in 5 of 6 guesses of the hidden cards played to the end of the round. A card used to defend is " +
+                "discarded (p.10) and changes the plan; all cards come back at the end of the round (p.8).",
         ),
         advice = tips,
     )
@@ -767,7 +790,9 @@ class PlayScreenshotTest {
 
     @Config(qualifiers = "w384dp-h832dp-xxhdpi")
     @Test
-    fun suggestSheetW384DarkFontScale2() = capture(ThemeMode.DARK, 2f, screen = true) { Game(remember { suggestPlay() }) }
+    fun suggestSheetW384DarkFontScale2() = capture(ThemeMode.DARK, 2f, screen = true) {
+        Game(remember { suggestPlay() })
+    }
 
     @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
     @Test
@@ -785,7 +810,12 @@ class PlayScreenshotTest {
                 row,
                 row.copy(decisionId = 10, kind = DecisionKind.PLAY_CARD, mark = DecisionMark.BEST, loss = 0.0),
                 row.copy(decisionId = 11, kind = DecisionKind.PLAY_CARD, mark = DecisionMark.GOOD, loss = 0.01),
-                row.copy(decisionId = 12, kind = DecisionKind.CHOOSE_SPACE, mark = DecisionMark.INACCURACY, loss = 0.03),
+                row.copy(
+                    decisionId = 12,
+                    kind = DecisionKind.CHOOSE_SPACE,
+                    mark = DecisionMark.INACCURACY,
+                    loss = 0.03,
+                ),
             ),
             overall = ReviewAccuracy("All", 4, 2, 0.045),
             byHero = listOf(ReviewAccuracy("arien", 4, 2, 0.045)),
@@ -799,7 +829,9 @@ class PlayScreenshotTest {
                     row,
                     "You are attacked: discard a card to defend",
                     "Don't defend",
-                    "Round 2, turn 3. Lane Zone 2 is the Battle Zone: your 4 minions against their 3, 5 Wave counters left. Life counters: yours 4, theirs 5. Arien, level 2 with 1 coins and 3 cards in hand, Lane Zone 2, 1 from Brogan.",
+                    "Round 2, turn 3. Lane Zone 2 is the Battle Zone: your 4 minions against their 3, 5 Wave " +
+                        "counters left. Life counters: yours 4, theirs 5. Arien, level 2 with 1 coins and 3 cards in " +
+                        "hand, Lane Zone 2, 1 from Brogan.",
                     sampleSuggestions(id = 9),
                 ),
             ),

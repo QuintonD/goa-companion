@@ -90,23 +90,14 @@ internal class CoachFacts(val es: EngineSession, val d: Decision, val a: Analysi
     /** The words of an option: its card, its action on the asking card, a unit, where a space is. */
     fun label(c: Choice): String = when (c) {
         is Choice.Card -> cardName(c.cardId) ?: "A card"
-
         is Choice.Action -> actionLabel(c.action)
-
         is Choice.Unit -> unitName(c.unitId, fallback = "A unit").replaceFirstChar { it.uppercase() }
-
         is Choice.Token -> unitName(c.tokenId, fallback = "A token").replaceFirstChar { it.uppercase() }
-
         is Choice.Space -> spaceLabel(c.hex)
-
         is Choice.Option -> c.label
-
         is Choice.Number -> c.value.toString()
-
         Choice.Yes -> "Yes"
-
         is Choice.Decline -> c.label
-
         Choice.Pass -> "Pass"
     }
 

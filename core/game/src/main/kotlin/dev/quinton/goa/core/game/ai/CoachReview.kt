@@ -43,7 +43,11 @@ internal class CoachReviewer(
             if (cancelled()) return null
             val d = session.pending ?: break
             if (d.seat in seats) {
-                if (d.options.size >= 2 && rec.choice in d.options) look(session, d, rec.choice, cancelled)?.let { looked += it }
+                if (d.options.size >= 2 &&
+                    rec.choice in d.options
+                ) {
+                    look(session, d, rec.choice, cancelled)?.let { looked += it }
+                }
                 progress(++done, total)
             }
             if (session.answer(d.id, rec.choice) !is AnswerResult.Accepted) break
@@ -94,8 +98,9 @@ internal class CoachReviewer(
                 ?.let { searcher.deepen(l.fork, l.d, decisionSeed, it, DEEP_SAMPLES, cancelled, Long.MAX_VALUE) }
                 ?: return null
             val facts = CoachFacts(l.fork, l.d, a, searcher.ev)
-            val suggestions = SuggestionBuilder(facts, searcher, decisionSeed, runner, Long.MAX_VALUE, cancelled).build()
-                ?: return null
+            val suggestions =
+                SuggestionBuilder(facts, searcher, decisionSeed, runner, Long.MAX_VALUE, cancelled).build()
+                    ?: return null
             ReviewMistake(l.row, l.d.prompt, facts.label(l.choice), position(facts), suggestions)
         }
     }

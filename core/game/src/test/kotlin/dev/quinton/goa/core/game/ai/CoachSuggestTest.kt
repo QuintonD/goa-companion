@@ -135,7 +135,13 @@ class CoachSuggestTest {
             for (i in 1 until sug.options.size) {
                 val o = sug.options[i]
                 if (o.chance > sug.options[0].chance) fail(d, "the ranking contradicts its chances")
-                if (o.behind != sug.options[0].chance - o.chance) fail(d, "behind ${o.behind} against the chances shown")
+                if (o.behind != sug.options[0].chance - o.chance) {
+                    fail(
+                        d,
+                        "behind ${o.behind} against the chances " +
+                            "shown",
+                    )
+                }
             }
         }
 
@@ -152,7 +158,11 @@ class CoachSuggestTest {
                     if (att.toInt() != d.context.attackTotal) fail(d, "attack total in: $text")
                     if (def.toInt() !in d.context.defensePreview.values) fail(d, "defense total in: $text")
                     val holds = def.toInt() >= att.toInt()
-                    if (holds != (kind == CoachReasonKind.DEFENSE_HOLDS) && "can still stop" !in text) fail(d, "verdict in: $text")
+                    if (holds != (kind == CoachReasonKind.DEFENSE_HOLDS) && "can still " +
+                        "stop" !in text
+                    ) {
+                        fail(d, "verdict in: $text")
+                    }
                 }
 
                 CoachReasonKind.LIFE_COST -> {
@@ -163,7 +173,10 @@ class CoachSuggestTest {
                     if ("gains ${f.me.level} coin" !in text) fail(d, "coins in: $text")
                 }
 
-                CoachReasonKind.UPGRADE -> Regex("\\+1 (Attack|Defense|Initiative|Movement|Range|Radius)").findAll(text).forEach { m ->
+                CoachReasonKind.UPGRADE -> Regex(
+                    "\\+1 " +
+                        "(Attack|Defense|Initiative|Movement|Range|Radius)",
+                ).findAll(text).forEach { m ->
                     val stat = Stat.valueOf(m.groupValues[1].uppercase())
                     val named = d.options.filterIsInstance<Choice.Card>().flatMap { c ->
                         listOf(c.cardId) + d.context.upgrades[c.cardId].orEmpty()
@@ -175,7 +188,13 @@ class CoachSuggestTest {
                     val m = Regex("your (\\d+) against their (\\d+)").find(text) ?: return fail(d, "counts in: $text")
                     val lane = f.state.battleZones.keys.single()
                     val (ours, theirs) = f.battleCount(lane)!!
-                    if (m.groupValues[1].toInt() != ours || m.groupValues[2].toInt() != theirs) fail(d, "counts in: $text")
+                    if (m.groupValues[1].toInt() != ours || m.groupValues[2].toInt() != theirs) {
+                        fail(
+                            d,
+                            "counts in: " +
+                                "$text",
+                        )
+                    }
                 }
 
                 CoachReasonKind.MINION_MODIFIER -> {
@@ -215,11 +234,23 @@ class CoachSuggestTest {
 
                 else -> null
             }
-            if (counted != null && counted + 1e-9 < w.share) fail(d, "$claim claims ${w.share}, counted $counted: ${w.reason.text}")
+            if (counted != null && counted + 1e-9 < w.share) {
+                fail(
+                    d,
+                    "$claim claims ${w.share}, counted $counted: " +
+                        "${w.reason.text}",
+                )
+            }
             if (claim == PlayoutClaim.DEFEATS_HERO) {
                 val victim = w.subject!!
                 if (f.data.heroName(victim) !in w.reason.text) fail(d, "names the wrong hero: ${w.reason.text}")
-                if (ls.none { l -> f.events(l).any { it is GameEvent.Defeated && it.unitId == victim && it.byHeroId == seat } }) {
+                if (ls.none { l ->
+                        f.events(l).any {
+                            it is GameEvent.Defeated && it.unitId == victim &&
+                                it.byHeroId == seat
+                        }
+                    }
+                ) {
                     fail(d, "$victim never falls: ${w.reason.text}")
                 }
             }
@@ -246,12 +277,15 @@ class CoachSuggestTest {
 
         private fun dump(w: java.io.PrintWriter, sug: CoachSuggestions, s: EngineSession, d: Decision) {
             val st = s.state
-            w.println("=== R${st.round}T${st.turn} ${d.seat} ${d.kind} #${d.id}: ${d.prompt} (${d.options.size} options, ${sug.samples} samples)")
+            w.println(
+                "=== R${st.round}T${st.turn} ${d.seat} ${d.kind} #${d.id}: ${d.prompt} (${d.options.size} " +
+                    "options, ${sug.samples} samples)",
+            )
             for ((i, o) in sug.options.withIndex()) {
                 w.println("  ${i + 1}. ${o.label}: ${o.chance}% (-${o.behind}) ${o.confidence}")
                 o.reasons.forEach { w.println("     WHY[${it.kind}] ${it.text} | ${it.detail}") }
                 o.against.forEach { w.println("     AGAINST[${it.kind}] ${it.text} | ${it.detail}") }
-                o.line.forEach { w.println("     LINE ${it}") }
+                o.line.forEach { w.println("     LINE $it") }
             }
             if (sug.close) w.println("  CLOSE")
             sug.threats.forEach { w.println("  THREAT ${it.text}") }
@@ -260,9 +294,12 @@ class CoachSuggestTest {
 
         fun report() {
             println(
-                "SUGGEST survey: $asked decisions, reasons on $spoken, lines on $lines, close $close, threats $threats, " +
-                    "plans $plans of $planAsked card plays ($planOrders with an order), mean ${"%.0f".format(ms / asked.coerceAtLeast(1))} ms, " +
-                    "p95 ${"%.0f".format(tookMs.sorted().getOrElse((tookMs.size * 0.95).toInt()) { 0.0 })} ms, max ${"%.0f".format(maxMs)} ms",
+                "SUGGEST survey: $asked decisions, reasons on $spoken, lines on $lines, close $close, threats " +
+                    "$threats, " +
+                    "plans $plans of $planAsked card plays ($planOrders with an order), mean " +
+                    "${"%.0f".format(ms / asked.coerceAtLeast(1))} ms, " +
+                    "p95 ${"%.0f".format(tookMs.sorted().getOrElse((tookMs.size * 0.95).toInt()) { 0.0 })} ms, max " +
+                    "${"%.0f".format(maxMs)} ms",
             )
             println("SUGGEST kinds: $kinds")
             println("SUGGEST reasons: $reasons")

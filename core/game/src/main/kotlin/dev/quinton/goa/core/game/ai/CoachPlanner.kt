@@ -52,7 +52,8 @@ internal class RoundPlanner(
         val need = (copies.size * MAJORITY + 0.999).toInt()
         val winner = best.groupingBy { it }.eachCount().entries
             .sortedWith(compareBy({ -it.value }, { it.key })).firstOrNull() ?: return null
-        val detail = "Best in ${winner.value} of ${copies.size} guesses of the hidden cards played to the end of the round. " +
+        val detail = "Best in ${winner.value} of ${copies.size} guesses of the hidden cards played to the end of " +
+            "the round. " +
             "A card used to defend is discarded (p.10) and changes the plan; all cards come back at the end of the round (p.8)."
         // Against a clear first card an order that starts elsewhere would contradict the sheet's first line.
         val firstAgrees = close || orders[winner.key].first() == firstCards.first()
@@ -62,7 +63,9 @@ internal class RoundPlanner(
             return CoachPlan(order, keep.singleOrNull(), planText(order, keep), detail)
         }
         val kept = best.mapNotNull { i -> hand.filter { it !in orders[i] }.singleOrNull() }
-        val keep = kept.groupingBy { it }.eachCount().entries.sortedWith(compareBy({ -it.value }, { it.key })).firstOrNull()
+        val keep = kept.groupingBy {
+            it
+        }.eachCount().entries.sortedWith(compareBy({ -it.value }, { it.key })).firstOrNull()
         if (keep != null && keep.value >= need) {
             return CoachPlan(
                 emptyList(),

@@ -139,7 +139,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
                     true -> out += why(
                         CoachReasonKind.BLOCK,
                         "$card's Block holds against this ${attackType()} attack, whatever its total.",
-                        "If the Block condition is fulfilled you successfully defend, regardless of the attack value (p.14).",
+                        "If the Block condition is fulfilled you successfully defend, regardless of the attack " +
+                            "value (p.14).",
                     )
 
                     false -> out += why(
@@ -155,7 +156,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
                             why(
                                 CoachReasonKind.DEFENSE_HOLDS,
                                 "$card holds: Defense $value against Attack $total.",
-                                "A Defense total equal to or higher than the Attack total defends successfully (p.14).$modified",
+                                "A Defense total equal to or higher than the Attack total defends successfully " +
+                                    "(p.14).$modified",
                             )
                         } else {
                             why(
@@ -242,7 +244,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
     private fun upgrade(x: Choice): List<Why> {
         val id = (x as? Choice.Card)?.cardId ?: return emptyList()
         val card = data.cardOrNull(id) ?: return emptyList()
-        val itemRule = "The card you keep goes to hand; the other becomes an item: +1 on that icon on every card that has it, " +
+        val itemRule = "The card you keep goes to hand; the other becomes an item: +1 on that icon on every card " +
+            "that has it, " +
             "nothing on a card without it (p.15, p.16)."
         if (d.kind == DecisionKind.UPGRADE_CARD) {
             val next = d.context.upgrades[id].orEmpty().mapNotNull(data::cardOrNull)
@@ -283,7 +286,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
         return why(
             CoachReasonKind.LEVEL,
             "The coins bring you level ${level + 1} at the end of the round: ${tierWords(level + 1)}.",
-            "Level ${level + 1} costs ${plural(levelCost(level), "coin")}; at the end of the round you must buy every level you can afford (p.15).",
+            "Level ${level + 1} costs ${plural(levelCost(level), "coin")}; at the end of the round you must buy " +
+                "every level you can afford (p.15).",
             setOf(Term.LEVELS, Term.COINS),
             PlayoutClaim.LEVEL,
             share = sx,
@@ -308,7 +312,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
         return why(
             CoachReasonKind.KILL,
             "You defeat ${data.heroName(victim)} in most playouts of this.",
-            "You collect ${plural(hero.level, "coin")} (their level) and their team spends ${plural(tier, "Life counter")} (their lowest card Tier) (p.13).",
+            "You collect ${plural(hero.level, "coin")} (their level) and their team spends " +
+                "${plural(tier, "Life counter")} (their lowest card Tier) (p.13).",
             setOf(Term.LIFE, Term.COINS),
             PlayoutClaim.DEFEATS_HERO,
             victim,
@@ -366,7 +371,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
         return why(
             CoachReasonKind.DANGER,
             "You stay on the board with this; with \"${f.label(y)}\" you are defeated in most playouts.",
-            "A defeat costs your team ${plural(tier, "Life counter")} (your lowest card Tier) and gives the attacker ${plural(f.me.level, "coin")} (p.13).",
+            "A defeat costs your team ${plural(tier, "Life counter")} (your lowest card Tier) and gives the " +
+                "attacker ${plural(f.me.level, "coin")} (p.13).",
             setOf(Term.LIFE, Term.EXPOSURE, Term.PRESENCE),
             PlayoutClaim.SEAT_SAFE,
             share = 1 - sx,
@@ -383,7 +389,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
         return why(
             CoachReasonKind.PUSH_WON,
             "Your team pushes the lane in most playouts of this.",
-            "Defeating or removing the last enemy minion in the Battle Zone pushes the Lane at once; the Minion Battle can too (p.8).",
+            "Defeating or removing the last enemy minion in the Battle Zone pushes the Lane at once; the Minion " +
+                "Battle can too (p.8).",
             setOf(Term.LANE, Term.MINION_MARGIN),
             PlayoutClaim.PUSH_OURS,
             share = sx,
@@ -397,7 +404,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
         return why(
             CoachReasonKind.PUSH_GIVEN,
             "\"${f.label(y)}\" gives the other team the lane push in most playouts; this doesn't.",
-            "The team with minions left in the Battle Zone wins the push, and the fight moves one Zone towards the loser's Throne (p.8).",
+            "The team with minions left in the Battle Zone wins the push, and the fight moves one Zone towards the " +
+                "loser's Throne (p.8).",
             setOf(Term.LANE, Term.MINION_MARGIN),
             PlayoutClaim.PUSH_THEIRS,
             share = sy,
@@ -416,7 +424,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
                 return why(
                     CoachReasonKind.DEFENSE_WASTED,
                     "In nearly every playout $who this turn whichever you choose, so the card matters little.",
-                    "Pushing the Lane into the enemy Throne Zone, the last Wave counter or the last Life counter ends the game at once (p.8, p.13).",
+                    "Pushing the Lane into the enemy Throne Zone, the last Wave counter or the last Life counter " +
+                        "ends the game at once (p.8, p.13).",
                     setOf(Term.LANE),
                     PlayoutClaim.GAME_OVER,
                     t.name,
@@ -445,7 +454,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
         return why(
             CoachReasonKind.MINION,
             "You take a minion in most playouts of this: $coins.",
-            "Minions cannot defend: an attack defeats them. Melee and ranged minions are worth 2 coins, Heavy 4 (p.13).",
+            "Minions cannot defend: an attack defeats them. Melee and ranged minions are worth 2 coins, Heavy 4 " +
+                "(p.13).",
             setOf(Term.MINION_MARGIN, Term.COINS, Term.LANE, Term.OPPORTUNITY),
             PlayoutClaim.MINIONS,
             share = f.share(x) { minionsBySeat(it).isNotEmpty() },
@@ -468,15 +478,22 @@ internal class ReasonFinder(private val f: CoachFacts) {
         val after = theirs - 1
         val oneMore = when {
             after <= 0 -> "One more enemy minion gone is their last: the lane is pushed at once."
-            ours - after >= after -> "One more gone and they must remove every minion they have left: the lane is pushed."
+
+            ours - after >= after ->
+                "One more gone and they must remove every minion they have left: the lane is " +
+                    "pushed."
+
             ours > after -> "One more gone and they would remove ${ours - after}."
+
             ours == after -> "One more gone and the battle is even."
+
             else -> "One more gone and your team would remove ${after - ours}."
         }
         return why(
             CoachReasonKind.MINION_BATTLE,
             "Minion Battle as it stands: your $ours against their $theirs, so $now. $oneMore",
-            "At the end of the round the team with fewer minions in the Battle Zone removes the difference; losing the last one pushes the Lane (p.8).",
+            "At the end of the round the team with fewer minions in the Battle Zone removes the difference; losing " +
+                "the last one pushes the Lane (p.8).",
             setOf(Term.LANE, Term.MINION_MARGIN),
         )
     }
@@ -485,7 +502,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
 
     /** Enemies the seat acts before, in the playouts of an option (their cards are guesses until the reveal). */
     private fun actsBefore(l: Leaf, enemy: String): Boolean? {
-        val reveal = f.events(l).firstOrNull { it is GameEvent.CardsRevealed } as? GameEvent.CardsRevealed ?: return null
+        val reveal =
+            f.events(l).firstOrNull { it is GameEvent.CardsRevealed } as? GameEvent.CardsRevealed ?: return null
         val order = reveal.played.keys.toList()
         val me = order.indexOf(seat)
         val them = order.indexOf(enemy)
@@ -505,8 +523,10 @@ internal class ReasonFinder(private val f: CoachFacts) {
             if (sx >= NEARLY_MOST && sy <= 1 - NEARLY_MOST && afterY - after >= CLEAR_GAP) {
                 return why(
                     CoachReasonKind.INITIATIVE,
-                    "In most guesses Initiative $mine acts before ${data.heroName(e)}, and no attack on you comes; with Initiative $other ${data.heroName(e)} acts first and attacks you.",
-                    "The highest Initiative acts first (p.7), so a hero acting first can leave before the attack comes.",
+                    "In most guesses Initiative $mine acts before ${data.heroName(e)}, and no attack on you comes; " +
+                        "with Initiative $other ${data.heroName(e)} acts first and attacks you.",
+                    "The highest Initiative acts first (p.7), so a hero acting first can leave before the attack " +
+                        "comes.",
                     setOf(Term.EXPOSURE, Term.LIFE, Term.PRESENCE),
                     PlayoutClaim.ACTS_BEFORE,
                     e,
@@ -540,7 +560,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
         val without = if (bestY == null) "no card to defend with" else "a best Defense of $bestY"
         return why(
             CoachReasonKind.KEEP_DEFENDER,
-            "Playing ${f.label(x)} keeps ${kept.name} in hand (Defense $bestX); playing ${f.label(y)} would leave you $without.",
+            "Playing ${f.label(x)} keeps ${kept.name} in hand (Defense $bestX); playing ${f.label(y)} would leave " +
+                "you $without.",
             "You defend by discarding a card from your hand; with none, you are defeated (p.13, p.14).",
             setOf(Term.EXPOSURE, Term.HAND, Term.HAND_RATING),
         )
@@ -571,7 +592,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
         return why(
             CoachReasonKind.MINION_MODIFIER,
             "Here you have ${modifierWords(hx)}; at ${f.label(y)} you would have ${modifierWords(hy)}.",
-            "+1 per adjacent friendly melee or heavy minion, −1 per adjacent enemy one, −1 per enemy ranged minion within 2 spaces (p.14).",
+            "+1 per adjacent friendly melee or heavy minion, −1 per adjacent enemy one, −1 per enemy ranged minion " +
+                "within 2 spaces (p.14).",
             setOf(Term.EXPOSURE),
         )
     }
@@ -596,7 +618,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
         val (card, minion) = here.minWith(compareBy({ it.first.id }, { it.second.id }))
         return why(
             CoachReasonKind.REACH,
-            "From here ${data.card(card.id).name} reaches ${f.unitName(minion.id)}; from ${hy?.let { f.spaceLabel(it) } ?: "the other space"} it doesn't.",
+            "From here ${data.card(card.id).name} reaches ${f.unitName(minion.id)}; from " +
+                "${hy?.let { f.spaceLabel(it) } ?: "the other space"} it doesn't.",
             "Minions cannot defend: an attack that reaches one defeats it (p.13).",
             setOf(Term.OPPORTUNITY, Term.MINION_MARGIN),
         )
@@ -635,14 +658,22 @@ internal class ReasonFinder(private val f: CoachFacts) {
             val text = if (y is Choice.Decline) {
                 "Respawning here puts you back before your action, so this card still acts."
             } else {
-                val away = battleDistance(x.hex)?.let { if (it == 0) "in the Battle Zone" else "${plural(it, "space")} from the Battle Zone" }
+                val away = battleDistance(x.hex)?.let {
+                    if (it == 0) {
+                        "in the Battle " +
+                            "Zone"
+                    } else {
+                        "${plural(it, "space")} from the Battle Zone"
+                    }
+                }
                 "This Spawn point is ${away ?: "in your Throne Zone"}, with ${modifierWords(x.hex)}."
             }
             listOf(
                 why(
                     CoachReasonKind.RESPAWN,
                     text,
-                    "If your hero is not on the board, you may respawn on any empty Spawn point in your Throne Zone before performing an action (p.7).",
+                    "If your hero is not on the board, you may respawn on any empty Spawn point in your Throne Zone " +
+                        "before performing an action (p.7).",
                 ),
             )
         }
@@ -652,7 +683,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
 
     private fun fastTravel(x: Choice): List<Why> {
         val act = (x as? Choice.Action)?.action ?: return emptyList()
-        val rule = "Fast Travel replaces the whole Movement action: to any space in the same or an adjacent Zone, with no enemy heroes or minions in the Zone you leave or the one you reach (p.11)."
+        val rule = "Fast Travel replaces the whole Movement action: to any space in the same or an adjacent Zone, " +
+            "with no enemy heroes or minions in the Zone you leave or the one you reach (p.11)."
         if (act == ActionType.FAST_TRAVEL) {
             val card = d.sourceCardId?.let(data::cardOrNull)
             val red = card?.color == CardColor.RED || card?.color == CardColor.GOLD
@@ -672,9 +704,10 @@ internal class ReasonFinder(private val f: CoachFacts) {
         if (act != ActionType.MOVEMENT || d.options.contains(Choice.Action(ActionType.FAST_TRAVEL))) return emptyList()
         val at = f.myAt ?: return emptyList()
         val zone = f.g.zoneOf(at) ?: return emptyList()
-        val blocker = f.view.heroes.filter { it.team != team && it.at?.let(f.g::zoneOf) == zone }.minOfOrNull { it.heroId }
-            ?: f.view.minions.firstOrNull { it.team != team && f.g.zoneOf(it.at) == zone }?.id
-            ?: return emptyList()
+        val blocker =
+            f.view.heroes.filter { it.team != team && it.at?.let(f.g::zoneOf) == zone }.minOfOrNull { it.heroId }
+                ?: f.view.minions.firstOrNull { it.team != team && f.g.zoneOf(it.at) == zone }?.id
+                ?: return emptyList()
         return listOf(
             why(
                 CoachReasonKind.FAST_TRAVEL,
@@ -751,7 +784,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
                 is GameEvent.Swapped -> out += Mechanic(
                     "swap:${listOf(e.a, e.b).sorted()}",
                     CoachReasonKind.SWAP,
-                    "${f.unitName(e.a, l.end.state).replaceFirstChar { it.uppercase() }} and ${f.unitName(e.b, l.end.state)} swap places.",
+                    "${f.unitName(e.a, l.end.state).replaceFirstChar { it.uppercase() }} and " +
+                        "${f.unitName(e.b, l.end.state)} swap places.",
                     "A swap does not count as movement or placement (p.19).",
                 )
 
@@ -764,7 +798,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
                         "discard:${e.heroId}",
                         CoachReasonKind.DISCARD,
                         "${data.heroName(e.heroId)} discards a card.",
-                        "A discarded card can't be played or used to defend until it is retrieved at the end of the round (p.8, p.10).",
+                        "A discarded card can't be played or used to defend until it is retrieved at the end of the " +
+                            "round (p.8, p.10).",
                     )
                 }
 
@@ -803,15 +838,19 @@ internal class ReasonFinder(private val f: CoachFacts) {
     private fun markers(l: Leaf): List<Mechanic> {
         val out = ArrayList<Mechanic>()
         for (hero in l.end.state.heroes) {
-            val before = f.state.hero(hero.id)?.markers.orEmpty().filter { it.from == seat }.groupingBy { it.kind }.eachCount()
+            val before = f.state.hero(hero.id)?.markers.orEmpty().filter {
+                it.from == seat
+            }.groupingBy { it.kind }.eachCount()
             val after = hero.markers.filter { it.from == seat }.groupingBy { it.kind }.eachCount()
             for ((kind, n) in after) {
                 if (n > (before[kind] ?: 0)) {
                     out += Mechanic(
                         "marker:${hero.id}:$kind",
                         CoachReasonKind.MARKER,
-                        "${f.who(hero.id).replaceFirstChar { it.uppercase() }} ${if (hero.id == seat) "get" else "gets"} a ${markerWord(kind)} marker.",
-                        "Markers remind of a card's effect (p.18); they go back to the supply at the end of the round (p.8).",
+                        "${f.who(hero.id).replaceFirstChar { it.uppercase() }} " +
+                            "${if (hero.id == seat) "get" else "gets"} a ${markerWord(kind)} marker.",
+                        "Markers remind of a card's effect (p.18); they go back to the supply at the end of the " +
+                            "round (p.8).",
                     )
                 }
             }

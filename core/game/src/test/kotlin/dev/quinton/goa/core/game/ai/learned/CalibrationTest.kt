@@ -38,13 +38,17 @@ class CalibrationTest {
         val train = all.filter { it.lineup % 10 < 8 }
         val held = all.filter { it.lineup % 10 >= 8 }
         val kAll = fit(train)
-        println("CALIBRATE all sizes: k = ${f(kAll)} (1/k = ${f(1 / kAll)}), held-out ${f(loss(held, kAll))}, old ${f(loss(held, 1 / 15.0))}")
+        println(
+            "CALIBRATE all sizes: k = ${f(kAll)} (1/k = ${f(1 / kAll)}), held-out ${f(loss(held, kAll))}, old " +
+                "${f(loss(held, 1 / 15.0))}",
+        )
         for (size in all.map { it.size }.distinct().sorted()) {
             val tr = train.filter { it.size == size }
             val he = held.filter { it.size == size }
             val k = fit(tr)
             println(
-                "CALIBRATE ${size}v$size: n ${tr.size}/${he.size} k = ${f(k)} (1/k = ${f(1 / k)}), held-out ${f(loss(he, k))}, " +
+                "CALIBRATE ${size}v$size: n ${tr.size}/${he.size} k = ${f(k)} (1/k = ${f(1 / k)}), held-out " +
+                    "${f(loss(he, k))}, " +
                     "one slope ${f(loss(he, kAll))}, old ${f(loss(he, 1 / 15.0))}, coin flip ${f(ln(2.0))}",
             )
             reliability("${size}v$size k", he, k)
@@ -55,7 +59,8 @@ class CalibrationTest {
                 if (ts.size < MIN_STAGE || hs.isEmpty()) continue
                 val kStage = fit(ts)
                 println(
-                    "CALIBRATE ${size}v$size $name: n ${ts.size}/${hs.size} k = ${f(kStage)}, held-out own ${f(loss(hs, kStage))}, " +
+                    "CALIBRATE ${size}v$size $name: n ${ts.size}/${hs.size} k = ${f(kStage)}, held-out own " +
+                        "${f(loss(hs, kStage))}, " +
                         "size slope ${f(loss(hs, k))}",
                 )
             }
@@ -117,7 +122,11 @@ class CalibrationTest {
             if (b.isEmpty()) {
                 "$lo-${lo + 10}: -"
             } else {
-                "$lo-${lo + 10}: said ${pc(b.map { it.first }.average())} won ${pc(b.count { it.second }.toDouble() / b.size)} (n ${b.size})"
+                "$lo-${lo + 10}: said ${pc(
+                    b.map {
+                        it.first
+                    }.average(),
+                )} won ${pc(b.count { it.second }.toDouble() / b.size)} (n ${b.size})"
             }
         }
         println("CALIBRATE   $label | ${text.joinToString(" | ")}")
