@@ -458,6 +458,15 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   2026-10-26, `r3-first-load.spec.ts`, `ThumbnailsTest`, `WebThumbnailsTest`; Fast 3G WebKit: usable
   16.2 → 12.5 s, offline never → 48 s (`scripts/first-load.mjs`). Not on an iPhone yet
 
+## M23 — The coach suggests and reviews (ADR-051)
+- [x] Win chance by Platt scaling per team size on 6 399 stored games, held-out reliability within about 5 points, used by the sheet, the review and the turning points — 2026-10-31, `CalibrationTest` (opt-in), AI.md "The coach"
+- [x] `Coach.suggest` (ranked options, chance, confidence, line, reasons from 7 to 32 kinds, threats, round plan, official tips imported verbatim) and `Coach.review` — 2026-10-31, `CoachSuggestTest` (every sentence over all 32 heroes against its events and printed values), `NoPeekingTest` (same public view, same words), `CoachAheadTest` (the look ahead unchanged)
+- [x] A strength-4 player following the top suggestion: 100% against strength 4, 79.7% (68.3–87.7%) against strength 6, 3v3 held-out — 2026-10-31, `CoachHelpTest`
+- [x] Android: Suggest button and sheet, post-game review with progress and Cancel, the jump to the log; strings in resources — 2026-10-31, `GameViewModelTest`, `PlayScreenshotTest` (light, dark, landscape, 384 dp at font scale 2), `CoachSuggestFlowTest` on the emulator (real engine, 3v3). Built; JVM and emulator only
+- [ ] Hands-on on an emulator: not done, `device_open` refused on the development machine (ffmpeg with libx264 missing); the real sheets were read as Robolectric screens of a real game (`CoachRealGameTest`)
+- [ ] On the S25 Ultra: suggestions within about 1.5 s, a review's time, TalkBack through the sheet
+- [ ] Suggestions on the web table
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check

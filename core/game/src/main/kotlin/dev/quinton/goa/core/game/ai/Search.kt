@@ -341,6 +341,59 @@ internal class Searcher(
         return Analysis(d, a.options + OptionValue(choice, values), leaves, a.samples, a.tried)
     }
 
+    /**
+     * [a] with up to [samples] samples: the same candidates and the same seeds, so its first samples are
+     * those of [a] and only the new ones are played out (the coach, when the person asks for suggestions).
+     * Stops at [deadline] with what it has; on a cancel, null.
+     */
+    @Suppress("LongParameterList")
+    fun deepen(
+        es: EngineSession,
+        d: Decision,
+        seed: Long,
+        a: Analysis,
+        samples: Int,
+        cancelled: () -> Boolean,
+        deadline: Long,
+    ): Analysis? {
+        if (samples <= a.tried) return a
+        val horizon = horizonOf(d.kind)
+        val options = a.options.map { o ->
+            OptionValue(o.choice, DoubleArray(samples) { o.values.getOrElse(it) { Double.NaN } })
+        }
+        val table = options.associate { it.choice to it.values }
+        val candidates = options.map { it.choice }
+        val leaves = ArrayList(a.leaves)
+        var done = a.samples
+        var k = a.tried
+        while (k < samples && monotonicNanos() <= deadline) {
+            if (cancelled()) return null
+            val batch = k until minOf(samples, k + runner.width)
+            val status = IntArray(batch.count())
+            val batchLeaves = Array(status.size) { ArrayList<Leaf>() }
+            runner.runAll(
+                batch.mapIndexed { i, kk ->
+                    {
+                        val det = determinize(es, d, mix(seed, kk.toLong()))
+                        val dp = det.pending?.takeIf { it.seat == d.seat && it.kind == d.kind }
+                        status[i] = when {
+                            dp == null -> 0
+                            sample(det, dp, d, candidates, kk, horizon, table, batchLeaves[i], cancelled) -> 1
+                            else -> -1
+                        }
+                    }
+                },
+            )
+            if (status.any { it < 0 }) return null
+            for ((i, kk) in batch.withIndex()) {
+                if (status[i] == 1) done++
+                leaves += batchLeaves[i]
+                k = kk + 1
+            }
+        }
+        return Analysis(d, options, leaves, done, k)
+    }
+
     private fun horizonOf(kind: DecisionKind): Horizon = when (kind) {
         DecisionKind.PLAY_CARD -> profile.playHorizon
         DecisionKind.UPGRADE_CARD, DecisionKind.KEEP_UPGRADE -> profile.upgradeHorizon

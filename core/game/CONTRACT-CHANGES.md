@@ -353,3 +353,9 @@ re-derived by the replay; the new fields appear in old games too, `ResolutionEve
   Barrier), and so does one that makes it an obstacle *because* it is now empty (the empty spaces next
   to Takahide's Spinning Blade). The check lifts the token, asks `isEmpty`, and puts it back, restoring
   the change stamp (a primary probe reads a bumped stamp as a change). `RazzleTest` covers both.
+
+## 2026-10-31 — `feature/v10-coach`: suggestions and the review (ADR-051)
+- Additive on `Coach`, with defaults: `suggest(analysis, session, decision, cancelled)` and `review(saved, seats, progress, cancelled)`. New plain types: `CoachSuggestions`, `SuggestedOption`, `SuggestionConfidence`, `CoachReason`, `CoachReasonKind`, `CoachThreat`, `CoachPlan`, `GameReport`, `ReviewedDecision`, `ReviewAccuracy`, `ReviewMistake`, `DecisionMark`.
+- `Searcher.deepen` is new and only for the coach; `AiCoach` takes an optional `SampleRunner`. `AiCoach.winChance` is gone (`WinChance` is internal, per team size).
+- `Hero.advice: String?` in `core:model`, filled by the importer. `PlayUi` gains `suggest`, `canSuggest`, `report`; `GameAction` gains `AskSuggestions`, `CloseSuggestions`, `StartReport`, `CancelReport` (the web controller ignores them).
+- Behaviour: `nudge` no longer says a card "can still stop" an attack it falls to (or whose Block condition fails).

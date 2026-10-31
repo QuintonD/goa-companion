@@ -517,6 +517,7 @@
     }
   ],
   "lore": "The grove does not need protection; Wuk simply chooses to stay here. Trees make the best company when you prefer not to be disturbed. If you’re daring enough to enter his domain, whatever you do, don’t touch the trees!",
+  "advice": "- Plan ahead. Where will you need those trees next turn? And what about in the next round?\n- You can use trees to block key spaces.\n- Mobility is not your strongest attribute, so move along when the wave is about to push.",
   "verified": true,
   "sources": [
     {

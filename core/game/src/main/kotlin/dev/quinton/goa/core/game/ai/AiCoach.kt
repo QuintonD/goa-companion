@@ -7,10 +7,14 @@ import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Coach
 import dev.quinton.goa.core.game.CoachAnalysis
 import dev.quinton.goa.core.game.CoachNote
+import dev.quinton.goa.core.game.CoachReason
+import dev.quinton.goa.core.game.CoachReasonKind
+import dev.quinton.goa.core.game.CoachSuggestions
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.GameFactory
+import dev.quinton.goa.core.game.GameReport
 import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.SavedGame
 import dev.quinton.goa.core.game.WinReason
@@ -35,8 +39,15 @@ class AiCoach internal constructor(
     private val factory: GameFactory?,
     private val seed: Long,
     budgetMs: Long,
+    private val runner: SampleRunner = SampleRunner.SEQUENTIAL,
+    /** Samples of a suggestion (card plays, other decisions), past the look ahead's. */
+    private val suggestSamples: Pair<Int, Int> = SUGGEST_SAMPLES,
 ) : Coach {
-    constructor(factory: GameFactory? = null, seed: Long = 0x0C0AC4L) : this(factory, seed, BUDGET_MS)
+    constructor(
+        factory: GameFactory? = null,
+        seed: Long = 0x0C0AC4L,
+        runner: SampleRunner = SampleRunner.SEQUENTIAL,
+    ) : this(factory, seed, BUDGET_MS, runner)
 
     private val profile = AiPlayers.profile(dev.quinton.goa.core.game.AiLevel.HARD).copy(
         playSamples = 6,
@@ -52,7 +63,8 @@ class AiCoach internal constructor(
 
     private fun searcher(data: EngineData): Searcher {
         cached?.let { if (it.first === data) return it.second }
-        return Searcher(Evaluator(data, profile.knobs), profile, keepLeaves = true).also { cached = data to it }
+        return Searcher(Evaluator(data, profile.knobs), profile, keepLeaves = true, runner = runner)
+            .also { cached = data to it }
     }
 
     /** Nothing to learn from a forced pass, or from the order of tied teammates. */
@@ -121,6 +133,77 @@ class AiCoach internal constructor(
         return CoachNote(reason.first, reason.second, decision.id, state.round, state.turn)
     }
 
+    /**
+     * The suggestions of ADR-051, on the look ahead when it has finished: more samples on the same seeds,
+     * then the words, which [prepare] never pays for. The deadline keeps it inside the coach's budget on a
+     * slow phone: fewer samples, then no round plan. Without a look ahead, the same search from nothing.
+     */
+    override fun suggest(
+        analysis: CoachAnalysis?,
+        session: GameSession,
+        decision: Decision,
+        cancelled: () -> Boolean,
+    ): CoachSuggestions? = built(analysis, session, decision, cancelled)?.suggestions
+
+    /** [suggest] with what each sentence claims, for the survey (`CoachSuggestTest`). */
+    internal class Built(val suggestions: CoachSuggestions, val facts: CoachFacts, val whys: Map<Choice, List<Why>>)
+
+    @Suppress("ReturnCount")
+    internal fun built(
+        analysis: CoachAnalysis?,
+        session: GameSession,
+        decision: Decision,
+        cancelled: () -> Boolean,
+    ): Built? {
+        if (decision.options.size < 2) return null
+        val prepared = (analysis as? Prepared)?.takeIf { it.decision == decision }
+        val es = prepared?.session ?: session as? EngineSession ?: return null
+        val s = searcher(es.engineData)
+        val at = monotonicNanos()
+        val searchUntil = at + profile.budgetMs * SEARCH_SHARE_PERCENT / 100 * 1_000_000L
+        val until = at + profile.budgetMs * 1_000_000L
+        val decisionSeed = Searcher.mix(seed, decision.id)
+        val first = prepared?.analysis ?: s.analyze(es, decision, decisionSeed, cancelled, searchUntil) ?: return null
+        val samples = if (decision.kind == DecisionKind.PLAY_CARD) suggestSamples.first else suggestSamples.second
+        val a = s.deepen(es, decision, decisionSeed, first, samples, cancelled, searchUntil) ?: return null
+        val facts = CoachFacts(es, decision, a, s.ev)
+        val builder = SuggestionBuilder(facts, s, decisionSeed, runner, until, cancelled)
+        val built = builder.build() ?: return null
+        return if (cancelled()) null else Built(built, facts, builder.whys)
+    }
+
+    /** The option [suggest] would put first, without the words (the "does the advice help" tournament). */
+    internal fun topChoice(session: EngineSession, decision: Decision): Choice? {
+        if (decision.options.size < 2) return decision.options.firstOrNull()
+        val s = searcher(session.engineData)
+        val decisionSeed = Searcher.mix(seed, decision.id)
+        val never = { false }
+        val first = s.analyze(session, decision, decisionSeed, never, Long.MAX_VALUE) ?: return null
+        val samples = if (decision.kind == DecisionKind.PLAY_CARD) suggestSamples.first else suggestSamples.second
+        val a = s.deepen(session, decision, decisionSeed, first, samples, never, Long.MAX_VALUE) ?: return null
+        return rank(a, session.setup.seats.count { it.team == decision.team }).firstOrNull()?.option?.choice
+    }
+
+    /** The options as far as the samples go (the agreement check against a far deeper analysis). */
+    internal fun rankedAt(session: EngineSession, decision: Decision, samples: Int): List<Ranked> {
+        val s = searcher(session.engineData)
+        val decisionSeed = Searcher.mix(seed, decision.id)
+        val never = { false }
+        val first = s.analyze(session, decision, decisionSeed, never, Long.MAX_VALUE) ?: return emptyList()
+        val a = s.deepen(session, decision, decisionSeed, first, samples, never, Long.MAX_VALUE) ?: return emptyList()
+        return rank(a, session.setup.seats.count { it.team == decision.team })
+    }
+
+    override fun review(
+        saved: SavedGame,
+        seats: Set<String>,
+        progress: (done: Int, total: Int) -> Unit,
+        cancelled: () -> Boolean,
+    ): GameReport? {
+        val engine = factory as? GameEngine ?: return null
+        return CoachReviewer(engine, searcher(engine.data), seed, runner).review(saved, seats, progress, cancelled)
+    }
+
     /** [prepare]'s result: the analysis and the session (a fork) it was made on. */
     internal class Prepared(val decision: Decision, val session: EngineSession, val analysis: Analysis) :
         CoachAnalysis {
@@ -132,12 +215,18 @@ class AiCoach internal constructor(
         val payload = EngineSession.JSON.decodeFromString(SavedPayload.serializer(), saved.payload)
         val session = engine.fromState(saved.setup, payload.initial)
         val team = saved.setup.seats.firstOrNull { it.heroId == seat }?.team ?: return emptyList()
-        val ev = Evaluator(engine.data)
+        val ev = Evaluator(engine.data, profile.knobs)
+        val perSide = saved.setup.seats.count { it.team == team }
         val points = ArrayList<Snapshot>()
         fun snap() {
             val st = session.state
-            points +=
-                Snapshot(st.round, st.turn, winChance(ev.evaluate(st, team)), session.events.size, session.pending?.id)
+            points += Snapshot(
+                st.round,
+                st.turn,
+                WinChance.of(ev.evaluate(st, team), perSide),
+                session.events.size,
+                session.pending?.id,
+            )
         }
         snap()
         var lastTurn = Searcher.turnIndex(session.state)
@@ -191,11 +280,15 @@ class AiCoach internal constructor(
         /** Coin-equivalents below the best option before the coach speaks, and the share of samples. */
         const val NUDGE_GAP: Double = 5.0
         const val NUDGE_CONSISTENCY: Double = 0.75
-        const val MIN_SWING: Double = 0.08
+        const val MIN_SWING: Double = 0.04
         const val MIN_POINTS: Int = 3
         const val MAX_POINTS: Int = 6
 
-        fun winChance(score: Double): Double = Evaluator.sigmoid(score / 15.0)
+        /** Samples of a suggestion: card plays, other decisions (AI.md "The coach"). */
+        val SUGGEST_SAMPLES: Pair<Int, Int> = 12 to 8
+
+        /** Of the budget, what the samples may take; the round plan has the rest. */
+        const val SEARCH_SHARE_PERCENT: Long = 60
     }
 }
 
@@ -235,12 +328,52 @@ internal class Explainer(
         return null
     }
 
+    /** [explain] as a reason of the sheet, with what it is about. */
+    fun explainWithKind(): CoachReason? {
+        fun of(kind: CoachReasonKind, said: Pair<String, String>) = CoachReason(kind, said.first, said.second)
+        defendReason()?.let { said ->
+            val kind = when {
+                mine is Choice.Decline -> CoachReasonKind.DEFENSE_HOLDS
+                said.first.contains("isn't enough") -> CoachReasonKind.DEFENSE_FALLS
+                else -> CoachReasonKind.DEFENSE_CHEAPER
+            }
+            return of(kind, said)
+        }
+        dangerReason()?.let { return of(CoachReasonKind.DANGER, it) }
+        emptyHandReason()?.let { return of(CoachReasonKind.EMPTY_HAND, it) }
+        laneReason()?.let { said ->
+            return of(if ("other team" in said.first) CoachReasonKind.PUSH_GIVEN else CoachReasonKind.PUSH_WON, said)
+        }
+        killReason()?.let { return of(CoachReasonKind.KILL, it) }
+        fastTravelReason()?.let { return of(CoachReasonKind.FAST_TRAVEL, it) }
+        minionReason()?.let { return of(CoachReasonKind.MINION, it) }
+        return null
+    }
+
+    /**
+     * Whether [cardId] really stops the attack: a card that falls too can be the better one (it strips
+     * nothing else), and with no total up front (the text decides) it must hold in the playouts.
+     */
+    private fun stops(cardId: String, total: Int, value: Int?): Boolean {
+        val block = d.context.blockPreview[cardId]
+        return when {
+            block != null -> block
+
+            value != null -> value >= total
+
+            else -> share(Choice.Card(cardId)) { l ->
+                events(l).any { it is GameEvent.Defended && it.heroId == seat && it.success }
+            } >= 0.5
+        }
+    }
+
     private fun defendReason(): Pair<String, String>? {
         if (d.kind != DecisionKind.DEFEND) return null
         val total = d.context.attackTotal ?: return null
         val attacker = d.context.attackerId?.let { data.heroName(it) } ?: "The attacker"
         if (mine is Choice.Decline && best is Choice.Card) {
             val v = d.context.defensePreview[best.cardId]
+            if (!stops(best.cardId, total, v)) return null
             val card = cardName(best.cardId) ?: return null
             val numbers = v?.let { " (Defense $it against Attack $total)" } ?: ""
             return "Your $card can still stop this attack$numbers." to

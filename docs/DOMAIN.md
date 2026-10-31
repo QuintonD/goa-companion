@@ -303,7 +303,7 @@ Catalog types are `@Serializable` and shared by the importer and the app
 ```
 Hero(id, name, title, product, aliases, complexity?, stats: HeroStats([base,max] per stat),
      roles: List<Role>, portrait?, printing, cards, handicap?, extras, faq: List<Ruling>,
-     lore?, verified, sources)
+     lore?, advice?, verified, sources)
 Card(id, heroId, name, color: GOLD|SILVER|RED|GREEN|BLUE|PURPLE|OTHER (printed frame;
      OTHER unused since dataVersion 3), tier: 1..4|null,
      initiative?, primary?, secondary, values: CardValues(attack, defense, movement, range,

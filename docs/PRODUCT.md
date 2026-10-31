@@ -521,6 +521,18 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
 - **Coach** (on/off, also in-game): before a clearly worse choice, a gentle nudge ("Coach: Wasp's
   Lift Up can still reach you") with Choose anyway / Rethink; never chooses for you. After the
   game: the turning points, by round and turn, with the rule behind each.
+- **Suggest** (ADR-051; Coach on or off): under the person's own question, on a seat they control, a button opens a sheet for
+  the seat answering: up to three options ranked, each with its card, a rough chance to win (to the nearest 5), how firmly the guesses
+  of the hidden cards rank it ("Best in most guesses", "Too close to rank"), why with the rule and page, what stands against it, and
+  what most playouts then do; what can hit you this turn and next, with the Defense it would take and your best at your space; the round's
+  order of cards when the same order wins out, or the card to keep; the hero's official tactical tips, verbatim. A tap shows an option on the board or reads its
+  card and chooses nothing. Hidden information stays hidden (p.4): another hero's card is named only when open, or with "could". The
+  coach doesn't warn against what it just put first. Not on the web table yet.
+- **Your decisions** (ADR-051; game over, Coach on or off): "Review your decisions" looks at every choice of yours again, in the background, with its progress and Cancel:
+  each marked best, good, inaccuracy, mistake or blunder by the chance of winning it gave up; accuracy per hero and per kind of decision; the biggest mistakes, each with the position in words, the
+  sheet's content for that moment and a jump to it in the log. Worked out from the save; nothing more is stored. **Done when:** a weak player following the top suggestion
+  clearly gains; every sentence of a survey over all 32 heroes is checked against its events and printed values (AI.md "The coach"); same public view, same words (`NoPeekingTest`);
+  an end-to-end test and screenshots (light, dark, landscape, 384 dp at font scale 2).
 - **Saved as you play:** a game in progress resumes from Boards after leaving or process death;
   local only, not synced, not in the backup file. One game at a time: starting another replaces it
   (New game says so). A save that can't be read, or that the engine can no longer rebuild, is

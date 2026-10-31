@@ -454,6 +454,16 @@ Spellbook. **Card shape:** deck cards are portrait scans (729 × 1026), spell ca
 every bundled scan. A landscape card is never put in a portrait frame: in a row it keeps the row's
 height and is about twice as wide (`TableCard`'s `width` is a portrait card's).
 
+**Suggestions** (ADR-051; `play/game/CoachSheet.kt`): a full-width outlined Suggest button with the lightbulb, last in the
+question's panel (under the Coach's "looking" line), never in the way of the answers; on the person's own question only, Coach on or off. The sheet is a
+`BoardSheet` at 90% of the height: "Suggestions", "For Wasp · 12 guesses of the hidden cards", Done. "The coach is thinking…" with a small spinner until it has looked (a live region). One
+12-14 dp surface card per option, the first one with a 2 dp bronze border unless the options are too close to rank (then a line above them says so). In a card: the official card at 64 dp when the option is a card, "1. Shock", "About 45% to
+win", how firmly the guesses rank it, the points behind when there are any; **Why**, **Against it**, **In most playouts** as small bronze heads, each reason's sentence in body text and its rule and page under it in small text; a 48 dp
+text button at the end: "Show on the board" (spaces, units, tokens: selects it, shuts the sheet, the table shows it and asks for Confirm) or "Read the card" (the card focus viewer over the sheet). Neither answers. Then the overlines WHAT CAN HIT YOU (a 32 dp portrait in its team ring beside each sentence),
+THE ROUND (the cards at 56 dp in order, the sentence, its reasoning) and TIPS FOR WASP (the official tips, verbatim, bulleted, the source named). TalkBack: an option's head is one node ("1. Shock. About 45% to win. Best in most guesses"), each reason one node, heads are headings. Chances are words, never colour alone.
+
+**Your decisions** (`play/game/GameReportSection.kt`): on the game-over screen, above Rematch, under COACH · YOUR DECISIONS: an outlined "Review your decisions" with its hint; then a line with the count and a determinate bar, and Cancel (a live region); then the accuracy as a title ("78% best or good, over 112 decisions"), the five marks with their counts in small text (words, not colours), "By hero" (with more than one hero) and "By kind of decision" one line per row, and "The biggest mistakes": a secondaryContainer card per mistake with ROUND 2 · TURN 3, the mark, the question, what was chosen and the points given up, the position in small text, "Show what the coach suggests" (the sheet's content in place) and "See it in the log" (the log sheet opens at that moment, its line marked).
+
 ### Puzzles (ADR-035, PRODUCT §10)
 The puzzle screen is the game table (above) plus: the **goal banner** floating under the hero strip
 (surface at 94 %, bronze border, flag icon, goal in titleSmall, "You play …" under it; in landscape one

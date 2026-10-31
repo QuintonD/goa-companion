@@ -955,7 +955,207 @@ interface Coach {
 
     /** After the game: the few moments that decided it, oldest first. */
     fun turningPoints(saved: SavedGame, seat: String, cancelled: () -> Boolean = { false }): List<CoachNote>
+
+    /**
+     * What the coach would do at [decision], asked for by the person (ADR-051): never answers for them.
+     * [analysis] is [prepare]'s look at this decision when there is one; the words are worked out only
+     * here. Reads only what the deciding team may know. Null when there is nothing to choose or no coach.
+     */
+    fun suggest(
+        analysis: CoachAnalysis?,
+        session: GameSession,
+        decision: Decision,
+        cancelled: () -> Boolean = { false },
+    ): CoachSuggestions? = null
+
+    /**
+     * The whole game of [seats] looked at again after it ended (ADR-051): every decision of theirs with
+     * more than one option, marked, on the caller's background thread. [progress] gets (done, total). Null
+     * when cancelled or when this coach can't replay saves. It replays [saved]: nothing extra is stored.
+     */
+    fun review(
+        saved: SavedGame,
+        seats: Set<String>,
+        progress: (done: Int, total: Int) -> Unit = { _, _ -> },
+        cancelled: () -> Boolean = { false },
+    ): GameReport? = null
 }
+
+/** How sure the coach is of one suggested option against the best, from its paired samples. */
+@Serializable
+enum class SuggestionConfidence {
+    /** It is the best one, or clearly behind it, in nearly every guess of the hidden cards. */
+    @SerialName("clear")
+    CLEAR,
+
+    /** It leads or trails in most guesses. */
+    @SerialName("likely")
+    LIKELY,
+
+    /** The samples don't separate it from the best: no ranking is claimed. */
+    @SerialName("close")
+    CLOSE,
+}
+
+/** What a [CoachReason] is about; the survey counts by it. Each reads engine events or printed values. */
+@Serializable
+enum class CoachReasonKind {
+    DEFENSE_HOLDS,
+    DEFENSE_FALLS,
+    DEFENSE_CHEAPER,
+    DEFENSE_WASTED,
+    BLOCK,
+    MINION_MODIFIER,
+    MINION_BATTLE,
+    PUSH_WON,
+    PUSH_GIVEN,
+    LEVEL,
+    LIFE_COST,
+    RESPAWN,
+    FAST_TRAVEL,
+    KEEP_DEFENDER,
+    FOCUS_FIRE,
+    KILL,
+    DANGER,
+    MINION,
+    EMPTY_HAND,
+    INITIATIVE,
+    POSITION,
+    REACH,
+    UPGRADE,
+    TOKEN,
+    MARKER,
+    COUNTER,
+    BODY,
+    SWAP,
+    FORCED_MOVE,
+    DISCARD,
+    COINS,
+    NO_DEFENSE_TARGET,
+}
+
+/** One reason, in a sentence, and the rule behind it with its page ([detail]). */
+@Serializable
+data class CoachReason(val kind: CoachReasonKind, val text: String, val detail: String = "")
+
+/**
+ * One option the coach looked at. [chance] is the team's chance of winning after it in percent, only as
+ * fine as the fit is good (rounded to 5, AI.md "The coach"); [behind] the points it trails the best option.
+ * [line] is what the playouts most often do next, in words; only what recurs in a majority of them.
+ * [reasons] speak for it, [against] says why it trails the best option.
+ */
+@Serializable
+data class SuggestedOption(
+    val choice: Choice,
+    val label: String,
+    val chance: Int,
+    val behind: Int,
+    val confidence: SuggestionConfidence,
+    val line: List<String> = emptyList(),
+    val reasons: List<CoachReason> = emptyList(),
+    val against: List<CoachReason> = emptyList(),
+)
+
+/** What can hit the hero: this turn or next, by whom, the Defense it would take and what the hero has. */
+@Serializable
+data class CoachThreat(
+    val heroId: String,
+    val thisTurn: Boolean,
+    /** The card, when it is open information; otherwise only that "a card of Attack N" could. */
+    val cardId: String?,
+    val attack: Int,
+    /** The hero's best Defense total at its space now (items and minion modifiers counted); null: no defense card. */
+    val defense: Int?,
+    /** The minion defense modifier at the hero's space (p.14). */
+    val modifier: Int,
+    val text: String,
+)
+
+/** The cards for the turns left, or only the card to keep when no order wins out. */
+@Serializable
+data class CoachPlan(
+    val order: List<String> = emptyList(),
+    val keep: String? = null,
+    val text: String,
+    val detail: String = "",
+)
+
+/** The sheet's content for one decision (ADR-051). */
+@Serializable
+data class CoachSuggestions(
+    val decisionId: Long,
+    val seat: String,
+    /** Up to three, the best first. */
+    val options: List<SuggestedOption>,
+    /** The best options are not separated by the samples: say they are close rather than rank noise. */
+    val close: Boolean,
+    val samples: Int,
+    val threats: List<CoachThreat> = emptyList(),
+    val plan: CoachPlan? = null,
+    /** The hero's official tactical tips, verbatim from the pinned source; empty when it has none. */
+    val advice: List<String> = emptyList(),
+)
+
+/** How a decision of the person's stands against the best option, by the chance of winning it gave up. */
+@Serializable
+enum class DecisionMark {
+    @SerialName("best")
+    BEST,
+
+    @SerialName("good")
+    GOOD,
+
+    @SerialName("inaccuracy")
+    INACCURACY,
+
+    @SerialName("mistake")
+    MISTAKE,
+
+    @SerialName("blunder")
+    BLUNDER,
+}
+
+/** One decision of the game, looked at again; [eventIndex] is where it stands in the log. */
+@Serializable
+data class ReviewedDecision(
+    val decisionId: Long,
+    val seat: String,
+    val kind: DecisionKind,
+    val round: Int,
+    val turn: Int,
+    val mark: DecisionMark,
+    /** Winning chance given up against the best option found, 0.0 to 1.0. */
+    val loss: Double,
+    val eventIndex: Int,
+)
+
+/** Decisions of a hero or a kind, and how many were best or good. */
+@Serializable
+data class ReviewAccuracy(val key: String, val decisions: Int, val accurate: Int, val meanLoss: Double) {
+    val percent: Int get() = if (decisions == 0) 0 else (100.0 * accurate / decisions + 0.5).toInt()
+}
+
+/** One of the biggest mistakes, with the same content as the sheet had at that decision. */
+@Serializable
+data class ReviewMistake(
+    val decision: ReviewedDecision,
+    val prompt: String,
+    /** What was chosen, in the words the options use. */
+    val chosen: String,
+    /** The game's position at that moment, in words: only what the seat could see then. */
+    val position: String,
+    val suggestions: CoachSuggestions,
+)
+
+/** The report on a finished game (ADR-051). Derived from the save: nothing of it is stored. */
+@Serializable
+data class GameReport(
+    val decisions: List<ReviewedDecision>,
+    val overall: ReviewAccuracy,
+    val byHero: List<ReviewAccuracy>,
+    val byKind: List<ReviewAccuracy>,
+    val mistakes: List<ReviewMistake>,
+)
 
 @Serializable
 enum class PuzzleStatus {
