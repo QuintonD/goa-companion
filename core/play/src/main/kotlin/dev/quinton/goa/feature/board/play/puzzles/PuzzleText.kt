@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.board.play.puzzles
 import dev.quinton.goa.core.game.Deadline
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.PuzzleGoal
+import dev.quinton.goa.core.game.PuzzleInfo
 import dev.quinton.goa.core.model.match.Team
 
 /** Words of the puzzles (PRODUCT §10). Gentle throughout: a miss is "Not quite", never "Wrong". */
@@ -13,6 +14,23 @@ object PuzzleText {
         level == 2 -> "Harder"
         else -> "Hardest"
     }
+
+    /** The top bar's name of a puzzle: its place in its part of the book. */
+    fun short(info: PuzzleInfo): String =
+        if (info.fullRound) "Full round ${info.number}" else "Puzzle ${info.number}"
+
+    /** "Puzzle 3 of 12", "Full round 3 of 30". */
+    fun place(info: PuzzleInfo, total: Int): String = "${short(info)} of $total"
+
+    /** What the known card means for this hero, for the strip. */
+    fun knownLine(hero: String, play: KnownCardUi): String = when (play.state) {
+        KnownCardState.GONE -> "$hero has lost ${play.card?.name ?: "this card"}: it plays anything it has left."
+        else -> "${play.card?.name ?: "A card"}: " + (play.plan ?: "free, it answers as hard as it can.")
+    }
+
+    /** The convention, once, where a full round is introduced. */
+    const val KNOWN_NOTE: String = "You know their cards all round and what they do with them where a plan " +
+        "is shown. Where none is, or you spoil a plan, they answer as hard as they can."
 
     fun names(names: List<String>): String = when (names.size) {
         0 -> ""

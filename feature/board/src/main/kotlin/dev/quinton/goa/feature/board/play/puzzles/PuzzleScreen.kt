@@ -122,7 +122,7 @@ fun PuzzleScreen(
     val focus = rememberCardFocusState()
     KeepScreenOn(puzzle != null)
     BoardScaffold(
-        title = puzzle?.let { "Puzzle ${it.info.number}" } ?: "Puzzle",
+        title = puzzle?.let { PuzzleText.short(it.info) } ?: "Puzzle",
         onBack = onBack,
         modifier = modifier,
         actions = {
@@ -325,8 +325,9 @@ private fun ColumnScope.PuzzlePanel(
         }
 
         else -> {
-            PuzzleHeader(puzzle.info, puzzle.total)
+            PuzzleHeader(puzzle.info, puzzle.total, puzzle.round)
             if (puzzle.info.intro.isNotBlank()) Intro(puzzle.info.intro, puzzle.introOpen, onAction)
+            puzzle.round?.let { KnownPlaysStrip(it, focus) }
             puzzle.nudge?.let { Nudge(it, onAction) }
             // The person's own question first, the moment after it (as in the game).
             val moment = puzzle.table.moment
@@ -353,11 +354,11 @@ private fun Nudge(nudge: NudgeUi, onAction: (PuzzleAction) -> Unit) {
 
 /** "PUZZLE 3 OF 12 · ◆◆◇ Harder", the title and the theme. */
 @Composable
-private fun PuzzleHeader(info: PuzzleInfo, total: Int) {
+private fun PuzzleHeader(info: PuzzleInfo, total: Int, round: RoundUi?) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "PUZZLE ${info.number} OF $total",
+                PuzzleText.place(info, total).uppercase(),
                 style = GoaTextStyles.overline,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -370,6 +371,14 @@ private fun PuzzleHeader(info: PuzzleInfo, total: Int) {
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        round?.let {
+            Text(
+                it.heading,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
     }
 }
 

@@ -94,7 +94,7 @@ class GoalTracker(
 
     companion object {
         fun deadlineOf(goal: PuzzleGoal): Deadline = when (goal) {
-            is PuzzleGoal.WinGame -> Deadline.END_OF_TURN
+            is PuzzleGoal.WinGame -> goal.by
             is PuzzleGoal.DefeatHero -> goal.by
             is PuzzleGoal.PushLane -> goal.by
             is PuzzleGoal.Survive -> goal.by
@@ -104,14 +104,23 @@ class GoalTracker(
         /**
          * The halt condition for [deadline] from a start in [round]/[turn]: true for the first step
          * after it. End of turn = once the turn's End of turn step is done (the next turn starts, or
-         * turn 4's end of round begins); end of round = once the next round starts.
+         * turn 4's end of round begins); end of round = once the next round starts. A full-round puzzle
+         * ([beforeRetrieve]) stops at the end of round earlier: once the Minion Battle and the pushes are
+         * done and before cards are retrieved, so nobody is asked about levelling up and no pity coin counts.
          */
-        fun haltAt(deadline: Deadline, round: Int, turn: Int): (GameState) -> Boolean = when (deadline) {
-            Deadline.END_OF_TURN -> { s ->
+        fun haltAt(
+            deadline: Deadline,
+            round: Int,
+            turn: Int,
+            beforeRetrieve: Boolean = false,
+        ): (GameState) -> Boolean = when {
+            deadline == Deadline.END_OF_TURN -> { s ->
                 s.round != round || s.turn != turn || s.step.ordinal >= Step.EOR_EFFECTS.ordinal
             }
 
-            Deadline.END_OF_ROUND -> { s -> s.round != round }
+            beforeRetrieve -> { s -> s.round != round || s.step.ordinal >= Step.RETRIEVE.ordinal }
+
+            else -> { s -> s.round != round }
         }
     }
 }

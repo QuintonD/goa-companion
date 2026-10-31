@@ -6,8 +6,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.game.PuzzleInfo
+import dev.quinton.goa.feature.board.play.puzzles.KnownCardState
 import dev.quinton.goa.feature.board.play.puzzles.NudgeUi
 import dev.quinton.goa.feature.board.play.puzzles.PuzzleText
+import dev.quinton.goa.feature.board.play.puzzles.RoundUi
+import dev.quinton.goa.web.play.cards.CardFocusState
+import dev.quinton.goa.web.play.cards.CardImage
 import dev.quinton.goa.web.ui.ButtonKind
 import dev.quinton.goa.web.ui.GoaButton
 import dev.quinton.goa.web.ui.Icon
@@ -157,3 +161,58 @@ fun Explanation(info: PuzzleInfo) {
 }
 
 private const val MAX_DIFFICULTY = 3
+
+/**
+ * A full round's enemy plays (ADR-052), as on the phone: for each enemy hero its four real cards in
+ * turn order, those played dimmed and marked, this turn's outlined, one that left the hand marked gone;
+ * what this turn's card will do underneath. A tap opens a card.
+ */
+@Composable
+fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState) {
+    Div({ classes("goa-known") }) {
+        P({ classes("t-title-medium", "c-primary") }) { Text(round.heading) }
+        H3({ classes("t-overline", "c-primary") }) { Text("What they will play") }
+        P({ classes("t-body-small") }) { Text(PuzzleText.KNOWN_NOTE) }
+        round.heroes.forEach { hero ->
+            P({ classes("t-label-large") }) { Text(hero.name) }
+            Div({ classes("goa-known-row") }) {
+                val shown = hero.cards.mapNotNull { it.card }
+                hero.cards.forEach { play ->
+                    Button({
+                        classes("goa-known-card")
+                        if (play.state == KnownCardState.NOW) classes("now")
+                        if (play.state == KnownCardState.PLAYED || play.state == KnownCardState.GONE) classes("done")
+                        attr("aria-label", "${hero.name}, turn ${play.turn}: ${play.card?.name ?: "a card"}, ${stateWord(play.state)}")
+                        onClick {
+                            val i = shown.indexOf(play.card)
+                            if (i >= 0) focus.show(shown, i, title = hero.name)
+                        }
+                    }) {
+                        CardImage(play.card, KNOWN_CARD_WIDTH)
+                        Span({ classes("goa-known-mark") }) {
+                            Text(
+                                when (play.state) {
+                                    KnownCardState.PLAYED -> "✓"
+                                    KnownCardState.GONE -> "✕"
+                                    else -> "${play.turn}"
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+            (hero.cards.firstOrNull { it.state == KnownCardState.GONE } ?: hero.now)?.let {
+                P({ classes("t-body-small") }) { Text(PuzzleText.knownLine(hero.name, it)) }
+            }
+        }
+    }
+}
+
+private fun stateWord(state: KnownCardState): String = when (state) {
+    KnownCardState.PLAYED -> "played"
+    KnownCardState.NOW -> "this turn"
+    KnownCardState.COMING -> "still to come"
+    KnownCardState.GONE -> "gone from the hand"
+}
+
+private const val KNOWN_CARD_WIDTH = 56

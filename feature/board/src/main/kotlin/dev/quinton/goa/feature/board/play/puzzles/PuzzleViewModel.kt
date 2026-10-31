@@ -145,6 +145,9 @@ class PuzzleViewModel internal constructor(
     private var nudgesOn = true
     private var introOpen = true
 
+    /** The turn the nudges are for: a full round's come per turn, each turn gentle first again. */
+    private var nudgeTurn = 1
+
     /** A move was made in this try, so the try is counted. */
     private var moved = false
     private var stored = PuzzleProgress()
@@ -190,7 +193,7 @@ class PuzzleViewModel internal constructor(
         map = maps.firstOrNull { it.id == setup.mapId } ?: return unavailable(NoPuzzle.BROKEN)
         puzzles = book
         info = list[index]
-        total = list.size
+        total = list.count { it.fullRound == list[index].fullRound }
         next = list.getOrNull(index + 1)?.id
         heroes = catalog.boardHeroes()
         cards = catalog.heroes.flatMap { it.allCards }.associateBy { it.id }
@@ -375,7 +378,7 @@ class PuzzleViewModel internal constructor(
         )
         announce(miss.orEmpty())
         // Struggling: with nudges on, the next one comes with the miss.
-        if (nudgesOn && nudgeLevel < puzzle.nudges.size) showNudge(publish = false)
+        if (nudgesOn && nudgeLevel < puzzle.nudgesFor(nudgeTurn).size) showNudge(publish = false)
     }
 
     private fun tryAgain() {
@@ -427,14 +430,15 @@ class PuzzleViewModel internal constructor(
     /** The next nudge (or the last one again), gentle to strong; the last one points at the move. */
     private suspend fun showNudge(publish: Boolean = true) {
         val puzzle = info ?: return
-        if (puzzle.nudges.isEmpty() || replay != null) return
+        val nudges = puzzle.nudgesFor(nudgeTurn)
+        if (nudges.isEmpty() || replay != null) return
         idle?.cancel()
-        if (nudgeLevel < puzzle.nudges.size) nudgeLevel++
+        if (nudgeLevel < nudges.size) nudgeLevel++
         nudgeVisible = true
         val level = nudgeLevel
         if (level > stored.nudgesUsed) record { it.copy(nudgesUsed = maxOf(it.nudgesUsed, level)) }
         refreshHint()
-        announce("Nudge: ${puzzle.nudges[level - 1]}")
+        announce("Nudge: ${nudges[level - 1]}")
         if (publish) publish()
     }
 
@@ -442,7 +446,7 @@ class PuzzleViewModel internal constructor(
     private suspend fun refreshHint() {
         val puzzle = info ?: return
         val s = session ?: return
-        hint = if (nudgeVisible && nudgeLevel >= puzzle.nudges.size && phase == PuzzlePhase.SOLVING) {
+        hint = if (nudgeVisible && nudgeLevel >= puzzle.nudgesFor(nudgeTurn).size && phase == PuzzlePhase.SOLVING) {
             withContext(engine) {
                 val job = currentCoroutineContext().job
                 runCatching { s.bestChoice { !job.isActive } }.getOrNull()
@@ -463,7 +467,7 @@ class PuzzleViewModel internal constructor(
     private fun scheduleIdle() {
         idle?.cancel()
         val puzzle = info ?: return
-        if (!nudgesOn || !waitingForNudge || nudgeLevel >= puzzle.nudges.size) return
+        if (!nudgesOn || !waitingForNudge || nudgeLevel >= puzzle.nudgesFor(nudgeTurn).size) return
         idle = viewModelScope.launch {
             delay(timing.idleNudgeMs)
             if (isActive && !busy && waitingForNudge) showNudge()
@@ -541,6 +545,11 @@ class PuzzleViewModel internal constructor(
             Snapshot(s.game.pending, s.game.openView(mine), events, review.build(s.game, seats), flow)
         }
         val live = interim
+        if (puzzle.fullRound && snapshot.view.turn != nudgeTurn) {
+            nudgeTurn = snapshot.view.turn
+            nudgeLevel = 0
+            nudgeVisible = false
+        }
         val step = r?.steps?.getOrNull(r.index)
         val table = if (step != null) replayTable(board, step) else liveTable(board, snapshot)
         val replayUi = if (r != null && step != null) replayUi(puzzle, r, step, table) else null
@@ -556,7 +565,7 @@ class PuzzleViewModel internal constructor(
                 replying = replying,
                 nudge = nudge,
                 nudgeLevel = nudgeLevel,
-                nudgeCount = puzzle.nudges.size,
+                nudgeCount = puzzle.nudgesFor(nudgeTurn).size,
                 nudgesOn = nudgesOn,
                 introOpen = introOpen,
                 attempts = stored.attempts,
@@ -569,6 +578,7 @@ class PuzzleViewModel internal constructor(
                 announcement = announcement,
                 review = snapshot.review,
                 flow = snapshot.flow,
+                round = roundUi(puzzle, step?.view ?: snapshot.view, cards) { heroes.hero(it).name },
             ),
         )
     }
@@ -616,9 +626,9 @@ class PuzzleViewModel internal constructor(
     private fun nudgeUi(puzzle: PuzzleInfo, table: TableUi): NudgeUi? {
         if (!nudgeVisible || nudgeLevel == 0) return null
         return NudgeUi(
-            text = puzzle.nudges[nudgeLevel - 1],
+            text = puzzle.nudgesFor(nudgeTurn)[nudgeLevel - 1],
             level = nudgeLevel,
-            total = puzzle.nudges.size,
+            total = puzzle.nudgesFor(nudgeTurn).size,
             hint = table.hint?.let(table::label),
         )
     }

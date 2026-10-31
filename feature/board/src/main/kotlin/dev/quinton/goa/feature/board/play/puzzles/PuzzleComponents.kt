@@ -4,8 +4,10 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -37,6 +39,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -62,6 +65,8 @@ import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Motion
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.feature.board.play.table.TableCard
+import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -295,3 +300,95 @@ private fun hexagon(center: Offset, radius: Float): Path = Path().apply {
 
 private const val MAX_DIFFICULTY = 3
 private const val SEAL_START = 0.6f
+
+/**
+ * A full round's enemy plays (ADR-052): for each enemy hero its four real cards in turn order, those
+ * played dimmed and marked, this turn's outlined, one that left the hand marked gone; what this turn's
+ * card will do underneath. A tap opens a card.
+ */
+@Composable
+fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Text(
+            "WHAT THEY WILL PLAY",
+            style = GoaTextStyles.overline,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.semantics { heading() },
+        )
+        Text(
+            PuzzleText.KNOWN_NOTE,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        round.heroes.forEach { hero -> KnownHero(hero, focus) }
+    }
+}
+
+@Composable
+private fun KnownHero(hero: KnownHeroUi, focus: CardFocusState) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text(hero.name, style = MaterialTheme.typography.labelLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            val shown = hero.cards.mapNotNull { it.card }
+            hero.cards.forEach { play ->
+                KnownCard(hero.name, play) {
+                    val i = shown.indexOf(play.card)
+                    if (i >= 0) focus.show(shown, i, title = hero.name)
+                }
+            }
+        }
+        val line = hero.cards.firstOrNull { it.state == KnownCardState.GONE } ?: hero.now
+        line?.let {
+            Text(
+                PuzzleText.knownLine(hero.name, it),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun KnownCard(hero: String, play: KnownCardUi, onOpen: () -> Unit) {
+    val state = when (play.state) {
+        KnownCardState.PLAYED -> "played"
+        KnownCardState.NOW -> "this turn"
+        KnownCardState.COMING -> "still to come"
+        KnownCardState.GONE -> "gone from the hand"
+    }
+    val outline = if (play.state == KnownCardState.NOW) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        androidx.compose.ui.graphics.Color.Transparent
+    }
+    Surface(
+        onClick = onOpen,
+        shape = RoundedCornerShape(8.dp),
+        color = androidx.compose.ui.graphics.Color.Transparent,
+        border = BorderStroke(2.dp, outline),
+        modifier = Modifier.semantics {
+            contentDescription = "$hero, turn ${play.turn}: ${play.card?.name ?: "a card"}, $state"
+        },
+    ) {
+        Box(Modifier.padding(2.dp), contentAlignment = Alignment.Center) {
+            val dim = play.state == KnownCardState.PLAYED || play.state == KnownCardState.GONE
+            TableCard(play.card, Modifier.alpha(if (dim) DIMMED else 1f), width = KNOWN_CARD_WIDTH)
+            Text(
+                when (play.state) {
+                    KnownCardState.PLAYED -> "✓"
+                    KnownCardState.GONE -> "✕"
+                    else -> "${play.turn}"
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
+                    .padding(horizontal = 4.dp),
+            )
+        }
+    }
+}
+
+private const val DIMMED = 0.45f
+private val KNOWN_CARD_WIDTH = 56.dp

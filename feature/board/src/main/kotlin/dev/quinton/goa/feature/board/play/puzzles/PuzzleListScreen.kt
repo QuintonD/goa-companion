@@ -193,7 +193,28 @@ private fun PuzzleList(state: PuzzleListUiState.Ready, onAction: (PuzzleListActi
                 }
             }
         }
-        items(state.rows, key = { it.info.id }) { row -> PuzzleRow(row) { onOpen(row.info.id) } }
+        items(state.rows.filterNot { it.info.fullRound }, key = { it.info.id }) { row ->
+            PuzzleRow(row) { onOpen(row.info.id) }
+        }
+        val rounds = state.rows.filter { it.info.fullRound }
+        if (rounds.isNotEmpty()) {
+            item(key = "rounds-heading") {
+                Column(Modifier.padding(top = Spacing.md)) {
+                    Text(
+                        "FULL ROUNDS",
+                        style = GoaTextStyles.overline,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    Text(
+                        "Four turns planned from turn 1, through the Minion Battle. You know what they will play.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            items(rounds, key = { it.info.id }) { row -> PuzzleRow(row) { onOpen(row.info.id) } }
+        }
     }
 }
 

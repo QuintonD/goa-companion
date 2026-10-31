@@ -36,6 +36,7 @@ import dev.quinton.goa.feature.board.play.puzzles.ReplyingUi
 import dev.quinton.goa.feature.board.play.puzzles.replayTitle
 import dev.quinton.goa.feature.board.play.puzzles.replies
 import dev.quinton.goa.feature.board.play.puzzles.replyTitle
+import dev.quinton.goa.feature.board.play.puzzles.roundUi
 import dev.quinton.goa.feature.board.play.review.ReviewKeeper
 import dev.quinton.goa.feature.board.play.review.ReviewUi
 import dev.quinton.goa.feature.board.play.review.reviewUi
@@ -110,6 +111,9 @@ class PuzzleController(
     private var nudgeVisible = false
     private var nudgesOn = true
 
+    /** The turn the nudges are for: a full round's come per turn, each turn gentle first again. */
+    private var nudgeTurn = 1
+
     /** Nudges switched here while the settings store can't be written (it then lives for this visit). */
     private var nudgesOverride: Boolean? = null
     private var introOpen = true
@@ -146,7 +150,7 @@ class PuzzleController(
         val maps = runCatching { maps() }.getOrDefault(emptyList())
         map = maps.firstOrNull { it.id == started.setup.mapId } ?: return unavailable(NoPuzzle.BROKEN)
         info = list[index]
-        total = list.size
+        total = list.count { it.fullRound == list[index].fullRound }
         next = list.getOrNull(index + 1)?.id
         heroes = catalog.boardHeroes()
         cards = catalog.heroes.flatMap { it.allCards }.associateBy { it.id }
@@ -372,7 +376,7 @@ class PuzzleController(
         )
         announce(miss.orEmpty())
         // Struggling: with nudges on, the next one comes with the miss.
-        if (nudgesOn && nudgeLevel < puzzle.nudges.size) showNudge(publish = false)
+        if (nudgesOn && nudgeLevel < puzzle.nudgesFor(nudgeTurn).size) showNudge(publish = false)
     }
 
     private fun tryAgain() {
@@ -437,21 +441,21 @@ class PuzzleController(
     /** The next nudge (or the last one again), gentle to strong; the last one points at the move. */
     private suspend fun showNudge(publish: Boolean = true) {
         val puzzle = info ?: return
-        if (puzzle.nudges.isEmpty() || replay != null) return
+        if (puzzle.nudgesFor(nudgeTurn).isEmpty() || replay != null) return
         idle?.cancel()
-        if (nudgeLevel < puzzle.nudges.size) nudgeLevel++
+        if (nudgeLevel < puzzle.nudgesFor(nudgeTurn).size) nudgeLevel++
         nudgeVisible = true
         val level = nudgeLevel
         if (level > stored.nudgesUsed) record { it.copy(nudgesUsed = maxOf(it.nudgesUsed, level)) }
         refreshHint()
-        announce("Nudge: ${puzzle.nudges[level - 1]}")
+        announce("Nudge: ${puzzle.nudgesFor(nudgeTurn)[level - 1]}")
         if (publish) publish()
     }
 
     /** The last nudge's move on the board: the solver's choice for the question up now. */
     private suspend fun refreshHint() {
         val puzzle = info ?: return
-        hint = if (nudgeVisible && nudgeLevel >= puzzle.nudges.size && phase == PuzzlePhase.SOLVING) {
+        hint = if (nudgeVisible && nudgeLevel >= puzzle.nudgesFor(nudgeTurn).size && phase == PuzzlePhase.SOLVING) {
             runCatching {
                 if (!ensureSession()) return@runCatching null
                 (engine.call(EngineRequest.PuzzleBest) as? EngineResponse.Best)?.choice
@@ -472,7 +476,7 @@ class PuzzleController(
     private fun scheduleIdle() {
         idle?.cancel()
         val puzzle = info ?: return
-        if (!nudgesOn || !waitingForNudge || nudgeLevel >= puzzle.nudges.size) return
+        if (!nudgesOn || !waitingForNudge || nudgeLevel >= puzzle.nudgesFor(nudgeTurn).size) return
         idle = scope.launch {
             delay(timing.idleNudgeMs)
             if (isActive && !busy && waitingForNudge) showNudge()
@@ -547,6 +551,11 @@ class PuzzleController(
         val puzzle = info ?: return
         val board = map ?: return
         val r = replay
+        if (puzzle.fullRound && s.view.turn != nudgeTurn) {
+            nudgeTurn = s.view.turn
+            nudgeLevel = 0
+            nudgeVisible = false
+        }
         val step = r?.steps?.getOrNull(r.index)
         val table = if (step != null) replayTable(board, step) else liveTable(board, s)
         val replayUi = if (r != null && step != null) {
@@ -576,7 +585,7 @@ class PuzzleController(
                 replying = replying,
                 nudge = nudgeUi(puzzle, table),
                 nudgeLevel = nudgeLevel,
-                nudgeCount = puzzle.nudges.size,
+                nudgeCount = puzzle.nudgesFor(nudgeTurn).size,
                 nudgesOn = nudgesOn,
                 introOpen = introOpen,
                 attempts = stored.attempts,
@@ -588,6 +597,7 @@ class PuzzleController(
                 busy = busy,
                 announcement = announcement,
                 review = buildReview(s),
+                round = roundUi(puzzle, step?.view ?: s.view, cards) { heroes.hero(it).name },
             ),
         )
     }
@@ -639,9 +649,9 @@ class PuzzleController(
     private fun nudgeUi(puzzle: PuzzleInfo, table: TableUi): NudgeUi? {
         if (!nudgeVisible || nudgeLevel == 0) return null
         return NudgeUi(
-            text = puzzle.nudges[nudgeLevel - 1],
+            text = puzzle.nudgesFor(nudgeTurn)[nudgeLevel - 1],
             level = nudgeLevel,
-            total = puzzle.nudges.size,
+            total = puzzle.nudgesFor(nudgeTurn).size,
             hint = table.hint?.let(table::label),
         )
     }

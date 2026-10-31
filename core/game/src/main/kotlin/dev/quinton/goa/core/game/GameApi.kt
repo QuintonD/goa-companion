@@ -818,7 +818,7 @@ sealed interface PuzzleGoal {
 
     @Serializable
     @SerialName("win")
-    data class WinGame(override val text: String) : PuzzleGoal
+    data class WinGame(override val text: String, val by: Deadline = Deadline.END_OF_TURN) : PuzzleGoal
 
     @Serializable
     @SerialName("defeat")
@@ -850,8 +850,9 @@ enum class Deadline {
 /** Puzzle metadata the list and the result screen show. The position itself is built in code. */
 @Serializable
 data class PuzzleInfo(
-    /** Permanent id, `p01`…`p60` (the concept number); progress is stored by it. */
+    /** Permanent id, `p01`…`p60` (the concept number) or `r01`… (a full round); progress is stored by it. */
     val id: String,
+    /** The place in its part of the book: the 50 puzzles, or the full rounds ([known] not empty). */
     val number: Int,
     val title: String,
     /** 1 (hard) .. 3 (hardest). Every puzzle is meant to be difficult. */
@@ -871,7 +872,26 @@ data class PuzzleInfo(
      * (who acts next, cards played facedown, opponents' hands), e.g. "Arien keeps Expert Duelist".
      */
     val intro: String = "",
-)
+    /** A full-round puzzle (ADR-052): each enemy hero's card for each turn, and what it does where known. */
+    val known: List<KnownPlay> = emptyList(),
+    /** A full-round puzzle's nudges, per turn from turn 1, gentle → strong; the last of each names the move. */
+    val nudgesByTurn: List<List<String>> = emptyList(),
+) {
+    /** Four turns planned from turn 1, through the Minion Battle, not a turn or less. */
+    val fullRound: Boolean get() = known.isNotEmpty()
+
+    /** The nudges for [turn]: per turn in a full round, the same list everywhere else. */
+    fun nudgesFor(turn: Int): List<String> =
+        if (nudgesByTurn.isEmpty()) nudges else nudgesByTurn.getOrElse(turn - 1) { nudgesByTurn.last() }
+}
+
+/**
+ * One known enemy play of a full-round puzzle. [plan] says what the hero does with the card ("Moves next
+ * to Wasp"); null = that turn is free: the hero answers as hard as it can. A plan the player has made
+ * impossible, and a card that has left the hand, are free too.
+ */
+@Serializable
+data class KnownPlay(val heroId: String, val turn: Int, val cardId: String, val plan: String? = null)
 
 // ---------------------------------------------------------------------------------------------
 // Entry points implemented by the engine, the AI and the puzzle runtime.

@@ -60,6 +60,8 @@ class PuzzleSolver(
     val tracker: GoalTracker,
     val nodeBudget: Long = DEFAULT_NODE_BUDGET,
     private val maxMemo: Int = DEFAULT_MAX_MEMO,
+    /** The enemy's cards when they are known (a full-round puzzle): those decisions are not choices. */
+    val known: KnownPlays? = null,
 ) {
     private val memo = HashMap<Key, Solved>()
 
@@ -78,6 +80,16 @@ class PuzzleSolver(
         d.seat in tracker.playerSeats -> Side.PLAYER
         d.team == tracker.playerTeam -> Side.FRIEND
         else -> Side.OPPONENT
+    }
+
+    /**
+     * The option indices that are real choices at [n]: all of them, except that an enemy with a known
+     * card plays it ([KnownPlays]).
+     */
+    fun choices(n: Node): List<Int> {
+        val d = n.decision ?: return emptyList()
+        val forced = known?.takeIf { sideOf(d) == Side.OPPONENT }?.optionFor(d, n.session.state, n.session.stepAnswers)
+        return if (forced != null) listOf(forced) else d.options.indices.toList()
     }
 
     /** The root node of a puzzle game (its progress from the events before the first decision). */
@@ -114,7 +126,7 @@ class PuzzleSolver(
     fun goodOptions(node: Node, cancelled: () -> Boolean = { false }): List<Int> {
         val d = node.decision ?: return emptyList()
         val want = if (sideOf(d) == Side.OPPONENT) Value.LOSS else Value.WIN
-        return d.options.indices.filter { i -> child(node, d.options[i])?.let { solve(it, cancelled).value } == want }
+        return choices(node).filter { i -> child(node, d.options[i])?.let { solve(it, cancelled).value } == want }
     }
 
     /** The main line from [node]: every decision answered with [Solved.best], until the end. */
@@ -185,7 +197,7 @@ class PuzzleSolver(
         var unknown = false
         var longest = -1
         var longestAt = 0
-        for (i in d.options.indices) {
+        for (i in choices(n)) {
             val c = child(n, d.options[i]) ?: continue
             val v = eval(c)
             when (v.value) {

@@ -89,6 +89,8 @@ data class PuzzleUi(
     val review: ReviewUi? = null,
     /** What happened since the player's last move, one entry per card resolved (ADR-046). */
     val flow: ResolutionFlow = ResolutionFlow(),
+    /** A full-round puzzle: the turn and the enemy's known plays (ADR-052). */
+    val round: RoundUi? = null,
 ) {
     val canNudge: Boolean get() = nudgeCount > 0 && (nudgeLevel < nudgeCount || nudge == null)
 }
