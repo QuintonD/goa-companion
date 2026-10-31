@@ -44,6 +44,7 @@ internal fun confidence(best: Ranked, other: Ranked): SuggestionConfidence {
             SuggestionConfidence.CLEAR
 
         mean >= Confidence.LIKELY_GAP && mean - se > 0 -> SuggestionConfidence.LIKELY
+
         else -> SuggestionConfidence.CLOSE
     }
 }

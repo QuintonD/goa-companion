@@ -764,7 +764,7 @@ internal class ReasonFinder(private val f: CoachFacts) {
                         p.heroBody != null -> out += Mechanic(
                             "body:${p.kind}",
                             CoachReasonKind.BODY,
-                            "This places ${p.label}: it counts as ${f.who(p.heroBody!!)}.",
+                            "This places ${p.label}: it counts as ${f.who(p.heroBody)}.",
                             "The card text makes it the same hero (card text beats the rules, p.3).",
                         )
 
