@@ -359,6 +359,13 @@ internal class Explainer(
             // A card that falls too can be the better one (it strips nothing else): it does not "stop" this.
             if (v != null && v < total && d.context.blockPreview[best.cardId] != true) return null
             if (d.context.blockPreview[best.cardId] == false) return null
+            // No total up front (the text decides): say it only when it holds in the playouts.
+            if (v == null && d.context.blockPreview[best.cardId] != true && share(best) { l ->
+                    events(l).any { it is GameEvent.Defended && it.heroId == seat && it.success }
+                } < 0.5
+            ) {
+                return null
+            }
             val card = cardName(best.cardId) ?: return null
             val numbers = v?.let { " (Defense $it against Attack $total)" } ?: ""
             return "Your $card can still stop this attack$numbers." to

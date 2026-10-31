@@ -19,7 +19,8 @@ plays as the level's strength (Easy 2, Normal 6, Hard 8, Expert 10, ADR-039).
 | `StaticPolicy.kt` | Scores every option of every `DecisionKind` from one state, no fork (STRATEGY §3): the playout policy, the opponent model and Easy |
 | `CardProfile.kt` | Per-card numbers the heuristics need (attack, reach incl. "Before the attack: Move N", discard-or-defeat, blocks, a rating), read once from the catalog; nothing hero-specific |
 | `Features.kt`, `LearnedEval.kt`, `LearnedWeights.kt` | The learned evaluation (below): team-size invariant features of a state, the net (`LearnedNet`, `NetEvaluator`, `PositionEvaluator`, `EvalSource`) and its generated weights |
-| `AiCoach.kt` | `AiCoach(factory)`: `nudge` (Hard-level analysis from the human team's view) with `Explainer`, `prepare` (the same analysis before the answer); `turningPoints` with `TurningPoint` |
+| `AiCoach.kt` | `AiCoach(factory)`: `nudge` (Hard-level analysis from the human team's view) with `Explainer`, `prepare` (the same analysis before the answer); `turningPoints` with `TurningPoint`; `suggest`, `review` |
+| `CoachFacts.kt`, `CoachSuggest.kt`, `CoachReasons.kt`, `LineBuilder.kt`, `ThreatFinder.kt`, `RoundPlanner.kt`, `CoachReviewer.kt`, `WinChance.kt` | Suggestions and the post-game review (ADR-051, "The coach") |
 | `engine/Determinizer.kt` | Samples hidden information (below) |
 
 One answer, every strength from 5 up: draw *N* determinized copies of the game from the deciding team's
@@ -740,10 +741,102 @@ With the v0.7 evaluation (ADR-039; the "human" seat played at Easy 2 or Normal 6
 `AI_COACH_GAMES=12`) it spoke on 39 of 1 660 decisions (2.3%), the analysis taking 27 ms on average
 (max 487 ms) on the desktop.
 
-`turningPoints` replays the save (`GameEngine` needed), evaluates the seat's winning chance
-`σ(score / 15)` at every turn boundary and explains the 3–6 biggest swings, preferring turns where
-something happened (a defeat, a push, a level, a forced defense, minions taken), oldest first, each
-with the rule behind it.
+`turningPoints` replays the save (`GameEngine` needed), evaluates the seat's fitted winning chance
+(`WinChance`, below; `σ(score / 15)` before v0.10) at every turn boundary and explains the 3–6 biggest
+swings, preferring turns where something happened (a defeat, a push, a level, a forced defense, minions
+taken), oldest first, each with the rule behind it.
+
+### Suggestions and the post-game review (v0.10, ADR-051)
+
+The app's **Suggest** button asks `Coach.suggest`: up to three options, each with a winning chance, how
+firmly the samples rank it, the line its playouts repeat, its reasons; what can hit the hero; the round plan;
+the hero's own official tips. `prepare` is unchanged and pays for none of it: `suggest` takes its
+finished analysis, plays more samples on the same seeds (`Searcher.deepen`, 12 for card plays, 8 otherwise)
+and only then builds the words (`SuggestionBuilder`, `LineBuilder`, `ReasonFinder`, `ThreatFinder`, `RoundPlanner`).
+The nudges are as they were, with one fix found by reading the survey ("Your Charm can still stop this
+attack (Defense 3 against Attack 5)" no longer happens); the coach never warns against the option it just put first.
+
+**The win chance** (`WinChance`, `CalibrationTest`) is Platt scaling, P(team wins) = σ(k · score), of the hand
+evaluation with the coach's knobs at every turn boundary of the stored games (generations 0 and 1: 149 702
+positions of 6 399 games; line-ups % 10 < 8 fit, the rest measure). The old σ(score / 15) was far too
+sure. Each sample's score goes through the fit and the chances are averaged, so a finished game in one
+sample does not swamp the mean. Held-out log-loss (coin flip 0.693):
+
+| Team size | k | 1/k | Fit | Old σ(score / 15) | One slope for all sizes |
+|-----------|---|-----|-----|-------------------|-------------------------|
+| 2v2 | 0.0294 | 34.0 | 0.593 | 0.659 | 0.596 |
+| 3v3 | 0.0258 | 38.8 | 0.600 | 0.699 | 0.600 |
+| 4v4 | 0.0214 | 46.8 | 0.611 | 0.755 | 0.612 |
+| 5v5 | 0.0204 | 48.9 | 0.605 | 0.775 | 0.607 |
+
+Reliability in 3v3, of the side favoured (said → won): 54.4 → 55.4%, 65.0 → 68.0%, 74.4 → 75.7%, 84.3 → 88.8%,
+94.8 → 88.8%; the old formula said 96.1 where 81.4% won and 85.4 where 69.4% won. A slope per round of the game gained
+nothing held out, so one slope per team size is used. The fit is within about 5 points except at the very top, so the
+sheet shows the nearest 5, from 5 to 95 (0 or 100 only when every sample finished the game that way). It is self-play's
+chance: a person who plays differently may beat it.
+
+**Confidence** comes from the paired differences of the samples (common random numbers): best in most guesses (a gap of
+at least 3 points, two standard errors clear, ahead in 75% of the samples), probably best (1 point, one standard error),
+otherwise too close to rank, and the sheet says so instead of ranking noise. 72% of decisions over the survey are too
+close to rank: most options of a decision after the reveal end the turn much alike, which is true and worth saying.
+
+**The line** is the steps that recur together in a majority of an option's playouts (at least three samples). Another
+hero's card is named only when it is open now, or, with "could", when every playout that has the step guessed the
+same card; an Attack total only for an open card. **Threats** read `Ctx.HeroInfo.threats`, the evaluation's own list, on
+eight determinized copies: the card when public, otherwise "a card of Attack N could", the Defense it takes, the
+hero's best Defense with items and the minion modifier at its space. **The round plan** plays candidate orders of
+the hero's cards (the playouts' own, and a rival of each) to the end of the round on six guesses; an order is told only when the same one
+wins, alone, in at least two thirds of them and agrees with a clear first suggestion; otherwise the card to keep if that is as stable; otherwise nothing.
+It told something at 263 of 641 card plays (165 with an order). **Advice** is the hero's `advice`, verbatim from source 3 through the importer.
+
+**Reasons** went from 7 kinds to 32 (`CoachReasonKind`), each read from engine events or printed values with its page. Why
+A rather than B: the gap between their paired playouts is split across the evaluation's twelve `Term`s, and that picks which
+reason is named first. Silence stays allowed: reasons appear on 63% of decisions. By kind over the survey:
+upgrades 1 022, Fast Travel 557, a minion 445, defense holds 249 / falls 120 / cheaper 120 / wasted 41, discards 265, tokens 187, swaps 168, minion modifiers 200, kills 141, forced moves 140, respawns 126, levels 117, Life cost 107, danger 116, Minion Battle 88, reach 63, coins 59, markers 49, pushes won 42 / given 18, position 35, a defender kept 33, spell counters 24, initiative 13, an empty hand 7, bodies 6, a target with no card 5, Block 3, focus fire 2. Every one of the 32 heroes gets reasons about what it does (tokens: Illusion, Turret, Pyro, Tree, Rock; bodies; markers: runes,
+poison, bounty; spellbook counters; swaps; discards; coins). What each sentence means, and its page, is in `CoachReasons.kt`.
+
+**The review** (`Coach.review`, `CoachReviewer`) replays the save and looks at every decision of the person's with more than one
+option from what their team could know then, always including the choice made. A decision's loss is the best option's chance less the chance of the choice. The
+edges were set on a survey of one seat's decisions over 16 games per strength on test line-ups, against a noise floor
+measured by analysing the same decisions with two seeds (mean 0.000, p95 0.000):
+
+| Player | Decisions | Mean loss | p90 | p95 | p99 | Best / good / inaccuracy / mistake / blunder |
+|--------|-----------|-----------|-----|-----|-----|-----------------------------------------------|
+| Strength 4 | 1 020 | 0.8 | 2.3 | 3.9 | 9.4 | 465 / 440 / 97 / 14 / 4 (89% accurate) |
+| Strength 6 | 1 258 | 0.5 | 0.7 | 2.0 | 11.4 | 753 / 442 / 55 / 3 / 5 (95%) |
+| Strength 8 (the coach's own search) | 1 342 | 0.0 | 0.0 | 0.1 | 0.3 | 1 013 / 329 / 0 / 0 / 0 (100%) |
+| Strength 10 | 1 277 | 0.9 | 1.6 | 4.2 | 18.6 | 770 / 396 / 88 / 12 / 11 (91%) |
+
+Good is below 2 points (well above the noise, about a decent player's p95), an inaccuracy below 5 (a weak player's p95), a mistake below 10 (their p99), a blunder from 10
+up. Strength 8 is the coach's own profile, so it agrees with itself; strength 10 plays by the learned evaluation and the coach by the hand one, and it gets more of a strong mark (0.7 blunders a game against 0.25 for strength 4) although it is far stronger. A mistake or blunder must now also name a reason, or it stays an inaccuracy (that alone took strength 10 from 29 blunders to 11). The marks measure against a strength-8 look, not perfect play. Accuracy is
+the share of best and good. Nothing is stored; a save from before this round reviews the same.
+
+**Does it help?** A strength-4 player that takes the top suggestion at every decision, 3v3, mirrored, on 32 test line-ups (64 games each):
+
+| Against | Wins | Rate | 95% interval | How the games ended |
+|---------|------|------|--------------|---------------------|
+| Plain strength 4 | 64–0 | 100% | 94.3–100% | 41 Throne, 18 last push, 5 Life counters |
+| Strength 6 | 51–13 | 79.7% | 68.3–87.7% | 16 Throne, 27 last push, 21 Life counters |
+
+**Agreement with a far deeper analysis** (64 samples on the same search, 300 sampled decisions of 3v3 test games): the look ahead's top option is the same in 98.7%, the sheet's
+(12 / 8 samples) in 98.3%, and always within 3 points of the deep best. By confidence at 12 / 8: best in most guesses 100% (42), probably 98.2% (56), too close 98.0% (202). Sampling more decides
+little here, because the same playout policy runs on guesses that mostly differ in cards nobody plays that turn: **more samples are not stronger advice**, and the deeper the same search goes the more it only confirms itself.
+
+**Truth** (`CoachSuggestTest`): over 14 mixed 3v3 games from all 32 heroes (3 099 decisions of every `DecisionKind`), every sentence checked: its page, its printed numbers against the decision's context and the card data, what it
+claims of the playouts recounted from their events, and no card of another hero named unless open or with "could": none failed. `NoPeekingTest` now also requires the same suggestions, word for word, for two sessions with the same public view. Read as a player
+(about six hundred outputs), which found and fixed: the false "can still stop"; "5 points behind" beside two equal chances; costs told under "Why"; the same card named twice in one reason; a reason about the best option told under another without saying so; other heroes' level ups in the line;
+a plan that "won" with no rival order.
+
+**Time.** Desktop, 3v3, budget cut to 375 ms for a 4× phone on one thread (`AI_COACH_TIMING`, machine shared with three other streams): the look ahead mean 39 ms, p95 142 ms; the tap to the sheet mean 101 ms, p95 382 ms, max 405 ms (1.5 s at 4×), 9.1 samples on average, a round plan at 91 of 439 card plays (the rest ran out of budget or were not stable); unhurried the same survey took 124 ms mean, 616 ms p95, 2.5 s at most. The app runs the samples on three threads. The look ahead is unchanged (`CoachAheadTest`: prepare mean 21 ms, max 149 ms; the answer-time nudge mean 0.3 ms, 230 answers equal to a search from nothing). A whole review of one seat in a 3v3 game: mean 3.6 to 4.8 s on the desktop, max 12.4 s on one thread, so about 15 to 50 s at 4×, in the background with its progress and Cancel. No device figure: the phone factor is still an assumption.
+
+**Tried and dropped.**
+
+| What | Result | Kept |
+|------|--------|------|
+| A slope per round of the game | Held-out log-loss within 0.003 of one slope per size | no |
+| One slope for all sizes | 3v3 even; 2v2 0.596 against 0.593, 5v5 0.607 against 0.605 | no: per size costs nothing |
+| The net for the coach's scores | Not measured: the brief keeps the hand evaluation unless it measures better, and the fit above is on it | not built |
+| More samples for the sheet than 12 / 8 | 98.3% against 98.7% agreement with 64: no more worth paying | no |
 
 ## Known weaknesses
 
@@ -795,6 +888,8 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
   answers are then still legal but no longer reproducible for a seed. The phone factor (3–4×) is an
   assumption, not a device measurement ("Budgets").
 - **Coach turning points** on quiet turns say only that the heroes "moved into position".
+- **The coach is a strength-8 look:** its marks and suggestions measure against its own search, so strength 10 with the net shows
+  "mistakes" there too, and a card worth more next turn than this one is not seen. Suggestions make a weak player strong, not a strong one stronger.
 
 ## Tests
 
@@ -809,6 +904,8 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
 | `CoachTest` | Nudges on hand-built blunders (no defense, too weak a defense, walking into a revealed attack) and silence on the right choices; turning points of a finished game |
 | `CoachAheadTest` | `prepare` + `nudge(analysis, …)` equals `nudge` on the blunder positions (every option) and on every answer of a game (every option of the first long lists); the session is unchanged; the answer-time cost |
 | `CoachSurveyTest` | The coach speaks on fewer than 15% of a weak player's decisions, on mixed line-ups (`AI_COACH_GAMES` for more games) |
+| `CoachSuggestTest` | The survey of suggestions: every sentence against the events and printed values it came from, no hidden card named (`AI_COACH_SURVEY=<games>`, `AI_COACH_SURVEY_OUT=<file>`); the defense at a hand-built attack; suggesting after a look ahead is the same as from nothing |
+| `CoachHelpTest`, `CalibrationTest` | Opt-in (`AI_COACH_HELP=4:4,4:6`, `AI_COACH_DEEP=<n>`, `AI_COACH_MARKS=<games>`, `AI_COACH_TIMING=<games>`, `AI_CALIBRATE=<games.jsonl>,…`): "The coach" |
 | `TimingTest` | Decision times per strength over mixed line-ups, the slowest heroes and the work per card play (`AI_TIMING_GAMES=8 AI_TIMING_STRENGTHS=… AI_TIMING_FORMAT=3v3` prints the tables above; `AI_TIMING_THREADS=3` with a threaded runner, `AI_TIMING_VARIANT=s10+race=3` a profile variant) |
 | `ControllerStrengthTest` | A save with only a level loads as its strength; strengths round-trip; the bands |
 | `TournamentTest`, `ExperimentTest`, `GameLogTest`, `UsageTest` | Opt-in (`AI_TOURNAMENT` / `AI_MIXED` with `AI_PAIRS=6:5,…`, `AI_EXPERIMENT=s10+samples=24:s10`, `AI_LOG`, `AI_USAGE` environment variables; `AI_FORMAT=3v3` for bigger teams, `AI_KEEP_GOING` and `AI_DUMP_DIR` for long runs, `AI_PROGRESS` a line per game; variants also `work=`, `race=`, `defenseless=`, `focus=`, `hunt=a/b/c`, `pp=`, `learned=HAND` — `s10+learned=HAND` is v0.8's 10): long tournaments between strengths (per-hero rates; `AI_GAMES=<hero>` lists the games; a failing game is reported with its line-up and seed), profile variants (any knob or `x<TERM>=` scale), one game's log (a mixed or explicit line-up; `AI_LOG_DECISIONS`, `AI_LOG_VALUES` also for defenses, `AI_LOG_LEAVES=<hero>`), each card's actions, defeats and kills per hero |
