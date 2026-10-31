@@ -89,6 +89,10 @@ internal data class LevelProfile(
      * a small search over its n best cards, played to the end of that turn ([Searcher.planTurn]).
      */
     val laterCards: Int = 0,
+    /** [laterCards]' small search plays its turn by the static rules (opaque choices one ply) instead of one-ply looks. */
+    val laterCheap: Boolean = false,
+    /** An option's value also looks one turn further: (1 − this) × the horizon's leaf + this × the next turn's. */
+    val deepBlend: Double = 0.0,
 )
 
 /**
@@ -381,7 +385,11 @@ internal class Searcher(
             f.answer(dp.id, o)
             answered.incrementAndFetch()
             playout(f, d.seat, d.team, horizon)
-            val v = leaf.evaluate(f.state, d.team)
+            var v = leaf.evaluate(f.state, d.team)
+            if (profile.deepBlend > 0 && d.kind == DecisionKind.PLAY_CARD && f.pending != null) {
+                playout(f, d.seat, d.team, Horizon.TURN, planFrom = 0)
+                v = (1 - profile.deepBlend) * v + profile.deepBlend * leaf.evaluate(f.state, d.team)
+            }
             table.getValue(o)[k] = v
             if (keepLeaves) leaves += Leaf(o, k, f, before, v)
         }
@@ -433,7 +441,15 @@ internal class Searcher(
     }
 
     /** Play on to the horizon with the rollout policy. */
-    fun playout(f: EngineSession, rootSeat: String, rootTeam: Team, horizon: Horizon, maxSteps: Int = 400) {
+    fun playout(
+        f: EngineSession,
+        rootSeat: String,
+        rootTeam: Team,
+        horizon: Horizon,
+        maxSteps: Int = 400,
+        cheap: Boolean = false,
+        planFrom: Int = 1,
+    ) {
         val start = f.state
         val startTurn = turnIndex(start)
         val startStep = start.step
@@ -466,13 +482,15 @@ internal class Searcher(
             }
             if (stop) return
             val mine = d.team == rootTeam
-            val searchIt = (profile.greedySelf && d.seat == rootSeat) || (profile.greedyTeam && mine) ||
-                (profile.greedyEnemies && !mine)
+            val searchIt = !cheap && (
+                (profile.greedySelf && d.seat == rootSeat) || (profile.greedyTeam && mine) ||
+                    (profile.greedyEnemies && !mine)
+                )
             val c = when {
                 d.options.size == 1 -> d.options[0]
 
                 // The later turns of a deep playout: every hero's card by a small search, all at once.
-                d.kind == DecisionKind.PLAY_CARD && profile.laterCards > 0 && turnsEnded >= 1 -> {
+                d.kind == DecisionKind.PLAY_CARD && profile.laterCards > 0 && !cheap && turnsEnded >= planFrom -> {
                     if (plannedTurn != turn) {
                         plan = planTurn(f)
                         plannedTurn = turn
@@ -529,7 +547,7 @@ internal class Searcher(
             val g = f.forkForAnswer()
             g.answer(d.id, d.options[i])
             answered.incrementAndFetch()
-            playout(g, d.seat, d.team, Horizon.TURN)
+            playout(g, d.seat, d.team, Horizon.TURN, cheap = profile.laterCheap)
             val v = leaf.evaluate(g.state, d.team)
             if (v > bestV) {
                 bestV = v
