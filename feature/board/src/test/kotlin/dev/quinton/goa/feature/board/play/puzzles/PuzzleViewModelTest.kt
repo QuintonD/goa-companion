@@ -156,9 +156,8 @@ class PuzzleViewModelTest {
         assertThat(start.heroes).hasSize(2)
         for (hero in start.heroes) {
             assertThat(hero.cards.map { it.turn }).containsExactly(1, 2, 3, 4).inOrder()
-            assertThat(hero.cards.map { it.state }).containsExactly(
-                KnownCardState.NOW, KnownCardState.COMING, KnownCardState.COMING, KnownCardState.COMING,
-            ).inOrder()
+            assertThat(hero.cards.map { it.state })
+                .isEqualTo(listOf(KnownCardState.NOW, KnownCardState.COMING, KnownCardState.COMING, KnownCardState.COMING))
             assertThat(hero.cards.all { it.card != null }).isTrue()
         }
         for (move in puzzleFile(id).solution) {

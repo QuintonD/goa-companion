@@ -181,7 +181,8 @@ fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState, showNote: Boolean) {
                         classes("goa-known-card")
                         if (play.state == KnownCardState.NOW) classes("now")
                         if (play.state == KnownCardState.PLAYED || play.state == KnownCardState.GONE) classes("done")
-                        attr("aria-label", "${hero.name}, turn ${play.turn}: ${play.card?.name ?: "a card"}, ${stateWord(play.state)}")
+                        val name = play.card?.name ?: "a card"
+                        attr("aria-label", "${hero.name}, turn ${play.turn}: $name, ${stateWord(play.state)}")
                         onClick {
                             val i = shown.indexOf(play.card)
                             if (i >= 0) focus.show(shown, i, title = hero.name)
