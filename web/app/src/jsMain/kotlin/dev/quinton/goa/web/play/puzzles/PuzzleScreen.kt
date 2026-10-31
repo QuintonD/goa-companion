@@ -125,7 +125,7 @@ private fun PuzzleTable(puzzle: PuzzleUi, controller: PuzzleController) {
     val table = puzzle.table
     val onAction = controller::onAction
     GameTableView(
-        title = "Puzzle ${puzzle.info.number}",
+        title = PuzzleText.short(puzzle.info),
         actions = {
             IconButton("article", "Game state", {
                 sheet = PlaySheet.Review()
@@ -194,7 +194,7 @@ private fun PuzzleTable(puzzle: PuzzleUi, controller: PuzzleController) {
 
 @Composable
 private fun PuzzleMenu(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit, onDismiss: () -> Unit) {
-    BottomSheet("Puzzle ${puzzle.info.number}", onDismiss = onDismiss) {
+    BottomSheet(PuzzleText.short(puzzle.info), onDismiss = onDismiss) {
         GoaCard(flush = true) {
             RowList {
                 val canNudge = puzzle.canNudge && puzzle.replay == null && puzzle.phase != PuzzlePhase.SOLVED
@@ -279,6 +279,7 @@ private fun PuzzlePanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit, focu
             else -> {
                 PuzzleHeader(puzzle)
                 if (puzzle.info.intro.isNotBlank()) Intro(puzzle, onAction)
+                puzzle.round?.let { P({ classes("t-title-medium", "c-primary") }) { Text(it.heading) } }
                 puzzle.nudge?.let {
                     NudgeCard(it, { onAction(PuzzleAction.Nudge) }, { onAction(PuzzleAction.DismissNudge) })
                 }
@@ -291,6 +292,7 @@ private fun PuzzlePanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit, focu
                     busy = puzzle.busy,
                 )
                 RecentEvents(puzzle.recent.takeLast(2))
+                puzzle.round?.let { KnownPlaysStrip(it, focus, showNote = puzzle.introOpen) }
                 if (!puzzle.table.handDecision) YourHand(puzzle.table, focus)
             }
         }
@@ -302,7 +304,7 @@ private fun PuzzlePanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit, focu
 private fun PuzzleHeader(puzzle: PuzzleUi) {
     Div({ classes("goa-puzzle-header") }) {
         Div({ classes("goa-inline") }) {
-            Span({ classes("t-overline", "c-primary") }) { Text("Puzzle ${puzzle.info.number} of ${puzzle.total}") }
+            Span({ classes("t-overline", "c-primary") }) { Text(PuzzleText.place(puzzle.info, puzzle.total)) }
             DifficultyMark(puzzle.info.difficulty)
         }
         H2({ classes("t-title-large") }) { Text(puzzle.info.title) }
@@ -336,7 +338,7 @@ private fun MissCard(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
         }) { Text(puzzle.miss.orEmpty().removePrefix("Not quite — ").replaceFirstChar { it.uppercase() }) }
         P({ classes("t-body-small", "c-variant") }) { Text("The goal: ${puzzle.info.goal.text}") }
         GoaButton(
-            "Try again from before that move",
+            PuzzleText.tryAgain(puzzle.info),
             { onAction(PuzzleAction.TryAgain) },
             icon = "undo",
             enabled = !puzzle.busy,

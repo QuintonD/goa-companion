@@ -7,6 +7,36 @@ import dev.quinton.goa.core.game.puzzles.Puzzle
  * playable; ids are `p` + the concept number, so encoders working in parallel never collide.
  */
 object Puzzles {
+    /**
+     * The book's second part: full rounds (`r01`…, ADR-052), four turns planned from turn 1, hard to
+     * hardest. Their proofs are certificates in test resources (`FullRoundBookTest`).
+     */
+    val fullRounds: List<Puzzle> = listOf(
+        R01WhereTheTurretGoes,
+        R02ShePlaysAnAttack,
+        R03TwoAtOnce,
+        R04TheLastPush,
+        R05ReloadTheSnipe,
+        R06InAStraightLine,
+        R07FloatLikeAButterfly,
+        R08WalkThePlankThenTheThrust,
+        R09WhatToLose,
+        R10NothingLeftToDefendWith,
+        R11SwapTheMinionNextDoor,
+        R12CallTheLastOneOver,
+        R13Attack2StillCostsACard,
+        R14HurryUpXargatha,
+        R15TwoSwingsAtWuk,
+        R16StrikeLikeATiger,
+        R17OpeningShots,
+        R18APriceOnBrogan,
+        R19ComeToMe,
+        R20SheHasNoCardsAndPasses,
+        R21BothSidesOfTheCoin,
+        R22LetMinFall,
+        R23ADiscardForAnAttack,
+    )
+
     /** The 50 shipped puzzles in the book's order: hard (1), harder (2), hardest (3) (STATUS.md). */
     val all: List<Puzzle> = listOf(
         P01ThroughTheLine,

@@ -1554,6 +1554,12 @@ a.goa-row:active, button.goa-row:active { background: color-mix(in srgb, var(--o
 .goa-puzzle-goal.folded .goa-puzzle-goal-text { flex-direction: row; gap: var(--sp-sm); white-space: nowrap; overflow: hidden; }
 .goa-puzzle-goal.folded .goal { overflow: hidden; text-overflow: ellipsis; }
 .goa-puzzle-panel { display: flex; flex-direction: column; gap: var(--sp-md); }
+.goa-known { display: flex; flex-direction: column; gap: var(--sp-sm); }
+.goa-known-row { display: flex; gap: var(--sp-xs); }
+.goa-known-card { position: relative; padding: 2px; border: 2px solid transparent; border-radius: 8px; background: none; cursor: pointer; }
+.goa-known-card.now { border-color: var(--c-primary, currentColor); }
+.goa-known-card.done .goa-play-card { opacity: 0.45; }
+.goa-known-mark { position: absolute; top: 2px; left: 2px; padding: 0 4px; border-radius: 4px; font-size: 12px; background: var(--c-primary, #333); color: var(--c-on-primary, #fff); }
 .goa-puzzle-panel p, .goa-puzzle-panel h2, .goa-puzzle-panel h3 { margin: 0; }
 .goa-puzzle-header { display: flex; flex-direction: column; gap: 2px; }
 .goa-puzzle-intro {

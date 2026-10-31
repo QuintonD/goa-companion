@@ -554,7 +554,7 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   card, a card that isn't an option can't be chosen, and the accessibility actions; an end-to-end test
   plays a game to its end.
 
-### 10. Puzzles (ADR-035)
+### 10. Puzzles (ADR-035, full rounds ADR-052)
 Fifty difficult puzzles in the style of chess tactics: a position, a goal ("Defeat Brogan this
 turn", "Push the lane before the round ends", "Survive this turn"), one way (or a few) to make it.
 - **List** (from Boards → Puzzles; only puzzles whose heroes are all playable): a Continue card on
@@ -593,6 +593,23 @@ turn", "Push the lane before the round ends", "Survive this turn"), one way (or 
 - **Done when:** a solver proves every puzzle against best replies within its time budget, the
   stored solution and every nudge agree with it, an independent review checked each puzzle's
   rules, and the list, puzzle, miss, nudge and explanation screens have screenshots.
+
+#### Full rounds (ADR-052)
+The book's second part: four turns planned from turn 1, through the end-of-round Minion Battle. The goals are the same
+(defeat a hero, push the lane, win the game, gain coins), all by the end of the round.
+- **The convention:** "You know what they will play." Each enemy hero's card for each of the four turns is shown as a strip
+  of real cards, and for the early turns what it will do with it: a line of plan, and its space outlined on the board on its
+  turn. Where no plan is shown, and at every defense, and if you spoil a plan, it answers as hard as it can. A listed card
+  that has left its hand is marked gone: it plays anything it has left. The app says so where it matters, in words.
+- **In a puzzle:** "Turn 2 of 4" under the title; the question first, then the strip: played cards dimmed and ticked, this
+  turn's outlined, a tap opens a card. Replies are narrated, and the resolution flow (ADR-046) tells the turn.
+- **Nudges** per turn, each turn gentle first again; the last names that turn's cards and outlines the move.
+- **Off the solution:** any winning line counts. A line that won't reach the goal may play on to the end of the round: the
+  app says "Not quite" only when it is proven or the round is over. **Back to the start of the turn** takes back a turn,
+  one further each time.
+- **Explanation** turn by turn. **List:** a Full rounds section after the 50, numbered from 1; progress as for any puzzle
+  (ids `r01`…; `p..` are unchanged). **Done when:** every round's proof replays against every open enemy answer in the
+  tests, and the stored solution and last nudges agree with it.
 
 ### Settings
 Theme (dark default / light / system), owned products (default: all), timer defaults, running

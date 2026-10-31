@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick as semanticsClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -193,7 +194,28 @@ private fun PuzzleList(state: PuzzleListUiState.Ready, onAction: (PuzzleListActi
                 }
             }
         }
-        items(state.rows, key = { it.info.id }) { row -> PuzzleRow(row) { onOpen(row.info.id) } }
+        items(state.rows.filterNot { it.info.fullRound }, key = { it.info.id }) { row ->
+            PuzzleRow(row) { onOpen(row.info.id) }
+        }
+        val rounds = state.rows.filter { it.info.fullRound }
+        if (rounds.isNotEmpty()) {
+            item(key = "rounds-heading") {
+                Column(Modifier.padding(top = Spacing.md)) {
+                    Text(
+                        "FULL ROUNDS",
+                        style = GoaTextStyles.overline,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    Text(
+                        "Four turns planned from turn 1, through the Minion Battle. You know what they will play.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            items(rounds, key = { it.info.id }) { row -> PuzzleRow(row) { onOpen(row.info.id) } }
+        }
     }
 }
 
@@ -237,7 +259,7 @@ private fun ContinueCard(state: PuzzleListUiState.Ready, onOpen: (String) -> Uni
                 )
                 if (next != null) {
                     Text(
-                        "${next.info.number}. ${next.info.title}",
+                        PuzzleText.numbered(next.info),
                         style = MaterialTheme.typography.titleMedium,
                         color = content,
                     )
@@ -301,13 +323,18 @@ private fun PuzzleRow(row: PuzzleRowUi, onClick: () -> Unit) {
             .heightIn(min = 72.dp)
             .clearAndSetSemantics {
                 contentDescription = listOf(
-                    "Puzzle ${info.number}: ${info.title}",
+                    "${PuzzleText.short(info)}: ${info.title}",
                     info.theme,
                     PuzzleText.difficulty(info.difficulty),
                     PuzzleText.names(row.heroes.map { it.name }),
                     status,
                     *extras.toTypedArray(),
                 ).joinToString(". ")
+                // Clearing the semantics drops the Surface's own click: a screen reader must still open it.
+                semanticsClick {
+                    onClick()
+                    true
+                }
             },
     ) {
         Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.Top) {

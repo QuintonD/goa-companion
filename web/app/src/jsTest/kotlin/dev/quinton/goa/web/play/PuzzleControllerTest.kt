@@ -30,13 +30,13 @@ import kotlinx.coroutines.test.runTest
  * fresh worker gets the puzzle back, and Show solution replays it.
  */
 class PuzzleControllerTest {
-    private class Rig(val scope: TestScope) {
+    private class Rig(val scope: TestScope, puzzleId: String = PUZZLE) {
         val channels = HostChannels(scope.backgroundScope)
         val client = EngineClient { channels.open() }
         val progress = FakePuzzleProgressRepository()
         val settings = FakeSettingsRepository()
         val controller = PuzzleController(
-            puzzleId = PUZZLE,
+            puzzleId = puzzleId,
             scope = scope.backgroundScope,
             engine = client,
             catalog = { CatalogFiles.load(::shipped) },
@@ -84,6 +84,30 @@ class PuzzleControllerTest {
         assertEquals(1, stored.attempts)
         assertEquals(0, stored.nudgesUsed)
         assertEquals(false, stored.solutionShown)
+    }
+
+    @Test
+    fun aFullRoundShowsItsTurnAndTheEnemysCardsAndIsSolvedOnTheKey() = runTest {
+        val rig = Rig(this, "r01")
+        rig.controller.start()
+        rig.settle()
+        val first = assertNotNull(rig.puzzle.round)
+        assertEquals(1, first.turn)
+        assertEquals(2, first.heroes.size)
+        assertTrue(first.heroes.all { it.cards.size == 4 && it.now?.turn == 1 })
+        var moves = 0
+        var sawTurnTwo = false
+        while (rig.puzzle.phase != PuzzlePhase.SOLVED && moves < MAX_ROUND_MOVES) {
+            rig.controller.onAction(PuzzleAction.Answer(rig.best()))
+            rig.settle()
+            if (rig.puzzle.round?.turn == 2) {
+                sawTurnTwo = true
+                assertTrue(assertNotNull(rig.puzzle.round).heroes.all { it.now?.turn == 2 })
+            }
+            moves++
+        }
+        assertTrue(sawTurnTwo)
+        assertEquals(PuzzlePhase.SOLVED, rig.puzzle.phase)
     }
 
     @Test
@@ -177,6 +201,7 @@ class PuzzleControllerTest {
     private companion object {
         const val PUZZLE = "p01"
         const val NOW = 1_700_000_000_000L
+        const val MAX_ROUND_MOVES = 80
         const val MAX_MOVES = 20
         const val SETTLE_MS = 5_000L
     }

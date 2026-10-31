@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.puzzle.PuzzleProgress
 import dev.quinton.goa.core.game.puzzles.Move
+import dev.quinton.goa.core.game.puzzles.book.Puzzles
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.testing.FakeBoardMapRepository
 import dev.quinton.goa.core.testing.FakeCatalogRepository
@@ -101,7 +102,8 @@ class PuzzleViewModelTest {
         book.puzzles.forEach { info ->
             val vm = viewModel(info.id)
             assertThat(vm.ui().info.id).isEqualTo(info.id)
-            assertThat(vm.ui().total).isEqualTo(book.puzzles.size)
+            // The place in its part of the book: the 50 puzzles, or the full rounds.
+            assertThat(vm.ui().total).isEqualTo(book.puzzles.count { it.fullRound == info.fullRound })
             assertThat(vm.ui().introOpen).isTrue()
             play(vm, puzzleFile(info.id).solution)
             assertThat(vm.ui().phase).isEqualTo(PuzzlePhase.SOLVED)
@@ -141,6 +143,77 @@ class PuzzleViewModelTest {
         assertThat(vm.ui().phase).isEqualTo(PuzzlePhase.SOLVED)
         // Two tries: the one that missed and the one after Try again.
         assertThat(progress.state.value.getValue(info.id).attempts).isEqualTo(2)
+    }
+
+    private val fullRound get() = Puzzles.fullRounds.firstOrNull()?.info?.id
+
+    @Test
+    fun `a full round shows its turn and marks the enemy's cards as the round goes on`() = runTest(dispatcher) {
+        val id = fullRound ?: return@runTest
+        val vm = viewModel(id)
+        val start = checkNotNull(vm.ui().round)
+        assertThat(start.turn).isEqualTo(1)
+        assertThat(start.heading).isEqualTo("Turn 1 of 4")
+        assertThat(start.heroes).hasSize(2)
+        for (hero in start.heroes) {
+            assertThat(hero.cards.map { it.turn }).containsExactly(1, 2, 3, 4).inOrder()
+            assertThat(hero.cards.first().state).isEqualTo(KnownCardState.NOW)
+            assertThat(hero.cards.drop(1).map { it.state }.toSet()).containsExactly(KnownCardState.COMING)
+            assertThat(hero.cards.all { it.card != null }).isTrue()
+        }
+        for (move in puzzleFile(id).solution) {
+            if (vm.ui().round?.turn == 2) break
+            vm.onAction(PuzzleAction.Answer(vm.ui().table.choiceOf(move)))
+            settle()
+        }
+        val second = checkNotNull(vm.ui().round)
+        assertThat(second.turn).isEqualTo(2)
+        for (hero in second.heroes) {
+            assertThat(hero.cards.first().state).isEqualTo(KnownCardState.PLAYED)
+            assertThat(hero.now?.turn).isEqualTo(2)
+        }
+    }
+
+    @Test
+    fun `a full round's nudges follow the turn, gentle first again`() = runTest(dispatcher) {
+        val id = fullRound ?: return@runTest
+        val vm = viewModel(id)
+        val nudges = vm.ui().info.nudgesByTurn
+        vm.onAction(PuzzleAction.Nudge)
+        settle()
+        assertThat(vm.ui().nudge?.text).isEqualTo(nudges[0][0])
+        vm.onAction(PuzzleAction.Nudge)
+        settle()
+        assertThat(vm.ui().nudge?.text).isEqualTo(nudges[0][1])
+        for (move in puzzleFile(id).solution) {
+            if (vm.ui().round?.turn == 2) break
+            vm.onAction(PuzzleAction.Answer(vm.ui().table.choiceOf(move)))
+            settle()
+        }
+        assertThat(vm.ui().nudge).isNull()
+        vm.onAction(PuzzleAction.Nudge)
+        settle()
+        assertThat(vm.ui().nudge?.text).isEqualTo(nudges[1][0])
+    }
+
+    @Test
+    fun `a full round's miss goes back a turn at a time`() = runTest(dispatcher) {
+        val id = fullRound ?: return@runTest
+        val vm = viewModel(id)
+        // The first option all the way: the goal fails at the latest when the round ends.
+        var guard = 0
+        while (vm.ui().phase == PuzzlePhase.SOLVING && guard++ < MAX_ANSWERS) {
+            val d = vm.ui().table.decision ?: break
+            vm.onAction(PuzzleAction.Answer(d.options.first()))
+            settle()
+        }
+        assertThat(vm.ui().phase).isEqualTo(PuzzlePhase.MISSED)
+        val missedIn = checkNotNull(vm.ui().round).turn
+        vm.onAction(PuzzleAction.TryAgain)
+        settle()
+        val back = vm.ui()
+        assertThat(checkNotNull(back.round).turn).isAnyOf(missedIn, missedIn - 1)
+        assertThat(back.table.decision?.kind?.name).isEqualTo("PLAY_CARD")
     }
 
     @Test
@@ -286,7 +359,9 @@ class PuzzleViewModelTest {
         // Every wrong try and every solution: the other side's replies show line by line, then the board.
         book.puzzles.forEach { info ->
             val file = puzzleFile(info.id)
-            (file.wrongTries.map { it.moves } + listOf(file.solution)).forEach { moves ->
+            // A full round's wrong try is a line played to its end, off the key: the solution will do there.
+            val tries = if (info.fullRound) emptyList() else file.wrongTries.map { it.moves }
+            (tries + listOf(file.solution)).forEach { moves ->
                 val vm = viewModel(info.id)
                 moves.forEach { move ->
                     vm.onAction(PuzzleAction.Answer(vm.ui().table.choiceOf(move)))
@@ -324,7 +399,9 @@ class PuzzleViewModelTest {
         val ready = vm.uiState.value as PuzzleListUiState.Ready
         assertThat(ready.total).isEqualTo(book.puzzles.size)
         assertThat(ready.solved).isEqualTo(1)
-        assertThat(ready.rows.map { it.info.number }).isEqualTo((1..book.puzzles.size).toList())
+        val (rounds, puzzles) = ready.rows.partition { it.info.fullRound }
+        assertThat(puzzles.map { it.info.number }).isEqualTo((1..puzzles.size).toList())
+        assertThat(rounds.map { it.info.number }).isEqualTo((1..rounds.size).toList())
         assertThat(ready.rows.first().progress.attempts).isEqualTo(2)
         assertThat(ready.next?.info?.id).isEqualTo(book.puzzles.getOrNull(1)?.id)
         val difficulty = ready.difficulties.first()
@@ -341,6 +418,8 @@ class PuzzleViewModelTest {
     }
 
     private companion object {
+        const val MAX_ANSWERS = 300
+
         const val NOW = 1_000L
         const val SETTLE_MS = 5_000L
     }

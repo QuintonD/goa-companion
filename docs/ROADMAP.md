@@ -406,6 +406,22 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] On the S25 Ultra: a 3v3 game night against strength 10 (heroes lost to a human who hunts
   kills; think time within ~2 s), the resolution flow after the computer's turns
 
+## M24 — Full-round puzzles (ADR-052)
+- [x] Feasibility spike decided the model: cards alone are out of reach (over 4 M positions under one rigid plan), so
+  the early turns' enemy actions are known too; 2v2, the player on both heroes — 2026-10-31, `RoundSpikeTest`,
+  `RoundWidthTest`, ADR-052's table
+- [x] Solver, generator and filter (`PlanProver`, `RoundGenTest`, `FullRoundDeepTest`); certificates replayed against
+  every open enemy answer in `FullRoundBookTest` — 2026-10-31. JVM only
+- [x] 23 full rounds of an aimed 30, grades 1/2/3 = 1/12/10, every hero at least 2 times; text traced to the dossiers — 2026-10-31, `FullRoundBookTest` (proofs replayed), STATUS.md
+- [x] Android and web screens: the turn, the enemy's real cards, plans, a plan's space outlined, nudges per turn, a turn
+  back after a miss — 2026-10-31, `PuzzleViewModelTest`, `PuzzleControllerTest`, Roborazzi baselines. JVM and JS only
+- [x] `FullRoundFlowTest` on the emulator `goa_s25b` (the list, a round's turn, cards and plan, a nudge, the solution
+  to the goal met) and `play-puzzles.spec.ts` on WebKit and Chromium — 2026-10-31
+- [ ] Hands-on on the emulator: not done, `device_open` failed ("Android emulator video needs working ffmpeg with the
+  libx264 encoder")
+- [ ] On the S25 Ultra: a full round played from scratch, answer times off the line within ~500 ms
+- [ ] Independent rules review of every full round's text (the lead's)
+
 ## M18 — Web app: group, sync and players (ADR-043 W2)
 - [x] Relay CORS for the Pages origin (`GOA_RELAY_CORS_ORIGINS`), deployed to oldboi — 2026-10-25,
   `CorsTest`, health and preflight checked from outside, existing groups untouched

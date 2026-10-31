@@ -122,7 +122,7 @@ fun PuzzleScreen(
     val focus = rememberCardFocusState()
     KeepScreenOn(puzzle != null)
     BoardScaffold(
-        title = puzzle?.let { "Puzzle ${it.info.number}" } ?: "Puzzle",
+        title = puzzle?.let { PuzzleText.short(it.info) } ?: "Puzzle",
         onBack = onBack,
         modifier = modifier,
         actions = {
@@ -325,7 +325,7 @@ private fun ColumnScope.PuzzlePanel(
         }
 
         else -> {
-            PuzzleHeader(puzzle.info, puzzle.total)
+            PuzzleHeader(puzzle.info, puzzle.total, puzzle.round)
             if (puzzle.info.intro.isNotBlank()) Intro(puzzle.info.intro, puzzle.introOpen, onAction)
             puzzle.nudge?.let { Nudge(it, onAction) }
             // The person's own question first, the moment after it (as in the game).
@@ -340,6 +340,7 @@ private fun ColumnScope.PuzzlePanel(
                 busy = puzzle.busy,
             )
             ResolutionFlowView(puzzle.flow, puzzle.table, focus, Modifier.padding(top = Spacing.xs))
+            puzzle.round?.let { KnownPlaysStrip(it, focus, showNote = puzzle.introOpen) }
             if (moment != null && questionFirst) MomentCard(moment, puzzle.table, focus = focus)
             if (!puzzle.table.handDecision) YourHand(puzzle.table, focus)
         }
@@ -353,11 +354,11 @@ private fun Nudge(nudge: NudgeUi, onAction: (PuzzleAction) -> Unit) {
 
 /** "PUZZLE 3 OF 12 · ◆◆◇ Harder", the title and the theme. */
 @Composable
-private fun PuzzleHeader(info: PuzzleInfo, total: Int) {
+private fun PuzzleHeader(info: PuzzleInfo, total: Int, round: RoundUi?) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "PUZZLE ${info.number} OF $total",
+                PuzzleText.place(info, total).uppercase(),
                 style = GoaTextStyles.overline,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -370,6 +371,14 @@ private fun PuzzleHeader(info: PuzzleInfo, total: Int) {
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        round?.let {
+            Text(
+                it.heading,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
     }
 }
 
@@ -455,7 +464,7 @@ private fun MissCard(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
             ) {
                 Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(Spacing.sm))
-                Text("Try again from before that move", textAlign = TextAlign.Center)
+                Text(PuzzleText.tryAgain(puzzle.info), textAlign = TextAlign.Center)
             }
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),

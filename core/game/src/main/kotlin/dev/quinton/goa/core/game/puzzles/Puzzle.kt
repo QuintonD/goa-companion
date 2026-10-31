@@ -45,6 +45,12 @@ abstract class Puzzle {
     /** Solver expansions allowed for the full proof in tests (raise for big searches, say why). */
     open val nodeBudget: Long = PuzzleSolver.DEFAULT_NODE_BUDGET
 
+    /**
+     * The enemy's known plays of a full-round puzzle (ADR-052, [KnownPlays]); null for a turn-sized one.
+     * Its answer key is the solution line only, and the game stops before cards are retrieved.
+     */
+    open val known: KnownPlays? = null
+
     /** The starting position as a fresh engine session (not yet halted at the deadline). */
     fun build(engine: GameEngine): EngineSession = position(engine, mapId) { setUp() }
 

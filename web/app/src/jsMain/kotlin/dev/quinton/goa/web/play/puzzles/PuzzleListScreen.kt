@@ -165,7 +165,17 @@ private fun PuzzleList(state: PuzzleListUiState.Ready, onAction: (PuzzleListActi
             }
         }
         Ul({ classes("goa-puzzle-list") }) {
-            state.rows.forEach { row -> Li { PuzzleRow(row) } }
+            state.rows.filterNot { it.info.fullRound }.forEach { row -> Li { PuzzleRow(row) } }
+        }
+        val rounds = state.rows.filter { it.info.fullRound }
+        if (rounds.isNotEmpty()) {
+            SectionHeader("Full rounds")
+            P({ classes("t-body-small", "c-variant") }) {
+                Text("Four turns planned from turn 1, through the Minion Battle. You know what they will play.")
+            }
+            Ul({ classes("goa-puzzle-list") }) {
+                rounds.forEach { row -> Li { PuzzleRow(row) } }
+            }
         }
     }
 }
@@ -182,7 +192,7 @@ private fun ContinueCard(state: PuzzleListUiState.Ready) {
         Div({ classes("goa-puzzle-continue-text") }) {
             P({ classes("t-overline") }) { Text("${state.solved} of ${state.total} solved") }
             if (next != null) {
-                H3({ classes("t-title-medium") }) { Text("${next.info.number}. ${next.info.title}") }
+                H3({ classes("t-title-medium") }) { Text(PuzzleText.numbered(next.info)) }
                 P({ classes("t-body-small") }) { Text(next.info.goal.text) }
             } else {
                 H3({ classes("t-title-medium") }) { Text("Every puzzle solved") }
@@ -215,7 +225,7 @@ private fun PuzzleRow(row: PuzzleRowUi) {
         "Solution seen".takeIf { progress.solutionShown },
     )
     val spoken = listOf(
-        "Puzzle ${info.number}: ${info.title}",
+        "${PuzzleText.short(info)}: ${info.title}",
         info.theme,
         PuzzleText.difficulty(info.difficulty),
         PuzzleText.names(row.heroes.map { it.name }),

@@ -20,6 +20,7 @@ import dev.quinton.goa.feature.board.play.game.mergedView
 import dev.quinton.goa.feature.board.play.puzzles.openView
 import dev.quinton.goa.feature.board.play.puzzles.play
 import dev.quinton.goa.feature.board.play.puzzles.solution
+import dev.quinton.goa.feature.board.play.puzzles.undoTurn
 import dev.quinton.goa.feature.board.play.review.pushesWon
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
@@ -140,7 +141,7 @@ class EngineHost(private val load: suspend () -> Pair<Catalog, List<BoardMap>>) 
         }
 
         EngineRequest.PuzzleUndo -> withPuzzle { p ->
-            p.undo()
+            if (p.info.fullRound) p.undoTurn() else p.undo()
             EngineResponse.Puzzle(puzzleSnapshot(p))
         }
 

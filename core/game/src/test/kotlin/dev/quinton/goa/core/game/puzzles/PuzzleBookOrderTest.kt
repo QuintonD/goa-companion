@@ -30,7 +30,7 @@ class PuzzleBookOrderTest {
 
     @Test
     fun `the book numbers the playable puzzles in registry order`() {
-        val book = EnginePuzzleBook(TestData.engine)
+        val book = EnginePuzzleBook(TestData.engine, Puzzles.all)
         val playable = Puzzles.all.filter { p -> p.info.heroes.all { it in TestData.engine.playableHeroes } }
         assertThat(book.puzzles.map { it.id }).isEqualTo(playable.map { it.info.id })
         assertThat(book.puzzles.map { it.number }).isEqualTo((1..playable.size).toList())

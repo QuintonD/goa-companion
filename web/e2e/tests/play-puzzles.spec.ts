@@ -96,3 +96,21 @@ test("puzzles: the engine worker starts offline after the first visit", async ({
   await expect(page.getByRole("button", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
   await context.setOffline(false);
 });
+
+test("puzzles: a full round shows the turn and the enemy's cards, and its solution replays", async ({ page }, info) => {
+  const errors = watchErrors(page);
+  await open(page, "#/puzzles");
+  await expect(page.getByText("Full rounds", { exact: false }).first()).toBeVisible({ timeout: 30_000 });
+  await open(page, "#/puzzles/r01");
+  await expect(page.getByText("Turn 1 of 4")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("What they will play")).toBeVisible();
+  await expect(page.getByRole("button", { name: /turn 1: .*this turn/ }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /turn 4: .*still to come/ }).first()).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await shot(page, info, "round-start");
+  await page.getByRole("button", { name: "More options" }).click();
+  await page.getByRole("button", { name: /Show solution/ }).click();
+  await expect(page.getByText(/Solution · step 1 of/i)).toBeVisible({ timeout: 30_000 });
+  await shot(page, info, "round-replay");
+  errors();
+});
