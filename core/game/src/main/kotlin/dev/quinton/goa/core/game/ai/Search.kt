@@ -8,6 +8,7 @@ import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.engine.Determinizer
+import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.model.match.Team
@@ -83,6 +84,8 @@ internal data class LevelProfile(
      * may not see them (p.4). A computer team's own search counts them as announced (AI.md "The determinizer").
      */
     val hideTeammates: Boolean = false,
+    /** Tests only: what scores the end of a playout instead of [net] (the frozen baseline, `net=v09`). */
+    val leafEvaluator: ((EngineData) -> PositionEvaluator)? = null,
 )
 
 /**
@@ -172,8 +175,11 @@ internal class Searcher(
         private set
 
     /** What scores the end of a playout ([LevelProfile.learned]). */
-    val leaf: PositionEvaluator =
-        if (profile.learned == EvalSource.HAND) ev else NetEvaluator(ev.data, profile.net ?: LearnedNet.CURRENT)
+    val leaf: PositionEvaluator = when {
+        profile.learned == EvalSource.HAND -> ev
+        profile.leafEvaluator != null -> profile.leafEvaluator.invoke(ev.data)
+        else -> NetEvaluator(ev.data, profile.net ?: LearnedNet.CURRENT)
+    }
 
     /** What scores the one-ply looks inside a playout. */
     private val inner: PositionEvaluator = if (profile.learned == EvalSource.EVERYWHERE) leaf else ev

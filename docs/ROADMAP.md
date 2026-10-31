@@ -483,6 +483,15 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] On the S25 Ultra: suggestions within about 1.5 s, a review's time, TalkBack through the sheet
 - [ ] Suggestions on the web table
 
+## M21 — A net that knows heroes, cards and pieces (ADR-049)
+- [x] Per-hero corrections, a card table and piece, marker and counter inputs at strength 10; v0.9's net
+  kept as `net=v09` — 2026-10-31, at the phone's work on test line-ups against v0.9's 10: 3v3 60.5%
+  (55.6–65.2%, 400 games), 1.71 heroes lost a game against 1.96; 2v2 59.4% (52.3–66.1%); 4v4 56.8%
+  (49.7–63.6%). Strengths 1–9 unchanged, 10 over 9 84.4%. JVM and Node; not on a device
+- [x] Per-hero upgrade tables tried: even (50.6%, 1 000 games at strength 7), not shipped
+- [ ] On the S25 Ultra: a 3v3 game at strength 10, decision times within ~2 s, and whether hunting kills
+  still beats it
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check

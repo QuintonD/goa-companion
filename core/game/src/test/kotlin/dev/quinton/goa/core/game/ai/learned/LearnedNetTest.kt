@@ -14,8 +14,10 @@ import dev.quinton.goa.core.game.ai.LearnedWeights
 import dev.quinton.goa.core.game.ai.NetEvaluator
 import dev.quinton.goa.core.game.ai.Searcher
 import dev.quinton.goa.core.game.ai.Term
+import dev.quinton.goa.core.game.ai.learned.v09.BaselineV09
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameState
+import dev.quinton.goa.core.game.engine.PieceState
 import dev.quinton.goa.core.model.match.Team
 import kotlin.math.abs
 import org.junit.Test
@@ -34,6 +36,33 @@ class LearnedNetTest {
         Features(TestData.engine.data).extract(start(LINEUPS[0], Team.RED), x)
         assertThat(net.forward(x, 0).isFinite()).isTrue()
         assertThat(LearnedWeights.COIN_SCALE).isGreaterThan(0.0)
+    }
+
+    @Test
+    fun `the board inputs name real pieces and the tables real heroes and cards`() {
+        val registry = TestData.engine.data.registry
+        // A misspelt kind would silently count as "other". The Turret and the doubles are pieces, not tokens.
+        val notTokens = setOf("other", "razzle_double", "trinkets_turret")
+        for (kind in Features.PIECE_KINDS - notTokens) assertThat(registry.tokenKind(kind)).isNotNull()
+        val data = TestData.engine.data
+        assertThat(LearnedWeights.HEROES).containsAtLeastElementsIn(TestData.engine.playableHeroes)
+        for (card in LearnedWeights.CARDS) assertThat(data.cardOrNull(card)).isNotNull()
+    }
+
+    @Test
+    fun `what stands on the board reaches the net per kind, seen from both sides`() {
+        val features = Features(TestData.engine.data)
+        val st = start(LINEUPS[2], Team.RED)
+        val at = st.heroes.first { it.team == Team.RED }.at!!
+        st.pieces += PieceState("t1", "token_rock", "Rock", at, owner = "bain", team = Team.RED)
+        val x = FloatArray(2 * Features.SIZE)
+        features.extract(st, x)
+        val own = Features.NAMES.indexOf("own:piece:token_rock")
+        val enemy = Features.NAMES.indexOf("enemy:piece:token_rock")
+        assertThat(x[own]).isGreaterThan(0f)
+        assertThat(x[enemy]).isEqualTo(0f)
+        assertThat(x[Features.SIZE + own]).isEqualTo(0f)
+        assertThat(x[Features.SIZE + enemy]).isEqualTo(x[own])
     }
 
     @Test
@@ -94,8 +123,15 @@ class LearnedNetTest {
     fun `an evaluation costs far less than a playout`() {
         val net = NetEvaluator(TestData.engine.data)
         val hand = Evaluator(TestData.engine.data, AiPlayers.TUNED)
+        val v09 = BaselineV09(TestData.engine.data)
         val states = states(LINEUPS[2], 400)
-        repeat(3) { for (s in states) net.evaluate(s, Team.RED) + hand.evaluate(s, Team.RED) }
+        repeat(3) {
+            for (s in states) {
+                net.evaluate(s, Team.RED)
+                hand.evaluate(s, Team.RED)
+                v09.evaluate(s, Team.RED)
+            }
+        }
         fun time(f: (GameState) -> Double): Double {
             var sink = 0.0
             val t0 = System.nanoTime()
@@ -106,11 +142,9 @@ class LearnedNetTest {
         }
         val netNs = time { net.evaluate(it, Team.RED) }
         val handNs = time { hand.evaluate(it, Team.RED) }
-        println(
-            "LEARNED evaluation: net ${"%.1f".format(
-                netNs / 1000,
-            )} µs, hand ${"%.1f".format(handNs / 1000)} µs per position (3v3)",
-        )
+        val v09Ns = time { v09.evaluate(it, Team.RED) }
+        fun us(ns: Double) = "%.1f".format(ns / 1000)
+        println("LEARNED evaluation: net ${us(netNs)} µs, v0.9's net ${us(v09Ns)} µs, hand ${us(handNs)} µs (3v3)")
         // A playout is 0.1–30 ms on the desktop (AI.md "Determinism"); loose for shared machines.
         assertThat(netNs).isLessThan(2_000_000.0)
     }
@@ -144,7 +178,7 @@ class LearnedNetTest {
         /** Features that depend on where on the board things stand. */
         private val GEOMETRY = listOf(
             "presence", "fightDistance", "inBattleZone", "laneProgress", "exposure", "opportunity", "Within",
-            "nearestEnemy", "killThreats", "minionModifier", "pushPotential", "tunedScore", "term:LANE",
+            "nearestEnemy", "killThreats", "minionModifier", "pushPotential", "tunedScore", "term:LANE", "pieceNear",
             "term:PRESENCE", "term:EXPOSURE", "term:OPPORTUNITY",
         )
 
