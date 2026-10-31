@@ -1,16 +1,19 @@
 package dev.quinton.goa.core.game.ai.learned
 
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.Base64
 
 /**
  * Writes a trained net as the checked-in Kotlin source `LearnedWeights.kt` (AI.md "How to retrain"):
- * FloatArray literals split into functions of [CHUNK] values (a JVM method holds 64 KB of bytecode),
- * the feature-schema hash the net was trained on, and the coin scale. Pure Kotlin, so the web build
- * (ADR-043) reads the same weights.
+ * Base64 text of its 32-bit floats ([dev.quinton.goa.core.game.ai.LearnedCodec]), split into functions
+ * (a JVM string constant holds 64 KB) and lines, the feature-schema hash the net was trained on, the
+ * tables' hero and card ids and the coin scale. Pure Kotlin, so the web build (ADR-043) reads the same
+ * weights.
  */
 internal object WeightsWriter {
-    private const val CHUNK = 1024
-    private const val PER_LINE = 6
+    private const val PER_LINE = 100
+    private const val LINES_PER_PART = 400
 
     fun write(n: Learned.NetData, f: File, trainedOn: String) {
         val sb = StringBuilder()
@@ -19,39 +22,56 @@ internal object WeightsWriter {
         sb.append("package dev.quinton.goa.core.game.ai\n\n")
         sb.append("@Suppress(\"LargeClass\", \"LongMethod\", \"MaxLineLength\")\n")
         sb.append("internal object LearnedWeights {\n")
-        sb.append("    const val VERSION: Int = ${System.getenv("AI_WEIGHTS_VERSION") ?: "1"}\n")
+        sb.append("    const val VERSION: Int = ${System.getenv("AI_WEIGHTS_VERSION") ?: "2"}\n")
         sb.append("    const val SCHEMA_HASH: Long = ${n.schema}L\n")
         sb.append("    const val INPUTS: Int = ${n.inputs}\n")
         sb.append("    const val H1: Int = ${n.h1}\n")
         sb.append("    const val H2: Int = ${n.h2}\n")
         sb.append("    const val COIN_SCALE: Double = ${n.coinScale}\n")
-        sb.append("    const val B3: Float = ${lit(n.b3)}\n")
-        val arrays = listOf("w1" to n.w1, "b1" to n.b1, "w2" to n.w2, "b2" to n.b2, "w3" to n.w3, "wl" to n.wl)
-        for ((name, a) in arrays) {
-            val chunks = (a.indices step CHUNK).map { it until minOf(a.size, it + CHUNK) }
-            sb.append('\n')
-            if (chunks.size == 1) {
-                sb.append("    fun $name(): FloatArray = ${name}Part0()\n")
-            } else {
-                sb.append("    fun $name(): FloatArray = FloatArray(${a.size}).also { a ->\n")
-                for (i in chunks.indices) sb.append("        ${name}Part$i().copyInto(a, ${chunks[i].first})\n")
-                sb.append("    }\n")
-            }
-            for ((i, range) in chunks.withIndex()) {
-                sb.append("\n    private fun ${name}Part$i(): FloatArray = floatArrayOf(\n")
-                for (line in range.chunked(PER_LINE)) {
-                    sb.append("        ").append(line.joinToString(" ") { lit(a[it]) + "," }).append('\n')
-                }
-                sb.append("    )\n")
-            }
-        }
+        sb.append("    const val B3: Float = ${java.lang.Float.toString(n.b3)}f\n")
+        ids(sb, "HEROES", n.heroes)
+        ids(sb, "CARDS", n.cards)
+        val arrays = listOf(
+            "w1" to n.w1,
+            "b1" to n.b1,
+            "w2" to n.w2,
+            "b2" to n.b2,
+            "w3" to n.w3,
+            "wl" to n.wl,
+            "wh" to n.wh,
+            "wc" to n.wc,
+        )
+        for ((name, a) in arrays) floats(sb, name, a)
         sb.append("}\n")
         f.writeText(sb.toString())
     }
 
-    private fun lit(x: Float): String {
-        val s = "%.6g".format(java.util.Locale.ROOT, x).let { if ("e" in it) it else it.trimEnd('0').trimEnd('.') }
-        val v = if (s == "-0") "0" else s
-        return (if ('.' in v || 'e' in v) v else "$v.0") + "f"
+    private fun ids(sb: StringBuilder, name: String, ids: List<String>) {
+        sb.append("\n    val $name: List<String> by lazy {\n        listOf(\n")
+        for (line in ids.joinToString(" ").chunked(PER_LINE)) sb.append("            \"$line\",\n")
+        sb.append("        ).joinToString(\"\").split(\" \").filter { it.isNotEmpty() }\n    }\n")
+    }
+
+    private fun floats(sb: StringBuilder, name: String, a: FloatArray) {
+        val bytes = ByteArrayOutputStream(a.size * 4)
+        for (x in a) {
+            val v = x.toRawBits()
+            for (s in 0..3) bytes.write(v shr (8 * s))
+        }
+        val parts = Base64.getEncoder().encodeToString(bytes.toByteArray()).chunked(PER_LINE).chunked(LINES_PER_PART)
+        sb.append("\n    fun $name(): FloatArray = LearnedCodec.floats(\n")
+        if (parts.isEmpty()) {
+            sb.append("        \"\",\n")
+        } else {
+            sb.append("        ").append(parts.indices.joinToString(" + ") { "${name}Part$it()" }).append(",\n")
+        }
+        sb.append("        ${a.size},\n    )\n")
+        for ((i, lines) in parts.withIndex()) {
+            sb.append("\n    private fun ${name}Part$i(): String =\n")
+            // As ktlint formats it: the first line, then the continuations one indent in.
+            sb.append("        \"${lines.first()}\"")
+            for (line in lines.drop(1)) sb.append(" +\n            \"$line\"")
+            sb.append('\n')
+        }
     }
 }

@@ -30,6 +30,7 @@ class TeamTournamentTest {
             val specs = Teams.specs(n, size, family, first)
             val score = Teams.mirrored(Learned.side(a), Learned.side(b), specs, threads, sprt)
             println("TEAMS ${size}v$size $score in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
+            println("TEAMS   ${score.details()}")
             println("TEAMS by hero ($a): ${score.byHero()}")
             sprt?.let { println("TEAMS SPRT ${it.verdict(score.aWins, score.bWins)} after ${score.games} games") }
             if (System.getenv("AI_SCORECARD") != null) println("TEAMS scorecard\n${Tournament.scorecard(score)}")

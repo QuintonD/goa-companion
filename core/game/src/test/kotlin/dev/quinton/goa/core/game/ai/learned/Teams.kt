@@ -37,6 +37,32 @@ internal object Teams {
         return out
     }
 
+    /**
+     * [n] line-ups with some heroes seated more often: each group draws 2 × [size] different heroes, a
+     * hero's chance in proportion to its weight in [weights] (missing: 1).
+     */
+    fun weightedLineups(
+        n: Int,
+        size: Int,
+        seed: Long,
+        weights: Map<String, Double>,
+    ): List<Pair<List<String>, List<String>>> {
+        val heroes = TestData.engine.playableHeroes.sorted()
+        val rng = Random(seed * 37 + size)
+        return List(n) {
+            val left = heroes.toMutableList()
+            val group = List(2 * size) {
+                var r = rng.nextDouble() * left.sumOf { weights[it] ?: 1.0 }
+                val i = left.indices.firstOrNull { k ->
+                    r -= weights[left[k]] ?: 1.0
+                    r < 0
+                } ?: left.lastIndex
+                left.removeAt(i)
+            }
+            group.take(size) to group.drop(size)
+        }
+    }
+
     /** One game to play: a line-up, the coin and the seed. */
     class Spec(val lineup: Pair<List<String>, List<String>>, val coin: Team, val seed: Long)
 
@@ -107,19 +133,7 @@ internal object Teams {
                 val spec = specs[i / 2]
                 throw IllegalStateException("Game failed: ${spec.lineup}, coin ${spec.coin}, seed ${spec.seed}", e)
             }
-            when (aWon) {
-                null -> score.draws++
-                true -> score.aWins++
-                false -> score.bWins++
-            }
-            val (red, blue) = specs[i / 2].lineup
-            score.countHeroes(red, blue, aRed[i], aWon)
-            val reason = r.session.view(null).winReason?.name ?: "UNFINISHED"
-            score.reasons[reason] = (score.reasons[reason] ?: 0) + 1
-            score.rounds += r.rounds
-            score.lines +=
-                "${red.joinToString("+")} vs ${blue.joinToString("+")}: $a ${if (aRed[i]) "Red" else "Blue"}, " +
-                "${aWon?.let { if (it) "$a won" else "$b won" } ?: "draw"} by $reason in round ${r.rounds}"
+            score.record(specs[i / 2].lineup, aRed[i], aWon, r, 0)
         }
     }
 }
