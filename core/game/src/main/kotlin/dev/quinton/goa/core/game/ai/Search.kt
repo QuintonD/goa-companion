@@ -27,9 +27,6 @@ internal enum class Horizon {
 
     /** Until the end of the next turn played (after a round's end: the new round's first turn). */
     NEXT_TURN,
-
-    /** Until the round ends (through its end-of-round steps). */
-    ROUND_END,
 }
 
 /** What one level does (STRATEGY.md §4.2), all in one place. */
@@ -84,15 +81,6 @@ internal data class LevelProfile(
     val learned: EvalSource = EvalSource.HAND,
     /** The net [learned] uses; null = the checked-in one ([LearnedNet.CURRENT]). */
     val net: LearnedNet? = null,
-    /**
-     * Card plays of the turns after the first in a playout: 0 = the static round plan; n = each hero's by
-     * a small search over its n best cards, played to the end of that turn ([Searcher.planTurn]).
-     */
-    val laterCards: Int = 0,
-    /** [laterCards]' small search plays its turn by the static rules (opaque choices one ply) instead of one-ply looks. */
-    val laterCheap: Boolean = false,
-    /** An option's value also looks one turn further: (1 − this) × the horizon's leaf + this × the next turn's. */
-    val deepBlend: Double = 0.0,
 )
 
 /**
@@ -385,11 +373,7 @@ internal class Searcher(
             f.answer(dp.id, o)
             answered.incrementAndFetch()
             playout(f, d.seat, d.team, horizon)
-            var v = leaf.evaluate(f.state, d.team)
-            if (profile.deepBlend > 0 && d.kind == DecisionKind.PLAY_CARD && f.pending != null) {
-                playout(f, d.seat, d.team, Horizon.TURN, planFrom = 0)
-                v = (1 - profile.deepBlend) * v + profile.deepBlend * leaf.evaluate(f.state, d.team)
-            }
+            val v = leaf.evaluate(f.state, d.team)
             table.getValue(o)[k] = v
             if (keepLeaves) leaves += Leaf(o, k, f, before, v)
         }
@@ -441,15 +425,7 @@ internal class Searcher(
     }
 
     /** Play on to the horizon with the rollout policy. */
-    fun playout(
-        f: EngineSession,
-        rootSeat: String,
-        rootTeam: Team,
-        horizon: Horizon,
-        maxSteps: Int = 400,
-        cheap: Boolean = false,
-        planFrom: Int = 1,
-    ) {
+    fun playout(f: EngineSession, rootSeat: String, rootTeam: Team, horizon: Horizon, maxSteps: Int = 400) {
         val start = f.state
         val startTurn = turnIndex(start)
         val startStep = start.step
@@ -459,9 +435,6 @@ internal class Searcher(
         var n = 0
         var turn = startTurn
         var turnsEnded = 0
-        var plan: List<Choice> = emptyList()
-        var plannedTurn = -1
-        var planned = 0
         while (n < maxSteps) {
             val d = f.pending ?: return
             val s = f.state
@@ -477,27 +450,13 @@ internal class Searcher(
                 Horizon.TURN -> turnsEnded >= 1
 
                 Horizon.NEXT_TURN -> turnsEnded >= 2
-
-                Horizon.ROUND_END -> s.round != startRound
             }
             if (stop) return
             val mine = d.team == rootTeam
-            val searchIt = !cheap && (
-                (profile.greedySelf && d.seat == rootSeat) || (profile.greedyTeam && mine) ||
-                    (profile.greedyEnemies && !mine)
-                )
+            val searchIt = (profile.greedySelf && d.seat == rootSeat) || (profile.greedyTeam && mine) ||
+                (profile.greedyEnemies && !mine)
             val c = when {
                 d.options.size == 1 -> d.options[0]
-
-                // The later turns of a deep playout: every hero's card by a small search, all at once.
-                d.kind == DecisionKind.PLAY_CARD && profile.laterCards > 0 && !cheap && turnsEnded >= planFrom -> {
-                    if (plannedTurn != turn) {
-                        plan = planTurn(f)
-                        plannedTurn = turn
-                        planned = 0
-                    }
-                    plan.getOrNull(planned++)?.takeIf { it in d.options } ?: static.best(s, d)
-                }
 
                 // A facedown play has no immediate effect to look at: the static round plan picks it.
                 d.kind == DecisionKind.PLAY_CARD -> static.best(s, d)
@@ -512,49 +471,6 @@ internal class Searcher(
             answered.incrementAndFetch()
             n++
         }
-    }
-
-    /**
-     * The card plays of a turn about to be played, in the order they are asked: each hero's best reply
-     * to the others' static cards. Each hand is searched from a fork where the earlier seats played their
-     * static card, so a hero asked later does not read what an earlier one chose by search.
-     */
-    private fun planTurn(f: EngineSession): List<Choice> {
-        val statics = ArrayList<Choice>()
-        val walk = f.forkSession()
-        while (true) {
-            val d = walk.pending?.takeIf { it.kind == DecisionKind.PLAY_CARD } ?: break
-            val c = static.best(walk.state, d)
-            statics += c
-            walk.answer(d.id, c)
-        }
-        val out = ArrayList<Choice>(statics.size)
-        val prefix = f.forkSession()
-        for (c in statics) {
-            val d = prefix.pending ?: break
-            out += if (d.options.size > 1) bestCard(prefix, d) else c
-            prefix.answer(d.id, c)
-        }
-        return out
-    }
-
-    private fun bestCard(f: EngineSession, d: Decision): Choice {
-        val sc = static.scores(f.state, d)
-        val cards = d.options.indices.sortedByDescending { sc[it] }.take(profile.laterCards)
-        var best = d.options[cards[0]]
-        var bestV = Double.NEGATIVE_INFINITY
-        for (i in cards) {
-            val g = f.forkForAnswer()
-            g.answer(d.id, d.options[i])
-            answered.incrementAndFetch()
-            playout(g, d.seat, d.team, Horizon.TURN, cheap = profile.laterCheap)
-            val v = leaf.evaluate(g.state, d.team)
-            if (v > bestV) {
-                bestV = v
-                best = d.options[i]
-            }
-        }
-        return best
     }
 
     /**
