@@ -78,6 +78,11 @@ internal data class LevelProfile(
     val learned: EvalSource = EvalSource.HAND,
     /** The net [learned] uses; null = the checked-in one ([LearnedNet.CURRENT]). */
     val net: LearnedNet? = null,
+    /**
+     * Teammates' hands, items and facedown cards are guessed too: the coach speaks to one player, who
+     * may not see them (p.4). A computer team's own search counts them as announced (AI.md "The determinizer").
+     */
+    val hideTeammates: Boolean = false,
 )
 
 /**
@@ -179,10 +184,16 @@ internal class Searcher(
             it.team == team && it.controller == Controller.Human && it.heroId != d.seat
         }
             .map { it.heroId }.toSet()
+        val teammates = if (profile.hideTeammates) {
+            es.setup.seats.filter { it.team == team && it.heroId != d.seat }.map { it.heroId }.toSet()
+        } else {
+            emptySet()
+        }
         val options = Determinizer.Options(
             seen = if (profile.memory) seenCards(es, team) else emptyMap(),
             playWeight = if (profile.modelPlays) ::playWeights else null,
             hidePlayedOf = humans,
+            hideAllOf = teammates,
         )
         // A search copy: no explanations for a player are built at its questions (the same options).
         return es.determinizeWith(team, seed, options, quiet = true)

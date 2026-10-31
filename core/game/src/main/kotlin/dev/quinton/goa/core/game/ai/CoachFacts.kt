@@ -7,6 +7,9 @@ import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.GameView
 import dev.quinton.goa.core.game.HeroView
+import dev.quinton.goa.core.game.effects.BattleParticipant
+import dev.quinton.goa.core.game.effects.MinionBattleQuery
+import dev.quinton.goa.core.game.engine.ControlSignal
 import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.Game
@@ -73,7 +76,7 @@ internal class CoachFacts(val es: EngineSession, val d: Decision, val a: Analysi
     }
 
     /** A unit's or piece's name as the log has it; [fallback] for one that is not on the board now. */
-    fun unitName(id: String, at: GameState = state, fallback: String = "a unit"): String {
+    fun unitName(id: String, at: GameState = state, fallback: String = "a piece"): String {
         if (at.hero(id) != null) return who(id)
         // Gone by the end of a playout: it was on the board when the question was asked.
         val board = if (at.minion(id) != null || at.piece(id) != null) at else state
@@ -128,7 +131,16 @@ internal class CoachFacts(val es: EngineSession, val d: Decision, val a: Analysi
     /** Minions per team in a lane's Battle Zone (p.8: what the Minion Battle counts). */
     fun battleCount(lane: String): Pair<Int, Int>? {
         val bz = state.battleZones[lane] ?: return null
-        fun count(t: Team) = state.minions.count { it.team == t && it.lane == lane && it.at?.let(g::zoneOf) == bz }
-        return count(team) to count(team.opponent)
+        val participants = state.minions.filter { it.lane == lane && it.at?.let(g::zoneOf) == bz }
+            .map { BattleParticipant(it.id, it.team, it.type) }.toMutableList()
+        val q = MinionBattleQuery(lane, participants)
+        val copy = Game(data, state.copy(), emptyList(), RunMode.PROBE)
+        // Card text counts in the battle too (a hero counting as a minion); one that asks can't be told yet.
+        try {
+            for ((b, s) in copy.sources()) b.minionBattle(copy, s, q)
+        } catch (_: ControlSignal) {
+            return null
+        }
+        return q.participants.count { it.team == team } to q.participants.count { it.team == team.opponent }
     }
 }

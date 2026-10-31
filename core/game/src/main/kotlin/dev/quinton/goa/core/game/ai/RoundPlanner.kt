@@ -66,11 +66,12 @@ internal class RoundPlanner(
         val keep = kept.groupingBy {
             it
         }.eachCount().entries.sortedWith(compareBy({ -it.value }, { it.key })).firstOrNull()
-        if (keep != null && keep.value >= need) {
+        // "Keep this one" under a sheet that clearly plays it first would contradict the first line.
+        if (keep != null && keep.value >= need && (close || keep.key != firstCards.first())) {
             return CoachPlan(
                 emptyList(),
                 keep.key,
-                "Keep ${f.cardName(keep.key)} for last; the order of the others isn't settled.",
+                "Keep ${f.cardName(keep.key)} unplayed this round; the order of the others isn't settled.",
                 "It stays unplayed in ${keep.value} of ${copies.size} guesses played to the end of the round. " +
                     "All cards come back at the end of the round (p.8).",
             )

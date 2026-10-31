@@ -117,6 +117,8 @@ internal class CoachReviewer(
     }
 
     /** Only what the seat could see then: its view of the board at that decision. */
+    private fun waves(n: Int) = "$n Wave counter${if (n == 1) "" else "s"}"
+
     private fun position(f: CoachFacts): String {
         val v = f.view
         val own = v.lifeCounters[f.team] ?: 0
@@ -124,7 +126,7 @@ internal class CoachReviewer(
         val lane = v.battleZones.keys.sorted().mapNotNull { id ->
             val (ours, theirs) = f.battleCount(id) ?: return@mapNotNull null
             val zone = f.data.maps[v.mapId]?.zoneName(v.battleZones[id]) ?: id
-            "$zone is the Battle Zone: your $ours minions against their $theirs, ${v.wavesLeft[id] ?: 0} Wave counters left"
+            "$zone is the Battle Zone: your $ours minions against their $theirs, ${waves(v.wavesLeft[id] ?: 0)} left"
         }.joinToString("; ")
         val at = f.myAt
         val where = if (at == null) {

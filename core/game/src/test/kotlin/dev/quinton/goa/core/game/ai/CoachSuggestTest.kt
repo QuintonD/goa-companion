@@ -11,6 +11,7 @@ import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.TestData
 import dev.quinton.goa.core.game.engine.EngineSession
+import dev.quinton.goa.core.game.engine.extraLifeCost
 import dev.quinton.goa.core.game.engine.lowestTier
 import dev.quinton.goa.core.game.engine.minionModifier
 import dev.quinton.goa.core.game.pos
@@ -163,9 +164,10 @@ class CoachSuggestTest {
 
                 CoachReasonKind.LIFE_COST -> {
                     val tier = f.g.lowestTier(f.seat)
+                    val cost = tier + f.g.extraLifeCost(f.seat, f.d.context.attackerId, tier)
                     val life = f.view.lifeCounters[f.team] ?: 0
-                    val says = if (life <= tier) "last Life counter" else "$tier Life counter"
-                    if (says !in text) fail(d, "Life cost in: $text (tier $tier, life $life)")
+                    val says = if (life <= cost) "last Life counter" else "$cost Life counter"
+                    if (says !in text) fail(d, "Life cost in: $text (cost $cost, life $life)")
                     if ("gains ${f.me.level} coin" !in text) fail(d, "coins in: $text")
                 }
 

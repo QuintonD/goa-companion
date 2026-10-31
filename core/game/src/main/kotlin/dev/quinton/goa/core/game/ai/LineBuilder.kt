@@ -149,7 +149,9 @@ internal class LineBuilder(private val f: CoachFacts) {
         val open = card != null && (e.attackerId == f.seat || f.openCard(e.attackerId, card))
         if (open) {
             val cardName = f.cardName(card)
-            val total = if (f.isHero(e.targetId)) " (Attack ${e.total})" else ""
+            // A card with no Attack value attacks by another card's text (a spell): the number isn't its own.
+            val printed = f.data.cardOrNull(card)?.values?.attack != null
+            val total = if (f.isHero(e.targetId) && printed) " (Attack ${e.total})" else ""
             add("$key:$card", at, null) {
                 if (e.attackerId == f.seat) {
                     "you attack $target with $cardName$total"

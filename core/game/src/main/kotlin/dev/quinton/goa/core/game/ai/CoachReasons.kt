@@ -7,6 +7,8 @@ import dev.quinton.goa.core.game.CoachReason
 import dev.quinton.goa.core.game.CoachReasonKind
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameEvent
+import dev.quinton.goa.core.game.engine.defenseCards
+import dev.quinton.goa.core.game.engine.extraLifeCost
 import dev.quinton.goa.core.game.engine.heavyImmune
 import dev.quinton.goa.core.game.engine.lowestTier
 import dev.quinton.goa.core.game.engine.minionModifier
@@ -135,17 +137,22 @@ internal class ReasonFinder(private val f: CoachFacts) {
             is Choice.Card -> {
                 val card = f.cardName(x.cardId) ?: return emptyList()
                 val value = d.context.defensePreview[x.cardId]
+                // Only a Block by attack type is about the attack's type: others have their own condition.
+                val byType = data.cardOrNull(x.cardId)?.let(CardProfile::of)
+                    ?.let { it.blocksRanged || it.blocksMelee } == true
+                val against = if (byType) "against this ${attackType()} attack" else "here"
+                val notMet = if (byType) "by this ${attackType()} attack" else "here"
                 when (d.context.blockPreview[x.cardId]) {
                     true -> out += why(
                         CoachReasonKind.BLOCK,
-                        "$card's Block holds against this ${attackType()} attack, whatever its total.",
+                        "$card's Block holds $against, whatever the attack's total.",
                         "If the Block condition is fulfilled you successfully defend, regardless of the attack " +
                             "value (p.14).",
                     )
 
                     false -> out += why(
                         CoachReasonKind.BLOCK,
-                        "$card's Block condition isn't met by this ${attackType()} attack.",
+                        "$card's Block condition isn't met $notMet.",
                         "A Block card defends only by fulfilling its condition; if not, you are defeated (p.14).",
                     )
 
@@ -203,19 +210,21 @@ internal class ReasonFinder(private val f: CoachFacts) {
     /** What the hero's defeat costs, by the printed table (p.13). */
     private fun defeatCost(): Why {
         val tier = f.g.lowestTier(seat)
+        val cost = tier + f.g.extraLifeCost(seat, d.context.attackerId, tier)
         val life = f.view.lifeCounters[team] ?: 0
         val attacker = d.context.attackerId?.let(data::heroName) ?: "The attacker"
         val coins = f.me.level
-        val spend = if (life <= tier) {
+        val spend = if (life <= cost) {
             "your team spends its last Life counter and loses the game"
         } else {
-            "your team spends ${plural(tier, "Life counter")} (${life - tier} left)"
+            "your team spends ${plural(cost, "Life counter")} (${life - cost} left)"
         }
         return why(
             CoachReasonKind.LIFE_COST,
             "Defeated, $spend and $attacker gains ${plural(coins, "coin")}.",
             "A defeated hero's team spends Life counters equal to its lowest card Tier; the attacker collects " +
-                "coins equal to its level (p.13).",
+                "coins equal to the defeated hero's level (p.13)." +
+                if (cost > tier) " Card text adds ${plural(cost - tier, "Life counter")} here." else "",
         )
     }
 
@@ -250,10 +259,12 @@ internal class ReasonFinder(private val f: CoachFacts) {
         if (d.kind == DecisionKind.UPGRADE_CARD) {
             val next = d.context.upgrades[id].orEmpty().mapNotNull(data::cardOrNull)
             if (next.isEmpty()) return emptyList()
-            val offers = next.joinToString(" or ") { c ->
-                c.name + (c.item?.let { " (item: +1 ${statWord(it)})" } ?: "")
+            // The card kept goes to hand and the other becomes the item, so each keeps the other's icon.
+            val offers = next.joinToString(", or ") { c ->
+                val item = next.firstOrNull { it.id != c.id }?.item
+                "keep ${c.name}" + (item?.let { " and gain +1 ${statWord(it)}" } ?: "")
             }
-            return listOf(why(CoachReasonKind.UPGRADE, "${card.name} can become $offers.", itemRule))
+            return listOf(why(CoachReasonKind.UPGRADE, "Upgrading ${card.name}: $offers.", itemRule))
         }
         val other = d.options.filterIsInstance<Choice.Card>().firstOrNull { it.cardId != id }
             ?.let { data.cardOrNull(it.cardId) }
@@ -310,11 +321,13 @@ internal class ReasonFinder(private val f: CoachFacts) {
             .entries.sortedWith(compareBy({ -it.value }, { it.key })).first().key
         val hero = f.view.heroes.first { it.heroId == victim }
         val tier = levelTier(hero.level)
+        val extra = f.g.extraLifeCost(victim, seat, tier)
         return why(
             CoachReasonKind.KILL,
             "You defeat ${data.heroName(victim)} in most playouts of this.",
             "You collect ${plural(hero.level, "coin")} (their level) and their team spends " +
-                "${plural(tier, "Life counter")} (their lowest card Tier) (p.13).",
+                "${plural(tier + extra, "Life counter")} (their lowest card Tier" +
+                "${if (extra > 0) " and card text" else ""}) (p.13).",
             setOf(Term.LIFE, Term.COINS),
             PlayoutClaim.DEFEATS_HERO,
             victim,
@@ -369,11 +382,13 @@ internal class ReasonFinder(private val f: CoachFacts) {
         val sx = f.share(x, ::seatDefeated)
         if (sy < MOST || sy - sx < CLEAR_GAP) return null
         val tier = f.g.lowestTier(seat)
+        val extra = f.g.extraLifeCost(seat, null, tier)
         return why(
             CoachReasonKind.DANGER,
-            "You stay on the board with this; with \"${f.label(y)}\" you are defeated in most playouts.",
-            "A defeat costs your team ${plural(tier, "Life counter")} (your lowest card Tier) and gives the " +
-                "attacker ${plural(f.me.level, "coin")} (p.13).",
+            "With \"${f.label(y)}\" you are defeated in most playouts; with this, far less often.",
+            "A defeat costs your team ${plural(tier + extra, "Life counter")} (your lowest card Tier" +
+                "${if (extra > 0) " and card text" else ""}) and gives the attacker " +
+                "${plural(f.me.level, "coin")} (p.13).",
             setOf(Term.LIFE, Term.EXPOSURE, Term.PRESENCE),
             PlayoutClaim.SEAT_SAFE,
             share = 1 - sx,
@@ -472,8 +487,15 @@ internal class ReasonFinder(private val f: CoachFacts) {
         val lane = f.state.battleZones.keys.singleOrNull() ?: return null
         val (ours, theirs) = f.battleCount(lane) ?: return null
         val now = when {
+            ours > theirs && ours - theirs >= theirs -> "they must remove all they have and your team pushes the lane"
+
             ours > theirs -> "they would remove ${ours - theirs}"
+
+            ours < theirs && theirs - ours >= ours ->
+                "your team must remove all it has and the other team pushes the lane"
+
             ours < theirs -> "your team would remove ${theirs - ours}"
+
             else -> "the battle would end with no effect"
         }
         val after = theirs - 1
@@ -487,6 +509,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
             ours > after -> "One more gone and they would remove ${ours - after}."
 
             ours == after -> "One more gone and the battle is even."
+
+            after - ours >= ours -> "One more gone and your team must still remove all it has."
 
             else -> "One more gone and your team would remove ${after - ours}."
         }
@@ -524,8 +548,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
             if (sx >= NEARLY_MOST && sy <= 1 - NEARLY_MOST && afterY - after >= CLEAR_GAP) {
                 return why(
                     CoachReasonKind.INITIATIVE,
-                    "In most guesses Initiative $mine acts before ${data.heroName(e)}, and no attack on you comes; " +
-                        "with Initiative $other ${data.heroName(e)} acts first and attacks you.",
+                    "In most guesses Initiative $mine acts before ${data.heroName(e)}; with Initiative $other " +
+                        "${data.heroName(e)} acts first and attacks you far more often.",
                     "The highest Initiative acts first (p.7), so a hero acting first can leave before the attack " +
                         "comes.",
                     setOf(Term.EXPOSURE, Term.LIFE, Term.PRESENCE),
@@ -552,13 +576,16 @@ internal class ReasonFinder(private val f: CoachFacts) {
         val keptY = f.myHand.filter { it.id != y.cardId }
         val bestX = bestDefense(keptX)
         val bestY = bestDefense(keptY)
-        val defenderLost = bestX != null && bestY == null
+        // A Block has no Defense value but is a defense: "no card" only when no card can defend at all (p.14).
+        if (keptY.any { CardProfile.of(it).block }) return null
+        val defendersY = keptY.count { CardProfile.of(it).canDefend }
+        val defenderLost = bestX != null && defendersY == 0
         if (!defenderLost && (bestX == null || bestY == null || bestX - bestY < DEFENSE_GAP)) return null
         val kept = keptX.filter { CardProfile.of(it).canDefend }.maxByOrNull { it.values.defense ?: 0 } ?: return null
         val threatened = f.share(x) { l -> f.events(l).any { it is GameEvent.Attacked && it.targetId == seat } }
         val threatenedY = f.share(y) { l -> f.events(l).any { it is GameEvent.Attacked && it.targetId == seat } }
         if (threatened + threatenedY <= 0.0) return null
-        val without = if (bestY == null) "no card to defend with" else "a best Defense of $bestY"
+        val without = if (defendersY == 0) "no card to defend with" else "a best Defense of $bestY"
         return why(
             CoachReasonKind.KEEP_DEFENDER,
             "Playing ${f.label(x)} keeps ${kept.name} in hand (Defense $bestX); playing ${f.label(y)} would leave " +
@@ -571,9 +598,10 @@ internal class ReasonFinder(private val f: CoachFacts) {
     // ---- Where to stand (p.7, p.11, p.13, p.14) ------------------------------------------------
 
     private fun ownSpace(c: Choice): Hex? {
-        if (d.kind != DecisionKind.CHOOSE_SPACE && d.kind != DecisionKind.RESPAWN) return null
-        val subject = d.context.subjectId
-        return if (subject == null || subject == seat) (c as? Choice.Space)?.hex else null
+        // No subject is a token, a turret or a target space: the hero isn't the one going there.
+        val mine = d.kind == DecisionKind.RESPAWN ||
+            (d.kind == DecisionKind.CHOOSE_SPACE && d.context.subjectId == seat)
+        return if (mine) (c as? Choice.Space)?.hex else null
     }
 
     private fun modifierWords(hex: Hex): String {
@@ -603,7 +631,9 @@ internal class ReasonFinder(private val f: CoachFacts) {
     private fun attackCards(): List<CardProfile> {
         val played = listOfNotNull(f.me.played?.takeIf { f.view.heroes.isNotEmpty() }?.cardId)
             .filter { it !in f.me.resolved.mapNotNull { r -> r.cardId } }
-        return (played + f.me.hand.orEmpty()).mapNotNull(data::cardOrNull).map(CardProfile::of).filter { it.attackCard }
+        // The card this move is made with has had its action (p.7); a text with its own conditions could fail.
+        return (played + f.me.hand.orEmpty()).filter { it != d.sourceCardId }
+            .mapNotNull(data::cardOrNull).map(CardProfile::of).filter { it.plainTarget }
     }
 
     private fun reach(x: Choice, y: Choice): Why? {
@@ -723,7 +753,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
         val unit = (x as? Choice.Unit)?.unitId ?: return emptyList()
         if (!d.prompt.startsWith("Target")) return emptyList()
         val hero = f.view.heroes.firstOrNull { it.heroId == unit && it.team != team }
-        if (hero != null && hero.handCount == 0) {
+        // Card text can let a hero defend with a played or resolved card (Stone Carapace, active and public).
+        if (hero != null && hero.handCount == 0 && f.g.defenseCards(unit).isEmpty()) {
             return listOf(
                 why(
                     CoachReasonKind.NO_DEFENSE_TARGET,
@@ -773,7 +804,10 @@ internal class ReasonFinder(private val f: CoachFacts) {
                             "place:${p.kind}",
                             CoachReasonKind.TOKEN,
                             "This places ${p.label}.",
-                            if (p.removeAtEndOfRound) {
+                            if (!p.token) {
+                                "The card's text says what it does and how long it stays (card text beats the " +
+                                    "rules, p.3)."
+                            } else if (p.removeAtEndOfRound) {
                                 "All tokens are obstacles; unless the card says otherwise they are removed at the end of the round (p.19)."
                             } else {
                                 "All tokens are obstacles; the card says this one stays past the end of the round (p.19)."
@@ -804,7 +838,7 @@ internal class ReasonFinder(private val f: CoachFacts) {
                     )
                 }
 
-                is GameEvent.CoinsGained -> if (e.heroId == seat && !killed) {
+                is GameEvent.CoinsGained -> if (e.heroId == seat && !killed && !notCardCoins(e)) {
                     out += Mechanic(
                         "coins:${e.amount}",
                         CoachReasonKind.COINS,
@@ -820,6 +854,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
         out += counters(l)
         return out
     }
+
+    private fun notCardCoins(e: GameEvent.CoinsGained) = NOT_CARD_COINS.containsMatchIn(e.text)
 
     private fun forced(unit: String, l: Leaf): Mechanic {
         val name = f.unitName(unit, l.end.state)
@@ -845,13 +881,19 @@ internal class ReasonFinder(private val f: CoachFacts) {
             val after = hero.markers.filter { it.from == seat }.groupingBy { it.kind }.eachCount()
             for ((kind, n) in after) {
                 if (n > (before[kind] ?: 0)) {
+                    val stays = hero.markers.any { it.from == seat && it.kind == kind && it.persistent }
                     out += Mechanic(
                         "marker:${hero.id}:$kind",
                         CoachReasonKind.MARKER,
                         "${f.who(hero.id).replaceFirstChar { it.uppercase() }} " +
                             "${if (hero.id == seat) "get" else "gets"} a ${markerWord(kind)} marker.",
-                        "Markers remind of a card's effect (p.18); they go back to the supply at the end of the " +
-                            "round (p.8).",
+                        if (stays) {
+                            "Markers remind of a card's effect (p.18); the card's text says this one stays past " +
+                                "the end of the round."
+                        } else {
+                            "Markers remind of a card's effect (p.18); they go back to the supply at the end of " +
+                                "the round (p.8)."
+                        },
                     )
                 }
             }
@@ -919,5 +961,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
         const val POSITION_GAP = 2
         const val MAX_LEVEL = 8
         const val BATTLE_TURN = 3
+
+        /** Coins the rules give, not a card: the Pity coin (p.8), an assist and a defeat (p.13). */
+        val NOT_CARD_COINS = Regex("\\((pity coin|assist|defeated )")
     }
 }

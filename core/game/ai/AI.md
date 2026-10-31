@@ -102,6 +102,9 @@ after a level up is hidden. For each enemy hero with the standard one-card-per-c
 4. human teammates' unrevealed played cards are dealt again too (`Options.hidePlayedOf`): a facedown
    card is hidden even to a teammate (p.4). AI teammates count as having announced their plan (legal
    table talk before the reveal).
+5. the coach speaks to one player, who may not see a teammate's cards (p.4): for it every teammate but the
+   seat asking is resampled like an enemy, hand, items and facedown cards and tokens (`Options.hideAllOf`,
+   `LevelProfile.hideTeammates`; `CoachTruthTest`). A computer team's own search keeps the rule above.
 
 Heroes with other shapes (Gydion's spellbook, extras, cards moved by text) fall back to swapping
 identities within colour and Tier among hidden places. `HeroView.itemStats` is now sorted by stat,
