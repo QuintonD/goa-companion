@@ -2227,7 +2227,8 @@ turns the enemy doesn't react to the player, so a plan can lean on an enemy walk
 comes late. No first-turn option has been *proven* to lose in any puzzle (that proof is out of budget): what is proven is
 how many win, and the text never says a first card loses unless it is proven. No one has played these on the S25 Ultra,
 and no hands-on pass happened on the emulator (`device_open`: "Android emulator video needs working ffmpeg with the libx264
-encoder"): `FullRoundFlowTest` on `goa_s25b` and the screenshots stand in, and neither plays a whole round by hand.
+encoder", still so after ffmpeg was installed: the app's local server needs a restart): `FullRoundFlowTest` on `goa_s25b` and
+the screenshots stand in, and neither plays a whole round by hand.
 
 **The audit (2026-10-31).** An independent audit of r01–r23 found the proofs and positions sound and 18 puzzles with a false
 sentence or premise. What changed:
