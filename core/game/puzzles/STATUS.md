@@ -1,6 +1,6 @@
 # Puzzle status
 
-The shipped book: 50 puzzles and 23 full rounds; and the 10 proven concepts left out. Each concept and every change made
+The shipped book: 50 puzzles and 22 full rounds; and the 10 proven concepts left out. Each concept and every change made
 while encoding, reviewing and hardening: [CONCEPTS.md](CONCEPTS.md); how to encode: [ENCODING.md](ENCODING.md).
 Generated from the puzzle sources (`Puzzles.all` order) by the lead, 2026-10-24.
 
@@ -79,7 +79,7 @@ or a calculation. Grades: 1 hard, 2 harder, 3 hardest.
 <!-- full-rounds -->
 ## Full rounds (`Puzzles.fullRounds`, ADR-052)
 
-23 puzzles: grades 1/2/3 = 14/7/2; ideas: battle 9, coins 5, last-card 3, setup 1, strip 5. 32 heroes sit in the book, each at least 1 time: cutter, gydion, sabina, tigerclaw only once; the most any hero is a player hero is 3. Measured 2026-10-31 by `FullRoundGateTest` (`ROUND_GATE=120`, 10 s an option) into `rounds/gate.txt`, which the same test holds the book to.
+22 puzzles: grades 1/2/3 = 13/7/2; ideas: battle 8, coins 5, last-card 3, setup 1, strip 5. 32 heroes sit in the book, each at least 1 time: cutter, gydion, mortimer, sabina, tigerclaw only once; the most any hero is a player hero is 3. Measured 2026-10-31 by `FullRoundGateTest` (`ROUND_GATE=120`, 10 s an option) into `rounds/gate.txt`, which the same test holds the book to.
 
 Reading the table. **Idea:** `battle` is Minion Battle arithmetic, `strip` spends the enemy's hand, `last-card` is a turn-4 attack its last card can't stop, `setup` is a token, a coin or a retrieved card placed earlier for later. **T3, T4 L/W/?:** at the player's decisions on the solution line, how many other options are proven to lose, proven to win, or neither in 10 s. **Free T3/T4:** the enemy's free acting decisions on the proof's lines in those turns (defenses don't count). **Without its idea:** each claim of the text in `rounds/ideas.txt`, taken away, and the prover asked again for 120 s: "none found" means no plan was found, not that none exists. **s10:** whether strength 10 on the player's seats solves it (this AI, this date; strength 7 solves none; 20 random games solve none).
 
@@ -90,24 +90,23 @@ Reading the table. **Idea:** `battle` is Minion Battle arithmetic, `strip` spend
 | 3 | r28 | Discard to Reach | 1 | battle | Push the lane by the end of the round. | garrus, brogan | arien, hanu | 1/6/2 | 6/50/0 | 0/1 | none found | 47 | yes |
 | 4 | r24 | Mind Grip | 1 | coins | Gain 6 coins by the end of the round. | sabina, nebkher | tali, razzle | 15/4/1 | 8/24/0 | 0/0 | none found | 56 | no |
 | 5 | r01 | One Too Many | 1 | battle | Push the lane by the end of the round. | arien, trinkets | rowenna, ursafar | 1/51/1 | 4/17/0 | 0/0 | none found | 59 | yes |
-| 6 | r33 | A Tree Next to It | 1 | battle | Push the lane by the end of the round. | mortimer, wuk | brogan, min | 3/66/2 | 4/13/0 | 0/0 | none found | 63 | no |
-| 7 | r39 | Phantasmal Warrior | 1 | setup | Gain 6 coins by the end of the round. | silverarrow, nebkher | garrus, mrak | 3/11/4 | 5/1/0 | 0/0 | none found | 64 | no |
-| 8 | r35 | Seven Coins and Min | 1 | last-card | Gain 7 coins by the end of the round. | takahide, snorri | tigerclaw, min | 7/27/0 | 3/1/0 | 0/0 | none found | 73 | yes |
-| 9 | r10 | Nothing Left to Defend With | 1 | strip | Win the game this round. | misa, wasp | widget, nebkher | 13/14/2 | 3/1/0 | 0/0 | none found | 80 | yes |
-| 10 | r32 | Three Blue Minions | 1 | coins | Gain 6 coins by the end of the round. | bain, wasp | brogan, brynn | 1/5/1 | 4/1/0 | 0/0 | none found | 82 | no |
-| 11 | r37 | Eight Coins From Whisper | 1 | last-card | Gain 8 coins by the end of the round. | trinkets, widget | nebkher, whisper | 1/5/5 | 3/1/0 | 0/0 | none found | 87 | no |
-| 12 | r31 | Every Coin Counts | 1 | coins | Gain 6 coins by the end of the round. | dodger, min | swift, misa | 1/29/2 | 2/30/0 | 5/1 | none found | 147 | yes |
-| 13 | r12 | Count the Battle | 1 | battle | Push the lane by the end of the round. | xargatha, mrak | silverarrow, snorri | 2/6/0 | 3/12/0 | 3/0 | none found | 218 | yes |
-| 14 | r27 | Six Against Three | 1 | battle | Push the lane by the end of the round. | whisper, hanu | razzle, ignatia | 14/23/1 | 5/2/0 | 0/0 | none found | 250 | no |
-| 15 | r14 | One Space for Xargatha | 2 | coins | Gain 6 coins by the end of the round. | hanu, xargatha | misa, emmitt | 6/2/4 | 7/0/0 | 0/0 | none found | 41 | no |
-| 16 | r17 | Opening Shots | 2 | strip | Defeat Snorri by the end of the round. | rowenna, swift | snorri, wasp | 1/8/3 | 3/1/0 | 0/4 | none found | 55 | no |
-| 17 | r25 | Blue Falls Behind | 2 | battle | Push the lane by the end of the round. | cutter, razzle | min, emmitt | 2/8/0 | 4/41/0 | 0/12 | none found | 77 | no |
-| 18 | r19 | Come to Me | 2 | last-card | Gain 6 coins by the end of the round. | xargatha, trinkets | razzle, wasp | 2/5/2 | 3/1/0 | 1/0 | none found | 84 | no |
-| 19 | r20 | The Last Shot | 2 | strip | Defeat Xargatha by the end of the round. | misa, brynn | xargatha, ursafar | 2/8/1 | 5/1/0 | 2/8 | none found | 127 | no |
-| 20 | r21 | Far Enough Behind | 2 | battle | Push the lane by the end of the round. | ignatia, garrus | swift, razzle | 4/19/0 | 7/2/0 | 0/10 | none found | 140 | no |
-| 21 | r36 | Seven Coins | 2 | coins | Gain 7 coins by the end of the round. | dodger, snorri | emmitt, silverarrow | 12/17/0 | 10/4/0 | 0/4 | none found | 168 | yes |
-| 22 | r07 | Float Like a Butterfly | 3 | battle | Push the lane by the end of the round. | takahide, swift | tali, bain | 70/17/3 | 1/22/0 | 0/2 | none found | 71 | no |
-| 23 | r18 | A Price on Brogan | 3 | strip | Defeat Brogan by the end of the round. | ursafar, bain | brogan, razzle | 7/2/0 | 3/1/0 | 0/10 | none found | 72 | no |
+| 6 | r39 | Phantasmal Warrior | 1 | setup | Gain 6 coins by the end of the round. | silverarrow, nebkher | garrus, mrak | 3/11/4 | 5/1/0 | 0/0 | none found | 64 | no |
+| 7 | r35 | Seven Coins and Min | 1 | last-card | Gain 7 coins by the end of the round. | takahide, snorri | tigerclaw, min | 7/27/0 | 3/1/0 | 0/0 | none found | 73 | yes |
+| 8 | r10 | Nothing Left to Defend With | 1 | strip | Win the game this round. | misa, wasp | widget, nebkher | 13/14/2 | 3/1/0 | 0/0 | none found | 80 | yes |
+| 9 | r32 | Three Blue Minions | 1 | coins | Gain 6 coins by the end of the round. | bain, wasp | brogan, brynn | 1/5/1 | 4/1/0 | 0/0 | none found | 82 | no |
+| 10 | r37 | Eight Coins From Whisper | 1 | last-card | Gain 8 coins by the end of the round. | trinkets, widget | nebkher, whisper | 1/5/5 | 3/1/0 | 0/0 | none found | 87 | no |
+| 11 | r31 | Every Coin Counts | 1 | coins | Gain 6 coins by the end of the round. | dodger, min | swift, misa | 1/29/2 | 2/30/0 | 5/1 | none found | 147 | yes |
+| 12 | r12 | Count the Battle | 1 | battle | Push the lane by the end of the round. | xargatha, mrak | silverarrow, snorri | 2/6/0 | 3/12/0 | 3/0 | none found | 218 | yes |
+| 13 | r27 | Six Against Three | 1 | battle | Push the lane by the end of the round. | whisper, hanu | razzle, ignatia | 14/23/1 | 5/2/0 | 0/0 | none found | 250 | no |
+| 14 | r14 | One Space for Xargatha | 2 | coins | Gain 6 coins by the end of the round. | hanu, xargatha | misa, emmitt | 6/2/4 | 7/0/0 | 0/0 | none found | 41 | no |
+| 15 | r17 | Opening Shots | 2 | strip | Defeat Snorri by the end of the round. | rowenna, swift | snorri, wasp | 1/8/3 | 3/1/0 | 0/4 | none found | 55 | no |
+| 16 | r25 | Blue Falls Behind | 2 | battle | Push the lane by the end of the round. | cutter, razzle | min, emmitt | 2/8/0 | 4/41/0 | 0/12 | none found | 77 | no |
+| 17 | r19 | Come to Me | 2 | last-card | Gain 6 coins by the end of the round. | xargatha, trinkets | razzle, wasp | 2/5/2 | 3/1/0 | 1/0 | none found | 84 | no |
+| 18 | r20 | The Last Shot | 2 | strip | Defeat Xargatha by the end of the round. | misa, brynn | xargatha, ursafar | 2/8/1 | 5/1/0 | 2/8 | none found | 127 | no |
+| 19 | r21 | Far Enough Behind | 2 | battle | Push the lane by the end of the round. | ignatia, garrus | swift, razzle | 4/19/0 | 7/2/0 | 0/10 | none found | 140 | no |
+| 20 | r36 | Seven Coins | 2 | coins | Gain 7 coins by the end of the round. | dodger, snorri | emmitt, silverarrow | 12/17/0 | 10/4/0 | 0/4 | none found | 168 | yes |
+| 21 | r07 | Float Like a Butterfly | 3 | battle | Push the lane by the end of the round. | takahide, swift | tali, bain | 70/17/3 | 1/22/0 | 0/2 | none found | 71 | no |
+| 22 | r18 | A Price on Brogan | 3 | strip | Defeat Brogan by the end of the round. | ursafar, bain | brogan, razzle | 7/2/0 | 3/1/0 | 0/10 | none found | 72 | no |
 
 **Grade.** One point each for: an enemy that acts freely in turn 3 or 4 on the proof's lines; strength 10 failing; at least as many proven losses as proven wins among the other options in turns 3–4. One or none is Hard, two Harder, three Hardest.
 

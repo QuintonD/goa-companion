@@ -49,12 +49,13 @@ object R24MindGrip : Puzzle() {
     override val info = PuzzleInfo(
         id = "r24",
         number = 4,
-        title = "Mind Grip",
+        title = "Six Coins and Tali",
         difficulty = 1,
         theme = "Coins counted, a token placed for one way of ending it",
         heroes = listOf("sabina", "nebkher", "tali", "razzle"),
         goal = PuzzleGoal.GainCoins(6, Deadline.END_OF_ROUND, "Gain 6 coins by the end of the round."),
-        intro = "Round 4. You play Sabina and NebKher for Red. Minions pay 2 coins here, and Tali pays 3 to the hero " +
+        intro = "Round 4. You play Sabina and NebKher for Red. Melee and ranged minions pay 2 coins here, and Tali " +
+            "pays 3 to the hero " +
             "who defeats her and 1 to the other. Phantasmal Warrior moves an Illusion token next to an enemy hero" +
             " in range and attacks that hero, so where your Illusions stand in turn 4 decides who you can reach.",
         nudges = R24_NUDGES.first(),
@@ -66,7 +67,8 @@ object R24MindGrip : Puzzle() {
                 "Turn 1: Mind Grip defeats a Blue melee minion: 2 coins. Sabina moves with Close Support." +
                 "\n\n" +
                 "Turn 2: Razzle defeats a Red melee minion. Point Blank Shot's Movement takes Sabina 1 space, and " +
-                "Diabolical Laughter places two Illusions next to NebKher." +
+                "Diabolical Laughter places two Illusions next to NebKher and, on this line, swaps him with one of " +
+                "them." +
                 "\n\n" +
                 "Turn 3: Fleeting Image places a third Illusion. On this line NebKher also swaps with one of the " +
                 "Illusions, and not swapping wins as well. Sabina holds with Back to Back." +

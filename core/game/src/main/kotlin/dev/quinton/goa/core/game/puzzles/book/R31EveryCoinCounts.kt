@@ -51,7 +51,8 @@ object R31EveryCoinCounts : Puzzle() {
         theme = "Coins from four different places on this line",
         heroes = listOf("dodger", "min", "swift", "misa"),
         goal = PuzzleGoal.GainCoins(6, Deadline.END_OF_ROUND, "Gain 6 coins by the end of the round."),
-        intro = "Round 2. You play Dodger and Min for Blue. Minions pay 2 coins here, and Swift pays 2 to the hero " +
+        intro = "Round 2. You play Dodger and Min for Blue. Melee and ranged minions pay 2 coins here, and Swift " +
+            "pays 2 to the hero " +
             "who defeats him and 1 to the other. Dark Ritual gains 1 coin if there are 2 or more empty spawn " +
             "points in its radius in the Battle Zone.",
         nudges = R31_NUDGES.first(),

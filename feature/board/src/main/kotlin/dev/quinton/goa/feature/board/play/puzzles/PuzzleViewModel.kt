@@ -144,6 +144,7 @@ class PuzzleViewModel internal constructor(
     private var nudgeVisible = false
     private var nudgesOn = true
     private var introOpen = true
+    private var laterShown = false
 
     /** The turn the nudges are for: a full round's come per turn, each turn gentle first again. */
     private var nudgeTurn = 1
@@ -193,6 +194,7 @@ class PuzzleViewModel internal constructor(
         map = maps.firstOrNull { it.id == setup.mapId } ?: return unavailable(NoPuzzle.BROKEN)
         puzzles = book
         info = list[index]
+        laterShown = false
         total = list.count { it.fullRound == list[index].fullRound }
         next = list.getOrNull(index + 1)?.id
         heroes = catalog.boardHeroes()
@@ -249,6 +251,11 @@ class PuzzleViewModel internal constructor(
 
             is PuzzleAction.SetIntroOpen -> {
                 introOpen = action.open
+                refresh()
+            }
+
+            is PuzzleAction.SetLaterShown -> {
+                laterShown = action.shown
                 refresh()
             }
 
@@ -578,7 +585,7 @@ class PuzzleViewModel internal constructor(
                 announcement = announcement,
                 review = snapshot.review,
                 flow = snapshot.flow,
-                round = roundUi(puzzle, step?.view ?: snapshot.view, cards) { heroes.hero(it).name },
+                round = roundUi(puzzle, step?.view ?: snapshot.view, cards, laterShown) { heroes.hero(it).name },
             ),
         )
     }
@@ -611,7 +618,7 @@ class PuzzleViewModel internal constructor(
             selected = selected?.takeIf { it in options },
             bottomTeam = bottomTeam,
             hint = hint?.takeIf { it in options },
-            planned = info?.let { p -> roundUi(p, snapshot.view, cards) { "" }?.planned }.orEmpty(),
+            planned = info?.let { p -> roundUi(p, snapshot.view, cards, laterShown) { "" }?.planned }.orEmpty(),
             // While the replies are narrated the board is the one after the player's move: no later events.
             turnLog = if (live == null) turnLog(snapshot.events) else emptyList(),
         )

@@ -52,7 +52,8 @@ object R39PhantasmalWarrior : Puzzle() {
         theme = "A token placed for the last turn, a hero with no cards left",
         heroes = listOf("silverarrow", "nebkher", "garrus", "mrak"),
         goal = PuzzleGoal.GainCoins(6, Deadline.END_OF_ROUND, "Gain 6 coins by the end of the round."),
-        intro = "Round 6. You play Silverarrow and NebKher for Blue. Minions pay 2 coins here, and Mrak pays 4 to the" +
+        intro = "Round 6. You play Silverarrow and NebKher for Blue. Melee and ranged minions pay 2 coins here, and " +
+            "Mrak pays 4 to the" +
             " hero who defeats him and 2 to the other. Phantasmal Warrior can move an Illusion token in range " +
             "next to an enemy hero in range, and attack that hero.",
         nudges = R39_NUDGES.first(),
@@ -65,7 +66,8 @@ object R39PhantasmalWarrior : Puzzle() {
                 "Garrus's Light Pilum makes Silverarrow discard Trailblazer." +
                 "\n\n" +
                 "Turn 2: Garrus attacks Silverarrow at 5, and Warning Shot defends: 3, +2 for items, makes 5 (p.14). " +
-                "Mind Grip performs Mrak's Stone Carapace, moving NebKher 4 spaces. Divert Attention's Movement takes" +
+                "Mind Grip performs Mrak's Stone Carapace's Movement of 4; here NebKher moves 1 space. Divert " +
+                "Attention's Movement takes" +
                 " Silverarrow 2 spaces." +
                 "\n\n" +
                 "Turn 3: Mrak defeats a Blue melee minion. Long Shot attacks Mrak at 4, and Stone Grip holds: 4, +1 " +
@@ -236,8 +238,8 @@ private val R39_NUDGES = listOf(
         "Garrus can attack Silverarrow this turn. NebKher's gold card can use an enemy's card.",
         "Mind Grip performs an action on the card in an enemy hero's previous turn slot: Mrak's card " +
             "gives NebKher Movement 4.",
-        "Play Divert Attention on Silverarrow, moving 2 spaces, and Mind Grip on NebKher, moving 4 " +
-            "spaces. Defend with Warning Shot if Garrus attacks.",
+        "Play Divert Attention on Silverarrow, moving 2 spaces, and Mind Grip on NebKher, moving 1 " +
+            "space. Defend with Warning Shot if Garrus attacks.",
     ),
     listOf(
         "Silverarrow's last card is here. NebKher needs an Illusion on the board for next turn.",

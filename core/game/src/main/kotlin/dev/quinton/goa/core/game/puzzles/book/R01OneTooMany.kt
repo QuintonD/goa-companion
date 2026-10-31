@@ -59,7 +59,8 @@ object R01OneTooMany : Puzzle() {
         nudgesByTurn = R01_NUDGES,
         explanation =
             "This is one way through, and other plans win too: neither Noble Blade nor Gatling Gun is needed for " +
-                "all of them. What they share is the count: Red has to end the round far enough behind in the Minion " +
+                "all of them. Every plan we found comes down to the count: Red has to end the round far enough " +
+                "behind in the Minion " +
                 "Battle to lose its last minion." +
                 "\n\n" +
                 "Turn 1: Red has a ranged, a melee and a heavy minion; Blue a heavy and two melee, and Ursafar will " +

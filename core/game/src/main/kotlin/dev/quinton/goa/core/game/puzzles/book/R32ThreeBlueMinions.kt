@@ -52,7 +52,8 @@ object R32ThreeBlueMinions : Puzzle() {
         theme = "Six coins without touching a hero",
         heroes = listOf("bain", "wasp", "brogan", "brynn"),
         goal = PuzzleGoal.GainCoins(6, Deadline.END_OF_ROUND, "Gain 6 coins by the end of the round."),
-        intro = "Round 4. You play Bain and Wasp for Red. Minions pay 2 coins here. Get over here! moves a unit or a " +
+        intro = "Round 4. You play Bain and Wasp for Red. Melee and ranged minions pay 2 coins here. Get over here! " +
+            "moves a unit or a " +
             "token in range and in a straight line towards Bain until it is next to him.",
         nudges = R32_NUDGES.first(),
         nudgesByTurn = R32_NUDGES,
@@ -69,7 +70,7 @@ object R32ThreeBlueMinions : Puzzle() {
             "Turn 4: Hand Crossbow, with its second text, attacks the Blue melee minion next to Bain at 4 and " +
             "defeats it: 6 coins, and the goal is met.",
         rules = listOf(
-            "p.8 Minions",
+            "p.13 Attacking a Minion",
             "p.7 Tied Initiative",
             "p.19 Straight line",
         ),
@@ -211,7 +212,7 @@ private val R32_NUDGES = listOf(
         "Play Get over here! on Bain, moving the Blue melee minion, and Static Barrier on Wasp.",
     ),
     listOf(
-        "One coin-worthy minion left, and it is next to Bain.",
+        "One more minion is all you need, and it is next to Bain.",
         "Hand Crossbow's first text, a hero with a Bounty marker, is proven to lose here. Its second " +
             "targets a unit next to you.",
         "Play Hand Crossbow on Bain, attacking the Blue melee minion, and Deflect Projectiles on Wasp.",

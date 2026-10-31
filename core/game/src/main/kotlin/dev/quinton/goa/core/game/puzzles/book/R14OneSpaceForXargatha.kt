@@ -56,7 +56,8 @@ object R14OneSpaceForXargatha : Puzzle() {
         theme = "Coins counted, a space that decides this line",
         heroes = listOf("hanu", "xargatha", "misa", "emmitt"),
         goal = PuzzleGoal.GainCoins(6, Deadline.END_OF_ROUND, "Gain 6 coins by the end of the round."),
-        intro = "Round 3. You play Hanu and Xargatha for Blue. Minions pay 2 coins here, and Misa pays 3 to the hero " +
+        intro = "Round 3. You play Hanu and Xargatha for Blue. Melee and ranged minions pay 2 coins here, and Misa " +
+            "pays 3 to the hero " +
             "who defeats her and 1 to the other. Hurry up! sets the printed Initiative of a hero's unresolved " +
             "card to 11, and it can be your own. Deadly Swipe gets +2 Attack for each other enemy unit next to " +
             "you.",

@@ -56,12 +56,13 @@ object R37EightCoinsFromWhisper : Puzzle() {
     override val info = PuzzleInfo(
         id = "r37",
         number = 11,
-        title = "Eight Coins From Whisper",
+        title = "Eight Coins",
         difficulty = 1,
         theme = "Coins from a defeat and its assist",
         heroes = listOf("trinkets", "widget", "nebkher", "whisper"),
         goal = PuzzleGoal.GainCoins(8, Deadline.END_OF_ROUND, "Gain 8 coins by the end of the round."),
-        intro = "Round 5. You play Trinkets and Widget for Red. Minions pay 2 coins here, and Whisper pays 4 to the " +
+        intro = "Round 5. You play Trinkets and Widget for Red. Melee and ranged minions pay 2 coins here, and " +
+            "Whisper pays 4 to the " +
             "hero who defeats her and 2 to the other. Steam Discharge targets a unit in range next to the Turret," +
             " and Whisper is already close to Widget.",
         nudges = R37_NUDGES.first(),
@@ -89,7 +90,7 @@ object R37EightCoinsFromWhisper : Puzzle() {
                 "nebkher" to mapOf(
                     1 to "Holds.",
                     2 to "Holds.",
-                    3 to "Performs its primary action.",
+                    3 to "Performs its primary action: the line runs along his own row, clear of the fight.",
                 ),
                 "whisper" to mapOf(
                     1 to "Performs its primary action: an enemy hero in range chooses between discarding a card " +

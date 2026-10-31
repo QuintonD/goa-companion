@@ -43,9 +43,9 @@ object R17OpeningShots : Puzzle() {
     override val info = PuzzleInfo(
         id = "r17",
         number = 16,
-        title = "Opening Shots",
+        title = "The Last Life Counter",
         difficulty = 2,
-        theme = "A discard forced while both discards are empty, the last Life counter",
+        theme = "A hero with no card left in turn 4, the last Life counter",
         heroes = listOf("rowenna", "swift", "snorri", "wasp"),
         goal = PuzzleGoal.DefeatHero("snorri", Deadline.END_OF_ROUND, "Defeat Snorri by the end of the round."),
         intro = "Round 7. You play Rowenna and Swift for Blue. Red has 1 Life counter left, and defeating Snorri " +
@@ -64,7 +64,8 @@ object R17OpeningShots : Puzzle() {
                 "melee minion. Snorri takes a Blue melee minion, as planned." +
                 "\n\n" +
                 "Turn 3: Opening Shots needs both discards empty, and they are, because Rowenna hasn't defended and " +
-                "Snorri hasn't either. He discards Inscribe the Runes, so his hand is down to the one card he plays " +
+                "Snorri hasn't either. On this line he discards Inscribe the Runes, so his hand is down to the one " +
+                "card he plays " +
                 "next turn. Bounce moves Swift 2 spaces in a straight line." +
                 "\n\n" +
                 "Turn 4: Rowenna's initiative beats Snorri's. Paragon of Grace attacks at 7, he has no card to defend" +

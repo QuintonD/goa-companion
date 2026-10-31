@@ -52,7 +52,8 @@ object R35SevenCoinsAndMin : Puzzle() {
         theme = "Coins counted to a defeat, standing next to where the enemy goes",
         heroes = listOf("takahide", "snorri", "tigerclaw", "min"),
         goal = PuzzleGoal.GainCoins(7, Deadline.END_OF_ROUND, "Gain 7 coins by the end of the round."),
-        intro = "Round 2. You play Takahide and Snorri for Blue. Minions pay 2 coins here, and Min pays 2 to the hero" +
+        intro = "Round 2. You play Takahide and Snorri for Blue. Melee and ranged minions pay 2 coins here, and Min " +
+            "pays 2 to the hero" +
             " who defeats her and 1 to the other. Sting like a Bee is in Takahide's hand this round, and it " +
             "targets a unit at maximum range.",
         nudges = R35_NUDGES.first(),
@@ -211,7 +212,7 @@ private val R35_NUDGES = listOf(
             "melee minion.",
     ),
     listOf(
-        "Min goes to the outlined space this turn. Takahide has to be next to it.",
+        "Min goes to the outlined space this turn. On this line Takahide goes next to it.",
         "Come to Aid's Movement offers thirteen answers. Seven are proven to lose.",
         "Play Come to Aid on Takahide, moving next to Min's space, and Oath of Endurance on Snorri, " +
             "moving.",

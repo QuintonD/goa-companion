@@ -2256,6 +2256,8 @@ matters. Strength 10 solves 8 of the 23 with the v0.10 net (`gate.txt` is measur
 If the convention is rejected, the book's second part can be dropped by emptying `Puzzles.fullRounds`: nothing else
 depends on it, and the 50 and their keys are untouched.
 
+**Second audit (independent, same day):** the proofs and every "proven to lose" sentence held. Fixed: a plan's space under "Show later turns" pointed at nothing, so the later plans are now outlined while they are shown; the enemy's fifth card was never on screen though defenses rest on it, so it now shows, marked "–" (`PuzzleInfo.keeps`); r33 is cut (no Tree is needed at all), which leaves Mortimer in one puzzle; four titles that claimed an idea the prover doesn't need are renamed; "what they share" became "every plan we found", since nothing proves it of all plans; and several sentences now say "on this line".
+
 ## ADR-049 — A net that knows heroes, cards and pieces (v0.10, 2026-10-31)
 **Context:** The owner asked for a stronger computer with every hero, and beats strength 10 by hero kills
 and pushing the lane in 3v3 or bigger. v0.9's net pools 52 generic numbers per hero per team, so it

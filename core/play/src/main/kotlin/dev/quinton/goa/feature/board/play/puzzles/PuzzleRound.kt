@@ -23,6 +23,9 @@ enum class KnownCardState {
 
     /** It left the hand before its turn (spent on a defense, discarded): the hero plays anything it has left. */
     GONE,
+
+    /** The fifth card of the hand, not one of the four it plays: it can still defend with it. */
+    KEPT,
 }
 
 data class KnownCardUi(
@@ -51,11 +54,18 @@ data class KnownHeroUi(val heroId: String, val name: String, val cards: List<Kno
 }
 
 /** "Turn 2 of 4" and the strip of the enemy's cards. */
-data class RoundUi(val turn: Int, val heroes: List<KnownHeroUi>) {
+data class RoundUi(val turn: Int, val heroes: List<KnownHeroUi>, val laterShown: Boolean = false) {
     val heading: String get() = "Turn $turn of $TURNS"
 
-    /** Where this turn's plans still to resolve go: outlined on the board. */
-    val planned: Set<Hex> get() = heroes.flatMap { h -> h.now?.let { it.spaces + it.targetsAt }.orEmpty() }.toSet()
+    /** Where this turn's plans still to resolve go, and the later turns' while shown: outlined on the board. */
+    val planned: Set<Hex>
+        get() = heroes.flatMap { h ->
+            h.now?.let { it.spaces + it.targetsAt }.orEmpty() + if (laterShown) {
+                h.later(turn).filter { it.state == KnownCardState.COMING }.flatMap { it.spaces + it.targetsAt }
+            } else {
+                emptyList()
+            }
+        }.toSet()
 
     companion object {
         const val TURNS = 4
@@ -63,7 +73,13 @@ data class RoundUi(val turn: Int, val heroes: List<KnownHeroUi>) {
 }
 
 /** The round's state from [view], or null when [info] is a turn-sized puzzle. */
-fun roundUi(info: PuzzleInfo, view: GameView, cards: Map<String, Card>, name: (String) -> String): RoundUi? {
+fun roundUi(
+    info: PuzzleInfo,
+    view: GameView,
+    cards: Map<String, Card>,
+    laterShown: Boolean = false,
+    name: (String) -> String,
+): RoundUi? {
     if (!info.fullRound) return null
     val heroes = info.known.groupBy { it.heroId }.map { (heroId, plays) ->
         val hero = view.heroes.firstOrNull { it.heroId == heroId }
@@ -84,8 +100,15 @@ fun roundUi(info: PuzzleInfo, view: GameView, cards: Map<String, Card>, name: (S
                     view.minions.firstOrNull { it.id == id }?.at ?: view.pieces.firstOrNull { it.id == id }?.at
                 }
                 KnownCardUi(play.turn, play.cardId, cards[play.cardId], play.plan, state, play.spaces, targets)
+            } + info.keeps.filter { it.heroId == heroId }.map { kept ->
+                val state = when (kept.cardId) {
+                    in resolved -> KnownCardState.PLAYED
+                    in discarded -> KnownCardState.GONE
+                    else -> KnownCardState.KEPT
+                }
+                KnownCardUi(0, kept.cardId, cards[kept.cardId], null, state)
             },
         )
     }
-    return RoundUi(view.turn, heroes)
+    return RoundUi(view.turn, heroes, laterShown)
 }

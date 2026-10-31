@@ -113,6 +113,9 @@ sealed interface PuzzleUiState {
 }
 
 sealed interface PuzzleAction {
+    /** "Show later turns": the later plans under the strip and their spaces on the board. */
+    data class SetLaterShown(val shown: Boolean) : PuzzleAction
+
     /** A tap on the board: selects the option it stands for, if any. */
     data class Tap(val tap: TableTap) : PuzzleAction
 

@@ -54,9 +54,9 @@ object R18APriceOnBrogan : Puzzle() {
     override val info = PuzzleInfo(
         id = "r18",
         number = 23,
-        title = "A Price on Brogan",
+        title = "Catching Brogan",
         difficulty = 3,
-        theme = "Bounty set up for a later shot",
+        theme = "A hero who respawns far away, caught in turn 4",
         heroes = listOf("ursafar", "bain", "brogan", "razzle"),
         goal = PuzzleGoal.DefeatHero("brogan", Deadline.END_OF_ROUND, "Defeat Brogan by the end of the round."),
         intro = "Round 4. You play Ursafar and Bain for Blue. Red has 2 Life counters left. Brogan is off the board " +
@@ -66,7 +66,8 @@ object R18APriceOnBrogan : Puzzle() {
         nudgesByTurn = R18_NUDGES,
         explanation =
             "This is one way through, and other plans win too: making Brogan spend a card before turn 4 is proven" +
-                " not to be needed, nor is Hand Crossbow. In this line the Bounty is what lets Bain shoot from where " +
+                " not to be needed, nor is Hand Crossbow, nor Dead or Alive, the card that gives the Bounty. In " +
+                "this line the Bounty is what lets Bain shoot from where " +
                 "he stands." +
                 "\n\n" +
                 "Turn 1: Brogan respawns and fast travels away as planned. Nothing can reach him yet. Use Movement on" +

@@ -64,8 +64,8 @@ object R21FarEnoughBehind : Puzzle() {
         nudges = R21_NUDGES.first(),
         nudgesByTurn = R21_NUDGES,
         explanation =
-            "This is one way through, and other plans win too; Equilibrium is proven not to be needed. What they " +
-                "share is the count: Red has to end the round far enough behind." +
+            "This is one way through, and other plans win too; Equilibrium is proven not to be needed. Every plan " +
+                "we found comes down to the count: Red has to end the round far enough behind." +
                 "\n\n" +
                 "Turn 1: Swift lands beside you and pushes Ignatia, as planned. Chase's Movement takes Garrus 4 " +
                 "spaces, next to the Red melee and ranged minions; Ignatia walks 3 spaces to Lane Zone 2 with " +
@@ -248,7 +248,7 @@ object R21FarEnoughBehind : Puzzle() {
 private val R21_NUDGES = listOf(
     listOf(
         "Count the minions in the Battle Zone. How many must go before the battle takes the rest?",
-        "Garrus can reach the Red minions now. Ignatia needs to be somewhere else for a while.",
+        "Garrus can reach the Red minions now. On this line Ignatia goes elsewhere for a while.",
         "Play Spontaneous Immolation on Ignatia and Chase on Garrus; Garrus goes first and runs 4 spaces " +
             "next to the Red melee and ranged minions.",
     ),
@@ -259,7 +259,7 @@ private val R21_NUDGES = listOf(
             " Strike.",
     ),
     listOf(
-        "Swift is going to make Garrus discard, whatever you do. Don't let it be Form Up!: that loses.",
+        "On this line Swift makes Garrus discard. Don't let it be Form Up!: that loses.",
         "Chilling Howl lets him discard a resolved card first, if you like: it makes no difference here. " +
             "Ignatia still has a way to go.",
         "Play Path of Ashes on Ignatia and Chilling Howl on Garrus. Ignatia moves 2 spaces in a straight " +

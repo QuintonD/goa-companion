@@ -258,8 +258,8 @@ private val R04_NUDGES = listOf(
         "Bain can take the second one now. Wuk's last attack needs something on the board first.",
         "Nature's Champion targets a unit in range next to a Tree token. Which Blue melee minion can " +
             "Wuk's Trees be placed next to?",
-        "Play Mystic Saplings on Wuk, placing two Trees next to the Blue melee minion far from Bain, and " +
-            "Heavy Crossbow on Bain, shooting the Blue melee minion near him.",
+        "Play Mystic Saplings on Wuk, placing two Trees next to one Blue melee minion, and Heavy " +
+            "Crossbow on Bain, shooting the other in a straight line from him.",
     ),
     listOf(
         "One more Blue minion, and you are done. Which is next to a Tree?",

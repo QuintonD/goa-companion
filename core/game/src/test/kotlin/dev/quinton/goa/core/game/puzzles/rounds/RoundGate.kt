@@ -32,7 +32,7 @@ object RoundGate {
 
     /**
      * One thing taken away from the player. A choice in some turns: `T1-4 card:Hurry up!`, `T4 defend:X`,
-     * `T3 retrieve:X`, `T2 unit:brogan` where the card asks. Or something that must not happen on the board, however
+     * `T3 retrieve:X`, `T2 unit:brogan` where the card asks, `T1-4 bullet:X` a "Choose one" bullet. Or something that must not happen on the board, however
      * it comes about, because an attack with a single target is never asked: `T1-4 kill:RED` no Red minion falls,
      * `T1-4 defeat:misa` Misa isn't defeated, `T1-4 spare:widget` Widget's hand stays what its card plays leave.
      */
@@ -45,6 +45,7 @@ object RoundGate {
                 "defend" -> d.kind == DecisionKind.DEFEND && c is Choice.Card && data.card(c.cardId).name == value
                 "retrieve" -> "retrieve" in d.prompt && c is Choice.Card && data.card(c.cardId).name == value
                 "unit" -> c is Choice.Unit && c.unitId == value
+                "bullet" -> c is Choice.Option && value in c.label
                 else -> false
             }
         }
