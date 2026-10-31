@@ -102,7 +102,8 @@ class PuzzleViewModelTest {
         book.puzzles.forEach { info ->
             val vm = viewModel(info.id)
             assertThat(vm.ui().info.id).isEqualTo(info.id)
-            assertThat(vm.ui().total).isEqualTo(book.puzzles.size)
+            // The place in its part of the book: the 50 puzzles, or the full rounds.
+            assertThat(vm.ui().total).isEqualTo(book.puzzles.count { it.fullRound == info.fullRound })
             assertThat(vm.ui().introOpen).isTrue()
             play(vm, puzzleFile(info.id).solution)
             assertThat(vm.ui().phase).isEqualTo(PuzzlePhase.SOLVED)
@@ -156,8 +157,8 @@ class PuzzleViewModelTest {
         assertThat(start.heroes).hasSize(2)
         for (hero in start.heroes) {
             assertThat(hero.cards.map { it.turn }).containsExactly(1, 2, 3, 4).inOrder()
-            assertThat(hero.cards.map { it.state })
-                .isEqualTo(listOf(KnownCardState.NOW, KnownCardState.COMING, KnownCardState.COMING, KnownCardState.COMING))
+            assertThat(hero.cards.first().state).isEqualTo(KnownCardState.NOW)
+            assertThat(hero.cards.drop(1).map { it.state }.toSet()).containsExactly(KnownCardState.COMING)
             assertThat(hero.cards.all { it.card != null }).isTrue()
         }
         for (move in puzzleFile(id).solution) {
@@ -358,7 +359,9 @@ class PuzzleViewModelTest {
         // Every wrong try and every solution: the other side's replies show line by line, then the board.
         book.puzzles.forEach { info ->
             val file = puzzleFile(info.id)
-            (file.wrongTries.map { it.moves } + listOf(file.solution)).forEach { moves ->
+            // A full round's wrong try is a line played to its end, off the key: the solution will do there.
+            val tries = if (info.fullRound) emptyList() else file.wrongTries.map { it.moves }
+            (tries + listOf(file.solution)).forEach { moves ->
                 val vm = viewModel(info.id)
                 moves.forEach { move ->
                     vm.onAction(PuzzleAction.Answer(vm.ui().table.choiceOf(move)))
@@ -396,7 +399,9 @@ class PuzzleViewModelTest {
         val ready = vm.uiState.value as PuzzleListUiState.Ready
         assertThat(ready.total).isEqualTo(book.puzzles.size)
         assertThat(ready.solved).isEqualTo(1)
-        assertThat(ready.rows.map { it.info.number }).isEqualTo((1..book.puzzles.size).toList())
+        val (rounds, puzzles) = ready.rows.partition { it.info.fullRound }
+        assertThat(puzzles.map { it.info.number }).isEqualTo((1..puzzles.size).toList())
+        assertThat(rounds.map { it.info.number }).isEqualTo((1..rounds.size).toList())
         assertThat(ready.rows.first().progress.attempts).isEqualTo(2)
         assertThat(ready.next?.info?.id).isEqualTo(book.puzzles.getOrNull(1)?.id)
         val difficulty = ready.difficulties.first()
