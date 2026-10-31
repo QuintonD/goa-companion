@@ -258,7 +258,7 @@ private fun ContinueCard(state: PuzzleListUiState.Ready, onOpen: (String) -> Uni
                 )
                 if (next != null) {
                     Text(
-                        "${next.info.number}. ${next.info.title}",
+                        PuzzleText.numbered(next.info),
                         style = MaterialTheme.typography.titleMedium,
                         color = content,
                     )
@@ -322,7 +322,7 @@ private fun PuzzleRow(row: PuzzleRowUi, onClick: () -> Unit) {
             .heightIn(min = 72.dp)
             .clearAndSetSemantics {
                 contentDescription = listOf(
-                    "Puzzle ${info.number}: ${info.title}",
+                    "${PuzzleText.short(info)}: ${info.title}",
                     info.theme,
                     PuzzleText.difficulty(info.difficulty),
                     PuzzleText.names(row.heroes.map { it.name }),

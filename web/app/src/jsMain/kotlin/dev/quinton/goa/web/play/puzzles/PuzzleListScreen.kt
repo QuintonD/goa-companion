@@ -192,7 +192,7 @@ private fun ContinueCard(state: PuzzleListUiState.Ready) {
         Div({ classes("goa-puzzle-continue-text") }) {
             P({ classes("t-overline") }) { Text("${state.solved} of ${state.total} solved") }
             if (next != null) {
-                H3({ classes("t-title-medium") }) { Text("${next.info.number}. ${next.info.title}") }
+                H3({ classes("t-title-medium") }) { Text(PuzzleText.numbered(next.info)) }
                 P({ classes("t-body-small") }) { Text(next.info.goal.text) }
             } else {
                 H3({ classes("t-title-medium") }) { Text("Every puzzle solved") }

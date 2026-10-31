@@ -19,6 +19,10 @@ object PuzzleText {
     fun short(info: PuzzleInfo): String =
         if (info.fullRound) "Full round ${info.number}" else "Puzzle ${info.number}"
 
+    /** The Continue card's line: "3. Title", or "Full round 3. Title" (numbers repeat across the parts). */
+    fun numbered(info: PuzzleInfo): String =
+        if (info.fullRound) "Full round ${info.number}. ${info.title}" else "${info.number}. ${info.title}"
+
     /** "Puzzle 3 of 12", "Full round 3 of 30". */
     fun place(info: PuzzleInfo, total: Int): String = "${short(info)} of $total"
 

@@ -42,8 +42,7 @@ class FullRoundFlowTest {
         rule.reveal(hasText("FULL ROUNDS"))
         rule.waitForText("FULL ROUNDS")
         shot("list")
-        rule.reveal(hasText("Where the Turret Goes", substring = true))
-        rule.tap(hasText("Where the Turret Goes", substring = true) and hasClickAction())
+        rule.tap(hasContentDescription("Full round 1: Where the Turret Goes", substring = true) and hasClickAction())
 
         rule.waitForText("Turn 1 of 4", timeout = PUZZLE_TIMEOUT)
         rule.waitForText("Push the lane", substring = true)
