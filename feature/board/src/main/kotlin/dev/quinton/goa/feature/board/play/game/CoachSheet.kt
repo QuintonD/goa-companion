@@ -31,12 +31,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -191,11 +190,13 @@ private fun chanceWords(option: SuggestedOption): String = when (option.chance) 
 }
 
 @Composable
-private fun confidenceWords(confidence: SuggestionConfidence): String = when (confidence) {
-    SuggestionConfidence.CLEAR -> stringResource(R.string.coach_confidence_clear)
-    SuggestionConfidence.LIKELY -> stringResource(R.string.coach_confidence_likely)
-    SuggestionConfidence.CLOSE -> stringResource(R.string.coach_confidence_close)
-}
+private fun confidenceWords(first: Boolean, confidence: SuggestionConfidence): String = stringResource(
+    when (confidence) {
+        SuggestionConfidence.CLEAR -> if (first) R.string.coach_best_clear else R.string.coach_behind_clear
+        SuggestionConfidence.LIKELY -> if (first) R.string.coach_best_likely else R.string.coach_behind_likely
+        SuggestionConfidence.CLOSE -> R.string.coach_too_close
+    },
+)
 
 @Composable
 private fun OptionCard(
@@ -209,14 +210,10 @@ private fun OptionCard(
     val cardId = (option.choice as? Choice.Card)?.cardId
     val card = cardId?.let(table::card)
     val onBoard = option.choice is Choice.Space || option.choice is Choice.Unit || option.choice is Choice.Token
-    val behind = when {
-        rank == 1 -> null
-        option.behind == 0 -> stringResource(R.string.coach_same_chance)
-        else -> stringResource(R.string.coach_behind, option.behind)
-    }
+    val behind = if (option.behind > 0) stringResource(R.string.coach_behind, option.behind) else null
     val chance = chanceWords(option)
-    val confidence = confidenceWords(option.confidence)
-    val spoken = stringResource(R.string.coach_option_said, rank, option.label, chance, behind ?: confidence)
+    val confidence = confidenceWords(rank == 1, option.confidence)
+    val spoken = stringResource(R.string.coach_option_said, rank, option.label, chance, confidence)
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -226,10 +223,7 @@ private fun OptionCard(
         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Row(
                 verticalAlignment = Alignment.Top,
-                modifier = Modifier.semantics(mergeDescendants = true) {
-                    contentDescription = spoken
-                    role = Role.Image
-                },
+                modifier = Modifier.clearAndSetSemantics { contentDescription = spoken },
             ) {
                 if (card != null) {
                     TableCard(card, width = 64.dp)
@@ -241,7 +235,12 @@ private fun OptionCard(
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    Text("$chance · $confidence", style = MaterialTheme.typography.bodyMedium)
+                    Text(chance, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        confidence,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     if (behind != null) {
                         Text(
                             behind,

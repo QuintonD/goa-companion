@@ -2,6 +2,7 @@ package dev.quinton.goa.core.game.ai
 
 import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
+import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.model.catalog.PrimaryAction
 
@@ -13,6 +14,8 @@ import dev.quinton.goa.core.model.catalog.PrimaryAction
  */
 internal class LineBuilder(private val f: CoachFacts) {
     private class Step(val key: String, val at: Int, val text: () -> String, val hiddenCard: String? = null)
+
+    private val upgrading = f.d.kind == DecisionKind.UPGRADE_CARD || f.d.kind == DecisionKind.KEEP_UPGRADE
 
     fun line(c: Choice): List<String> {
         val leaves = f.leaves(c)
@@ -82,7 +85,8 @@ internal class LineBuilder(private val f: CoachFacts) {
                     if (e.winner == f.team) "your team wins the game" else "the other team wins the game"
                 }
 
-                is GameEvent.LevelledUp -> if (e.heroId == f.seat) {
+                // Already asked about a level: no news in the line.
+                is GameEvent.LevelledUp -> if (e.heroId == f.seat && !upgrading) {
                     add("level:${e.level}", i) { "you reach level ${e.level}" }
                 }
 

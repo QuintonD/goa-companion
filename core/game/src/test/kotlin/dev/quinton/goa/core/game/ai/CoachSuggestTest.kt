@@ -74,6 +74,7 @@ class CoachSuggestTest {
         var spoken = 0
         var ms = 0.0
         var maxMs = 0.0
+        val tookMs = ArrayList<Double>()
         val kinds = sortedMapOf<String, Int>()
         val reasons = sortedMapOf<String, Int>()
         val byHero = sortedMapOf<String, MutableMap<String, Int>>()
@@ -90,6 +91,7 @@ class CoachSuggestTest {
             val built = coach.built(coach.prepare(s.fork(), d), s.fork(), d) { false } ?: return
             val took = (System.nanoTime() - t0) / 1e6
             ms += took
+            tookMs += took
             maxMs = maxOf(maxMs, took)
             asked++
             kinds[d.kind.name] = (kinds[d.kind.name] ?: 0) + 1
@@ -131,7 +133,9 @@ class CoachSuggestTest {
             }
             hiddenCards(f, s, d, sug)
             for (i in 1 until sug.options.size) {
-                if (sug.options[i].chance > sug.options[0].chance) fail(d, "the ranking contradicts its chances")
+                val o = sug.options[i]
+                if (o.chance > sug.options[0].chance) fail(d, "the ranking contradicts its chances")
+                if (o.behind != sug.options[0].chance - o.chance) fail(d, "behind ${o.behind} against the chances shown")
             }
         }
 
@@ -258,7 +262,7 @@ class CoachSuggestTest {
             println(
                 "SUGGEST survey: $asked decisions, reasons on $spoken, lines on $lines, close $close, threats $threats, " +
                     "plans $plans of $planAsked card plays ($planOrders with an order), mean ${"%.0f".format(ms / asked.coerceAtLeast(1))} ms, " +
-                    "max ${"%.0f".format(maxMs)} ms",
+                    "p95 ${"%.0f".format(tookMs.sorted().getOrElse((tookMs.size * 0.95).toInt()) { 0.0 })} ms, max ${"%.0f".format(maxMs)} ms",
             )
             println("SUGGEST kinds: $kinds")
             println("SUGGEST reasons: $reasons")

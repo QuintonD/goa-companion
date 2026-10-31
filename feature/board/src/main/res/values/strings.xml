@@ -12,10 +12,11 @@
     <string name="coach_chance_won">Wins in every guess</string>
     <string name="coach_chance_lost">Loses in every guess</string>
     <string name="coach_behind">%1$d points behind the first</string>
-    <string name="coach_same_chance">About the same chance as the first</string>
-    <string name="coach_confidence_clear">Clear</string>
-    <string name="coach_confidence_likely">Likely</string>
-    <string name="coach_confidence_close">Close</string>
+    <string name="coach_best_clear">Best in most guesses</string>
+    <string name="coach_best_likely">Probably best</string>
+    <string name="coach_behind_clear">Behind in most guesses</string>
+    <string name="coach_behind_likely">Probably behind</string>
+    <string name="coach_too_close">Too close to rank</string>
     <string name="coach_show_on_board">Show on the board</string>
     <string name="coach_read_card">Read the card</string>
     <string name="coach_why">Why</string>

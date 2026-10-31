@@ -365,7 +365,7 @@ internal class ReasonFinder(private val f: CoachFacts) {
         val tier = f.g.lowestTier(seat)
         return why(
             CoachReasonKind.DANGER,
-            "You stay on the board with this; with ${f.label(y)} you are defeated in most playouts.",
+            "You stay on the board with this; with \"${f.label(y)}\" you are defeated in most playouts.",
             "A defeat costs your team ${plural(tier, "Life counter")} (your lowest card Tier) and gives the attacker ${plural(f.me.level, "coin")} (p.13).",
             setOf(Term.LIFE, Term.EXPOSURE, Term.PRESENCE),
             PlayoutClaim.SEAT_SAFE,
@@ -396,7 +396,7 @@ internal class ReasonFinder(private val f: CoachFacts) {
         if (sy < MOST || sy - sx < CLEAR_GAP) return null
         return why(
             CoachReasonKind.PUSH_GIVEN,
-            "${f.label(y)} gives the other team the lane push in most playouts; this doesn't.",
+            "\"${f.label(y)}\" gives the other team the lane push in most playouts; this doesn't.",
             "The team with minions left in the Battle Zone wins the push, and the fight moves one Zone towards the loser's Throne (p.8).",
             setOf(Term.LANE, Term.MINION_MARGIN),
             PlayoutClaim.PUSH_THEIRS,

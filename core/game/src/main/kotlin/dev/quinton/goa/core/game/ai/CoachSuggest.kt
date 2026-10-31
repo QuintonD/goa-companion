@@ -82,15 +82,20 @@ internal class SuggestionBuilder(
                 choice = c,
                 label = labels[i],
                 chance = WinChance.percent(r.chance),
-                behind = WinChance.points(best.chance - r.chance),
+                // From the numbers shown: "5 behind" beside two equal chances read as a mistake.
+                behind = (WinChance.percent(best.chance) - WinChance.percent(r.chance)).coerceAtLeast(0),
                 confidence = if (i == 0) {
                     second?.let { confidence(best, it) } ?: SuggestionConfidence.CLEAR
                 } else {
                     confidence(best, r)
                 },
                 line = lines.line(c),
-                reasons = found.map { it.reason }.distinctBy { it.text }.take(MAX_REASONS),
-                against = if (i == 0) emptyList() else listOfNotNull(downside(c, best.option.choice)),
+                reasons = found.filterNot { it.reason.speaksAgainst() }.map { it.reason }.distinctBy { it.text }
+                    .take(MAX_REASONS),
+                against = (
+                    found.filter { it.reason.speaksAgainst() }.map { it.reason } +
+                        listOfNotNull(if (i == 0) null else downside(c, best.option.choice))
+                    ).distinctBy { it.text },
             )
         }
         return CoachSuggestions(
@@ -132,6 +137,10 @@ internal class SuggestionBuilder(
             if (withDistance.count { it == label } > 1) "$label (${withDistance.take(i + 1).count { it == label }})" else label
         }
     }
+
+    /** What the option costs, whatever else it does: told under "Against it", never under "Why". */
+    private fun CoachReason.speaksAgainst(): Boolean = kind == CoachReasonKind.DEFENSE_FALLS ||
+        kind == CoachReasonKind.LIFE_COST || (kind == CoachReasonKind.BLOCK && "isn't met" in text)
 
     private fun threatCopies() = (0 until THREAT_COPIES).map { k ->
         searcher.determinize(f.es, f.d, Searcher.mix(seed, THREAT_SEED + k))

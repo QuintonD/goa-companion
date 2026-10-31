@@ -1,7 +1,5 @@
 package dev.quinton.goa.core.game.ai
 
-import kotlin.math.abs
-
 /**
  * The team's chance of winning from the hand evaluation with the coach's knobs ([AiPlayers.TUNED]),
  * fitted by Platt scaling on 149 702 turn boundaries of 6 399 stored self-play games and checked on
@@ -39,9 +37,6 @@ internal object WinChance {
         if (chance <= 0.0) return 0
         return rounded(100 * chance).coerceIn(ROUNDED_TO, 100 - ROUNDED_TO)
     }
-
-    /** The points between two chances, as roughly as [percent] shows them. */
-    fun points(gap: Double): Int = rounded(100 * abs(gap))
 
     private fun rounded(x: Double): Int = (x / ROUNDED_TO + 0.5).toInt() * ROUNDED_TO
 }
